@@ -1,0 +1,20 @@
+RESULT recarry-refusal-head-moved rc=0 merged_at=['22222222'] settle_calls=[2, 30] last='TRAIN DONE'
+       landed_line=True
+       | #7 recarry: app_push refused but the head moved to 22222222; the push landed, not a stop
+       | #7 recarry: main merged, head 22222222; no RECARRY line
+       | #7 22222222 ci red=[]
+       | #7 approved (app)
+       | #7 MERGED dddddddddddddddddddddddddddddddddddddddd
+       | #7 closes 
+       | TRAIN DONE
+RESULT recarry-refusal-head-still rc=1 merged_at=[] settle_calls=[2] last='TRAIN STOPPED #7 recarry: the main merge pushed nothing: REF'
+       landed_line=True
+       | TRAIN STOPPED #7 recarry: the main merge pushed nothing: REFUSE: the pull request did not read back
+RESULT recarry-pushed-ok rc=0 merged_at=['22222222'] settle_calls=[30] last='TRAIN DONE'
+       landed_line=True
+       | #7 recarry: main merged, head 22222222; RECARRY: prepr SKIPPED
+       | #7 22222222 ci red=[]
+       | #7 approved (app)
+       | #7 MERGED dddddddddddddddddddddddddddddddddddddddd
+       | #7 closes 
+       | TRAIN DONE

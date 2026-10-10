@@ -1,0 +1,7 @@
+# the null control: the UNMODIFIED tree's self-tests (the body's figures)
+## git show origin/main:tools/pr/app_push.sh -> --self-test
+   measured at the merge-base worktree: 91 checks, 0 failed; no read-back race arm exists there
+0
+   (count of read-back-race tokens in the origin/main blob: 0 = the defect shape is the single-shot read)
+## the merge-base merge_train.py --self-test: 95 checks, 0 failed
+## my own clean-path null control (drive_readback.sh ok): reads=1 settles=0 -> the clean path never sleeps

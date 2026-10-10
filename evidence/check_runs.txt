@@ -1,0 +1,9 @@
+# check-runs at the measured head a27c7bd4412989300170b2648c417e9d6e93f0a9 (read from the API, not the body)
+## any red (failure/timed_out/cancelled) at the head:
+(none listed above = none red)
+## total runs at the head:
+40
+## the range (the other two heads), red only:
+-- 77d66d707
+-- 48d47ab19
+(cancelled at 48d47ab19 are superseded runs, not red)

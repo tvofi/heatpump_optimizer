@@ -1,0 +1,34 @@
+# head a27c7bd4412989300170b2648c417e9d6e93f0a9  (reviewer's own harness; fake curl; prod functions extracted verbatim)
+# prod_readback.sh sha256: 2507fa6fca5de4b0abc01c60591dc74cdfbf4ce8708acdacb82f1f6e1fe40da2
+ARM=ok TRIES=6 SLEEP=2 rc=0 reads=1 settles=0 elapsed=0.4
+
+ARM=race TRIES=6 SLEEP=2 rc=0 reads=2 settles=1 elapsed=2.6
+  out| app_push: read-back 1/6: the live head is still bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; sleeping 2s
+
+ARM=stale TRIES=6 SLEEP=2 rc=1 reads=6 settles=5 elapsed=11.0
+  out| app_push: read-back 1/6: the live head is still bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; sleeping 2s
+  out| app_push: read-back 2/6: the live head is still bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; sleeping 2s
+  out| app_push: read-back 3/6: the live head is still bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; sleeping 2s
+  out| app_push: read-back 4/6: the live head is still bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; sleeping 2s
+  out| app_push: read-back 5/6: the live head is still bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; sleeping 2s
+  err| app_push: REFUSE: pushed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa but the pull request did not read back at it: pushed and not visible within the budget (6 attempts over ~12s; the live head is still bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) -- a race GitHub had not indexed, not a refused push; re-read #7 by hand
+
+ARM=error TRIES=6 SLEEP=2 rc=1 reads=6 settles=5 elapsed=10.5
+  out| app_push: read-back 1/6: the read could not be performed (curl-exit-22); sleeping 2s
+  out| app_push: read-back 2/6: the read could not be performed (curl-exit-22); sleeping 2s
+  out| app_push: read-back 3/6: the read could not be performed (curl-exit-22); sleeping 2s
+  out| app_push: read-back 4/6: the read could not be performed (curl-exit-22); sleeping 2s
+  out| app_push: read-back 5/6: the read could not be performed (curl-exit-22); sleeping 2s
+  err| app_push: REFUSE: the pull request did not read back at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and the read was refused (the read could not be performed (curl-exit-22)) -- re-read #7 by hand before touching anything
+
+ARM=bad TRIES=6 SLEEP=2 rc=1 reads=1 settles=0 elapsed=0.3
+  err| app_push: REFUSE: pull request #7's body is not byte-identical to /Users/timmalmstrom/hpo-seats/r9rev-2117/arm-JBPQcz/body.md modulo one trailing newline
+
+ARM=closed TRIES=6 SLEEP=2 rc=1 reads=6 settles=5 elapsed=11.0
+  out| app_push: read-back 1/6: the read answered state=closed; sleeping 2s
+  out| app_push: read-back 2/6: the read answered state=closed; sleeping 2s
+  out| app_push: read-back 3/6: the read answered state=closed; sleeping 2s
+  out| app_push: read-back 4/6: the read answered state=closed; sleeping 2s
+  out| app_push: read-back 5/6: the read answered state=closed; sleeping 2s
+  err| app_push: REFUSE: the pull request did not read back at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and the read was refused (the read answered state=closed) -- re-read #7 by hand before touching anything
+

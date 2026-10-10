@@ -1,0 +1,4 @@
+# head a27c7bd4412989300170b2648c417e9d6e93f0a9
+ok   and no success line
+ok   the budget spent one settle and the token was revoked
+app_push self-test: 110 checks, 0 failed
