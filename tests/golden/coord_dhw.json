@@ -1901,6 +1901,12 @@
    },
    "native_value": 21.0
   },
+  "indoor_temp_predicted": {
+   "extra_state_attributes": {
+    "waiting_for": "first_plan"
+   },
+   "native_value": null
+  },
   "lower_floor_temp": {
    "extra_state_attributes": null,
    "native_value": 21.0
@@ -1925,6 +1931,56 @@
     "restore": null
    },
    "native_value": 1.0
+  },
+  "model_status": {
+   "extra_state_attributes": {
+    "capacity_envelope": {},
+    "cop": {
+     "alarm": false,
+     "samples": 0,
+     "scale": 1.0,
+     "watched_buckets": 0
+    },
+    "heat_loss": {
+     "learned": false,
+     "samples": 0,
+     "scale": 1.0
+    },
+    "heat_loss_w_per_k": 150.0,
+    "internal_gains_kw": null,
+    "lower_floor": {
+     "learned": false,
+     "ratio": 1.0,
+     "samples": 0
+    },
+    "solar_aperture": {
+     "needed": 30,
+     "samples": 0,
+     "scale": 1.0
+    },
+    "system_identification": {
+     "active": false,
+     "last_run": null,
+     "phase": "idle",
+     "result": {
+      "completed": false,
+      "confidence": 0.0,
+      "heat_loss_kw_per_c": null,
+      "internal_gains_kw": null,
+      "reason": "",
+      "slab_mode_tau_hours": null,
+      "thermal_mass_kwh_per_c": null,
+      "time_constant_hours": null
+     },
+     "samples": 0
+    },
+    "tank_cooling": {
+     "learned": false,
+     "rate_c_per_h": 0.3,
+     "samples": 0
+    }
+   },
+   "native_value": "learning"
   },
   "monthly_peak": {
    "extra_state_attributes": {
