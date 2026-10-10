@@ -1,0 +1,29 @@
+=== my independent fixture (local bare origin, no ref pushed to origin) ===
+BASE=c08550c9100e28c01a1aeb1e008da68e22d73aef
+B=37fd140073a3d1d1dc35fc01a2434471befc83e4
+C=ffa7aca33d2677b0703233f9c2d683cfaab53034
+D=d30639ccbbfc6da86ff9e1283310c8b312fd0893
+F=ec2b4614742fd6536e3fc4f00d07b5e475557af4
+MAIN=bb6a995ad5a190cd7e5a61992b79a6a73acfe0c0
+
+--- orphans --min-age-h 0 ---
+SUPERSEDED lane-b 37fd140073a3d1d1dc35fc01a2434471befc83e4 0.2h
+ORPHAN lane-c ffa7aca33d2677b0703233f9c2d683cfaab53034 0.2h uncovered=1 repair=opener
+SUPERSEDED lane-d d30639ccbbfc6da86ff9e1283310c8b312fd0893 0.2h
+orphans: 1 stranded, 2 superseded; skipped no-body=0 named=1 ancestor=1 young=0; origin main bb6a995
+rc=1
+
+--- orphans --min-age-h 0 --no-content ---
+ORPHAN lane-b 37fd140073a3d1d1dc35fc01a2434471befc83e4 0.2h uncovered=1 repair=opener
+ORPHAN lane-c ffa7aca33d2677b0703233f9c2d683cfaab53034 0.2h uncovered=1 repair=opener
+ORPHAN lane-d d30639ccbbfc6da86ff9e1283310c8b312fd0893 0.2h uncovered=1 repair=opener
+orphans: 3 stranded, 0 superseded; skipped no-body=0 named=1 ancestor=1 young=0; origin main bb6a995
+rc=1
+
+--- orphans --min-age-h 0 --no-ancestry --no-content ---
+ORPHAN anc c08550c9100e28c01a1aeb1e008da68e22d73aef 0.2h uncovered=0 repair=opener
+ORPHAN lane-b 37fd140073a3d1d1dc35fc01a2434471befc83e4 0.2h uncovered=1 repair=opener
+ORPHAN lane-c ffa7aca33d2677b0703233f9c2d683cfaab53034 0.2h uncovered=1 repair=opener
+ORPHAN lane-d d30639ccbbfc6da86ff9e1283310c8b312fd0893 0.2h uncovered=1 repair=opener
+orphans: 4 stranded, 0 superseded; skipped no-body=0 named=1 ancestor=0 young=0; origin main bb6a995
+rc=1

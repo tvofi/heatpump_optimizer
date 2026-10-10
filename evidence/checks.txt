@@ -1,0 +1,17 @@
+=== HEAD 19ffbcb check-runs (paginated) — only red gate check ===
+budget-raise-gate	failure
+budget-raise-gate	failure
+coverage	null
+
+=== authored head 1965925b check-runs — non-success ===
+Analyze (python)	cancelled
+CodeQL	neutral
+budget-raise-gate	failure
+budget-raise-gate	failure
+coverage	cancelled
+coverage-ratchet	cancelled
+graders-head-copy	cancelled
+
+=== merge-tree vs origin/main ===
+exit=0
+driver stderr: []
