@@ -6,14 +6,14 @@
     "tracking issue, the one that received round 5's own round-end comment -- and no",
     "roster group in this tree claims it. Shape and required fields:",
     ".claude/rules/finding-propagation.md. Linted by",
-    ".claude/workflows/brief_lint.mjs (the `briefs` CI job).",
+    "tools/policy/brief_lint.mjs (the `briefs` CI job).",
     "A later entry carries to the D0 dimension of a later audit round, from #2114's",
     "re-key of the R9-F2.1 P3 storage check. The D0 method brief",
     "(dev/governance/dimensions/D0.md) is policy, so it was not edited: this file is",
     "the in-tree brief of a stage with no live roster group."
   ],
   "issue": 201,
-  "stage": "any later seat that stamps a release (tools/release/stamp.py, the deploy-key tag push of docs/decisions/0009 step 5); the D13 dimension of a later audit round (tools/audit/briefs/D13.md is its method, tools/audit/round5/D13/seat-a/dora_cfr.py its harness); the D11 dimension of a later audit round, whose method tools/audit/briefs/D11.md is and whose subject is .github/workflows/governance.yml; and the D0 dimension of a later audit round, whose method dev/governance/dimensions/D0.md is and whose capture harness is tests/optimality.py",
+  "stage": "any later seat that stamps a release (tools/release/stamp.py, the deploy-key tag push of dev/governance/decisions/0009-agent-identities-for-author-and-approver.md step 5); the D13 dimension of a later audit round (dev/governance/dimensions/D13.md is its method, dev/audit/rounds/round5/D13/seat-a/dora_cfr.py its harness); the D11 dimension of a later audit round, whose method dev/governance/dimensions/D11.md is and whose subject is .github/workflows/governance.yml; and the D0 dimension of a later audit round, whose method dev/governance/dimensions/D0.md is and whose capture harness is tests/optimality.py",
   "carries": [
     {
       "from": "the round-5 D11-02 finding (#1301), whose fix is rule \"rows\" in tools/release/stamp.py -- the stamp now re-applies `record`'s own predicate to the window it is about to close",
