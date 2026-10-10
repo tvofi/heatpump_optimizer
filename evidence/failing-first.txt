@@ -1,0 +1,9 @@
+== failing-first arm, merge base origin/main 6918cb4b2 (coverage_tree.sh byte-identical to checkout 7cd5a588c: git diff empty)
+$ W5P_LANES=3 W5P_WORK=$(mktemp -d) PYTHON=python3 tools/coverage/coverage_tree.sh fast
+W5P_LANES must be 1 or 2
+origin-main exit=2
+
+== head, other W5P_LANES values (stand-in tree carrying the head's coverage_tree.sh)
+W5P_LANES=0   exit=2  msg=W5P_LANES must be 1, 2 or 3
+W5P_LANES=4   exit=2  msg=W5P_LANES must be 1, 2 or 3
+W5P_LANES=abc exit=2  msg=W5P_LANES must be 1, 2 or 3

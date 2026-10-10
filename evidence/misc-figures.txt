@@ -1,0 +1,9 @@
+== closure scope at head
+$ python3 tests/closure.py select --diff origin/main --workdir <tmp>
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  changed files (2): dev/programme/delivery/2130.md, tools/coverage/coverage_tree.sh
+
+== structure ratchet at head: STRUCTURE RATCHET PASSED
+== env_drift claims-only at head: claims hygiene: origin/main ok
+== merge-tree --write-tree origin/main HEAD: exit 0, tree 56b57668bb933759..., no conflicts, no claim files touched
+== head check-runs (API, 2026-10-10): none red; browser / fast (3.14) / coverage in_progress

@@ -1,0 +1,7 @@
+ran tests/features.py exit=0 wall=2s
+ran tests/boost_drift_replay.py exit=0 wall=1s
+ran tests/plan_view.py exit=0 wall=0s
+ran tests/doc_claims.py exit=0 wall=0s
+ran tests/entities.py exit=0 wall=1s
+ran tests/finite_boundary.py exit=0 wall=0s
+wrote /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.Ii7X2aAz8E/w/out/coverage.json

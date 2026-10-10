@@ -1,0 +1,10 @@
+== whole-PR file list (three-dot origin/main...HEAD)
+A	dev/programme/delivery/2130.md
+M	tools/coverage/coverage_tree.sh
+
+== claim/VERSION/manifest/notes diff line count (0 = untouched):
+       0
+
+== vi-a trace grep over the whole diff (no match):
+0
+no matches (grep rc=1)

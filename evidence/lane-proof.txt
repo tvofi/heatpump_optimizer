@@ -1,0 +1,23 @@
+== lane-equality, reviewer-built stand-in (my own instrument; the pre-study committed no harness)
+python 3.11.5, coverage 7.16.0, macOS; stub tests/run.sh names 6 stub scripts:
+features(services,config_flow) boost_drift_replay(debugger import + store_keys/_dumps calls)
+plan_view/doc_claims(HPO_PLANDATA pair) entities(coordinator,drift) finite_boundary(defrost)
+
+W5P_LANES=1/2/3 and unset(default=3), stage fast, fresh W5P_WORK each; coverage.json
+compared as per-file executed_lines sets:
+serial files: 75 executed lines: 5102
+run2-lane2: identical=True
+run2-lane3: identical=True
+run2-default: identical=True
+
+== mutant: boost lane 'measure ""' at head stand-in, W5P_LANES=3
+mutant exit=0
+mutant differs from serial: True
+debugger.py only-serial: 6 only-mutant: 0
+restored equals serial: True
+
+== first mutant attempt survived (recorded honestly): the initial stub set imported only;
+coordinator/services transitively covered debugger/snapshots, so the boost lane held no
+unique lines. Diagnosed per-script (perscript/*.json), the boost stub given unique body
+lines, kill reproduced. Same lesson as the fixer's "stub imports chosen for that, measured
+not assumed".
