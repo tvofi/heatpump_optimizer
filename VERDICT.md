@@ -1,6 +1,6 @@
 Fix review: merge da2b6345011354ef7ec5b30b1cd57da2d95dbb83
 
-bus-nonce: 421f65606994645397aadad0a0b1d252
+bus-nonce: 6186f39fc06fab2ec2a122da3413dc2c
 
 Measured head: `da2b6345011354ef7ec5b30b1cd57da2d95dbb83`
 (`refs/heads/fix/bus-row-dispatch` == `refs/pull/2107/head`; the PR body names
