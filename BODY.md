@@ -1,8 +1,12 @@
 Follows #1940; does not re-open it and claims no new issue.
 
-R9-DBG-2, second pass: the debugger's feed self-test names a starved price feed.
+R9-DBG-2, second pass. The first review left the fix sound and blocked it on one
+class -- `root-cause-unanswered`: `arch-score` and `typing` were red at the head
+and the body named neither. This pass pays the first and fixes the second, and
+re-takes every figure at the new head.
+
 The spec is the R9-DBG-0 pre-study (`tools/audit/round9/prestudy/debugger-prestudy.md`
-at `eae236d66`, sections 4 and 7), re-read at this head.
+at `eae236d66`, sections 4 and 7).
 
 **The register was stale, and that is why this seat exists.** R9-DBG-2 already landed:
 #2041 (merged 2026-10-08, and #1940 went over with it), then #2056 took it forward
@@ -30,7 +34,7 @@ the ring, and the counter the table names resets to 0 the moment the feed recove
 it cannot carry the week either.
 
 Measured with the real collector (seat probe `outage_probe.py`: 48 half-hour cycles,
-cycles 20..31 publishing nothing). Before, at `origin/main` `a8ce87571`:
+cycles 20..31 publishing nothing). Before, at the merge base `23d354970`:
 
     {'cycles': 36, 'no_prices': 0, 'weather_stale_cycles': 0,
      'weather_stale_h_max': 0.0, 'solve_failures_added': 0}
@@ -51,6 +55,18 @@ view -- the mechanism #1739 exists so that no caller names a private member, whi
 rows already collected: no new row field, no `DOMAINS` change, no new store key, no
 change to the cap, the export or the nightly lane.
 
+**What this pass changed, and why the read moved.** The first pass read the streak
+through a module-level `_ending_streak(coordinator)`, and `coord_footprint` charges a
+module-level function handed the coordinator for its logic statements: three of them
+(the duck-typing guard, its `None`, and the accessor). The function's whole job was to
+re-export one attribute of the view, and the table it fed already reads the
+coordinator's public surface to fill its siblings -- `accuracy_report(..., coordinator.accuracy)`,
+`sensor_sanity(rows, coordinator.data)` -- so the read now sits in
+`DebugCollector._async_finish`, the method that holds the coordinator and builds the
+probe table, and `feed_health(rows, streak)` receives a value like every other probe.
+`coord_footprint` is 2586 again, flat at the merge base, and the `no-any-return` the
+old accessor carried goes with it: the read is an assignment, not a typed return.
+
 Alternatives considered:
 - (a) Read `coordinator._tibber_outage_cycles` directly: refused by the
   `coordinator_private_reach` ratchet and by `diagnostics.py`'s own precedent.
@@ -61,6 +77,11 @@ Alternatives considered:
 - (c) Leave the counters alone and let the bundle's consumer diff the timestamps: the
   pre-study's premise is that the self-test answers the question on the install, so the
   answer is in the download and not in a later tool.
+- (d) Keep `_ending_streak` as a named module-level accessor and explain the rise in
+  this body instead of paying it: refused, because the accessor bought nothing the
+  call site does not already have -- the metric's own rule ("a trivial accessor does
+  not read as growth") is what the shape failed, and a body section explaining three
+  statements of a one-attribute re-export would be a paragraph in place of a line.
 
 **What this change does not do -- the two rows of section 4 that cannot land in the
 package.** Both are owed, named rather than dropped:
@@ -73,218 +94,255 @@ package.** Both are owed, named rather than dropped:
   store its domain and quarantine state and round-trips only the accuracy store. A
   generic round trip needs a store-name-to-loader map and there is none to reuse:
   `DOMAINS` declares field domains, not loaders (`store.py:280`), and the loaders are
-  hand-rolled per learner in the coordinator's restore path (`coordinator.py:3689`,
-  `coordinator.py:7752`). Building one in the package would be the parallel mechanism
-  the architect note refuses; offline, where the loader classes import directly, it is
-  one harness stage.
+  hand-rolled per learner in the coordinator's restore path
+  (`HeatPumpOptimizerCoordinator._load_t4b_learners`, `._async_load_price_model`).
+  Building one in the package would be the parallel mechanism the architect note refuses;
+  offline, where the loader classes import directly, it is one harness stage.
 
 **Architect-note compliance** (tvofi, 2026-10-09). No parallel list: the store inclusion
 still comes from `store_keys`, derived from `store.DOMAINS` (`debugger.py:88`), and the
 streak arrives through the coordinator's published `diagnostics_state()` view rather
 than a second registry of coordinator attributes. The export is not re-shaped and the
-nightly lane is not touched: `git diff --name-only d8a4bd36f HEAD` lists `debugger.py`,
-`tests/debug_collect.py`, `docs/configuration.md` and the ledger rows, and not
+nightly lane is not touched: the three-dot diff lists `debugger.py`,
+`tests/debug_collect.py`, `docs/configuration.md` and the delivery row, and not
 `diagnostics.py` or `tests/nightly_ha.py`. The cap is not moved: the same diff carries
-no line matching `INLINE_CAP`, `DOWNLOAD_HEADROOM`, `def capped` or `def download_bytes`,
-and this group needed no change to it.
+no line matching `INLINE_CAP`, `DOWNLOAD_HEADROOM`, `def capped` or `def download_bytes`.
+
+## Architecture score
+
+The check's own output at this head, `python3 -I tools/audit/archscore/gate.py --base
+23d354970fcaababe8e67a5c04c326cc8bc79e49 --head 1e60f18610d0cfb9b64e983b56859198b1a3bdbc
+--body <this body>`:
+
+    Architecture score: dS +0.0000 NULL
+    PASS: dS +0.0000 NULL, no gate metric rose
+
+No metric rises, so no line here explains one. The rise the review measured is gone
+rather than argued: at the reviewed head `4e5181094` the same command printed
+`Architecture score: dS -0.0017 WORSENS (inadmissible: coord_footprint 2586->2589)` and
+`FAIL: ... unexplained: coord_footprint 2586->2589`, and the three statements it charged
+are the `_ending_streak` this pass deletes. The metric's own reading of the moved
+statements is in `## Figures`.
 
 ## Head
 
-`c901f8f34f0b566033202c1a10f0387a3c205099` is the authored head: `2faad4bb1` the failing test,
-`5ad913305` the fix, `f5371d461` the docs sentence and the first two pins, `81760f73e`
-the merge of `origin/main` `d8a4bd36f` (16 commits, none touching `debugger.py`,
-`tests/debug_collect.py`, `docs/configuration.md`, `diagnostics.py`,
-`tests/nightly_ha.py` or any `*_budgets.json`; `git diff f5371d461 HEAD` over
-`debugger.py` and over the test file are both empty), `8cfc35591` the rename of the new
-reader, `4568f9b14` its pins, and `c901f8f34` the merge of `origin/main` `23d354970`
-(102 files, of which none is `debugger.py` or `tests/debug_collect.py` --
-`git diff 4568f9b14 c901f8f34 -- custom_components/heatpump_optimizer/debugger.py` is
-empty -- but it moves `store.py`, `accuracy.py`, `coordinator.py` and `diagnostics.py`,
-the neighbours this module reads, so `tests/debug_collect.py`, `tests/structure.py`,
-`tests/entities.py`, `tests/typing_ruler.py` and the closure derivation were re-run at
-that head, as fixer.md requires after a merge; the results are the `23d354970` lines in
-`## Figures`). Steps 2-8 were re-executed after the first merge as well.
+`1e60f18610d0cfb9b64e983b56859198b1a3bdbc` is the head everything below was measured at.
+It adds one commit to the head the fix review measured, `4e5181094ec1c84b7d2552cfd3f184972be9c687`:
+`1e60f1861` moves the read into `DebugCollector._async_finish`, deletes the two
+`killed_by` rows `_ending_streak` was pinned by, and changes nothing else.
 
-`handoff/r9-dbg-2` is a fast-forward over the merged `a5e969565` (the #2041 head is an
-ancestor of this base), so no landed commit is rewritten.
+`4e5181094` itself adds one commit (this PR's own delivery row, `dev/programme/delivery/2110.md`)
+to the authored code head `c901f8f34f0b566033202c1a10f0387a3c205099`, whose history is
+`2faad4bb1` the failing test, `5ad913305` the fix, `f5371d461` the docs sentence and the
+first two pins, `81760f73e` the merge of `origin/main` `d8a4bd36f`, `8cfc35591` the rename
+of the new reader, `4568f9b14` its pins, and `c901f8f34` the merge of `origin/main`
+`23d354970` (102 files, none of them `debugger.py` or `tests/debug_collect.py`). Steps
+2-8 were re-executed at this head, and every figure below is this head's.
 
 ## Mutation proof
 
-Applied one at a time in a detached worktree at `5ad913305`, each run as
-`PYTHONPATH=tests/hastub python3 tests/debug_collect.py`, then restored (the seat probe
-`mutate.py`, kept in scratch). M0, the same probe with no change in the same worktree,
-printed `ALL 70 DEBUG COLLECT CHECKS PASSED`, rc 0. Lines starting `FAIL a16:` are that
-judge's own printed null arms and are not counted (the same 7 print at M0, with rc 0).
-Every mutant below exited 1. The merge moves no line of `debugger.py`, so these still
-describe the delivered head; what came after is a rename of the same two sites.
+Ten applied mutants, one at a time, in this worktree at `1e60f1861`, each run as
+`PYTHONPATH=tests/hastub python3 tests/debug_collect.py` with the working directory at
+the worktree, then restored from an in-memory copy (`mutate_all.py`, seat scratch; its
+`M0` case is the same probe with no patch). The source's sha1 was
+`7065f936fe51b5a605079d9b9131931c19a5960a` before and after, and `git status --porcelain`
+was empty after. `M0` printed `ALL 70 DEBUG COLLECT CHECKS PASSED`, rc 0; every mutant
+below exited 1.
 
-- M1 the gap key renamed (`row_gaps_h` to `row_gap_h`): `KeyError: 'row_gaps_h'`
-- M2 the stamps paired backwards (`zip(stamps[1:], stamps)`): `FAIL the feed self-test
-  names the hole the ring shows when cycles published nothing, where its price and
-  forecast counters read clean` -- `row_gaps_h: {'n': 11, 'min': -6.0, 'median': -0.5}`
-- M3 the gap left in seconds (drop `/ 3600.0`): same check -- `min': 1800.0`
-- M4 the span instead of the worst consecutive gap (`later - stamps[0]`): same check --
-  `median': 8.5`
-- M5 an unparseable stamp allowed into the list (the filter neutered):
+- M1 the gap key renamed (`row_gaps_h` -> `row_gap_h`): `KeyError: 'row_gaps_h'`
+- M2 the stamps paired backwards (`zip(stamps[1:], stamps)`): `1 of 70 DEBUG COLLECT
+  CHECKS FAILED`
+- M3 the gap left in seconds (drop `/ 3600.0`): the same one check
+- M4 the span instead of the worst consecutive gap: `2 of 70 DEBUG COLLECT CHECKS FAILED`
+- M5 the unparseable-stamp filter deleted (`[stored_instant(...) for row in rows]`):
   `TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType'`
 - M6 the streak dropped from the report: `KeyError: 'tibber_outage_cycles'`
-- M7 the streak defaulted to `0` rather than unknown: `FAIL the feed self-test reports
-  the outage streak the collection ended in, and none when it was not told`
-- M8 the table no longer passes it (`feed_health(rows)`): `FAIL the feed self-test
-  reads the outage streak through the coordinator's published view` --
-  `'tibber_outage_cycles': None`
-- M9 the view read without asking whether it is published (guard deleted): `FAIL the
-  feed self-test of a coordinator that publishes no view reports no streak, not an
-  error` -- `AttributeError("'_Coord' object has no attribute 'diagnostics_state'")`
+- M7 the streak defaulted to `0` rather than unknown (`outage_cycles or 0`): `2 of 70
+  DEBUG COLLECT CHECKS FAILED`
+- M8 the read's duck-typing guard inverted (`if state is None`): `TypeError: 'NoneType'
+  object is not callable`
+- M9 the read's guard deleted (the view dereferenced unguarded): `AttributeError:
+  '_Coord' object has no attribute 'diagnostics_state'`
+- M10 the table no longer passes the streak (`feed_health(rows)`): `1 of 70 DEBUG
+  COLLECT CHECKS FAILED`
 
-The engine enumerates two sites on this diff, both in the reader; the nine hand mutants
-probe what that enumeration does not -- the report's key names, the units inside the
-comprehension, the default of the new argument, and the wiring in the table. Both kinds
-are shown because they are different claims: the pins say the engine's sites are killed
-by `tests/debug_collect.py`, the hand drive says the added behaviour is pinned at all.
+**The failing-first arm at this head**: `git checkout 23d354970 -- custom_components/heatpump_optimizer/debugger.py`,
+then the same command, exits 1 with `KeyError: 'row_gaps_h'` at `tests/debug_collect.py:473`;
+restored with `git checkout HEAD -- ...`, `git status` clean, and the unmutated head prints
+`ALL 70 DEBUG COLLECT CHECKS PASSED`, rc 0.
 
-Ledger, re-driven at this head after the rename: `PYTHONPATH=tests/hastub python3
-tests/mutation_table.py --pin-killed --base origin/main --scripts tests/debug_collect.py`
-printed `PIN KILLED -- 2 new unpinned site(s) against d8a4bd36f638`,
-`baseline tests/debug_collect.py: rc=0 failed=0 7s`,
-`null control custom_components/heatpump_optimizer/debugger.py:458 NULL_COMMENT survived
-tests/debug_collect.py`, then `pinned ... debugger.py:291 GUARD_OFF -- killed by
-tests/debug_collect.py` and `pinned ... debugger.py:293 RETURN_DEL -- killed by
-tests/debug_collect.py`, and `PIN KILLED: 2 pinned, 0 left unpinned`. The two rows are
-`_ending_streak.GUARD_OFF.7b428e6a.json` and
-`_ending_streak.RETURN_DEL.9e6cd1b7.json` under
-`tests/mutation_ledger/killed_by/debugger.py/`, committed at `4568f9b14`.
+The engine's own inventory agrees from the other side: the diff adds no candidate site
+and deletes two, so the unpinned count is `4620` at this head and `4620` at the merge
+base (`## Figures`). The two rows the first pass pinned for the deleted accessor are
+stale, and a stale pin is the author's to delete rather than the bot's -- `mutation-autofix`
+only ever adds one (`dev/audit/rca/R9-RCA-stale-pins.md`, the RCA #2073 landed for this
+class) -- so this pass deletes them. They were added by this branch and are deleted by
+it, so the pull request's net three-dot diff carries no ledger file at all.
 
 ## Null control
 
-- The same probe with no change applied, in the same worktree at `5ad913305`:
+- `M0`: the same mutation probe with no patch applied, in this worktree at `1e60f1861`:
   `ALL 70 DEBUG COLLECT CHECKS PASSED`, rc 0.
-- The new test alone against the merge base (commit `2faad4bb1`, base `a8ce87571`):
-  rc 1, `KeyError: 'row_gaps_h'` at `tests/debug_collect.py:472` -- the test fails
-  before the fix, and `red_failing_first.log` in the seat's evidence is that run.
-- The demonstration probe at `a8ce87571` prints `RESULT fields_naming_the_silence=0`
-  and at `5ad913305` prints `RESULT fields_naming_the_silence=2 # reported`: the figure
-  moves because of the fix, not because of the probe.
-- The pricing harness (the pre-study's oracle) at `a8ce87571` prints five `ok` rows; at
-  this head it prints the same five, so the four self-tests this diff does not touch
-  still cost what they costed.
-- The pin drive's own null control (`debugger.py:458 NULL_COMMENT`, a comment-only
-  edit) survived every driver in play, both times it ran.
+- The new test alone against the merge base (commit `2faad4bb1`): rc 1,
+  `KeyError: 'row_gaps_h'` at `tests/debug_collect.py:472` -- the test fails before the
+  fix.
+- The demonstration probe at `23d354970` prints `RESULT fields_naming_the_silence=0`; at
+  this head it prints `RESULT fields_naming_the_silence=2 # reported`. The figure moves
+  because of the fix, not because of the probe.
+- The pricing harness (the pre-study's oracle) prints five `ok` rows at both ends, so the
+  four self-tests this diff does not touch still cost what they costed.
+- The ledger probe prints the same unpinned count at both ends (4620), so the deleted
+  pins moved nothing the ratchet counts.
 
 ## Figures
 
-- Scoped gate, first derivation at `f5371d461`: `python3 tests/closure.py select --diff
-  $(git merge-base origin/main HEAD) --workdir <scratch outside the worktree>` printed
-  `MODE: SCOPED -- 15 script(s) run, 18 scoped out.` `scope.run` names
-  `arch_score_head`, `config_flow_steps`, `debug_collect`, `deployment_shape`,
-  `doc_claims`, `entities`, `env_drift`, `features`, `finite_boundary`, `golden`,
-  `harness_headers`, `manual_plan`, `md_tables.mjs`, `structure`, `typing_ruler`. The
-  doc edit is what pulled `md_tables.mjs` in; the derivation before the doc commit read
-  `MODE: SCOPED -- 14 script(s) run, 19 scoped out`.
-- Re-derived after the merge at `81760f73e`: the same
-  `MODE: SCOPED -- 15 script(s) run, 18 scoped out` over 5 changed files.
-- Ran locally at the merged head, one at a time as `PYTHONPATH=tests/hastub python3
-  tests/<script>.py` on the seat venv (Python 3.14.7): `debug_collect.py`
-  `ALL 70 DEBUG COLLECT CHECKS PASSED`, `structure.py` `STRUCTURE RATCHET PASSED`,
-  `entities.py` `ALL 2236 ENTITY CHECKS PASSED` (one check more than at the older base
-  -- main's own), `doc_claims.py` `ALL 160 checks PASSED`, `typing_ruler.py`
-  `ALL 11 typing-ruler source checks PASSED`, `config_flow_steps.py`
-  `ALL 499 checks PASSED`, `deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`,
-  `env_drift.py` `NO STALE FIXTURE: 5 committed fixture(s) still match what this tree
-  computes`, `finite_boundary.py` `ALL 84 FINITE BOUNDARY CHECKS PASSED`,
-  `manual_plan.py` `ALL 129 manual plan checks PASSED`, `harness_headers.py`
-  `ALL 109 HARNESS HEADER CHECKS PASSED`.
-- fixer.md step 5 moved under this branch (`dev/governance/roles/fixer.md` is one of the
-  six policy files the merge brought): it now names `tests/run.sh`'s `run_always` lines
-  beside `scope.run`, so `python3 tests/layout.py`, which the closure table scopes OUT
-  for this diff, ran here too (`layout self-test: ok`, rc 0), and
-  `python3 tests/env_drift.py --claims-only d8a4bd36f6384dde45486fff388f91ed4a3aa6df`
-  printed `claims hygiene: d8a4bd36f6384dde45486fff388f91ed4a3aa6df ok`.
-- `node tests/md_tables.mjs`: `RESULT doc_orphaned_table_rows=0 count` and
-  `RESULT doc_misrendered_lines=0 count`.
-- Mutation inventory: `python3 tests/mutation_table.py --scope changed --base
-  origin/main` at `f5371d461` printed `0 survivor(s) of 2 evaluated = 0.0%, cap 20.0%`
-  and `MUTATION TABLE PASSED`; the pin drive reports the same inventory from the other
-  side, `4624 unpinned site(s) of 5903 candidate sites, 4622 at the ratchet base` -- so
-  the diff moves the unpinned count by exactly the two sites it adds, and both are
-  pinned. That run took about 50 min here, starved by the drive named in `## Friction`;
-  #2041's body recorded the same command at about 5 s on an idle box.
-- `python3 -I tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused, 0 stale
-  allow entries at HEAD`.
-- The body contract: `node tools/policy/policy_lint.mjs --pr-body
-  /Users/timmalmstrom/hpo-seats/dbg2/body/BODY.md --head $(git rev-parse HEAD) --title
-  "R9-DBG-2: the debugger's feed self-test names a starved price feed" --paths-file
-  <three-dot --no-renames list>` printed `PR-BODY: 0 error(s)`, after the four refusals
-  named in `## Red checks` were answered. `node tools/policy/figure_lint.mjs --pr-body
-  <same body>` printed `FIGURES: 12 resolved, 2 not verified, 0 refused`.
-- The whole pre-PR gate, `bash tools/pr/prepr.sh <this body>` at `4568f9b14`, last line
-  `PRE-PR: 4568f9b140b6e2e068d805265b011e5590959dd6 000000000000000000100000`. Every
-  step is ok or a reasoned skip except one refusal and one warning: `no-copies`
-  `closure: no test file defines a symbol production also defines`, `pr-body`
-  `PR-BODY: 0 error(s)`, `figures` `FIGURES: 14 resolved, 2 not verified, 0 refused`,
-  `unpinned sites` `the diff adds no unpinned mutation site`, `claim files`
-  `byte-identical to origin/main`, `ci predict` clean -- and `REFUSE closures`, whose
-  reason and control are in `## Red checks`, with `WARN push order`
-  (`HEAD is 311 commit(s) ahead of origin/handoff/r9-dbg-2 -- A PUSH MUST FOLLOW THIS
-  BODY EDIT`), which is S10's prescribed state: the body is final, the push follows.
-- After the second merge (`c901f8f34`, `origin/main` `23d354970`): the closure
-  selection re-derived to `MODE: SCOPED -- 15 script(s) run, 18 scoped out`, and the
-  drift catchers re-ran -- `debug_collect.py` `ALL 70 DEBUG COLLECT CHECKS PASSED`,
-  `structure.py` `STRUCTURE RATCHET PASSED`, `entities.py` `ALL 2243 ENTITY CHECKS
-  PASSED` (seven more than at `d8a4bd36f`: main's own), `typing_ruler.py`
-  `ALL 11 typing-ruler source checks PASSED`. prepr's closures derivation was not re-run at that
-  head: its one refusal is `tests/features.py`, which is red at `origin/main` on this
-  box with or without this branch, and CI's `closures` job and the `closures-autofix`
-  bot are that step's authority (ci-autofix.md).
-- `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast
-  red predicted against d8a4bd36f638 (a data-file read is not seen)`.
+Every command below was run at `1e60f18610d0cfb9b64e983b56859198b1a3bdbc`, with
+`python3` the 3.14.7 interpreter at `/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3`
+unless a command names another, and with `git merge-base origin/main HEAD` =
+`23d354970fcaababe8e67a5c04c326cc8bc79e49` (main has moved since; the merge base has not).
+
+- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+  --workdir <a directory outside the worktree>` printed `MODE: SCOPED -- 15 script(s) run,
+  18 scoped out.` over 4 changed files. `scope.run` names `arch_score_head`,
+  `config_flow_steps`, `debug_collect`, `deployment_shape`, `doc_claims`, `entities`,
+  `env_drift`, `features`, `finite_boundary`, `golden`, `harness_headers`, `manual_plan`,
+  `md_tables.mjs`, `structure`, `typing_ruler`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- Ran locally at this head, one at a time as `PYTHONPATH=tests/hastub python3
+  tests/<script>.py`: `debug_collect.py` `ALL 70 DEBUG COLLECT CHECKS PASSED`,
+  `entities.py` `ALL 2243 ENTITY CHECKS PASSED`, `doc_claims.py` `ALL 160 checks PASSED`,
+  `config_flow_steps.py` `ALL 499 checks PASSED`, `deployment_shape.py` `ALL DEPLOYMENT
+  SHAPE CHECKS PASSED`, `finite_boundary.py` `ALL 84 FINITE BOUNDARY CHECKS PASSED`,
+  `harness_headers.py` `ALL 109 HARNESS HEADER CHECKS PASSED`, `manual_plan.py` `ALL 129
+  manual plan checks PASSED`, `arch_score_head.py` `ALL 15 ARCHITECTURE SCORE HEAD CHECKS
+  PASSED`, `env_drift.py` `NO UNCLAIMED DRIFT: 5 scenario(s) checked against origin/main`
+  and `NO STALE FIXTURE: 5 committed fixture(s) still match what this tree computes`,
+  `typing_ruler.py` (source lane) `ALL 11 typing-ruler source checks PASSED`, and with
+  `HPO_TYPING_PYTHON` pointed at the pinned interpreter `ALL 12 typing-ruler source checks
+  PASSED`, including `ok the pinned census passed under HPO_TYPING_PYTHON`.
+- `node tests/md_tables.mjs`: `RESULT doc_orphaned_table_rows=0 count`,
+  `RESULT doc_misrendered_lines=0 count`, `RESULT doc_swallowed_prose_lines=0 count`.
+- The `typing` red, measured with the pinned pair (mypy 2.3.1, homeassistant-stubs
+  2026.9.3, Python 3.14.7) in a venv built from `python3 tests/typing_ruler.py
+  --print-requirements`. At the reviewed head `4e5181094`: `debugger.py 1`,
+  `FAIL errors did not grow [recorded 0, measured 1 (+1)]`,
+  `FAIL by_code[no-any-return] did not grow [recorded 0, measured 1 (+1)]`,
+  `2 of 10 typing-ruler checks FAILED`. At this head:
+  `<venv>/bin/python tests/typing_ruler.py --mypy` printed `ALL 9 typing-ruler checks
+  PASSED`. The instrument is the ruler, and the census number it prints is not restated
+  here.
+- The `arch-score` red, the check's own command and the metric's own reading:
+  `python3 -I tools/audit/archscore/gate.py --base 23d354970fcaababe8e67a5c04c326cc8bc79e49
+  --head <head> --body <body>` printed `FAIL: dS -0.0017 WORSENS; unexplained:
+  coord_footprint 2586->2589` at `4e5181094` and `PASS: dS +0.0000 NULL, no gate metric
+  rose` at this head. `python3 -c "from archscore.metrics import footprint;
+  footprint.measure(Path('.'))"` (from `tools/audit` on the path) reads `2589` at
+  `4e5181094` and `2586` at this head, and its `charged` list holds
+  `debugger._ending_streak:3` at the first and no `_ending_streak` entry at the second.
+- The mutation ledger, both directions, from `tests/mutation_table.py`'s own
+  `inventory()`, `unpinned_sites()` and `completeness_problems()` driven in isolation
+  (`ledger_probe.py`, seat scratch; the in-tree readers are CI's `mutation` job and, once
+  main carries #2073, `prepr.sh` step 6d's refusing stale-pin arm): at the merge base
+  `candidate sites: 5943`, `unpinned: 4620`, `completeness problems: 0`; at the reviewed
+  head's tree before this pass's edit `completeness problems: 2`, both the `_ending_streak`
+  pins, and after deleting those two rows at this head `candidate sites: 5943`,
+  `unpinned: 4620`, `completeness problems: 0`.
+- `python3 -I tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused, 0 stale allow
+  entries at HEAD, ledger lines added since 23d354970fca`.
+- Claim files: `git rev-parse HEAD:<path>` equals `git rev-parse 23d354970:<path>` for
+  `tests/golden/claimed_drift.txt`, `tests/golden/card_claimed_drift.txt`, `VERSION`,
+  `custom_components/heatpump_optimizer/manifest.json` and `RELEASE_NOTES.md` -- all five
+  byte-identical to the merge base, and `git diff 23d354970...HEAD -- tests/golden/` is
+  empty. `python3 tests/env_drift.py --claims-only 23d354970fcaababe8e67a5c04c326cc8bc79e49`:
+  `claims hygiene: 23d354970fca ok`. This branch claims nothing; `VERSION`, the manifest
+  version and the notes heading are untouched.
+- `git merge-tree --write-tree origin/main HEAD`: exit 0, no conflicting paths.
 - The oracle: `PYTHONPATH=tests/hastub python3
   dev/audit/harnesses/r9_dbg2_selftest_price.py --bundle <week.json.gz> --repeat 1`, the
-  bundle being
-  `git show origin/handoff/r9-dbg-0:tools/audit/round9/prestudy/runs/week/bundle.json.gz`
-  (sha1 `cb6e9e3357648afc41adcadaff218f135908cc3d`, the sha1 the pre-study names). At
-  `a8ce87571`: five `ok`, `selftest_total_ms=14.9`, `feeds` 0.1 ms,
-  `bundle_bytes=588244`, `bundle_inline=1`. At `5ad913305`: five `ok`,
-  `selftest_total_ms=13.1`, `feeds` 0.3 ms, `bundle_bytes=588446` (the two new fields
-  cost 202 B), `bundle_inline=1`. Perturbation `--repeat 39` and `--repeat 40` at this
-  head: `bundle_inline=0` both, with `selftest_total_ms=215.3` and `251.4` against the
-  900000 ms budget. Totals move with the seat's load (another seat's four-job pin drive
-  held this box at load average 210 throughout), so the harness is the instrument and no
-  total here is a claim about another box.
-- Left to CI, because this box cannot produce them honestly: `tests/golden.py`,
-  `tests/arch_score_head.py` and `tests/features.py`, whose local verdict and its
-  control are in `## Red checks`. No value-bearing fixture moves in this diff, so both
-  claim files are byte-identical to `origin/main` (`ok claim files byte-identical to
-  origin/main`).
+  bundle being `git show origin/handoff/r9-dbg-0:tools/audit/round9/prestudy/runs/week/bundle.json.gz`
+  (sha1 `cb6e9e3357648afc41adcadaff218f135908cc3d`). At `23d354970`: five `ok`,
+  `selftest_total_ms=15.5`, `bundle_bytes=588244`, `bundle_inline=1`. At this head: five
+  `ok`, `selftest_total_ms=73.7`, `bundle_bytes=588447`, `bundle_inline=1`, against the
+  harness's 900000 ms budget and 8388608 B cap. Totals move with this box's load, so the
+  harness is the instrument and no total here is a claim about another box.
+- The demonstration probe, `outage_probe.py` (sha1 `2068d07b3b3445078d0828189f5f72c093ccc6dc`,
+  one copy per end so its own `ROOT` resolves):
+  `python3 $SEAT/evidence/outage_probe.py` with the working directory at this worktree and
+  `python3 $SEAT/base/evidence/outage_probe.py` with it at `$SEAT/base/wt`
+  (`23d354970`). Both print `RESULT rows_recorded=36 of 48 cycles` and
+  `RESULT outage_streak_at_finalize=0`; the base then prints
+  `RESULT fields_naming_the_silence=0 # the six hours are in no field` and this head
+  `RESULT fields_naming_the_silence=2 # reported`, with
+  `row_gaps_h: {'n': 35, 'min': 0.5, 'median': 0.5, 'max': 6.5}` and
+  `tibber_outage_cycles: 0` in the same printed report.
+- `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red
+  predicted against 23d354970fca (a data-file read is not seen)`.
+- No-copies, with the interpreter that can parse the script:
+  `PATH=<the 3.14 venv>/bin:$PATH python3 tests/closure.py no-copies` printed
+  `closure: no test file defines a symbol production also defines`, rc 0. Without that
+  prefix the same step runs the box's ambient `python3` (3.11) and refuses on a
+  `SyntaxError: f-string: expecting '}'` inside the script rather than on this diff
+  (`## Friction`).
+- The body contract: `node tools/policy/policy_lint.mjs --pr-body <this body> --head
+  1e60f18610d0cfb9b64e983b56859198b1a3bdbc --title "fix(R9-DBG-2): debugger self-tests,
+  diagnostics bundle inclusion cap, finalize and translations" --paths-file <the
+  three-dot --no-renames list>` printed `PR-BODY: 0 error(s)`; `node
+  tools/policy/figure_lint.mjs --pr-body <this body>`: `FIGURES: 15 resolved, 11 not
+  verified, 0 refused` -- the not-verified ones are the angle-bracketed placeholders and
+  the scratch-path commands this body names by rule rather than by path.
+- The whole pre-PR gate, run with the 3.14 venv first on `PATH`, at this head: every step
+  is ok or a reasoned skip except the one refusal the `features.py` bullet owns --
+  `ok no-copies closure: no test file defines a symbol production also defines`,
+  `ok preflight`, `ok pr-body PR-BODY: 0 error(s) ... no budget leaf raised over
+  23d354970...1e60f1861`, `ok figures` with `0 refused`, `skip unpinned sites the diff
+  adds no unpinned mutation site`, and, because the repair branch is not yet pushed,
+  `skip push order` and `skip ancestry reds` -- and its last line is
+  `PRE-PR: 1e60f18610d0cfb9b64e983b56859198b1a3bdbc 000000000000000000100000`. The digest
+  is the mask of step outcomes, not of this body's bytes, so a `## Figures` edit cannot
+  move it; the one set bit is the `closures` step's, and its content is main's own red.
+- Left to CI, because this box cannot produce them honestly: `tests/golden.py` and
+  `tests/features.py`. No value-bearing fixture moves in this diff, and this diff touches
+  no solver path. `PYTHONPATH=tests/hastub python3 tests/features.py` was run at both ends
+  anyway, one per end so each measured its own tree: `1 of 3930 FEATURE CHECKS FAILED` at
+  this head and `1 of 3930 FEATURE CHECKS FAILED` at `23d354970`, the same `FAIL R9-F2.1
+  P3` line in both, so the local red is main's and not this diff's.
 
 ## Red checks
 
-None has been read, because this head has no pull request: the seat hands off the head
-and does not open or drive a PR, so no check-run exists to read, and naming a cheaper
-detector for a check that has not failed would be a claim about an event that has not
-happened. What prepr refused locally, and the control that says whose it is:
+Two checks went red on commits in this branch and both are named here.
 
-- `no-copies`: `COPY-CLAIMED: tests/dst_checks.py defines '_outage', which is
-  production's debugger._outage (1 in all)`. Answered by the rename at `8cfc35591`;
-  `python3 tests/closure.py no-copies` now prints
-  `closure: no test file defines a symbol production also defines`.
-- `pr-body`: four refusals on an earlier draft of this body -- a carry naming a file
-  that is not in the tree, and three `## Friction` lines that did not parse. Answered
-  by this body; `node tools/policy/policy_lint.mjs --pr-body ...` is now clean (its own
-  line is quoted at the end of `## Figures`).
-- `closures`: prepr's derivation ran `tests/features.py` and it exited 1 on this box.
-  That is not this diff's: in a clean detached worktree at `origin/main` `d8a4bd36f`,
-  same box, same venv, `tests/features.py` fails the SAME check with the SAME figures
-  -- `1 of 3879 FEATURE CHECKS FAILED`,
-  `FAIL R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the
-  half-price floor's plan refined under it [shipped 110.4366, seeded with the half-price
-  plan 110.1297]` -- a margin the suite itself documents as BLAS-dependent
-  (`tests/features.py`, the note at its line 33663: a machine whose BLAS differs
-  ``reports 34 of 55 changed on a clean tree``). This diff touches no solver path, and
-  CI's pinned run is the authority for this script, as `## Figures` states.
-
-The nightly A16 lane this group must not re-shape is untouched, and its judge runs from
-`tests/debug_collect.py` at this head, both arms and their swapped nulls included.
+- **`arch-score`** (`failure` at `4e5181094`): `Architecture score: dS -0.0017 WORSENS
+  (inadmissible: coord_footprint 2586->2589)`. Answered by paying the rise rather than
+  explaining it: the charge was the module-level `_ending_streak`, its read now sits in
+  the method that builds the probe table, and the check's own command at this head prints
+  `PASS: dS +0.0000 NULL, no gate metric rose`. The metric, its `charged` list and both
+  runs are quoted under `## Architecture score` and `## Figures`.
+- **`typing`** (`failure` at `4e5181094`): one `no-any-return` in `debugger.py`, against
+  a census budget of 0. Fixed, not budgeted: the expression was the deleted accessor's
+  `return` from a `coordinator: Any` parameter, and at this head the pinned ruler prints
+  `ALL 9 typing-ruler checks PASSED`. Root-cause trigger: the cheaper detector is
+  `tests/typing_ruler.py --mypy` under the pinned pair (mypy 2.3.1 + homeassistant-stubs
+  2026.9.3 on Python >= 3.14.2), which no gate lane has -- `typing_ruler.py`'s own
+  docstring is that argument -- and whose standing cost is the whole pinned toolchain on
+  every lane that would run it. This pass built that venv by hand and ran the census in
+  seconds, so the detector is real; whether a local lane should carry it is
+  `root-cause.md`'s call, not this body's, and it is recorded here rather than argued.
+- `pr-contract` (`failure` at `4e5181094`): its two `[pr-body]` errors were that
+  `## Red checks` named neither check above. Answered by this section; the local
+  `--pr-body` run is in `## Figures`.
+- **Not this diff's red**: `tests/features.py` exits 1 on this box (macOS, Accelerate
+  BLAS) at the merge base and at this head alike, with the same one failure and the same
+  figures -- `1 of 3930 FEATURE CHECKS FAILED`, `FAIL R9-F2.1 P3: the shipped storage plan
+  is no worse on its own objective than the half-price floor's plan refined under it
+  [shipped 110.4366, seeded with the half-price plan 110.1297]` -- a margin
+  `tests/features.py` itself documents as BLAS-dependent. This diff touches no solver path
+  and moves no golden fixture, so CI's pinned Linux run is that script's authority. It is
+  also the whole content of the one local refusal below: `prepr.sh`'s step prints
+  `REFUSE closures failed while being recorded: tests/features.py (exit 1) -- fix the
+  script first; a re-derive would record the same truncation; left to CI:
+  tests/md_tables.mjs`, and the control is the both-ends run above.
+- `nightly-status` and `delivery-status` grade `main` and this diff touches neither their
+  scripts nor the plan; no answer is owed them.
 
 ## Forward-carry
 
@@ -292,14 +350,21 @@ n/a: no later stage's work changes because of this -- the two owed rows of the p
 
 ## Friction
 
-- delivery-status-tracking: stale: `2041.md` and `2056.md` read `open` and the roster
-  row reads `not-started` while both are merged and #1940 closed, so a seat dispatched
-  on that text re-does a delivered group.
-- gate-scoping: unclear: `closure.py select` with `--workdir` inside the worktree
-  writes four `scope.*` files into the tree it measures, and the next run reads them as
-  changed files and answers full mode where the diff is scopeable.
-- fixer.md: cost: `mutation_table.py --scope changed` took about 50 min here while
-  another seat's four-job pin drive held the box at load average 210, against the 5 s
-  #2041's body recorded for the same command.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+- delivery-status-tracking: stale: `2041.md` and `2056.md` read `open` and the roster row
+  reads `not-started` while both are merged and #1940 closed, so a seat dispatched on that
+  text re-does a delivered group.
+- gate-scoping: unclear: `closure.py select` with `--workdir` inside the worktree writes
+  four `scope.*` files into the tree it measures, and the next run reads them as changed
+  files and answers full mode where the diff is scopeable.
+- fixer.md: cost: `mutation_table.py --scope changed` took about 50 min here while another
+  seat's four-job pin drive held the box at load average 210, against the 5 s #2041's body
+  recorded for the same command.
+- fixer.md: unclear: `tests/harness.py` inserts the **relative** paths `tests` and
+  `custom_components` at import, so a seat probe that imports it resolves `heatpump_optimizer`
+  against the seat's own working directory rather than the tree its `__file__` names -- the
+  probe printed a report from another checkout, with rc 0 and no error, until the working
+  directory was moved into the tree it meant to measure.
+- fixer.md: cost: `prepr.sh`'s `no-copies` step runs the ambient `python3`; where that is
+  3.11 it mis-parses `closure.py`'s f-strings and refuses `SyntaxError: f-string: expecting
+  '}'` for a step that passes under the pinned 3.14 -- reading it as this diff's red costs a
+  full pre-PR run to unlearn, and prefixing `PATH` with the 3.14 venv is what fixes it.
