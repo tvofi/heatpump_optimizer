@@ -1,1 +1,2 @@
-head beb97ea691f95f20de19f512460ee7ad361c35ba (measured; branch tip moved to cfa9fb9aa6846b8707df45808a9c266f042d8e4d during review, 2026-10-10T18:48Z)
+head cfa9fb9aa6846b8707df45808a9c266f042d8e4d (re-dispatch head; branch tip verified 2026-10-10T19:03Z)
+previous measured head beb97ea691f95f20de19f512460ee7ad361c35ba

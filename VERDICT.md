@@ -1,64 +1,58 @@
-Fix review: blocked beb97ea691f95f20de19f512460ee7ad361c35ba head-moved: measured beb97ea691f95f20de19f512460ee7ad361c35ba, head is cfa9fb9aa6846b8707df45808a9c266f042d8e4d (one commit, "ci: re-record closures", tests/closures.json +1 line)
+Fix review: blocked cfa9fb9aa6846b8707df45808a9c266f042d8e4d root-cause-unanswered: pr-contract red at this head -- "check `closures` is red and `## Red checks` does not name it" (run 2026-10-10T18:36:46Z, the only pr-contract run at this head); the body's ## Red checks names typing, mutation and pr-contract but not closures
 
-bus-nonce: 688b00962bc87f658848cf3d6f50cb7d
+bus-nonce: d9749e58083eb114c3f17102ad56afdf
 
-Round: 2 (delta review of the repair round; round 1 measured the substance at
-bc0488018, which this review does not re-open).
+Round: 2, second publication (first was `blocked beb97ea69 ... head-moved`,
+review/2118 1386da31). The head then moved by exactly the record-only re-record
+this verdict called for, and the dispatcher asked for `merge cfa9fb9aa`. That
+verdict was not published, and the reason is the head's own check-runs, not a
+preference: **pr-contract is red at cfa9fb9aa right now**, refusing that
+`## Red checks` does not name `closures`. Publishing merge as hpo-approver over a
+red required check at the head being merged is what rounds 1 and 2 of this very
+review refused.
 
-## What was verified at beb97ea691f95f20de19f512460ee7ad361c35ba (all survive as numbers; none carry a merge verdict to a moved head)
+## What the dispatcher's two additions verified (both one line)
 
-- RESULT typing-ruler (mine, pinned toolchain): `ALL 9 typing-ruler checks PASSED`
-  under `--mypy` with mypy 2.3.1 / homeassistant-stubs 2026.9.3 (venv built fresh
-  from `--print-requirements`); source-only lane `ALL 11 ... PASSED`. Independent
-  `mypy --strict` over custom_components/heatpump_optimizer: 0 error lines, so the
-  census is 0, not merely "did not grow".
-- RESULT arch-score gate (base's copy, base 969c3a5c8): `PASS: dS -0.0028 WORSENS;
-  every rise explained in the body: coord_footprint 2586->2591`. The body's
-  `## Architecture score` says 2586 -> 2591 and explains it — body and gate agree.
-  (The dispatch prompt's "2590 -> 2591" was the prompt's summary, not the body's
-  figure; the body carries the gate's real numbers.)
-- RESULT mutation: bot pin commit 72cfb1d07 IS an ancestor of the measured head;
-  `mutation_table.py --list RETURN_DEL` at the head reads both
-  `coordinator.py:830` and `:872` as `pinned ... pass`. The head's own CI mutation
-  lane (job 114273437986, green): `MUTATION TABLE PASSED`, 4 mutants over 2 files,
-  0 survivors, PIN RE-VERIFICATION 4 reproduced / 0 not reproduced (830 RETURN_DEL
-  killed by tests/features.py), and no `ADDED UNPINNED` line anywhere in the log.
-  `ci_predict.py --base 969c3a5c8`: "no closures or fast red predicted" (before the
-  closures red below materialised — the predictor does not read inert_reads).
-- RESULT production delta bc0488018..beb97ea69: exactly ONE file,
-  custom_components/heatpump_optimizer/coordinator.py, one line:
-  `heat_kw: float | None = coord._flow_bias.heat_output_kw`. No second production
-  change. VERSION / manifest / RELEASE_NOTES heading untouched in the delta.
-- RESULT typing CI job at the head: success.
+- `git show cfa9fb9aa --stat`: authored by github-actions[bot] 2026-10-10T18:36:27Z,
+  "ci: re-record closures", touches ONLY `tests/closures.json`, +1 line. No
+  production code, no new review surface: `git diff bc0488018..cfa9fb9aa --
+  custom_components/` is still exactly one file, coordinator.py, the one
+  annotation line round 1's delta found. Typing ruler, arch-score gate
+  (coord_footprint 2586->2591, PASS), the bot's pins (830/872 pinned, mutation
+  lane MUTATION TABLE PASSED, 0 survivors) all stand unchanged at this head; the
+  re-record touches none of what they read.
+- The closures red WAS main's pre-#2125 state and is resolved on main: main tip
+  6be88834e is #2125 ("fix(closures): list the round-9 pre-study refit in
+  harness_headers.py's inert_reads", fdb05e622) merged, carrying the same
+  one-line repair as this head's autofix re-record. main's closures lane is
+  re-running green-expected at 6be88834e.
 
-## Why blocked, in order of what happened
+## Why the red persists despite that, and the one edit that clears it
 
-1. At the measured head, `closures` went red (18:36Z): `INERT READS
-   UNDER-APPROXIMATED: tests/harness_headers.py:
-   dev/audit/rounds/round9/prestudy/boost_drift_refit.py`. Main tip 969c3a5c8
-   carries the IDENTICAL failure (its own push, 17:22Z), and closures-autofix at
-   the head printed `closures-autofix: changed -- nothing owed to a human` — so
-   the red is main's (#2109's prestudy file), not this branch's diff. It is,
-   however, a red at this head that `## Red checks` does not name, and pr-contract
-   said so: the 18:43Z run FAILED with `check 'closures' is red and '## Red
-   checks' does not name it` (red-history: closures, mutation, typing — the body
-   names mutation and typing, not closures).
-2. While this review ran, the branch moved: `fix/r9-ux-10-v2` is now
-   cfa9fb9aa6846b8707df45808a9c266f042d8e4d, exactly one commit, `ci: re-record
-   closures`, +1 line in tests/closures.json — the re-record that answers (1).
-   The handoff made beb97ea69 mine; a head that moves under the review is a
-   broken rule, not an accident, and a merge verdict cannot attach to a head that
-   no longer exists.
+The pr-contract body check reads red-history over the range origin/main...head:
+at beb97ea69 the `closures` failure conclusion is INSIDE that range (merge-base
+is still 969c3a5c8), so it stays a red this body must name no matter that both
+ends have since been repaired — the same rule that made the body name `mutation`
+(round-1 item 7) after the bot had already pinned it. The body has not been
+edited: `## Red checks` still names typing, mutation and pr-contract, and no
+closures entry exists (re-checked 19:03Z).
 
-The move is the closure re-record, a data file, no production code: the delta
-from beb97ea69 to cfa9fb9aa is one line in tests/closures.json. Re-measuring that
-delta is offered to the orchestrator, never owed by this verdict.
+**The answer the body needs already exists and is one paragraph:** closures went
+red at beb97ea69 for `INERT READS UNDER-APPROXIMATED:
+tests/harness_headers.py: dev/audit/rounds/round9/prestudy/boost_drift_refit.py`;
+it was not this branch's (identical failure at main tip 969c3a5c8, 17:22Z;
+closures-autofix printed "changed -- nothing owed to a human"); the cheaper
+detector is the closures lane's own inert-reads comparison, whose standing cost
+is a full-scope re-record; repaired on this branch by the accepted autofix
+commit cfa9fb9aa and on main by #2125. Name `closures` under `## Red checks`
+with that, pr-contract re-runs green, and the next review of this head is a
+merge on the numbers that already stand above.
 
 ## Evidence
 
-/Users/timmalmstrom/hpo-seats/r9rev-2118b/evidence/ — typing-ruler-mypy.txt,
-archscore-gate.txt, mutation-list-returndel.txt, ci-predict.txt,
-mutation-lane-log-full.txt, closures-lane-log.txt, pr-contract-1843-log.txt,
-check-runs-head-final.txt, check-runs-red-history.txt, pr-body.md, head.txt.
-Worktree: /Users/timmalmstrom/hpo-seats/r9rev-2118b/wt (detached at
-beb97ea691f95f20de19f512460ee7ad361c35ba).
+/Users/timmalmstrom/hpo-seats/r9rev-2118b/evidence/ — head.txt (naming
+cfa9fb9aa), pr-contract-fail-reasons.txt and pr-contract-1843-log.txt (the
+beb97ea69 refusal), closures-lane-log.txt, check-runs-head-final.txt,
+typing-ruler-mypy.txt, archscore-gate.txt, mutation-list-returndel.txt,
+mutation-lane-log-full.txt, ci-predict.txt, pr-body.md. Worktree:
+/Users/timmalmstrom/hpo-seats/r9rev-2118b/wt.
