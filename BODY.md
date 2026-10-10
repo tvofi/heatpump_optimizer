@@ -1,6 +1,6 @@
 R9-UX-6, money and memory (the Savings tab), per DESIGN-UX.md section UX-6 and PRE-STUDY-UX.md item 3. Part of #201. Requested by **tvofi**.
 
-This recovers the orphaned `handoff/r9-ux-6` — the work existed but no PR was ever opened for it — onto current `origin/main` (`7cd5a588c`), re-deriving every tree-dependent figure at the merged head. Two edges of the roster's `after` list have merged since the handoff was cut: #2025 (`R9-EG-B11`, the stacked base it was cut from) and #2010 (`R9-UX-5`, its third after-edge). Nothing this branch adds is on `main` in another shape: `restate_total`, `BILLED_LINES`, `book_capacity`, `note_promise`, `plan_replay`, `capacity_peak_kw` and `receiptHtml` are absent from `main` (`git grep` over `custom_components`, `tests`, `docs`), and `dev/programme/carries/carry-1795.json` carries the sibling UX sub-lanes only.
+This recovers the orphaned `handoff/r9-ux-6` — the work existed but no PR was ever opened for it — onto current `origin/main` (`7cd5a588c`), re-deriving the tree-dependent figures at the merged head (each in `## Figures`). Two edges of the roster's `after` list have merged since the handoff was cut: #2025 (`R9-EG-B11`, the stacked base it was cut from) and #2010 (`R9-UX-5`, its third after-edge). Nothing this branch adds is on `main` in another shape: `restate_total`, `BILLED_LINES`, `book_capacity`, `note_promise`, `plan_replay`, `capacity_peak_kw` and `receiptHtml` are absent from `main` (`git grep` over `custom_components`, `tests`, `docs`), and `dev/programme/carries/carry-1795.json` carries the sibling UX sub-lanes only.
 
 What changes:
 
@@ -61,6 +61,10 @@ The UX-6 checks are a block at the end of `tests/features.py`, run alone with th
 
 `python3 tests/typing_ruler.py` — `ALL 11 typing-ruler source checks PASSED`.
 
+`python3 tests/harness_headers.py` — `ALL 109 HARNESS HEADER CHECKS PASSED` (a first run on a box at load average ~106 failed 12 on one D7 audit harness; see `## Red checks`).
+
+`python3 tests/features.py` at the clean `origin/main` worktree `7cd5a588c` — `1 of 3986 FEATURE CHECKS FAILED`, the `R9-F2.1 P3` BLAS margin; see `## Red checks`.
+
 `python3 tests/guard_pins.py` — `ALL 50 GUARD PIN CHECKS PASSED`.
 
 `python3 tests/arch_score_head.py` — `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`.
@@ -75,9 +79,9 @@ The UX-6 checks are a block at the end of `tests/features.py`, run alone with th
 
 ## Red checks
 
-- `closures` UNDER-SCOPED, predicted by `ci_predict.py`: `store.py` now imports `ledger.py` (`BILLED_LINES`, the receipt basis domain), and `tests/guard_pins.py`'s recorded closure omits `ledger.py`. The repair is `closures-autofix`'s (`ci-autofix.md`: the Linux `strace` recordings are the ones to merge; a Darwin `--single` is the wrong recording). The cheaper detector is `ci_predict.py`, which named it before any push.
-- `tests/features.py` fails `R9-F2.1 P3` with a BLAS float margin on this macOS seat, and does so identically at the merge base — reproduced at a clean `origin/main` worktree at `7cd5a588c`. It is the known defect group `R9-RC-BLAS-KERNEL-RED`, not this diff; the same failure is what makes `prepr.sh` step 6b refuse the `features.py` closure recording on this box. The check is not weakened and `features.py` is left to CI, where the canonical environment runs it.
-- `tests/harness_headers.py` reports 12 of 109 checks failed, all one harness — `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py`, `rc=124, wall limit 900s exceeded`. That harness is outside this diff and its header is unchanged; the 900 s wall limit is exceeded because the seat box was at load average ~106 while it ran. The cheaper detector for a load-induced timeout is a run on an unloaded box; re-run before treating it as real.
+- `tests/features.py` fails exactly one check at the merge base: `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it [shipped 110.4366, seeded with the half-price plan 110.1297]` — `1 of 3986 FEATURE CHECKS FAILED`, reproduced on a clean `origin/main` worktree at `7cd5a588c` (`python3 tests/features.py`). It is a BLAS float margin, the known defect group `R9-RC-BLAS-KERNEL-RED`, not this diff; the same script's closure recording is truncated by the recorder's own per-driver timeout on this seat, which is what makes `prepr.sh` step 6b refuse the `features.py` recording. The check is not weakened and `features.py` is left to CI, where the canonical environment runs it.
+- The closures refusal, both arms, named. `prepr.sh` step 6d (`ci_predict.py`) predicts `closures` UNDER-SCOPED: `store.py` imports `ledger.py` (`BILLED_LINES`, the receipt basis domain) and `tests/guard_pins.py`'s recorded closure lists `store.py` without `ledger.py` (verified in `tests/closures.json`, not taken from the prediction). `closures-autofix` owns the repair (`ci-autofix.md`: the Linux recordings are the ones to merge; a Darwin `--single` of a recording CI will make is the wrong one). The cheaper detector is `ci_predict.py`, which named it before any push. `prepr.sh` refuses on this prediction, which is the expected pre-push state for a real under-scope.
+- `tests/harness_headers.py` failed 12 of 109 on its first run, all one harness — `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py`, `rc=124, wall limit 900s exceeded` — on a box at load average ~106. A re-run reports `ALL 109 HARNESS HEADER CHECKS PASSED`, so the failure was the seat's load, not the tree: the cheaper detector for a load-induced timeout is a re-run, and the harness is outside this diff with its header unchanged.
 
 ## Forward-carry
 
