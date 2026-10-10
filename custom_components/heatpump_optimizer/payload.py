@@ -600,6 +600,7 @@ class PlanSettingsView(TypedDict, total=False):
     day_end_hour: int
     horizon_hours: float
     min_temperature: float
+    configured_min_temperature: float
     max_temperature: float
 
 
@@ -765,6 +766,17 @@ class AwayView(TypedDict, total=False):
     away_target_temperature: float | None
     away_dhw_min_temperature: float | None
     away_hours_until_return: float | None
+
+
+class AwayFold(AwayView, total=False):
+    """Away keys plus the floor published while a setback is in force.
+
+    ``min_temperature`` is the floor the solve used. ``configured_min_temperature``
+    is present only when that floor is below the configured one.
+    """
+
+    min_temperature: float
+    configured_min_temperature: float
 
 
 class EnergyTotals(TypedDict, total=False):

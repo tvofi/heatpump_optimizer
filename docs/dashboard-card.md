@@ -212,9 +212,13 @@ bug.
   <img alt="The enlarged Plan tab with the pointer on an expensive afternoon quarter hour: the tooltip lists the step's values, among them the house and outdoor temperatures, then says space heating and hot water are off and gives the likely reasons: the price rank, the night run the house is coasting on, the next heating run, when the tank was last heated and the next hot-water run" src="img/card/plan-why-light.png">
 </picture>
 
-Hovering a step where a channel is not heating says why the plan most likely
-left it idle, under the words *Likely because*. Each reason comes from what
-the plan sensors publish for that step and nothing else:
+Hovering a step where a channel is not heating says why the plan left it
+idle. When the plan publishes an exact reason for that step the heading says
+*Because* and the list is that reason: the other channel has the capacity,
+the fuse limit caps heating, the plan is waiting for solar, the hour is
+dearer than the hours used, or the temperature is above the floor and the
+plan is coasting. Otherwise the heading says *Likely because*, and each line
+comes from what the plan sensors publish for that step and nothing else:
 
 - the step's price, when it is among the dearer half of the plan's horizon,
   with the share of the horizon that is at least as dear and the cheapest
@@ -226,10 +230,9 @@ the plan sensors publish for that step and nothing else:
   hot-water minimum the integration publishes;
 - a solar surplus expected later in the horizon.
 
-When both channels are idle at that step they share one list, with the price
-said once. A reason the published fields cannot show — the room's lower limit
-at that hour, or a fuse limit — is never claimed, which is why the heading
-says *likely*: the plan's exact reasons for idle steps are not published yet.
+When both channels are idle at that step they share one list. An exact reason
+is said once, the most specific first, and on a small card the list drops its
+last line rather than clipping it. The inferred list says the price once.
 A step none of these fits gets no explanation rather than a guessed one.
 
 The tooltip stays inside the chart: past the middle of the chart it opens to
@@ -565,7 +568,7 @@ your plan cheaper, ranked by what each change is worth per month.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/advisor-dark.png">
-  <img alt="The Advisor tab: a Worth doing section with a price-of-a-degree row with a Try in what-if button, a hot-water setpoint row with an Open schedule button, a sensor-gap row with an Assign sensor button and a valve-target row with an Apply button; below it a More advice, once turned on section with wood-stove timing, fuse size and compressor frequency rows, each with an Open settings button; then the ranking of sensors that would tighten the model" src="img/card/advisor-light.png">
+  <img alt="The Advisor tab: a Worth doing section with a price-of-a-degree row with a Try in what-if button, a hot-water setpoint row with an Apply button, a sensor-gap row with an Assign sensor button and a valve-target row with an Apply button; below it a More advice, once turned on section with wood-stove timing, fuse size and compressor frequency rows, each with an Open settings button; then the ranking of sensors that would tighten the model" src="img/card/advisor-light.png">
 </picture>
 
 *Every figure is an estimate (it reads "≈") and comes from the integration's
@@ -579,9 +582,9 @@ own advisor sensors, not from the card.*
 - **The hot-water setpoint.** The cheapest setpoint that still covers your
   heaviest draw, priced against the setpoint you run. The advisor sweeps
   setpoints two degrees apart, so a setpoint between two of them (the default
-  55 °C) is priced by interpolating between its neighbours. **Open schedule**
-  takes you to the Plan tab's schedule editor; the setpoint is not written
-  from here.
+  55 °C) is priced by interpolating between its neighbours. **Apply** writes
+  the recommended setpoint, not that interpolated price, through
+  `apply_schedule`, which stores it in the configuration so a reload keeps it.
 - **The price of a degree.** What a degree cooler would save a month, and what
   a degree warmer would cost, from the score sensor's price tiles. **Try in
   what-if** opens the Plan tab's what-if panel with the comfort slider on the
