@@ -8,6 +8,8 @@
 #   r9_rc_bus_fetchhead.sh <path to bus.sh> race    # the intervening fetch
 #   r9_rc_bus_fetchhead.sh <path to bus.sh> append  # the null control, no plant
 #   r9_rc_bus_fetchhead.sh <path to bus.sh> ootree  # the out-of-tree copy
+#   r9_rc_bus_fetchhead.sh <body_push.sh>    bodypush    # the sibling: the parent
+#   r9_rc_bus_fetchhead.sh <handoff_push.sh> handoffpush # the sibling: the body
 #
 # `race` appends a second verdict onto an existing review/<pr> while a fetch of
 # an UNRELATED ref lands in the window between the script's own fetch of the ref
@@ -80,24 +82,53 @@ bus() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster \
 tip() { git -C "$W/origin.git" rev-parse --verify -q "$1"; }
 ref_exists() { git -C "$W/origin.git" show-ref -q --verify "$1"; }
 
-if [ "$MODE" = race ]; then
-  # A git wrapper that plants the unrelated fetch inside the window: after the
-  # script's own fetch of the bus ref returned, before it reads the tip back.
-  mkdir -p "$W/shim"
-  cat > "$W/shim/git" <<'S'
+# THE PLANT, for every mode that needs a fetch inside the window: a git wrapper
+# that, after the FIRST fetch whose arguments name $BUS_ST_PLANT_MATCH, performs
+# one more fetch of $BUS_ST_PLANT_REF in this same checkout -- the state any
+# other writer in the checkout leaves behind, in the exact window the instrument
+# reads in next. It must go INSIDE the window: measured (probe, 2026-10-09) that
+# `git fetch` rewrites FETCH_HEAD even when the ref is unchanged, so a plant
+# placed BEFORE the instrument's own fetch is overwritten by it and the arm
+# would be green on the very bug it pins.
+mkdir -p "$W/shim"
+cat > "$W/shim/git" <<'S'
 #!/bin/bash
-if [ "${1:-}" = fetch ] && [ ! -e "$BUS_RACE_WINDOW" ]; then
-  : > "$BUS_RACE_WINDOW"
-  "$BUS_RACE_REAL_GIT" "$@"
-  rc=$?
-  "$BUS_RACE_REAL_GIT" -C "$PWD" fetch -q origin refs/heads/main >/dev/null 2>&1
-  exit $rc
+if [ "${1:-}" = fetch ] && [ ! -e "$BUS_ST_WINDOW" ]; then
+  case " $* " in
+    *" $BUS_ST_PLANT_MATCH "*)
+      : > "$BUS_ST_WINDOW"
+      "$BUS_ST_REAL" "$@"
+      rc=$?
+      "$BUS_ST_REAL" -C "$PWD" fetch -q origin "$BUS_ST_PLANT_REF" >/dev/null 2>&1
+      exit $rc
+      ;;
+  esac
 fi
-exec "$BUS_RACE_REAL_GIT" "$@"
+exec "$BUS_ST_REAL" "$@"
 S
-  chmod +x "$W/shim/git"
-  export BUS_RACE_REAL_GIT=$REAL
+chmod +x "$W/shim/git"
+export BUS_ST_REAL=$REAL
+planted() { # <fetch that opens the window> <ref to fetch after it> <command...>
+  local m=$1 r=$2
+  shift 2
+  rm -f "$W/window"
+  PATH="$W/shim:$PATH" BUS_ST_WINDOW=$W/window BUS_ST_PLANT_MATCH=$m BUS_ST_PLANT_REF=$r "$@"
+}
+planted_here() { # the same, run from the seat clone
+  local m=$1 r=$2
+  shift 2
+  ( cd "$W/seat" && planted "$m" "$r" "$@" )
+}
+# A commit whose tree is BODY.md only, with the given marker text: the body
+# fixtures for the two sibling instruments, built without those instruments.
+bodycommit() { # <marker> <message>
+  local b tr
+  b=$(printf 'BODY MARKER %s\n' "$1" | git -C "$W/seat" hash-object -w --stdin)
+  tr=$(printf '100644 blob %s\tBODY.md\n' "$b" | git -C "$W/seat" mktree)
+  printf '%s' "$2" | git -C "$W/seat" commit-tree "$tr"
+}
 
+if [ "$MODE" = race ]; then
   N=$(bus dispatch 21 "$H1" cmsg_race | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$H1" "$N" > "$W/v1.md"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$H1" "$N" > "$W/v2.md"
@@ -106,7 +137,7 @@ S
   [ -n "$A" ] || { echo "no review/21 after round 1" >&2; exit 2; }
 
   rm -f "$W/window"
-  out=$(PATH="$W/shim:$PATH" BUS_RACE_WINDOW=$W/window bus push-verdict 21 "$W/v2.md" "$W/ev2")
+  out=$(planted refs/heads/review/21 refs/heads/main bus push-verdict 21 "$W/v2.md" "$W/ev2")
   rc=$?
   B=$(tip refs/heads/review/21)
   FH=$(git -C "$W/seat" rev-parse FETCH_HEAD 2>/dev/null || echo unreadable)
@@ -139,6 +170,91 @@ S
   [ -n "${BUS_RACE_KEEP:-}" ] || rm -rf "$W"
   [ "$PARENT" = "$A" ] || exit 1
   exit 0
+fi
+
+# ---- bodypush: the same predicate in body_push.sh ----
+# body_push.sh appends a body commit onto handoff-body/<topic> and read that
+# ref's tip back through FETCH_HEAD to parent it. The arm plants a fetch of the
+# OTHER topic's body ref in the window, so FETCH_HEAD names the wrong ref exactly
+# when the instrument reads it, and asserts the built commit's parent.
+if [ "$MODE" = bodypush ]; then
+  a1=$(bodycommit A "body: A round 1")
+  b1=$(bodycommit B "body: B round 1")
+  git -C "$W/seat" push -q origin "$a1:refs/heads/handoff-body/A"
+  git -C "$W/seat" push -q origin "$b1:refs/heads/handoff-body/B"
+  A1=$(tip refs/heads/handoff-body/A)
+  B1=$(tip refs/heads/handoff-body/B)
+  printf 'a body for topic A\n' > "$W/bodysrc.md"
+  out=$(planted_here refs/heads/handoff-body/A refs/heads/handoff-body/B \
+        bash "$BUS" A "$W/bodysrc.md")
+  rc=$?
+  B2=$(tip refs/heads/handoff-body/A)
+  FH=$(git -C "$W/seat" rev-parse FETCH_HEAD 2>/dev/null || echo unreadable)
+  echo "== sibling: body_push.sh =="
+  echo "handoff-body/A before .............. $A1"
+  echo "handoff-body/B (the decoy) ......... $B1"
+  echo "FETCH_HEAD the script could read ... $FH"
+  echo "body_push.sh rc .................... $rc"
+  echo "handoff-body/A after ............... ${B2:-absent}"
+  PARENT=""
+  if [ -n "$B2" ] && [ "$B2" != "$A1" ]; then
+    PARENT=$(git -C "$W/origin.git" rev-parse refs/heads/handoff-body/A^)
+    echo "built commit ....................... $B2"
+  else
+    echo "output: $out"
+    for c in $(git -C "$W/seat" fsck --no-reflogs --unreachable 2>/dev/null \
+                 | awk '$2 == "commit" { print $3 }'); do
+      [ "$(git -C "$W/seat" rev-parse "$c^{tree}")" = "$(git -C "$W/seat" rev-parse "$A1^{tree}")" ] && continue
+      echo "built commit (unreachable) ......... $c"
+      PARENT=$(git -C "$W/seat" rev-parse -q --verify "$c^" 2>/dev/null || echo none)
+    done
+  fi
+  echo "its parent ......................... ${PARENT:-none}   (asserted)"
+  echo "verdict: parent == handoff-body/A's tip? $([ "$PARENT" = "$A1" ] && echo yes || echo no)"
+  [ -n "${BUS_RACE_KEEP:-}" ] || rm -rf "$W"
+  [ "$PARENT" = "$A1" ] || exit 1
+  exit 0
+fi
+
+# ---- handoffpush: the same predicate in handoff_push.sh, with a worse outcome ----
+# It reads the pull request's BODY.md out of handoff-body/<topic> through
+# FETCH_HEAD, from the MAIN checkout where fetches are constant. An intervening
+# fetch of another topic's body ref therefore publishes ANOTHER TOPIC'S body as
+# this pull request's -- a wrong artifact, not a refusal. The arm plants exactly
+# that and asserts on the body file the instrument wrote.
+if [ "$MODE" = handoffpush ]; then
+  a1=$(bodycommit A "body: A round 1")
+  b1=$(bodycommit B "body: B round 1")
+  git -C "$W/seat" push -q origin "$a1:refs/heads/handoff-body/A"
+  git -C "$W/seat" push -q origin "$b1:refs/heads/handoff-body/B"
+  C=$(git -C "$W/seat" rev-parse HEAD)
+  git -C "$W/seat" push -q origin "HEAD:refs/heads/handoff/A"
+  # A copy inside the throwaway checkout, so the script's own M and its
+  # worktree, branch and push all stay in the throwaway repository.
+  mkdir -p "$W/seat/tools/audit/seat"
+  cp "$BUS" "$W/seat/tools/audit/seat/handoff_push.sh"
+  out=$(planted_here refs/heads/handoff-body/A refs/heads/handoff-body/B \
+        env HPO_STATE_DIR=$W/state HPO_WT_ROOT=$W/wt \
+        bash "$W/seat/tools/audit/seat/handoff_push.sh" A "$C" "T")
+  rc=$?
+  BODYPUB=$W/state/bodies/A-body.md
+  echo "== sibling: handoff_push.sh =="
+  echo "handoff-body/A BODY.md ............. $(git -C "$W/origin.git" show refs/heads/handoff-body/A:BODY.md)"
+  echo "handoff-body/B BODY.md (the decoy) . $(git -C "$W/origin.git" show refs/heads/handoff-body/B:BODY.md)"
+  echo "handoff_push.sh rc ................. $rc"
+  if [ -f "$BODYPUB" ]; then
+    echo "published body ..................... $(grep -m1 'BODY MARKER' "$BODYPUB" || echo 'no marker line')"
+    if grep -q 'BODY MARKER A' "$BODYPUB" && ! grep -q 'BODY MARKER B' "$BODYPUB"; then
+      echo "verdict: the published body is topic A's: yes"
+      [ -n "${BUS_RACE_KEEP:-}" ] || rm -rf "$W"
+      exit 0
+    fi
+    echo "verdict: the published body is NOT topic A's"
+  else
+    echo "verdict: no body written at $BODYPUB -- the arm never reached the read"
+  fi
+  [ -n "${BUS_RACE_KEEP:-}" ] || rm -rf "$W"
+  exit 1
 fi
 
 # ---- append: the null control ----
