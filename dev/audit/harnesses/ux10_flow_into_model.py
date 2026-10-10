@@ -70,7 +70,7 @@ Trees, each copied from the checkout into a temp dir:
   replay returns is spent and the AttributeError escapes the learner.
 
 Expected, as measured on 2026-10-10 under Python 3.14.7 against merge base
-23d354970, on the tree that carries this file (the pull-request body names the
+7cd5a588c, on the tree that carries this file (the pull-request body names the
 head; re-run it to re-derive):
     BLOCK head: rc=0 failing_checks=0   (ALL 8 UX-10 EXTRACT PASSED)
     BLOCK base: rc=0 failing_checks=6
@@ -233,7 +233,7 @@ VARIANTS = {
                                "if predicted_state is None:", "if False:"))],
 }
 #: ``base``: the merge base's three production files under this head's tests.
-BASE_SHA = os.environ.get("UX10_BASE_SHA", "23d354970fcaababe8e67a5c04c326cc8bc79e49")
+BASE_SHA = os.environ.get("UX10_BASE_SHA", "7cd5a588cbbbef354c00148040da2d720b8a888c")
 BASE_FILES = (FLOW_METER, THERMAL, COORD)
 
 DRIVER = r'''
