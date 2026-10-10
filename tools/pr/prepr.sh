@@ -688,7 +688,7 @@ moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 ski
   [ -f "$1/tests/layout.py" ] || { echo "no tests/layout.py under $1, so the layout guard was not run"; return 3; }
   out=$(cd "$1" && python3 -I tests/layout.py --guard --base "$2" 2>&1); r=$?
   if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
-  local first hint; first=$(printf '%s\n' "$out" | grep -m1 '^    ' | sed 's/^ *//')
+  local first hint; first=$(grep -m1 '^    ' <<<"$out" | sed 's/^ *//')
   case "$first" in
     new-reference:*|unswept:*) hint="re-point the citation to its new path in tests/layout.json" ;;
     *'it lives at'*) hint="move it to the new path" ;;
@@ -1395,7 +1395,7 @@ EOS
   st $? 0 "the pr-body step calls body_line, so a predicted raise reaches the body check before the push"
   case "$flow" in *'copies_line "'*) true ;; *) false ;; esac
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
-  printf '%s\n' "$flow" | grep -q 'moved_line "'
+  case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
