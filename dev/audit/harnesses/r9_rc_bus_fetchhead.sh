@@ -1,13 +1,13 @@
 #!/bin/bash
-# bus_fetchhead_race.sh -- the two bus.sh defects, measured on whatever bus.sh
+# r9_rc_bus_fetchhead.sh -- the two bus.sh defects, measured on whatever bus.sh
 # you name, so the red and the green are both reproducible without a worktree
 # per round. (R9-RC-BUS-FETCHHEAD, 2026-10-09: #2071's round-4 reviewer's first
 # push-verdict was built parented on main's tip, and #2074's confirm signed and
 # pushed verdict/2074 (7c64dd213) and THEN failed at the post.)
 #
-#   bus_fetchhead_race.sh <path to bus.sh> race    # the intervening fetch
-#   bus_fetchhead_race.sh <path to bus.sh> append  # the null control, no plant
-#   bus_fetchhead_race.sh <path to bus.sh> ootree  # the out-of-tree copy
+#   r9_rc_bus_fetchhead.sh <path to bus.sh> race    # the intervening fetch
+#   r9_rc_bus_fetchhead.sh <path to bus.sh> append  # the null control, no plant
+#   r9_rc_bus_fetchhead.sh <path to bus.sh> ootree  # the out-of-tree copy
 #
 # `race` appends a second verdict onto an existing review/<pr> while a fetch of
 # an UNRELATED ref lands in the window between the script's own fetch of the ref
