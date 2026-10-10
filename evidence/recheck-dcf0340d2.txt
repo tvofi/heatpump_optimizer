@@ -1,0 +1,29 @@
+Re-publication checks at dcf0340d29617a70377f29a912d39ca312d5e5de
+generated: 2026-10-10T13:38:21Z
+
+$ git diff --name-only addd6f457 dcf0340d2
+CLAUDE.md
+dev/governance/roles/fixer.md
+dev/programme/carries/carry-1922.json
+dev/programme/delivery/2072.md
+dev/programme/delivery/2075.md
+tests/mutation_ledger/killed_by/away.py/interpret_presence.GUARD_OFF.ddf956eb.json
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.99876e4f.json
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_mixed_water.GUARD_OFF.4b940b75.json
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._power_headroom.BOOLOP.7e14506e.json
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.configured_dhw_windows.GUARD_OFF.58e50b50.json
+tests/mutation_ledger/killed_by/dhw_schedule.py/parse_weekly_windows.GUARD_OFF.3872acac.json
+tests/mutation_ledger/killed_by/disinfection.py/DisinfectionSwitch.release.CMP_BOUND.8199dc5b.json
+tests/mutation_ledger/killed_by/flow_lift.py/FlowCurveBias.from_dict.GUARD_OFF.6b786745.json
+tests/mutation_ledger/killed_by/price_model.py/prices_from_tibber_payload.GUARD_OFF.5b089cda.json
+tools/pr/prepr.sh
+
+$ git diff --name-only addd6f457 9d62d0665    # the branch's ONLY commit in the window
+dev/programme/delivery/2075.md
+
+reviewed blobs at dcf0340d2:
+  tools/pr/app_approve.sh          = 8a71178f21bd9ff4a5979d12f013e280faf08510  (== round-5 blob)
+  dev/programme/carries/carry-2075.json = 56bbd9ba8c29fca5a4d14e575dbfc99bc7699ab0  (== round-5 blob)
+
+merge-tree --write-tree origin/main dcf0340d2 -> 2168176766308f76ac01d6daed8e6d291539f7f6 (rc 0)
+merge dcf0340d2 is git's own: merge-tree of its parents == its tree
