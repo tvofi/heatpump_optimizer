@@ -1,0 +1,25 @@
+# Two-ends null control, run by the reviewer on the REAL recorded input of 63084989
+# input: gh api --paginate .../commits/63084989.../check-runs --jq '.check_runs[]|[.name,.status,.conclusion,.started_at]|@tsv'
+#   -> 30 lines (copy in this dir as checkruns-63084989.tsv), sha1 7656ef0d4f42cb7490de31a3c9410ad04e89a725 (body figure 15 claims 7656ef0d4f42cb7490de31a3c9410ad04e89a725)
+# baseline v2 watcher: git show origin/main:tools/audit/seat/ci-watch.sh  sha1 58e1ba8f26f15c9e7980c1218db1971d5168f795 (body: 58e1ba8f26f15c9e7980c1218db1971d5168f795)
+# head v3 watcher:     git show HEAD:tools/audit/seat/ci-watch.sh         sha1 33a480a05b306a865b226f0ddb47361b22b17035
+# fake gh: serves the TSV; for v2's jq forms it computes latest-per-name failures and the count.
+# run: PATH=<fakebin> FIX=<fixture> CI_WATCH_STATE=<state> CI_WATCH_ONCE=1 bash <watcher>  (v2 bounded at 6s)
+
+######## ARM A (as recorded: mutation + nightly-ha red)
+----- v2
+    CI-WATCH ALERT (11:51Z): NEW state(s):
+    PR#2066 at 63084989: | RED: mutation nightly-ha (stable) 
+    EXIT=1
+----- v3
+    CI-WATCH ALERT (11:51Z): NEW state(s):
+    PR#2066 at 63084989: | RED: mutation nightly-ha (stable)  | ABSENT required (settled; these never report at a bot GITHUB_TOKEN head -- an App push repairs): budget-raise-gate env-matrix policy-docs pr-contract wave-script 
+    EXIT=1
+
+######## ARM B (every conclusion forced success)
+----- v2
+    KILLED-AFTER-6s (still looping)
+----- v3
+    CI-WATCH ALERT (11:51Z): NEW state(s):
+    PR#2066 at 63084989: | ABSENT required (settled; these never report at a bot GITHUB_TOKEN head -- an App push repairs): budget-raise-gate env-matrix policy-docs pr-contract wave-script 
+    EXIT=1

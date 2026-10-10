@@ -1,0 +1,15 @@
+===== FIG10 structure.py at head
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 17 <= 17
+  ok   methods_over_200 9 <= 9
+  ok   seam_cut_total 762 <= 762
+
+STRUCTURE RATCHET PASSED
+===== BASELINE merge_train self-test at origin/main (7cd5a588c)
+  ok   hassfest.yml is in this tree and takes workflow_dispatch
+  ok   validate.yml is in this tree and takes workflow_dispatch
+merge_train self-test: 95 checks, 0 failed
+===== BASELINE ci-watch self-test at origin/main
+PR#2070 at a9ba0b88: | CONFLICTING — needs local main absorb | RED: mutation 
+PR#2066 at 67a83265: | CONFLICTING — needs local main absorb | RED: mutation nightly-ha (2025.2.0) nightly-ha (stable) 
+PR#2063 at ae6fbdd5: | RED: env-matrix fast (3.14) instrument-self-tests policy-docs pr-contract 
