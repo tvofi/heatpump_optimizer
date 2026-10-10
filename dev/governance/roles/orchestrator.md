@@ -160,7 +160,10 @@ head** — so you are the one who breaks it. A reviewer works in a fresh *detach
 worktree at the head SHA, so the branch has no worktree and no marker: a liveness
 check looking for either will not see it. Check whether a review is in flight on
 the pull request before moving anything. A head that moves under a review costs
-that review, and it has happened twice. **A conflict with main after the
+that review, and it has happened twice; a move that re-issues the verdict needs
+a fresh `bus.sh dispatch` at the new head before the reviewer publishes, since
+`push-verdict` refuses a nonce whose dispatch head is not the head the verdict
+names. **A conflict with main after the
 handoff is resolved by merge, never a re-cut**: merge
 `origin/main` into the head, or hand a semantic one to the fixer, and send the
 resolution delta to the same reviewer.
