@@ -6479,7 +6479,7 @@
     "R9-EG-B6"
    ],
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-sw-5",
     "commit": "de8ccc657ccd9fe5acdcfc6b800d02d70c6ee9e5",
     "last_step": null,
