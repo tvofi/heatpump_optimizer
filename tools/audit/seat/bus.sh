@@ -15,7 +15,10 @@
 # `verdict/<pr>` the verdicts the orchestrator confirmed and signed. Both
 # verdict families are append-only like a body ref: each push adds one commit
 # whose tree is VERDICT.md plus the evidence directory under `evidence/`, its
-# parent the previous tip, so a later round never needs a force-push. A
+# parent the previous tip -- the sha `git ls-remote` answered for the ref, never
+# FETCH_HEAD, which is per-worktree state any other fetch in the checkout may
+# overwrite between the fetch here and the read (see append_commit) -- so a
+# later round never needs a force-push. A
 # crossed-out verdict stays in the ref's history; only the tip is posted.
 #
 # push-verdict REFUSES, AND PUSHES NOTHING, unless the first line is in
@@ -75,18 +78,37 @@
 # Environment: HPO_BUS_REMOTE (origin), HPO_BUS_REPO (tvofi/heatpump_optimizer),
 # HPO_BUS_POSTER (this checkout's app_comment.sh: tools/audit/ if a copy is
 # restored there, else tools/pr/, where R9-RO-6 moved it), HPO_IDENTITY_DIR.
+# RUN IT FROM A CHECKOUT: it derives that poster from three levels above this
+# file, and a copy parked anywhere else derives a path that does not exist -- so
+# it refuses at load, before touching the remote (see the poster guard below;
+# #2074's confirm on 2026-10-09 was a bus operation half applied).
 # Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u.
 set -uo pipefail
 
 ROOT=$(cd "$(dirname -- "$0")/../../.." && pwd)
 REMOTE=${HPO_BUS_REMOTE:-origin}
 REPO=${HPO_BUS_REPO:-tvofi/heatpump_optimizer}
+S=${HPO_BUS_STATE:-$HOME/.zcode/bus}
+die() { printf 'bus: REFUSE: %s\n' "$*" >&2; exit 1; }
+
 POSTER=${HPO_BUS_POSTER:-}
 if [ -z "$POSTER" ]; then
   if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi
 fi
-S=${HPO_BUS_STATE:-$HOME/.zcode/bus}
-die() { printf 'bus: REFUSE: %s\n' "$*" >&2; exit 1; }
+# THE POSTER GUARD -- the checkout requirement, enforced before any remote write.
+# Every subcommand that moves a ref eventually posts through $POSTER, and $POSTER
+# is derived from $ROOT, three levels above this file. A copy of bus.sh outside a
+# checkout therefore derives a poster that cannot exist, and `confirm` found that
+# out only AFTER signing and pushing verdict/<pr>: #2074 on 2026-10-09 left the
+# verdict ref at 7c64dd213 with no comment posted -- a bus operation half applied,
+# and the record left saying "already posted" for the older tip. So the predicate
+# is the one dependency that actually broke, checked at load, and it fires before
+# the first `git push` rather than after one. Keyed on the poster and not on
+# "is $ROOT a git repository" because the tree is also read as an export with no
+# .git (fixer.md step 3 sends a seat to run a harness from the baseline export),
+# and such an export carries a real app_comment.sh: refusing there would break a
+# documented use to catch no defect.
+[ -x "$POSTER" ] || die "no executable poster at $POSTER (derived from this script's project root '$ROOT', three levels above $0): refusing before pushing anything. Run the checkout's own tools/audit/seat/bus.sh, or set HPO_BUS_POSTER."
 
 # The verdict's head sha, or a non-zero exit when the line is outside the
 # grammar. The two patterns are `app_comment.sh`'s, character for character.
@@ -143,11 +165,36 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
   append_commit review "$pr" "$tree" "verdict: #$pr $first" || exit 1
 }
 
+# THE PARENT IS WHAT THE REMOTE ANSWERED, NEVER FETCH_HEAD. `git fetch` rewrites
+# FETCH_HEAD, as PER-WORKTREE state of the checkout it runs in, so anything else
+# fetching in this checkout between the fetch below and the read of the tip -- a
+# sibling seat, the orchestrator, a watcher -- substitutes an unrelated ref's sha
+# for the one this commit is keyed on. Measured on 2026-10-09 in both shapes:
+# #2071's round-4 reviewer built its verdict commit parented on main's tip (the
+# push guard held; a verdict came within one accepted push of main's lineage),
+# and a fetch followed by `git -C <other worktree> reset --hard FETCH_HEAD`
+# answered `fatal: ambiguous argument 'FETCH_HEAD'` -- that state read from the
+# worktree that did not write it. `git ls-remote`, which the ref-existence test
+# already asked, answers this process the one sha it pushes against and no other
+# writer can supersede it: if the ref moves after the answer the push is refused
+# non-fast-forward, which is a retry, not a commit on the wrong lineage. So
+# resolve the ref in the worktree that will use it, in a local, before the fetch.
 append_commit() { # family pr tree message -> pushes one commit on <family>/<pr> after its tip, prints it
-  local fam=$1 pr=$2 tree=$3 msg=$4 parent="" c
-  if git ls-remote --exit-code -q "$REMOTE" "refs/heads/$fam/$pr" >/dev/null 2>&1; then
-    git fetch -q "$REMOTE" "refs/heads/$fam/$pr" || { printf 'bus: REFUSE: could not fetch %s/%s\n' "$fam" "$pr" >&2; return 1; }
-    parent="-p $(git rev-parse FETCH_HEAD)"
+  local fam=$1 pr=$2 tree=$3 msg=$4 parent="" tip="" c rc
+  tip=$(git ls-remote "$REMOTE" "refs/heads/$fam/$pr" 2>/dev/null | awk 'NF { print $1; exit }')
+  rc=$?
+  [ $rc = 0 ] \
+    || { printf 'bus: REFUSE: %s would not answer the tip of %s/%s\n' "$REMOTE" "$fam" "$pr" >&2; return 1; }
+  if [ -n "$tip" ]; then
+    [[ $tip =~ ^[0-9a-f]{40}$ ]] \
+      || { printf 'bus: REFUSE: %s answered no 40-hex tip for %s/%s: %s\n' "$REMOTE" "$fam" "$pr" "$tip" >&2; return 1; }
+    # The fetch STAYS, for the objects and only for the objects: commit-tree
+    # cannot write a commit whose parent it cannot read (measured: rc 128, "is
+    # not a valid object"). What it may no longer be trusted for is the sha --
+    # from here on FETCH_HEAD belongs to whatever else is fetching.
+    git fetch -q "$REMOTE" "refs/heads/$fam/$pr" \
+      || { printf 'bus: REFUSE: could not fetch %s/%s\n' "$fam" "$pr" >&2; return 1; }
+    parent="-p $tip"
   fi
   # shellcheck disable=SC2086 # $parent is empty or exactly "-p <sha>"
   c=$(git commit-tree "$tree" $parent -m "$msg") || { printf 'bus: REFUSE: commit-tree failed\n' >&2; return 1; }
@@ -326,6 +373,7 @@ watch() {
 
 self_test() {
   local W pass=0 fail=0 out rc h1 h2 r1 r2 r9 v1 v2 ra rs rf t tt ev n N0 N1 N1b N2 N9
+  local N3 N4 DT fa g1 ro n0 realgit want wanttree
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -564,6 +612,93 @@ B
   kill -0 "$t" 2>/dev/null; rc=$?
   kill "$t" 2>/dev/null; wait "$t" 2>/dev/null
   [ $rc = 0 ] && [ ! -s "$W/wait.out" ]; expect "watch without --once keeps waiting while nothing changes" $?
+
+  # ---- THE TIP IS WHAT THE REMOTE ANSWERED, NOT WHAT FETCH_HEAD HOLDS ----
+  # R9-RC-BUS-FETCHHEAD. Both halves were measured on 2026-10-09: #2071's
+  # round-4 reviewer's verdict commit was built parented on main's tip, and the
+  # orchestrator's `git fetch -q origin <ref>` then `git -C <other worktree>
+  # reset --hard FETCH_HEAD` answered `fatal: ambiguous argument 'FETCH_HEAD'`.
+  # The perturbation is a fetch of an UNRELATED ref landing between
+  # append_commit's fetch of the bus ref and its read of the tip -- the window a
+  # sibling seat, the orchestrator or a watcher walks into. It is planted inside
+  # that window, not before it: measured first, because it decides whether this
+  # case can be green on the bug (probe 2026-10-09, and `git fetch`'s own
+  # behaviour) -- a `git fetch` rewrites FETCH_HEAD even when the ref is
+  # unchanged, so the script's own fetch would overwrite any plant placed ahead
+  # of it and the case would pass with the defect in place. So a git wrapper on
+  # PATH performs the unrelated fetch after the first fetch it sees, in this
+  # checkout, once per run: the exact state another writer leaves behind.
+  # The assertion is the PARENT SHA of the built commit, read off the ref, never
+  # whether the push was accepted: a refused push IS today's behaviour on the
+  # bug, and a case that passes on refusal proves nothing.
+  mkdir -p "$W/shim"
+  printf '%s\n' '#!/bin/bash' \
+    'if [ "${1:-}" = fetch ] && [ ! -e "$BUS_ST_WINDOW" ]; then' \
+    '  : > "$BUS_ST_WINDOW"' \
+    '  "$BUS_ST_REAL" "$@"' \
+    '  rc=$?' \
+    '  "$BUS_ST_REAL" -C "$PWD" fetch -q origin refs/heads/main >/dev/null 2>&1' \
+    '  exit $rc' \
+    'fi' \
+    'exec "$BUS_ST_REAL" "$@"' > "$W/shim/git"
+  chmod +x "$W/shim/git"
+  realgit=$(command -v git)
+  N3=$(run dispatch 21 "$h1" cmsg_F | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N3" > "$W/ff1.md"
+  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N3" > "$W/ff2.md"
+  seat push-verdict 21 "$W/ff1.md" "$W/ev1" >/dev/null
+  fa=$(tip review/21)
+  rm -f "$W/window"
+  out=$(BUS_ST_WINDOW=$W/window BUS_ST_REAL=$realgit PATH="$W/shim:$PATH" \
+        seat push-verdict 21 "$W/ff2.md" "$W/ev2"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/21)" != "$fa" ] && [ "$(tip review/21^)" = "$fa" ] \
+    && [ "$(git -C "$W/seat" rev-parse FETCH_HEAD)" != "$fa" ]
+  expect "an intervening fetch of an unrelated ref does not reparent the appended commit" $?
+
+  # NULL CONTROL for the same fix: the ordinary append with no plant, which
+  # already worked, is byte-for-byte the commit it always was. The expected
+  # commit is re-derived here from the same staged content, the same parent and
+  # the same message with both timestamps pinned to the same literals on each
+  # side, so ONE sha carries tree, parent, message and identity at once -- a
+  # moved parent, a changed tree or a reworded message all fail it. The tree is
+  # named too, because the claim the brief owes is a byte-identical ref tree.
+  DT=2026-10-09T12:00:00+02:00
+  seat push-verdict 22 "$W/ff1.md" "$W/ev1" >/dev/null
+  g1=$(tip review/22)
+  t=$(raw "$h2" x < "$W/ff2.md")
+  wanttree=$(git -C "$W/seat" rev-parse "$t^{tree}")
+  want=$(GIT_AUTHOR_DATE=$DT GIT_COMMITTER_DATE=$DT git -C "$W/seat" commit-tree "$wanttree" \
+         -p "$g1" -m "verdict: #22 $(head -n 1 "$W/ff2.md")")
+  out=$(GIT_AUTHOR_DATE=$DT GIT_COMMITTER_DATE=$DT seat push-verdict 22 "$W/ff2.md" "$W/ev2")
+  [ "$(tip review/22)" = "$want" ] && [ "$(tip 'review/22^{tree}')" = "$wanttree" ] \
+    && [ "$(tip review/22^)" = "$g1" ]
+  expect "an ordinary append with no intervening fetch is the same commit object as before" $?
+
+  # A COPY OF THE SCRIPT OUTSIDE A CHECKOUT REFUSES BEFORE ANY PUSH (#2074).
+  # ROOT is three levels above the file, so a copy parked in a throwaway
+  # directory derives its poster from a path that cannot exist -- and `confirm`
+  # used to find that out only after signing and pushing verdict/<pr>: the
+  # verdict ref moved to 7c64dd213, the comment never posted, and the record was
+  # left saying "already posted" for the older tip. The guard is at load, so the
+  # case asserts the ref never moved AND the poster was never called. HPO_BUS_POSTER
+  # is deliberately not set on this one call: the derived default is the thing
+  # under test, and every other call in this self-test sets it, which is this
+  # case's own null control (a script run from the checkout is not refused).
+  # The proposal is for a PR whose dispatch matches, or the unfixed script would
+  # stop at dispatched_to and the case would be green on the defect (#2074's
+  # confirm got past every check because it WAS dispatched at the tip).
+  mkdir -p "$W/o/b/c" && cp "$ROOT/tools/audit/seat/bus.sh" "$W/o/b/c/bus.sh"
+  N4=$(run dispatch 24 "$h1" cmsg_O | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N4" > "$W/oo.md"
+  seat push-verdict 24 "$W/oo.md" "$W/ev1" >/dev/null
+  ro=$(tip review/24)
+  n0=$(calls)
+  out=$( (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_IDENTITY_DIR=$W/ap \
+          bash "$W/o/b/c/bus.sh" confirm 24 "$ro") 2>&1 ); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "no executable poster" \
+    && ! git -C "$W/seat" ls-remote --exit-code origin refs/heads/verdict/24 >/dev/null 2>&1 \
+    && [ "$(calls)" = "$n0" ]
+  expect "a copy outside a checkout refuses before it pushes the verdict ref" $?
 
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"

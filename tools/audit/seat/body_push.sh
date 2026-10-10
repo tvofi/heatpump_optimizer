@@ -15,9 +15,17 @@ REF=handoff-body/$TOPIC
 [ -f "$BODY" ] || { echo "body_push: no body at $BODY" >&2; exit 2; }
 [ -z "$NOTE" ] || [ -f "$NOTE" ] || { echo "body_push: no note at $NOTE" >&2; exit 2; }
 P=""
-if git ls-remote --exit-code -q origin "refs/heads/$REF" >/dev/null 2>&1; then
-  git fetch -q origin "refs/heads/$REF"
-  P="-p $(git rev-parse FETCH_HEAD)"
+# The parent is what ORIGIN ANSWERED, never FETCH_HEAD. `git fetch` rewrites
+# FETCH_HEAD as per-worktree state of the checkout it runs in, so any other
+# fetch landing between the fetch below and the read -- a sibling seat, the
+# orchestrator, a watcher -- substitutes an unrelated ref's tip and the push is
+# refused non-fast-forward (R9-RC-BUS-FETCHHEAD: the predicate bus.sh carried).
+# The fetch stays for the objects: commit-tree cannot write a parent it cannot
+# read.
+tip=$(git ls-remote origin "refs/heads/$REF" 2>/dev/null | awk 'NF { print $1; exit }') || tip=""
+if [ -n "$tip" ]; then
+  git fetch -q origin "refs/heads/$REF" || { echo "body_push: could not fetch $REF" >&2; exit 1; }
+  P="-p $tip"
 fi
 { printf '100644 blob %s\tBODY.md\n' "$(git hash-object -w -- "$BODY")"
   [ -z "$NOTE" ] || printf '100644 blob %s\tRESUME.md\n' "$(git hash-object -w -- "$NOTE")"
