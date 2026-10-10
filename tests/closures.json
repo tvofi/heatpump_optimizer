@@ -3658,6 +3658,7 @@
    "dev/audit/rounds/round9/fixplan/build.sh",
    "dev/audit/rounds/round9/fixplan/data.py",
    "dev/audit/rounds/round9/fixplan/gen.py",
+   "dev/audit/rounds/round9/prestudy/boost_drift_refit.py",
    "dev/audit/rounds/round9/rca/1747/b8_replan_blocked.py",
    "dev/audit/rounds/round9/rca/1747/kwarg_seams.py",
    "dev/audit/rounds/round9/rca/1747/rca_census_reach.py",
@@ -3701,7 +3702,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 38.0
+   "seconds": 15.2
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -3733,7 +3734,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 730.5
+   "seconds": 288.5
   },
   "tests/finite_boundary.py": {
    "rc": 0,
