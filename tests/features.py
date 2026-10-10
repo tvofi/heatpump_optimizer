@@ -18657,6 +18657,12 @@ _c16._mode = "auto"
 _fake_plan = _NS(
     room_temp_trajectory=[21.0 + 0.01 * i for i in range(97)],
     upper_temp_trajectory=[],
+    # R9-UX-6: _file_lead_predictions also hands the day-ahead promise the
+    # plan's power schedules and prices. _T5 is 06:00 UTC, outside the
+    # midnight promise hour, so no promise is kept from this fake either way.
+    power_schedule=[0.5] * 96,
+    dhw_power_schedule=[0.0] * 96,
+    prices=[2.0] * 96,
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(
@@ -60475,6 +60481,262 @@ _sw4_gone.hass.states._states.pop(_SW4_START_H, None)
 R.check(
     "a missing GCHV night-mode number is observed as none",
     _pa._observed(_sw4_gone.arbiter_inputs(), "night_start_hour") is None,
+)
+
+
+# ---------------------------------------------------------------------------
+# R9-UX-6: money and memory -- the receipt, the capacity line, the replay
+# ---------------------------------------------------------------------------
+from harness import FakeEntry as _ux6_Entry, FakeHass as _ux6_Hass  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HeatPumpOptimizerCoordinator as _ux6_Coord,
+)
+
+_UX6_MARCH = datetime(2026, 3, 15, 12, 0, tzinfo=UTC)
+
+
+def _ux6_coord(**config):
+    data = {"tibber_token": "x", "weather_entity": "weather.home", **config}
+    return _ux6_Coord(_ux6_Hass(), _ux6_Entry(data=data))
+
+
+def _ux6_book(coord, *, splits=True):
+    """One month of every line the settlement path books.
+
+    The money the month cost is spot 150 + grid fee 25 + immersion 7.5 +
+    wear 12 = 194.5. ``space``/``dhw`` split the same energy as ``spot``,
+    the ``reason:`` lines partition it, and the two savings lines compare it
+    with a thermostat; none of them is money spent a second time.
+    """
+    led = coord._ledger
+    led.add(_UX6_MARCH, "spot", kwh=100.0, sek=150.0)
+    led.add(_UX6_MARCH, "grid_fee", kwh=105.0, sek=25.0)
+    led.add(_UX6_MARCH, "immersion", kwh=5.0, sek=7.5)
+    led.add(_UX6_MARCH, "wear", kwh=0.0, sek=12.0)
+    if splits:
+        led.add(_UX6_MARCH, "space", kwh=80.0, sek=120.0)
+        led.add(_UX6_MARCH, "dhw", kwh=25.0, sek=37.5)
+        led.add(_UX6_MARCH, "reason:cheap_hours", kwh=100.0, sek=150.0)
+        led.add(_UX6_MARCH, "savings_baseline", kwh=120.0, sek=200.0)
+        led.add(_UX6_MARCH, "savings_actual", kwh=105.0, sek=157.5)
+
+
+# The defect (PRE-STUDY-UX item 3): total_sek summed every line but the
+# reasons, so spot was counted again under space and dhw and twice more under
+# the savings lines -- 709.5 for a month that cost 194.5.
+_ux6_split = _ux6_coord()
+_ux6_book(_ux6_split)
+_ux6_receipt = _ux6_split._freeze_month_report("2026-03")
+R.check(
+    "UX-6: a receipt's total is the money the month cost, not its splits again",
+    abs(_ux6_receipt["total_sek"] - 194.5) < 1e-9,
+    f"total_sek={_ux6_receipt['total_sek']}; spot is split by space/dhw and "
+    "compared by the savings lines, so adding them counts it up to four times",
+)
+# Null control: without the split and comparison lines the old sum and the
+# right one agree, so the check above moves only on the double count.
+_ux6_plain = _ux6_coord()
+_ux6_book(_ux6_plain, splits=False)
+R.check(
+    "UX-6 null control: a month with only billed lines totals 194.5 either way",
+    abs(_ux6_plain._freeze_month_report("2026-03")["total_sek"] - 194.5) < 1e-9,
+    f"{_ux6_plain._freeze_month_report('2026-03')}",
+)
+
+
+# The receipt freeze lives in ledger.py as a pure function; the coordinator
+# method above is its caller. Drive it directly, and the load-time restatement
+# of a receipt frozen by the old sum.
+from heatpump_optimizer import ledger as _ux6_ledger  # noqa: E402
+from heatpump_optimizer.store import admitted as _ux6_admitted  # noqa: E402
+
+_ux6_pure = _ux6_ledger.freeze_month_report(
+    _ux6_split._ledger, "2026-03", compressor_starts=7, contract_comparison={"month": "2026-03"},
+)
+R.check(
+    "UX-6: ledger.freeze_month_report totals the billed lines and names them",
+    _ux6_pure["total_sek"] == 194.5
+    and _ux6_pure["basis"] == ["spot", "grid_fee", "immersion", "wear"]
+    and _ux6_pure["compressor_starts"] == 7,
+    f"{_ux6_pure['total_sek']} {_ux6_pure['basis']}",
+)
+_ux6_old = dict(_ux6_pure, total_sek=709.5)
+_ux6_old.pop("basis")
+R.check(
+    "UX-6: a receipt frozen by the old sum is restated from its own lines on load",
+    _ux6_ledger.restate_total(_ux6_old)["total_sek"] == 194.5
+    and _ux6_ledger.restate_total({"month": "2026-01", "lines": {}})["total_sek"] == 0.0,
+    f"{_ux6_ledger.restate_total(_ux6_old)['total_sek']}",
+)
+R.check(
+    "UX-6: the store admits the receipt's basis and refuses a line it does not bill",
+    _ux6_admitted("ledger", {"month_reports": {"2026-03": _ux6_pure}})
+    and not _ux6_admitted(
+        "ledger", {"month_reports": {"2026-03": dict(_ux6_pure, basis=["space"])}}
+    ),
+)
+
+# The capacity charge: booked while the month is open, so the receipt can
+# name it after the tracker has wiped the month's peaks.
+_ux6_cap = _ux6_coord(peak_tariff_enabled=True, peak_tariff_price_per_kw=45.0)
+_ux6_cap._peak_tracker.month = "2026-03"
+_ux6_cap._peak_tracker.peaks = [6.0, 5.0, 4.0]
+_ux6_cap._peak_tracker.peak_days = ["2026-03-02", "2026-03-09", "2026-03-20"]
+_ux6_book(_ux6_cap, splits=False)
+_ux6_cap._roll_month(_UX6_MARCH)
+R.check(
+    "UX-6: the capacity line is the billed peak times the tariff while the month is open",
+    _ux6_cap._ledger.line("2026-03", "capacity") == {"kwh": 0.0, "sek": 225.0},
+    f"{_ux6_cap._ledger.line('2026-03', 'capacity')}",
+)
+# The tracker rolls first (its own month change wipes the peaks), then the
+# settlement freezes March: the line booked before the wipe survives it.
+_ux6_tariff = _ux6_cap._capacity_tariff()
+_ux6_cap._peak_tracker.observe(datetime(2026, 4, 1, 0, 5, tzinfo=UTC), 2.0, _ux6_tariff)
+_ux6_cap._roll_month(datetime(2026, 4, 1, 0, 15, tzinfo=UTC))
+_ux6_march = _ux6_cap._month_reports.get("2026-03", {})
+R.check(
+    "UX-6: March's receipt names the capacity charge after the tracker reset",
+    _ux6_cap._peak_tracker.peaks == []
+    and _ux6_march.get("lines", {}).get("capacity", {}).get("sek") == 225.0
+    and _ux6_march.get("capacity_peak_kw") == 5.0
+    and _ux6_march.get("total_sek") == 194.5 + 225.0
+    and "capacity" in _ux6_march.get("basis", []),
+    f"{_ux6_march}",
+)
+_ux6_nocap = _ux6_coord()
+_ux6_nocap._peak_tracker.month = "2026-03"
+_ux6_nocap._peak_tracker.peaks = [6.0, 5.0, 4.0]
+_ux6_nocap._roll_month(_UX6_MARCH)
+R.check(
+    "UX-6 null control: without a capacity tariff no capacity line is booked",
+    "capacity" not in _ux6_nocap._ledger.months.get("2026-03", {}).get("lines", {}),
+)
+
+# Every receipt kept reaches the enabled monthly-savings sensor, unrecorded.
+from heatpump_optimizer.sensor import MonthlySavingsSensor as _ux6_Monthly  # noqa: E402
+
+_ux6_view = _ux6_cap._grid_view()
+R.check(
+    "UX-6: the grid view publishes every receipt kept, oldest first",
+    [r["month"] for r in _ux6_view["receipts"]] == sorted(_ux6_cap._month_reports)
+    and _ux6_view["receipts"][0]["total_sek"] == 419.5,
+    f"{[r.get('month') for r in _ux6_view['receipts']]}",
+)
+_ux6_cap.data = dict(_ux6_cap.data or {}, **_ux6_view)
+_ux6_sensor = _ux6_Monthly(_ux6_cap, _ux6_cap.entry)
+R.check(
+    "UX-6: the monthly-savings sensor carries the receipts and the replay, unrecorded",
+    _ux6_sensor.extra_state_attributes["receipts"] == _ux6_view["receipts"]
+    and "plan_replay" in _ux6_sensor.extra_state_attributes
+    and {"receipts", "plan_replay"} <= _ux6_Monthly._unrecorded_attributes,
+)
+
+# The day-ahead replay (decision U2): the first plan solved in the local
+# midnight hour is the day's promise, and the next day pairs it with what the
+# accuracy record measured over the same 24 hours.
+from homeassistant.util import dt as _ux6_dt  # noqa: E402
+from heatpump_optimizer.accuracy import (  # noqa: E402
+    PROMISE_DAYS as _UX6_PROMISE_DAYS,
+    plan_promise as _ux6_plan_promise,
+)
+
+_ux6_mid = _ux6_dt.as_local(datetime(2026, 3, 15, 0, 0, tzinfo=UTC)).replace(
+    hour=0, minute=5, second=0, microsecond=0
+)
+_UX6_N = 96
+_ux6_room = [21.0 - 0.01 * i for i in range(_UX6_N + 1)]
+_ux6_space = [1.0] * _UX6_N
+_ux6_dhw = [0.5 if i < 4 else 0.0 for i in range(_UX6_N)]
+_ux6_prices = [2.0] * _UX6_N
+_ux6_acc = AccuracyTracker()
+_ux6_acc.note_promise(_ux6_mid + timedelta(hours=1), 0.25, _ux6_room, _ux6_space, _ux6_dhw, _ux6_prices)
+R.check(
+    "UX-6: a plan solved after the midnight hour is not the day's promise",
+    _ux6_acc.promises == {},
+    f"{list(_ux6_acc.promises)}",
+)
+_ux6_acc.note_promise(_ux6_mid, 0.25, _ux6_room, _ux6_space, _ux6_dhw, _ux6_prices)
+_ux6_acc.note_promise(_ux6_mid + timedelta(minutes=15), 0.25, [9.0] * 97, _ux6_space, [], _ux6_prices)
+_ux6_day = _ux6_mid.date().isoformat()
+_ux6_prom = _ux6_acc.promises.get(_ux6_day, {})
+R.check(
+    "UX-6: the promise is the first midnight plan's: 24 h of room and cumulative cost",
+    len(_ux6_prom.get("room", [])) == _UX6_N + 1
+    and _ux6_prom["room"][0] == 21.0
+    and abs(_ux6_prom["cost"][-1] - (1.0 * 96 + 0.5 * 4) * 2.0 * 0.25) < 1e-9
+    and _ux6_prom["cost"][0] == 0.0,
+    f"{ {k: (v[:3] if isinstance(v, list) else v) for k, v in _ux6_prom.items()} }",
+)
+R.check(
+    "UX-6: a plan with an unpriced step makes no promise rather than a wrong one",
+    _ux6_plan_promise(_ux6_mid, 0.25, _ux6_room, _ux6_space, [], [None] + _ux6_prices[1:]) is None
+    and _ux6_plan_promise(_ux6_mid, 0.0, _ux6_room, _ux6_space, [], _ux6_prices) is None,
+)
+for _i in range(1, _UX6_N + 1):
+    _ux6_acc.record(AccuracySample(
+        when=_ux6_mid + timedelta(minutes=15 * _i), actual_temp=20.5, actual_cost=0.6,
+    ))
+_ux6_acc.record(AccuracySample(when=_ux6_mid + timedelta(hours=30), actual_temp=1.0, actual_cost=99.0))
+_ux6_rep = _ux6_acc.replay(_ux6_mid + timedelta(days=1, hours=8))
+R.check(
+    "UX-6: the next day replays the promise against the 24 h it covered",
+    _ux6_rep is not None
+    and _ux6_rep["day"] == _ux6_day
+    and _ux6_rep["room"] == _ux6_prom["room"]
+    and len(_ux6_rep["measured"]["t"]) == _UX6_N
+    and _ux6_rep["measured"]["t"][-1] == 24.0
+    and abs(_ux6_rep["measured"]["cost"][-1] - 0.6 * _UX6_N) < 1e-6
+    and set(_ux6_rep["measured"]["room"]) == {20.5},
+    f"{_ux6_rep and {k: _ux6_rep['measured'][k][-2:] for k in ('t', 'cost')} }",
+)
+R.check(
+    "UX-6 null control: on the promise's own day there is no yesterday to replay",
+    _ux6_acc.replay(_ux6_mid + timedelta(hours=8)) is None,
+)
+_ux6_nometer = AccuracyTracker(promises=dict(_ux6_acc.promises))
+_ux6_nometer.record(AccuracySample(when=_ux6_mid + timedelta(hours=1), actual_temp=20.0))
+R.check(
+    "UX-6: without a power meter the measured cost is absent, not zero",
+    _ux6_nometer.replay(_ux6_mid + timedelta(days=1))["measured"]["cost"] is None,
+)
+for _d in range(1, 4):
+    _ux6_acc.note_promise(_ux6_mid + timedelta(days=_d), 0.25, _ux6_room, _ux6_space, [], _ux6_prices)
+_ux6_back = AccuracyTracker.from_dict(_ux6_acc.as_dict())
+R.check(
+    "UX-6: the promises are bounded, persisted beside the accuracy history and restored",
+    len(_ux6_acc.promises) == _UX6_PROMISE_DAYS
+    and _ux6_back.promises == _ux6_acc.promises
+    and _ux6_admitted("accuracy", {"accuracy": {"promises": _ux6_acc.as_dict()["promises"]}}),
+    f"{sorted(_ux6_acc.promises)} vs {sorted(_ux6_back.promises)}",
+)
+_ux6_bad = AccuracyTracker.from_dict({"promises": {
+    "2026-03-15": {"start": "2026-03-15T00:05:00", "step_minutes": 15, "room": [1, 2], "cost": [0, 1]},
+    "2026-03-16": {"start": _ux6_mid.isoformat(), "step_minutes": 15, "room": [1, 2], "cost": [0]},
+}})
+R.check(
+    "UX-6: a naive or ragged stored promise is dropped, not loaded",
+    _ux6_bad.promises == {},
+    f"{_ux6_bad.promises}",
+)
+
+# The load path restates a stored receipt: the published total of a month
+# frozen before this fix stops counting spot four times after one restart.
+import asyncio as _ux6_aio  # noqa: E402
+
+_ux6_loaded = _ux6_coord()
+
+
+async def _ux6_stored():
+    return {"ledger": {"months": {}}, "month_reports": {"2026-03": _ux6_old}}
+
+
+_ux6_loaded._ledger_store.async_load = _ux6_stored
+_ux6_aio.run(_ux6_loaded._async_load_ledger())
+R.check(
+    "UX-6: a receipt stored with the old total loads with the billed total",
+    _ux6_loaded._month_reports.get("2026-03", {}).get("total_sek") == 194.5,
+    f"{_ux6_loaded._month_reports.get('2026-03', {}).get('total_sek')}",
 )
 
 

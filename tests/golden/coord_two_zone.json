@@ -291,6 +291,7 @@
   "peak_threshold_kw": Infinity,
   "plan_age_minutes": null,
   "plan_price_known": [],
+  "plan_replay": null,
   "plan_stale": false,
   "power_headroom": {
    "available": false
@@ -426,6 +427,7 @@
    "slab_temperature": false,
    "upper_floor_temperature": false
   },
+  "receipts": [],
   "savings_months": [],
   "savings_percentage": null,
   "schedule": [],
@@ -1826,6 +1828,8 @@
   },
   "monthly_savings": {
    "extra_state_attributes": {
+    "plan_replay": null,
+    "receipts": [],
     "savings_months": [],
     "waiting_for": "settled_savings_month"
    },

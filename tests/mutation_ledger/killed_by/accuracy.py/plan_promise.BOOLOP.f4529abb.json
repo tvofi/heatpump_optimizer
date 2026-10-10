@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:plan_promise BOOLOP f4529abb",
+  "killed_by": "tests/features.py",
+  "old": "    if steps < 1 or (dhw and len(dhw) < steps):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6be88834e8c4658b3e4832cd24c00aa97b3da2d3: BOOLOP (`if steps < 1 or (dhw or len(dhw) < steps):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -25,7 +25,7 @@ import logging
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Deque, Iterable
+from typing import Any, Deque, Iterable, Sequence
 
 import numpy as np
 
@@ -43,6 +43,14 @@ _LOGGER = logging.getLogger(__name__)
 # this is a fortnight, which is long enough to see a seasonal bias emerge
 # without keeping an unbounded amount of state in memory.
 HISTORY_LENGTH = 672
+
+#: R9-UX-6 (decision U2): the day-ahead replay keeps the plan's promise for a
+#: day, taken from the first plan solved in this local hour -- "the promise is
+#: the plan snapshot taken at 00:00" -- and covering this many hours of it.
+PROMISE_HOUR = 0
+PROMISE_SPAN_H = 24.0
+#: Promises kept: today's, and yesterday's, which the replay compares.
+PROMISE_DAYS = 2
 
 
 @dataclass
@@ -174,6 +182,9 @@ class AccuracyTracker:
     #: restored one -- and an accepted refit's own evidence would be applied
     #: a second time. Persisted, because the samples it fences are.
     evidence_since: datetime | None = None
+    #: R9-UX-6: the plan's day-ahead promise per local date
+    #: (``plan_promise``'s shape), bounded at PROMISE_DAYS.
+    promises: dict[str, dict[str, Any]] = field(default_factory=dict)
     #: The metered running draw beside the level the plan asked for: the
     #: same predicted-versus-realised power pair, kept over running intervals
     #: only, and the range it clamps the plan to (``draw_range``).
@@ -184,6 +195,43 @@ class AccuracyTracker:
 
     def restart_evidence(self, now: datetime) -> None:
         self.evidence_since = now
+
+    # -- the day-ahead replay (R9-UX-6) ---------------------------------------
+
+    def note_promise(
+        self,
+        solve_time: datetime,
+        dt_h: float,
+        room: Sequence[float],
+        space: Sequence[float],
+        dhw: Sequence[float],
+        prices: Sequence[float],
+    ) -> None:
+        """Keep the day's promise from the first plan solved in PROMISE_HOUR.
+
+        A plan solved later in the day is not that day's promise: after a
+        restart at noon there is none, rather than one that starts at noon
+        and reads as the night's.
+        """
+        local = dt_util.as_local(solve_time)
+        day = local.date().isoformat()
+        if local.hour != PROMISE_HOUR or day in self.promises:
+            return
+        promise = plan_promise(solve_time, dt_h, room, space, dhw, prices)
+        if promise is None:
+            return
+        self.promises[day] = promise
+        for old in sorted(self.promises)[:-PROMISE_DAYS]:
+            del self.promises[old]
+
+    def replay(self, now: datetime) -> dict[str, Any] | None:
+        """Yesterday's promise beside what the samples measured over it."""
+        day = (dt_util.as_local(now).date() - timedelta(days=1)).isoformat()
+        promise = self.promises.get(day)
+        if promise is None:
+            return None
+        return {"day": day, **promise, "measured": measured_since(
+            self.samples, datetime.fromisoformat(promise["start"]))}
 
     # -- lead-time error (T5 #16) --------------------------------------------
 
@@ -406,6 +454,7 @@ class AccuracyTracker:
                 [t.isoformat(), lead, round(pred, 3)]
                 for t, lead, pred in self.lead_pending[-512:]
             ],
+            "promises": dict(self.promises),
         }
 
     @classmethod
@@ -471,6 +520,7 @@ class AccuracyTracker:
                 if not np.isfinite(lead) or not np.isfinite(predicted):
                     continue
                 tracker.lead_pending.append((when, lead, predicted))
+        tracker.promises = _stored_promises(data.get("promises"))
         tracker.draw = DrawRange.from_dict(data.get("draw"))
         since = data.get("evidence_since")
         if since:
@@ -478,6 +528,97 @@ class AccuracyTracker:
                 str(since), dt_util.DEFAULT_TIME_ZONE
             )
         return tracker
+
+
+def plan_promise(
+    start: datetime,
+    dt_h: float,
+    room: Sequence[float],
+    space: Sequence[float],
+    dhw: Sequence[float],
+    prices: Sequence[float],
+) -> dict[str, Any] | None:
+    """The plan's day-ahead promise: room and cumulative cost at each step.
+
+    ``room[i]`` is the trajectory at ``start + i*dt_h`` (index 0 is the solve
+    instant, the lead convention ``note_lead_prediction`` files by), and
+    ``cost[i]`` is what the plan expected to have spent by then -- each
+    step's electrical kW, space plus hot water (``dhw`` empty without a
+    tank), times its price times the step, summed. None when the plan cannot
+    cover a single step or carries a value that is not a finite number.
+    """
+    if not (np.isfinite(dt_h) and dt_h > 0):
+        return None
+    steps = min(int(round(PROMISE_SPAN_H / dt_h)), len(room) - 1, len(space), len(prices))
+    if steps < 1 or (dhw and len(dhw) < steps):
+        return None
+    try:
+        kw = np.asarray(space[:steps], dtype=float)
+        if dhw:
+            kw = kw + np.asarray(dhw[:steps], dtype=float)
+        cost = np.concatenate(([0.0], np.cumsum(kw * np.asarray(prices[:steps], dtype=float) * dt_h)))
+        temps = np.asarray(room[: steps + 1], dtype=float)
+    except (TypeError, ValueError):  # a None step: the plan priced nothing there
+        return None
+    if not (np.all(np.isfinite(cost)) and np.all(np.isfinite(temps))):
+        return None
+    return {
+        "start": start.isoformat(),
+        "step_minutes": round(dt_h * 60.0, 3),
+        "room": [round(float(v), 2) for v in temps],
+        "cost": [round(float(v), 3) for v in cost],
+    }
+
+
+def measured_since(samples: Iterable[AccuracySample], start: datetime) -> dict[str, Any]:
+    """What the samples measured over PROMISE_SPAN_H from ``start``.
+
+    ``t`` is hours since ``start``; ``room`` the measured indoor temperature;
+    ``cost`` the cumulative measured cost, or None without a power meter
+    (no sample carries one). A sample settles the interval ending at its
+    ``when``, so it belongs to the span when ``start < when <= end``. An
+    interval the accuracy record skipped (an open window, external heat) is
+    missing from both lines.
+    """
+    end = utc_shift(start, timedelta(hours=PROMISE_SPAN_H))
+    span = [s for s in samples if start < s.when <= end]
+    hours = [round(utc_elapsed_seconds(s.when, start) / 3600.0, 3) for s in span]
+    costs = [s.actual_cost for s in span]
+    spent = None
+    if any(c is not None for c in costs):
+        spent = [round(float(v), 3) for v in np.cumsum([c or 0.0 for c in costs])]
+    return {
+        "t": hours,
+        "room": [None if s.actual_temp is None else round(s.actual_temp, 2) for s in span],
+        "cost": spent,
+    }
+
+
+def _stored_promises(raw: Any) -> dict[str, dict[str, Any]]:
+    """The persisted promises that parse, newest PROMISE_DAYS of them."""
+    if not isinstance(raw, dict):
+        return {}
+    kept = {str(day): clean for day, value in raw.items()
+            if (clean := _stored_promise(value)) is not None}
+    return {day: kept[day] for day in sorted(kept)[-PROMISE_DAYS:]}
+
+
+def _stored_promise(value: Any) -> dict[str, Any] | None:
+    """One persisted promise in ``plan_promise``'s shape, or None to drop it."""
+    if not isinstance(value, dict):
+        return None
+    try:
+        start = datetime.fromisoformat(str(value["start"]))
+        step = float(value["step_minutes"])
+        room = [float(v) for v in value["room"]]
+        cost = [float(v) for v in value["cost"]]
+    except (TypeError, ValueError, KeyError, OverflowError):
+        return None
+    if (start.tzinfo is None or not (np.isfinite(step) and step > 0)
+            or len(room) != len(cost) or len(room) < 2
+            or not np.all(np.isfinite(room + cost))):
+        return None
+    return {"start": start.isoformat(), "step_minutes": step, "room": room, "cost": cost}
 
 
 def delivered_ratio(sample: AccuracySample) -> float | None:

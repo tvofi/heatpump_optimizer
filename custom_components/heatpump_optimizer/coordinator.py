@@ -261,7 +261,13 @@ from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
 from .currency import declared_currency, resolve_currency
 from .drift import Cusum, stored_instant
-from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
+from .ledger import (
+    MonthlyLedger,
+    freeze_month_report,
+    month_key,
+    restate_total,
+    roll_receipts,
+)
 from .wear import StartCounter, wear_price_per_start
 from . import narrative
 from . import diagnosis
@@ -7466,10 +7472,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
             "buffer_cooling_rate_learned": self._buffer_cooling_samples > 0,
-            # Reports learned=True and an effective figure that the defect
-            # noted at _thermal_learning_payload can leave ~2x wrong after an
-            # options edit. The confidence shown here is in the sample count,
-            # not in the number. See dev/archive/backlog.md, "Open".
+            # The scale is re-anchored on load when an options edit changes
+            # the configured loss (#110, _reanchor_house_heat_loss_scale), so
+            # the effective figure is the configured one times a scale fitted
+            # against it; "learned" counts samples, not certainty.
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
@@ -7600,6 +7606,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "pv_enabled": _ctx_of(self)._config.pv_enabled,
             "pv": self._pv_summary,
             "savings_months": self._ledger.savings_months(dt_util.now()),
+            "receipts": [self._month_reports[k] for k in sorted(self._month_reports)],
+            "plan_replay": self._accuracy.replay(dt_util.now()),
         }
 
     def _ecl110_view(self) -> Ecl110View:
@@ -7826,7 +7834,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         reports = stored.get("month_reports")
         if isinstance(reports, dict):
             self._month_reports = {
-                str(key): value
+                str(key): restate_total(value)
                 for key, value in reports.items()
                 if isinstance(value, dict) and admitted("ledger", {"month_reports": {key: value}})
             }
@@ -9916,6 +9924,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if not trajectory:
             return
+        self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise
+            solve_time, dt_h, trajectory, result.power_schedule,
+            result.dhw_power_schedule, result.prices,
+        )
         for lead in LEAD_BUCKETS:
             idx = int(round(lead / dt_h))
             if 0 < idx < len(trajectory):
@@ -10212,112 +10224,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._schedule_ledger_save()
 
     def _roll_month(self, when: datetime) -> None:
-        """#40: freeze receipts for months that have closed.
+        """#40: restate this month's capacity line, then freeze closed months.
 
-        Derived from the ledger itself rather than a "last month seen"
-        marker: any ledger month strictly before the current one that has
-        no frozen receipt yet gets one now. Self-healing across restarts
-        and downtime spanning a month end — and bounded, because the
-        ledger prunes itself and each month freezes exactly once.
+        The capacity line is booked every settlement, because the peak tracker
+        wipes the month's peaks at month change: what it last stated before is
+        the charge (R9-UX-6), and ``roll_receipts`` hands back what it kept.
         """
-        current = month_key(when)
-        reports = self._month_reports
-        closed = sorted(
-            k for k in self._ledger.months if k < current and k not in reports
+        tariff = self._capacity_tariff()
+        if tariff.enabled:
+            self._ledger.book_capacity(
+                self._peak_tracker.month,
+                self._peak_tracker.billed_peak_kw(tariff),
+                tariff.price_per_kw,
+            )
+        self._month_reports, closed = roll_receipts(
+            self._ledger, self._month_reports, month_key(when), self._freeze_month_report
         )
-        for month in closed:
-            # Defense in depth: MonthlyLedger.from_dict already quarantines
-            # malformed months at load time, but a still-live month can in
-            # principle be freezable-yet-broken (a bug in this file, not the
-            # ledger's shape). Never let one bad month wedge every future
-            # cycle forever (#D1-01) -- skip it and mark it closed with an
-            # empty receipt so the cycle completes and it is not retried.
-            try:
-                reports[month] = self._freeze_month_report(month)
-            except Exception:  # noqa: BLE001 -- must never wedge the coordinator
-                _LOGGER.warning(
-                    "Skipping malformed ledger month %s while freezing "
-                    "monthly receipts; recording an empty receipt instead",
-                    month,
-                    exc_info=True,
-                )
-                reports[month] = {"month": month, "lines": {}}
         if closed:
-            # Receipts follow the ledger's retention; a receipt for a month
-            # the ledger no longer holds cannot be reconciled anyway.
-            extra = sorted(reports)[: max(0, len(reports) - KEEP_MONTHS)]
-            for old in extra:
-                del reports[old]
             self._schedule_ledger_save()
 
     def _freeze_month_report(self, month: str) -> dict[str, Any]:
-        """One month's itemised receipt, frozen at rollover (#40).
-
-        Everything in it comes from the ledger's own lines — the receipt is
-        a PRESENTATION of the accounting, never a second accounting. The
-        reason lines partition the spot line by construction, and the
-        receipt states how well that held rather than assuming it.
-        """
-        lines = self._ledger.month_summary(month)
-        reasons = {
-            name.split(":", 1)[1]: entry
-            for name, entry in lines.items()
-            if name.startswith("reason:")
-        }
-        # Reconcile on the RAW ledger values, not the rounded publication
-        # ones: with a full reason set the accumulated 2-decimal rounding
-        # alone can exceed the tolerance and cry wolf on a perfectly
-        # partitioned month.
-        raw_lines = self._ledger.months.get(month, {}).get("lines", {})
-        reason_kwh = sum(
-            self._ledger.line(month, name)["kwh"]
-            for name in raw_lines
-            if name.startswith("reason:")
+        """One month's receipt (#40), from ``ledger.freeze_month_report``."""
+        return freeze_month_report(
+            self._ledger,
+            month,
+            compressor_starts=self._start_counter.month_count(month),
+            contract_comparison=self._contract_comparison(month),
         )
-        reason_sek = sum(
-            self._ledger.line(month, name)["sek"]
-            for name in raw_lines
-            if name.startswith("reason:")
-        )
-        raw_spot = self._ledger.line(month, "spot")
-        spot = lines.get("spot", {"kwh": 0.0, "sek": 0.0})
-        report: dict[str, Any] = {
-            "month": month,
-            "lines": {
-                name: entry
-                for name, entry in lines.items()
-                if not name.startswith("reason:")
-            },
-            "reasons": reasons,
-            "total_kwh": round(
-                spot["kwh"] + lines.get("immersion", {}).get("kwh", 0.0), 3
-            ),
-            "total_sek": round(
-                sum(entry["sek"] for entry in lines.values() if entry)
-                - reason_sek,
-                2,
-            ),
-            "compressor_starts": self._start_counter.month_count(month),
-            "contract_comparison": self._contract_comparison(month),
-            # The partition check, published instead of asserted: a receipt
-            # that hides its own bookkeeping error is worse than one that
-            # admits it. None, not False, for a month with no reason lines
-            # at all — a pre-T6 month never had a partition to break, and
-            # publishing "failed" for it would make an upgrade look like
-            # the very bug the flag exists to expose.
-            "reasons_reconcile": (
-                bool(
-                    abs(reason_kwh - raw_spot["kwh"]) <= 0.05
-                    and abs(reason_sek - raw_spot["sek"]) <= 0.05
-                )
-                if reasons
-                else None
-            ),
-        }
-        mean_spot = self._ledger.meta_mean(month, "spot_price")
-        if mean_spot is not None:
-            report["mean_spot_price"] = round(mean_spot, 4)
-        return report
 
     def _fold_score_sample(
         self,
