@@ -33,11 +33,13 @@
 # mode-600 header files inside a mode-700 mktemp directory; pushes the branch
 # over https as the App; POSTs /pulls as the App when no pull request is open
 # for the branch (title = the tip commit's subject, base = main), else PATCHes
-# the body of the open one; then reads the pull request back and REFUSES
-# unless it is open, its head sha is the pushed sha, and its body is
-# byte-identical to <body.md> modulo one trailing newline (GitHub appends
-# one; measured 2026-09-18). Not atomic against GitHub: a push whose POST
-# then fails leaves the branch pushed, and the refusal message says so.
+# the body of the open one; then reads the pull request back -- open, its head
+# sha the pushed sha, its body byte-identical to <body.md> modulo one trailing
+# newline (GitHub appends one; measured 2026-09-18) -- over a BOUNDED poll, so a
+# push GitHub has not yet indexed is told from a refused one (three outcomes:
+# confirmed / pushed-and-not-visible / refused; see confirm_readback). Not
+# atomic against GitHub: a push whose POST then fails leaves the branch pushed,
+# and the refusal message says so.
 #
 # THE SECRETS. The key files are `$HPO_IDENTITY_DIR/hpo-author.appid.txt` and
 # `hpo-author.pem` (default directory `~/.zcode`). The JWT and the
@@ -165,6 +167,90 @@ sys.exit(open(sys.argv[1]).read().rstrip("\n") != live.rstrip("\n"))' "$body" 2>
     || { _rv_no "the body file is not the live pull-request body"; return 1; }
   RV_P2=$p2
   _rv_no "HEAD ${RV_HEAD:0:8} is the clean merge of the live head ${p1:0:8} and origin/main's ${p2:0:8}, and the body is the live one"
+}
+
+# --- the bounded read-back (R9-RC-RECARRY-READBACK) -------------------------
+# A push's new head is not always visible on GET /pulls/{n} the instant the
+# push returns: GitHub's index lags the push, so a SINGLE read races it.
+# Measured 2026-10-09T21:4xZ on the recarry of #2071: the push landed (the
+# merge of the live head 1f9d606d with main 23d35497, sha 61617145), the one
+# read answered the OLD sha, app_push refused "did not read back", and
+# merge_train stopped the whole pass -- four other verdicted pull requests down
+# with it (#2072, #2073, #2063, #2010, rc=1). The read-back exists on purpose
+# (comment-readback.md, decision 0011's #1256 incident: a mint returned 201
+# then 404 and left a branch wedged), so it is KEPT and made to DISTINGUISH --
+# not deleted. Poll a fixed, stated budget and resolve to THREE outcomes, so an
+# operator can tell a race from a wedge:
+#   pushed and confirmed                      rc 0   (open at HEAD, body ok)
+#   pushed and not visible within the budget  refuse (every read answered; none
+#       at HEAD -- a race GitHub had not settled, not a refused push)
+#   refused                                   refuse (no read could be performed)
+# A silent retry-forever is the opposite failure -- a genuinely refused push
+# would read as slow success -- so the budget is bounded and every settle it
+# spends is printed, never implied. The clean case confirms on the first read
+# and never sleeps (the loop breaks). The pin on the sha the verdict judged is
+# unchanged: this reads the live head, never HEAD again.
+RB_TRIES=${APP_PUSH_READBACK_TRIES:-6}
+RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-2}
+
+# One read of the pull request. On stdout, one verdict token:
+#   ok            open, head == $2, body identical to $3 modulo one newline
+#   stale <sha>   open, but the live head is <sha>, not $2 (the index is behind)
+#   body          open at $2, but the body is not byte-identical
+#   bad <why>     the API answered a shape this read does not vouch for
+#   error <why>   the read could not be performed at all
+read_once() { # url head body -> verdict token
+  local url=$1 head=$2 body=$3 out
+  out=$(curl -fsS -H @"$PRIV/token.h" -H "$ACCEPT" "$url" 2>/dev/null) \
+    || { printf 'error curl-exit-%s' "$?"; return 0; }
+  printf '%s' "$out" | python3 -c '
+import sys, json
+head, f = sys.argv[1], sys.argv[2]
+try:
+    d = json.loads(sys.stdin.read())
+except ValueError:
+    print("bad unparseable response"); sys.exit(0)
+state = d.get("state"); live = (d.get("head") or {}).get("sha") or ""
+if state != "open":
+    print("bad state=%s" % state); sys.exit(0)
+if live != head:
+    print("stale %s" % live); sys.exit(0)
+want = open(f).read(); got = d.get("body") or ""
+# equal, or differing by EXACTLY ONE trailing newline on either side -- the
+# measured shape (GitHub appends one; measured 2026-09-18); the both-sides-
+# strip form would refuse the measured shape (live == want + "\n") because
+# stripping want too hides the difference it exists to allow.
+def eq1(a, b):
+    return a == b or (a.endswith("\n") and a[:-1] == b) or (b.endswith("\n") and b[:-1] == a)
+print("ok" if eq1(got, want) else "body")' "$head" "$body"
+}
+
+# The bounded read-back. Returns 0 when the push is confirmed visible; refuses
+# (dies) otherwise, naming which of the two failure states it found. The loop
+# breaks on the first `ok`, so a push already visible costs one read and no
+# sleep. `stale` is the racing case and keeps polling; a `body` mismatch at the
+# right sha is settled, not a race, so it refuses at once as before.
+confirm_readback() { # url num head body
+  local url=$1 num=$2 head=$3 body=$4 attempt=1 v notvisible=0 detail=""
+  while :; do
+    v=$(read_once "$url" "$head" "$body")
+    case "$v" in
+      ok) return 0 ;;
+      body) die "pull request #$num's body is not byte-identical to $body modulo one trailing newline" ;;
+      stale\ *) notvisible=1; detail="the live head is still ${v#stale }" ;;
+      error\ *) detail="the read could not be performed (${v#error })" ;;
+      bad\ *) detail="the read answered ${v#bad }" ;;
+      *) detail="the read answered <<$v>>" ;;
+    esac
+    [ "$attempt" -lt "$RB_TRIES" ] || break
+    printf 'app_push: read-back %s/%s: %s; sleeping %ss\n' "$attempt" "$RB_TRIES" "$detail" "$RB_SLEEP"
+    sleep "$RB_SLEEP"
+    attempt=$((attempt + 1))
+  done
+  if [ "$notvisible" = 1 ]; then
+    die "pushed $head but the pull request did not read back at it: pushed and not visible within the budget ($RB_TRIES attempts over ~$((RB_TRIES * RB_SLEEP))s; $detail) -- a race GitHub had not indexed, not a refused push; re-read #$num by hand"
+  fi
+  die "the pull request did not read back at $head and the read was refused ($detail) -- re-read #$num by hand before touching anything"
 }
 
 push_and_open() {
@@ -344,25 +430,11 @@ json.dump({"body": open(sys.argv[1]).read()}, open(sys.argv[2], "w"))' "$body" "
   fi
   read -r num url <<<"$num"
 
-  # Read the pull request back: open, at the pushed sha, body byte-identical
-  # modulo ONE trailing newline (GitHub appends one; measured 2026-09-18).
-  curl -fsS -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$num" \
-    | python3 -c 'import sys, json
-sha, f = sys.argv[1:3]
-d = json.load(sys.stdin)
-want = open(f).read(); live = d.get("body") or ""
-# equal, or differing by EXACTLY ONE trailing newline on either side -- the
-# both-sides-strip form would refuse the measured shape (live == want + "\n")
-# because stripping want too hides the difference it exists to allow.
-def eq1(a, b):
-    return a == b or (a.endswith("\n") and a[:-1] == b) or (b.endswith("\n") and b[:-1] == a)
-line = "state=%s head=%s" % (d.get("state"), (d.get("head") or {}).get("sha"))
-if d.get("state") != "open" or (d.get("head") or {}).get("sha") != sha:
-    sys.exit("pull request #%s does not read back as open at %s: %s" % (d.get("number"), sha, line))
-if not eq1(live, want):
-    sys.exit("pull request #%s'"'"'s body is not byte-identical to %s modulo one trailing newline" % (d.get("number"), f))
-print("read back: open at %s, body identical modulo one trailing newline" % sha)' "$head" "$body" \
-    || die "the pull request did not read back; its state is above -- re-read it by hand before touching anything"
+  # The bounded read-back (R9-RC-RECARRY-READBACK): read the pull request back
+  # -- open, at the pushed sha, body byte-identical modulo ONE trailing newline
+  # -- polling a fixed, stated budget so a push GitHub has not yet indexed is
+  # told from a push that was refused. Three outcomes; see confirm_readback.
+  confirm_readback "$API/repos/$repo/pulls/$num" "$num" "$head" "$body"
 
   printf 'app_push: PUSHED %s to %s:%s as the App; pull request #%s is open at %s with the body read back: %s\n' \
     "$head" "$repo" "$br" "$num" "$head" "$url"
@@ -449,7 +521,9 @@ case "$*" in
 esac
 STUB
 OTHER_SHA_STUB=$OTHER P1_STUB=5555555555555555555555555555555555555555 P2_STUB=6666666666666666666666666666666666666666
-export OTHER_SHA_STUB P1_STUB P2_STUB
+# OLD_SHA_STUB is the head a racing read-back answers (the pre-push live head).
+OLD_SHA_STUB=$OTHER
+export OTHER_SHA_STUB P1_STUB P2_STUB OLD_SHA_STUB
 # The stub curl: answers the App's calls; logs METHOD and path for the pulls
 # endpoints so create/patch/read-back are distinguishable in the log.
 cat > "$W/bin/curl" <<'STUB'
@@ -478,8 +552,16 @@ case "$url" in
       python3 "$STUB/../prjson.py" store "$data" "$STUB/live-body" "$STUB/../head.sha"
     else                                 # GET read-back
       [ -f "$STUB/refuse-get" ] && exit 22
-      [ -f "$STUB/mangle-body" ] && printf '{"number": 7, "state": "open", "head": {"sha": "%s"}, "html_url": "https://example.test/pr7", "body": "edited by someone else\\n"}' "$(cat "$STUB/../head.sha")" \
-        || python3 "$STUB/../prjson.py" get "$STUB/live-body" "$STUB/../head.sha"
+      n=$(cat "$STUB/get-n" 2>/dev/null || echo 0); n=$((n + 1)); printf '%s' "$n" > "$STUB/get-n"
+      # read-race: the head index lags the push, so the FIRST read answers the
+      # OLD sha and a later one the pushed sha. read-stale: it never catches up.
+      if [ -f "$STUB/read-stale" ] || { [ -f "$STUB/read-race" ] && [ "$n" -le 1 ]; }; then
+        python3 "$STUB/../prjson.py" stale "$STUB/live-body" "$OLD_SHA_STUB"
+      elif [ -f "$STUB/mangle-body" ]; then
+        printf '{"number": 7, "state": "open", "head": {"sha": "%s"}, "html_url": "https://example.test/pr7", "body": "edited by someone else\\n"}' "$(cat "$STUB/../head.sha")"
+      else
+        python3 "$STUB/../prjson.py" get "$STUB/live-body" "$STUB/../head.sha"
+      fi
     fi ;;
   *) exit 9 ;;
 esac
@@ -495,6 +577,11 @@ if v[0] == "store":
     body = json.load(open(v[1])).get("body", "")
     open(v[2], "w").write(body)
     sha = open(v[3]).read().strip()
+elif v[0] == "stale":
+    # an open pull request whose live head is a DIFFERENT sha: the index has not
+    # caught the push. This is the racing first read (R9-RC-RECARRY-READBACK).
+    body = open(v[1]).read() + "\n"
+    sha = v[2]
 else:
     body = open(v[1]).read() + "\n"
     sha = open(v[2]).read().strip()
@@ -524,6 +611,9 @@ calls() { grep -c "^$2" "$W/$1/log"; }
 leftover() { find "$W/$1/tmp" -mindepth 1 | wc -l | tr -d ' '; }
 leaks() { cat "$W/$1/out" "$W/$1/err" | grep -c -e "$TOKEN" -e STUBKEYMATERIAL -e STUBSIGNATURE -e "$JWTHEAD" -e "$SIGB64"; }
 firstline() { grep -n "$2" "$W/$1/log" | head -1 | cut -d: -f1; }
+# The settles the bounded read-back printed: the budget a case spent (0 = the
+# first read confirmed, R9-RC-RECARRY-READBACK).
+settles() { grep -c '^app_push: read-back ' "$W/$1/out"; }
 
 # The happy path: no pull request open, so push, then create, then read back.
 mkcase ok
@@ -597,6 +687,7 @@ st "$(grep -c '^app_push: REFUSE: no body at ' "$W/nobody/err")" 1 "naming the b
 # still revokes and removes.
 mkcase pushfail; : > "$W/pushfail/push-fails"
 run pushfail o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "a refused push exits non-zero"
+st "$(grep -c 'was refused' "$W/pushfail/err")" 1 "with the refused wording on the push itself (the read-back is never reached for a refused push)"
 st "$(grep -c '^curl \(POST\|PATCH\) repos/o/r/pulls' "$W/pushfail/log")" 0 "and no pull request was created or re-bodied"
 st "$(calls pushfail 'curl DELETE installation/token')" 1 "the token is revoked after the failed push"
 st "$(leftover pushfail)" 0 "and the private directory is gone, token and all"
@@ -647,6 +738,7 @@ st "$(grep -c '^app_push: RECARRY: prepr SKIPPED: HEAD 11111111 is the clean mer
 st "$(noted rok)" 1 "the PATCHed body names the new head, and main by parent 2's sha, under ## Head, which pr-contract requires"
 st "$(python3 -c 'import sys; a, b = (open(f).read() for f in sys.argv[1:]); print(a.replace(a[a.index("`"):a.index("unchanged.") + 12], "", 1) == b)' "$W/rok/live-body" "$W/body.md")" True "and nothing else in it moved: less the note, it is the live body"
 st "$(grep -c '^curl PATCH repos/o/r/pulls/7$' "$W/rok/log")" 1 "and the open pull request is re-bodied, not duplicated"
+st "$(settles rok)$(cat "$W/rok/get-n" 2>/dev/null)" 01 "(null control: a --recarry whose head is already current confirms on the FIRST read and prints no settle)"
 refused() { # name want-reason -- each refusal arm runs prepr once, exactly as without the flag
   run "$1" --recarry o/r "$W/tool-wt" "$BR" "$W/$1/body.md"; st $? 0 "--recarry REFUSES the skip ($1): prepr runs and passes, so it pushes"
   st "$(calls "$1" prepr)$(grep -c "^app_push: RECARRY: prepr RUNS: $2" "$W/$1/out")$(runs_noted "$1" "$2")$(noted "$1")" 1110 "... prepr ran once, the one line names why ($2), and the note names the head without claiming no resolution"
@@ -706,6 +798,39 @@ st "$(grep -c 'HEAD moved to 2222222222222222222222222222222222222222 after the 
 
 mkcase rbonly
 run rbonly --recarry --branch-only o/r "$W/tool-wt" batch/proof-1; st $? 1 "REFUSE: --recarry does not combine with --branch-only"
+
+# R9-RC-RECARRY-READBACK: the read-back is BOUNDED and has THREE outcomes, so a
+# push GitHub has not yet indexed is told from a refused one. The perturbations
+# are the real shape: a first read that answers the OLD head and a later one the
+# pushed head; a head that never becomes visible; and a read that cannot run.
+# The clean paths (rok above, and ok/prexist before it) are the null controls --
+# they confirm on the FIRST read and print no settle.
+# (a) the race settles: read 1 answers the OLD head, read 2 the pushed head.
+mkcase rrace; : > "$W/rrace/read-race"
+APP_PUSH_READBACK_TRIES=3 APP_PUSH_READBACK_SLEEP=1 run rrace o/r "$W/tool-wt" "$BR" "$W/body.md"
+st $? 0 "read-back race: the push confirms once the head becomes visible, so it succeeds"
+st "$(grep -c '^app_push: PUSHED ' "$W/rrace/out")" 1 "and prints the read-back success line"
+st "$(cat "$W/rrace/get-n" 2>/dev/null)" 2 "at the SECOND read (the first answered the old head)"
+st "$(settles rrace)" 1 "with the settle it spent printed, so the budget is visible"
+st "$(grep -c 'sleeping 1s' "$W/rrace/out")" 1 "naming the injected delay"
+st "$(calls rrace 'curl DELETE installation/token')$(leftover rrace)$(leaks rrace)" 100 "the token is revoked, the private directory gone, nothing leaked"
+# (b) pushed and NOT visible within the budget: every read answers the old head.
+mkcase rnotvis; : > "$W/rnotvis/read-stale"
+APP_PUSH_READBACK_TRIES=3 APP_PUSH_READBACK_SLEEP=1 run rnotvis o/r "$W/tool-wt" "$BR" "$W/body.md"
+st $? 1 "read-back never visible: it refuses"
+st "$(grep -c 'pushed and not visible within the budget' "$W/rnotvis/err")" 1 "with its OWN wording, so a race is told from a wedge"
+st "$(grep -c 'the read was refused' "$W/rnotvis/err")" 0 "and it is NOT reported as a refused read"
+st "$(grep -c '^app_push: PUSHED ' "$W/rnotvis/out")" 0 "and no success line"
+st "$(cat "$W/rnotvis/get-n" 2>/dev/null)$(settles rnotvis)" 32 "after the whole budget of reads and settles"
+st "$(calls rnotvis 'curl DELETE installation/token')$(leftover rnotvis)$(leaks rnotvis)" 100 "the token is revoked, the private directory gone, nothing leaked"
+# (c) refused: the read cannot be performed at all (the API refuses it).
+mkcase rrefused; : > "$W/rrefused/refuse-get"
+APP_PUSH_READBACK_TRIES=2 APP_PUSH_READBACK_SLEEP=1 run rrefused o/r "$W/tool-wt" "$BR" "$W/body.md"
+st $? 1 "read-back refused: it exits non-zero"
+st "$(grep -c 'the read was refused' "$W/rrefused/err")" 1 "with the refused wording, distinct from the not-visible one"
+st "$(grep -c 'pushed and not visible' "$W/rrefused/err")" 0 "and it is NOT reported as a race"
+st "$(grep -c '^app_push: PUSHED ' "$W/rrefused/out")" 0 "and no success line"
+st "$(settles rrefused)$(calls rrefused 'curl DELETE installation/token')" 11 "the budget spent one settle and the token was revoked"
 
 echo "app_push self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]

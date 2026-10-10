@@ -155,6 +155,16 @@ GREEN = ("success", "skipped", "neutral")
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
+# The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
+# now confirms a push GitHub has not yet indexed inside its own bounded
+# read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
+# app_push's budget. Before declaring a stop the train re-reads the head once
+# after this settle: a push that landed moves the head, so a head that is no
+# longer the pre-recarry one proves the push landed despite the refusal. One
+# GET /pulls/{n} on this host measured TTFB 0.06-0.36s, so 2s is ~6x the worst
+# observed -- enough for one more read against a multi-minute pass, and paid
+# only on a refusal (never on the common path).
+RECARRY_RESETTLE = 2
 # THE BATCH PROOF (`batch`). The required contexts are read from this ruleset at
 # run time. These three are written only by a pull-request event -- a body's
 # contract, a diff's closure scope, a budget raise -- so no dispatch writes
@@ -483,10 +493,26 @@ class Train:
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
             if "PUSHED" not in o:
-                # The refusal is several lines (each prepr step, then app_push's
-                # die). The last 200 characters were only the die.
-                raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-2000:])
-            h = self.head(pr)
+                # R9-RC-RECARRY-READBACK: app_push.sh --recarry confirms a race
+                # inside its own bounded read-back, so no PUSHED here is a real
+                # refusal -- OR a lag that outran app_push's budget (rare, but
+                # the cost of a false stop is the whole pass: #2071 died here and
+                # took four other verdicted pull requests, rc=1). Re-read the
+                # head ONCE after a settle before declaring a stop: the recarry
+                # moves the head, so a head that is no longer the pre-recarry h
+                # proves the push landed despite the refusal. Nothing is proved
+                # by the moved head EXCEPT that the branch advanced, which is the
+                # only question a recarry refusal leaves open.
+                self.sleep(RECARRY_RESETTLE)
+                moved = self.head(pr)
+                if not (is_sha(moved) and moved != h):
+                    # The refusal is several lines (each prepr step, then
+                    # app_push's die). The last 200 characters were only the die.
+                    raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-2000:])
+                h = moved
+                self.log(f"#{pr} recarry: app_push refused but the head moved to {h[:8]}; the push landed, not a stop")
+            else:
+                h = self.head(pr)
             # app_push.sh --recarry's one line: prepr SKIPPED or RUNS, and why.
             path = next((ln.strip() for ln in o.splitlines() if "RECARRY:" in ln), "no RECARRY line")
             self.log(f"#{pr} recarry: main merged, head {h[:8]}; {path}")
@@ -972,8 +998,17 @@ def _self_test() -> int:
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
     check("a recarry conflict stops it, named as one", rc == 1 and "without a resolution" in lines[-1] and not merged(calls))
+    rc, lines, calls = go({"contains": [False], "heads": [H0], "remerge": "REFUSE: body"})
+    check("a recarry that pushed nothing and left the head where it was stops it (the refusal is real)",
+          rc == 1 and "pushed nothing" in lines[-1] and not merged(calls))
+    # R9-RC-RECARRY-READBACK: app_push now settles a race inside its own budget,
+    # so a non-PUSHED output with the head MOVED means the push landed anyway
+    # (a lag that outran app_push's budget). The train re-reads the head once and
+    # carries on instead of stopping -- the #2071 race that killed the pass.
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "REFUSE: body"})
-    check("a recarry that pushed nothing stops it", rc == 1 and "pushed nothing" in lines[-1])
+    check("a recarry refusal whose head nonetheless moved is treated as landed, not a stop",
+          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+          and any("the push landed, not a stop" in ln for ln in lines))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("a head behind main is recarried, then merged at the new head",
           rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
