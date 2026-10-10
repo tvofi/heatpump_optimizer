@@ -31373,6 +31373,108 @@ R.check(
     f"deferred={_MUT_D_OUT!r}",
 )
 
+# R9-RC-NIGHTLY-DEFER (#1930 (a)): `--scope full` drops the EXCLUSIVE pair from
+# its NET. That is not what the pin above measures, and the two are one word
+# apart: `deferred_drivers` postpones a driver's baseline and null control and
+# still drives it, where a driver out of the net drives no mutant, pays no
+# baseline, and can never refuse the lane. Only the second closes the arm that
+# reddened two of the six nights -- a null control killed by a driver that
+# measures the machine (harness_headers.py SIGXCPU rc=-24, run 37108891698;
+# stress.py's own cost budget at 8.0x against 7.9x, run 37189092011). Both arms
+# are pinned here because a seat reading "defer" would otherwise take the first.
+_mut_sd = getattr(_mut, "scope_deferred", None)
+_MUT_SD_OUT = ((_mut_sd("full"), _mut_sd("changed")) if _mut_sd else None)
+R.check(
+    "the full scope drops the EXCLUSIVE pair out of its net, the changed scope "
+    "drops nothing, and main() takes the drop from that rule",
+    _MUT_SD_OUT == (tuple(_mut.EXCLUSIVE), ())
+    and "for s in scope_deferred(args.scope):" in _MUT_MAIN_DEFER,
+    f"scope_deferred(full/changed)={_MUT_SD_OUT!r}, EXCLUSIVE="
+    f"{tuple(_mut.EXCLUSIVE)!r} -- a drop that reached the changed scope would "
+    "take the pair out of the pull-request gate that still pins new sites with "
+    "them, which is where the unpinned count is repaid",
+)
+
+# The null control, exhaustive rather than an instance: EVERY production file's
+# net before the drop and after it. Scoped to the pair means the difference is a
+# subset of EXCLUSIVE at each file, and the union over the whole tree loses
+# exactly the pair -- so "still drives every other driver" is measured over
+# every seam the net has, not over one file that happens to look right.
+_MUT_NET_BEFORE = _MUT_DEFAULT_LIST
+_MUT_NET_AFTER = [s for s in _MUT_NET_BEFORE
+                  if s not in (_mut_sd("full") if _mut_sd else ())]
+_MUT_PROD_FILES = sorted(str(p.relative_to(_mut.ROOT))
+                         for p in _mut.PRODUCTION.rglob("*.py"))
+_MUT_LOST_OTHER: list = []
+_MUT_LOST_ANY: list = []
+_MUT_UNION_BEFORE: set = set()
+_MUT_UNION_AFTER: set = set()
+for _rel in _MUT_PROD_FILES:
+    _b = set(_mut.drivers_for(_rel, _MUT_REAL_CLOSURES, _MUT_NET_BEFORE))
+    _a = set(_mut.drivers_for(_rel, _MUT_REAL_CLOSURES, _MUT_NET_AFTER))
+    _MUT_UNION_BEFORE |= _b
+    _MUT_UNION_AFTER |= _a
+    if not _b - _a <= set(_mut.EXCLUSIVE) or not _a <= _b:
+        _MUT_LOST_OTHER.append(_rel)
+    if _b - _a:
+        _MUT_LOST_ANY.append(_rel)
+R.check(
+    "a healthy full-scope run still drives every other driver on every file it "
+    "reached, and the drop costs the pair alone",
+    not _MUT_LOST_OTHER and bool(_MUT_LOST_ANY)
+    and _MUT_UNION_AFTER == _MUT_UNION_BEFORE - set(_mut.EXCLUSIVE),
+    f"{len(_MUT_PROD_FILES)} production file(s) walked; files losing a driver "
+    f"OUTSIDE EXCLUSIVE={_MUT_LOST_OTHER!r} (must stay empty); files losing one "
+    f"at all={len(_MUT_LOST_ANY)} (must be non-zero, or the drop is a no-op and "
+    f"this check passed vacuously); drivers unioned over the tree "
+    f"{len(_MUT_UNION_BEFORE)} -> {len(_MUT_UNION_AFTER)}",
+)
+
+# The census clause: what the drop leaves undriven is named, with its reason and
+# its count, so a pin this lane can no longer re-verify is not a silent one.
+# Driven against the REAL ledger as well as a fixture: the fixture separates the
+# pair's rows from another driver's and from a scope that drops nothing, and the
+# real ledger is what makes an empty clause a red rather than a quiet zero.
+_mut_dd = getattr(_mut, "deferred_dispositions", None)
+_MUT_DD_FIX = {"killed_by": {
+    "a.py:f BOOLOP 00000000": {"killed_by": "tests/stress.py", "old": "x"},
+    "b.py:f BOOLOP 11111111": {"killed_by": "tests/structure.py", "old": "y"},
+    "c.py:f GUARD_OFF 22222222":
+        {"killed_by": "tests/harness_headers.py", "old": "z"},
+}}
+_MUT_DD_WANT = sorted(
+    _k for _k, _e in _MUT_DD_FIX["killed_by"].items()
+    if _e["killed_by"] in set(_mut.EXCLUSIVE))
+_MUT_DD_REAL = (_mut_dd(_mut.load_budgets(), "full") if _mut_dd else None)
+_MUT_DD_REAL_WANT = sorted(
+    _k for _k, _e in _mut.load_budgets().get("killed_by", {}).items()
+    if isinstance(_e, dict) and _e.get("killed_by") in set(_mut.EXCLUSIVE))
+_MUT_DD_OUT = ((_mut_dd(_MUT_DD_FIX, "full"), _mut_dd(_MUT_DD_FIX, "changed"),
+                _mut_dd({}, "full")) if _mut_dd else None)
+R.check(
+    "the census names every disposition the drop leaves unverified, and nothing "
+    "it does not",
+    _MUT_DD_OUT == (_MUT_DD_WANT, [], [])
+    and _MUT_DD_REAL == _MUT_DD_REAL_WANT and bool(_MUT_DD_REAL),
+    f"fixture={_MUT_DD_OUT!r} want={_MUT_DD_WANT!r}; the real ledger names "
+    f"{None if _MUT_DD_REAL is None else len(_MUT_DD_REAL)} row(s) the full "
+    f"scope no longer drives, want {len(_MUT_DD_REAL_WANT)} -- an empty clause "
+    "here would mean the census prints a deferral of nothing",
+)
+_mut_cdn = getattr(_mut, "census_deferral_note", None)
+_MUT_CDN_FULL = (_mut_cdn(_MUT_DD_FIX, "full") if _mut_cdn else None)
+_MUT_CDN_CHG = (_mut_cdn(_MUT_DD_FIX, "changed") if _mut_cdn else None)
+R.check(
+    "and the clause names each deferred driver, its reason and the count, where "
+    "a scope that defers nothing prints nothing",
+    _MUT_CDN_CHG == "" and bool(_MUT_CDN_FULL)
+    and all(s in _MUT_CDN_FULL for s in _mut.EXCLUSIVE)
+    and f"{len(_MUT_DD_WANT)} recorded killed_by disposition(s)" in _MUT_CDN_FULL
+    and getattr(_mut, "DEFER_WHY", "") in _MUT_CDN_FULL
+    and "census_deferral_note(budgets, args.scope)" in _MUT_MAIN_DEFER,
+    f"full={_MUT_CDN_FULL!r}; changed={_MUT_CDN_CHG!r}",
+)
+
 # R9-F10.9b (#1812): under --scope changed every other shared driver but a
 # ref-driven one runs its baseline and null control at its first RED mutant
 # run, and every kill is still judged against them. A green run is no kill
