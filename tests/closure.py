@@ -683,6 +683,19 @@ INERT_EXCEPT = (
     "tools/policy/figure_lint.mjs",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
+    # R9-RO-14: tests/entities.py loads state_docs.py by importlib and runs
+    # its self-test, and that self-test SPAWNS the three state-doc generators
+    # on subprocess command lines -- a repo path on a command line is a real
+    # dependency of the spawning script, so all four land in entities.py's
+    # recorded closure. Left inside the `tools/audit/` prefix they would be
+    # declared unread while being read -- the #357 contradiction, measured
+    # three times on this list already. They leave the prefix the way
+    # record_row.py and roster_lib.py did, so an edit to the beat, or to a
+    # generator it runs, selects tests/entities.py instead of skipping it.
+    "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/resume_doc.py",
+    "tools/audit/seat/handover_prompt.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the
