@@ -1,16 +1,23 @@
 # #2066 cop-floor: resume
 
-State: **round 10 handed off** at code head `c2ba6891635278379a076a5385653889ede4bb2d`,
+State: **round 10 handed off** at code head `7706b39a16e782236b61e5d6de5cb8e6f691cd8b`,
 published to `handoff/r9-cop-duty-floor` (from round 9's `386b7e2ff`); body on
 `handoff-body/r9-cop-duty-floor`. Seat worktree `/Users/timmalmstrom/hpo-seats/live-cop-floor/wt`,
 evidence `/Users/timmalmstrom/hpo-seats/live-cop-floor/ev/r10/`. `fix/cop-duty-floor` was NOT
-touched -- the orchestrator moves the PR head. Round 9 blocked on `conflict` alone; this round
+touched -- the orchestrator pushes as the App. Round 9 blocked on `conflict` alone; this round
 resolves it.
 
 ## What round 10 did
-- `git merge origin/main` **twice** (merge, never rebase): first `23d354970`, which had the eight
-  conflicts round 9 blocked on, then `7cd5a588c`, which merged **clean** (rc=0, no `CONFLICT`).
-  `git merge-base origin/main HEAD` is now `7cd5a588c`, both merge base and ratchet base.
+- `git merge` **four** other heads (merge, never rebase): `origin/main 23d354970` (the eight
+  conflicts round 9 blocked on), `origin/main 7cd5a588c` (**clean**), the pull request's own tip
+  `67a832653` (`ci: pin killed mutants` -- needed so the App push is a fast-forward), and
+  `origin/main 1301d7e45` (**clean**). Both the PR tip and live main are now ancestors of the head.
+- The bot pin carried exactly one ledger row, `planned_range.GUARD_OFF.6a6c4f30.json`, add/add
+  against main's own row for the same anchor: same `anchor`, same `killed_by` (`tests/structure.py`),
+  same `old`, same measured result (`rc=0 failed=0` -> `rc=1 failed=1`), **only the base in `reason`
+  differs** (`b2b6acd64` in main's vs `d0f085ffb` in the bot's). Main's kept (the resolved file is
+  byte-identical to main's), so no row was dropped and the ledger delta over main stays zero.
+  `added_unpinned` still 0 after it.
 - Ledger: took **main's** row for all seven (same `anchor`/`old`/`killed_by`, differ only in `reason`;
   main's is the seat-measured 7a record). Verified before picking: each of main's nine digests of the
   ten formerly-added sites reads exactly 1 row (`git ls-tree -r --name-only origin/main`).
@@ -31,13 +38,13 @@ resolves it.
   #2065's merge; no instrument reads cause clauses (it does read the numbers), so it was hand-corrected
   and the four-tree control recorded: 120 / 120 / 123 / 123, pairs 59/74=0.7973 -> 60/75=0.8000.
 - **The consequence: `mutation`'s refusal cause is gone.** `added by this diff 0`, `added_keys 0`,
-  `ratchet_refusal None`, `unpinned 4602 <= base 4617`, ci_predict prints no warning. CI's own
+  `ratchet_refusal None`, `unpinned 4593 <= base 4608`, ci_predict prints no warning. CI's own
   `--scope changed --base origin/main --max 10 --jobs 3` prints no `MUTATION TABLE REFUSED`; it stops
   at `INCONCLUSIVE`, **exit 0** -- on `baseline tests/env_drift.py: rc=124 ... 1200s` (this box's own
   pool bound under ~12 resident features lanes) and, on the earlier run, on the `features.py` red
   baseline. Neither is the diff.
-- `--normalize` at the merged tree (throwaway detached worktree, removed): 1397 dispositions, 0 retired
-  keys, aggregate ledger sha1 unchanged `631c1de6581d...`, tree byte-unchanged.
+- `--normalize` at the merged tree (throwaway detached worktree, removed): 1406 dispositions, 0 retired
+  keys, aggregate ledger sha1 unchanged `b12fa3f983e9...`, tree byte-unchanged.
 - Gates local: structure PASSED (four caps DOWN vs live main, all at measured); entities ALL 2250
   PASSED at this head (2243 at `025b779c4`; its 46 ungraded `a3:`/`a4:` report lines are the identical
   multiset at every head); deployment_shape PASSED; guard_pins 50/50; harness_headers ALL 109 at
@@ -51,8 +58,10 @@ resolves it.
   head). `features.py` is `1 of 3958 FAILED` at `025b779c4` (the macOS `R9-F2.1 P3` BLAS float); **the
   run at this head was killed by the box** (SIGTERM; other seats' features lanes resident), so no
   final-head features count exists here -- CI's `fast (3.14)` owns it.
-- Ancestry reds re-enumerated over 32 commits: 25 rows / 5 names -- mutation 12, nightly-status 7,
-  fast (3.14) 3, briefs 2, nightly-ha (stable) 1. Fell from round 9's 40 because #2065's commits left
+- Ancestry reds re-enumerated over 35 commits: 28 rows / 6 names -- mutation 13, nightly-status 7,
+  fast (3.14) 3, nightly-ha (stable) 2, briefs 2, nightly-ha (2025.2.0) 1 (the last three rows are the
+  pull request's own pin head 67a832653: mutation's refusal, and both nightly-ha legs whose only
+  failure was the lane's `Pull the Home Assistant image` step). Fell from round 9's 40 because #2065's commits left
   the range when it merged. `prepr` re-derives the same five and reports them answered.
 
 ## Next
