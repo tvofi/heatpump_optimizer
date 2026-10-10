@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Carry destination for R9-RC-Carry-Pins (#2075). Rounds 1-4 found four",
+    "ledger-subtree holes, all fixed on the branch and pinned by",
+    "tools/pr/app_approve.sh's own arms: a coarse whole-subtree exclusion that",
+    "hid a rewritten or deleted row (A2/A3), a glob-named added file that widened",
+    "one file's exclusion to the subtree (A9), a dead retired-path fallback, and a",
+    "delete-then-readd of the same reviewed path across two `ci: pin killed",
+    "mutants` commits (the `git cat-file -e \"$v:$p\"` guard). The one seam left",
+    "open is the BUDGET residual below; it is a carry because it is not a fix",
+    "this branch makes. The #2010 context-shift question earlier rounds carried",
+    "is now MOOT: #2010 merged (1b72ca19f), so its pair trivially carries and the",
+    "strict context-equal rule stays for a later round to re-measure with a fresh",
+    "instance, not to replay. The round-9 roster is not on main, so this file is",
+    "the in-tree destination, per the same shape as",
+    "dev/programme/carries/carry-1922.json. Shape and required fields:",
+    "dev/governance/rules/finding-propagation.md. Linted by",
+    "tools/policy/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 2075,
+  "stage": "R9-RO-13, the mandate-gated batch-policy group",
+  "carries": [
+    {
+      "from": "#2075 round 4, the BUDGET seam (recorded residual, not closed here)",
+      "effect": "narrows",
+      "control": "RESULT BUDGET, a bot-identity `ci: pin killed mutants` commit rewriting `tests/mutation_budgets.json` -- the single FILE entry `bot_paths` names -- carries at #2075's head, at origin/main, and under the round-4 reviewer's own `vbase` variant, because the file branch (`printf '%s\\n' \"$bt\" | grep -qxF \"$e\"`) still excludes that exact file whole when the commit touched it. Measured by the round-4 reviewer's matrix (review-2075-r4 evidence/matrix.txt, the BUDGET row: CARRY at every copy) and unchanged by this diff. It is left open deliberately: it is main's existing behaviour, not one this branch introduces, and a hidden budget raise is re-graded at the pushed head by the required `budget-raise-gate` context, so a bot rewrite of the caps file cannot land a silent raise anyway.",
+      "remeasure": "At your merge base, plant a bot-identity `ci: pin killed mutants` commit that rewrites tests/mutation_budgets.json and run `bash tools/pr/app_approve.sh --carry <v> <h> origin/main`: it still answers CARRY. If the budget lane wants it to refuse, the file branch needs the same `$v`-existence narrowing the directory branch now has; until then, the residual stands and `budget-raise-gate` is its only backstop.",
+      "brief": "`carry`'s file branch excludes a `bot_paths` single-file entry whole whenever the commit touched that exact path, so a bot rewrite of `tests/mutation_budgets.json` (a reviewed budget file) is hidden from the branch's-own-diff comparison and the head carries. #2075 narrowed the DIRECTORY branch to additions not on `$v` but left the FILE branch as main had it; closing the file branch the same way is a separate change, and until it lands a hidden raise is caught only by `budget-raise-gate` re-running at the pushed head, never by the carry predicate."
+    }
+  ]
+}
