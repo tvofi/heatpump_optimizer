@@ -105,9 +105,13 @@ self_test() (
   chmod 755 "$W/venv-ci/bin/python3"
   printf '#!/bin/sh\nexit 0\n' > "$W/venv-ha/bin/python"
   chmod 755 "$W/venv-ha/bin/python"
+  # HOME is part of the fixture: the shim's second root is the documented
+  # default state root (`$HOME/.local/state/hpo`), so every arm here controls
+  # it. Without that, the "exports nothing when venv-ha is absent" null
+  # control would depend on the box the self-test runs on (#2039).
   run_shim() { # shim-path; remaining args to the interpreter
     s=$1; shift
-    HPO_STATE_DIR=$W env -u HPO_TYPING_PYTHON "$s" "$@"
+    HOME=$W/fakehome HPO_STATE_DIR=$W env -u HPO_TYPING_PYTHON "$s" "$@"
   }
   probe='import os; print(os.environ["HPO_TYPING_PYTHON"] if "HPO_TYPING_PYTHON" in os.environ else "UNSET")'
   ha=$W/venv-ha/bin/python
@@ -115,15 +119,48 @@ self_test() (
     name=${s##*/}
     out=$(run_shim "$s" -c "$probe")
     eq "$name exports HPO_TYPING_PYTHON when venv-ha exists and the variable is unset" "$out" "$ha"
-    out=$(HPO_STATE_DIR=$W HPO_TYPING_PYTHON=/already "$s" -c "$probe")
+    out=$(HOME=$W/fakehome HPO_STATE_DIR=$W HPO_TYPING_PYTHON=/already "$s" -c "$probe")
     eq "$name does not override a value the seat set" "$out" "/already"
-    out=$(HPO_STATE_DIR=$W HPO_TYPING_PYTHON= "$s" -c "$probe")
+    out=$(HOME=$W/fakehome HPO_STATE_DIR=$W HPO_TYPING_PYTHON= "$s" -c "$probe")
     eq "$name does not override an empty value the seat set" "$out" ""
   done
   rm -f "$W/venv-ha/bin/python"
   out=$(run_shim "$ROOT/tools/audit/seat/shims/seat-python3" -c "$probe")
   eq "the shim exports nothing when venv-ha is absent (null control)" "$out" "UNSET"
   : > "$W/venv-ha/bin/python" && chmod 755 "$W/venv-ha/bin/python"
+
+  # #2039: the shim reaches the pinned interpreter across state roots, and
+  # refuses naming the build command when no root holds one. The seat's own
+  # state root wins; the documented default root is the fallback, because the
+  # pin is a machine toolchain and not per-seat state. The base this replaces
+  # exec'd `$HPO_STATE_DIR/venv-ci/bin/python3` unconditionally: with a state
+  # that holds no venv-ci it died `rc 126, no such file` -- no interpreter and
+  # no remedy -- which is the #2039 shape.
+  # The fallback interpreter is a stub that answers for the DEFAULT root and no
+  # other, so reaching it is what the arm reads; a wrapper over the ambient
+  # interpreter would answer identically from either root and pin nothing.
+  mkdir -p "$W/fakehome/.local/state/hpo/venv-ci/bin" "$W/seat"
+  printf '#!/bin/sh\nprintf "DEFAULT-ROOT-VENV-CI\\n"\n' \
+    > "$W/fakehome/.local/state/hpo/venv-ci/bin/python3"
+  chmod 755 "$W/fakehome/.local/state/hpo/venv-ci/bin/python3"
+  for s in "$ROOT/tools/audit/seat/shims/seat-python" "$ROOT/tools/audit/seat/shims/seat-python3"; do
+    name=${s##*/}
+    got=$(HOME=$W/fakehome HPO_STATE_DIR=$W/seat "$s" -c 'print(1)')
+    eq "$name reaches the default root's venv-ci when the seat's state holds none" "$got" "DEFAULT-ROOT-VENV-CI"
+  done
+  rm -rf "$W/fakehome/.local/state/hpo/venv-ci"
+  for s in "$ROOT/tools/audit/seat/shims/seat-python" "$ROOT/tools/audit/seat/shims/seat-python3"; do
+    name=${s##*/}
+    got=$(HOME=$W/fakehome HPO_STATE_DIR=$W/seat "$s" -c 'print(1)' 2>&1)
+    rc=$?
+    [ "$rc" != 0 ] && printf '%s' "$got" | grep -qF 'tools/audit/seat/seat_venv.sh'
+    expect "$name refuses naming the build command when no root holds a pinned interpreter" $?
+    got=$(HOME=$W/fakehome HPO_STATE_DIR=$W/seat "$s" -c 'print(2)' 2>&1)
+    case $got in
+      2) bad "$name never falls through to an unpinned interpreter (null control)" ;;
+      *) ok "$name never falls through to an unpinned interpreter (null control)" ;;
+    esac
+  done
 
   # --check: stub venv-ci so the numpy import is hermetic, then drive the
   # homeassistant assertion the recipe owes.

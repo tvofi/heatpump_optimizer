@@ -3,9 +3,31 @@
 # Installed into a seat's bin directory by `seat_venv.sh --install-shims <dir>`.
 # Exports HPO_TYPING_PYTHON to venv-ha only when that interpreter exists and
 # the variable is unset -- never overriding a value the seat set (#1951).
+#
+# THE PINNED INTERPRETER IS REACHED ACROSS STATE ROOTS (#2039). `seat_venv.sh`
+# builds venv-ci under $HPO_STATE_DIR, whose documented default is
+# $HOME/.local/state/hpo. A seat that pointed that variable at a state of its
+# own had no venv-ci under it, and this shim exec'd the missing path and died
+# `rc 126, cannot execute` -- naming no interpreter and no remedy. The pin is a
+# machine toolchain, not per-seat state, so it is resolved the way prepr.sh's
+# `recorder_python` resolves the recorder's (R9-FR-5): the seat's own state
+# root first, the documented default root second, and when neither holds one,
+# REFUSE naming the build command -- never fall through to an unpinned
+# interpreter, and never die unexplained.
 STATE="${HPO_STATE_DIR:-$HOME/.local/state/hpo}"
-HA="$STATE/venv-ha/bin/python"
-if [ -z "${HPO_TYPING_PYTHON+x}" ] && [ -x "$HA" ]; then
-  export HPO_TYPING_PYTHON="$HA"
+DEFAULT="$HOME/.local/state/hpo"
+if [ -z "${HPO_TYPING_PYTHON+x}" ]; then
+  for p in "$STATE/venv-ha/bin/python" "$DEFAULT/venv-ha/bin/python"; do
+    if [ -x "$p" ]; then
+      HPO_TYPING_PYTHON=$p
+      export HPO_TYPING_PYTHON
+      break
+    fi
+  done
 fi
-exec "$STATE/venv-ci/bin/python3" "$@"
+for p in "$STATE/venv-ci/bin/python3" "$DEFAULT/venv-ci/bin/python3"; do
+  [ -x "$p" ] && exec "$p" "$@"
+done
+printf '%s: no pinned interpreter at %s or %s -- build the seat venv: tools/audit/seat/seat_venv.sh\n' \
+  "${0##*/}" "$STATE/venv-ci/bin/python3" "$DEFAULT/venv-ci/bin/python3" >&2
+exit 127
