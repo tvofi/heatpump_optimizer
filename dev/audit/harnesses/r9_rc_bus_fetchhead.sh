@@ -173,7 +173,7 @@ if [ "$MODE" = race ]; then
 fi
 
 # ---- bodypush: the same predicate in body_push.sh ----
-# body_push.sh appends a body commit onto handoff-body/<topic> and read that
+# body_push.sh appends a body commit onto handoff-body/<topic>, reading that
 # ref's tip back through FETCH_HEAD to parent it. The arm plants a fetch of the
 # OTHER topic's body ref in the window, so FETCH_HEAD names the wrong ref exactly
 # when the instrument reads it, and asserts the built commit's parent.
