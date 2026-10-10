@@ -51,7 +51,7 @@ WINDOW = 336
 MIN_SAMPLES = 48
 #: The run range is these percentiles of the running draws, so a meter glitch
 #: or a start-up ramp in under a tenth of samples cannot move either end.
-LOW_PERCENTILE = 10.0
+LOW_PERCENTILE = 1.0 * 10
 HIGH_PERCENTILE = 90.0
 #: A sample disagrees with the plan when one of asked and drawn exceeds the
 #: other by this factor ...
@@ -99,8 +99,8 @@ class DrawRange:
         if seen is None:
             return None
         low, high = seen
-        top = high if high < (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_max
-        bottom = cfg_min if abs(low - cfg_min) <= AGREE_TOLERANCE * cfg_min else low
+        top = high if (1.0 - AGREE_TOLERANCE) * cfg_max > high else cfg_max
+        bottom = cfg_min if AGREE_TOLERANCE * cfg_min >= abs(low - cfg_min) else low
         return min(bottom, top), top
 
     def _disagrees(self, cfg_min: float) -> bool:
@@ -113,7 +113,7 @@ class DrawRange:
         on_level = [(d, a) for d, a in self.samples if a >= cfg_min]
         disagree = sum(
             1 for d, a in on_level
-            if a > DISAGREE_FACTOR * d or d > DISAGREE_FACTOR * a
+            if DISAGREE_FACTOR * d < a or DISAGREE_FACTOR * a < d
         )
         return disagree >= DISAGREE_SHARE * len(self.samples)
 
@@ -268,7 +268,7 @@ def planned_range(
         return None
     low, high = metered
     if cap.can_duty_cycle():
-        low = min(cfg_min, high)
+        low = min(high, cfg_min)
     return None if (low, high) == (cfg_min, cfg_max) else (low, high)
 
 
