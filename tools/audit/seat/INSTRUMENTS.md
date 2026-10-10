@@ -92,6 +92,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 
 ## tools/audit/seat/
 
+- `features_block.py` — runs one block of `tests/features.py`, from the line
+  holding a marker to the script's close, in the namespace features.py's
+  header builds. When: a mutation proof or a body figure that needs only the
+  block pinning the mutated line, on a seat where the whole script takes tens
+  of minutes. Refusal: a marker that is not in the script raises rather than
+  running an empty block.
 - `body_push.sh` — publishes a handoff's BODY.md on the orphan ref
   `handoff-body/<topic>` (plus RESUME.md), parentless first commit,
   fast-forwards after. When: every fixer handoff — the body must never enter
@@ -107,9 +113,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   on refs, the orchestrator watches. When: a reviewer seat with no other
   channel, or an orchestrator collecting several lanes' verdicts at once.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
-  states (per-PR signature file). When: a long fix wave where red-on-main or
-  a fresh failure must interrupt work. Refusal: state already seen prints
-  nothing — the exit-1 report is the alert, not the log.
+  states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
+  and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push
+  fires no `pull_request` run, so the governance family never reports at such
+  a head and it sits unmergeable looking green (R9-RC-AUTOFIX-GOVERNANCE).
+  When: a long fix wave where red-on-main or a fresh failure must interrupt
+  work. Refusal: state already seen prints nothing — the exit-1 report is the
+  alert, not the log; an unreadable ruleset alerts BLIND once rather than
+  silently skipping the ABSENT arm. `--self-test` grades every arm offline on
+  the recorded defect shape; `CI_WATCH_ONCE=1` runs a single cycle.
 - `cloud-setup.sh` — the cloud seat environment's setup script (interpreter,
   CI-run pinning). When: tvofi pastes it into Project settings; a seat cannot
   apply its own environment.
@@ -129,8 +141,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `merge_train.py` — lands a queue of verdicted PRs one at a time: re-carry
   CI, wait for green at the exact head, evidence-gated approval,
   `--match-head-commit`. When: any merge queue — queued PRs merge through
-  this, never by hand. Refusal: a head that moved under the review, or red
-  checks the queue was not told to ignore, stop the train.
+  this, never by hand. Refusal: a head that moved under the review, red
+  checks the queue was not told to ignore, or a head whose TIP is a
+  GITHUB_TOKEN bot push (author `github-actions[bot]`) stop the train — such
+  a head has no `pull_request` run, the required contexts never report at it,
+  and the required follow-up is an App push (step 1's recarry once main
+  moves; batch never recarries, so it refuses at admission).
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
