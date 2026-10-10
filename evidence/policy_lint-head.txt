@@ -1,0 +1,49 @@
+file                                           lines cap  ~tokens  cap always
+tests/README.md                                  459  800     6671  6686 
+tools/audit/briefs/fixer.md                      315  315     5215  5216 
+tools/audit/briefs/orchestrator.md               290  291     4090  4096 
+tools/audit/README.md                            239  250     3877  3880 
+CLAUDE.md                                        220  221     3589  3590   yes
+.claude/workflows/web-fragments.md               155  168     2427  2427 
+.claude/rules/defect-root-cause.md               153  153     1880  1887 
+tools/audit/briefs/fix-review.md                 137  140     2389  2393 
+.claude/skills/steward/SKILL.md                  134  135     1532  1533 
+tools/audit/briefs/nudge.md                      115  115     3776  3814 
+.claude/rules/ratchet-budgets.md                 111  114     1626  1664 
+tools/audit/briefs/COMMON.md                     108  108     1597  1598 
+.claude/rules/finding-propagation.md             100  101     1329  1336 
+tools/audit/briefs/D11.md                         99  103     1497  1499 
+.claude/rules/ci-autofix.md                       91   96     1466  1469 
+tools/audit/briefs/root-cause.md                  84   84      998   998 
+tools/audit/briefs/D13.md                         79   79     1149  1149 
+tools/audit/briefs/D12.md                         71   71      916   916 
+.claude/rules/comment-readback.md                 67   68      874   883 
+tools/audit/briefs/D0.md                          66   66      926   926 
+.claude/rules/writing-for-agents.md               65   65      834   836 
+tools/audit/briefs/D9.md                          62   65      857   857 
+.claude/rules/gate-scoping.md                     61   61      751   794 
+tools/audit/briefs/D1.md                          60   60      817   819 
+tools/audit/briefs/D8.md                          56   56      808   808 
+.claude/rules/claim-files.md                      53   53      678   681 
+tools/audit/briefs/D2.md                          51   51      644   644 
+tools/audit/briefs/D4.md                          48   48      586   586 
+tools/audit/briefs/D3.md                          46   46      607   607 
+tools/audit/briefs/D7.md                          44   45      575   575 
+tools/audit/briefs/D10.md                         43   43      574   574 
+.claude/rules/brief-citations.md                  42   42      888   893 
+tools/audit/briefs/D5.md                          42   42      514   514 
+tools/audit/briefs/verifier.md                    39   39      612   612 
+.github/PULL_REQUEST_TEMPLATE.md                  38   38      302   305 
+tools/audit/briefs/D6.md                          35   35      388   388 
+tools/audit/briefs/D14.md                         32   32      428   428 
+tools/audit/briefs/judge.md                       30   30      469   469 
+.claude/rules/delivery-status-tracking.md         25   26      587   606 
+AGENTS.md                                         12   13      166   183 
+
+always-loaded: ~3589 tokens, cap 3349 +band 500 = 3849
+corpus:        ~59909 tokens, cap 59591 +band 500 = 60091
+role fixer     ~6220 tokens, cap 5852 +band 500 = 6352
+role record    ~7227 tokens, cap 6904 +band 500 = 7404
+role policy    ~9986 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
