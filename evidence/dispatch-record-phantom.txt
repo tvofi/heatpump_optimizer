@@ -1,0 +1,6 @@
+#2107's live bus dispatch record (read from ~/.zcode/bus/dispatched, read-only):
+2107 da2b634509bf9f62c1a5ff8f7b0f9db0e1e6cd05 rev-2107 421f65606994645397aadad0a0b1d252
+$ git cat-file -t da2b634509bf9f62c1a5ff8f7b0f9db0e1e6cd05  -> fatal: could not get object info
+$ git ls-remote origin refs/heads/fix/bus-row-dispatch -> da2b6345011354ef7ec5b30b1cd57da2d95dbb83
+$ git ls-remote origin refs/pull/2107/head            -> da2b6345011354ef7ec5b30b1cd57da2d95dbb83
+Measured head: da2b6345011354ef7ec5b30b1cd57da2d95dbb83

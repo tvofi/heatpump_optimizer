@@ -1,0 +1,45 @@
+a confirmation for a commit that is not the tip posts nothing
+a confirmed verdict replayed after a later round does not post again
+a dispatched proposal waits for the orchestrator's confirmation, naming the reviewer
+a first pass records a baseline and posts nothing
+a later round fast-forwards the verdict ref and is posted
+a poster refusal is reported and not recorded as posted
+a refused verdict is not retried on the next pass
+a replay with its signature line re-encoded does not post again
+a replay with its signature line re-encoded does not post again
+a signature line that is not canonical base64 does not verify
+a signature over another tree does not post
+a signed verdict moved to another pull request does not post
+a verdict posts as a comment through app_comment.sh, never as an approving review
+a verdict signed with a key that is not the approver's does not post
+an unchanged pass reports and posts nothing
+another dispatch's nonce does not count
+confirm promotes no proposal that was never dispatched
+confirm refuses on a machine without the approver key
+confirm signs the proposal onto verdict/<pr> and posts it once
+dispatch records pr, head and reviewer and prints a fresh nonce
+no refused push left a review ref
+post refuses a commit already posted
+post retries a refused verdict by hand
+push-verdict proposes on review/<pr>, fast-forwarding it
+push-verdict refuses a first line outside the grammar
+push-verdict refuses a non-numeric pull request
+push-verdict refuses a verdict with no evidence directory
+push-verdict refuses a verdict with no nonce line
+push-verdict refuses evidence that names no head
+round 1's nonce does not count at another head
+the posted body cites an absolute evidence directory that names the head
+the posted body keeps the reviewer's first line
+the posted body names the reviewer and the proposal
+the poster is called with the repository and pull request
+the signed verdict carries the reviewer's tree unchanged
+two dispatches mint two nonces
+watch --post posts neither a forged proposal nor a forged verdict ref
+watch passes over a verdict it already posted
+watch refuses a raw proposal whose only naming file is VERDICT.md
+watch refuses a raw ref outside the grammar and posts nothing
+watch reports a deleted ref
+watch reports a new handoff ref
+watch reports a new review ref
+watch without --once exits on its first event
+watch without --once keeps waiting while nothing changes
