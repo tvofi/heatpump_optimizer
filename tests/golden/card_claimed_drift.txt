@@ -699,6 +699,9 @@
 # Silent windows list (empty until a fixture adds a row). Default fixtures
 # publish no quiet_actions, so the chart quiet-band is not the mover here.
 
+# R9-UX-5: where the hovered step publishes an idle sub-code, the tooltip
+# says Because and that reason. The raw code is not also a reason label.
+
 # R9-UX-7 (#1795): every state but editor_schema renders the card stylesheet,
 # which gains the learned-model block's rules; with those rules removed
 # card_drift reports all 40 states identical, so the stylesheet is the

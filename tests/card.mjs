@@ -513,6 +513,14 @@ check("an unknown reason code still shows something",
   check("UX-1 a step with nothing to say says nothing",
     idleWhyHtml([row("space_power", 3, 0, "idle")],
       { space: [SP[3]], dhw: [], dhwMin: null, priceUnit: "SEK/kWh" }) === "");
+  const fused = idleWhyHtml([row("space_power", 3, 0, "idle_fuse")], ctx);
+  check("UX-5 a published sub-code says because and replaces the inferred lines",
+    /Because:/.test(fused) && !/Likely because/.test(fused) &&
+      /fuse limit caps heating/.test(fused) && !/dearest/.test(fused), fused);
+  check("UX-5 an idle step with no sub-code still says likely because",
+    /Likely because/.test(dear) && !/Because:/.test(dear));
+  check("UX-5 an idle sub-code is not also a reason label",
+    reasonHtml([{ reason: "idle_fuse" }]) === "");
 
   // Through the real hover, on the repository fixture: the dearest idle
   // space step (16:00 in plan_view.py's plan) gets the explanation.
@@ -526,8 +534,11 @@ check("an unknown reason code still shows something",
   hc._onPointerMove({ clientX: hx,
     currentTarget: { getBoundingClientRect: () => hrect } });
   const htt = hc.shadowRoot.querySelector(".tooltip").innerHTML;
+  const idleExact = typeof idle.reason === "string" && idle.reason.startsWith("idle_");
   check("UX-1 hovering the fixture's dearest idle step explains it",
-    /Likely because/.test(htt) && htt.includes(maxP.toFixed(2)), htt);
+    idleExact
+      ? /Because:/.test(htt) && !/Likely because/.test(htt)
+      : /Likely because/.test(htt) && htt.includes(maxP.toFixed(2)), htt);
 
   // Through the real hover on an idle hot-water step, with the minimum
   // published: the run it coasts on and the next run come from the DHW
@@ -558,12 +569,15 @@ check("an unknown reason code still shows something",
   dc._onPointerMove({ clientX: dx,
     currentTarget: { getBoundingClientRect: () => hrect } });
   const dtt = dc.shadowRoot.querySelector(".tooltip").innerHTML;
+  const dExact = typeof dfc[di].reason === "string" && dfc[di].reason.startsWith("idle_");
   check("UX-1 hovering an idle hot-water step names its own coast and next run",
-    dtt.includes(`tank was heated ${whyClock(ms(dStart))}\u2013` +
-      `${whyClock(ms(dEnd) + dStep)}`) &&
-      dtt.includes(`next hot-water run is at ${whyClock(ms(dNext))}`), dtt);
+    dExact
+      ? /Because:/.test(dtt) && !/Likely because/.test(dtt)
+      : dtt.includes(`tank was heated ${whyClock(ms(dStart))}\u2013` +
+          `${whyClock(ms(dEnd) + dStep)}`) &&
+        dtt.includes(`next hot-water run is at ${whyClock(ms(dNext))}`), dtt);
   check("UX-1 and compares the tank with the published minimum",
-    dtt.includes(`tank is at ${dfc[di].dhw_temp.toFixed(1)} \u00b0C, ` +
+    dExact || dtt.includes(`tank is at ${dfc[di].dhw_temp.toFixed(1)} \u00b0C, ` +
       `above the ${dMin} \u00b0C`), dtt);
 }
 
@@ -903,8 +917,9 @@ check("the second press calls apply_schedule",
   called && called.domain === "heatpump_optimizer" && called.service === "apply_schedule");
 check("it sends the whole schedule, not a fragment",
   called && ["day_start_hour", "day_end_hour", "dhw_windows", "comfort_temp_day",
-             "dhw_min_temperature"]
-    .every((k) => called.data[k] !== undefined));
+             "target_temperature", "dhw_min_temperature"]
+    .every((k) => called.data[k] !== undefined)
+    && called.data.target_temperature === called.data.comfort_temp_day);
 check("the button returns to its resting label",
   !/Confirm/i.test(saveRoot.querySelector(".wi-save").textContent));
 
@@ -3117,7 +3132,7 @@ check("the hand-scheduled reason has a label",
   const at = (s) => page.indexOf(s);
   // Build order is gap, hot water, valve, degree; the value order differs
   // from it, so only a sort puts the rows here.
-  const order = ['data-act="try_degree"', 'data-act="open_schedule"',
+  const order = ['data-act="try_degree"', 'data-act="apply_dhw"',
     'data-act="assign"', 'data-act="apply_valve"'].map(at);
   check("rows rank by monthly value: degree 90 > hot water 55 > gap 40 > valve (no money)",
     order.every((i) => i > 0) && order.every((i, k) => k === 0 || order[k - 1] < i),
@@ -3152,7 +3167,7 @@ check("the hand-scheduled reason has a label",
   const dz = inboxStates();
   dz[`${PFX}_dhw_setpoint_advisor`].state = "55";
   check("a hot-water setpoint already at the recommendation is no row",
-    !/data-act="open_schedule"/.test(mkInbox(dz).html()));
+    !/data-act="apply_dhw"/.test(mkInbox(dz).html()));
   const vz = inboxStates();
   vz[`${PFX}_valve_target_recommendation`].state = "21.4";
   vz[`${PFX}_valve_target_recommendation`].attributes.configured_target = 21;
@@ -3195,9 +3210,12 @@ check("the hand-scheduled reason has a label",
     /Valve target 21\.5/.test(amHtml) && !/data-act="apply_valve"/.test(amHtml));
 
   const d = mkInbox(inboxStates());
-  await press(d.c, '[data-act="open_schedule"]');
-  check("the hot-water row opens the schedule editor, and calls no service",
-    d.c.dialog.activePage() === "plan" && d.calls.length === 0);
+  await press(d.c, '[data-act="apply_dhw"]');
+  check("the hot-water row applies the recommended setpoint, not an interpolated one",
+    d.c.dialog.activePage() === "advisor" && d.calls.length === 1
+    && d.calls[0][1] === "apply_schedule"
+    && d.calls[0][2].dhw_setpoint === 48
+    && d.calls[0][2].dhw_setpoint !== 55, JSON.stringify(d.calls));
 
   check("off-by-default advisors are offered as enable-to-see rows",
     /data-act="settings"/.test(page) && /wood/i.test(page) && /fuse/i.test(page)
@@ -3234,7 +3252,7 @@ check("the hand-scheduled reason has a label",
   const emptyHtml = mkInbox(z).html();
   check("with nothing to do the inbox says the plan is already as cheap as settings allow",
     /Nothing to do: the plan is already as cheap as your settings allow/.test(emptyHtml)
-    && !/data-act="assign"|data-act="apply_valve"|data-act="open_schedule"/.test(emptyHtml));
+    && !/data-act="assign"|data-act="apply_valve"|data-act="apply_dhw"/.test(emptyHtml));
 
   // The render signature follows the advisor sensors (their own list, not
   // HEADLINE_SUFFIXES): a gap that changes value must redraw the page.
@@ -3315,9 +3333,9 @@ check("the hand-scheduled reason has a label",
     && /Restore the model from 2026-03-01/.test(rsPage)
     && /data-act="adopt_refit"/.test(rsPage) && /data-act="restore_snapshot"/.test(rsPage));
   check("the restart rows carry no money, so they follow every priced row",
-    ['data-act="try_degree"', 'data-act="open_schedule"', 'data-act="assign"']
+    ['data-act="try_degree"', 'data-act="apply_dhw"', 'data-act="assign"']
       .every((a) => rsPage.indexOf(a) > 0 && rsPage.indexOf(a) < rsPage.indexOf('data-act="adopt_refit"')),
-    ['try_degree', 'open_schedule', 'assign', 'adopt_refit']
+    ['try_degree', 'apply_dhw', 'assign', 'adopt_refit']
       .map((a) => `${a}@${rsPage.indexOf(`data-act="${a}"`)}`).join(" "));
   check("rendering the recommendation calls no service", rs.calls.length === 0);
   await press(rs.c, '[data-act="adopt_refit"]');
