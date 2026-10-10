@@ -656,12 +656,40 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
-#
-# R9-UX-9 (#1956, #2016): this diff claims config_flow and the five coordinator
-# captures and NOTHING ELSE. The direction is ADD-ONLY: every moved leaf is a
-# key absent on the baseline (feedback_gaps, measured_heat_output_kw,
-# flow_meter_entity). No plan, schedule or solver leaf moves. These names are
-# not may-drift.
+# R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below
+# is space_reasons or dhw_reasons. No value leaf moves.
+away_setback # R9-UX-5: idle sub-codes, reasons only
+building_preset # R9-UX-5: idle sub-codes, reasons only
+capacity_curve # R9-UX-5: idle sub-codes, reasons only
+capacity_tariff # R9-UX-5: idle sub-codes, reasons only
+confidence_margins # R9-UX-5: idle sub-codes, reasons only
+cool_rainy_summer # R9-UX-5: idle sub-codes, reasons only
+cop_scale_learned # R9-UX-5: idle sub-codes, reasons only
+dhw_cold_tank # R9-UX-5: idle sub-codes, reasons only
+dhw_large_tank # R9-UX-5: idle sub-codes, reasons only
+dhw_learned_windows # R9-UX-5: idle sub-codes, reasons only
+dhw_schedule_off # R9-UX-5: idle sub-codes, reasons only
+external_heat_active # R9-UX-5: idle sub-codes, reasons only
+extreme_prices # R9-UX-5: idle sub-codes, reasons only
+horizon_48h # R9-UX-5: idle sub-codes, reasons only
+horizon_6h # R9-UX-5: idle sub-codes, reasons only
+legionella_due # R9-UX-5: idle sub-codes, reasons only
+legionella_due_low_setpoint # R9-UX-5: idle sub-codes, reasons only
+legionella_off # R9-UX-5: idle sub-codes, reasons only
+mild_windy_rain # R9-UX-5: idle sub-codes, reasons only
+negative_prices # R9-UX-5: idle sub-codes, reasons only
+peak_masked # R9-UX-5: idle sub-codes, reasons only
+price_risk # R9-UX-5: idle sub-codes, reasons only
+start_above_band # R9-UX-5: idle sub-codes, reasons only
+start_below_band # R9-UX-5: idle sub-codes, reasons only
+summer_dhw_only # R9-UX-5: idle sub-codes, reasons only
+valve_storage_flat_prices # R9-UX-5: idle sub-codes, reasons only
+valve_storage_low_target # R9-UX-5: idle sub-codes, reasons only
+valve_storage_small_tank # R9-UX-5: idle sub-codes, reasons only
+wide_band # R9-UX-5: idle sub-codes, reasons only
+winter_single_dhw # R9-UX-5: idle sub-codes, reasons only
+winter_single_no_dhw # R9-UX-5: idle sub-codes, reasons only
+
 
 config_flow # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
 coord_all_features # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved

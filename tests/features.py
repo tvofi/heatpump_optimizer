@@ -25322,6 +25322,7 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_CHEAP_PRICE as _R_CHEAP,
     REASON_COMFORT_FLOOR as _R_FLOOR,
     REASON_IDLE as _R_IDLE,
+    REASON_IDLE_COASTING as _R_COAST,
     REASON_PREHEAT_WEATHER as _R_PREHEAT,
     REASON_SCHEDULED as _R_SCHED,
     REASON_SOLAR_SURPLUS as _R_SURPLUS,
@@ -25380,8 +25381,9 @@ _ranked = _classify(
     _pw_idle, _pr_cl, _room_low, _min_cl, _hl_cl, _surplus_cl, _n_cl
 )
 R.check(
-    "idle, comfort floor and solar surplus all still outrank it",
-    _ranked[2] == _R_IDLE
+    "an idle step above the floor says it is coasting, and comfort floor "
+    "and solar surplus still outrank the fall-through",
+    _ranked[2] == _R_COAST
     and _ranked[3] == _R_FLOOR
     and _ranked[4] == _R_SURPLUS,
     f"{_ranked}",
@@ -45401,14 +45403,14 @@ _g8_sp_real_delete = _g8_sp.ir.async_delete_issue
 try:
     _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
     _g8_sp_clear = _t6_call(
-        _g8_sp._set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+        _g8_sp.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
 finally:
     _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
 R.check(
     "a registry that refuses the clear is logged, not raised",
     _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
     f"returned {_g8_sp_clear!r} after attempting {_g8_sp_reg.deleted!r} -- the "
-    "attempt is asserted as well as the swallow, because a `_set_issue` that "
+    "attempt is asserted as well as the swallow, because a `set_issue` that "
     "never called delete at all would also return None and would leave a "
     "stale notice on screen for a problem that has been fixed",
 )
@@ -58970,11 +58972,10 @@ R.check(
     f"bands {_r9egb1_bands}; configured {_r9egb1_h2_e[1]}, {_r9egb1_h2_a[1]}",
 )
 
-# The what-ifs keep the bases they had: a price tile, run in the solve's tail,
-# prices against the plan it follows -- the setback included -- and its target
-# tiles perturb that plan's target; the card's what-if prices against the
-# configured band. Whether the card should see the setback is the owner's
-# decision (#1736's parity lead), so this pins today's answer at both ends.
+# The what-ifs: a price tile, run in the solve's tail, prices against the
+# plan it follows -- the setback included -- and its target tiles perturb
+# that plan's target. The card's what-if honours the same active setback
+# (R9-UX-5), and without one it prices the configured band.
 def _r9egb1_whatifs():
     coord = _r9egb1_coord(away=True)
     with_config(coord, {_r9egb1_const.CONF_PRICE_TILES_ENABLED: True})
@@ -59004,15 +59005,17 @@ except Exception as _r9egb1_err:  # noqa: BLE001 - a raise is this check's failu
     _r9egb1_w_card, _r9egb1_w_seen = {"error": "raised"}, []
 _r9egb1_w_away = float(_r9egb1_w_coord._away_state.target_temperature or 0.0)
 R.check(
-    "#1736 the price tile prices against its solve's record (setback band, "
-    "target one below the set-back target); the card against the configured band",
+    "UX-5 the price tile and the card's what-if both price the active setback",
     _r9egb1_w_reason is None
     and "error" not in _r9egb1_w_card
     and len(_r9egb1_w_seen) == 3
     and [c.comfort_temp_day for c in _r9egb1_w_seen]
-    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_coord._opt_config.comfort_temp_day]
+    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_away]
     and _r9egb1_w_seen[1].target_temp == round(min(21.0, _r9egb1_w_away) - 1.0, 1)
-    and _r9egb1_w_seen[2].target_temp == _r9egb1_w_coord._opt_config.target_temp,
+    and _r9egb1_w_seen[2].target_temp == min(
+        _r9egb1_w_coord._opt_config.target_temp, _r9egb1_w_away)
+    and _r9egb1_w_seen[2].min_temp == min(
+        _r9egb1_w_coord._opt_config.min_temp, _r9egb1_w_away),
     f"{_r9egb1_w_reason!r} {_r9egb1_w_card.get('error')}; day/target per solve "
     f"{[(c.comfort_temp_day, c.target_temp) for c in _r9egb1_w_seen]}",
 )
@@ -59372,6 +59375,288 @@ R.check(
     _eg_short(None, np.zeros(2), np.zeros(1), 0.0, None, None, 0.25, None, np.array([0.05]), set())[2] is None
     and _eg_short(None, np.zeros(2), np.zeros(1), 0.0, None, None, 0.25, None, np.array([0.06]), set())[2] == 0,
 )
+
+
+# R9-UX-5 (#1795): exact idle sub-codes, the what-if's setback, the published
+# floor, and the comfort event's cause.
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    REASON_IDLE as _UX5_IDLE,
+    REASON_IDLE_COASTING as _UX5_COAST,
+    REASON_IDLE_DEARER as _UX5_DEAR,
+    REASON_IDLE_FUSE as _UX5_FUSE,
+    REASON_IDLE_OTHER as _UX5_OTHER,
+    REASON_IDLE_SOLAR as _UX5_SOLAR,
+    IdleContext as _Ux5Idle,
+    classify_dhw_steps as _ux5_dhw,
+    classify_space_steps as _ux5_space,
+    idle_codes as _ux5_idle_codes,
+)
+from heatpump_optimizer.away import AwayState as _Ux5Away  # noqa: E402
+from heatpump_optimizer.coordinator import _fold_away as _ux5_fold  # noqa: E402
+from heatpump_optimizer.narrative import ZERO_ENERGY_REASONS as _UX5_ZERO  # noqa: E402
+from heatpump_optimizer.notifier import (  # noqa: E402
+    _comfort as _ux5_comfort,
+    _comfort_cause as _ux5_cause,
+)
+
+
+def _ux5_idle_reason(i, power, *context):
+    """Step i's sub-code from ``idle_codes``, over enough steps to reach i."""
+    return _ux5_idle_codes(max(i + 1, len(power)), power, *context)[i]
+
+_ux5_n = 4
+_ux5_power = np.array([2.0, 0.0, 0.0, 1.5])
+_ux5_prices = np.array([0.4, 1.2, 0.3, 0.5])
+_ux5_room = np.array([21.0, 21.5, 21.5, 21.2, 21.0])
+_ux5_floor = np.full(_ux5_n, 19.0)
+_ux5_loss = np.ones(_ux5_n)
+_ux5_dear = _ux5_space(
+    _ux5_power, _ux5_prices, _ux5_room, _ux5_floor, _ux5_loss, None, _ux5_n,
+)
+R.check(
+    "UX-5 an idle step dearer than every hour that ran says so",
+    _ux5_dear[1] == _UX5_DEAR,
+    str(_ux5_dear),
+)
+_ux5_at_floor = _ux5_room.copy()
+_ux5_at_floor[2] = 19.0
+_ux5_cheap = _ux5_prices.copy()
+_ux5_cheap[1] = 0.2
+_ux5_plain = _ux5_space(
+    _ux5_power, _ux5_cheap, _ux5_at_floor, _ux5_floor, _ux5_loss, None, _ux5_n,
+)
+R.check(
+    "UX-5 an idle step at the floor and not dearer than the hours used stays idle",
+    _ux5_plain[1] == _UX5_IDLE,
+    str(_ux5_plain),
+)
+_ux5_caps = np.array([5.0, 0.0, 5.0, 5.0])
+_ux5_fused = _ux5_space(
+    _ux5_power, _ux5_cheap, _ux5_at_floor, _ux5_floor, _ux5_loss, None, _ux5_n,
+    caps=_ux5_caps,
+)
+R.check(
+    "UX-5 an idle step whose fuse cap leaves no room says the fuse",
+    _ux5_fused[1] == _UX5_FUSE,
+    str(_ux5_fused),
+)
+_ux5_other = np.array([0.0, 2.0, 0.0, 0.0])
+R.check(
+    "UX-5 an idle step whose other channel is drawing says so, ahead of the fuse",
+    _ux5_space(
+        _ux5_power, _ux5_cheap, _ux5_at_floor, _ux5_floor, _ux5_loss, None, _ux5_n,
+        other=_ux5_other, caps=_ux5_caps,
+    )[1] == _UX5_OTHER,
+)
+_ux5_sun = np.array([0.0, 0.0, 1.5, 0.0])
+R.check(
+    "UX-5 an idle step with solar before the next run is waiting for solar",
+    _ux5_space(
+        np.array([0.0, 0.0, 0.0, 2.0]), _ux5_prices, _ux5_at_floor, _ux5_floor,
+        _ux5_loss, _ux5_sun, _ux5_n,
+    )[1] == _UX5_SOLAR,
+)
+_ux5_dhw_idle = _ux5_dhw(
+    np.array([0.0, 0.0]), np.zeros(2, dtype=bool), np.zeros(2), None, 2,
+)
+_ux5_dhw_exact = _ux5_dhw(
+    np.array([0.0, 2.0]), np.array([False, True]), np.zeros(2), None, 2,
+    idle=_Ux5Idle(
+        prices=np.array([2.0, 0.4]),
+        level=np.array([50.0, 50.0, 48.0]),
+        floor=np.array([40.0, 40.0]),
+        other=np.array([3.0, 0.0]),
+    ),
+)
+R.check(
+    "UX-5 a hot-water step with no prices or tank stays idle, and one whose "
+    "other channel is drawing names that",
+    _ux5_dhw_idle == [_UX5_IDLE, _UX5_IDLE] and _ux5_dhw_exact[0] == _UX5_OTHER,
+    str((_ux5_dhw_idle, _ux5_dhw_exact)),
+)
+R.check(
+    "UX-5 every idle sub-code is a zero-energy narrative reason",
+    {_UX5_DEAR, _UX5_COAST, _UX5_FUSE, _UX5_SOLAR, _UX5_OTHER} <= _UX5_ZERO,
+)
+_ux5_cold = {
+    "min_temperature": 19.0,
+    "schedule": [{"time": "2026-10-03T06:00:00+02:00", "room_temp": 18.6}],
+    "space_plan": {"forecast": [
+        {"t": "2026-10-03T06:00:00+02:00", "reason": "idle_fuse"},
+    ]},
+}
+_ux5_occ = _ux5_comfort(_ux5_cold)
+_ux5_plain_evt = _ux5_comfort({
+    "min_temperature": 19.0,
+    "schedule": [{"time": "2026-10-03T06:00:00+02:00", "room_temp": 18.6}],
+})
+_ux5_ok = _ux5_comfort({
+    "min_temperature": 19.0,
+    "schedule": [{"time": "2026-10-03T06:00:00+02:00", "room_temp": 19.0}],
+    "space_plan": {"forecast": [{"t": "2026-10-03T06:00:00+02:00", "reason": "idle_fuse"}]},
+})
+R.check(
+    "UX-5 the comfort event names the coldest step's reason, and a plan with "
+    "no forecast still fires with no cause",
+    _ux5_occ["comfort"].data["cause"] == "idle_fuse"
+    and _ux5_plain_evt["comfort"].data["cause"] is None
+    and _ux5_ok == {},
+    str((_ux5_occ, _ux5_plain_evt, _ux5_ok)),
+)
+_ux5_home = _r9egb1_coord()
+_ux5_home_cfg = _ux5_home._solve_hubs(
+    8, banded=_r9egb1_cmod._whatif_banded(_ux5_home._away_state)
+)[0]
+_ux5_away = _r9egb1_coord(away=True)
+# The update resolves away before it publishes; a payload read before that
+# still shows the configured floor, which is the defect's own shape.
+_ux5_away._resolve_away()
+_ux5_home._resolve_away()
+_ux5_away_view = _ux5_away._build_data_dict()
+_ux5_home_view = _ux5_home._build_data_dict()
+R.check(
+    "UX-5 without a setback the what-if band and the published floor stay configured",
+    not _r9egb1_cmod._whatif_banded(_ux5_home._away_state)
+    and _ux5_home_cfg.target_temp == _ux5_home._opt_config.target_temp
+    and _ux5_home_cfg.min_temp == _ux5_home._opt_config.min_temp
+    and _ux5_home_view["min_temperature"] == _ux5_home._opt_config.min_temp
+    and "configured_min_temperature" not in _ux5_home_view,
+    str((_ux5_home_cfg.target_temp, _ux5_home_view.get("min_temperature"))),
+)
+R.check(
+    "UX-5 during a setback the thermal view publishes the floor the plan uses "
+    "and names the configured one beside it",
+    _r9egb1_cmod._whatif_banded(_ux5_away._away_state)
+    and _ux5_away_view["min_temperature"] == min(
+        _ux5_away._opt_config.min_temp, _ux5_away._away_state.target_temperature)
+    and _ux5_away_view["configured_min_temperature"] == _ux5_away._opt_config.min_temp
+    and _ux5_away_view["min_temperature"] != _ux5_away_view["configured_min_temperature"],
+    str({k: _ux5_away_view.get(k) for k in ("min_temperature", "configured_min_temperature")}),
+)
+# idle_reason is the production function the two classifiers call; a direct
+# call with nothing to go on is the null for a step the sub-codes cannot see.
+R.check(
+    "UX-5 idle_reason with no signal is idle",
+    _ux5_idle_reason(0, np.zeros(1), None, None, None, None, None, None, 0.05) == _UX5_IDLE,
+)
+
+
+def _ux5_call(fn, *args):
+    """(ran, value). A mutant that raises is a failed check, not a dead file."""
+    try:
+        return True, fn(*args)
+    except Exception as exc:
+        return False, type(exc).__name__
+
+
+_ux5_thr = 0.05
+
+
+def _ux5_above(i, level, floor):
+    """Does ``idle_reason`` read step i as coasting, with only the floor in hand?"""
+    return _ux5_idle_reason(i, np.zeros(1), None, level, floor, None, None, None, _ux5_thr) == _UX5_COAST
+
+
+def _ux5_dearer(i, power, prices, thr):
+    """Does ``idle_reason`` read step i as dearer, with only the prices in hand?"""
+    return _ux5_idle_reason(i, power, prices, None, None, None, None, None, thr) == _UX5_DEAR
+
+
+def _ux5_solar_wait(i, power, surplus, thr):
+    """Does ``idle_reason`` read step i as waiting for solar, with only the surplus in hand?"""
+    return _ux5_idle_reason(i, power, None, None, None, surplus, None, None, thr) == _UX5_SOLAR
+
+
+_ok, _got = _ux5_call(_ux5_above, 0, None, None)
+R.check("UX-5 no trajectory is not above the floor", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_above, 1, np.array([20.0, 20.0]), np.array([19.0]))
+R.check("UX-5 a step past the floor array is not above it", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_above, 1, np.array([21.0, 19.0]), np.array([19.0, 19.0]))
+R.check("UX-5 the last temperature sample is the one past the trajectory",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_above, 0, np.array([19.0, 19.15]), np.array([19.0]))
+R.check("UX-5 a step exactly 0.15 above the floor is not coasting",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 0, np.zeros(1), None, _ux5_thr)
+R.check("UX-5 no prices is not dearer than the hours that ran", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.zeros(1), np.array([1.0]), _ux5_thr)
+R.check("UX-5 a step past the price array is not dearer", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 0, np.array([1.0, 1.0, 1.0]), np.array([0.4, 0.5]), _ux5_thr)
+R.check("UX-5 dearer compares the hours both arrays cover", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.array([_ux5_thr, 0.0]), np.array([1.0, 2.0]), _ux5_thr)
+R.check("UX-5 an hour exactly at the run threshold did not run", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.zeros(2), np.array([1.0, 2.0]), _ux5_thr)
+R.check("UX-5 a channel that never ran is not dearer", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.array([1.0, 0.0]), np.array([2.0, 2.0]), _ux5_thr)
+R.check("UX-5 a step at the dearest hour that ran is not dearer", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.zeros(2), None, _ux5_thr)
+R.check("UX-5 no surplus is not a wait for solar", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 1, np.zeros(1), np.array([0.0]), _ux5_thr)
+R.check("UX-5 a step past the surplus array is not a wait", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, 0.0]), np.array([1e-6, 2.0]), _ux5_thr)
+R.check("UX-5 dust on this step still leaves a later surplus as a wait",
+        _ok and _got is True, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.zeros(2), np.zeros(2), _ux5_thr)
+R.check("UX-5 no surplus before the next run is not a wait", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, _ux5_thr, 0.0]), np.array([0.0, 0.0, 2.0]), _ux5_thr)
+R.check("UX-5 an hour exactly at the threshold is still before the next run",
+        _ok and _got is True, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.array([0.0, 0.0]), np.array([0.0]), _ux5_thr)
+R.check("UX-5 surplus that ends before the look-ahead is not a wait",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, 0.0, 2.0]), np.array([0.0, 1e-6, 0.0]), _ux5_thr)
+R.check("UX-5 dust ahead is not surplus to wait for", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.zeros(1), np.zeros(1), _ux5_thr)
+R.check("UX-5 a one-step horizon with no surplus is not a wait", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, 1.0]), np.array([0.0, 2.0]), _ux5_thr)
+R.check("UX-5 surplus that arrives with the next run is not a wait",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_codes, -1, np.zeros(1), None, None, None, None, None, None, _ux5_thr)
+R.check("UX-5 a negative step count has no idle codes", _ok and _got == [], str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 1, np.zeros(2), None, None, None, None, np.array([0.0]), None, _ux5_thr)
+R.check("UX-5 a step past the other channel is idle", _ok and _got == _UX5_IDLE, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 0, np.zeros(1), None, None, None, None, np.array([_ux5_thr]), None, _ux5_thr)
+R.check("UX-5 the other channel exactly at the threshold is not drawing",
+        _ok and _got == _UX5_IDLE, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 1, np.zeros(2), None, None, None, None, None, np.array([0.0]), _ux5_thr)
+R.check("UX-5 a step past the fuse cap is idle", _ok and _got == _UX5_IDLE, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 0, np.zeros(1), None, None, None, None, None, np.array([_ux5_thr]), _ux5_thr)
+R.check("UX-5 a fuse cap exactly at the threshold is the fuse",
+        _ok and _got == _UX5_FUSE, str(_got))
+_ok, _got = _ux5_call(_ux5_fold, _Ux5Away(), {"min_temperature": 19.0})
+R.check("UX-5 home publishes no second floor",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_fold, _Ux5Away(active=True, recovery_active=True, target_temperature=16.0),
+    {"min_temperature": 19.0})
+R.check("UX-5 recovery does not publish the setback floor",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_fold, _Ux5Away(active=True, target_temperature=None), {"min_temperature": 19.0})
+R.check("UX-5 away with no target keeps the configured floor",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_fold, _Ux5Away(active=True, target_temperature=19.0), {"min_temperature": 19.0})
+R.check("UX-5 a setback equal to the floor does not name a second one",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_when = "2026-10-03T06:00:00+02:00"
+_ok, _got = _ux5_call(_ux5_cause, {"space_plan": None}, _when)
+R.check("UX-5 a plan that is not a dict has no cause", _ok and _got is None, str(_got))
+_ok, _got = _ux5_call(_ux5_cause, {"space_plan": {"forecast": [
+    None, {"t": "other", "reason": "idle"}]}}, _when)
+R.check("UX-5 a non-dict forecast step is skipped", _ok and _got is None, str(_got))
+_ok, _got = _ux5_call(_ux5_cause, {"space_plan": {"forecast": [
+    {"t": _when, "reason": ""}]}}, _when)
+R.check("UX-5 an empty reason is no cause", _ok and _got is None, str(_got))
 
 
 # -- R9-DBG-1 (#1939): the debug collector -------------------------------------
@@ -60816,6 +61101,218 @@ R.check(
     _fm_problems == (("stale", None), ("implausible", None), ("unknown_unit", None)),
     f"{_fm_problems}",
 )
+
+# Live v6.7.17 install: a configured floor-return sensor that gives nothing
+# leaves the slab advanced open-loop from the plan's own trajectory
+# (``_update_current_state``), and nothing told the owner. The notifier now
+# raises a repair once the slot has given no usable value for a sustained
+# period and clears it when readings return. Driven end-to-end: the real
+# coordinator reads the sensor, its published ``input_problems`` feeds the
+# watch, and the issue lands on the recording registry. Synthetic data only.
+import asyncio as _frs_aio  # noqa: E402
+import json as _frs_json  # noqa: E402
+from pathlib import Path as _frs_Path  # noqa: E402
+
+from harness import FakeEntry as _frs_Entry  # noqa: E402
+from heatpump_optimizer import notifier as _frs_mod  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_FLOOR_RETURN_TEMP_ENTITY as _FRS_KEY,
+)
+
+_FRS_T0 = datetime(2026, 10, 8, 3, 0, tzinfo=timezone.utc)
+_FRS_ENTITY = "sensor.floor_return_synthetic"
+
+
+def _frs_coord(state, configured=True, indoor="21.0"):
+    """A real coordinator over one floor-return state; ``None`` removes the entity."""
+    states = {
+        "sensor.indoor": FakeState(indoor, unit="°C"),
+        "sensor.outdoor": FakeState("-5.0", unit="°C"),
+    }
+    if state is not None:
+        states[_FRS_ENTITY] = FakeState(state, unit="°C")
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+    }
+    if configured:
+        cfg[_FRS_KEY] = _FRS_ENTITY
+    return Coord(FakeHass(states), _frs_Entry(data=cfg))
+
+
+def _frs_payload(state, configured=True, indoor="21.0"):
+    """What one cycle publishes about its inputs, read by the real reader."""
+    coord = _frs_coord(state, configured, indoor)
+    _frs_aio.run(coord._update_current_state())
+    return {"input_problems": coord._input_health_view()["input_problems"]}
+
+
+def _frs_issues(hass):
+    return [i for i in getattr(hass, "issues", []) if i[1] == _frs_mod.ISSUE_FLOOR_RETURN_SILENT]
+
+
+def _frs_run(steps):
+    """Feed ``(minutes after T0, payload)`` pairs; the issue count after each."""
+    hass = FakeHass()
+    watch = _frs_mod.FloorReturnWatch(hass)
+    counts = []
+    for minutes, payload in steps:
+        watch.handle(payload, _FRS_T0 + timedelta(minutes=minutes))
+        counts.append(len(_frs_issues(hass)))
+    return counts, _frs_issues(hass)
+
+
+_frs_dead = _frs_payload("unavailable")
+_frs_gone = _frs_payload(None)
+_frs_live = _frs_payload("31.5")
+_frs_unset = _frs_payload(None, configured=False)
+# Another configured input dead beside a live floor-return sensor: the
+# finding must select the floor-return slot, not any problem (review of #2071).
+_frs_other = _frs_payload("31.5", indoor="unavailable")
+_frs_lim = _frs_mod.FLOOR_RETURN_SILENT_MINUTES
+R.check(
+    "the coordinator publishes an unreadable floor-return sensor as a problem, "
+    "a live one and an unconfigured slot as none",
+    [p["input"] for p in _frs_dead["input_problems"]] == [_FRS_KEY]
+    and [p["input"] for p in _frs_gone["input_problems"]] == [_FRS_KEY]
+    and not _frs_live["input_problems"]
+    and not _frs_unset["input_problems"],
+    str((_frs_dead, _frs_gone, _frs_live, _frs_unset)),
+)
+_frs_counts, _frs_raised = _frs_run([
+    (0, _frs_dead), (_frs_lim - 1, _frs_dead), (_frs_lim, _frs_dead),
+    (_frs_lim * 2, _frs_dead), (_frs_lim * 3, _frs_live),
+])
+R.check(
+    "a configured floor-return sensor silent for the sustained period raises "
+    "one repair, not before, and it clears when readings return",
+    _frs_counts == [0, 0, 1, 1, 0],
+    str(_frs_counts),
+)
+_frs_counts_r, _frs_open = _frs_run([(0, _frs_gone), (_frs_lim, _frs_gone)])
+_frs_kw = _frs_open[0][2] if _frs_open else {}
+R.check(
+    "the repair names the entity and the period, is a warning and is not fixable",
+    _frs_counts_r == [0, 1]
+    and _frs_kw.get("translation_key") == _frs_mod.ISSUE_FLOOR_RETURN_SILENT
+    and _frs_kw.get("translation_placeholders", {}).get("entity_id") == _FRS_ENTITY
+    and _frs_kw.get("translation_placeholders", {}).get("minutes") == f"{_frs_lim:.0f}"
+    and _frs_kw.get("is_fixable") is False
+    and _frs_kw.get("severity") == "warning",
+    str(_frs_kw),
+)
+R.check(
+    "the finding is pure: it starts the clock, waits the period, then names the entity",
+    _frs_mod.floor_return_silence([], None, _FRS_T0) == (None, None)
+    and _frs_mod.floor_return_silence(_frs_dead["input_problems"], None, _FRS_T0)
+    == (_FRS_T0, None)
+    and _frs_mod.floor_return_silence(
+        _frs_dead["input_problems"], _FRS_T0, _FRS_T0 + timedelta(minutes=_frs_lim)
+    ) == (_FRS_T0, {"entity_id": _FRS_ENTITY, "minutes": f"{_frs_lim:.0f}"}),
+)
+R.check(
+    "the silence period outlasts a restart's or a brief outage's gap and is "
+    "shorter than three hours of unannounced open-loop slab estimate",
+    30.0 < _frs_lim <= 180.0,
+    f"{_frs_lim} min",
+)
+R.check(
+    "ninety minutes of silence raises the repair: an owner hears within the "
+    "hour and a half, read on the clock rather than through the constant",
+    _frs_run([(0, _frs_dead), (90, _frs_dead)])[0] == [0, 1],
+    str(_frs_run([(0, _frs_dead), (90, _frs_dead)])[0]),
+)
+# Null controls: the same clock with nothing wrong, or nothing configured,
+# raises nothing; and a gap shorter than the period restarts the count.
+R.check(
+    "a live sensor and an unconfigured slot never raise it, at any age",
+    _frs_run([(0, _frs_live), (_frs_lim * 10, _frs_live)])[0] == [0, 0]
+    and _frs_run([(0, _frs_unset), (_frs_lim * 10, _frs_unset)])[0] == [0, 0],
+)
+R.check(
+    "another input's failure beside a live floor-return sensor never raises it",
+    [p["input"] for p in _frs_other["input_problems"]] == ["indoor_temp_entity"]
+    and _frs_run([(0, _frs_other), (_frs_lim * 10, _frs_other)])[0] == [0, 0],
+    str(_frs_other),
+)
+R.check(
+    "a short gap does not accumulate: a reading in between restarts the period",
+    _frs_run([
+        (0, _frs_dead), (_frs_lim / 2, _frs_live),
+        (_frs_lim / 2 + 1, _frs_dead), (_frs_lim + 1, _frs_dead),
+    ])[0] == [0, 0, 0, 0],
+)
+R.check(
+    "a payload that does not carry the input signal leaves the watch alone",
+    _frs_run([(0, _frs_dead), (_frs_lim, {})])[0] == [0, 0]
+    and _frs_run([(0, _frs_dead), (_frs_lim, _frs_dead), (_frs_lim + 1, {})])[0]
+    == [0, 1, 1],
+)
+
+
+def _frs_wiring():
+    """``async_setup_notifier`` runs the watch on each coordinator update."""
+    from homeassistant.util import dt as _frs_dt
+
+    class _C:
+        def __init__(self):
+            self.listeners = []
+            self.data = _frs_dead
+
+        def async_add_listener(self, cb, context=None):
+            self.listeners.append(cb)
+            return lambda: self.listeners.remove(cb)
+
+    class _E:
+        entry_id = "frs_wire"
+
+        def __init__(self):
+            self.unloads = []
+
+        def async_on_unload(self, fn):
+            self.unloads.append(fn)
+
+        def async_create_background_task(self, hass, coro, name, eager_start=True):
+            coro.close()
+
+    async def go():
+        hass, coord, entry = FakeHass(), _C(), _E()
+        await _frs_mod.async_setup_notifier(hass, entry, coord)
+        seen = []
+        for minutes, data in ((0, _frs_dead), (_frs_lim, _frs_dead), (_frs_lim + 1, _frs_live)):
+            coord.data = data
+            _frs_dt.freeze(_FRS_T0 + timedelta(minutes=minutes))
+            try:
+                for cb in list(coord.listeners):
+                    cb()
+            finally:
+                _frs_dt.freeze(None)
+            seen.append(len(_frs_issues(hass)))
+        return seen
+
+    return _frs_aio.run(go())
+
+
+R.check(
+    "the entry's notifier setup raises and clears the repair on coordinator updates",
+    _frs_wiring() == [0, 1, 0],
+    str(_frs_wiring()),
+)
+_FRS_PKG = _frs_Path(__file__).resolve().parent.parent / "custom_components/heatpump_optimizer"
+for _frs_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _frs_doc = _frs_json.loads((_FRS_PKG / _frs_file).read_text(encoding="utf-8"))
+    _frs_text = _frs_doc.get("issues", {}).get(_frs_mod.ISSUE_FLOOR_RETURN_SILENT, {})
+    R.check(
+        f"the floor-return repair is translated in {_frs_file}",
+        bool(_frs_text.get("title"))
+        and "{entity_id}" in _frs_text.get("description", "")
+        and "{minutes}" in _frs_text.get("description", ""),
+        str(_frs_text)[:200],
+    )
+
+
 
 
 R.section("early cut-off — a warm room stops a space-heating pump inside the interval")

@@ -395,7 +395,8 @@ PY
 # statically -- no test, recording or mutant runs, so it costs seconds where
 # step 6b's recordings cost the scoped scripts' run time and are left to CI
 # under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
-# UNDER-SCOPED, INERT READS and NO RECORDING and entities' unclassified file,
+# UNDER-SCOPED, INERT READS and NO RECORDING, entities' unclassified file and
+# a STALE PIN the diff itself stales (a stale pin main carries only warns),
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
 # the handoff while the autofix jobs repaired none of them; those refuse. The
 # `mutation` sites the diff adds are a WARNING, never a refusal: ci-autofix.md
@@ -1698,7 +1699,11 @@ PY
     && rm tests/derive_closures.sh.bak && $G commit -qam pdrop \
     && $G checkout -q -b pmut origin/main \
     && printf '\n\ndef _zz_planted(x):\n    if 0 < x < 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
-    && $G commit -qam pmut) >/dev/null 2>&1
+    && $G commit -qam pmut \
+    && $G checkout -q -b pstale origin/main \
+    && python3 -c "import pathlib as P;p=P.Path('custom_components/heatpump_optimizer/away.py');t=p.read_text();o='    return stored_instant(value, dt_util.DEFAULT_TIME_ZONE)\\n';assert o in t;p.write_text(t.replace(o,o[:-1]+' or None\\n'))" \
+    && $G commit -qam pstale \
+    && $G checkout -q -b pstaleun pstale && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pstaleun) >/dev/null 2>&1
   predict_at() { (cd "$PDX/r" && git checkout -q "$1" && predict_line origin/main 2>&1 >/dev/null; echo "rc=$?"); }
   got=$(predict_at pnull); st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a comment in a selectable script (null control)"
   got=$(predict_at porphan); grep -q 'PREDICT fast .*UNCLASSIFIED custom_components/heatpump_optimizer/zz_planted.py' <<<"$got"
@@ -1715,6 +1720,13 @@ PY
   st $? 0 "6d predicts ADDED UNPINNED for a guard the diff adds with no pin"
   grep -q '^rc=0$' <<<"$got"
   st $? 0 "and an unpinned site warns, never refuses: mutation-autofix may pin it after the push"
+  got=$(predict_at pstale); grep -q 'PREDICT ledger .*STALE PIN custom_components/heatpump_optimizer/away.py:_parse_return_time' <<<"$got"
+  st $? 0 "6d predicts STALE PIN for a pinned line the diff edits, and refuses on it (rc=1)"
+  grep -q '^rc=1$' <<<"$got"
+  st $? 0 "a stale pin refuses, unlike an unpinned site: mutation-autofix never drops a pin"
+  got=$(cd "$PDX/r" && git checkout -q pstaleun && predict_line pstale 2>&1 >/dev/null; echo "rc=$?")
+  grep -q 'PREDICT mutation .*STALE PIN ON MAIN' <<<"$got" && grep -q '^rc=0$' <<<"$got"
+  st $? 0 "a stale pin main already carries warns and names main, never refuses an unrelated branch (null control)"
   got=$(cd "$PDX/r" && git checkout -q pinh && predict_line pmainred 2>&1 >/dev/null; echo "rc=$?")
   grep -q 'NO RECORDING' <<<"$got"
   st $? 1 "6d charges no branch with an unrecorded script main already carries (null control)"
