@@ -8060,6 +8060,25 @@
     "stage": "fixing",
     "branch": "handoff/r9-orphans"
    }
+  },
+  {
+   "group": "R9-RC-POSTREVIEW-MERGE",
+   "lane": "fix",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "brief": "Round-9 root-cause lane (root-cause.md; runs beside the fixes and never inside them). CLASS: a merge of main into a reviewed branch reddens the head after review, and no local instrument sees it.\n\nINSTANCES, all 2026-10-09/10. (1) #2072: both `instrument-self-tests` and `pr-contract` were GREEN at the judged head `316a36414` (check-runs API), and the batch's recarry merged a main carrying the rule widened by `09d2061b247a77e27ba625c81ef25a9909726ef9` (PR #2067, merge `d0f085ffb`) under that head; the branch's own new self-test arm -- `printf '%s\\n' \"$flow\" | grep -q 'moved_line \"'`, an early-exit grep on a pipe under `pipefail` -- then failed `instrument-self-tests` at `04d10721b` (243 passed, 1 failed) and cascaded into `pr-contract`. The whole batch pass died on it. (2) #2066: the round-9 reviewer measured `merge-tree` clean against `d0f085ffb` and, at publish time, main had advanced with #2065/#2067/#2068/#2069/#2074 producing EIGHT real conflicts -- blocked `conflict`, now round 10. (3) #2075 round 3 was blocked `head-moved` because the PR never carried the handoff head.\n\nMECHANISM, already named by a fixer and to be tested rather than assumed: `tools/pr/app_push.sh --recarry` skips `prepr` entirely for a clean carry (added by PR #2069, `a9baf164c`), and `dev/governance/roles/fixer.md` step 6 tells a seat to `git merge origin/main` whenever it needs to, so a main merge lands in a reviewed branch with no local gate afterwards. The cheap detector that would have caught #2072 is not the whole `prepr` self-test (221-551 s on a loaded box) but the class arm itself: **0.036 s**.\n\nOWES: the named cause and the process state among defect-root-cause.md's four; a cost test with numbers (the round trips this cost, and what each candidate countermeasure costs to run on every recarry); and a countermeasure OR a recorded refusal, per root-cause.md -- the countermeasure changes the unit, not the arm count. Candidates to price, cheapest first, with a null control for each: (a) a recarry that runs a bounded cheap subset of the contract rather than skipping it or running it whole; (b) the train re-running `prepr --self-test` after recarry; (c) a reviewer-side step that asks whether main moved in a way that touches the head's own changed lines; (d) anything better found. A countermeasure must keep the recarry's purpose intact -- #2069 added the skip because a clean carry was paying minutes for nothing -- and must not make a genuinely broken recarry look green.\n\nBOUNDARY: the RCA seat does not fix, does not edit `app_push.sh`, `merge_train.py` or policy, and does not post to GitHub; it hands the orchestrator a document plus the propagation diffs it would apply, naming the brief and the exact sentence. The class is absent from dev/audit/config/bugclasses.json as far as this pass measured, so the class entry, the `_rca` entry and the document must land in ONE commit (fold_ledger refuses either half alone).",
+   "model": {
+    "fixer": "opus",
+    "fixer_why": "the countermeasure is a design choice across the recarry/contract boundary with a cost test and several viable arms",
+    "reviewer": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "resume": {
+    "stage": "fixing",
+    "branch": "handoff/r9-postreview-rca"
+   }
   }
  ]
 }
