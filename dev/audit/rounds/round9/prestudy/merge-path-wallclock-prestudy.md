@@ -60,7 +60,7 @@ concurrent (the docstring's accepted residual: a later merge lands before the
 earlier merge's push run finishes); the SUSTAINED cadence bound is the next
 train's step 0, which admits nothing until every required context at main's
 tip is green — at today's cadence (7 main merges, 7 push Tests runs of
-40–55 min) that is **one train per ~40–55 min**, and every stage's critical
+40–61 min, the measured run walls) that is **one train per ~40–61 min**, and every stage's critical
 lane is a lane that carries `boost_drift_replay.py` (PR: closures 52 m; push:
 fast 52 m; batch proof: closures 54 m 45 s).
 
@@ -256,7 +256,7 @@ is available to any seat today without a code change, and prepr 6b / the CI
 scoped arm are the two loops still at one.
 
 **The train's 300 s poll adds ≤300 s per wait (average 150 s)** against a
-40–55 min critical lane — under 6 %, and the interval is the owner's quota
+40–61 min critical lane — under 7 %, and the interval is the owner's quota
 direction (~15 seats share the API budget; 2026-10-07). Not a lever; leave
 it. The serial structure it serves (proof → merges → push runs) is already
 batched (R9-RO-12); the residual serialization is main's push run itself,
@@ -290,8 +290,8 @@ obligation to the closures read set.**
   follow-up ("a cheaper recording invocation opening the same read set") is,
   on this study's numbers, worth MORE than its coverage-side saving. The
   closures recording of `boost_drift_replay.py` runs on every PR gate
-  (27 m 13 s), every prepr 6b, every push full arm (1236 s) and every batch
-  proof — if the short-replay invocation is proven to open a **byte-identical
+  (27 m 13 s), every prepr 6b, every push full arm (876–1236 s across the
+  runner band) and every batch — if the short-replay invocation is proven to open a **byte-identical
   read set** on Linux CI (the R9-F10.14 shape of proof, one more equality
   than vi-a's line-set proof), the same knob cheapens the recording
   everywhere, through `closure.py`'s recorded-argv rule, with no change to
@@ -314,7 +314,7 @@ memo — it is not in either planned PR and belongs in neither: it touches only
 
 The recurring cost is gate time per merge: today's measured machine wall is
 ~1 h 45 m + local prepr per merge, at 7 merges and 7 push runs
-(40–55 min each) in one day, with `boost_drift_replay.py` alone at 2 h 51 m
+(40–61 min each) in one day, with `boost_drift_replay.py` alone at 2 h 51 m
 of CI lane time per merge and the PR gate's critical lane at 52 m.
 
 | lever | engineering cost | measured / bounded saving | risk |
