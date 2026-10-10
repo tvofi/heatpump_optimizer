@@ -1,0 +1,14 @@
+# the finder's evidence: the incident log
+$ tail -12 /Users/timmalmstrom/hpo-seats/merge-train-0118/logs36/batch-1.log
+#2071 serial: grader
+#2072 serial: grader
+#2073 serial: grader
+#2063 serial: budget
+#2010 serial: claim, grader
+serial: #2071, #2072, #2073, #2063, #2010
+TRAIN STOPPED recarry: #2071 the main merge pushed nothing: Auto-merging custom_components/heatpump_optimizer/diagnostics.py
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+app_push: RECARRY: prepr SKIPPED: HEAD 61617145 is the clean merge of the live head 1f9d606d and origin/main's 23d35497, and the body is the live one
+app_push: REFUSE: the pull request did not read back; its state is above -- re-read it by hand before touching anything
+RESULT pr=2071 head=61617145f4a2cc254f90b53ba683ea74f13100d4

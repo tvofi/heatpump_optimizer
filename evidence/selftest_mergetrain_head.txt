@@ -1,0 +1,4 @@
+# head a27c7bd4412989300170b2648c417e9d6e93f0a9
+  ok   hassfest.yml is in this tree and takes workflow_dispatch
+  ok   validate.yml is in this tree and takes workflow_dispatch
+merge_train self-test: 96 checks, 0 failed

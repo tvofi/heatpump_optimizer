@@ -1,0 +1,24 @@
+# head a27c7bd4412989300170b2648c417e9d6e93f0a9
+## tests/structure.py (the ratchet)
+
+########## ratchet vs structure_budgets.json (recorded_at 2d8cab3f75dd) ##########
+  ok   const_modules_over_50 3 <= 3
+  ok   coordinator_attrs 153 <= 153
+  ok   coordinator_multiassigned_attrs 120 <= 120
+  ok   coordinator_private_reach 0 <= 0
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 38 <= 38
+  ok   functions_cc_over_15 31 <= 31
+  ok   functions_cc_over_25 8 <= 8
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 45 <= 45
+  ok   max_class_loc 8818 <= 8818
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 17 <= 17
+  ok   methods_over_200 9 <= 9
+  ok   seam_cut_total 762 <= 762
+
+STRUCTURE RATCHET PASSED
+## tools/audit/archscore/score.py --diff HEAD
+Architecture score: dS +0.0000 NULL

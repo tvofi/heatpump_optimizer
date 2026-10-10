@@ -1,0 +1,24 @@
+# head a27c7bd4412989300170b2648c417e9d6e93f0a9
+# M1 -- the poll reduced to a single shot: '[ "$attempt" -lt "$RB_TRIES" ] || break' -> 'break'
+## app_push self-test with M1:
+FAIL read-back race: the push confirms once the head becomes visible, so it succeeds (got '1', want '0')
+FAIL and prints the read-back success line (got '0', want '1')
+FAIL at the SECOND read (the first answered the old head) (got '1', want '2')
+FAIL with the settle it spent printed, so the budget is visible (got '0', want '1')
+FAIL naming the injected delay (got '0', want '1')
+FAIL after the whole budget of reads and settles (got '10', want '32')
+FAIL the budget spent one settle and the token was revoked (got '01', want '11')
+app_push self-test: 110 checks, 7 failed
+## restored, marker count: 0
+
+# M2 -- the third outcome collapsed: the '$notvisible = 1' branch removed
+## app_push self-test with M2:
+FAIL with its OWN wording, so a race is told from a wedge (got '0', want '1')
+FAIL and it is NOT reported as a refused read (got '1', want '0')
+app_push self-test: 110 checks, 2 failed
+## restored, notvisible count: 1
+# M3 -- merge_train's re-read never lands on a moved head: '(is_sha(moved) and moved != h)' -> '(is_sha(moved) and False)'
+## merge_train self-test with M3:
+  FAIL a recarry refusal whose head nonetheless moved is treated as landed, not a stop
+merge_train self-test: 96 checks, 1 failed
+## restored, marker count: 0

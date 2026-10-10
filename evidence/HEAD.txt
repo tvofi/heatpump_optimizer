@@ -1,0 +1,6 @@
+PR 2117  head a27c7bd4412989300170b2648c417e9d6e93f0a9  branch fix/r9-recarry-readback
+measured by the fix-review seat; every arm driven by a harness the reviewer built
+and disclosed as its own (prod_readback.sh extracted verbatim from the head,
+drive_readback.sh a fake curl, drive_train.py a fake Train.run).
+merge-base of origin/main and head: 7cd5a588cbbbef354c00148040da2d720b8a888c
+origin/main at measurement: d3dbf2c3f (merge_train.py moved there; merge-tree clean)

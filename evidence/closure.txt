@@ -1,0 +1,4 @@
+# head a27c7bd4412989300170b2648c417e9d6e93f0a9
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+      RUN   tests/entities.py
+      RUN   tests/harness_headers.py
