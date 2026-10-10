@@ -7960,7 +7960,7 @@
     "record": "sonnet"
    },
    "resume": {
-    "stage": "fixing",
+    "stage": "handoff",
     "branch": "handoff/r9-row-stale"
    }
   },
