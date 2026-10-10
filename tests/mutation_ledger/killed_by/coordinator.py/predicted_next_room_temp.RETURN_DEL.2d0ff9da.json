@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:predicted_next_room_temp RETURN_DEL 2d0ff9da",
+  "killed_by": "tests/entities.py",
+  "old": "    return predict() if callable(predict) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=3."
+}
