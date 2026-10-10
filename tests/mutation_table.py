@@ -2254,19 +2254,42 @@ def _share(workers: int, work) -> None:
 # was SIGXCPU'd at 240 on the null control inside this pool (mutation-ledger,
 # run 37108891698) -- the same work billed at least 2.48x. Alone, it is billed
 # what a pull request's serial run.sh bills it.
-# nightly/ledger --scope full still drives these (#1930 (a)): three
-# killed_by rows name them. The two stress pins survived every remaining
-# driver that was green unmutated here (structure, edge, validate,
-# finite_boundary, optimality). tests/features.py's unmutated run was
-# already red, so it is not a remaining driver. Dropping the pair is an
-# unpinned-count raise. harness_headers's one pin is also killed by
-# tests/manual_plan.py.
+# --scope full does NOT drive these at all (`scope_deferred` below, #1930 (a),
+# R9-RC-NIGHTLY-DEFER): exclusivity keeps them off the shared clock, and it
+# still did not keep their own machine measurements inside their own limits, so
+# each refused a nightly on its null control -- harness_headers.py SIGXCPU'd at
+# rc=-24 (mutation-ledger, run 37108891698) and stress.py's cost budget killed
+# the comment-only edit at 8.0x against 7.9x (run 37189092011). A driver out of
+# the net cannot refuse the lane; a driver merely run alone still can.
+#
+# Their `killed_by` rows STAY: a row claims that a driver kills a site, which
+# stays true wherever the gate runs that driver, and the pull-request scope
+# still drives both. Deleting them is not landable either -- the ratchet is
+# base-relative (`ratchet_refusal` against `base_unpinned`) and a committed
+# count is refused (`ledger_form_problems`), so a branch that deleted them would
+# be refused at its own gate and the nightly would refuse again on the merge
+# commit, whose HEAD^1 still carries them. What the drop costs is that this lane
+# re-verifies none of them, which the census names rather than swallows
+# (`census_deferral_note`); re-point a row only on a measured kill by a driver
+# still in the net, as the R9-F10.13 re-attribution did.
 EXCLUSIVE = ("tests/harness_headers.py", "tests/stress.py")
 
 # The gate lease (`tests/gate_lock.py`, gate-scoping.md) is stress.py's alone:
 # it serialises the one driver that times solves across seats. Off CI an
 # exclusive driver is still alone within this table's pool.
 LEASED = ("tests/stress.py",)
+
+# Which scope drops which drivers from its net, and the property that decides
+# it. Full only: the pull-request gate is where a new site earns its pin, and
+# taking the pair out of it would raise the unpinned count on every diff they
+# can kill.
+SCOPE_DEFERRED: dict[str, tuple[str, ...]] = {"full": EXCLUSIVE}
+
+#: The reason printed beside each dropped driver and inside the census clause.
+DEFER_WHY = ("measures the machine, so its own limits judged a comment-only "
+             "null control on a shared runner and refused the lane: "
+             "harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py "
+             "8.0x against its own 7.9x budget (run 37189092011)")
 
 
 def driver_order(rel: str, drivers: list[str], seconds: dict[str, float],
@@ -2811,6 +2834,54 @@ def lazy_drivers(needed: list[str], scope: str) -> list[str]:
     return [s for s in needed if s not in EXCLUSIVE and s not in REF_DRIVEN]
 
 
+def scope_deferred(scope: str) -> tuple[str, ...]:
+    """The drivers `scope` drops out of its net, and so never runs at all.
+
+    The third rule shaping a run's net, and the one the other two are read
+    against: `deferred_drivers` postpones an EXCLUSIVE driver's baseline and
+    null control to the moment a mutant needs them, `lazy_drivers` postpones a
+    shared driver's to its first red mutant run, and both still DRIVE the
+    driver. A driver this returns is out of the net -- it drives no mutant, pays
+    no baseline, and its own limits cannot refuse the lane. Only `--scope full`
+    drops any (`SCOPE_DEFERRED`): the pull-request scope is where a site the diff
+    added earns its pin, and `--pin-killed` and `--drain` both need the pair
+    there to keep the unpinned count repayable.
+    """
+    return SCOPE_DEFERRED.get(scope, ())
+
+
+def deferred_dispositions(budgets: dict, scope: str) -> list[str]:
+    """The `killed_by` rows naming a driver `scope` drops, in key order.
+
+    Each is a pin this lane can no longer re-verify, and the row stays true --
+    the driver kills that site wherever the gate runs it, and the changed scope
+    still does. Listing them is what keeps the drop from being silent: a site
+    the ratchet counts as disposed, in a lane that no longer drives its killer,
+    is exactly the quiet loss the census exists to refuse.
+    """
+    gone = set(scope_deferred(scope))
+    return sorted(k for k, e in budgets.get("killed_by", {}).items()
+                  if isinstance(e, dict) and e.get("killed_by") in gone)
+
+
+def census_deferral_note(budgets: dict, scope: str) -> str:
+    """The census clause naming what this scope dropped, or "" where it dropped
+    nothing.
+
+    Appended to the unpinned census line so the count a reader takes from it is
+    read beside what the lane did not drive to earn it: the drivers, the
+    property that dropped them, and how many recorded dispositions name one.
+    """
+    gone = scope_deferred(scope)
+    if not gone:
+        return ""
+    named = deferred_dispositions(budgets, scope)
+    return (f"; this scope drives neither {', '.join(gone)} -- each "
+            f"{DEFER_WHY} -- and {len(named)} recorded killed_by "
+            f"disposition(s) name one, so those pins stay in the ledger and "
+            f"this lane re-verifies none of them")
+
+
 def recorded_entries() -> dict[str, dict]:
     """Each script's committed recording as tests/closures.json records it:
     ``{"seconds": float, "rc": int, ...}``. The solo-gate measurement, one
@@ -3332,11 +3403,23 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"  {len(unpinned)} unpinned site(s) of {len(sites)} candidate "
           f"sites, {base_count} at the ratchet base {rbase}; the ledger agrees "
-          f"with the deterministic inventory")
+          f"with the deterministic inventory"
+          + census_deferral_note(budgets, args.scope))
     files, why = scope_files(args.scope, args.base)
     allow = [s for s in args.scripts.split(",") if s]
     closures = load_closures()
     print(f"MUTATION TABLE -- scope {args.scope}: {why}")
+    # A driver this scope drops is out of the net before any pool is drawn, so
+    # it drives no mutant and pays no baseline, and its own machine measurement
+    # cannot refuse the lane (SCOPE_DEFERRED, #1930 (a)). Printed in the SKIP
+    # form the ref-driven drop below uses: a driver that is missing from the
+    # table has to say so itself, or the reader cannot tell a drop from a
+    # closure that never reached it.
+    for s in scope_deferred(args.scope):
+        if s in allow:
+            allow.remove(s)
+            print(f"  SKIP {s} (this scope does not drive it at all: it "
+                  f"{DEFER_WHY})")
     # The ref the gate would compare against, resolved once in this checkout
     # -- every clone below is a worktree of it at this same HEAD (#1211). A
     # ref-driven driver whose ref the gate itself would skip cannot drive

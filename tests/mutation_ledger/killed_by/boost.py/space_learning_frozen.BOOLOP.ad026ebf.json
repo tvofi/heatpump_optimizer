@@ -1,6 +1,6 @@
 {
   "anchor": "custom_components/heatpump_optimizer/boost.py:space_learning_frozen BOOLOP ad026ebf",
-  "killed_by": "tests/harness_headers.py",
+  "killed_by": "tests/manual_plan.py",
   "old": "    return tail is not None and utc_elapsed_seconds(tail, now) > 0",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: BOOLOP (`return tail is not None or utc_elapsed_seconds(tail, now) > 0`) took tests/harness_headers.py from rc=0 failed=0 to rc=1 failed=15."
+  "reason": "Re-attributed from tests/harness_headers.py (R9-RC-NIGHTLY-DEFER, #1930 (a)), which --scope full no longer drives: a pin to a driver the lane does not run cannot be re-verified there. The original pin was recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: BOOLOP (`return tail is not None or utc_elapsed_seconds(tail, now) > 0`) took tests/harness_headers.py from rc=0 failed=0 to rc=1 failed=15. Re-measured at 23d354970 with `tests/mutation_table.py --anchor 'custom_components/heatpump_optimizer/boost.py:space_learning_frozen BOOLOP ad026ebf' --scripts <every remaining driver green unmutated there>`: tests/manual_plan.py reported `killed by tests/manual_plan.py`, and tests/harness_headers.py reported `no run of it completed (killed by tests/manual_plan.py)`."
 }
