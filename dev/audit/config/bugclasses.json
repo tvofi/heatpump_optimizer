@@ -1228,12 +1228,12 @@
     "rca": [
       "BULK-3-1545",
       "R9-I5",
+      "R9-RO-PC1",
       "RCA-1546",
       "RCA-R8-I5b"
     ],
     "rca_planned": [
-      "R9-F10.4",
-      "R9-RO-PC1"
+      "R9-F10.4"
     ],
     "trigger": {
       "per_round": true,
@@ -3129,6 +3129,25 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1645"
       ],
       "in_tree_home": "dev/audit/rca/R9-I5.md"
+    },
+    "R9-RO-PC1": {
+      "class": "I5",
+      "level": "class",
+      "subject": "class I5 recurrence: a prose count survives a byte-identical merge (#2024, #2065, #2066)",
+      "trigger": "class (three resolution rounds on 2026-10-09, each carrying a new production module across a merge that reported rc 0)",
+      "date": "2026-10-09",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) followed, did not produce the result -- entities.py's #939 derived figures and claims.py C32/C34/C39 read architecture.md's sentences and are correct for that document; no arm was keyed on the count's SHAPE, so the same quantity stated in another document, and three phrasings the sentence regexes do not match, were read by nothing",
+      "countermeasure": "a corpus-wide census of count shapes in tests/doc_claims.py (check_prose_tree_counts), whose seams tools/audit/prose_counts_census.py enumerates against a disposition",
+      "landed": "handoff/r9-pc1 -- the census arm and this fold in one branch",
+      "doc": [
+        "dev/audit/rca/R9-RO-PC1.md",
+        "https://github.com/tvofi/heatpump_optimizer/pull/2024",
+        "https://github.com/tvofi/heatpump_optimizer/pull/2065",
+        "https://github.com/tvofi/heatpump_optimizer/pull/2066"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RO-PC1.md"
     },
     "R9-I1": {
       "class": "I1",
