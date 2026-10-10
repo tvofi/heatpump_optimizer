@@ -1,0 +1,10 @@
+environment: core= cpu=Apple M1 numpy=2.4.6 python=3.14.7 head=f19851987
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114/wt/dev/audit/harnesses/k1725_blas_kernel_gap.py", line 226, in <module>
+    c, v = score(m7, pw, st7, ot7, wi7, ra7, so7, pr7)
+           ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114/wt/dev/audit/harnesses/k1725_blas_kernel_gap.py", line 150, in score
+    room, _, _, _, _, _, _ = m.simulate_trajectory(st, pw, ot, wi, ra, so, DT)
+                             ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: ThermalModel.simulate_trajectory() takes 4 positional arguments but 8 were given
+rc=1

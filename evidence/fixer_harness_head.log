@@ -1,0 +1,25 @@
+environment: core=(unset) -- no OpenBLAS Core: line (numpy is not OpenBLAS) blas=accelerate cpu=Apple M1 numpy=2.4.6 python=3.14.7 head=f19851987 threads=default
+RESULT f21_p3_two_zone_j_plain=110.436632
+RESULT f21_p3_two_zone_j_continuation_off=111.267093
+RESULT f21_p3_two_zone_continuation_gain=+0.830461
+RESULT f21_p3_two_zone_j_seeded_half_price=110.129674
+RESULT f21_p3_two_zone_seeded_race_margin=-0.206958 (the arm the check no longer reads)
+RESULT f21_p3_two_zone_bit_identical=0 (exact null arm: 1 required for single_zone)
+RESULT f21_p3_single_zone_j_plain=67.730056
+RESULT f21_p3_single_zone_j_continuation_off=67.730056
+RESULT f21_p3_single_zone_continuation_gain=+0.000000
+RESULT f21_p3_single_zone_j_seeded_half_price=67.729557
+RESULT f21_p3_single_zone_seeded_race_margin=+0.099501 (the arm the check no longer reads)
+RESULT f21_p3_single_zone_bit_identical=1 (exact null arm: 1 required for single_zone)
+RESULT f21_p3_ladder_scale_0.25_gain=+0.840025 (gain against the continuation-off arm; scale 1.0 is no continuation)
+RESULT f21_p3_ladder_scale_0.50_gain=+0.830461 (gain against the continuation-off arm; scale 1.0 is no continuation)
+RESULT f21_p3_ladder_scale_0.75_gain=+0.000000 (gain against the continuation-off arm; scale 1.0 is no continuation)
+RESULT f21_p3_ladder_scale_1.00_gain=+0.000000 (gain against the continuation-off arm; scale 1.0 is no continuation)
+RESULT f21_p3_threads_pinned_j_plain=110.436632
+RESULT f21_p3_threads_pinned_continuation_gain=+0.830461
+RESULT f21_p3_threads_identical=1
+RESULT f21_p3_solves=14 wall_s=110.8
+RESULT thread_factor=1.000
+RESULT load1=37.14
+RESULT swapins=0
+rc=0

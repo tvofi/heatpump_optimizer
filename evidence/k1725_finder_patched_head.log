@@ -1,0 +1,20 @@
+environment: core= cpu=Apple M1 numpy=2.4.6 python=3.14.7 head=f19851987
+RESULT stop_prod_cost=61.28 SEK viol=0.0000 objective=87.9707 wall=9.2s
+RESULT stop_loose_1e3_cost=60.42 SEK viol=0.0000 objective=88.0783 wall=6.4s
+RESULT stop_loose_1e2_cost=60.65 SEK viol=0.0000 objective=87.7809 wall=4.1s
+RESULT stop_both_1e3_cost=60.55 SEK viol=0.0000 objective=88.2799 wall=2.7s
+RESULT stop_both_1e2_cost=64.97 SEK viol=0.0000 objective=89.2087 wall=0.7s
+RESULT stop_tight_1e8_cost=59.63 SEK viol=0.0000 objective=87.2378 wall=12.3s
+RESULT stop_repeat_identical=1
+RESULT stop_loose_1e3_gap_pct=-1.419 (loosened arm costlier than prod by this much)
+RESULT stop_loose_1e2_gap_pct=-1.036 (loosened arm costlier than prod by this much)
+RESULT stop_both_1e3_gap_pct=-1.211 (loosened arm costlier than prod by this much)
+RESULT stop_both_1e2_gap_pct=+5.682 (loosened arm costlier than prod by this much)
+RESULT stop_tight_1e8_gap_pct=-2.760 (loosened arm costlier than prod by this much)
+RESULT stop_check_gap_pct=+5.682 (must be >= +2.500 for the gate check to pass)
+RESULT f21_p3_two_zone_margin=-0.2070 (check passes when >= 0; j_plain=110.4366, j_seeded=110.1297)
+RESULT f21_p3_single_zone_margin=+0.0995 (check passes when >= 0; j_plain=67.7301, j_seeded=67.7296)
+RESULT thread_factor=1.000
+RESULT load1=42.11
+RESULT swapins=0
+rc=0
