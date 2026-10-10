@@ -3702,7 +3702,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 38.0
+   "seconds": 15.2
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -3734,7 +3734,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 730.5
+   "seconds": 288.5
   },
   "tests/finite_boundary.py": {
    "rc": 0,
