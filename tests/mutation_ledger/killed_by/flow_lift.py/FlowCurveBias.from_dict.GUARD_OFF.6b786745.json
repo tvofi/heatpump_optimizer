@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.from_dict GUARD_OFF 6b786745",
+  "killed_by": "tests/features.py",
+  "old": "        if samples == 0:",
+  "reason": "Recorded by `mutation_table.py --drain` against 7cd5a588cbbbef354c00148040da2d720b8a888c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
