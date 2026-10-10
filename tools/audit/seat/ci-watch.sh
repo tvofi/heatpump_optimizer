@@ -140,14 +140,18 @@ EOF
   ck "W3 absent-but-pending head: no alert while a run is still queued" \
      "$([ $rc = 0 ] && [ -z "$O" ] && echo 1 || echo 0)"
 
-  # W4: v2's arms survive -- a red at a settled head still alerts RED.
+  # W4: v2's arms survive -- a red at a settled head still alerts RED. Two reds,
+  # written in an order that is NOT sorted, pin the sort: the signature file
+  # dedups on this string, and awk's END loop iterates in its own order, so an
+  # unsorted list re-alerts the same state as NEW on every cycle.
   F=$TMP/w4; mkfix "$F" redhead MERGEABLE <<EOF
 $REQ17
 EOF
+  printf 'typing\tcompleted\tfailure\t2026-10-09T01:00:00Z\n' >> "$F/cr-redhead.tsv"
   printf 'mutation\tcompleted\tfailure\t2026-10-09T01:00:00Z\n' >> "$F/cr-redhead.tsv"
   O=$(watch "$F" "$TMP/s4"); rc=$?
-  ck "W4 a red at a settled head still alerts RED (v2 behaviour kept)" \
-     "$([ $rc = 1 ] && says 'RED:' "$O" && says 'mutation' "$O" && echo 1 || echo 0)"
+  ck "W4 a red at a settled head still alerts RED, name-sorted (v2 behaviour kept, signature stable)" \
+     "$([ $rc = 1 ] && says 'RED: mutation typing' "$O" && echo 1 || echo 0)"
 
   # W5: the signature dedup survives -- W1's state alerts once, then is quiet.
   O=$(watch "$TMP/w1" "$TMP/s1"); rc=$?
