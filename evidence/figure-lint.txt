@@ -1,0 +1,3 @@
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+
+FIGURES: 8 resolved, 1 not verified, 0 refused
