@@ -31,27 +31,35 @@ resolves it.
   #2065's merge; no instrument reads cause clauses (it does read the numbers), so it was hand-corrected
   and the four-tree control recorded: 120 / 120 / 123 / 123, pairs 59/74=0.7973 -> 60/75=0.8000.
 - **The consequence: `mutation`'s refusal cause is gone.** `added by this diff 0`, `added_keys 0`,
-  `ratchet_refusal None`, `unpinned 4605 <= base 4620`, ci_predict prints no warning. CI's own
+  `ratchet_refusal None`, `unpinned 4602 <= base 4617`, ci_predict prints no warning. CI's own
   `--scope changed --base origin/main --max 10 --jobs 3` prints no `MUTATION TABLE REFUSED`; it stops
-  at the Mac baseline (`baseline tests/features.py: rc=1 failed=2 674s` -> `INCONCLUSIVE`, **exit 0**).
-- `--normalize` at the merged tree (throwaway detached worktree, removed): 1355 dispositions, 0 retired
-  keys, aggregate ledger sha1 unchanged `d484119996...`, tree byte-unchanged.
-- Gates local: structure PASSED (four caps DOWN vs live main, all at measured); features 1 of 3958
-  FAILED (the known macOS `R9-F2.1 P3` BLAS float); entities ALL 2243 PASSED (its 46 ungraded `a3:`/
-  `a4:` report lines are the identical multiset round 9 printed); deployment_shape PASSED; guard_pins
-  50/50; harness_headers ALL 109 including the h7 arm round 9 read false under load; closure selftest
-  57; layout ok; brief_lint rc=0 with 0 findings on both carry files. Harness re-run: 31 RESULT lines,
-  rc=0, `diff` vs round 9's capture empty (production is byte-identical: `git diff 386b7e2ff HEAD --
-  custom_components/` is empty).
-- Ancestry reds re-enumerated over 31 commits: 25 rows / 5 names -- mutation 12, nightly-status 7,
+  at `INCONCLUSIVE`, **exit 0** -- on `baseline tests/env_drift.py: rc=124 ... 1200s` (this box's own
+  pool bound under ~12 resident features lanes) and, on the earlier run, on the `features.py` red
+  baseline. Neither is the diff.
+- `--normalize` at the merged tree (throwaway detached worktree, removed): 1397 dispositions, 0 retired
+  keys, aggregate ledger sha1 unchanged `631c1de6581d...`, tree byte-unchanged.
+- Gates local: structure PASSED (four caps DOWN vs live main, all at measured); entities ALL 2250
+  PASSED at this head (2243 at `025b779c4`; its 46 ungraded `a3:`/`a4:` report lines are the identical
+  multiset at every head); deployment_shape PASSED; guard_pins 50/50; harness_headers ALL 109 at
+  `025b779c4` but 12 FAILED at this head, all twelve one harness (`D7/sysid_estimator_frontier.py`)
+  hitting its 900 s wall limit under the same box load -- the branch touches nothing under
+  `dev/audit/rounds/round4/D7/`; **the null control for that failure**: run alone afterwards, the same
+  harness exits 0 with its 14 RESULT lines in 52 min wall at **215 s user CPU / 7 % CPU / load1 221**
+  (`d7_frontier_alone.out`) -- starved, not broken; closure selftest 57; layout ok; brief_lint rc=0
+  with 0 findings on both carry files. Harness re-run: 31 RESULT lines, rc=0, `diff` vs round 9's
+  capture empty (the files it drives, `accuracy.py` and `draw_range.py`, are byte-identical at every
+  head). `features.py` is `1 of 3958 FAILED` at `025b779c4` (the macOS `R9-F2.1 P3` BLAS float); **the
+  run at this head was killed by the box** (SIGTERM; other seats' features lanes resident), so no
+  final-head features count exists here -- CI's `fast (3.14)` owns it.
+- Ancestry reds re-enumerated over 32 commits: 25 rows / 5 names -- mutation 12, nightly-status 7,
   fast (3.14) 3, briefs 2, nightly-ha (stable) 1. Fell from round 9's 40 because #2065's commits left
-  the range when it merged.
+  the range when it merged. `prepr` re-derives the same five and reports them answered.
 
 ## Next
 1. Orchestrator: App-push this head to `fix/cop-duty-floor` -> the `pull_request` run. `mergeStateStatus`
    should leave `DIRTY` (main is an ancestor of the head), so CI will finally run at a head of this PR.
 2. What CI can answer and this box cannot: whether `mutation` is now green (the drive needs the Linux
-   floats), and what the pins matrix says for the `6deb0603` pair at `coordinator.py:4526`
+   floats), and what the pins matrix says for the `6deb0603` pair at `coordinator.py:4562`
    (`CMP_BOUND` + `GUARD_OFF`) -- 2 sites in the pool, charged by nobody. If the matrix reports either a
    survivor, the disposition comes back to this lane (round 8 already drove the CMP arm: survivor).
 3. RCA seats still owed (not this body's to write): the line-shift recurrence; and the narrowed class --
