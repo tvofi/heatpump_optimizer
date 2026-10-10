@@ -8041,6 +8041,25 @@
     "stage": "fixing",
     "branch": "handoff/r9-pc1"
    }
+  },
+  {
+   "group": "R9-RC-ORPHAN-HANDOFF",
+   "lane": "fix",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "brief": "Round-9 countermeasure for the orphaned-handoff class, from the root-cause seat of 2026-10-10 (the root-cause seat's 703-line analysis, in its own scratch directory under the orchestrator's session worktree with its scripts and two evidence sets beside it).\n\nTHE DEFECT. A `handoff/<topic>` ref can carry finished work that no pull request carries, and nothing in the programme reports it. Measured at origin/main 7cd5a588c: 212 handoff refs on the remote; 57 owe a pull request (a `handoff-body/<topic>` ref exists, which is the opener's own precondition); SEVEN carry work no pull request carries, each `git cherry`-unequivalent to main -- r9-eg-coordinator-seams (89.9 seat-hours), r9-ux-10 (54.4), r9-early-cutoff (13.4), r9-dbg-2 (10.5), r9-ux-6 (9.2), r9-ux-7 (9.1), r9-ux-10-v2 (9.0). Six need an opener; one needs an update to an existing pull request whose head is a strict ancestor of the ref. R9-UX-10's cost is measured directly: a fresh opus seat spent 5.13 hours re-implementing the lane before it found the orphan, and then produced a second head rather than reuse the first. The pile grows while it is measured -- three new refs appeared and four orphan tips moved between the root-cause seat's two passes, because recovery seats publish refs too.\n\nCAUSE. The bus reports a handoff ref's appearance once and mints no obligation from it: the watch is edge-triggered (it overwrites its state file each pass) and its dispatch arms cover `review` and `verdict` only. The review family has a nonce and an undispatched verdict; the handoff family has neither. The two records that would have shown it are claims never re-derived: the roster `stage` accepts any non-empty string and the brief linter checks non-emptiness only, while the row generator's presence test skips an existing row, so a row reading `open` can never be upgraded. Process state (c): the process exists, ran, and every check it passed was green; a record-reading detector would have caught NONE of the seven (two read handoff/done, five are named by no group at all, zero read not-started), and the cheaper detector that did not fire costs 10.6 s and no tokens. State (a) is refuted -- the opener is one atomic fail-closed instrument -- and (b) is mispredicted: three roster branch values name refs absent from the remote while the real refs hold the work.\n\nDELIVERABLE, and the arms it owes. A `bus.sh orphans` subcommand: a body ref, no pull request at `fix/<topic>` or `fix/<topic>-pr`, no ancestry in main or a live head, older than a two-hour window; it reports WHICH repair each line needs and never repairs -- one measured pair (r9-cop-duty-floor) has a ref and a pull request that have DIVERGED, which a repairer would silently overwrite. Demonstrated arms: red REPORTED 7 exit 1, green REPORTED 0 exit 0 with the skip counters printed so a green run is not green by skipping; each criterion load-bearing under its own perturbation (without the ancestry test 45 false positives, without the body-ref juncture 112). Null control: the 155 refs with no body-ref counterpart stay silent and a ref inside the two-hour window stays silent, because a lane's own in-flight ref is not an orphan. `bus.sh --self-test` gains the arms. Beside it: the class entry (this class is ABSENT from dev/audit/config/bugclasses.json entirely, so the ledger cannot report a class it does not carry), an `_rca` entry and its document landing in ONE commit (the ledger refuses either half alone: a cited id `_rca` does not index is UNKNOWN-RCA, and an `in_tree_home` with no file is DANGLING), and the two propagation diffs the analysis offered -- dev/governance/roles/orchestrator.md and dev/governance/rules/delivery-status-tracking.md -- which are POLICY and ride the owner's approving review at the head, not a seat's judgement.\n\nFILE OWNERSHIP. `tools/audit/seat/bus.sh` is edited concurrently by group R9-RC-BUS-FETCHHEAD (append_commit parenting and the out-of-tree ROOT resolution). This lane owns a NEW `orphans` subcommand -- its function, its dispatcher entry, one header paragraph -- and must not touch append_commit, ROOT, push-verdict, confirm or post; it merges the sibling's handoff ref when it exists, and on a conflict inside lines both changed it reports the hunk rather than picking a side.",
+   "model": {
+    "fixer": "sonnet",
+    "fixer_why": "specified subcommand with the analysis's prototype and measured arms; the arms are the oracle",
+    "reviewer": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "resume": {
+    "stage": "fixing",
+    "branch": "handoff/r9-orphans"
+   }
   }
  ]
 }
