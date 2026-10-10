@@ -401,16 +401,24 @@ def roll_receipts(
     reports: dict[str, dict[str, Any]],
     current: str,
     freeze: Callable[[str], dict[str, Any]],
-) -> bool:
+) -> tuple[dict[str, dict[str, Any]], bool]:
     """#40: freeze a receipt for every ledger month before ``current``.
 
     Derived from the ledger itself rather than a "last month seen" marker:
     any ledger month strictly before the current one that has no frozen
     receipt yet gets one now. Self-healing across restarts and downtime
     spanning a month end -- and bounded, because the ledger prunes itself
-    and each month freezes exactly once. True when a month closed.
+    and each month freezes exactly once.
+
+    Pure: it RETURNS the receipts to keep and whether a month closed, rather
+    than writing into the mapping it is handed. ``_month_reports`` is the
+    coordinator's, and a collaborator module mutating coordinator-held state
+    is the hazard ``shared_inplace_writes`` prices (R9-EG-A4), so the caller
+    adopts the returned mapping by rebinding its own slot. The copy is
+    shallow on purpose: a receipt is frozen once and never edited in place.
     """
     closed = sorted(k for k in ledger.months if k < current and k not in reports)
+    kept = dict(reports)
     for month in closed:
         # Defense in depth: MonthlyLedger.from_dict already quarantines
         # malformed months at load time, but a still-live month can in
@@ -418,7 +426,7 @@ def roll_receipts(
         # every future cycle forever (#D1-01) -- skip it and mark it closed
         # with an empty receipt so the cycle completes and it is not retried.
         try:
-            reports[month] = freeze(month)
+            kept[month] = freeze(month)
         except Exception:  # noqa: BLE001 -- must never wedge the coordinator
             _LOGGER.warning(
                 "Skipping malformed ledger month %s while freezing monthly "
@@ -426,9 +434,9 @@ def roll_receipts(
                 month,
                 exc_info=True,
             )
-            reports[month] = {"month": month, "lines": {}}
+            kept[month] = {"month": month, "lines": {}}
     # Receipts follow the ledger's retention; a receipt for a month the
     # ledger no longer holds cannot be reconciled anyway.
-    for old in sorted(reports)[: max(0, len(reports) - KEEP_MONTHS)]:
-        del reports[old]
-    return bool(closed)
+    for old in sorted(kept)[: max(0, len(kept) - KEEP_MONTHS)]:
+        del kept[old]
+    return kept, bool(closed)

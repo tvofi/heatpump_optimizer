@@ -11797,7 +11797,9 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "free_headroom_threshold_kw", "fuse_advisor", "month",
         "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
     }),
-    "MonthlySavingsSensor": frozenset({"savings_months", "waiting_for"}),
+    "MonthlySavingsSensor": frozenset(
+        {"plan_replay", "receipts", "savings_months", "waiting_for"}
+    ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
         "defrost_samples", "modelled_cop", "waiting_for"

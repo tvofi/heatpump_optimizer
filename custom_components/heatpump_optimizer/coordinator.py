@@ -10226,10 +10226,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _roll_month(self, when: datetime) -> None:
         """#40: restate this month's capacity line, then freeze closed months.
 
-        The capacity line is booked here, every settlement, because the peak
-        tracker wipes the month's peaks at month change: what it last stated
-        before that is the month's charge (R9-UX-6). Freezing is
-        ``ledger.roll_receipts``'s.
+        The capacity line is booked every settlement, because the peak tracker
+        wipes the month's peaks at month change: what it last stated before is
+        the charge (R9-UX-6), and ``roll_receipts`` hands back what it kept.
         """
         tariff = self._capacity_tariff()
         if tariff.enabled:
@@ -10238,9 +10237,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._peak_tracker.billed_peak_kw(tariff),
                 tariff.price_per_kw,
             )
-        if roll_receipts(
+        self._month_reports, closed = roll_receipts(
             self._ledger, self._month_reports, month_key(when), self._freeze_month_report
-        ):
+        )
+        if closed:
             self._schedule_ledger_save()
 
     def _freeze_month_report(self, month: str) -> dict[str, Any]:
