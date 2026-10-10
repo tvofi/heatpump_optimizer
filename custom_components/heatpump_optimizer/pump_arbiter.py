@@ -43,7 +43,9 @@ then Heating, each through its own row above; a share under
 A block drops its duty out of :func:`_planned_duty` and again out of
 whatever :func:`_share` and the hot-water lease return, so a blocked
 duty is served as idle and a lease expiry cannot hand it back. The
-power switch is not written.
+arbitration never writes the power switch; :func:`switch_supply` below is
+that switch's one writer, shared by the cycle's plan write and the early
+cut-off (``early_cutoff.py``), so the domain routing has one owner.
 
 **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
 so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
@@ -1000,6 +1002,31 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
     if 15.0 - dhw_min < SPLIT_MIN_MINUTES:
         return "dhw"
     return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+
+
+def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
+    """The ``(domain, service)`` that switches ``entity_id`` on or off (#1526).
+
+    Routed by the target's own domain: Home Assistant resolves
+    ``switch.turn_on`` only against ``switch.*`` entities, so the heat-pump
+    slot's ``input_boolean`` and ``climate`` targets, which ``assign_entity``
+    accepts, were never actuated when the call was hard-coded to ``switch``.
+    """
+    return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
+
+
+async def switch_supply(hass: Any, entity_id: str, on: bool) -> None:
+    """Write the pump's power switch; a refused write is logged, never raised.
+
+    The one writer of that switch: the coordinator's cycle and the early
+    cut-off both call it, so neither re-spells the routing or the fence.
+    """
+    try:
+        await hass.services.async_call(
+            *on_off_service(entity_id, on), {"entity_id": entity_id}, blocking=True
+        )
+    except Exception as err:  # noqa: BLE001 -- the next cycle writes again
+        _LOGGER.error("Error toggling heat pump switch %s: %s", entity_id, err)
 
 
 def _pump_off(inp: ArbiterInputs) -> bool:

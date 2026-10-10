@@ -224,7 +224,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import pump_arbiter, pump_signals
+from . import early_cutoff, pump_arbiter, pump_signals
 from . import setpoint_check
 from . import quiet_windows
 from .pump_mode import ModeCapability
@@ -2425,17 +2425,6 @@ def _power_windows(coord: Any) -> tuple[list[float], list[float]]:
     return pump, list(tracker.house_samples) if tracker is not None else []
 
 
-def _on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
-    """The ``(domain, service)`` that switches ``entity_id`` on or off (#1526).
-
-    Routed by the target's own domain: Home Assistant resolves
-    ``switch.turn_on`` only against ``switch.*`` entities, so the heat-pump
-    slot's ``input_boolean`` and ``climate`` targets, which ``assign_entity``
-    accepts, were never actuated when the call was hard-coded to ``switch``.
-    """
-    return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
-
-
 def _space_pump_to_drive(coord: Any) -> str | None:
     """The space pump entity to command, or None when it must be left alone.
 
@@ -2453,12 +2442,17 @@ def _space_pump_to_drive(coord: Any) -> str | None:
 
 
 def _tail_freeze(coord: Any) -> str | None:
-    """The unmetered-power freeze, after the boost gate (#1955).
+    """The early cut-off freeze, then the unmetered-power freeze (#1955).
 
     A frequency install, a measured-power install and an explicit clamp
     opt-out stay on today's gate. The boost line above this return is
-    its own gate and stays the one the ledger pinned.
+    its own gate and stays the one the ledger pinned. A cut interval never
+    ran the commanded power; its reason comes first, in this one function,
+    because the slab observer ignores only the unmetered reason and must
+    see the cut (live-fix design note A2).
     """
+    if early_cutoff.state_for(coord).interval_cut:
+        return early_cutoff.FREEZE_CUT
     return learner_unmetered(
         getattr(getattr(coord, "_ctx", coord), "_config", None)
     )
@@ -7288,6 +7282,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -7305,10 +7300,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
             return
 
-        heat_pump_on = bool(self._current_action.get("heat_pump_on", False))
+        # A cut-off holds the pump off for MIN_OFF across an early refresh.
+        heat_pump_on = early_cutoff.allow_on(early_cutoff.state_for(self), bool(self._current_action.get("heat_pump_on", False)))
 
-        # 1) Toggle heat pump supply (ON/OFF)
-        #
         # Skip OFF only when cooling or both channels are blocked. A
         # single-channel heat block (DHW-only, heating-only) still
         # commands OFF on an empty plan — otherwise a summer DHW pulse
@@ -7321,14 +7315,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and not skip_off:
-            try:
-                await self.hass.services.async_call(
-                    *_on_off_service(switch_entity, heat_pump_on),
-                    {"entity_id": switch_entity},
-                    blocking=True,
-                )
-            except Exception as err:
-                _LOGGER.error("Error toggling heat pump switch: %s", err)
+            await pump_arbiter.switch_supply(self.hass, switch_entity, heat_pump_on)
         elif switch_entity:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
@@ -7338,7 +7325,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._pump_signals.mode.label,
             )
 
-        # 2) Publish ECL110 displace command
+        # The ECL110 displace command
         await self.async_publish_current_action(reason="scheduled_update")
     # ------------------------------------------------------------------
     # Published state
