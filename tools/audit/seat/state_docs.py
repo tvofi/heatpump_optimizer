@@ -5,6 +5,8 @@
         [--roster-ref GITREF | --roster-file PATH] \
         [--checkout DIR] [--state-ref BR] [--pr-state FILE] \
         [--mirror DIR] [--push] [--message M]
+    python3 tools/audit/seat/state_docs.py beat [the same flags] \
+        [--watch-ref REF] [--interval SECONDS] [--tip-file PATH] [--once]
     python3 tools/audit/seat/state_docs.py --self-test
 
 The loop the #1946 generators left open: run plan_table.py, resume_doc.py
@@ -26,6 +28,20 @@ does not exist yet, a fast-forward afterwards -- never a force.
 Stateless like the other seat tools: every input is a flag, nothing about a
 session or a machine is hardcoded, stdlib only, and the three generators
 are RUN, never re-implemented -- their logic lives in exactly one place.
+
+`beat` is the recurring half of tvofi's 2026-10-09 instruction that the state
+docs are regenerated continuously rather than at session end. It replaces the
+session-local loop an orchestrator kept in its own scratch directory, which is
+decision 0013's defect shape: an instrument the programme runs, living outside
+the tree where no later session can test it. A pass reads the watched ref at
+origin; when it has moved it refreshes the roster ref (so resume fields another
+seat wrote are visible), regenerates and pushes, and when it has not moved it
+reads the ref and writes nothing else. The tip is recorded ONLY on a
+regeneration that returned 0, so a refused push is retried on the next pass
+instead of silently losing that merge from the record. It takes no lock and
+cancels nothing, so it is safe beside a merge train. `--once` is one pass --
+a caller looping that form needs `--tip-file`, the loop's memo kept on disk;
+`--interval` is the sleep between passes.
 """
 from __future__ import annotations
 
@@ -35,12 +51,17 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 SELF = "tools/audit/seat/state_docs.py"
 SEAT = Path(__file__).resolve().parent
 STATE_REF = "handoff/audit-r9-plan"
 STATE_DIR = "handoff/round9/state"
+#: The beat's default watched ref and sleep. The tip a pass reads is a full
+#: ref name, so a short name that happens to be a prefix matches nothing.
+WATCH_REF = "refs/heads/main"
+BEAT_INTERVAL = 300.0
 #: The WHOLE write surface. Every other path at the state ref's tip -- a
 #: round's evidence, the older state docs -- is carried, never touched.
 WRITE_SET = (
@@ -133,13 +154,18 @@ def write_tree(checkout: str, staged: dict, prev: str | None) -> str:
         return run(["git", "write-tree"], cwd=checkout, env=env).strip()
 
 
-def remote_tip(checkout: str, state_ref: str) -> str | None:
-    """The state ref's tip at origin, or None when the ref does not exist."""
-    r = subprocess.run(["git", "-C", checkout, "ls-remote", "origin",
-                        f"refs/heads/{state_ref}"],
+def remote_tip(checkout: str, refspec: str) -> str | None:
+    """The tip of `refspec` at origin, or None when the remote has no such ref.
+
+    `refspec` is a FULL ref name -- `refs/heads/main`,
+    `refs/heads/<state-ref>` -- because `ls-remote` treats a shorter one as a
+    pattern: a name that is a prefix of another ref answers with the wrong tip
+    and the beat would then see a move that never happened.
+    """
+    r = subprocess.run(["git", "-C", checkout, "ls-remote", "origin", refspec],
                        capture_output=True, text=True)
     if r.returncode != 0:
-        raise Refuse(f"ls-remote origin {state_ref} failed: "
+        raise Refuse(f"ls-remote origin {refspec} failed: "
                      f"{(r.stderr or r.stdout).strip()[:200]}")
     out = r.stdout.strip()
     return out.split()[0] if out else None
@@ -155,10 +181,144 @@ def mirror_files(staged: dict, mirror: str | None) -> None:
         print(f"mirrored {path} -> {mdir / Path(path).name}")
 
 
+# -------------------------------------------------------------------- the beat
+def roster_fetch_spec(checkout: str, roster_ref: str) -> list[str] | None:
+    """The `git fetch` argv that refreshes a remote-tracking `roster_ref`, or
+    None when it is not one.
+
+    Derived, never assumed: the remote is one `git remote` names and the ref
+    is `<remote>/<branch>` or its full `refs/remotes/<remote>/<branch>` form.
+    A local ref, or a bare sha, returns None -- there is nothing to refresh
+    and the caller says so rather than guessing a remote. The refspec is
+    spelled out instead of letting `remote.<name>.fetch` decide, so the ref
+    the generators read afterwards is exactly the one this fetched.
+    """
+    name = roster_ref
+    if name.startswith("refs/remotes/"):
+        name = name[len("refs/remotes/"):]
+    for remote in run(["git", "remote"], cwd=checkout).split():
+        if name.startswith(remote + "/") and len(name) > len(remote) + 1:
+            branch = name[len(remote) + 1:]
+            return ["fetch", "-q", remote,
+                    f"+{branch}:refs/remotes/{remote}/{branch}"]
+    return None
+
+
+def read_tip(path: str | None) -> str | None:
+    """The recorded watch tip, or None -- also with no path, the loop's
+    in-memory-only case (`--tip-file` is what carries it between passes)."""
+    if not path:
+        return None
+    p = Path(path)
+    if not p.exists():
+        return None
+    return p.read_text(encoding="utf-8").strip() or None
+
+
+def beat_main_argv(a) -> list:
+    """The `main()` arguments one regeneration runs with: the beat's own
+    inputs plus `--push`, because publishing the regeneration is what the
+    manual loop this replaces already did. The watch ref, the interval and
+    the tip file are the LOOP's and are never passed on."""
+    argv = ["--repo", a.repo, "--checkout", a.checkout,
+            "--state-ref", a.state_ref, "--push"]
+    if a.roster_file:
+        argv += ["--roster-file", a.roster_file]
+    else:
+        argv += ["--roster-ref", a.roster_ref]
+    if a.pr_state:
+        argv += ["--pr-state", a.pr_state]
+    if a.mirror:
+        argv += ["--mirror", a.mirror]
+    return argv
+
+
+def beat_pass(a, recorded: str | None) -> tuple[int, str | None]:
+    """One pass: `(return code, the tip to record)`.
+
+    An unchanged tip returns at once, having written nothing -- the pass
+    costs one `ls-remote` and no generation at all. A moved tip refreshes
+    the roster ref and regenerates through `main()`'s own guarded path.
+
+    The tip is recorded on a 0 from `main()` ALONE: a refusal -- a failed
+    generation or a push the remote rejected -- returns the tip that was
+    already recorded, so the next pass still sees the ref as moved and
+    retries, rather than losing that merge from the record.
+    """
+    tip = remote_tip(a.checkout, a.watch_ref)
+    if tip is None:
+        raise Refuse(f"origin has no {a.watch_ref}")
+    if tip == recorded:
+        print(f"beat: {a.watch_ref} at {tip[:12]} unchanged; nothing written")
+        return 0, recorded
+    if a.roster_file:
+        print(f"beat: reading {a.roster_file}; nothing fetched")
+    else:
+        spec = roster_fetch_spec(a.checkout, a.roster_ref)
+        if spec:
+            run(["git", *spec], cwd=a.checkout)
+            print(f"beat: fetched {a.roster_ref}")
+        else:
+            print(f"beat: {a.roster_ref} is not a remote-tracking ref; "
+                  "nothing fetched")
+    rc = main(beat_main_argv(a))
+    if rc != 0:
+        print(f"beat: {a.watch_ref} at {tip[:12]} not recorded (rc {rc}); "
+              "the next pass retries", file=sys.stderr)
+        return rc, recorded
+    return 0, tip
+
+
+def beat(a) -> int:
+    """The recurring beat: one pass per change of the watched ref, forever --
+    or exactly one with `--once`.
+
+    It takes no lock and cancels nothing, so it is safe beside a merge train.
+    The only state it keeps is the tip it has recorded, in memory and, when
+    `--tip-file` names one, on disk, so a `--once` caller has the loop's memo
+    across invocations. A refused pass is printed and retried at the next
+    interval rather than ending the beat; `--once` returns that pass's code.
+    """
+    if a.self_test:
+        return run_self_test()
+    recorded = read_tip(a.tip_file)
+    try:
+        while True:
+            try:
+                rc, tip = beat_pass(a, recorded)
+            except Refuse as e:
+                print(f"beat: REFUSED: {e}", file=sys.stderr)
+                rc, tip = 2, recorded
+            if tip != recorded:
+                if a.tip_file:
+                    Path(a.tip_file).write_text(tip + "\n", encoding="utf-8")
+                recorded = tip
+            if a.once:
+                return rc
+            time.sleep(a.interval)
+    except KeyboardInterrupt:
+        print("beat: stopped")
+        return 0
+
+
+def run_self_test() -> int:
+    """The self-test under the throwaway-git environment.
+
+    Every entry point goes through here, so a caller that is not `main()` --
+    tests/entities.py loads this module by path and runs this -- gets the same
+    guard against an inherited GIT_DIR or GIT_CONFIG_PARAMETERS that the
+    command line gets.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_environ
+    with throwaway_git_environ():
+        return self_test()
+
+
 # --------------------------------------------------------------------- main
-def main(argv=None) -> int:
-    if argv is None:
-        argv = sys.argv[1:]
+def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
+    """One flag surface for both forms: `beat` adds only the loop's own
+    inputs, so a flag the plain form has cannot drift out of the beat's."""
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", default="tvofi/heatpump_optimizer")
     src = p.add_mutually_exclusive_group()
@@ -176,13 +336,27 @@ def main(argv=None) -> int:
                    help="push the state ref; without it this is a dry run")
     p.add_argument("--message")
     p.add_argument("--self-test", action="store_true")
-    a = p.parse_args(argv)
+    if beat_mode:
+        p.add_argument("--watch-ref", default=WATCH_REF,
+                       help="the full ref name a pass reads at origin")
+        p.add_argument("--interval", type=float, default=BEAT_INTERVAL,
+                       help="seconds between passes (default 300)")
+        p.add_argument("--tip-file",
+                       help="file the recorded tip is kept in, so a --once "
+                            "caller has the loop's memo across invocations")
+        p.add_argument("--once", action="store_true",
+                       help="one pass, then exit; the beat always pushes")
+    return p
+
+
+def main(argv=None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv[:1] == ["beat"]:
+        return beat(parser(beat_mode=True).parse_args(argv[1:]))
+    a = parser().parse_args(argv)
     if a.self_test:
-        # Every git call in the self-test runs in a throwaway repository.
-        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
-        from throwaway_git import throwaway_git_environ
-        with throwaway_git_environ():
-            return self_test()
+        return run_self_test()
     roster_args = (["--roster-file", a.roster_file] if a.roster_file
                    else ["--roster-ref", a.roster_ref])
     try:
@@ -192,7 +366,7 @@ def main(argv=None) -> int:
         for path in sorted(staged):
             print(f"generated {path}: "
                   f"{len(staged[path].encode('utf-8'))} bytes")
-        prev = remote_tip(a.checkout, a.state_ref)
+        prev = remote_tip(a.checkout, f"refs/heads/{a.state_ref}")
         tree = write_tree(a.checkout, staged, prev)
         if prev:
             changed = run(["git", "diff-tree", "-r", "--name-only", prev,
@@ -351,6 +525,175 @@ def self_test() -> int:
         ok("plan table reflects the roster",
            "done" in git("-C", str(bare), "show",
                          f"{tip_at_origin()}:{WRITE_SET[0]}"))
+
+    # --- the beat (R9-RO-14) -----------------------------------------------
+    # The three arms the issue names, each driven through `beat --once` with
+    # the tip file the loop keeps its memo in: a moved tip regenerates and
+    # pushes exactly once, an unchanged tip writes nothing at all, and a
+    # refused push leaves the tip unrecorded so the next pass retries. The
+    # loop is `while True` around this same pass, so a mutation of the memo
+    # check or of the record-on-zero rule turns one of them red.
+    import shutil
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        seed = root / "seed"
+        (seed / ".claude" / "workflows").mkdir(parents=True)
+        roster = {
+            "repo": "fixture/state", "session": "r9-fix", "groups": [
+                {"group": "R9-A", "lane": "L1", "issues": [10], "fixes": [],
+                 "after": [], "brief": "fixture group A does a thing.",
+                 "resume": {"stage": "in-flight", "branch": "handoff/a",
+                            "commit": "a" * 40}}]}
+        roster_path = seed / ".claude" / "workflows" / "wave-r9-groups.json"
+
+        def write_roster() -> None:
+            roster_path.write_text(json.dumps(roster, indent=1) + "\n",
+                                   encoding="utf-8")
+
+        write_roster()
+        throwaway_git_init(seed, "-q", "-b", "main")
+        git("-C", str(seed), "add", "-A")
+        git("-C", str(seed), "commit", "-q", "-m", "fixture roster")
+        # the roster's own branch: the ref the beat re-fetches
+        git("-C", str(seed), "branch", "handoff/audit-r9-fixplan")
+        # a state tip carrying a path the tool must carry, never drop
+        env = dict(os.environ, GIT_INDEX_FILE=str(root / "beat-index"))
+        git("read-tree", "--empty", cwd=str(seed), env=env)
+        blob = git("hash-object", "-w", "--stdin", cwd=str(seed), env=env,
+                   input_text="keep me\n").strip()
+        git("update-index", "--add", "--cacheinfo",
+            f"100644,{blob},docs/keep.md", cwd=str(seed), env=env)
+        state0 = git("commit-tree", git("write-tree", cwd=str(seed), env=env),
+                     "-m", "seed state", cwd=str(seed)).strip()
+        bare = root / "origin.git"
+        throwaway_git_clone(seed, bare, "-q", "--bare")
+        git("-C", str(bare), "update-ref", f"refs/heads/{STATE_REF}", state0)
+        drv = root / "beat-drv"
+        throwaway_git_clone(bare, drv, "-q")
+        prstate = root / "beat-prs.json"
+        prstate.write_text(json.dumps(
+            [{"number": 7, "head": "fix/y", "state": "OPEN"}]), encoding="utf-8")
+        mirror = root / "beat-mirror"
+        tipfile = root / "beat-tip"
+        beat_argv = ["beat", "--checkout", str(drv), "--repo", "fixture/state",
+                     "--roster-ref", "origin/handoff/audit-r9-fixplan",
+                     "--state-ref", STATE_REF, "--pr-state", str(prstate),
+                     "--mirror", str(mirror), "--tip-file", str(tipfile),
+                     "--once"]
+
+        def on_branch(branch: str) -> None:
+            git("-C", str(seed), "checkout", "-q", branch)
+
+        def commit_main(name: str) -> None:
+            on_branch("main")
+            (seed / "docs").mkdir(exist_ok=True)
+            (seed / "docs" / name).write_text(f"{name}\n", encoding="utf-8")
+            git("-C", str(seed), "add", "-A")
+            git("-C", str(seed), "commit", "-q", "-m", name)
+            git("-C", str(seed), "push", "-q", str(bare),
+                "main:refs/heads/main")
+
+        def commit_roster(stage: str) -> str:
+            on_branch("handoff/audit-r9-fixplan")
+            roster["groups"][0]["resume"]["stage"] = stage
+            write_roster()
+            git("-C", str(seed), "add", "-A")
+            git("-C", str(seed), "commit", "-q", "-m", f"roster: {stage}")
+            git("-C", str(seed), "push", "-q", str(bare),
+                "handoff/audit-r9-fixplan:refs/heads/handoff/audit-r9-fixplan")
+            return git("-C", str(seed), "rev-parse", "HEAD").strip()
+
+        def main_tip() -> str:
+            return git("-C", str(bare), "rev-parse", "refs/heads/main").strip()
+
+        def state_tip() -> str:
+            return git("-C", str(bare), "rev-parse",
+                       f"refs/heads/{STATE_REF}").strip()
+
+        def state_count() -> int:
+            return len(git("-C", str(bare), "rev-list",
+                           f"refs/heads/{STATE_REF}").split())
+
+        # the fetch refresher, and the null controls that make its two
+        # positives mean something: a local ref and a bare sha name no
+        # remote, so neither fetches anything.
+        fetched = ["fetch", "-q", "origin",
+                   "+handoff/audit-r9-fixplan:"
+                   "refs/remotes/origin/handoff/audit-r9-fixplan"]
+        ok("the roster ref's fetch spec is derived from `git remote`",
+           roster_fetch_spec(str(drv), "origin/handoff/audit-r9-fixplan")
+           == fetched,
+           roster_fetch_spec(str(drv), "origin/handoff/audit-r9-fixplan"))
+        ok("and from the refs/remotes/ form of the same ref",
+           roster_fetch_spec(str(drv),
+                             "refs/remotes/origin/handoff/audit-r9-fixplan")
+           == fetched)
+        ok("null control: a local ref and a sha fetch nothing",
+           roster_fetch_spec(str(drv), "main") is None
+           and roster_fetch_spec(str(drv), "b" * 40) is None)
+
+        # ARM 1 -- a moved tip regenerates and pushes exactly once, and the
+        # push carries the roster edit only the RE-FETCH can deliver (drv's
+        # copy of the roster ref is stale; the edit is on the remote alone).
+        roster_sha = commit_roster("done")
+        commit_main("main-1.md")
+        ok("the driver's roster ref is stale before the pass",
+           git("-C", str(drv), "rev-parse",
+               "refs/remotes/origin/handoff/audit-r9-fixplan") != roster_sha)
+        rc = main(beat_argv)
+        ok("arm 1: a moved tip returns 0", rc == 0, rc)
+        ok("arm 1: exactly one push, on the seed state tip",
+           state_count() == 2, state_count())
+        ok("arm 1: the pass re-fetched the roster ref",
+           git("-C", str(drv), "rev-parse",
+               "refs/remotes/origin/handoff/audit-r9-fixplan") == roster_sha)
+        ok("arm 1: the pushed plan table carries the re-fetched roster",
+           "done" in git("-C", str(bare), "show",
+                         f"{state_tip()}:{WRITE_SET[0]}"))
+        ok("arm 1: the carried path is still there",
+           "docs/keep.md" in git("-C", str(bare), "ls-tree", "-r",
+                                 "--name-only", state_tip()).split())
+        ok("arm 1: the tip is recorded",
+           tipfile.read_text(encoding="utf-8").strip() == main_tip())
+
+        # ARM 2 -- an unchanged tip writes NOTHING. The roster moves on both
+        # the remote and in the driver, so the bytes a regeneration would
+        # produce differ from the tip's: a beat without the memo check
+        # fetches, regenerates and pushes, and every assertion here fires.
+        roster_sha = commit_roster("in-flight")
+        git("-C", str(drv), "fetch", "-q", "origin", "handoff/audit-r9-fixplan")
+        before = state_count()
+        shutil.rmtree(mirror, ignore_errors=True)
+        rc = main(beat_argv)
+        ok("arm 2: an unchanged tip returns 0", rc == 0, rc)
+        ok("arm 2: no push", state_count() == before, state_count())
+        ok("arm 2: the tip stays what it was",
+           tipfile.read_text(encoding="utf-8").strip() == main_tip())
+        ok("arm 2: and nothing at all is written (the mirror is not made)",
+           not mirror.exists())
+
+        # ARM 3 -- a REFUSED push leaves the tip unrecorded, so the next pass
+        # (same tip, nothing else moved) retries and lands it. The refusal is
+        # the remote's own pre-receive hook, which rejects everything.
+        commit_main("main-2.md")
+        refused_tip = main_tip()
+        hook = bare / "hooks" / "pre-receive"
+        hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        before = state_count()
+        rc = main(beat_argv)
+        ok("arm 3: the refused push returns non-zero", rc == 2, rc)
+        ok("arm 3: nothing landed", state_count() == before, state_count())
+        ok("arm 3: the tip was NOT recorded",
+           tipfile.read_text(encoding="utf-8").strip() != refused_tip)
+        hook.unlink()
+        rc = main(beat_argv)
+        ok("arm 3: the retry lands, with nothing but the tip file changed",
+           rc == 0, rc)
+        ok("arm 3: exactly one push, on the retry",
+           state_count() == before + 1, state_count())
+        ok("arm 3: and only now is the tip recorded",
+           tipfile.read_text(encoding="utf-8").strip() == refused_tip)
 
     if fails:
         print(f"{len(fails)} self-test check(s) failed: " + ", ".join(fails))
