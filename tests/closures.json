@@ -3149,6 +3149,7 @@
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
    "dev/audit/harnesses/r9_fr3_family_consumer.mjs",
+   "dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py",
    "dev/audit/harnesses/r9_ro12_batch_mutants.sh",
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
