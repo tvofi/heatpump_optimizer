@@ -1131,21 +1131,25 @@ def tree_count_facts() -> dict[str, int]:
     }
 
 
-def prose_count_census(
+def prose_count_scan(
     corpus: dict[str, str], facts: dict[str, int] | None = None
-) -> tuple[list[tuple[str, int, str, int, int | None]], list[str]]:
-    """(claims, unread) for every count of a tree-measurable set the corpus states.
+) -> tuple[list[tuple[str, int, int, int, str, int, int | None]], list[str]]:
+    """(rows, unread) for every count of a tree-measurable set the corpus states.
 
-    A claim is (document, line, quantity, stated, measured), ``measured``
-    None where the quantity template named nothing the tree measures -- a
-    ``fields of `x`` claim for an unregistered ``x`` is refused rather than
-    compared. ``unread`` names each shape the corpus states nowhere, which is
-    the anchor: it is the absence of the claim's subject, so the census
-    cannot go green by reading less than it was written to read.
+    A row is (document, line, span start, span end, quantity, stated,
+    measured), the span being the digits a shape claimed -- what
+    ``tools/audit/prose_counts_census.py`` reads back to tell a count this
+    arm reads from one it does not, so the two cannot disagree about which
+    claim a shape took. ``measured`` is None where the quantity template
+    named nothing the tree measures: a ``fields of `x`` claim for an
+    unregistered ``x`` is refused rather than compared. ``unread`` names each
+    shape the corpus states nowhere, which is the anchor -- the absence of
+    the claim's subject -- so the census cannot go green by reading less than
+    it was written to read.
     """
     if facts is None:
         facts = tree_count_facts()
-    claims: list[tuple[str, int, str, int, int | None]] = []
+    rows: list[tuple[str, int, int, int, str, int, int | None]] = []
     seen = [0] * len(_PROSE_COUNT_SHAPES)
     for document, text in corpus.items():
         for lineno, line in enumerate(text.splitlines(), 1):
@@ -1160,15 +1164,24 @@ def prose_count_census(
                     groups = match.groupdict()
                     for group, template in quantities:
                         quantity = template.format(**groups)
-                        claims.append(
-                            (document, lineno, quantity, int(match.group(group)),
-                             facts.get(quantity))
+                        rows.append(
+                            (document, lineno, match.start(group), match.end(group),
+                             quantity, int(match.group(group)), facts.get(quantity))
                         )
     unread = [
         name for index, (name, _pattern, _quantities) in enumerate(_PROSE_COUNT_SHAPES)
         if not seen[index]
     ]
-    return claims, unread
+    return rows, unread
+
+
+def prose_count_census(
+    corpus: dict[str, str], facts: dict[str, int] | None = None
+) -> tuple[list[tuple[str, int, str, int, int | None]], list[str]]:
+    """``prose_count_scan``'s rows without the span, for the arm's own checks."""
+    rows, unread = prose_count_scan(corpus, facts)
+    return [(document, line, quantity, stated, measured)
+            for document, line, _a, _b, quantity, stated, measured in rows], unread
 
 
 def check_prose_tree_counts() -> None:
@@ -1229,14 +1242,18 @@ def check_prose_tree_counts() -> None:
         repr(probe),
     )
     # Null control: the stale count the class is named for, planted in both
-    # documents that state it, on a corpus that is otherwise the tree's.
+    # documents that state it. Keyed on the planted quantity, because the
+    # corpus this control runs over may be stale for some *other* reason --
+    # the arm was first run at the merge tree below, where architecture.md's
+    # module counts are the false ones and this control's assertion is not
+    # about them.
     stale = {
         name: text.replace("the 23 options pages", "the 26 options pages", 1)
         for name, text in CORPUS.items()
     }
     rows, _ = prose_count_census(stale, facts)
-    named = sorted({document for document, _line, _q, stated, measured in rows
-                    if stated != measured})
+    named = sorted({document for document, _line, quantity, stated, measured in rows
+                    if quantity == "options_pages" and stated != measured})
     R.check(
         "a stale options-page count planted in the two documents that state "
         "it is FALSE in both (null control)",
