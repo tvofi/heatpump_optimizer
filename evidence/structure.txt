@@ -1,4 +1,3 @@
-# head 72b696d96700e0509d03e06479464b5f71c95241
 ########## counting-rule self-check ##########
   ok   41 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
@@ -293,14 +292,14 @@
   integration_version: __init__:async_setup_entry
 
 ########## coordinator seam table (helpers charged: 16) ##########
-  internal call occurrences: 350, crossing a seam: 148 (ratio 0.4229, evidence only)
+  internal call occurrences: 350, crossing a seam: 147 (ratio 0.4200, evidence only)
   seam        units  attrs  xattr  xmeth    cut
   dhw            17      3     61      8     69
   learning       33     40    233     60    293
   fetch          27     13     80     32    112
-  grid           22     31    141     40    181
+  grid           23     31    136     39    175
   views          18      3     79     28    107
-  seam_cut_total = 762
+  seam_cut_total = 756
 
 ########## RESULT lines ##########
 RESULT const_modules_over_50=3 count
@@ -318,10 +317,10 @@ RESULT max_class_loc=8745 count
 RESULT max_method_loc=373 count
 RESULT methods_over_150=17 count
 RESULT methods_over_200=9 count
-RESULT seam_cut_total=762 count
+RESULT seam_cut_total=756 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 2d8cab3f75dd) ##########
+########## ratchet vs structure_budgets.json (recorded_at 7cd5a588cbbb) ##########
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 153 <= 153
   ok   coordinator_multiassigned_attrs 120 <= 120
@@ -337,6 +336,6 @@ RESULT thread_factor=1.0 ratio
   ok   max_method_loc 373 <= 373
   ok   methods_over_150 17 <= 17
   ok   methods_over_200 9 <= 9
-  ok   seam_cut_total 762 <= 762
+  ok   seam_cut_total 756 <= 756
 
 STRUCTURE RATCHET PASSED

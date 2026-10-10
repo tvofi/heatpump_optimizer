@@ -1,0 +1,27 @@
+
+=== features block ===
+  ok   UX-6: a receipt's total is the money the month cost, not its splits again
+  ok   UX-6 null control: a month with only billed lines totals 194.5 either way
+  ok   UX-6: ledger.freeze_month_report totals the billed lines and names them
+  ok   UX-6: a receipt frozen by the old sum is restated from its own lines on load
+  ok   UX-6: the store admits the receipt's basis and refuses a line it does not bill
+  ok   UX-6: the capacity line is the billed peak times the tariff while the month is open
+  ok   UX-6: March's receipt names the capacity charge after the tracker reset
+  ok   UX-6 null control: without a capacity tariff no capacity line is booked
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119b/wt/tools/audit/seat/features_block.py", line 55, in <module>
+    sys.exit(run("tests/features.py", *sys.argv[1:3]))
+             ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119b/wt/tools/audit/seat/features_block.py", line 39, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 132, in <module>
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119b/wt/custom_components/heatpump_optimizer/coordinator.py", line 7610, in _grid_view
+    "plan_replay": self._accuracy.replay(dt_util.now()),
+                   ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119b/wt/custom_components/heatpump_optimizer/accuracy.py", line 231, in replay
+    return {"day": day, **promise, "measured": measured_since(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.samples, datetime.fromisoformat(promise["start"]))}
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not a mapping

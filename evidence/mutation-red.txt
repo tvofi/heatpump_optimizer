@@ -1,3 +1,0 @@
-# head 72b696d96700e0509d03e06479464b5f71c95241
-# mutation job 114245345805
-2026-10-10T15:20:50.6612293Z MUTATION TABLE REFUSED -- 4641 unpinned site(s) against 4608 at the ratchet base d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e, 41 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.

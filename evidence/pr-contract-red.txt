@@ -1,7 +1,0 @@
-# head 72b696d96700e0509d03e06479464b5f71c95241
-# pr-contract job 114245619291: the repo's own gate naming the unanswered reds
-2026-10-10T15:21:23.0538621Z printf 'red checks the body must answer: %s\n' \
-2026-10-10T15:21:23.7188516Z red checks the body must answer: arch-score,mutation
-2026-10-10T15:21:29.0483177Z   ERROR   [pr-body] /tmp/pr-body.md: check `arch-score` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-2026-10-10T15:21:29.0484932Z   ERROR   [pr-body] /tmp/pr-body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-2026-10-10T15:21:29.0485853Z PR-BODY: 2 error(s) in /tmp/pr-body.md

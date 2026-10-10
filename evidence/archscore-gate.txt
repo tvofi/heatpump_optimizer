@@ -1,0 +1,4 @@
+merge base 7cd5a588cbbb, head HEAD
+Architecture score: dS +0.0073 IMPROVES
+  coord_footprint 2586 -> 2573  +0.0073
+PASS: dS +0.0073 IMPROVES, no gate metric rose

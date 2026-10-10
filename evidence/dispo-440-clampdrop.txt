@@ -1,7 +1,3 @@
-# head 72b696d96700e0509d03e06479464b5f71c95241
-# reviewer's mutation arms, finder harness = tests/features.py UX-6 block via tools/audit/seat/features_block.py
-
-## M0 unmodified
 
 === features block ===
   ok   UX-6: a receipt's total is the money the month cost, not its splits again

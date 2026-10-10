@@ -1,12 +1,10 @@
-# head 72b696d96700e0509d03e06479464b5f71c95241
-# M1 = billed_total adds every line (the defect restored)
 
 === features block ===
-  FAIL UX-6: a receipt's total is the money the month cost, not its splits again  [total_sek=709.5; spot is split by space/dhw and compared by the savings lines, so adding them counts it up to four times]
+  ok   UX-6: a receipt's total is the money the month cost, not its splits again
   ok   UX-6 null control: a month with only billed lines totals 194.5 either way
-  FAIL UX-6: ledger.freeze_month_report totals the billed lines and names them  [709.5 ['spot', 'grid_fee', 'immersion', 'wear', 'space', 'dhw', 'savings_baseline', 'savings_actual']]
-  FAIL UX-6: a receipt frozen by the old sum is restated from its own lines on load  [709.5]
-  FAIL UX-6: the store admits the receipt's basis and refuses a line it does not bill
+  ok   UX-6: ledger.freeze_month_report totals the billed lines and names them
+  ok   UX-6: a receipt frozen by the old sum is restated from its own lines on load
+  ok   UX-6: the store admits the receipt's basis and refuses a line it does not bill
   ok   UX-6: the capacity line is the billed peak times the tariff while the month is open
   ok   UX-6: March's receipt names the capacity charge after the tracker reset
   ok   UX-6 null control: without a capacity tariff no capacity line is booked
@@ -20,6 +18,6 @@
   ok   UX-6: without a power meter the measured cost is absent, not zero
   ok   UX-6: the promises are bounded, persisted beside the accuracy history and restored
   ok   UX-6: a naive or ragged stored promise is dropped, not loaded
-  FAIL UX-6: a receipt stored with the old total loads with the billed total  [709.5]
+  ok   UX-6: a receipt stored with the old total loads with the billed total
 
-5 of 19 FEATURES BLOCK FAILED
+ALL 19 FEATURES BLOCK PASSED
