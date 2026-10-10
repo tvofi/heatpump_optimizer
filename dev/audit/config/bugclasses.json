@@ -1813,6 +1813,44 @@
       "class_rca_on_record": true
     }
   },
+  "N-orphaned-handoff": {
+    "kind": "instrument",
+    "mechanism": "An obligation is recorded and never enumerated: the bus reports a handoff ref once and mints no counterpart obligation, and the one-shot report means nothing re-reads the level, so a lane's work sits on the ref, main has not got it, and the record still reads in-progress or done",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 orphan-r9-eg-coordinator-seams",
+      "R9 orphan-r9-ux-10",
+      "R9 orphan-r9-ux-6",
+      "R9 orphan-r9-ux-7",
+      "R9 orphan-r9-ux-10-v2",
+      "R9 orphan-r9-dbg-2",
+      "R9 orphan-r9-early-cutoff"
+    ],
+    "per_round": {
+      "R9": 7
+    },
+    "total": 7,
+    "max_per_round": 7,
+    "detector": null,
+    "barrier": null,
+    "status": "prototype-only",
+    "nearest_existing": "I3",
+    "mechanism_difference": "I3 is a required governance or CI check skipped, stale or bypassable; this is an obligation no check enumerates at all, and the three checks that read the record (the bus's change report, brief_lint's shape, delivery_status's presence) are green",
+    "aliases": [],
+    "rca": [
+      "R9-ORPHAN-HANDOFF"
+    ],
+    "rca_planned": [],
+    "detector_idea": "the three-juncture predicate in the RCA: a handoff-body ref, no pull request at fix/<topic> or fix/<topic>-pr, no ancestry in main or a live head, older than a measured window",
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
   "_unclassified": [
     {
       "round": "R1",
@@ -3732,6 +3770,18 @@
         "dev/audit/rca/R9-RCA-bugclasses.md"
       ],
       "in_tree_home": "dev/audit/rca/R9-RCA-bugclasses.md"
+    },
+    "R9-ORPHAN-HANDOFF": {
+      "class": "N-orphaned-handoff",
+      "level": "class",
+      "subject": "orphaned-handoff class: a handoff ref that owed a pull request and never got one (7 refs in round 9, 5 of them 9-90 h old, one re-implementation priced at 5.13 opus-hours)",
+      "trigger": "recurring class (2, 3 and 4 instances reported in one evening; 7 in round 9, all 9.0-89.9 h old)",
+      "date": "2026-10-10",
+      "status": "prototype-only",
+      "parts_missing": [],
+      "process_state": "(c) class; (a) residual: no level-triggered enumerator exists",
+      "countermeasure": "bus.sh orphans, token-free, three ls-remote families and local ancestry; red on the defect and green with none present, plus a content-equivalence arm that reads a superseded ref (EG-B7) out of the stranded list",
+      "in_tree_home": "dev/audit/rca/R9-ORPHAN-HANDOFF.md"
     }
   }
 }
