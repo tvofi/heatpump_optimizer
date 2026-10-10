@@ -985,6 +985,289 @@ def check_multistart_starting_points() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Prose counts of a tree-measurable set (R9-RO-PC1; the I5 barrier's unit)
+# ---------------------------------------------------------------------------
+#
+# What the arms above cannot see. Each of them is keyed to a sentence: C32
+# reads architecture.md's opening line, entities.py's #939 block reads five
+# named sentences in that one document, check_service_fields reads
+# configuration.md's service paragraphs, the arm above reads one how-it-works
+# sentence and then the whole corpus for one noun. Two seats cut from one tip
+# made the BYTE-IDENTICAL prose edits to architecture.md -- 74 modules to 75,
+# 27 of the 74 to 27 of the 75, the other 46 to 47 -- and put the new
+# module-map row on different lines; git merged them rc 0, conflicted on
+# nothing, and the merged tree held 76 modules, so the sentence that landed
+# was false. Seven stale counts planted across the reader corpus (a README
+# field total, its editable-page count, two option-page counts, a setup-page
+# one, the card's page count, an ECL110 settings count) left entities.py at
+# 29 reds before and 29 after, claims.py at zero false, and this script's 160
+# checks and harness_headers' 109 all passing.
+#
+# The unit is the SHAPE, not the sentence. The multistart arm above already
+# states the promise for one noun -- "every count of starting points anywhere
+# in the reader docs is the count the optimizer runs, not only the sentence
+# above" -- and this arm is that same unit extended to every count of a
+# tree-measurable set the corpus states. A new sentence of a pinned shape
+# enters the check the moment it lands, wherever it lands.
+#
+# The rows the shapes deliberately do NOT claim, and what reads them:
+# `tools/audit/harnesses/prose_counts_census.py` enumerates every count shape
+# in the corpus and names its reader, and the PR that landed this arm carries
+# that enumeration against a disposition for each. The two limits worth
+# naming here: a count spelled as a word ("five pages", "twelve files") is
+# not read by any shape, and the ~60 `steps` cells in configuration.md's
+# tables are compared only as C30's Default and C31's min/max -- planting
+# 0.5 steps to 0.7 steps leaves every instrument green.
+
+# (name, regex, ((group, quantity template), ...)). Narrow shapes first:
+# a span a shape has already claimed is not read again, which is what makes
+# "The other 47 modules" the HA-free count and not also a module total, and
+# "27 of the 75 modules" yield both the importer count and the total.
+_PROSE_COUNT_SHAPES: tuple[tuple[str, re.Pattern[str], tuple[tuple[str, str], ...]], ...] = (
+    ("the Home-Assistant-free module count",
+     re.compile(r"The other (?P<n>\d+) modules\b"),
+     (("n", "modules_free_of_homeassistant"),)),
+    ("the module-level importer count",
+     re.compile(r"\b(?P<n>\d+) of the \d+ modules\b"),
+     (("n", "modules_importing_homeassistant"),)),
+    ("the opening module total and its importer count",
+     re.compile(r"\b(?P<n>\d+) modules, of which\s+(?P<m>\d+) import"),
+     (("n", "modules"), ("m", "modules_importing_homeassistant"))),
+    ("the editable options-page count",
+     re.compile(r"(?P<n>\d+) you can edit plus a read-only overview"),
+     (("n", "editable_options_pages"),)),
+    ("the options-page count",
+     re.compile(r"\b(?P<n>\d+) (?:option|options) pages\b"),
+     (("n", "options_pages"),)),
+    ("the options-page count behind a menu",
+     re.compile(r"menu of (?P<n>\d+) pages\b"),
+     (("n", "options_pages"),)),
+    ("the options-page count in the configuration heading",
+     re.compile(r"There are \*\*(?P<n>\d+) pages\*\*"),
+     (("n", "options_pages"),)),
+    ("a named service's field count",
+     re.compile(r"\b(?P<n>\d+) fields of `(?P<svc>\w+)`"),
+     (("n", "fields_of_{svc}"),)),
+    ("the service-definition count",
+     re.compile(r"\b(?P<n>\d+) service definitions\b"),
+     (("n", "services"),)),
+    ("the services count",
+     re.compile(r"\b(?P<n>\d+) services\b"),
+     (("n", "services"),)),
+    ("the module total",
+     re.compile(r"\b(?P<n>\d+) modules\b"),
+     (("n", "modules"),)),
+)
+
+
+def _imports_homeassistant(node: ast.AST) -> bool:
+    """Is this statement an import of the ``homeassistant`` package?"""
+    if isinstance(node, ast.Import):
+        return any(alias.name.split(".")[0] == "homeassistant" for alias in node.names)
+    if isinstance(node, ast.ImportFrom):
+        return bool(node.module) and node.module.split(".")[0] == "homeassistant"
+    return False
+
+
+def _module_level(body):
+    """Module-scope statements, descending into a top-level try/if body only.
+
+    An import inside a top-level ``try`` or ``if`` still runs when the module
+    is imported, so the module cannot be imported without ``homeassistant``
+    -- which is what the boundary sentence claims. ``inputs.py``'s
+    function-level import is the deliberate exception and is not module
+    level.
+
+    This predicate is the one entities.py's #939 derived figures use, and the
+    copy is deliberate: entities.py runs its 2000-plus checks at import, so
+    its definition cannot be imported from here, and lifting both into a
+    third module would add a file to two scripts' measured closures, which
+    cannot be re-recorded off Linux (gate-scoping.md).
+    """
+    for node in body:
+        yield node
+        if isinstance(node, ast.Try):
+            for suite in (node.body, node.orelse, node.finalbody):
+                yield from _module_level(suite)
+            for handler in node.handlers:
+                yield from _module_level(handler.body)
+        elif isinstance(node, ast.If):
+            yield from _module_level(node.body)
+            yield from _module_level(node.orelse)
+
+
+def tree_count_facts() -> dict[str, int]:
+    """Every quantity a prose-count shape names, derived from the tree.
+
+    Nothing here is carried: the module totals come from the package glob
+    this script already parses, the boundary from an AST walk of those same
+    trees, the services and their field counts from the registered
+    voluptuous schemas (the helper the F8.3 arm above uses, never a second
+    reading of services.yaml), and the page counts from the registered
+    ``_OPTION_PAGES`` table with the pages the translation catalog actually
+    renders a field on.
+    """
+    from heatpump_optimizer import config_flow
+
+    module_level = {
+        name for name, tree in _PKG_TREES.items()
+        if any(_imports_homeassistant(node) for node in _module_level(tree.body))
+    }
+    anywhere = {
+        name for name, tree in _PKG_TREES.items()
+        if any(_imports_homeassistant(node) for node in ast.walk(tree))
+    }
+    pages = [page.step for page in config_flow._OPTION_PAGES]
+    rendering = {step for steps in options_field_pages()[1].values() for step in steps}
+    services = registered_service_fields()
+    return {
+        "modules": len(_PKG_TREES),
+        "modules_importing_homeassistant": len(module_level),
+        "modules_free_of_homeassistant": len(_PKG_TREES) - len(anywhere),
+        "services": len(services),
+        "options_pages": len(pages),
+        "editable_options_pages": sum(1 for step in pages if step in rendering),
+        **{f"fields_of_{name}": len(keys - {"entry_id"}) for name, keys in services.items()},
+    }
+
+
+def prose_count_census(
+    corpus: dict[str, str], facts: dict[str, int] | None = None
+) -> tuple[list[tuple[str, int, str, int, int | None]], list[str]]:
+    """(claims, unread) for every count of a tree-measurable set the corpus states.
+
+    A claim is (document, line, quantity, stated, measured), ``measured``
+    None where the quantity template named nothing the tree measures -- a
+    ``fields of `x`` claim for an unregistered ``x`` is refused rather than
+    compared. ``unread`` names each shape the corpus states nowhere, which is
+    the anchor: it is the absence of the claim's subject, so the census
+    cannot go green by reading less than it was written to read.
+    """
+    if facts is None:
+        facts = tree_count_facts()
+    claims: list[tuple[str, int, str, int, int | None]] = []
+    seen = [0] * len(_PROSE_COUNT_SHAPES)
+    for document, text in corpus.items():
+        for lineno, line in enumerate(text.splitlines(), 1):
+            claimed: list[tuple[int, int]] = []
+            for index, (_name, pattern, quantities) in enumerate(_PROSE_COUNT_SHAPES):
+                for match in pattern.finditer(line):
+                    spans = [(match.start(g), match.end(g)) for g, _ in quantities]
+                    if any(any(a <= start < b for a, b in claimed) for start, _ in spans):
+                        continue
+                    claimed.extend(spans)
+                    seen[index] += 1
+                    groups = match.groupdict()
+                    for group, template in quantities:
+                        quantity = template.format(**groups)
+                        claims.append(
+                            (document, lineno, quantity, int(match.group(group)),
+                             facts.get(quantity))
+                        )
+    unread = [
+        name for index, (name, _pattern, _quantities) in enumerate(_PROSE_COUNT_SHAPES)
+        if not seen[index]
+    ]
+    return claims, unread
+
+
+def check_prose_tree_counts() -> None:
+    R.section(
+        "every prose count of a tree-measurable set is the tree's "
+        "(R9-RO-PC1, I5)"
+    )
+    facts = tree_count_facts()
+    claims, unread = prose_count_census(CORPUS, facts)
+    tree_wide = ("modules", "modules_importing_homeassistant",
+                 "modules_free_of_homeassistant", "services",
+                 "options_pages", "editable_options_pages")
+    R.check(
+        "every tree-wide quantity a count shape names measured positive "
+        "(anchor: a measurement that read nothing cannot pass a census)",
+        all(facts[key] > 0 for key in tree_wide),
+        repr({key: facts[key] for key in tree_wide}),
+    )
+    R.check(
+        "exactly one options page renders no field, so 'plus a read-only "
+        "overview' is still singular (anchor for the editable-page count)",
+        facts["options_pages"] - facts["editable_options_pages"] == 1,
+        f"{facts['options_pages']} pages, {facts['editable_options_pages']} editable",
+    )
+    R.check(
+        "the census read a positive number of counts (anchor: not green by "
+        "skipping)",
+        bool(claims),
+        f"{len(claims)} counts in {len(CORPUS)} documents",
+    )
+    R.check(
+        "the corpus states every count shape at least once, so a reader "
+        "document deleted from it refuses instead of passing",
+        not unread,
+        f"no occurrence of: {unread}",
+    )
+    wrong = [row for row in claims if row[4] != row[3]]
+    R.check(
+        "every count of a tree-measurable set the reader corpus states is "
+        f"the tree's ({len(claims)} counts over {len(_PROSE_COUNT_SHAPES)} "
+        "shapes)",
+        not wrong,
+        "; ".join(
+            f"{document}:{line} {quantity}: documented={stated} "
+            + ("measured=unknown, no such measurement" if measured is None
+               else f"measured={measured}")
+            for document, line, quantity, stated, measured in wrong
+        ),
+    )
+    # Null control: a narrow shape claims its span, so the HA-free sentence
+    # yields one claim and not also a module total.
+    probe, _ = prose_count_census({"probe.md": "The other 99 modules are free."}, facts)
+    R.check(
+        "a narrow shape claims its span first, so the HA-free count is not "
+        "also read as the module total (null control)",
+        [quantity for _doc, _line, quantity, _stated, _measured in probe]
+        == ["modules_free_of_homeassistant"],
+        repr(probe),
+    )
+    # Null control: the stale count the class is named for, planted in both
+    # documents that state it, on a corpus that is otherwise the tree's.
+    stale = {
+        name: text.replace("the 23 options pages", "the 26 options pages", 1)
+        for name, text in CORPUS.items()
+    }
+    rows, _ = prose_count_census(stale, facts)
+    named = sorted({document for document, _line, _q, stated, measured in rows
+                    if stated != measured})
+    R.check(
+        "a stale options-page count planted in the two documents that state "
+        "it is FALSE in both (null control)",
+        named == ["configuration.md", "setup.md"],
+        repr(named),
+    )
+    # Null control: deleting a reader document refuses the shapes only it
+    # states. The arm cannot go green by reading less.
+    _, lost = prose_count_census(
+        {name: text for name, text in CORPUS.items() if name != "architecture.md"}, facts
+    )
+    R.check(
+        "deleting architecture.md refuses the module shapes only it states "
+        "(null control: failure-closed, not silent)",
+        bool(lost),
+        f"unread after the deletion: {lost}",
+    )
+    # Null control: a claim whose service is not registered has no
+    # measurement, and is refused rather than compared.
+    orphan, _ = prose_count_census(
+        {"probe.md": "The 5 fields of `no_such_service` are required."}, facts
+    )
+    R.check(
+        "a field count naming an unregistered service is refused, not "
+        "compared (null control)",
+        [measured for _doc, _line, _q, _stated, measured in orphan] == [None],
+        repr(orphan),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Arms 6 and 7 -- quality_scale.yaml censuses (#1545, #1546)
 # ---------------------------------------------------------------------------
 
@@ -2488,6 +2771,7 @@ def main() -> int:
     check_heat_pump_action_states()
     check_disabled_by_default_without_hot_water()
     check_multistart_starting_points()
+    check_prose_tree_counts()
     check_census_self_test()
     check_quality_scale()
     check_py_typed_claim()
