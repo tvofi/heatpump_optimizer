@@ -1,0 +1,14 @@
+===== M1 delete refusal in one()
+  FAIL a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
+merge_train self-test: 98 checks, 1 failed
+===== M2 delete refusal in admit()
+  FAIL a batch entry whose head is a GITHUB_TOKEN bot push is refused at admission, before any proof is spent (R9-RC-AUTOFIX-GOVERNANCE)
+merge_train self-test: 98 checks, 1 failed
+===== M3 neuter bot_tip (returns None always)
+  FAIL a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
+  FAIL a batch entry whose head is a GITHUB_TOKEN bot push is refused at admission, before any proof is spent (R9-RC-AUTOFIX-GOVERNANCE)
+merge_train self-test: 98 checks, 2 failed
+===== RESTORED
+dcd5fbbac33238b11de274e7000c88b5c86b817a  tools/audit/seat/merge_train.py
+===== RESTORED baseline
+merge_train self-test: 98 checks, 0 failed

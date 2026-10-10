@@ -1,0 +1,5 @@
+head measured: c32e90ddd730ae1a2fc85a44a52cdbe159fff08f
+branch fix/r9-autofix-governance (== handoff/r9-autofix-governance)
+merge-base origin/main: 7cd5a588cbbbef354c00148040da2d720b8a888c
+worktree: /Users/timmalmstrom/hpo-seats/r9-review-2083/wt (detached at head)
+reviewer seat: r9-review-2083   bus-nonce: 36eb859a4f11d51bad50bc801eab4439
