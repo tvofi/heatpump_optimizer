@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Carry to the power-clamp seat's 7b (the observed-draw consumer that follows #2065, live-fix design note S4) from #2066. 7b has no roster group and no issue of its own, so this file, keyed on its foundation #2065, is the in-tree destination.",
+    "While this and the out-of-tree design note disagree, the newer is right."
+  ],
+  "issue": 2065,
+  "stage": "live-7b, the power-clamp seat's observed-draw consumer after #2065",
+  "carries": [
+    {
+      "from": "#2066 (cop-floor): the COP and flow-lift duty floor keyed on the modulation floor; the cap at the observed running draw was deferred to 7b rather than kept as a local statistic",
+      "effect": "narrows",
+      "control": "dev/audit/harnesses/cop_duty_floor.py, row min3_running_folded: a 14 kW nameplate with an overstated 3.0 kW modulation floor, the pump drawing 1.0-2.55 kW as asked, 3 intervals per draw. At #2066's head it reads 3/15 (only 2.55 kW clears the 2.4 kW floor); at #2066's merge base 0/15. The null rows are min3_idle_folded, min3_standby_folded and min3_duty_cycled_folded, 0 at both ends: a cap that lets those fold has put the floor onto standby.",
+      "remeasure": "At your merge base, run PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/cop_duty_floor.py before and after your change. The precondition is met when min3_running_folded reads 15/15 (or names why 1.0 and 1.2 kW stay refused) while every min3 idle, standby and duty-cycled row stays 0, and min1_running_folded stays 15/15.",
+      "brief": "Precondition for 7b: the floor both duty-floor readers take (ThermalParameters.flow_lift_power_floor_kw, read by coordinator _fold_measured_cop and _fold_flow_lift, and reported as cop_learner.power_floor_kw by accuracy.diagnostics_view) must be capped by the observed running draw's low end, the observed running draw #2065 lands (design note S4), never below thermal_model.on_threshold_kw. Without it an overstated modulation floor refuses a pump that draws less than 0.8 x that floor, and the diagnostics name duty_floor; the harness row above is the control."
+    }
+  ]
+}

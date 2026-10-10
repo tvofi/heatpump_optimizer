@@ -295,6 +295,9 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "lower_floor_loss_ratio": Domain("real", c.LOWER_FLOOR_LOSS_RATIO_MIN, c.LOWER_FLOOR_LOSS_RATIO_MAX),
         c.CONF_COP_SCALE: Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX),
         **{f"{k}_samples": _COUNT for k in ("buffer_cooling", "house_heat_loss", "lower_floor_loss", "cop")},
+        # MeasuredCop.from_dict: the learner refuses a COP at or under 0.1 before rounding.
+        "measured_cop/cop": Domain("real", 0.1, null=True),
+        "measured_cop/curve_dhw": _FLAG, "measured_cop/dhw_temp": _N,
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
         "cop_health_cusum/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),

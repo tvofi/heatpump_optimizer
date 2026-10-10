@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:follows_ask CMP_BOUND 2cd42d3d",
+  "killed_by": "tests/features.py",
+  "old": "    return slope >= FOLLOW_SLOPE_MIN",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CMP_BOUND` (return slope > FOLLOW_SLOPE_MIN) flips the condition of tests/features.py's R.check \"a draw whose log-log slope is exactly 0.5 follows the ask (the slope bound is `>=`, not `>`)\" -- reads False: asks 1.0/2.0 drawn 1.0/sqrt(2) give a slope that is the double 0.5, which `>` refuses. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

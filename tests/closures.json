@@ -3133,6 +3133,7 @@
    "dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py",
    "dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py",
    "dev/audit/harnesses/ci_script_seconds.py",
+   "dev/audit/harnesses/cop_duty_floor.py",
    "dev/audit/harnesses/d1_s3_02_queued_apply.py",
    "dev/audit/harnesses/d907_kernel_band.py",
    "dev/audit/harnesses/draw_range_evidence.py",

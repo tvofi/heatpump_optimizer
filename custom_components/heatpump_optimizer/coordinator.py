@@ -213,7 +213,15 @@ from . import mixing_valve
 from . import topology
 from . import pv as pv_model
 from .accuracy import (
+    COP_REFUSED_BLENDED,
+    COP_REFUSED_DISTORTED,
+    COP_REFUSED_FROST_BAND,
+    COP_REFUSED_FROZEN,
+    COP_REFUSED_MODELLED,
+    COP_REFUSED_NO_POWER,
+    COP_REFUSED_OBSERVED,
     LEAD_BUCKETS,
+    MeasuredCop,
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
@@ -2477,6 +2485,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     mold_floor_series = _view("_mold_floor_series")
     optimization_running = _view("_optimization_running")
     accuracy = _view("_accuracy")
+    measured_cop = _view("_measured_cop")
     solve_failures = _view("_solve_failures")
 
     def __init__(
@@ -2832,16 +2841,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         #: Walking measured/commanded ratio; the COP fold judges outliers
         #: against it so a persistent efficiency shift can still teach.
         self._cop_ratio_ewma: float | None = None
-        self._last_measured_cop: float | None = None
-        # Which curve ``_last_measured_cop`` was judged against, and the tank
-        # temperature that curve was evaluated at. Recorded rather than the
-        # modelled *value* on purpose: the accuracy residual is taken at the
-        # settling sample's own outdoor temperature, not at the one the COP
-        # was learned from, and swapping in a stored value would silently
-        # change that for every install. Storing the curve *choice* leaves the
-        # default path expression for expression identical.
-        self._last_cop_curve_dhw: bool = False
-        self._last_cop_dhw_temp: float | None = None
+        self._measured_cop = MeasuredCop()
         self._apply_cop_scale(self._cop_scale)
 
         # --- Input health -------------------------------------------------
@@ -3633,6 +3633,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 )
             except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load COP scale: %s", err)
+        self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop"))
 
         # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
         # payload, and each loader tolerates garbage on its own.
@@ -3762,6 +3763,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # all costs on the nameplate figure.
             _COP_STORE_KEY: self._cop_scale,
             "cop_samples": self._cop_samples,
+            "measured_cop": self._measured_cop.as_dict(),  # the sensor's value, kept across a restart
             # v4.0.0 T4a — the detectors' memory, all additive keys.
             "vent_cusum": self._vent_cusum.as_dict(),
             # A space-curve bucket keeps its pre-v5.3.0 key ("4"), so an
@@ -4411,13 +4413,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         Returns ``(cop, dhw_curve, dhw_tank_temp)``. The choice is *returned*
         rather than stored on the instance: several of
         ``_learn_measured_cop``'s guards sit between this call and the point
-        where ``_last_measured_cop`` is written, so a method that recorded
+        where ``MeasuredCop.record`` writes, so a method that recorded
         the choice as a side effect re-pointed the residual's reference on
         every cycle that then declined to produce a COP at all — including
         the blended-interval branch below, which in ``HEATDHW`` with an even
         split is *every* cycle on the hardware this release targets. The
         stored COP would then be subtracted from a curve it was never
-        referenced to. ``_learn_measured_cop`` writes all three together.
+        referenced to. ``MeasuredCop.record`` writes all three together.
 
         v5.3.0. ``_learn_measured_cop`` used to compare every interval against
         ``compute_cop`` — the SPACE curve — including intervals the pump spent
@@ -4467,7 +4469,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             tank = float(ctx._current_state.dhw_temperature)
             return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
         return None, False, None
-    def _learn_measured_cop(self) -> None:
+    def _learn_measured_cop(self, draw: draw_range.DrawRange | None = None) -> None:
+        """Fold this interval into the COP learner (``draw``: the running-draw evidence)."""
+        self._measured_cop.refusal = self._fold_measured_cop(draw)
+    def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
         """Compare measured electrical input with modelled thermal output.
 
         Without a power entity the COP is a curve fitted to a nameplate figure,
@@ -4477,20 +4482,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         Only intervals where the pump is genuinely running carry information;
         at low duty the measured average is dominated by standby draw.
+        Returns the code of the guard that refused the interval, or ``None``
+        when it folded.
         """
         ctx = getattr(self, "_ctx", self)
         if self._measured_power is None:
-            return
+            return COP_REFUSED_NO_POWER
         if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY):
-            return
+            return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
         params = ctx._thermal_params
-        # Below a third of nameplate the reading is mostly auxiliaries and the
-        # ratio says little about compressor efficiency.
-        floor = params.flow_lift_power_floor_kw
-        if commanded < floor or self._measured_power < floor:
-            return
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params):
+            return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
         # which learns from the same signal; letting both learners fold in
@@ -4508,13 +4512,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if in_frost_band(ctx._current_state.outdoor_temperature):
             window = self._defrost_window.peek(dt_util.now())
             if not window.observed or window.any_defrost:
-                return
+                return COP_REFUSED_FROST_BAND
 
         # #11, extended by #1067: a resistive kW is not the compressor
         # being inefficient, and neither is a capped one. One predicate
         # (``_cop_fold_blocked``), inherited by everything on this tail.
         if _cop_fold_blocked(self):
-            return
+            return COP_REFUSED_DISTORTED
 
         # v4.0.5: delivered heat is not measured, so this ratio can only be
         # read as efficiency when the pump is plausibly running the plan. A
@@ -4529,7 +4533,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # against a walking ratio EWMA instead: a one-off blip deviates
         # from it and is dropped, while a persistent shift WALKS the EWMA
         # (it updates from every sample) and unlocks folding within a
-        # handful of intervals.
+        # handful of intervals. A draw that does not follow the ask at all
+        # walks it too, so a departure needs draw_range's evidence (off_ask).
         ratio = float(self._measured_power) / max(commanded, 1e-6)
         # Seeded at 1.0 — the model's own expectation, since ``commanded``
         # already carries the current scale — and gated against the value
@@ -4538,16 +4543,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # not: that is what lets a genuine persistent shift unlock.
         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
+        if refusal := MeasuredCop.judge_ratio(ratio, ewma, commanded, params, draw):
             _LOGGER.debug(
-                "Skipping COP sample: commanded %.2f kW vs measured %.2f kW "
-                "deviates from the running ratio %.2f — a tracking blip, "
-                "not an efficiency reading",
-                commanded,
-                self._measured_power,
-                ewma,
+                "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
+                "against the running ratio %.2f -- not an efficiency reading",
+                refusal, commanded, self._measured_power, ewma,
             )
-            return
+            return refusal
 
         modelled_cop, cop_curve_dhw, cop_dhw_temp = self._cop_reference_curve()
         if modelled_cop is None:
@@ -4556,22 +4558,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # cannot be attributed to either curve. Skipping is the honest
             # answer; guessing would put a DHW-shaped error into the space
             # multiplier every plan's cost runs through.
-            return
+            return COP_REFUSED_BLENDED
         if modelled_cop <= 0.1:
-            return
+            return COP_REFUSED_MODELLED
 
         # The thermal output the plan intended is commanded power times the
         # modelled COP; delivering that with a different electrical input means
         # the real COP differs by the ratio of the two inputs.
         observed_cop = modelled_cop * commanded / self._measured_power
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
-            return
-        # The COP and the curve it was judged against are written together,
-        # and only here. Every guard above returns without touching either,
-        # so the pair the accuracy residual reads can never be mismatched.
-        self._last_measured_cop = round(float(observed_cop), 2)
-        self._last_cop_curve_dhw = cop_curve_dhw
-        self._last_cop_dhw_temp = cop_dhw_temp
+            return COP_REFUSED_OBSERVED
+        self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp)
 
         # ``cop_scale`` multiplies the *nameplate* curve, and ``modelled_cop``
         # already has the current scale folded in. So the new absolute scale is
@@ -4608,6 +4605,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
         self._fold_capacity_envelope(float(observed_cop))
+        return None
     def _input_health_view(self) -> InputHealthView:
         """Diagnostics for the input watchdog, published as entity attributes."""
         health = self._input_health
@@ -6163,7 +6161,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Persisted on the same every-10-samples cadence as the house learner;
         # both share the thermal learning store.
         cop_samples_before = self._cop_samples
-        self._learn_measured_cop()
+        self._learn_measured_cop(self._accuracy.draw)
         if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
             await self._async_save_thermal_learning()
 
@@ -7481,7 +7479,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
-            "measured_cop": self._last_measured_cop,
+            "measured_cop": self._measured_cop.cop,
             "defrost_derate": self._defrost.factor(
                 ctx._current_state.outdoor_temperature, self._current_humidity()
             ),
@@ -9155,7 +9153,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._prices
             else 1.0
         )
-        current = self._last_measured_cop or baseline
+        current = self._measured_cop.cop or baseline
         shortfall = max(0.0, (baseline - float(current)) / baseline)
         # In the instance currency: the prices are, so the product is
         # (audit D4-04, #168 -- the placeholder used to be named after SEK).
@@ -9740,7 +9738,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # the snapshots' accuracy tags and #12's history both see
                 # efficiency, not just temperature error.
                 if (
-                    self._last_measured_cop is not None
+                    self._measured_cop.cop is not None
                     and sample.outdoor_temp is not None
                 ):
                     try:
@@ -9752,18 +9750,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                         # with the pump. Without a mode entity the flag is
                         # never set and this is the v5.1.5 expression.
                         if (
-                            self._last_cop_curve_dhw
-                            and self._last_cop_dhw_temp is not None
+                            self._measured_cop.curve_dhw
+                            and self._measured_cop.dhw_temp is not None
                         ):
                             modelled = self._thermal_model.compute_cop_dhw(
-                                sample.outdoor_temp, self._last_cop_dhw_temp
+                                sample.outdoor_temp, self._measured_cop.dhw_temp
                             )
                         else:
                             modelled = self._thermal_model.compute_cop(
                                 sample.outdoor_temp
                             )
                         sample.cop_residual = round(
-                            float(self._last_measured_cop) - float(modelled),
+                            float(self._measured_cop.cop) - float(modelled),
                             3,
                         )
                     except Exception:  # noqa: BLE001 - tag is best-effort

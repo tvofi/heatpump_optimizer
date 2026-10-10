@@ -54,7 +54,15 @@ doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
 added icons.json and services.yaml to doc_claims.py's closure; #1935's
 tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80;
 ``tests/debug_collect.py`` joined when the debug-collector pin driver was
-recorded, adding 7 pairs at >= 0.80).
+recorded, adding 7 pairs at >= 0.80; the two whole-package closures now carry
+``draw_range.py`` (#2065) beside ``flow_meter.py`` (R9-UX-9), and it is the
+pair -- not either module alone -- that puts debug_collect.py/structure.py,
+debug_collect.py/typing_ruler.py and debug_collect.py/finite_boundary.py at
+exactly 0.800 (60 shared of 75 union) where each alone left them at 0.7973
+(59 of 74), 3 more pairs).
+Measured on four trees by that rule: main before #2065 (flow_meter alone)
+120, #2066's own head (draw_range alone) 120, main after #2065 123, #2066's
+merge of main 123.
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py
 (93 shared production files), entities.py/harness_headers.py,
 doc_claims.py/entities.py and doc_claims.py/harness_headers.py (83 each),

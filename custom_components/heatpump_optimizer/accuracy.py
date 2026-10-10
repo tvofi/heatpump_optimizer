@@ -31,8 +31,8 @@ import numpy as np
 
 from homeassistant.util import dt as dt_util
 
-from .const import HOUSE_HEAT_LOSS_SCALE_MAX, HOUSE_HEAT_LOSS_SCALE_MIN
-from .draw_range import DrawRange
+from .const import COP_TRACKING_ERROR_GATE, HOUSE_HEAT_LOSS_SCALE_MAX, HOUSE_HEAT_LOSS_SCALE_MIN
+from .draw_range import DrawRange, follows_ask
 from .drift import stored_instant
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 from .payload import Accuracy
@@ -622,4 +622,133 @@ def heat_loss_refit(
         "settled_days": round(max(0.0, days), 2),
         "required_days": REFIT_SETTLED_DAYS,
         "settled_since": start.isoformat() if start is not None else None,
+    }
+
+
+# -- the COP learner's last word -------------------------------------------
+
+#: Why the COP learner turned an interval away: one code per guard of
+#: ``coordinator._fold_measured_cop``, in its order. Later guards extend the
+#: list here rather than spelling a code at their call site.
+COP_REFUSED_NO_POWER = "no_measured_power"
+COP_REFUSED_FROZEN = "learners_frozen"
+COP_REFUSED_DUTY_FLOOR = "duty_floor"
+COP_REFUSED_NO_EVIDENCE = "awaiting_draw_evidence"
+COP_REFUSED_FROST_BAND = "frost_band"
+COP_REFUSED_DISTORTED = "draw_distorted"
+COP_REFUSED_TRACKING = "tracking_gate"
+COP_REFUSED_OFF_ASK = "draw_off_ask"
+COP_REFUSED_BLENDED = "blended_duty"
+COP_REFUSED_MODELLED = "modelled_cop"
+COP_REFUSED_OBSERVED = "observed_cop"
+
+#: How far the metered draw may depart from the plan's ask, as a share of the
+#: ask, before the interval is judged on ``draw_range.follows_ask``'s evidence
+#: (``MeasuredCop.judge_ratio``).
+COP_ASK_TOLERANCE = 0.15
+
+
+@dataclass
+class MeasuredCop:
+    """The COP learner's last word: the COP it measured, or why it refused.
+
+    ``cop`` and the curve it was judged against -- ``curve_dhw``, and the tank
+    temperature ``dhw_temp`` that curve was evaluated at -- are written together
+    by :meth:`record` and nowhere else, and persist and load as one record, so
+    the pair the accuracy residual reads cannot be mismatched, a restart
+    included. The curve *choice* is kept rather than the modelled value: the
+    residual is taken at the settling sample's own outdoor temperature.
+
+    ``refusal`` is one of the ``COP_REFUSED_*`` codes for the latest interval
+    (``None`` once one folds). It is not persisted, and diagnostics publish it
+    (:func:`diagnostics_view`): the observed-COP sensor is unavailable exactly
+    while it is the explanation, and Home Assistant hides an unavailable
+    entity's attributes.
+    """
+
+    cop: float | None = None
+    curve_dhw: bool = False
+    dhw_temp: float | None = None
+    refusal: str | None = None
+
+    @staticmethod
+    def judge_floor(asked_kw: float, drawn_kw: float, params: Any) -> str | None:
+        """``COP_REFUSED_DUTY_FLOOR`` when the ask or the draw is under the duty
+        floor (``flow_lift_power_floor_kw``), else None."""
+        if min(asked_kw, drawn_kw) < params.flow_lift_power_floor_kw:
+            return COP_REFUSED_DUTY_FLOOR
+        return None
+
+    @staticmethod
+    def judge_ratio(
+        ratio: float, ewma: float, asked_kw: float, params: Any, draw: DrawRange | None
+    ) -> str | None:
+        """The ratio gates' refusal for this interval's metered/asked ``ratio``, or None.
+
+        ``ewma`` is the walking ratio BEFORE this interval, so an interval
+        cannot vouch for itself. ``COP_REFUSED_TRACKING``: a one-off blip off
+        the walking ratio (v4.0.5). A departure from the ask beyond
+        ``COP_ASK_TOLERANCE`` is then judged on ``draw_range.follows_ask``:
+        evidence that the draw follows the ask lets it fold (an efficiency
+        shift); evidence that it does not refuses it (``COP_REFUSED_OFF_ASK``:
+        a pump that sets its own power, whose departures would fold as a COP
+        shortfall); with no evidence yet it folds only where base would have
+        -- the ask and the draw both clear the nameplate third -- and is
+        otherwise ``COP_REFUSED_NO_EVIDENCE``. So no install folds a departure
+        base refused before the evidence says the draw follows its ask; one
+        whose asks never span ``FOLLOW_ASK_SPAN`` keeps base's reach for them.
+        """
+        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
+            return COP_REFUSED_TRACKING
+        if abs(ratio - 1.0) <= COP_ASK_TOLERANCE:
+            return None
+        follows = follows_ask(draw)
+        if follows is None:
+            if min(asked_kw, ratio * asked_kw) >= params.nameplate_power_floor_kw:
+                return None
+            return COP_REFUSED_NO_EVIDENCE
+        return None if follows else COP_REFUSED_OFF_ASK
+
+    def record(self, cop: float, curve_dhw: bool, dhw_temp: float | None) -> None:
+        """One folded interval's COP and its curve, together."""
+        self.cop, self.curve_dhw, self.dhw_temp = round(float(cop), 2), curve_dhw, dhw_temp
+
+    def as_dict(self) -> dict[str, Any]:
+        """The measurement only; a refusal describes one interval."""
+        return {"cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp}
+
+    @classmethod
+    def from_dict(cls, raw: Any) -> MeasuredCop:
+        """A stored record, or none: an unreadable field drops the record whole.
+
+        The record is the unit: a COP without a readable curve would be judged
+        against the wrong one. A COP the learner could not have written (not
+        finite, or under its own 0.1 refusal once rounded) is unreadable.
+        """
+        try:
+            cop, dhw = float(raw["cop"]), raw.get("curve_dhw") is True
+            temp = None if raw.get("dhw_temp") is None else float(raw["dhw_temp"])
+        except (TypeError, ValueError, KeyError, AttributeError, OverflowError):
+            return cls()
+        if not np.isfinite(cop) or cop < 0.1 or (dhw and temp is None):
+            return cls()
+        if temp is not None and not np.isfinite(temp):
+            return cls()
+        return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp)
+
+
+def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -> dict[str, Any]:
+    """The COP learner's diagnostics: its last refusal and the floor it judged by.
+
+    ``params`` is the live ``ThermalParameters``, ``draw`` the running-draw
+    window. ``power_floor_kw`` is ``flow_lift_power_floor_kw``, the floor the
+    COP and flow-lift folds read -- not the optimizer's ``duty_floor_kw``, a
+    different quantity; ``draw_follows_ask`` is the evidence a departure from
+    the ask is judged on (None: none yet).
+    """
+    return {
+        "last_refusal": record.refusal,
+        "measured_cop": record.cop,
+        "power_floor_kw": round(float(params.flow_lift_power_floor_kw), 3),
+        "draw_follows_ask": follows_ask(draw),
     }

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Equivalent (RETURN_DEL): `return None` is the last statement of `_fold_measured_cop` (coordinator.py:4437-4571) and the method returns nothing else after it -- the two callers read the value only through `_learn_measured_cop`'s assignment to `_measured_cop.refusal`, and every other exit of the body is a `return COP_REFUSED_*`. The mutant's `pass` therefore leaves the frame to fall off the end of the body and return None, the same value on the same path.",
+  "verdict": "equivalent"
+}

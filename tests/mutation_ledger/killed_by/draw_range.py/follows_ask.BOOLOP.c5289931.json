@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:follows_ask BOOLOP c5289931",
+  "killed_by": "tests/features.py",
+  "old": "        [(d, a) for d, a in draw.samples if a >= floor and a > 0.0], dtype=float",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `BOOLOP` ([(d, a) for d, a in draw.samples if a >= floor or a > 0.0], dtype=float) flips the condition of tests/features.py's R.check \"a sample asked nothing is not a running level: with no configured minimum the positive-ask half of the filter still drops it\" -- reads False: `or` admits the 8 asked-0.0 samples, and `np.log(0.0)` makes the slope nan. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

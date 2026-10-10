@@ -7471,8 +7471,12 @@ R.check(
 )
 
 
+from heatpump_optimizer.accuracy import MeasuredCop as _CopRecord  # noqa: E402
+
+
 class _CopGate:
     _learn_measured_cop = Coord._learn_measured_cop
+    _fold_measured_cop = Coord._fold_measured_cop
     _commanded_power = Coord._commanded_power
     _commanded_split = Coord._commanded_split
     _cop_reference_curve = Coord._cop_reference_curve
@@ -7495,8 +7499,6 @@ class _CopGate:
         # v5.3.0: an empty window has observed=False, which keeps the
         # whole-band frost exclusion — the v5.1.5 behaviour.
         self._defrost_window = defrost if defrost is not None else DefrostWindow()
-        self._last_cop_curve_dhw = False
-        self._last_cop_dhw_temp = None
         self._thermal_params = ThermalParameters()
         self._thermal_model = ThermalModel(self._thermal_params)
         self._current_state = ThermalState(
@@ -7505,7 +7507,7 @@ class _CopGate:
         self._cop_scale = 1.0
         self._cop_samples = 0
         self._cop_ratio_ewma = None
-        self._last_measured_cop = None
+        self._measured_cop = _CopRecord()
         self._immersion_active = False
         # #1067: the supply/return learner the reference curve consults.
         # Inert unless a test gives it a supply reading, so every check
@@ -7740,6 +7742,7 @@ class _LearnPersist:
         # learner it serialises has to exist here too.
         self._flow_bias = flow_lift.FlowCurveBias()
         self._freq_fallback = False
+        self._measured_cop = _CopRecord()
 
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
         self._buffer_cooling_rate = float(rate)
@@ -16990,7 +16993,7 @@ R.check(
     _ch._cop_baseline.get((3, False), [0, 0])[1] >= COP_BASELINE_MIN_SAMPLES
     and not _ch._cop_health_cusum.tripped,
 )
-_ch._last_measured_cop = 2.4
+_ch._measured_cop.cop = 2.4
 _trip_n = None
 for i in range(12):
     _ch._observe_cop_health(2.4)
@@ -17028,7 +17031,7 @@ _eur_cop = _Coord(
         }
     ),
 )
-_eur_cop._last_measured_cop = 2.4
+_eur_cop._measured_cop.cop = 2.4
 _eur_cop._raise_cop_issue(3.0)
 _eur_cop_issues = [
     i for i in getattr(_eur_hass, "issues", []) if i[1] == "cop_degradation"
@@ -17066,7 +17069,7 @@ _sek_coord._prices = [{"total": 1.2}]
 
 def _raise_and_read(coord, baseline, current):
     coord.hass.issues = []
-    coord._last_measured_cop = current
+    coord._measured_cop.cop = current
     coord._raise_cop_issue(baseline)
     issues = [i for i in coord.hass.issues if i[1] == "cop_degradation"]
     placeholders = issues[-1][2]["translation_placeholders"]
@@ -26150,20 +26153,20 @@ _cop_dhw._current_state.dhw_temperature = 55.0
 _cop_dhw._learn_measured_cop()
 R.check(
     "a hot-water interval is judged against the DHW curve",
-    _cop_dhw._last_measured_cop is not None
-    and _cop_dhw._last_measured_cop < _cop_space._last_measured_cop,
-    f"dhw {_cop_dhw._last_measured_cop} vs space {_cop_space._last_measured_cop}",
+    _cop_dhw._measured_cop.cop is not None
+    and _cop_dhw._measured_cop.cop < _cop_space._measured_cop.cop,
+    f"dhw {_cop_dhw._measured_cop.cop} vs space {_cop_space._measured_cop.cop}",
 )
 _expected_penalty = 1.0 - 0.008 * (55.0 - 35.0)
 R.check(
     "and the gap is exactly the model's own DHW penalty, not a fudge",
     abs(
-        _cop_dhw._last_measured_cop
-        - round(_cop_space._last_measured_cop * _expected_penalty, 2)
+        _cop_dhw._measured_cop.cop
+        - round(_cop_space._measured_cop.cop * _expected_penalty, 2)
     )
     <= 0.02,
-    f"{_cop_dhw._last_measured_cop} vs "
-    f"{_cop_space._last_measured_cop * _expected_penalty:.2f}",
+    f"{_cop_dhw._measured_cop.cop} vs "
+    f"{_cop_space._measured_cop.cop * _expected_penalty:.2f}",
 )
 R.check(
     "the reported COP for a healthy pump on the space curve is unchanged",
@@ -26201,19 +26204,19 @@ R.check(
 
 # The pairing bug: the curve CHOICE used to be recorded as a side effect of
 # _cop_reference_curve, but several guards sit between that call and the write
-# of _last_measured_cop. A cycle that chose a curve and then returned early
+# of the measured COP. A cycle that chose a curve and then returned early
 # re-pointed the residual's reference while leaving the stored COP alone — and
 # in HEATDHW with an even split that is every cycle on the target hardware.
 _cop_pair = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
 _cop_pair._current_state.dhw_temperature = 55.0
 _cop_pair._learn_measured_cop()
-_cop_pair_cop = _cop_pair._last_measured_cop
+_cop_pair_cop = _cop_pair._measured_cop.cop
 R.check(
     "the premise: a hot-water interval stores a DHW-referenced COP",
-    _cop_pair_cop is not None and _cop_pair._last_cop_curve_dhw
-    and _cop_pair._last_cop_dhw_temp == 55.0,
-    f"{_cop_pair_cop} dhw={_cop_pair._last_cop_curve_dhw} "
-    f"tank={_cop_pair._last_cop_dhw_temp}",
+    _cop_pair_cop is not None and _cop_pair._measured_cop.curve_dhw
+    and _cop_pair._measured_cop.dhw_temp == 55.0,
+    f"{_cop_pair_cop} dhw={_cop_pair._measured_cop.curve_dhw} "
+    f"tank={_cop_pair._measured_cop.dhw_temp}",
 )
 # Now a blended cycle, which produces no COP at all.
 _cop_pair._pump_signals = _HEAT_DHW
@@ -26221,11 +26224,11 @@ _cop_pair._current_action = {"power": 1.5, "dhw_power": 1.5}
 _cop_pair._learn_measured_cop()
 R.check(
     "a cycle that produces no COP leaves the stored COP's reference alone",
-    _cop_pair._last_measured_cop == _cop_pair_cop
-    and _cop_pair._last_cop_curve_dhw
-    and _cop_pair._last_cop_dhw_temp == 55.0,
-    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw} "
-    f"tank={_cop_pair._last_cop_dhw_temp} — before the fix the flag was "
+    _cop_pair._measured_cop.cop == _cop_pair_cop
+    and _cop_pair._measured_cop.curve_dhw
+    and _cop_pair._measured_cop.dhw_temp == 55.0,
+    f"cop {_cop_pair._measured_cop.cop} dhw={_cop_pair._measured_cop.curve_dhw} "
+    f"tank={_cop_pair._measured_cop.dhw_temp} — before the fix the flag was "
     f"cleared here and cop_residual then subtracted the SPACE curve from a "
     f"COP that had been referenced to the DHW one",
 )
@@ -26235,10 +26238,10 @@ _cop_pair._current_action = {"power": 3.0}
 _cop_pair._learn_measured_cop()
 R.check(
     "and a cycle that does produce one moves the pair together",
-    _cop_pair._last_measured_cop != _cop_pair_cop
-    and not _cop_pair._last_cop_curve_dhw
-    and _cop_pair._last_cop_dhw_temp is None,
-    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw}",
+    _cop_pair._measured_cop.cop != _cop_pair_cop
+    and not _cop_pair._measured_cop.curve_dhw
+    and _cop_pair._measured_cop.dhw_temp is None,
+    f"cop {_cop_pair._measured_cop.cop} dhw={_cop_pair._measured_cop.curve_dhw}",
 )
 
 R.section("#1067 — the pump's own electric heat and its night mode")
@@ -26933,7 +26936,7 @@ R.check(
 R.check(
     "mapping the supply slot changes nothing the learner credits, bit for bit",
     _fl_m55.cop_health_calls == _fl_u55.cop_health_calls
-    and _fl_m55._last_measured_cop == _fl_u55._last_measured_cop
+    and _fl_m55._measured_cop.cop == _fl_u55._measured_cop.cop
     and _fl_m55._cop_scale == _fl_u55._cop_scale,
     f"mapped {_fl_m55.cop_health_calls} / {_fl_m55._cop_scale!r}; unmapped "
     f"{_fl_u55.cop_health_calls} / {_fl_u55._cop_scale!r}",
@@ -56606,7 +56609,7 @@ for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in
     ("cop_nominal_floored", "cop_nominal", 0.4, 3.2, 1.0, 3.2),
     ("emitter_design_delta_t_floored", "emitter_design_delta_t", 0.3, 7.0, 1.0, 7.0),
     ("slab_heat_transfer_floored", "slab_heat_transfer", 0.0, 0.25, 1e-6, 0.25),
-    ("flow_lift_power_floor_kw", "max_electrical_power", 0.1, 3.0, 0.2, 0.9),
+    ("flow_lift_power_floor_kw", "min_electrical_power", 0.1, 2.0, 0.2, 1.6),
 ):
     _r9p3_got = [
         getattr(_r9p3_replace(_r9p3_tp, **{_r9p3_field: v}), _r9p3_prop)
@@ -60477,6 +60480,357 @@ R.check(
     _pa._observed(_sw4_gone.arbiter_inputs(), "night_start_hour") is None,
 )
 
+
+# ---------------------------------------------------------------------------
+R.section("COP learner duty floor keys on the modulation floor (live v6.7.17)")
+
+# A nameplate maximum of 14 kW on a pump that draws at most ~2.5 kW: the
+# floor was 0.3 x max = 4.2 kW, so no interval ever passed it, cop_samples
+# stayed 0 and the observed-COP sensor never became available. The floor
+# rejects part-load and standby readings, and the modulation floor is the
+# one figure that says where running starts; an overstated maximum must not
+# silence the learner. Synthetic numbers only.
+from heatpump_optimizer import diagnostics as _cf_diag  # noqa: E402
+
+_CF_STATES = dict(_L5_STATES, **{"sensor.outdoor": FakeState("8.0", unit="°C")})
+
+
+def _cf_coord(p_max=14.0, p_min=1.0):
+    cfg = dict(_L5_CFG, heat_pump_max_power=p_max, heat_pump_min_power=p_min)
+    return _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+
+
+def _cf_learn(coord, kw, cycles=1, evidence=True):
+    """Feed ``cycles`` intervals where the pump drew what it was told (``kw``).
+
+    ``evidence``: first fill #2065's running-draw window with a draw that
+    follows varied asks at or above the floor, so ``follows_ask`` is True.
+    """
+    params = coord._thermal_params
+    if evidence and not coord._accuracy.draw.samples:
+        base = params.min_electrical_power or 1.2
+        for i in range(48):
+            ask = base * (1.0, 1.3, 1.6, 2.0)[i % 4]
+            coord._accuracy.draw.observe(ask, ask, params.min_electrical_power, params.max_electrical_power)
+    coord._current_action = {"power": kw, "dhw_power": 0.0}
+    coord._measured_power = kw
+    coord._current_state.outdoor_temperature = 8.0  # outside the frost band
+    for _ in range(cycles):
+        coord._learn_measured_cop(coord._accuracy.draw)
+    return coord._cop_samples
+
+
+def _cf_last(coord, name):
+    """A field of the learner's last word, or a sentinel before it existed."""
+    return getattr(getattr(coord, "_measured_cop", None), name, "<absent>")
+
+
+_cf_run = [_cf_learn(_cf_coord(), kw, 3) for kw in (1.9, 2.2, 2.55)]
+R.check(
+    "a 14 kW nameplate pump drawing 1.9-2.55 kW teaches the COP learner once "
+    "the meter shows the draw follows the ask",
+    all(n == 3 for n in _cf_run),
+    f"samples per draw {_cf_run} (the 4.2 kW floor gave 0 each)",
+)
+# A draw departing from its ask by more than 15 % before the meter has shown
+# whether the draw follows the ask folds only where base would have: both
+# clear the nameplate third. On 14 kW (4.2 kW) a 2.0 kW ask drawn at 2.6 kW
+# waits for evidence; on 4 kW (1.2 kW) base folded it and so does the head.
+def _cf_depart(p_max):
+    coord = _cf_coord(p_max=p_max)
+    coord._current_action = {"power": 2.0, "dhw_power": 0.0}
+    coord._measured_power = 2.6
+    coord._current_state.outdoor_temperature = 8.0
+    coord._cop_ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
+    coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+
+_cf_wait, _cf_base = _cf_depart(14.0), _cf_depart(4.0)
+R.check(
+    "with no draw evidence a departure folds only past the nameplate third: "
+    "it waits for evidence on 14 kW and folds on 4 kW, as base",
+    _cf_wait._cop_samples == 0 and _cf_last(_cf_wait, "refusal") == "awaiting_draw_evidence"
+    and _cf_base._cop_samples == 1,
+    f"{_cf_wait._cop_samples} ({_cf_last(_cf_wait, 'refusal')}) / {_cf_base._cop_samples}",
+)
+# Idle (controller and crankcase heater) and standby (circulation pump at or
+# under thermal_model.on_threshold_kw, half the modulation floor) are what
+# the floor is for, and stay refused under the same nameplate.
+_cf_idle = [(kw, _cf_learn(_cf_coord(), kw, 3)) for kw in (0.02, 0.1, 0.3, 0.5, 0.7)]
+R.check(
+    "idle and standby draws under the modulation floor still teach nothing",
+    all(n == 0 for _, n in _cf_idle),
+    f"{_cf_idle}",
+)
+# min_power 0 says "no modulation floor": the nameplate third stands.
+_cf_nomin = _cf_learn(_cf_coord(p_min=0.0), 2.5, 3)
+R.check(
+    "with no modulation floor configured the nameplate floor still applies",
+    _cf_nomin == 0
+    and abs(ThermalParameters(max_electrical_power=14.0, min_electrical_power=0.0)
+            .flow_lift_power_floor_kw - 4.2) < 1e-12,
+    f"samples {_cf_nomin}",
+)
+R.check(
+    "the duty floor is 0.8 x the modulation floor, never below 0.2 kW",
+    [ThermalParameters(max_electrical_power=14.0, min_electrical_power=m)
+     .flow_lift_power_floor_kw for m in (1.0, 2.0, 0.1)] == [0.8, 1.6, 0.2],
+)
+# The flow-lift fold reads the same floor as the COP fold (one property).
+_cf_fl = _cf_coord()
+_cf_learn(_cf_fl, 2.2)
+_cf_fl._flow_bias.observe_temps(35.0, 30.0)
+_fold_flow_lift(_cf_fl, _T6)
+R.check(
+    "the flow-lift fold takes the same floor: a 14 kW nameplate at 2.2 kW folds",
+    _cf_fl._flow_bias.samples == 1,
+    f"flow-bias samples {_cf_fl._flow_bias.samples}",
+)
+
+# The refusal is published where Home Assistant does not hide it: the
+# observed-COP sensor is unavailable exactly while this is the explanation,
+# and an unavailable entity's attributes are suppressed. A 3 kW modulation
+# floor on a pump drawing 2.2 kW is refused at 2.4 kW: the diagnostics say
+# so (capping the floor at the observed draw is the power-clamp seat's S4).
+_cf_ref = _cf_coord(p_min=3.0)
+_cf_learn(_cf_ref, 2.2)
+_cf_snap = _cf_diag._coordinator_snapshot(_cf_ref)
+R.check(
+    "a refused COP interval names its guard and the floor in the diagnostics",
+    _cf_snap.get("cop_learner", {}).get("last_refusal") == "duty_floor"
+    and _cf_snap["cop_learner"].get("power_floor_kw") == 2.4,
+    f"{_cf_snap.get('cop_learner')}",
+)
+_cf_ref._thermal_params.min_electrical_power = 1.0
+_cf_learn(_cf_ref, 2.2)
+R.check(
+    "a folded COP interval clears the refusal",
+    _cf_diag._coordinator_snapshot(_cf_ref).get("cop_learner", {}).get("last_refusal", "<absent>") is None
+    and _cf_ref._cop_samples == 1,
+    f"{_cf_diag._coordinator_snapshot(_cf_ref).get('cop_learner')}",
+)
+_cf_frz = _cf_coord()
+_cf_frz._learning_frozen = lambda *entities: "stale_inputs"
+_cf_learn(_cf_frz, 2.2)
+_cf_none = _cf_coord()
+_cf_none._measured_power = None
+R.check(
+    "each guard has its own code: a freeze and a missing reading",
+    _cf_last(_cf_frz, "refusal") == "learners_frozen"
+    and _cf_none._learn_measured_cop() is None
+    and _cf_last(_cf_none, "refusal") == "no_measured_power",
+    f"{_cf_last(_cf_frz, 'refusal')} / {_cf_last(_cf_none, 'refusal')}",
+)
+
+# A pump that sets its own power (#2066 round-1 probe): the plan asks
+# 1.0-2.0 kW, the meter shows 1.9-2.55 kW regardless, and the true COP is the
+# model's, so the right scale is 1.0. The draw departs from the ask and the
+# ratio scatters, so the interval is refused as off-ask; a draw that matches the
+# ask, and a consistent efficiency shift, still teach.
+import itertools as _cf_it  # noqa: E402
+
+
+def _cf_pairs(asked, drawn, n=96):
+    return list(zip(_cf_it.islice(_cf_it.cycle(asked), n), _cf_it.islice(_cf_it.cycle(drawn), n)))
+
+
+def _cf_feed(pairs, true=None):
+    """The cycle's order: #2065's running-draw fold, then the COP learner on its evidence."""
+    from heatpump_optimizer import draw_range as _cf_dr
+    coord = _cf_coord()
+    coord._current_state.outdoor_temperature = 8.0
+    for asked, drawn in pairs:
+        coord._current_action = {"power": asked, "dhw_power": 0.0}
+        coord._measured_power = asked * coord._cop_scale / true if true else drawn
+        _cf_dr.fold(coord._accuracy.draw, coord._measured_power, coord._commanded_split(),
+                    coord._thermal_params, frozen=False, distorted=False, defrost=False)
+        coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+
+_cf_sm = _cf_feed(_cf_pairs((1.0, 1.25, 1.5, 1.75, 2.0), (1.9, 2.2, 2.55)))
+_cf_flat = _cf_feed(_cf_pairs((1.5,), (2.2,)))
+_cf_mt = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (1.9, 2.2, 2.55)))
+_cf_sh = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (0, 0, 0), 288), true=0.7)
+R.check(
+    "a draw that ignores the ask (varying or flat) is refused as off-ask; a "
+    "matched draw and a 0.7 shift on a draw that follows its ask still teach",
+    abs(_cf_sm._cop_scale - 1.0) < 0.1 and _cf_flat._cop_scale == 1.0
+    and _cf_last(_cf_flat, "refusal") == "awaiting_draw_evidence"
+    and _cf_last(_cf_sm, "refusal") in ("draw_off_ask", "tracking_gate")
+    and _cf_mt._cop_samples == 96 and abs(_cf_mt._cop_scale - 1.0) < 1e-9
+    and abs(_cf_sh._cop_scale - 0.7) < 0.02,
+    f"independent scale {_cf_sm._cop_scale:.3f} ({_cf_sm._cop_samples}/96, "
+    f"{_cf_last(_cf_sm, 'refusal')}); flat {_cf_flat._cop_scale:.3f} "
+    f"({_cf_last(_cf_flat, 'refusal')}); matched "
+    f"{_cf_mt._cop_samples}/96 {_cf_mt._cop_scale:.3f}; shift {_cf_sh._cop_scale:.3f}",
+)
+
+# draw_range.follows_ask, the evidence itself: none until MIN_SAMPLES running
+# samples asked at or above the floor, none while the asks never moved, then
+# the log-log slope says whether the draw follows them.
+from heatpump_optimizer import draw_range as _cf_drm  # noqa: E402
+
+
+def _cf_window(pairs):
+    window = _cf_drm.DrawRange()
+    for asked, drawn in pairs:
+        window.observe(drawn, asked, 1.0, 14.0)
+    return window
+
+
+_cf_prop = _cf_pairs((1.2, 1.6, 2.0, 2.4), (0, 0, 0, 0), _cf_drm.MIN_SAMPLES)
+R.check(
+    "follows_ask: no evidence without the window, before MIN_SAMPLES, or on a flat "
+    "ask; a proportional draw follows, a self-set one does not",
+    _cf_drm.follows_ask(None) is None
+    and _cf_drm.follows_ask(_cf_window([(a, 1.3 * a) for a, _ in _cf_prop[:-1]])) is None
+    and _cf_drm.follows_ask(_cf_window([(a, 1.3 * a) for a, _ in _cf_prop])) is True
+    and _cf_drm.follows_ask(_cf_window([(1.5, 2.2)] * 96)) is None
+    and _cf_drm.follows_ask(_cf_window([(a, 2.2) for a, _ in _cf_prop])) is False,
+)
+
+# The last measured COP survives a restart beside cop_scale, with the curve
+# it was judged against, so the sensor does not go dark until the next fold.
+_cf_live = _cf_coord()
+_cf_learn(_cf_live, 2.4, 2)
+if hasattr(_cf_live, "_measured_cop"):
+    _cf_live._measured_cop.curve_dhw, _cf_live._measured_cop.dhw_temp = True, 52.0
+_cf_store = _FakeLearnStore()
+_cf_live._thermal_learning_store = _cf_store
+_aio.run(_cf_live._async_save_thermal_learning())
+_cf_back = _cf_coord()
+_cf_back._thermal_learning_store = _cf_store
+_aio.run(_cf_back._async_load_thermal_learning())
+R.check(
+    "the last measured COP and its curve are restored on restart",
+    _cf_live._learning_view()["measured_cop"] is not None
+    and _cf_back._learning_view()["measured_cop"] == _cf_live._learning_view()["measured_cop"]
+    and (_cf_last(_cf_back, "curve_dhw"), _cf_last(_cf_back, "dhw_temp")) == (True, 52.0),
+    f"saved {_cf_store.saved.get('measured_cop')}, back {_cf_back._learning_view()['measured_cop']}",
+)
+for _cf_junk in ({"cop": "x"}, {"cop": float("nan")}, {"cop": 0.05}, {"cop": 3.0, "curve_dhw": True},
+                 [1, 2], "x"):
+    _cf_bad = _cf_coord()
+    _cf_bad._thermal_learning_store = _FakeLearnStore()
+    _cf_bad._thermal_learning_store.saved = {"measured_cop": _cf_junk}
+    _aio.run(_cf_bad._async_load_thermal_learning())
+    R.check(
+        "an unreadable stored COP record loads as no measurement, whole",
+        _cf_last(_cf_bad, "cop") is None and _cf_last(_cf_bad, "curve_dhw") is False,
+        f"{_cf_junk!r} -> {getattr(_cf_bad, '_measured_cop', '<absent>')}",
+    )
+
+# The guards' own boundaries, judged on the functions rather than through a
+# cycle: every check above feeds an interval whose ask and draw are the same
+# figure and an ewma it never sets, so a mutant that drops one operand of the
+# duty floor, moves one of its bounds, or divides by the unclamped walking
+# ratio reads exactly like the original to them. Each number below is chosen so
+# the boundary is the same double on both sides of the comparison (0.8 x 1.0 is
+# the floor exactly; 1.5/5.0 is the gate exactly), and each states which way
+# the bound runs.
+from heatpump_optimizer.accuracy import (  # noqa: E402
+    COP_REFUSED_DUTY_FLOOR as _cf_DUTY, COP_REFUSED_NO_EVIDENCE as _cf_NOEV,
+    COP_REFUSED_TRACKING as _cf_TRACK, MeasuredCop as _cf_MC,
+)
+
+_cf_both = ThermalParameters(max_electrical_power=14.0, min_electrical_power=1.0)
+_cf_bar = _cf_both.flow_lift_power_floor_kw  # 0.8, exactly
+R.check(
+    "the duty floor judges the smaller of the ask and the draw: a plan asked "
+    "2.4 kW that metered 0.3 kW is refused, and so the other way round",
+    _cf_MC.judge_floor(2.4, 0.3, _cf_both) == _cf_DUTY
+    and _cf_MC.judge_floor(0.3, 2.4, _cf_both) == _cf_DUTY
+    and _cf_MC.judge_floor(2.4, 2.4, _cf_both) is None,
+    f"{_cf_MC.judge_floor(2.4, 0.3, _cf_both)} / "
+    f"{_cf_MC.judge_floor(0.3, 2.4, _cf_both)}",
+)
+R.check(
+    "the duty floor is exclusive: a draw exactly at it is running, not below it",
+    _cf_MC.judge_floor(_cf_bar, _cf_bar, _cf_both) is None
+    and _cf_MC.judge_floor(_cf_bar - 1e-9, _cf_bar, _cf_both) == _cf_DUTY,
+    f"floor {_cf_bar!r}",
+)
+R.check(
+    "the tracking gate divides by the clamped walking ratio: a zero ewma is a "
+    "refusal, not a crash",
+    _cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None) == _cf_TRACK,
+    f"{_cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None)}",
+)
+# 1.5 / 5.0 is the double 0.3 exactly, so this ratio sits on the gate, not off it.
+R.check(
+    "the tracking gate is exclusive: a ratio exactly at it is on the walking "
+    "ratio (6.5 against 5.0 is 0.3 of it)",
+    _cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None) is None,
+    f"{_cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None)}",
+)
+R.check(
+    "without draw evidence the nameplate bar is on both the ask and the drawn "
+    "figure: a 5.0 kW ask metering 4.0 kW waits for evidence, one metering 4.5 "
+    "kW folds (0.3 x 14 is 4.2 exactly)",
+    _cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None) == _cf_NOEV
+    and _cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None) is None,
+    f"{_cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None)} / "
+    f"{_cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None)}",
+)
+R.check(
+    "the store's 0.1 bar is exclusive and a non-finite tank temperature drops "
+    "the record whole: 0.1 reads back, a nan temperature does not",
+    _cf_MC.from_dict({"cop": 0.1}).cop == 0.1
+    and _cf_MC.from_dict({"cop": 0.09}).cop is None
+    and _cf_MC.from_dict({"cop": 2.0, "dhw_temp": float("nan")}).cop is None
+    and _cf_MC.from_dict({"cop": 2.0, "dhw_temp": 52.0}).cop == 2.0,
+)
+
+# `follows_ask`'s own thresholds, written as the NUMBERS the rule claims
+# rather than through the constants it reads: a window built with
+# `range(draw_range.MIN_SAMPLES)` moves with a doubled constant, which is how
+# the round-5 pin pass left `MIN_SAMPLES = 48` surviving. One case per bound.
+def _cf_win_cfg(pairs, cfg):
+    window = _cf_drm.DrawRange()
+    for asked, drawn in pairs:
+        window.observe(drawn, asked, cfg[0], cfg[1])
+    return window
+
+
+_cf_lit48 = [(a, 1.3 * a) for a, _ in _cf_pairs((1.2, 1.6, 2.0, 2.4), (0, 0, 0, 0), 48)]
+R.check(
+    "follows_ask gives evidence at 48 running samples and none at 47, and it "
+    "answers a bool, never None, once it has them",
+    _cf_drm.follows_ask(_cf_window(_cf_lit48)) is True
+    and _cf_drm.follows_ask(_cf_window(_cf_lit48[:-1])) is None,
+)
+# 8 asks at exactly the configured floor and 40 at 1.15 kW: the 10th and 90th
+# percentiles land on data points, so the span is exactly FOLLOW_ASK_SPAN.
+_cf_span = [(1.0, 1.3)] * 8 + [(1.15, 1.15 * 1.3)] * 40
+R.check(
+    "asks spanning exactly 1.15 are evidence (the span bound is `<`), and an "
+    "ask exactly at the configured floor counts as a running level",
+    _cf_drm.follows_ask(_cf_window(_cf_span)) is True,
+    f"{_cf_drm.follows_ask(_cf_window(_cf_span))}",
+)
+# 24 asks at 1.0 drawn at 1.0, 24 at 2.0 drawn at sqrt(2): the log-log slope is
+# the double 0.5 exactly, which is FOLLOW_SLOPE_MIN.
+_cf_half = [(1.0, 1.0)] * 24 + [(2.0, 2 ** 0.5)] * 24
+R.check(
+    "a draw whose log-log slope is exactly 0.5 follows the ask (the slope bound "
+    "is `>=`, not `>`)",
+    _cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0))) is True,
+    f"{_cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0)))}",
+)
+# With no configured minimum (0.0), the only thing that keeps a pump-off
+# sample -- asked 0.0 while the meter shows standby -- out of the window is the
+# second half of the conjunction. Both halves are needed: dropping either lets
+# a log(0.0) into the slope.
+_cf_zero = _cf_win_cfg([(a, 1.3 * a) for a, _ in _cf_pairs((1.2, 1.6, 2.0, 2.4), (0, 0, 0, 0), 48)]
+                       + [(0.0, 0.4)] * 8, (0.0, 14.0))
+R.check(
+    "a sample asked nothing is not a running level: with no configured minimum "
+    "the positive-ask half of the filter still drops it",
+    _cf_drm.follows_ask(_cf_zero) is True,
+    f"{_cf_drm.follows_ask(_cf_zero)} over {len(_cf_zero.samples)} samples",
+)
 
 # -- live power clamp, 7a: the metered running draw (draw_range) ------------
 # The foundation of the plan's clamp to the meter (#201 decision 6067353918):

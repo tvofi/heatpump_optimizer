@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict GUARD_OFF 4cb095ac",
+  "killed_by": "tests/features.py",
+  "old": "        if temp is not None and not np.isfinite(temp):",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `GUARD_OFF` (if False:) flips the condition of tests/features.py's R.check \"an unreadable stored COP record loads as no measurement, whole\" -- the new check \"a non-finite tank temperature drops the record whole\" reads False: switching the guard off keeps cop 2.0 with a nan temperature. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

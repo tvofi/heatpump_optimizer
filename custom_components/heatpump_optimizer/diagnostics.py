@@ -36,7 +36,7 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import debugger, draw_range, pump_arbiter
+from . import accuracy, debugger, draw_range, pump_arbiter
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
 from .thermal_model import probe_install
 from .coordinator import (
@@ -156,6 +156,9 @@ _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     ("draw_range", lambda c: draw_range.diagnostics_view(
         c.accuracy.draw, c.thermal_params,
         probe_install(c.arbiter_inputs().config))),
+    # Why the observed-COP sensor has nothing yet: it is unavailable then, and
+    # Home Assistant hides an unavailable entity's attributes.
+    ("cop_learner", lambda c: accuracy.diagnostics_view(c.measured_cop, c.thermal_params, c.accuracy.draw)),
 )
 
 

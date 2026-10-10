@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.flow_lift_power_floor_kw CLAMP_DROP 2a0bab27",
+  "killed_by": "tests/features.py",
+  "old": "            return max(0.8 * self.min_electrical_power, 0.2)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CLAMP_DROP (`return (0.8 * self.min_electrical_power)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
