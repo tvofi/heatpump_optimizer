@@ -1,7 +1,0 @@
-A rc=1
-B applied: 193:    if now - held.cut_at > MIN_OFF:
-B rc=1
-C applied: 224:    if flag is not None or parse_bool(getattr(flag, "state", None)):
-C rc=1
-leftover: ?? .review-2070-seat-claim
-driver done

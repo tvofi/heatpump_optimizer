@@ -1,8 +1,0 @@
-mutation job 113706784751 in run 37895798439 (event=workflow_dispatch, Tests, head a9ba0b8874092db8780f93fa290b282b5ce200b5)
-job started 2026-10-09T06:53:30Z, completed 06:54:07Z, conclusion failure
-  2026-10-09T06:54:01.4311600Z ^[[36;1m  --scope changed --base origin/main --max 10 --jobs 3 \^[[0m
-  2026-10-09T06:54:04.0963402Z MUTATION TABLE REFUSED -- 4669 unpinned site(s) against 4624 at the ratchet base bd59a4af1b2616a7f00761a3769d22a335e4df7c, 45 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
-  2026-10-09T06:54:04.1095735Z ##[error]Process completed with exit code 1.
-
-the command the lane ran:
-  2026-10-09T06:54:01.4311600Z ^[[36;1m  --scope changed --base origin/main --max 10 --jobs 3 \^[[0m

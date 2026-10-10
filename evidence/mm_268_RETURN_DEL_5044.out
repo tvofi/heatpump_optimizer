@@ -1,0 +1,56 @@
+
+=== Feature modules ===
+
+-- early cut-off — a warm room stops a space-heating pump inside the interval
+  ok   a room past target + margin on a space step switches the pump off once
+  ok   the cut-off is recorded with its reading and threshold
+  ok   a room exactly at target + 0.5 K does not cut (the margin is inclusive)
+  ok   a room 0.1 K past target + 0.5 K cuts
+  ok   the margin is 0.5 K
+  ok   null control: a room at or below target never cuts the pump
+  ok   a room under the plan's own pre-heat + margin is not cut
+  ok   past the plan's own pre-heat + margin it is cut
+  ok   a room warm at the solve is judged against the plan's predicted end, not itself
+  ok   a pump on for less than MIN_ON is not cut
+  ok   with less than MIN_OFF to the next cycle the pump is not cut
+  ok   a second warm reading in the same cycle writes nothing more
+  ok   the next cycle resumes: its arm clears the cut and a warm room may cut again
+  ok   a switch with no change stamp is an unknown run and is not cut
+  ok   a hot-water-only step is never cut, however warm the room
+  ok   a both step is never cut, however warm the room
+  ok   a idle step is never cut, however warm the room
+  ok   a tank below its minimum exempts the step
+  ok   a non-plan mode (comfort) is never cut
+  ok   a stale plan is never cut
+  ok   a step the plan has off is never cut
+  ok   a running defrost is never cut
+  ok   a defrost entity that exists but reads off does not exempt the step
+  ok   a hot-water boost is never cut
+  ok   an early refresh inside MIN_OFF of a cut keeps the pump off
+  ok   past MIN_OFF the plan's on goes through, and an off is never turned on
+  ok   a boost set by that refresh is let through at once
+  ok   null control: with no cut on record allow_on returns the plan's own value
+  ok   the cut-off routes by the target's domain through pump_arbiter.switch_supply
+  ok   the coordinator's cycle inside MIN_OFF of a cut does not turn the switch on
+  ok   null control: the same cycle past MIN_OFF turns it on as the plan says
+  ok   after a cut the arbiter's next tick writes nothing, the switch least of all
+  ok   control: with the supply on, the same arbiter tick writes its slots
+  ok   no switch configured: no listener is registered
+  ok   the room listener is registered once on the room thermometer
+  ok   unloading the entry drops the listener
+  ok   the cut reason outranks the unmetered tail freeze, which this install trips
+  ok   a cut interval freezes the learners under the one early_cutoff reason
+  ok   the coordinator's cycle arms the cut-off (a new cycle end is set)
+  ok   diagnostics expose the cut-off view
+  ok   release unsubscribes the room listener and is idempotent
+  ok   a disinfection hold is never cut, however warm the room
+  ok   a cut is refused when the switch already reads off
+  ok   the min_off guard is a strict < (a cycle exactly MIN_OFF away is not held)
+  ok   a cold lower floor in a two-zone house is never cut
+  ok   _second_zone_cold is False at the exact target-margin boundary (strict <)
+  ok   a room reading above the plausible range is never cut
+  ok   a room reading exactly at the plausible-range high bound is accepted and cut
+  ok   _reading accepts exactly the low plausible bound
+  ok   a reading after the entry is released writes no cut
+
+ALL 50 FEATURE CHECKS PASSED
