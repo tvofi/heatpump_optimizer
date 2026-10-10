@@ -1645,6 +1645,8 @@ EOS
     && $G checkout -q -b fork \
     && $G checkout -q -b rec && mkdir -p docs/delivery && echo row > docs/delivery/9999.md \
     && $G add -A && $G commit -qm rec \
+    && $G checkout -q -b sk fork && mkdir -p dev/governance/rules && echo note > dev/governance/rules/9999.md \
+    && $G add -A && $G commit -qm sk \
     && $G checkout -q -b own fork && echo "# own" >> custom_components/heatpump_optimizer/away.py \
     && echo "own_lane  # this branch's claim" >> tests/golden/claimed_drift.txt && $G commit -qam own \
     && $G checkout -q -b cl fork && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam cl \
@@ -1693,7 +1695,13 @@ PY
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
   got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
-  got=$(closures_at rec under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # `sk`, not `rec`: the inert_reads rule (#2109's fix) makes a NEW file
+  # under docs/ reach tests/doc_claims.py's recorded read (docs/site/ is one
+  # level below its parent), so `rec` -- a delivery row under docs/, kept for
+  # the claims arms above -- now derives scoped. The skip arm needs a diff
+  # genuinely outside every recorded reach; dev/governance/ is one at both
+  # ends (pinned in tests/entities.py beside the rule itself).
+  got=$(closures_at sk under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
   # R9-FR-5 through the step itself: the resolved interpreter reaches the
   # recorder as $PYTHON, and a resolution that refuses stops the step before
   # anything records. `cl` is the branch whose diff makes 6b scoped; the stub

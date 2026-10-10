@@ -57,10 +57,13 @@ name: Tests
 #   wall clock. This is what stops the closures rotting the way a
 #   hand-written dependency table would.
 #
-#   On a push, nightly or dispatch it re-records EVERYTHING. On a pull
-#   request `closure-scope` decides, from the diff and the same table:
+#   On a push or the nightly it re-records EVERYTHING. On a pull request
+#   `closure-scope` decides, from the diff and the same table:
 #   full when a gate file or a file in no recorded closure is touched,
-#   and otherwise re-derive only the closures the diff intersects. The
+#   and otherwise re-derive only the closures the diff intersects. A
+#   `workflow_dispatch` (the batch proof's arm) is scoped the same way,
+#   from its own three-dot diff against origin/main, failing closed to
+#   full (a1, the round-9 closures pre-study). The
 #   old third case -- skip when every changed file is INERT -- is now the
 #   docs-only FAST ARM inside the job rather than a skip (#201 item 8):
 #   `closures` is a required context on `main-protect`, which SUCCESS
@@ -1844,9 +1847,26 @@ jobs:
   # `closure.py affected` answers the right question instead, in three cases:
   # skip (every changed file is INERT), full (a gate file, or a file in no
   # recorded closure), scoped (re-derive only the closures the diff
-  # intersects, ~40 s an entry against 12-22 minutes for the table).
+  # intersects, ~40 s an entry against 30-55 minutes for the table).
+  #
+  # It also runs on `workflow_dispatch` (a1 of the round-9 closures
+  # pre-study): the merge train's batch proof pushes a `batch/<tag>-<n>`
+  # branch and dispatches this workflow on it, and a dispatch has no pull
+  # request base/head -- so before this, `SCOPE_CASE` was empty and the
+  # `closures` job below ran the FULL arm (~50 minutes) on every batch, for
+  # a diff whose entries had each already been scope-checked on their own
+  # pull requests. The dispatch arm derives the same three-dot diff, against
+  # `origin/main`, that a pull request derives against its base, and FAILS
+  # CLOSED: no origin/main, no merge base, an unreadable or EMPTY diff, or a
+  # failed `affected` all yield an empty file list, and `affected` answers
+  # `full` ("no changed files could be determined") for exactly that. A
+  # push to main and the nightly are NOT here on purpose: their full arm is
+  # rule 1's detector and stays untouched.
   closure-scope:
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: >-
+      github.event_name == 'pull_request'
+      || github.event_name == 'merge_group'
+      || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -1875,24 +1895,47 @@ jobs:
           # over-scopes, so it is safe, but it defeats the `skip` case this job
           # exists to keep cheap, and main moved four times today while a single
           # PR was open. fetch-depth: 0 above is what makes ... resolvable.
-          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
-          # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
-          # outside custom_components/, MEASURED by `closure.py record` over a
-          # real run of the lane (run 37764931838, both images, the same 37
-          # paths), plus the requirements file its job installs.
-          # tests/entities.py re-measures what `_stage` mounts into the
-          # container and refuses a path this list does not cover.
-          if git diff --quiet "$BASE"..."$HEAD" -- \
-              tests/nightly_ha.py \
-              tests/ha_contract.py \
-              tests/harness.py \
-              tests/hastub \
-              tests/golden/config_flow.json \
-              tests/requirements-nightly-ha.txt; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # The dispatch arm: derive the diff against origin.main, with the
+            # same fail-closed rule the fast arm below states -- a diff this
+            # job cannot derive is a diff the full arm must judge. Every
+            # failure path lands on an EMPTY changed.txt, and `affected`
+            # answers `full` for an empty list. The extra fetch keeps
+            # origin/main present even if checkout's refspec ever narrows;
+            # its failure is swallowed into the empty list too.
+            git fetch --quiet origin main || true
+            MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
+            if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
+              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+            else
+              : > "$RUNNER_TEMP/changed.txt"
+            fi
+            echo "dispatch diff (three-dot $MAIN_TIP...HEAD):"
+            cat "$RUNNER_TEMP/changed.txt"
+            # The nightly-ha lane is a pull-request decision: on a dispatch it
+            # keeps its pre-a1 behaviour (the job stays skipped) rather than
+            # widening this change beyond the closures arm it is for.
             echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
           else
-            echo "nightly_ha=true" >> "$GITHUB_OUTPUT"
-            echo "the diff touches what nightly-ha's driver reads: nightly-ha runs"
+            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+            # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
+            # outside custom_components/, MEASURED by `closure.py record` over a
+            # real run of the lane (run 37764931838, both images, the same 37
+            # paths), plus the requirements file its job installs.
+            # tests/entities.py re-measures what `_stage` mounts into the
+            # container and refuses a path this list does not cover.
+            if git diff --quiet "$BASE"..."$HEAD" -- \
+                tests/nightly_ha.py \
+                tests/ha_contract.py \
+                tests/harness.py \
+                tests/hastub \
+                tests/golden/config_flow.json \
+                tests/requirements-nightly-ha.txt; then
+              echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "nightly_ha=true" >> "$GITHUB_OUTPUT"
+              echo "the diff touches what nightly-ha's driver reads: nightly-ha runs"
+            fi
           fi
           python tests/closure.py affected \
             --files-from "$RUNNER_TEMP/changed.txt" \
@@ -1930,21 +1973,25 @@ jobs:
     # unless the answer is `skip` again -- while every code-touching diff
     # takes the full arm, whose steps are unchanged. The old condition's
     # fail-closed reading survives the move: an empty case (a failed
-    # `closure-scope`), an unknown event, a dispatch, the nightly and every
-    # push all take the full arm, exactly as they did when `!= 'skip'` was
-    # the last line of the `if`.
+    # `closure-scope`), an unknown event, the nightly and every push all
+    # take the full arm, exactly as they did when `!= 'skip'` was the last
+    # line of the `if`. A `workflow_dispatch` (a1) takes what its own
+    # re-derived case says, and its derivation fails closed to `full`.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 100
-    # 'true' exactly when this run is a `pull_request` whose diff the gate's
-    # own closure scoping derives as touching nothing measured. That is
-    # `closure-scope`'s output, computed by `tests/closure.py affected` -- the
-    # same rule `GATE_SCOPE=auto` uses in `fast` -- and NOT a paths filter of
-    # this workflow's own: a second rule for "docs-only" would drift from the
-    # gate's the first time either learned a new inert prefix.
+    # 'true' exactly when this run's diff the gate's own closure scoping
+    # derives as touching nothing measured. That is `closure-scope`'s output,
+    # computed by `tests/closure.py affected` -- the same rule
+    # `GATE_SCOPE=auto` uses in `fast` -- and NOT a paths filter of this
+    # workflow's own: a second rule for "docs-only" would drift from the
+    # gate's the first time either learned a new inert prefix. The dispatch
+    # arm (a1) is included: a batch whose whole diff is inert answers `skip`
+    # here exactly as a docs-only pull request does.
     env:
       DOCS_ONLY_FAST: ${{ (github.event_name == 'pull_request'
-                           || github.event_name == 'merge_group')
+                           || github.event_name == 'merge_group'
+                           || github.event_name == 'workflow_dispatch')
                          && needs.closure-scope.outputs.case == 'skip' }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -2000,15 +2047,29 @@ jobs:
         timeout-minutes: 5
         run: |
           set -euo pipefail
-          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
-          HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
           # The same three-dot, --files-from derivation closure-scope ran:
           # base.sha is the base branch tip, not the merge base, so two dots
           # would charge this job with files merged elsewhere while it was
           # open. A disagreement here is not retried or waved through; the
           # step fails and the full arm runs on the next event.
-          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
-          echo "changed files (three-dot $BASE...$HEAD):"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # The dispatch arm has no pull_request shas: the same
+            # fail-closed diff against origin/main closure-scope derives,
+            # restated here so this arm's success is its own measurement
+            # exactly as it is on a pull request.
+            git fetch --quiet origin main || true
+            MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
+            if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
+              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+            else
+              : > "$RUNNER_TEMP/changed.txt"
+            fi
+            echo "dispatch diff (three-dot $MAIN_TIP...HEAD):"
+          else
+            BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+            HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
+            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          fi
           cat "$RUNNER_TEMP/changed.txt"
           python tests/closure.py affected \
             --files-from "$RUNNER_TEMP/changed.txt" \

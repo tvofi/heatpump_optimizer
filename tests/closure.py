@@ -2673,12 +2673,15 @@ def _not_run_cmd(workdir: Path) -> int:
 #           or -- the case that matters -- is in NO recorded closure and not
 #           INERT. Nothing can be inferred about a file the table has never
 #           measured.
-#   scoped  some recorded closure contains a changed file: re-derive exactly
-#           those scripts, then run the same `check`. One entry is ~40 s
-#           against 12-22 minutes for the full table.
-#   skip    no recorded closure contains any changed file. Nothing the gate
-#           runs reads them, so no recording can move. A docs-only pull request
-#           must still cost nothing, or the scoping this replaces was pointless.
+#   scoped  some recorded closure contains a changed file, or some script's
+#           recorded `inert_reads` reaches one (#2109's class): re-derive
+#           exactly those scripts, then run the same `check`. One entry is
+#           ~40 s against 30-55 minutes for the full table (the round-9
+#           closures pre-study, jobs 114258919874 and 38059574126).
+#   skip    no recorded closure contains any changed file and no recorded
+#           inert read reaches one. Nothing the gate runs reads them, so no
+#           recording can move. A docs-only pull request must still cost
+#           nothing, or the scoping this replaces was pointless.
 #
 # The order matters, and the skip is LAST on purpose. The first draft asked
 # "is every changed file INERT?" first, and that is a different question: a
@@ -2709,6 +2712,91 @@ def _not_run_cmd(workdir: Path) -> int:
 # narrower draft.)
 
 
+def _ancestor_dirs(rel: str) -> set[str]:
+    """Every proper ancestor directory of a repo-relative path.
+
+    The root is deliberately absent: a root-level `inert_reads` entry
+    (LICENSE) must not make every other root-level file that entry's
+    script's business. Only files INSIDE a directory the recording reached
+    -- or the recorded file itself, matched exactly -- select a script.
+    """
+    parts = rel.split("/")
+    return {"/".join(parts[:i]) for i in range(1, len(parts))}
+
+
+def inert_read_owners(files: list[str], inert_reads: dict[str, list[str]],
+                      scripts: set[str]) -> dict[str, dict]:
+    """Which scripts' recorded ``inert_reads`` reach ``files``, and how.
+
+    ``inert_reads`` is a recorded READ: the Linux strace union of a real run
+    of the script opened that file and filed it under the script because the
+    INERT classification keeps it out of the closure (#1886). The #2109
+    incident class is exactly a diff the skip rule called INERT while a
+    recorded reader demonstrably rglobs its directory: the pull request
+    added ``dev/audit/rounds/round9/prestudy/boost_drift_refit.py``,
+    ``tests/harness_headers.py``'s discovery opens every
+    ``dev/audit/rounds/round*`` tree, the fast arm passed in 16 seconds, and
+    only the next push to main -- 54 minutes after the merge -- printed
+    ``INERT READS UNDER-APPROXIMATED``.
+
+    Two matches, both strictly over-selecting on purpose, because the rule
+    must fail toward selection and never toward skip:
+
+      exact   the changed file is itself a recorded inert read of the
+              script -- the recording already told us the script opens it;
+      dir     the changed file lives under a recorded entry's own directory
+              or under that directory's parent. A NEW file can never be in
+              the table (it did not exist at the last recording), so the
+              recording's reach into its directory is the only measured fact
+              about it, and one level above the recorded directory is how
+              far a discovery glob can widen without the recordings showing
+              it. The bound is what keeps the rule from selecting a script
+              for EVERY file under a shallow shared ancestor: unbounded
+              ancestor matching makes the one ``round6/D11/fix/`` entry
+              share ``dev/`` with all of ``dev/programme/`` and
+              ``dev/governance/``, and every prose pull request in this
+              repository lives there. The residual hole is a change in a
+              subtree NO recording's own-or-parent directory reaches (a
+              whole new ``round20/``): main's full arm stays its detector,
+              exactly as before this rule existed.
+    """
+    allowed_by_script: dict[str, set[str]] = {}
+    for s, reads in inert_reads.items():
+        allowed = set()
+        for e in reads:
+            dirs = sorted(_ancestor_dirs(e))
+            if not dirs:
+                continue                      # a root-level entry (LICENSE)
+            allowed.add(dirs[-1])              # the entry's own directory
+            if len(dirs) >= 2:
+                allowed.add(dirs[-2])          # and that directory's parent
+        allowed_by_script[s] = allowed
+    owners: dict[str, dict] = {}
+    for f in files:
+        unit = unit_of(f)
+        for s, reads in inert_reads.items():
+            if s not in scripts:
+                continue
+            via = None
+            if unit in reads:
+                via = f"inert_reads (exact: {unit})"
+            else:
+                hit = next(
+                    (d for d in sorted(allowed_by_script[s],
+                                       key=len, reverse=True)
+                     if f.startswith(d + "/")),
+                    None,
+                )
+                if hit is not None:
+                    via = f"inert_reads (dir: {hit})"
+            if via is None:
+                continue
+            owners.setdefault(s, {"changed": [], "via": via})["changed"].append(f)
+    for info in owners.values():
+        info["changed"].sort()
+    return owners
+
+
 def affected(files: list[str]) -> dict:
     """Decide whether the closures check must run, and on what. Returns a plan."""
     scripts = selectable_scripts()
@@ -2724,7 +2812,8 @@ def affected(files: list[str]) -> dict:
     # skipping that check's roster test there cannot hide an unrecorded script.
     if not CLOSURES.exists():
         return _full("tests/closures.json is missing")
-    closures = json.loads(CLOSURES.read_text())["closures"]
+    payload = json.loads(CLOSURES.read_text())
+    closures = payload["closures"]
     unknown = sorted(k for k in closures if k not in scripts)
     if unknown:
         return _full("closures.json describes scripts that no longer exist: "
@@ -2754,6 +2843,14 @@ def affected(files: list[str]) -> dict:
         hits = sorted({unit_of(f) for f in files} & set(closures[s]))
         if hits:
             why[s] = {"changed": hits, "via": "closure"}
+    # A recorded inert read is a recorded read (#2109's class, above): the
+    # script opened the file, or opens its directory, and a diff that touches
+    # it must re-derive that script or the only detector left is main's full
+    # arm, one merge late. A closure hit keeps its own entry -- the table's
+    # primary claim outranks the secondary one.
+    for s, info in inert_read_owners(
+            files, payload.get("inert_reads", {}), set(scripts)).items():
+        why.setdefault(s, info)
     # A recording is a real run: card.mjs reads the payload plan_view.py
     # writes, so re-deriving the consumer without its producer records a run
     # that found no payload -- and a failed run records only what it reached.
@@ -2780,11 +2877,12 @@ def affected(files: list[str]) -> dict:
     # selectable, so suite order cannot place it: it follows its driver.
     rederive = suite_order(why) + children
     if not rederive:
-        # Everything that changed is absent from every closure, and `unmapped`
-        # above already proved each such file is INERT. Nothing a recording
-        # could touch has moved.
+        # Everything that changed is absent from every closure, no recorded
+        # inert read reaches it, and `unmapped` above already proved each
+        # such file is INERT. Nothing a recording could touch has moved.
         return {"case": "skip",
-                "reason": "no recorded closure contains any changed file, and "
+                "reason": "no recorded closure contains any changed file, no "
+                          "script's recorded inert_reads reach them, and "
                           "every one of them is INERT",
                 "rederive": [], "why": {}, "changed": files}
     return {"case": "scoped",
