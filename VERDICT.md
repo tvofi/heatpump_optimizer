@@ -1,168 +1,110 @@
-Fix review: blocked f19851987a55fb6ac53d1b40935f2c13838f49ab carry-missing: not carried to D0
+Fix review: blocked 4f0bde1653627ab3c52f2325986119f80370e7bb root-cause-unanswered: fast (3.14) went red, unanswered
 
-bus-nonce: 6c3a5eccd88e5d78d6b96e6086ee281f
+bus-nonce: 228d3b27b07b87836c7c16cd6402ff14
 
-# Fix review — PR #2114 (R9-RC-BLAS-KERNEL-RED), head f19851987a55fb6ac53d1b40935f2c13838f49ab
+Delta review (round 2) of #2114. The prior verdict blocked f19851987
+`carry-missing: not carried to D0`. That block is resolved; a new one replaces
+it: the head turned `fast (3.14)` red and the body's `## Red checks: none on
+this head` does not answer it.
 
-Measured at the head named above, from a detached worktree at it, against merge
-base `7cd5a588c`. Merge base checked first: `git diff
-$(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is
-empty, so the contract I read is current. The fix itself measures clean at every
-arm I could reach; the block is the forward-carry alone.
+## The red (the block)
 
-## The re-key is real, and the check is not vacuous
+`fast (3.14)` concluded `failure` on this head (check-run 114249368012, run
+38064506824, "Run the suite" step, completed 2026-10-10T15:48:00Z). The
+failing script is `tests/layout.py`, which is `run_always`, so no scope skips
+it. Reproduced locally at the head, rc=1:
 
-RESULT lines (my own runs; logs cited at the end):
+    layout: GUARD: 5 refusal(s) against d3dbf2c3fc42
+    new-reference: dev/programme/carries/carry-201.json cites retired path
+      .claude/workflows/brief_lint.mjs
+    new-reference: ... docs/decisions/
+    new-reference: ... tools/audit/briefs/D11.md
+    new-reference: ... tools/audit/briefs/D13.md
+    new-reference: ... tools/audit/round5/
 
-    RESULT block_head_two_zone=1 j_plain=110.436632 j_continuation_off=111.267093 continuation_gain=+0.830461 j_seeded_half_price=110.129674   -> ok, ALL 14 FEATURES BLOCK PASSED, rc=0
-    RESULT block_head_single_zone_null: j_plain=67.730056 j_continuation_off=67.730056 continuation_gain=+0.000000   -> ok (exact: schedules array-equal)
-    RESULT block_base_two_zone=1: FAIL R9-F2.1 P3 [shipped 110.4366, seeded 110.1297], 1 of 14 FAILED, rc=1
-    RESULT mutation_two_zone=1 j_plain=111.267093 j_continuation_off=111.267093 continuation_gain=+0.000000: FAIL, 1 of 14 FAILED, rc=1
+All five are on the two lines of `dev/programme/carries/carry-201.json` this
+branch edited: the `_comment` line naming `.claude/workflows/brief_lint.mjs`
+(gained a trailing comma) and the `stage` line (D0 clause appended), each of
+which already cited retired paths on main; editing the line makes its
+citations new references against the merge base, and layout.py's guard refuses
+new references to retired paths. Main at the merge base d3dbf2c3f is green on
+tests.yml (run 38059574126, success), and the guard self-tests all pass, so
+this red is the branch's own and not the instrument's. It is not one of the
+three autofix classes (`UNDER-SCOPED`, `INHERITED CLAIMS`, killed unpinned
+mutants), so no bot commit repairs it. The fix itself is sound; the body owes
+the answer the second trigger demands (name the detector and its standing
+cost, or the finding that none exists) — plus, on the merits, either the two
+edited lines' retired citations moved to current paths, or the guard's answer.
 
-**Both ends, on this box.** At the merge base `7cd5a588c` the OLD check is RED
-on Accelerate (`FAIL ... [shipped 110.4366, seeded 110.1297]`); at the head it is
-green. The defect this PR claims to fix is reproduced at the base and fixed at
-the head, by the same block command the body names.
+## RESULT lines (all at 4f0bde1653627ab3c52f2325986119f80370e7bb, this box Apple M1 / python 3.11.5 / numpy 2.4.6, BLAS=accelerate)
 
-**Mutation (step 1), reproduced exactly.** I planted `return cands  # MUTATION`
-at the head of `_optimize_space_only`'s `move_starts` (`optimizer.py`) — the
-continuation removed, the `934dcb1fc^` route. The check goes red at the exact
-arm: `FAIL R9-F2.1 P3: the half-price continuation buys a strictly better storage
-plan...`, `1 of 14 FEATURES BLOCK FAILED`, with `j_plain=111.267093`
-`j_continuation_off=111.267093` `continuation_gain=+0.000000`. Restored with
-`git checkout --`; tree clean. The single-zone null arm stays green under the
-same mutation (its `j_plain == j_off`), which is the body's own claim about that
-arm. So the new predicate is not vacuous — removing the mechanism it exists for
-moves the acceptance.
+RESULT head_unchanged=1 4f0bde1653627ab3c52f2325986119f80370e7bb
+RESULT features_two_zone j_plain=110.436632 j_continuation_off=111.267093 continuation_gain=+0.830461 j_seeded_half_price=110.129674
+RESULT features_null_single_zone j_plain=67.730056 j_continuation_off=67.730056 continuation_gain=+0.000000 j_seeded_half_price=67.729557
+RESULT features_summary=ALL 3986 FEATURE CHECKS PASSED
+RESULT layout_guard_refusals=5 rc=1 (all on carry-201.json)
+RESULT brief_lint=rc=0 carry-201.json linted clean, no live roster group covers #201
+RESULT ci_fast_3_14=fast (3.14) FAILURE (tests/layout.py, run_always)
+RESULT ci_features_fast_lane=ok python3 tests/features.py (255s) -- the re-keyed check is GREEN at CI's kernel class
+RESULT delta_code_unchanged=1 (custom_components, tests/features.py, tests/harness_headers.py, tests/closures.json, dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py all byte-identical f19851987 -> 4f0bde165)
 
-**The old arm under the same mutation**, as the body states: `110.129674 + 0.1 -
-111.267093 = -1.037`. Reproduced.
+## The delta f19851987 -> 4f0bde165
 
-**Addressing my dispatch's question 2.** The seeded race is still MEASURED and
-PRINTED and non-gating: every run emits `RESULT f21_p3_two_zone=1 j_plain=...
-j_continuation_off=... continuation_gain=... j_seeded_half_price=...`, and the
-check reads only `j_plain < j_off`. Removing the gate did not remove the
-observation. The `j_seeded_half_price` figure is the old race's other side, kept.
+`f19851987` is an ancestor of the head. The delta is 22 files, all of them
+main's own newer commits merged in (#2072, #2075, #2083: tools/audit/seat,
+tools/pr, mutation_ledger rows, delivery rows, CLAUDE.md, fixer.md) plus the
+branch's own ONE carry commit: one entry appended to
+`dev/programme/carries/carry-201.json` with its `stage` and `_comment`
+extended to name D0. Every file the reviewed behaviour lives in is
+byte-identical across the delta (blob ids compared): `custom_components`,
+`tests/features.py`, `tests/harness_headers.py`, `tests/closures.json`,
+`dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py`. No VERSION, manifest,
+notes heading or budget file in the branch's own diff. merge-tree against
+origin/main exits 0, no conflict.
 
-**Attention the check's `move_starts` replacement deserves.** `_f21_ms_no_continuation`
-forces `move_starts` to `lambda cands, maxiter: cands` — the parameter's own
-default in `_multi_start_minimize`, so the no-continuation arm is the
-pre-continuation route reached by one parameter, not a second copy of the
-multi-start. Correct, and the null-arm exactness (`move_starts` returns its
-candidates untouched unless `two_zone_enabled`) is real: the single-zone arm
-asserts `j_plain == j_off` AND `np.array_equal(pw, pw_off)`, with no tolerance.
+## The carry destination — judged legitimate, not re-blocked
 
-## Question 1 — the key does not move across BLAS builds: VERIFIED IN PART
+`finding-propagation.md`'s "Where it goes" names three destinations: the
+stage's brief (a live group's `brief` string plus any out-of-tree copy), the
+role contract, and — "**The stage has no live roster group** → its own
+`dev/programme/carries/carry-<N>.json`, N the destination issue, and
+**creating it is part of the finding**". It does not name a dimension-method
+document as a destination; `dev/governance/dimensions/D0.md` is the D0
+method, policy, and the rule routes a no-live-group stage to the carry file,
+which `brief_lint.mjs` lints as "the brief of a stage that has no roster
+group". I verified: the only roster in the tree
+(`.claude/workflows/wave-3l-groups.json`) covers issues 400/401/404/405/408/
+457/460/463/465, none D0 or #201; `node tools/policy/brief_lint.mjs` exits 0
+with carry-201.json linted clean (the linter itself "refuses a carry at an
+issue a live group covers" — it did not refuse). The tree's own precedent is
+directly on point: a75bf1662 landed a D0 finding as carry-1295.json "rather
+than as an edit to ... D0.md because both D0.md and D9.md are one-sided policy
+caps ... raising a cap needs the owner's confirmation obtained before the
+push". The prior round's `carry-missing` is therefore resolved: the entry
+(carry[10]) is real, names #2114, `effect: invalidates` (one of the rule's
+three), carries the control with the voiding perturbation ("a second kernel
+class where production's multi-start lands in the half-price plan's basin"),
+a re-measurement instruction naming the check's own printed line, and a brief
+that states preconditions, not opportunities. The finder's harness
+(`dev/audit/harnesses/k1725_blas_kernel_gap.py`) is still unrunnable verbatim
+on this box — its `score()` calls `m.simulate_trajectory(st, pw, ot, wi, ra,
+so, DT)` with 7 positional arguments against a 3-positional keyword-only
+signature, stale at the merge base, unchanged by the delta; the prior round's
+disclosed one-line patch and its -0.2070 stand unchallenged.
 
-The claim is that `continuation_gain` is stable where `+0.1000` vs `-0.2070` was
-not. What I could reproduce: on this box (Apple M1, Accelerate) the new arm reads
-`continuation_gain=+0.830461`, and the fixer's harness ladder — which I re-ran —
-reads `0.25 -> +0.840025`, `0.50 -> +0.830461`, `0.75 -> +0.000000`,
-`1.00 -> +0.000000`: the gain is a CLIFF, so a kernel change toggles between 0
-and ~0.83 and cannot land a verdict on a thin margin. That is the structural
-reason the re-key should hold across kernels, and it is measured.
+## Arms not run here
 
-What I could NOT reproduce, and so treat as UNVERIFIED rather than green: the
-Linux-side values of the NEW arm. `OPENBLAS_CORETYPE` selects nothing on an
-Accelerate numpy (the harness's own env line: `core=(unset) -- no OpenBLAS Core:
-line`), the container lane is retired, and `gate-scoping.md` forbids re-deriving
-closures off Linux. So the Sandybridge/Haswell/Nehalem rows for the new arm are
-taken from the body, and the Haswell (CI) row in particular is owed as a
-check-run, not established here. The old arm's `-0.2070` on this box IS verified
-(below).
+The Linux/cross-kernel arm: this box is Accelerate, `OPENBLAS_CORETYPE`
+selects nothing; the container lane was retired 2026-10-04 and
+`gate-scoping.md` forbids re-deriving closures off Linux. The body deferred
+the CI-kernel-class arm to the check-run; that run exists and is green
+(`ok python3 tests/features.py (255s)` in the failing fast job), so the
+re-keyed check's verdict holds at CI's kernel class too. `closures` and
+`coverage` were still in progress when this verdict was taken.
 
-**The finder's harness, and why I could not run it verbatim.** The body names
-`dev/audit/harnesses/k1725_blas_kernel_gap.py` as #1726's instrument. It does
-NOT run at this head: `score()` calls `m.simulate_trajectory(st, pw, ot, wi, ra,
-so, DT)` while the live signature is
-`simulate_trajectory(initial_state, power_schedule, weather, *, dt_hours=)`.
-This is pre-existing and not this PR's — the file is byte-identical to the merge
-base, untouched by the diff, and its stale call is present at `7cd5a588c` too.
-I patched that ONE line in a working copy (marked `# REVIEWER PATCH: stale API`,
-then restored; whole-tree `git status` clean) to run its P3 arms:
+## Evidence
 
-    RESULT f21_p3_two_zone_margin=-0.2070 (j_plain=110.4366, j_seeded=110.1297)
-    RESULT f21_p3_single_zone_margin=+0.0995
-
-which are precisely the body's Figures and #1726's null control. So the finder's
-P3 arm is reproduced, by the finder's own instrument (one disclosed line
-patched) and independently by the check's own printed `j_seeded_half_price` and
-`j_plain`. The fixer's harness at head reproduces the body's whole Figures table,
-including `threads_identical=1` (threads are not the mover).
-
-## Question 3 — the closure repair is the table only
-
-Confirmed. Commit `be7dc8be1` touches `tests/closures.json` ALONE, adding one
-line, `dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py`, to
-`inert_reads['tests/harness_headers.py']` (541 entries, still sorted). The
-recorded `closed`/`recorded` maps are unchanged, and the diff reaches no other
-data file. No FULL re-derive is claimed: the body states that at `be7dc8be1` the
-diff reaches `tests/closures.json` itself so `closure.py affected` answers
-`CASE: FULL` and step 6b SKIPS, leaving every closure to CI's own derivation —
-exactly what the head must do. `python3 tools/pr/ci_predict.py --base 7cd5a588c`
-at the head prints `no closures or fast red predicted ... (a data-file read is
-not seen)`; the recording is earned by `harness_headers.py` reading every harness
-header, not gamed.
-
-## Other contract steps
-
-- **Red checks (step 11).** None on the head. `be7dc8be1` shows 9 `cancelled`
-  runs at `14:41:3xZ` — superseded by the head push at `14:37:48Z`/`14:41`, not
-  `failure`. `fast (3.14)`, `mutation`, `pr-contract`, `delivery-status`,
-  `briefs`, `typing`, `closure-scope` all `success`; `closures`/`coverage`/the
-  python `Analyze` were still running at my read. No red → no answer owed.
-- **Conflict (step 13).** `git merge-tree --write-tree origin/main HEAD` exits 0,
-  no driver marker. Not blocked on that.
-- **Versions (step 5).** `VERSION`, the manifest and `RELEASE_NOTES.md` are
-  untouched by the three-dot diff.
-- **Class (step 6).** #1725 states two seams — `optimality.py`'s ftol check and
-  this P3 storage comparison. The first was fixed by #1726 (already on main); the
-  body dispositions the second, which is this diff. Both arms are accounted for;
-  the rule the body cites ("measure each arm per kernel and key the verdict on
-  what does not move") is verbatim `tests/README.md:267`. No third seam was
-  demonstrated, so the class reads as those two, both closed.
-- **Head SHA (step 7).** The head I measured is the head in the body and on the
-  remote; `git ls-remote` still reads `f19851987...`.
-
-## Why blocked
-
-The body carries a `## Forward-carry` section naming `dev/governance/dimensions/D0.md`
-for the optimality finding — "on Accelerate this platform's multi-start ships
-110.436632 where a warm start from the half-price plan reaches 110.129674, i.e.
-0.307 left on the table" — and `tests/features.py` at this head asserts in-tree
-that "the optimality question itself is carried to D0's brief". Under
-`finding-propagation.md` the producing PR does not merge until that carry is in
-the tree, and a body or code comment records a finding without delivering it.
-
-It is not delivered:
-
-- `dev/governance/dimensions/D0.md` is byte-identical to `origin/main`
-  (`git diff --quiet origin/main HEAD -- dev/governance/dimensions/D0.md`).
-- no `dev/programme/carries/carry-*.json` is added by the diff (the four files
-  are `tests/features.py`, `tests/closures.json`, the new harness, and the
-  delivery row).
-- `grep -rn "110.129674\|left on the table"` over the tree returns the authored
-  `features.py` only.
-
-So the finding exists only in this PR. The body's own words ("Named for the
-destination rather than filed") are the disclosure; the in-tree comment is the
-overclaim, and both point the same way: D0 must receive this, and has not.
-
-I am not judging whether the optimality gap is the right size or whether D0 is
-the right owner — I am reporting that a destination this PR names does not hold
-what it claims. Per `finding-propagation.md` the destination for a stage with no
-live roster group is its own `dev/programme/carries/carry-<N>.json`, which this
-diff can create; that is the repair. If instead the fixer's judgement is that the
-gap lacks its null control (there is no flat-price arm for it here) and is not
-yet established, then it is "measured first or dropped": drop the item from
-`## Forward-carry`, drop the "carried to D0's brief" claim from the comment, and
-say so. Either repair resolves this; leaving it named-but-absent does not.
-
-I flag as non-blocking friction, matching the body's own second bullet: the
-kernel rule's instrument is cited at `tools/audit/harnesses/k1725_blas_kernel_gap.py`
-in both `tests/README.md:271` and `dev/audit/README.md:235`, but the file lives
-under `dev/audit/harnesses/`; and that same file no longer runs (above).
-
-Evidence: `/Users/timmalmstrom/hpo-seats/r9rev-2114/ev/` — `EVIDENCE.md` and the
-run logs (`features_block_{head,mutant,base}.log`,
-`k1725_finder_{head,patched_head}.log`, `fixer_harness_head.log`).
+`/Users/timmalmstrom/hpo-seats/r9rev-2114b/ev/` — HEAD names
+4f0bde1653627ab3c52f2325986119f80370e7bb; features_head.log (local head arm),
+layout_head.log (local layout rc=1), fast314.log (the failing CI job log),
+brief_lint.out.
