@@ -30,7 +30,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R9-RC-ORPHAN-HANDOFF (stage fixing, branch `handoff/r9-orphans`, note `None`): `git fetch origin handoff/r9-orphans && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-RC-POSTREVIEW-MERGE (stage fixing, branch `handoff/r9-postreview-rca`, note `None`): `git fetch origin handoff/r9-postreview-rca && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R9-CI-1, R9-CI-CODEQL-PATCH, R9-CLOSURE-BRANCHES, R9-DBG-2, R9-DEFER-1793, R9-RC-AUTOFIX-GOVERNANCE, R9-RC-BLAS-KERNEL-RED, R9-RC-BUS-FETCHHEAD, R9-RC-CARRY-PINS, R9-RC-NIGHTLY-DEFER, R9-RC-ORPHAN-HANDOFF, R9-RC-POSTREVIEW-MERGE, R9-RC-RECARRY-READBACK, R9-RC-ROW-STALE, R9-RO-10, R9-RO-11, R9-RO-14, R9-RO-PC1, R9-UX-10, R9-UX-6, R9-UX-7
+Ready next (after-edges satisfied; nothing open constrains them): R9-CI-1, R9-CI-CODEQL-PATCH, R9-CLOSURE-BRANCHES, R9-DBG-2, R9-DEFER-1793, R9-RC-AUTOFIX-GOVERNANCE, R9-RC-BLAS-KERNEL-RED, R9-RC-BUS-FETCHHEAD, R9-RC-CARRY-PINS, R9-RC-NIGHTLY-DEFER, R9-RC-ORPHAN-HANDOFF, R9-RC-POSTREVIEW-MERGE, R9-RC-RECARRY-READBACK, R9-RC-ROW-STALE, R9-RO-14, R9-RO-PC1, R9-UX-10, R9-UX-6, R9-UX-7
 
 ## Resume steps
 
