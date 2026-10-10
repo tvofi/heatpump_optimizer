@@ -1,37 +1,78 @@
-Fix review: blocked 3f82aba337d65d897440923a2503ca3ca467c91b carry-missing: finding 2 of the body's "## Forward-carry" ("the beat's reach is its window" -- the record beat corrects only its `<last tag>..HEAD` window, so 85 of the 103 stale rows are reached by no automatic run and need a seat to run `--since` back to v6.7.13) names no destination file and is in no in-tree file; `dev/programme/carries/carry-201.json` is the live destination for exactly this shape of record/owed-work finding (extended twice in round 9, by #2073), and the body's stated reason for declining a carry -- "a carry file needs a destination issue a fixer does not file" -- is contradicted by that file's existence.
+Fix review: merge 6b21ba53028820a85af9ebde83d0fd310ce0a0e4
 
-bus-nonce: 35e54af98f094ad6722d0c7ae4e9964f
+bus-nonce: 1c8d506e7bc628a06fa948da495a240e
 
-seat: review-2111 (fix-review.md). Evidence: /Users/timmalmstrom/hpo-seats/r9rev-2111/ev
-measured at: 3f82aba337d65d897440923a2503ca3ca467c91b (merge base 7cd5a588cbbbef354c00148040da2d720b8a888c; `origin/main` had advanced to d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e, and `git merge-tree --write-tree origin/main HEAD` is rc=0, so nothing here is a conflict). The head has not moved. Contract read from `origin/main`; only `dev/governance/roles/fixer.md` moved on main since the merge base, `fix-review.md` is current.
+Delta review, round 2. Prior round blocked `carry-missing`; the fix is
+judged only on the delta from `3f82aba33` to `6b21ba530`.
 
-## The fix itself is sound on every task this round set
+## What the delta contains
 
-I built my own harness (my scratch, not the fixer's `mutants.py`) and my own mutants. All four adversarial questions the dispatch names pass, plus the boundary.
+`d57cd1e3d` ("carry the beat's window-reach to carry-201") adds 7 lines to
+`dev/programme/carries/carry-201.json` and nothing else; `ce5068f5f` and
+`6b21ba530` are merges (the branch's previous head, and `origin/main` at
+`d3dbf2c3f`). Three-dot against main the branch changes exactly three files:
+`carry-201.json` (+7), `dev/programme/delivery/2111.md` (+1, the lane's own
+open row), `tools/audit/seat/record_row.py` (the fix, unchanged this round).
 
-- **(1) status-aware, and it REWRITES.** A stale `**open**` row for a merged PR is planned and the existing file is overwritten, byte-equal to `row_line()`. Mutating `plan_merges` back to `has_row` alone reddens 9 arms (my M1); mutating `_rewrite_granted` to `return False` reddens 6 (M3).
-- **(2) idempotent.** A re-plan over a rewritten corpus is 0; a row already at the API's sha is left byte-identical; a row at a different sha is corrected to the API's. Dropping the sha comparison reddens 2 arms (M5).
-- **(3) grammar untouched.** `row_line` is not in the diff; the generated row keeps the anchor, the `|`->`/` sanitising, one line, the group suffix, and no closing keyword, and `delivery_status.mentions()` / `anchored()` / `rowed_line()` read it.
-- **(4) the planted controls.** A genuinely OPEN PR with an `open` row is untouched, and the row alone **does** read stale, so `plan_merges`'s `state == "open"` clause is what holds it (M2 reddens exactly that arm). A merge with no row still gets its row, and `self_row` still writes `**open**` (M9 reddens 9 arms).
-- **Boundary.** The write set is still `dev/programme/delivery/<N>.md` only: the plan of record, `HANDOVER.md`, a `../` escape, a non-`.md` path and a rewrite aimed at another file's number are all `Refuse`d.
-- **Both ends.** At `7cd5a588c` the stale row is skipped and stays `open`; at the head it is planned and rewritten.
-- **Every quoted number re-derives.** 103 stale rows (and 103/103 API `merged`, 0 errors), 100 at `23d354970` with the roster's 24 as its `N >= 2040` subset, the census 502 = 248+103+151 (15 multi-line, 136 prose-status), 161 and 18 window merges with all 18 stale, `105 = 103 rewrites + 2 new` then `re-plan 0` and `0` rows reading `open`. I ran the corpus on a temp copy I own, never the shared checkout.
-- **No metric is gamed.** Structure passed with no metric moved, the architecture score is +0.0000 NULL, the claim files are byte-identical to the merge base, and no `VERSION` / manifest / `RELEASE_NOTES` / budget file is in the 2-file diff.
-- **Class closed.** The body's own rule returns the whole class (its 103 = every stale row); 0 multi-line files and 0 non-in-grant lines carry `**open**`, and no row URL carries a fragment. No un-dispositioned seam.
-- **No red check to answer.** At the live head, 40 check-runs, **zero failed** (`coverage` and `Analyze (python)` still in progress). The eight "reds" at the authored head `ce70213ae` are all `cancelled`, superseded by the newer head, not failures, and `harness_headers`' scope is touched by 0 files of this diff.
+## RESULT lines
 
-## The one blocker: the second forward-carry is in no destination
+- RESULT carry-real: `carries[10]` of `carry-201.json` exists at the head
+  with all five sibling fields; `brief_lint.mjs carry-201.json` prints
+  `0 error(s), 0 warning(s)`. The entry names the destination a seat finds
+  (the standing carry file at #201), states the owed action concretely
+  (`record_row.py --enumerate --since v6.7.13`, then `--plan`/`--apply` at a
+  worktree of origin/main), carries the measurement (18 planned in the
+  v6.7.17 window vs 103 from v6.7.13) with its null control (a last tag at or
+  before v6.7.13 equalizes the counts; a plan of 0 at v6.7.13 is the other
+  arm) and a re-measurement instruction that refuses to carry the frozen
+  18/85. The declining sentence is gone (`grep "needs a destination issue"`
+  over the PR body: 0 matches), and the body's `## Forward-carry` finding 2
+  now names the file and says the entry is in the diff to be opened.
+- RESULT code-unchanged: `git rev-parse <sha>:tools/audit/seat/record_row.py`
+  answers blob `585b51f264e6e7892e4864f991705f9dddb37e0c` at `3f82aba33`,
+  `ce70213ae`, `d57cd1e3d` and `6b21ba530` — byte-identical; the diff on the
+  file between the two review heads is empty. No behaviour change.
+- RESULT mutant-M4: reproduced. My own driver, scratch copy, seat
+  interpreter 3.14.7: the driver's exact M4 (`return want != now`, which
+  drops the grant's None boundary *and* the direction clause) reddens 3 arms
+  verbatim (`a merged row is never rewritten back to open`, `a seat's
+  multi-line disposition is neither planned nor rewritten`, `a status a row
+  writer never emits is outside the grant`); dropping the None boundary alone
+  reddens 2 — the prior round's 2 was its own narrower mutant, and the body's
+  3 is genuine. Both clauses are separately covered (M4a: direction alone,
+  1 arm).
+- RESULT mutant-M10: reproduced. `return now is not None` reddens 5 arms
+  verbatim, matching the corrected 4 -> 5.
+- RESULT mutant-M7: reproduced. The loosened status regex reddens 1 arm
+  (`a status a row writer never emits is outside the grant`). The prior
+  round's survivor was its own mis-built mutant.
+- RESULT census: reproduced at the body's stated head. My own census over
+  the production `line_status`/`rowed_line`: `d57cd1e3d` reads 503 = 248 +
+  104 + 151 and `ce70213ae` reads 502 = 248 + 103 + 151, exactly as the body
+  states. At the PR head `6b21ba530` the same rule reads 506 = 248 + 107 +
+  151; the difference is exactly `dev/programme/delivery/2072.md`,
+  `2075.md`, `2083.md` — main's own rows brought by the merge, not this
+  branch's change. The body's sentence "the PR tree is that code head plus
+  the row" is imprecise by those three main rows; no figure it quotes is
+  moved by them.
+- RESULT checks: no red conclusion on the head's check-runs (only
+  in-progress `closures`/`Analyze (python)` and skipped lanes); nothing to
+  answer. Claim files byte-identical to the merge base; VERSION, manifest,
+  RELEASE_NOTES heading untouched by the branch diff.
+- RESULT self-test null: unmutated `--self-test` at the head, seat
+  interpreter: `record_row self-test: all checks passed`, rc=0.
 
-The body's own words are "Two findings change what a later stage must do, both measured", so `finding-propagation.md` binds both. Finding 1 names its destination -- the module docstring beside `THE REVIEW IS A PREDICATE` -- and I opened it: the measured pair of guard answers is there. Finding 2 names no destination file; it says it is "recorded for whichever seat next does record upkeep (`delivery-status-tracking.md` item 1)". I searched: the branch's three-dot diff is two files and neither carries it, `dev/programme/HANDOVER.md` does not mention the beat's window reach, and no carry file does.
+## Unverified
 
-The rule is a merge gate -- "The PR does not merge until the carry is in the tree. Its body names the file and the stage that received it, so a reviewer opens the destination rather than taking the claim." The destination exists and is live: `dev/programme/carries/carry-201.json` is the standing carry file for record/governance findings at issue #201, and round 9 has extended it twice (PR #2073). Its `_comment` states the precondition the body asserts no destination can meet -- "no roster group in this tree claims it" -- and its entries are `narrows`/`removes` findings of exactly this owed-work shape. So the body's reason for declining the carry does not hold.
+The 18/103/85 window figures and the 161/18, 105 = 103+2 and re-plan-0
+figures are the prior round's verified numbers restated; I did not re-derive
+them this round (they were API-confirmed there and `record_row.py` is
+byte-identical since). The `harness_headers` `ALL 109 PASSED` line I did not
+re-run (CI's run_always lane covers it; it is green on the head).
 
-I am not overturning any measurement: the fix is correct and reverified. The one thing owed is the destination.
+## Verdict
 
-RESULT round: 1. Head measured `3f82aba337d65d897440923a2503ca3ca467c91b`; still the head when this is posted.
-RESULT mutation proof: my own 10 mutants (M0 rc=0; M1 9, M2 1, M3 6, M4a 1, M5 2, M6 1, M7 1, M8 1, M9 9 failed), each restored. My first M7 was mis-built and survived; rebuilt against the bold's closing `**` it reddens the named arm. The body's M4 tally (3 failed) I could not reproduce -- my reconstruction of the same clause gives 2 -- so that one quoted number is unverified, not refuted.
-RESULT finder's rule: 103 row files read `**open**` at the merge base; 103/103 confirmed MERGED by REST, 0 open, 0 closed-unmerged, 0 errors.
-RESULT corpus: 105 planned = 103 rewrites + 2 new (1885, 1890); all 105 byte-equal to the plan after apply; re-plan 0; 0 rows reading `open`.
-RESULT boundary: plan of record, HANDOVER.md, `../` escape, non-`.md` and cross-number rewrite all refused.
-RESULT harness: 30/30 arms of my own harness pass on a temp delivery copy I own; the shared checkout was not written.
-RESULT carry: `dev/programme/carries/carry-201.json` exists, is live and was extended in round 9; the body's finding 2 is not in it, nor in the docstring, `HANDOVER.md`, or any brief.
+The carry defect is cured in the tree, not promised; the code the prior
+round verified is the code at this head, unchanged; both prior caveats
+resolve as artefacts of that round's own mutants, and every re-taken figure I
+could run reproduces. Merge.

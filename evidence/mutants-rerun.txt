@@ -1,0 +1,8 @@
+RESULT M4-driver-exact: rc=1 failed-lines=0
+3 self-test check(s) failed: a merged row is never rewritten back to open, a seat's multi-line disposition is neither planned nor rewritten, a status a row writer never emits is outside the grant
+RESULT M10-driver-exact: rc=1 failed-lines=0
+5 self-test check(s) failed: re-apply empty, a row that already records this merge is not planned again, an open row is never rewritten toward another open row's title, a merged row is never rewritten back to open, self row already there
+RESULT M7-driver-exact: rc=1 failed-lines=0
+1 self-test check(s) failed: a status a row writer never emits is outside the grant
+RESULT M4-mine-NoneBoundaryOnly: rc=1 failed-lines=0
+2 self-test check(s) failed: a seat's multi-line disposition is neither planned nor rewritten, a status a row writer never emits is outside the grant
