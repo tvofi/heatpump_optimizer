@@ -1,0 +1,34 @@
+fix-review evidence — PR #2122, head 9b70f367c6381a053eb74366d209ce73e95be2dd
+reviewer worktree: /Users/timmalmstrom/hpo-seats/r9rev-2122/wt (detached at the head); date 2026-10-10
+
+== unmutated head
+python3 tools/audit/seat/state_docs.py --self-test -> 'state_docs self-test: all checks passed' (rc 0)
+PYTHONPATH=tests/hastub seat-python3 tests/entities.py -> 'ALL 2251 ENTITY CHECKS PASSED' (twice: bare, and under closure record tracing)
+
+== mutants (state_docs.py, applied and restored; worktree clean after)
+A delete memo check:      rc=1, 5 checks failed (arm2 x4? exact list in transcript): 'arm 2: no push (got: 3), arm 2: and nothing at all is written (the mirror is not made), arm 3: the refused push returns non-zero (got: 0), arm 3: the tip was NOT recorded, arm 3: exactly one push, on the retry (got: 3)'
+A through the gate:       'FAIL tools/audit/seat/state_docs.py --self-test passes, beat arms included' + '1 of 2251 ENTITY CHECKS FAILED'
+B record tip on refusal:  rc=1, 2 checks failed (arm 3: the tip was NOT recorded; arm 3: exactly one push, on the retry (got: 2))
+C roster re-fetch removed:rc=1, 5 checks failed (arm 1 re-fetched, arm 1 plan table carries roster, arm 3 x3)
+D one pass and out:       rc=1, 2 checks failed (arm 4: beats again; arm 4: still running)
+
+== sandbox drive (origin, driver clone, fixture roster all under /Users/timmalmstrom/hpo-seats/r9rev-2122/ev/sandbox; no write outside it)
+beat --once, moved tip: pushed exactly one commit; state tree = docs/keep.md + the 3 state docs; roster remote-tracking re-fetched; driver worktree clean, index untouched; tip file = main tip
+beat --once, refusal (remote pre-receive... fixture: generator failure): rc=2, tip NOT recorded, state ref unmoved
+idempotence: runs 2 and 3 (unchanged tip): 'unchanged; nothing written', rc 0, state ref byte-identical
+live loop (interval 0.05, child): survived unchanged tip; landed two successive main moves (tip file reached each); with a roster edit, pushed a NEW state commit inside the loop carrying the edit, docs/keep.md still carried; exited on SIGTERM/SIGINT
+same-roster regeneration while looping: 'already current ... nothing to commit or push', rc 0, tip recorded, no commit — trigger-only move is a no-op, not a dirty write
+
+== classification measured, not asserted (Darwin recording, pinned interpreter)
+closure.py select --diff <merge-base c729bb32> -> 'MODE: FULL -- every test script runs' (GATE_FILES touched: tests/closure.py, tests/closures.json)
+closure.py select --files tools/audit/seat/state_docs.py -> 'MODE: SCOPED -- 1 script(s) run' (INERT_EXCEPT works)
+closure.py record tests/entities.py: files include handover_prompt.py, plan_table.py, record_row.py, resume_doc.py, roster_lib.py, state_docs.py — exactly the committed closure's tools/audit/seat entries
+closure.py check --in-dir --partial -> 'closure: committed closures cover every file this run touched' rc 0; sole over-scoped: tests/golden/card_claimed_drift.txt (main's, as the body says)
+closure.py no-copies under seat-python3 -> passes (the body's local red was workstation python3 3.11, pre-existing at the merge base)
+
+== other figures re-taken at head
+beat lines 0 -> 47; ok arms 17 -> 40; orchestrator.md state_docs mentions 0; VERSION/manifest/RELEASE_NOTES untouched
+STRUCTURE RATCHET PASSED; policy_lint --budgets rc 0, corpus ~59899; env_drift --claims-only c729bb32 ok; tmp_paths --check '0 refused, 0 stale'; archscore 'dS +0.0000 NULL'
+claim files: diff touches none; delivery row dev/programme/delivery/2122.md present at head
+
+== CI at head 9b70f367c (check-runs API): 0 failure; 16 success, 2 in progress (Analyze python, closures), 12 skipped; authored head 3dbbfcc01: cancelled runs superseded by the head's re-runs, no red
