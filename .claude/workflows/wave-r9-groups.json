@@ -3498,7 +3498,7 @@
     "R9-EG-B6"
    ],
    "resume": {
-    "stage": "done",
+    "stage": "fixing",
     "branch": "handoff/r9-eg-coordinator-seams",
     "commit": "301abb21c2fce2e45419e6a67d4d59828c1d1e8d",
     "last_step": null,
