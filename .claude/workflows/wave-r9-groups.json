@@ -4872,7 +4872,7 @@
     "R9-EG-A3"
    ],
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-eg-entry-config",
     "commit": "fc0aff72aa1f28b5bbbcc898b919ed2b7d101b29",
     "last_step": "handoff/r9-eg-entry-config is fc0aff72aa1f28b5bbbcc898b919ed2b7d101b29. No open pull request.",
