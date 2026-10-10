@@ -1210,9 +1210,9 @@
     },
     "total": 93,
     "max_per_round": 25,
-    "detector": "PYTHONPATH=tests/hastub python3 tests/doc_claims.py -- every arm derives its fact set by executing production code and its claim set from the whole reader corpus (README.md, the user docs, the blueprints), opens with a named anchor check, and carries a null control: the I5 barrier's arms (round 9, F10.4) price entity prose against the constructed entity set (counts, per-platform totals, enum state lists, the disabled-by-default census), backticked private names in the card, units in the translation catalogs, options-field labels and their pages against en.json, every stated multi-start count against optimizer._multi_start_minimize, and qs_py_typed_files against the shipped package; F8.3's service-fields arm prices every service paragraph against its registered schema",
+    "detector": "PYTHONPATH=tests/hastub python3 tests/doc_claims.py -- every arm derives its fact set by executing production code and its claim set from the whole reader corpus (README.md, the user docs, the blueprints), opens with a named anchor check, and carries a null control: the I5 barrier's arms (round 9, F10.4) price entity prose against the constructed entity set (counts, per-platform totals, enum state lists, the disabled-by-default census), backticked private names in the card, units in the translation catalogs, options-field labels and their pages against en.json, every stated multi-start count against optimizer._multi_start_minimize, and qs_py_typed_files against the shipped package; F8.3's service-fields arm prices every service paragraph against its registered schema; and R9-RO-PC1's prose-count census reads eleven count SHAPES -- the module total, the module-level importer count and the HA-free count, the option-page count in its four phrasings, the editable-page count, a named service's field count, the service count and the service-definition count -- across the whole corpus, each against the tree's own measurement, in tools/audit/prose_counts_census.py's seam enumeration",
     "detector_idea": "The claims table, link-graph walker and backticked-symbol resolver run per docs-touching PR",
-    "barrier": "tests/doc_claims.py on the PR gate (F10.4, #1645): a docs or code change that leaves a claim of an arm's shape false fails the run, and a doc rewrite that moves an arm's anchor fails it by name instead of aborting the run (carry-1645.json). Not reached: prose that names a setting without its form label (D6-s1-02's own sentence, kept by F8.2's specific check), comment drift in code (D5-s2-51), flowchart and diagram content (D6-s2-02), translation meaning (D8-s3-02), and HA quality-scale code conformance flagged under this class",
+    "barrier": "tests/doc_claims.py on the PR gate (F10.4, #1645): a docs or code change that leaves a claim of an arm's shape false fails the run, and a doc rewrite that moves an arm's anchor fails it by name instead of aborting the run (carry-1645.json). Not reached: prose that names a setting without its form label (D6-s1-02's own sentence, kept by F8.2's specific check), comment drift in code (D5-s2-51), flowchart and diagram content (D6-s2-02), translation meaning (D8-s3-02), and HA quality-scale code conformance flagged under this class. R9-RO-PC1 closed the largest of the former gaps -- a count stated in a document whose arm keys on a specific sentence -- with a corpus-wide census of count SHAPES in the same script, and its two remaining limits are named here: a count spelled as a word ('five pages', 'twelve files'), which no shape's digit grammar matches, and the ~60 `steps` cells in configuration.md's tables, which stay unread because C30 compares only the Default column and C31 the min/max -- planting 0.5 steps to 0.7 steps left every instrument green",
     "status": "barriered",
     "mechanism_note": "Stretched. Holds production translation/icon coverage (R1 D10-13, R4 D8-02, R8 D4-s2-01; R9 re-maps N-escape, N-service-icons, N-language) and rendering defects (R9 N-markdown), which are not drift against code; and R1 D10-01/D10-02/D10-12 are HA quality-scale code conformance (flagged, no class fits).",
     "aliases": [
@@ -1228,6 +1228,7 @@
     "rca": [
       "BULK-3-1545",
       "R9-I5",
+      "R9-RO-PC1",
       "RCA-1546",
       "RCA-R8-I5b"
     ],
@@ -1239,7 +1240,12 @@
       "cross_round": true,
       "barriered_any": true,
       "class_rca_on_record": true
-    }
+    },
+    "non_round_instances": [
+      "#2024 (fix/r9-ux9, resolution 45f43a506) -- both branches added a production module and recorded the same prior count, so tests/deployment_shape.py's 'all 91 files' sat OUTSIDE the conflict markers because both sides wrote it identically while the merged tree holds 92 (R9-RO-PC1)",
+      "#2065 (fix/live-power-clamp-foundation-pr, resolution 9b39bb7c6) -- this lane's draw_range.py and #2024's flow_meter.py each recorded the resulting count as 74, so every number in those records was a measurement to re-derive on the merged tree, not a side to pick (R9-RO-PC1)",
+      "#2066 (fix/cop-duty-floor, resolution 499f4b4df) -- main's own merge recorded 'The other 46 modules are deliberately free of it' and the branch's draw_range.py is a 75th that touches nothing HA, so the merged tree measures 47 and no conflict marker said so; corrected to what entities.py's own HA-free check printed (R9-RO-PC1)"
+    ]
   },
   "N-future-instant": {
     "kind": "production",
@@ -3123,6 +3129,25 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1645"
       ],
       "in_tree_home": "dev/audit/rca/R9-I5.md"
+    },
+    "R9-RO-PC1": {
+      "class": "I5",
+      "level": "class",
+      "subject": "class I5 recurrence: a prose count survives a byte-identical merge (#2024, #2065, #2066)",
+      "trigger": "class (three resolution rounds on 2026-10-09, each carrying a new production module across a merge that reported rc 0)",
+      "date": "2026-10-09",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) followed, did not produce the result -- entities.py's #939 derived figures and claims.py C32/C34/C39 read architecture.md's sentences and are correct for that document; no arm was keyed on the count's SHAPE, so the same quantity stated in another document, and three phrasings the sentence regexes do not match, were read by nothing",
+      "countermeasure": "a corpus-wide census of count shapes in tests/doc_claims.py (check_prose_tree_counts), whose seams tools/audit/prose_counts_census.py enumerates against a disposition",
+      "landed": "handoff/r9-pc1 -- the census arm and this fold in one branch",
+      "doc": [
+        "dev/audit/rca/R9-RO-PC1.md",
+        "https://github.com/tvofi/heatpump_optimizer/pull/2024",
+        "https://github.com/tvofi/heatpump_optimizer/pull/2065",
+        "https://github.com/tvofi/heatpump_optimizer/pull/2066"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RO-PC1.md"
     },
     "R9-I1": {
       "class": "I1",
