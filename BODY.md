@@ -4,7 +4,7 @@ The dispatch arm is deliberately **not** built: the sibling lane `R9-RC-AUTOFIX-
 
 ## Head
 
-`7f40401c7` on `handoff/r9-ci-1` — the merge of `origin/main` `70b50c573` (#2072) into the fix, whose own commit is `a5005008d` (its arms came first at `5ae1c1608`, red at `23d354970`). The merge brought five files, none of them one this diff or the pin lane reads: `CLAUDE.md`, `dev/governance/roles/fixer.md`, `dev/programme/carries/carry-1922.json`, `dev/programme/delivery/2072.md`, `tools/pr/prepr.sh`. The three CI proof runs below were taken at `a5005008d`'s tree, which the merge does not change in any file the lane reads.
+`7f40401c7` on `handoff/r9-ci-1` — the merge of `origin/main` `70b50c573` (#2072) into the fix, whose own commit is `a5005008d` (its arms came first at `5ae1c1608`, red at `23d354970`). The merge brought five files, none of them one this diff or the pin lane reads: `CLAUDE.md`, `dev/governance/roles/fixer.md`, `dev/programme/carries/carry-1922.json`, `dev/programme/delivery/2072.md`, `tools/pr/prepr.sh`. The three CI proof runs below were taken at `a5005008d`'s tree, which the merge does not change in any file the lane reads. The figures that are functions of `origin/main`'s tip were re-taken after the 2026-10-10 ~17:07 `app_push` refusal, at tip `d3dbf2c3f` (2026-10-10T16:11Z), and are unchanged: the re-take is its own row in `## Figures`.
 
 ## Pre-study, re-derived
 
@@ -64,11 +64,13 @@ The perturbation the harness moves under is those nine mutants, plus the budget 
 - `python3 tools/pr/ci_predict.py --base origin/main`: CI PREDICT: no closures or fast red predicted.
 - the proofs' own runs and jobs: Tests 38043679085 (#2080, shard job `mutation-pins (1)`, autofix job `mutation-autofix`), Tests 38043679149 (#2082), Tests 38034950357 (#2079), all read through `gh api repos/tvofi/heatpump_optimizer/actions/runs/<id>/jobs`.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: MODE: FULL — `.github/workflows/tests.yml` changes the gate itself, so every closure is suspect.
+- re-take at origin/main `d3dbf2c3f`, 2026-10-10T16:11Z, head `7f40401c7`: `python3 tools/pr/ci_predict.py --base origin/main` → `CI PREDICT: no closures or fast red predicted against 70b50c5730d7`; `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` → `MODE: FULL`; `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`; `node tools/policy/policy_lint.mjs --budgets` → `.claude/rules/ci-autofix.md` 91/96 lines, 1466/1469 tokens; `bash tools/pr/prepr.sh` in the app_push environment → `PRE-PR: 7f40401c72fc67689b2707e875542a22839964ee 000000000000000000000000000`, exit 0.
 
 ## Red checks
 
 - `pr-contract` on the three proof drafts (#2079, #2080, #2082) is red: their bodies are proof-only and carry no `## Red checks` answer, and they are tvofi-authored rather than `hpo-author`. That is `pr-contract` working as designed on a carrier that is not a delivery. No cheaper detector is owed: the drafts exist to move one behaviour on a real head, and they are closed rather than merged.
 - On this branch's own head, CI has no red: `gh api .../commits/a5005008.../check-runs` lists `pr-contract` alone as non-green, and that red belongs to the draft's body, not the branch's code.
+- The 2026-10-10 ~17:07 `app_push` refusal that stopped this lane printed **no `REFUSE` step line**: `prepr`'s only failure path prints one, so a non-zero exit with none is a killed or crashed run, not a gate verdict — and `handoff_push.sh`'s `grep -E 'REFUSE|PUSHED'` filter keeps no other trace of it. Re-run at this head in the app_push environment (`PATH=$HOME/.local/state/hpo/venv-ci/bin:$PATH PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, origin/main `d3dbf2c3f`) it prints a clean `PRE-PR` with `EXIT=0`, measured twice: detached at the head, and on `handoff/r9-ci-1` with its remote ref present. No check named a red, so no check is answered here.
 
 ## Forward-carry
 
