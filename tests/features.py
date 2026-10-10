@@ -61390,6 +61390,35 @@ def _ec_fire(value, **kw):
     return c
 
 
+# 251 CMP_BOUND, both bounds of _planned_room's chain, driven DIRECTLY and
+# FIRST in this section: the low-bound mutant (`0 <= i` -> `0 < i`) empties
+# the first step's read, and threshold's `max(base, *[])` then raises on the
+# very first fire below -- these checks must print their FAIL before the file
+# dies there, or the kill is rc-only (a shape the local FAIL-line verifier
+# cannot see; the bot's threshold RETURN_DEL pin is the same crash kill).
+_ec_pfirst = _ec_plan("ss", 21.0, measured=20.0)
+R.check(
+    "_planned_room reads the first step's end (the i == 0 bound is inclusive)",
+    _ec._planned_room(_ec_pfirst, _ec_dt.now()) == [21.0],
+    f"{_ec._planned_room(_ec_pfirst, _ec_dt.now())}",
+)
+_ec_pt0 = _ec_pfirst.timestamps[0]
+_ec_ragged = _PaNS(
+    timestamps=[_ec_pt0, _ec_pt0 + timedelta(minutes=15),
+                _ec_pt0 + timedelta(minutes=30)],
+    room_temp_trajectory=[21.0, 22.0],
+)
+try:
+    _ec_ragged_view = _ec._planned_room(_ec_ragged, _ec_pt0 + timedelta(minutes=20))
+except IndexError:
+    _ec_ragged_view = "IndexError"
+R.check(
+    "_planned_room holds no reading past a trajectory shorter than its timestamps",
+    _ec_ragged_view == [],
+    f"{_ec_ragged_view!r}",
+)
+
+
 # The trigger: past target + margin on a space-only step, one turn_off.
 _ec_hot = _ec_fire(22.0)
 R.check(
@@ -61817,6 +61846,30 @@ R.check(
     "a reading after the entry is released writes no cut",
     _ec_reld.offs() == [],
     f"{_ec_reld.offs()}",
+)
+
+# --- Round 6: the two bounds the CI pin drive at a15508b7a measured surviving
+# (shard 7: one 251 twin; shard 4: both 264 twins). Same rules as round 5:
+# production code driven directly where the public path cannot reach the exact
+# bound, none re-implemented. The 251 pair sits at the top of the section
+# (above the first fire), for the reason stated there.
+
+# 264 CMP_BOUND, the MIN_ON bound: strict <, the twin of the MIN_OFF check
+# above. A switch on exactly MIN_ON is not held (a `<=` mutant holds it); now
+# is fixed so the subtraction is exact. The line's other bound (the clock-skew
+# `> utc`) is equivalent and triaged in the ledger: when the stamp equals utc
+# exactly, zero elapsed is already < MIN_ON, so both return "min_on".
+_ec_mon = _EcCoord()
+_ec_mon.arm()
+_ec_mon_h = _ec.state_for(_ec_mon)
+_ec_mon_now = _ec_dt.now()
+_ec_mon_h.cut_this_cycle = False
+_ec_mon_h.cycle_end = _ec.dt_util.as_utc(_ec_mon_now) + _ec.MIN_OFF + timedelta(minutes=1)
+_ec_mon.hass.states.get(_EC_SW).last_changed = _ec.dt_util.as_utc(_ec_mon_now) - _ec.MIN_ON
+R.check(
+    "the min_on guard is a strict < (a switch on exactly MIN_ON is not held)",
+    _ec._cycle_guard(_ec_mon.arbiter_inputs(), _ec_mon_h, _ec_mon_now) is None,
+    f"{_ec._cycle_guard(_ec_mon.arbiter_inputs(), _ec_mon_h, _ec_mon_now)}",
 )
 
 
