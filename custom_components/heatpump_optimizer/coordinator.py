@@ -32,7 +32,7 @@ from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
 
 import aiohttp
 import numpy as np
@@ -48,6 +48,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .payload import (
+    AwayFold,
     Battery,
     ContractComparison,
     CurrentAction,
@@ -1595,6 +1596,41 @@ def _energy_totals_view(totals: dict[str, float]) -> EnergyTotals:
         "space_cost": round(totals["space_cost"], 4),
         "dhw_cost": round(totals["dhw_cost"], 4),
         "total_cost": round(totals["total_cost"], 4),
+    }
+
+
+def _whatif_banded(state: Any) -> bool:
+    """Whether the card's what-if plans with the away setback (R9-UX-5).
+
+    True only while away is in force and recovery has not started, which is
+    when the live solve lowers the floor. Otherwise the flag is false and
+    the what-if prices the configured band, as it does with no setback.
+    """
+    return bool(state.active and not state.recovery_active)
+
+
+def _fold_away(state: away_mode.AwayState, data: Mapping[str, object]) -> AwayFold:
+    """The away view, and the floor the plan solved against while away.
+
+    ``min_temperature`` in ``data`` is the configured floor. During a setback
+    the solve holds the lower of that and the away target; this publishes
+    that floor and names the configured one beside it. With no setback the
+    view is the away dict alone, so the payload keeps the key it had.
+    """
+    view = cast(AwayFold, state.as_dict())
+    if not view.get("away_active") or view.get("away_recovery_active"):
+        return view
+    configured = data.get("min_temperature")
+    target = view.get("away_target_temperature")
+    if not isinstance(configured, (int, float)) or not isinstance(target, (int, float)):
+        return view
+    floor = min(float(configured), float(target))
+    if floor == float(configured):
+        return view
+    return {
+        **state.as_dict(),
+        "min_temperature": floor,
+        "configured_min_temperature": float(configured),
     }
 
 
@@ -5403,8 +5439,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         weight and corrections, the holiday calendar, the hot-water plan's
         inputs, the burn and the peak guard -- goes into the copies (#1736).
         ``banded`` adds the away setback and economy's and an open window's
-        widened floor; the card's what-if prices without them, as it always
-        has (whether it should is the owner's call, #1736's parity lead).
+        widened floor. The card's what-if passes it only while away, so a
+        setback is in the price and a house that is not away is unchanged.
         Deep copies, so the process worker and the in-process fallback alike
         share no mutable state with the event loop (#240).
         """
@@ -7694,7 +7730,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ):
             data = {**data, **view()}
         data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
-        data = {**data, **self._away_state.as_dict()}
+        data = {**data, **_fold_away(self._away_state, data)}
         data = {**data, **_energy_totals_view(self._energy_totals)}
         # The date the lifetime accumulators started: a number that answers
         # to no stated period reads as "very high", and this is the since.
@@ -11042,7 +11078,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         The background callers price against ``base``, the record of the
         solve they follow; the card against the hubs as they stand, with
-        this moment's solve values and without the away setback (#1736).
+        this moment's solve values and the active away setback (#1795).
         """
         ctx = getattr(self, "_ctx", self)
         now = dt_util.now()
@@ -11070,7 +11106,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         if base is None:
             config, params, state = self._solve_hubs(
-                len(horizon.prices), banded=False
+                len(horizon.prices), banded=_whatif_banded(self._away_state)
             )
         else:
             config, params, state = base.config, base.params, base.inputs.state

@@ -46,7 +46,8 @@ EVENT_DATA: dict[str, tuple[str, ...]] = {
         "entry_id", "month", "total_sek", "saving_sek", "saving_pct", "currency",
     ),
     EVENT_COMFORT_AT_RISK: (
-        "entry_id", "predicted_min_c", "at", "floor_c", "peak_guard_suppressing",
+        "entry_id", "predicted_min_c", "at", "floor_c",
+        "peak_guard_suppressing", "cause",
     ),
     EVENT_INPUT_STALE: ("entry_id", "input", "age_minutes", "max_age_minutes"),
     EVENT_PLAN_STALE: ("entry_id", "age_minutes"),
@@ -87,6 +88,18 @@ def _monthly_receipt(data: Payload) -> Detected:
     })}
 
 
+def _comfort_cause(data: Payload, when: Any) -> str | None:
+    """The coldest step's published reason, when the plan carries one."""
+    plan = data.get("space_plan")
+    if not isinstance(plan, dict):
+        return None
+    for step in plan.get("forecast") or []:
+        if isinstance(step, dict) and step.get("t") == when:
+            reason = step.get("reason")
+            return reason if isinstance(reason, str) and reason else None
+    return None
+
+
 def _comfort(data: Payload) -> Detected:
     floor = data.get("min_temperature")
     steps = data.get("schedule")
@@ -106,6 +119,7 @@ def _comfort(data: Payload) -> Detected:
         "at": when,
         "floor_c": floor,
         "peak_guard_suppressing": bool(data.get("peak_guard_suppressing")),
+        "cause": _comfort_cause(data, when),
     })}
 
 
