@@ -7152,7 +7152,7 @@
    ],
    "brief": "Pre-study R9-DBG-0 (doc tools/audit/round9/prestudy/debugger-prestudy.md on handoff/r9-dbg-0 @eae236d66 - read it fully; its section shapes are this brief's source; the bundle format from the prototype generator is the frozen spec, oracle = its synthetic week). Build the collector module: a new debugger module in the integration package (the ring, the per-cycle row builder and the bundle assembly live there), the store DOMAINS entry and store construction (F1-owned borrow declared), the CONF and SERVICE constants, the activation option in the config flow plus strings and both translations, the activate/stop/finalize service and button, the coordinator one-line tick hook and spawn (seam-map entry owed per fixer.md step 12), and the diagnostics module (unowned). After-edges: F1.11, F3.3, F4.2, F5.2, F8.3 (all merged - startable now). HARD reuse constraint carried from tvofi via the pre-study: per-component reuse naming; the persisted ring lives in the debug-namespaced store so a reload cannot lose it (the reload-mid-week test is owed by construction - the options toggle triggers a reload); the first real bundle size is measured in the PR body (the synthetic week is a floor). ~350-450 production lines, ratchet payments declared.",
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-dbg-1",
     "commit": "fca0bea0c9ab864d087a6ee8939500b833f7d32c",
     "last_step": "handoff/r9-dbg-1 is 6ddebd3120e7e59a1a223d89e9f9a3b36c102314. No open pull request.",
