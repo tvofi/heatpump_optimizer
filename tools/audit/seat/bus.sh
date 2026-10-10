@@ -20,10 +20,21 @@
 #
 # push-verdict REFUSES, AND PUSHES NOTHING, unless the first line is in
 # `fix-review.md`'s grammar (the regex is `app_comment.sh`'s), the verdict
-# carries its dispatch's `bus-nonce:` line, and a file under the evidence
-# directory names the verdict's 40-hex head. VERDICT.md alone does not count:
-# it names the sha by construction, and `app_approve.sh`'s evidence gate
-# exists to make a forged verdict forge artifacts too.
+# carries its dispatch's `bus-nonce:` line, that nonce's record in
+# `$S/dispatched` names THIS pull request at THIS head, and a file under the
+# evidence directory names the verdict's 40-hex head. The record check is at
+# publish time so a reviewer whose head moved is refused before its seat goes
+# idle; `confirm` keeps the same check as the signed gate. VERDICT.md alone
+# does not count: it names the sha by construction, and `app_approve.sh`'s
+# evidence gate exists to make a forged verdict forge artifacts too.
+#
+# NONCE VISIBILITY. The record lives in `$S` — `$HPO_BUS_STATE` else
+# `$HOME/.zcode/bus`, a per-machine path. `dispatch`, `push-verdict` and
+# `confirm` must all resolve the SAME `$S`, or the reviewer cannot see the
+# dispatch its own brief named: a seat is a subagent of the orchestrator's one
+# session on one machine (round-9 plan, Model routing), so this holds, and a
+# reviewer on a different machine is refused its own nonce -- mint the dispatch
+# where the reviewer runs.
 #
 # watch lists the four ref families on the remote and prints one line per
 # ref that appeared, moved or went since the last pass:
@@ -98,6 +109,16 @@ verdict_sha() { # first line
 verdict_nonce() { # verdict file -> the first bus-nonce, or nothing
   sed -n 's/^bus-nonce: \([0-9a-f]\{32\}\)$/\1/p' "$1" | head -n 1
 }
+dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, head); else why
+  local n rec rp rh
+  n=$(verdict_nonce "$1")
+  rec=$(awk -v n="$n" '$4 == n { print $1, $2; exit }' "$S/dispatched" 2>/dev/null)
+  [ -n "$rec" ] || { printf 'unknown nonce %s: no dispatch in %s minted it; mint one at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$S/dispatched" "$2" "$3"; return 1; }
+  rp=${rec%% *} rh=${rec#* }
+  [ "$rp" = "$2" ] || { printf 'nonce %s belongs to pull request #%s, not #%s; mint a dispatch for this one with bus.sh dispatch %s %s <reviewer>' "$n" "$rp" "$2" "$2" "$3"; return 1; }
+  [ "$rh" = "$3" ] || { printf 'nonce %s was dispatched at head %s, not the head %s this verdict names; mint a fresh dispatch at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$rh" "$3" "$2" "$3"; return 1; }
+  return 0
+}
 numeric() { case $1 in ''|*[!0-9]*) return 1 ;; esac; return 0; }
 approver_key() { # -> the hpo-approver App's private key on this machine, or a non-zero exit
   local k=${HPO_IDENTITY_DIR:-$HOME/.zcode}/identity-approver.pem
@@ -117,7 +138,7 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
 }
 
 push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
-  local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree
+  local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree why
   numeric "$pr" || die "push-verdict: the pull request '$pr' is not a number"
   [ -f "$v" ] || die "push-verdict: no verdict file at '$v'"
   first=$(head -n 1 "$v")
@@ -130,6 +151,10 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
     || die "push-verdict: no file under $ev names the head $hsha"
   [ -z "$(find "$ev" -type f -size +50M 2>/dev/null)" ] \
     || die "push-verdict: a file under $ev is over 50 MB; cite it by path instead"
+  # Verify the nonce against the dispatcher's record before proposing: a
+  # proposal confirm would refuse must be refused here, while the reviewer is
+  # still working, not after its seat has gone idle.
+  why=$(dispatch_binding "$v" "$pr" "$hsha") || die "push-verdict: $why"
   t=$(mktemp -d) || die "push-verdict: no temporary directory"
   mkdir -p "$t/w/evidence" && cp "$v" "$t/w/VERDICT.md" && cp -R "$ev"/. "$t/w/evidence/" \
     || { rm -rf "$t"; die "push-verdict: could not stage the verdict and its evidence"; }
@@ -325,7 +350,7 @@ watch() {
 }
 
 self_test() {
-  local W pass=0 fail=0 out rc h1 h2 r1 r2 r9 v1 v2 ra rs rf t tt ev n N0 N1 N1b N2 N9
+  local W pass=0 fail=0 out rc h1 h2 r1 r2 r9 v1 v2 ra rf t tt ev n N0 N1 N1b N1c N2 N9
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -408,7 +433,9 @@ P
 
   # The forgeries PROC-4's round-1 review drove: any seat can push a
   # well-formed verdict with evidence, on either family, so no ref posts alone.
-  out=$(seat push-verdict 11 "$W/merge0.md" "$W/ev1")
+  # push-verdict refuses an undispatched verdict, so a forger pushes the ref by hand.
+  t=$(printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N0" | raw "$h1" "verdict: #11 forged")
+  git -C "$W/seat" push -q origin "$t:refs/heads/review/11"
   rf=$(tip review/11)
   t=$(printf 'Fix review: merge %s\n' "$h1" | raw "$h1" "verdict: #12 forged")
   git -C "$W/seat" push -q origin "$t:refs/heads/verdict/12"
@@ -438,14 +465,23 @@ P
   [ "$N1" != "$N1b" ]; expect "two dispatches mint two nonces" $?
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1" > "$W/merge.md"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1b" > "$W/othernonce.md"
-  out=$(seat push-verdict 7 "$W/othernonce.md" "$W/ev1")
-  ra=$(tip review/7)
-  out=$(run watch --once --post)
-  echo "$out" | grep -q "^BUS undispatched 7 $ra" && [ "$(calls)" = 0 ]
-  expect "another dispatch's nonce does not count" $?
+  # push-verdict binds the nonce to its dispatch before it proposes. A nonce no
+  # dispatch minted, or one a dispatch minted for another pull request, is
+  # refused here rather than surfacing at confirm once the seat has gone idle.
+  out=$(seat push-verdict 7 "$W/merge0.md" "$W/ev1"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "unknown nonce"; expect "push-verdict refuses a nonce no dispatch minted" $?
+  out=$(seat push-verdict 7 "$W/othernonce.md" "$W/ev1"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "belongs to pull request #12"; expect "push-verdict refuses another pull request's nonce" $?
+  git -C "$W/seat" ls-remote --exit-code origin 'refs/heads/review/7' >/dev/null 2>&1
+  [ $? = 2 ]; expect "no refused proposal left a review/7 ref" $?
 
   git -C "$W/seat" push -q origin HEAD:refs/heads/handoff/t1
   out=$(seat push-verdict 7 "$W/merge.md" "$W/ev1"); rc=$?
+  ra=$(tip review/7)
+  [ $rc = 0 ]; expect "push-verdict proposes a verdict its own dispatch minted the nonce for" $?
+  N1c=$(run dispatch 7 "$h1" cmsg_R | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1c" > "$W/merge-ff.md"
+  out=$(seat push-verdict 7 "$W/merge-ff.md" "$W/ev1"); rc=$?
   r1=$(tip review/7)
   [ $rc = 0 ] && [ "$(tip review/7^)" = "$ra" ]; expect "push-verdict proposes on review/<pr>, fast-forwarding it" $?
   out=$(run watch --once --post)
@@ -488,12 +524,11 @@ P
   echo "$out" | grep -q "^BUS unsigned 7 $t"; expect "a signature over another tree does not post" $?
   tt=$t
 
-  # Round 2 at a new head: a fresh dispatch; round 1's nonce no longer binds.
+  # Round 2 at a new head: round 1's nonce no longer binds, refused at publish.
   printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N1" > "$W/stale.md"
-  out=$(seat push-verdict 7 "$W/stale.md" "$W/ev2")
-  rs=$(tip review/7)
-  out=$(run watch --once --post)
-  echo "$out" | grep -q "^BUS undispatched 7 $rs" && [ "$(calls)" = 1 ]; expect "round 1's nonce does not count at another head" $?
+  out=$(seat push-verdict 7 "$W/stale.md" "$W/ev2"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "was dispatched at head $h1" && [ "$(tip review/7)" = "$r1" ]
+  expect "round 1's nonce does not count at another head" $?
   N2=$(run dispatch 7 "$h2" cmsg_R | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N2" > "$W/blocked.md"
   out=$(seat push-verdict 7 "$W/blocked.md" "$W/ev2")
