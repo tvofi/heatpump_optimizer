@@ -1,0 +1,20 @@
+2026-10-10T18:43:12.5730293Z # Each program at its path before and after the reorganisation (R9-RO-2):
+2026-10-10T18:43:12.5730868Z # the diff lists what PINNED holds of them, skipping the half it lacks,
+2026-10-10T18:43:12.5731414Z # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+2026-10-10T18:43:12.5731976Z git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+2026-10-10T18:43:12.5732441Z   '.claude/workflows/*.mjs' \
+--
+2026-10-10T18:43:14.9690138Z # One --red flag per name, never one comma-joined value: a check
+2026-10-10T18:43:14.9690626Z # name containing a comma would split into fragments neither the
+2026-10-10T18:43:14.9691040Z # refusal nor `## Red checks` can match.
+2026-10-10T18:43:14.9691340Z RED_ARGS=()
+2026-10-10T18:43:14.9691578Z while IFS= read -r name; do
+--
+2026-10-10T18:43:20.5524435Z 
+2026-10-10T18:43:20.5524764Z PR-BODY: 1 error(s) in /tmp/pr-body.md
+2026-10-10T18:43:20.5590878Z ##[error]Process completed with exit code 1.
+2026-10-10T18:43:20.5649937Z ##[group]Run if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
+2026-10-10T18:43:20.5651401Z if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
+--
+2026-10-10T18:43:20.6289575Z              `tests/structure.py` is in the tree at this head
+2026-10-10T18:43:20.6290448Z   unverified git show origin/main:tests/structure_budgets.json

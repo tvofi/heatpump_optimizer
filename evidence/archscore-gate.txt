@@ -1,0 +1,4 @@
+merge base 969c3a5c84d0, head beb97ea691f9
+Architecture score: dS -0.0028 WORSENS (inadmissible: coord_footprint 2586->2591)
+  coord_footprint 2586 -> 2591  -0.0028
+PASS: dS -0.0028 WORSENS; every rise explained in the body: coord_footprint 2586->2591

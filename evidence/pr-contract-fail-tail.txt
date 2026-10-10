@@ -1,0 +1,30 @@
+2026-10-10T17:41:56.9283112Z              8795 a
+2026-10-10T17:41:56.9283322Z              10 b
+2026-10-10T17:41:57.1188601Z   ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+2026-10-10T17:41:57.1278563Z ##[group]Run set -euo pipefail
+2026-10-10T17:41:57.1278890Z set -euo pipefail
+2026-10-10T17:41:57.1279288Z git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+2026-10-10T17:41:57.1280134Z if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi
+2026-10-10T17:41:57.1347238Z shell: /usr/bin/bash -e {0}
+2026-10-10T17:41:57.1347509Z env:
+2026-10-10T17:41:57.1347770Z   PR_HEAD: beb97ea691f95f20de19f512460ee7ad361c35ba
+2026-10-10T17:41:57.1348088Z ##[endgroup]
+2026-10-10T17:41:57.3796805Z no version edit: origin/main...beb97ea691f95f20de19f512460ee7ad361c35ba moves none of VERSION, the manifest version or a notes heading
+2026-10-10T17:41:57.3907522Z Post job cleanup.
+2026-10-10T17:41:57.5182206Z (node:2562) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T17:41:57.5183037Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T17:41:57.5394295Z Post job cleanup.
+2026-10-10T17:41:57.6389048Z [command]/usr/bin/git version
+2026-10-10T17:41:57.6451560Z git version 2.55.0
+2026-10-10T17:41:57.6494334Z Temporarily overriding HOME='/home/runner/work/_temp/262f0306-9db4-48be-8151-fd36d0044365' before making global git config changes
+2026-10-10T17:41:57.6495301Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T17:41:57.6502722Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-10T17:41:57.6550156Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T17:41:57.6593846Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T17:41:57.6875777Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T17:41:57.6907545Z http.https://github.com/.extraheader
+2026-10-10T17:41:57.6920196Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T17:41:57.6965530Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T17:41:57.7257877Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T17:41:57.7305853Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T17:41:57.7727854Z Cleaning up orphan processes

@@ -1,19 +1,64 @@
-Fix review: blocked bc048801823eb4f77cfa42f54083214c154336a5 root-cause-unanswered: typing and mutation went red at this head and ## Red checks names neither; typing is a new no-any-return in coordinator.py (census errors 0 -> 1, by_code no-any-return 1, almost certainly _interval_measured_heat_kw's `return heat_kw` under `-> float | None`), which no autofix lane repairs; mutation is the six unpinned sites awaiting the mutation-autofix bot (mutation-pins was RUNNING at measurement) plus the re-digested CLAMP_DROP, answered under ## Unpinned sites but not under ## Red checks -- pr-contract itself refuses with exactly these two errors. The fix is otherwise sound; every other measurement re-derived clean.
+Fix review: blocked beb97ea691f95f20de19f512460ee7ad361c35ba head-moved: measured beb97ea691f95f20de19f512460ee7ad361c35ba, head is cfa9fb9aa6846b8707df45808a9c266f042d8e4d (one commit, "ci: re-record closures", tests/closures.json +1 line)
 
-bus-nonce: fbddc2a4e3efb991677405f1993712c1
+bus-nonce: 688b00962bc87f658848cf3d6f50cb7d
 
-Head measured: bc048801823eb4f77cfa42f54083214c154336a5 (PR #2118, branch fix/r9-ux-10-v2), merge base 7cd5a588cbbbef354c00148040da2d720b8a888c.
+Round: 2 (delta review of the repair round; round 1 measured the substance at
+bc0488018, which this review does not re-open).
 
-RESULT harness (finder's, dev/audit/harnesses/ux10_flow_into_model.py, re-run at this head, PYTHONPATH=tests/hastub, Python 3.14.7): BLOCK head: rc=0 failing_checks=0 (ALL 8 UX-10 EXTRACT PASSED); BLOCK base: rc=0 failing_checks=6, the two model checks on TypeError: simulate_step() got an unexpected keyword argument 'measured_heat_kw' -- the failing-first red is the missing symbol; mutants: m_sub_single 1, m_sub_two_zone 2, m_veto 1, m_veto_return_del 1, m_veto_tail_del 4, m_bound_dhw 4, m_bound_space 1, m_guard_off_house 1, m_guard_off_lower 1, m_precedence 1, m_flow_ok 1, m_except_return_del 0 (equivalent, triaged) -- all twelve match the body's table; NULL CONTROL every unset-arm figure head == base: True, unchanged in every mutant: True; BITES all six True; UPPER_PLANTED 20.943135666666667 / RESIDUAL_PLANTED -0.043135666666668016 / SLAB_PLANTED 27.0422035 / SCALE 1.01 every tree -- the body's figures re-derived verbatim.
+## What was verified at beb97ea691f95f20de19f512460ee7ad361c35ba (all survive as numbers; none carry a merge verdict to a moved head)
 
-RESULT gating (adversarial question 1): the condition is exactly mass-flow key present AND no power entity AND no compressor-frequency signal. flow_meter.read_heat_output_kw refuses on `not cfg.get(CONF_FLOW_METER_ENTITY) or cap.measured_power or cap.frequency`; probe_install sets measured_power from CONF_POWER_ENTITY and frequency from CONF_COMPRESSOR_FREQ_ENTITY or CONF_COMPRESSOR_FREQ_SENSOR. The features arm check plants a power entity and a frequency sensor as separate arms and asserts measured_heat_kw is None while _house_heat_loss_samples == 1 and nothing escaped -- a power-signal install keeps the model-inferred heat, and m_precedence (precedence -> False) is killed on exactly those two arms, so the check bites. Unit conversion (question 2): the learner receives the CONVERTED kW -- read_flow_kg_s -> normalize_flow_kg_s (unit-aware, L/min at 0.998 kg/L); the check asserts a planted 15 L/min over a 5 K drop reaches the replay as 5.222035 kW, and the gal/min arm refuses. No factor-of-1000 path exists.
+- RESULT typing-ruler (mine, pinned toolchain): `ALL 9 typing-ruler checks PASSED`
+  under `--mypy` with mypy 2.3.1 / homeassistant-stubs 2026.9.3 (venv built fresh
+  from `--print-requirements`); source-only lane `ALL 11 ... PASSED`. Independent
+  `mypy --strict` over custom_components/heatpump_optimizer: 0 error lines, so the
+  census is 0, not merely "did not grow".
+- RESULT arch-score gate (base's copy, base 969c3a5c8): `PASS: dS -0.0028 WORSENS;
+  every rise explained in the body: coord_footprint 2586->2591`. The body's
+  `## Architecture score` says 2586 -> 2591 and explains it — body and gate agree.
+  (The dispatch prompt's "2590 -> 2591" was the prompt's summary, not the body's
+  figure; the body carries the gate's real numbers.)
+- RESULT mutation: bot pin commit 72cfb1d07 IS an ancestor of the measured head;
+  `mutation_table.py --list RETURN_DEL` at the head reads both
+  `coordinator.py:830` and `:872` as `pinned ... pass`. The head's own CI mutation
+  lane (job 114273437986, green): `MUTATION TABLE PASSED`, 4 mutants over 2 files,
+  0 survivors, PIN RE-VERIFICATION 4 reproduced / 0 not reproduced (830 RETURN_DEL
+  killed by tests/features.py), and no `ADDED UNPINNED` line anywhere in the log.
+  `ci_predict.py --base 969c3a5c8`: "no closures or fast red predicted" (before the
+  closures red below materialised — the predictor does not read inert_reads).
+- RESULT production delta bc0488018..beb97ea69: exactly ONE file,
+  custom_components/heatpump_optimizer/coordinator.py, one line:
+  `heat_kw: float | None = coord._flow_bias.heat_output_kw`. No second production
+  change. VERSION / manifest / RELEASE_NOTES heading untouched in the delta.
+- RESULT typing CI job at the head: success.
 
-RESULT doc (question 3): docs/configuration.md no longer carries "read for display only and does not feed the learners"; the replacement states the space-only-interval rule and the hot-water fallback to the commanded draw, which is what _interval_measured_heat_kw's `dhw_kw > 0.0 or space_kw <= 0.0` does.
+## Why blocked, in order of what happened
 
-RESULT #2016 (question 4): closing is correct. The owner's scheduling comment (tvofi, 2026-10-07) splits the issue: UX-9 (#2024) delivered items 1-3 and the published figure; UX-10 delivers item 4 and item 5's model-side acceptance, and "UX-10's PR closes this issue". Item 5's advisor row is #2024's; the 5.222035 kW literal, the follows-the-sensor and the unset null control are this PR's block. The COP-learner half of item 4's parenthetical is deliberately not fed (alternatives, #3) with reasoning both handoff designs share; the owner's ruling scopes item 4 as "wiring the measured output into the model's heat-output estimate", which is what landed.
+1. At the measured head, `closures` went red (18:36Z): `INERT READS
+   UNDER-APPROXIMATED: tests/harness_headers.py:
+   dev/audit/rounds/round9/prestudy/boost_drift_refit.py`. Main tip 969c3a5c8
+   carries the IDENTICAL failure (its own push, 17:22Z), and closures-autofix at
+   the head printed `closures-autofix: changed -- nothing owed to a human` — so
+   the red is main's (#2109's prestudy file), not this branch's diff. It is,
+   however, a red at this head that `## Red checks` does not name, and pr-contract
+   said so: the 18:43Z run FAILED with `check 'closures' is red and '## Red
+   checks' does not name it` (red-history: closures, mutation, typing — the body
+   names mutation and typing, not closures).
+2. While this review ran, the branch moved: `fix/r9-ux-10-v2` is now
+   cfa9fb9aa6846b8707df45808a9c266f042d8e4d, exactly one commit, `ci: re-record
+   closures`, +1 line in tests/closures.json — the re-record that answers (1).
+   The handoff made beb97ea69 mine; a head that moves under the review is a
+   broken rule, not an accident, and a merge verdict cannot attach to a head that
+   no longer exists.
 
-RESULT forward-carry (question 5): the body's ## Forward-carry is "none"; roster checked (wave-r9-groups.json) -- no stage not started rests on the interval replay's heat input; the single-zone room-rate coupling finding is recorded in the body and routed to the orchestrator; no named destination is absent, so carry-missing does not fire.
+The move is the closure re-record, a data file, no production code: the delta
+from beb97ea69 to cfa9fb9aa is one line in tests/closures.json. Re-measuring that
+delta is offered to the orchestrator, never owed by this verdict.
 
-RESULT the rest: env_drift --all NO UNCLAIMED DRIFT (56 scenarios) / NO STALE FIXTURE (56); claims hygiene origin/main ok; both claim files byte-identical to the merge base; VERSION, manifest version, RELEASE_NOTES heading untouched; merge-tree origin/main x HEAD clean (rc=0, no conflicts); ci_predict --base origin/main: 6 unpinned sites, no STALE PIN line, no closures or fast red predicted; mutation_table --list RETURN_DEL reads 872 pinned / 830 unpinned / LIST 1171 in 71 files, 821 unpinned -- matching the body. Check-runs at the head (run 38062581878 and pr-contract run 38062581951): typing FAILURE, mutation FAILURE, pr-contract FAILURE with "PR-BODY: 2 error(s)": `check mutation is red and ## Red checks does not name it` and `check typing is red and ## Red checks does not name it`. The body's ## Red covers harness_headers, features and field coverage only; its Figures section even quotes typing_ruler's local source-checks arm green (ALL 11) while CI's mypy arm is red.
+## Evidence
 
-This is round 1 of this PR's review.
+/Users/timmalmstrom/hpo-seats/r9rev-2118b/evidence/ — typing-ruler-mypy.txt,
+archscore-gate.txt, mutation-list-returndel.txt, ci-predict.txt,
+mutation-lane-log-full.txt, closures-lane-log.txt, pr-contract-1843-log.txt,
+check-runs-head-final.txt, check-runs-red-history.txt, pr-body.md, head.txt.
+Worktree: /Users/timmalmstrom/hpo-seats/r9rev-2118b/wt (detached at
+beb97ea691f95f20de19f512460ee7ad361c35ba).
