@@ -288,11 +288,19 @@ footer .brand { font-size: 1rem }
   </div>
   <div class="gallery" id="gallery">
     <div class="seg" role="tablist" aria-label="Card pages">
-      <button role="tab" id="t-adv" aria-controls="p-adv" aria-selected="true">Advisor</button>
+      <button role="tab" id="t-why" aria-controls="p-why" aria-selected="true">Why idle</button>
+      <button role="tab" id="t-adv" aria-controls="p-adv" aria-selected="false" tabindex="-1">Advisor</button>
       <button role="tab" id="t-dhw" aria-controls="p-dhw" aria-selected="false" tabindex="-1">Hot water by weekday</button>
       <button role="tab" id="t-opt" aria-controls="p-opt" aria-selected="false" tabindex="-1">Weekday options</button>
     </div>
-    <figure role="tabpanel" id="p-adv" aria-labelledby="t-adv" style="margin:0">
+    <figure role="tabpanel" id="p-why" aria-labelledby="t-why" style="margin:0">
+      <div class="stage"><picture>
+        <source media="(prefers-color-scheme: dark)" srcset="img/card/plan-why-dark.png" data-theme-src="dark" data-repo="docs/img/card/plan-why-dark.png">
+        <img src="img/card/plan-why-light.png" data-repo="docs/img/card/plan-why-light.png" width="1056" height="616" loading="lazy" alt="The Plan tab with the pointer on an idle step and the tooltip saying why">
+      </picture></div>
+      <figcaption data-src="docs/dashboard-card.md#why-a-step-is-idle">Hovering a step where a channel is not heating says why the plan left it idle.</figcaption>
+    </figure>
+    <figure role="tabpanel" id="p-adv" aria-labelledby="t-adv" hidden style="margin:0">
       <div class="stage"><picture>
         <source media="(prefers-color-scheme: dark)" srcset="img/card/advisor-dark.png" data-theme-src="dark" data-repo="docs/img/card/advisor-dark.png">
         <img src="img/card/advisor-light.png" data-repo="docs/img/card/advisor-light.png" width="1056" height="616" loading="lazy" alt="The card's Advisor tab: a Worth doing section of ranked rows, each with one button, a More advice section of advisors that are off by default, then the ranking of sensors that would tighten the model">
