@@ -102,7 +102,23 @@ if [ -n "$SINGLE" ]; then
   exit 0
 fi
 
-# Lane 1: the single longest script, alone.
+# Lane layout (option (e) of the round-9 closures pre-study): the recorded
+# seconds below are the committed tests/closures.json `recorded` table at
+# 6be88834e8 (2026-10-10), quoted per lane. The old three-lane layout put
+# boost_drift_replay.py (1489.6 s recorded; 29 m 26 s measured on job
+# 114258919874, 55% of that push-to-main job's wall) in the middle of one
+# 53-minute lane while lanes 1-2 sat idle after 15 and 21 minutes, so the
+# job's wall was lane 3's serial sum, not any single recording. boost now
+# has a lane of its own and is the floor; the rest of that lane keeps its
+# order (1239.2 s recorded) beside it, and every other lane already finishes
+# under the floor. Same recordings, same checks, same outputs -- only which
+# background shell records what, and that a script's lane changes WHEN it is
+# recorded, never WHAT it opens, is the established R9-F10.15 result the
+# lane-2 comment below cites. The wall-clock acceptance (<= 35 min on the
+# push-to-main closures job, two runs) is CI's own measurement: a full
+# derive is Linux-only (gate-scoping.md).
+#
+# Lane 1: the longest of the ordinary scripts, alone (760.6 s).
 ( rec tests/stress.py ) &
 p1=$!
 # Lane 2 used to record tests/rolling.py. It no longer does: rolling is
@@ -110,9 +126,10 @@ p1=$!
 # could not decide anything. Recording it cost 62 minutes under the audit
 # hook -- more than every other script combined -- for an answer nothing
 # reads. See the SLOW_GATED comment in tests/closure.py.
-# Lane 2: features.py and entities.py, the two longest after stress. Neither
-# reads anything a script of lane 3 writes (run.sh runs them beside the others
-# for the same reason), and the recordings are one file per script under
+# Lane 2: features.py and entities.py, the two longest after stress (730.5 s
+# and 259.6 s recorded). Neither reads anything a script of another lane
+# writes (run.sh runs them beside the others for the same reason), and the
+# recordings are one file per script under
 # $OUTDIR, so which lane takes a script changes when it is recorded and not
 # what it opens (R9-F10.15). Closures are measured as before; the proof is the
 # `closures` job's UNDER-SCOPED check on this very lane layout.
@@ -121,8 +138,21 @@ p1=$!
   rec tests/entities.py
 ) &
 p2=$!
-# Lane 3: everything else, in one sequence. plan_view.py writes the payload
-# card.mjs reads, so that pair keeps its order here exactly as in run.sh.
+# Lane 3: boost_drift_replay.py, ALONE (1489.6 s recorded, 24 m 50 s -- the
+# single longest recording in the table and the wall-clock floor of the whole
+# job). It used to sit mid-sequence in the old lane 3; #1935 put it in
+# run.sh's lane order right after backtest.py, and backtest.py keeps that
+# relative position as the first of its old neighbours below. Sharing a lane
+# with it could only ever add to the floor, and giving it one costs the job
+# nothing: three other lanes are recording meanwhile.
+(
+  rec tests/boost_drift_replay.py
+) &
+p3=$!
+# Lane 4: everything else the old lane 3 held, in exactly its order
+# (1239.2 s recorded, summed from the same table). plan_view.py writes the
+# payload card.mjs reads, so that pair keeps its order here exactly as in
+# run.sh -- and as it had it before the rebalance.
 (
   # Block-switch mutants (R9-SW-5), in run.sh's lane order after entities.py.
   # A selectable script the lanes never recorded fails the closures job with
@@ -162,8 +192,6 @@ p2=$!
   rec tests/edge.py
   rec tests/validate.py
   rec tests/backtest.py
-  # #1935: in run.sh's lane order, right after backtest.py.
-  rec tests/boost_drift_replay.py
   # What tests/hastub owes Home Assistant (#536), in run.sh's lane order. Its
   # closure is the whole stub on purpose: any change there must put this in
   # scope. Recorded HERE and not only with --single, because the closures job
@@ -218,8 +246,8 @@ p2=$!
   # exactly as run.sh passes it.
   rec tests/card_drift.mjs
 ) &
-p3=$!
-wait $p1 $p2 $p3
+p4=$!
+wait $p1 $p2 $p3 $p4
 
 echo
 if [ "$MERGE" -eq 1 ]; then
