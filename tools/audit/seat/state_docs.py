@@ -695,6 +695,43 @@ def self_test() -> int:
         ok("arm 3: and only now is the tip recorded",
            tipfile.read_text(encoding="utf-8").strip() == refused_tip)
 
+        # ARM 4 -- the LOOP, not a pass: `beat` with no --once, in a child, as
+        # the orchestrator runs it. Two changes, each landed by the pass that
+        # saw it, is what "continuously" means; a beat that exited after one
+        # pass, or that never re-read the ref, fails the second wait. The
+        # deadline is generous (a pass runs three generators) and the process
+        # is terminated by the test, which is how this instrument is stopped.
+        def wait_tip(want: str, seconds: float = 120.0) -> bool:
+            end = time.time() + seconds
+            while time.time() < end:
+                if (tipfile.exists()
+                        and tipfile.read_text(encoding="utf-8").strip() == want):
+                    return True
+                time.sleep(0.1)
+            return False
+
+        commit_main("main-3.md")
+        loop = subprocess.Popen(
+            [sys.executable, str(SEAT / "state_docs.py"),
+             *beat_argv[:-1], "--interval", "0.05"],
+            cwd=str(drv), stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
+        try:
+            ok("arm 4: the loop lands the first change it sees",
+               wait_tip(main_tip()))
+            commit_main("main-4.md")
+            ok("arm 4: and beats again for the next one",
+               wait_tip(main_tip()))
+            ok("arm 4: and is still running, not one pass and out",
+               loop.poll() is None)
+        finally:
+            loop.terminate()
+            try:
+                loop.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                loop.kill()
+                loop.wait(timeout=30)
+
     if fails:
         print(f"{len(fails)} self-test check(s) failed: " + ", ".join(fails))
         return 1
