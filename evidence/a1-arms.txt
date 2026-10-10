@@ -1,0 +1,11 @@
+# Fix review evidence -- PR #2129 -- head 64f168d2cea942cdba6a79050116988b4b90c4c9
+
+decide step at HEAD (HEAD):
+  inert-only               closure-scope case = skip
+  closure-touching         closure-scope case = scoped
+  diff-underivable
+  diff-underivable         closure-scope case = full
+
+BASE (6be88834e8c4658b3e4832cd24c00aa97b3da2d3): what a dispatch takes there
+  closure-scope runs on workflow_dispatch: False
+  -> SCOPE_CASE empty -> the closures job takes the FULL arm, whatever the diff

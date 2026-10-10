@@ -1,0 +1,33 @@
+HASTUB_TZ=Europe/Stockholm rec tests/dst_checks.py
+rec tests/arch_score.py --smoke
+rec tests/arch_score_head.py
+rec tests/backtest.py
+rec tests/block_duty.py
+rec tests/boost_drift_replay.py
+rec tests/card.mjs
+rec tests/card_drift.mjs
+rec tests/config_flow_steps.py
+rec tests/debug_collect.py
+rec tests/deployment_shape.py
+rec tests/doc_claims.py
+rec tests/edge.py
+rec tests/entities.py
+rec tests/env_drift.py --cache-key "$GOLDEN_REF" --all
+rec tests/features.py
+rec tests/finite_boundary.py
+rec tests/frontend.py
+rec tests/golden.py --only __no_such_scenario__
+rec tests/guard_pins.py
+rec tests/ha_contract.py
+rec tests/harness_headers.py
+rec tests/layout.py
+rec tests/manual_plan.py
+rec tests/md_tables.mjs
+rec tests/open_meteo.py
+rec tests/optimality.py
+rec tests/plan_view.py
+rec tests/solar_alignment.py
+rec tests/structure.py
+rec tests/typing_ruler.py
+rec tests/validate.py
+rec tests/wood_advisor.py
