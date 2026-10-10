@@ -796,6 +796,82 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     )
 
 
+def _interval_measured_heat_kw(coord: Any) -> float | None:
+    """#2016: the flow meter's kW for the interval a learner replays, or None.
+
+    ``None`` leaves the model inferring Q_hp from the draw and its own COP,
+    which is what every install did before the flow key existed. Two questions
+    decide it, and both are somebody else's answer already given:
+
+    * was anything measured this cycle? ``flow_meter.read_heat_output_kw``
+      owns that and every refusal in it -- no flow key, a power or a frequency
+      signal that outranks the meter, a stale, negative or unknown-unit
+      reading, and a supply no warmer than the return. Nothing here restates
+      one of them;
+    * was the interval the house's? The meter reads one sum, so a hot-water
+      charge is heat the rooms did not get, and these two learners persist
+      what they conclude. The commanded split is the tree's own answer to what
+      an interval was for (``_interval_space_power``, ``_cop_reference_curve``),
+      and a split interval carries no usable space figure rather than a share
+      of one -- the blend ``_cop_reference_curve`` returns ``None`` for, at
+      this input. An interval the plan gave nothing to has no space figure
+      either: the pump ran off-plan, which is the boost freeze's question.
+
+    Module-level on ``_fold_flow_lift``'s precedent, and the one place the
+    substitution is decided: both interval learners replay through
+    :func:`_replay_interval` below, so neither can diverge from the other
+    about what the elapsed interval delivered. One predicate rather than a
+    guard per question, so the rule reads as the single sentence it is.
+    """
+    heat_kw: float | None = coord._flow_bias.heat_output_kw
+    space_kw, dhw_kw = coord._commanded_split()
+    if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:
+        return None
+    return heat_kw
+
+
+def _replay_interval(
+    coord: Any,
+    previous_state: Any,
+    previous_power: float,
+    outdoor: float,
+    previous_time: datetime,
+    dt_h: float,
+    label: str,
+) -> Any:
+    """Replay the elapsed interval through the model, or None if it failed.
+
+    The house heat-loss scale and the lower floor's ratio replay the same
+    interval through the same model on the same inputs and differ only in the
+    temperature they read off the prediction, so the replay is one function:
+    what the interval delivered is answered once, by
+    :func:`_interval_measured_heat_kw`, rather than twice, and ``label`` keeps
+    the debug line a failed simulation leaves naming its learner -- the only
+    thing the two copies ever differed in besides a comment.
+    """
+    try:
+        wind_speed, precipitation = coord._current_weather()
+        return coord._thermal_model.simulate_step(
+            previous_state,
+            previous_power,
+            outdoor,
+            wind_speed=wind_speed,
+            precipitation=precipitation,
+            solar_radiation=previous_state.solar_radiation,
+            dt_hours=dt_h,
+            # #53: the replay must predict with the learned per-hour profile,
+            # or its residuals never re-centre and the gains learner becomes
+            # an open-loop integrator converging to α/ridge times the true
+            # correction. None-profile (flag off, nothing learned) makes this
+            # byte-inert.
+            hour_of_day=previous_time.hour + previous_time.minute / 60.0,
+            measured_heat_kw=_interval_measured_heat_kw(coord),
+        )
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("%s learning simulation failed: %s", label, err)
+        return None
+
+
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
     """#1067: ``(divisor, baseline curve key)`` for a health sample, or ``None``.
 
@@ -4159,8 +4235,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         different appliance's and the interval carries no usable space figure.
         ``None`` means "skip this sample": the entity is configured but stale
         (`read_power_kw`'s ok=False contract) or contaminated. Without any
-        power entity there is no measurement to prefer and the commanded
-        figure remains the only available estimate, as before.
+        power entity the commanded draw is the only electrical estimate; a
+        flow meter measures the interval's heat instead (#2016).
 
         v5.3.0 fixes a silent under-report here. The subtraction removes *the
         plan's* hot-water allocation from the measured total, on the premise
@@ -4946,25 +5022,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
 
-        try:
-            wind_speed, precipitation = self._current_weather()
-            predicted_state = self._thermal_model.simulate_step(
-                previous_state,
-                previous_power,
-                outdoor,
-                wind_speed=wind_speed,
-                precipitation=precipitation,
-                solar_radiation=previous_state.solar_radiation,
-                dt_hours=dt_h,
-                # #53: the replay must predict with the learned per-hour
-                # profile, or its residuals never re-centre and the gains
-                # learner becomes an open-loop integrator converging to
-                # α/ridge times the true correction. None-profile (flag
-                # off, nothing learned) makes this byte-inert.
-                hour_of_day=previous_time.hour + previous_time.minute / 60.0,
-            )
-        except Exception as err:
-            _LOGGER.debug("House heat loss learning simulation failed: %s", err)
+        predicted_state = _replay_interval(
+            self, previous_state, previous_power, outdoor, previous_time,
+            dt_h, "House heat loss",
+        )
+        if predicted_state is None:
             return
 
         # Compare like with like. `observed` is the indoor sensor, which in
@@ -5114,21 +5176,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
 
-        try:
-            wind_speed, precipitation = self._current_weather()
-            predicted_state = self._thermal_model.simulate_step(
-                previous_state,
-                previous_power,
-                outdoor,
-                wind_speed=wind_speed,
-                precipitation=precipitation,
-                solar_radiation=previous_state.solar_radiation,
-                dt_hours=dt_h,
-                # Same physics as the solve when #53 is on; inert when off.
-                hour_of_day=previous_time.hour + previous_time.minute / 60.0,
-            )
-        except Exception as err:
-            _LOGGER.debug("Lower floor loss learning simulation failed: %s", err)
+        # Same physics as the solve when #53 is on; inert when off.
+        predicted_state = _replay_interval(
+            self, previous_state, previous_power, outdoor, previous_time,
+            dt_h, "Lower floor loss",
+        )
+        if predicted_state is None:
             return
 
         residual = observed - predicted_state.lower_floor_temperature
