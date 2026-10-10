@@ -1,110 +1,58 @@
-Fix review: blocked 4f0bde1653627ab3c52f2325986119f80370e7bb root-cause-unanswered: fast (3.14) went red, unanswered
+Fix review: merge b4b8beda40fd5c00594398f7be8cbdabaab11cd3
 
-bus-nonce: 228d3b27b07b87836c7c16cd6402ff14
+Round 3 on #2114. Rounds 1 and 2 established the fix is sound (head block
+`ALL 14 PASSED`, deletion reproduces the body's `1 of 14 FAILED`,
+`gain=+0.000000`; merge base red on Accelerate, head green) and that the
+carry destination `dev/programme/carries/carry-201.json` is the one
+`finding-propagation.md` itself names for a stage with no live roster group.
+Round 2 blocked on `fast (3.14)`: five retired-path guard refusals from the
+carry edit's own two lines. This round measures only the repair.
 
-Delta review (round 2) of #2114. The prior verdict blocked f19851987
-`carry-missing: not carried to D0`. That block is resolved; a new one replaces
-it: the head turned `fast (3.14)` red and the body's `## Red checks: none on
-this head` does not answer it.
+RESULT guard: `python3 -I tests/layout.py --guard --base 969c3a5c84d0`
+(the merge base of this head) reads `layout: GUARD: 0 refusal(s) against
+969c3a5c84d0`, EXIT=0. The check that blocked is green at the head, run by
+this reviewer, not taken from the body.
 
-## The red (the block)
+RESULT carry diff: `git diff 4f0bde165 b4b8beda4 --
+dev/programme/carries/carry-201.json` is ONE hunk, 4 changed lines (2 -, 2 +),
+and the only deltas are the five path tokens -- `.claude/workflows/brief_lint.mjs`
+-> `tools/policy/brief_lint.mjs`; `docs/decisions/0009` ->
+`dev/governance/decisions/0009-agent-identities-for-author-and-approver.md`;
+`tools/audit/briefs/D13.md` -> `dev/governance/dimensions/D13.md`;
+`tools/audit/round5/D13/seat-a/dora_cfr.py` ->
+`dev/audit/rounds/round5/D13/seat-a/dora_cfr.py`; `tools/audit/briefs/D11.md`
+-> `dev/governance/dimensions/D11.md`. Every other byte of the entry --
+finding, control, voiding perturbation, remeasure instruction, the `carries`
+array -- is identical. Nothing was dropped. `node tools/policy/brief_lint.mjs`
+on the file: `0 error(s), 0 warning(s)`, exit 0.
 
-`fast (3.14)` concluded `failure` on this head (check-run 114249368012, run
-38064506824, "Run the suite" step, completed 2026-10-10T15:48:00Z). The
-failing script is `tests/layout.py`, which is `run_always`, so no scope skips
-it. Reproduced locally at the head, rc=1:
+RESULT successor paths exist: `git cat-file -e` at the head confirms all five
+(the reviewer ran all five, not two) -- plus the two spot-checked read back
+above. The carry cites no path missing from the tree.
 
-    layout: GUARD: 5 refusal(s) against d3dbf2c3fc42
-    new-reference: dev/programme/carries/carry-201.json cites retired path
-      .claude/workflows/brief_lint.mjs
-    new-reference: ... docs/decisions/
-    new-reference: ... tools/audit/briefs/D11.md
-    new-reference: ... tools/audit/briefs/D13.md
-    new-reference: ... tools/audit/round5/
+RESULT reviewed behaviour untouched: `PYTHONPATH=tests/hastub python3
+tests/features.py` at the head, exit 0, `ALL 3986 FEATURE CHECKS PASSED`,
+two-zone arm `RESULT f21_p3_two_zone=1 j_plain=110.436632
+j_continuation_off=111.267093 continuation_gain=+0.830461
+j_seeded_half_price=110.129674`; single-zone null `+0.000000`, `67.730056`
+both arms -- round 1's numbers, unchanged. (The brief's note about a
+macOS-local features.py closure red: the pre-fix platform red; at this head
+the script itself is green on this Accelerate box.)
 
-All five are on the two lines of `dev/programme/carries/carry-201.json` this
-branch edited: the `_comment` line naming `.claude/workflows/brief_lint.mjs`
-(gained a trailing comma) and the `stage` line (D0 clause appended), each of
-which already cited retired paths on main; editing the line makes its
-citations new references against the merge base, and layout.py's guard refuses
-new references to retired paths. Main at the merge base d3dbf2c3f is green on
-tests.yml (run 38059574126, success), and the guard self-tests all pass, so
-this red is the branch's own and not the instrument's. It is not one of the
-three autofix classes (`UNDER-SCOPED`, `INHERITED CLAIMS`, killed unpinned
-mutants), so no bot commit repairs it. The fix itself is sound; the body owes
-the answer the second trigger demands (name the detector and its standing
-cost, or the finding that none exists) — plus, on the merits, either the two
-edited lines' retired citations moved to current paths, or the guard's answer.
+RESULT red checks: the commit's own check-runs at b4b8beda4 list NO red
+conclusion. `fast (3.14)` is success at this head; the body's `## Red checks`
+names it, the check-run id, the five refusals and the repair with the
+cheaper-detector answer (the guard itself fired correctly -- the defect was
+the branch's edit, not a detection gap). Several runs (closures, coverage,
+Analyze (python)) were still in progress when read; none red. No
+root-cause-unanswered.
 
-## RESULT lines (all at 4f0bde1653627ab3c52f2325986119f80370e7bb, this box Apple M1 / python 3.11.5 / numpy 2.4.6, BLAS=accelerate)
+Head-moved rule satisfied: `git ls-remote origin refs/heads/fix/r9-blas-kernel-red`
+read b4b8beda40fd5c00594398f7be8cbdabaab11cd3 immediately before publishing,
+and the PR API's head field agrees.
 
-RESULT head_unchanged=1 4f0bde1653627ab3c52f2325986119f80370e7bb
-RESULT features_two_zone j_plain=110.436632 j_continuation_off=111.267093 continuation_gain=+0.830461 j_seeded_half_price=110.129674
-RESULT features_null_single_zone j_plain=67.730056 j_continuation_off=67.730056 continuation_gain=+0.000000 j_seeded_half_price=67.729557
-RESULT features_summary=ALL 3986 FEATURE CHECKS PASSED
-RESULT layout_guard_refusals=5 rc=1 (all on carry-201.json)
-RESULT brief_lint=rc=0 carry-201.json linted clean, no live roster group covers #201
-RESULT ci_fast_3_14=fast (3.14) FAILURE (tests/layout.py, run_always)
-RESULT ci_features_fast_lane=ok python3 tests/features.py (255s) -- the re-keyed check is GREEN at CI's kernel class
-RESULT delta_code_unchanged=1 (custom_components, tests/features.py, tests/harness_headers.py, tests/closures.json, dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py all byte-identical f19851987 -> 4f0bde165)
+Evidence: /Users/timmalmstrom/hpo-seats/r9rev-2114c/evidence (guard-head.log,
+carry201.diff, carry-lint.log, paths-exist.txt, features-head.log,
+check-runs-head.txt, head.txt naming the 40-hex head).
 
-## The delta f19851987 -> 4f0bde165
-
-`f19851987` is an ancestor of the head. The delta is 22 files, all of them
-main's own newer commits merged in (#2072, #2075, #2083: tools/audit/seat,
-tools/pr, mutation_ledger rows, delivery rows, CLAUDE.md, fixer.md) plus the
-branch's own ONE carry commit: one entry appended to
-`dev/programme/carries/carry-201.json` with its `stage` and `_comment`
-extended to name D0. Every file the reviewed behaviour lives in is
-byte-identical across the delta (blob ids compared): `custom_components`,
-`tests/features.py`, `tests/harness_headers.py`, `tests/closures.json`,
-`dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py`. No VERSION, manifest,
-notes heading or budget file in the branch's own diff. merge-tree against
-origin/main exits 0, no conflict.
-
-## The carry destination — judged legitimate, not re-blocked
-
-`finding-propagation.md`'s "Where it goes" names three destinations: the
-stage's brief (a live group's `brief` string plus any out-of-tree copy), the
-role contract, and — "**The stage has no live roster group** → its own
-`dev/programme/carries/carry-<N>.json`, N the destination issue, and
-**creating it is part of the finding**". It does not name a dimension-method
-document as a destination; `dev/governance/dimensions/D0.md` is the D0
-method, policy, and the rule routes a no-live-group stage to the carry file,
-which `brief_lint.mjs` lints as "the brief of a stage that has no roster
-group". I verified: the only roster in the tree
-(`.claude/workflows/wave-3l-groups.json`) covers issues 400/401/404/405/408/
-457/460/463/465, none D0 or #201; `node tools/policy/brief_lint.mjs` exits 0
-with carry-201.json linted clean (the linter itself "refuses a carry at an
-issue a live group covers" — it did not refuse). The tree's own precedent is
-directly on point: a75bf1662 landed a D0 finding as carry-1295.json "rather
-than as an edit to ... D0.md because both D0.md and D9.md are one-sided policy
-caps ... raising a cap needs the owner's confirmation obtained before the
-push". The prior round's `carry-missing` is therefore resolved: the entry
-(carry[10]) is real, names #2114, `effect: invalidates` (one of the rule's
-three), carries the control with the voiding perturbation ("a second kernel
-class where production's multi-start lands in the half-price plan's basin"),
-a re-measurement instruction naming the check's own printed line, and a brief
-that states preconditions, not opportunities. The finder's harness
-(`dev/audit/harnesses/k1725_blas_kernel_gap.py`) is still unrunnable verbatim
-on this box — its `score()` calls `m.simulate_trajectory(st, pw, ot, wi, ra,
-so, DT)` with 7 positional arguments against a 3-positional keyword-only
-signature, stale at the merge base, unchanged by the delta; the prior round's
-disclosed one-line patch and its -0.2070 stand unchallenged.
-
-## Arms not run here
-
-The Linux/cross-kernel arm: this box is Accelerate, `OPENBLAS_CORETYPE`
-selects nothing; the container lane was retired 2026-10-04 and
-`gate-scoping.md` forbids re-deriving closures off Linux. The body deferred
-the CI-kernel-class arm to the check-run; that run exists and is green
-(`ok python3 tests/features.py (255s)` in the failing fast job), so the
-re-keyed check's verdict holds at CI's kernel class too. `closures` and
-`coverage` were still in progress when this verdict was taken.
-
-## Evidence
-
-`/Users/timmalmstrom/hpo-seats/r9rev-2114b/ev/` — HEAD names
-4f0bde1653627ab3c52f2325986119f80370e7bb; features_head.log (local head arm),
-layout_head.log (local layout rc=1), fast314.log (the failing CI job log),
-brief_lint.out.
+bus-nonce: e9aa3248e9ede1c2c594e011fb1fa979

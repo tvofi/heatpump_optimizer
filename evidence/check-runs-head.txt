@@ -1,0 +1,39 @@
+claims-autofix	skipped	completed
+nightly-ha	skipped	completed
+closures	RUNNING	in_progress
+CodeQL	neutral	completed
+mutation-autofix	skipped	completed
+mutation-pins	skipped	completed
+mutation-pin-plan	skipped	completed
+pr-contract	success	completed
+mutation-nightly	skipped	completed
+mutation-ledger-push	skipped	completed
+mutation-ledger	skipped	completed
+delivery-status-publish	skipped	completed
+record-autofix	skipped	completed
+slow	skipped	completed
+recheck-gate	skipped	completed
+record	skipped	completed
+browser	success	completed
+coverage	RUNNING	in_progress
+briefs	success	completed
+mutation	success	completed
+fast (3.14)	success	completed
+typing	success	completed
+nightly-status	success	completed
+hassfest	success	completed
+closure-scope	success	completed
+policy-docs	success	completed
+env-matrix	success	completed
+wave-script	success	completed
+instrument-self-tests	success	completed
+Analyze (javascript-typescript)	success	completed
+Analyze (actions)	success	completed
+delivery-status	success	completed
+Analyze (python)	RUNNING	in_progress
+arch-score	success	completed
+budget-raise-gate	success	completed
+validate-hacs	success	completed
+arch-score	success	completed
+budget-raise-gate	success	completed
+pr-contract	success	completed
