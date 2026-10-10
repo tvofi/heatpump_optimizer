@@ -1,3 +1,4 @@
+<!-- ccr-projects-attribution: {"github_login":"tvofi"} -->
 R9-UX-10: on an install with a water mass-flow meter and neither a power nor a
 compressor-frequency signal, the two interval learners replay the elapsed
 period with the heat the meter measured instead of the heat the model infers
@@ -34,12 +35,26 @@ control, and five on the planted arm, which are what the substitution moves.
 
 ## Head
 
-`ff2c85753644cf2f713b9da312758869954fbd4a`, measured against merge base
-`7cd5a588cbbbef354c00148040da2d720b8a888c` — `origin/main`'s tip after #2071,
-the third of the three merges this branch has taken. Every figure below was re-taken at that
+`2b8fdf844cd36ccabdfc24b310ef0ac75b311c91`, measured against merge base
+`7cd5a588cbbbef354c00148040da2d720b8a888c`. Every figure below was re-taken at that
 head on this box (macOS, Python 3.14.7 from
-`$HOME/.local/state/hpo/venv-ci/bin`) except the ones named as CI's and except
-the ones explicitly attributed to an earlier commit of this branch.
+`$HOME/.local/state/hpo/venv-ci/bin`, the typing census from a pinned
+`.venv-typing` of the same pins the `typing` job installs) except the ones named
+as CI's and except the ones explicitly attributed to an earlier commit of this
+branch. Figures that are a function of `origin/main`'s tip were taken against
+`969c3a5c84d0ee6fb403ecebd18d16c810b3e40c` at 2026-10-10T17:33:36Z; that tip
+moves, the commands do not.
+
+This head is the repair of the blocked head `bc048801823eb4f77cfa42f54083214c154336a5`
+(verdict: `root-cause-unanswered: typing and mutation went red at this head and
+## Red checks names neither`). It adds two things to it, and nothing else:
+the merge of `72cfb1d07` — the `mutation-autofix` bot's own `ci: pin killed
+mutants` commit, six ledger files pinning the seven sites the `mutation` check
+refused, waited for and not duplicated (`ci-autofix.md`) — and `2b8fdf844`, a
+one-line typing annotation answering the `typing` red (under `## Red checks` 6).
+The authored feature head is unchanged: `ff2c85753644cf2f713b9da312758869954fbd4a`,
+followed by this PR's own row `bc0488018` (`dev/programme/delivery/2118.md`),
+the bot's pins, and the annotation.
 
 **This head is a twice-retargeted branch.** It was cut from `a8ce87571` (#2024),
 and `origin/main` has taken thirteen merges since — #2041 #2056 #2057 #2059
@@ -59,24 +74,27 @@ lines of `tests/features.py` (a new production module, so the censuses moved);
 a move like this one can redden, and the one the `## Unpinned sites` section
 below reports on.
 
-Ten commits: the feature (`eed6aee87`), the three ratchet rows it moved down
-recorded with their reasons (`69d2dab1f`), the harness's canonical `repo_root`
-copy and a corrected comment (`29b02f1f5`), the one-predicate interval rule with
-the arm it was missing (`68172a557`), the probe with its equivalent-mutant
-triage row (`ad150485f`, whose message was amended after its runs to correct a
-stated count of trees in it — `git rev-parse ad150485f^{tree}` is
-`5d94597f893991ab63451f58aba21d44454d6eaa`, unchanged by the amend), the two
-source-text pins this diff moved (`f9809c06a`, under `## Red checks`), and one
-retarget commit each (`7297c1bd1` + `27415fa53` for the first, `d3fbdcf63` +
-`ff2c85753` for the second, each pair being the merge and the provenance
-re-record it needs).
+Twelve authored or bot commits over the feature: the feature (`eed6aee87`), the
+three ratchet rows it moved down recorded with their reasons (`69d2dab1f`), the
+harness's canonical `repo_root` copy and a corrected comment (`29b02f1f5`), the
+one-predicate interval rule with the arm it was missing (`68172a557`), the probe
+with its equivalent-mutant triage row (`ad150485f`, whose message was amended
+after its runs to correct a stated count of trees in it — `git rev-parse
+ad150485f^{tree}` is `5d94597f893991ab63451f58aba21d44454d6eaa`, unchanged by
+the amend), the two source-text pins this diff moved (`f9809c06a`, under
+`## Red checks`), one retarget commit each (`7297c1bd1` + `27415fa53` for the
+first, `d3fbdcf63` + `ff2c85753` for the second, each pair being the merge and
+the provenance re-record it needs), the delivery row (`bc0488018`), the bot's
+pin commit (`72cfb1d07`, authored by `mutation-autofix`, merged not cherry-picked
+so its provenance stays its own) and the typing annotation (`2b8fdf844`).
 
 ## A prior handoff already holds this topic
 
 `refs/heads/handoff/r9-ux-10` carries `bcbc1af3b` (2026-10-08, author Tvofi2),
 a complete handoff for this same group, with its body at
 `refs/heads/handoff-body/r9-ux-10` (`87e22e92c`). No pull request was ever
-opened for it: `gh pr list --state all --head fix/r9-ux-10` returns `[]`. It is
+opened for it: `gh pr list --state all --head fix/r9-ux-10` returns `[]`
+(re-checked at this head, 2026-10-10). It is
 stacked on `handoff/r9-ux9` at `543393cc`, i.e. cut BEFORE #2024 merged, and
 its own body says "Retarget or update this PR from `main` only after #2024
 merges".
@@ -85,8 +103,10 @@ This seat did not move that ref: a handoff is frozen and only the orchestrator
 moves it (`fixer.md` step 6), and a non-fast-forward push would have destroyed
 another seat's work. This branch therefore goes to `handoff/r9-ux-10-v2` and
 its body to `handoff-body/r9-ux-10-v2`, and **the choice between the two
-designs is the orchestrator's**, not this seat's. Four measured facts bear on
-it:
+designs is the orchestrator's**, not this seat's. The orchestrator chose this
+one — #2118 is open from `fix/r9-ux-10-v2`, and its first review confirmed the
+fix sound and blocked only the body and the two reds this head answers. The
+four measured facts below bear on that choice:
 
 1. **Its budget rows are now raises.** That branch records `max_class_loc`
    9047 and `seam_cut_total` 767 in `tests/structure_budgets.json`
@@ -258,7 +278,9 @@ the harness separate the two:
 
 - `MODE: SCOPED -- 29 script(s) run, 4 scoped out.` — `D=$(mktemp -d); python3
   tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir
-  "$D"; cat "$D/scope.txt"`. Nine changed files. The four scoped out are
+  "$D"; cat "$D/scope.txt"`. Sixteen changed files at this head — the previous
+  head's ten, plus the six ledger files the bot's pin commit adds. The four
+  scoped out are
   `frontend.py`, `ha_contract.py`, `layout.py` and `open_meteo.py` — and
   `layout.py` is a `run_always` script, so it ran anyway and is in the list
   below. Keyed on the mode line, not the count.
@@ -277,18 +299,23 @@ the harness separate the two:
 - `BLOCK head: rc=0 failing_checks=0` … `BLOCK base: rc=0 failing_checks=6`,
   the eleven killable mutants at 1 to 4 failing checks, `m_except_return_del` at
   0, and `NULL CONTROL … True` / `BITES … True` — `PYTHONPATH=tests/hastub
-  python3 dev/audit/harnesses/ux10_flow_into_model.py <out-dir>`.
-- 6 unpinned sites, no stale pin, and `no closures or fast red predicted against
+  python3 dev/audit/harnesses/ux10_flow_into_model.py <out-dir>`, re-run at
+  this head: all twelve mutant counts identical to the table under
+  `## Mutation proof`, `ALL 8 UX-10 EXTRACT PASSED` in the head block's own
+  output, every unset-arm figure unchanged head == base.
+- No unpinned-sites line at all, and `no closures or fast red predicted against
   7cd5a588cbbb` — `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py
-  --base origin/main`. The composition and each site's reason are under
-  `## Unpinned sites`. The same six print with `--base a8ce87571`, this branch's
-  original base: the predictor subtracts the base's own unpinned set, so a stale
-  base does not inflate the list.
-- `pinned custom_components/heatpump_optimizer/coordinator.py:872 RETURN_DEL`
-  and `LIST RETURN_DEL: 1171 site(s) in 71 file(s), 821 unpinned, ratcheted` —
-  `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --list RETURN_DEL`,
-  which is the triage row read back by the instrument that counts the
-  inventory, not by the file's existence.
+  --base origin/main` at this head. The six sites the previous head listed are
+  the bot's pins now (`72cfb1d07`), so the predictor has nothing to report;
+  the composition and each site's readback are under `## Unpinned sites`.
+- `pinned custom_components/heatpump_optimizer/coordinator.py:830 RETURN_DEL`
+  and `pinned custom_components/heatpump_optimizer/coordinator.py:872
+  RETURN_DEL` beside `LIST RETURN_DEL: 1171 site(s) in 71 file(s), 820
+  unpinned, ratcheted` — `PYTHONPATH=tests/hastub python3
+  tests/mutation_table.py --list RETURN_DEL` at this head, after the bot's
+  pins: the instrument that counts the inventory reads both of this diff's
+  RETURN_DEL sites back as pinned, 830 by the bot's pin and 872 by its triage
+  row, and the unpinned stock is one lower than the base's 821.
 - `claims_extracted=125 claims`, `claims_checked=125`, `claims_true=123`,
   `claims_false=0`, `claims_stale=0`, `claims_unverifiable=2`,
   `arch_modules_on_disk=75 modules`, `arch_map_listed=75 modules`,
@@ -318,17 +345,26 @@ the harness separate the two:
   four `run_always` scripts (all four ran), and the template's new `arch-score`
   rule, answered under `## Architecture score`.
 - `RESULT read=63 ignored=25 declared_none=34 blind=0 dead=0 refused=0
-  runs=139 seconds=116.3` and `FIELD COVERAGE ok` — `node
-  tools/policy/field_coverage.mjs`, run directly so the detail survives
-  (`## Red checks` 5).
+  runs=139 seconds=82.9` and `FIELD COVERAGE ok` — `node
+  tools/policy/field_coverage.mjs`, re-run at this head, directly so the detail
+  survives (`## Red checks` 5).
+- `ALL 9 typing-ruler checks PASSED` under the pinned toolchain —
+  `<venv-typing>/bin/python tests/typing_ruler.py --mypy`, the same census the
+  `typing` CI job runs (mypy 2.3.1, homeassistant-stubs 2026.9.3): red first at
+  the blocked head (`errors 1`, `by_code[no-any-return] 1`), green at this one
+  (`errors did not grow ... ok`, census 0), the repair `## Red checks` 6
+  describes.
 - Ten `simulate_step` call sites, one passing the parameter — `grep -rn
   "\.simulate_step(" custom_components/heatpump_optimizer/*.py` (ten lines) and
   `grep -rn measured_heat_kw custom_components/`.
 - The diff's own size — `git diff --numstat $(git merge-base origin/main HEAD)
   HEAD`: 89 added / 36 deleted in `coordinator.py`, 38 / 6 in
-  `thermal_model.py`, 1 / 1 in `docs/configuration.md`, and 377, 331/5, 6, 2, 1
-  and 4/4 in the harness, `tests/features.py`, the triage row, `seam_map.json`,
-  `closures.json` and the budget table. 127 production lines added and 42
+  `thermal_model.py`, 1 / 1 in `docs/configuration.md`, 377, 331/5, 2, 1 and
+  4/4 in the harness, `tests/features.py`, `seam_map.json`, `closures.json`
+  and the budget table, and the bot's six 6-line pin files plus this branch's
+  own 6-line triage row under `tests/mutation_ledger/`. The annotation commit
+  re-annotates a line the branch itself added, so `coordinator.py`'s numstat is
+  unchanged by it. 127 production lines added and 42
   deleted, the deletions being the two replay blocks the helper replaced; well
   inside the preamble's ~400.
 - **`tests/features.py`: the complete run at the previous merged head, and why
@@ -350,8 +386,12 @@ the harness separate the two:
   reviewer should take.
 - The rest of `scope.run` and the four `run_always` scripts, green on this box,
   each with its own summary line — `PYTHONPATH=tests/hastub python3
-  tests/<name>.py` or `node tests/<name>.mjs` at this head: `entities.py` (`ALL
-  2285 ENTITY CHECKS PASSED`), `arch_score.py --smoke` (`ALL 257 ARCHITECTURE
+  tests/<name>.py` or `node tests/<name>.mjs` at this head (Python 3.14.7 from
+  `$HOME/.local/state/hpo/venv-ci/bin` for the scripts that need it):
+  `entities.py` (`ALL
+  2250 ENTITY CHECKS PASSED` — 2285 at `ff2c85753`, before the delivery row
+  landed; measured at `bc0488018` too, which also reads 2250, so the row the
+  delivery commit added is what moved the count, not this repair), `arch_score.py --smoke` (`ALL 257 ARCHITECTURE
   SCORE CHECKS PASSED`), `arch_score_head.py` (`ALL 15 ARCHITECTURE SCORE HEAD
   CHECKS PASSED`), `config_flow_steps.py` (`ALL 499 checks PASSED`), `doc_claims.py`
   (`ALL 160 checks PASSED`), `typing_ruler.py` (`ALL 11 typing-ruler source
@@ -368,20 +408,16 @@ the harness separate the two:
   (`doc_orphaned_table_rows=0`, `doc_misrendered_lines=0`), `plan_view.py`
   (`plan reason codes, price provenance and slot energy OK`), `card.mjs` (`ALL
   CARD CHECKS PASSED`) and `card_drift.mjs` (`card_drift: identical in all 40
-  states`). Two scripts did not finish a re-run at this head on a box at load
-  65-80, and are named as measured at the previous merged head instead:
-  `harness_headers.py` and `boost_drift_replay.py`. `boost_drift_replay.py` read
-  `ALL 46 BOOST DRIFT CHECKS PASSED` there. `harness_headers.py` read `ALL 109
-  HARNESS HEADER CHECKS PASSED` there, and at this head it read `12 of 109
-  HARNESS HEADER CHECKS FAILED`, all twelve the same contended shape `## Red
-  checks` 2 describes: `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py
-  exits 0 [rc=124 cpu=76.2s stderr=wall limit 900s exceeded]` and the eleven
-  `RESULT … matches header` rows that cascade from a run producing nothing —
-  76.2 s of CPU inside a 900 s wall, on a box at load 70. Both are in
-  `scope.run` and CI re-runs them at this head on a runner.
+  states`). `harness_headers.py` at this head, under the 3.14 venv:
+  `ALL 109 HARNESS HEADER CHECKS PASSED` — the twelve failures the previous
+  head reported were the box's load, and running it under the 3.11 system
+  python reddens thirteen instead (a SyntaxError in one harness the older
+  interpreter cannot parse), so the venv is part of the command.
+  `boost_drift_replay.py` (`ALL 46 BOOST DRIFT CHECKS PASSED`) — it needed the
+  full run under the 3.14 venv on this loaded box, and completed.
 - The `## Architecture score` gate read by its own tool: `python3
   tools/audit/archscore/gate.py --base 7cd5a588cbbb --head HEAD --body
-  <BODY.md>` exits 0 and prints `… coord_footprint 2586 -> 2590 … PASS`, so the
+  <BODY.md>` exits 0 and prints `… coord_footprint 2586 -> 2591 … PASS`, so the
   section above satisfies the required check rather than merely naming the
   metric.
 - LEFT TO CI, under the owner's 2026-10-07 ruling that heavy scripts run there
@@ -398,17 +434,27 @@ the harness separate the two:
 ## Architecture score
 
 `PYTHONPATH=tests/hastub python3 tools/audit/archscore/score.py --diff
-origin/main` at this head reads `Architecture score: dS -0.0022 WORSENS
-(inadmissible: coord_footprint 2586->2590)`. One metric rises. The
+origin/main` at this head reads `Architecture score: dS -0.0028 WORSENS
+(inadmissible: coord_footprint 2586->2591)`. One metric rises. The
 `arch-score` required check and the `## Architecture score` rule that answers a
 rise both landed on `main` after this branch's merge base, in #2068
 (`.github/workflows/arch-score.yml`, `tools/audit/archscore/gate.py`), so this
 section is written to that rule rather than to the merge base's template, which
 called the command optional and report-only.
 
-- `coord_footprint` 2586 -> 2590: the metric counts logic statements in the coordinator class plus every module-level function handed it, and this branch hands it two, `_replay_interval` and `_interval_measured_heat_kw`.
-  The first is a dedupe, and the metric's own docstring says an Extract Method or a dedupe is not growth because plumbing is not counted: the two learners' identical replay blocks became one helper, and the calls that replaced them are delegations. The rise is the second function, which is a decision that did not exist at any price before this branch — whether the interval a learner replays may be spoken for by a meter at all: a reading exists, the plan gave the interval to space heating, and nothing else refuses it. That decision is the feature, and the net +4 is what it costs in this metric's units. This seat did not decompose the +4 per function; `score.py --diff` prints the pair and the metric's rule, and a reviewer who wants the split can drive `archscore.metrics.footprint` over the two trees.
-  The same change moves all three of `tests/structure.py`'s rows DOWN: `duplication_copies` 38 → 37 (the clone pair the helper absorbs), `max_class_loc` 8818 → 8795 (the two copies left the measured class span, the helper being module-level) and `seam_cut_total` 762 → 760 (the `_current_weather` edge and the `_thermal_model` read each existed twice and now exist once, against the one new learning→core edge the interval rule adds). So four logic statements are bought with 23 lines of class span, one counted clone and two seam crossings, and no budget row and no other gate metric moves.
+- `coord_footprint` 2586 -> 2591: the metric counts logic statements in the coordinator class plus every module-level function handed it, and this branch hands it two, `_replay_interval` and `_interval_measured_heat_kw`.
+  The first is a dedupe, and the metric's own docstring says an Extract Method or a dedupe is not growth because plumbing is not counted: the two learners' identical replay blocks became one helper, and the calls that replaced them are delegations. The rise is the second function, which is a decision that did not exist at any price before this branch — whether the interval a learner replays may be spoken for by a meter at all: a reading exists, the plan gave the interval to space heating, and nothing else refuses it. That decision is the feature, and the net +4 is what it costs in this metric's units.
+  The fifth statement is the repair's own annotation (`2b8fdf844`): `_plumbing`
+  in `tools/audit/archscore/metrics/footprint.py` excludes an `ast.Assign`
+  whose value is a simple attribute -- which `heat_kw = coord._flow_bias
+  .heat_output_kw` was -- but not the `ast.AnnAssign` that declaring the local's
+  type makes of it, so the typed line counts. The alternative that keeps 2590,
+  `return float(heat_kw)`, re-keys the bot's RETURN_DEL pin -- the ledger key
+  digests the line's text, and `ci-autofix.md` forbids duplicating a bot that
+  has already acted -- and would open a fresh unpinned site at this head, so
+  one counted statement is the cheaper of the two repairs on every axis but
+  this metric's, and on this one by exactly one unit. This seat did not decompose the +4 per function; `score.py --diff` prints the pair and the metric's rule, and a reviewer who wants the split can drive `archscore.metrics.footprint` over the two trees.
+  The same change moves all three of `tests/structure.py`'s rows DOWN: `duplication_copies` 38 → 37 (the clone pair the helper absorbs), `max_class_loc` 8818 → 8795 (the two copies left the measured class span, the helper being module-level) and `seam_cut_total` 762 → 760 (the `_current_weather` edge and the `_thermal_model` read each existed twice and now exist once, against the one new learning→core edge the interval rule adds). So the feature's four logic statements are bought with 23 lines of class span, one counted clone and two seam crossings, and no budget row and no other gate metric moves; the fifth is the annotation, priced above.
   The alternative that would not raise it is #6 under `## Alternatives considered, and why each lost`: pass the substitution at each learner's own `simulate_step` call and keep both copies. It is cheaper on this metric and worse on every other one — two places deciding what the elapsed interval delivered, which is the divergence the shared helper exists to prevent — and it costs +2 `max_class_loc` and +1 `seam_cut_total` against zero headroom, i.e. a budget raise. `fixer.md` step 17 prices cost last: "Cost is no reason to take the worse fix."
 
 ## Red checks
@@ -504,6 +550,60 @@ detector that found it:
    whole output to `/tmp/prepr-fc.$$`, prints `tail -1` of it as the step line,
    and `rm -f`s the file on the next line, so the three causes the refusal names
    are exactly the three things the seat cannot then tell apart (`## Friction`).
+6. **`typing`, red at `bc0488018` and still red at `72cfb1d07` -- this branch's,
+   and fixed in this head.** The CI census read `FAIL errors did not grow
+   [recorded 0, measured 1 (+1)]` and `FAIL by_code[no-any-return] did not grow
+   [recorded 0, measured 1 (+1)]`, the module `coordinator.py 1`: the new
+   `_interval_measured_heat_kw` declares `-> float | None` and returned
+   `heat_kw`, inferred `Any` because it is read off `coord: Any` -- mypy
+   `--strict`'s `no-any-return`. Reproduced locally before repairing it:
+   the pinned toolchain the job itself installs (mypy 2.3.1 /
+   homeassistant-stubs 2026.9.3, in a venv that already existed on this box)
+   printed `coordinator.py:830: error: Returning Any from function declared to
+   return "float | None" [no-any-return]`. The fix is one line, `2b8fdf844`:
+   the local is declared `heat_kw: float | None = coord._flow_bias
+   .heat_output_kw` -- the field's own type (`flow_lift.py`'s `heat_output_kw:
+   float | None`), so the return is typed and the census returns to 0
+   (`ALL 9 typing-ruler checks PASSED` under `--mypy`, the figure under
+   `## Figures`). No budget was touched: the honest repair is the annotation,
+   not an entry in a census capped at 0. **The cheaper detector is the same
+   census run locally, before the push**: it cost ~70 s against a CI round trip
+   plus a review round; its standing cost is one pinned venv per seat and ~70 s
+   per push, and the finding is that the authoring seat did not run it -- the
+   check itself is the cheapest detector that exists, and no new mechanism is
+   owed.
+7. **`mutation`, red at `bc0488018` -- this branch's, and repaired by the bot
+   whose lane it is.** The check refused `4614 unpinned site(s) against 4608 at
+   the ratchet base d3dbf2c3f, 7 of them added by this diff`:
+   `coordinator.py:828 CMP_BOUND*2`, `coordinator.py:828 GUARD_OFF`,
+   `coordinator.py:830 RETURN_DEL`, `coordinator.py:5029 GUARD_OFF`,
+   `coordinator.py:5184 GUARD_OFF` and `thermal_model.py:2604 CLAMP_DROP`.
+   `ci-autofix.md` names unpinned sites as `mutation-autofix`'s to repair, so
+   this seat waited for the bot commit and did not duplicate it: `72cfb1d07`
+   (`ci: pin killed mutants`) landed the six ledger files driving all seven
+   sites to pinned, each `killed_by tests/features.py` -- the same driver and
+   checks the branch's own probe had measured (`m_veto` 1, `m_bound_dhw` 4,
+   `m_bound_space` 1, `m_veto_tail_del` 4, `m_guard_off_house` 1,
+   `m_guard_off_lower` 1), which is why the bot's pins and the probe's kill
+   table agree site for site. The seventh site this diff adds,
+   `_replay_interval`'s except-arm `return None`, is equivalent and carries its
+   written triage row, not a pin (`## Unpinned sites`). Read back at this head
+   through the counting instrument: `mutation_table.py --list RETURN_DEL`
+   prints `pinned coordinator.py:830` and `pinned coordinator.py:872`,
+   `LIST RETURN_DEL: 1171 site(s) in 71 file(s), 820 unpinned, ratcheted`
+   (821 before the pins), and the table check itself prints no `ADDED UNPINNED`
+   line. **The cheaper detector is the `mutation` job plus its own autofix
+   lane**: the class is repaired mechanically, at the push, with no seat
+   involvement, and that is the standing detector; none cheaper exists and
+   none is owed.
+8. **`pr-contract`, red at `bc0488018` -- the same two reds, unnamed.** Its log
+   carries exactly two refusals about the body -- `check 'mutation' is red and
+   '## Red checks' does not name it` and the same for `typing` -- and the
+   repair is this body: items 6 and 7 above name both checks and answer the
+   cheaper-detector question `defect-root-cause.md`'s second trigger asks. The
+   pre-flight's `'Closes #2016' ... not in the intended list` line is the
+   local invocation's argument list, not a CI refusal; closing #2016 is this
+   PR's disposition of that issue and stands.
 
 
 ## Forward-carry
@@ -565,14 +665,15 @@ site in a file it touched. Both directions of the ledger are read, because
 
     PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main
 
-prints `CI PREDICT: 6 unpinned site(s) the diff adds -- a warning; the body owes
-each a line under ## Unpinned sites`, then `CI PREDICT: no closures or fast red
-predicted against 7cd5a588cbbb`, and **no `STALE PIN` line at all** — neither
-this diff's (`STALE PIN`) nor `STALE PIN ON MAIN (not this diff's)`. So the
-composition is six sites, every one of them this diff's own, and not one of the
-base's pins went stale under this branch. The seventh site this diff added,
+printed, at the previous head `bc0488018`, `CI PREDICT: 6 unpinned site(s) the
+diff adds -- a warning; the body owes each a line under ## Unpinned sites` and
+then `CI PREDICT: no closures or fast red predicted against 7cd5a588cbbb`, with
+**no `STALE PIN` line at all**. At this head it prints only the second line:
+the six sites are the bot's pins now (`72cfb1d07`, `ci: pin killed mutants`),
+so the diff adds none, and not one of the base's pins went stale under this
+branch. The seventh site this diff adds,
 `_replay_interval`'s `except`-arm `return None`, is equivalent and carries its
-triage row instead, so it does not list.
+triage row instead, so it never listed.
 
 A report reaching this seat described eleven sites at an earlier merged head,
 with `_coarsen`'s "pre-existing shifted" entries dropping out and
@@ -584,27 +685,32 @@ prints eleven at either head, so that composition could not be reproduced and is
 not carried. What the instruments print at this head is what follows, each site
 with its own reason.
 
-Six sites, each killable, each `mutation-autofix`'s to pin from CI's own
-measurement (`ci-autofix.md` — wait for the bot commit, do not duplicate). The
-driver and the killing check are measured locally by the probe's own variant of
-the same mutation:
+Seven sites the diff added, six killable and one equivalent. The six are now
+**pinned, by the bot and not by this seat**: `mutation-autofix` committed
+`72cfb1d07` (`ci: pin killed mutants`) from CI's own measurement, and this seat
+waited for that commit and merged it rather than duplicating it
+(`ci-autofix.md`). The driver and the killing check the bot's pins record are
+the same ones the probe measured locally by its own variant of the same
+mutation:
 
 - `custom_components/heatpump_optimizer/coordinator.py:828 GUARD_OFF` — the
   interval predicate's guard, in `_interval_measured_heat_kw`. Pinned by
-  `mutation-autofix`; driver `tests/features.py`, the refusing-arms check,
+  `mutation-autofix` at `72cfb1d07`; driver `tests/features.py`, the refusing-arms check,
   measured locally as `m_veto` (1 failing check).
 - `custom_components/heatpump_optimizer/coordinator.py:828 CMP_BOUND*2` — the
-  same line's two comparisons, one site each. Pinned by `mutation-autofix`;
+  same line's two comparisons, one site each. Pinned by `mutation-autofix` at
+  `72cfb1d07`;
   driver `tests/features.py`, the planted arms for the `dhw_kw` bound
   (`m_bound_dhw`, 4) and the nothing-commanded arm for the `space_kw` bound
   (`m_bound_space`, 1).
 - `custom_components/heatpump_optimizer/coordinator.py:830 RETURN_DEL` — that
-  function's tail. Pinned by `mutation-autofix`; driver `tests/features.py`, the
+  function's tail. Pinned by `mutation-autofix` at `72cfb1d07`; driver
+  `tests/features.py`, the
   three checks that assert a value does arrive (`m_veto_tail_del`, 4).
 - `custom_components/heatpump_optimizer/coordinator.py:5029 GUARD_OFF` and
   `custom_components/heatpump_optimizer/coordinator.py:5184 GUARD_OFF` — the two
   learners' `if predicted_state is None:` guards, which are the pair the
-  extraction introduced. Pinned by `mutation-autofix`; driver
+  extraction introduced. Pinned by `mutation-autofix` at `72cfb1d07`; driver
   `tests/features.py`, "a replay that raises costs the sample and nothing else",
   which drives `_t2_raise_model` on each learner (`m_guard_off_house`,
   `m_guard_off_lower`, 1 each).
@@ -615,9 +721,11 @@ the same mutation:
   `tests/mutation_ledger/killed_by/thermal_model.py/` or
   `survivor_triage/thermal_model.py/`, so one anchor retired and one was added
   and the inventory count does not grow from it. Nothing in this diff reaches
-  it — no check here passes a negative `external_heat_kw` — so if a driver kills
-  it, `mutation-autofix` pins it, and if none does it is the base's own
-  pre-existing unpinned clamp rather than this diff's.
+  it — no check here passes a negative `external_heat_kw` — so it was the one
+  site a driver might have left alive; the bot's commit answers that question:
+  `ThermalModel._simulate_step_single.CLAMP_DROP.3faedba0.json`, `killed_by
+  tests/features.py`, so a driver did kill it and the anchor the line's
+  re-naming retired is replaced at this head.
 - **The triaged equivalent, which no longer lists**:
   `custom_components/heatpump_optimizer/coordinator.py:872 RETURN_DEL` — the
   ledger key is a content anchor, `FILE:SCOPE KIND DIGEST`
@@ -638,10 +746,14 @@ file's existence:
 
     PYTHONPATH=tests/hastub python3 tests/mutation_table.py --list RETURN_DEL
 
-prints `pinned custom_components/heatpump_optimizer/coordinator.py:872
-RETURN_DEL: pass` beside `UNPINNED
-custom_components/heatpump_optimizer/coordinator.py:830 RETURN_DEL: pass`, and
-closes `LIST RETURN_DEL: 1171 site(s) in 71 file(s), 821 unpinned, ratcheted`.
+prints `pinned custom_components/heatpump_optimizer/coordinator.py:830
+RETURN_DEL: pass` and `pinned
+custom_components/heatpump_optimizer/coordinator.py:872 RETURN_DEL: pass`, and
+closes `LIST RETURN_DEL: 1171 site(s) in 71 file(s), 820 unpinned, ratcheted`
+— 830's pin is the bot's (`RETURN_DEL.0b52bd72.json`, `killed_by
+tests/features.py`) and its key digests the line's text, which is why the
+typing annotation kept `return heat_kw` byte-identical: a `float()` at that
+return would have re-keyed the site and unpinned it again.
 
 ## Alternatives considered, and why each lost
 
@@ -686,3 +798,4 @@ two.
    archscore corpus's own `G2_dedupe` GOOD control, landed as a module-level
    helper rather than the method the control plants, because the class span is
    the binding budget (−23 lines against the method's −2).
+
