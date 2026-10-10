@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:set_issue GUARD_OFF e82bd653",
+  "killed_by": "tests/features.py",
+  "old": "    if data is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd59a4af1b2616a7f00761a3769d22a335e4df7c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

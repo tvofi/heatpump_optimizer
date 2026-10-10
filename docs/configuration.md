@@ -965,7 +965,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `set_mode` | `mode` (required) | — |
 | `set_thermal_parameters` | 31 optional model fields | — |
 | `simulate_plan` | 19 optional comfort, wood and quiet-window fields | always |
-| `apply_schedule` | 8 optional schedule fields + `entry_id` | optional |
+| `apply_schedule` | 10 optional schedule fields + `entry_id` | optional |
 | `assign_entity` | `key`, `entity_id` (both required) + `manual_setpoint`, `entry_id` | optional |
 | `apply_topology` | `layout` (required), `positions`, `dhw`, `wood`, `entry_id` | optional |
 | `apply_manual_plan` | `space_slots`, `dhw_slots`, `expires_at`, `entry_id` | optional |
@@ -1039,7 +1039,8 @@ compare against before the first plan exists, and not enough price data is the
 same failure the live solve would report.
 
 **`apply_schedule`** is the save counterpart: it writes `day_start_hour`,
-`day_end_hour`, `comfort_temp_day`, `dhw_min_temperature`, `dhw_windows`,
+`day_end_hour`, `comfort_temp_day`, `target_temperature`, `dhw_setpoint`,
+`dhw_min_temperature`, `dhw_windows`,
 `quiet_silent_windows`, `quiet_off_windows` and `silent_mode_power_fraction`
 into your configuration and reloads the entry, so the next plan uses them. The
 windows are parsed and canonicalised before storing, and a day window that
