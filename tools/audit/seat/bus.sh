@@ -15,7 +15,10 @@
 # `verdict/<pr>` the verdicts the orchestrator confirmed and signed. Both
 # verdict families are append-only like a body ref: each push adds one commit
 # whose tree is VERDICT.md plus the evidence directory under `evidence/`, its
-# parent the previous tip, so a later round never needs a force-push. A
+# parent the previous tip -- the sha `git ls-remote` answered for the ref, never
+# FETCH_HEAD, which is per-worktree state any other fetch in the checkout may
+# overwrite between the fetch here and the read (see append_commit) -- so a
+# later round never needs a force-push. A
 # crossed-out verdict stays in the ref's history; only the tip is posted.
 #
 # push-verdict REFUSES, AND PUSHES NOTHING, unless the first line is in
@@ -75,18 +78,37 @@
 # Environment: HPO_BUS_REMOTE (origin), HPO_BUS_REPO (tvofi/heatpump_optimizer),
 # HPO_BUS_POSTER (this checkout's app_comment.sh: tools/audit/ if a copy is
 # restored there, else tools/pr/, where R9-RO-6 moved it), HPO_IDENTITY_DIR.
+# RUN IT FROM A CHECKOUT: it derives that poster from three levels above this
+# file, and a copy parked anywhere else derives a path that does not exist -- so
+# it refuses at load, before touching the remote (see the poster guard below;
+# #2074's confirm on 2026-10-09 was a bus operation half applied).
 # Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u.
 set -uo pipefail
 
 ROOT=$(cd "$(dirname -- "$0")/../../.." && pwd)
 REMOTE=${HPO_BUS_REMOTE:-origin}
 REPO=${HPO_BUS_REPO:-tvofi/heatpump_optimizer}
+S=${HPO_BUS_STATE:-$HOME/.zcode/bus}
+die() { printf 'bus: REFUSE: %s\n' "$*" >&2; exit 1; }
+
 POSTER=${HPO_BUS_POSTER:-}
 if [ -z "$POSTER" ]; then
   if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi
 fi
-S=${HPO_BUS_STATE:-$HOME/.zcode/bus}
-die() { printf 'bus: REFUSE: %s\n' "$*" >&2; exit 1; }
+# THE POSTER GUARD -- the checkout requirement, enforced before any remote write.
+# Every subcommand that moves a ref eventually posts through $POSTER, and $POSTER
+# is derived from $ROOT, three levels above this file. A copy of bus.sh outside a
+# checkout therefore derives a poster that cannot exist, and `confirm` found that
+# out only AFTER signing and pushing verdict/<pr>: #2074 on 2026-10-09 left the
+# verdict ref at 7c64dd213 with no comment posted -- a bus operation half applied,
+# and the record left saying "already posted" for the older tip. So the predicate
+# is the one dependency that actually broke, checked at load, and it fires before
+# the first `git push` rather than after one. Keyed on the poster and not on
+# "is $ROOT a git repository" because the tree is also read as an export with no
+# .git (fixer.md step 3 sends a seat to run a harness from the baseline export),
+# and such an export carries a real app_comment.sh: refusing there would break a
+# documented use to catch no defect.
+[ -x "$POSTER" ] || die "no executable poster at $POSTER (derived from this script's project root '$ROOT', three levels above $0): refusing before pushing anything. Run the checkout's own tools/audit/seat/bus.sh, or set HPO_BUS_POSTER."
 
 # The verdict's head sha, or a non-zero exit when the line is outside the
 # grammar. The two patterns are `app_comment.sh`'s, character for character.
@@ -143,11 +165,36 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
   append_commit review "$pr" "$tree" "verdict: #$pr $first" || exit 1
 }
 
+# THE PARENT IS WHAT THE REMOTE ANSWERED, NEVER FETCH_HEAD. `git fetch` rewrites
+# FETCH_HEAD, as PER-WORKTREE state of the checkout it runs in, so anything else
+# fetching in this checkout between the fetch below and the read of the tip -- a
+# sibling seat, the orchestrator, a watcher -- substitutes an unrelated ref's sha
+# for the one this commit is keyed on. Measured on 2026-10-09 in both shapes:
+# #2071's round-4 reviewer built its verdict commit parented on main's tip (the
+# push guard held; a verdict came within one accepted push of main's lineage),
+# and a fetch followed by `git -C <other worktree> reset --hard FETCH_HEAD`
+# answered `fatal: ambiguous argument 'FETCH_HEAD'` -- that state read from the
+# worktree that did not write it. `git ls-remote`, which the ref-existence test
+# already asked, answers this process the one sha it pushes against and no other
+# writer can supersede it: if the ref moves after the answer the push is refused
+# non-fast-forward, which is a retry, not a commit on the wrong lineage. So
+# resolve the ref in the worktree that will use it, in a local, before the fetch.
 append_commit() { # family pr tree message -> pushes one commit on <family>/<pr> after its tip, prints it
-  local fam=$1 pr=$2 tree=$3 msg=$4 parent="" c
-  if git ls-remote --exit-code -q "$REMOTE" "refs/heads/$fam/$pr" >/dev/null 2>&1; then
-    git fetch -q "$REMOTE" "refs/heads/$fam/$pr" || { printf 'bus: REFUSE: could not fetch %s/%s\n' "$fam" "$pr" >&2; return 1; }
-    parent="-p $(git rev-parse FETCH_HEAD)"
+  local fam=$1 pr=$2 tree=$3 msg=$4 parent="" tip="" c rc
+  tip=$(git ls-remote "$REMOTE" "refs/heads/$fam/$pr" 2>/dev/null | awk 'NF { print $1; exit }')
+  rc=$?
+  [ $rc = 0 ] \
+    || { printf 'bus: REFUSE: %s would not answer the tip of %s/%s\n' "$REMOTE" "$fam" "$pr" >&2; return 1; }
+  if [ -n "$tip" ]; then
+    [[ $tip =~ ^[0-9a-f]{40}$ ]] \
+      || { printf 'bus: REFUSE: %s answered no 40-hex tip for %s/%s: %s\n' "$REMOTE" "$fam" "$pr" "$tip" >&2; return 1; }
+    # The fetch STAYS, for the objects and only for the objects: commit-tree
+    # cannot write a commit whose parent it cannot read (measured: rc 128, "is
+    # not a valid object"). What it may no longer be trusted for is the sha --
+    # from here on FETCH_HEAD belongs to whatever else is fetching.
+    git fetch -q "$REMOTE" "refs/heads/$fam/$pr" \
+      || { printf 'bus: REFUSE: could not fetch %s/%s\n' "$fam" "$pr" >&2; return 1; }
+    parent="-p $tip"
   fi
   # shellcheck disable=SC2086 # $parent is empty or exactly "-p <sha>"
   c=$(git commit-tree "$tree" $parent -m "$msg") || { printf 'bus: REFUSE: commit-tree failed\n' >&2; return 1; }
