@@ -1,0 +1,8 @@
+# head 72b696d96700e0509d03e06479464b5f71c95241
+ROOT /Users/timmalmstrom/hpo-seats/r9rev-2119/base
+RESULT hand-computed billed total = 194.5 SEK
+RESULT coordinator receipt total_sek (split fixture) = 709.5
+RESULT receipt basis = None
+RESULT coordinator receipt total_sek (null, no splits) = 194.5
+RESULT no ledger.freeze_month_report at this tree (base)
+RESULT sum-every-non-reason-line (the defect) = 709.5

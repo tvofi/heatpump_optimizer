@@ -1,0 +1,6 @@
+# head 72b696d96700e0509d03e06479464b5f71c95241
+# arch-score job 114245286800
+2026-10-10T15:20:24.6939168Z Architecture score: dS -0.9549 WORSENS (inadmissible: shared_inplace_writes 22->25)
+2026-10-10T15:20:24.6939804Z   shared_inplace_writes 22 -> 25  -0.9627
+2026-10-10T15:20:24.6940223Z   coord_footprint 2586 -> 2572  +0.0078
+2026-10-10T15:20:24.6943647Z FAIL: dS -0.9549 WORSENS; unexplained: shared_inplace_writes 22->25. Add a '## Architecture score' section with one line per metric: its name and why it rises
