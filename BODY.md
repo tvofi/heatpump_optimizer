@@ -1,79 +1,335 @@
-R9-UX-7 (lane UX, model status and diagnostics), part of #201; the lane's feature issue is #1795, which stays open for its other groups.
+R9-UX-7 (lane UX, model status and diagnostics), part of #201. Recovered onto
+current `main` from the orphaned handoff `handoff/r9-ux-7` (`226e6fc24`): the
+work existed and no pull request was ever opened. Issue #1795 is the lane's
+feature issue and was closed by #2010 while this lane was still in flight, so
+this body closes nothing; see `## Friction`.
 
-**Stacked base.** This head is built on R9-EG-B11's handoff head `d81907ad` (PR #2025, approved, not yet merged; it carries `origin/main` `8d7903e6`). Until #2025 merges, every three-dot comparison here is against `d81907ad`, not `origin/main`. Once #2025 merges, this branch takes `origin/main` by merge (never rebase), and the figures below get re-measured. R9-UX-5 (#2010), another after-edge, is also not merged; this branch does not touch its functions (see Overlap).
+Four changes, per `DESIGN-UX.md` section UX-7:
 
-What it adds, per DESIGN-UX.md section UX-7:
+1. **Learning Model Status** (`sensor.py`, the model-status sensor). Reads the
+   learning view the coordinator already publishes. The state is an enum:
+   `learning`, `learned` (the heat-loss learner has evidence) or `attention`
+   (the COP health alarm). One compact recorded row per learner; the bulky
+   per-hour gains, the capacity envelope and the system identification state
+   are unrecorded attributes. It adds no coordinator line.
+2. **Indoor Temperature (Predicted)** (`sensor.py`). A recorded measurement of
+   the plan's next-interval room prediction. A module-level
+   `coordinator.predicted_next_room_temp(coord)` calls the existing
+   `_predicted_next_room_temp`, so the sensor reports exactly the figure the
+   accuracy tracker files. It is unavailable while no plan governs the room,
+   and `waiting_for` says why: `first_plan` or `plan_not_in_control`.
+3. **Diagnostics** (`diagnostics.py`). The download also carries the last
+   diagnosis, the input watchdog's published keys, a plan summary (counts and
+   totals, no per-step series) and the published learning view. Every
+   `person.*` and `calendar.*` entity id is redacted at any depth, inside a
+   message string and inside the opt-in debug bundle.
+4. **Card, Health tab: "What the model has learned"**. One row per learner with
+   its value, its evidence in words and an evidence bar; a COP alarm in the
+   warn tone; a 24-bar internal-gains strip naming its peak hour. The Health
+   page's two screenshots are regenerated from the browser test (U5) and the
+   alt text names the new rows; see `## Figures` and `## Friction`.
 
-1. **Learning Model Status** (`sensor.py`, `ModelStatusSensor`). It reads the learning view the coordinator already publishes. The state is an ENUM: `learning`, `learned` (the heat-loss learner has evidence) or `attention` (the COP health alarm). The attributes have one compact row per learner, and the recorder keeps them: heat loss in W/K with scale, samples and learned; lower floor; solar aperture with the learner's own `SOLAR_APERTURE_MIN_SAMPLES`; tank cooling (only on a plant with hot water); COP. The hourly internal gains, the capacity envelope and system identification are `_unrecorded_attributes`. It adds no coordinator line.
-2. **Indoor Temperature (Predicted)** (`PredictedIndoorTempSensor`). A recorded `MEASUREMENT` of the plan's next-interval room prediction. A module-level `coordinator.predicted_next_room_temp(coord)` calls the existing `_predicted_next_room_temp`, so the sensor reports exactly the figure the accuracy tracker files. It is unavailable while no plan governs the room, and `waiting_for` says why: `first_plan` or `plan_not_in_control`.
-3. **Diagnostics** (`diagnostics.py`). The download now also carries `last_diagnosis`, `inputs` (the input watchdog's published keys), `plan` (counts and totals, no per-step series) and `learning` (the published `LearningView` keys). Every `person.*` and `calendar.*` entity id is redacted at any depth, including inside message strings and inside main's opt-in debug bundle. The token, the name and coarsened location are unchanged.
-4. **Card, Health tab: "What the model has learned"**. One row per learner shows its value, its evidence in words and an evidence bar. Heat loss is compared with the settings' estimate. Solar shows "Learning: n of about N samples". Lower floor appears once learned, the tank only with a tank. A COP alarm shows in the warn tone. A 24-bar internal-gains strip in the accent colour names its peak hour.
-
-New entities: README 81 entities / 62 sensors (`docs/architecture.md`, `docs/configuration.md` alike), and the `tests/entities.py` rosters (Diagnostic, published attributes, count). The names follow the family rule: `learning_model_status` sorts in the `learning` run (en "Learning Model Status", sv "Inlärning modellstatus"), and `indoor_temperature_predicted` in the `indoor` run (en "Indoor Temperature (Predicted)", sv "Inomhustemperatur (prognos)").
-
-Alternatives considered for (2): (a) publish a new `predicted_next_room_temp` payload key from `_learning_view`, rejected because it adds a key to the five `tests/golden/coord_*.json` payload goldens that capture the learning view, which this brief keeps byte-identical; (b) re-derive the prediction in `sensor.py` from the published `space_plan.forecast`, `mode` and the interval, rejected because it is a second copy of the coordinator's selection and boost gate that can drift from what is scored. The module function reads the one rule.
-
-Budgets: no raise. `max_class_loc` went down by 4. That is the `_learning_view` comment saying the heat-loss figure can be "~2x wrong after an options edit": `_thermal_learning_payload` records that defect as resolved by `_reanchor_house_heat_loss_scale` (#110), so the comment was false and is deleted (fixer step 9). It was re-recorded at the stacked base, and after the merge of `d81907ad` the ledger driver's value is what the merged tree measures.
-
-Overlap with parallel work on the same base: `sensor.py`, `strings.json`, `translations/{en,sv}.json`, `icons.json`, the card JS, `tests/card.mjs`, `tests/entities.py`, `README.md`, `docs/dashboard-card.md`, `docs/architecture.md`, `docs/configuration.md` (entity counts), `tests/golden/card_claimed_drift.txt` and `dev/audit/rounds/round4/D6/claims.{json,md}` (the counts). UX-5 (#2010) and UX-6 also touch most of these, in different functions and hunks. The entity counts, the claim list and the D6 output will conflict mechanically with any sibling that adds entities or card CSS, and get re-derived after that merge.
+New entities move the README count and the `tests/entities.py` rosters in the
+same diff.
 
 ## Head
 
-`226e6fc241a7fd0d62f037fddd1e7d949ca63e18`, on base `d81907ad872378051cab14f0145487eb1cdd47a4` (R9-EG-B11 handoff head).
+`574345d95749d35d7372fc608d843ec915e52c30`, a merge of `6c8827e54` and
+`origin/main` `70b50c5730d7fa5b2e7140cb36371bc041522f73`. `6c8827e54` is in turn
+the merge of the recovered handoff head `88c04a172` with the previous
+`origin/main` `7cd5a588c`, plus one commit — the U5 screenshots and the alt
+text — that touches no production line.
+
+Both merges were clean and neither moved a production, test or card file on
+this branch's side, so the checks below read the same content they read at
+`e12202d9b`; the ones that compare against `origin/main` were re-run at this
+head, and the two that read `docs/` — `doc_claims.py` and `md_tables.mjs` —
+were re-run after the screenshots landed. `git merge-base origin/main HEAD` is
+now `70b50c5730d7`; every three-dot comparison is against that.
+
+## Already on main under another shape
+
+None of it was. Measured with
+`git grep -l <symbol> origin/main -- custom_components tests docs README.md`
+against `origin/main` `7cd5a588c` and unchanged at `70b50c5730d7` (whose
+commits touch no such file):
+the model-status sensor, the predicted-temperature sensor, the module-level
+`predicted_next_room_temp`, `_without_private_ids`, `_published_sections`,
+`PRIVATE_ENTITY_ID`, and the entity keys `learning_model_status` and
+`indoor_temperature_predicted` each answer **0 files**. `last_diagnosis` is
+absent from main's `diagnostics.py` (it is a payload key the coordinator
+publishes; this diff reads it into the download), and the card's
+"What the model has learned" block is absent. `dev/programme/delivery/` carries
+no row claiming #1795 as delivered.
+
+## The diagnostics collisions, read against mine
+
+`diagnostics.py` is the one file where main moved into this diff's lines twice.
+Both were read hunk-against-hunk, not merged blind:
+
+- **#2065** added `_VIEWS` and `_never_breaks` and the `draw_range` and
+  `probe_install` imports. Untouched by this diff; both sides kept.
+- **#2071** replaced `"config": dict(entry.data)` with
+  `**config_view(entry.data, entry.options)`, adding `config_view()` and the
+  `config_setup` / `config_overridden_by_options` keys.
+- **#1940** wrapped the debug bundle in
+  `debugger.capped(..., f"{DOMAIN}_{entry.entry_id}_debug")`.
+
+This diff re-indents that same dict literal (to wrap it in
+`_without_private_ids`) and adds `**_published_sections(coord)`. Both merges
+therefore conflicted in exactly two regions: the module docstring, and the
+return statement. A side-pick either way would have been silent: taking this
+branch's side would have **reverted #1940's 8 MiB inline cap** and #2071's live
+config; taking main's would have dropped the redaction wrapper. The resolution
+keeps both, and `git merge-tree` being clean is why this section exists.
+
+**The interaction is load-bearing.** #2071 made the export carry
+`entry.options` *values* (it previously emitted only `options_keys`), and the
+away and holiday options hold the `person.*` and `calendar.*` ids this diff
+redacts. So the wrapper now covers a surface that did not exist when it was
+written: `_without_private_ids(_coarsen({... **config_view(...) ...}))`, the
+wrapper outermost.
 
 ## Mutation proof
 
-These production lines were deleted at the head, in a detached worktree, and `PYTHONPATH=tests/hastub python tests/entities.py` was run: `diagnostics.py`'s `_without_private_ids(` wrapper, `ModelStatusSensor`'s COP-alarm guard (`if ... alarm: return "attention"`), and `predicted_next_room_temp`'s `return predict() ...` (replaced with `return None`). The run printed `6 of 2227 ENTITY CHECKS FAILED`:
-- `UX-7: the status is learned, still learning, or needs attention on a COP alarm`
-- `UX-7: the predicted indoor temperature is the plan's next-interval prediction, recorded`
-- `UX-7: waiting_for names why: no plan yet, or a plan that does not run the room`
-- `every entity is available against a payload that satisfies every gate`
-- `UX-7: no person or calendar id leaves the instance, from the entry or an input problem`
-- `UX-7: the over-redaction control -- an ordinary sensor id survives beside them`
+Three production lines were deleted at `e12202d9b`, in a detached worktree at
+that head, and `PYTHONPATH=tests/hastub python3 tests/entities.py` was run
+against each; each mutant is a predicate, not a tail.
 
-The same file, unmutated, printed `ALL 2227 ENTITY CHECKS PASSED` at `6931952` and `ALL 2231 ENTITY CHECKS PASSED` at the head (the merge brought main's checks). This mutation run was taken before the merge of `d81907ad` and is owed again at the post-#2025 head.
+The baseline, unmutated at `e12202d9b`, printed `ALL 2267 ENTITY CHECKS PASSED`.
+
+- `diagnostics.py` `_without_private_ids`'s `str` arm turned off
+  (`if isinstance(value, str):` becomes `if False:`): `2 of 2267 ENTITY CHECKS
+  FAILED`, naming `UX-7: no person or calendar id leaves the instance, from the
+  entry or an input problem` and `UX-7: the over-redaction control -- an
+  ordinary sensor id survives beside them`.
+- `sensor.py` `ModelStatusSensor`'s COP-alarm guard removed
+  (`if _mapping(data.get("cop_health")).get("alarm"):` becomes `if False:`):
+  `1 of 2267 ENTITY CHECKS FAILED`, naming `UX-7: the status is learned, still
+  learning, or needs attention on a COP alarm`.
+- `coordinator.py` `predicted_next_room_temp`'s
+  `return predict() if callable(predict) else None` replaced with `return None`:
+  `3 of 2267 ENTITY CHECKS FAILED`, naming `UX-7: the predicted indoor
+  temperature is the plan's next-interval prediction, recorded`, `UX-7:
+  waiting_for names why: no plan yet, or a plan that does not run the room` and
+  `every entity is available against a payload that satisfies every gate`.
+
+All three ran to completion at `e12202d9b`, the baseline included, and each
+mutant was checked with `ast.parse` before its run — so a refusal is a check
+failing and not a file that stopped importing.
+
+The recovered handoff's own proof, at the pre-merge head `6931952`, deleted the
+same three lines and printed `6 of 2227 ENTITY CHECKS FAILED` — the same six
+checks this head names, at a tree that predates `#2025`, `#2065` and `#2071`.
+This run supersedes it.
 
 ## Null control
 
-The failing tests ran at the tests-only commit `f36d466a`, on the stacked base with no implementation. `entities.py` printed `19 of 2226 ENTITY CHECKS FAILED`: every UX-7 check, the Diagnostic roster, the attribute roster and surface, and the sensor count; the diagnostics block's leak check listed `person.anna_lindqvist` and `calendar.familjen_lindqvist` leaked. `node tests/card.mjs` printed `10 CARD CHECK(S) FAILED`, all of them UX-7 checks. The three absence checks (no sensor, unavailable sensor, no tank or profile) pass at the base by construction, and they are the controls for the presence checks.
+`main`'s `custom_components/` with this head's `tests/`, in a detached worktree
+at `origin/main` — the shape that shows which checks the implementation, and not
+another change, satisfies.
 
-The card drift's null control: the four new CSS rules were deleted and `node tests/card_drift.mjs` was run; it printed `card_drift: identical in all 40 states`. So the 39 claimed states move by the stylesheet alone.
+That run printed `26 of 2267 ENTITY CHECKS FAILED`. Every one of the fifteen
+UX-7 checks is in that set, together with the checks the two new entities move:
+`a3:roster` (81 registered, none missing), `ModelStatusSensor publishes exactly
+its pinned attribute keys (#373)` and the same for `PredictedIndoorTempSensor`,
+`every class that publishes attributes is in the pinned roster (#373)`, the
+README's sensor count and total entity count, and `architecture.md`'s diagram
+and sensor counts. Each is therefore satisfied by this implementation and by
+nothing on `main`.
+
+Absence assertions that pass at the base by construction are the controls for
+the presence ones: with no model-status sensor there is nothing to be
+unavailable, and with no tank or profile there is no tank-cooling row.
 
 ## Figures
 
-Every command below ran at the head or at the commit named, on Darwin with the seat venv (`tools/audit/seat/seat_venv.sh`). These are local results. CI's check-runs at the pushed head are the authority.
-- `python3 tests/closure.py select --diff d81907ad --workdir <dir>`: `MODE: SCOPED -- 22 script(s) run, 11 scoped out`.
-- Ran locally at the head, each green: `debug_collect.py`, `card.mjs`, `card_drift.mjs` (`39 state(s) moved and claimed, 1 identical`), `md_tables.mjs`, `doc_claims.py`, `typing_ruler.py`, `config_flow_steps.py`, `deployment_shape.py`, `env_drift.py`, `finite_boundary.py`, `manual_plan.py`, `wood_advisor.py`, `block_duty.py`, `solar_alignment.py`, `structure.py` (`STRUCTURE RATCHET PASSED`), `harness_headers.py`, `entities.py` (`ALL 2231 ENTITY CHECKS PASSED`).
-- Left to CI (heavy, per SEAT-BLOCK): `features.py`, `golden.py`, `boost_drift_replay.py`, `arch_score_head.py`, and the mutation drive.
-- `python3 tools/pr/ci_predict.py --base d81907ad` (from `origin/fix/r9-ro-11-pr`): `no closures or fast red predicted`, 11 unpinned sites (below).
+Each line is the command that printed it, run at `e12202d9b` unless the line
+names another tree. CI's check-runs at the pushed head are the authority for
+anything this host cannot produce.
+
+- `python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED`. `max_class_loc`
+  measured 8814 against a budget of 8814, and `origin/main`'s budget is 8818,
+  so this diff is a payment of 4, not a raise.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`
+  -- `MODE: SCOPED -- 22 script(s) run, 11 scoped out`, over 21 changed files:
+  the nineteen this diff's code, tests and docs touch plus the two Health
+  screenshots.
+- `node tests/card_drift.mjs origin/main` -- `origin/main = 70b50c5730d7,
+  tree = 574345d95749, 40 states`; `39 state(s) moved and claimed, 1 identical`.
+  The identical one is `editor_schema`, which renders no stylesheet.
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` --
+  `claims_extracted=125 claims_true=123 claims_false=0 claims_stale=0
+  claims_unverifiable=2`; `arch_modules_on_disk=75 arch_map_listed=75
+  arch_map_missing=0`. Re-running it rewrote `claims.json` and `claims.md` and
+  left the tree clean, so the committed 81 entities / 62 sensors are this
+  tree's own answer rather than a carried figure.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` -- `ALL 2267 ENTITY CHECKS PASSED`
+  (the run in `## Mutation proof`'s baseline, same command, same tree). The same
+  command in a worktree holding `origin/main`'s `custom_components/` with this
+  head's `tests/` printed `26 of 2267 ENTITY CHECKS FAILED`; see `## Null control`.
+- `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py` -- `ALL DEPLOYMENT SHAPE CHECKS PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/env_drift.py` -- `NO UNCLAIMED DRIFT:
+  5 scenario(s) checked against origin/main`; `NO STALE FIXTURE`.
+- `PYTHONPATH=tests/hastub python3 tests/arch_score.py --smoke` -- `ALL 257 ARCHITECTURE SCORE CHECKS PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/arch_score_head.py` -- `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`.
+- `python3 tools/audit/archscore/score.py --diff origin/main` -- `dS -0.0017
+  WORSENS (inadmissible: coord_footprint 2586->2589)`; see `## Architecture score`.
+- `python3 tools/pr/ci_predict.py --base origin/main` -- `11 unpinned site(s)
+  the diff adds`; `no closures or fast red predicted against 70b50c5730d7`.
+- `PYTHONPATH=tests/hastub python3 tests/typing_ruler.py` -- `ALL 11
+  typing-ruler source checks PASSED`. The mypy census itself is CI's `typing`
+  job; `HPO_TYPING_PYTHON` is unset here and both the ruler and this line say
+  so rather than claiming it was checked.
+- `HPO_PAGES_OUT=docs/img/card HPO_BROWSER_SCOPE=auto node tests/card_browser.mjs`
+  (U5, after `python3 tests/plan_view.py`) -- regenerated `health-light.png`
+  (80360 -> 113974 bytes) and `health-dark.png` (80375 -> 113574), the two
+  pages this diff changes, and left the other pages byte-identical. The same
+  command at a clean `origin/main` worktree moves only `advisor-*.png` and
+  `plan-why-*.png`, which are stale on `main` already and are not this PR's.
+  Its own run reports `1 BROWSER CHECK(S) FAILED`; see `## Red checks`.
+- Green locally, each on its own run: `tests/block_duty.py`,
+  `tests/config_flow_steps.py`, `tests/debug_collect.py`, `tests/doc_claims.py`,
+  `tests/finite_boundary.py`, `tests/manual_plan.py`, `tests/plan_view.py`,
+  `tests/solar_alignment.py`, `tests/wood_advisor.py`, `tests/md_tables.mjs`,
+  `tests/card.mjs`.
+- Left to CI (heavy, per tvofi's 2026-10-07 rule): `tests/golden.py`,
+  `tests/boost_drift_replay.py` and the mutation drive. `tests/features.py` is
+  the known macOS BLAS defect; its line is under `## Red checks`.
+- Not run: `tests/harness_headers.py` (see `## Friction`).
 
 ## Unpinned sites
 
-The rule is the `ADDED UNPINNED` lines `ci_predict.py --base d81907ad` prints. Each site, and the check expected to kill it, for `mutation-autofix` to pin:
-- `coordinator.py` `predicted_next_room_temp` RETURN_DEL: killed in the mutation proof above (`UX-7: the predicted indoor temperature ...`).
-- `diagnostics.py` `_without_private_ids` GUARD_OFF on `str` and on `list`: a regex substitution on a dict raises, and a list pass over a dict yields keys, so the diagnostics block's checks fail. Expected killed; not run per site.
-- `diagnostics.py` `_coarsen` GUARD_OFF on `Mapping` and RETURN_DEL: pre-existing lines this diff only shifted; the existing #509 coordinate checks cover them.
-- `sensor.py` `PredictedIndoorTempSensor._waiting_for` GUARD_OFF and RETURN_DEL, and `native_value` RETURN_DEL: the waiting_for and value checks. The value deletion is killed in the proof above.
-- `sensor.py` `ModelStatusSensor.native_value` GUARD_OFF (no data), GUARD_OFF (alarm) and RETURN_DEL: the status-state checks. The alarm guard is killed in the proof above.
+The 11 sites `python3 tools/pr/ci_predict.py --base origin/main` prints as
+`ADDED UNPINNED`. Pinning is `mutation-autofix`'s job after the push
+(`ci-autofix.md`); each line is the disposition this diff gives it, and the
+`## Mutation proof` run above is the evidence for the three that were driven.
+
+- `custom_components/heatpump_optimizer/coordinator.py:931 RETURN_DEL` --
+  `predicted_next_room_temp`'s `return predict() if callable(predict) else
+  None`. Driven: M3, which fails the recorded-prediction check.
+- `custom_components/heatpump_optimizer/diagnostics.py:99 GUARD_OFF` -- the
+  `str` arm of `_without_private_ids`. Driven: M1, which fails both leak
+  checks.
+- `custom_components/heatpump_optimizer/diagnostics.py:101 GUARD_OFF` -- the
+  `Mapping` arm. Covered by the same two leak checks, whose payload nests a
+  mapping with a private id inside it.
+- `custom_components/heatpump_optimizer/diagnostics.py:103 GUARD_OFF` -- the
+  `list` arm. Covered by the same pair, and by the "input problem echoes the id
+  it is about" case, which redacts inside a list of strings.
+- `custom_components/heatpump_optimizer/diagnostics.py:105 RETURN_DEL` -- the
+  fall-through return. Covered by the over-redaction control, which fails if
+  anything but a private id is left alone.
+- `custom_components/heatpump_optimizer/sensor.py:2028 GUARD_OFF` -- the
+  predicted sensor's `_waiting_for` guard. Covered by "UX-7: waiting_for names
+  why: no plan yet, or a plan that does not run the room", which asserts all
+  three states (`None`, `first_plan`, `plan_not_in_control`) as one set.
+- `custom_components/heatpump_optimizer/sensor.py:2032 RETURN_DEL` -- the same
+  property's return. Same check.
+- `custom_components/heatpump_optimizer/sensor.py:2037 RETURN_DEL` -- the
+  predicted sensor's `native_value`. Driven: M3.
+- `custom_components/heatpump_optimizer/sensor.py:2081 GUARD_OFF` -- the
+  model-status sensor's no-data guard. Covered by "UX-7: before the first
+  update the model status is unknown and does not raise".
+- `custom_components/heatpump_optimizer/sensor.py:2084 GUARD_OFF` -- the
+  COP-alarm guard. Driven: M2.
+- `custom_components/heatpump_optimizer/sensor.py:2086 RETURN_DEL` -- the
+  learned/learning return. Covered by "UX-7: the status is learned, still
+  learning, or needs attention on a COP alarm".
+
+## Architecture score
+
+`python3 tools/audit/archscore/score.py --diff origin/main` reads
+`dS -0.0017 WORSENS (inadmissible: coord_footprint 2586->2589)`.
+
+- coord_footprint 2586 -> 2589: the metric charges every function handed the
+  coordinator, one per non-plumbing statement, and this diff adds two such
+  functions: `coordinator.predicted_next_room_temp` costs 1 statement and
+  `diagnostics._published_sections` costs 2. Each exists so a rule has one
+  owner rather than a second copy — the module function is what keeps
+  `sensor.py` from re-deriving the prediction the accuracy tracker scores, and
+  `_published_sections` is what keeps the diagnostics payload section out of
+  the export function. Both read the coordinator through `getattr(coord, ...)`,
+  the idiom `coordinator.py` already uses 19 times for its module-level helpers
+  (`getattr(coord, "_ctx", coord)`, `getattr(coord, "_snapshot_ring", None)`).
+  The alternative considered and rejected is a bare
+  `return coord._predicted_next_room_temp()`, which the metric excludes as
+  plumbing but which drops the tolerance for a coordinator-like object without
+  the private method that the rest of that helper set keeps. No payment removes
+  the statements without duplicating the prediction rule in `sensor.py`, which
+  the design rejects.
 
 ## Red checks
 
-none yet: nothing has been pushed to CI. After the push, any red goes here with its answer.
+Nothing has been pushed to CI yet, so there is no pushed-head red. Two checks
+are red locally, both answered here.
+
+- `tests/card_browser.mjs`: `P9 grid: no two text runs share ink` -- `20: text
+  "2" x text "3" 2 px of shared ink`. **Pre-existing at `main`, not this diff.**
+  The same command under `HPO_BROWSER_SCOPE=full` at a clean `origin/main`
+  worktree reports the identical failure, and this diff adds no chart, axis or
+  tick rule. It went unseen because the grid is scoped: with no card file in a
+  diff `card_browser` prints `P9 GRID SKIPPED -- the class barrier did not run
+  on this diff`, so `main` has not paid this check since the rule landed.
+  Cheaper detector: the same scoped grid, which is the check.
+
+- `tests/features.py` (`closures`' recording arm, and `prepr` step 6): `1 of
+  3930 FEATURE CHECKS FAILED`, and the failing check is `R9-F2.1 P3: the
+  shipped storage plan is no worse on its own objective than the half-price
+  floor's plan refined under it [shipped 110.4366, seeded with the half-price
+  plan 110.1297]`. This is the known macOS BLAS defect (group
+  `R9-RC-BLAS-KERNEL-RED`), not this diff: the check compares solver floats and
+  this diff touches no optimizer module. No check was weakened and no flag was
+  added. The clean-`origin/main` reproduction was started twice at this head and
+  did not finish on this host (see `## Friction`), so the identical single
+  failure is cited from the completed run at the intermediate head `88c04a172`
+  rather than claimed for the base. Cheaper detector: none on this host; the
+  defect is a BLAS-kernel property, so the recording arm and CI's Linux runner
+  are where it is settled.
 
 ## Forward-carry
 
-none: no finding changes how a later stage must work. The carry in `dev/programme/carries/carry-1795.json` (third entry, from R9-UX-3) is honoured: the new Health block reads only an always-available, enabled-by-default sensor, and nothing is added to `HEALTH_WAITING`.
+none: no finding here changes how a later stage must work. The carry in
+`dev/programme/carries/carry-1795.json` (third entry, from R9-UX-3) is honoured:
+the new Health block reads only an always-available, enabled-by-default sensor,
+and nothing is added to `HEALTH_WAITING`.
 
 ## Friction
 
-- `fixer.md`: cost: `entities.py` fails at the end in a `git archive` copy (the handover checks need a repository), which hid the diagnostics block's red. The null-control run was taken again from a detached worktree.
-- `gate-scoping.md`: cost: an untracked seat-claim file in the worktree forced `MODE: FULL` until it was removed.
-
-## Remaining (owed after #2025 merges)
-
-- Merge `origin/main` into this branch, then re-run `structure.py` (re-record if `max_class_loc` moved), `entities.py`, `card.mjs`, `card_drift.mjs` and `harness_headers.py` (the D6 counts), re-take the mutation proof and this body, and re-run `ci_predict.py --base origin/main`.
-- U5 screenshots. `tests/card_browser.mjs`'s Health fixture now carries the model-status sensor. `HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs` must regenerate `health-light.png` and `health-dark.png`, and the `docs/dashboard-card.md` alt text then needs to name the new block. That run needs Playwright and Chromium, which this seat did not have and did not download. The product page's gallery slot for the Health page (DESIGN-SITE.md) takes the regenerated picture with its caption quoted from `docs/dashboard-card.md`.
-- `tests/card_browser.mjs` is code-owned: this PR merges on tvofi's approving review at the head.
+- `fixer.md`: cost: this lane's mutation loop was killed mid-run three times —
+  once by an unrelated seat's process-group cleanup, and twice more when a
+  session boundary ended under it. A killed loop leaves a log that reads like a
+  result, so nothing was carried from a killed run and the loop was re-run from
+  a clean worktree; the section above is that run, and `mut3.log` — a fragment
+  from the first — was discarded rather than read.
+- `gate-scoping.md`: cost: `tests/entities.py` takes the gate lease for its own
+  lock self-tests, so it queues behind whichever seat holds it, and under this
+  host's load it was the slowest step by far: one mutant's run sat at 0.0% CPU
+  for half an hour. `tests/features.py` at a clean `origin/main` worktree was
+  started twice and never reached its summary (see `## Red checks`).
+- `claim-files.md`: cost: the recovered handoff's
+  `tests/golden/card_claimed_drift.txt` claimed 39 cards with reasons written
+  at its 2026-10-07 base. Between then and this merge `main` was stamped
+  (6.7.16 -> 6.7.17), which empties the list, and #2010 then re-added two
+  claims for its own tooltip change. Both are the baseline now, so the file was
+  re-measured rather than textually merged; the `claimnotes` driver refused the
+  merge, which is its documented behaviour.
+- `delivery-status-tracking.md`: stale: `dev/programme/delivery/2010.md` reads
+  `**open**` for #2010, which merged at 2026-10-10T06:37:58Z. It is this lane's
+  own row; reported, not fixed, since the delivery row is the orchestrator's to
+  write.
+- `delivery-status-tracking.md`: contradiction: the roster's R9-UX-7 brief says
+  the lane's feature issue #1795 "stays open for its other groups", but #2010
+  carried `Closes #1795` and closed it at 2026-10-10T06:37:59Z. This body
+  therefore closes nothing, and the lane's remaining groups (R9-UX-6,
+  R9-UX-8..10) now have no open lane issue.
+- `gate-scoping.md`: cost: `tests/harness_headers.py` did not finish on this
+  host while unrelated seats held the machine (several of their runs sat at
+  0.0% CPU for over ten minutes). It is named unrun here rather than reported
+  green; the same file passed at the intermediate head `88c04a172`.
+- `gate-scoping.md`: cost: an untracked seat-claim file in the worktree made the
+  closed-over gate report the whole suite rather than the scoped set, until it
+  was removed; this run's logs were kept outside the tree for that reason.
 
 _Requested by **tvofi**_
 
