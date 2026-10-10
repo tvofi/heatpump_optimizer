@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_range CMP_BOUND 60d7b1d4",
+  "killed_by": "tests/features.py",
+  "old": "        top = high if (1.0 - AGREE_TOLERANCE) * cfg_max > high else cfg_max",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7cd5a588cbbbef354c00148040da2d720b8a888c: CMP_BOUND (`top = high if (1.0 - AGREE_TOLERANCE) * cfg_max >= high else cfg_max`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

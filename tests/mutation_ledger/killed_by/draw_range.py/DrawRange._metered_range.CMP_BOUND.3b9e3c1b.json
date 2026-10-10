@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_range CMP_BOUND 3b9e3c1b",
+  "killed_by": "tests/features.py",
+  "old": "        bottom = cfg_min if AGREE_TOLERANCE * cfg_min >= abs(low - cfg_min) else low",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7cd5a588cbbbef354c00148040da2d720b8a888c: CMP_BOUND (`bottom = cfg_min if AGREE_TOLERANCE * cfg_min > abs(low - cfg_min) else low`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

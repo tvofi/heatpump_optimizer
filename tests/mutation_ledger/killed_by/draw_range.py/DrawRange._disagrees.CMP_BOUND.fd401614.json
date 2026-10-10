@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._disagrees CMP_BOUND fd401614",
+  "killed_by": "tests/features.py",
+  "old": "            if DISAGREE_FACTOR * d < a or DISAGREE_FACTOR * a < d",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7cd5a588cbbbef354c00148040da2d720b8a888c: CMP_BOUND (`if DISAGREE_FACTOR * d <= a or DISAGREE_FACTOR * a < d`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}
