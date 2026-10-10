@@ -1,0 +1,31 @@
+# CI check-runs at fa851d7ea2768c25a89a4a9820864d4a1b5fc458 (GitHub API, 2026-10-10)
+CodeQL success
+arch-score success
+briefs success
+browser success
+budget-raise-gate success
+claims-autofix skipped
+claims-autofix skipped
+closure-scope success
+closures success
+closures-autofix skipped
+closures-autofix skipped
+coverage in_progress
+fast (3.14) success
+mutation success
+mutation-autofix skipped
+mutation-autofix skipped
+mutation-ledger skipped
+mutation-ledger-push skipped
+mutation-nightly skipped
+mutation-pin-plan skipped
+mutation-pin-plan skipped
+mutation-pins skipped
+mutation-pins skipped
+nightly-ha skipped
+nightly-status success
+recheck-gate skipped
+record-autofix skipped
+slow skipped
+typing success
+validate-hacs success

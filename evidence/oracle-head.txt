@@ -1,0 +1,8 @@
+RESULT selftest_stores_ms=9.1 ms  # ok
+RESULT selftest_accuracy_ms=2.1 ms  # ok
+RESULT selftest_solver_ms=0.1 ms  # ok
+RESULT selftest_sensors_ms=0.2 ms  # ok
+RESULT selftest_feeds_ms=0.3 ms  # ok
+RESULT selftest_total_ms=11.8 ms  # budget 900000 ms
+RESULT bundle_bytes=588446 B  # cap 8388608 B
+RESULT bundle_inline=1 flag

@@ -1,0 +1,23 @@
+# gate, footprint, ledger -- head 170ac598748d4cf54e21a56a294eb747464b4f6d, reviewer's own runs, 2026-10-10
+
+$ python3 -I tools/audit/archscore/gate.py --base 23d354970fcaababe8e67a5c04c326cc8bc79e49 --head 170ac598748d4cf54e21a56a294eb747464b4f6d --body <pr body>
+merge base 23d354970fca, head 170ac598748d
+Architecture score: dS +0.0000 NULL
+PASS: dS +0.0000 NULL, no gate metric rose
+rc=0
+
+$ footprint.measure(head):
+coord_footprint 2586 params_over_10 12
+_ending_streak in charged: False
+
+$ ledger probe (inventory/unpinned_sites/completeness_problems), per tree:
+-- /Users/timmalmstrom/hpo-seats/r9rev-2110b/wt
+candidate sites: 5983 | unpinned: 4608 | completeness problems: 0
+-- /Users/timmalmstrom/hpo-seats/r9rev-2110b/code-wt
+candidate sites: 5943 | unpinned: 4620 | completeness problems: 0
+-- /Users/timmalmstrom/hpo-seats/r9rev-2110b/base-wt
+candidate sites: 5943 | unpinned: 4620 | completeness problems: 0
+-- prev-wt (4e5181094 tree + accessor deleted, rows kept):
+completeness problems: 2
+  custom_components/heatpump_optimizer/debugger.py:_ending_streak GUARD_OFF 7b428e6a: disposition names no site the inventory generates (old pin '    if not hasattr(coordinator, "diagnostics_state"):')
+  custom_components/heatpump_optimizer/debugger.py:_ending_streak RETURN_DEL 9e6cd1b7: disposition names no site the inventory generates (old pin '    return coordinator.diagnostics_state().tibber_outage_cycles')
