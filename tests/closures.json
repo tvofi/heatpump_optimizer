@@ -1353,8 +1353,12 @@
    "tools/audit/judge_batch.py",
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
+   "tools/audit/seat/handover_prompt.py",
+   "tools/audit/seat/plan_table.py",
    "tools/audit/seat/record_row.py",
+   "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_lib.py",
+   "tools/audit/seat/state_docs.py",
    "tools/merge/ledger_merge.py",
    "tools/policy/agreement.mjs",
    "tools/policy/brief_lint.mjs",
@@ -3724,7 +3728,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 38.0
+   "seconds": 15.2
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -3756,7 +3760,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 730.5
+   "seconds": 288.5
   },
   "tests/finite_boundary.py": {
    "rc": 0,
