@@ -30,7 +30,15 @@ later pull request would be graded against a `main` the refused one never joined
   2. ci       -- every check run at the head completes (all pages, at least
                  --min-runs); a latest run that is not success, skipped or
                  neutral stops it, except the `--ignore-red` names (default
-                 `nightly-status`, which grades `main`, not the head);
+                 `nightly-status`, which grades `main`, not the head). A head
+                 whose TIP is a GITHUB_TOKEN push (author `github-actions[bot]`)
+                 is refused before any check is read: such a push fires no
+                 `pull_request` run at all, so the required contexts only one
+                 writes stay ABSENT at it forever and the merge would be
+                 refused with nothing saying why (R9-RC-AUTOFIX-GOVERNANCE).
+                 The required follow-up is an App push -- step 1's recarry is
+                 one, which is why the refusal fires only where the head
+                 already contains main;
   3. carry    -- `app_approve.sh --carry <verdict> <head>` must say `CARRY: yes`:
                  the head differs from the verdicted one only by automatic merges;
   4. main     -- `origin/main` is still inside the head after CI (else main moved);
@@ -72,11 +80,14 @@ Same queue file; no head is re-merged with main. In order:
                  nothing is admitted (a proof on a red main blames its entries);
   1. admit    -- each head's own files (three-dot from main) are classed by
                  merge_fastpath.py's `file_class`: a workflow, claim, grader or
-                 any `*_budgets.json` change goes SERIAL. The rest must be green
-                 at their head (all check runs, less --ignore-red), carry their
-                 verdict, carry their row and pass step 5's policy decision --
-                 else it stops; `land` re-reads that decision at the merge, so
-                 admission is only the early refusal, not the verdict;
+                 any `*_budgets.json` change goes SERIAL. A head whose tip is a
+                 GITHUB_TOKEN push is refused here, before any proof is spent
+                 (a batch never recarries, so nothing in it can cure one). The
+                 rest must be green at their head (all check runs, less
+                 --ignore-red), carry their verdict, carry their row and pass
+                 step 5's policy decision -- else it stops; `land` re-reads
+                 that decision at the merge, so admission is only the early
+                 refusal, not the verdict;
   2. build    -- P_i = the merge of P_(i-1) and head i that GitHub will make
                  (git's text merge in place of every .gitattributes driver, which
                  GitHub never runs), P_0 = origin/main; a head that does not merge
@@ -275,6 +286,41 @@ class Train:
     def contains_main(self, h: str) -> bool:
         self.run(["git", "fetch", "-q", "origin", "main", h])
         return self.ok("git", "merge-base", "--is-ancestor", "origin/main", h)
+
+    # R9-RC-AUTOFIX-GOVERNANCE. A GITHUB_TOKEN push (the autofix jobs' pin and
+    # re-record commits, the merge-main bot's resolution) fires NO pull_request
+    # workflow run at all -- GitHub suppresses events from GITHUB_TOKEN -- so at
+    # such a head the only runs are the four the autofix job dispatches, and the
+    # required contexts only a pull_request run writes stay ABSENT forever: the
+    # head settles, every run it has is green, and the merge is refused with
+    # nothing saying why (measured 2026-10-09 at 63084989/#2066 and
+    # a9ba0b88/#2070: 4 dispatched runs each, zero pull_request runs, the same
+    # 5 of the 17 required contexts of main-protect-checks absent). Dispatch
+    # cannot close the gap: governance.yml answers workflow_dispatch, but
+    # pr-contract.yml and budget-raise-gate.yml take pull_request/merge_group
+    # only. The one follow-up that repairs such a head is an App push, and the
+    # train's own recarry (step 1) is one -- so the refusal fires only where the
+    # head already contains main and no recarry is possible.
+    def bot_tip(self, h: str) -> "str | None":
+        """The subject of <h>'s tip commit when a GITHUB_TOKEN push put it there
+        (author github-actions[bot], the login every such push carries), else
+        None. An unreadable head commit stops the train: a head whose author
+        cannot be read is a head this check cannot clear."""
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/commits/{h}", "--jq",
+                            '[(.author.login // .commit.author.name), '
+                            '(.commit.message | split("\\n")[0])] | @tsv'])
+        if code or "\t" not in o:
+            raise Stop("ci", f"the head commit at {h[:8]} could not be read: {o.strip()[-160:]}")
+        who, _, subject = o.strip().partition("\t")
+        return subject if who in ("github-actions", "github-actions[bot]") else None
+
+    def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
+        return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
+                    f"'{subject}'): no pull_request run fires at it, so the required contexts "
+                    "only one writes never report -- the head looks settled and is unmergeable, "
+                    "with nothing saying why. The required follow-up is an App push at this "
+                    "head: run the train again once main has moved (its recarry is one), or "
+                    "have the orchestrator App-push the branch")
 
     def wait_ci(self, h: str, only: "list[str] | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -490,6 +536,9 @@ class Train:
             # app_push.sh --recarry's one line: prepr SKIPPED or RUNS, and why.
             path = next((ln.strip() for ln in o.splitlines() if "RECARRY:" in ln), "no RECARRY line")
             self.log(f"#{pr} recarry: main merged, head {h[:8]}; {path}")
+        bot = self.bot_tip(h)  # after any recarry: the App push it makes cures a bot head
+        if bot:
+            raise self.bot_refusal(pr, h, bot)
         red = [n for n in self.wait_ci(h) if n not in self.ignore]
         self.log(f"#{pr} {h[:8]} ci red={red}")
         if red:
@@ -597,6 +646,9 @@ class Train:
         target = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "baseRefName", "--jq", ".baseRefName")
         if target != self.base:
             raise Stop("base", f"#{pr} targets {target}, not {self.base}")
+        bot = self.bot_tip(h)  # a batch never recarries, so nothing here can cure a bot head
+        if bot:
+            raise self.bot_refusal(pr, h, bot)
         self.run(["git", "fetch", "-q", "origin", h])
         files = self.git("diff", "--no-renames", "--name-only", self.git("merge-base", base, h), h).split()
         route = sorted({c for f in files if (c := mf.file_class(f, graders))})
@@ -824,6 +876,10 @@ def _self_test() -> int:
                 return 0, world.get("remerge", "PUSHED")
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
+            if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
+                sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
+                subj = world.get("bot_tips", {}).get(sha)
+                return 0, f"{'github-actions[bot]' if subj else 'tvofi'}\t{subj or 'fix: x'}"
             if argv[:3] == ["git", "merge-base", "origin/main"]:
                 return world.get("base", (0, "e" * 40 + "\n"))
             if argv[:2] == ["git", "diff"] and len(argv) > 4 and argv[4] == world.get("reviewed"):
@@ -982,6 +1038,25 @@ def _self_test() -> int:
                                "remerge": f"app_push: RECARRY: prepr {way}\napp_push: PUSHED"})
         check(f"the recarry logs app_push's path line (prepr {way.split(':')[0]})",
               rc == 0 and any(ln.endswith(f"app_push: RECARRY: prepr {way}") for ln in lines))
+    # R9-RC-AUTOFIX-GOVERNANCE: a GITHUB_TOKEN push (author github-actions[bot])
+    # fires NO pull_request workflow run at all, so the required contexts only
+    # one writes never report at such a head: it settles with them ABSENT and
+    # the merge is refused with nothing saying why (measured 2026-10-09 at
+    # 63084989/#2066 and a9ba0b88/#2070: 4 dispatched runs each, zero
+    # pull_request runs, the same 5 of the 17 required contexts absent).
+    BOT = "ci: pin killed mutants"
+    rc, lines, calls = go({"bot_tips": {H0: BOT}})
+    check("a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- "
+          "waiting cannot repair it; the required follow-up is an App push",
+          rc == 1 and "ci:" in lines[-1] and "GITHUB_TOKEN" in lines[-1] and BOT in lines[-1]
+          and "App push" in lines[-1]
+          and not merged(calls) and not approved(calls)
+          and not any("check-runs" in " ".join(c) for c in calls))
+    rc, lines, calls = go({"bot_tips": {H0: BOT}, "contains": [False], "heads": [H0, H1]})
+    check("a bot head behind main is not refused: the recarry's App push IS the follow-up, "
+          "and the train goes on at the new head (null control for the refusal above)",
+          rc == 0 and merged(calls) and any("recarry" in ln for ln in lines)
+          and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
     # The route the stubs cannot see: the real remerge_main.sh pushes with --recarry.
     rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
     check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
@@ -1215,6 +1290,10 @@ def _batch_self_test(check) -> None:
             if "check-runs" in a:
                 sha = a.split("/commits/")[1].split("/")[0]
                 return 0, "\n".join(json.dumps(c) for c in ci(w, sha))
+            if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
+                sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
+                subj = w.get("bot_heads", {}).get(sha)
+                return 0, f"{'github-actions[bot]' if subj else 'tvofi'}\t{subj or 'fix: x'}"
             if "/actions/jobs/" in a and "--allow-escape-sequences" not in argv:
                 return 1, "the response contains terminal escape sequences; pass --allow-escape-sequences"
             if "/actions/jobs/11/logs" in a:
@@ -1361,6 +1440,12 @@ def _batch_self_test(check) -> None:
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, ignore=("nightly-status",))
     check("an entry red at its own head is refused at admission (pr-contract not ignored here)",
           w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(bot_heads={w["heads"][2]: "ci: pin killed mutants"}))
+    check("a batch entry whose head is a GITHUB_TOKEN bot push is refused at admission, "
+          "before any proof is spent (R9-RC-AUTOFIX-GOVERNANCE)",
+          w["rc"] == 1 and "ci:" in w["lines"][-1] and "GITHUB_TOKEN" in w["lines"][-1]
+          and not w["pushed"] and not w["merged"])
     w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"b.txt": "B\n"}}, base="main",
            setup=lambda w: w.update(ci_red=R0))
     check("on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)",
