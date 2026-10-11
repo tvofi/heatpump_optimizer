@@ -3784,7 +3784,11 @@ def _p2_registry(sources):
                  (ast.Call,), r"^getattr\(.*'(last_updated|last_changed|last_reported)'",
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
-             owners=["inputs.py::state_stamp"], dispositions={}),
+             owners=["inputs.py::state_stamp"], dispositions={
+                 "early_cutoff.py::_cycle_guard":
+                     "the pump's run length is the age of the switch's VALUE "
+                     "(last_changed); state_stamp answers when the entity was "
+                     "last heard from, which a re-reported 'on' resets"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -3793,11 +3797,11 @@ def _p2_registry(sources):
                      getattr(n.left, "value", None), getattr(n.right, "value", None))),
              owners=["thermal_model.py::on_threshold_kw"], dispositions={}),
         # D12-s2-02: the domain that writes a configured entity comes from
-        # the entity (coordinator._on_off_service, #1526), never a literal.
+        # the entity (pump_arbiter.on_off_service, #1526), never a literal.
         dict(fact="entity_write_domain", finding="D12-s2-02",
              match=_p2_match_literal_domain(
                  {"select", "switch", "input_select", "input_boolean", "number", "input_number"}),
-             owners=["coordinator.py::_on_off_service"],
+             owners=["pump_arbiter.py::on_off_service"],
              dispositions={
                  "coordinator.py::HeatPumpOptimizerCoordinator._command_frequency":
                      "the compressor_freq slot is number-only "
@@ -4351,7 +4355,7 @@ _EC_NOT_ENTRY = {
 _EC_MIGRATED = {
     "coordinator.py", "__init__.py", "binary_sensor.py", "optimizer.py", "climate.py",
     "disinfection.py", "legionella.py", "pump_arbiter.py", "pump_signals.py", "sensor.py",
-    "setpoint_check.py", "silent_mode.py",
+    "setpoint_check.py", "silent_mode.py", "early_cutoff.py",
 }
 
 
@@ -19457,9 +19461,11 @@ R.check(
     f"rederive={_A_CARD['rederive']}",
 )
 # ... and it pulls the producer in AHEAD of the consumer. `affected.scripts`
-# is the order the CI "Re-record the closures" step iterates with `--single`,
-# so a producer listed after its consumer is recorded too late: the card's
-# `--single` run finds no plan payload, fails, and `closures-autofix` then
+# is the order the CI "Re-record the closures" step's lane runner keeps
+# inside a lane (`--scripts-from`; `closure.py lane-plan` shards the list but
+# holds each producer/consumer pair in one lane, in this order), so a
+# producer listed after its consumer is recorded too late: the card's
+# recording finds no plan payload, fails, and `closures-autofix` then
 # answers `skip-failed-recording` for the WHOLE batch -- blocking a repair of
 # an unrelated genuine gap in it (#1146). Membership alone (the check above)
 # does not hold this; `sorted()` put card.mjs ("c") before plan_view.py ("p").
@@ -25059,6 +25065,43 @@ R.check(
     "for a branch no group claims -- a prefix rule would answer R9-FR-10 "
     "for fix/r9-fr-1, and a hotfix branch must row in the neutral phrasing "
     "a seat edits at approval, not in a group it does not belong to",
+)
+
+# --- the state-doc beat (R9-RO-14, #2102) -----------------------------------
+#
+# The state docs the standing instruction of 2026-10-09 requires continuously
+# regenerated are `state_docs.py`'s; what was missing is the recurring half,
+# and the orchestrator supplied it from a loop in its own scratch directory --
+# decision 0013's defect shape, an instrument the programme runs that lives
+# outside the tree, where no later session can test it and `worktree_gc` can
+# collect it. The beat lands inside the instrument that already owns the write
+# set and the orphan-ref push (fixer.md step 17: a second script beside it
+# would be a parallel mechanism), and the read below is what keeps it
+# drivable: the module is loaded and its self-test RUN here, so an edit to the
+# beat selects this script instead of skipping it. Without the read the file
+# sits under `tools/audit/`'s INERT prefix, a change to it selects NO script,
+# and the arms the issue names would be run by hand or never -- the same
+# defect one level down, which is why this is not optional decoration.
+# `_rr_cx`/`_rr_io` are the record_row block's redirect helpers, one block up.
+import importlib.util as _sd_util  # noqa: E402
+
+try:
+    _sd_spec = _sd_util.spec_from_file_location(
+        "hpo_state_docs",
+        _closure.ROOT / "tools" / "audit" / "seat" / "state_docs.py")
+    _sd = _sd_util.module_from_spec(_sd_spec)
+    _sd_spec.loader.exec_module(_sd)
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _sd_out, \
+            _rr_cx.redirect_stderr(_rr_io.StringIO()) as _sd_err:
+        _sd_ok = _sd.run_self_test() == 0
+    _sd_detail = _sd_out.getvalue() + _sd_err.getvalue()
+except Exception as _sd_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _sd_ok, _sd_detail = False, f"{type(_sd_exc).__name__}: {_sd_exc}"
+R.check(
+    "tools/audit/seat/state_docs.py --self-test passes, beat arms included",
+    _sd_ok,
+    "run `python3 tools/audit/seat/state_docs.py --self-test` for the "
+    "failing check names:\n" + _sd_detail,
 )
 
 # THE ROW THE TREE READS. `delivery_status.read_texts` is one of the two
