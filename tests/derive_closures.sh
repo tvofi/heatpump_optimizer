@@ -9,6 +9,9 @@
 #   ./tests/derive_closures.sh --single S      # record just S, merge it in
 #   ./tests/derive_closures.sh --single S --record-only --out-dir D
 #                                              # record just S into D, merge nothing
+#   ./tests/derive_closures.sh --scripts-from F --record-only --out-dir D
+#                                              # record the scripts listed in F
+#                                              # across lanes, merge nothing
 #
 # This runs the whole suite once, under instrumentation (see tests/closure.py):
 # the closures are what the runs actually opened and imported, not what
@@ -18,6 +21,18 @@
 # record one new script is what made people skip it, and the scoped gate
 # silently ran full on every PR until main's closures job failed. One
 # script, one recording, one merge into tests/closures.json.
+#
+# --scripts-from exists because the scoped arm used to loop --single over
+# the list one script at a time, paying the SUM of the selected recordings
+# (51m18s over 24 scripts on #2071's closures job) where the full arm pays
+# a lane MAX (27m57s the same day) for more work. The list is sharded by
+# `closure.py lane-plan` -- the ordering constraints (plan_view.py ahead of
+# the card scripts that read its payload, a driven child with its driver)
+# are kept inside one lane, and the recordings are the same recordings the
+# serial loop took: which lane records a script changes WHEN it is
+# recorded, never WHAT it opens (R9-F10.15). The lane count is bounded by
+# the owner's standing rule, three on CI and four on a seat box, overridable
+# downward with $DERIVE_LANES.
 #
 # Two scripts are recorded with cheap arguments on purpose:
 #
@@ -38,6 +53,7 @@ GOLDEN_REF="${GOLDEN_REF:-origin/main}"
 OUTDIR=""
 MERGE=1
 SINGLE=""
+SCRIPTS_FROM=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --out-dir) OUTDIR="$2"; shift 2 ;;
@@ -47,25 +63,13 @@ while [ $# -gt 0 ]; do
     # the file against itself and pass no matter how stale it was.
     --record-only) MERGE=0; shift ;;
     --single) SINGLE="$2"; shift 2 ;;
+    --scripts-from) SCRIPTS_FROM="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
-if [ -n "$SINGLE" ]; then
-  # One script, recorded and merged into the committed file. The two
-  # cheap-argument special cases in the lanes below apply here too, for
-  # the same reasons. Parsed here, executed after rec() exists.
-  case "$SINGLE" in
-    tests/golden.py) set -- "--only" "__no_such_scenario__" ;;
-    # The calibration builds every planted tree and measures none of them.
-    tests/arch_score.py) set -- "--smoke" ;;
-    tests/env_drift.py) set -- "--cache-key" "$GOLDEN_REF" "--all" ;;
-    # Its lane's environment, below: the scoped `closures` job re-derives it
-    # beside features.py, its driver (R9-F10.9).
-    tests/dst_checks.py) export HASTUB_TZ=Europe/Stockholm; set -- ;;
-    *) set -- ;;
-  esac
-else
-  set --
+if [ -n "$SINGLE" ] && [ -n "$SCRIPTS_FROM" ]; then
+  echo "--single and --scripts-from are two different runs" >&2
+  exit 2
 fi
 if [ -z "$OUTDIR" ]; then
   OUTDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-closure-XXXXXX")
@@ -83,10 +87,29 @@ rec() {
   # recording that exited 1 included, the one skip-failed-recording names.
   local rc=$?
   echo "  [$(date +%H:%M:%S)] done   $script (exit $rc)"
+  REC_RC=$rc
+}
+
+# One script with the cheap arguments and environment the full lanes record
+# it with -- the same two differential guards, the calibration's --smoke and
+# dst_checks.py's lane timezone, whichever path records it: --single and the
+# --scripts-from lanes both come through here, so a scoped re-derivation
+# takes the identical invocation the serial loop took.
+rec_special() {
+  case "$1" in
+    tests/golden.py) rec "$1" --only __no_such_scenario__ ;;
+    # The calibration builds every planted tree and measures none of them.
+    tests/arch_score.py) rec "$1" --smoke ;;
+    tests/env_drift.py) rec "$1" --cache-key "$GOLDEN_REF" --all ;;
+    # Its lane's environment, below: the scoped `closures` job re-derives it
+    # beside features.py, its driver (R9-F10.9).
+    tests/dst_checks.py) HASTUB_TZ=Europe/Stockholm rec "$1" ;;
+    *) rec "$1" ;;
+  esac
 }
 
 if [ -n "$SINGLE" ]; then
-  rec "$SINGLE" "$@"
+  rec_special "$SINGLE"
   echo
   # --record-only applies here too. The scoped path of the `closures` job
   # records one script at a time into a shared out-dir and then CHECKS the
@@ -102,23 +125,60 @@ if [ -n "$SINGLE" ]; then
   exit 0
 fi
 
-# Lane layout (option (e) of the round-9 closures pre-study): the recorded
-# seconds below are the committed tests/closures.json `recorded` table at
-# 6be88834e8 (2026-10-10), quoted per lane. The old three-lane layout put
-# boost_drift_replay.py (1489.6 s recorded; 29 m 26 s measured on job
-# 114258919874, 55% of that push-to-main job's wall) in the middle of one
-# 53-minute lane while lanes 1-2 sat idle after 15 and 21 minutes, so the
-# job's wall was lane 3's serial sum, not any single recording. boost now
-# has a lane of its own and is the floor; the rest of that lane keeps its
-# order (1239.2 s recorded) beside it, and every other lane already finishes
-# under the floor. Same recordings, same checks, same outputs -- only which
-# background shell records what, and that a script's lane changes WHEN it is
-# recorded, never WHAT it opens, is the established R9-F10.15 result the
-# lane-2 comment below cites. The wall-clock acceptance (<= 35 min on the
-# push-to-main closures job, two runs) is CI's own measurement: a full
-# derive is Linux-only (gate-scoping.md).
-#
-# Lane 1: the longest of the ordinary scripts, alone (760.6 s).
+if [ -n "$SCRIPTS_FROM" ]; then
+  # The lane runner. `lane-plan` shards the list (balance over the recorded
+  # seconds table, the ordering constraints kept inside one lane) and writes
+  # one lane.<n> file per lane; each lane below is one background shell
+  # recording its file's scripts in order, into the shared OUTDIR like the
+  # full arm's lanes. A lane that dies without recording everything it was
+  # handed is LOUD below: the serial loop's one-derive-per-script process
+  # was reddened by the step's own -e, and a dropped recording that exits
+  # quietly would leave the scoped check comparing nothing for that script.
+  LANES_DIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-lanes-XXXXXX")
+  $PYTHON tests/closure.py lane-plan \
+    --scripts-from "$SCRIPTS_FROM" --out-dir "$LANES_DIR" || {
+      rm -rf "$LANES_DIR"; exit 2; }
+  pids=""
+  for lane in "$LANES_DIR"/lane.*; do
+    [ -f "$lane" ] || continue
+    (
+      while IFS= read -r s; do
+        [ -n "$s" ] || continue
+        rec_special "$s"
+      done < "$lane"
+    ) &
+    pids="$pids $!"
+  done
+  dead=0
+  for p in $pids; do
+    wait "$p" || { echo "a recording lane died (exit $?)" >&2; dead=1; }
+  done
+  rm -rf "$LANES_DIR"
+  missing=""
+  while IFS= read -r s; do
+    [ -n "$s" ] || continue
+    [ -f "$OUTDIR/$(basename "$s").json" ] || missing="$missing $s"
+  done < "$SCRIPTS_FROM"
+  if [ -n "$missing" ]; then
+    echo "no recording this run for:$missing -- the lane runner will not" >&2
+    echo "leave a scoped script silently unrecorded" >&2
+    exit 1
+  fi
+  if [ "$dead" -ne 0 ]; then
+    exit 1
+  fi
+  echo
+  # A merge here is partial, exactly as --single's is: only the scripts this
+  # run listed were re-derived, so overlaying them is the only honest merge.
+  if [ "$MERGE" -eq 1 ]; then
+    $PYTHON tests/closure.py merge --in-dir "$OUTDIR" --partial
+    exit $?
+  fi
+  echo "recorded into $OUTDIR; tests/closures.json left untouched (--record-only)"
+  exit 0
+fi
+
+# Lane 1: the single longest script, alone.
 ( rec tests/stress.py ) &
 p1=$!
 # Lane 2 used to record tests/rolling.py. It no longer does: rolling is
@@ -126,10 +186,9 @@ p1=$!
 # could not decide anything. Recording it cost 62 minutes under the audit
 # hook -- more than every other script combined -- for an answer nothing
 # reads. See the SLOW_GATED comment in tests/closure.py.
-# Lane 2: features.py and entities.py, the two longest after stress (730.5 s
-# and 259.6 s recorded). Neither reads anything a script of another lane
-# writes (run.sh runs them beside the others for the same reason), and the
-# recordings are one file per script under
+# Lane 2: features.py and entities.py, the two longest after stress. Neither
+# reads anything a script of lane 3 writes (run.sh runs them beside the others
+# for the same reason), and the recordings are one file per script under
 # $OUTDIR, so which lane takes a script changes when it is recorded and not
 # what it opens (R9-F10.15). Closures are measured as before; the proof is the
 # `closures` job's UNDER-SCOPED check on this very lane layout.
@@ -138,21 +197,8 @@ p1=$!
   rec tests/entities.py
 ) &
 p2=$!
-# Lane 3: boost_drift_replay.py, ALONE (1489.6 s recorded, 24 m 50 s -- the
-# single longest recording in the table and the wall-clock floor of the whole
-# job). It used to sit mid-sequence in the old lane 3; #1935 put it in
-# run.sh's lane order right after backtest.py, and backtest.py keeps that
-# relative position as the first of its old neighbours below. Sharing a lane
-# with it could only ever add to the floor, and giving it one costs the job
-# nothing: three other lanes are recording meanwhile.
-(
-  rec tests/boost_drift_replay.py
-) &
-p3=$!
-# Lane 4: everything else the old lane 3 held, in exactly its order
-# (1239.2 s recorded, summed from the same table). plan_view.py writes the
-# payload card.mjs reads, so that pair keeps its order here exactly as in
-# run.sh -- and as it had it before the rebalance.
+# Lane 3: everything else, in one sequence. plan_view.py writes the payload
+# card.mjs reads, so that pair keeps its order here exactly as in run.sh.
 (
   # Block-switch mutants (R9-SW-5), in run.sh's lane order after entities.py.
   # A selectable script the lanes never recorded fails the closures job with
@@ -192,6 +238,8 @@ p3=$!
   rec tests/edge.py
   rec tests/validate.py
   rec tests/backtest.py
+  # #1935: in run.sh's lane order, right after backtest.py.
+  rec tests/boost_drift_replay.py
   # What tests/hastub owes Home Assistant (#536), in run.sh's lane order. Its
   # closure is the whole stub on purpose: any change there must put this in
   # scope. Recorded HERE and not only with --single, because the closures job
@@ -246,8 +294,8 @@ p3=$!
   # exactly as run.sh passes it.
   rec tests/card_drift.mjs
 ) &
-p4=$!
-wait $p1 $p2 $p3 $p4
+p3=$!
+wait $p1 $p2 $p3
 
 echo
 if [ "$MERGE" -eq 1 ]; then

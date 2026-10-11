@@ -474,19 +474,29 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
     full) echo "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden"; r=3 ;;
     scoped)
       command -v strace >/dev/null && strace=1
-      rp=""
+      # R1 (the round-9 merge-path pre-study): the recordable subset goes to
+      # the recorder as ONE --scripts-from lane run, which shards it across
+      # lanes (bounded: four heavy slots on this box) instead of paying the
+      # serial SUM of a --single per script. The per-script decisions below --
+      # which recordings this machine takes and which are left to CI -- are
+      # unchanged, and the recordings are the same recordings.
+      : > "$cw/record.txt"
       while read -r s; do
         [ -n "$s" ] || continue
         if [ "$(closure_lane "$s" "$strace")" != record ]; then left="$left $s"; continue; fi
-        # Resolved on the first script this machine will actually record, so a
+        printf '%s\n' "$s" >> "$cw/record.txt"
+      done < "$cw/aff/affected.scripts"
+      rp=""
+      if [ -s "$cw/record.txt" ]; then
+        # Resolved only when this machine will actually record something, so a
         # diff whose recordings are all left to CI owes no interpreter (and
         # `closure_lane` above still ran on the ambient python3 it always did).
-        if [ -z "$rp" ]; then
-          rp=$(recorder_python) || { echo "$rp"; r=1; break; }
-        fi
-        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --single "$s" \
-          --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
-      done < "$cw/aff/affected.scripts"
+        rp=$(recorder_python) || { echo "$rp"; r=1; }
+      fi
+      if [ "$r" -ne 1 ] && [ -n "$rp" ]; then
+        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
+          --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+      fi
       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
       elif [ ! -d "$cw/rec" ]; then
         echo "nothing scoped can be recorded on this machine; left to CI:$left"; r=3
@@ -1690,7 +1700,7 @@ rec = {"script": s, "rc": 0, "seconds": 0.1, "files": files, "spawned": [], "how
 for sub, over in (("ok", {}), ("under", {"files": files + [extra]}), ("dead", {"rc": 3, "files": files + [extra]})):
     (d / sub / "wood_advisor.py.json").write_text(json.dumps(dict(rec, **over)))
 PY
-  printf '#!/bin/bash\nmkdir -p "$5" && cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n[ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
+  printf '#!/bin/bash\n[ -n "${CALLLOG:-}" ] && printf '"'"'%%s\\n'"'"' "$1" >> "$CALLLOG"\nmkdir -p "$5"\nif [ "$1" = "--scripts-from" ]; then\n  while read -r s; do\n    [ -n "$s" ] || continue\n    cp "$FIXTURE_REC/$(basename "$s").json" "$5/"\n    [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\n  done < "$2"\nelse\n  cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n  [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nfi\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
   closures_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork); echo "$?:${got%%:*}"); }
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
@@ -1702,6 +1712,18 @@ PY
   # genuinely outside every recorded reach; dev/governance/ is one at both
   # ends (pinned in tests/entities.py beside the rule itself).
   got=$(closures_at sk under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
+  # reaches the recorder as ONE --scripts-from lane run -- a serial --single
+  # per script pays the SUM of the recordings where the lane run pays a lane
+  # MAX. The stub logs every call it receives; at the merge base this arm
+  # failed with the log holding --single. `cl` is again the scoped branch.
+  : > "$CLM/calls"
+  full=$(cd "$CLM/r" && git checkout -q cl \
+    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" CALLLOG="$CLM/calls" \
+       closures_line fork 2>&1); rc=$?
+  st "$rc" 0 "6b drives the scoped set through the --scripts-from lane runner"
+  [ "$(sort -u "$CLM/calls" | tr -d '\n')" = "--scripts-from" ]
+  st $? 0 "and makes no serial --single call beside it (the merge-base arm's failure)"
   # R9-FR-5 through the step itself: the resolved interpreter reaches the
   # recorder as $PYTHON, and a resolution that refuses stops the step before
   # anything records. `cl` is the branch whose diff makes 6b scoped; the stub
