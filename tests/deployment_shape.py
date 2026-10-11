@@ -45,7 +45,17 @@ images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
 ``quiet_windows.py``, 89 until R9-DBG-1's ``debugger.py``, 90 until
 R9-EG-B11's ``entry_config.py``, 91 until R9-UX-9's ``flow_meter.py``, 92
 until the live power clamp's ``draw_range.py``, 93 until the live-fix wave's
-``early_cutoff.py``) -- one of the three closures in ``tests/closures.json`` that reachscripts each have a non-empty production closure (``tests/arch_score.py``,
+``early_cutoff.py``) -- one of the three closures in ``tests/closures.json`` that reach
+every production file; the second is ``tests/arch_score_head.py``'s
+(R9-EG-A1), which measures today's tree with the architecture score and so
+must read all of it, and the third is ``tests/entities.py``'s (round 9),
+which drives the CI ratchet's archscore measurement and so opens the package
+the way this lane's recorder does. A diff touching any production file
+therefore selects this lane. That is a selection cost, not a
+duplicate-assertion one: the same
+recording finds 122 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+of their production-module closure, all 122 among the 406 pairs whose two
+scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
 R9 F10.3's strace instrument recorded its round-harness children's imports;
@@ -63,7 +73,8 @@ Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
 (94 shared production files each), doc_claims.py/harness_headers.py
 (84), structure.py/typing_ruler.py, finite_boundary.py/structure.py and
-finite_boundary.py/typing_ruler.py (76 each), plan_view.py/solar_alignment.py,boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
+finite_boundary.py/typing_ruler.py (76 each), plan_view.py/solar_alignment.py,
+boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
 (58 each), the optimality.py/validate.py/edge.py/backtest.py four (21, six
 pairs), golden.py/env_drift.py (92), card.mjs/card_drift.mjs (59) -- and which
 mutants each script actually kills
