@@ -254,7 +254,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
     class still open).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
-    `tools/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
+    `dev/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
     one-off probe may stay in scratch. `tools/audit/seat/tmp_paths.py` refuses
     temp or machine paths.
 

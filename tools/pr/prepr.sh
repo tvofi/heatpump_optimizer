@@ -678,6 +678,27 @@ copies_line() { # tree root, changed-paths file -> one line; rc 0 clean, 1 a cop
   return 1
 }
 
+# THE LAYOUT GUARD IS CI'S OWN COMMAND. `tests.yml`'s fast job runs `tests/layout.py`,
+# whose guard refuses a diff that re-adds a path the reorganisation moved (a new
+# file under a directory that has since moved); that took ~30 min to
+# surface on #2065 (29m50s to 30m48s on the three PRs) and runs in 0.44 to 2.10 s here, and no local path ran it
+# (R9-RCA-harness-path). The merge base is passed explicitly, so a stale
+# `origin/main` ref cannot move what is compared.
+moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 skipped
+  local out r
+  [ -f "$1/tests/layout.py" ] || { echo "no tests/layout.py under $1, so the layout guard was not run"; return 3; }
+  out=$(cd "$1" && python3 -I tests/layout.py --guard --base "$2" 2>&1); r=$?
+  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+  local first hint; first=$(grep -m1 '^    ' <<<"$out" | sed 's/^ *//')
+  case "$first" in
+    new-reference:*|unswept:*) hint="re-point the citation to its new path in tests/layout.json" ;;
+    *'it lives at'*) hint="move it to the new path" ;;
+    *) hint="place it where tests/layout.json says" ;;
+  esac
+  echo "$first -- $hint, or the fast job refuses it"
+  return 1
+}
+
 # --- the ancestry red-check arm (#1860, R9-FR-2) -------------------------------
 # WHY THIS EXISTS. defect-root-cause.md's enforced trigger fires on "a check
 # that went red on a commit in the branch", but the push-time enforcement that
@@ -1329,6 +1350,44 @@ EOS
   st "$r" 3 "a tree with no tests/closure.py skips, never refuses"
   rm -rf "${CR:?}"
 
+  # The layout guard, driven through `moved_line` over a throwaway repo that
+  # holds THIS tree's tests/layout.py and layout.json: the base has a file at
+  # the new home, so the move has landed, and a branch then adds one file.
+  LR=$(mktemp -d)
+  mkdir -p "$LR/tests" "$LR/dev/audit/harnesses"
+  cp tests/layout.py tests/layout.json "$LR/tests/"
+  echo "# h" > "$LR/dev/audit/harnesses/seed.py"
+  lg() { git -C "$LR" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+  (lg init -q && lg checkout -q -b main && lg add -A && lg commit -qm base) >/dev/null 2>&1
+  LB=$(lg rev-parse HEAD)
+  # The retired directory is spelled in two halves: layout.py's own new-reference
+  # arm refuses a literal citation of it in a live file.
+  RD=tools/audit; RD=$RD/harnesses
+  lg checkout -q -b retired >/dev/null 2>&1; mkdir -p "$LR/$RD"; echo "# h" > "$LR/$RD/new.py"
+  lg add -A >/dev/null 2>&1; lg commit -qm retired >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new file under a landed-retired directory is refused"
+  case "$got" in *'re-adds a moved path'*'dev/audit/harnesses/'*) st 1 1 "and the refusal names the new path";; *) st 0 1 "and the refusal names the new path";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b clean >/dev/null 2>&1; echo "# h" > "$LR/dev/audit/harnesses/new.py"
+  lg add -A >/dev/null 2>&1; lg commit -qm clean >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 0 "the same file at dev/audit/harnesses/ passes (null control)"
+  case "$got" in *'GUARD: 0 refusal'*) st 1 1 "and the ok line is the guard's own, so it ran";; *) st 0 1 "and the ok line is the guard's own, so it ran";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b cite >/dev/null 2>&1; printf '# see %s/x.py\n' "$RD" >> "$LR/dev/audit/harnesses/seed.py"
+  lg add -A >/dev/null 2>&1; lg commit -qm cite >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new line citing a retired path is refused"
+  case "$got" in *'re-point the citation'*) st 1 1 "and the hint says to re-point the citation, not to place a file";; *) st 0 1 "and the hint says to re-point the citation, not to place a file";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b nocat >/dev/null 2>&1; mkdir -p "$LR/zz_no_category"; echo "# h" > "$LR/zz_no_category/x.md"
+  lg add -A >/dev/null 2>&1; lg commit -qm nocat >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new file in no category is refused"
+  case "$got" in *'place it where tests/layout.json says'*) st 1 1 "and a refusal with no new path does not say to move it there";; *) st 0 1 "and a refusal with no new path does not say to move it there";; esac
+  rm -f "$LR/tests/layout.py"
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 3 "a tree with no tests/layout.py skips, never refuses"
+  rm -rf "${LR:?}"
+
   # The call site. Driving the two functions above does not pin that a step
   # calls them: the #1591 self-test drove a helper while the step kept calling
   # the old one. The main flow is the text after this self-test returns.
@@ -1337,6 +1396,8 @@ EOS
   st $? 0 "the pr-body step calls body_line, so a predicted raise reaches the body check before the push"
   case "$flow" in *'copies_line "'*) true ;; *) false ;; esac
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
+  case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
+  st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
@@ -2225,6 +2286,16 @@ else
   step "no-copies" 1 "the changed-path list did not derive from $BASE...HEAD, so no-copies was not run"
 fi
 rm -f "$COPY_PATHS"
+
+# --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
+# `moved_line` above, 0.4 to 2.1 s. It reads the index against $BASE, so it needs
+# no changed-path list.
+MOVED_LINE=$(moved_line "$PWD" "$BASE")
+case $? in
+  3) say skip "layout guard" "$MOVED_LINE" ;;
+  0) step "layout guard" 0 "$MOVED_LINE" ;;
+  *) step "layout guard" 1 "$MOVED_LINE" ;;
+esac
 
 # --- 7. the body, when one was passed.
 BODY="${1:-}"

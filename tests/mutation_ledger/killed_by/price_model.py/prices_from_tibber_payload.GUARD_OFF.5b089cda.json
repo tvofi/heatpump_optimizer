@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:prices_from_tibber_payload GUARD_OFF 5b089cda",
+  "killed_by": "tests/features.py",
+  "old": "            if total is None:",
+  "reason": "Recorded by `mutation_table.py --drain` against 7cd5a588cbbbef354c00148040da2d720b8a888c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
