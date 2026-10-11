@@ -1,7 +1,0 @@
-# field-by-field: committed row vs CI artifact payload
-pins-1 PAYLOAD IDENTICAL (killed_by,old,reason): True
-  committed keys: ['killed_by', 'old', 'reason'] artifact keys: ['killed_by', 'old', 'reason']
-pins-2 PAYLOAD IDENTICAL (killed_by,old,reason): True
-  committed keys: ['killed_by', 'old', 'reason'] artifact keys: ['killed_by', 'old', 'reason']
-pins-3 PAYLOAD IDENTICAL (killed_by,old,reason): True
-  committed keys: ['killed_by', 'old', 'reason'] artifact keys: ['killed_by', 'old', 'reason']

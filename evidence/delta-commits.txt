@@ -1,0 +1,8 @@
+5bfddc1bd Merge remote-tracking branch 'origin/main' into fix/r9-ux-6
+00e5b5cdb Merge commit 'db7b569bd40d9fcc6da3c60a3342b07953aad95f' into fix/r9-ux-6
+db7b569bd fix(#2119): the drift gate's baseline worktree add refuses with git's own reason
+0f1ccbe52 Merge pull request #2117 from tvofi/fix/r9-recarry-readback
+88cfe2cb9 Merge remote-tracking branch 'origin/main' into fix/r9-recarry-readback
+a27c7bd44 record: the delivery row for #2117
+48d47ab19 ci: run the app_push self-test on every pull request
+77d66d707 fix(R9-RC-RECARRY-READBACK): the read-back settles a race instead of refusing it

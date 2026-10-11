@@ -1,28 +1,72 @@
-Fix review: blocked a4c134fce1420e531982f31da6c4ab0a07cbd19f root-cause-unanswered: mutation went red at the head -- the lane's null-control refusal (accuracy.py:44 NULL_COMMENT "killed" by tests/env_drift.py, which crashed on `git worktree add ... e1501bf48` exit 128), a refusal `## Red checks` does not answer: its mutation entries answer the unpinned-count refusals only, enumerated 2026-10-10T19:20Z; this red landed 2026-10-11T09:47Z (check-run 114440311454, run 38129371794) after the body's last figure stamp 09:26Z.
+Fix review: merge 5bfddc1bd917798b28408759f6afa7ab14c2dee0
 
-Round 4 of this review (resolution delta 271373ad5..a4c134fce only; the substance at 271373ad5 is established and was not re-opened).
+Resolution delta a4c134fce…5bfddc1bd, round 5 of the PR (contract step 12:
+a `merge a4c134fce…` verdict's own resolution delta, production tree
+byte-identical). Reviewer worktree detached at the head,
+/Users/timmalmstrom/hpo-seats/r9rev-2119d/wt; seat venv (venv-ci) first on
+PATH; scratch /Users/timmalmstrom/hpo-seats/r9rev-2119d/, evidence in
+evidence/.
 
-bus-nonce: d05cb4476e828c50cc30cedf0bfbc7dd
+Delta commits (evidence/delta-commits.txt): the branch's one authored commit
+db7b569bd (`fix(#2119): the drift gate's baseline worktree add refuses with
+git's own reason`), plus main's own #2117 side (77d66d707, 48d47ab19,
+a27c7bd44, 88cfe2cb9, merge 0f1ccbe52) and the two merges 00e5b5cdb and
+5bfddc1bd that carry them. Every non-test file in the full delta diffstat
+(.github/workflows/governance.yml, dev/programme/delivery/2117.md,
+tools/audit/seat/merge_train.py, tools/pr/app_push.sh) is byte-identical to
+main tip 0f1ccbe52 -- main-side content arriving through the merge, not
+authored here. The authored change is tests/entities.py +97 (three new
+checks) and tests/env_drift.py +61/-5 (the repair); ledger.py,
+tests/features.py, tests/doc_claims.py and the whole custom_components tree
+are byte-identical to a4c134fc (evidence/production-identity.txt).
 
-## The resolution delta measured clean on every other axis
+Repair sound and minimal (tests/env_drift.py): `add_baseline_worktree` drops
+`check=True, capture_output=True` for an explicit returncode check; on a
+non-zero add it captures `(add.stderr or add.stdout or "no message")`, prints
+git's own reason per attempt, and retries ONCE (candidates from
+`baseline_worktree_candidates(tmp, attempts=2)`) on a fresh name
+`baseline-{pid}-{n}` -- pid separates concurrent gate instances, ordinal
+separates one instance's own retries, so no two adds contend for one
+registered name and no retry meets its own half-built directory. A double
+failure refuses READABLY: `BASELINE WORKTREE REFUSED: git could not check
+out ... (reason)` and return 1, after cleaning tmp -- not a crash, not
+silence. Same shape as stress.py's precedent the body cites.
 
-- Delta commits (first-parent): `18a04ed62` github-actions[bot] `ci: pin killed mutants` (22 killed_by rows, tests/mutation_ledger/ only, zero non-ledger files); `4b71d669` merge of the authored head; `a4c134fce` merge of origin/main (e1501bf48). The only non-bot, non-merge authored commit is `d0e5d209f` "test(R9-UX-6): record the mutation ledger the pin lane measured": 17 files, all under tests/mutation_ledger/ (3 killed_by + 14 survivor_triage). Everything else in the two-dot delta is main's own merged work (#2110/#2111/#2121/#2122/#2124), arrived through the merge commits.
-- RESULT delta-commits: PASS -- reviewed production code untouched.
-- The 3 applied pins (`accuracy.py:plan_promise CMP_BOUND f4529abb`, `GUARD_OFF f4529abb`, `ledger.py:restate_total RETURN_DEL 637aad71`) are payload-identical (killed_by, old, reason) to the CI shard artifacts `mutation-pins-1/2/3` of run 38090917611 (head 18a04ed62); `mutation-pins-4` is the empty skip-nothing-killed shard. Old anchor strings verified present in the head tree. This is exactly ci-autofix.md's division: the bot measured, the fixer recorded; the loop-guard path (bot declined its second pass on its own `ci:` subject) is the rule's recorded open path.
-- RESULT pins-provenance: PASS.
-- 5 sampled triages of 14 (`@module.CONST 4ac79a47`, `_stored_promise GUARD_OFF d997c270` [the one `equivalent`], `book_capacity GUARD_OFF 6dd41738`, `freeze_month_report CMP_BOUND 9ccdc7b1`, `roll_receipts CLAMP_DROP 2f982717`): each names the CI measurement (run 38090917611 at head 18a04ed62) for survival and analyses the concrete boundary input no recorded driver builds; every `old` line verified in the tree. Verdict census: 1 equivalent + 13 gap, as the body states.
-- RESULT triage: PASS -- no assertion-only disposition found.
-- Local ratchet at the head: `4601 unpinned site(s) of 6017 candidate sites, 4608 at the ratchet base e1501bf48...; the ledger agrees with the deterministic inventory` -- no MUTATION TABLE REFUSED. The script's driving half then dies on this box's Python 3.11.5 at tests/features.py:3935 (the disclosed macOS f-string limit), after the count ratchet. `ci_predict.py --base origin/main` reports `no closures or fast red predicted` -- the unpinned line is gone. The same count line, green, is also in the head's own CI log.
-- RESULT ratchet + ci_predict: PASS.
-- custom_components/ across the delta: only `debugger.py` moved, byte-identical to main tip e1501bf48 (main's #2110); all seven UX-6 production files byte-identical between 271373ad5 and a4c134fce. Claim files, budgets, VERSION, manifest untouched by the delta.
-- RESULT production-bytes: PASS.
+Failing-first arm, re-run by me (not the fixer's numbers): env_drift.py
+reverted at the head to a4c134fc's copy, `PYTHONPATH=tests/hastub python3
+tests/entities.py` -> `3 of 2254 ENTITY CHECKS FAILED`, and the three are
+exactly the new named checks ("a refused baseline worktree add reports git's
+own reason, not a bare exit 128 (#2119)", "a resolvable ref builds the
+baseline worktree and unregisters cleanly (null control)", "concurrent gate
+instances name distinct baseline worktrees (#2119)") -- AttributeError on
+the missing functions (evidence/reverted-fails.txt). Restored ->
+`ALL 2254 ENTITY CHECKS PASSED` (evidence/restored-summary.txt).
 
-## The one unanswered red
+`## Red checks` truthfulness: the body's `mutation` at `a4c134fc` entry
+quotes the crash's own line -- run 38129371794, job 114440311454,
+concluded 2026-10-11T09:47Z, `MUTATION TABLE REFUSED -- the null control
+custom_components/heatpump_optimizer/accuracy.py:44 NULL_COMMENT was killed
+by tests/env_drift.py (subprocess.CalledProcessError: Command '['git',
+'worktree', 'add', '--detach', '/tmp/env_drift_a5dktzj3/baseline',
+'e1501bf480d0d6430875f3a7334402cb00cc4dd3']' returned non-zero exit status
+128.)` -- and I read that line verbatim from the job's own log
+(evidence/mutation-red-quote.txt); the body names this repair at db7b569bd.
+Check-runs API at a4c134fc: that `mutation` is the ONLY completed failure;
+everything else green or skipped (evidence/check-runs-a4c134fc.txt). At the
+measured head 5bfddc1bd: every completed check is success/neutral/skipped;
+mutation, coverage, fast (3.14), closures and Analyze (python) are
+in_progress at publish time -- pending, not unanswered reds
+(evidence/check-runs-head.txt). No other unanswered red.
 
-The head's check-runs (38 total at measurement): `mutation` completed failure; closures/fast/coverage in progress; no other red. Its log shows the count ratchet green (4601 vs 4608, no count refusal) and then:
+prepr at the head with the seat venv on PATH: `PRE-PR:
+5bfddc1bd917798b28408759f6afa7ab14c2dee0 0000…` clean, no version edit, claim
+files byte-identical to origin/main. `git merge-tree --write-tree origin/main
+5bfddc1bd` exit 0.
 
-`MUTATION TABLE REFUSED -- the null control custom_components/heatpump_optimizer/accuracy.py:44 NULL_COMMENT was killed by tests/env_drift.py (subprocess.CalledProcessError: ... git worktree add --detach /tmp/env_drift_.../baseline e1501bf48 ... exit status 128)`
+RESULT env_drift repair: sound, minimal, failing-first confirmed at the head
+RESULT delta: one authored commit, production tree byte-identical to a4c134fc
+RESULT red-checks: mutation@a4c134fc quoted verbatim and answered; no other red at either head
 
-i.e. the lane's null control tripped on a driver crash (the same driver's baseline run passed rc=0 seconds earlier), not on the repaired red -- that repair is green in the same log. But the refusal stands at the head the body names, and the body is silent on it; by this body's own standard (its nightly-ha entry: an infrastructure red that re-fires at the publishing head owes an answer, and is not waved through by a note that it is not the diff's), this needs a `## Red checks` entry: name the refusal, show the count repair held in CI, and answer the driver crash (re-run/lane defect) -- then re-push.
+Head-moved check at publish: ls-remote = 5bfddc1bd917798b28408759f6afa7ab14c2dee0.
 
-Measured at detached worktree /Users/timmalmstrom/hpo-seats/r9rev-2119c/wt, head a4c134fce1420e531982f31da6c4ab0a07cbd19f, 2026-10-11T09:58Z. Evidence: /Users/timmalmstrom/hpo-seats/r9rev-2119c/ev (head.txt, delta-attribution.txt, pins-vs-artifacts.txt, triage-samples.txt, mutation-local.txt, ci-predict.txt, mutation-ci-refusal-a4c134fce.log, checkruns-head.txt).
+bus-nonce: 84a0eec83769c1303956603d0d805720
