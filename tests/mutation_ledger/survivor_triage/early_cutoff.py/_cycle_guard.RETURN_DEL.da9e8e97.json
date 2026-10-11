@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_cycle_guard RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): it is the last statement of `_cycle_guard` (def 254, this return 268); every earlier branch returns a non-None reason and the fall-through returns `None`, so falling off the end after `pass` is identical. Measured at 54391b3c7 by hand-mutation: features.py clean baseline fails only `R9-F2.1 P3`; the `268`-to-`pass` mutant's FAIL set is IDENTICAL (evidence arm C, count 1 of 3900). `structure.py` does not kill it either (the structure-only `--pin-killed` drive left this site UNPINNED -- lives), so it survives every driver in play. This is the reviewer's round-4 `267 RETURN_DEL` survivor; the site's number shifts to 268 by the null-control comment added in this diff.",
+  "verdict": "equivalent"
+}
