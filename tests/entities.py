@@ -19462,9 +19462,11 @@ R.check(
     f"rederive={_A_CARD['rederive']}",
 )
 # ... and it pulls the producer in AHEAD of the consumer. `affected.scripts`
-# is the order the CI "Re-record the closures" step iterates with `--single`,
-# so a producer listed after its consumer is recorded too late: the card's
-# `--single` run finds no plan payload, fails, and `closures-autofix` then
+# is the order the CI "Re-record the closures" step's lane runner keeps
+# inside a lane (`--scripts-from`; `closure.py lane-plan` shards the list but
+# holds each producer/consumer pair in one lane, in this order), so a
+# producer listed after its consumer is recorded too late: the card's
+# recording finds no plan payload, fails, and `closures-autofix` then
 # answers `skip-failed-recording` for the WHOLE batch -- blocking a repair of
 # an unrelated genuine gap in it (#1146). Membership alone (the check above)
 # does not hold this; `sorted()` put card.mjs ("c") before plan_view.py ("p").

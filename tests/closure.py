@@ -49,6 +49,9 @@ Commands
   affected --files ... | --diff REF | --files-from FILE
                  [--workdir DIR]  decide whether THIS check must run for a change,
                                   and which closures it has to re-derive
+  lane-plan --scripts-from FILE [--lanes N] [--out-dir DIR]
+                                  shard the scoped re-derive's scripts across
+                                  lanes (bound: 3 on CI, 4 on a seat box)
   show                            print the committed closures
   selftest                        pin merge() against a silent shrink (#527)
 
@@ -3101,6 +3104,176 @@ def write_affected(plan: dict, workdir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# The scoped re-derive's lane plan (round-9 merge-path pre-study, R1)
+#
+# The scoped arm used to loop `--single` over affected.scripts one script at
+# a time, so its wall was the SUM of the selected recordings -- 51m18s over
+# 24 scripts on #2071's `closures` job (job 114030702792) -- while the full
+# arm's lane-balanced wall is the MAX of its lanes (27m57s-54m45s the same
+# day): the scoped arm paid more than the full one for strictly less work,
+# and no runner-speed fix can change that floor. This planner shards the
+# same list across lanes so a scoped derivation pays a lane MAX too.
+# WHICH lane records a script changes WHEN it is recorded and never WHAT it
+# opens (R9-F10.15, the full arm's own result): one recording file per
+# script per out-dir, and the ordering constraints below are the documented
+# ones the serial loop's order already carried.
+
+# The owner's standing bound on concurrent heavy scripts: at most three
+# recordings at once on a CI runner, four on a seat box (the gate lease's
+# four heavy slots on the 8-core box, 2026-10-10).
+LANE_CAP_CI = 3
+LANE_CAP_LOCAL = 4
+
+
+def lane_edges(scripts: list[str]) -> list[tuple[str, str]]:
+    """Pairs that must share a lane, first before second.
+
+    Every ``PRODUCERS`` edge and every ``DRIVEN_BY_OTHERS`` pair with both
+    ends present. plan_view.py writes the payload the card scripts read, so
+    the consumer recorded ahead of its producer finds no payload (#1146),
+    and a driven child follows its driver -- the two constraints `affected`
+    already builds into the rederive list's order.
+    """
+    present = set(scripts)
+    edges = []
+    for consumer, producers in PRODUCERS.items():
+        for prod in producers:
+            if consumer in present and prod in present:
+                edges.append((prod, consumer))
+    for child, driver in DRIVEN_BY_OTHERS.items():
+        c, d = f"tests/{child}", f"tests/{driver}"
+        if c in present and d in present:
+            edges.append((d, c))
+    return edges
+
+
+def _lane_ordered(members: list[str], edges: list[tuple[str, str]]) -> list[str]:
+    """``members`` in input order, except where an edge demands otherwise.
+
+    A stable topological sort: the serial loop's relative order, with the
+    producer/driver moved ahead of its consumer/child even if the input list
+    put it later.
+    """
+    out: list[str] = []
+    remaining = list(members)
+    while remaining:
+        for s in remaining:
+            if not any(b == s and a in remaining for a, b in edges):
+                out.append(s)
+                remaining.remove(s)
+                break
+        else:  # a cycle among the constraints: keep the input order
+            out += remaining
+            break
+    return out
+
+
+def lane_plan(scripts: list[str], recorded: dict, lanes: int) -> list[list[str]]:
+    """Shard ``scripts`` (affected.scripts order) across ``lanes`` lanes.
+
+    Greedy longest-processing-time over the ``recorded`` seconds table --
+    each constraint group of `lane_edges` moves as one unit so its order
+    survives the shard -- and no lane is left out of the answer, so the
+    union of the lanes is exactly the input.
+    """
+    if lanes < 1:
+        raise ValueError("lanes must be >= 1")
+    order = {s: i for i, s in enumerate(scripts)}
+    if len(order) != len(scripts):
+        raise ValueError("duplicate script in the lane plan input: "
+                         + next(s for s in order if scripts.count(s) > 1))
+    edges = lane_edges(scripts)
+    # Union-find over the constraint pairs: a pair shares a lane.
+    parent = {s: s for s in scripts}
+
+    def find(x: str) -> str:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for a, b in edges:
+        parent[find(a)] = find(b)
+    groups: dict[str, list[str]] = {}
+    for s in scripts:
+        groups.setdefault(find(s), []).append(s)
+
+    def secs(s: str) -> float:
+        r = recorded.get(s)
+        if isinstance(r, dict):
+            return float(r.get("seconds", 0.0))
+        return float(r or 0.0)
+
+    ranked = sorted(([_lane_ordered(m, edges) for m in groups.values()]),
+                    key=lambda g: (-sum(secs(s) for s in g), order[g[0]]))
+    loads = [0.0] * lanes
+    out: list[list[str]] = [[] for _ in range(lanes)]
+    for group in ranked:
+        i = min(range(lanes), key=lambda k: (loads[k], k))
+        # The whole lane is re-ordered edge-stably at the end, so appending a
+        # group mid-lane cannot leave a consumer ahead of its producer.
+        out[i].extend(group)
+        loads[i] += sum(secs(s) for s in group)
+    return [_lane_ordered(ln, edges) for ln in out if ln]
+
+
+def lane_request(requested: int | None = None) -> int:
+    """The lane count a derivation may use, under the owner's standing bound.
+
+    ``requested`` (the ``--lanes`` flag) beats ``$DERIVE_LANES``, which beats
+    ``min(cap, cpu_count)``; nothing exceeds the cap. On a CI runner the cap
+    is three recordings at once, on a seat box four.
+    """
+    cap = LANE_CAP_CI if os.environ.get("CI") == "true" else LANE_CAP_LOCAL
+    n = requested
+    if n is None and os.environ.get("DERIVE_LANES"):
+        n = int(os.environ["DERIVE_LANES"])
+    if n is None:
+        n = min(cap, os.cpu_count() or 1)
+    return max(1, min(n, cap))
+
+
+def _lane_plan_cmd(scripts_from: Path, out_dir: Path,
+                   lanes: int | None) -> int:
+    """Write one ``lane.<n>`` file per lane and print the plan.
+
+    ``tests/derive_closures.sh --scripts-from`` runs the planner, then one
+    background shell per lane file. The input is what ``affected`` selected,
+    in its order; the planner may reorder within a lane only as far as the
+    constraint edges demand.
+    """
+    scripts = [l.strip() for l in scripts_from.read_text().splitlines()
+               if l.strip()]
+    if not scripts:
+        print(f"lane-plan: no scripts in {scripts_from}", file=sys.stderr)
+        return 2
+    recorded = {}
+    if CLOSURES.exists():
+        recorded = json.loads(CLOSURES.read_text()).get("recorded", {})
+    try:
+        lanes_out = lane_plan(scripts, recorded, lane_request(lanes))
+    except ValueError as exc:
+        print(f"lane-plan: {exc}", file=sys.stderr)
+        return 2
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for i, ln in enumerate(lanes_out, 1):
+        (out_dir / f"lane.{i}").write_text("".join(f"{s}\n" for s in ln))
+
+    def secs(s: str) -> float:
+        r = recorded.get(s)
+        return float(r.get("seconds", 0.0)) if isinstance(r, dict) else 0.0
+
+    cap = LANE_CAP_CI if os.environ.get("CI") == "true" else LANE_CAP_LOCAL
+    print(f"lane plan: {len(lanes_out)} lane(s) for {len(scripts)} script(s), "
+          f"bound {cap}"
+          + (f", requested {lanes}" if lanes is not None else ""))
+    for i, ln in enumerate(lanes_out, 1):
+        print(f"  lane {i} ({sum(secs(s) for s in ln):.1f}s recorded): "
+              + ", ".join(ln))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # #527: a full merge used to replace tests/card_drift.mjs's committed 66 with
 # the raw 6-file trace, and the refusal that said "run a full re-derivation"
 # was the same path. A partial merge aborted the whole overlay at the first
@@ -3637,6 +3810,8 @@ def selftest() -> int:
     print("\n=== composed and proof recordings fail closed (round-9 C1/C2) ===")
     _selftest_composed(pin)
     _selftest_proof(pin)
+    print("\n=== the scoped re-derive's lane plan (round-9 R1) ===")
+    _selftest_lane_plan(pin)
 
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
@@ -3800,6 +3975,186 @@ def _selftest_composed(pin) -> None:
             rc = composed_compare(c3, b)
         pin("composed-compare reddens on a bare recording with no composed one",
             rc == 1, f"rc={rc}")
+def _selftest_lane_plan(pin) -> None:
+    """The planner's invariants, on synthetic tables, plus the bash runner.
+
+    The pure-function pins fix the policy (coverage, constraints, balance,
+    the owner's lane bound); the subprocess pins drive the real
+    ``derive_closures.sh --scripts-from`` under a stub interpreter that
+    stands in for ``closure.py`` at the runner's own interface: the stub
+    implements ``lane-plan`` by splitting the input into ``$DERIVE_LANES``
+    lane files and ``record`` by touching one ``.json`` per script, so the
+    runner's contract -- plan, spawn one shell per lane file, record every
+    line -- is what is measured, without running a real recording.
+    """
+    four = ["tests/a.py", "tests/b.py", "tests/c.py", "tests/d.py"]
+    rec = {"tests/a.py": {"seconds": 100.0}, "tests/b.py": {"seconds": 90.0},
+           "tests/c.py": {"seconds": 20.0}, "tests/d.py": {"seconds": 10.0}}
+    plan = lane_plan(four, rec, 2)
+    pin("the lanes cover every script exactly once",
+        sorted(s for ln in plan for s in ln) == sorted(four), repr(plan))
+    pin("LPT balances the recorded seconds across the lanes",
+        sorted(sum(rec[s]["seconds"] for s in ln) for ln in plan)
+        == [110.0, 110.0],
+        repr([sum(rec[s]["seconds"] for s in ln) for ln in plan]))
+    pin("an unrecorded script plans at 0.0s rather than refusing",
+        lane_plan(["tests/new.py"], rec, 4) == [["tests/new.py"]],
+        repr(lane_plan(["tests/new.py"], rec, 4)))
+    pin("more lanes than scripts leaves no empty lane behind",
+        lane_plan(["tests/a.py"], rec, 4) == [["tests/a.py"]],
+        repr(lane_plan(["tests/a.py"], rec, 4)))
+    try:
+        lane_plan(["tests/a.py", "tests/a.py"], rec, 2)
+        pin("a duplicate input script is refused", False, "no ValueError")
+    except ValueError:
+        pin("a duplicate input script is refused", True, "ValueError")
+
+    # The two documented ordering constraints, with the input list putting
+    # the consumer FIRST -- the sharder, not the caller, must move the
+    # producer/driver ahead of it (the #1146 shape).
+    cards = ["tests/card.mjs", "tests/wood_advisor.py", "tests/card_drift.mjs",
+             "tests/plan_view.py"]
+    crec = {s: {"seconds": 1.0} for s in cards}
+    plan = lane_plan(cards, crec, 4)
+    card_lane = next(ln for ln in plan if "tests/card.mjs" in ln)
+    pin("plan_view.py shares a lane with both card scripts it feeds",
+        "tests/plan_view.py" in card_lane
+        and next(ln for ln in plan if "tests/card_drift.mjs" in ln) is card_lane,
+        repr(plan))
+    pin("and is recorded ahead of them, from a list that put it last",
+        card_lane.index("tests/plan_view.py")
+        < min(card_lane.index("tests/card.mjs"),
+              card_lane.index("tests/card_drift.mjs")),
+        repr(card_lane))
+    pair = lane_plan(["tests/dst_checks.py", "tests/features.py"],
+                     {"tests/features.py": {"seconds": 5.0}}, 2)
+    pin("a driven child shares its driver's lane, driver first",
+        len(pair) == 1 and pair[0] == ["tests/features.py", "tests/dst_checks.py"],
+        repr(pair))
+
+    saved = {k: os.environ.get(k) for k in ("CI", "DERIVE_LANES")}
+    try:
+        os.environ["CI"] = "true"
+        pin("the CI bound is three lanes", lane_request() == 3,
+            f"lane_request()={lane_request()}")
+        pin("and a request past it is clamped, never honoured",
+            lane_request(9) == 3, f"lane_request(9)={lane_request(9)}")
+        del os.environ["CI"]
+        pin("the seat bound is four lanes", lane_request(4) == 4,
+            f"lane_request(4)={lane_request(4)}")
+        pin("a seat request past four is clamped too",
+            lane_request(5) == 4, f"lane_request(5)={lane_request(5)}")
+        os.environ["DERIVE_LANES"] = "1"
+        pin("$DERIVE_LANES requests the lane count (the serial control)",
+            lane_request() == 1, f"lane_request()={lane_request()}")
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    # The planner over the tree's own table and names, through the CLI the
+    # runner calls: the card pair must land together with plan_view first.
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        want = ["tests/card.mjs", "tests/plan_view.py", "tests/wood_advisor.py"]
+        (td_path / "in.txt").write_text("".join(f"{s}\n" for s in want))
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "tests" / "closure.py"), "lane-plan",
+             "--scripts-from", str(td_path / "in.txt"),
+             "--out-dir", str(td_path / "lanes")],
+            cwd=ROOT, capture_output=True, text=True)
+        lane_files = sorted((td_path / "lanes").glob("lane.*"))
+        got = [l.strip() for f in lane_files for l in f.read_text().splitlines()
+               if l.strip()]
+        pin("the CLI plans every input script over the live table",
+            res.returncode == 0 and sorted(got) == sorted(want),
+            res.stdout + res.stderr)
+        card_file = next(f for f in lane_files if "card.mjs" in f.read_text())
+        lines = [l.strip() for l in card_file.read_text().splitlines() if l.strip()]
+        pin("the live-table plan keeps plan_view.py ahead of the card in its lane",
+            "tests/plan_view.py" in lines
+            and lines.index("tests/plan_view.py") < lines.index("tests/card.mjs"),
+            repr(lines))
+        pin("and never exceeds the owner's lane bound",
+            len(lane_files) <= lane_request(), f"{len(lane_files)} lane file(s)")
+
+    # The bash runner, under the stub described above: four one-second
+    # recordings across two lanes must overlap in time and produce exactly
+    # the input's recording set.
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        stub = td_path / "lanestub"
+        stub.write_text(
+            "#!/bin/sh\n"
+            "case \"$2\" in\n"
+            "  lane-plan)\n"
+            "    n=${DERIVE_LANES:-2}; i=0\n"
+            "    while read -r s; do\n"
+            "      [ -n \"$s\" ] || continue\n"
+            "      i=$((i + 1)); echo \"$s\" >> \"$6/lane.$(( (i - 1) % n + 1 ))\"\n"
+            "    done < \"$4\"\n"
+            "    exit 0 ;;\n"
+            "  record)\n"
+            "    printf 'S %s %s\\n' \"$3\" \"$(date +%s)\" >> \"$LANELOG\"\n"
+            "    sleep 1\n"
+            "    printf 'E %s %s\\n' \"$3\" \"$(date +%s)\" >> \"$LANELOG\"\n"
+            "    touch \"$5/$(basename \"$3\").json\" ;;\n"
+            "esac\n"
+            "exit 0\n")
+        stub.chmod(0o755)
+        want = [f"tests/p{i}.py" for i in range(1, 5)]
+        (td_path / "in.txt").write_text("".join(f"{s}\n" for s in want))
+        out = td_path / "rec"
+        log = td_path / "spans.log"
+        res = subprocess.run(
+            ["bash", "tests/derive_closures.sh", "--scripts-from",
+             str(td_path / "in.txt"), "--record-only", "--out-dir", str(out)],
+            cwd=ROOT, env={**os.environ, "PYTHON": str(stub),
+                           "DERIVE_LANES": "2", "LANELOG": str(log)},
+            capture_output=True, text=True)
+        got = sorted(p.name for p in out.glob("*.json"))
+        pin("the runner records every listed script exactly once",
+            res.returncode == 0
+            and got == sorted(Path(s).name + ".json" for s in want),
+            f"rc={res.returncode} got={got} {res.stdout[-300:]}")
+        spans: dict[str, tuple[int, int]] = {}
+        for line in log.read_text().splitlines():
+            parts = line.split()
+            if len(parts) == 3 and parts[0] in ("S", "E") and parts[1] in want:
+                t = spans.setdefault(parts[1], [0, 0])
+                t[0 if parts[0] == "S" else 1] = int(parts[2])
+        overlap = any(
+            spans[a][0] <= spans[b][1] and spans[b][0] <= spans[a][1]
+            for i, a in enumerate(want) for b in want[i + 1:])
+        pin("two recordings ran at the same time (a lane MAX, not a serial SUM)",
+            len(spans) == len(want) and overlap,
+            f"spans={spans!r}")
+        # A script the runner cannot record at all -- the stub refuses one
+        # by name -- must take the derive with it: a lane that silently
+        # drops a script would leave the scoped check comparing nothing.
+        stub.write_text(
+            "#!/bin/sh\n"
+            "case \"$2\" in\n"
+            "  lane-plan)\n"
+            "    cp \"$4\" \"$6/lane.1\"\n"
+            "    exit 0 ;;\n"
+            "  record)\n"
+            "    [ \"$3\" = \"tests/p2.py\" ] && exit 9\n"
+            "    touch \"$5/$(basename \"$3\").json\" ;;\n"
+            "esac\n"
+            "exit 0\n")
+        out2 = td_path / "rec2"
+        res = subprocess.run(
+            ["bash", "tests/derive_closures.sh", "--scripts-from",
+             str(td_path / "in.txt"), "--record-only", "--out-dir", str(out2)],
+            cwd=ROOT, env={**os.environ, "PYTHON": str(stub)},
+            capture_output=True, text=True)
+        pin("a script recorded by no lane fails the derive loudly",
+            res.returncode != 0 and "tests/p2.py" in res.stdout
+            and not (out2 / "p2.py.json").exists(),
+            f"rc={res.returncode} {res.stdout[-300:]}")
 
 
 def _selftest_layout(pin) -> None:
@@ -4107,6 +4462,10 @@ def main() -> int:
     f.add_argument("--files-from")
     f.add_argument("--json", action="store_true")
     f.add_argument("--workdir")
+    lp = sub.add_parser("lane-plan")
+    lp.add_argument("--scripts-from", required=True)
+    lp.add_argument("--lanes", type=int)
+    lp.add_argument("--out-dir", required=True)
     nr = sub.add_parser("not-run"); nr.add_argument("--workdir", required=True)
     cs = sub.add_parser("coverage-split")
     cs.add_argument("--plan", required=True)
@@ -4154,6 +4513,8 @@ def main() -> int:
         return 0
     if a.cmd == "not-run":
         return _not_run_cmd(Path(a.workdir))
+    if a.cmd == "lane-plan":
+        return _lane_plan_cmd(Path(a.scripts_from), Path(a.out_dir), a.lanes)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "selftest":
