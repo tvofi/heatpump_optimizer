@@ -29,7 +29,7 @@ none
 
 ## Forward-carry
 
-The two sound consolidations (C1 composed tracer+audit-hook measurement, C2 proof-recordings consume) go to the instrument-series planning on #201 when the owner decides; C1's proof obligations extend PR 2 (vi-a)'s acceptance shape (one more byte-identity equality, the read set).
+dev/audit/rounds/round9/prestudy/heavy-script-consolidation-prestudy.md — the two sound consolidations (C1 composed tracer+audit-hook measurement, C2 proof-recordings consume) land there for the instrument-series planning on #201; C1's proof obligations extend PR 2 (vi-a)'s acceptance shape (one more byte-identity equality, the read set).
 
 ## Friction
 
