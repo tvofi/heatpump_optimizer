@@ -1,5 +1,5 @@
 Fix review: merge e81055d4b1830148e1ae0eaccebeababe642d981
-bus-nonce: 30a0a147d8c52fa96efd6232a520c137
+bus-nonce: 6193bebf56f7b12b92a88c9640a1cb1d
 
 Round-9 fix wave, PR #2131 (`fix/r9-closures-lane-runner` -- the dispatch
 brief's branch name `fix/closures-lane-runner` does not exist).
@@ -68,12 +68,13 @@ claim files equal main's).
 
 ## Contract notes
 
-- Red checks: none at the head (commits check-runs API; no failure
-  conclusions). NOTE for the orchestrator, not a block: the Tests run at this
-  head (38121234701) was CANCELLED ~3.5 min in and never rerun, so
-  closures/fast/coverage sit cancelled -- the merge gate needs a rerun, and
-  the body's 52m->~31m prediction is by its own statement confirmed only by
-  the first non-gate-file PR after this merges, on two runs.
+- Red checks: none at either head (commits check-runs API; no failure
+  conclusions at 80331a05a or e81055d4b). Re-checked at e81055d4b on
+  re-dispatch: no check is red AND none is cancelled any more -- a full run
+  set started 2026-10-11T07:27:20Z (Tests run in_progress; Governance,
+  Hassfest, Validate, Budget raise gate, Architecture score, PR contract all
+  success), so the cancelled run flagged below was superseded by the rerun,
+  not left standing.
 - Sibling #2129 touches the same files but textually disjoint hunks (checked
   against both diffs at the common base); the body's non-overlap claim holds.
 - The cited spec (merge-path-wallclock-prestudy.md) is not yet in this tree;
