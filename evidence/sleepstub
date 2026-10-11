@@ -1,0 +1,15 @@
+#!/bin/sh
+case "$2" in
+  lane-plan)
+    n=${DERIVE_LANES:-3}; i=0; mkdir -p "$6"
+    rm -f "$6"/lane.*
+    while read -r s; do
+      [ -n "$s" ] || continue
+      i=$((i + 1)); echo "$s" >> "$6/lane.$(( (i - 1) % n + 1 ))"
+    done < "$4"
+    echo "stub plan: $n lane(s)"; exit 0 ;;
+  record)
+    sleep 2
+    touch "$5/$(basename "$3").json"; exit 0 ;;
+esac
+exit 0

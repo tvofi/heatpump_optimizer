@@ -1,0 +1,5 @@
+heads 80331a05a19928e927c0943deb827eda12045147 (dispatched) and e81055d4b1830148e1ae0eaccebeababe642d981 (live PR head at review time, pushed 2026-10-11T07:24:03Z, before the reviewer's first command)
+git diff --name-only 80331a05a..e81055d4b: dev/programme/delivery/2131.md ONLY (one line, the delivery row, author tvofi)
+tests/closure.py, tests/derive_closures.sh, tests/entities.py, tools/pr/prepr.sh, .github/workflows/tests.yml: byte-identical between the two SHAs (git diff --quiet per file)
+RESULT re-run at e81055d4b: tests/entities.py ALL 2250 ENTITY CHECKS PASSED; tests/structure.py STRUCTURE RATCHET PASSED
+All other RESULT files in this evidence dir were measured at 80331a05a and transfer verbatim (identical gate-file trees).

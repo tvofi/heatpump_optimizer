@@ -1,0 +1,5 @@
+head 80331a05a19928e927c0943deb827eda12045147; attack_split.py drives closure.lane_plan directly (imported from tests/closure.py)
+4000 randomized seconds tables (values in {0, 0.001, 1, 5, 30, 60, 300, 1725, 100000}, legacy non-dict shape 500.0), lane counts {1,2,3,4,5,9}, shuffled input orders:
+RESULT 0 split constrained pairs, 0 coverage failures, 0 raises.
+Handcrafted worst case (plan_view 1e6s, features 999999s, rest 1s, 3 lanes): plan_view+card.mjs+card_drift.mjs in ONE lane (plan_view first), features+dst_checks in ONE lane (features first).
+Structural reason: lane_edges pairs are union-found into one atomic group assigned whole to one lane; _lane_ordered re-sorts each lane edge-stably at the end.

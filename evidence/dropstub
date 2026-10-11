@@ -1,0 +1,9 @@
+#!/bin/sh
+case "$2" in
+  lane-plan)
+    mkdir -p "$6"; rm -f "$6"/lane.*
+    grep -v 'tests/p2.py' "$4" > "$6/lane.1"; exit 0 ;;
+  record)
+    sleep 1; touch "$5/$(basename "$3").json"; exit 0 ;;
+esac
+exit 0
