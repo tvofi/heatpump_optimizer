@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.book_capacity GUARD_OFF 6dd41738",
+  "old": "        if not month or not (math.isfinite(peak_kw) and math.isfinite(price_per_kw)):",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Guard off writes the capacity line for an empty month key or NaN operands: data[\"lines\"][\"capacity\"] with NaN sek, which poisons that month's billed_total. No recorded driver calls book_capacity with an empty month or a non-finite peak; the coordinator reads both from finite sensor state in every fixture.",
+  "verdict": "gap"
+}

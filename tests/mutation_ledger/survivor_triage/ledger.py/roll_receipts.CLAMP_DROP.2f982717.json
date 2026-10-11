@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:roll_receipts CLAMP_DROP 2f982717",
+  "old": "    for old in sorted(kept)[: max(0, len(kept) - KEEP_MONTHS)]:",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Dropping the max keeps the slice at [: (0)], i.e. empty, so receipts are never pruned and retention is unbounded. It shows only with more than KEEP_MONTHS receipts held at once; the UX-6 rolling fixtures never exceed the retention window; no recorded driver rolls enough months to overflow it.",
+  "verdict": "gap"
+}
