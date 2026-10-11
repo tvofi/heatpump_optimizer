@@ -1,0 +1,27 @@
+== tests/mutation_ledger/killed_by/diagnostics.py/_without_private_ids.RETURN_DEL.d4c9e2a6.json
+{
+  "anchor": "custom_components/heatpump_optimizer/diagnostics.py:_without_private_ids RETURN_DEL d4c9e2a6",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return value",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=3."
+}
+
+== tests/mutation_ledger/killed_by/sensor.py/PredictedIndoorTempSensor._waiting_for.GUARD_OFF.15ba31be.json
+MISSING
+
+== tests/mutation_ledger/killed_by/sensor.py/ModelStatusSensor.native_value.GUARD_OFF.49f1f2ee.json
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:ModelStatusSensor.native_value GUARD_OFF 49f1f2ee",
+  "killed_by": "tests/entities.py",
+  "old": "        if _mapping(data.get(\"cop_health\")).get(\"alarm\"):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}
+
+== tests/mutation_ledger/killed_by/coordinator.py/predicted_next_room_temp.RETURN_DEL.2d0ff9da.json
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:predicted_next_room_temp RETURN_DEL 2d0ff9da",
+  "killed_by": "tests/entities.py",
+  "old": "    return predict() if callable(predict) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=3."
+}
+
