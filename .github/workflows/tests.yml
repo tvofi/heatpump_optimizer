@@ -2105,11 +2105,17 @@ jobs:
             printf '%s\n' "$SCOPE_SCRIPTS" > "$RUNNER_TEMP/rederive.txt"
             echo "Scoped re-derive; every other closure is left as committed:"
             cat "$RUNNER_TEMP/rederive.txt"
-            while read -r s; do
-              [ -n "$s" ] || continue
-              GOLDEN_REF="$REF" ./tests/derive_closures.sh \
-                --single "$s" --out-dir "$RUNNER_TEMP/closures" --record-only
-            done < "$RUNNER_TEMP/rederive.txt"
+            # One --scripts-from lane run, not a --single per script: a
+            # serial loop pays the SUM of the selected recordings (51m18s
+            # over 24 scripts on #2071's job) where a lane-balanced run pays
+            # the MAX of its lanes. The runner shards the list itself
+            # (closure.py lane-plan: the producer/consumer and driver/child
+            # orderings kept inside one lane) and bounds itself to three
+            # lanes on this runner, so nothing is passed in here. The
+            # recordings are the same recordings the loop took (R9-F10.15).
+            GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+              --scripts-from "$RUNNER_TEMP/rederive.txt" \
+              --out-dir "$RUNNER_TEMP/closures" --record-only
           else
             GOLDEN_REF="$REF" ./tests/derive_closures.sh \
               --out-dir "$RUNNER_TEMP/closures" --record-only

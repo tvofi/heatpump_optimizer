@@ -19335,6 +19335,28 @@ R.check(
     f"a docs-only pull request does, not fall through to the full arm: "
     f"DOCS_ONLY_FAST={_DOCS_FAST_EXPR.strip()!r}",
 )
+# (a1 x R1 coupling -- the merge-path pre-study's explicit condition): the
+# dispatch arm's SCOPED case is derived by `closure-scope` above and consumed
+# by the closures job's shared "Re-record the closures" step, which R1
+# (#2131) drives through ONE `--scripts-from` lane run (`closure.py
+# lane-plan` shards it, bounded to three lanes on a CI runner) instead of a
+# serial `--single` loop. The step carries no event gate of its own, so a
+# scoped dispatch and a scoped pull request take the same lane runner --
+# "couple (a1) to that runner or scoped proofs pay serial sums". A step that
+# regrew a per-script loop, or grew an event gate that sent dispatches
+# elsewhere, would put batch proofs back on the serial SUM.
+_rerec_step = [s for s in _CLOSURES_JOB.split("\n      - ")
+               if s.startswith("name: Re-record the closures")]
+R.check(
+    "the dispatch arm's scoped derivation goes through the lane runner",
+    len(_rerec_step) == 1
+    and "--scripts-from" in _rerec_step[0]
+    and '--single "$s"' not in _rerec_step[0]
+    and "github.event_name" not in _rerec_step[0],
+    "a scoped batch/dispatch must pay the lane MAX like a scoped pull "
+    "request (R1 #2131), never the serial SUM a --single loop pays and "
+    "never a second, dispatch-only derivation path",
+)
 
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
@@ -19589,9 +19611,11 @@ R.check(
     f"rederive={_A_CARD['rederive']}",
 )
 # ... and it pulls the producer in AHEAD of the consumer. `affected.scripts`
-# is the order the CI "Re-record the closures" step iterates with `--single`,
-# so a producer listed after its consumer is recorded too late: the card's
-# `--single` run finds no plan payload, fails, and `closures-autofix` then
+# is the order the CI "Re-record the closures" step's lane runner keeps
+# inside a lane (`--scripts-from`; `closure.py lane-plan` shards the list but
+# holds each producer/consumer pair in one lane, in this order), so a
+# producer listed after its consumer is recorded too late: the card's
+# recording finds no plan payload, fails, and `closures-autofix` then
 # answers `skip-failed-recording` for the WHOLE batch -- blocking a repair of
 # an unrelated genuine gap in it (#1146). Membership alone (the check above)
 # does not hold this; `sorted()` put card.mjs ("c") before plan_view.py ("p").
@@ -25191,6 +25215,43 @@ R.check(
     "for a branch no group claims -- a prefix rule would answer R9-FR-10 "
     "for fix/r9-fr-1, and a hotfix branch must row in the neutral phrasing "
     "a seat edits at approval, not in a group it does not belong to",
+)
+
+# --- the state-doc beat (R9-RO-14, #2102) -----------------------------------
+#
+# The state docs the standing instruction of 2026-10-09 requires continuously
+# regenerated are `state_docs.py`'s; what was missing is the recurring half,
+# and the orchestrator supplied it from a loop in its own scratch directory --
+# decision 0013's defect shape, an instrument the programme runs that lives
+# outside the tree, where no later session can test it and `worktree_gc` can
+# collect it. The beat lands inside the instrument that already owns the write
+# set and the orphan-ref push (fixer.md step 17: a second script beside it
+# would be a parallel mechanism), and the read below is what keeps it
+# drivable: the module is loaded and its self-test RUN here, so an edit to the
+# beat selects this script instead of skipping it. Without the read the file
+# sits under `tools/audit/`'s INERT prefix, a change to it selects NO script,
+# and the arms the issue names would be run by hand or never -- the same
+# defect one level down, which is why this is not optional decoration.
+# `_rr_cx`/`_rr_io` are the record_row block's redirect helpers, one block up.
+import importlib.util as _sd_util  # noqa: E402
+
+try:
+    _sd_spec = _sd_util.spec_from_file_location(
+        "hpo_state_docs",
+        _closure.ROOT / "tools" / "audit" / "seat" / "state_docs.py")
+    _sd = _sd_util.module_from_spec(_sd_spec)
+    _sd_spec.loader.exec_module(_sd)
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _sd_out, \
+            _rr_cx.redirect_stderr(_rr_io.StringIO()) as _sd_err:
+        _sd_ok = _sd.run_self_test() == 0
+    _sd_detail = _sd_out.getvalue() + _sd_err.getvalue()
+except Exception as _sd_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _sd_ok, _sd_detail = False, f"{type(_sd_exc).__name__}: {_sd_exc}"
+R.check(
+    "tools/audit/seat/state_docs.py --self-test passes, beat arms included",
+    _sd_ok,
+    "run `python3 tools/audit/seat/state_docs.py --self-test` for the "
+    "failing check names:\n" + _sd_detail,
 )
 
 # THE ROW THE TREE READS. `delivery_status.read_texts` is one of the two
