@@ -1,0 +1,4 @@
+head 80331a05a19928e927c0943deb827eda12045147; 6 x sleep-2 stub scripts, DERIVE_LANES=3, stub PYTHON
+RESULT head  lane MAX: real 4.43s   (fixer claimed 4.43s)
+RESULT DERIVE_LANES=1 serial control: real 12.27s  (fixer 12.20s)
+RESULT mutant1 (sed 'wait $!' after each lane spawn): real 12.31s  (fixer 12.18s) -- regressed to serial SUM

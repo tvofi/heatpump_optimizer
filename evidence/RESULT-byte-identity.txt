@@ -1,0 +1,6 @@
+head 80331a05a19928e927c0943deb827eda12045147; five real recordings (wood_advisor, doc_claims, plan_view, layout, structure), seat venv python 3.14.7
+dirs: rec-serial1 (five --single runs), rec-serial2 (same, again), rec-lanes (DERIVE_LANES=3 --scripts-from, real 15.42s, plan "3 lane(s) ... bound 4")
+RESULT normalized (seconds removed, scratch paths inside spawned normalized): wood_advisor/doc_claims/plan_view/structure IDENTICAL across serial1/serial2/lanes
+RESULT layout.py differs in `spawned` ONLY -- the per-run mktemp path inside `git grep --cached -f /var/folders/.../tmpXXXX.pat` argv -- and serial1-vs-serial2 differs in exactly the same way (null control: run-to-run, not parallelism)
+RESULT closure.py check --partial verdicts over rec-serial1 / rec-serial2 / rec-lanes: byte-identical (diff empty serial1==lanes and serial1==serial2), all rc=0, "closure: committed closures cover every file this run touched"
+NOT DRIVEN LOCALLY: tests/card.mjs and tests/card_drift.mjs record only under strace (CI/Linux) per gate-scoping.md; their lane placement is pinned by the selftest's live-table pin and the union-find group, not by a local recording.
