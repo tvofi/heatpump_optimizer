@@ -1,0 +1,1 @@
+{"mergeCommit":{"oid":"5c02e2babd6ace27cdab9c0eba557431417d1076"},"state":"MERGED","title":"perf(closures): a lane runner for the scoped arm -- the PR gate pays a lane MAX instead of a serial SUM"}
