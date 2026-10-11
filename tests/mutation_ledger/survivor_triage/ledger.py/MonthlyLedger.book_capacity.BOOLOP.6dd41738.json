@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.book_capacity BOOLOP 6dd41738",
+  "old": "        if not month or not (math.isfinite(peak_kw) and math.isfinite(price_per_kw)):",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. and->or only stops rejecting a peak or price that is finite while the other is not (one NaN still rejected by the or-arm through `not month or not (...)` on the remaining finite check only when month is empty). The un-rejected case writes a NaN capacity line into the month. No recorded driver books a capacity charge with exactly one non-finite operand; the UX-6 fixtures book finite peaks only.",
+  "verdict": "gap"
+}
