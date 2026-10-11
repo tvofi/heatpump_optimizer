@@ -1,0 +1,11 @@
+fix-review 2123 -- reviewed substance identity across delta f7967b649..6c14eb0a6
+
+Authored fix file set (70b50c573..7f40401c7): .claude/rules/ci-autofix.md, .cursor/rules/ci-autofix.mdc, .github/workflows/tests.yml, dev/governance/rules/ci-autofix.md, tests/entities.py, tests/mutation_table.py
+Across the delta:
+  .github/workflows/tests.yml  : 0 diff lines (budget 260 / step 340 / job 350 / SITES_PER_SHARD 5 / MAX_SHARDS 12 / max-parallel 12 unchanged)
+  tests/mutation_table.py      : 0 diff lines (whole-pool null_for, SKIP-BUDGET-TAIL split unchanged)
+  tests/entities.py            : additive only (main's own growth; zero deletions besides the diff header)
+  ci-autofix.md x3             : recarry merge + the 29-byte trims only (this review's subject)
+
+Claim files vs origin/main at the head: tests/golden/claimed_drift.txt IDENTICAL; tests/golden/card_claimed_drift.txt IDENTICAL.
+No budget file touched by the repair commit (its file list is the three rule copies only).
