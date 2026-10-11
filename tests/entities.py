@@ -19351,7 +19351,7 @@ R.check(
     "the dispatch arm's scoped derivation goes through the lane runner",
     len(_rerec_step) == 1
     and "--scripts-from" in _rerec_step[0]
-    and "--single" not in _rerec_step[0]
+    and '--single "$s"' not in _rerec_step[0]
     and "github.event_name" not in _rerec_step[0],
     "a scoped batch/dispatch must pay the lane MAX like a scoped pull "
     "request (R1 #2131), never the serial SUM a --single loop pays and "
