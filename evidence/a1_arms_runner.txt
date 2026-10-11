@@ -1,0 +1,11 @@
+head: 388960818889ed424e1b662ae0bd6682e1c519ce
+
+HPO_A1_PYTHON=seat-venv python bash tools/audit/seat/a1_dispatch_arms.sh HEAD origin/main
+  inert-only               case = skip
+  closure-touching         case = scoped
+  diff-underivable         case = full
+  BASE (origin/main): closure-scope runs on workflow_dispatch: False -> SCOPE_CASE empty -> FULL arm whatever the diff
+
+Coupling verified in the workflow itself: the closures job 'Re-record the closures' step consumes SCOPE_SCRIPTS through ONE derive_closures.sh --scripts-from lane run; no --single loop; no event gate.
+
+closure-scope job block (the a1 decide step, incl. the dispatch branch) sha256-identical between round-1 head 156fe40a1 and this head -- round-1's dispatch-branch-deleted mutant (5d154638331e) carries unchanged.

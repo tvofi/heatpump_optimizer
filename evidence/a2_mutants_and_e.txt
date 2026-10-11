@@ -1,0 +1,11 @@
+head: 388960818889ed424e1b662ae0bd6682e1c519ce
+
+(e) dropped: git diff origin/main -- tests/derive_closures.sh at HEAD = EMPTY (0 bytes); the file is R1's, byte for byte. Also absent from the three-dot branch diff (git diff origin/main...HEAD --stat names 6 files, derive_closures.sh not among them).
+
+(a2) text: sha of inert_read_owners body 156fe40a1 = 090fc4ebdb930eb5afa29a38daa5823460f24ee5 = HEAD; sha of affected body 1387a3163ba693708700532707c1b3ee1a60da12 at both refs.
+
+Mutant A (consultation loop deleted): #2109 probe -> SKIP, LICENSE -> SKIP (both arms SKIP, the defect shape).
+Mutant B (parent level removed): round20 new_probe.py -> SKIP (the hole); #2109 probe stays SCOPED (distinguishes B from A); entities.py under mutant B: '1 of 2262 ENTITY CHECKS FAILED', the single failure being 'a new tree inside the discovery breadth selects its reader [case=skip rederive=...]' = the _A_IR_NEWDIR pin. Full log: mutantB_entities.txt.
+Mutant C (unbounded ancestors, allowed.update(dirs)): dev/governance/roles/fixer.md -> SCOPED, REDERIVE tests/entities.py + tests/harness_headers.py (the over-trigger _A_IR_BOUND pins); restored -> SKIP.
+
+Head probes (unmodified): #2109-style probe SCOPED 1 (harness_headers); LICENSE SCOPED 2 (entities, harness_headers); SECURITY.md SKIP; NOTICE SKIP; const.py SCOPED 30; docs/new_page.md SCOPED 1 (doc_claims); handoff/r9-x/note.md SKIP; round20 new_probe.py SCOPED 1. See null_probes.txt.
