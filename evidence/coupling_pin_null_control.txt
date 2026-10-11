@@ -1,0 +1,5 @@
+# a1 x R1 coupling pin null control -- extraction rule identical to entities.py's (_workflow_job 'closures', split on step separator, 'name: Re-record the closures')
+head: 388960818889ed424e1b662ae0bd6682e1c519ce
+a74520020 (pre-R1): pin=FAIL -- serial --single "$s" loop present, no --scripts-from
+origin/main (5c02e2bab): pin=PASS -- one --scripts-from, no --single loop, no event gate
+HEAD (388960818): pin=PASS -- one --scripts-from, no --single loop, no event gate

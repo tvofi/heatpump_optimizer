@@ -1,0 +1,6 @@
+SECURITY.md                                               CASE: SKIP -- no recorded closure contains any changed file, no script's recorded inert_reads reach them, and every one of them is INERT
+NOTICE                                                    CASE: SKIP -- no recorded closure contains any changed file, no script's recorded inert_reads reach them, and every one of them is INERT
+custom_components/heatpump_optimizer/const.py             CASE: SCOPED -- 30 closure(s) intersect the diff
+docs/new_page.md                                          CASE: SCOPED -- 1 closure(s) intersect the diff
+handoff/r9-x/note.md                                      CASE: SKIP -- no recorded closure contains any changed file, no script's recorded inert_reads reach them, and every one of them is INERT
+dev/audit/rounds/round20/new_probe.py                     CASE: SCOPED -- 1 closure(s) intersect the diff

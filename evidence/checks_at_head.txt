@@ -1,0 +1,10 @@
+head: 388960818889ed424e1b662ae0bd6682e1c519ce
+
+PYTHONPATH=tests/hastub entities.py at HEAD: ALL 2262 ENTITY CHECKS PASSED (entities_head.txt)
+structure.py: STRUCTURE RATCHET PASSED (all 16 metrics ok)
+policy_lint.mjs: TOTAL: 0 error(s) across 40 policy file(s); FIXTURE ok
+closure.py selftest: ALL 76 closure shrink pins PASSED
+throwaway_git.py --check: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+env_drift.py --claims-only origin/main: ok
+
+Check-runs API at 388960818 (commit check-runs): zero failure/cancelled/timed_out; closures, coverage, fast (3.14), Analyze (python) in_progress at review time; rest success/skipped. 'Red checks: none' confirmed.
