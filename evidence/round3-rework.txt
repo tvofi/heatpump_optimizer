@@ -1,0 +1,32 @@
+round-3 rework review (R1 lane-runner merge)
+head measured: 18b972526f16ea16b9522faf11d1a6781ea28966 (detached worktree /Users/timmalmstrom/hpo-seats/r9rev-2132/wt)
+round-2 head was abf7dc7f9b5043b48605aea1fb70769e565711fc. Delta = main #2131 (R1 lane runner) merged in;
+resolution keeps C1/C2 inside R1's structures.
+
+Resolution deltas read at the head:
+- tests/derive_closures.sh: rec() unchanged (COMPOSED_CONSUMED skip + HPO_CI_METRICS emission inside it);
+  rec_special() routes golden/arch_score/env_drift/dst_checks cheap-argv through rec on BOTH --single and
+  the new --scripts-from lane path, so the composed skip and metrics apply scoped too; lane runner is
+  loud on a dead lane and refuses a missing recording (exit 1), never silent.
+- .github/workflows/tests.yml: only the scoped re-record step changed (one --scripts-from run instead of
+  the --single loop); the C2 consume step (l.2113), composed fetch/verify steps (l.2159/2170) and the
+  three HPO_CI_* envs (l.347/734/2211-2212) are byte-identical to round-2.
+- tests/closure.py +361: lane_plan/lane_request/_lane_plan_cmd + _selftest_lane_plan; selftest() runs
+  BOTH my C1/C2 selftests and R1's lane-plan selftest.
+- tests/entities.py, tools/pr/prepr.sh: comment wording + the lane-runner wiring with its own stubbed
+  self-test arms (drives --scripts-from, refuses a serial --single beside it).
+
+Measurements at 18b972526f16ea16b9522faf11d1a6781ea28966 (mine, re-run at this exact sha):
+- closure.py selftest: ALL 93 PINS PASSED (74 mine + 19 lane-plan)
+- entities.py (python3.13): rc=0, ALL 2259 ENTITY CHECKS PASSED
+- structure.py: STRUCTURE RATCHET PASSED; budget_raise_gate --self-test: 219/0
+- C2 arms re-driven: other-tree rc=1, corrupt rc=1, missing-selectable rc=1, empty rc=1; full-roster
+  same-tree accepts rc=0 ("consumed proof recordings ... 33 scripts")
+- mutants re-killed, each exactly its named arm: proof_consume tree-guard (1 pin), composed_verify
+  rc-guard (1 pin), ci_ratchet compare -> if False: (1 of 2259 entities), SCHEMA entry deleted (3
+  self-test fails), archscore.* MAX->FREE (2 fails: vector-entry-up + cap-removed). Tree clean after
+  every restore.
+- check-runs at the head (commit API): instrument-self-tests completed success; pr-contract completed
+  success; budget-raise-gate failure x2 (the disclosed owner-gated initial record); heavy lanes in
+  progress are the merge's own required contexts.
+- ls-remote at publish: 18b972526f16ea16b9522faf11d1a6781ea28966 (match).
