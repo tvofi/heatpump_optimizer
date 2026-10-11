@@ -1,68 +1,72 @@
-Fix review: merge 271373ad592134828d25ed6bd080d9f48d34b177
-bus-nonce: f52fba0ebe1ce1e8bcc3532af3a22fd1
+Fix review: merge 5bfddc1bd917798b28408759f6afa7ab14c2dee0
 
-Round: the repair round after `root-cause-unanswered` at 72b696d96 (a repair, not a
-re-cut; the fix's substance was established at bc0488018/72b696d96 and is
-re-measured below, unchanged).
+Resolution delta a4c134fce…5bfddc1bd, round 5 of the PR (contract step 12:
+a `merge a4c134fce…` verdict's own resolution delta, production tree
+byte-identical). Reviewer worktree detached at the head,
+/Users/timmalmstrom/hpo-seats/r9rev-2119d/wt; seat venv (venv-ci) first on
+PATH; scratch /Users/timmalmstrom/hpo-seats/r9rev-2119d/, evidence in
+evidence/.
 
-## What I measured (fresh worktree at 271373ad5, venv-ci 3.14.7)
+Delta commits (evidence/delta-commits.txt): the branch's one authored commit
+db7b569bd (`fix(#2119): the drift gate's baseline worktree add refuses with
+git's own reason`), plus main's own #2117 side (77d66d707, 48d47ab19,
+a27c7bd44, 88cfe2cb9, merge 0f1ccbe52) and the two merges 00e5b5cdb and
+5bfddc1bd that carry them. Every non-test file in the full delta diffstat
+(.github/workflows/governance.yml, dev/programme/delivery/2117.md,
+tools/audit/seat/merge_train.py, tools/pr/app_push.sh) is byte-identical to
+main tip 0f1ccbe52 -- main-side content arriving through the merge, not
+authored here. The authored change is tests/entities.py +97 (three new
+checks) and tests/env_drift.py +61/-5 (the repair); ledger.py,
+tests/features.py, tests/doc_claims.py and the whole custom_components tree
+are byte-identical to a4c134fc (evidence/production-identity.txt).
 
-1. arch-score gate, base 7cd5a588c (the body's merge base, unchanged):
-   `Architecture score: dS +0.0073 IMPROVES / coord_footprint 2586 -> 2573 /
-   PASS: dS +0.0073 IMPROVES, no gate metric rose` -- the body's line exactly.
-   shared_inplace_writes measured at head = 22 (inplace 22, borrow 0), and the
-   site list carries no `ledger.py ... _month_reports` entry: the three sites
-   the reviewed head added are gone. seam_map.json:172 `_roll_month: "grid"`.
-   Payment earned, not instrument-shaped: the same gate at the red head
-   96eaf4a00 reproduces the body's quoted failure verbatim
-   (`dS -0.9549 WORSENS (inadmissible: shared_inplace_writes 22->25)`), so the
-   rise was real and the code, not the instrument, removed it. The seam
-   recording (762 -> 756) carries its reason in b19106207's message;
-   `tests/structure.py`: STRUCTURE RATCHET PASSED, seam_cut_total=756 <= 756,
-   max_class_loc=8745 <= 8745.
-2. Baselines: `python3 tests/entities.py` -- `ALL 2250 ENTITY CHECKS PASSED`.
-   `python3 tests/features.py` at head reaches its summary:
-   `1 of 4005 FEATURE CHECKS FAILED` -- R9-F2.1 P3, the BLAS margin, with the
-   body's exact figures (shipped 110.4366, seeded 110.1297); not a block on
-   this macOS box.
-3. ## Unpinned sites: ci_predict at the head lists 39 sites; the body
-   dispositioned all 39 (two written `CMP_BOUND*2` over double-counted
-   inventory rows). Five sampled and DRIVEN, each restored clean:
-   - ledger.py:320 RETURN_DEL (M1): 4 UX-6 checks fail -- the body's four.
-   - ledger.py:333 RETURN_DEL: 2 fail, both checks the body names.
-   - accuracy.py:50 CONST (PROMISE_HOUR=23): 2 named UX-6 checks fail
-     ("the promise is the first midnight plan's", "the next day replays").
-     Nuance, not a defect: the specific check the body names for :50 ("a plan
-     solved after the midnight hour is not the day's promise") did not fail
-     under this constant value; the body does not claim these killed (the pin
-     lane's drive is owed and stated as owed), and the site is live and pinned
-     by the block.
-   - accuracy.py:231 GUARD_OFF: the run breaks (TypeError on the None path);
-     the named null-control check exercises it.
-   - ledger.py:440 CLAMP_DROP: `ALL 19 FEATURES BLOCK PASSED` -- the block
-     reads flat, exactly the body's disposition: a genuine survivor_triage
-     candidate, recorded as owed, not faked.
-   M0 at head: `ALL 19 FEATURES BLOCK PASSED`.
-4. Ancestry reds: I re-ran prepr's own enumeration (same rev-list, same
-   REDS_JQ, same pr-contract exclusion) over origin/main...origin/fix/r9-ux-6:
-   exactly the seven names the body answers (arch-score, closures,
-   coverage-ratchet, fast (3.14), mutation, mutation-autofix,
-   nightly-ha (stable)), each named and answered in ## Red checks with head,
-   output and repair. Spot-checks against the check-runs API: arch-score
-   failure at all three heads (10b4ae172, 72b696d96, 96eaf4a00) with its
-   quoted line reproduced by my gate run at 96eaf4a00; nightly-ha (stable)
-   failure only at 96eaf4a00, matching the body's heads. CI has since run at
-   the publishing head: arch-score green (matches my gate), pr-contract green,
-   and a mutation red whose cause set (the 39 sites' dispositions plus the
-   repaired baseline) the body's mutation entry already names and answers.
-5. Substance unchanged: the fixture month at merge base 7cd5a588c gives
-   `_freeze_month_report` total_sek=709.5 with no basis; at the head the same
-   fixture gives 194.5 with basis ['spot','grid_fee','immersion','wear'] --
-   the earlier rounds' figures, byte-for-byte.
-6. VERSION, manifest, RELEASE_NOTES untouched; coord_* golden fixtures gained
-   only new keys and each is claimed in claimed_drift.txt; worktree left
-   clean after every mutant.
+Repair sound and minimal (tests/env_drift.py): `add_baseline_worktree` drops
+`check=True, capture_output=True` for an explicit returncode check; on a
+non-zero add it captures `(add.stderr or add.stdout or "no message")`, prints
+git's own reason per attempt, and retries ONCE (candidates from
+`baseline_worktree_candidates(tmp, attempts=2)`) on a fresh name
+`baseline-{pid}-{n}` -- pid separates concurrent gate instances, ordinal
+separates one instance's own retries, so no two adds contend for one
+registered name and no retry meets its own half-built directory. A double
+failure refuses READABLY: `BASELINE WORKTREE REFUSED: git could not check
+out ... (reason)` and return 1, after cleaning tmp -- not a crash, not
+silence. Same shape as stress.py's precedent the body cites.
 
-RESULT gate PASS dS +0.0073; shared_inplace_writes 22; entities 2250/2250;
-features 4004/4005 (BLAS margin only); UX-6 block 19/19 at M0; ancestry: 7/7
-answered; dispositions 39/39 listed, 5/5 sampled backed by measurements.
+Failing-first arm, re-run by me (not the fixer's numbers): env_drift.py
+reverted at the head to a4c134fc's copy, `PYTHONPATH=tests/hastub python3
+tests/entities.py` -> `3 of 2254 ENTITY CHECKS FAILED`, and the three are
+exactly the new named checks ("a refused baseline worktree add reports git's
+own reason, not a bare exit 128 (#2119)", "a resolvable ref builds the
+baseline worktree and unregisters cleanly (null control)", "concurrent gate
+instances name distinct baseline worktrees (#2119)") -- AttributeError on
+the missing functions (evidence/reverted-fails.txt). Restored ->
+`ALL 2254 ENTITY CHECKS PASSED` (evidence/restored-summary.txt).
+
+`## Red checks` truthfulness: the body's `mutation` at `a4c134fc` entry
+quotes the crash's own line -- run 38129371794, job 114440311454,
+concluded 2026-10-11T09:47Z, `MUTATION TABLE REFUSED -- the null control
+custom_components/heatpump_optimizer/accuracy.py:44 NULL_COMMENT was killed
+by tests/env_drift.py (subprocess.CalledProcessError: Command '['git',
+'worktree', 'add', '--detach', '/tmp/env_drift_a5dktzj3/baseline',
+'e1501bf480d0d6430875f3a7334402cb00cc4dd3']' returned non-zero exit status
+128.)` -- and I read that line verbatim from the job's own log
+(evidence/mutation-red-quote.txt); the body names this repair at db7b569bd.
+Check-runs API at a4c134fc: that `mutation` is the ONLY completed failure;
+everything else green or skipped (evidence/check-runs-a4c134fc.txt). At the
+measured head 5bfddc1bd: every completed check is success/neutral/skipped;
+mutation, coverage, fast (3.14), closures and Analyze (python) are
+in_progress at publish time -- pending, not unanswered reds
+(evidence/check-runs-head.txt). No other unanswered red.
+
+prepr at the head with the seat venv on PATH: `PRE-PR:
+5bfddc1bd917798b28408759f6afa7ab14c2dee0 0000…` clean, no version edit, claim
+files byte-identical to origin/main. `git merge-tree --write-tree origin/main
+5bfddc1bd` exit 0.
+
+RESULT env_drift repair: sound, minimal, failing-first confirmed at the head
+RESULT delta: one authored commit, production tree byte-identical to a4c134fc
+RESULT red-checks: mutation@a4c134fc quoted verbatim and answered; no other red at either head
+
+Head-moved check at publish: ls-remote = 5bfddc1bd917798b28408759f6afa7ab14c2dee0.
+
+bus-nonce: 84a0eec83769c1303956603d0d805720
