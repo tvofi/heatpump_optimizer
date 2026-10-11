@@ -220,6 +220,16 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
   hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
   both. `--self-test` drives the recipe and the shim export.
+- `train.sh` — one invocation shape for `merge_train.py batch`: the seat
+  venv first on PATH (an ambient 3.11 refuses main's own nested-quote
+  f-strings under `no-copies`), a pidfile refusing a second live train on
+  the same state dir, log and exit code under the state dir (`train.log`,
+  `rc`). Foreground: the caller detaches and owns the schedule. When: every
+  merge queue — the per-session scratch drivers this replaces duplicated
+  the invocation, and one session's copy ran prepr under the wrong
+  interpreter and refused a clean branch. Refusal: a live pidfile (take
+  over only by removing it after checking the pid is dead). `--self-test`
+  drives the three refusals offline.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r9-plan` at
