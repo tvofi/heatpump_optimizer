@@ -2375,4 +2375,79 @@ R.check(
 )
 
 
+
+R.section("early cut-off: the minimum run and stop are true time across a DST change")
+
+from heatpump_optimizer import early_cutoff as _ec  # noqa: E402
+from heatpump_optimizer.boost import BoostState as _EcBoost  # noqa: E402
+from heatpump_optimizer.pump_arbiter import ArbiterInputs as _EcInputs  # noqa: E402
+
+_EC_UTC = timezone.utc
+
+
+def _ec_world(t0, switch_since):
+    """A space-only plan step, a switch on since ``switch_since``, writes recorded."""
+    plan = SimpleNamespace(
+        timestamps=[t0 + timedelta(minutes=15 * i) for i in range(8)],
+        power_schedule=[1.5] * 8, dhw_power_schedule=[0.0] * 8,
+        room_temp_trajectory=[21.0] * 9, duty_floor_kw=None)
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=switch_since),
+                     "sensor.room": FakeState("21.0")})
+    hass.async_create_task = lambda coro: asyncio.run(coro)
+    inp = _EcInputs(
+        hass=hass, config={"indoor_temp_entity": "sensor.room",
+                           "heat_pump_switch_entity": "switch.hp", "optimization_interval": 30},
+        mode=const.MODE_AUTO, plan=plan, plan_stale=False, entry_released=False,
+        state=SimpleNamespace(dhw_temperature=50.0, lower_floor_temperature=21.0),
+        thermal=None, params=SimpleNamespace(dhw_enabled=False, two_zone_enabled=False),
+        action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=False)
+    return hass, inp
+
+
+def _ec_cut_at(arm_at, switch_since, reading_at):
+    """Arm at ``arm_at``, read 22.5 degC at ``reading_at``: (turn_off count, why held)."""
+    held = _ec.CutoffState()
+    hass, inp = _ec_world(arm_at - timedelta(minutes=5), switch_since)
+    cfg = SimpleNamespace(get_comfort_temp=lambda hour, when=None: 21.0)
+    dt_util.freeze(arm_at)
+    asyncio.run(_ec.arm(held, lambda: inp, _EcBoost(), cfg, lambda _f: None, dt_util.now()))
+    dt_util.freeze(reading_at)
+    _ec.on_room_event(held, held.wiring, SimpleNamespace(
+        data={"new_state": FakeState("22.5", unit="°C")}))
+    dt_util.freeze(None)
+    return sum(1 for c in hass.services.calls if c[1] == "turn_off"), held.last_held
+
+
+# Spring forward, 2026-03-29 01:00Z (02:00 CET -> 03:00 CEST). The switch went
+# on at 00:55Z (01:55 CET); the reading is at 01:02Z (03:02 CEST): 7 minutes of
+# true run, 67 on the wall clock. A wall-clock guard would cut.
+_ec_spring = _ec_cut_at(datetime(2026, 3, 29, 0, 50, tzinfo=_EC_UTC),
+                        datetime(2026, 3, 29, 0, 55, tzinfo=_EC_UTC),
+                        datetime(2026, 3, 29, 1, 2, tzinfo=_EC_UTC))
+R.check(
+    "spring forward: a 7-minute true run (67 on the wall) is held by MIN_ON, not cut",
+    dt_util.DEFAULT_TIME_ZONE is not _EC_UTC and _ec_spring == (0, "min_on"),
+    f"(turn_off, held) {_ec_spring}",
+)
+# Fall back, 2026-10-25 01:00Z (03:00 CEST -> 02:00 CET). Armed 00:35Z, so the
+# cycle ends 01:05Z; the reading at 01:03Z is 2 true minutes from it.
+_ec_fall = _ec_cut_at(datetime(2026, 10, 25, 0, 35, tzinfo=_EC_UTC),
+                      datetime(2026, 10, 25, 0, 0, tzinfo=_EC_UTC),
+                      datetime(2026, 10, 25, 1, 3, tzinfo=_EC_UTC))
+R.check(
+    "fall back: 2 true minutes to the cycle end are held by MIN_OFF, not cut",
+    _ec_fall == (0, "min_off"),
+    f"(turn_off, held) {_ec_fall}",
+)
+# Null control: the same day, a 30-minute run and 20 minutes to the cycle end.
+_ec_plain = _ec_cut_at(datetime(2026, 3, 29, 3, 0, tzinfo=_EC_UTC),
+                       datetime(2026, 3, 29, 2, 30, tzinfo=_EC_UTC),
+                       datetime(2026, 3, 29, 3, 10, tzinfo=_EC_UTC))
+R.check(
+    "NULL CONTROL: past both minimums on the transition day the warm room is cut",
+    _ec_plain == (1, None),
+    f"(turn_off, held) {_ec_plain}",
+)
+
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))
