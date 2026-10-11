@@ -1,0 +1,14 @@
+.claude/workflows/audit-find.js
+custom_components/heatpump_optimizer/debugger.py
+dev/audit/config/bugclasses.json
+dev/audit/config/finding.schema.json
+dev/audit/rca/R9-RC-POSTREVIEW-MERGE.md
+dev/programme/carries/carry-201.json
+dev/programme/delivery/2110.md
+dev/programme/delivery/2111.md
+dev/programme/delivery/2124.md
+dev/programme/delivery/2125.md
+docs/configuration.md
+tests/closures.json
+tests/debug_collect.py
+tools/audit/seat/record_row.py
