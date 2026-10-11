@@ -60697,6 +60697,23 @@ R.check(
     "capacity" not in _ux6_nocap._ledger.months.get("2026-03", {}).get("lines", {}),
 )
 
+# The booking guard: the line is restated from live sensor state every
+# settlement, so one non-finite peak (a NaN from an unavailable sensor) or
+# an empty month key must book nothing rather than a NaN capacity line that
+# poisons the month's billed total. Null arm: the finite booking above
+# ("the billed peak times the tariff") still writes 225.0, so this check
+# moves only on the non-finite and empty inputs.
+_ux6_guardcap = _ux6_coord()._ledger
+_ux6_guardcap.book_capacity("2026-03", float("nan"), 45.0)
+_ux6_guardcap.book_capacity("", 5.0, 45.0)
+R.check(
+    "UX-6: a NaN peak or an empty month books no capacity line",
+    "capacity" not in _ux6_guardcap.months.get("2026-03", {}).get("lines", {})
+    and "" not in _ux6_guardcap.months,
+    f"{_ux6_guardcap.months.get('2026-03', {}).get('lines')} / "
+    f"{sorted(_ux6_guardcap.months)}",
+)
+
 # Every receipt kept reaches the enabled monthly-savings sensor, unrecorded.
 from heatpump_optimizer.sensor import MonthlySavingsSensor as _ux6_Monthly  # noqa: E402
 
@@ -60802,6 +60819,18 @@ R.check(
     "UX-6: a naive or ragged stored promise is dropped, not loaded",
     _ux6_bad.promises == {},
     f"{_ux6_bad.promises}",
+)
+# A zero step is the boundary of the same guard's finite-and-positive arm: a
+# promise restored with it would divide by zero at replay time, so it is
+# dropped at load. Null arm: the same row with a 15-minute step loads (the
+# restore check above), so this check moves only on the non-positive step.
+_ux6_zerostep = AccuracyTracker.from_dict({"promises": {
+    "2026-03-15": {"start": _ux6_mid.isoformat(), "step_minutes": 0, "room": [1, 2], "cost": [0, 1]},
+}})
+R.check(
+    "UX-6: a stored promise with a non-positive step is dropped, not loaded",
+    _ux6_zerostep.promises == {},
+    f"{_ux6_zerostep.promises}",
 )
 
 # The load path restates a stored receipt: the published total of a month
