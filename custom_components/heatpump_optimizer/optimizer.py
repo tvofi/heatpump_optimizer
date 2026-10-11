@@ -512,6 +512,45 @@ def _fused_value_and_gradient(
     return value_and_gradient
 
 
+def _memoized_batch_objective(
+    batch_objective: Callable[..., Any] | None,
+    memo: dict[bytes, Any],
+) -> Callable[..., Any] | None:
+    """``batch_objective`` with its batch answers remembered, or ``None``.
+
+    Serves one ``_multi_start_minimize`` call, where the batched objective,
+    the bounds and ``fd_eps`` are fixed and the objective is pure in its
+    rows: candidates that share a basin walk L-BFGS-B to points an earlier
+    start or polish already evaluated bit-for-bit -- measured on the #1935
+    replay's solver, ~4 % of a solve's fused evaluations are exact repeats
+    sitting across ``_scoped_minimize`` invocations, where scipy's own
+    per-run cache cannot see them. The key is the evaluation's own row
+    matrix (``_fd_rows`` is deterministic in ``x`` and the bounds), so a
+    hit is the array the earlier evaluation computed, to the bit -- and
+    both the value (row 0) and the gradient the divided differences take
+    from it come back unchanged. Every consumer of the returned array
+    reads it (``float(f[0])``, the FD divide); none writes it, which is
+    the contract that lets the cached array be handed back without a
+    copy. The memo dies with the call, like the scoring memo in
+    ``_multi_start_minimize`` (#288): no answer crosses a solve, and the
+    half-priced continuation evaluations run before this wrapper exists,
+    so they can never be served to the full-priced loop.
+    """
+    if batch_objective is None:
+        return None
+
+    def batch(rows: np.ndarray, *a: Any) -> Any:
+        key = np.asarray(rows, dtype=float).tobytes()
+        hit = memo.get(key)
+        if hit is not None:
+            return hit
+        out = batch_objective(rows, *a)
+        memo[key] = out
+        return out
+
+    return batch
+
+
 def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
     """Whether the batched jac may serve a solve with these bounds.
 
@@ -593,7 +632,12 @@ def _lbfgsb_restart(
     batch_objective: Callable[..., Any] | None,
     fd_eps: float,
 ) -> Any:
-    """Restart L-BFGS-B from its own returned point. No new seed (#826)."""
+    """Restart L-BFGS-B from its own returned point. No new seed (#826).
+
+    ``batch_objective`` may be the calling ``_multi_start_minimize``'s
+    memoized wrapper, so a polish that starts where an earlier start or
+    polish already stood revalues nothing.
+    """
     _time_mod.sleep(0.002)
     fun: Callable[..., Any] = objective
     jac: bool | None = None
@@ -696,6 +740,8 @@ def _multi_start_minimize(
         raise ValueError("no usable starting point")
     scored.sort(key=lambda item: item[0])
 
+    eval_memo: dict[bytes, Any] = {}   # starts+polishes share one batch memo
+    batched = _memoized_batch_objective(batch_objective, eval_memo)
     best = None
     best_score = np.inf
     last_error: Exception | None = None
@@ -734,7 +780,7 @@ def _multi_start_minimize(
             # fuse-guarded install on the scalar path at 31.5x. The CI drift
             # gate on Linux is the final arbiter.
             can_batch = _bounds_supported_by_batch(bounds)
-            if batch_objective is not None and can_batch:
+            if batched is not None and can_batch:
                 # The batched-FD jac (#97): scipy calls the gradient at
                 # every trial point, so a supplied jac removes 96/97 of
                 # ALL evaluations, not just of the gradient's own. It
@@ -743,7 +789,7 @@ def _multi_start_minimize(
                 # variable the iterate path, and therefore the plan, does
                 # not move. The value rides in the same batch (R9
                 # D9-s1-02), so L-BFGS-B makes no scalar evaluation.
-                fun = _fused_value_and_gradient(batch_objective, bounds, fd_eps)
+                fun = _fused_value_and_gradient(batched, bounds, fd_eps)
                 jac = True
             res = _scoped_minimize(
                 fun,
@@ -775,7 +821,7 @@ def _multi_start_minimize(
         # which moves the shipped plan. The cost is what the 1.40% is bought
         # with; the stress gate's per-scenario CPU budgets police it.
         res = _lbfgsb_restart(
-            res, memoized, bounds, args, maxiter, batch_objective, fd_eps,
+            res, memoized, bounds, args, maxiter, batched, fd_eps,
         )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
@@ -2672,21 +2718,23 @@ class HeatPumpOptimizer:
         objective, thousands of times per solve. One closure prices a 1-D
         schedule (returning a float) and a whole [B, n] batch at once
         (returning one price per row, #948). The elementwise half runs over
-        the whole batch; the two SUMS per row still run through ``np.sum``
-        on that row's own contiguous 1-D view -- the scalar expression --
-        because a batched ``axis=`` reduce may reassociate each row's sum
-        on some backends (see ``_comfort_terms_batch``), and each row must
-        be bit-for-bit the scalar price of that row.
+        the whole batch; each row's SUM is ``row_sums`` (batchmath), which
+        reproduces numpy's own scalar summation order as explicit column
+        arithmetic, so a row is bit-for-bit the scalar price of that row on
+        every backend -- the same upgrade the comfort terms took in
+        D9-s1-01 and cycling in RC-sw1, applied to the last closure that
+        still walked its rows in a Python loop (that loop was ~40 % of the
+        batched objective's cost half, measured while speeding the #1935
+        replay). An ``axis=`` reduce would NOT do: it reassociates each
+        row's sum on some backends, which is exactly what ``row_sums``
+        exists to avoid.
         """
         surplus = self._pv_surplus
         if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):
             def grid_only_cost(total_power: np.ndarray) -> Any:
                 if np.ndim(total_power) == 1:
                     return float(np.sum(prices * total_power) * dt)
-                return np.array([
-                    float(np.sum(prices * total_power[b]) * dt)
-                    for b in range(total_power.shape[0])
-                ])
+                return row_sums(prices * total_power) * dt
 
             return grid_only_cost
 
@@ -2699,14 +2747,10 @@ class HeatPumpOptimizer:
                 return float(
                     (np.sum(prices * total_power) - np.sum(covered)) * dt
                 )
-            return np.array([
-                (
-                    np.sum(prices * total_power[b])
-                    - np.sum(margin * np.minimum(total_power[b], surplus))
-                )
-                * dt
-                for b in range(total_power.shape[0])
-            ])
+            return (
+                row_sums(prices * total_power)
+                - row_sums(margin * np.minimum(total_power, surplus))
+            ) * dt
 
         return energy_cost
 
