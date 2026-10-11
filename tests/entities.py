@@ -31078,6 +31078,111 @@ R.check(
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 
+# --- the CI ratchet and the composed-closure allow-list (round 9) -----------
+#
+# tvofi's round-9 request: ratchet CI cost and code health (architecture,
+# complexity, script re-runs, scoping, critical path). tests/ci_ratchet.py is
+# the instrument; what is pinned here is what it CLAIMS: one-way budgets in a
+# committed data file, values derived from what the CI jobs emit, a refusal on
+# growth, --record as a deliberate path a job may never take, and the null
+# control that the committed table grades green at the tree it records.
+import ci_ratchet as _cir  # noqa: E402
+
+_CIR_TABLE = json.loads(Path("tests/ci_budgets.json").read_text())
+R.check(
+    "the CI ratchet is classified: NOT_A_TEST, and not on INERT",
+    "ci_ratchet.py" in _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/ci_ratchet.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+_CIR_JOB = _workflow_job(_TESTS_YML, "ci-ratchet")
+R.check(
+    "the CI ratchet is wired into a push-to-main job that never --records",
+    "github.event_name == 'push'" in _CIR_JOB
+    and "tests/ci_ratchet.py" in _CIR_JOB
+    and "--record" not in _CIR_JOB,
+    f"push={'push' in _CIR_JOB}, "
+    f"invoked={'tests/ci_ratchet.py' in _CIR_JOB}, "
+    f"records={'--record' in _CIR_JOB}",
+)
+R.check(
+    "the CI ratchet refuses a non-finite, mistyped or unknown budget row",
+    _cir.budget_problems(_CIR_TABLE) == []
+    and _cir.budget_problems({**_CIR_TABLE,
+                              "script_runs_per_push": float("nan")}) != []
+    and _cir.budget_problems({**_CIR_TABLE, "made_up_key": 1}) != []
+    and _cir.budget_problems({**_CIR_TABLE,
+                              "archscore.dead_members": 1.5}) != []
+    and _cir.budget_problems({"critical_path_minutes": 61.0}) != [],
+    f"committed table: {_cir.budget_problems(_CIR_TABLE)} (the null control)",
+)
+
+
+def _cir_main(table: dict, push_runs: int) -> int:
+    """ci_ratchet.main() over a scratch table and a scratch metrics window:
+    does the barrier refuse a growth the table's own rows would allow?"""
+    import contextlib as _cl
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        metrics = Path(td) / "metrics"
+        metrics.mkdir(parents=True)
+        lines = "".join(
+            f"closures\ttests/s{i}.py\tfull\t0\t1\tpush\t1\n"
+            for i in range(push_runs))
+        (metrics / "run.tsv").write_text(lines)
+        budgets = Path(td) / "ci_budgets.json"
+        budgets.write_text(json.dumps(table))
+        saved, _cir.BUDGETS = _cir.BUDGETS, budgets
+        argv = ["--metrics-dir", str(Path(td) / "metrics")]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()), \
+                    _cl.redirect_stderr(_io.StringIO()):
+                # No --runs-json: critical_path_minutes is then not derived
+                # and not graded, so the count metrics are the verdict.
+                return _cir.main(argv)
+        finally:
+            _cir.BUDGETS = saved
+
+
+_CIR_ARCH = {k: v for k, v in _CIR_TABLE.items()
+             if k.startswith("archscore.")}
+R.check(
+    "the CI ratchet's main() refuses a script-run count above its budget",
+    _cir_main(_CIR_TABLE, push_runs=int(_CIR_TABLE["script_runs_per_push"])
+              + 1) == 1,
+    "one more instrumented run than the row allows must redden the job",
+)
+R.check(
+    "and main() passes the committed table at its own recorded count "
+    "(the null control)",
+    _cir_main(_CIR_TABLE, push_runs=int(_CIR_TABLE["script_runs_per_push"]))
+    == 0,
+    "the recorded value must grade green at the tree it was recorded on",
+)
+R.check(
+    "a derived metric with no budget row is a growth, not a pass",
+    _cir_main({k: v for k, v in _CIR_TABLE.items()
+               if not k.startswith("archscore.")},
+              push_runs=1) == 1,
+    "the archscore vector is always derived; dropping its rows must redden",
+)
+
+# The composed-closure allow-list (round-9 C1): every entry a real selectable
+# script, off the never-compose list closure.py enumerates -- the class's seam
+# rule, not an instance check.
+_COMPOSED_LIST = json.loads(Path("tests/composed_closures.json").read_text())
+_COMPOSED_BAD = [
+    s for s in _COMPOSED_LIST.get("scripts", [])
+    if not Path(s).is_file()
+    or Path(s).name in _closure.CHEAP_ARGV_OR_ENV
+    or Path(s).name in _closure.NOT_A_TEST
+]
+R.check(
+    "every composed-closure entry is a selectable, composable script",
+    not _COMPOSED_BAD,
+    f"bad entries: {_COMPOSED_BAD}",
+)
+
 # --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
 #
 # Every red `mutation` job in the RCA's retained window (2026-09-11..17) was

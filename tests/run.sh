@@ -222,6 +222,24 @@ fi
 
 cat "$WORKDIR/scope.print"
 
+# CI-cost metrics (tests/ci_ratchet.py): the gate's own scope decision, one
+# line -- class (full or scoped), how many scripts the scoped plan RUNS and
+# how many it scoped out. The fast job sets HPO_CI_METRICS; a local run
+# without it emits nothing.
+if [ -n "${HPO_CI_METRICS:-}" ]; then
+  _cls=full; _nrun=0; _nskip=0
+  if [ -n "$SCOPE_RUN" ]; then
+    _cls=scoped
+    _nrun=$(grep -c . "$SCOPE_RUN" 2>/dev/null || echo 0)
+    if [ -f "$WORKDIR/scope.skip" ]; then
+      _nskip=$(grep -c . "$WORKDIR/scope.skip" 2>/dev/null || echo 0)
+    fi
+  fi
+  printf 'fast\tmode\t%s\t%s\t%s\t%s\t%s\n' "$_cls" "$_nrun" "$_nskip" \
+    "${GITHUB_EVENT_NAME:-local}" "${GITHUB_RUN_ID:-local}" >> "$HPO_CI_METRICS"
+  unset _cls _nrun _nskip
+fi
+
 # The script a `run` line is actually running, for the scope lookup: the
 # first argument that names a file under tests/. Not the last argument --
 # env_drift.py takes a ref after its script path.
