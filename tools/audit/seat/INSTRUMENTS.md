@@ -233,6 +233,20 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   files, and an already-current tip, which is reported and left alone. The
   commit is plumbing over a temp index, so the calling checkout's index is
   never touched.
+  `state_docs.py beat` is the same instrument on a loop, and it lives here
+  rather than in a session's scratch for decision 0013's reason — an
+  instrument the programme runs belongs where a later session can test it. A
+  pass reads `--watch-ref` at origin; when it has moved it refreshes the
+  roster ref (so resume fields other seats wrote are visible), regenerates
+  and pushes, and when it has not it writes nothing at all. When:
+  continuously beside a merge train, since it takes no lock and cancels
+  nothing — the state docs are regenerated rather than rebuilt at session
+  end. Refusal, and the one that saves you: the tip is recorded ONLY on a
+  regeneration that returned 0, so a push the remote rejected is retried on
+  the next pass instead of silently dropping that merge from the record.
+  `--once` is one pass and returns that pass's code; without `--tip-file` a
+  `--once` caller regenerates every time, so give it one to keep the loop's
+  memo on disk. `--self-test` drives all three arms offline.
 - `tmp_paths.py` — refuses a tracked script, workflow or decision record that
   depends on a temp or machine path (`--check`, `--self-test`). When: after
   touching anything under `tools/`, `tests/`, `.claude/`, or before pushing.
@@ -253,8 +267,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   detached so a crashed seat is recoverable from its branch. Refusal: it
   never touches the worktree or its index — a snapshot, not a save.
 - `shims/seat-python`, `shims/seat-python3` — the seat interpreter: execs the
-  venv-ci `seat_venv.sh` builds under `$HPO_STATE_DIR` (default
-  `~/.local/state/hpo`) and exports `HPO_TYPING_PYTHON` to venv-ha/bin/python
-  only when that interpreter exists and the variable is unset. When: a seat's
-  PATH needs a pinned interpreter, and the scoped gate should check the mypy
-  census.
+  venv-ci `seat_venv.sh` builds, under `$HPO_STATE_DIR` first and the default
+  state root `~/.local/state/hpo` second, and refuses naming that build command
+  when neither holds one; exports `HPO_TYPING_PYTHON` to venv-ha/bin/python
+  under the same two roots, only when that interpreter exists and the variable
+  is unset. When: a seat's PATH needs a pinned interpreter, and the scoped gate
+  should check the mypy census.
