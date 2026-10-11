@@ -24,9 +24,257 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
 Optimization failed: injected L-BFGS-B blow-up
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5675, in async_run_optimization
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5675, in async_run_optimization
     raise RuntimeError(
+        f"solver returned a failed plan: {result.status}"
+    )
 RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+External heat override sensor.flue has not reported for 240 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+External heat override sensor.flue has not reported for 600 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbage' (expected HH:MM-HH:MM)); that day keeps the default schedule
+/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/scipy/optimize/_numdiff.py:687: RuntimeWarning: invalid value encountered in divide
+  df_dx = [delf / delx for delf, delx in zip(df, dx)]
+System identification fit raised: Singular matrix
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/sysid.py", line 1717, in _finish
+    self.result = self.identify_slab()
+                  ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 7027, in _wrapper
+    return method(self, *args, **kwargs)
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/sysid.py", line 2263, in identify_slab
+    return self._slab_outcome(
+           ~~~~~~~~~~~~~~~~~~^
+        best_x, rooms, error, slab_mass, slab_transfer, told_error
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/sysid.py", line 2298, in _slab_outcome
+    profile_halfwidth = _slab_ua_profile_halfwidth(
+        best_x, path_error, int(rooms.size), self.config.gains_prior_kw
+    )
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/sysid.py", line 1003, in _slab_ua_profile_halfwidth
+    cov = np.linalg.inv(jac.T @ jac) * sigma2
+          ~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
+    ainv = _umath_linalg.inv(a, signature=signature)
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 144, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Persisted price shape has a non-finite or unreadable bin; restarting it
+Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 'not a time range' (Invalid window 'not a time range' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Valve write entity switch.valve is a switch; smart_write can command number, input_number and climate entities
+mixing_valve_write_target_kind=flow needs two-zone
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Ignoring invalid DHW demand windows: Invalid window 'garbage' (expected HH:MM-HH:MM)
+Invalid grid fee rules (Rule 'garbage' has no '= rate' part); pricing with no ToU fees
+Unknown DSO catalog product vattenfall_eldistribution_effekt_2026; not writing
+Unknown DSO catalog product eon_energidistribution_effekt_2026; not writing
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
+Peak guard enabled but no power meter configured; the guard stays dormant
+Update gap of 180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+Update gap of 180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+Could not command pump switch.vvc: entity unavailable
+Compressor efficiency has drifted 19% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 20% below its own baseline (~0 EUR/month at current usage)
+Compressor efficiency has drifted 1% below its own baseline (~11 SEK/month at current usage)
+Compressor efficiency has drifted 20% below its own baseline (~216 SEK/month at current usage)
+Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Quarantined 3 malformed snapshot(s) on load; the rest of the ring was kept
+Prediction bias out of band for 5 days on healthy inputs; learned state rolled back to the snapshot from 2026-03-01T03:00:00+00:00
+No snapshot qualifies for restore (healthy inputs and in-band accuracy at capture time are required)
+Prediction bias out of band for 5 days on healthy inputs; learned state rolled back to the snapshot from 2026-03-01T03:00:00+00:00
+No heat-loss refit is on offer: it needs an active drift alarm and 3 settled days of evidence
+No heat-loss refit is on offer: it needs an active drift alarm and 3 settled days of evidence
+Comfort miss (margin -0.20 °C) with curve bias -0.4 K applied; bias reset to 0
+Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 10236, in _roll_month
+    reports[month] = self._freeze_month_report(month)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 20202, in _exploding_freeze
+    raise ValueError("D1-01: malformed month wedges the freezer")
+ValueError: D1-01: malformed month wedges the freezer
+Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
+Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+No electricity price data available; skipping optimization until prices can be fetched
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No electricity price data available; skipping optimization until prices can be fetched
+Not enough price data for optimization (got 0 steps)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No snapshot qualifies for restore (healthy inputs and in-band accuracy at capture time are required)
+No heat-loss refit is on offer: it needs an active drift alarm and 3 settled days of evidence
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+Optimization failed: tariff exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5636, in async_run_optimization
+    record = self._solve_record(solve_now, horizon)
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5516, in _solve_record
+    config, params, state = self._solve_hubs(n, banded=True)
+                            ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5448, in _solve_hubs
+    tariff = self._capacity_tariff()
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 21306, in _tariff_boom
+    raise RuntimeError("tariff exploded")
+RuntimeError: tariff exploded
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+Optimization failed: tariff exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5636, in async_run_optimization
+    record = self._solve_record(solve_now, horizon)
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5516, in _solve_record
+    config, params, state = self._solve_hubs(n, banded=True)
+                            ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5448, in _solve_hubs
+    tariff = self._capacity_tariff()
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 21306, in _tariff_boom
+    raise RuntimeError("tariff exploded")
+RuntimeError: tariff exploded
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No electricity price data available; skipping optimization until prices can be fetched
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+Optimization failed: solver exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5608, in async_run_optimization
+    horizon = self._forecast_arrays(now)
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 21788, in _g_boom
+    raise RuntimeError("solver exploded")
+RuntimeError: solver exploded
+Optimization failed: solver exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5608, in async_run_optimization
+    horizon = self._forecast_arrays(now)
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 21788, in _g_boom
+    raise RuntimeError("solver exploded")
+RuntimeError: solver exploded
+Optimization failed: solver exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5608, in async_run_optimization
+    horizon = self._forecast_arrays(now)
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 21788, in _g_boom
+    raise RuntimeError("solver exploded")
+RuntimeError: solver exploded
+Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it
 
 === Feature modules ===
 
@@ -130,19 +378,6 @@ RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
   ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, valve outlet alone)
   ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, wood coil alone)
   ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, top probe alone)
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
   ok   D14-s2-01: the setup picture's wood tank is the canonical predicate's (no flag, nothing (null control))
   ok   D12-s3-01: an untouched expert wizard creates a single-zone, no-hot-water plant
   ok   D12-s3-01: the wizard writes the explicit presence flags (two_zone_mode off, dhw_enabled off)
@@ -265,8 +500,6 @@ No weather forecast available — using current conditions. Predictive optimizat
   ok   '  Heating + DHW  ' is tolerated
   ok   'heating and dhw' is tolerated
   ok   an unrecognised mode 'turbo' falls back to full capability
-External heat override sensor.flue has not reported for 240 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
-External heat override sensor.flue has not reported for 600 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
   ok   an unrecognised mode 'auto' falls back to full capability
   ok   an unrecognised mode '' falls back to full capability
   ok   an unrecognised mode None falls back to full capability
@@ -407,7 +640,6 @@ External heat override sensor.flue has not reported for 600 min (limit 60); igno
   ok   the import margin is import minus export, signed
   ok   a hot-water block's price blends by the covered fraction
   ok   the objective reprices the covered sliver, not the whole step
-Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbage' (expected HH:MM-HH:MM)); that day keeps the default schedule
   ok   without surplus the cost is the plain import bill
   ok   hot-water planning ranks a fully covered step at the export price
   ok   on the replan, space heating takes its surplus share first
@@ -556,8 +788,6 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   ok   a config with no override keys carries none
   ok   specs without the flag still enable -- the toggle's computed default
   ok   a stored False flag switches the overrides off, specs still in place
-/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/scipy/optimize/_numdiff.py:687: RuntimeWarning: invalid value encountered in divide
-  df_dx = [delf / delx for delf, delx in zip(df, dx)]
   ok   an unparseable day spec degrades to that day inheriting
   ok   the flag on with every field empty is no overrides at all
   ok   a plain spec and an empty field pass the per-day verdict
@@ -660,29 +890,6 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   ok   every row equals the scalar objective bit for bit on the Neumaier grid: two-zone space-only
   ok   one objective_batch call prices all 6 rows without the per-row comfort helper: single-zone with-DHW, PV, capacity tariff, off-boundary start
   ok   and without the per-row grid-term helpers: single-zone with-DHW, PV, capacity tariff, off-boundary start
-System identification fit raised: Singular matrix
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/sysid.py", line 1717, in _finish
-    self.result = self.identify_slab()
-                  ^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 7027, in _wrapper
-    return method(self, *args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/sysid.py", line 2263, in identify_slab
-    return self._slab_outcome(
-           ^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/sysid.py", line 2298, in _slab_outcome
-    profile_halfwidth = _slab_ua_profile_halfwidth(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/sysid.py", line 1003, in _slab_ua_profile_halfwidth
-    cov = np.linalg.inv(jac.T @ jac) * sigma2
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/numpy/linalg/_linalg.py", line 647, in inv
-    ainv = _umath_linalg.inv(a, signature=signature)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/numpy/linalg/_linalg.py", line 144, in _raise_linalgerror_singular
-    raise LinAlgError("Singular matrix")
-numpy.linalg.LinAlgError: Singular matrix
   ok   the physics stays ONE batched simulation, scalar-free: single-zone with-DHW, PV, capacity tariff, off-boundary start
   ok   every row equals the scalar objective bit for bit: single-zone with-DHW, PV, capacity tariff, off-boundary start
   ok   every row equals the scalar objective bit for bit on the Neumaier grid: single-zone with-DHW, PV, capacity tariff, off-boundary start
@@ -820,42 +1027,6 @@ numpy.linalg.LinAlgError: Singular matrix
   ok   _dhw_learner.async_load_profile discards a stored list
   ok   _dhw_learner.async_load_profile discards a stored str
   ok   _dhw_learner.async_load_profile discards a stored int
-Persisted price shape has a non-finite or unreadable bin; restarting it
-Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 'not a time range' (Invalid window 'not a time range' (expected HH:MM-HH:MM)); falling back to always-available hot water
   ok   _async_load_thermal_learning discards a stored list
   ok   _async_load_thermal_learning discards a stored str
   ok   _async_load_thermal_learning discards a stored int
@@ -987,8 +1158,6 @@ Invalid DHW window configuration 'not a time range' (Invalid window 'not a time 
   ok   so its settlement cap stays the slab's
   ok   and the terminal cost ignores it
   ok   while a real accumulator on the same valve is one
-Valve write entity switch.valve is a switch; smart_write can command number, input_number and climate entities
-mixing_valve_write_target_kind=flow needs two-zone
   ok   simulate_trajectory returns the buffer trajectory
   ok   terminal cost is stable when the buffer came from the return value (#280)
 
@@ -1126,16 +1295,6 @@ mixing_valve_write_target_kind=flow needs two-zone
   ok   but far less than in proportion to its volume
   ok   UA grows with surface area, not with volume
   ok   the prior is no worse than an uninsulated tank
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Ignoring invalid DHW demand windows: Invalid window 'garbage' (expected HH:MM-HH:MM)
   ok   the learner may reach a real accumulator's standby loss
   ok   which the old flat floor would have forbidden
   ok   an explicitly configured rate is honoured
@@ -1272,13 +1431,6 @@ Ignoring invalid DHW demand windows: Invalid window 'garbage' (expected HH:MM-HH
 -- T1 — the bill beyond spot (#1 #13 #19 #34 #23)
   ok   a höglast rule bills winter weekday daytime and nothing else
   ok   overlapping rules add, matching base fee plus surcharge tariffs
-Invalid grid fee rules (Rule 'garbage' has no '= rate' part); pricing with no ToU fees
-Unknown DSO catalog product vattenfall_eldistribution_effekt_2026; not writing
-Unknown DSO catalog product eon_energidistribution_effekt_2026; not writing
-Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
-Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
-Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
-Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
   ok   Swedish month and weekday spellings parse
   ok   a decimal comma parses where the dotted form does
   ok   a comma list with decimal commas is two rules, not fragments
@@ -1384,22 +1536,6 @@ RESULT bill_oracle_plan_cells=20 separating=14 count
   ok   a wrong-shape 'lines' field (str) is quarantined, the healthy month survives
   ok   a wrong-shape 'lines' field (list) is quarantined, the healthy month survives
   ok   a wrong-shape 'lines' field (int) is quarantined, the healthy month survives
-Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
-Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
-Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
-Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
-Quarantined 3 malformed ledger month(s) on load; the rest of the ledger was kept
-Peak guard enabled but no power meter configured; the guard stays dormant
-Update gap of 180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
-Update gap of 180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
   ok   a wrong-shape 'lines' field (NoneType) is quarantined, the healthy month survives
   ok   a wrong-shape 'meta' field is quarantined too
   ok   a decimal comma line or meta leaf quarantines its month, the healthy month survives (#1518)
@@ -1527,18 +1663,6 @@ No electricity price data available; skipping optimization until prices can be f
   ok   the VVC pump runs inside a demand window and rests outside
   ok   the lead time pre-heats the loop just before a window opens
   ok   a window shorter than the lead has no hole in its final approach
-Could not command pump switch.vvc: entity unavailable
-Compressor efficiency has drifted 19% below its own baseline (~0 SEK/month at current usage)
-Compressor efficiency has drifted 20% below its own baseline (~0 EUR/month at current usage)
-Compressor efficiency has drifted 1% below its own baseline (~11 SEK/month at current usage)
-Compressor efficiency has drifted 20% below its own baseline (~216 SEK/month at current usage)
-Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
-Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
-Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
-Skipping snapshot taken at 2026-06-01T00:00:00+00:00 with a malformed accuracy field; it cannot be evaluated for restore
-Quarantined 3 malformed snapshot(s) on load; the rest of the ring was kept
-Prediction bias out of band for 5 days on healthy inputs; learned state rolled back to the snapshot from 2026-03-01T03:00:00+00:00
-No snapshot qualifies for restore (healthy inputs and in-band accuracy at capture time are required)
   ok   with no windows the loop is simply left on
   ok   a provably idle warm slot is the only one that switches the space pump off
   ok   rail: heat planned now forces the space pump on
@@ -1663,11 +1787,6 @@ No snapshot qualifies for restore (healthy inputs and in-band accuracy at captur
   ok   #1936: the refit states its own band and the evidence behind it
   ok   #1936: two kinds of pair pool to a value strictly between their targets
   ok   #1936: under three settled days there is no refit, only the progress
-Prediction bias out of band for 5 days on healthy inputs; learned state rolled back to the snapshot from 2026-03-01T03:00:00+00:00
-No heat-loss refit is on offer: it needs an active drift alarm and 3 settled days of evidence
-No heat-loss refit is on offer: it needs an active drift alarm and 3 settled days of evidence
-Comfort miss (margin -0.20 °C) with curve bias -0.4 K applied; bias reset to 0
-Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
   ok   #1936: a zero interval still answers a dict -- the pair floor stays finite
   ok   #1936: a pair sitting on the indoor/outdoor floor is admitted
   ok   #1936: a pair sitting on the residual ceiling is admitted
@@ -1789,42 +1908,6 @@ Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
   ok   an unusable humidity reading disarms the guard instead of guessing
   ok   a coarse solve cadence widens the window instead of starving buckets
   ok   an exact tie between buckets answers with the longer one
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 10236, in _roll_month
-    reports[month] = self._freeze_month_report(month)
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 20202, in _exploding_freeze
-    raise ValueError("D1-01: malformed month wedges the freezer")
-ValueError: D1-01: malformed month wedges the freezer
-Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
   ok   a corrupt store loads what survives and never bricks the score loop
   ok   a non-numeric lead_sigma key is skipped, not raised out of from_dict
   ok   leaving auto/economy voids the plan's unmatured promises
@@ -1949,91 +2032,6 @@ Compressor frequency control stood down: number.freq reports 90.0 Hz against a c
   ok   observe mode never writes, however good the map
   ok   a map with no evidence writes nothing — None is never a frequency
   ok   persistent divergence stands control down to observe and latches
-Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
-  callback()
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-No electricity price data available; skipping optimization until prices can be fetched
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No electricity price data available; skipping optimization until prices can be fetched
-Not enough price data for optimization (got 0 steps)
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No published prices cover the planning horizon; skipping
-No published prices cover the planning horizon; skipping
-No published prices cover the planning horizon; skipping
-Not enough price data for optimization (got 0 steps)
-No published prices cover the planning horizon; skipping
-Not enough price data for optimization (got 0 steps)
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No snapshot qualifies for restore (healthy inputs and in-band accuracy at capture time are required)
-No heat-loss refit is on offer: it needs an active drift alarm and 3 settled days of evidence
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-Optimization failed: tariff exploded
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5636, in async_run_optimization
-    record = self._solve_record(solve_now, horizon)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5516, in _solve_record
-    config, params, state = self._solve_hubs(n, banded=True)
-                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5448, in _solve_hubs
-    tariff = self._capacity_tariff()
-             ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 21306, in _tariff_boom
-    raise RuntimeError("tariff exploded")
-RuntimeError: tariff exploded
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-Optimization failed: tariff exploded
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5636, in async_run_optimization
-    record = self._solve_record(solve_now, horizon)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5516, in _solve_record
-    config, params, state = self._solve_hubs(n, banded=True)
-                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5448, in _solve_hubs
-    tariff = self._capacity_tariff()
-             ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 21306, in _tariff_boom
-    raise RuntimeError("tariff exploded")
-RuntimeError: tariff exploded
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No electricity price data available; skipping optimization until prices can be fetched
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-Optimization failed: solver exploded
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5608, in async_run_optimization
-    horizon = self._forecast_arrays(now)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 21788, in _g_boom
-    raise RuntimeError("solver exploded")
-RuntimeError: solver exploded
-Optimization failed: solver exploded
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5608, in async_run_optimization
-    horizon = self._forecast_arrays(now)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 21788, in _g_boom
-    raise RuntimeError("solver exploded")
-RuntimeError: solver exploded
-Optimization failed: solver exploded
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5608, in async_run_optimization
-    horizon = self._forecast_arrays(now)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 21788, in _g_boom
-    raise RuntimeError("solver exploded")
-RuntimeError: solver exploded
-Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it
   ok   a stood-down controller makes no further writes
   ok   switching the mode to observe is the acknowledgement that re-arms
   ok   the map and the stand-down latch both survive a restart
@@ -2192,6 +2190,294 @@ Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own
   ok   0.25 SEK/kWh raises neither
 
 -- v4.0.4 — the quarter snap and DST windows, under a real timezone
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Error updating Heat Pump Optimizer: boom
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5267, in _async_update_data
+    await self._fetch_tibber_prices()
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 23813, in _fr_fetch_raises
+    raise RuntimeError("boom")
+RuntimeError: boom
+Error updating Heat Pump Optimizer: boom
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5410, in _async_first_refresh_light
+    await self._fetch_tibber_prices()
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 23813, in _fr_fetch_raises
+    raise RuntimeError("boom")
+RuntimeError: boom
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Tibber refused the token (HTTP 401); reauthentication started
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Authentication failed while fetching heatpump_optimizer data: Tibber refused the token (HTTP 401); reauthentication started
+Tibber refused the token (HTTP 403); reauthentication started
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Authentication failed while fetching heatpump_optimizer data: Tibber refused the token (HTTP 403); reauthentication started
+Tibber API error: 500
+Error fetching heatpump_optimizer data: Tibber API error: 500
+Tibber refused the token (HTTP 401); reauthentication started
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py:24427: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  cb()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+What-if simulation failed: probe: the shadow solve failed
+Defrost derate: 12 stored bucket value(s) were unreadable or outside what the learner writes; those buckets restart unlearned and the rest are kept
+Space heating optimization (with DHW) failed: no basin
+The anti-legionella cycle has been due for 14 day(s) but the heat pump's mode makes no hot water, so it cannot be planned
+Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried next interval
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration broken. Plans continue on the last forecast, marked stale.
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: module '__main__' has no attribute '_G511LocalOptimizer'); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+No electricity price data available; skipping optimization until prices can be fetched
+Not enough price data for optimization (got 0 steps)
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-10-13T07:02:42.688415+00:00 is ahead of the clock; bounded to 2026-10-12 03:02:42.791890+00:00
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-10-13T07:02:42.688415+00:00 is ahead of the clock; bounded to 2026-10-12 03:02:42.793138+00:00
+Frequency control is standing down from an earlier watchdog trip; switch the frequency mode to observe and back to control to re-arm it
+Comfort miss (margin -0.40 °C) with curve bias -0.6 K applied; bias reset to 0
+Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
+Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
+Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
+Open-Meteo solar is selected but no coordinate is available; set one in the integration options or configure the Home Assistant home location
+Invalid peak tariff months 'Nov-Mar,Smarch' (Unknown month 'smarch'); applying the tariff in every month
+Invalid peak tariff hours 'breakfast' (Invalid window 'breakfast' (expected HH:MM-HH:MM)); treating every hour as peak
+Invalid peak tariff hours '25:00-26:00' (Invalid hour in '25:00'); treating every hour as peak
+Invalid peak tariff hours '07:00-09:00,breakfast' (Invalid window 'breakfast' (expected HH:MM-HH:MM)); treating every hour as peak
+Update gap of 300 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+Update gap of 300 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No electricity price data available; skipping optimization until prices can be fetched
+No weather entity configured. Plans continue on the last forecast, marked stale.
+No electricity price data available; skipping optimization until prices can be fetched
+Not enough price data for optimization (got 0 steps)
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Could not command pump switch.vvc: entity briefly unavailable
+Frequency command skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
+Pump scheduling skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
+Snapshot heartbeat skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
+Error updating Heat Pump Optimizer: sub-step exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5267, in _async_update_data
+    await self._fetch_tibber_prices()
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 43343, in _boom
+    raise RuntimeError("sub-step exploded")
+RuntimeError: sub-step exploded
+Wood tank probe stale or missing; falling back to the single-tank abstraction until it recovers
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+Quarantined 1 malformed snapshot(s) on load; the rest of the ring was kept
+Optimization failed: the solve is not the point here
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5660, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+        self.hass, solve_optimizer, record.inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 45615, in _g8_cyc_mid_solve
+    raise RuntimeError("the solve is not the point here")
+RuntimeError: the solve is not the point here
+Optimization failed: the solve is not the point here
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5660, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+        self.hass, solve_optimizer, record.inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 45615, in _g8_cyc_mid_solve
+    raise RuntimeError("the solve is not the point here")
+RuntimeError: the solve is not the point here
+Optimization failed: the solve is not the point here
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/custom_components/heatpump_optimizer/coordinator.py", line 5660, in async_run_optimization
+    result = await _await_optimize(
+             ^^^^^^^^^^^^^^^^^^^^^^
+        self.hass, solve_optimizer, record.inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2114d/wt/tests/features.py", line 45615, in _g8_cyc_mid_solve
+    raise RuntimeError("the solve is not the point here")
+RuntimeError: the solve is not the point here
+Persisted quarter factors has a non-finite or unreadable bin; restarting it
+Persisted price variance has a non-finite or unreadable bin; restarting it
 
 === DST / quarter-grid (subprocess, HASTUB_TZ) ===
 
@@ -2357,45 +2643,6 @@ Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own
   ok   and every Home Assistant module those import is one of the loader's stubs (stdlib and numpy aside)
 
 ALL 131 DST / QUARTER-GRID CHECKS PASSED
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-Error updating Heat Pump Optimizer: boom
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5267, in _async_update_data
-    await self._fetch_tibber_prices()
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 23813, in _fr_fetch_raises
-    raise RuntimeError("boom")
-RuntimeError: boom
-Error updating Heat Pump Optimizer: boom
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5410, in _async_first_refresh_light
-    await self._fetch_tibber_prices()
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 23813, in _fr_fetch_raises
-    raise RuntimeError("boom")
-RuntimeError: boom
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Tibber refused the token (HTTP 401); reauthentication started
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-Authentication failed while fetching heatpump_optimizer data: Tibber refused the token (HTTP 401); reauthentication started
-Tibber refused the token (HTTP 403); reauthentication started
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-Authentication failed while fetching heatpump_optimizer data: Tibber refused the token (HTTP 403); reauthentication started
-Tibber API error: 500
-Error fetching heatpump_optimizer data: Tibber API error: 500
   ok   the HASTUB_TZ subprocess suite passed
 
 -- v4.0.5 — one marginal COP per store, shared with the dynamics
@@ -2523,16 +2770,6 @@ Error fetching heatpump_optimizer data: Tibber API error: 500
   ok   a failed first-refresh poll (zero-evidence install) logs one ERROR, once (#216)
   ok   five connect-failure polls also log exactly one ERROR (#216)
   ok   five connect-failure polls count five outage cycles (already single-counted)
-Tibber refused the token (HTTP 401); reauthentication started
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py:24427: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
-  cb()
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-What-if simulation failed: probe: the shadow solve failed
   ok   D10-s1-03: a steady refresh refused by Tibber (401/403) latches ConfigEntryAuthFailed with its translation and starts reauth; a 500 stays UpdateFailed with no reauth
   ok   D10-s1-03: a first refresh refused by Tibber raises ConfigEntryAuthFailed out of setup, not ConfigEntryNotReady
   ok   async_shutdown runs the base class's shutdown (timer/debouncer leak)
@@ -2868,7 +3105,6 @@ What-if simulation failed: probe: the shadow solve failed
   ok   a silent window keeps space heating and hot water under the cap in its steps
   ok   the plan's solve carries the silent cap and the off mask; the what-if honours its own off override
   ok   with no quiet windows configured neither solve carries an off mask or resolved actions
-Defrost derate: 12 stored bucket value(s) were unreadable or outside what the learner writes; those buckets restart unlearned and the rest are kept
   ok   the real coordinator's configured_quiet_windows answers both specs and the not-enforced marker by domain
   ok   a read-only capacity-limited slot marks the silent rows not enforced
   ok   the plan sensor publishes the fraction beside the specs when rows exist
@@ -2996,10 +3232,6 @@ Defrost derate: 12 stored bucket value(s) were unreadable or outside what the le
   ok   a plain sensor's 'DHW' is refused as a mode
   ok   the multi-duty spelling 'Heating + DHW' survives strict mode
   ok   the multi-duty spelling 'HEATDHW' survives strict mode
-Space heating optimization (with DHW) failed: no basin
-The anti-legionella cycle has been due for 14 day(s) but the heat pump's mode makes no hot water, so it cannot be planned
-Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
-Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
   ok   the multi-duty spelling 'Cooling + DHW' survives strict mode
   ok   the multi-duty spelling 'COOLDHW' survives strict mode
   ok   an entity that declares this state among its options is taken at face value
@@ -3130,18 +3362,6 @@ Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at cur
   ok   a pump that is simply healthy never trips on either
   ok   the COP learner labels each sample with the curve it was judged against
   ok   a pre-v5.3.0 store's buckets load as SPACE baselines, not discarded
-The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
-DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
   ok   and it writes back under the SAME keys, with the DHW curve alongside
 
 -- v5.3.0 review 2 — legibility belongs to the interval
@@ -3261,17 +3481,6 @@ DHW anti-legionella cycle commanded but cannot be verified: no tank temperature 
   ok   …and it is recorded as an attempt, not as a successful cycle
   ok   …and the user is told the water is not being disinfected
   ok   a cycle that reaches temperature clears the notice and the attempt
-DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
-DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried next interval
-DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
-DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-Error fetching weather forecast: weather integration broken. Plans continue on the last forecast, marked stale.
-Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
   ok   with no tank sensor a commanded cycle still resets the countdown rather than leaving it counting up for ever
   ok   an ordinary hot-water step is not mistaken for a disinfection cycle
 
@@ -3506,26 +3715,6 @@ No weather forecast available — using current conditions. Predictive optimizat
   ok   an error that will not pickle degrades to text instead of killing the worker
   ok   a worker fault degrades to a slower plan rather than to no plan
   ok   and is never silent: one warning naming the cause
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: process worker cannot load the job: Can't get attribute '_G511LocalOptimizer' on <module '__main__' from '/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/process_worker.py'>); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: A boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-Process-solve worker unusable (ProcessWorkerUnavailable: B boom); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
   ok   and raises a repair notice the way solve_failures does
   ok   and that notice carries a documentation link
   ok   null control: a healthy worker still solves in the child interpreter
@@ -3665,66 +3854,6 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   wood_tank_soc in config is not a source
   ok   expensive next day and an 87.4 C tank advises skip
   ok   from_coordinator uses the live wood-tank temperature
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-No electricity price data available; skipping optimization until prices can be fetched
-Not enough price data for optimization (got 0 steps)
-heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-10-12T17:01:50.315415+00:00 is ahead of the clock; bounded to 2026-10-11 13:01:50.425910+00:00
-heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-10-12T17:01:50.315415+00:00 is ahead of the clock; bounded to 2026-10-11 13:01:50.429684+00:00
-Frequency control is standing down from an earlier watchdog trip; switch the frequency mode to observe and back to control to re-arm it
   ok   from_coordinator without a tank temperature attaches nothing
 
 -- 3L-G9 — what-if wood slots
@@ -3838,22 +3967,6 @@ Frequency control is standing down from an earlier watchdog trip; switch the fre
   ok   a stored frequency stand-down is restored and warns in control mode
   ok   a truthy-but-not-True stand-down does not latch, so garbage cannot arm it
   ok   a complete hourly day is folded into the shape and persisted once
-Comfort miss (margin -0.40 °C) with curve bias -0.6 K applied; bias reset to 0
-Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
-Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
-Ignoring malformed solar location {'latitude': 'north', 'longitude': 1.0}
-Open-Meteo solar is selected but no coordinate is available; set one in the integration options or configure the Home Assistant home location
-Invalid peak tariff months 'Nov-Mar,Smarch' (Unknown month 'smarch'); applying the tariff in every month
-Invalid peak tariff hours 'breakfast' (Invalid window 'breakfast' (expected HH:MM-HH:MM)); treating every hour as peak
-Invalid peak tariff hours '25:00-26:00' (Invalid hour in '25:00'); treating every hour as peak
-Invalid peak tariff hours '07:00-09:00,breakfast' (Invalid window 'breakfast' (expected HH:MM-HH:MM)); treating every hour as peak
-Update gap of 300 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
-Update gap of 300 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No electricity price data available; skipping optimization until prices can be fetched
-No weather entity configured. Plans continue on the last forecast, marked stale.
   ok   the same prices on the next refresh are folded in again zero times
   ok   a 15-minute day trains the hourly shape and the quarter factors both
   ok   the quarter seen-set has its own skip, checked separately from the hourly one
@@ -3964,76 +4077,6 @@ No weather entity configured. Plans continue on the last forecast, marked stale.
   ok   a present entity yields its state and a COPY of its attributes
   ok   a state with no attributes still yields its state and an empty mapping
   ok   a pinned experiment is taken at full weight, not blended against the passive learner
-No electricity price data available; skipping optimization until prices can be fetched
-Not enough price data for optimization (got 0 steps)
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 6318, in _fetch_tibber_prices
-    else async_get_clientsession(hass)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
-Could not command pump switch.vvc: entity briefly unavailable
-Frequency command skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
-Pump scheduling skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
-Snapshot heartbeat skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
-Error updating Heat Pump Optimizer: sub-step exploded
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5267, in _async_update_data
-    await self._fetch_tibber_prices()
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 43343, in _boom
-    raise RuntimeError("sub-step exploded")
-RuntimeError: sub-step exploded
-Wood tank probe stale or missing; falling back to the single-tank abstraction until it recovers
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
   ok   a half-bar experiment moves the scale half way and claims half the samples
   ok   the two-zone base is the ZONES' sum, not the whole-house coefficient
   ok   a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing
@@ -4124,37 +4167,6 @@ No weather forecast available — using current conditions. Predictive optimizat
   ok   an explicitly EMPTY window spec is a legitimate what-if, not an error
   ok   an hour override is truncated to an int, so 7.5 and 7 plan identically
   ok   six overrides of three different types all apply without error
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-No weather forecast available — using current conditions. Predictive optimization will be limited.
-Quarantined 1 malformed snapshot(s) on load; the rest of the ring was kept
-Optimization failed: the solve is not the point here
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5660, in async_run_optimization
-    result = await _await_optimize(
-             ^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 45615, in _g8_cyc_mid_solve
-    raise RuntimeError("the solve is not the point here")
-RuntimeError: the solve is not the point here
-Optimization failed: the solve is not the point here
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5660, in async_run_optimization
-    result = await _await_optimize(
-             ^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 45615, in _g8_cyc_mid_solve
-    raise RuntimeError("the solve is not the point here")
-RuntimeError: the solve is not the point here
-Optimization failed: the solve is not the point here
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/custom_components/heatpump_optimizer/coordinator.py", line 5660, in async_run_optimization
-    result = await _await_optimize(
-             ^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/r9rev-2114c/wt/tests/features.py", line 45615, in _g8_cyc_mid_solve
-    raise RuntimeError("the solve is not the point here")
-RuntimeError: the solve is not the point here
   ok   the what-if leaves the live configuration untouched, which is the whole point
   ok   economy mode widens the comfort floor FOR THE SOLVE and unwinds it after
   ok   a detected open window relaxes the floor by its own, smaller amount
@@ -4265,8 +4277,6 @@ RuntimeError: the solve is not the point here
   ok   the published view expires a stale channel rather than advertising it
   ok   a stored boost end parses from either a datetime or its isoformat
   ok   a boost store that refuses either direction costs the boost, not the setup
-Persisted quarter factors has a non-finite or unreadable bin; restarting it
-Persisted price variance has a non-finite or unreadable bin; restarting it
   ok   restore keeps a live boost, drops an expired one and steps over a malformed entry
 
 -- W5-G8 d: the wood-fuel arithmetic (#195)
@@ -4284,7 +4294,80 @@ Persisted price variance has a non-finite or unreadable bin; restarting it
 
 -- W5-G8 e: the price feed's edges (#195)
   ok   a price row's start is read under any of the three spellings in the wild
-  ok   a price reads through value, total then price, and refuses a non-finite one
+  ok   a price reads through value, total then price, and refuses a non-finite oneCould not turn_on the disinfection switch switch.pump_disinfection: 
+The disinfection switch switch.pump_disinfection did not read back on after turn_on
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+Could not turn_on the disinfection switch switch.pump_disinfection: switch unavailable
+Could not turn_off the disinfection switch switch.pump_disinfection: switch unavailable
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+Could not turn_off the disinfection switch switch.pump_disinfection: switch unavailable
+Could not turn_on the disinfection switch switch.pump_disinfection: switch unavailable
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 40.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, select.pump_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 40.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: writing DHW to select.pump_mode failed: pump offline
+Pump duty: writing 48.0 to number.dhw_set failed: pump offline
+Pump duty: writing 25.0 to number.water_set failed: pump offline
+Pump duty: the pump does not hold a write, select.pump_mode: DHW (Hot Water) (set by the optimizer: heat); retrying
+Pump duty: the pump does not hold a write, number.water_set: 25.0 (set by the optimizer: 55.0); retrying
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
+Pump duty: the pump does not hold a write, switch.pump_night_mode: False (set by the optimizer: True); retrying
+No electricity price data available; skipping optimization until prices can be fetched
+heatpump_optimizer_pa150_pump_duty: stored instant 2027-07-06T12:00:00+00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00+00:00
+heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+
   ok   VAT and surcharge are applied per row, and a bad row is dropped not zeroed
   ok   a half-formed price series yields the rows it can and an error when it cannot
   ok   an unavailable price sensor still counts if it carries the series anyway
@@ -4380,23 +4463,6 @@ Persisted price variance has a non-finite or unreadable bin; restarting it
   ok   50 from the device at scale 1.0 and 500 from register 404 at scale 0.1 both suggest 50
   ok   a filled entity slot and a set-point already in force are not suggested again
   ok   a user-renamed entity id resolves to the renamed id, because the match is on unique_id
-Could not turn_on the disinfection switch switch.pump_disinfection: 
-The disinfection switch switch.pump_disinfection did not read back on after turn_on
-The disinfection switch switch.pump_disinfection did not read back off after turn_off
-Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
-Could not turn_off the disinfection switch switch.pump_disinfection: entity unavailable
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-Could not turn_on the disinfection switch switch.pump_disinfection: switch unavailable
-Could not turn_off the disinfection switch switch.pump_disinfection: switch unavailable
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-The disinfection switch switch.pump_disinfection did not read back off after turn_off
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-The disinfection switch switch.pump_disinfection did not read back off after turn_off
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
   ok   a device from an integration with no source table resolves nothing through the table, and is read by name alone (W1067-G7b-3)
   ok   …and the supply role it leaves out is the near-tie rule, not a miss: the same device read by name alone is checked in the W1067-G7b-3 section
   ok   a device with no entity a table names resolves nothing through either stage
@@ -4488,25 +4554,6 @@ DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirme
   ok   an owned switch that goes unavailable is waited for, then turned OFF when it is back on
   ok   restart mid-boost: the next run turns off the switch the last one turned on
   ok   …and once it read off, the store no longer names it
-Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
-Could not turn_off the disinfection switch switch.pump_disinfection: switch unavailable
-Could not turn_on the disinfection switch switch.pump_disinfection: switch unavailable
-DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
-The disinfection switch switch.pump_disinfection did not read back off after turn_off
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried next interval
-Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
-Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
-Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
-Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
-Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
-Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
-Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
   ok   reload into observe mid-boost: the owned switch is turned OFF and never back ON
   ok   reload onto another switch mid-boost: the new switch ON, the old one OFF, in the same cycle
   ok   renamed switch: the old record is kept through the grace, then dropped with a persistent repair naming it, and nothing is written blind
@@ -4619,28 +4666,6 @@ Error fetching weather forecast: weather integration down. Plans continue on the
 
 -- pump-duty arbiter — mode and set-points per plan step, held while the optimizer is active
   ok   null control: a DHW-only mode blocks space heat in observe, and under control with the optimizer off
-Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
-Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
-Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
-Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
-Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
-Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
-Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 40.0); retrying
-Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
-Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
-Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
-Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
-Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
-Pump duty: the pump does not hold a write, select.pump_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, number.dhw_set: 40.0 (set by the optimizer: 48.0); retrying
-Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
-Pump duty: writing DHW to select.pump_mode failed: pump offline
-Pump duty: writing 48.0 to number.dhw_set failed: pump offline
-Pump duty: writing 25.0 to number.water_set failed: pump offline
-Pump duty: the pump does not hold a write, select.pump_mode: DHW (Hot Water) (set by the optimizer: heat); retrying
-Pump duty: the pump does not hold a write, number.water_set: 25.0 (set by the optimizer: 55.0); retrying
   ok   the arbiter's own DHW-only write does not block space heat in the next solve
   ok   …while capability, which the learners read, still says the pump is not heating
   ok   a hot-water-only step writes DHW only, the configured hot-water set-point and the space gate
@@ -4734,19 +4759,6 @@ Pump duty: the pump does not hold a write, number.water_set: 25.0 (set by the op
   ok   null control: the model's real curve at 5 degC outdoors is below the 25 degC flow floor
   ok   on the real curve a space-heating step writes the level's flow, not the 25 degC floor
   ok   on the real curve the baseline holds the rated 35 degC flow, not the 25 degC floor
-Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
-Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
-Pump duty: the pump does not hold a write, switch.pump_night_mode: False (set by the optimizer: True); retrying
-No electricity price data available; skipping optimization until prices can be fetched
-heatpump_optimizer_pa150_pump_duty: stored instant 2027-07-06T12:00:00+00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00+00:00
-heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
-heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
-heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
-heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
-heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
-heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
-heatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00
-heatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
   ok   the baseline follows the curve where it is above 35 degC
   ok   the baseline never holds above the heating flow, however hot the curve
   ok   with no DHW-only mode a flow gate stays at 25 degC where the entity accepts 10
@@ -5009,8 +5021,6 @@ RESULT f21_p3_two_zone=0 j_plain=67.730056 j_continuation_off=67.730056 continua
   ok   #1736 the learned gains profile reaches the record only when learning is on AND the learner has one: None in both mixed arms, never a stale profile and never a raise over list(None)
   ok   #1736 the day-type blend a solve plans with follows the calendar day: a Saturday takes the weekend pattern
   ok   #1736 the learned heavy-day targets carry exactly the demand windows with draw evidence: one populated window in, the evidence-free one out
-/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
-  return _methods._mean(a, axis=axis, dtype=dtype,
   ok   #1736 the elastic legionella ceiling prices the days the remaining interval spans, the deadline day included and its weekend bit intact: a window that gains a Saturday reads a different ceiling
   ok   #1736 a mean price exactly at the 1e-6 floor runs on schedule (no ceiling); one just over it shops
   ok   #1736 the learned capacity envelope composes into the record's fuse caps through the same channel -- min(fuse, envelope), never the fuse caps alone with the envelope dropped

@@ -1,0 +1,12 @@
+entries: mb=10 prev=11 main=11 merged=12
+branch-side new entries: 1 | main-side new entries: 1
+branch entry in merged: True
+main entry in merged: True
+branch entry keys: ['brief', 'control', 'effect', 'from', 'remeasure']
+main entry keys: ['brief', 'control', 'effect', 'from', 'remeasure']
+mb entries missing from merged: 0
+merged order == mb + branch + main: True
+no duplicate entries: True
+_comment: main changed vs mb=False prev changed vs mb=True merged==prev=True
+stage: main changed vs mb=False prev changed vs mb=True merged==prev=True
+issue: main changed vs mb=False prev changed vs mb=False merged==prev=True

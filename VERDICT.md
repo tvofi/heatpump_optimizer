@@ -1,65 +1,64 @@
-Fix review: merge cce999733e1a64bd2820bcc2c7f66ab6af969e6c
+Fix review: merge 5c3fda5e6d25382202adff5345b38fe162c5b6fc
 
-Round 3, re-published at the record-only head. Rounds 1 and 2 established the
-fix is sound (head block `ALL 14 PASSED`, deletion reproduces the body's
-`1 of 14 FAILED`, `gain=+0.000000`; merge base red on Accelerate, head green)
-and that the carry destination `dev/programme/carries/carry-201.json` is the
-one `finding-propagation.md` itself names for a stage with no live roster
-group. Round 2 blocked on `fast (3.14)`: five retired-path guard refusals
-from the carry edit's own two lines. The repair round measured only the
-repair; this is the same verdict moved to the head it now sits on.
+bus-nonce: c89fd1856ec27ddabc84bf04b49e8bb2
 
-The head that moved under the round-3 measurement (`b4b8beda4`) moved
-record-only: `git show cce999733 --stat` reads exactly one file,
-`tests/closures.json`, 1 insertion -- the closures-autofix bot's re-record
-(#2109's pre-study land reddened main's `closures`). `git diff --stat
-b4b8beda4 cce999733e -- . ':!tests/closures.json'` is empty: no file any
-measurement below reads differs between the two heads, so every number
-carries. The one cheap check re-taken at the new head:
+Resolution-delta review (step 12, second main merge): the recarry of main
+`6918cb4b2` into previous head `cce999733` (merge base `969c3a5c8`). Rounds 1-3
+measured the substance; this verdict covers the delta alone.
 
-RESULT guard at cce999733e: `python3 -I tests/layout.py --guard --base
-969c3a5c84d0` reads `layout: GUARD: 0 refusal(s) against 969c3a5c84d0`,
-EXIT=0.
+RESULT carry-201-union = PASS: parses; 12 entries (mb 10, prev 11, main 11);
+the branch's BLAS-kernel/D0 entry and main's #2111 row-stale entry are BOTH
+present, each intact with all of from/effect/control/remeasure/brief; 0 base
+entries dropped; no duplicates; order = base + branch + main. The top-level
+`_comment`/`stage` take the branch's versions, which loses nothing: main
+changed neither against the merge base (verified field-by-field).
 
-Carried from b4b8beda4 (identical bytes at this head):
+RESULT closures-union = PASS: parses; the merged file is main's version plus
+exactly one added line -- the branch's `inert_reads` entry
+`dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py` (line 3152); main/#2125's
+`dev/audit/rounds/round9/prestudy/boost_drift_refit.py` (line 3662) is present
+and identical on both parents, so no duplicate; main's two `seconds` updates
+are carried; nothing else changed.
 
-RESULT guard: the check that blocked round 2 is green, run by this reviewer,
-not taken from the body.
+RESULT delta-scope = PASS: `git diff cce999733 5c3fda5e6` names 14 files; 12 of
+them are byte-identical to main `6918cb4b2` (main's own files: audit-find.js,
+debugger.py, bugclasses.json, finding.schema.json, R9-RC-POSTREVIEW-MERGE.md,
+delivery/2110|2111|2124|2125.md, docs/configuration.md, debug_collect.py,
+record_row.py) and the remaining ones are this branch's own three (the harness,
+delivery/2114.md, tests/features.py) plus the two resolution files. No third
+thing changed.
 
-RESULT carry diff: `git diff 4f0bde165 b4b8beda4 --
-dev/programme/carries/carry-201.json` is ONE hunk, 4 changed lines (2 -, 2 +),
-and the only deltas are the five path tokens -- `.claude/workflows/brief_lint.mjs`
--> `tools/policy/brief_lint.mjs`; `docs/decisions/0009` ->
-`dev/governance/decisions/0009-agent-identities-for-author-and-approver.md`;
-`tools/audit/briefs/D13.md` -> `dev/governance/dimensions/D13.md`;
-`tools/audit/round5/D13/seat-a/dora_cfr.py` ->
-`dev/audit/rounds/round5/D13/seat-a/dora_cfr.py`; `tools/audit/briefs/D11.md`
--> `dev/governance/dimensions/D11.md`. Every other byte of the entry --
-finding, control, voiding perturbation, remeasure instruction, the `carries`
-array -- is identical. Nothing was dropped. `node tools/policy/brief_lint.mjs`
-on the file: `0 error(s), 0 warning(s)`, exit 0.
-
-RESULT successor paths exist: `git cat-file -e` at the head confirms all five.
-The carry cites no path missing from the tree.
-
-RESULT reviewed behaviour untouched: `PYTHONPATH=tests/hastub python3
-tests/features.py` at b4b8beda4, exit 0, `ALL 3986 FEATURE CHECKS PASSED`,
-two-zone arm `RESULT f21_p3_two_zone=1 j_plain=110.436632
+RESULT production-tree = PASS: `tests/features.py` blob
+db5db5c6134617811620dde150218c7a8a7f64e9 and `optimizer.py` blob
+523eb5d0b5cfd794140597361f779feb36f18197 are identical to `cce999733`.
+`custom_components/heatpump_optimizer/debugger.py` differs from `cce999733`
+because main itself changed it; the merged blob is byte-identical to main's
+(152d8d174...), so the resolution authored nothing there. Rerun at the head:
+`PYTHONPATH=tests/hastub python3 tests/features.py` rc=0,
+`ALL 3986 FEATURE CHECKS PASSED`, `RESULT f21_p3_two_zone=1 j_plain=110.436632
 j_continuation_off=111.267093 continuation_gain=+0.830461
-j_seeded_half_price=110.129674`; single-zone null `+0.000000`, `67.730056`
-both arms -- round 1's numbers, unchanged; `tests/features.py` itself is
-byte-identical at this head.
+j_seeded_half_price=110.129674` and the single-zone null
+`continuation_gain=+0.000000` -- the reviewed head's figures, unchanged.
 
-RESULT red checks: the commit's own check-runs at b4b8beda4 list NO red
-conclusion. `fast (3.14)` is success; the body's `## Red checks` names it,
-the check-run id, the five refusals and the repair with the cheaper-detector
-answer. No root-cause-unanswered.
+RESULT red-checks = PASS: the body's `## Red checks` names `closures` and
+`fast (3.14)`, both answered. The check-runs API at
+5c3fda5e6d25382202adff5345b38fe162c5b6fc shows ZERO red conclusions:
+`closures` success, `fast (3.14)` success, coverage, arch-score, mutation,
+briefs, pr-contract, delivery-status, nightly-status, typing all success.
 
-Head-moved rule satisfied: `git ls-remote origin refs/heads/fix/r9-blas-kernel-red`
-read cce999733e1a64bd2820bcc2c7f66ab6af969e6c immediately before publishing.
+RESULT local-cheap-checks = PASS at the head: `python3 tests/layout.py` rc=0,
+`layout: GUARD: 0 refusal(s) against 6918cb4b213`; `node
+tools/policy/brief_lint.mjs dev/programme/carries/carry-201.json` rc=0,
+0 errors 0 warnings -- so the union file is lint-clean under the linter the
+`briefs` job runs.
 
-Evidence: /Users/timmalmstrom/hpo-seats/r9rev-2114c/evidence (guard-head-cce999.log,
-bot-commit-stat.txt, carry201.diff, carry-lint.log, paths-exist.txt,
-features-head.log, check-runs-head.txt, head.txt naming the 40-hex head).
+Round: 4 (resolution delta of the second main merge; the substance was
+measured at rounds 1-3 and stands).
 
-bus-nonce: 0c37cfa93ab8175f316a0f846f2f3c85
+Head measured and still the branch head at posting:
+5c3fda5e6d25382202adff5345b38fe162c5b6fc.
+
+Evidence: /Users/timmalmstrom/hpo-seats/r9rev-2114d/evidence/
+(head.txt, delta-files.txt, head-vs-main-files.txt, carry201-union.txt,
+closures-union.txt, checkruns-head.txt, features_head.log, layout_head.log,
+brieflint_head.log)

@@ -1,1 +1,5 @@
-cce999733e1a64bd2820bcc2c7f66ab6af969e6c
+head measured: 5c3fda5e6d25382202adff5345b38fe162c5b6fc
+parent1 (prev head): cce999733e1a64bd2820bcc2c7f66ab6af969e6c
+parent2 (main merged in): 6918cb4b213de25c5d6a560578127beef14f0e43
+merge-base of parents: 969c3a5c84d0ee6fb403ecebd18d16c810b3e40c
+worktree: /Users/timmalmstrom/hpo-seats/r9rev-2114d/wt (detached at 5c3fda5e6)
