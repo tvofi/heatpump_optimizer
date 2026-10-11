@@ -95,32 +95,54 @@ metric — the measurement above refuses it.
 
 ## Head
 
-`ba7455ea51938aacf0b9fdb4e19879e5705ca6e0` adds one commit to the review head
-`648f22d7ac57021b37da3556cf64677fc2141ece`: the repair the blocked review
-asked for — `tools/policy/budget_raise_gate.py`'s SCHEMA learns the seventh
-budget file `tests/ci_budgets.json` this PR adds (classification and
-self-test arms below). Nothing else moves: the C1/C2/ratchet logic the
-reviewer established as sound is untouched (`git diff 648f22d7a..ba7455ea5 --
-stat` → 1 file, +36).
+`996100c0b344786bf218dfd06f17535f61a12957` — the round-2 head `abf7dc7f9b5043b48605aea1fb70769e565711fc`
+(the reviewed tree: authored code head `ba7455ea51938aacf0b9fdb4e19879e5705ca6e0`,
+which carries the SCHEMA repair and this PR's delivery row) merged with
+`origin/main` `5c02e2babd6ace27cdab9c0eba557431417d1076e` — R1, the
+`--scripts-from` lane runner and `closure.py lane-plan` sharder (#2131), which
+landed after the round-2 verdict and conflicts with this branch's own edits to
+`tests/closure.py`, `tests/derive_closures.sh` and
+`.github/workflows/tests.yml`. The merge is a merge, never a rebase
+(`fixer.md` step 6), and the conflicts are resolved **in favour of R1's
+structures**: the scoped step drives `derive_closures.sh --scripts-from` and
+`rec_special()` is the path every recording takes; this branch's C1/C2 guards
+and the ratchet's metrics emission now sit INSIDE those landed paths —
 
-ba7455ea51938aacf0b9fdb4e19879e5705ca6e0 (origin/main e1501bf480d0d6430875f3a7334402cb00cc4dd3, taken 2026-10-11T09:32:36Z)
+- `tests/derive_closures.sh`: `rec()` keeps both sides — R1's `REC_RC` and
+  `rec_special()` (the lane runner's recording path) and this branch's
+  `COMPOSED_CONSUMED` skip plus `HPO_CI_METRICS` emission; the lane runner's
+  self-test stub drives the metrics through `--scripts-from` (figure below).
+- `tests/closure.py`: the `selftest` runner calls BOTH the C1/C2 selftests
+  and R1's `_selftest_lane_plan`; both function blocks kept whole.
+- `.github/workflows/tests.yml`: auto-merged — the scoped step is R1's
+  `--scripts-from` lane run, with C2's `PROOF_CONSUMED` guard, C1's
+  `COMPOSED_CONSUMED` export and the ratchet's `HPO_CI_METRICS`/
+  `HPO_CI_SCOPE` env composed onto it.
+
+The authored content is byte-identical to the round-2 verdict's tree: the
+merge commit adds no authored change (`git diff abf7dc7f9..996100c0b --stat`
+names only the merge's own conflict resolutions in the two files above and
+main's incoming content).
+
+996100c0b344786bf218dfd06f17535f61a12957 (origin/main 5c02e2babd6ace27cdab9c0eba557431417d1076e, taken 2026-10-11T12:16:36Z)
 
 ## Mutation proof
 
 Each mutant: mutate the production predicate, run the pinning harness,
 capture the failing check, restore (`git checkout --`); the mutant is the
-predicate, not a tail appended past a return.
+predicate, not a tail appended past a return. All re-driven at the merged
+tree `996100c0b` (steps 2–8 after a merge, `fixer.md` step 6):
 
 - C2, `tests/closure.py proof_consume`: `elif label != expect_tree:` →
   `elif False:` — `PYTHONPATH=tests/hastub python3 tests/closure.py selftest`
   prints `FAIL proof-consume refuses a manifest naming ANOTHER tree [rc=0]`
-  (1 of 74 pins failed).
+  (1 of 93 pins failed).
 - C1, `tests/closure.py composed_verify`: `if rec.get("rc") != 0:` →
   `if False:` — same harness prints `FAIL composed-verify refuses a run that
-  did not end (rc 1) and consumes nothing [rc=0]`.
+  did not end (rc 1) and consumes nothing [rc=0]` (1 of 93).
 - Ratchet, `tests/ci_ratchet.py compare`: `if cur > budget:` → `if False:` —
   `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `FAIL the CI
-  ratchet's main() refuses a script-run count above its budget`.
+  ratchet's main() refuses a script-run count above its budget` (1 of 2259).
 - Schema entry, `tools/policy/budget_raise_gate.py` SCHEMA: delete the
   `tests/ci_budgets.json` entry (the fix's production lines) —
   `python3 -I tools/policy/budget_raise_gate.py --self-test` prints
@@ -145,17 +167,21 @@ green/red fixture (below) was demonstrated against an empty budget before
 
 ## Null control
 
+All nulls re-taken at the merged tree `996100c0b` (seat venv-ci 3.14.7):
+
 - The unmodified tree at each mutant passes every harness above
-  (`ALL 74 closure shrink pins PASSED`, `ALL 2258 ENTITY CHECKS PASSED`).
-- The schema repair's own null control: the unmodified tree at
-  `ba7455ea51938aacf0b9fdb4e19879e5705ca6e0` runs the same self-test at
-  `budget_raise_gate self-test: 219 checks, 0 failed` (211 before the
-  schema entry: the 8 new bespoke `ci:` arms, and the tracked-file loop
-  grading the seventh file's 20 caps both directions).
+  (`ALL 93 closure shrink pins PASSED`, `ALL 2259 ENTITY CHECKS PASSED`).
+- The schema repair's own null control: the unmodified tree at the merged
+  head runs the same self-test at
+  `budget_raise_gate self-test: 219 checks, 0 failed`; at origin/main
+  `5c02e2bab` (which knows no seventh file) the same command prints
+  `206 checks, 0 failed`.
 - The ratchet at its own recorded count:
-  `python3 tests/ci_ratchet.py --metrics-dir <53-run fixture> --runs-json <api listing>`
-  → `ok script_runs_per_push: 53 (budget 53)`, rc 0; the same fixture plus
-  one line → `GREW script_runs_per_push: 54 (budget 53)`, rc 1. One more
+  `python3 tests/ci_ratchet.py --metrics-dir <53-run fixture> --runs-json <4-run listing>`
+  → `ok script_runs_per_push: 53 (budget 53)` and
+  `ci-ratchet: every metric at or under its budget`, rc 0; the same fixture
+  plus one line → `GREW script_runs_per_push: 54 (budget 53)` and
+  `1 metric(s) grew`, rc 1. One more
   instrumented run than the row allows is the whole distance between green
   and red.
 - The shell wiring, both directions: `closure.py composed-list` prints
@@ -164,6 +190,14 @@ green/red fixture (below) was demonstrated against an empty budget before
   predicate), the same pipeline does not match `tests/layout.py`; the
   `case` match in `derive_closures.sh rec()` SKIPs the consumed
   `tests/boost_drift_replay.py` and RECORDs `tests/stress.py`.
+- The composed skip and the ratchet's metrics now compose through R1's
+  lane runner: `HPO_CI_METRICS=<tsv> HPO_CI_SCOPE=scoped PYTHON=<stub>
+  bash tests/derive_closures.sh --scripts-from <2-script list>
+  --record-only` (the stub answers `lane-plan` with one lane and `record`
+  by touching the json) exits 0 and writes one metrics line per recording,
+  `closures tests/a.py scoped 0 0 local local` and the same for
+  `tests/b.py` — the branch's emission fires inside the landed lane path,
+  not only the old serial one.
 - Local composed-execution smoke (macOS, non-authoritative, mechanism only):
   `COVERAGE_PROCESS_START=<scratch rc> PYTHONPATH=<site>:tests/hastub
   python3 tests/closure.py record tests/layout.py --out-dir <scratch>`
@@ -179,25 +213,29 @@ green/red fixture (below) was demonstrated against an empty budget before
 
 Every number below is re-derivable by the command beside it; pre-study
 figures are cited to their instrument (GitHub Actions logs, job ids), not
-re-executed here.
+re-executed here. Main-side numbers are re-taken at origin/main `5c02e2bab`
+(2026-10-11T12:16:36Z); every head-side number is re-taken at the merged
+tree `996100c0b` with the seat venv
+(`~/.local/state/hpo/venv-ci/bin/python3`, 3.14.7).
 
-- `PYTHONPATH=tests/hastub python3 tests/closure.py selftest` → `ALL 74
-  closure shrink pins PASSED` (17 new: 11 composed/proof refusals and
-  acceptances, the roster refusal, the committed allow-list seam rule).
+- `PYTHONPATH=tests/hastub python3 tests/closure.py selftest` → `ALL 93
+  closure shrink pins PASSED` (17 of this branch's: 11 composed/proof
+  refusals and acceptances, the roster refusal, the committed allow-list
+  seam rule; R1's 19 lane-plan pins from main sit beside them; origin/main
+  `5c02e2bab` alone prints `ALL 76 ...`).
 - `PYTHONPATH=tests/hastub python3 tests/entities.py` (seat venv-ci
   3.14.7, `tools/audit/seat/seat_venv.sh`) → `ALL 2259 ENTITY
-  CHECKS PASSED`; at origin/main e1501bf48 the same command prints `ALL
-  2251 ...` (main's tip gained one check over the a74520020 the previous
-  round measured) — the 8 branch checks are the ratchet's classification,
+  CHECKS PASSED`; at origin/main `5c02e2bab` the same command prints
+  `ALL 2251 ...` — the 8 branch checks are the ratchet's classification,
   wiring, budget-table refusal, main() growth refusal, its null control,
   the no-budget-row growth, the allow-list seam and the proof driver's
   wiring; the schema repair adds none.
 - `PYTHONPATH=tests/hastub python3 tests/structure.py` → `STRUCTURE RATCHET
   PASSED` (no budget moved; no `*_budgets.json` value raised anywhere).
 - `python3 -I tools/policy/budget_raise_gate.py --self-test` →
-  `budget_raise_gate self-test: 219 checks, 0 failed` at
-  `ba7455ea51938aacf0b9fdb4e19879e5705ca6e0` (the check `instrument-self-tests`
-  runs; was 211 checks, 2 failed at `648f22d7a`).
+  `budget_raise_gate self-test: 219 checks, 0 failed` at the merged head
+  (the check `instrument-self-tests` runs; 206 checks, 0 failed at
+  origin/main `5c02e2bab`; was 211 checks, 2 failed at `648f22d7a`).
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base
   origin/main HEAD)` → `Architecture score: dS +0.0000 NULL`.
 - The budget table's derivations, at origin/main a74520020 (custom_components
@@ -238,6 +276,12 @@ re-executed here.
 
 ## Red checks
 
+At the merged head `996100c0b`: `budget-raise-gate` red as below (expected,
+owner-gated initial record, disclosed); no other red is known at this head
+before CI runs — every locally runnable check named in ## Figures is green,
+including `instrument-self-tests`' self-test (219/0), which the merge did
+not disturb.
+
 - `instrument-self-tests` went red at `476dac6e0`, `f7d1bcf86` and
   `648f22d7a` and was answered only here: its step "Show the budget-raise
   gate refusing its own fixtures" printed
@@ -253,10 +297,11 @@ re-executed here.
   it reddened at the very first push of the file, and nothing cheaper
   reads "every tracked budget file has a schema"; its standing cost is
   one self-test pass per push, already paid.
-- `budget-raise-gate` is red at the head until tvofi approves it: the file
-  `tests/ci_budgets.json` is NEW, and the gate — whose workflow restores
-  its source from the BASE commit, which knows no seventh file — reads its
-  22 initial values (17 archscore rows at main's measured vector, the two
+- `budget-raise-gate` is red at the merged head until tvofi approves it:
+  the workflow's gate step restores its source from the BASE commit
+  (origin/main `5c02e2bab`, which knows no seventh file), so the gate reads
+  the new `tests/ci_budgets.json`'s 22 initial values (17 archscore rows at
+  main's measured vector, the two
   script-run counts, `critical_path_minutes`, `recorded_at`, `reason`) as 22
   raises (`None -> value`), because a pinned value is exactly what it
   cannot sign as routine. This is the initial record of the ratchet tvofi
@@ -293,4 +338,5 @@ roster.
 
 `dS +0.0000 NULL` — the diff touches no production file; the ratchet
 records the vector's current values rather than grading a change to them.
+
 
