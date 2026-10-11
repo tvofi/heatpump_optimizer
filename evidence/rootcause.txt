@@ -1,0 +1,15 @@
+fix-review 2123 resolution delta -- measured head 6c14eb0a659845f78aca0a13669d46826cd5bd92
+date: 2026-10-11T11:48Z  seat: r9rev-2123b  worktree: detached at head
+
+== 1. root-cause reconstruction (canonical dev/governance/rules/ci-autofix.md, bytes; token = round(bytes/4)) ==
+70b50c573  5822 bytes  1456 tokens
+0f1ccbe52  5859 bytes  1465 tokens
+f7967b649  5862 bytes  1466 tokens
+a5005008d  5862 bytes  1466 tokens
+d346165a6  5899 bytes  1475 tokens
+307881fcd  5870 bytes  1468 tokens
+6c14eb0a6  5870 bytes  1468 tokens
+merge parents of d346165a6: f7967b64931c4a2614702f4b1560b04088d03b87 0f1ccbe5292654ee7d7b839816b67fca7bfeadf1
+main side: 5822 -> 5859 (+37, #2121 DIRTY clause + rewording); branch side: 5862.
+Merged d346165a6 = 5899 bytes = 1475 tokens > 1469 cap. Neither parent over: 1465 and 1466.
+Overrun existed only at the merge. Confirmed.

@@ -1,0 +1,15 @@
+fix-review 2123 -- checks at measured head 6c14eb0a659845f78aca0a13669d46826cd5bd92
+
+== local proxies (seat venv-ci shims on PATH, worktree detached at head) ==
+policy-docs : node tools/policy/policy_lint.mjs -> TOTAL: 0 error(s) across 40 policy file(s), rc=0; --budgets: .claude/rules/ci-autofix.md 91/96 lines, 1468/1469 tokens
+instrument-self-tests : node tools/policy/policy_lint_mutants.mjs -> 'MUTANTS ok: ... corpus [11 checks] record [12 checks]', rc=0
+env-matrix : node tools/policy/policy_lint_envmatrix.mjs -> '16 declared outcome(s) held, 0 did not, across 6 environment shape(s)', rc=0 (baseline origin/main = 0f1ccbe)
+fast (3.14) failing check (_TA[1], entities.py line ~28705) measures exactly: node tools/policy/policy_lint.mjs rc on the live tree -> rc=0 at this head (was rc=1 at d346165a6). Full entities.py needs CI's container (homeassistant + paho); CI's own run is the confirmation.
+rules_sync : RULES-SYNC ok
+
+== check-runs API at 6c14eb0a6 (read 11:49Z) ==
+policy-docs success; env-matrix success; instrument-self-tests success; pr-contract success (both runs); fast (3.14) in_progress; closures in_progress.
+
+== body truthfulness ==
+'## Red checks' names all five recarry reds (policy-docs, env-matrix, instrument-self-tests, fast (3.14), pr-contract) each with cause + repair + cheaper detector, plus the f7967b649-only closures red. Truthful against the check-runs history it cites.
+env-matrix driver workspace (a full clone, over 50 MB) removed from the evidence dir per the bus refusal; cited by path below; its measured output line is quoted in ev/checks.txt.

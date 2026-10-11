@@ -1,0 +1,25 @@
+fix-review 2123 -- wording-only proof, measured head 6c14eb0a659845f78aca0a13669d46826cd5bd92
+
+== repair commit 307881fcd touches only the three rule copies ==
+307881fcd fix(R9-CI-1): pay the ci-autofix.md token cap the recarry crossed -- six wording-only trims, no claim moved
+ .claude/rules/ci-autofix.md        | 12 ++++++------
+ .cursor/rules/ci-autofix.mdc       | 12 ++++++------
+ dev/governance/rules/ci-autofix.md | 12 ++++++------
+ 3 files changed, 18 insertions(+), 18 deletions(-)
+
+== the six trims (d346165a6 -> 307881fcd), byte deltas ==
+1. 'reports that it is' -> 'reports it is' (-5)
+2. 'there will be no bot commit.' -> 'no bot commit comes.' (-8)
+3. 'from the CI recordings' -> 'from CI recordings' (-4)
+4. 'no bot commit is coming:' -> 'no bot commit comes:' (-4)
+5. 'has been printed' -> 'is printed' (-6)
+6. 'an App push or a body edit' -> 'an App push or body edit' (-2)
+sum = 29 bytes = 5899 - 5870. Verified from the diff itself.
+
+== no rule/claim/obligation deleted ==
+Deleted lines carrying issue ids: only #1886, re-added on the paired line (R9-CI-1 anchor kept in text).
+Main's #2121 DIRTY-head clause present at d346165a6, 307881fcd and 6c14eb0a6 (line 15: 'a DIRTY head queues no run, so no bot commit comes').
+Loop-guard status list, skip-status enumeration, --single prohibition, INERT clause: all intact in the diff (verified hunk by hunk).
+
+== generated copies ==
+node tools/policy/rules_sync.mjs --check at head -> RULES-SYNC ok (rc=0). Both .claude/rules/ci-autofix.md and .cursor/rules/ci-autofix.mdc are the generated form.
