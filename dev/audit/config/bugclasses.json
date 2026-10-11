@@ -1,4 +1,50 @@
 {
+  "N-postreview-merge-red": {
+    "kind": "instrument",
+    "mechanism": "A merge of main into a reviewed branch reddens the head after review: the recarry verdict judges text and identity (two parents, HEAD's tree equal to merge-tree of its parents, live body) on the premise that the head's delta and main's delta do not interact, so a main that ships a detector over a file the reviewed head also edited, a budget raise, or a ratchet move publishes a red head no local instrument grades -- CI finds it minutes later, after the review and inside the batch pass",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "the census enumerator in dev/audit/rca/R9-RC-POSTREVIEW-MERGE.md (F5): git log --all --grep=\"^Merge remote-tracking branch 'origin/main' into \" for recarry heads, then the check-runs API at each head and its parent 1; measured 2026-10-08..10-10: 76 recarry heads, 15 reddened by the merge (green at the reviewed parent), ~25 recarries/day",
+    "detector_idea": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I3",
+    "mechanism_difference": "I3 is a required check skipped, run on a stale ref or bypassable as a defect of the check itself; here no check is skipped improperly and none runs a stale ref -- the recarry's designed fast-path (#2069) publishes a merge that no local instrument grades, so the first grade the merged tree receives is CI's, after the review",
+    "aliases": [
+      "new: a post-review main merge reddens the head and no local instrument sees it"
+    ],
+    "non_round_note": "Process incidents measured by the RCA seat over 2026-10-08..10-10, not audit findings, not in register_rows.tsv, not counted in total. Each row: the merge SHA and the checks the merge reddened (green at the reviewed parent).",
+    "non_round_instances": [
+      "03f7be4d3 instrument-self-tests, pr-contract",
+      "0cff5a993 budget-raise-gate",
+      "8e0dcb72c budget-raise-gate",
+      "0e12b4f8a budget-raise-gate",
+      "f14e77c95 closures, fast (3.14), instrument-self-tests, pr-contract",
+      "588692957 briefs, fast (3.14), mutation",
+      "386b7e2ff mutation",
+      "c901f8f34 arch-score, pr-contract, typing",
+      "04d10721b instrument-self-tests, pr-contract (#2072)",
+      "ae6fbdd5e env-matrix, fast (3.14), instrument-self-tests, policy-docs, pr-contract",
+      "a9b1b48c4 arch-score, mutation, pr-contract",
+      "dc1abe654 fast (3.14), pr-contract",
+      "574345d95 mutation, pr-contract",
+      "4f0bde165 fast (3.14)",
+      "78a067541 budget-raise-gate"
+    ],
+    "rca": [
+      "R9-RC-POSTREVIEW-MERGE"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
   "_source": "v2, 2026-09-28: one-time enumeration and classification of every surviving finding of rounds 1-9 (alt/register/rows_v2.tsv: 486 rows from the A1 enumeration plus 88 survivors the round-8 findings.tsv omitted, missing_rows.tsv / RECON.md; A1 flags and three RCA-seat moves applied, each recorded in its row), folded with the inventory of every RCA conducted (alt/register/rca_inventory.json) and the bulk RCAs owed by the rebuild (alt/rca/RCA-BULK-{1,2,3}.md). v1 was seeded from the round-8 classification of rounds 1-7 and never received a round-8 member. Counts derive from rows_v2.tsv by build_v2.py.",
   "_status": "open: no detector; detector: a command enumerates every seam; barriered: that command is a CI check.",
   "_counting": "An instance is a judged survivor or an instance counted beyond it (a sweep, RCA or fixer seat found the seam and it is not the judged site); non_round_instances are incidents and screens, listed, not counted. trigger.per_round is the rule in force (defect-root-cause.md:87-91); trigger.cross_round is the proposed clause (>=3 over any 3 consecutive rounds, or >=5 total while open), owner-gated in R9-EG-R1.",
@@ -3732,6 +3778,22 @@
         "dev/audit/rca/R9-RCA-bugclasses.md"
       ],
       "in_tree_home": "dev/audit/rca/R9-RCA-bugclasses.md"
+    },
+    "R9-RC-POSTREVIEW-MERGE": {
+      "class": "N-postreview-merge-red",
+      "level": "class",
+      "subject": "class N-postreview-merge-red (#2096): a post-review main merge reddens the head and no local instrument sees it",
+      "trigger": "red-check (#2072 instrument-self-tests at 04d10721b, green at the reviewed head 316a36414) + recurrence (15 merge-reddened recarry heads of 76, 2026-10-08..10-10)",
+      "date": "2026-10-10",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "proposed, not landed: a carry skips the local grade only when prepr's own selftest_owed says it owes none; when owed, prepr.sh --self-test runs on the merged tree before the push (122 s measured at 04d10721b; 50 of 76 recarries owe it, ~34 min/day standing) and its refusal stops the train at step 1. The budget-raise sub-shape (4 of 15: the raise is main's, no local predicate sees it) propagates to the carry lane's brief",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/issues/2096"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RC-POSTREVIEW-MERGE.md"
     }
   }
 }
