@@ -15495,10 +15495,15 @@ _D308_COMPARABLE = _D308_TOTAL - sum(
     for _b in sorted(_D308)[_i + 1:]
     if not ((set(_D308[_a]) & _D308_PROD) and (set(_D308[_b]) & _D308_PROD)))
 _D308_FULLCOV = sorted(s for s, fs in _D308.items() if _D308_PROD <= set(fs))
-# The lane is the only full-coverage closure but for one measured exception, admitted by name: the
-# architecture score's head check (R9-EG-A1) measures today's tree, so its closure is the package by
-# purpose. A third script reaching every file is still refused here.
-_D308_ADMITTED = sorted([_D308_DS, "tests/arch_score_head.py"])
+# The lane is the only full-coverage closure but for two measured
+# exceptions, admitted by name: the architecture score's head check
+# (R9-EG-A1) measures today's tree, so its closure is the package by
+# purpose; and tests/entities.py (round 9) drives the CI ratchet's
+# archscore measurement, which walks the package the same way -- its
+# closure grew to the package when that import landed, re-recorded with the
+# #1218 note. A fourth script reaching every file is still refused here.
+_D308_ADMITTED = sorted([_D308_DS, "tests/arch_score_head.py",
+                         "tests/entities.py"])
 _D308_SELECTED = _D308_DS in _closure.select(
     ["custom_components/heatpump_optimizer/optimizer.py"])["run"]
 R.check(
@@ -23790,17 +23795,22 @@ R.check(
 # A job-level block REPLACES the floor for that job and is inherited by none,
 # so the set IS the blast radius. The two autofix jobs have needed writes since
 # #523, and `mutation-autofix` the same two since it was argued for as the
-# ledger half of the mutation ratchet; a fifth override should have to be
-# argued for too.
+# ledger half of the mutation ratchet; `nightly-status` reads the Actions API.
+# Round 9 added two READ-ONLY widenings, each argued where it is used: the
+# `closures` job queries the artifacts API by name to consume the batch
+# proof's recordings (C2), and `ci-ratchet` downloads the recent ci-metrics
+# window the same way. Reads only -- a write override here still has to be
+# argued for on its own.
 _NS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly four jobs override the workflow's read-only floor",
-    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "mutation-autofix",
-                      "nightly-status"],
+    "exactly six jobs override the workflow's read-only floor, four of them "
+    "read-only",
+    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
+                      "closures-autofix", "mutation-autofix", "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -31181,6 +31191,18 @@ R.check(
     "every composed-closure entry is a selectable, composable script",
     not _COMPOSED_BAD,
     f"bad entries: {_COMPOSED_BAD}",
+)
+# The proof driver: `composed-proof`'s self arm runs it, and it must drive
+# the instrument's own comparison (composed-compare) over the allow-list
+# (composed-list) rather than a rule of its own -- read here so a change to
+# it selects this script, and so no parallel comparison logic grows beside
+# closure.py's.
+_CP_SH = Path("tools/coverage/composed_proof.sh").read_text()
+R.check(
+    "the composed-proof driver measures through closure.py's own comparison",
+    "tests/closure.py composed-compare" in _CP_SH
+    and "tests/closure.py composed-list" in _CP_SH,
+    "a driver with its own equality rule is a second owner for the proof",
 )
 
 # --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --

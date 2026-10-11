@@ -524,6 +524,11 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # Round 9 (C1): the composed-closure proof driver. tests/entities.py
+    # reads it to pin that it measures through closure.py's own comparison,
+    # so an edit to it selects that script; left inside the tools/coverage/
+    # prefix it would be declared unread while being read (#357).
+    "tools/coverage/composed_proof.sh",
     # R9-RO-4: tests/entities.py reads tools/pr/README.md. tools/pr/ is INERT
     # (R9-RO-6). Left inside the prefix the note is declared unread while
     # being read, and check refuses the committed table before it compares
@@ -2506,6 +2511,25 @@ def proof_consume(expect_tree: str, in_dir: Path) -> int:
                 "run that did not end has a truncated read set")
     if not recs and not problems:
         problems.append("the artifact carries no recordings")
+    # THE ROSTER: consuming means the full arm below is SKIPPED, so what is
+    # consumed must satisfy the full check's own "a selectable script with
+    # no recording at all" rule by itself. A proof set missing any script --
+    # a dispatch that consumed a composed record, say -- fails closed here
+    # and the merge's push run re-records fresh, rather than dying at the
+    # check step with half an arm.
+    have = {Path(rec["script"]).name for rec in recs}
+    missing = sorted(
+        name for name in
+        (Path(s).name for s in selectable_scripts())
+        if name not in have
+        and name not in DRIVEN_BY_OTHERS
+        and name not in SLOW_GATED
+    )
+    if missing:
+        problems.append(
+            f"the recordings cover {len(have)} script(s) but the selectable "
+            f"roster misses {missing[:6]}"
+            f"{'...' if len(missing) > 6 else ''}")
     if problems:
         for p in problems:
             print(f"proof-consume: refusing to consume: {p}", file=sys.stderr)
@@ -2546,7 +2570,12 @@ def composed_verify(expect_tree: str, in_dir: Path) -> int:
             continue
         rec = by_name.get(name)
         if rec is None:
-            problems.append(f"no composed recording for {script}")
+            # Not composed this run -- the coverage plan reused the script's
+            # base data, so nothing was composed to consume. That is a skip,
+            # not a refusal: the script records bare below, the safe
+            # direction. (A present-but-invalid record IS a refusal.)
+            print(f"composed-verify: {script} was not composed this run; "
+                  "it records bare")
             continue
         if rec.get("rc") != 0:
             problems.append(
@@ -3604,14 +3633,23 @@ def selftest() -> int:
 
 
 def _proof_fixture(td: Path, tree: str, *, manifest: bool = True,
-                    recordings: int = 1, rc: int = 0) -> Path:
+                    recordings: int | None = None, rc: int = 0,
+                    roster: bool = True) -> Path:
     d = td / "proof"
     d.mkdir(parents=True, exist_ok=True)
     if manifest:
         (d / "tree.txt").write_text(tree + "\n")
-    for i in range(recordings):
+    # None means the whole selectable roster; an int means a partial set
+    # (which the roster refusal below must catch).
+    names = ([Path(s).name for s in selectable_scripts()
+              if Path(s).name not in DRIVEN_BY_OTHERS
+              and Path(s).name not in SLOW_GATED] if roster
+             else [f"rec{i}.py" for i in range(recordings or 1)])
+    for i, name in enumerate(names[:recordings] if recordings is not None
+                             else names):
         (d / f"rec{i}.json").write_text(json.dumps({
-            "script": f"tests/rec{i}.py", "rc": rc, "files": [f"tests/rec{i}.py"],
+            "script": f"tests/{name}", "rc": rc,
+            "files": [f"tests/{name}"],
         }))
     return d
 
@@ -3627,11 +3665,18 @@ def _selftest_proof(pin) -> None:
             rc == 0 and "consumed proof recordings" in buf.getvalue(),
             f"rc={rc} out={buf.getvalue()[-200:]!r}")
     for name, kwargs, why in (
-        ("a manifest naming ANOTHER tree", {"tree": other, "expect": good},
+        ("a manifest naming ANOTHER tree",
+         {"tree": other, "expect": good},
          "the #2109 class: recordings of a different tree passing the check"),
-        ("no manifest at all", {"manifest": False}, "the artifact does not name its tree"),
-        ("an artifact with no recordings", {"recordings": 0}, "nothing to check"),
-        ("an unhealthy recording", {"rc": 1}, "a run that died has a truncated read set"),
+        ("no manifest at all", {"manifest": False},
+         "the artifact does not name its tree"),
+        ("an artifact with no recordings", {"recordings": 0},
+         "nothing to check"),
+        ("an unhealthy recording", {"rc": 1},
+         "a run that died has a truncated read set"),
+        ("a set missing selectable scripts", {"recordings": 3},
+         "consuming skips the full arm, so the set must satisfy the full "
+         "check's roster rule alone"),
     ):
         with tempfile.TemporaryDirectory() as td:
             kwargs = dict(kwargs)
