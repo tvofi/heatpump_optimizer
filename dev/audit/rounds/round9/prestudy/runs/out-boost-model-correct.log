@@ -1,0 +1,40 @@
+[boost-model-correct] day 0 bias=-0.017 hh=0.9799 alarmed=False
+[boost-model-correct] day 1 bias=-0.011 hh=1.0108 alarmed=False
+[boost-model-correct] day 2 bias=-0.012 hh=1.0314 alarmed=False
+[boost-model-correct] day 3 bias=-0.015 hh=1.0401 alarmed=False
+[boost-model-correct] day 4 bias=-0.015 hh=1.0416 alarmed=False
+[boost-model-correct] day 5 bias=-0.016 hh=1.0425 alarmed=False
+[boost-model-correct] day 6 bias=-0.017 hh=1.0423 alarmed=False
+[boost-model-correct] day 7 bias=-0.017 hh=1.0424 alarmed=False
+[boost-model-correct] day 8 bias=-0.018 hh=1.0451 alarmed=False
+[boost-model-correct] day 9 bias=-0.035 hh=0.7246 alarmed=False
+[boost-model-correct] day 10 bias=-0.044 hh=0.5221 alarmed=False
+[boost-model-correct] day 11 bias=-0.032 hh=0.7984 alarmed=False
+[boost-model-correct] day 12 bias=-0.025 hh=0.9526 alarmed=False
+[boost-model-correct] day 13 bias=-0.023 hh=1.0122 alarmed=False
+[boost-model-correct] day 14 bias=-0.023 hh=1.0367 alarmed=False
+[boost-model-correct] day 15 bias=-0.023 hh=1.0442 alarmed=False
+
+=== arm boost-model-correct ===
+day    bias     mae    n      hh    cop alarmed days
+  0  -0.017   0.049    6  0.9799    1.0   False    0
+  1  -0.011   0.056   54  1.0108    1.0   False    0
+  2  -0.012   0.063  102  1.0314    1.0   False    0
+  3  -0.015   0.066  150  1.0401    1.0   False    0
+  4  -0.015   0.068  198  1.0416    1.0   False    0
+  5  -0.016   0.069  246  1.0425    1.0   False    0
+  6  -0.017   0.071  294  1.0423    1.0   False    0
+  7  -0.017   0.071  342  1.0424    1.0   False    0
+  8  -0.018   0.071  390  1.0451    1.0   False    0
+  9  -0.035   0.086  438  0.7246    1.0   False    0
+ 10  -0.044    0.09  486  0.5221    1.0   False    0
+ 11  -0.032    0.09  534  0.7984    1.0   False    0
+ 12  -0.025   0.088  582  0.9526    1.0   False    0
+ 13  -0.023   0.085  630  1.0122    1.0   False    0
+ 14  -0.023   0.084  672  1.0367    1.0   False    0
+ 15  -0.023   0.084  672  1.0442 1.0001   False    0
+boost-interval errors: n=24 mean=-0.169 min=-0.325 max=-0.009
+non-boost errors:      n=743 mean=-0.018
+alarmed=False rolled_back=False hh_final=1.0701 cop_final=1.0001
+accuracy_drift issues raised: []
+written: /Users/timmalmstrom/hpo-seats/r9-diag-1/out/boost-model-correct.json

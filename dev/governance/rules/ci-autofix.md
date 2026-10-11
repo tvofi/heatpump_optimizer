@@ -11,13 +11,13 @@ paths:
 # Mechanical CI autofix (do not re-implement)
 
 Same-repo PRs have three jobs in `.github/workflows/tests.yml`. If `closures` is
-`UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait**.
-Do not open a parallel PR, do not Darwin `--single` an under-scope CI already recorded (Linux
-`strace` recordings are the ones to merge), and do not hand-empty claim files that match
-`origin/main`. Darwin can `--single` a **new** node script, or grow a node closure; it cannot
-replace a Linux node recording.
+`UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait** --
+a `DIRTY` head queues no run, so no bot commit comes. Do not open a parallel PR, do not
+Darwin `--single` an under-scope CI already recorded (Linux `strace` recordings are the ones
+to merge), and do not hand-empty claim files that match `origin/main`. Darwin can `--single` a
+**new** node script, or grow a node closure; it cannot replace a Linux node recording.
 
-**That wait is conditional: it holds only while the job reports that it is
+**That wait holds only while the job reports that it is
 repairing.** Each job pushes on `changed` alone and prints its status to the
 job summary (#523). `closures-autofix` goes red on `skip-failed-recording`,
 `skip-merge-failed`, `skip-still-fails`, `skip-unchanged`,

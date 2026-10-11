@@ -25061,6 +25061,43 @@ R.check(
     "a seat edits at approval, not in a group it does not belong to",
 )
 
+# --- the state-doc beat (R9-RO-14, #2102) -----------------------------------
+#
+# The state docs the standing instruction of 2026-10-09 requires continuously
+# regenerated are `state_docs.py`'s; what was missing is the recurring half,
+# and the orchestrator supplied it from a loop in its own scratch directory --
+# decision 0013's defect shape, an instrument the programme runs that lives
+# outside the tree, where no later session can test it and `worktree_gc` can
+# collect it. The beat lands inside the instrument that already owns the write
+# set and the orphan-ref push (fixer.md step 17: a second script beside it
+# would be a parallel mechanism), and the read below is what keeps it
+# drivable: the module is loaded and its self-test RUN here, so an edit to the
+# beat selects this script instead of skipping it. Without the read the file
+# sits under `tools/audit/`'s INERT prefix, a change to it selects NO script,
+# and the arms the issue names would be run by hand or never -- the same
+# defect one level down, which is why this is not optional decoration.
+# `_rr_cx`/`_rr_io` are the record_row block's redirect helpers, one block up.
+import importlib.util as _sd_util  # noqa: E402
+
+try:
+    _sd_spec = _sd_util.spec_from_file_location(
+        "hpo_state_docs",
+        _closure.ROOT / "tools" / "audit" / "seat" / "state_docs.py")
+    _sd = _sd_util.module_from_spec(_sd_spec)
+    _sd_spec.loader.exec_module(_sd)
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _sd_out, \
+            _rr_cx.redirect_stderr(_rr_io.StringIO()) as _sd_err:
+        _sd_ok = _sd.run_self_test() == 0
+    _sd_detail = _sd_out.getvalue() + _sd_err.getvalue()
+except Exception as _sd_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _sd_ok, _sd_detail = False, f"{type(_sd_exc).__name__}: {_sd_exc}"
+R.check(
+    "tools/audit/seat/state_docs.py --self-test passes, beat arms included",
+    _sd_ok,
+    "run `python3 tools/audit/seat/state_docs.py --self-test` for the "
+    "failing check names:\n" + _sd_detail,
+)
+
 # THE ROW THE TREE READS. `delivery_status.read_texts` is one of the two
 # readers a row must satisfy (`policy_lint --record` is the other, same
 # anchor), so the generated line is driven through the real reader over a
