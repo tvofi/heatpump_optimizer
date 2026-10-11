@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 93
+records every read, so this lane's recorded closure is the package: all 94
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (92 until the live power clamp's ``draw_range.py``, 90 until R9-UX-9's ``flow_meter.py`` and R9-EG-B11's ``entry_config.py``, 88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+alike (93 until the live-fix wave's ``early_cutoff.py`` and the live power clamp's ``draw_range.py``, 90 until R9-UX-9's ``flow_meter.py`` and R9-EG-B11's ``entry_config.py``, 88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images) -- one of the two closures in ``tests/closures.json`` that reach every
 production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
 measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
@@ -54,7 +54,8 @@ doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
 added icons.json and services.yaml to doc_claims.py's closure; #1935's
 tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80;
 ``tests/debug_collect.py`` joined when the debug-collector pin driver was
-recorded, adding 7 pairs at >= 0.80; the two whole-package closures now carry
+recorded, adding 7 pairs at >= 0.80; the live-fix wave's early_cutoff.py
+joined the comparable set, and the two whole-package closures now carry
 ``draw_range.py`` (#2065) beside ``flow_meter.py`` (R9-UX-9), and it is the
 pair -- not either module alone -- that puts debug_collect.py/structure.py,
 debug_collect.py/typing_ruler.py and debug_collect.py/finite_boundary.py at
@@ -64,13 +65,13 @@ Measured on four trees by that rule: main before #2065 (flow_meter alone)
 120, #2066's own head (draw_range alone) 120, main after #2065 123, #2066's
 merge of main 123.
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py
-(93 shared production files), entities.py/harness_headers.py,
-doc_claims.py/entities.py and doc_claims.py/harness_headers.py (83 each),
-structure.py/typing_ruler.py (75), finite_boundary.py/structure.py and
-finite_boundary.py/typing_ruler.py (75 each), plan_view.py/solar_alignment.py,
+(94 shared production files), entities.py/harness_headers.py,
+doc_claims.py/entities.py and doc_claims.py/harness_headers.py (84 each),
+structure.py/typing_ruler.py (76), finite_boundary.py/structure.py and
+finite_boundary.py/typing_ruler.py (76 each), plan_view.py/solar_alignment.py,
 boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
-(57 each), the optimality.py/validate.py/edge.py/backtest.py four (21, six
-pairs), golden.py/env_drift.py (91), card.mjs/card_drift.mjs (58) -- and which
+(58 each), the optimality.py/validate.py/edge.py/backtest.py four (21, six
+pairs), golden.py/env_drift.py (92), card.mjs/card_drift.mjs (59) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here
