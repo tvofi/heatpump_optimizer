@@ -1,0 +1,22 @@
+  4601 unpinned site(s) of 6017 candidate sites, 4608 at the ratchet base e1501bf480d0d6430875f3a7334402cb00cc4dd3; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+  3 drawn site(s) hold a survivor_triage mark: tests/entities.py, which would call them killed for the mark's sake, is not one of their drivers
+  7 mutant(s) over 6 file(s); drivers in play: tests/arch_score_head.py, tests/backtest.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/harness_headers.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/stress.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'e1501bf480d0d6430875f3a7334402cb00cc4dd3' (run.sh's GOLDEN_REF resolution)
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119c/wt/tests/mutation_table.py", line 3715, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119c/wt/tests/mutation_table.py", line 3418, in main
+    blind = verdict_form_problems(needed)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119c/wt/tests/mutation_table.py", line 2065, in verdict_form_problems
+    tree = ast.parse(path.read_text())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/ast.py", line 50, in parse
+    return compile(source, filename, mode, flags,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<unknown>", line 3935
+    ([f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray])
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'

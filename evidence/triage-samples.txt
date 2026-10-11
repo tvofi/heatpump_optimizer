@@ -1,0 +1,46 @@
+# 5 sampled survivor_triage rows (of 14: 1 equivalent, 13 gap)
+--- tests/mutation_ledger/survivor_triage/accuracy.py/@module.CONST.4ac79a47.json
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:<module> CONST 4ac79a47",
+  "old": "PROMISE_DAYS = 2",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Doubling the retention to 4 days is real behavior -- note_promise prunes sorted(promises)[:-PROMISE_DAYS] and _stored_promises keeps the newest PROMISE_DAYS -- but tests/features.py's UX-6 bound check asserts len(promises) == PROMISE_DAYS against the very constant the mutant doubles, and its fixture notes exactly 4 days of promises, so the mutated bound passes its own assertion. A check pinning the design value 2 (today plus yesterday, the U2 decision) or asserting the retained set rather than its size would kill it; none is recorded.",
+  "verdict": "gap"
+}
+--- tests/mutation_ledger/survivor_triage/accuracy.py/_stored_promise.GUARD_OFF.d997c270.json
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:_stored_promise GUARD_OFF d997c270",
+  "old": "    if not isinstance(value, dict):",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Equivalent: with the guard off, every non-dict value falls into the try block below, whose first statement value[\"start\"] raises TypeError (str, int, list subscripting) or KeyError, both in the caught (TypeError, ValueError, KeyError, OverflowError) set, so the function returns None for exactly the inputs the guard rejects and is unchanged for dicts, which pass the guard anyway.",
+  "verdict": "equivalent"
+}
+--- tests/mutation_ledger/survivor_triage/ledger.py/MonthlyLedger.book_capacity.GUARD_OFF.6dd41738.json
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.book_capacity GUARD_OFF 6dd41738",
+  "old": "        if not month or not (math.isfinite(peak_kw) and math.isfinite(price_per_kw)):",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Guard off writes the capacity line for an empty month key or NaN operands: data[\"lines\"][\"capacity\"] with NaN sek, which poisons that month's billed_total. No recorded driver calls book_capacity with an empty month or a non-finite peak; the coordinator reads both from finite sensor state in every fixture.",
+  "verdict": "gap"
+}
+--- tests/mutation_ledger/survivor_triage/ledger.py/freeze_month_report.CMP_BOUND.9ccdc7b1.json
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:freeze_month_report CMP_BOUND 9ccdc7b1",
+  "old": "                abs(reason_kwh - raw_spot[\"kwh\"]) <= 0.05",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Moving the tolerance bound flips reasons_reconcile only for a month whose reason lines differ from the raw spot energy by exactly 0.05 kWh. The partition flag is published, not asserted, and tests/features.py's UX-6 fixtures reconcile at 0 or well inside the band; no recorded driver builds an exactly-0.05 month.",
+  "verdict": "gap"
+}
+--- tests/mutation_ledger/survivor_triage/ledger.py/roll_receipts.CLAMP_DROP.2f982717.json
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:roll_receipts CLAMP_DROP 2f982717",
+  "old": "    for old in sorted(kept)[: max(0, len(kept) - KEEP_MONTHS)]:",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Dropping the max keeps the slice at [: (0)], i.e. empty, so receipts are never pruned and retention is unbounded. It shows only with more than KEEP_MONTHS receipts held at once; the UX-6 rolling fixtures never exceed the retention window; no recorded driver rolls enough months to overflow it.",
+  "verdict": "gap"
+}
+
+# verdict census
+Counter({'equivalent': 72, 'gap': 28})
+
+# old lines verified in tree
+53:PROMISE_DAYS = 2
+608:    if not isinstance(value, dict):
+153:        if not month or not (math.isfinite(peak_kw) and math.isfinite(price_per_kw)):
+384:                abs(reason_kwh - raw_spot["kwh"]) <= 0.05
+440:    for old in sorted(kept)[: max(0, len(kept) - KEEP_MONTHS)]:
