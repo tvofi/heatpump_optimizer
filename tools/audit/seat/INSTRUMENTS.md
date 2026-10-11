@@ -113,9 +113,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   on refs, the orchestrator watches. When: a reviewer seat with no other
   channel, or an orchestrator collecting several lanes' verdicts at once.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
-  states (per-PR signature file). When: a long fix wave where red-on-main or
-  a fresh failure must interrupt work. Refusal: state already seen prints
-  nothing — the exit-1 report is the alert, not the log.
+  states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
+  and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push
+  fires no `pull_request` run, so the governance family never reports at such
+  a head and it sits unmergeable looking green (R9-RC-AUTOFIX-GOVERNANCE).
+  When: a long fix wave where red-on-main or a fresh failure must interrupt
+  work. Refusal: state already seen prints nothing — the exit-1 report is the
+  alert, not the log; an unreadable ruleset alerts BLIND once rather than
+  silently skipping the ABSENT arm. `--self-test` grades every arm offline on
+  the recorded defect shape; `CI_WATCH_ONCE=1` runs a single cycle.
 - `cloud-setup.sh` — the cloud seat environment's setup script (interpreter,
   CI-run pinning). When: tvofi pastes it into Project settings; a seat cannot
   apply its own environment.
@@ -135,8 +141,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `merge_train.py` — lands a queue of verdicted PRs one at a time: re-carry
   CI, wait for green at the exact head, evidence-gated approval,
   `--match-head-commit`. When: any merge queue — queued PRs merge through
-  this, never by hand. Refusal: a head that moved under the review, or red
-  checks the queue was not told to ignore, stop the train.
+  this, never by hand. Refusal: a head that moved under the review, red
+  checks the queue was not told to ignore, or a head whose TIP is a
+  GITHUB_TOKEN bot push (author `github-actions[bot]`) stop the train — such
+  a head has no `pull_request` run, the required contexts never report at it,
+  and the required follow-up is an App push (step 1's recarry once main
+  moves; batch never recarries, so it refuses at admission).
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
@@ -223,6 +233,20 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   files, and an already-current tip, which is reported and left alone. The
   commit is plumbing over a temp index, so the calling checkout's index is
   never touched.
+  `state_docs.py beat` is the same instrument on a loop, and it lives here
+  rather than in a session's scratch for decision 0013's reason — an
+  instrument the programme runs belongs where a later session can test it. A
+  pass reads `--watch-ref` at origin; when it has moved it refreshes the
+  roster ref (so resume fields other seats wrote are visible), regenerates
+  and pushes, and when it has not it writes nothing at all. When:
+  continuously beside a merge train, since it takes no lock and cancels
+  nothing — the state docs are regenerated rather than rebuilt at session
+  end. Refusal, and the one that saves you: the tip is recorded ONLY on a
+  regeneration that returned 0, so a push the remote rejected is retried on
+  the next pass instead of silently dropping that merge from the record.
+  `--once` is one pass and returns that pass's code; without `--tip-file` a
+  `--once` caller regenerates every time, so give it one to keep the loop's
+  memo on disk. `--self-test` drives all three arms offline.
 - `tmp_paths.py` — refuses a tracked script, workflow or decision record that
   depends on a temp or machine path (`--check`, `--self-test`). When: after
   touching anything under `tools/`, `tests/`, `.claude/`, or before pushing.
@@ -243,8 +267,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   detached so a crashed seat is recoverable from its branch. Refusal: it
   never touches the worktree or its index — a snapshot, not a save.
 - `shims/seat-python`, `shims/seat-python3` — the seat interpreter: execs the
-  venv-ci `seat_venv.sh` builds under `$HPO_STATE_DIR` (default
-  `~/.local/state/hpo`) and exports `HPO_TYPING_PYTHON` to venv-ha/bin/python
-  only when that interpreter exists and the variable is unset. When: a seat's
-  PATH needs a pinned interpreter, and the scoped gate should check the mypy
-  census.
+  venv-ci `seat_venv.sh` builds, under `$HPO_STATE_DIR` first and the default
+  state root `~/.local/state/hpo` second, and refuses naming that build command
+  when neither holds one; exports `HPO_TYPING_PYTHON` to venv-ha/bin/python
+  under the same two roots, only when that interpreter exists and the variable
+  is unset. When: a seat's PATH needs a pinned interpreter, and the scoped gate
+  should check the mypy census.
