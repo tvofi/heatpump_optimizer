@@ -1,0 +1,21 @@
+diff --git a/dev/programme/delivery/2010.md b/dev/programme/delivery/2010.md
+index e2fd0eb04..3633b1d74 100644
+--- a/dev/programme/delivery/2010.md
++++ b/dev/programme/delivery/2010.md
+@@ -1 +1 @@
+-- [#2010](https://github.com/tvofi/heatpump_optimizer/pull/2010) — **open**, feat(R9-UX-5): exact idle reasons and a persistent advisor apply (#1795) (R9-UX-5)
++- [#2010](https://github.com/tvofi/heatpump_optimizer/pull/2010) — **merged `1b72ca1`**, feat(R9-UX-5): exact idle reasons and a persistent advisor apply (#1795).
+diff --git a/dev/programme/delivery/2072.md b/dev/programme/delivery/2072.md
+index a54799c3c..cae22a55c 100644
+--- a/dev/programme/delivery/2072.md
++++ b/dev/programme/delivery/2072.md
+@@ -1 +1 @@
+-- [#2072](https://github.com/tvofi/heatpump_optimizer/pull/2072) — **open**, fix(rca): the retired harness path is named by policy, and no local path ran the layout guard
++- [#2072](https://github.com/tvofi/heatpump_optimizer/pull/2072) — **merged `70b50c5`**, fix(rca): the retired harness path is named by policy, and no local path ran the layout guard.
+diff --git a/dev/programme/delivery/2131.md b/dev/programme/delivery/2131.md
+index 7511b8772..b934f504e 100644
+--- a/dev/programme/delivery/2131.md
++++ b/dev/programme/delivery/2131.md
+@@ -1 +1 @@
+-- [#2131](https://github.com/tvofi/heatpump_optimizer/pull/2131) — **open**, perf(closures): a lane runner for the scoped arm -- the PR gate pays a lane MAX instead of a serial SUM
++- [#2131](https://github.com/tvofi/heatpump_optimizer/pull/2131) — **merged `5c02e2b`**, perf(closures): a lane runner for the scoped arm -- the PR gate pays a lane MAX instead of a serial SUM.
