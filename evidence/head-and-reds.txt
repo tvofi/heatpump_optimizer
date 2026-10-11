@@ -1,0 +1,18 @@
+head measured: 648f22d7ac57021b37da3556cf64677fc2141ece (detached worktree /Users/timmalmstrom/hpo-seats/r9rev-2132/wt)
+branch: fix/r9-ci-consolidation-ratchet
+ls-remote at review: 648f22d7ac57021b37da3556cf64677fc2141ece (match)
+
+check-runs (commit API):
+- 648f22d7ac57021b37da3556cf64677fc2141ece: total 0 (no runs yet)
+- f7d1bcf86429a0c2b70d08d8ee255c1350c54fa6: pr-contract FAILURE, instrument-self-tests FAILURE, budget-raise-gate FAILURE x2 (disclosed); coverage/fast in_progress
+- 476dac6e0df03375aadbf7f3b70add7757a12047: pr-contract FAILURE, instrument-self-tests FAILURE, budget-raise-gate FAILURE x2; many cancelled (superseded run)
+
+instrument-self-tests failure (job 114433418482 / 114432813361):
+  FAIL tests/ci_budgets.json: has a schema: got False, want True
+  FAIL tests/ci_budgets.json: carries at least one cap the gate reads: got False, want True
+  budget_raise_gate self-test: 211 checks, 2 failed
+pr-contract failure (job 114433926227): ERROR [pr-body] check 'instrument-self-tests' is red and '## Red checks' does not name it.
+Local reproduction at 648f22d7ac57021b37da3556cf64677fc2141ece: python3 tools/policy/budget_raise_gate.py --self-test -> 211 checks, 2 failed (same two lines).
+Cause: SCHEMA dict in tools/policy/budget_raise_gate.py (lines 131-170) keys six existing *_budgets.json paths;
+tests/ci_budgets.json is a new tracked *_budgets.json with no SCHEMA entry -> self-test demands one.
+Body '## Red checks' names only budget-raise-gate and states 'none further named as expected-red'.

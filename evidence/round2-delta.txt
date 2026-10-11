@@ -1,0 +1,30 @@
+round-2 delta review
+head measured: dd561d218a40da4cb96f69d5fe52205226bac6db (detached worktree /Users/timmalmstrom/hpo-seats/r9rev-2132/wt)
+round-1 head was 648f22d7ac57021b37da3556cf64677fc2141ece.
+
+Authored delta 648f22d7a..dd561d218 (excluding main-side merge content): tools/policy/budget_raise_gate.py only
+(+36 lines): the seventh SCHEMA entry for tests/ci_budgets.json (recorded_at/reason FREE; archscore.*, 
+script_runs_per_push, script_runs_full_case_pr, critical_path_minutes MAX; unmatched keys fall to FROZEN) and
+8 new self-test arms (null control, tightened-routine, each metric up = raise, cap removed = raise, unknown
+key frozen). Authored content vs merge-base origin/main (0f1ccbe52): 14 files = round-1's 13 + budget_raise_gate.py.
+No change to tests/closure.py, tests/ci_ratchet.py, .github/workflows/tests.yml, coverage/composed machinery:
+round-1 C2/C1/ratchet measurements stand.
+
+Measurements at dd561d218:
+- python3 tools/policy/budget_raise_gate.py --self-test -> 219 checks, 0 failed (was 211/2)
+- mutant A (schema entry deleted): 3 failed (the two round-1 FAILs return + 'ci: metrics tightened by a
+  re-record are routine' fails)
+- mutant B (script_runs_per_push MAX->FREE): 1 failed ('ci: a script-run count up is a raise')
+- PYTHONPATH=tests/hastub python3 tests/structure.py -> STRUCTURE RATCHET PASSED
+- tree clean after each restore (git status empty)
+The gate's PR reading is unchanged from round 1's disclosure: the base copy has no ci_budgets.json, so the
+initial leaves are raises the owner approves (budget-raise-gate red at head, disclosed, the owner's).
+
+Published head: abf7dc7f9b5043b48605aea1fb70769e565711fc (dd561d218 never reached any remote ref;
+abf7dc7f9 re-merges ba7455ea5 onto the same tree -- git diff dd561d218..abf7dc7f9 empty).
+Re-measured AT abf7dc7f9: self-test 219/0, STRUCTURE RATCHET PASSED, worktree clean.
+check-runs at abf7dc7f9 (commit API): instrument-self-tests completed:success (13:03Z local poll);
+budget-raise-gate failure x2 (disclosed, owner-gated initial record); browser/fast/coverage/Analyze
+in progress (the merge's own required contexts). Authored delta from round-1 head 648f22d7a:
+tools/policy/budget_raise_gate.py only; the delivery row and bot closures re-record predate it;
+the rest of the range is origin/main's own merge content. ls-remote at publish: abf7dc7f9 (match).

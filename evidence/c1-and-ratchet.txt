@@ -1,0 +1,32 @@
+head: 648f22d7ac57021b37da3556cf64677fc2141ece
+C1 local (macOS, mechanism only, my own instrument, layout.py since boost is not locally drivable in review time):
+  bare vs composed (COVERAGE_PROCESS_START set) recordings: files identical (3/3), inert_reads identical (0/0), rc 0 both,
+  argv equal, 'how' marker distinguishes (audithook+sys.modules vs audithook+sys.modules+coverage-tracer).
+  Non-authoritative: Darwin, no strace union; the authority is the Linux composed-proof job.
+C1 Linux byte-identity proof: PROMISED, not run -- composed-proof check-run at 476dac6e0 is 'cancelled'; none completed anywhere.
+Mutants (mine, restore verified, tree clean after):
+  proof_consume 'elif label != expect_tree:' -> 'elif False:' => 1 of 74 selftest pins FAILED (named pin)
+  composed_verify 'if rec.get("rc") != 0:' -> 'if False:'     => 1 of 74 selftest pins FAILED (named pin)
+  ci_ratchet compare 'if cur > budget:' -> 'if False:'        => entities.py 'the CI ratchet's main() refuses a script-run
+    count above its budget' FAILED (1 of 2259)
+Null controls at unmodified head (clean re-run, no concurrent edits):
+  closure.py selftest: ALL 74 PINS PASSED; structure.py: STRUCTURE RATCHET PASSED; entities.py (python3.13): rc=0,
+  ALL 2259 ENTITY CHECKS PASSED (body said 2258: its count predates the merge commit that added main-side checks).
+Ratchet inputs: .tsv lines emitted by run.sh / derive_closures.sh rec() / coverage_tree.sh metric_line(), each carrying
+GITHUB_EVENT_NAME/GITHUB_RUN_ID; --record needs a reason, never passed by any job (pinned in entities); one-way compare;
+a new derived metric with no budget row is itself a growth. ci_budgets.json value changes hit budget-raise-gate (schema-less
+file -> all leaves frozen -> any change is an owner-gated raise).
+Budget values re-derived at head: 17 archscore rows == vector.measure exactly (mismatches: {}); selectable=33 (verified);
+coverage fast stage = 20 via coverage_tree.sh's exact DERIVED pipeline; 33+20=53 == recorded. critical_path_minutes 61.0:
+API window moved since recording; today's 4 newest completed push runs 44.2/54.2/58.7/60.2 -- budget still green, consistent
+with p75-at-record rule. Body's '16 archscore rows' is a miscount (17); '22 initial values' = 22 keys incl. recorded_at+reason.
+Write set (13 files): .github/workflows/tests.yml, dev/programme/delivery/2132.md (new, the row), tests/ci_budgets.json (new),
+tests/ci_ratchet.py (new), tests/closure.py, tests/closures.json, tests/composed_closures.json (new), tests/deployment_shape.py,
+tests/derive_closures.sh, tests/entities.py, tests/run.sh, tools/coverage/composed_proof.sh (new, INERT_EXCEPT+closure),
+tools/coverage/coverage_tree.sh. New files classified (entities green). No existing *_budgets.json touched or raised.
+custom_components untouched by the branch (diff name-only -> 0 lines).
+Rule 1 end-to-end: no path found where a wrong closure survives beyond one merge -- C2 keys on this run's own HEAD^{tree}
+found BY NAME, every refusal re-records full, check runs unchanged on consumed recordings; C1 stores nothing across trees
+(every event executes the script once); ratchet metrics come from the runs themselves.
+Forward-carry note: the 53->52 headroom tightening's destination (wave-3l-groups.json resume) is named but not edited;
+the pre-study doc is neither on origin/main nor on this branch (handoff ref 488aca6e1 only).
