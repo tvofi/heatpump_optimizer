@@ -309,6 +309,16 @@ jobs:
       - name: Show the push script's decisions refusing their own fixtures
         run: if test -f tools/audit/push.sh; then bash tools/audit/push.sh --self-test; else bash tools/pr/push.sh --self-test; fi
 
+      # The App push-and-open: the #678 ordering (the body contract before
+      # anything reaches the remote), the committed-tip and dirty-tree gates, the
+      # clean-carry condition, and the bounded three-outcome read-back that tells
+      # a race from a refused push (R9-RC-RECARRY-READBACK), over stubbed gh,
+      # git, curl and openssl -- no network, no key. Its siblings push.sh and
+      # app_approve.sh are driven here; the arms that fix adds are otherwise run
+      # by no check on the pull request (the diff is INERT, MODE: SCOPED -- 0).
+      - name: Show the App push refusing its own fixtures
+        run: if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh --self-test; else bash tools/pr/app_push.sh --self-test; fi
+
       # The App approval's refusals and token cleanup, over stubbed gh, curl
       # and openssl: no network, no key.
       - name: Show the App approval refusing its own fixtures
