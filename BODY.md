@@ -1,3 +1,4 @@
+<!-- ccr-projects-attribution: {"github_login":"tvofi"} -->
 The round-9 heavy-script consolidation pre-study
 (`dev/audit/rounds/round9/prestudy/heavy-script-consolidation-prestudy.md`,
 handoff `488aca6e1`) measured the push side paying 3 instrumented executions
@@ -54,6 +55,31 @@ stays owned by `tests/structure_budgets.json`. A scoped-FRACTION ratchet is
 deliberately absent: 33 of the last 60 merges are full-case BY DESIGN
 (measured below), so a share ratchet would refuse legitimate merges.
 
+**The raise gate's schema for the new file (the blocked review's one
+block).** `tools/policy/budget_raise_gate.py`'s SCHEMA knew six budget
+files; this PR added a seventh without teaching it, so the self-test's
+tracked-file loop reddened (`tests/ci_budgets.json: has a schema: got
+False`). The entry, per the file's own documented semantics, each leaf
+justified against the consumer (`ci_ratchet.py`'s `compare`, which refuses
+any metric that GREW):
+
+- `archscore.*`, `script_runs_per_push`, `script_runs_full_case_pr`,
+  `critical_path_minutes` — `max`: each is a cap whose higher value is more
+  CI spend or architectural debt permitted; the ratchet's point is
+  one-way-down, so an upward move is a raise the owner sees.
+- `recorded_at`, `reason` — `free`: metadata and the re-record's prose,
+  exactly the consumer's own `METADATA_KEYS`.
+- a key no rule matches falls to `frozen` — the same reading the consumer
+  gives a key it does not know ("is not a metric this ratchet knows"), so a
+  metric reaches this file only through `ci_ratchet.py`, never past the
+  gate.
+
+This does not green the gate on this PR: the workflow restores the gate's
+source from the base commit before running it, and the base knows no
+seventh file, so the initial record is still 22 owner-gated frozen leaves
+at this head (below, Red checks).
+
+
 Adopted from research: one-way exit-code enforcement with the threshold in a
 committed data file the tool itself re-records (qntm.org/ratchets;
 github.com/phenomnomnominal/betterer; github.com/justjake/eslint-seatbelt;
@@ -69,7 +95,15 @@ metric — the measurement above refuses it.
 
 ## Head
 
-476dac6e0df03375aadbf7f3b70add7757a12047 (origin/main a745200209b275c0f33dc2253af8c7757ffb8de2, taken 2026-10-11T08:34:00Z)
+`ba7455ea51938aacf0b9fdb4e19879e5705ca6e0` adds one commit to the review head
+`648f22d7ac57021b37da3556cf64677fc2141ece`: the repair the blocked review
+asked for — `tools/policy/budget_raise_gate.py`'s SCHEMA learns the seventh
+budget file `tests/ci_budgets.json` this PR adds (classification and
+self-test arms below). Nothing else moves: the C1/C2/ratchet logic the
+reviewer established as sound is untouched (`git diff 648f22d7a..ba7455ea5 --
+stat` → 1 file, +36).
+
+ba7455ea51938aacf0b9fdb4e19879e5705ca6e0 (origin/main e1501bf480d0d6430875f3a7334402cb00cc4dd3, taken 2026-10-11T09:32:36Z)
 
 ## Mutation proof
 
@@ -87,6 +121,20 @@ predicate, not a tail appended past a return.
 - Ratchet, `tests/ci_ratchet.py compare`: `if cur > budget:` → `if False:` —
   `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `FAIL the CI
   ratchet's main() refuses a script-run count above its budget`.
+- Schema entry, `tools/policy/budget_raise_gate.py` SCHEMA: delete the
+  `tests/ci_budgets.json` entry (the fix's production lines) —
+  `python3 -I tools/policy/budget_raise_gate.py --self-test` prints
+  `FAIL tests/ci_budgets.json: has a schema: got False, want True` and
+  `FAIL tests/ci_budgets.json: carries at least one cap the gate reads:
+  got False, want True` and `FAIL ci: metrics tightened by a re-record are
+  routine: got True, want False` (219 checks, 3 failed) — the CI red,
+  reproduced locally.
+- Schema classification, one rule mutated: `(("archscore.*",), MAX)` →
+  `(("archscore.*",), FREE)` — the same self-test prints `FAIL ci: an
+  archscore vector entry up is a raise: got False, want True` and `FAIL
+  ci: an archscore cap removed is a raise: got False, want True` (219
+  checks, 2 failed); the arms pin the classification, not just the entry's
+  existence.
 
 Failing-first arms, the same predicates before the fix existed: the
 proof-consume pin initially FAILED against the first implementation (`FAIL
@@ -99,6 +147,11 @@ green/red fixture (below) was demonstrated against an empty budget before
 
 - The unmodified tree at each mutant passes every harness above
   (`ALL 74 closure shrink pins PASSED`, `ALL 2258 ENTITY CHECKS PASSED`).
+- The schema repair's own null control: the unmodified tree at
+  `ba7455ea51938aacf0b9fdb4e19879e5705ca6e0` runs the same self-test at
+  `budget_raise_gate self-test: 219 checks, 0 failed` (211 before the
+  schema entry: the 8 new bespoke `ci:` arms, and the tracked-file loop
+  grading the seventh file's 20 caps both directions).
 - The ratchet at its own recorded count:
   `python3 tests/ci_ratchet.py --metrics-dir <53-run fixture> --runs-json <api listing>`
   → `ok script_runs_per_push: 53 (budget 53)`, rc 0; the same fixture plus
@@ -131,13 +184,20 @@ re-executed here.
 - `PYTHONPATH=tests/hastub python3 tests/closure.py selftest` → `ALL 74
   closure shrink pins PASSED` (17 new: 11 composed/proof refusals and
   acceptances, the roster refusal, the committed allow-list seam rule).
-- `PYTHONPATH=tests/hastub python3.13 tests/entities.py` → `ALL 2258 ENTITY
-  CHECKS PASSED`; at origin/main the same command prints `ALL 2250 ...` —
-  the 8 new checks are the ratchet's classification, wiring, budget-table
-  refusal, main() growth refusal, its null control, the no-budget-row
-  growth, the allow-list seam and the proof driver's wiring.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` (seat venv-ci
+  3.14.7, `tools/audit/seat/seat_venv.sh`) → `ALL 2259 ENTITY
+  CHECKS PASSED`; at origin/main e1501bf48 the same command prints `ALL
+  2251 ...` (main's tip gained one check over the a74520020 the previous
+  round measured) — the 8 branch checks are the ratchet's classification,
+  wiring, budget-table refusal, main() growth refusal, its null control,
+  the no-budget-row growth, the allow-list seam and the proof driver's
+  wiring; the schema repair adds none.
 - `PYTHONPATH=tests/hastub python3 tests/structure.py` → `STRUCTURE RATCHET
   PASSED` (no budget moved; no `*_budgets.json` value raised anywhere).
+- `python3 -I tools/policy/budget_raise_gate.py --self-test` →
+  `budget_raise_gate self-test: 219 checks, 0 failed` at
+  `ba7455ea51938aacf0b9fdb4e19879e5705ca6e0` (the check `instrument-self-tests`
+  runs; was 211 checks, 2 failed at `648f22d7a`).
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base
   origin/main HEAD)` → `Architecture score: dS +0.0000 NULL`.
 - The budget table's derivations, at origin/main a74520020 (custom_components
@@ -178,17 +238,35 @@ re-executed here.
 
 ## Red checks
 
+- `instrument-self-tests` went red at `476dac6e0`, `f7d1bcf86` and
+  `648f22d7a` and was answered only here: its step "Show the budget-raise
+  gate refusing its own fixtures" printed
+  `FAIL tests/ci_budgets.json: has a schema: got False, want True` and
+  `FAIL tests/ci_budgets.json: carries at least one cap the gate reads:
+  got False, want True` (`budget_raise_gate self-test: 211 checks, 2
+  failed`, check-runs 114432813361 / 114433418482 / 114434411451) — this
+  PR added the seventh tracked `*_budgets.json` without teaching the
+  gate's SCHEMA its leaves. The repair is `ba7455ea5`: the SCHEMA entry
+  and eight self-test arms above; reproduced locally at the old head
+  (2 failed), green at the new one (219 checks, 0 failed). The cheaper
+  detector question: the self-test's tracked-file loop IS the detector —
+  it reddened at the very first push of the file, and nothing cheaper
+  reads "every tracked budget file has a schema"; its standing cost is
+  one self-test pass per push, already paid.
 - `budget-raise-gate` is red at the head until tvofi approves it: the file
-  `tests/ci_budgets.json` is NEW, and the gate reads its 22 initial values
-  (16 archscore rows at main's measured vector plus the three counts) as 22
-  raises (`None -> value`), because a pinned value is exactly what it cannot
-  sign as routine. This is the initial record of the ratchet tvofi asked
-  for, not a raise of any existing `*_budgets.json` (none of those files is
-  touched; every existing value is unchanged). The cheaper detector — a
-  new-file initial-record arm in `budget-raise-gate` that distinguishes a
-  first record from a raise — would let an owner-blind first recording of
-  one-way caps through, which is what the gate exists to prevent, so none is
-  built; the standing cost is one owner review of this head.
+  `tests/ci_budgets.json` is NEW, and the gate — whose workflow restores
+  its source from the BASE commit, which knows no seventh file — reads its
+  22 initial values (17 archscore rows at main's measured vector, the two
+  script-run counts, `critical_path_minutes`, `recorded_at`, `reason`) as 22
+  raises (`None -> value`), because a pinned value is exactly what it
+  cannot sign as routine. This is the initial record of the ratchet tvofi
+  asked for, not a raise of any existing `*_budgets.json` (none of those
+  files is touched; every existing value is unchanged). The cheaper
+  detector — a new-file initial-record arm in `budget-raise-gate` that
+  distinguishes a first record from a raise — would let an owner-blind
+  first recording of one-way caps through, which is what the gate exists
+  to prevent, so none is built; the standing cost is one owner review of
+  this head.
 - `none` further named as expected-red at the head. Left to CI by design and
   named unrun: the heavy lanes the FULL scope selects (`stress.py`,
   `golden.py` drift, `features.py`, `optimality.py`,
@@ -215,3 +293,4 @@ roster.
 
 `dS +0.0000 NULL` — the diff touches no production file; the ratchet
 records the vector's current values rather than grading a change to them.
+
