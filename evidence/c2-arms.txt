@@ -1,0 +1,8 @@
+head: 648f22d7ac57021b37da3556cf64677fc2141ece
+Five C2 arms driven by me (fixture built from closure.selectable_scripts() minus DRIVEN_BY_OTHERS/SLOW_GATED = 33 recordings):
+- manifest names ANOTHER tree  -> rc=1 "refusing to consume: manifest tree ... is not this run's tree ... failing closed to a full re-record"
+- corrupt/truncated recording   -> rc=1 "a recording is missing or malformed" + roster refusal
+- set missing selectable scripts -> rc=1 "the recordings cover 31 script(s) but the selectable roster misses ['arch_score.py','card.mjs']"
+- artifact absent entirely      -> rc=1 "no tree.txt manifest" (in-workflow: gh lookup miss -> exit 0 -> PROOF_CONSUMED=false -> full re-record)
+- good full-roster artifact     -> rc=0 "consumed proof recordings (tree ..., 33 scripts); tests/closure.py check still runs on them"
+No arm proceeds on doubt. Check step runs FULL (no --partial) on push since SCOPE_CASE is empty there.
