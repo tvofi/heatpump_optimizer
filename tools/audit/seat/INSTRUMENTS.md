@@ -43,10 +43,6 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   (`audit-find` runs it in Prepare and refuses the round on failure) or
   splitting one. Refusal: a cell owned twice, or owned by nobody — the
   perturbed-scope `--self-test` is the null control.
-- `fastpath_census.py` — measures how often `merge_fastpath.py` would have
-  said ELIGIBLE over main's last N merges. When: re-justifying (or retiring)
-  the fastpath with numbers. Refusal: `INJECT=1` — without it the census
-  measures nothing and says so.
 - `fold_ledger.py` — folds a round's JUDGE.json and sweeps into
   `bugclasses.json`, and checks the register against the judges. When: after a
   judge lands, and before quoting the bugclass register as current state.
@@ -57,11 +53,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   grades a batch of findings and wants the mechanical half scripted. Refusal:
   a perturbation that does not move the number in the stated direction prints
   `void`; what it cannot run prints `by-hand`, never a pass.
-- `merge_fastpath.py` — answers whether a verdicted PR can merge without a
-  fresh CI run: did anything main changed since the PR's CI base land inside a
-  closure the PR's own scoped gate selected? When: a merge train stalls on
-  "main moved after CI". Refusal: an unrecorded file in the diff — ELIGIBLE
-  needs every touched path measured, and "unrecorded" refuses.
+- `merge_fastpath.py` — classifies a changed file as workflow, claim, grader
+  or budget for `merge_train.py`'s batch routing: any such file sends a pull
+  request serial. Refusal: `--self-test` — `governance.yml` greps its
+  `checks, 0 failed` line.
 - `merge_throughput.py` — measures whether merges land inside the previous
   merge's gate window often enough to justify a merge queue. When: someone
   proposes a queue; the numbers decide before the mechanism is built.
@@ -177,6 +172,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
   but the gantt's grammar checks run in `--self-test`, not at render time.
+- `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
+  the train launches: per entry PASS, PARK (the train's own Stop wording — a
+  carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
+  branch another worktree holds, a policy or budget head without the owner's
+  in-force mandate) or FAIL (a verdict that is not 40-hex, a closed pull
+  request). When: before any `merge_train.py run`/`batch` — an admission-time
+  refusal parks the entry here instead of stopping a live queue mid-run.
+  Refusal: exit 1 unless every entry passed; the checks are the train's own
+  methods (`bot_tip`, `policy_gate`, `app_approve.sh --carry`), never new ones.
 - `record_row.py` — the record-autofix generator: enumerates merged PRs from
   the REST API, plans the delivery rows the tree still lacks, applies them
   behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
