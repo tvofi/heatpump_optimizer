@@ -195,15 +195,15 @@ sys.exit(open(sys.argv[1]).read().rstrip("\n") != live.rstrip("\n"))' "$body" 2>
 # A *transport* failure -- the read could not be performed (HTTP 5xx, network
 # error, timeout), an empty or unparseable answer where a PR document was
 # expected, or the index still answering the old head -- retries within the
-# budget: 3 tries with an exponential backoff of 5s/15s/45s (~65s of settles),
-# which rides out the measured transient (two train stops of ~90s recovery
-# each, 2026-10-12). A *mismatch* -- a COMPLETED read that differs from what
+# budget: 4 reads (the first read plus 3 retries) settling 5s/15s/45s (~65s of
+# sleeps), which rides out the measured transient (two train stops of ~90s
+# recovery each, 2026-10-12). A *mismatch* -- a COMPLETED read that differs from what
 # was meant to be posted (a body not byte-identical at the pushed sha, a read
 # answering state=closed) -- NEVER retries: it refuses at once, because the
 # byte-identical read-back (comment-readback.md) is the safety property and a
 # retry would read as slow success. Both exhausted-transport refusals keep
 # their own wording, so a race is still told from a wedge.
-RB_TRIES=${APP_PUSH_READBACK_TRIES:-3}
+RB_TRIES=${APP_PUSH_READBACK_TRIES:-4}
 RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-5}
 
 # One read of the pull request. On stdout, one verdict token:
@@ -887,8 +887,8 @@ st $? 1 "a completed read answering state=closed refuses at once (a mismatch, ne
 st "$(grep -c 'the read was refused (the read answered state=closed)' "$W/rclosed/err")" 1 "naming the state the read answered"
 st "$(cat "$W/rclosed/get-n" 2>/dev/null)$(settles rclosed)" 10 "zero retries, zero settles: one read, no sleeping"
 st "$(grep -c '^app_push: PUSHED ' "$W/rclosed/out")" 0 "and no success line"
-# the budget itself: 3 transport tries, exponential 5s/15s/45s at the defaults.
-st "$(grep -c '^RB_TRIES=${APP_PUSH_READBACK_TRIES:-3}$' "$SELF")$(grep -c '^RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-5}$' "$SELF")" 11 "the default budget is 3 tries with a 5s/15s/45s exponential backoff (~65s of settles)"
+# the budget itself: 4 reads = the first read plus 3 retries, settling 5s/15s/45s.
+st "$(grep -c '^RB_TRIES=${APP_PUSH_READBACK_TRIES:-4}$' "$SELF")$(grep -c '^RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-5}$' "$SELF")" 11 "the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles)"
 
 echo "app_push self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
