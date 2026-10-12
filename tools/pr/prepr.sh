@@ -754,7 +754,6 @@ heavy_declared() { # step id -> one `dir <prefix>` or `file <path>` or `closure 
       printf '%s\n' \
         "dir tools/policy/" "dir .claude/workflows/" "dir .claude/rules/" \
         "dir .claude/skills/" "dir .cursor/rules/" "dir dev/governance/" \
-        "dir tools/audit/briefs/" \
         "file CLAUDE.md" "file AGENTS.md" "file .github/PULL_REQUEST_TEMPLATE.md" \
         "file tests/README.md" "file tools/audit/README.md" "file dev/audit/README.md" ;;
     # field_coverage.mjs reads .claude/settings.json, the workflow fixtures,
