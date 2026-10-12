@@ -1267,12 +1267,27 @@ jobs:
   # credential lives in the `ledger` environment, whose deployment branches
   # are main alone, so no other ref's job can mint it; absent, the job is red.
   # The commits sent are checked before the push (`drain_push_problems`).
+  # The same-repo pull_request arm (2026-10-12, the owner's question) arms the
+  # job on a fork-free, synchronize-only PR and keeps every write guard above
+  # byte-identical; it fires only when `mutation-ledger` succeeded in the same
+  # run, which on a pull request awaits the owner's ruling on how the measured
+  # slice reaches a PR run (the measuring job is main-only, #1848 B1).
   mutation-ledger-push:
     needs: [mutation-ledger]
     if: >-
-      !cancelled() && github.ref == 'refs/heads/main'
-      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      !cancelled()
       && needs.mutation-ledger.result == 'success'
+      && (
+        (
+          github.ref == 'refs/heads/main'
+          && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        )
+        || (
+          github.event_name == 'pull_request'
+          && github.event.action == 'synchronize'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        )
+      )
     environment: ledger
     runs-on: ubuntu-latest
     timeout-minutes: 10

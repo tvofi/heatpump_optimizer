@@ -23837,9 +23837,55 @@ _NS_HEADS = {
         _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0].split()))
     for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
 }
+
+
+def _gh_if(job: str) -> str:
+    m = _re.search(r"^    if: (?:>-\n((?:      .*\n)+)|(.*)\n)", job, _re.M)
+    return " ".join((m.group(1) or m.group(2)).split()) if m else "true"
+
+
+def _gh_eval(expr: str, ctx: dict) -> bool:
+    for k, v in ctx.items():
+        expr = expr.replace(k, repr(v))
+    expr = (expr.replace("always()", "True").replace("!cancelled()", "True").replace("&&", " and ")
+            .replace("||", " or ").replace("!=", "<>"))
+    expr = _re.sub(r"!(?!=)", " not ", expr).replace("<>", "!=")
+    return bool(eval(expr, {"__builtins__": {}}))  # noqa: S307 -- literals only
+
+
+# A `pull_request` mention that sits in an arm armed only on the SUCCESS of a
+# schedule-only producer never fires: that producer is skipped on every
+# pull-request run -- the reach check for the ledger pair pins exactly that
+# coupling. Such a job stays invisible to a pull request for itself and keeps
+# its REQUIRED_LANES registration. Evaluated, not pattern-matched: an arm that
+# would really fire (its own producer runs on pull requests) evaluates true,
+# and a needs the workflow does not let us resolve refuses to classify rather
+# than silently counting as invisible.
+_NS_S0 = sorted(_n for _n, _h in _NS_HEADS.items()
+                if "'schedule'" in _h and "'push'" not in _h
+                and "'pull_request'" not in _h)
+_NS_PR_CTX = {"github.event_name": "pull_request",
+              "github.ref": "refs/pull/1/merge",
+              "needs.recheck-gate.outputs.recheck": "false",
+              "github.repository": "tvofi/heatpump_optimizer",
+              "github.event.action": "synchronize",
+              "github.event.pull_request.head.repo.full_name":
+                  "tvofi/heatpump_optimizer"}
+
+
+def _ns_pr_inert(job: str) -> bool:
+    try:
+        ctx = {**_NS_PR_CTX,
+               **{f"needs.{_j}.result": "skipped" for _j in _NS_S0}}
+        return not _gh_eval(_gh_if(_workflow_job(_TESTS_YML, job)), ctx)
+    except Exception:  # noqa: BLE001 -- an unresolvable arm is PR-visible
+        return False
+
+
 _NS_SCHEDULE_ONLY = sorted(
     _n for _n, _h in _NS_HEADS.items()
-    if "'schedule'" in _h and "'push'" not in _h and "'pull_request'" not in _h
+    if "'schedule'" in _h and "'push'" not in _h
+    and ("'pull_request'" not in _h or _ns_pr_inert(_n))
 )
 R.check(
     "the reporter watches exactly the lanes a pull request cannot see",
@@ -30656,45 +30702,55 @@ R.check(
 # every event, ref and recheck answer, so a guard that only appears in the
 # text -- or sits inside an `||` -- fails. A branch-ref dispatch reaches
 # neither job, and the push refuses a branch ref on its own even were the
-# measuring job to succeed there.
-def _gh_if(job: str) -> str:
-    m = _re.search(r"^    if: (?:>-\n((?:      .*\n)+)|(.*)\n)", job, _re.M)
-    return " ".join((m.group(1) or m.group(2)).split()) if m else "true"
-
-
-def _gh_eval(expr: str, ctx: dict) -> bool:
-    for k, v in ctx.items():
-        expr = expr.replace(k, repr(v))
-    expr = (expr.replace("always()", "True").replace("!cancelled()", "True").replace("&&", " and ")
-            .replace("||", " or ").replace("!=", "<>"))
-    expr = _re.sub(r"!(?!=)", " not ", expr).replace("<>", "!=")
-    return bool(eval(expr, {"__builtins__": {}}))  # noqa: S307 -- literals only
-
-
+# measuring job to succeed there. (`_gh_if` and `_gh_eval` live above, at the
+# nightly-status coupling, their first use.)
+# The same-repo pull_request arm (2026-10-12, the owner's question): the push
+# ALONE also arms on a same-repo `synchronize` pull request, never on a fork
+# (`head.repo.full_name != repository`), never on `closed`, and never on a
+# `push` event, which carries no pull_request context. The realistic
+# `needs.mutation-ledger.result` column keeps the arm's coupling honest: the
+# measuring job runs on main alone (#1848 B1), so on a pull request the result
+# is `skipped` and the arm does not fire until the owner rules how the
+# measured slice reaches a pull-request run.
+_REPO = "tvofi/heatpump_optimizer"
 _REACH: list = []
 try:
     for _rv in ("schedule", "workflow_dispatch", "push", "pull_request"):
         for _rr in ("refs/heads/main", "refs/heads/fix/x", "refs/pull/1/merge"):
             for _rc in ("true", "false"):
-                _rx = {"github.event_name": _rv, "github.ref": _rr,
-                       "needs.recheck-gate.outputs.recheck": _rc}
-                _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
-                _r_push = _gh_eval(_gh_if(_ml_push), {
-                    **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
-                _r_alone = _gh_eval(_gh_if(_ml_push), {
-                    **_rx, "needs.mutation-ledger.result": "success"})
-                _r_want = _rr == "refs/heads/main" and (
-                    _rv == "schedule" or (_rv == "workflow_dispatch" and _rc != "true"))
-                if (_r_meas, _r_push) != (_r_want, _r_want) or (
-                        _r_alone and (_rr != "refs/heads/main"
-                                      or _rv not in ("schedule", "workflow_dispatch"))):
-                    _REACH.append((_rv, _rr, _rc, _r_meas, _r_push, _r_alone))
+                for _ra, _hr in ((("synchronize", _REPO), ("closed", _REPO),
+                                  ("synchronize", "outsider/heatpump_optimizer"))
+                                 if _rv == "pull_request" else (("synchronize", _REPO),)):
+                    _rx = {"github.event_name": _rv, "github.ref": _rr,
+                           "needs.recheck-gate.outputs.recheck": _rc,
+                           "github.repository": _REPO, "github.event.action": _ra,
+                           "github.event.pull_request.head.repo.full_name": _hr}
+                    _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
+                    _r_push = _gh_eval(_gh_if(_ml_push), {
+                        **_rx, "needs.mutation-ledger.result":
+                            "success" if _r_meas else "skipped"})
+                    _r_alone = _gh_eval(_gh_if(_ml_push), {
+                        **_rx, "needs.mutation-ledger.result": "success"})
+                    _r_want = _rr == "refs/heads/main" and (
+                        _rv == "schedule"
+                        or (_rv == "workflow_dispatch" and _rc != "true"))
+                    _r_arm = (_rv == "pull_request"
+                              and _ra == "synchronize" and _hr == _REPO)
+                    if (_r_meas, _r_push) != (_r_want, _r_want) or _r_alone != (
+                            _r_want or _r_arm
+                            or (_rr == "refs/heads/main"
+                                and _rv in ("schedule", "workflow_dispatch"))):
+                        _REACH.append(
+                            (_rv, _rr, _rc, _ra, _hr.split("/")[0],
+                             _r_meas, _r_push, _r_alone))
 except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
     _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
 R.check(
-    "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both",
+    "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; "
+    "main's schedule and dispatch reach both; the push alone arms a same-repo "
+    "synchronize pull request, and no fork, closed or push arm",
     not _REACH,
-    f"(event, ref, recheck, measured, pushed, push alone) wrong: {_REACH}",
+    f"(event, ref, recheck, action, actor, measured, pushed, push alone) wrong: {_REACH}",
 )
 _CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
 R.check(
