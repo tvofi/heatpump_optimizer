@@ -2590,8 +2590,11 @@ def composed_verify(expect_tree: str, in_dir: Path) -> int:
             # base data, so nothing was composed to consume. That is a skip,
             # not a refusal: the script records bare below, the safe
             # direction. (A present-but-invalid record IS a refusal.)
+            # stderr, not stdout: the workflow step word-splits stdout as
+            # the script list -- a diagnostic there became a fake
+            # `composed-verify:` token and killed the cp (job 115038269065).
             print(f"composed-verify: {script} was not composed this run; "
-                  "it records bare")
+                  "it records bare", file=sys.stderr)
             continue
         if rec.get("rc") != 0:
             problems.append(
@@ -3985,6 +3988,7 @@ def _selftest_proof(pin) -> None:
 
 
 def _selftest_composed(pin) -> None:
+    global COMPOSED
     tree = "3" * 40
     script = composed_scripts()[0] if composed_scripts() else \
         "tests/boost_drift_replay.py"
@@ -4009,6 +4013,71 @@ def _selftest_composed(pin) -> None:
         pin("composed-verify accepts a healthy record on the same tree",
             rc == 0 and script in buf.getvalue().splitlines(),
             f"rc={rc} out={buf.getvalue()!r}")
+    # The channel contract: stdout carries ONLY the script list the workflow
+    # step word-splits. A diagnostic on stdout became the fake token
+    # `composed-verify:` and killed the consume step's cp (job
+    # 115038269065: `cp: cannot stat '..._temp/composed/composed-verify:
+    # .json'`). Force the diagnostic path (an allow-listed script with no
+    # recording) and pin the channel, not just the exit.
+    with tempfile.TemporaryDirectory() as td:
+        d = composed_dir(Path(td), rec=good_rec)
+        saved = COMPOSED
+        allow = Path(td) / "allow.json"
+        allow.write_text(json.dumps(
+            {"scripts": [script, "tests/never_composed_here.py"]}))
+        COMPOSED = allow
+        try:
+            with contextlib.redirect_stdout(io.StringIO()) as out, \
+                    contextlib.redirect_stderr(io.StringIO()) as err:
+                rc = composed_verify(tree, d)
+            val = out.getvalue()
+            pin("composed-verify's stdout is exactly the script list; the "
+                "not-composed diagnostic goes to stderr",
+                rc == 0 and val.split() == [script]
+                and "composed-verify:" not in val
+                and "was not composed this run" in err.getvalue(),
+                f"rc={rc} out={val!r} err={err.getvalue()[-160:]!r}")
+        finally:
+            COMPOSED = saved
+    # The workflow side of the same contract: the consume step's loop, run
+    # as the step itself writes it, must skip a foreign token to
+    # record-bare (printed, never a bare cp failure) and stage only real
+    # stems -- COMPOSED_CONSUMED lists what was actually consumed.
+    text = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
+    step = text.split("- name: Verify and stage the composed recordings", 1)[1]
+    body = step.split("run: |", 1)[1]
+    block = body.split("mkdir -p", 1)[1].splitlines()
+    while block and not block[-1].strip():
+        block.pop()
+    loop_src = "mkdir -p" + "\n".join(block[:next(
+        i for i, ln in enumerate(block) if ln.strip().startswith("- name:"))])
+    with tempfile.TemporaryDirectory() as td:
+        run = Path(td) / "rt"
+        (run / "composed").mkdir(parents=True)
+        (run / "composed" / (name + ".json")).write_text("{}")
+        genv = Path(td) / "genv"
+        script_obj = Path(td) / "loop.sh"
+        script_obj.write_text(loop_src)
+        proc = subprocess.run(
+            ["bash", str(script_obj)],
+            env={**os.environ,
+                 "RUNNER_TEMP": str(run),
+                 "GITHUB_ENV": str(genv),
+                 "OUT": f"{script} composed-verify:"},
+            capture_output=True, text=True)
+        consumed = ""
+        if genv.exists():
+            for line in genv.read_text().splitlines():
+                if line.startswith("COMPOSED_CONSUMED="):
+                    consumed = line.split("=", 1)[1]
+        pin("the workflow loop skips a foreign token to record-bare and "
+            "consumes only real stems",
+            proc.returncode == 0
+            and (run / "closures" / (name + ".json")).is_file()
+            and consumed.split() == [script]
+            and "no composed recording's stem" in proc.stdout,
+            f"rc={proc.returncode} out={proc.stdout[-200:]!r} "
+            f"consumed={consumed!r}")
     for label, rec, manifest in (
         ("a run that did not end (rc 1)", {**good_rec, "rc": 1}, tree),
         ("a run with the coverage lane's argv, not the closures lane's",
@@ -4027,7 +4096,6 @@ def _selftest_composed(pin) -> None:
         d = composed_dir(Path(td), rec=good_rec)
         (d / (name + ".json")).write_text(json.dumps(
             {**good_rec, "script": "tests/features.py"}))
-        global COMPOSED
         saved = COMPOSED
         allow = Path(td) / "allow.json"
         allow.write_text(json.dumps({"scripts": ["tests/features.py"]}))

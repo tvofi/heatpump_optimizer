@@ -2256,12 +2256,18 @@ jobs:
           fi
           [ -n "$OUT" ] || { echo "nothing composed to consume"; exit 0; }
           mkdir -p "$RUNNER_TEMP/closures"
+          CONSUMED=""
           for s in $OUT; do
+            if [ ! -f "$RUNNER_TEMP/composed/$(basename "$s").json" ]; then
+              echo "composed: '$(basename "$s")' is no composed recording's stem; $s records bare"
+              continue
+            fi
             cp "$RUNNER_TEMP/composed/$(basename "$s").json" "$RUNNER_TEMP/closures/"
             echo "composed: consuming $s's recording from this run's coverage job"
+            CONSUMED="$CONSUMED$(printf '%s ' "$s")"
           done
           # Space-separated, for derive_closures.sh's COMPOSED_CONSUMED match.
-          echo "COMPOSED_CONSUMED=$(printf '%s ' $OUT)" >> "$GITHUB_ENV"
+          echo "COMPOSED_CONSUMED=$CONSUMED" >> "$GITHUB_ENV"
 
       - name: Re-record the closures
         # Full arm only: the fast arm has no recording to make. Unchanged
