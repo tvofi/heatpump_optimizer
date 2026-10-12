@@ -72,12 +72,17 @@
 # $OUT/per/.coverage.<name> (or $OUT/per/<name>.nodata, for a script that
 # executed no package line) before the final combine, which reads $OUT/per/:
 # a union of line sets, so the per-script detour measures what one combine
-# over every raw file did. The push to main keeps $OUT/per/ as the next pull
-# request's base. With W5P_SCOPE (the gate's scope.json for the diff) and
-# W5P_REUSE (that base's per/ directory) both set, a script the plan skips
-# and the base measured is not re-run: its base file is copied into per/.
-# `tests/closure.py coverage-split` decides, and `closure.py selftest` pins
-# it. Either variable unset measures every script, as before.
+# over every raw file did. The push to main keeps $OUT/per/ as the next
+# pull request's base -- and, since the V1 lever, restores the previous
+# push's entry and reuses under the same rule, so either arm may leave a
+# base script unmeasured. Every entry the instrument leaves in per/ is
+# provenanced in $OUT/per/provenance.tsv as reused or measured, so a reader
+# of the saved directory can tell which is which. With W5P_SCOPE (the
+# gate's scope.json for the diff) and W5P_REUSE (that base's per/
+# directory) both set, a script the plan skips and the base measured is not
+# re-run: its base file is copied into per/.
+# `tests/closure.py coverage-split` decides, and `closure.py selftest`
+# pins it. Either variable unset measures every script, as before.
 set -u
 [ -f custom_components/heatpump_optimizer/manifest.json ] || { echo "run from the worktree root" >&2; exit 2; }
 STAGE="${1:-all}"
@@ -168,6 +173,7 @@ measure() {
         [ -f "$W5P_REUSE/$f" ] && cp "$W5P_REUSE/$f" "$OUT/per/$f"
       done
       printf '%s\treused\t0\n' "$s" >> "$OUT/scripts.tsv"
+      printf '%s\treused\n' "$s" >> "$OUT/per/provenance.tsv"
       echo "reused tests/$s.py's coverage from the base: no changed file is in its closure"
       metric_line "$s" reused 0 0
       continue
@@ -191,6 +197,7 @@ measure() {
     fi
     rc=$?; b=$(date +%s)
     printf '%s\t%s\t%s\n' "$s" "$rc" "$((b-a))" >> "$OUT/scripts.tsv"
+    printf '%s\tmeasured\n' "$s" >> "$OUT/per/provenance.tsv"
     echo "ran tests/$s.py exit=$rc wall=$((b-a))s"
     metric_line "$s" "$class" "$rc" "$((b-a))"
     if ls "$WORK/data/$s"/.coverage.* > /dev/null 2>&1; then
