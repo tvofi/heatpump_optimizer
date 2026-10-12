@@ -49,9 +49,11 @@ Commands
   affected --files ... | --diff REF | --files-from FILE
                  [--workdir DIR]  decide whether THIS check must run for a change,
                                   and which closures it has to re-derive
-  lane-plan --scripts-from FILE [--lanes N] [--out-dir DIR]
-                                  shard the scoped re-derive's scripts across
-                                  lanes (bound: 3 on CI, 4 on a seat box)
+  lane-plan [--scripts-from FILE | --all-scripts] [--lanes N] [--out-dir DIR]
+                                  shard a derivation's scripts across lanes
+                                  (bound: 3 on CI, 4 on a seat box); FILE is
+                                  what `affected` selected, --all-scripts the
+                                  full arm's whole recording set
   show                            print the committed closures
   selftest                        pin merge() against a silent shrink (#527)
 
@@ -2050,11 +2052,12 @@ def check(in_dir: Path, partial: bool = False) -> int:
             print(f"    {script}: {name}")
         return 1
     # LOUD, before anything else: a selectable script with no recording at
-    # all is the silent-degradation case (issue #90). The lanes in
-    # tests/derive_closures.sh record a fixed roster, so a newly added test
-    # script is invisible to the under-approximation comparison below -- it
-    # was never run -- and the only symptom used to be the PR gate quietly
-    # reverting to full mode while CI stayed green. Failing here, on main,
+    # all is the silent-degradation case (issue #90). The full arm's lanes
+    # record a roster derived from the tree since round-9 C1; before that
+    # the roster was hard-coded, so a newly added test script was invisible
+    # to the under-approximation comparison below -- it was never run --
+    # and the only symptom was the PR gate quietly reverting to full mode
+    # while CI stayed green. Failing here, on main,
     # does not block the PR that added the script but does not let the
     # omission survive either.
     unmeasured = [] if partial else [
@@ -2066,9 +2069,10 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print()
         print("No closure can be recorded for a script the lanes never ran,")
         print("so the scoped gate silently runs FULL on every PR until this")
-        print("is fixed. Add the script to a lane in tests/derive_closures.sh")
-        print("(or record just it with: ./tests/derive_closures.sh --single")
-        print("                         <script>), then commit the re-derived")
+        print("is fixed. Record just it with:")
+        print("  ./tests/derive_closures.sh --single <script>")
+        print("(the full arm derives its roster from the tree since round-9")
+        print("C1, so no lane edit is owed), then commit the re-derived")
         print("tests/closures.json.")
         return 1
     # Fold only when the recordings cover everything a re-derivation produces
@@ -3331,19 +3335,21 @@ def lane_request(requested: int | None = None) -> int:
     return max(1, min(n, cap))
 
 
-def _lane_plan_cmd(scripts_from: Path, out_dir: Path,
+def _lane_plan_cmd(scripts: list[str], out_dir: Path,
                    lanes: int | None) -> int:
-    """Write one ``lane.<n>`` file per lane and print the plan.
+    """Write one ``lane.<n>`` file per lane -- and ``scripts.txt``, the
+    input roster -- and print the plan.
 
-    ``tests/derive_closures.sh --scripts-from`` runs the planner, then one
-    background shell per lane file. The input is what ``affected`` selected,
-    in its order; the planner may reorder within a lane only as far as the
-    constraint edges demand.
+    ``tests/derive_closures.sh`` runs the planner, then one background shell
+    per lane file, and holds the recordings against ``scripts.txt`` -- so a
+    lane that dropped a script is loud, on the scoped arm exactly as on the
+    full one. The input is what ``affected`` selected, in its order (the
+    scoped arm), or the derived full recording set (``--all-scripts``); the
+    planner may reorder within a lane only as far as the constraint edges
+    demand.
     """
-    scripts = [l.strip() for l in scripts_from.read_text().splitlines()
-               if l.strip()]
     if not scripts:
-        print(f"lane-plan: no scripts in {scripts_from}", file=sys.stderr)
+        print("lane-plan: no scripts", file=sys.stderr)
         return 2
     recorded = {}
     if CLOSURES.exists():
@@ -3354,6 +3360,7 @@ def _lane_plan_cmd(scripts_from: Path, out_dir: Path,
         print(f"lane-plan: {exc}", file=sys.stderr)
         return 2
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "scripts.txt").write_text("".join(f"{s}\n" for s in scripts))
     for i, ln in enumerate(lanes_out, 1):
         (out_dir / f"lane.{i}").write_text("".join(f"{s}\n" for s in ln))
 
@@ -4254,6 +4261,93 @@ def _selftest_lane_plan(pin) -> None:
             and not (out2 / "p2.py.json").exists(),
             f"rc={res.returncode} {res.stdout[-300:]}")
 
+    # The FULL arm (round-9 C1): the same planner over the derived recording
+    # set, the same runner. The pure pins hold the derived plan's invariants
+    # against the live tree and table -- coverage, constraints, balance --,
+    # the CLI pins hold the --all-scripts input and its usage refusal, and
+    # the runner pin drives the real derive_closures.sh with no --single and
+    # no --scripts-from under a stub planner that derives its roster the way
+    # the real one does: from the tree, into scripts.txt.
+    full_scripts = [s for s in test_scripts() if Path(s).name not in SLOW_GATED]
+    table = json.loads(CLOSURES.read_text()).get("recorded", {})
+
+    def _rec_secs(s: str) -> float:
+        r = table.get(s)
+        return float(r.get("seconds", 0.0)) if isinstance(r, dict) else 0.0
+
+    fplan = lane_plan(full_scripts, table, LANE_CAP_CI)
+    flat = [s for ln in fplan for s in ln]
+    pin("the full arm's plan covers every recorded script exactly once",
+        sorted(flat) == sorted(full_scripts) and len(flat) == len(full_scripts),
+        f"{len(flat)} planned of {len(full_scripts)}")
+    fedges = lane_edges(full_scripts)
+    pin("every producer/driver edge stays inside one lane, in order",
+        all(any(a in ln and b in ln and ln.index(a) < ln.index(b)
+                for ln in fplan) for a, b in fedges),
+        repr(fedges))
+    loads = [sum(_rec_secs(s) for s in ln) for ln in fplan]
+    print(f"  ..   full-arm lane walls (recorded s): "
+          + ", ".join(f"lane {i + 1} {v:.1f}" for i, v in enumerate(loads)))
+    # The balance claim that the hard-coded layout fails: its lane 3 was
+    # 2,706 s of a ~4,014 s table -- 2 * 2,706 > total, no second lane even
+    # overlaps it. A planned max lane under half the table means the other
+    # lanes together outweigh the pole, which is what a lane MAX wall buys.
+    pin("the planned max lane is under half the table's recorded seconds",
+        2 * max(loads) < sum(loads),
+        f"max {max(loads):.1f}s, total {sum(loads):.1f}s")
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "tests" / "closure.py"), "lane-plan",
+             "--all-scripts", "--out-dir", str(td_path / "lanes")],
+            cwd=ROOT, capture_output=True, text=True)
+        roster = (td_path / "lanes" / "scripts.txt")
+        got = ([l.strip() for f in (td_path / "lanes").glob("lane.*")
+                for l in f.read_text().splitlines() if l.strip()]
+               if roster.exists() else [])
+        pin("the CLI derives the full arm's recording set from the tree",
+            res.returncode == 0 and roster.exists()
+            and sorted(got) == sorted(full_scripts),
+            res.stdout + res.stderr)
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "tests" / "closure.py"), "lane-plan",
+             "--all-scripts", "--scripts-from", str(td_path / "in.txt"),
+             "--out-dir", str(td_path / "lanes2")],
+            cwd=ROOT, capture_output=True, text=True)
+        pin("and refuses both inputs at once",
+            res.returncode == 2, f"rc={res.returncode} {res.stderr[-200:]}")
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        stub = td_path / "fullstub"
+        stub.write_text(
+            "#!/bin/sh\n"
+            "case \"$2\" in\n"
+            "  lane-plan)\n"
+            "    printf 'tests/q1.py\\ntests/q2.py\\ntests/q3.py\\n' \\\n"
+            "      > \"$6/scripts.txt\"\n"
+            "    printf 'tests/q1.py\\n' > \"$6/lane.1\"\n"
+            "    printf 'tests/q2.py\\ntests/q3.py\\n' > \"$6/lane.2\"\n"
+            "    exit 0 ;;\n"
+            "  record)\n"
+            "    touch \"$5/$(basename \"$3\").json\" ;;\n"
+            "esac\n"
+            "exit 0\n")
+        stub.chmod(0o755)
+        out = td_path / "frec"
+        res = subprocess.run(
+            ["bash", "tests/derive_closures.sh", "--record-only",
+             "--out-dir", str(out)],
+            cwd=ROOT, env={**os.environ, "PYTHON": str(stub)},
+            capture_output=True, text=True)
+        got = sorted(p.name for p in out.glob("*.json"))
+        pin("the full arm records every derived script through the planner",
+            res.returncode == 0
+            and got == ["q1.py.json", "q2.py.json", "q3.py.json"],
+            f"rc={res.returncode} got={got} {res.stdout[-300:]} "
+            f"{res.stderr[-200:]}")
+
 
 def _selftest_layout(pin) -> None:
     """GitHub merges tests/closures.json with no driver, so the writer's layout
@@ -4561,7 +4655,10 @@ def main() -> int:
     f.add_argument("--json", action="store_true")
     f.add_argument("--workdir")
     lp = sub.add_parser("lane-plan")
-    lp.add_argument("--scripts-from", required=True)
+    # Exactly one of the two inputs: the scoped arm's selected list from a
+    # file, or the full arm's derived recording set (round-9 C1).
+    lp.add_argument("--scripts-from")
+    lp.add_argument("--all-scripts", action="store_true")
     lp.add_argument("--lanes", type=int)
     lp.add_argument("--out-dir", required=True)
     nr = sub.add_parser("not-run"); nr.add_argument("--workdir", required=True)
@@ -4612,7 +4709,23 @@ def main() -> int:
     if a.cmd == "not-run":
         return _not_run_cmd(Path(a.workdir))
     if a.cmd == "lane-plan":
-        return _lane_plan_cmd(Path(a.scripts_from), Path(a.out_dir), a.lanes)
+        if (a.scripts_from is not None) == a.all_scripts:
+            print("lane-plan: give exactly one of --scripts-from and "
+                  "--all-scripts", file=sys.stderr)
+            return 2
+        if a.all_scripts:
+            # The full arm's recording set, derived rather than hard-coded
+            # (round-9 C1): `merge`'s own expectation set -- every runnable
+            # test script but the SLOW_GATED ones. Selectable scripts plus
+            # the driven children whose closure folds into their driver's
+            # (dst_checks.py records beside features.py either way).
+            scripts = [s for s in test_scripts()
+                       if Path(s).name not in SLOW_GATED]
+        else:
+            scripts = [l.strip() for l in
+                       Path(a.scripts_from).read_text().splitlines()
+                       if l.strip()]
+        return _lane_plan_cmd(scripts, Path(a.out_dir), a.lanes)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "selftest":

@@ -19366,6 +19366,23 @@ R.check(
     "request (R1 #2131), never the serial SUM a --single loop pays and "
     "never a second, dispatch-only derivation path",
 )
+# Round-9 C1: the FULL arm plans through the same planner, over a recording
+# set derived from the tree (`lane-plan --all-scripts`), not a hard-coded
+# lane layout. A `rec tests/...` line in derive_closures.sh is the layout
+# rot this replaced -- it named the recordings, so every new selectable
+# script needed a lane edit on pain of a red main, and the unbalanced
+# "everything else" lane set the 3,242 s wall the planner halves. Regrowth
+# of any hard-coded lane, or a loss of the --all-scripts plan, reddens here.
+_derive_txt = Path("tests/derive_closures.sh").read_text()
+R.check(
+    "the closures job's FULL arm is lane-planned over the derived script set",
+    "--all-scripts" in _derive_txt
+    and "lane-plan" in _derive_txt
+    and not _re.search(r"(?m)^\s*rec tests/", _derive_txt),
+    "derive_closures.sh names a recording with a hard-coded `rec tests/...` "
+    "line: the full arm must derive its set (lane-plan --all-scripts, round-9 "
+    "C1), which records every selectable script without a lane edit",
+)
 
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
