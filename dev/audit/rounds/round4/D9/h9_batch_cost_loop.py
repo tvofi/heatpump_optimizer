@@ -137,7 +137,7 @@ def install():
     orig_ctb = OPT.HeatPumpOptimizer._cost_terms_batch
     orig_batch = TM.ThermalModel.simulate_trajectory_batch
     orig_min = OPT._scoped_minimize
-    orig_memo = OPT._memoized_batch_objective
+    orig_memo = OPT._memoized_value_and_gradient
 
     def ct(self, *a, **kw):
         t0 = time.perf_counter()
@@ -173,27 +173,26 @@ def install():
         S["njev"] += int(getattr(res, "njev", 0) or 0)
         return res
 
-    def memo(bo, memo_dict):
+    def memo(bo, bounds, fd_eps, memo_dict):
         # The multi-start's evaluation memo (r9 boost-replay speed) serves
-        # a repeated FD row matrix without re-entering the twins, so a hit
-        # is one gradient evaluation the hooks below cannot see. Counting
-        # hits -- and their rows -- keeps every per-gradient ratio below
-        # measuring the batched path THROUGH the memo: the pin at "1" and
-        # "~97" still means every gradient evaluation is one batched
-        # evaluation, and still reddens the day one goes to the scalar
-        # fallback instead (which shows up here as neither a twin call nor
-        # a memo hit).
-        inner = orig_memo(bo, memo_dict)
+        # a repeated point without re-entering the twins, so a hit is one
+        # gradient evaluation the hooks below cannot see. Counting hits --
+        # and their rows, 1 + n for the point's own FD stencil -- keeps
+        # every per-gradient ratio below measuring the batched path
+        # THROUGH the memo: the pin at "1" and "~97" still means every
+        # gradient evaluation is one batched evaluation, and still reddens
+        # the day one goes to the scalar fallback instead (which shows up
+        # here as neither a twin call nor a memo hit).
+        inner = orig_memo(bo, bounds, fd_eps, memo_dict)
         if inner is None:
             return None
 
-        def counting(rows, *a):
-            key = np.asarray(rows, dtype=float).tobytes()
+        def counting(x, *a):
+            key = np.asarray(x, dtype=float).tobytes()
             if key in memo_dict:
-                m = np.asarray(rows)
                 S["memo_hits"] += 1
-                S["memo_rows"] += int(m.shape[0]) if m.ndim == 2 else 1
-            return inner(rows, *a)
+                S["memo_rows"] += 1 + int(np.asarray(x).size)
+            return inner(x, *a)
 
         return counting
 
@@ -201,7 +200,7 @@ def install():
     OPT.HeatPumpOptimizer._cost_terms_batch = ctb
     TM.ThermalModel.simulate_trajectory_batch = batch
     OPT._scoped_minimize = smin
-    OPT._memoized_batch_objective = memo
+    OPT._memoized_value_and_gradient = memo
 
 
 def arm(name, price_profile):

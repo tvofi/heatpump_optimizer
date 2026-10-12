@@ -512,43 +512,75 @@ def _fused_value_and_gradient(
     return value_and_gradient
 
 
-def _memoized_batch_objective(
+#: The evaluation memo's LRU bound: most-recent ``x`` points remembered
+#: per ``_multi_start_minimize`` call. Measured, not guessed: the heaviest
+#: stress scenario's repeat reuse distance p99 is 111 evaluations (27 % of
+#: its batch evaluations are repeats) and its whole solve holds 585
+#: distinct points, so the bound prices the memo at under 1 MiB of
+#: retained keys and values where the row-matrix key it replaces retained
+#: 27-41 MiB against 3.5 MiB recorded traced peaks.
+_EVAL_MEMO_MAX_ENTRIES = 512
+
+
+def _memoized_value_and_gradient(
     batch_objective: Callable[..., Any] | None,
-    memo: dict[bytes, Any],
+    bounds: list[tuple[float, float]],
+    fd_eps: float,
+    memo: dict[bytes, Any] | None,
 ) -> Callable[..., Any] | None:
-    """``batch_objective`` with its batch answers remembered, or ``None``.
+    """The fused L-BFGS-B ``fun`` with its answers remembered, or ``None``.
 
     Serves one ``_multi_start_minimize`` call, where the batched objective,
-    the bounds and ``fd_eps`` are fixed and the objective is pure in its
-    rows: candidates that share a basin walk L-BFGS-B to points an earlier
+    the bounds and ``fd_eps`` are fixed and the objective is pure in ``x``:
+    candidates that share a basin walk L-BFGS-B to points an earlier
     start or polish already evaluated bit-for-bit -- measured on the #1935
     replay's solver, ~4 % of a solve's fused evaluations are exact repeats
     sitting across ``_scoped_minimize`` invocations, where scipy's own
-    per-run cache cannot see them. The key is the evaluation's own row
-    matrix (``_fd_rows`` is deterministic in ``x`` and the bounds), so a
-    hit is the array the earlier evaluation computed, to the bit -- and
-    both the value (row 0) and the gradient the divided differences take
-    from it come back unchanged. Every consumer of the returned array
-    reads it (``float(f[0])``, the FD divide); none writes it, which is
-    the contract that lets the cached array be handed back without a
-    copy. The memo dies with the call, like the scoring memo in
-    ``_multi_start_minimize`` (#288): no answer crosses a solve, and the
-    half-priced continuation evaluations run before this wrapper exists,
-    so they can never be served to the full-priced loop.
+    per-run cache cannot see them. The key is ``x`` itself (the scoring
+    memo in ``_multi_start_minimize`` keys the same way, #288): the row
+    matrix is a pure function of ``x`` under the call's fixed bounds and
+    ``fd_eps``, so a hit is the ``(value, gradient)`` the earlier
+    evaluation computed, to the bit. Every consumer of the two reads them
+    (L-BFGS-B's Fortran core copies both into its own work arrays); none
+    writes them, which is the contract that lets the cached pair be
+    handed back without a copy. The memo dies with the call: no answer
+    crosses a solve, and the half-priced continuation evaluations run
+    before this wrapper exists, so they can never be served to the
+    full-priced loop.
+
+    Bounded to ``_EVAL_MEMO_MAX_ENTRIES`` most-recent points, because the
+    key it retains is the whole of the per-solve memory the memo costs
+    (the row-matrix key this replaces held ~37-75 KiB per entry and blew
+    the stress gate's recorded per-scenario traced peaks 3.5 -> 27-41 MiB;
+    an ``x`` key is ~0.8 KiB, and the four blown scenarios' peaks return
+    to their recorded values under the bound). The bound is sized to the
+    measured reuse structure, not to the budget alone: repeats come from
+    a start or polish re-walking the previous walk's points, so the reuse
+    distance is one walk -- measured p99 = 111 evaluations on
+    heavy_old/shoulder, where 27 % of a solve's batch evaluations are
+    repeats -- and costs only the repeats whose original sits further
+    back than that: 2 of the #1935 replay's channel-arm 11,311. Evicted
+    is the least recently used entry.
     """
     if batch_objective is None:
         return None
+    plain = _fused_value_and_gradient(batch_objective, bounds, fd_eps)
+    if memo is None:
+        return plain
 
-    def batch(rows: np.ndarray, *a: Any) -> Any:
-        key = np.asarray(rows, dtype=float).tobytes()
+    def fun(x: np.ndarray, *a: Any) -> Any:
+        key = np.asarray(x, dtype=float).tobytes()
         hit = memo.get(key)
         if hit is not None:
+            memo[key] = memo.pop(key)   # most-recently-used last
             return hit
-        out = batch_objective(rows, *a)
+        out = plain(x, *a)
         memo[key] = out
+        if len(memo) > _EVAL_MEMO_MAX_ENTRIES:
+            memo.pop(next(iter(memo)))
         return out
 
-    return batch
+    return fun
 
 
 def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
@@ -629,20 +661,19 @@ def _lbfgsb_restart(
     bounds: list[tuple[float, float]],
     args: tuple[Any, ...],
     maxiter: int,
-    batch_objective: Callable[..., Any] | None,
-    fd_eps: float,
+    memo_fun: Callable[..., Any] | None,
 ) -> Any:
     """Restart L-BFGS-B from its own returned point. No new seed (#826).
 
-    ``batch_objective`` may be the calling ``_multi_start_minimize``'s
-    memoized wrapper, so a polish that starts where an earlier start or
-    polish already stood revalues nothing.
+    ``memo_fun`` is the calling ``_multi_start_minimize``'s memoized fused
+    fun, so a polish that starts where an earlier start or polish already
+    stood revalues nothing.
     """
     _time_mod.sleep(0.002)
     fun: Callable[..., Any] = objective
     jac: bool | None = None
-    if batch_objective is not None and _bounds_supported_by_batch(bounds):
-        fun, jac = _fused_value_and_gradient(batch_objective, bounds, fd_eps), True
+    if memo_fun is not None and _bounds_supported_by_batch(bounds):
+        fun, jac = memo_fun, True
     try:
         polished = _scoped_minimize(
             fun,
@@ -740,8 +771,10 @@ def _multi_start_minimize(
         raise ValueError("no usable starting point")
     scored.sort(key=lambda item: item[0])
 
-    eval_memo: dict[bytes, Any] = {}   # starts+polishes share one batch memo
-    batched = _memoized_batch_objective(batch_objective, eval_memo)
+    eval_memo: dict[bytes, Any] = {}   # starts+polishes share one fun memo
+    memo_fun = _memoized_value_and_gradient(
+        batch_objective, bounds, fd_eps, eval_memo,
+    )
     best = None
     best_score = np.inf
     last_error: Exception | None = None
@@ -780,7 +813,7 @@ def _multi_start_minimize(
             # fuse-guarded install on the scalar path at 31.5x. The CI drift
             # gate on Linux is the final arbiter.
             can_batch = _bounds_supported_by_batch(bounds)
-            if batched is not None and can_batch:
+            if memo_fun is not None and can_batch:
                 # The batched-FD jac (#97): scipy calls the gradient at
                 # every trial point, so a supplied jac removes 96/97 of
                 # ALL evaluations, not just of the gradient's own. It
@@ -789,7 +822,7 @@ def _multi_start_minimize(
                 # variable the iterate path, and therefore the plan, does
                 # not move. The value rides in the same batch (R9
                 # D9-s1-02), so L-BFGS-B makes no scalar evaluation.
-                fun = _fused_value_and_gradient(batched, bounds, fd_eps)
+                fun = memo_fun
                 jac = True
             res = _scoped_minimize(
                 fun,
@@ -820,9 +853,7 @@ def _multi_start_minimize(
         # only the best-scoring candidates, a looser polish ftol -- each of
         # which moves the shipped plan. The cost is what the 1.40% is bought
         # with; the stress gate's per-scenario CPU budgets police it.
-        res = _lbfgsb_restart(
-            res, memoized, bounds, args, maxiter, batched, fd_eps,
-        )
+        res = _lbfgsb_restart(res, memoized, bounds, args, maxiter, memo_fun)
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
             best, best_score = res, score
