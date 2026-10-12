@@ -116,6 +116,12 @@ CLOSURES_COMMENT = (
 # could not record it without both. Its own nightly job runs it.
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
+    # The lane-skip decision instrument (R9-CI-SKIP): it reads this table to
+    # decide whether `fast`/`coverage`/`browser` may report `skipped`, so it
+    # is driven by the workflow's decision steps, never by the suite. NOT
+    # inert: `tests/entities.py` runs its self-test, so an edit that breaks
+    # the decision pins selects that script.
+    "lane_skip.py",
     "setup_qa_render.mjs",
     "card_browser.mjs", "nightly_ha.py",
     # The replay lane (round 8, move 2): recorded days through the real
@@ -461,6 +467,11 @@ GATE_FILES = (
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
     "tests/node_fs_trace.mjs",
+    # The skip decision for the heavy Tests lanes: a change here changes
+    # which runs those lanes believe they may skip, exactly as a change to
+    # run.sh changes what they run. It cannot be a measured closure of
+    # itself, so it is a gate file -- the same argument as closure.py.
+    "tests/lane_skip.py",
 )
 
 
