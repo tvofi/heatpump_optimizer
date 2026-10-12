@@ -8,10 +8,12 @@ through a surface the config did not configure or did not opt into; a cell
 FAILS when that count > 0 (the sweep's `failing_surface_cells`).
 
 Count key: ``FakeServices.calls`` issued by ``HeatPumpOptimizerCoordinator``
-seams -- ``_apply_action`` (``_on_off_service``), ``async_publish_current_action``
+seams -- ``_apply_action`` (``pump_arbiter.switch_supply`` / ``on_off_service``, the
+switch's one writer since #2070), ``async_publish_current_action``
 (``_publish_ecl110_topics``), ``_command_frequency`` -- never the config.
 
-Perturbation (--perturb): ``coordinator._on_off_service`` patched in memory to
+Perturbation (--perturb): ``pump_arbiter.on_off_service`` (``coordinator._on_off_service``
+until #2070 moved it, unchanged) patched in memory to
 the pre-#1526 hard-coded ``("switch", ...)``: failing_surface_cells 0 -> 2
 (the input_boolean and climate switch-slot cells; UP). This proves the sweep
 can see a misroute rather than asserting one.
@@ -115,9 +117,10 @@ def main():
     args = ap.parse_args()
     os.environ.setdefault("HPO_PLANDATA", tempfile.mkdtemp(prefix="d12s2_sf_"))
     from heatpump_optimizer import coordinator as co
+    from heatpump_optimizer import pump_arbiter as pa
 
     patch = (
-        mock.patch.object(co, "_on_off_service", lambda eid, on: ("switch", "turn_on" if on else "turn_off"))
+        mock.patch.object(pa, "on_off_service", lambda eid, on: ("switch", "turn_on" if on else "turn_off"))
         if args.perturb
         else None
     )
