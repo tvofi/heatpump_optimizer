@@ -31248,6 +31248,34 @@ R.check(
     "a driver with its own equality rule is a second owner for the proof",
 )
 
+# `composed-proof`'s first run died resolving `actions/checkout@<40-hex>`
+# before any step: the pin in its job body was one transposed character off
+# the canonical v5 SHA, and every pin-shaped check only counts hex digits, so
+# a well-formed name of a commit that does not exist passed them all. The
+# class's seam is that this repository pins each `actions/*` action at ONE
+# canonical commit across every workflow, so the detector is equality per
+# action, not existence (which would need the network): a copy-pasted pin
+# with a typo is an outlier against its own action's majority, however
+# well-formed. Committed here rather than in the job because `fast` runs on
+# every pull request and the failing job cannot check out anything to run a
+# check with.
+_ACTION_PINS: dict[str, set[str]] = {}
+for _wf_path in sorted(Path(".github/workflows").glob("*.yml")):
+    for _m in re.finditer(r"uses:\s*(actions/[\w.-]+)@([0-9a-f]{40})",
+                          _wf_path.read_text()):
+        _ACTION_PINS.setdefault(_m.group(1), set()).add(_m.group(2))
+_PIN_OUTLIERS = {
+    f"{action}: {sorted(shas)}" for action, shas in _ACTION_PINS.items()
+    if len(shas) != 1
+}
+R.check(
+    "every workflow pins each actions/* action at one canonical commit",
+    not _PIN_OUTLIERS,
+    f"actions pinned at more than one SHA: {sorted(_PIN_OUTLIERS)} -- "
+    "a pin that differs from every other use of its action is a typo the "
+    "runner resolves as a missing version (composed-proof, 2026-10-12)",
+)
+
 # --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
 #
 # Every red `mutation` job in the RCA's retained window (2026-09-11..17) was
