@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
     --min-runs) [ $# -ge 2 ] || die "--min-runs needs a value"; minruns=$2; shift 2 ;;
     --mandate) [ $# -ge 2 ] || die "--mandate needs a value"; mandate=$2; shift 2 ;;
     --ignore-red) [ $# -ge 2 ] || die "--ignore-red needs a value"
-      ignores=("${ignores[@]:-}" --ignore-red "$2"); shift 2 ;;
+      ignores+=("--ignore-red" "$2"); shift 2 ;;
     --self-test) selftest=1; shift ;;
     --help|-h) usage ;;
     *) die "unknown argument '$1'" ;;
@@ -60,7 +60,56 @@ if [ "$selftest" = 1 ]; then
   if "$0" --frobnicate >/dev/null 2>&1; then
     die "self-test: an unknown argument did not refuse"
   fi
-  echo "train.sh self-test: ok (3 refusals shown)"
+  # 4. --ignore-red must reach the child with no stray empty element (a
+  #    bash-3.2 `${arr[@]:-}` guard put one there; argparse then refused the
+  #    stray positional before the flags were ever read). A stub venv-ci
+  #    python3 records the argv it receives; the assertion is on that record,
+  #    not on which refusal text came back -- the queue check fires before
+  #    the child runs, so a refusal-text observable cannot see the bug.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state"
+  printf '#!/bin/bash\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" \
+    > "$st/venv-ci/bin/python3"
+  chmod +x "$st/venv-ci/bin/python3"
+  : > "$st/queue.json"
+  if ! HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r \
+      --state-dir "$st/state" --ignore-red ctx >/dev/null 2>&1; then
+    rm -rf "$st"
+    die "self-test: the stubbed --ignore-red run did not succeed"
+  fi
+  if [ ! -s "$st/argv" ]; then
+    rm -rf "$st"
+    die "self-test: the stubbed python3 never ran (ambient fallback?)"
+  fi
+  # adjacency: the element after --ignore-red must be ctx, and no element
+  # anywhere in the argv may be empty (a stray empty element IS the bug).
+  flags=$(tr '\n' '|' < "$st/argv")
+  case $flags in
+    *"--min-runs|1|--ignore-red|ctx|"*) : ;;
+    *)
+      rm -rf "$st"
+      die "self-test: --ignore-red argv shape wrong: $flags"
+      ;;
+  esac
+  if [ "$(grep -c '^$' "$st/argv")" -gt 0 ]; then
+    rm -rf "$st"
+    die "self-test: an empty element reached the child argv"
+  fi
+  rm -rf "$st"
+  # 5. an absent seat venv refuses with the build instruction -- the tool
+  #    exists to stop an ambient-python3 train, so the fallback is a defect.
+  st=$(mktemp -d)
+  : > "$st/q"
+  out=$(HPO_STATE_DIR="$st" "$0" --queue "$st/q" --repo x/r \
+    --state-dir "$st/s" 2>&1)
+  rc=$?
+  rm -rf "$st"
+  [ "$rc" = 2 ] || die "self-test: an absent venv did not refuse (rc=$rc)"
+  case $out in
+    *seat_venv.sh*) : ;;
+    *) die "self-test: an absent venv refused without naming seat_venv.sh: $out" ;;
+  esac
+  echo "train.sh self-test: ok (5 refusals shown)"
   exit 0
 fi
 
@@ -81,11 +130,15 @@ echo $$ > "$pidfile"
 trap 'rm -f "$pidfile"' EXIT
 
 # The pinned seat interpreter first: the checks merge_train drives through
-# prepr and no-copies need the repo's 3.14, not an ambient 3.11.
+# prepr and no-copies need the repo's 3.14, not an ambient 3.11. There is no
+# ambient fallback: this launcher exists to keep the train off the ambient
+# interpreter, so an absent venv refuses rather than silently running.
 _HPO_STATE=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
-if [ -d "$_HPO_STATE/venv-ci/bin" ]; then
+if [ -f "$_HPO_STATE/venv-ci/bin/python3" ]; then
   PATH=$_HPO_STATE/venv-ci/bin:$PATH
   export PATH
+else
+  die "no seat venv at $_HPO_STATE/venv-ci/bin/python3; build it first: bash tools/audit/seat/seat_venv.sh venv-ci"
 fi
 unset _HPO_STATE
 
