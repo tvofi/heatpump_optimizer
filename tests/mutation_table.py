@@ -1017,16 +1017,28 @@ PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
 
 
 ADDED_UNPINNED = re.compile(r"(\d+) of them added by this diff")
-SITES_PER_SHARD, MAX_SHARDS = 6, 10
+SITES_PER_SHARD, MAX_SHARDS = 5, 12
 
 
 def pin_shard_count(table: str) -> int:
     """How many `mutation-pins` shards a ratchet refusal gets (R9-CI-1).
 
-    One per SITES_PER_SHARD sites the diff added unpinned, at most MAX_SHARDS:
-    a shard pays its baselines (15-22 minutes on CI) before any site, then
-    about 2000 s of driver work per site over its three workers, so six sites
-    end inside the 120-minute budget. One when the table names no count.
+    One per SITES_PER_SHARD sites the diff added unpinned, at most MAX_SHARDS.
+    Five, not the six R9-CI-1 round 1 sized, and twelve, not ten: the shard
+    budget was re-derived on 2026-10-09 from the run that measured the
+    expensive pool rather than estimated it (run 37925123437 shard 3, base
+    b2b6acd64, 5 draw_range.py sites). What a site costs is the recorded
+    seconds of every driver whose closure reaches its file (tests/closures.json
+    through `drivers_for`), and for draw_range.py that is ~3160 s of shared
+    work; a shard pays it three workers at a time and pays 1.46x the recorded
+    seconds under the 3-worker pool that run measured, so five sites take
+    ~128 min of shared work, and each survivor's EXCLUSIVE tail (stress.py and
+    harness_headers.py at a settle plus a run, ~980 s) adds until the shard
+    ends in ~248 min -- inside the 260-minute budget tests.yml passes, and a
+    sixth site is not (its ~25 min of shared work plus ~16 min of tail).
+    Anchor groups are the atomic unit: an anchor with more sites than
+    SITES_PER_SHARD still lands whole on one shard, and degrades to an honest
+    SKIP-BUDGET cut. One shard when the table names no count.
     """
     m = ADDED_UNPINNED.search(table)
     sites = int(m.group(1)) if m else 0
@@ -1039,7 +1051,9 @@ def pin_shard(pool: list[dict], k: int, n: int) -> list[dict]:
     A disposition covers every site under its anchor (`pin_results`), so an
     anchor's twins stay on one shard; anchors are dealt round-robin in sorted
     order, which every shard computes alike from the same inventory, so the
-    shards are disjoint and together the whole pool.
+    shards are disjoint and together the whole pool. The null control is
+    drawn from the pool BEFORE this split (`null_for(whole)` in main()), so
+    a shard of comment-less files is not refused for a run-level artifact.
     """
     if not 1 <= k <= n:
         raise ValueError(f"--shard {k}/{n}: K must be 1..N")
@@ -1240,23 +1254,29 @@ def pin_summary(pinned: int, left: int, results: list[tuple[dict, str]],
                 entries: dict) -> str:
     """The `PIN KILLED:` line, its unpinned count split by cause (R9-CI-1).
 
-    A site the budget never started, or whose driver timed out, is not a
-    survivor: a later run pins it. Only a driven site no driver killed (or
-    one sharing an anchor with such a site) owes a test or a triage. The
-    line's head is `PIN_SUMMARY`'s, unchanged, so `measurement()` reads it.
+    A site the budget never started, one whose EXCLUSIVE tail was cut after
+    it survived every shared driver, or one whose driver timed out, is not a
+    survivor: a later run pins or cuts it further. Only a driven site no
+    driver killed (or one sharing an anchor with such a site) owes a test or
+    a triage. The line's head is `PIN_SUMMARY`'s, unchanged, so
+    `measurement()` reads it.
     """
     cut = sum(1 for m, v in results
               if v == "SKIP-BUDGET" and m["anchor"] not in entries)
+    tail = sum(1 for m, v in results
+               if v == "SKIP-BUDGET-TAIL" and m["anchor"] not in entries)
     timed = sum(1 for m, v in results
                 if v.startswith("SKIP-TIMED-OUT") and m["anchor"] not in entries)
     other = sum(1 for m, v in results if v.startswith("SKIP")
-                and v != "SKIP-BUDGET" and not v.startswith("SKIP-TIMED-OUT")
+                and not v.startswith("SKIP-BUDGET")
+                and not v.startswith("SKIP-TIMED-OUT")
                 and m["anchor"] not in entries)
-    lived = left - cut - timed - other
+    lived = left - cut - tail - timed - other
     line = f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
     if left:
         line += (f" ({lived} survived, {cut} not started for the budget, "
-                 f"{timed} timed out, {other} skipped)")
+                 f"{tail} exclusive tails cut, {timed} timed out, "
+                 f"{other} skipped)")
     if lived:
         line += (" -- a survivor needs a killing check or a survivor_triage "
                  "verdict, which no tool writes")
@@ -2153,6 +2173,13 @@ def null_for(pool: list[dict]) -> dict | None:
     this tool's own edit, not the diff's, and a line-scoped pool would
     otherwise filter out the only kind of line it can edit. An empty pool has
     no null control, and main() passes it before asking.
+
+    The run here is the WHOLE run: `main()` hands this the pool as it stood
+    before `--shard` split it, so every shard of one refusal drives the same
+    null control. A shard whose own files hold no whole-line comment would
+    otherwise be refused before it measured anything -- #2070's run
+    37890872462 refused 8 of 9 shards that way and left 43 of 49 sites
+    unmeasured.
     """
     return next(filter(None, (null_control(ROOT / f)
                               for f in sorted({m["file"] for m in pool}))),
@@ -2516,7 +2543,9 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     (stress.py and harness_headers.py at three runs each, ~2500 s on CI)
     refused #2025's first anchor before a single run (R9-CI-1). A survivor's
     tail is admitted when it reaches it, against the clock then, and one
-    that no longer fits is SKIP-BUDGET: it pins nothing either way.
+    that no longer fits is SKIP-BUDGET-TAIL: it pins nothing either way, and
+    it is reported apart from a site the admission never started, because it
+    ran every shared driver green and a later run owes it only the tail.
     """
     k = max(1, workers)
     lock = threading.Lock()
@@ -2622,7 +2651,11 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                     and clock() + cost.get(script, 0.0) > deadline):
                 # `cost` carries an unsettled driver's baseline and null run
                 # (budget_seconds); settling resets it to the run's own.
-                verdict[i] = "SKIP-BUDGET"
+                # Its own verdict, not the admission cut's: this mutant RAN
+                # every shared driver and survived them, and only its
+                # EXCLUSIVE verdict is missing (R9-CI-1 round 2 -- the report
+                # read "not started" beside a site that had run two hours).
+                verdict[i] = "SKIP-BUDGET-TAIL"
             if verdict[i] is None and settle and script not in settled:
                 settled.add(script)
                 settle(script)
@@ -2723,6 +2756,8 @@ def pin_reverification(results: list[tuple[dict, str]],
             tally["not re-verified"] += 1
             why = ("timed out" if ran else
                    "not started for the budget" if verdict == "SKIP-BUDGET" else
+                   "cut after every shared driver"
+                   if verdict == "SKIP-BUDGET-TAIL" else
                    f"no run of it completed ({verdict})")
             out.append(f"  pin not re-verified {key}: {pin} {why}")
     if any(tally.values()):
@@ -2740,15 +2775,31 @@ def budget_refusal(results: list[tuple[dict, str]]) -> int | None:
     run is refused, the reason counting each cause. One that evaluated some
     reports its cap over those, named as partial (`partial_note`).
     """
-    left = [m for m, v in results if v == "SKIP-BUDGET"]
+    cut = [m for m, v in results if v == "SKIP-BUDGET"]
+    tail = [m for m, v in results if v == "SKIP-BUDGET-TAIL"]
     timed = sum(1 for _, v in results if v.startswith("SKIP-TIMED-OUT"))
-    for m in left:
+    for m in cut:
         print(f"  NOT RUN {triage_key(m)} -- not started: it would have "
               f"overrun --budget-minutes")
-    if (left or timed) and all(v.startswith("SKIP") for _, v in results):
-        print(f"\nMUTATION TABLE REFUSED -- nothing was measured: {timed} "
-              f"mutant(s) timed out, {len(left)} not started for "
+    for m in tail:
+        print(f"  TAIL CUT {triage_key(m)} -- it survived every shared "
+              f"driver; its EXCLUSIVE tail would have overrun "
               f"--budget-minutes")
+    if (cut or tail or timed) and all(v.startswith("SKIP")
+                                      for _, v in results):
+        if tail and not cut:
+            print(f"\nMUTATION TABLE REFUSED -- no mutant was measured to a "
+                  f"verdict: {timed} mutant(s) timed out, {len(tail)} cut "
+                  f"after every shared driver, for --budget-minutes")
+        else:
+            line = (f"\nMUTATION TABLE REFUSED -- nothing was measured: "
+                    f"{timed} mutant(s) timed out, {len(cut)} not started "
+                    f"for --budget-minutes")
+            if tail:
+                line = line.replace(
+                    " for --budget-minutes",
+                    f", {len(tail)} cut after every shared driver")
+            print(line)
         return 1
     return None
 
@@ -3358,6 +3409,12 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"  no recorded closure reaches {site['file']}; "
                       f"{triage_key(site)} stays unpinned")
+        # The null control is the RUN's, one per refusal, so it is drawn from
+        # the pool as the run defined it -- before --shard slices it: a shard
+        # whose own files hold no whole-line comment would otherwise be
+        # refused having measured nothing (#2070, run 37890872462: 8 of 9
+        # shards, 43 of 49 sites).
+        whole = list(pool)
         if args.shard:
             k, n = (int(x) for x in args.shard.split("/"))
             total = len(pool)
@@ -3372,6 +3429,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.anchor:
         pool = [dict(s, drivers=drivers_for(s["file"], closures, allow))
                 for s in sites if s["anchor"] == args.anchor]
+        whole = pool
         if not pool or not pool[0]["drivers"]:
             print(f"ANCHOR REFUSED -- {args.anchor!r} names "
                   + ("no inventory site" if not pool else
@@ -3381,6 +3439,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ANCHOR -- {len(pool)} site(s) of {args.anchor}")
     elif args.drain:
         pool = drain_pool(unpinned, closures, allow, args.seed, args.max)
+        whole = pool
         print(f"DRAIN -- {len(pool)} of {len(unpinned)} unpinned site(s), "
               f"whole anchors under --seed {args.seed}, to drive")
         if not pool:
@@ -3399,6 +3458,7 @@ def main(argv: list[str] | None = None) -> int:
         touched = changed_lines(args.base) if args.scope == "changed" else None
         pool, held_n = sampled_pool(files, closures, allow, touched, triage,
                                     rng, args.per_file, args.max)
+        whole = pool
         if held_n:
             print(f"  {held_n} drawn site(s) hold a survivor_triage mark: "
                   f"{TRIAGE_JUDGE}, which would call them killed for the "
@@ -3427,7 +3487,7 @@ def main(argv: list[str] | None = None) -> int:
     # at the first "kill". Its runs are baseline-phase tasks on the worker
     # trees (`drive_baselines`), so it is never a process beside them, and its
     # stress.py run is EXCLUSIVE like any other (#1565).
-    null = null_for(pool)
+    null = null_for(whole)
     if null is None:
         print("\nMUTATION TABLE REFUSED -- no full-line comment in any file "
               "in the pool, so the run has no null control and no verdict "

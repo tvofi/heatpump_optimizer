@@ -79,6 +79,20 @@ mkdir -p "$OUTDIR"
 
 rec() {
   local script="$1"; shift
+  # C1 (round-9 heavy-script consolidation): a script the closures job
+  # already consumed from this run's composed recording (the coverage job's
+  # traced execution of the same tree, verified by `closure.py
+  # composed-verify`) is not re-recorded bare -- one instrumented execution
+  # yields both artifacts. COMPOSED_CONSUMED is set by the workflow step that
+  # verified the composed record; unset, or a script not on it, records as
+  # before. Fail-closed: the consume step itself refuses on any doubt, so an
+  # entry here means a verified record for THIS tree is already on disk.
+  case " ${COMPOSED_CONSUMED:-} " in
+    *" $script "*)
+      echo "  [$(date +%H:%M:%S)] composed: $script consumed from this run's coverage job; no bare re-record"
+      return 0
+      ;;
+  esac
   echo "  [$(date +%H:%M:%S)] record $script $*"
   $PYTHON tests/closure.py record "$script" --out-dir "$OUTDIR" --args "$@" \
     > "$OUTDIR/$(basename "$script").out" 2>&1
@@ -88,6 +102,17 @@ rec() {
   local rc=$?
   echo "  [$(date +%H:%M:%S)] done   $script (exit $rc)"
   REC_RC=$rc
+  # CI-cost metrics (tests/ci_ratchet.py): one line per instrumented script
+  # execution this re-derivation paid, classed full or scoped by the caller's
+  # HPO_CI_SCOPE (the workflow sets it from the same case closure-scope
+  # derived), carrying the runner's event and run id so a ratchet window can
+  # group one run's lane artifacts together. No file, no line: a local run
+  # emits nothing.
+  if [ -n "${HPO_CI_METRICS:-}" ]; then
+    printf 'closures\t%s\t%s\t%s\t0\t%s\t%s\n' "$script" \
+      "${HPO_CI_SCOPE:-full}" "$rc" "${GITHUB_EVENT_NAME:-local}" \
+      "${GITHUB_RUN_ID:-local}" >> "$HPO_CI_METRICS"
+  fi
 }
 
 # One script with the cheap arguments and environment the full lanes record
