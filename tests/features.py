@@ -61406,7 +61406,6 @@ for _frs_file in ("strings.json", "translations/en.json", "translations/sv.json"
 
 
 
-sys.exit(R.close("FEATURE CHECKS"))
 # --- #2016 item 4 (R9-UX-10): the measured output into the model's own Q_hp ---
 #
 # R9-UX-9 published the flow meter's thermal output and nothing consumed it --
@@ -62284,3 +62283,5 @@ R.check(
 )
 
 
+
+sys.exit(R.close("FEATURE CHECKS"))
