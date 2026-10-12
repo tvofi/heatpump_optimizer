@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:_stored_promise BOOLOP dad91f21",
-  "old": "    if (start.tzinfo is None or not (np.isfinite(step) and step > 0)",
-  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. and->or changes the rejection of a finite, non-positive step: not(isfinite and step>0) rejects step<=0 while not(isfinite or step>0) does not, so a stored promise with step_minutes == 0 would load. tests/features.py's UX-6 stored-promise fixture uses step_minutes 15 and its bad rows are dropped on the ragged length check instead; no recorded driver stores a zero-step promise.",
-  "verdict": "gap"
-}
