@@ -30672,6 +30672,10 @@ R.check(
 # only to main under the writer's subject, and is graded by `drain_report`.
 _ml_meas = _workflow_job(_TESTS_YML, "mutation-ledger")
 _ml_push = _workflow_job(_TESTS_YML, "mutation-ledger-push")
+# Tolerated absent so the checks below go RED on a tree without the job,
+# instead of the extract helper raising before any check runs.
+_ml_push_pr = (_workflow_job(_TESTS_YML, "mutation-ledger-push-pr")
+               if "\n  mutation-ledger-push-pr:\n" in _TESTS_YML else "")
 _ML_MISSING = [w for w, job in (
     ('--scope full --drain "$out" --max 40', _ml_meas),
     ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
@@ -30685,13 +30689,29 @@ _ML_MISSING = [w for w, job in (
     ("push origin HEAD:refs/heads/main", _ml_push),
     ("secrets.HPO_LEDGER_PEM", _ml_push),
     ("m.drain_report(sys.argv[1])", _ml_push),
+    # The pull-request arm is its own job because the two `needs` different
+    # lanes; every write guard below is the main arm's, byte-identical.
+    ("needs.mutation-pins.result == 'success'", _ml_push_pr),
+    ("m.merge_pin_shards(", _ml_push_pr),
+    ("m.apply_drained(pins, head, changed)", _ml_push_pr),
+    ("m.drain_changed(at, head)", _ml_push_pr),
+    ("m.drain_write_set_problems(st)", _ml_push_pr),
+    ("git add tests/mutation_ledger/killed_by/", _ml_push_pr),
+    (f'git commit -q -m "{_mut.DRAIN_SUBJECT}"', _ml_push_pr),
+    ("push origin HEAD:refs/heads/main", _ml_push_pr),
+    ("secrets.HPO_LEDGER_PEM", _ml_push_pr),
+    ("m.drain_report(sys.argv[1])", _ml_push_pr),
 ) if w not in job]
 R.check(
-    "mutation-ledger measures without a write grant and mutation-ledger-push writes only rows",
+    "mutation-ledger measures without a write grant and both mutation-ledger-push "
+    "jobs write only rows",
     not _ML_MISSING
     and "contents: write" not in _ml_meas and "secrets." not in _ml_meas
     and "contents: write" not in _ml_push
-    and "mutation_table.py --" not in _ml_push and "run.sh" not in _ml_push
+    and "contents: write" not in _ml_push_pr
+    and "mutation_table.py --" not in _ml_push
+    and "mutation_table.py --" not in _ml_push_pr
+    and "run.sh" not in _ml_push
     and _mut.DRAIN_SUBJECT.startswith("ci: "),
     f"missing={_ML_MISSING}",
 )
@@ -30704,14 +30724,18 @@ R.check(
 # neither job, and the push refuses a branch ref on its own even were the
 # measuring job to succeed there. (`_gh_if` and `_gh_eval` live above, at the
 # nightly-status coupling, their first use.)
-# The same-repo pull_request arm (2026-10-12, the owner's question): the push
-# ALONE also arms on a same-repo `synchronize` pull request, never on a fork
-# (`head.repo.full_name != repository`), never on `closed`, and never on a
-# `push` event, which carries no pull_request context. The realistic
-# `needs.mutation-ledger.result` column keeps the arm's coupling honest: the
-# measuring job runs on main alone (#1848 B1), so on a pull request the result
-# is `skipped` and the arm does not fire until the owner rules how the
-# measured slice reaches a pull-request run.
+# The same-repo pull_request arm (2026-10-12, the owner's question) is its own
+# job, `mutation-ledger-push-pr`, because it `needs` different lanes: the pins
+# were already measured on the pull request by `mutation-pins` (per-PR, no
+# nightly cost), so the arm drains THOSE lanes' artifacts and never waits on
+# `mutation-ledger`, which is main-only (#1848 B1). It arms on a same-repo
+# `synchronize` pull request WHEN THE LANES SUCCEEDED -- skipped or failed
+# lanes leave nothing owed -- never on a fork
+# (`head.repo.full_name != repository`), never on `closed`, never on a `push`
+# event (no pull_request context), and never on a main ref: the two arms
+# cannot reach each other's events. The realistic `needs` columns keep the
+# couplings honest: the main job's gate is evaluated with the measuring job's
+# real result, the PR job's with each answer the lanes can give.
 _REPO = "tvofi/heatpump_optimizer"
 _REACH: list = []
 try:
@@ -30729,28 +30753,28 @@ try:
                     _r_push = _gh_eval(_gh_if(_ml_push), {
                         **_rx, "needs.mutation-ledger.result":
                             "success" if _r_meas else "skipped"})
-                    _r_alone = _gh_eval(_gh_if(_ml_push), {
-                        **_rx, "needs.mutation-ledger.result": "success"})
                     _r_want = _rr == "refs/heads/main" and (
                         _rv == "schedule"
                         or (_rv == "workflow_dispatch" and _rc != "true"))
-                    _r_arm = (_rv == "pull_request"
-                              and _ra == "synchronize" and _hr == _REPO)
-                    if (_r_meas, _r_push) != (_r_want, _r_want) or _r_alone != (
-                            _r_want or _r_arm
-                            or (_rr == "refs/heads/main"
-                                and _rv in ("schedule", "workflow_dispatch"))):
+                    _pr_arm = (_rv == "pull_request" and _ra == "synchronize"
+                               and _hr == _REPO)
+                    _r_pr = [_gh_eval(_gh_if(_ml_push_pr), {
+                                 **_rx, "needs.mutation-pins.result": _np})
+                             != (_pr_arm and _np == "success")
+                             for _np in ("success", "skipped", "failure")]
+                    if (_r_meas, _r_push) != (_r_want, _r_want) or any(_r_pr):
                         _REACH.append(
                             (_rv, _rr, _rc, _ra, _hr.split("/")[0],
-                             _r_meas, _r_push, _r_alone))
+                             _r_meas, _r_push, _r_pr))
 except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
     _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
 R.check(
     "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; "
-    "main's schedule and dispatch reach both; the push alone arms a same-repo "
-    "synchronize pull request, and no fork, closed or push arm",
+    "main's schedule and dispatch reach both; the pins-draining job arms a "
+    "same-repo synchronize pull request only on lanes success, and no fork, "
+    "closed, push or skipped-lanes arm",
     not _REACH,
-    f"(event, ref, recheck, action, actor, measured, pushed, push alone) wrong: {_REACH}",
+    f"(event, ref, recheck, action, actor, measured, pushed, pr-arm wrong) wrong: {_REACH}",
 )
 _CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
 R.check(
@@ -30850,18 +30874,26 @@ R.check(
     f"{len(_NHA_DRIVER_READS)} staged read(s) outside the package",
 )
 
-# The credential (#1848 B2): the ledger writer's secrets are read by one job,
-# and that job runs in the `ledger` environment, whose deployment branches the
-# owner restricts to main -- so no other job, branch or workflow is handed the
-# bypass token by this repository's YAML.
+# The credential (#1848 B2): the ledger writer's secrets are read by the two
+# push jobs alone, and both run in the `ledger` environment, whose deployment
+# branches the owner restricts to main -- so no other job, branch or workflow
+# is handed the bypass token by this repository's YAML. The pull-request arm
+# is armed by this YAML but cannot fire until that environment's deployment
+# branch policy admits same-repo PR runs: a repo SETTINGS change only the
+# owner (or the orchestrator under the mandate's repo-settings scope) can
+# make -- the workflow cannot lift it, and absent the secrets the job fails
+# closed at skip-no-writer.
 _LEDGER_JOBS = sorted(n for n in _workflow_job_ids(_TESTS_YML)
                       if "HPO_LEDGER_" in _workflow_job(_TESTS_YML, n))
 _LEDGER_ELSEWHERE = sorted(str(f) for f in Path(".github/workflows").glob("*.y*ml")
                            if f.name != "tests.yml" and "HPO_LEDGER_" in f.read_text())
 R.check(
-    "the ledger writer's secrets are read by mutation-ledger-push alone, in the ledger environment",
-    _LEDGER_JOBS == ["mutation-ledger-push"] and not _LEDGER_ELSEWHERE
-    and "\n    environment: ledger\n" in _ml_push,
+    "the ledger writer's secrets are read by the two mutation-ledger-push jobs "
+    "alone, in the ledger environment",
+    _LEDGER_JOBS == ["mutation-ledger-push", "mutation-ledger-push-pr"]
+    and not _LEDGER_ELSEWHERE
+    and "\n    environment: ledger\n" in _ml_push
+    and "\n    environment: ledger\n" in _ml_push_pr,
     f"jobs={_LEDGER_JOBS} other workflows={_LEDGER_ELSEWHERE}",
 )
 
@@ -30924,29 +30956,35 @@ except Exception as _pp_exc:  # noqa: BLE001 -- one red check, never a partial r
 finally:
     _mut_shutil.rmtree(_PP_DIR, ignore_errors=True)
 _pp_push = _ml_push.find("push origin HEAD:refs/heads/main")
+_pp_push_pr = _ml_push_pr.find("push origin HEAD:refs/heads/main")
 R.check(
-    "mutation-ledger-push sends one row commit on main's tip, and its diff of the measured head fails closed",
+    "both push jobs check out main, send one row commit on main's tip, and "
+    "check the commits before the push",
     _PP_GOT == [[], [_mut.DRAIN_ROWS + "new.json"], None, None, True, True, True,
                 ["2 commit(s) ahead of origin/main, not 1"]]
-    and "          ref: main\n" in _ml_push
-    and "fetch -q origin main && git reset -q --hard origin/main" in _ml_push
-    and 0 < _ml_push.find("m.drain_push_problems()") < _pp_push,
+    and all("          ref: main\n" in j for j in (_ml_push, _ml_push_pr))
+    and all("fetch -q origin main && git reset -q --hard origin/main" in j
+            for j in (_ml_push, _ml_push_pr))
+    and 0 < _ml_push.find("m.drain_push_problems()") < _pp_push
+    and 0 < _ml_push_pr.find("m.drain_push_problems()") < _pp_push_pr,
     f"(clean, diff, unreadable diff, no head, branch under it, subject, rewrite, "
     f"row-only merge) -> {_PP_GOT}; "
-    f"push at {_pp_push}",
+    f"pushes at {_pp_push}, {_pp_push_pr}",
 )
 
 # The token never reaches a log unmasked (#1848 B3): the mint step masks the
 # installation token before it writes it to the step output, and the push
-# step masks the header built from it before any git call uses it.
-_TK_MASK = _ml_push.find('echo "::add-mask::$tok"')
-_TK_OUT = _ml_push.find('echo "token=$tok" >> "$GITHUB_OUTPUT"')
-_AU_MASK = _ml_push.find('echo "::add-mask::$AUTH"')
-_AU_USE = _ml_push.find("AUTHORIZATION: basic $AUTH")
+# step masks the header built from it before any git call uses it. Both push
+# jobs, which duplicate these steps.
+_TK_WRONG = [j for j in (_ml_push, _ml_push_pr)
+             if not (0 < j.find('echo "::add-mask::$tok"')
+                     < j.find('echo "token=$tok" >> "$GITHUB_OUTPUT"')
+                     and 0 < j.find('echo "::add-mask::$AUTH"')
+                     < j.find("AUTHORIZATION: basic $AUTH"))]
 R.check(
     "the ledger writer's token and auth header are masked before their first use",
-    0 < _TK_MASK < _TK_OUT and 0 < _AU_MASK < _AU_USE,
-    f"token mask {_TK_MASK} < output {_TK_OUT}; header mask {_AU_MASK} < use {_AU_USE}",
+    not _TK_WRONG,
+    f"unmasked or out of order: {len(_TK_WRONG)} of the two push jobs",
 )
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains
@@ -32023,6 +32061,9 @@ R.check(
                         _rca_ledger_job))
     and "actions/cache/save@" not in _rca_push_job
     and "needs.mutation-ledger.result == 'success'" in _rca_push_job
+    # The pull-request arm is success-gated on its lanes the same way, and
+    # carries no cache save either.
+    and "actions/cache/save@" not in _ml_push_pr
     # The carrier costs the measuring job no grant and no secret.
     and "secrets." not in _rca_ledger_job
     and "contents: write" not in _rca_ledger_job,

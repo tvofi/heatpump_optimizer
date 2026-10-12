@@ -1267,27 +1267,17 @@ jobs:
   # credential lives in the `ledger` environment, whose deployment branches
   # are main alone, so no other ref's job can mint it; absent, the job is red.
   # The commits sent are checked before the push (`drain_push_problems`).
-  # The same-repo pull_request arm (2026-10-12, the owner's question) arms the
-  # job on a fork-free, synchronize-only PR and keeps every write guard above
-  # byte-identical; it fires only when `mutation-ledger` succeeded in the same
-  # run, which on a pull request awaits the owner's ruling on how the measured
-  # slice reaches a PR run (the measuring job is main-only, #1848 B1).
+  # Main's arm only: schedule and dispatch on main. The same-repo
+  # pull_request arm (2026-10-12, the owner's question) is the sibling job
+  # `mutation-ledger-push-pr` below -- it `needs` different lanes, so one job
+  # cannot carry both.
   mutation-ledger-push:
     needs: [mutation-ledger]
     if: >-
       !cancelled()
       && needs.mutation-ledger.result == 'success'
-      && (
-        (
-          github.ref == 'refs/heads/main'
-          && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-        )
-        || (
-          github.event_name == 'pull_request'
-          && github.event.action == 'synchronize'
-          && github.event.pull_request.head.repo.full_name == github.repository
-        )
-      )
+      && github.ref == 'refs/heads/main'
+      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     environment: ledger
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1308,6 +1298,179 @@ jobs:
         with:
           name: mutation-ledger
           path: ${{ runner.temp }}/mutation-ledger
+
+      - name: Mint the ledger-writer App token
+        id: mint
+        env:
+          REPO: ${{ github.repository }}
+          LEDGER_PEM: ${{ secrets.HPO_LEDGER_PEM }}
+          LEDGER_APPID: ${{ secrets.HPO_LEDGER_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$LEDGER_PEM" ] || [ -z "$LEDGER_APPID" ]; then
+            echo "::error::HPO_LEDGER_PEM or HPO_LEDGER_APPID is not set in the ledger environment; the slice is not recorded (fail-closed: the report step reddens skip-no-writer)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-ledger.pem"
+          jwt_h="$RUNNER_TEMP/hpo-ledger-jwt.h"
+          trap 'rm -f "$key" "$jwt_h"' EXIT
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$LEDGER_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$LEDGER_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the ledger-writer App JWT failed"
+            exit 1
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the ledger-writer App has no installation on $REPO, or its JWT was refused"
+            exit 1
+          }
+          tok=$(curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" \
+            -d '{"permissions":{"contents":"write"}}' \
+            "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])') && [ -n "$tok" ] || {
+            echo "::warning::minting the ledger-writer App installation token failed"
+            exit 1
+          }
+          echo "::add-mask::$tok"
+          echo "token=$tok" >> "$GITHUB_OUTPUT"
+
+      # Apply, check the write set, commit and push, re-applied onto a main
+      # that moved under the push (three tries; never a force). Every status
+      # reaches the report below, which reddens one a slice was owed.
+      - name: Record the killed sites on main
+        id: record
+        env:
+          PINS: ${{ runner.temp }}/mutation-ledger
+          TOKEN: ${{ steps.mint.outputs.token }}
+        run: |
+          set -uo pipefail
+          status=""
+          if [ -z "$TOKEN" ]; then
+            status="skip-no-writer"
+          else
+            AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+            echo "::add-mask::$AUTH"
+            git config user.name "hpo-ledger[bot]"
+            git config user.email "hpo-ledger[bot]@users.noreply.github.com"
+            for try in 1 2 3; do
+              git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
+              status=$(python3 -I - <<'PY'
+          import os, subprocess, sys
+          sys.path.append("tests")
+          import mutation_table as m
+          pins = os.environ["PINS"]
+          head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                text=True).stdout.strip()
+          try:
+              at = open(os.path.join(pins, "head")).read().strip()
+          except OSError:
+              at = ""
+          changed = m.drain_changed(at, head)
+          status = m.apply_drained(pins, head, changed)
+          if status == "changed":
+              st = subprocess.run(["git", "status", "--porcelain",
+                                   "--untracked-files=all"],
+                                  capture_output=True, text=True).stdout
+              bad = m.drain_write_set_problems(st)
+              for b in bad:
+                  print(f"outside the writer's grant: {b}", file=sys.stderr)
+              status = "skip-write-set" if bad else status
+          print(status)
+          PY
+              ) || status="skip-apply-crashed"
+              [ "$status" = "changed" ] || break
+              git add tests/mutation_ledger/killed_by/
+              git commit -q -m "ci: record nightly kills"
+              if ! python3 -I -c 'import sys; sys.path.append("tests"); import mutation_table as m; bad = m.drain_push_problems(); print("\n".join(bad), file=sys.stderr); sys.exit(1 if bad else 0)'; then
+                status="skip-commit-set"
+                break
+              fi
+              if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                   push origin HEAD:refs/heads/main; then
+                break
+              fi
+              status="skip-push-refused"
+            done
+          fi
+          echo "MUTATION LEDGER: $status"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Report whether the slice reached main
+        if: always()
+        run: |
+          python3 -I -c 'import sys; sys.path.append("tests"); import mutation_table as m; sys.exit(m.drain_report(sys.argv[1]))' \
+            "${{ steps.record.outputs.status }}"
+
+  # The same-repo pull_request arm (2026-10-12, the owner's question), its own
+  # job because it `needs` different lanes: on a pull request the pins were
+  # already measured by the `mutation-pins` lanes -- per-PR, no nightly cost
+  # -- so this job drains THOSE lanes' artifacts, not `mutation-ledger`'s
+  # (main-only, #1848 B1). Their layout is `write_drain`'s (status, head,
+  # pins.json), folded by `merge_pin_shards` into the one directory
+  # `apply_drained` reads -- the same download its consumer
+  # `mutation-autofix` does. It arms on a same-repo `synchronize` pull
+  # request WHEN THE LANES SUCCEEDED; skipped or failed lanes leave nothing
+  # owed, a fork never arms, and a main ref cannot reach this job (the two
+  # arms' events are disjoint). The measured head -- the PR's tip -- is
+  # fetched so `drain_changed` can diff it against main; a main that moved
+  # under the pins gets the same stale-pin re-key as a nightly slice. The
+  # checkout, the write set, the subject and the parent guard are the main
+  # arm's, byte-identical, and run the BASE's (main's) copy of
+  # `mutation_table.py` the pinned-grader rule requires of a job with a write
+  # grant (D11-s1-03). The `ledger` environment's deployment branches are
+  # main alone (#1848's Approval step 1): this job is ARMED but refused the
+  # credential by repo SETTINGS no workflow edit can lift -- firing it needs
+  # the owner's environment change, admitting same-repo PR refs to the
+  # `ledger` environment's deployment branch policy. Absent the secrets the
+  # job fails closed at skip-no-writer, exactly as the main arm does.
+  mutation-ledger-push-pr:
+    needs: [mutation-pins]
+    if: >-
+      !cancelled()
+      && needs.mutation-pins.result == 'success'
+      && github.event_name == 'pull_request'
+      && github.event.action == 'synchronize'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    environment: ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Download the pins the mutation-pins shards measured
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          pattern: mutation-pins*
+          path: ${{ runner.temp }}/mutation-pins-shards
+
+      - name: Fetch the measured head and fold the shards
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch -q --no-tags origin "$PR_HEAD"
+          SHARDS_DIR="$RUNNER_TEMP/mutation-pins-shards" \
+          PINS="$RUNNER_TEMP/mutation-ledger" \
+          python3 -I -c 'import os, sys; sys.path.append("tests"); import mutation_table as m; print("merged:", m.merge_pin_shards(os.environ["SHARDS_DIR"], os.environ["PINS"]))'
 
       - name: Mint the ledger-writer App token
         id: mint
