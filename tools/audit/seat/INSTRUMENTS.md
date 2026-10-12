@@ -43,10 +43,6 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   (`audit-find` runs it in Prepare and refuses the round on failure) or
   splitting one. Refusal: a cell owned twice, or owned by nobody — the
   perturbed-scope `--self-test` is the null control.
-- `fastpath_census.py` — measures how often `merge_fastpath.py` would have
-  said ELIGIBLE over main's last N merges. When: re-justifying (or retiring)
-  the fastpath with numbers. Refusal: `INJECT=1` — without it the census
-  measures nothing and says so.
 - `fold_ledger.py` — folds a round's JUDGE.json and sweeps into
   `bugclasses.json`, and checks the register against the judges. When: after a
   judge lands, and before quoting the bugclass register as current state.
@@ -57,11 +53,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   grades a batch of findings and wants the mechanical half scripted. Refusal:
   a perturbation that does not move the number in the stated direction prints
   `void`; what it cannot run prints `by-hand`, never a pass.
-- `merge_fastpath.py` — answers whether a verdicted PR can merge without a
-  fresh CI run: did anything main changed since the PR's CI base land inside a
-  closure the PR's own scoped gate selected? When: a merge train stalls on
-  "main moved after CI". Refusal: an unrecorded file in the diff — ELIGIBLE
-  needs every touched path measured, and "unrecorded" refuses.
+- `merge_fastpath.py` — classifies a changed file as workflow, claim, grader
+  or budget for `merge_train.py`'s batch routing: any such file sends a pull
+  request serial. Refusal: `--self-test` — `governance.yml` greps its
+  `checks, 0 failed` line.
 - `merge_throughput.py` — measures whether merges land inside the previous
   merge's gate window often enough to justify a merge queue. When: someone
   proposes a queue; the numbers decide before the mechanism is built.
