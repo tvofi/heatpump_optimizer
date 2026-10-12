@@ -169,11 +169,19 @@ jobs:
 
   fast:
     needs: [recheck-gate, closure-scope]
-    # The trailing R9-CI-SKIP guard: skip only when closure-scope decided a
-    # recorded green run at this exact base and diff stands in for a rerun.
-    # On every event closure-scope does not decide -- push to main above all,
-    # the merge queue, the nightly, a `no-skip` dispatch -- the output is
-    # empty, the guard is true, and this lane runs exactly as before.
+    # R9-CI-SKIP: this lane stands down at the STEP level, never the job
+    # level, and that is measured, not taste. A matrix job skipped by a
+    # job-level `if:` reports its check WITHOUT the matrix suffix -- `fast`,
+    # not `fast (3.14)` -- and the required context is `fast (3.14)`, so a
+    # job-level skip leaves the merge rule waiting for a check that never
+    # reports (demonstrated live on this pull request's first demo head, run
+    # 38322500356). A skipped NON-matrix lane keeps its exact name -- `browser`
+    # and `coverage` skip at the job level below -- and a skipped required
+    # check satisfies the rule (the isolated probe, both arms). So `fast` runs
+    # a job that reports SUCCESS while standing down: every step after the
+    # report below is gated on the closure-scope decision, which is empty --
+    # RUN -- on every event the skip arm does not cover, push to main above
+    # all.
     if: >-
       !cancelled() && (
         github.event_name == 'push'
@@ -181,7 +189,7 @@ jobs:
         || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
-      ) && needs.closure-scope.outputs.fast_skip != 'skip'
+      )
     runs-on: ubuntu-latest
     # The only job that runs the production suite. It was matrixed over both
     # interpreters from #514 until the 3.13 leg was retired: 3.14 is what
@@ -214,7 +222,18 @@ jobs:
     # step was cancelled mid-suite by its own timeout.
     timeout-minutes: 100
     steps:
+      # Unconditional: the one step a standing-down run still executes, so
+      # the log says what the run stands on even when nothing else runs.
+      - name: Report the lane-skip decision this run stands on
+        run: |
+          echo "fast: closure-scope decided '${{ needs.closure-scope.outputs.fast_skip || 'run' }}' for this base and diff."
+          if [ "${{ needs.closure-scope.outputs.fast_skip }}" = "skip" ]; then
+            echo "A recorded green run at this exact base and diff stands in for this"
+            echo "rerun; every step below is skipped and this job reports success."
+          fi
+
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           # env_drift needs the comparison ref's history to build its
           # baseline worktree.
@@ -227,10 +246,12 @@ jobs:
       # A cross-interpreter baseline is exactly the false drift that would
       # otherwise make this matrix unreadable.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           python-version: ${{ matrix.python-version }}
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           node-version: "22"
 
@@ -240,12 +261,14 @@ jobs:
       # `npm ci` over a committed package-lock.json. Why each flag is there is
       # in the header of tests/requirements-ci.txt and requirements-build.txt.
       - name: Install pinned test dependencies
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
       - name: Resolve the golden comparison ref
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # The PR's merge-base with its target: exactly the code this
@@ -302,6 +325,7 @@ jobs:
           github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || needs.recheck-gate.outputs.recheck == 'true'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         env:
           PYTHONPATH: tests/hastub
         run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
@@ -311,6 +335,7 @@ jobs:
           github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || needs.recheck-gate.outputs.recheck == 'true'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
@@ -330,6 +355,7 @@ jobs:
         if: >-
           (github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         env:
           PYTHONPATH: tests/hastub
         run: |
@@ -341,6 +367,7 @@ jobs:
       # Written as an explicit equality on the event name so an event this
       # file has not thought about lands on `full`, not on `auto`.
       - name: Decide the gate scope
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] \
              || [ "${{ github.event_name }}" = "merge_group" ] \
@@ -352,6 +379,7 @@ jobs:
           fi
 
       - name: Run the suite
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         env:
           # CI-cost metrics (tests/ci_ratchet.py): run.sh appends this run's
           # scope decision here when the variable is set; local runs never
@@ -382,7 +410,7 @@ jobs:
       # however the suite ended -- a red run's cost is still cost -- and
       # empty on a run whose lane never executed a line.
       - name: Upload the fast lane's CI metrics
-        if: always()
+        if: always() && needs.closure-scope.outputs.fast_skip != 'skip'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ci-metrics-fast
@@ -398,6 +426,7 @@ jobs:
         if: >-
           (github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
