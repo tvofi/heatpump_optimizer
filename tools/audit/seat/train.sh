@@ -3,16 +3,23 @@
 #
 #   tools/audit/seat/train.sh --queue Q.json --repo OWNER/REPO --state-dir DIR \
 #                             [--checkout DIR] [--min-runs N] [--mandate ID] \
-#                             [--ignore-red CONTEXT]... [--self-test]
+#                             [--ignore-red CONTEXT]... [--skip-bad] [--overlap] \
+#                             [--self-test]
 #
 # What it adds over calling merge_train.py by hand, which the orchestrator's
 # scratch re-duplicated once per session before this existed:
 #   * the seat venv (seat_venv.sh's venv-ci, the pinned 3.14) first on PATH --
 #     prepr's no-copies and the f-string checks refuse on an ambient 3.11;
+#   * the child python runs UNBUFFERED (`python3 -u`): a detached caller's log
+#     shows a train stop, a SKIP line or an OVERLAP recarry in real time, not
+#     after a block buffer fills;
 #   * a pidfile per state dir refusing a second live train on the same state
 #     (two concurrent trains on one state dir have corrupted a queue mid-run);
 #   * the log and the exit code under the state dir (train.log, rc), so a
 #     detached caller and the next session read the same places.
+# `--skip-bad` and `--overlap` pass straight through to `merge_train.py batch`:
+# a bad entry is skipped and reported instead of stopping the train, and the
+# serial entries are re-carried up front with main's CI waited on log-only.
 # Foreground by design: the caller detaches (`nohup ... &`) and owns the
 # schedule; this script owns only the invocation shape.
 
@@ -20,10 +27,11 @@ set -u
 
 die() { echo "train.sh: REFUSE: $*" >&2; exit 2; }
 
-usage() { sed -n '2,12p' "$0" >&2; exit 2; }
+usage() { sed -n '2,16p' "$0" >&2; exit 2; }
 
 selftest=0
 queue="" repo="" checkout="" state="" minruns=1 mandate=""
+skipbad=0 overlap=0
 ignores=()
 while [ $# -gt 0 ]; do
   case $1 in
@@ -35,6 +43,8 @@ while [ $# -gt 0 ]; do
     --mandate) [ $# -ge 2 ] || die "--mandate needs a value"; mandate=$2; shift 2 ;;
     --ignore-red) [ $# -ge 2 ] || die "--ignore-red needs a value"
       ignores+=("--ignore-red" "$2"); shift 2 ;;
+    --skip-bad) skipbad=1; shift ;;
+    --overlap) overlap=1; shift ;;
     --self-test) selftest=1; shift ;;
     --help|-h) usage ;;
     *) die "unknown argument '$1'" ;;
@@ -109,6 +119,32 @@ if [ "$selftest" = 1 ]; then
     *seat_venv.sh*) : ;;
     *) die "self-test: an absent venv refused without naming seat_venv.sh: $out" ;;
   esac
+  # 6. --skip-bad and --overlap pass through to merge_train.py, and the child
+  #    python runs unbuffered (-u): a detached caller's log shows a SKIP
+  #    report or an OVERLAP recarry in real time, not after a buffer fills.
+  #    Same stub-argv technique as arm 4.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state"
+  printf '#!/bin/bash\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" \
+    > "$st/venv-ci/bin/python3"
+  chmod +x "$st/venv-ci/bin/python3"
+  : > "$st/queue.json"
+  if ! HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r \
+      --state-dir "$st/state" --skip-bad --overlap >/dev/null 2>&1; then
+    rm -rf "$st"
+    die "self-test: the stubbed --skip-bad/--overlap run did not succeed"
+  fi
+  [ -s "$st/argv" ] || { rm -rf "$st"; die "self-test: the stubbed python3 never ran (ambient fallback?)"; }
+  flags=$(tr '\n' '|' < "$st/argv")
+  case $flags in
+    "-u|tools/audit/seat/merge_train.py|batch|"*) : ;;
+    *) rm -rf "$st"; die "self-test: the child is not run unbuffered (-u first): $flags" ;;
+  esac
+  case $flags in
+    *"|--skip-bad|--overlap|"*) : ;;
+    *) rm -rf "$st"; die "self-test: --skip-bad/--overlap did not reach the child argv: $flags" ;;
+  esac
+  rm -rf "$st"
   echo "train.sh self-test: ok (5 refusals shown)"
   exit 0
 fi
@@ -152,11 +188,13 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
 (
   cd "$checkout" || exit 2
   # shellcheck disable=SC2086 # minruns is a plain integer
-  python3 tools/audit/seat/merge_train.py batch "$queue" \
+  python3 -u tools/audit/seat/merge_train.py batch "$queue" \
     --repo "$repo" \
     --state-dir "$state" \
     --min-runs "$minruns" \
     ${ignores[@]+"${ignores[@]}"} \
+    ${skipbad:+--skip-bad} \
+    ${overlap:+--overlap} \
     ${mandate:+--mandate "$mandate"}
 ) >> "$log" 2>&1
 rc=$?

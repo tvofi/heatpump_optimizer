@@ -153,6 +153,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the default for a queue. Refusal: a red main admits nothing; a red proof
   drops its entry to serial,
   and main's tree differing from the proof's before or after a merge stops it.
+  `batch --skip-bad` makes a per-entry refusal (admission, recarry, carry, CI,
+  merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
+  `skipped.json` and a `SKIP REPORT` line, rc 1 — while a red main and a Stop
+  after the merge API call stay global. `batch --overlap` (owner's P7) does
+  not wait on main's CI (log-only) and re-carries every serial entry up front
+  so their pull_request runs fire together; each lands in queue order when
+  its own required contexts conclude — the ruleset still gates every head.
   Residual: a proved pair's second merge does not wait for main's run on the
   first; the proof graded the tree both make. A `batch/` branch the remote
   will not delete is logged `NOT deleted`, for deletion by hand.
@@ -223,16 +230,18 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `train.sh` — one invocation shape for `merge_train.py batch`: the seat
   venv first on PATH — an absent venv refuses (naming `seat_venv.sh` to
   build it), it never falls back to ambient python, which on 3.11 refuses
-  main's own nested-quote f-strings under `no-copies` — a pidfile refusing
-  a second live train on the same state dir, log and exit code under the
-  state dir (`train.log`, `rc`). Foreground: the caller detaches and owns
-  the schedule. When: every merge queue — the per-session scratch drivers
-  this replaces duplicated the invocation, and one session's copy ran
-  prepr under the wrong interpreter and refused a clean branch. Refusal:
-  a live pidfile (take over only by removing it after checking the pid is
-  dead). `--self-test` drives the five refusals offline (missing required
-  arg, live pidfile, unknown argument, the `--ignore-red` argv shape, the
-  absent-venv refusal).
+  main's own nested-quote f-strings under `no-copies` — the child python
+  unbuffered (`-u`, so a detached caller's log shows stops and SKIP/OVERLAP
+  lines in real time), a pidfile refusing a second live train on the same
+  state dir, log and exit code under the state dir (`train.log`, `rc`), and
+  `--skip-bad`/`--overlap` passed straight through. Foreground: the caller
+  detaches and owns the schedule. When: every merge queue — the per-session
+  scratch drivers this replaces duplicated the invocation, and one session's
+  copy ran prepr under the wrong interpreter and refused a clean branch.
+  Refusal: a live pidfile (take over only by removing it after checking the
+  pid is dead). `--self-test` drives the five refusals and the child argv
+  shape offline (missing required arg, live pidfile, unknown argument, the
+  `--ignore-red` argv shape, the absent-venv refusal).
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r9-plan` at
