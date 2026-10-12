@@ -72,10 +72,12 @@ Left behind as the orchestrator's judgement, not reportable from tree/API
 reads: verdict-bus watching, reviewer-owed dispatch, the 15-minute
 worktree-recency rules, post-merge duties, stamps, hold overlays.
 
-API cost: one full tick is roughly 2 + 5x(open PRs) calls (list, bodies,
-check-runs per head, ruleset, comments) -- at 20 open PRs about a hundred;
-run it at the orchestrator's five-minute cadence, never in a poll loop.
---only limits which sections run (MAIN before PRS shares the required read).
+API cost, measured: a live full tick made 67 calls at 27 open PRs and 84 at
+21 -- roughly two to four calls per open PR (list, body reads, check-runs per
+head) plus about a dozen fixed reads (ruleset, mandate, quota, issues,
+search). Run it at the orchestrator's five-minute cadence, never in a poll
+loop. --only limits which sections run (the mandate and required-context
+reads land before PRS and are shared).
 
 Output: the first line is provenance ("BOARD measured from origin/main at
 <sha>, <UTC>"); then one line per fact, flagged lines prefixed `-> ` (the
@@ -116,6 +118,12 @@ UPDATED_FOR = re.compile(r"^updated-for:\s*([0-9a-f]{40})", re.M)
 MERGE_PR = re.compile(r"Merge pull request #(\d+)")
 CLOSES = re.compile(r"(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*"
                     r"(#\d+(?:\s*,\s*#\d+)*)")
+#: A negation before the keyword ("does not fix #N", "leaves #N open") is
+#: the opposite of a declared close -- the repo's own record documents the
+#: class (the closing-keyword traps). Searched in the window since the
+#: previous sentence end.
+CLOSES_NEGATION = re.compile(r"\b(not|never|leaves?|leave|without|avoid"
+                             r"|refrain|instead)\b", re.I)
 CODEOWNERS = ".github/CODEOWNERS"
 OWNER = "@tvofi"
 #: Per-item API caps: a tick must stay cheap steady-state; when an item's
@@ -236,14 +244,17 @@ class Tick:
                 out.append((int(pid), cmd.strip()))
         return out
 
-    def bus(self) -> list[str]:
+    def bus(self) -> "tuple[int, list[str]]":
         """bus.sh orphans' read-only output: pushed handoff refs no open PR
-        carries. A subprocess over the tree's own instrument, never a copy."""
+        carries. A subprocess over the tree's own instrument, never a copy.
+        (rc, stdout lines): stderr is never data -- a subcommand this tree's
+        bus.sh does not know (it lands with a PR) prints usage there."""
         if self._bus is not None:
             return self._bus()
         r = subprocess.run(["bash", str(SEAT / "bus.sh"), "orphans"],
                            cwd=self.checkout, capture_output=True, text=True)
-        return [l.strip() for l in (r.stdout + r.stderr).splitlines() if l.strip()]
+        return r.returncode, [l.strip() for l in r.stdout.splitlines()
+                              if l.strip()]
 
     # -------------------------------------------------------------- output
     def line(self, section: str, text: str, flag: bool = False) -> None:
@@ -316,10 +327,28 @@ class Tick:
         return out
 
     # -------------------------------------------------------------- TRAIN
+    @staticmethod
+    def _seat_procs(entries: list, needle: str, python_only: bool) -> list:
+        """Real seat processes only: a train runs a python binary (an editor
+        or grep naming the script is not a train); and no entry may be the
+        parent shell wrapper the launcher leaves behind (each live seat
+        otherwise counts twice: the zsh -c parent and the child)."""
+        out = []
+        for pid, cmd in entries:
+            if needle not in cmd or "orchestrator_tick" in cmd:
+                continue
+            if python_only and not re.match(r"\S*python3?\S*\s", cmd):
+                continue
+            if re.search(r"\b(zsh|bash|sh)\s+-c\b", cmd) or \
+                    "shell-snapshots" in cmd:
+                continue
+            out.append((pid, cmd))
+        return out
+
     def train(self) -> None:
         S = "TRAIN"
-        live = [p for p in self.proc("merge_train.py")
-                if "orchestrator_tick" not in p[1]]
+        live = self._seat_procs(self.proc("merge_train.py"), "merge_train.py",
+                                python_only=True)
         if live:
             self.line(S, f"train alive: pid {live[0][0]} ({len(live)} process(es)); "
                          "it holds every merge -- load nothing else")
@@ -332,7 +361,8 @@ class Tick:
             if self.queues and (q := self._queue()):
                 self.line(S, "a nonempty queue file and no live train is a dead "
                          "train (see the queue line below)")
-        preprs = self.proc("prepr.sh")
+        preprs = self._seat_procs(self.proc("prepr.sh"), "prepr.sh",
+                                  python_only=False)
         self.line(S, f"prepr slots: {len(preprs)} running (cap 4)"
                   + ("" if len(preprs) < 4 else " -- do not start a fifth"),
                   flag=len(preprs) >= 4)
@@ -499,10 +529,12 @@ class Tick:
                              "automatic merges (carry is re-checked at merge)")
 
     def body_staleness(self, S: str, prs: list[dict]) -> None:
-        """The body treadmill: a head that moved after the body's last edit.
-        One batched GraphQL read for every open PR's body updatedAt; the head
-        commit dates come from the local object db. Heads younger than an
-        hour are skipped (the reviewer is still settling)."""
+        """The body treadmill: a head that moved after the PR's last update.
+        One batched GraphQL read for every open PR's updatedAt -- the any-event
+        time, an honest PROXY for the body edit (a label-only event between
+        the body edit and the head push weakens the signal, never invents it);
+        the head commit dates come from the local object db. Heads younger
+        than an hour are skipped (the reviewer is still settling)."""
         if not prs:
             return
         owner, name = self.repo.split("/", 1)
@@ -541,8 +573,10 @@ class Tick:
             code3, o3 = self.git(["rev-list", "--count",
                                   f"--since={at}", head])
             k = o3.strip() if code3 == 0 and o3.strip().isdigit() else "?"
-            self.line(S, f"#{n}: re-take the body (the head moved {k} commit(s) "
-                         "past the last body edit)", flag=True)
+            self.line(S, f"#{n}: re-take the body (the head moved {k} "
+                         "commit(s) past the PR's last update -- the body-edit "
+                         "time is proxied by updatedAt, any PR event)",
+                      flag=True)
 
     def owner_reviews(self, S: str, prs: list[dict]) -> None:
         """Stale owner review: on every open CODE-OWNED PR, the latest tvofi
@@ -879,52 +913,13 @@ class Tick:
         return None
 
     def mandate(self, S: str) -> None:
-        """The one mandate reading: budget_raise_gate's mandate_state over the
-        tracking issue's comments -- the newest grammar-matching owner comment
-        within --mandate-since-days, or exactly --mandate-id. The search
-        window is stated in the output so a quiet window is never mistaken
-        for an all-clear."""
-        g = _module("budget_raise_gate_tick", "tools/policy/budget_raise_gate.py")
-        if g is None or not hasattr(g, "mandate_state"):
-            self.unreadable(S, "mandate", "budget_raise_gate.py not importable")
+        """The one mandate reading, reported for MAIN: the fetch+evaluate
+        half is mandate_read(), run BEFORE the PRS section so a stale-review
+        or mandate-cite check never reads an unset live id."""
+        read = self.mandate_read()
+        if read is None:
             return
-        if self.mandate_id:
-            code, o = self.gh(["api",
-                               f"repos/{self.repo}/issues/comments/{self.mandate_id}"])
-            if code:
-                self.unreadable(S, f"mandate comment {self.mandate_id}",
-                                o.strip()[-100:])
-                return
-            try:
-                cands, since = [json.loads(o)], None
-            except ValueError as e:
-                self.unreadable(S, f"mandate comment {self.mandate_id}",
-                                str(e)[:100])
-                return
-        else:
-            start = (self.now - datetime.timedelta(
-                days=self.mandate_since_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
-            cands = self._thread(start)
-            if cands is None:
-                return
-        cands = [c for c in cands
-                 if g._is_owner(c.get("user"))
-                 and g.MANDATE_GRAMMAR.fullmatch(
-                     ((c.get("body") or "").strip().splitlines()
-                      or [""])[0].strip())]
-        if not cands:
-            self.line(S, f"no mandate-grammar comment by the owner on #201 in "
-                         f"the last {self.mandate_since_days}d (searched live "
-                         "this tick) -- policy and raise merges refuse",
-                      flag=self.mandate_id is None)
-            return
-        m = cands[-1]
-        thread = self._thread(m.get("created_at") or "", exclude=m.get("id"))
-        self._mandate_live = m.get("id")
-        ok, why = g.mandate_state(m.get("id"), m, thread or [], self.now,
-                                  self.now.isoformat(), when="tick",
-                                  covers=g.MANDATE_COVERS_POLICY,
-                                  what="policy merging")
+        g, m, thread, ok, why = read
         self.line(S, f"mandate: {'in force' if ok else 'NOT in force'}: {why}",
                   flag=not ok)
         if ok:
@@ -939,6 +934,66 @@ class Tick:
                                  f"{left.total_seconds() / 60:.0f} min -- renew "
                                  "with the owner before it lapses mid-train",
                               flag=True)
+
+    def mandate_read(self) -> "tuple | None":
+        """The one mandate reading: budget_raise_gate's mandate_state over the
+        tracking issue's comments -- the newest grammar-matching owner comment
+        within --mandate-since-days, or exactly --mandate-id. The search
+        window is stated in the output so a quiet window is never mistaken
+        for an all-clear. Cached per tick; (g, m, thread, ok, why), or None
+        with the UNREADABLE/no-mandate lines already reported."""
+        if getattr(self, "_mandate_cached", None) is not None:
+            return self._mandate_cached
+        g = _module("budget_raise_gate_tick", "tools/policy/budget_raise_gate.py")
+        if g is None or not hasattr(g, "mandate_state"):
+            self.unreadable("MAIN", "mandate", "budget_raise_gate.py not importable")
+            self._mandate_cached = None
+            return None
+        S = "MAIN"
+        if self.mandate_id:
+            code, o = self.gh(["api",
+                               f"repos/{self.repo}/issues/comments/{self.mandate_id}"])
+            if code:
+                self.unreadable(S, f"mandate comment {self.mandate_id}",
+                                o.strip()[-100:])
+                self._mandate_cached = None
+                return None
+            try:
+                cands, since = [json.loads(o)], None
+            except ValueError as e:
+                self.unreadable(S, f"mandate comment {self.mandate_id}",
+                                str(e)[:100])
+                self._mandate_cached = None
+                return None
+        else:
+            start = (self.now - datetime.timedelta(
+                days=self.mandate_since_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            cands = self._thread(start)
+            if cands is None:
+                self._mandate_cached = None
+                return None
+        cands = [c for c in cands
+                 if g._is_owner(c.get("user"))
+                 and g.MANDATE_GRAMMAR.fullmatch(
+                     ((c.get("body") or "").strip().splitlines()
+                      or [""])[0].strip())]
+        if not cands:
+            self.line(S, f"no mandate-grammar comment by the owner on #201 in "
+                         f"the last {self.mandate_since_days}d (searched live "
+                         "this tick) -- policy and raise merges refuse",
+                      flag=self.mandate_id is None)
+            self._mandate_cached = None
+            return None
+        m = cands[-1]
+        thread = self._thread(m.get("created_at") or "", exclude=m.get("id"))
+        self._mandate_live = m.get("id")
+        ok, why = g.mandate_state(m.get("id"), m, thread or [], self.now,
+                                  self.now.isoformat(), when="tick",
+                                  covers=g.MANDATE_COVERS_POLICY,
+                                  what="policy merging")
+        out = (g, m, thread or [], ok, why)
+        self._mandate_cached = out
+        return out
 
     def _thread(self, since: str, exclude=None) -> "list | None":
         """The comments a revocation would live in: the tracking issue's
@@ -1048,7 +1103,9 @@ class Tick:
             if len(unrec) >= CAP_MERGES:
                 capped = True
                 break
-            code2, o2 = self.gh(["api", "search/issues",
+            # GitHub search is GET-only: the -f POST form 404s, so the
+            # method is stated and the self-test's gh stub asserts it.
+            code2, o2 = self.gh(["api", "--method", "GET", "search/issues",
                                  "--jq", ".total_count",
                                  "-f", f"q={sha} repo:{self.repo} type:comment"])
             if code2:
@@ -1073,15 +1130,26 @@ class Tick:
         if code:
             self.unreadable(S, "merges of the last 24h", o.strip()[-80:])
             return
-        prs = [x for x in MERGE_PR.findall(o)][:CAP_CLOSES]
+        # git log is newest-first; "oldest first" is the tail of that list
+        prs = [x for x in MERGE_PR.findall(o)][-CAP_CLOSES:]
         for n in prs:
             code, body = self.gh(["pr", "view", n, "--repo", self.repo,
                                   "--json", "body", "--jq", ".body"])
             if code:
                 self.unreadable(S, f"body of merged #{n}", body.strip()[-80:])
                 continue
-            declared = {x.lstrip("#") for grp in CLOSES.findall(body or "")
-                        for x in re.findall(r"#(\d+)", grp)}
+            clean = re.sub(r"`[^`]*`", " ", body or "")  # code spans are prose
+            declared = set()
+            for m2 in CLOSES.finditer(clean):
+                window = clean[:m2.start()]
+                # the clause since the last separator, not the sentence: a
+                # negation poisons only the keyword it directly precedes
+                sep = max(window.rfind(c) for c in ".;:\n")
+                window = window[sep + 1:]
+                if CLOSES_NEGATION.search(window):
+                    continue  # a negation is the opposite of a declared close
+                declared.update(x.lstrip("#")
+                                for x in re.findall(r"#(\d+)", m2.group(1)))
             q = ('query{repository(owner:"' + self.repo.split("/")[0]
                  + '",name:"' + self.repo.split("/")[1] + '"){pullRequest(number: '
                  + n + '){closingIssuesReferences(first:10){nodes{number}}}}}')
@@ -1225,8 +1293,8 @@ class Tick:
                              f"disposition{age} -- surface them to the owner",
                           flag=True)
         # throughput stall: verdicted+green entries, no train, no main progress
-        if queue and not [p for p in self.proc("merge_train.py")
-                          if "orchestrator_tick" not in p[1]]:
+        if queue and not self._seat_procs(self.proc("merge_train.py"),
+                                          "merge_train.py", python_only=True):
             for item in queue:
                 pr, v = item.get("pr"), item.get("verdict")
                 h = heads.get(pr)
@@ -1297,11 +1365,18 @@ class Tick:
 
     def orphans(self, S: str) -> None:
         """bus.sh orphans: pushed handoff refs carrying work no open PR
-        carries (the class that sat unnoticed for hours)."""
+        carries (the class that sat unnoticed for hours). A non-zero exit is
+        the subcommand being unavailable, not data -- ONE finding, never the
+        usage text parsed as refs."""
         try:
-            refs = self.bus()
+            rc, refs = self.bus()
         except OSError as e:
             self.unreadable(S, "bus.sh orphans", str(e)[:80])
+            return
+        if rc != 0:
+            self.line(S, f"bus.sh orphans unavailable (exit {rc}): the "
+                         "subcommand depends on #2112, unmerged -- fold its "
+                         "refs when it lands", flag=True)
             return
         for ref in refs[:20]:
             self.line(S, f"orphaned handoff ref {ref} -- no open PR carries "
@@ -1324,6 +1399,9 @@ class Tick:
                                "--jq", ".sha"])
             if code == 0 and o.strip():
                 req = self.required("MAIN")
+            # the mandate read lands before PRS: the stale-review and
+            # mandate-cite checks read the live id, and PRS runs first
+            self.mandate_read()
         for s in todo:
             if s == "TRAIN":
                 self.train()
@@ -1451,8 +1529,8 @@ def self_test() -> int:
              reviews=None, search_counts=None, rate=(4000, 5000),
              graphql=None, procs=None, body_upd=None,
              head_commit_at=None, open_issues="", grep_rows=None,
-             plan_text="", bus_refs=None, policy_now=None,
-             policy_state=None, **kw) -> Tick:
+             plan_text="", bus_refs=None, bus_rc=0, policy_now=None,
+             policy_state=None, codeowners_text=None, **kw) -> Tick:
         """A Tick over stubbed gh/git/proc; everything defaults to all-clear."""
         prs = prs if prs is not None else []
         runs_at, states, bodies = runs_at or {}, states or {}, bodies or {}
@@ -1480,9 +1558,14 @@ def self_test() -> int:
                                             "limit": rate[1]}))
         for pr, rv in (reviews or {}).items():
             gh.on(f"pulls/{pr}/reviews", out=json.dumps(rv))
+        # GitHub search answers GET only: a stub that 404s any search call
+        # NOT carrying --method GET, so an arm fails loudly on the POST form
+        gh.on(lambda argv: "search/issues" in argv and "--method" not in argv,
+              rc=1, out="HTTP 404: search is GET-only")
         for q, total in (search_counts or {}).items():
-            gh.on(("search/issues", "-f", f"q={q}"), out=str(total))
-        gh.on(("search/issues",), out="1")  # default: every merge recorded
+            gh.on(("--method", "GET", "search/issues", f"q={q}"),
+                  out=str(total))
+        gh.on(("--method", "GET", "search/issues"), out="1")
         for q, nodes in (graphql or {}).items():
             gh.on("closingIssuesReferences", out=json.dumps(
                 {"data": {"repository": {"pullRequest":
@@ -1508,7 +1591,8 @@ def self_test() -> int:
                out=str(behind_handover))
         git.on(("rev-list", "--count", f"{H1}..origin/main"), out=str(behind))
         git.on(("rev-list",), out="0")
-        git.on(f"origin/main:{ot if False else CODEOWNERS}", out="/CLAUDE.md @tvofi\n")
+        git.on(f"origin/main:{CODEOWNERS}",
+               out=codeowners_text or "/CLAUDE.md @tvofi\n")
         git.on(f"origin/main:{HANDOVER}", out=f"updated-for: {handover}\n")
         git.on(("--merges", "--since=24 hours ago"), out=merges24)
         git.on(("--merges", "--format=%H %s"), out=merges)
@@ -1524,8 +1608,9 @@ def self_test() -> int:
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
-                 bus=(lambda: bus_refs) if bus_refs is not None else
-                 (lambda: []), now=NOW, policy_state=policy_state, **kw)
+                 bus=(lambda: (bus_rc, bus_refs)) if bus_refs is not None
+                 else (lambda: (0, [])), now=NOW, policy_state=policy_state,
+                 **kw)
         return t
 
     def git_factory(files="dev/programme/delivery/9.md", show=None, behind="0"):
@@ -2050,6 +2135,79 @@ def self_test() -> int:
             ("unchanged corpus not flagged", not any("policy corpus moved"
                                                      in x["text"]
                                                      for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- production order: run() as the heartbeat calls it. The stale
+        # review and the mandate-cite drift must both fire even though PRS
+        # runs before MAIN: run() reads the mandate first. ----
+        for cite, want in (("mandate 999999.", True),
+                           (f"mandate {mid}.", False)):
+            t = tick(prs=[pr_obj(90, H1)], runs_at={H1: [run_obj("tests")]},
+                     reviews={90: [{"user": {"login": "tvofi"},
+                                    "state": "APPROVED", "commit_id": H1,
+                                    "submitted_at": iso(NOW),
+                                    "body": "Agent approval under " + cite}]},
+                     files="tools/audit/seat/x.py",
+                     codeowners_text="/tools/ @tvofi\n")
+            rep = t.run()
+            a, f = check("production order", [
+                (f"cite {cite}: mandate-cite drift {'fires' if want else 'silent'}",
+                 any("re-post the review citing the in-force mandate"
+                     in x["text"] for x in rep["findings"]) == want),
+                ("mandate read before PRS (live id set)",
+                 getattr(t, "_mandate_live", None) == mid),
+            ])
+            total, failed = total + a, failed + f
+
+        # ---- search method: the GET stub answers; a POST-form call would
+        # have hit the 404 stub and reported UNREADABLE instead ----
+        t = tick(handover="e" * 40, behind_handover=3,
+                 merges=f"{'d' * 40} Merge pull request #78 from tvofi/y",
+                 search_counts={"d" * 40: 0})
+        t.state()
+        a, f = check("search GET", [
+            ("record beat found via GET (no 404 unreadable)",
+             any("record beat owed" in x["text"] for x in t.findings)
+             and not any("UNREADABLE" in x["text"] and "#201 search"
+                         in x["text"] for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- orphans: usage output is never data ----
+        t = tick(bus_refs=["usage: bus.sh watch", "usage: bus.sh publish",
+                           " 7 more usage lines"], bus_rc=1)
+        t.orphans("REPLAN")
+        a, f = check("orphans unavailable", [
+            ("one unavailable finding, no usage parsed as refs",
+             any("bus.sh orphans unavailable" in x["text"]
+                 for x in t.findings)
+             and not any("orphaned handoff ref" in x["text"]
+                         for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- closes negation: "does not fix #N" is not a declared close ----
+        t = tick(handover="e" * 40, behind_handover=3,
+                 merges24="Merge pull request #81 from tvofi/x",
+                 bodies={81: "Does `not fix #205` here.\n\nThis leaves #205 "
+                             "open; closes #201.\n"},
+                 graphql={81: [{"number": 201}]})
+        t.state()
+        a, f = check("closes negation", [
+            ("negated and code-spanned numbers not declared",
+             not any("closes mismatch" in x["text"] for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        t = tick(handover="e" * 40, behind_handover=3,
+                 merges24="Merge pull request #81 from tvofi/x",
+                 bodies={81: "Closes #205."},
+                 graphql={81: []})
+        t.state()
+        a, f = check("closes real mismatch", [
+            ("a real declared-not-closed still flagged",
+             any("closes mismatch" in x["text"] and "#205" in x["text"]
+                 for x in t.findings)),
         ])
         total, failed = total + a, failed + f
 
