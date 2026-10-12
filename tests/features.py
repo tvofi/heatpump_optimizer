@@ -40,6 +40,7 @@ from heatpump_optimizer.defrost import (
     DEFROST_LOSS_MULTIPLIER,
     DERATE_CONFIDENCE_SAMPLES,
     DERATE_MAX,
+    HUMIDITY_CENTERS,
     DefrostDerate,
     DefrostWindow,
     derate_from_duty,
@@ -4809,6 +4810,131 @@ R.check(
     abs(model.compute_cop(2.0) - plain * 0.8) < 1e-9,
 )
 params.cop_scale = 1.0
+
+# The solver's batched gradient re-walks the same forecast steps for every
+# one of the 544 k batched evaluations a solve costs, so `factor` is asked
+# the same handful of exact (temperature, humidity) pairs tens of millions
+# of times per solve, and the learner's grids change only in observe /
+# observe_duty -- between learns the answer for a given pair cannot move,
+# so a memo on the learner returns the identical float. This section pins
+# the three properties that make that memo honest: repeats do not
+# re-decide, every answer stays bit-identical to the uncached one, and a
+# learn invalidates what it changed.
+_memo_learner = DefrostDerate()
+for _ in range(200):
+    _memo_learner.observe_duty(1.0, 90.0, 0.30)
+_memo_learner.observe(3.0, 80.0, 0.75)
+_decide_calls = [0]
+_uncached_decide = _memo_learner._decide
+
+
+def _counting_decide(*args, **kwargs):
+    _decide_calls[0] += 1
+    return _uncached_decide(*args, **kwargs)
+
+
+_memo_learner._decide = _counting_decide
+_memo_learner.factor(1.0, 87.5)  # the first sight pays the interpolation once
+_decide_calls[0] = 0
+for _ in range(1000):
+    _memo_learner.factor(1.0, 87.5)
+_per_repeat = _decide_calls[0] / 1000
+_decide_calls[0] = 0
+for _pair in ((2.5, 87.5), (1.0, 30.0), (17.0, 99.0)):
+    _memo_learner.factor(*_pair)
+_first_sights = _decide_calls[0]
+_memo_learner._decide = _uncached_decide
+R.check(
+    "a repeated (temperature, humidity) pair is not re-decided",
+    _per_repeat == 0.0,
+    f"{_per_repeat:.1f} four-bucket interpolations per repeat -- a solve "
+    "pays these tens of millions of times for pairs that cannot have "
+    "changed between the calls",
+)
+R.check(
+    "a first sight of a pair still decides it once",
+    _first_sights == 12,
+    f"{_first_sights} _decide calls for 3 fresh pairs -- exactly the four "
+    "surrounding buckets each, no more",
+)
+
+# Bit-identity, not closeness: a memo hit must equal what the unchanged
+# computation produces for the SAME conditions, read straight off
+# `_factor_uncached` -- comparing two memoized learners would let a
+# conflated key (a bucket-rounded pair standing in for the exact floats)
+# be wrong identically on both sides. Sampled over the whole plane
+# including the bucket edges, where an interpolation weight is exactly 0
+# or 1 and a conflated key would show, with the repeat interleaved so a
+# hit is exercised everywhere.
+_plane_mismatch = 0
+_plane_points = 0
+for _t in (-35.0, -12.5, -2.5, -1e-9, 0.0, 1e-9, 1.0, 2.0, 3.5, 5.0,
+           5.0 + 1e-9, 8.0, 24.0, 40.0, 41.0):
+    for _h in (-1.0, 0.0, 35.0, 69.999999, 70.0, 70.0 + 1e-9, 85.5,
+               100.0, 101.0, None):
+        _hn = HUMIDITY_CENTERS[0] if _h is None else _h
+        _plane_points += 1
+        _a = _memo_learner.factor(_t, _h)
+        _oracle = _memo_learner._factor_uncached(_t, _hn)
+        _a2 = _memo_learner.factor(_t, _h)  # the second call is a memo hit
+        if _a != _oracle or repr(_a) != repr(_oracle) or _a2 != _oracle:
+            _plane_mismatch += 1
+R.check(
+    "the memoized factor is bit-identical to the uncached one everywhere",
+    _plane_mismatch == 0,
+    f"{_plane_mismatch} of {_plane_points} sampled conditions disagree, "
+    "including bucket edges -- a memo may never change a value by one float",
+)
+
+# A learn invalidates: the next call must answer from the new grids, not
+# from what the pair cached before the observation. Each mutator is
+# checked on its own, so retiring the wrong one cannot hide behind the
+# other. The stale answer is read BEFORE the learn and must differ after.
+_inval = DefrostDerate()
+for _ in range(200):
+    _inval.observe_duty(1.0, 90.0, 0.30)
+_stale_duty = _inval.factor(1.0, 90.0)
+_inval.observe_duty(1.0, 90.0, 0.0)
+_after_duty = _inval.factor(1.0, 90.0)
+_inval.observe(1.0, 90.0, 0.55)
+_after_both = _inval.factor(1.0, 90.0)
+_recomputed = DefrostDerate.from_dict(_inval.as_dict()).factor(1.0, 90.0)
+R.check(
+    "an observation invalidates the memoized answer",
+    _after_duty != _stale_duty
+    and _after_both == _recomputed
+    and _after_both < 0.99,
+    f"before the learn {_stale_duty!r}, after the duty learn "
+    f"{_after_duty!r}, after the ratio learn {_after_both!r} against "
+    f"{_recomputed!r} from a fresh learner of the same state -- each "
+    "learn must retire what it changed",
+)
+
+# The memo is capped, not unbounded: a coordinator lives for months and
+# floats accumulate, so past the cap it must clear (costing recompute,
+# never a value) and still answer bit-identically afterwards.
+_cap = DefrostDerate()
+for _ in range(200):
+    _cap.observe_duty(1.0, 90.0, 0.30)
+_cap.factor(1.0, 90.0)  # cached while the memo is young
+for _i in range(20000):
+    _cap.factor(-30.0 + _i * 0.01, 85.0)  # far past the cap: a clear fires
+_cap_answer = _cap.factor(1.0, 90.0)
+_cap_fresh = DefrostDerate.from_dict(_cap.as_dict()).factor(1.0, 90.0)
+R.check(
+    "the memo survives its own bound without changing a value",
+    _cap_answer == _cap_fresh,
+    f"after 20000 distinct pairs the answer is {_cap_answer!r} against "
+    f"{_cap_fresh!r} from a fresh learner -- a clear may cost recompute, "
+    "never a value",
+)
+R.check(
+    "the memo is actually bounded",
+    len(_cap._factor_memo) < 20000,
+    f"{len(_cap._factor_memo)} entries cached after 20000 distinct pairs "
+    "-- a coordinator lives for months; the cap is what keeps the cache "
+    "from growing with the weather",
+)
 
 
 # ===========================================================================
