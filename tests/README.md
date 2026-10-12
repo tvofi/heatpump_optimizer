@@ -140,11 +140,9 @@ unclosed script makes the gate above refuse to scope — silently, on every PR,
 with only a line in the run log. The `closures` job on main therefore **fails**
 when a selectable script went unrecorded: the omission costs one red main run
 instead of weeks of quiet full gates. Record it with the `--single` form above
-and commit the script and `tests/closures.json` together; full re-derivations
-need no lane entry — the full arm derives its recording set from the tree
-(`closure.py lane-plan --all-scripts`, round-9 C1) and records every
-selectable script, with its cheap recorded arguments, wherever a balanced
-lane plan puts it. (`golden.py` and `env_drift.py` get their cheap
+and commit the script and `tests/closures.json` together; the full arm
+derives its recording set from the tree (`lane-plan --all-scripts`,
+round-9 C1), so no lane entry is owed. (`golden.py` and `env_drift.py` get their cheap
 recorded arguments automatically; `card.mjs` and `card_drift.mjs` record
 through `strace` on Linux or `--import` on Darwin.)
 
