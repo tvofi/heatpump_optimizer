@@ -3784,7 +3784,11 @@ def _p2_registry(sources):
                  (ast.Call,), r"^getattr\(.*'(last_updated|last_changed|last_reported)'",
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
-             owners=["inputs.py::state_stamp"], dispositions={}),
+             owners=["inputs.py::state_stamp"], dispositions={
+                 "early_cutoff.py::_cycle_guard":
+                     "the pump's run length is the age of the switch's VALUE "
+                     "(last_changed); state_stamp answers when the entity was "
+                     "last heard from, which a re-reported 'on' resets"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -3793,11 +3797,11 @@ def _p2_registry(sources):
                      getattr(n.left, "value", None), getattr(n.right, "value", None))),
              owners=["thermal_model.py::on_threshold_kw"], dispositions={}),
         # D12-s2-02: the domain that writes a configured entity comes from
-        # the entity (coordinator._on_off_service, #1526), never a literal.
+        # the entity (pump_arbiter.on_off_service, #1526), never a literal.
         dict(fact="entity_write_domain", finding="D12-s2-02",
              match=_p2_match_literal_domain(
                  {"select", "switch", "input_select", "input_boolean", "number", "input_number"}),
-             owners=["coordinator.py::_on_off_service"],
+             owners=["pump_arbiter.py::on_off_service"],
              dispositions={
                  "coordinator.py::HeatPumpOptimizerCoordinator._command_frequency":
                      "the compressor_freq slot is number-only "
@@ -4351,7 +4355,7 @@ _EC_NOT_ENTRY = {
 _EC_MIGRATED = {
     "coordinator.py", "__init__.py", "binary_sensor.py", "optimizer.py", "climate.py",
     "disinfection.py", "legionella.py", "pump_arbiter.py", "pump_signals.py", "sensor.py",
-    "setpoint_check.py", "silent_mode.py",
+    "setpoint_check.py", "silent_mode.py", "early_cutoff.py",
 }
 
 
@@ -18546,12 +18550,96 @@ R.check(
 # it selects this script rather than skipping. SECURITY.md keeps the third
 # slot a genuinely inert document still fills.
 _A_DOCS = _closure.affected(
-    ["dev/programme/register/audit-2026-09.md", "LICENSE", "SECURITY.md"])
+    ["dev/governance/rules/gate-scoping.md", "SECURITY.md", "NOTICE"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",
     f"case is {_A_DOCS['case']}: {_A_DOCS['reason']} -- if a docs pull "
-    "request pays 12-22 minutes the scoping this replaces was pointless",
+    "request pays 30-55 minutes the scoping this replaces was pointless. "
+    "The probe files are ones no recording reaches at any depth: the "
+    "register markdown this check used to name is itself in "
+    "harness_headers.py's committed inert_reads, so under the inert-read "
+    "rule it correctly selects that script now, and a skip probe that "
+    "names a recorded read pins nothing",
+)
+# #2109's class (the inert_reads rule): `inert_reads` is a recorded READ --
+# the Linux strace union of a real run opened the file -- and until the fix
+# the skip rule never consulted it. PR #2109 added
+# dev/audit/rounds/round9/prestudy/boost_drift_refit.py under a tree
+# tests/harness_headers.py's discovery demonstrably rglobs; `affected` said
+# skip, the fast arm passed in 16 seconds, and only the next push to main
+# -- 54 minutes after the merge -- printed INERT READS UNDER-APPROXIMATED.
+# The rule is deliberately over-selecting in both its arms (exact file, and
+# the recorded entry's own directory or that directory's parent): the cost
+# is a recording, and the failure it prevents is a post-merge red on main.
+_A_IR_EXACT = _closure.affected(["LICENSE"])
+R.check(
+    "a changed recorded inert read re-derives every script that reads it",
+    _A_IR_EXACT["case"] == "scoped"
+    and {"tests/entities.py", "tests/harness_headers.py"}
+    <= set(_A_IR_EXACT["rederive"]),
+    f"case={_A_IR_EXACT['case']} rederive={_A_IR_EXACT['rederive']} -- "
+    "LICENSE is in both scripts' committed inert_reads, so editing it "
+    "must re-derive them, not skip",
+)
+_A_IR_2109 = _closure.affected(
+    ["dev/audit/rounds/round9/prestudy/nonesuch_probe.py"])
+R.check(
+    "a NEW file under a recorded inert-read tree re-derives its reader "
+    "(#2109)",
+    _A_IR_2109["case"] == "scoped"
+    and "tests/harness_headers.py" in _A_IR_2109["rederive"],
+    f"case={_A_IR_2109['case']} rederive={_A_IR_2109['rederive']} -- a "
+    "file that did not exist at the last recording can never be IN the "
+    "table; the recording's reach into its directory is the only measured "
+    "fact about it, and this is exactly the shape that reached main green",
+)
+# The bound, both edges. A NEW directory inside the discovery breadth (a
+# whole new round tree) still selects its reader: the parent of a recorded
+# entry's directory is as far as a discovery glob can widen without the
+# recordings showing it. And the bound stops there -- the shallow shared
+# ancestors of prose trees (dev/, dev/programme's parent chain beyond the
+# recorded reach) must NOT select anything, or every governance and
+# programme pull request pays a recording for a script that reads none of
+# them. Unbounded ancestor matching had exactly that failure: the single
+# round6/D11/fix entry shares dev/ with all of dev/programme and
+# dev/governance.
+_A_IR_NEWDIR = _closure.affected(
+    ["dev/audit/rounds/round20/new_probe.py"])
+R.check(
+    "a new tree inside the discovery breadth selects its reader",
+    _A_IR_NEWDIR["case"] == "scoped"
+    and "tests/harness_headers.py" in _A_IR_NEWDIR["rederive"],
+    f"case={_A_IR_NEWDIR['case']} rederive={_A_IR_NEWDIR['rederive']} -- "
+    "harness_headers.py's entries under dev/audit/harnesses put "
+    "dev/audit one level above a recorded directory",
+)
+_A_IR_BOUND = _closure.affected(
+    ["dev/governance/roles/fixer.md", "handoff/r9-x/note.md"])
+R.check(
+    "prose outside every recorded reach still skips (the bound's other edge)",
+    _A_IR_BOUND["case"] == "skip",
+    f"case={_A_IR_BOUND['case']}: {_A_IR_BOUND['reason']} -- the match "
+    "must stop one level above a recorded directory, or the over-selection "
+    "eats the docs-only skip case whole",
+)
+# The rule's two null controls. A file that is INERT and is neither a
+# recorded read nor inside one's directory breadth still skips.
+_A_IR_NONE = _closure.affected(["SECURITY.md"])
+R.check(
+    "an inert file no recording reaches still skips (null control)",
+    _A_IR_NONE["case"] == "skip",
+    f"case={_A_IR_NONE['case']}: {_A_IR_NONE['reason']}",
+)
+# And a root-level entry drags in nothing beside itself: LICENSE has no
+# directory, so the directory half of the rule cannot fire from it.
+_A_IR_ROOT = _closure.affected(["NOTICE"])
+R.check(
+    "a root-level inert read does not select scripts for root siblings",
+    _A_IR_ROOT["case"] == "skip",
+    f"case={_A_IR_ROOT['case']}: the ancestor match must exclude the root, "
+    "or one LICENSE entry makes every root-level file entities.py's "
+    "business",
 )
 # The skip is decided by the TABLE, not by the hand-written INERT list, and
 # the order is why. Until #357, quality_scale.yaml was on INERT and inside
@@ -19204,6 +19292,76 @@ R.check(
     "without it closures-autofix cannot see that its pinned classifier disagrees",
 )
 
+# (a1, the round-9 closures pre-study): the merge train's batch proof
+# dispatches this workflow on a `batch/<tag>-<n>` branch, and a dispatch has
+# no pull_request base/head -- so `closure-scope` never ran there, SCOPE_CASE
+# was empty, and the `closures` job paid the FULL ~50-minute re-derivation on
+# every batch for a diff whose entries had each already been scope-checked.
+# The fix runs `closure-scope` on the dispatch arm too, deriving the same
+# three-dot diff against origin/main and failing CLOSED to `full` (an
+# empty or underivable diff is an empty file list, and `affected` answers
+# `full` for exactly that). These pin the wiring the derivation hangs on.
+_CS_JOB = _workflow_job(_TESTS_YML, "closure-scope")
+_CS_IF = _CS_JOB[_CS_JOB.index("    if:"): _CS_JOB.index("    runs-on:")]
+R.check(
+    "closure-scope also runs on the workflow_dispatch arm (a1)",
+    _CS_IF.count("github.event_name ==") == 3
+    and "github.event_name == 'workflow_dispatch'" in _CS_IF,
+    f"the batch proof's dispatch has no PR shas; without this arm it "
+    f"derives no case and the closures job runs full on every batch: "
+    f"if-block={_CS_IF.strip()!r}",
+)
+R.check(
+    "the dispatch diff is derived in-job and fails closed to full",
+    "git merge-base" in _CS_JOB
+    and 'refs/remotes/origin/main' in _CS_JOB
+    and _CS_JOB.count(': > "$RUNNER_TEMP/changed.txt"') >= 2,
+    "an origin/main that cannot be resolved, a missing merge base or an "
+    "unreadable diff must all land on an EMPTY changed.txt, for which "
+    "`affected` answers full -- fail-closed, never fail-open",
+)
+_CS_NHA_FALSE = 'echo "nightly_ha=false" >> "$GITHUB_OUTPUT"'
+R.check(
+    "the nightly-ha decision stays a pull-request decision on dispatch",
+    "workflow_dispatch" in _CS_JOB
+    and _CS_NHA_FALSE in _CS_JOB
+    and _CS_JOB.index("workflow_dispatch") < _CS_JOB.index(_CS_NHA_FALSE),
+    "a1 scopes the closures arm; widening the nightly-ha lane to batch "
+    "dispatches is a separate change and must not ride along silently",
+)
+_CLOSURES_JOB = _workflow_job(_TESTS_YML, "closures")
+_CLOSURES_HEAD = _CLOSURES_JOB[:_CLOSURES_JOB.index("\n    steps:")]
+_DOCS_FAST_EXPR = _CLOSURES_HEAD[_CLOSURES_HEAD.index("DOCS_ONLY_FAST:"):]
+R.check(
+    "the docs-only fast lane covers the dispatch arm's skip case",
+    "github.event_name == 'workflow_dispatch'" in _DOCS_FAST_EXPR,
+    f"a batch whose whole diff is inert must answer SUCCESS the same way "
+    f"a docs-only pull request does, not fall through to the full arm: "
+    f"DOCS_ONLY_FAST={_DOCS_FAST_EXPR.strip()!r}",
+)
+# (a1 x R1 coupling -- the merge-path pre-study's explicit condition): the
+# dispatch arm's SCOPED case is derived by `closure-scope` above and consumed
+# by the closures job's shared "Re-record the closures" step, which R1
+# (#2131) drives through ONE `--scripts-from` lane run (`closure.py
+# lane-plan` shards it, bounded to three lanes on a CI runner) instead of a
+# serial `--single` loop. The step carries no event gate of its own, so a
+# scoped dispatch and a scoped pull request take the same lane runner --
+# "couple (a1) to that runner or scoped proofs pay serial sums". A step that
+# regrew a per-script loop, or grew an event gate that sent dispatches
+# elsewhere, would put batch proofs back on the serial SUM.
+_rerec_step = [s for s in _CLOSURES_JOB.split("\n      - ")
+               if s.startswith("name: Re-record the closures")]
+R.check(
+    "the dispatch arm's scoped derivation goes through the lane runner",
+    len(_rerec_step) == 1
+    and "--scripts-from" in _rerec_step[0]
+    and '--single "$s"' not in _rerec_step[0]
+    and "github.event_name" not in _rerec_step[0],
+    "a scoped batch/dispatch must pay the lane MAX like a scoped pull "
+    "request (R1 #2131), never the serial SUM a --single loop pays and "
+    "never a second, dispatch-only derivation path",
+)
+
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
     _blk = _workflow_job(_TESTS_YML, _job)
@@ -19457,9 +19615,11 @@ R.check(
     f"rederive={_A_CARD['rederive']}",
 )
 # ... and it pulls the producer in AHEAD of the consumer. `affected.scripts`
-# is the order the CI "Re-record the closures" step iterates with `--single`,
-# so a producer listed after its consumer is recorded too late: the card's
-# `--single` run finds no plan payload, fails, and `closures-autofix` then
+# is the order the CI "Re-record the closures" step's lane runner keeps
+# inside a lane (`--scripts-from`; `closure.py lane-plan` shards the list but
+# holds each producer/consumer pair in one lane, in this order), so a
+# producer listed after its consumer is recorded too late: the card's
+# recording finds no plan payload, fails, and `closures-autofix` then
 # answers `skip-failed-recording` for the WHOLE batch -- blocking a repair of
 # an unrelated genuine gap in it (#1146). Membership alone (the check above)
 # does not hold this; `sorted()` put card.mjs ("c") before plan_view.py ("p").

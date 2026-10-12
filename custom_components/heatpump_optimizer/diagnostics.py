@@ -36,7 +36,7 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import debugger, draw_range, pump_arbiter
+from . import debugger, draw_range, early_cutoff, pump_arbiter
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
 from .thermal_model import probe_install
 from .coordinator import (
@@ -153,6 +153,7 @@ def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
 #: A row reads the coordinator's public views and hands its module values.
 _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     ("pump_duty", pump_arbiter.diagnostics_view),
+    ("early_cutoff", lambda c: early_cutoff.diagnostics_view(early_cutoff.state_for(c))),
     ("draw_range", lambda c: draw_range.diagnostics_view(
         c.accuracy.draw, c.thermal_params,
         probe_install(c.arbiter_inputs().config))),

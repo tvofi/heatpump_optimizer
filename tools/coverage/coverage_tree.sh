@@ -169,19 +169,22 @@ measure() {
   done <<< "$1"
 }
 
-# TWO LANES (R9-F10.15). tests/features.py is the longest script by a wide margin
-# (822 s traced in the CI sweep of 2026-10-03, against about 570 s for every other
-# script of the stage together); run beside each other the stage costs the longer
-# lane and not the sum. The lanes only decide WHEN a script runs: every script still runs
-# with the same arguments under its own coveragerc, and the final combine below
-# reads the same per/ directory whichever order its files were written in, so
-# coverage.json is the union it was serially. W5P_LANES=1 is that serial run, kept
-# as the reference the byte-identity proof compares against.
-# plan_view.py writes the payload doc_claims.py reads (HPO_PLANDATA, one file for
-# the stage), so those two stay in one lane in plan order; features.py does not use
-# it, and goes alone.
+# THE LANES (R9-F10.15, widened to three). The lanes only decide WHEN a
+# script runs: every script still runs with the same arguments under its own
+# coveragerc, and the final combine below reads the same per/ directory
+# whichever order its files were written in, so coverage.json is the union it
+# was serially. W5P_LANES=1 is that serial run, kept as the reference the
+# byte-identity proof compares against. The default is 3, the R9 covfast
+# pre-study's (iv): features.py alone (995 s traced, the 2026-10-10 push
+# run), boost_drift_replay.py alone (2925 s traced there, 81% of the
+# two-lane rest lane -- the rest lane could never finish before it), and
+# everything else in the third (~700 s). Lane 2 (features / rest) is kept
+# for the two-lane comparisons that re-measure this split.
+# plan_view.py writes the payload doc_claims.py reads (HPO_PLANDATA, one file
+# for the stage), so those two stay in one lane in plan order; features.py
+# and boost_drift_replay.py do not use it, and go alone.
 [ -f "$OUT/scripts.tsv" ] || printf 'script\texit\twall_s\n' > "$OUT/scripts.tsv"
-case "${W5P_LANES:-2}" in
+case "${W5P_LANES:-3}" in
   1) measure "$PLAN" || exit 1 ;;
   2)
     FEAT=$(echo "$PLAN" | awk -F'\t' '$2=="features"')
@@ -193,7 +196,20 @@ case "${W5P_LANES:-2}" in
     wait "$lane_b" || rc=1
     [ "$rc" -eq 0 ] || exit 1
     ;;
-  *) echo "W5P_LANES must be 1 or 2" >&2; exit 2 ;;
+  3)
+    FEAT=$(echo "$PLAN" | awk -F'\t' '$2=="features"')
+    BOOST=$(echo "$PLAN" | awk -F'\t' '$2=="boost_drift_replay"')
+    REST=$(echo "$PLAN" | awk -F'\t' '$2!="features" && $2!="boost_drift_replay"')
+    measure "$FEAT" & lane_a=$!
+    measure "$BOOST" & lane_b=$!
+    measure "$REST" & lane_c=$!
+    rc=0
+    wait "$lane_a" || rc=1
+    wait "$lane_b" || rc=1
+    wait "$lane_c" || rc=1
+    [ "$rc" -eq 0 ] || exit 1
+    ;;
+  *) echo "W5P_LANES must be 1, 2 or 3" >&2; exit 2 ;;
 esac
 
 "$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep "$OUT/per" >> "$OUT/logs/combine.log" 2>&1
