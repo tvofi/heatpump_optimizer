@@ -194,7 +194,15 @@ measure() {
     echo "ran tests/$s.py exit=$rc wall=$((b-a))s"
     metric_line "$s" "$class" "$rc" "$((b-a))"
     if ls "$WORK/data/$s"/.coverage.* > /dev/null 2>&1; then
-      COVERAGE_PROCESS_START= "$PY" -m coverage combine --rcfile="$WORK/coveragerc.$s" \
+      # env -u, never an empty COVERAGE_PROCESS_START= prefix: with
+      # $WORK/site's sitecustomize on PYTHONPATH, coverage 7.13.1's
+      # process_startup() reads a defined-but-empty value as an empty config
+      # path and starts a default-config tracer, which writes .coverage into
+      # this worktree at interpreter shutdown -- against this file's own
+      # "nothing is written inside the worktree" contract. The same idiom
+      # reddened the composed-proof job from the proof script's own export
+      # of it (job 114682964269, `bare only: ['.coverage']`).
+      env -u COVERAGE_PROCESS_START "$PY" -m coverage combine --rcfile="$WORK/coveragerc.$s" \
         >> "$OUT/logs/combine.log" 2>&1 \
         && mv "$WORK/data/$s/.coverage" "$OUT/per/.coverage.$s" \
         || { echo "could not combine tests/$s.py's data; see $OUT/logs/combine.log" >&2; return 1; }

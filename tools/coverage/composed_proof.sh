@@ -51,15 +51,33 @@ source = $PWD/custom_components/heatpump_optimizer
 RCEOF
 }
 export PYTHONPATH="$W/site:$PYTHONPATH"
-export COVERAGE_PROCESS_START=
+# The bare arm and the coverage CLI helpers below must run with this variable
+# UNSET, never exported empty. coverage 7.13.1's process_startup() starts a
+# tracer for any DEFINED COVERAGE_PROCESS_START (`cps is not None`, not a
+# truthiness test) and reads the empty value as an empty config path -- the
+# default config, whose data file is ./.coverage. The `export ... =` this
+# line used to be put a default-config tracer into every bare-lane process,
+# which wrote .coverage into this checkout at interpreter shutdown; the
+# strace union folded that openat into the bare record and composed-compare
+# reddened on `bare only: ['.coverage']` (job 114682964269) while the line
+# sets stayed byte-identical -- the proof had measured a tracer it installed
+# itself, not the closures lane it exists to mirror. closure.py's own `how`
+# marker tests truthiness, so the record still claimed to be bare: the two
+# readers disagree about the empty string, and only coverage's reading
+# writes files.
+unset COVERAGE_PROCESS_START
 failed=0
 for s in $("$PY" tests/closure.py composed-list); do
   base=$(basename "$s")
   echo "=== proving $s ==="
   mk_rc "$W/rc-compose" "$W/data/composed"
   mk_rc "$W/rc-trace" "$W/data/traced"
-  # 1. bare: exactly what the closures job's lane records.
-  "$PY" tests/closure.py record "$s" --out-dir "$W/bare" \
+  # 1. bare: exactly what the closures job's lane records -- no tracer, so
+  # the variable is unset at the call site too, not only at the top of this
+  # script: the one lane that must be bare says so where it runs, and a
+  # caller's own exported COVERAGE_PROCESS_START cannot recompose it.
+  env -u COVERAGE_PROCESS_START "$PY" tests/closure.py record "$s" \
+    --out-dir "$W/bare" \
     > "$W/$base.bare.log" 2>&1
   bare_rc=$?
   # 2. composed: the coverage lane's invocation, tracer beside the hook.
@@ -76,13 +94,16 @@ for s in $("$PY" tests/closure.py composed-list); do
   fi
   "$PY" tests/closure.py composed-compare \
     --composed-dir "$W/composed" --bare-dir "$W/bare" || failed=1
-  COVERAGE_PROCESS_START= "$PY" -m coverage combine --rcfile="$W/rc-compose" \
+  # The combine/json helpers must not be traced either; `env -u` is the
+  # unset form of the prefix these lines used to carry as an empty string
+  # (the idiom the `unset` above documents).
+  env -u COVERAGE_PROCESS_START "$PY" -m coverage combine --rcfile="$W/rc-compose" \
     --keep >> "$W/combine.log" 2>&1
-  COVERAGE_PROCESS_START= "$PY" -m coverage combine --rcfile="$W/rc-trace" \
+  env -u COVERAGE_PROCESS_START "$PY" -m coverage combine --rcfile="$W/rc-trace" \
     --keep >> "$W/combine.log" 2>&1
-  COVERAGE_PROCESS_START= "$PY" -m coverage json --rcfile="$W/rc-compose" \
+  env -u COVERAGE_PROCESS_START "$PY" -m coverage json --rcfile="$W/rc-compose" \
     -o "$W/composed.json" >> "$W/combine.log" 2>&1
-  COVERAGE_PROCESS_START= "$PY" -m coverage json --rcfile="$W/rc-trace" \
+  env -u COVERAGE_PROCESS_START "$PY" -m coverage json --rcfile="$W/rc-trace" \
     -o "$W/traced.json" >> "$W/combine.log" 2>&1
   if ! "$PY" - "$W" "$s" <<'EOF'
 import json, sys
