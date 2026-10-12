@@ -110,6 +110,19 @@ STATE_ACTIONS = ("actions/checkout", "actions/setup-node", "actions/cache",
                  "github/codeql-action/init", "github/codeql-action/analyze")
 
 
+def _after(done: "str | None", dispatched) -> bool:
+    """True when `done` is after `dispatched`: both instants compared as
+    instants (a raw string compare breaks on a non-Z zone offset)."""
+    if not done:
+        return False
+    try:
+        return (datetime.datetime.fromisoformat(str(done).replace("Z", "+00:00"))
+                > datetime.datetime.fromisoformat(
+                    str(dispatched).replace("Z", "+00:00")))
+    except ValueError:
+        return str(done) > str(dispatched)
+
+
 def _module(name: str, *candidates: str):
     """Import a production module by its tree path -- never a copy of it
     (fixer.md step 17; tests/README.md: a second reading pins nothing)."""
@@ -479,7 +492,7 @@ class Tick:
                             "api read failed")
             return
         new_ci = [c.get("name") for c in runs
-                  if (c.get("completed_at") or "") > str(w.get("dispatched_at", ""))]
+                  if _after(c.get("completed_at"), w.get("dispatched_at"))]
         if new_ci:
             self.line(S, f"{seat}: OK (CI completed at #{pr}'s head since "
                          f"dispatch: {len(new_ci)} run(s)) {tail}")
@@ -610,8 +623,7 @@ class Tick:
         within --mandate-since-days, or exactly --mandate-id. The search
         window is stated in the output so a quiet window is never mistaken
         for an all-clear."""
-        g = _module("budget_raise_gate_tick", "tools/policy/budget_raise_gate.py",
-                    ".claude/workflows/budget_raise_gate.py")
+        g = _module("budget_raise_gate_tick", "tools/policy/budget_raise_gate.py")
         if g is None or not hasattr(g, "mandate_state"):
             self.unreadable(S, "mandate", "budget_raise_gate.py not importable")
             return
@@ -802,8 +814,7 @@ def check(label: str, arms: list[tuple[str, bool]]) -> tuple[int, int]:
 
 def self_test() -> int:
     total = failed = 0
-    g = _module("budget_raise_gate_tick", "tools/policy/budget_raise_gate.py",
-                ".claude/workflows/budget_raise_gate.py")
+    g = _module("budget_raise_gate_tick", "tools/policy/budget_raise_gate.py")
     gate_ok = g is not None and hasattr(g, "mandate_state")
     owner = ({"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE}
              if gate_ok else {})
