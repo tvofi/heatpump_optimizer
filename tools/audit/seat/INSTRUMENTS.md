@@ -170,6 +170,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
   but the gantt's grammar checks run in `--self-test`, not at render time.
+- `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
+  the train launches: per entry PASS, PARK (the train's own Stop wording — a
+  carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
+  branch another worktree holds, a policy or budget head without the owner's
+  in-force mandate) or FAIL (a verdict that is not 40-hex, a closed pull
+  request). When: before any `merge_train.py run`/`batch` — an admission-time
+  refusal parks the entry here instead of stopping a live queue mid-run.
+  Refusal: exit 1 unless every entry passed; the checks are the train's own
+  methods (`bot_tip`, `policy_gate`, `app_approve.sh --carry`), never new ones.
 - `record_row.py` — the record-autofix generator: enumerates merged PRs from
   the REST API, plans the delivery rows the tree still lacks, applies them
   behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
