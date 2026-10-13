@@ -179,7 +179,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   while a turn runs (measured: ticks skipped for hours during one diagnosis
   turn); the watcher seat notifies only on actionable events (TRAIN
   DONE/STOPPED with skip classes, Traceback, silent train death, a new merge
-  → beats owed) and never diagnoses or fixes. It replaces re-deriving the
+  → beats owed) and never diagnoses or fixes. Every failed lane at main's
+  tip — required or not — becomes a fixer dispatch brief (context, job id +
+  error line, suspected class, dispatch instruction; bot lanes lead with the
+  ci-autofix rule): a main-side issue the orchestrator cannot resolve in one
+  short turn is fixer work, and the orchestrator's duty is routing, not
+  diagnosing. It replaces re-deriving the
   sweep from conversation memory. It does NOT act; the orchestrator acts on
   the list. Operating contract it assumes: orchestrator turns stay SHORT; any
   script with over a minute of wait or execution runs BACKGROUND (nohup, log

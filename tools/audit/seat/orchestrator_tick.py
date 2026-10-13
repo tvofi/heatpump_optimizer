@@ -56,8 +56,13 @@ Sections, each measured:
           age, and the throughput stall (verdicted green entry, no train,
           main idle) -- "fire the train".
   MAIN    main's tip sha; any non-green required context (the ruleset re-read
-          every tick -- nudge.md step 4: never a remembered list); non-required
-          autofix/record/nightly reds at the tip (the nightly bot class); the
+          every tick -- nudge.md step 4: never a remembered list); EVERY
+          completed-with-failure lane at the tip, required or not, becomes a
+          fixer DISPATCH BRIEF (context, job id + error line, suspected class,
+          dispatch instruction; bot lanes lead with the ci-autofix rule) --
+          a main-side issue the orchestrator cannot resolve in one short turn
+          is fixer work, and the orchestrator's duty is routing, not
+          diagnosing; the
           mandate read (budget_raise_gate's own mandate_state, the one reader
           -- the newest grammar-matching owner comment on #201 within
           --mandate-since-days, or exactly --mandate-id); action-pin drift
@@ -75,7 +80,8 @@ worktree-recency rules, post-merge duties, stamps, hold overlays.
 API cost, measured: a live full tick made 67 calls at 27 open PRs and 84 at
 21 -- roughly two to four calls per open PR (list, body reads, check-runs per
 head) plus about a dozen fixed reads (ruleset, mandate, quota, issues,
-search). Run it at the orchestrator's five-minute cadence, never in a poll
+search) plus one check-run output read per red lane at main's tip, capped
+at five. Run it at the orchestrator's five-minute cadence, never in a poll
 loop. --only limits which sections run (the mandate and required-context
 reads land before PRS and are shared).
 
@@ -154,6 +160,14 @@ POLICY_PATHS = ("CLAUDE.md", "AGENTS.md", "dev/governance/rules",
                 ".github/PULL_REQUEST_TEMPLATE.md", ".cursor/rules")
 USES = re.compile(r"^\s*-?\s*uses:\s*([\w.-]+/[\w.-]+)@(\S+)", re.M)
 NIGHTLY_CLASS = re.compile(r"autofix|record|nightly|closures", re.I)
+#: A main-red lane becomes a FIXER DISPATCH BRIEF, required or not: a
+#: main-side issue the orchestrator cannot resolve in one short turn is
+#: fixer work (root-cause per defect-root-cause.md runs beside the fix,
+#: never inside it) -- the tick's brief is the dispatch seed, and the
+#: orchestrator's remaining duty is routing, not diagnosing.
+BRIEF_CAP = 5
+BOT_LANE = re.compile(r"autofix|nightly|record", re.I)
+ERR_LINE = re.compile(r"error|FAILED|refused|fail", re.I)
 DEFERRED_STAGES = ("deferred", "refused")
 UNBLOCKABLE_STAGES = (None, "", "not-started")
 #: The shared actions whose pin the whole lane rides; a pin drift on one of
@@ -829,6 +843,13 @@ class Tick:
             if nightly:
                 self.line(S, f"main {tip[:12]}: non-required red (nightly/record "
                              f"class): {', '.join(nightly)}", flag=True)
+            for i, name in enumerate(red):
+                if i >= BRIEF_CAP:
+                    self.line(S, f"dispatch briefs capped at {BRIEF_CAP} red "
+                                 "lanes this tick; the rest are owed", flag=True)
+                    break
+                self.line(S, self.red_brief(name, latest.get(name, {})),
+                          flag=True)
         self.mandate(S)
         self.pins(S)
         self.policy_drift(S)
@@ -911,6 +932,49 @@ class Tick:
                         f"ruleset {RULESET} could not be read; "
                         "required-absence arms skipped, never guessed")
         return None
+
+    def red_brief(self, name: str, cr: dict) -> str:
+        """The fixer dispatch brief for one red lane at main's tip: four
+        fields -- the context, the job id and its error line (the check-run's
+        own output, one read, capped), the suspected class, and the dispatch
+        instruction. Bot lanes lead with the ci-autofix rule and quote the
+        job's summary line."""
+        cid = cr.get("id")
+        summary = text = ""
+        if cid:
+            code, o = self.gh(["api", f"repos/{self.repo}/check-runs/{cid}",
+                               "--jq", ".output"])
+            if code == 0:
+                try:
+                    out = json.loads(o)
+                    summary = (out.get("summary") or "").strip()
+                    text = (out.get("text") or "").strip()
+                except ValueError:
+                    pass
+        blob = summary + "\n" + text
+        err = next((l.strip() for l in blob.splitlines() if ERR_LINE.search(l)),
+                   (summary or text or "no error line read"))[:160]
+        if re.search(r"closures\.json|UNDER-SCOPED|closure", blob, re.I):
+            cls = "gate-file change"
+        elif re.search(r"skip-|autofix", blob, re.I):
+            cls = "bot-head"
+        elif re.search(r"HTTP 4\d\d|API rate|bad credentials", blob, re.I):
+            cls = "upstream API shift"
+        else:
+            cls = "unknown"
+        parts = []
+        if BOT_LANE.search(name):
+            parts.append('ci-autofix: read the bot\'s job summary; a '
+                         'repair-in-flight waits, a skip-* summary means the '
+                         'repair did not happen and a fixer is dispatched -- '
+                         f'summary: "{summary[:160]}"')
+        parts.append(f"main-red {name}: job {cid}, error line: \"{err}\"")
+        parts.append(f"suspected class: {cls}")
+        parts.append("dispatch a fixer seat with this brief; orchestrator "
+                     "diagnosis is capped at one short turn (root-cause per "
+                     "defect-root-cause.md runs beside the fix, never inside "
+                     "it)")
+        return " | ".join(parts)
 
     def mandate(self, S: str) -> None:
         """The one mandate reading, reported for MAIN: the fetch+evaluate
@@ -1483,8 +1547,9 @@ H1, H2, V = "a" * 40, "b" * 40, "c" * 40
 
 
 def run_obj(name, status="completed", conclusion="success",
-            started=NOW, done=NOW) -> dict:
+            started=NOW, done=NOW, cid=None) -> dict:
     return {"name": name, "status": status, "conclusion": conclusion,
+            "id": cid or (sum(map(ord, name)) * 7 + 4100000000),
             "started_at": iso(started),
             "completed_at": iso(done) if status == "completed" else None}
 
@@ -2117,6 +2182,47 @@ def self_test() -> int:
                      in x["text"] for x in t.findings) == want),
             ])
             total, failed = total + a, failed + f
+
+        # ---- main-red dispatch briefs: required lane, bot lane ----
+        gh = Stub()
+        gh.on("commits/main", out=H1)
+        gh.on(".[] | select(.name", out="42")
+        gh.on("rulesets/42", out="tests\nclosures\n")
+        gh.on(f"commits/{H1}/check-runs",
+              out=json.dumps(run_obj("tests", conclusion="failure", cid=424242))
+              + "\n" + json.dumps(run_obj("record-autofix",
+                                           conclusion="failure", cid=424243)))
+        # the stub answers what `gh api --jq .output` returns: the output
+        # object itself, not the response body
+        gh.on("check-runs/424242", out=json.dumps(
+            {"summary": "closures scope drifted",
+             "text": ">>> FAILED: tests/stress.py\n"
+                     "error: UNDER-SCOPED closures.json"}))
+        gh.on("check-runs/424243", out=json.dumps(
+            {"summary": "skip-failed-recording: no bot commit is coming",
+             "text": ""}))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(),
+                 proc=lambda p: [], now=NOW)
+        t.main()
+        briefs = [l["text"] for l in t.sections["MAIN"]
+                  if l["text"].startswith("ci-autofix:")
+                  or l["text"].startswith("main-red ")]
+        tests_brief = next((b for b in briefs if "main-red tests" in b), "")
+        bot_brief = next((b for b in briefs if "record-autofix" in b), "")
+        a, f = check("main-red briefs", [
+            ("required-lane brief has the four fields",
+             all(k in tests_brief for k in
+                 ("main-red tests", "job 424242", "error line:",
+                  "suspected class: gate-file change",
+                  "dispatch a fixer seat"))),
+            ("bot-lane brief leads with the ci-autofix rule and quotes the "
+             "summary",
+             bot_brief.startswith("ci-autofix: read the bot's job summary")
+             and "skip-failed-recording" in bot_brief),
+        ])
+        total, failed = total + a, failed + f
 
         # ---- policy drift ----
         pstate = tmp / "policy-drift.state"
