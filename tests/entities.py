@@ -19373,16 +19373,44 @@ R.check(
 # script needed a lane edit on pain of a red main, and the unbalanced
 # "everything else" lane set the 3,242 s wall the planner halves. Regrowth
 # of any hard-coded lane, or a loss of the --all-scripts plan, reddens here.
+# The pattern is word-boundary `\brec tests/`, not anchored `^\s*rec tests/`:
+# the old layout's lane 1 was `( rec tests/stress.py ) &` -- parenthesised --
+# and its driven child was `HASTUB_TZ=Europe/Stockholm rec
+# tests/dst_checks.py` -- environment-prefixed -- and both escape an
+# anchored pattern; with ci_predict's NO RECORDING arm retired by this same
+# change, that escape would leave a lane-form regrowth unguarded by both
+# the guard and the predictor. The planted arms below hold both directions:
+# the two escaping forms redden the anchored pattern and only the
+# word-boundary one.
+def _derive_lane_regrowth_guard(text: str) -> bool:
+    return ("--all-scripts" in text and "lane-plan" in text
+            and not _re.search(r"\brec tests/", text))
+
+
 _derive_txt = Path("tests/derive_closures.sh").read_text()
 R.check(
     "the closures job's FULL arm is lane-planned over the derived script set",
-    "--all-scripts" in _derive_txt
-    and "lane-plan" in _derive_txt
-    and not _re.search(r"(?m)^\s*rec tests/", _derive_txt),
+    _derive_lane_regrowth_guard(_derive_txt),
     "derive_closures.sh names a recording with a hard-coded `rec tests/...` "
     "line: the full arm must derive its set (lane-plan --all-scripts, round-9 "
     "C1), which records every selectable script without a lane edit",
 )
+_derive_old_lane_forms = (
+    # The old lane 1, exactly as it stood: a subshell, not a bare line.
+    "( rec tests/stress.py ) &\n",
+    # The old driven child, exactly as it stood: an environment prefix.
+    "HASTUB_TZ=Europe/Stockholm rec tests/dst_checks.py\n",
+)
+_derive_anchored = _re.compile(r"(?m)^\s*rec tests/")
+_derive_wordb = _re.compile(r"\brec tests/")
+for _arm in _derive_old_lane_forms:
+    R.check(
+        f"a regrown lane line escapes no guard form: {_arm.strip()!r}",
+        not _derive_anchored.search(_arm) and _derive_wordb.search(_arm)
+        and not _derive_lane_regrowth_guard(f"--all-scripts\nlane-plan\n{_arm}"),
+        "the anchored pattern would miss this lane-line shape (the guard's "
+        "hole), and the word-boundary guard must refuse it",
+    )
 
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
