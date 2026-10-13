@@ -190,8 +190,21 @@ sys.exit(open(sys.argv[1]).read().rstrip("\n") != live.rstrip("\n"))' "$body" 2>
 # spends is printed, never implied. The clean case confirms on the first read
 # and never sleeps (the loop breaks). The pin on the sha the verdict judged is
 # unchanged: this reads the live head, never HEAD again.
-RB_TRIES=${APP_PUSH_READBACK_TRIES:-6}
-RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-2}
+#
+# TRANSPORT vs MISMATCH (2026-10-12): the two refusal causes are kept apart.
+# A *transport* failure -- the read could not be performed (HTTP 5xx, network
+# error, timeout), an empty or unparseable answer where a PR document was
+# expected, or the index still answering the old head -- retries within the
+# budget: 4 reads (the first read plus 3 retries) settling 5s/15s/45s (~65s of
+# sleeps), which rides out the measured transient (two train stops of ~90s
+# recovery each, 2026-10-12). A *mismatch* -- a COMPLETED read that differs from what
+# was meant to be posted (a body not byte-identical at the pushed sha, a read
+# answering state=closed) -- NEVER retries: it refuses at once, because the
+# byte-identical read-back (comment-readback.md) is the safety property and a
+# retry would read as slow success. Both exhausted-transport refusals keep
+# their own wording, so a race is still told from a wedge.
+RB_TRIES=${APP_PUSH_READBACK_TRIES:-4}
+RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-5}
 
 # One read of the pull request. On stdout, one verdict token:
 #   ok            open, head == $2, body identical to $3 modulo one newline
@@ -228,27 +241,34 @@ print("ok" if eq1(got, want) else "body")' "$head" "$body"
 # The bounded read-back. Returns 0 when the push is confirmed visible; refuses
 # (dies) otherwise, naming which of the two failure states it found. The loop
 # breaks on the first `ok`, so a push already visible costs one read and no
-# sleep. `stale` is the racing case and keeps polling; a `body` mismatch at the
-# right sha is settled, not a race, so it refuses at once as before.
+# sleep. `stale` is the racing case and keeps polling. TRANSPORT (`error`,
+# `bad unparseable`, other unvouchable answers) retries within the budget,
+# sleeping RB_SLEEP * 3^(attempt-1) -- 5s/15s/45s at the defaults. A MISMATCH
+# never retries: `body` at the right sha is settled, not a race, and `bad
+# state=...` is a completed read that answers a state the posted push did not
+# create -- both refuse at once as before.
 confirm_readback() { # url num head body
-  local url=$1 num=$2 head=$3 body=$4 attempt=1 v notvisible=0 detail=""
+  local url=$1 num=$2 head=$3 body=$4 attempt=1 v notvisible=0 detail="" delay
+  delay=$RB_SLEEP
   while :; do
     v=$(read_once "$url" "$head" "$body")
     case "$v" in
       ok) return 0 ;;
       body) die "pull request #$num's body is not byte-identical to $body modulo one trailing newline" ;;
+      bad\ state=*) die "the pull request did not read back at $head and the read was refused (the read answered ${v#bad }) -- re-read #$num by hand before touching anything" ;;
       stale\ *) notvisible=1; detail="the live head is still ${v#stale }" ;;
       error\ *) detail="the read could not be performed (${v#error })" ;;
       bad\ *) detail="the read answered ${v#bad }" ;;
       *) detail="the read answered <<$v>>" ;;
     esac
     [ "$attempt" -lt "$RB_TRIES" ] || break
-    printf 'app_push: read-back %s/%s: %s; sleeping %ss\n' "$attempt" "$RB_TRIES" "$detail" "$RB_SLEEP"
-    sleep "$RB_SLEEP"
+    printf 'app_push: read-back %s/%s: %s; sleeping %ss\n' "$attempt" "$RB_TRIES" "$detail" "$delay"
+    sleep "$delay"
+    delay=$((delay * 3))
     attempt=$((attempt + 1))
   done
   if [ "$notvisible" = 1 ]; then
-    die "pushed $head but the pull request did not read back at it: pushed and not visible within the budget ($RB_TRIES attempts over ~$((RB_TRIES * RB_SLEEP))s; $detail) -- a race GitHub had not indexed, not a refused push; re-read #$num by hand"
+    die "pushed $head but the pull request did not read back at it: pushed and not visible within the budget ($RB_TRIES attempts over ~$(((delay - RB_SLEEP) / 2))s; $detail) -- a race GitHub had not indexed, not a refused push; re-read #$num by hand"
   fi
   die "the pull request did not read back at $head and the read was refused ($detail) -- re-read #$num by hand before touching anything"
 }
@@ -553,9 +573,17 @@ case "$url" in
     else                                 # GET read-back
       [ -f "$STUB/refuse-get" ] && exit 22
       n=$(cat "$STUB/get-n" 2>/dev/null || echo 0); n=$((n + 1)); printf '%s' "$n" > "$STUB/get-n"
+      # fail-get-first: the FIRST read answers a transport failure (a 502), a
+      # later one the pushed pull request. closed-pr: the read answers a
+      # pull request that is not open -- a completed read that differs.
+      if [ -f "$STUB/fail-get-first" ] && [ "$n" -eq 1 ]; then
+        echo "curl: (22) error: 502 Bad Gateway" >&2; exit 22
+      fi
       # read-race: the head index lags the push, so the FIRST read answers the
       # OLD sha and a later one the pushed sha. read-stale: it never catches up.
-      if [ -f "$STUB/read-stale" ] || { [ -f "$STUB/read-race" ] && [ "$n" -le 1 ]; }; then
+      if [ -f "$STUB/closed-pr" ]; then
+        printf '{"number": 7, "state": "closed", "head": {"sha": "%s"}, "html_url": "https://example.test/pr7", "body": "b\\n"}' "$(cat "$STUB/../head.sha")"
+      elif [ -f "$STUB/read-stale" ] || { [ -f "$STUB/read-race" ] && [ "$n" -le 1 ]; }; then
         python3 "$STUB/../prjson.py" stale "$STUB/live-body" "$OLD_SHA_STUB"
       elif [ -f "$STUB/mangle-body" ]; then
         printf '{"number": 7, "state": "open", "head": {"sha": "%s"}, "html_url": "https://example.test/pr7", "body": "edited by someone else\\n"}' "$(cat "$STUB/../head.sha")"
@@ -822,6 +850,8 @@ st "$(grep -c 'pushed and not visible within the budget' "$W/rnotvis/err")" 1 "w
 st "$(grep -c 'the read was refused' "$W/rnotvis/err")" 0 "and it is NOT reported as a refused read"
 st "$(grep -c '^app_push: PUSHED ' "$W/rnotvis/out")" 0 "and no success line"
 st "$(cat "$W/rnotvis/get-n" 2>/dev/null)$(settles rnotvis)" 32 "after the whole budget of reads and settles"
+st "$(grep -c 'sleeping 1s' "$W/rnotvis/out")$(grep -c 'sleeping 3s' "$W/rnotvis/out")" 11 "and the settles GROW: 1s then 3s (the exponential 5s/15s/45s shape at the injected scale)"
+st "$(grep -c 'over ~4s' "$W/rnotvis/err")" 1 "and the refusal names the real settle total, the geometric sum"
 st "$(calls rnotvis 'curl DELETE installation/token')$(leftover rnotvis)$(leaks rnotvis)" 100 "the token is revoked, the private directory gone, nothing leaked"
 # (c) refused: the read cannot be performed at all (the API refuses it).
 mkcase rrefused; : > "$W/rrefused/refuse-get"
@@ -831,6 +861,34 @@ st "$(grep -c 'the read was refused' "$W/rrefused/err")" 1 "with the refused wor
 st "$(grep -c 'pushed and not visible' "$W/rrefused/err")" 0 "and it is NOT reported as a race"
 st "$(grep -c '^app_push: PUSHED ' "$W/rrefused/out")" 0 "and no success line"
 st "$(settles rrefused)$(calls rrefused 'curl DELETE installation/token')" 11 "the budget spent one settle and the token was revoked"
+
+# R9-TRANSPORT-RETRY (2026-10-12): the read-back retries TRANSPORT failures
+# with an exponential backoff and NEVER retries a MISMATCH. Measured class:
+# a transient 502 on the read-back refused a landed push and stopped the train
+# (two stops, ~90s recovery each, ~1h20m). The arms:
+# (a) a 502 on the FIRST read, then the pushed pull request: the transport
+#     retry fires and the push confirms -- no refusal, no relaunch.
+mkcase rbackoff; : > "$W/rbackoff/fail-get-first"
+APP_PUSH_READBACK_TRIES=3 APP_PUSH_READBACK_SLEEP=1 run rbackoff o/r "$W/tool-wt" "$BR" "$W/body.md"
+st $? 0 "read-back transport failure (a 502 on the first read): retried with backoff and confirmed"
+st "$(grep -c '^app_push: PUSHED ' "$W/rbackoff/out")" 1 "and prints the read-back success line"
+st "$(cat "$W/rbackoff/get-n" 2>/dev/null)" 2 "at the SECOND read (the first answered 502)"
+st "$(grep -c '^app_push: read-back 1/3: the read could not be performed (curl-exit-22); sleeping 1s' "$W/rbackoff/out")" 1 "naming the transport detail and the first backoff step"
+st "$(grep -c 'sleeping 3s' "$W/rbackoff/out")" 0 "and no second settle: read 2 confirmed"
+st "$(calls rbackoff 'curl DELETE installation/token')$(leftover rbackoff)$(leaks rbackoff)" 100 "the token is revoked, the private directory gone, nothing leaked"
+# (b) transport retries EXHAUSTED keeps the existing refusal wording, so a
+#     transient is still told from a wedge -- that is the rrefused arm above,
+#     driven through the same transport branch (`error`), unchanged.
+# (c) a MISMATCH never retries, whatever the attempt: the safety property.
+st "$(cat "$W/mangle/get-n" 2>/dev/null)$(settles mangle)" 10 "a body mismatch refuses on the FIRST read: zero retries, zero settles"
+mkcase rclosed; : > "$W/rclosed/closed-pr"
+APP_PUSH_READBACK_TRIES=3 APP_PUSH_READBACK_SLEEP=1 run rclosed o/r "$W/tool-wt" "$BR" "$W/body.md"
+st $? 1 "a completed read answering state=closed refuses at once (a mismatch, never retried)"
+st "$(grep -c 'the read was refused (the read answered state=closed)' "$W/rclosed/err")" 1 "naming the state the read answered"
+st "$(cat "$W/rclosed/get-n" 2>/dev/null)$(settles rclosed)" 10 "zero retries, zero settles: one read, no sleeping"
+st "$(grep -c '^app_push: PUSHED ' "$W/rclosed/out")" 0 "and no success line"
+# the budget itself: 4 reads = the first read plus 3 retries, settling 5s/15s/45s.
+st "$(grep -c '^RB_TRIES=${APP_PUSH_READBACK_TRIES:-4}$' "$SELF")$(grep -c '^RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-5}$' "$SELF")" 11 "the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles)"
 
 echo "app_push self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
