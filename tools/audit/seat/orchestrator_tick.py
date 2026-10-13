@@ -35,6 +35,11 @@ Sections, each measured:
           not VERSION; a head left behind main by more than --behind-max
           merges (recarry cost; the default 25 flags only the badly stale --
           the train recarries the rest itself).
+  ETA     landing deviations, three sources by precision: the train beat's
+          age vs 2x the watcher heartbeat (wedged-or-dead), required lanes
+          pending past 2x the recorded critical-path median
+          (tests/ci_budgets.json), and the orchestrator's optional ETAS file
+          beside the queue (pr=<n> expected-by=<ISO> note=<text>).
   WORKERS the orchestrator's seats file (JSON: seat, pr, head, dispatched_at,
           agent_kind): liveness judged from the WORK the seat was dispatched
           for -- the PR head moved since dispatch (DONE?) or the head is
@@ -166,6 +171,11 @@ NIGHTLY_CLASS = re.compile(r"autofix|record|nightly|closures", re.I)
 #: never inside it) -- the tick's brief is the dispatch seed, and the
 #: orchestrator's remaining duty is routing, not diagnosing.
 BRIEF_CAP = 5
+#: The watcher heartbeat the tick assumes; a train beat older than 2x this
+#: while the python is alive is the wedged-or-dead suspicion (a beat-age
+#: check flags at minute 16 what a 4h wedge sat inside a 5-min poll loop).
+HEARTBEAT_SECONDS = 480
+CI_BUDGETS = "tests/ci_budgets.json"
 BOT_LANE = re.compile(r"autofix|nightly|record", re.I)
 ERR_LINE = re.compile(r"error|FAILED|refused|fail", re.I)
 DEFERRED_STAGES = ("deferred", "refused")
@@ -486,6 +496,13 @@ class Tick:
                     self.line(S, f"#{n}: required contexts ABSENT at head: "
                                  f"{', '.join(absent)} (settled? re-dispatch)",
                               flag=True)
+        if run and runs:
+            pend = getattr(self, "_pending", None)
+            if pend is None:
+                pend = self._pending = {}
+            lat = self.latest(runs)
+            for nm in run:
+                pend[(n, nm)] = (lat[nm].get("started_at"), head)
         if red:
             latest = self.latest(runs or [])
             for name in red:
@@ -1446,6 +1463,82 @@ class Tick:
             self.line(S, f"orphaned handoff ref {ref} -- no open PR carries "
                          "it: dispatch or prune", flag=True)
 
+    # ----------------------------------------------------------------- ETA
+    def eta(self) -> None:
+        """ETA deviation, three sources by precision: the train beat's age
+        (log mtime vs 2x the watcher heartbeat while the python is alive --
+        wedged-or-dead suspicion); required lanes pending past 2x the
+        recorded critical-path median (tests/ci_budgets.json -- the one
+        measured baseline; per-lane medians are not invented); and the
+        orchestrator's optional ETAS file beside the queue
+        (`pr=<n> expected-by=<ISO> note=<text>`), absent file, no findings."""
+        S = "ETA"
+        live = self._seat_procs(self.proc("merge_train.py"), "merge_train.py",
+                                python_only=True)
+        if live and self.train_log:
+            try:
+                age = self.now.timestamp() - Path(self.train_log).stat().st_mtime
+            except OSError as e:
+                self.unreadable(S, f"train log mtime {self.train_log}",
+                                str(e)[:80])
+                age = None
+            if age is not None:
+                if age > 2 * HEARTBEAT_SECONDS:
+                    self.line(S, f"train beat stale {age / 60:.0f}m "
+                                 f"(threshold {2 * HEARTBEAT_SECONDS // 60}m) "
+                                 "while the train python is alive -- "
+                                 "wedged-or-dead suspicion: read the log, "
+                                 "kill or wait, do not diagnose", flag=True)
+                else:
+                    self.line(S, f"train beat fresh ({age / 60:.0f}m old)")
+        pending = getattr(self, "_pending", None)
+        if pending:
+            try:
+                med = json.loads(
+                    (Path(self.checkout) / CI_BUDGETS).read_text()
+                ).get("critical_path_minutes")
+            except (OSError, ValueError):
+                med = None
+            if not med:
+                self.unreadable(S, "critical_path_minutes",
+                                f"{CI_BUDGETS} unreadable at the checkout")
+            else:
+                for (n, name), (started, sha) in list(pending.items())[:20]:
+                    try:
+                        st = datetime.datetime.fromisoformat(
+                            str(started).replace("Z", "+00:00"))
+                    except ValueError:
+                        continue
+                    mins = (self.now - st).total_seconds() / 60
+                    if mins > 2 * med:
+                        self.line(S, f"lane {name} at #{n} pending "
+                                     f"{mins:.0f}m vs median {med} -- "
+                                     "re-run or diagnose", flag=True)
+        if self.queues:
+            etas = Path(self.queues[0]).parent / "etas.txt"
+            if etas.exists():
+                try:
+                    lines = etas.read_text(encoding="utf-8").splitlines()
+                except OSError as e:
+                    self.unreadable(S, "etas file", str(e)[:80])
+                    lines = []
+                for ln in lines:
+                    m = re.match(r"\s*pr=(\d+)\s+expected-by=(\S+)\s+note=(.*)",
+                                 ln)
+                    if not m:
+                        continue
+                    try:
+                        by = datetime.datetime.fromisoformat(
+                            m.group(2).replace("Z", "+00:00"))
+                    except ValueError:
+                        self.line(S, f"etas line unreadable: {ln[:60]}",
+                                  flag=True)
+                        continue
+                    if by < self.now:
+                        self.line(S, f"ETA missed for #{m.group(1)}: expected "
+                                     f"{m.group(2)}, note: {m.group(3).strip()}",
+                                  flag=True)
+
     # ----------------------------------------------------------------- run
     def run(self, only: "list[str] | None" = None) -> dict:
         # the board's provenance line: the sha and time this tick read
@@ -1453,7 +1546,8 @@ class Tick:
         code, o = self.git(["rev-parse", "origin/main"])
         self.provenance = {"sha": o.strip() if code == 0 else "",
                            "at": self.now.isoformat()}
-        order = ["TRAIN", "PRS", "WORKERS", "PLAN", "MAIN", "STATE", "REPLAN"]
+        order = ["TRAIN", "PRS", "ETA", "WORKERS", "PLAN", "MAIN", "STATE",
+                 "REPLAN"]
         todo = [s for s in order if not only or s in only]
         for s in todo:  # stable section order in the report
             self.sections.setdefault(s, [])
@@ -1471,6 +1565,8 @@ class Tick:
                 self.train()
             elif s == "PRS":
                 self.prs(req)
+            elif s == "ETA":
+                self.eta()
             elif s == "WORKERS":
                 self.workers()
             elif s == "PLAN":
@@ -2224,6 +2320,79 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- ETA: beat age, lane median, orchestrator ETAS ----
+        stale_log = tmp / "stale-train.log"
+        stale_log.write_text("#2143 serial: grader\n")
+        old = NOW.timestamp() - 3 * 3600
+        import os as _os
+        _os.utime(stale_log, (old, old))
+        t = tick(procs=lambda pattern: [(21, "python3 -u merge_train.py run q")],
+                 train_log=str(stale_log))
+        t.eta()
+        a, f = check("ETA beat", [
+            ("stale beat flagged", any("train beat stale" in x["text"]
+                                       for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        fresh_log = tmp / "fresh-train.log"
+        fresh_log.write_text("#2143 serial: grader\n")
+        t = tick(procs=lambda pattern: [(21, "python3 -u merge_train.py run q")],
+                 train_log=str(fresh_log))
+        t.eta()
+        a, f = check("ETA beat fresh", [
+            ("fresh beat silent", not any("train beat stale" in x["text"]
+                                          for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        (version / "tests").mkdir(exist_ok=True)
+        (version / "tests" / "ci_budgets.json").write_text(
+            json.dumps({"critical_path_minutes": 61.0}))
+        slow = NOW - datetime.timedelta(hours=3)
+        t = tick(prs=[pr_obj(95, H1)], checkout=str(version),
+                 runs_at={H1: [run_obj("composed-proof", status="in_progress",
+                                       started=slow)]})
+        t.prs(["tests"])
+        t.eta()
+        a, f = check("ETA lane", [
+            ("over-median pending flagged", any("vs median 61.0" in x["text"]
+                                                for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        quick = NOW - datetime.timedelta(minutes=30)
+        t = tick(prs=[pr_obj(95, H1)], checkout=str(version),
+                 runs_at={H1: [run_obj("composed-proof", status="in_progress",
+                                       started=quick)]})
+        t.prs(["tests"])
+        t.eta()
+        a, f = check("ETA lane within", [
+            ("within-median pending silent", not any("vs median" in x["text"]
+                                                     for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        etas = tmp / "etas.txt"
+        etas.write_text("pr=2149 expected-by="
+                        + iso(NOW - datetime.timedelta(hours=1))
+                        + " note=review owed\n")
+        qd = tmp / "qeta.json"
+        qd.write_text(json.dumps([{"pr": 2149}]))
+        t = tick(queue=str(qd))
+        t.eta()
+        a, f = check("ETA orchestrator", [
+            ("missed ETA flagged", any("ETA missed for #2149" in x["text"]
+                                       for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        (tmp / "noetas").mkdir()
+        qd2 = tmp / "noetas" / "q.json"
+        qd2.write_text(json.dumps([{"pr": 2149}]))
+        t = tick(queue=str(qd2))
+        t.eta()
+        a, f = check("ETA absent file", [
+            ("absent ETAS file silent", not any("ETA missed" in x["text"]
+                                                for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- policy drift ----
         pstate = tmp / "policy-drift.state"
         pstate.write_text("1" * 40 + "\n")
@@ -2334,9 +2503,9 @@ def self_test() -> int:
              text.startswith("BOARD measured from origin/main at ")),
             ("zero findings", rep["findings"] == []),
             ("empty list line printed", "DISPATCH LIST: empty" in text),
-            ("all seven sections measured",
-             set(rep["sections"]) == {"TRAIN", "PRS", "WORKERS", "PLAN",
-                                      "MAIN", "STATE", "REPLAN"}),
+            ("all eight sections measured",
+             set(rep["sections"]) == {"TRAIN", "PRS", "ETA", "WORKERS",
+                                      "PLAN", "MAIN", "STATE", "REPLAN"}),
         ])
         total, failed = total + a, failed + f
 
@@ -2364,7 +2533,7 @@ def main() -> int:
                     help="no new CI completion inside this window is not a stall")
     ap.add_argument("--behind-max", type=int, default=25)
     ap.add_argument("--only",
-                    help="comma-separated: TRAIN,PRS,WORKERS,PLAN,MAIN,STATE,REPLAN")
+                    help="comma-separated: TRAIN,PRS,ETA,WORKERS,PLAN,MAIN,STATE,REPLAN")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
