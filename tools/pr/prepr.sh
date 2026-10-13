@@ -2167,7 +2167,9 @@ rm -f /tmp/prepr-crr.$$
 # once the base carries it. The whole program: without `gh` its ruleset arm
 # prints its UNCHECKED skip, and the other arms are offline.
 if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; else node tools/policy/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; fi
-step "field coverage" $? "$(tail -1 /tmp/prepr-fc.$$)"
+# the refusal cause lines sit above the summary this prints, and the file is
+# removed below, so they are carried beside it or not at all (#2118, #2134).
+step "field coverage" $? "$(grep -E '^  (BLIND|DEAD|REFUSED) ' /tmp/prepr-fc.$$ | head -3 | tr -s ' ' | tr '\n' ';'; tail -1 /tmp/prepr-fc.$$)"
 rm -f /tmp/prepr-fc.$$
 
 # --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the

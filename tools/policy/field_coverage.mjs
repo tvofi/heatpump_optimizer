@@ -36,9 +36,9 @@
 // REFUSED as unregistered, and a DECLARED key the set no longer yields is DEAD.
 // So a new check is refused until someone says what it reads.
 //
-//   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
+//   node tools/policy/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
 //        [--ruleset-json FILE]   # the live ruleset object; without it `gh api`
-//   node .claude/workflows/field_coverage.mjs --self-test
+//   node tools/policy/field_coverage.mjs --self-test
 //
 // exit 0: no BLIND, no DEAD, no refusal. exit 1 otherwise. exit 2: usage.
 
