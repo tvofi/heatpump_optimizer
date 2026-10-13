@@ -395,7 +395,7 @@ PY
 # statically -- no test, recording or mutant runs, so it costs seconds where
 # step 6b's recordings cost the scoped scripts' run time and are left to CI
 # under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
-# UNDER-SCOPED, INERT READS and NO RECORDING, entities' unclassified file and
+# UNDER-SCOPED and INERT READS, entities' unclassified file and
 # a STALE PIN the diff itself stales (a stale pin main carries only warns),
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
 # the handoff while the autofix jobs repaired none of them; those refuse. The
@@ -1655,6 +1655,8 @@ EOS
     && $G checkout -q -b fork \
     && $G checkout -q -b rec && mkdir -p docs/delivery && echo row > docs/delivery/9999.md \
     && $G add -A && $G commit -qm rec \
+    && $G checkout -q -b sk fork && mkdir -p dev/governance/rules && echo note > dev/governance/rules/9999.md \
+    && $G add -A && $G commit -qm sk \
     && $G checkout -q -b own fork && echo "# own" >> custom_components/heatpump_optimizer/away.py \
     && echo "own_lane  # this branch's claim" >> tests/golden/claimed_drift.txt && $G commit -qam own \
     && $G checkout -q -b cl fork && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam cl \
@@ -1703,7 +1705,13 @@ PY
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
   got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
-  got=$(closures_at rec under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # `sk`, not `rec`: the inert_reads rule (#2109's fix) makes a NEW file
+  # under docs/ reach tests/doc_claims.py's recorded read (docs/site/ is one
+  # level below its parent), so `rec` -- a delivery row under docs/, kept for
+  # the claims arms above -- now derives scoped. The skip arm needs a diff
+  # genuinely outside every recorded reach; dev/governance/ is one at both
+  # ends (pinned in tests/entities.py beside the rule itself).
+  got=$(closures_at sk under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
   # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
   # reaches the recorder as ONE --scripts-from lane run -- a serial --single
   # per script pays the SUM of the recordings where the lane run pays a lane
@@ -1778,8 +1786,6 @@ PY
     && $G add -A && $G commit -qm pmainred \
     && $G checkout -q -b pinh pmainred && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pinh \
     && $G checkout -q -b planes pmainred && echo "# a comment" >> tests/derive_closures.sh && $G commit -qam planes \
-    && $G checkout -q -b pdrop origin/main && sed -i.bak '/rec tests\/wood_advisor.py/d' tests/derive_closures.sh \
-    && rm tests/derive_closures.sh.bak && $G commit -qam pdrop \
     && $G checkout -q -b pmut origin/main \
     && printf '\n\ndef _zz_planted(x):\n    if 0 < x < 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
     && $G commit -qam pmut \
@@ -1797,8 +1803,14 @@ PY
   st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
   got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
-  got=$(predict_at plane); grep -q 'PREDICT closures .*NO RECORDING tests/zz_planted_check.py' <<<"$got"
-  st $? 0 "6d predicts NO RECORDING for a selectable script no derive lane records"
+  # Round-9 C1: the full arm derives its recording set from the tree
+  # (`lane-plan --all-scripts`), so a new selectable script owes no lane
+  # edit and no lane edit can drop a recording -- the NO RECORDING class is
+  # no longer expressible, and both of its old perturbations are null
+  # controls now. `planes` below keeps the lane-file-edit arm quiet for the
+  # same reason.
+  got=$(predict_at plane); grep -q 'NO RECORDING' <<<"$got"
+  st $? 1 "6d stays quiet on a new selectable script: the derive plans its recording by construction (C1)"
   got=$(predict_at pmut); grep -q 'PREDICT mutation .*ADDED UNPINNED custom_components/heatpump_optimizer/away.py' <<<"$got"
   st $? 0 "6d predicts ADDED UNPINNED for a guard the diff adds with no pin"
   grep -q '^rc=0$' <<<"$got"
@@ -1816,9 +1828,7 @@ PY
   st "$(tail -1 <<<"$got")" rc=0 "and so the unrelated branch passes 6d"
   got=$(cd "$PDX/r" && git checkout -q planes && predict_line pmainred 2>&1 >/dev/null; echo "rc=$?")
   grep -q 'NO RECORDING' <<<"$got"
-  st $? 1 "6d charges no branch that only edits the lane file with a script main already left unrecorded"
-  got=$(predict_at pdrop); grep -q 'PREDICT closures .*NO RECORDING tests/wood_advisor.py' <<<"$got"
-  st $? 0 "6d still predicts NO RECORDING for a recording the lane edit drops (null control)"
+  st $? 1 "6d charges no branch that only edits the derive script with a script main already left unrecorded (C1: a lane edit can drop nothing)"
   (cd "$PDX/r" && git checkout -q pmut && predict_line origin/main "$PDX/sites" >/dev/null 2>&1)
   st "$(grep -c . "$PDX/sites")" 3 "6d writes the three planted site keys for step 7d"
   grep -q ' CMP_BOUND\*2$' "$PDX/sites"

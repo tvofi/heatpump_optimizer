@@ -268,6 +268,15 @@ jobs:
       - name: Show the fragment check refusing its own perturbation
         run: if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs --self-test; else node tools/policy/fragments_sync.mjs --self-test; fi
 
+      # The lane-skip decision's own pins (R9-CI-SKIP): the planted-defect arm
+      # above all -- a main delta that intersects a selected script's closure
+      # MUST land on RUN, and the two careless mutants (always-skip,
+      # always-run) each redden a pinned arm. The suite's copy runs only when
+      # a diff selects it; this is the copy that answers for the workflow's
+      # decision steps, on every pull request.
+      - name: Show the lane-skip decision refusing every unsafe skip
+        run: python3 tests/lane_skip.py self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.
@@ -409,6 +418,11 @@ jobs:
           set -o pipefail
           python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
           grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
+
+      # The train launcher (tools/audit/seat/train.sh): missing arguments, a
+      # live pidfile on the state dir, and an unknown argument each refuse.
+      - name: Show the train launcher refusing its own fixtures
+        run: bash tools/audit/seat/train.sh --self-test
 
       - name: Show the figure check refusing its own fixtures
         if: always()

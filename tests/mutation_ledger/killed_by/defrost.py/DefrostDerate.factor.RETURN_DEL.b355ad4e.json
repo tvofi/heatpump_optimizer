@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.factor RETURN_DEL b355ad4e",
+  "killed_by": "tests/features.py",
+  "old": "        return value",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d214c53a218f9169b0c6d4fde9351b4ec3121419: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
