@@ -15499,10 +15499,15 @@ _D308_COMPARABLE = _D308_TOTAL - sum(
     for _b in sorted(_D308)[_i + 1:]
     if not ((set(_D308[_a]) & _D308_PROD) and (set(_D308[_b]) & _D308_PROD)))
 _D308_FULLCOV = sorted(s for s, fs in _D308.items() if _D308_PROD <= set(fs))
-# The lane is the only full-coverage closure but for one measured exception, admitted by name: the
-# architecture score's head check (R9-EG-A1) measures today's tree, so its closure is the package by
-# purpose. A third script reaching every file is still refused here.
-_D308_ADMITTED = sorted([_D308_DS, "tests/arch_score_head.py"])
+# The lane is the only full-coverage closure but for two measured
+# exceptions, admitted by name: the architecture score's head check
+# (R9-EG-A1) measures today's tree, so its closure is the package by
+# purpose; and tests/entities.py (round 9) drives the CI ratchet's
+# archscore measurement, which walks the package the same way -- its
+# closure grew to the package when that import landed, re-recorded with the
+# #1218 note. A fourth script reaching every file is still refused here.
+_D308_ADMITTED = sorted([_D308_DS, "tests/arch_score_head.py",
+                         "tests/entities.py"])
 _D308_SELECTED = _D308_DS in _closure.select(
     ["custom_components/heatpump_optimizer/optimizer.py"])["run"]
 R.check(
@@ -18374,6 +18379,64 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
+#
+# tests/lane_skip.py decides whether the heavy Tests lanes may report
+# `skipped` instead of re-running a provably identical tree. It is NOT_A_TEST
+# (the workflow's decision steps run it, never the suite) and a GATE_FILE (a
+# change to it changes what the lanes believe they may skip). Both claims are
+# classifications, so both are pinned -- and the decision's own teeth, the
+# planted-defect arm above all, are its self-test, which this script runs so
+# that an edit breaking `decide` selects this script and reddens here rather
+# than skipping quietly in CI.
+_lane_skip_selftest = _subprocess.run(
+    [sys.executable, str(_closure.ROOT / "tests" / "lane_skip.py"), "self-test"],
+    capture_output=True, text=True,
+)
+R.check(
+    "the lane-skip decision's self-test passes, teeth included",
+    _lane_skip_selftest.returncode == 0,
+    (_lane_skip_selftest.stdout + _lane_skip_selftest.stderr).strip()[-400:],
+)
+R.check(
+    "lane_skip.py is a gate file and never selectable",
+    _closure.is_gate_file("tests/lane_skip.py")
+    and "lane_skip.py" in _closure.NOT_A_TEST,
+    "a lane-skip tool that a diff could scope out of the gate would let the "
+    "diff edit the rule that decides whether the gate runs",
+)
+
+# The lane-skip wiring's own pinned decision, on the same forged inputs the
+# self-test uses but restated here so the pair cannot drift apart silently:
+# main's delta reaching a selected script's closure MUST land on RUN. This is
+# the guard rail the whole lever hangs from, asserted where the suite runs it.
+import lane_skip as _lane_skip  # noqa: E402 - beside its subject, one block
+
+_lk_payload = {
+    "closures": {
+        "tests/env_drift.py": [
+            "custom_components/heatpump_optimizer/const.py",
+        ],
+    },
+    "inert_reads": {},
+}
+_lk_plan = {"mode": "scoped", "run": ["tests/env_drift.py"], "skip": {}}
+_lk_run = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="b" * 40,
+    main_delta=["custom_components/heatpump_optimizer/const.py"],
+    plan=_lk_plan, payload=_lk_payload)
+_lk_skip = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="a" * 40, main_delta=[],
+    plan=_lk_plan, payload=_lk_payload)
+R.check(
+    "lane_skip runs on a planted defect inside a selected closure and skips "
+    "only on the identical base",
+    _lk_run["decision"] == "run" and _lk_skip["decision"] == "skip"
+    and _lk_skip.get("level") == 1,
+    f"defect -> {_lk_run['decision']} ({_lk_run['reason']}); identical base "
+    f"-> {_lk_skip['decision']} (level {_lk_skip.get('level')})",
+)
+
 # The instance moved from `governance.yml` to `hassfest.yml` when
 # `record-status` landed: this script now READS governance.yml, so it is scoped
 # rather than skipped, and its own case is checked above. The PROPERTY this
@@ -19361,6 +19424,51 @@ R.check(
     "request (R1 #2131), never the serial SUM a --single loop pays and "
     "never a second, dispatch-only derivation path",
 )
+# Round-9 C1: the FULL arm plans through the same planner, over a recording
+# set derived from the tree (`lane-plan --all-scripts`), not a hard-coded
+# lane layout. A `rec tests/...` line in derive_closures.sh is the layout
+# rot this replaced -- it named the recordings, so every new selectable
+# script needed a lane edit on pain of a red main, and the unbalanced
+# "everything else" lane set the 3,242 s wall the planner halves. Regrowth
+# of any hard-coded lane, or a loss of the --all-scripts plan, reddens here.
+# The pattern is word-boundary `\brec tests/`, not anchored `^\s*rec tests/`:
+# the old layout's lane 1 was `( rec tests/stress.py ) &` -- parenthesised --
+# and its driven child was `HASTUB_TZ=Europe/Stockholm rec
+# tests/dst_checks.py` -- environment-prefixed -- and both escape an
+# anchored pattern; with ci_predict's NO RECORDING arm retired by this same
+# change, that escape would leave a lane-form regrowth unguarded by both
+# the guard and the predictor. The planted arms below hold both directions:
+# the two escaping forms redden the anchored pattern and only the
+# word-boundary one.
+def _derive_lane_regrowth_guard(text: str) -> bool:
+    return ("--all-scripts" in text and "lane-plan" in text
+            and not _re.search(r"\brec tests/", text))
+
+
+_derive_txt = Path("tests/derive_closures.sh").read_text()
+R.check(
+    "the closures job's FULL arm is lane-planned over the derived script set",
+    _derive_lane_regrowth_guard(_derive_txt),
+    "derive_closures.sh names a recording with a hard-coded `rec tests/...` "
+    "line: the full arm must derive its set (lane-plan --all-scripts, round-9 "
+    "C1), which records every selectable script without a lane edit",
+)
+_derive_old_lane_forms = (
+    # The old lane 1, exactly as it stood: a subshell, not a bare line.
+    "( rec tests/stress.py ) &\n",
+    # The old driven child, exactly as it stood: an environment prefix.
+    "HASTUB_TZ=Europe/Stockholm rec tests/dst_checks.py\n",
+)
+_derive_anchored = _re.compile(r"(?m)^\s*rec tests/")
+_derive_wordb = _re.compile(r"\brec tests/")
+for _arm in _derive_old_lane_forms:
+    R.check(
+        f"a regrown lane line escapes no guard form: {_arm.strip()!r}",
+        not _derive_anchored.search(_arm) and _derive_wordb.search(_arm)
+        and not _derive_lane_regrowth_guard(f"--all-scripts\nlane-plan\n{_arm}"),
+        "the anchored pattern would miss this lane-line shape (the guard's "
+        "hole), and the word-boundary guard must refuse it",
+    )
 
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
@@ -23950,17 +24058,22 @@ R.check(
 # A job-level block REPLACES the floor for that job and is inherited by none,
 # so the set IS the blast radius. The two autofix jobs have needed writes since
 # #523, and `mutation-autofix` the same two since it was argued for as the
-# ledger half of the mutation ratchet; a fifth override should have to be
-# argued for too.
+# ledger half of the mutation ratchet; `nightly-status` reads the Actions API.
+# Round 9 added two READ-ONLY widenings, each argued where it is used: the
+# `closures` job queries the artifacts API by name to consume the batch
+# proof's recordings (C2), and `ci-ratchet` downloads the recent ci-metrics
+# window the same way. Reads only -- a write override here still has to be
+# argued for on its own.
 _NS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly four jobs override the workflow's read-only floor",
-    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "mutation-autofix",
-                      "nightly-status"],
+    "exactly six jobs override the workflow's read-only floor, four of them "
+    "read-only",
+    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
+                      "closures-autofix", "mutation-autofix", "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -25711,14 +25824,17 @@ steps:
         echo "a pinned governance grader changed: its own copy runs below"
       fi
 
+  # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
+  # fresh coverage.json to grade and the recorded green already passed the
+  # ratchet on the identical inputs. The canon matches the workflow's arm.
   - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
       path: ${{ runner.temp }}/coverage
 
   - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     run: |
       python3 tests/coverage_ratchet.py \
         --coverage "$RUNNER_TEMP/coverage/coverage.json"
@@ -31273,6 +31389,151 @@ R.check(
     and not _closure.is_inert("tests/coverage_ratchet.py")
     and not _closure.is_inert("tests/mutation_table.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+
+# --- the CI ratchet and the composed-closure allow-list (round 9) -----------
+#
+# tvofi's round-9 request: ratchet CI cost and code health (architecture,
+# complexity, script re-runs, scoping, critical path). tests/ci_ratchet.py is
+# the instrument; what is pinned here is what it CLAIMS: one-way budgets in a
+# committed data file, values derived from what the CI jobs emit, a refusal on
+# growth, --record as a deliberate path a job may never take, and the null
+# control that the committed table grades green at the tree it records.
+import ci_ratchet as _cir  # noqa: E402
+
+_CIR_TABLE = json.loads(Path("tests/ci_budgets.json").read_text())
+R.check(
+    "the CI ratchet is classified: NOT_A_TEST, and not on INERT",
+    "ci_ratchet.py" in _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/ci_ratchet.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+_CIR_JOB = _workflow_job(_TESTS_YML, "ci-ratchet")
+R.check(
+    "the CI ratchet is wired into a push-to-main job that never --records",
+    "github.event_name == 'push'" in _CIR_JOB
+    and "tests/ci_ratchet.py" in _CIR_JOB
+    and "--record" not in _CIR_JOB,
+    f"push={'push' in _CIR_JOB}, "
+    f"invoked={'tests/ci_ratchet.py' in _CIR_JOB}, "
+    f"records={'--record' in _CIR_JOB}",
+)
+R.check(
+    "the CI ratchet refuses a non-finite, mistyped or unknown budget row",
+    _cir.budget_problems(_CIR_TABLE) == []
+    and _cir.budget_problems({**_CIR_TABLE,
+                              "script_runs_per_push": float("nan")}) != []
+    and _cir.budget_problems({**_CIR_TABLE, "made_up_key": 1}) != []
+    and _cir.budget_problems({**_CIR_TABLE,
+                              "archscore.dead_members": 1.5}) != []
+    and _cir.budget_problems({"critical_path_minutes": 61.0}) != [],
+    f"committed table: {_cir.budget_problems(_CIR_TABLE)} (the null control)",
+)
+
+
+def _cir_main(table: dict, push_runs: int) -> int:
+    """ci_ratchet.main() over a scratch table and a scratch metrics window:
+    does the barrier refuse a growth the table's own rows would allow?"""
+    import contextlib as _cl
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        metrics = Path(td) / "metrics"
+        metrics.mkdir(parents=True)
+        lines = "".join(
+            f"closures\ttests/s{i}.py\tfull\t0\t1\tpush\t1\n"
+            for i in range(push_runs))
+        (metrics / "run.tsv").write_text(lines)
+        budgets = Path(td) / "ci_budgets.json"
+        budgets.write_text(json.dumps(table))
+        saved, _cir.BUDGETS = _cir.BUDGETS, budgets
+        argv = ["--metrics-dir", str(Path(td) / "metrics")]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()), \
+                    _cl.redirect_stderr(_io.StringIO()):
+                # No --runs-json: critical_path_minutes is then not derived
+                # and not graded, so the count metrics are the verdict.
+                return _cir.main(argv)
+        finally:
+            _cir.BUDGETS = saved
+
+
+_CIR_ARCH = {k: v for k, v in _CIR_TABLE.items()
+             if k.startswith("archscore.")}
+R.check(
+    "the CI ratchet's main() refuses a script-run count above its budget",
+    _cir_main(_CIR_TABLE, push_runs=int(_CIR_TABLE["script_runs_per_push"])
+              + 1) == 1,
+    "one more instrumented run than the row allows must redden the job",
+)
+R.check(
+    "and main() passes the committed table at its own recorded count "
+    "(the null control)",
+    _cir_main(_CIR_TABLE, push_runs=int(_CIR_TABLE["script_runs_per_push"]))
+    == 0,
+    "the recorded value must grade green at the tree it was recorded on",
+)
+R.check(
+    "a derived metric with no budget row is a growth, not a pass",
+    _cir_main({k: v for k, v in _CIR_TABLE.items()
+               if not k.startswith("archscore.")},
+              push_runs=1) == 1,
+    "the archscore vector is always derived; dropping its rows must redden",
+)
+
+# The composed-closure allow-list (round-9 C1): every entry a real selectable
+# script, off the never-compose list closure.py enumerates -- the class's seam
+# rule, not an instance check.
+_COMPOSED_LIST = json.loads(Path("tests/composed_closures.json").read_text())
+_COMPOSED_BAD = [
+    s for s in _COMPOSED_LIST.get("scripts", [])
+    if not Path(s).is_file()
+    or Path(s).name in _closure.CHEAP_ARGV_OR_ENV
+    or Path(s).name in _closure.NOT_A_TEST
+]
+R.check(
+    "every composed-closure entry is a selectable, composable script",
+    not _COMPOSED_BAD,
+    f"bad entries: {_COMPOSED_BAD}",
+)
+# The proof driver: `composed-proof`'s self arm runs it, and it must drive
+# the instrument's own comparison (composed-compare) over the allow-list
+# (composed-list) rather than a rule of its own -- read here so a change to
+# it selects this script, and so no parallel comparison logic grows beside
+# closure.py's.
+_CP_SH = Path("tools/coverage/composed_proof.sh").read_text()
+R.check(
+    "the composed-proof driver measures through closure.py's own comparison",
+    "tests/closure.py composed-compare" in _CP_SH
+    and "tests/closure.py composed-list" in _CP_SH,
+    "a driver with its own equality rule is a second owner for the proof",
+)
+
+# `composed-proof`'s first run died resolving `actions/checkout@<40-hex>`
+# before any step: the pin in its job body was one transposed character off
+# the canonical v5 SHA, and every pin-shaped check only counts hex digits, so
+# a well-formed name of a commit that does not exist passed them all. The
+# class's seam is that this repository pins each `actions/*` action at ONE
+# canonical commit across every workflow, so the detector is equality per
+# action, not existence (which would need the network): a copy-pasted pin
+# with a typo is an outlier against its own action's majority, however
+# well-formed. Committed here rather than in the job because `fast` runs on
+# every pull request and the failing job cannot check out anything to run a
+# check with.
+_ACTION_PINS: dict[str, set[str]] = {}
+for _wf_path in sorted(Path(".github/workflows").glob("*.yml")):
+    for _m in re.finditer(r"uses:\s*(actions/[\w.-]+)@([0-9a-f]{40})",
+                          _wf_path.read_text()):
+        _ACTION_PINS.setdefault(_m.group(1), set()).add(_m.group(2))
+_PIN_OUTLIERS = {
+    f"{action}: {sorted(shas)}" for action, shas in _ACTION_PINS.items()
+    if len(shas) != 1
+}
+R.check(
+    "every workflow pins each actions/* action at one canonical commit",
+    not _PIN_OUTLIERS,
+    f"actions pinned at more than one SHA: {sorted(_PIN_OUTLIERS)} -- "
+    "a pin that differs from every other use of its action is a typo the "
+    "runner resolves as a missing version (composed-proof, 2026-10-12)",
 )
 
 # --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
