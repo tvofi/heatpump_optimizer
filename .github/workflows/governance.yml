@@ -419,6 +419,11 @@ jobs:
           python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
           grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
 
+      # The train launcher (tools/audit/seat/train.sh): missing arguments, a
+      # live pidfile on the state dir, and an unknown argument each refuse.
+      - name: Show the train launcher refusing its own fixtures
+        run: bash tools/audit/seat/train.sh --self-test
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi
