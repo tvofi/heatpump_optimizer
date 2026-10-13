@@ -43,10 +43,6 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   (`audit-find` runs it in Prepare and refuses the round on failure) or
   splitting one. Refusal: a cell owned twice, or owned by nobody — the
   perturbed-scope `--self-test` is the null control.
-- `fastpath_census.py` — measures how often `merge_fastpath.py` would have
-  said ELIGIBLE over main's last N merges. When: re-justifying (or retiring)
-  the fastpath with numbers. Refusal: `INJECT=1` — without it the census
-  measures nothing and says so.
 - `fold_ledger.py` — folds a round's JUDGE.json and sweeps into
   `bugclasses.json`, and checks the register against the judges. When: after a
   judge lands, and before quoting the bugclass register as current state.
@@ -57,11 +53,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   grades a batch of findings and wants the mechanical half scripted. Refusal:
   a perturbation that does not move the number in the stated direction prints
   `void`; what it cannot run prints `by-hand`, never a pass.
-- `merge_fastpath.py` — answers whether a verdicted PR can merge without a
-  fresh CI run: did anything main changed since the PR's CI base land inside a
-  closure the PR's own scoped gate selected? When: a merge train stalls on
-  "main moved after CI". Refusal: an unrecorded file in the diff — ELIGIBLE
-  needs every touched path measured, and "unrecorded" refuses.
+- `merge_fastpath.py` — classifies a changed file as workflow, claim, grader
+  or budget for `merge_train.py`'s batch routing: any such file sends a pull
+  request serial. Refusal: `--self-test` — `governance.yml` greps its
+  `checks, 0 failed` line.
 - `merge_throughput.py` — measures whether merges land inside the previous
   merge's gate window often enough to justify a merge queue. When: someone
   proposes a queue; the numbers decide before the mechanism is built.
@@ -153,6 +148,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the default for a queue. Refusal: a red main admits nothing; a red proof
   drops its entry to serial,
   and main's tree differing from the proof's before or after a merge stops it.
+  `batch --skip-bad` makes a per-entry refusal (admission, recarry, carry, CI,
+  merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
+  `skipped.json` and a `SKIP REPORT` line, rc 1 — while a red main and a Stop
+  after the merge API call stay global. `batch --overlap` (owner's P7) does
+  not wait on main's CI (log-only) and re-carries every serial entry up front
+  so their pull_request runs fire together; each lands in queue order when
+  its own required contexts conclude — the ruleset still gates every head.
   Residual: a proved pair's second merge does not wait for main's run on the
   first; the proof graded the tree both make. A `batch/` branch the remote
   will not delete is logged `NOT deleted`, for deletion by hand.
@@ -166,10 +168,46 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   adds its own delivery row, re-pushes, prints N and the head. When: the
   orchestrator opens a seat's handed-off branch. Refusal: no BODY.md at
   `handoff-body/<topic>` — the body is the transport, not an afterthought.
+- `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
+  that measures the whole board — train liveness, stale queue entries, log/rc
+  tail, prepr slots; per open PR the latest check-run per name, reds unanswered
+  in `## Red checks`, missing delivery rows, moved verdicts with no carry,
+  DIRTY/BLOCKED, zero-run heads, absent required contexts, twin heads, claim
+  stamps, staleness behind main; worker seats judged from the work they were
+  dispatched for; roster groups newly unblocked or blocked; main's tip, its
+  required contexts re-read live, the mandate through `budget_raise_gate`'s
+  own reader, action-pin drift. When: run BY a watcher seat on a ~4-minute
+  loop — never inline in the orchestrator's turn, whose cron firings skip
+  while a turn runs (measured: ticks skipped for hours during one diagnosis
+  turn); the watcher seat notifies only on actionable events (TRAIN
+  DONE/STOPPED with skip classes, Traceback, silent train death, a new merge
+  → beats owed) and never diagnoses or fixes. Every failed lane at main's
+  tip — required or not — becomes a fixer dispatch brief (context, job id +
+  error line, suspected class, dispatch instruction; bot lanes lead with the
+  ci-autofix rule): a main-side issue the orchestrator cannot resolve in one
+  short turn is fixer work, and the orchestrator's duty is routing, not
+  diagnosing. It replaces re-deriving the
+  sweep from conversation memory. It does NOT act; the orchestrator acts on
+  the list. Operating contract it assumes: orchestrator turns stay SHORT; any
+  script with over a minute of wait or execution runs BACKGROUND (nohup, log
+  file, completion notification); findings are DISPATCHED, not merely printed
+  — a finding that only lands in tick output repeats the
+  PR-comment-is-not-propagation defect. Refusal: a section whose read fails
+  prints UNREADABLE, never a silent skip; a rule the tick cannot read from
+  the tree or API it does not report.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
   but the gantt's grammar checks run in `--self-test`, not at render time.
+- `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
+  the train launches: per entry PASS, PARK (the train's own Stop wording — a
+  carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
+  branch another worktree holds, a policy or budget head without the owner's
+  in-force mandate) or FAIL (a verdict that is not 40-hex, a closed pull
+  request). When: before any `merge_train.py run`/`batch` — an admission-time
+  refusal parks the entry here instead of stopping a live queue mid-run.
+  Refusal: exit 1 unless every entry passed; the checks are the train's own
+  methods (`bot_tip`, `policy_gate`, `app_approve.sh --carry`), never new ones.
 - `record_row.py` — the record-autofix generator: enumerates merged PRs from
   the REST API, plans the delivery rows the tree still lacks, applies them
   behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
@@ -220,6 +258,21 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
   hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
   both. `--self-test` drives the recipe and the shim export.
+- `train.sh` — one invocation shape for `merge_train.py batch`: the seat
+  venv first on PATH — an absent venv refuses (naming `seat_venv.sh` to
+  build it), it never falls back to ambient python, which on 3.11 refuses
+  main's own nested-quote f-strings under `no-copies` — the child python
+  unbuffered (`-u`, so a detached caller's log shows stops and SKIP/OVERLAP
+  lines in real time), a pidfile refusing a second live train on the same
+  state dir, log and exit code under the state dir (`train.log`, `rc`), and
+  `--skip-bad`/`--overlap` passed straight through. Foreground: the caller
+  detaches and owns the schedule. When: every merge queue — the per-session
+  scratch drivers this replaces duplicated the invocation, and one session's
+  copy ran prepr under the wrong interpreter and refused a clean branch.
+  Refusal: a live pidfile (take over only by removing it after checking the
+  pid is dead). `--self-test` drives the five refusals and the child argv
+  shape offline (missing required arg, live pidfile, unknown argument, the
+  `--ignore-red` argv shape, the absent-venv refusal).
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r9-plan` at
