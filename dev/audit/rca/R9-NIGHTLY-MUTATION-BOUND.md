@@ -303,6 +303,31 @@ nightly lane, ~21 min/night** (Oct-8 pool baselines 211 s + 430 s, x2 lanes).
 which is `budget-raise-gate` (decision 0013), the owner's approving review, not a
 seat's. Out of scope here; the honest recommendation is to ask, not build.
 
+**Landed (R9-RC-NIGHTLY-DEFER), and two corrections to the paragraph above.**
+The owner approved the ask (issue 201 comment `6078664059`, answering
+`6078320192`), and the form taken is #1930 (a)'s: `--scope full` DROPS both
+drivers from its net, which is stronger than deferring them to run alone. First
+correction: the +641 s is the pair's *baseline* cost, which this lane paid
+either way, so the drop SAVES it instead of adding it -- at this lane's head the
+two measure 349.2 s (`python3 tests/harness_headers.py`, rc=0) and 408.1 s
+(`python3 tests/gate_lock.py auto-lease --label nightly-defer-cost --
+python3 tests/stress.py`, rc=1 there for the environment, `origin/main IS this
+commit`) on a macOS arm64 seat under Python 3.14.7. Running them alone was also
+already the behaviour under
+`EXCLUSIVE` and did not close the arm: the 10-04 refusal was `stress.py`'s own
+budget judging its own null control, which no scheduling fixes. Second
+correction: the "unpinned-count raise" is not a number this tree can store --
+#1577 made the count derived, `ledger_form_problems` refuses a committed one and
+`ledger_merge.py`'s `RETIRED` drops it on merge -- so the drop keeps the pair's
+`killed_by` rows (each a true claim about the suite) and reports its cost in the
+lane's census clause. The residue a later seat owes is the four pins no driver
+left in the net re-verifies: `optimizer.py:HeatPumpOptimizer.get_current_action
+BOOLOP 519a7ed9`, `quiet_windows.py:overlap_problem RETURN_DEL da9e8e97`,
+`thermal_model.py:ThermalModel.flow_lift_factor CLAMP_DROP bc44c8b4` and
+`thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP b5554584` -- one
+was re-pointed by measurement (`boost.py:space_learning_frozen BOOLOP ad026ebf`,
+now `tests/manual_plan.py`); each of the four needs a re-pin, a triage or a test.
+
 ## 5. Countermeasure (landed in this pull request)
 
 All of it is `tests/` code plus one workflow carrier; no policy file, no new lint
