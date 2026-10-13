@@ -18379,6 +18379,64 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
+#
+# tests/lane_skip.py decides whether the heavy Tests lanes may report
+# `skipped` instead of re-running a provably identical tree. It is NOT_A_TEST
+# (the workflow's decision steps run it, never the suite) and a GATE_FILE (a
+# change to it changes what the lanes believe they may skip). Both claims are
+# classifications, so both are pinned -- and the decision's own teeth, the
+# planted-defect arm above all, are its self-test, which this script runs so
+# that an edit breaking `decide` selects this script and reddens here rather
+# than skipping quietly in CI.
+_lane_skip_selftest = _subprocess.run(
+    [sys.executable, str(_closure.ROOT / "tests" / "lane_skip.py"), "self-test"],
+    capture_output=True, text=True,
+)
+R.check(
+    "the lane-skip decision's self-test passes, teeth included",
+    _lane_skip_selftest.returncode == 0,
+    (_lane_skip_selftest.stdout + _lane_skip_selftest.stderr).strip()[-400:],
+)
+R.check(
+    "lane_skip.py is a gate file and never selectable",
+    _closure.is_gate_file("tests/lane_skip.py")
+    and "lane_skip.py" in _closure.NOT_A_TEST,
+    "a lane-skip tool that a diff could scope out of the gate would let the "
+    "diff edit the rule that decides whether the gate runs",
+)
+
+# The lane-skip wiring's own pinned decision, on the same forged inputs the
+# self-test uses but restated here so the pair cannot drift apart silently:
+# main's delta reaching a selected script's closure MUST land on RUN. This is
+# the guard rail the whole lever hangs from, asserted where the suite runs it.
+import lane_skip as _lane_skip  # noqa: E402 - beside its subject, one block
+
+_lk_payload = {
+    "closures": {
+        "tests/env_drift.py": [
+            "custom_components/heatpump_optimizer/const.py",
+        ],
+    },
+    "inert_reads": {},
+}
+_lk_plan = {"mode": "scoped", "run": ["tests/env_drift.py"], "skip": {}}
+_lk_run = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="b" * 40,
+    main_delta=["custom_components/heatpump_optimizer/const.py"],
+    plan=_lk_plan, payload=_lk_payload)
+_lk_skip = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="a" * 40, main_delta=[],
+    plan=_lk_plan, payload=_lk_payload)
+R.check(
+    "lane_skip runs on a planted defect inside a selected closure and skips "
+    "only on the identical base",
+    _lk_run["decision"] == "run" and _lk_skip["decision"] == "skip"
+    and _lk_skip.get("level") == 1,
+    f"defect -> {_lk_run['decision']} ({_lk_run['reason']}); identical base "
+    f"-> {_lk_skip['decision']} (level {_lk_skip.get('level')})",
+)
+
 # The instance moved from `governance.yml` to `hassfest.yml` when
 # `record-status` landed: this script now READS governance.yml, so it is scoped
 # rather than skipped, and its own case is checked above. The PROPERTY this
@@ -25721,14 +25779,17 @@ steps:
         echo "a pinned governance grader changed: its own copy runs below"
       fi
 
+  # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
+  # fresh coverage.json to grade and the recorded green already passed the
+  # ratchet on the identical inputs. The canon matches the workflow's arm.
   - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
       path: ${{ runner.temp }}/coverage
 
   - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     run: |
       python3 tests/coverage_ratchet.py \
         --coverage "$RUNNER_TEMP/coverage/coverage.json"

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_lbfgsb_restart BOOLOP 854e7632",
+  "killed_by": "tests/features.py",
+  "old": "    if memo_fun is not None and _bounds_supported_by_batch(bounds):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7311cc51318f72dc03409ed793b8e4c6772815e8: BOOLOP (`if memo_fun is not None or _bounds_supported_by_batch(bounds):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
