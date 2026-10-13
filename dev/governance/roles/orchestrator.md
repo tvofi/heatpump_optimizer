@@ -245,8 +245,8 @@ shape that lets a real error be waved through.
   unproved, gated by `main`'s FULL push run below. A workflow, claim, grader,
   budget or conflicting change takes `run`: `main` merged in, CI green again.
 - **Any red check on the branch is answered in the body**, or the reviewer
-  returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
-  (`defect-root-cause.md`).
+  returns `root-cause-unanswered` at a settled head (`fix-review.md` step 11,
+  `defect-root-cause.md`).
 - The merge message passes section 4.
 - Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
