@@ -3526,11 +3526,37 @@ def _selftest_coverage_reuse(pin) -> None:
     # push's entry through the same key formula, trusts it only through
     # closure.py's marker check, and writes the summary into the job
     # summary; the instrument provenances every entry it leaves in per/.
+    # The two Actions expressions are pinned piecewise: the line is
+    # located by its output identifier and its shell shape asserted in
+    # fragments, because a single literal naming a ${{ steps.*.outputs.*
+    # }} expression is modeled by CodeQL as sensitive data reaching this
+    # selftest's print (code-scanning alert 36 on #2163). The pin is not
+    # weakened: the same whole workflow line must still be present, the
+    # identifier must sit exactly between the shell fragments, and the
+    # mention must be unique -- so breaking or deleting the workflow line
+    # still fails the pin.
     yml = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
+
+    def pinned_expr(hits: list, head: str, tail: str) -> str:
+        """The sole hit's identifier between head and tail, or "" unless
+        exactly one hit carries exactly that shape."""
+        if len(hits) != 1:
+            return ""
+        line = hits[0]
+        if line.startswith(head) and line.endswith(tail):
+            return line[len(head):-len(tail)]
+        return ""
+
     pin("the push arm restores through the same key formula",
-        "key: ${{ steps.covkey.outputs.restore_key }}" in yml)
+        pinned_expr([ln.strip() for ln in yml.splitlines()
+                     if "steps.covkey.outputs.restore_key" in ln],
+                    "key: ${{ ", " }}")
+        == "steps.covkey.outputs.restore_key")
     pin("the push arm's plan comes from select at the restored base",
-        '--diff "${{ steps.covkey.outputs.restore_base }}"' in yml
+        pinned_expr([ln.strip() for ln in yml.splitlines()
+                     if "--diff" in ln and "restore_base" in ln],
+                    '--diff "${{ ', ' }}" \\')
+        == "steps.covkey.outputs.restore_base"
         and "coverage-trust" in yml)
     pin("the coverage job states the reuse count in its summary",
         "coverage-summary" in yml and "GITHUB_STEP_SUMMARY" in yml)
