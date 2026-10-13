@@ -1,7 +1,7 @@
 {
  "archscore._inlined_bases": 0,
  "archscore.computed_attr_access": 32,
- "archscore.coord_footprint": 2587,
+ "archscore.coord_footprint": 2592,
  "archscore.coordinator_multiassigned_attrs": 120,
  "archscore.coordinator_private_reach": 2,
  "archscore.dead_members": 1,
@@ -16,9 +16,9 @@
  "archscore.shared_inplace_writes": 22,
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
- "critical_path_minutes": 61.0,
- "reason": "Initial record, round-9 CI ratchet (tvofi's request; research-informed design, see tests/ci_ratchet.py's docstring for the adopted and rejected patterns). archscore.*: tools/audit/archscore vector.measure at 7311cc513 (origin/main 2026-10-12), whose custom_components tree this branch does not touch (three-dot diff empty); coord_footprint re-recorded 2586->2587 after main's own early-cutoff/pump-arbiter merges (#2070/#2114/#2130) grew the coordinator past the a74520020 record -- main's growth, not this branch's, and the ratchet's null control reddened on the first recarry that carried it. script_runs_per_push = 33 selectable closures recordings (python3 -c 'import sys; sys.path.insert(0,\"tests\"); import closure; print(len(closure.selectable_scripts()))') + 20 coverage fast-stage scripts (the DERIVED pipeline tools/coverage/coverage_tree.sh documents, counted at the same tree) = 53: the fail-closed worst case a push run emits before the composed-recording (C1) and proof-consume (C2) paths are trusted, so the first post-merge run cannot be red through them; they land as headroom and tighten at the next deliberate --record. script_runs_full_case_pr = the same 53 by the same rule on a full-case pull-request run. critical_path_minutes = 61, the p75 (60.4) of the last 4 completed push Tests runs (58.7/60.2/44.2/61.3 min, GitHub Actions API 2026-10-11) rounded up to the minute: medians flapped 44-61 across four adjacent runs on shared runners, and a zero-headroom timing gate flaps (Bencher documents >30 percent variance on shared runners), so the headroom is deliberate and stated, not hidden.",
- "recorded_at": "7311cc513",
- "script_runs_full_case_pr": 53,
- "script_runs_per_push": 53
+ "critical_path_minutes": 54.825,
+ "reason": "Deliberate re-record of archscore.coord_footprint only: PR #2118 (fix/r9-ux-10-v2, merged at 9a6e0d9dd) grew the coordinator footprint 2587 -> 2592 and landed without re-recording, so every Tests push run on main since 2026-10-12 17:52Z (runs 38442170346 at 9a6e0d9dd and 38442812648 at c7a70cb24) has been red on the ci-ratchet null control in tests/entities.py. Derived independently at origin/main 4787610ad (tests/coverage via archscore.vector.measure): coord_footprint 2592; every other row unchanged from the 81acae2b7 recording. The ci-ratchet job never passes --record by design, so this is the deliberate follow-up re-record that job's red names.",
+ "recorded_at": "4787610ad312ce0e5edc3c55a23dfd0294591e0e",
+ "script_runs_full_case_pr": 63,
+ "script_runs_per_push": 63
 }

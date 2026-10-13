@@ -217,6 +217,14 @@ GREEN = ("success", "skipped", "neutral")
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
+# The heartbeat (tvofi, 2026-10-13): the batch train sat silent 2+ hours inside
+# --overlap's up-front recarry phase (each recarry logs only on completion, and
+# app_push's prepr takes 5-15 min per entry) and inside wait_ci's poll cycle,
+# and two HEALTHY trains were killed as dead. Every HEARTBEAT_SECONDS of
+# elapsed wait one `beat:` line goes out -- time-based, not poll-based, so a
+# poll slower or faster than the beat never hides it. Log lines only: no gate,
+# wait, merge decision or exit code reads them.
+HEARTBEAT_SECONDS = 240
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
 # read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
@@ -252,9 +260,27 @@ def _fastpath():
 
 
 class Stop(Exception):
-    def __init__(self, step: str, why: str) -> None:
+    def __init__(self, step: str, why: str, cls: "str | None" = None) -> None:
         super().__init__(f"{step}: {why}")
-        self.step, self.why = step, why
+        self.step, self.why, self.cls = step, why, cls
+
+
+# THE BLOCK CLASSES (tvofi, 2026-10-13, after train-batch3 stopped all eight
+# entries on one unexplained worktree refusal): every stop whose shape the
+# train has seen before carries its class, its verified cause and the exact
+# remedy IN THE LINE ITSELF -- a skip is self-describing and the orchestrator
+# never re-derives the fix from raw git output. The class goes in brackets
+# right after the step (`TRAIN STOPPED #7 recarry [HOLDER]: ...`), so a line
+# greps by class and the old `TRAIN STOPPED <step>:` prefix is unchanged.
+HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
+BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: no pull_request run can fire
+STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
+ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
+
+
+def classified(s: Stop) -> str:
+    """<why>, prefixed `[<class>] ` when the stop is one of the known shapes."""
+    return f"[{s.cls}] {s.why}" if s.cls else s.why
 
 
 # The one reader of the owner's recorded mandate, old path first (the TOOLS
@@ -320,7 +346,8 @@ class Train:
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
                  log=print, polls: int = 24, merge_tries: int = 8, base: str = "main",
                  skip_bad: bool = False, overlap: bool = False,
-                 approval_carry: bool = False) -> None:
+                 approval_carry: bool = False,
+                 clock: "callable" = time.monotonic) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
             raise ValueError(f"--base {base}: main, or a batch/ rehearsal base")
@@ -330,7 +357,7 @@ class Train:
         self.base, self.real = base, base == "main"
         self.ignore, self.min_runs, self.polls, self.merge_tries = ignore, min_runs, polls, merge_tries
         self.run = run or self._run
-        self.sleep, self.log = sleep, log
+        self.sleep, self.log, self.clock = sleep, log, clock
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
         self.skip_bad = skip_bad
@@ -393,16 +420,71 @@ class Train:
                     "only one writes never report -- the head looks settled and is unmergeable, "
                     "with nothing saying why. The required follow-up is an App push at this "
                     "head: run the train again once main has moved (its recarry is one), or "
-                    "have the orchestrator App-push the branch")
+                    "have the orchestrator App-push the branch", cls=BOT_HEAD)
 
-    def wait_ci(self, h: str, only: "list[str] | None" = None) -> list[str]:
+    def branch_holder(self, br: str) -> "str | None":
+        """The worktree path that has branch <br> checked out, from
+        `git worktree list --porcelain`; None when no worktree holds it (then
+        the worktree add failed for a reason this class does not describe)."""
+        code, o = self.run(["git", "worktree", "list", "--porcelain"])
+        if code:
+            return None
+        path = None
+        for ln in o.splitlines():
+            if ln.startswith("worktree "):
+                path = ln[len("worktree "):].strip()
+            elif ln.startswith("branch refs/heads/") and ln[len("branch refs/heads/"):].strip() == br:
+                return path
+        return None
+
+    def holder_refusal(self, wt: Path, br: str) -> Stop:
+        holder = self.branch_holder(br)
+        if holder is None:
+            return Stop("recarry", f"could not make a worktree at {wt}")
+        return Stop("recarry",
+                    f"could not make a worktree at {wt}: branch {br} is already checked out in "
+                    f"another worktree at {holder}. Free it: git worktree remove {holder} "
+                    f"(safe when its work is pushed; verify with git -C {holder} status)",
+                    cls=HOLDER)
+
+    def carry_refusal(self, pr: int, verdict: str, h: str, o: str) -> Stop:
+        """The `--carry` refusal, classified when its shape is the known one:
+        the verdict sha is no longer an ancestor of the head (a bot push
+        advanced the branch after the verdict) -- then the line carries the
+        exact remedy and the delta the fresh verdict will re-read. Any other
+        carry refusal is echoed exactly as today, unclassified."""
+        if "is not an ancestor of" not in o:
+            return Stop("carry", (o.strip().splitlines() or ["(no output)"])[-1][:200])
+        self.run(["git", "fetch", "-q", "origin", verdict])
+        code, d = self.run(["git", "diff", "--no-renames", "--name-only", verdict, h])
+        names = d.split() if code == 0 else []
+        delta = ", ".join(names[:12]) + (" ..." if len(names) > 12 else "") if names else "unreadable"
+        return Stop("carry", f"#{pr} verdict {verdict[:12]} does not carry to head {h[:8]}: the branch moved "
+                    f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
+                    cls=STALE_VERDICT_CARRY)
+
+    def wait_ci(self, h: str, only: "list[str] | None" = None,
+                beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
 
         Green is a fixed list -- success, skipped, neutral -- so a conclusion
         GitHub adds later, or `action_required` and `stale` today, reads red.
         With `only`, those names alone are waited for and judged, and each must
-        have a run: a batch proof judges the required contexts (`required`)."""
-        for _ in range(self.polls):
+        have a run: a batch proof judges the required contexts (`required`).
+
+        `beat` is the phrase after "waiting" in the heartbeat line (default
+        "CI at <sha[:8]>"; a proof passes "proof <branch>"): every
+        HEARTBEAT_SECONDS of elapsed wait one `beat:` line goes out through
+        self.log, so a silent phase is distinguishable from a dead process
+        (tvofi, 2026-10-13: two healthy trains killed after 2+ hours of
+        silence). The beat is time-based -- computed from the wait's start
+        against the poll clock -- never poll-based, so a poll cadence slower
+        or faster than HEARTBEAT_SECONDS cannot hide it. Log only: no return
+        value, gate or wait duration changes."""
+        start = self.clock()
+        due = start + HEARTBEAT_SECONDS
+        what = beat or f"CI at {h[:8]}"
+        for k in range(1, self.polls + 1):
             # One JSON object per line across every page: past 100 runs a head
             # would otherwise read as complete on its first page alone.
             code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
@@ -420,6 +502,19 @@ class Train:
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
                 return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+            now = self.clock()
+            # A poll slower than the beat prints ONE beat, whose elapsed names
+            # the true wait; a boundary-exact tick never prints twice.
+            while now >= due:
+                if only is not None:
+                    req = len(only)
+                    done = sum(last.get(n, {}).get("status") == "completed" for n in only)
+                else:
+                    req = len(runs or ())
+                    done = sum(c.get("status") == "completed" for c in runs or ())
+                self.log(f"beat: waiting {what} (poll {k}, t+{int(now - start)}s, "
+                         f"required: {req}, concluded: {done}/{req})")
+                due = now + HEARTBEAT_SECONDS
             self.sleep(POLL_SECONDS)
         return ["TIMEOUT"]
 
@@ -692,9 +787,12 @@ class Train:
                 # checkout often already holds the branch, and the recarry
                 # wants it reset to origin's state before the merge.
                 if not self.ok("git", "worktree", "add", "-q", "-B", br, str(wt), f"origin/{br}"):
-                    raise Stop("recarry", f"could not make a worktree at {wt}")
+                    raise self.holder_refusal(wt, br)
             body = self.state / f"rb{pr}.md"
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
+            # The recarry itself takes 5-15 min inside app_push's prepr and logs
+            # only on completion; this line makes it visible mid-flight.
+            self.log(f"#{pr} recarry START (branch {br})")
             code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
@@ -731,10 +829,10 @@ class Train:
             raise self.bot_refusal(pr, h, bot)
         return h
 
-    def one(self, item: dict) -> None:
-        self.at_head(item, self.recarry(item), None)
+    def one(self, item: dict, req: "list[str] | None" = None) -> None:
+        self.at_head(item, self.recarry(item), None, req if req is not None else self.required())
 
-    def one_overlap(self, item: dict) -> None:
+    def one_overlap(self, item: dict, req: "list[str] | None") -> None:
         """`--overlap`'s serial step for one entry: its head was re-carried UP
         FRONT (a dropped entry, routed only by the proof, re-carries here at
         its turn), so its pull_request runs fired with the others' and this
@@ -742,9 +840,9 @@ class Train:
         caller lands entries one at a time, an earlier still-pending entry
         never jumped by a later eligible one."""
         h = item.get("rc_head") or self.recarry(item)
-        self.at_head(item, h, item.get("rc_base"))
+        self.at_head(item, h, item.get("rc_base"), req)
 
-    def at_head(self, item: dict, h: str, rb: "str | None") -> None:
+    def at_head(self, item: dict, h: str, rb: "str | None", req: "list[str] | None") -> None:
         """Steps 2-7 at a settled head: wait its CI, carry the verdict, land
         it. `rb` None is today's serial guard (the head contains main). `rb`
         set (--overlap, recarried up front onto `rb`): the merge's guard is
@@ -753,14 +851,18 @@ class Train:
         longer main's ancestor is a change nobody graded. The file list is the
         three-dot diff either way: a head recarried up front meets current
         main exactly at `rb`, its merge-base."""
-        red = [n for n in self.wait_ci(h) if n not in self.ignore]
+        # R9-ADMIT-REQ: the head wait judges the ruleset's required contexts
+        # only, as admission and settle/proof do -- a non-required lane (e.g.
+        # the 180-min composed-proof) must never hold a landing whose
+        # required set is green.
+        red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
         self.log(f"#{item['pr']} {h[:8]} ci red={red}")
         if red:
             raise Stop("ci", "red at the head: " + ", ".join(red))
         self.run(["git", "fetch", "-q", "origin", h])
         o = self.run(["bash", tool("app_approve"), "--carry", item["verdict"], h])[1]
         if "CARRY: yes" not in o:
-            raise Stop("carry", (o.strip().splitlines() or ["(no output)"])[-1][:200])
+            raise self.carry_refusal(item["pr"], item["verdict"], h, o)
         if rb is None and not self.contains_main(h):
             raise Stop("main", "origin/main moved during CI and is not in the head; run the train again")
         code, base = self.run(["git", "merge-base", "origin/main", h])
@@ -776,7 +878,9 @@ class Train:
         if row not in files:
             raise Stop("row", f"#{item['pr']} has no {row} in the three-dot diff; "
                        "the train writes none and the stamp's --require-rows "
-                       "bar refuses an unrowed merge")
+                       "bar refuses an unrowed merge. Remedy: add the row on-branch "
+                       "(moves the head: fresh verdict owed) or a separate row PR "
+                       "(2158-pattern)", cls=ROW_MISSING)
         def guard() -> None:
             if rb is not None:
                 self.run(["git", "fetch", "-q", "origin", "main"])
@@ -827,7 +931,7 @@ class Train:
             try:
                 self.one(item)
             except Stop as s:
-                self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {s.why}")
+                self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {classified(s)}")
                 return 1
         self.log("TRAIN DONE")
         return 0
@@ -853,7 +957,7 @@ class Train:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
 
-    def admit(self, item: dict, base: str, graders: list[str], mf) -> dict:
+    def admit(self, item: dict, base: str, graders: list[str], mf, req: list[str]) -> dict:
         """The pull request as a batch entry: its head, its own files, and the
         merge_fastpath classes that route it serial (empty: it joins the batch)."""
         pr, v = int(item["pr"]), item["verdict"]
@@ -875,15 +979,23 @@ class Train:
         if route:
             self.log(f"#{pr} serial: {', '.join(route)}")
             return a
-        red = [n for n in self.wait_ci(h) if n not in self.ignore]
+        # R9-ADMIT-REQ: admission waits the ruleset's required contexts only,
+        # as settle/proof already does -- a non-required lane (e.g. the 180-min
+        # composed-proof) must never hold a batch whose required set is green.
+        red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
         if red:
             raise Stop("ci", f"#{pr} red at its head: " + ", ".join(red))
         if self.real:
             o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
             if "CARRY: yes" not in o:
-                raise Stop("carry", f"#{pr} " + (o.strip().splitlines() or ["(no output)"])[-1][:200])
+                s = self.carry_refusal(pr, v, h, o)
+                if s.cls is None:  # the unclassified echo keeps today's `#<pr>` prefix
+                    s.why = f"#{pr} {s.why}"
+                raise s
             if f"{ROW_DIR}/{pr}.md" not in files:
-                raise Stop("row", f"#{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff")
+                raise Stop("row", f"#{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff. "
+                           "Remedy: add the row on-branch (moves the head: fresh verdict "
+                           "owed) or a separate row PR (2158-pattern)", cls=ROW_MISSING)
             under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
             if under:
                 self.log(f"#{pr} policy head admitted under {under}")
@@ -967,8 +1079,9 @@ class Train:
             if len(kept) < 2:
                 return kept, proofs, dropped
             n += 1
-            self.launch(f"batch/{tag}-{n}", proofs[-1])
-            red = self.wait_ci(proofs[-1], only=req)
+            branch = f"batch/{tag}-{n}"
+            self.launch(branch, proofs[-1])
+            red = self.wait_ci(proofs[-1], only=req, beat=f"proof {branch}")
             self.log(f"proof batch/{tag}-{n} {proofs[-1][:8]} red={red}")
             if "TIMEOUT" in red:
                 raise Stop("proof", f"batch/{tag}-{n} never completed its required contexts; nothing merged")
@@ -989,9 +1102,11 @@ class Train:
                 sub, p, c = self.build(base, [b for b in kept if b is not a])
                 if not c and p:
                     n += 1
-                    self.launch(f"batch/{tag}-{n}", p[-1])
-                    subs.append((a, sub, p))
-            green = [(a, sub, p) for a, sub, p in subs if not self.wait_ci(p[-1], only=req)]
+                    sbranch = f"batch/{tag}-{n}"
+                    self.launch(sbranch, p[-1])
+                    subs.append((a, sub, p, sbranch))
+            green = [(a, sub, p) for a, sub, p, sbranch in subs
+                     if not self.wait_ci(p[-1], only=req, beat=f"proof {sbranch}")]
             if not green:
                 raise Stop("proof", f"red at {', '.join(red)} with every one of "
                            f"{', '.join('#%d' % a['pr'] for a in kept)} dropped; nothing merged: take them through run")
@@ -1024,13 +1139,17 @@ class Train:
         return self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "state,mergeCommit",
                         "--jq", '"\\(.state) \\(.mergeCommit.oid)"').startswith("MERGED")
 
-    def skip(self, pr: int, phase: str, why: str) -> None:
+    def skip(self, pr: int, phase: str, why: str, cls: "str | None" = None) -> None:
         """`--skip-bad`: record one skipped entry -- logged as
         `SKIP #<pr> <phase>: <reason>` (the reason echoed verbatim from the Stop
-        that would otherwise have printed `TRAIN STOPPED`) and collected for
-        skipped.json. A red main is never skippable: the caller re-raises it."""
-        self.log(f"SKIP #{pr} {phase}: {why}")
-        self.skipped.append({"pr": pr, "phase": phase, "reason": why})
+        that would otherwise have printed `TRAIN STOPPED`, its block class in
+        brackets when the shape is a known one) and collected for skipped.json.
+        A red main is never skippable: the caller re-raises it."""
+        self.log(f"SKIP #{pr} {phase}: " + (f"[{cls}] {why}" if cls else why))
+        row = {"pr": pr, "phase": phase, "reason": why}
+        if cls:
+            row["class"] = cls
+        self.skipped.append(row)
 
     def skip_report(self, total: int) -> None:
         """`--skip-bad`'s closing report: the skipped list under the state dir
@@ -1056,14 +1175,14 @@ class Train:
             entries = []
             for item in queue:
                 if not self.skip_bad:
-                    entries.append(self.admit(item, base, graders, mf))
+                    entries.append(self.admit(item, base, graders, mf, req))
                     continue
                 try:
-                    entries.append(self.admit(item, base, graders, mf))
+                    entries.append(self.admit(item, base, graders, mf, req))
                 except Stop as s:
                     if s.step == "main":
                         raise
-                    self.skip(int(item["pr"]), s.step, s.why)
+                    self.skip(int(item["pr"]), s.step, s.why, s.cls)
             serial = [a for a in entries if a["route"]]
             # --overlap: re-carry every serial entry UP FRONT, before anything
             # merges, pushing each branch so all their pull_request runs fire
@@ -1078,12 +1197,13 @@ class Train:
                 self.log(f"OVERLAP: recarrying {', '.join('#%d' % a['pr'] for a in todo)} up front, "
                          "their pull_request runs fire together")
                 for a in todo:
+                    self.log(f"#{a['pr']} overlap: recarry start")
                     try:
                         a["rc_head"], a["rc_base"] = self.recarry(a), rb
                     except Stop as s:
                         if s.step == "main" or not self.skip_bad:
                             raise
-                        self.skip(a["pr"], s.step, s.why)
+                        self.skip(a["pr"], s.step, s.why, s.cls)
             kept, proofs, dropped = self.settle(tag, base, [a for a in entries if not a["route"]], req)
             lone = len(kept) == 1
             if lone:
@@ -1116,7 +1236,8 @@ class Train:
                 except Stop as s:
                     if not self.skip_bad or s.step == "main":
                         raise
-                    self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step, s.why)
+                    self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step,
+                              s.why, s.cls)
             order = {int(item["pr"]): i for i, item in enumerate(queue)}
             bad = {s["pr"] for s in self.skipped}
             later = sorted([a for a in serial + dropped if a["pr"] not in bad], key=lambda a: order[a["pr"]])
@@ -1129,14 +1250,14 @@ class Train:
                 self.log(f"serial: {', '.join('#%d' % a['pr'] for a in later)}")
                 for a in later:
                     try:
-                        self.one_overlap(a) if self.overlap else self.one(a)
+                        self.one_overlap(a, req) if self.overlap else self.one(a, req)
                     except Stop as s:
                         if s.step == "main" or not self.skip_bad:
-                            raise Stop(s.step, f"#{a['pr']} {s.why}") from None
+                            raise Stop(s.step, f"#{a['pr']} {s.why}", cls=s.cls) from None
                         self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step,
-                                  f"#{a['pr']} {s.why}")
+                                  f"#{a['pr']} {s.why}", s.cls)
         except Stop as s:
-            self.log(f"TRAIN STOPPED {s.step}: {s.why}")
+            self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(len(queue))
             return 1
@@ -1215,6 +1336,10 @@ def _self_test() -> int:
                     else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
                 return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
+            if "rulesets/7" in a:
+                return 0, world.get("required", "fast\n")
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "pr", "review"]:
@@ -1263,12 +1388,17 @@ def _self_test() -> int:
 
     rc, lines, calls = go({})
     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
+    check("a wait that settles on its first poll beats nothing (heartbeat null control)",
+          not any(ln.startswith("beat:") for ln in lines))
     rc, lines, calls = go({"files": ["custom_components/x.py"]})
     check(f"a pull request with no {ROW_DIR}/<N>.md row is refused",
           rc == 1 and "row:" in lines[-1] and f"{ROW_DIR}/7.md" in lines[-1]
           and not merged(calls))
+    check("the row refusal is self-describing: class ROW-MISSING and both remedies in the line",
+          "[ROW-MISSING]" in lines[-1] and "add the row on-branch" in lines[-1]
+          and "2158-pattern" in lines[-1])
     check("nightly-status red is ignored by default", "red=[]" in " ".join(lines))
-    rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
+    rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
     check("a red required check stops the train before any approval", rc == 1 and "ci:" in lines[-1] and not merged(calls)
           and not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls))
     rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"},
@@ -1276,8 +1406,80 @@ def _self_test() -> int:
     check("a re-run that went green supersedes the earlier red", rc == 0 and merged(calls))
     rc, lines, calls = go({"runs": [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]})
     check("CI that never completes stops it as TIMEOUT", rc == 1 and "TIMEOUT" in lines[-1])
+    # THE HEARTBEAT (tvofi, 2026-10-13): two healthy trains were killed after
+    # 2+ hours of silence in wait_ci and the overlap recarry phase. One beat
+    # line per HEARTBEAT_SECONDS of ELAPSED wait -- time-based against the
+    # stubbed clock, never poll-based, so a poll cadence off the beat cadence
+    # still beats exactly on time.
+    hang = [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]
+    def hung_run(argv, cwd=ROOT, stdin=None):
+        return 0, "\n".join(json.dumps(c) for c in hang) if "check-runs" in " ".join(argv) else (0, "")
+    ticks = iter([0, 100, 240, 300, 480, 700, 960, 1100])
+    lines: list[str] = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None,
+                  log=lines.append, polls=7, clock=lambda: next(ticks))
+        red = t.wait_ci(H0)
+    beats = [ln for ln in lines if ln.startswith("beat:")]
+    check("the heartbeat beats once per HEARTBEAT_SECONDS of elapsed wait, not per poll "
+          "(clock jumps 100/240/300/480/700/960: beats at t+240, t+480, t+960), and the "
+          "wait still times out exactly as before",
+          red == ["TIMEOUT"] and len(beats) == 3
+          and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
+          and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
+          and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
+    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
+    ticks = iter([0, 240, 480, 700])
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None,
+                  log=lines.append, polls=3, clock=lambda: next(ticks))
+        red = t.wait_ci(H0, only=["fast", "tests"], beat="proof batch/t-1")
+    beats = [ln for ln in lines if ln.startswith("beat:")]
+    check("a proof wait beats with the proof branch in the line and names its own "
+          "concluded count among the required contexts",
+          red == ["TIMEOUT"] and len(beats) == 2
+          and beats[0] == "beat: waiting proof batch/t-1 (poll 1, t+240s, required: 2, concluded: 1/2)"
+          and beats[1] == "beat: waiting proof batch/t-1 (poll 2, t+480s, required: 2, concluded: 1/2)")
     rc, lines, calls = go({"carry": "CARRY: no a -> b: a commit of the branch's own"})
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
+    # BLOCK CLASS STALE-VERDICT-CARRY: app_approve --carry's ancestor line names
+    # the shape -- the branch moved after the verdict (a bot push) -- so the
+    # stop carries the class, the remedy and the delta the fresh verdict reads.
+    rc, lines, calls = go({"carry": f"REFUSE: {V} is not an ancestor of {H0}"})
+    check("a carry refusal whose shape is the stale-verdict ancestor line carries its "
+          "class, the re-verdict remedy and the delta",
+          rc == 1 and "[STALE-VERDICT-CARRY]" in lines[-1]
+          and "verdict at the live head" in lines[-1] and H0[:8] in lines[-1]
+          and "custom_components/x.py" in lines[-1] and not merged(calls))
+    # BLOCK CLASS HOLDER: all eight entries of train-batch3 stopped here -- the
+    # branch was still checked out in a previous session's worktree. The line
+    # names the holder path and the exact freeing commands.
+    def held(base_run):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "worktree add" in a:
+                return 1, "fatal: '" + "fix/x" + "' is already used by worktree at '/other/wt'"
+            if "worktree list" in a:
+                return 0, ("worktree /repo\nHEAD 0000000000000000000000000000000000000000\n"
+                           "branch refs/heads/main\n\n"
+                           "worktree /other/wt\nHEAD 1111111111111111111111111111111111111111\n"
+                           "branch refs/heads/fix/x\n")
+            return base_run(argv, cwd=cwd, stdin=stdin)
+        return run
+    rc, lines, calls = go({"contains": [False], "heads": [H0]}, wrap=held)
+    check("HOLDER: a recarry whose branch is checked out in another worktree names the "
+          "holder path and the exact freeing remedy, classified",
+          rc == 1 and "[HOLDER]" in lines[-1] and "recarry" in lines[-1]
+          and "another worktree at /other/wt" in lines[-1]
+          and "git worktree remove /other/wt" in lines[-1]
+          and "git -C /other/wt status" in lines[-1])
+    rc, lines, calls = go({"contains": [False], "heads": [H0]},
+                          wrap=lambda br: (lambda argv, cwd=ROOT, stdin=None:
+                                           (1, "fatal: cannot lock ref") if "worktree add" in " ".join(argv)
+                                           and "worktree list" not in " ".join(argv) else br(argv, cwd=cwd, stdin=stdin)))
+    check("a worktree add that fails with no holder stays today's plain refusal, unclassified",
+          rc == 1 and "could not make a worktree" in lines[-1] and "[HOLDER]" not in lines[-1])
     rc, lines, calls = go({"contains": [True, False]})
     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
     _g, owner_review, mandate, revoke = policy_fixture_builders()
@@ -1424,6 +1626,12 @@ def _self_test() -> int:
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("a head behind main is recarried, then merged at the new head",
           rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
+    start_i = next((i for i, ln in enumerate(lines) if ln == "#7 recarry START (branch fix/x)"), None)
+    done_i = next((i for i, ln in enumerate(lines) if "recarry: main merged" in ln), None)
+    check("the recarry announces itself BEFORE remerge_main.sh runs, naming the branch "
+          "(5-15 min of prepr silence is visible mid-flight)",
+          rc == 0 and start_i is not None and done_i is not None and start_i < done_i)
     for way in ("SKIPPED: HEAD is the clean merge", "RUNS: HEAD has 3 parent(s)"):
         rc, lines, calls = go({"contains": [False], "heads": [H0, H1],
                                "remerge": f"app_push: RECARRY: prepr {way}\napp_push: PUSHED"})
@@ -1443,6 +1651,8 @@ def _self_test() -> int:
           and "App push" in lines[-1]
           and not merged(calls) and not approved(calls)
           and not any("check-runs" in " ".join(c) for c in calls))
+    check("the bot-head stop is classified BOT-HEAD in the line itself (the remedy text was already exact)",
+          "[BOT-HEAD]" in lines[-1])
     rc, lines, calls = go({"bot_tips": {H0: BOT}, "contains": [False], "heads": [H0, H1]})
     check("a bot head behind main is not refused: the recarry's App push IS the follow-up, "
           "and the train goes on at the new head (null control for the refusal above)",
@@ -1521,7 +1731,7 @@ def _self_test() -> int:
     check("a merge GitHub never takes stops it", rc == 1 and "merge:" in lines[-1])
     rc, lines, calls = go({}, q=[dict(item), dict(item, pr=8)])
     check("the queue runs in order", rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7", "8"])
-    rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]},
+    rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]},
                           q=[dict(item), dict(item, pr=8)])
     check("the first refusal stops the queue", rc == 1 and not any(c[:4] == ["gh", "pr", "view", "8"] for c in calls))
     owned7 = (1, "app_approve: REFUSE: #7 touches code-owned paths (tests/run.sh); the owner's GitHub review approves it, not the App")
@@ -1553,10 +1763,12 @@ def _self_test() -> int:
     rc, lines, calls = go({"approve": owned7, "base": (1, "fatal: no merge base")}, mandate="m")
     check("a failing git merge-base stops the train (B3)", rc == 1 and "files:" in lines[-1] and not approved(calls))
     rc, lines, calls = go({}, min_runs=3)
-    check("fewer check runs than --min-runs is not complete CI", rc == 1 and "TIMEOUT" in lines[-1] and not merged(calls))
+    check("the required-only head wait does not apply --min-runs: the required set is complete "
+          "below it, and a head still short of non-required lanes is not held (R9-ADMIT-REQ)",
+          rc == 0 and merged(calls))
     for c in ("action_required", "stale"):
-        rc, lines, calls = go({"runs": green + [{"name": "x", "status": "completed", "conclusion": c, "started_at": "1"}]})
-        check(f"{c} is not green", rc == 1 and lines[-1].endswith("red at the head: x") and not merged(calls))
+        rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": c, "started_at": "1"}]})
+        check(f"{c} is not green", rc == 1 and lines[-1].endswith("red at the head: fast") and not merged(calls))
     rc, lines, calls = go({"runs": green + [{"name": "y", "status": "completed", "conclusion": c, "started_at": "1"}
                                             for c in ("skipped",)] + [{"name": "z", "status": "completed",
                                                                         "conclusion": "neutral", "started_at": "1"}]})
@@ -1651,6 +1863,10 @@ def _batch_self_test(check) -> None:
         if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
             runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
                      {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
+        if w.get("stuck_nonreq") and sha in w["heads"].values():
+            # a non-required lane that never concludes (the composed-proof class)
+            runs += [{"name": "composed-proof", "id": 16, "status": "in_progress", "started_at": "1",
+                      "conclusion": None}]
         return runs
 
     def stub(w: dict):
@@ -1854,11 +2070,23 @@ def _batch_self_test(check) -> None:
           w["rc"] == 1 and not w["pushed"] and "proof:" in w["lines"][-1])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
            setup=lambda w: w.update(required=f"{R0}\npolicy-docs\nnever-dispatched\n"))
-    check("a required context the proof never receives is a TIMEOUT, which stops it rather than dropping an entry",
-          w["rc"] == 1 and not w["merged"] and "never completed" in w["lines"][-1])
+    check("a required context the head never receives is a TIMEOUT, which stops it rather than "
+          "dropping an entry -- now at admission itself, before any proof is spent (R9-ADMIT-REQ)",
+          w["rc"] == 1 and not w["merged"] and not w["pushed"] and "ci:" in w["lines"][-1]
+          and "TIMEOUT" in w["lines"][-1])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, ignore=("nightly-status",))
-    check("an entry red at its own head is refused at admission (pr-contract not ignored here)",
-          w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"])
+    check("a red NON-required context (pr-contract, PR_ONLY) does not hold admission: "
+          "admission waits only the ruleset's required set, as settle/proof already does (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(stuck_nonreq=True))
+    check("admission concludes while a non-required lane is still pending: a batch whose required "
+          "contexts are green is never held by a lane the ruleset does not require (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(ci_red="policy-docs", red={w["heads"][1], w["heads"][2]}))
+    check("a red REQUIRED context still stops admission (the fixed wait judges the required set, "
+          "and the ignore list still applies)",
+          w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"] and not w["merged"])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
            setup=lambda w: w.update(bot_heads={w["heads"][2]: "ci: pin killed mutants"}))
     check("a batch entry whose head is a GITHUB_TOKEN bot push is refused at admission, "
@@ -1930,6 +2158,9 @@ def _batch_self_test(check) -> None:
           "before the first merge, and the entries still land in queue order",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and len(recarries) == 2
           and merges and max(recarries) < min(merges))
+    check("--overlap: each up-front recarry announces itself before it runs, so the "
+          "5-15 min of app_push prepr per entry is visible mid-flight",
+          all(any(ln == f"#{p} overlap: recarry start" for ln in w["lines"]) for p in (1, 2)))
     w = go(ovl, base="main", setup=real_remerge)
     merges = [i for i, ln in enumerate(w["lines"]) if " MERGED " in ln]
     recarries = [i for i, ln in enumerate(w["lines"]) if "recarry: main merged" in ln]
@@ -1952,6 +2183,11 @@ def _batch_self_test(check) -> None:
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2]
           and any(ln.startswith("OVERLAP: main at") and "logs it and does not wait" in ln
                   for ln in w["lines"]))
+    w = go(ovl, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, stuck_nonreq=True)),
+           overlap=True)
+    check("--overlap's at_head wait concludes while a non-required lane stays in_progress at the "
+          "head (the composed-proof class): the serial landing waits the required set only (R9-ADMIT-REQ)",
+          w["rc"] == 0 and list(w["merged"]) == [3, 1, 2])
 
     # --skip-bad (batch only): a bad entry is skipped, logged and reported, the
     # train carries on, and the exit code says an entry was left behind.
@@ -1975,6 +2211,9 @@ def _batch_self_test(check) -> None:
           and any(ln == "SKIP REPORT: 1 skipped of 3" for ln in w["lines"])
           and [s["pr"] for s in (w["skip_json"] or [])] == [2]
           and w["lines"][-1] == "TRAIN DONE")
+    check("a skip carries its block class in the line and in skipped.json",
+          any(ln.startswith("SKIP #2 ci: [BOT-HEAD]") for ln in w["lines"])
+          and (w["skip_json"] or [{}])[0].get("class") == "BOT-HEAD")
     w = go(badmid, setup=lambda w: w.update(bot_heads={w["heads"][2]: "ci: pin killed mutants"}))
     check("without --skip-bad the same bad entry still stops the train before anything "
           "merges (the default did not change)",

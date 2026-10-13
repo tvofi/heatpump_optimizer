@@ -193,7 +193,12 @@ def start_state(two_zone: bool = False) -> dict:
         ctx._thermal_params.two_zone_enabled = True
         house.params.two_zone_enabled = True
     opt_cfg = OptimizationConfig(
-        horizon_hours=24.0,
+        # 12 h, not production's 24 h: the solve is state setup here, not
+        # the thing under test -- measured -59 % per arm with the fold and
+        # tag counts byte-identical. The settled scale level is
+        # plan-sensitive, so ``check_arm``'s ``converged_near`` anchor is
+        # tied to THIS horizon; moving it back moves the anchor with it.
+        horizon_hours=12.0,
         time_step_minutes=STEP_MIN,
         target_temp=21.0, min_temp=20.0, max_temp=23.0,
     )
@@ -371,6 +376,12 @@ def replay(arms: dict, two_zone: bool = False,
     (``dev/audit/harnesses/boost_replay_fork_parity.py``)."""
     import copy
 
+    if not arms:
+        # The follow-up call's dict is empty on the default argv -- it still
+        # ran the whole 254-cycle shared prefix and returned nothing,
+        # measured 91.1 s of a native gate run. Skip it; every non-empty
+        # arm set (the two-zone argv arms) still shares the prefix below.
+        return {}
     n_cycles = int(DAYS * 24 * 60 / DT_MIN)
     fork = fork_cycle() if fork is None else fork
     shared = start_state(two_zone)
@@ -468,7 +479,10 @@ def check_fork() -> None:
 
 
 def check_arm(
-    out: dict, *, boosted: bool, converged_near: float | None = 1.0424,
+    # Re-measured at the 12 h harness horizon (was 1.0424 at 24 h): the
+    # settled level is plan-sensitive, so the anchor moved with the
+    # horizon, measured 1.0480 on the shared pre-boost day.
+    out: dict, *, boosted: bool, converged_near: float | None = 1.0480,
     band: float | None = BAND,
 ) -> None:
     arm = out["arm"]

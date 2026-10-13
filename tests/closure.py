@@ -49,9 +49,11 @@ Commands
   affected --files ... | --diff REF | --files-from FILE
                  [--workdir DIR]  decide whether THIS check must run for a change,
                                   and which closures it has to re-derive
-  lane-plan --scripts-from FILE [--lanes N] [--out-dir DIR]
-                                  shard the scoped re-derive's scripts across
-                                  lanes (bound: 3 on CI, 4 on a seat box)
+  lane-plan [--scripts-from FILE | --all-scripts] [--lanes N] [--out-dir DIR]
+                                  shard a derivation's scripts across lanes
+                                  (bound: 3 on CI, 4 on a seat box); FILE is
+                                  what `affected` selected, --all-scripts the
+                                  full arm's whole recording set
   show                            print the committed closures
   selftest                        pin merge() against a silent shrink (#527)
 
@@ -116,6 +118,12 @@ CLOSURES_COMMENT = (
 # could not record it without both. Its own nightly job runs it.
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
+    # The lane-skip decision instrument (R9-CI-SKIP): it reads this table to
+    # decide whether `fast`/`coverage`/`browser` may report `skipped`, so it
+    # is driven by the workflow's decision steps, never by the suite. NOT
+    # inert: `tests/entities.py` runs its self-test, so an edit that breaks
+    # the decision pins selects that script.
+    "lane_skip.py",
     "setup_qa_render.mjs",
     "card_browser.mjs", "nightly_ha.py",
     # The replay lane (round 8, move 2): recorded days through the real
@@ -461,6 +469,11 @@ GATE_FILES = (
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
     "tests/node_fs_trace.mjs",
+    # The skip decision for the heavy Tests lanes: a change here changes
+    # which runs those lanes believe they may skip, exactly as a change to
+    # run.sh changes what they run. It cannot be a measured closure of
+    # itself, so it is a gate file -- the same argument as closure.py.
+    "tests/lane_skip.py",
 )
 
 
@@ -2050,11 +2063,12 @@ def check(in_dir: Path, partial: bool = False) -> int:
             print(f"    {script}: {name}")
         return 1
     # LOUD, before anything else: a selectable script with no recording at
-    # all is the silent-degradation case (issue #90). The lanes in
-    # tests/derive_closures.sh record a fixed roster, so a newly added test
-    # script is invisible to the under-approximation comparison below -- it
-    # was never run -- and the only symptom used to be the PR gate quietly
-    # reverting to full mode while CI stayed green. Failing here, on main,
+    # all is the silent-degradation case (issue #90). The full arm's lanes
+    # record a roster derived from the tree since round-9 C1; before that
+    # the roster was hard-coded, so a newly added test script was invisible
+    # to the under-approximation comparison below -- it was never run --
+    # and the only symptom was the PR gate quietly reverting to full mode
+    # while CI stayed green. Failing here, on main,
     # does not block the PR that added the script but does not let the
     # omission survive either.
     unmeasured = [] if partial else [
@@ -2066,9 +2080,10 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print()
         print("No closure can be recorded for a script the lanes never ran,")
         print("so the scoped gate silently runs FULL on every PR until this")
-        print("is fixed. Add the script to a lane in tests/derive_closures.sh")
-        print("(or record just it with: ./tests/derive_closures.sh --single")
-        print("                         <script>), then commit the re-derived")
+        print("is fixed. Record just it with:")
+        print("  ./tests/derive_closures.sh --single <script>")
+        print("(the full arm derives its roster from the tree since round-9")
+        print("C1, so no lane edit is owed), then commit the re-derived")
         print("tests/closures.json.")
         return 1
     # Fold only when the recordings cover everything a re-derivation produces
@@ -2590,8 +2605,11 @@ def composed_verify(expect_tree: str, in_dir: Path) -> int:
             # base data, so nothing was composed to consume. That is a skip,
             # not a refusal: the script records bare below, the safe
             # direction. (A present-but-invalid record IS a refusal.)
+            # stderr, not stdout: the workflow step word-splits stdout as
+            # the script list -- a diagnostic there became a fake
+            # `composed-verify:` token and killed the cp (job 115038269065).
             print(f"composed-verify: {script} was not composed this run; "
-                  "it records bare")
+                  "it records bare", file=sys.stderr)
             continue
         if rec.get("rc") != 0:
             problems.append(
@@ -3331,19 +3349,21 @@ def lane_request(requested: int | None = None) -> int:
     return max(1, min(n, cap))
 
 
-def _lane_plan_cmd(scripts_from: Path, out_dir: Path,
+def _lane_plan_cmd(scripts: list[str], out_dir: Path,
                    lanes: int | None) -> int:
-    """Write one ``lane.<n>`` file per lane and print the plan.
+    """Write one ``lane.<n>`` file per lane -- and ``scripts.txt``, the
+    input roster -- and print the plan.
 
-    ``tests/derive_closures.sh --scripts-from`` runs the planner, then one
-    background shell per lane file. The input is what ``affected`` selected,
-    in its order; the planner may reorder within a lane only as far as the
-    constraint edges demand.
+    ``tests/derive_closures.sh`` runs the planner, then one background shell
+    per lane file, and holds the recordings against ``scripts.txt`` -- so a
+    lane that dropped a script is loud, on the scoped arm exactly as on the
+    full one. The input is what ``affected`` selected, in its order (the
+    scoped arm), or the derived full recording set (``--all-scripts``); the
+    planner may reorder within a lane only as far as the constraint edges
+    demand.
     """
-    scripts = [l.strip() for l in scripts_from.read_text().splitlines()
-               if l.strip()]
     if not scripts:
-        print(f"lane-plan: no scripts in {scripts_from}", file=sys.stderr)
+        print("lane-plan: no scripts", file=sys.stderr)
         return 2
     recorded = {}
     if CLOSURES.exists():
@@ -3354,6 +3374,7 @@ def _lane_plan_cmd(scripts_from: Path, out_dir: Path,
         print(f"lane-plan: {exc}", file=sys.stderr)
         return 2
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "scripts.txt").write_text("".join(f"{s}\n" for s in scripts))
     for i, ln in enumerate(lanes_out, 1):
         (out_dir / f"lane.{i}").write_text("".join(f"{s}\n" for s in ln))
 
@@ -3985,6 +4006,7 @@ def _selftest_proof(pin) -> None:
 
 
 def _selftest_composed(pin) -> None:
+    global COMPOSED
     tree = "3" * 40
     script = composed_scripts()[0] if composed_scripts() else \
         "tests/boost_drift_replay.py"
@@ -4009,6 +4031,71 @@ def _selftest_composed(pin) -> None:
         pin("composed-verify accepts a healthy record on the same tree",
             rc == 0 and script in buf.getvalue().splitlines(),
             f"rc={rc} out={buf.getvalue()!r}")
+    # The channel contract: stdout carries ONLY the script list the workflow
+    # step word-splits. A diagnostic on stdout became the fake token
+    # `composed-verify:` and killed the consume step's cp (job
+    # 115038269065: `cp: cannot stat '..._temp/composed/composed-verify:
+    # .json'`). Force the diagnostic path (an allow-listed script with no
+    # recording) and pin the channel, not just the exit.
+    with tempfile.TemporaryDirectory() as td:
+        d = composed_dir(Path(td), rec=good_rec)
+        saved = COMPOSED
+        allow = Path(td) / "allow.json"
+        allow.write_text(json.dumps(
+            {"scripts": [script, "tests/never_composed_here.py"]}))
+        COMPOSED = allow
+        try:
+            with contextlib.redirect_stdout(io.StringIO()) as out, \
+                    contextlib.redirect_stderr(io.StringIO()) as err:
+                rc = composed_verify(tree, d)
+            val = out.getvalue()
+            pin("composed-verify's stdout is exactly the script list; the "
+                "not-composed diagnostic goes to stderr",
+                rc == 0 and val.split() == [script]
+                and "composed-verify:" not in val
+                and "was not composed this run" in err.getvalue(),
+                f"rc={rc} out={val!r} err={err.getvalue()[-160:]!r}")
+        finally:
+            COMPOSED = saved
+    # The workflow side of the same contract: the consume step's loop, run
+    # as the step itself writes it, must skip a foreign token to
+    # record-bare (printed, never a bare cp failure) and stage only real
+    # stems -- COMPOSED_CONSUMED lists what was actually consumed.
+    text = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
+    step = text.split("- name: Verify and stage the composed recordings", 1)[1]
+    body = step.split("run: |", 1)[1]
+    block = body.split("mkdir -p", 1)[1].splitlines()
+    while block and not block[-1].strip():
+        block.pop()
+    loop_src = "mkdir -p" + "\n".join(block[:next(
+        i for i, ln in enumerate(block) if ln.strip().startswith("- name:"))])
+    with tempfile.TemporaryDirectory() as td:
+        run = Path(td) / "rt"
+        (run / "composed").mkdir(parents=True)
+        (run / "composed" / (name + ".json")).write_text("{}")
+        genv = Path(td) / "genv"
+        script_obj = Path(td) / "loop.sh"
+        script_obj.write_text(loop_src)
+        proc = subprocess.run(
+            ["bash", str(script_obj)],
+            env={**os.environ,
+                 "RUNNER_TEMP": str(run),
+                 "GITHUB_ENV": str(genv),
+                 "OUT": f"{script} composed-verify:"},
+            capture_output=True, text=True)
+        consumed = ""
+        if genv.exists():
+            for line in genv.read_text().splitlines():
+                if line.startswith("COMPOSED_CONSUMED="):
+                    consumed = line.split("=", 1)[1]
+        pin("the workflow loop skips a foreign token to record-bare and "
+            "consumes only real stems",
+            proc.returncode == 0
+            and (run / "closures" / (name + ".json")).is_file()
+            and consumed.split() == [script]
+            and "no composed recording's stem" in proc.stdout,
+            f"rc={proc.returncode} out={proc.stdout[-200:]!r} "
+            f"consumed={consumed!r}")
     for label, rec, manifest in (
         ("a run that did not end (rc 1)", {**good_rec, "rc": 1}, tree),
         ("a run with the coverage lane's argv, not the closures lane's",
@@ -4027,7 +4114,6 @@ def _selftest_composed(pin) -> None:
         d = composed_dir(Path(td), rec=good_rec)
         (d / (name + ".json")).write_text(json.dumps(
             {**good_rec, "script": "tests/features.py"}))
-        global COMPOSED
         saved = COMPOSED
         allow = Path(td) / "allow.json"
         allow.write_text(json.dumps({"scripts": ["tests/features.py"]}))
@@ -4253,6 +4339,100 @@ def _selftest_lane_plan(pin) -> None:
             res.returncode != 0 and "tests/p2.py" in res.stdout
             and not (out2 / "p2.py.json").exists(),
             f"rc={res.returncode} {res.stdout[-300:]}")
+
+    # The FULL arm (round-9 C1): the same planner over the derived recording
+    # set, the same runner. The pure pins hold the derived plan's invariants
+    # against the live tree and table -- coverage, constraints, balance --,
+    # the CLI pins hold the --all-scripts input and its usage refusal, and
+    # the runner pin drives the real derive_closures.sh with no --single and
+    # no --scripts-from under a stub planner that derives its roster the way
+    # the real one does: from the tree, into scripts.txt.
+    full_scripts = [s for s in test_scripts() if Path(s).name not in SLOW_GATED]
+    table = json.loads(CLOSURES.read_text()).get("recorded", {})
+
+    def _rec_secs(s: str) -> float:
+        r = table.get(s)
+        return float(r.get("seconds", 0.0)) if isinstance(r, dict) else 0.0
+
+    fplan = lane_plan(full_scripts, table, LANE_CAP_CI)
+    flat = [s for ln in fplan for s in ln]
+    pin("the full arm's plan covers every recorded script exactly once",
+        sorted(flat) == sorted(full_scripts) and len(flat) == len(full_scripts),
+        f"{len(flat)} planned of {len(full_scripts)}")
+    fedges = lane_edges(full_scripts)
+    pin("every producer/driver edge stays inside one lane, in order",
+        all(any(a in ln and b in ln and ln.index(a) < ln.index(b)
+                for ln in fplan) for a, b in fedges),
+        repr(fedges))
+    loads = [sum(_rec_secs(s) for s in ln) for ln in fplan]
+    print(f"  ..   full-arm lane walls (recorded s): "
+          + ", ".join(f"lane {i + 1} {v:.1f}" for i, v in enumerate(loads)))
+    # The balance claim that the hard-coded layout fails: its lane 3 was
+    # 2,706 s of a ~4,014 s table -- 2 * 2,706 > total, no second lane even
+    # overlaps it. A planned max lane under half the table means the other
+    # lanes together outweigh the pole, which is what a lane MAX wall buys.
+    # One indivisible script heavier than half the table makes that
+    # unsatisfiable for EVERY plan, so the pin's second arm pins the optimum
+    # instead: no partition's max lane can drop below the heaviest single
+    # script, so a plan whose wall equals it has nothing left to prove. A
+    # degenerate plan (everything in one lane) still fails both arms.
+    pole = max(_rec_secs(s) for s in full_scripts)
+    pin("the planned max lane is under half the table's recorded seconds,"
+        " or equals the heaviest indivisible script no plan can beat",
+        2 * max(loads) < sum(loads) or max(loads) == pole,
+        f"max {max(loads):.1f}s, total {sum(loads):.1f}s, pole {pole:.1f}s")
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "tests" / "closure.py"), "lane-plan",
+             "--all-scripts", "--out-dir", str(td_path / "lanes")],
+            cwd=ROOT, capture_output=True, text=True)
+        roster = (td_path / "lanes" / "scripts.txt")
+        got = ([l.strip() for f in (td_path / "lanes").glob("lane.*")
+                for l in f.read_text().splitlines() if l.strip()]
+               if roster.exists() else [])
+        pin("the CLI derives the full arm's recording set from the tree",
+            res.returncode == 0 and roster.exists()
+            and sorted(got) == sorted(full_scripts),
+            res.stdout + res.stderr)
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "tests" / "closure.py"), "lane-plan",
+             "--all-scripts", "--scripts-from", str(td_path / "in.txt"),
+             "--out-dir", str(td_path / "lanes2")],
+            cwd=ROOT, capture_output=True, text=True)
+        pin("and refuses both inputs at once",
+            res.returncode == 2, f"rc={res.returncode} {res.stderr[-200:]}")
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        stub = td_path / "fullstub"
+        stub.write_text(
+            "#!/bin/sh\n"
+            "case \"$2\" in\n"
+            "  lane-plan)\n"
+            "    printf 'tests/q1.py\\ntests/q2.py\\ntests/q3.py\\n' \\\n"
+            "      > \"$6/scripts.txt\"\n"
+            "    printf 'tests/q1.py\\n' > \"$6/lane.1\"\n"
+            "    printf 'tests/q2.py\\ntests/q3.py\\n' > \"$6/lane.2\"\n"
+            "    exit 0 ;;\n"
+            "  record)\n"
+            "    touch \"$5/$(basename \"$3\").json\" ;;\n"
+            "esac\n"
+            "exit 0\n")
+        stub.chmod(0o755)
+        out = td_path / "frec"
+        res = subprocess.run(
+            ["bash", "tests/derive_closures.sh", "--record-only",
+             "--out-dir", str(out)],
+            cwd=ROOT, env={**os.environ, "PYTHON": str(stub)},
+            capture_output=True, text=True)
+        got = sorted(p.name for p in out.glob("*.json"))
+        pin("the full arm records every derived script through the planner",
+            res.returncode == 0
+            and got == ["q1.py.json", "q2.py.json", "q3.py.json"],
+            f"rc={res.returncode} got={got} {res.stdout[-300:]} "
+            f"{res.stderr[-200:]}")
 
 
 def _selftest_layout(pin) -> None:
@@ -4561,7 +4741,10 @@ def main() -> int:
     f.add_argument("--json", action="store_true")
     f.add_argument("--workdir")
     lp = sub.add_parser("lane-plan")
-    lp.add_argument("--scripts-from", required=True)
+    # Exactly one of the two inputs: the scoped arm's selected list from a
+    # file, or the full arm's derived recording set (round-9 C1).
+    lp.add_argument("--scripts-from")
+    lp.add_argument("--all-scripts", action="store_true")
     lp.add_argument("--lanes", type=int)
     lp.add_argument("--out-dir", required=True)
     nr = sub.add_parser("not-run"); nr.add_argument("--workdir", required=True)
@@ -4612,7 +4795,23 @@ def main() -> int:
     if a.cmd == "not-run":
         return _not_run_cmd(Path(a.workdir))
     if a.cmd == "lane-plan":
-        return _lane_plan_cmd(Path(a.scripts_from), Path(a.out_dir), a.lanes)
+        if (a.scripts_from is not None) == a.all_scripts:
+            print("lane-plan: give exactly one of --scripts-from and "
+                  "--all-scripts", file=sys.stderr)
+            return 2
+        if a.all_scripts:
+            # The full arm's recording set, derived rather than hard-coded
+            # (round-9 C1): `merge`'s own expectation set -- every runnable
+            # test script but the SLOW_GATED ones. Selectable scripts plus
+            # the driven children whose closure folds into their driver's
+            # (dst_checks.py records beside features.py either way).
+            scripts = [s for s in test_scripts()
+                       if Path(s).name not in SLOW_GATED]
+        else:
+            scripts = [l.strip() for l in
+                       Path(a.scripts_from).read_text().splitlines()
+                       if l.strip()]
+        return _lane_plan_cmd(scripts, Path(a.out_dir), a.lanes)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "selftest":
