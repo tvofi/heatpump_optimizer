@@ -199,6 +199,14 @@ GREEN = ("success", "skipped", "neutral")
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
+# The heartbeat (tvofi, 2026-10-13): the batch train sat silent 2+ hours inside
+# --overlap's up-front recarry phase (each recarry logs only on completion, and
+# app_push's prepr takes 5-15 min per entry) and inside wait_ci's poll cycle,
+# and two HEALTHY trains were killed as dead. Every HEARTBEAT_SECONDS of
+# elapsed wait one `beat:` line goes out -- time-based, not poll-based, so a
+# poll slower or faster than the beat never hides it. Log lines only: no gate,
+# wait, merge decision or exit code reads them.
+HEARTBEAT_SECONDS = 240
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
 # read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
@@ -301,7 +309,8 @@ class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
                  log=print, polls: int = 24, merge_tries: int = 8, base: str = "main",
-                 skip_bad: bool = False, overlap: bool = False) -> None:
+                 skip_bad: bool = False, overlap: bool = False,
+                 clock: "callable" = time.monotonic) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
             raise ValueError(f"--base {base}: main, or a batch/ rehearsal base")
@@ -311,7 +320,7 @@ class Train:
         self.base, self.real = base, base == "main"
         self.ignore, self.min_runs, self.polls, self.merge_tries = ignore, min_runs, polls, merge_tries
         self.run = run or self._run
-        self.sleep, self.log = sleep, log
+        self.sleep, self.log, self.clock = sleep, log, clock
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
         self.skip_bad = skip_bad
@@ -372,14 +381,28 @@ class Train:
                     "head: run the train again once main has moved (its recarry is one), or "
                     "have the orchestrator App-push the branch")
 
-    def wait_ci(self, h: str, only: "list[str] | None" = None) -> list[str]:
+    def wait_ci(self, h: str, only: "list[str] | None" = None,
+                beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
 
         Green is a fixed list -- success, skipped, neutral -- so a conclusion
         GitHub adds later, or `action_required` and `stale` today, reads red.
         With `only`, those names alone are waited for and judged, and each must
-        have a run: a batch proof judges the required contexts (`required`)."""
-        for _ in range(self.polls):
+        have a run: a batch proof judges the required contexts (`required`).
+
+        `beat` is the phrase after "waiting" in the heartbeat line (default
+        "CI at <sha[:8]>"; a proof passes "proof <branch>"): every
+        HEARTBEAT_SECONDS of elapsed wait one `beat:` line goes out through
+        self.log, so a silent phase is distinguishable from a dead process
+        (tvofi, 2026-10-13: two healthy trains killed after 2+ hours of
+        silence). The beat is time-based -- computed from the wait's start
+        against the poll clock -- never poll-based, so a poll cadence slower
+        or faster than HEARTBEAT_SECONDS cannot hide it. Log only: no return
+        value, gate or wait duration changes."""
+        start = self.clock()
+        due = start + HEARTBEAT_SECONDS
+        what = beat or f"CI at {h[:8]}"
+        for k in range(1, self.polls + 1):
             # One JSON object per line across every page: past 100 runs a head
             # would otherwise read as complete on its first page alone.
             code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
@@ -397,6 +420,19 @@ class Train:
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
                 return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+            now = self.clock()
+            # A poll slower than the beat prints ONE beat, whose elapsed names
+            # the true wait; a boundary-exact tick never prints twice.
+            while now >= due:
+                if only is not None:
+                    req = len(only)
+                    done = sum(last.get(n, {}).get("status") == "completed" for n in only)
+                else:
+                    req = len(runs or ())
+                    done = sum(c.get("status") == "completed" for c in runs or ())
+                self.log(f"beat: waiting {what} (poll {k}, t+{int(now - start)}s, "
+                         f"required: {req}, concluded: {done}/{req})")
+                due = now + HEARTBEAT_SECONDS
             self.sleep(POLL_SECONDS)
         return ["TIMEOUT"]
 
@@ -583,6 +619,9 @@ class Train:
                     raise Stop("recarry", f"could not make a worktree at {wt}")
             body = self.state / f"rb{pr}.md"
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
+            # The recarry itself takes 5-15 min inside app_push's prepr and logs
+            # only on completion; this line makes it visible mid-flight.
+            self.log(f"#{pr} recarry START (branch {br})")
             code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
@@ -851,8 +890,9 @@ class Train:
             if len(kept) < 2:
                 return kept, proofs, dropped
             n += 1
-            self.launch(f"batch/{tag}-{n}", proofs[-1])
-            red = self.wait_ci(proofs[-1], only=req)
+            branch = f"batch/{tag}-{n}"
+            self.launch(branch, proofs[-1])
+            red = self.wait_ci(proofs[-1], only=req, beat=f"proof {branch}")
             self.log(f"proof batch/{tag}-{n} {proofs[-1][:8]} red={red}")
             if "TIMEOUT" in red:
                 raise Stop("proof", f"batch/{tag}-{n} never completed its required contexts; nothing merged")
@@ -873,9 +913,11 @@ class Train:
                 sub, p, c = self.build(base, [b for b in kept if b is not a])
                 if not c and p:
                     n += 1
-                    self.launch(f"batch/{tag}-{n}", p[-1])
-                    subs.append((a, sub, p))
-            green = [(a, sub, p) for a, sub, p in subs if not self.wait_ci(p[-1], only=req)]
+                    sbranch = f"batch/{tag}-{n}"
+                    self.launch(sbranch, p[-1])
+                    subs.append((a, sub, p, sbranch))
+            green = [(a, sub, p) for a, sub, p, sbranch in subs
+                     if not self.wait_ci(p[-1], only=req, beat=f"proof {sbranch}")]
             if not green:
                 raise Stop("proof", f"red at {', '.join(red)} with every one of "
                            f"{', '.join('#%d' % a['pr'] for a in kept)} dropped; nothing merged: take them through run")
@@ -962,6 +1004,7 @@ class Train:
                 self.log(f"OVERLAP: recarrying {', '.join('#%d' % a['pr'] for a in todo)} up front, "
                          "their pull_request runs fire together")
                 for a in todo:
+                    self.log(f"#{a['pr']} overlap: recarry start")
                     try:
                         a["rc_head"], a["rc_base"] = self.recarry(a), rb
                     except Stop as s:
@@ -1131,6 +1174,8 @@ def _self_test() -> int:
 
     rc, lines, calls = go({})
     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
+    check("a wait that settles on its first poll beats nothing (heartbeat null control)",
+          not any(ln.startswith("beat:") for ln in lines))
     rc, lines, calls = go({"files": ["custom_components/x.py"]})
     check(f"a pull request with no {ROW_DIR}/<N>.md row is refused",
           rc == 1 and "row:" in lines[-1] and f"{ROW_DIR}/7.md" in lines[-1]
@@ -1144,6 +1189,41 @@ def _self_test() -> int:
     check("a re-run that went green supersedes the earlier red", rc == 0 and merged(calls))
     rc, lines, calls = go({"runs": [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]})
     check("CI that never completes stops it as TIMEOUT", rc == 1 and "TIMEOUT" in lines[-1])
+    # THE HEARTBEAT (tvofi, 2026-10-13): two healthy trains were killed after
+    # 2+ hours of silence in wait_ci and the overlap recarry phase. One beat
+    # line per HEARTBEAT_SECONDS of ELAPSED wait -- time-based against the
+    # stubbed clock, never poll-based, so a poll cadence off the beat cadence
+    # still beats exactly on time.
+    hang = [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]
+    def hung_run(argv, cwd=ROOT, stdin=None):
+        return 0, "\n".join(json.dumps(c) for c in hang) if "check-runs" in " ".join(argv) else (0, "")
+    ticks = iter([0, 100, 240, 300, 480, 700, 960, 1100])
+    lines: list[str] = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None,
+                  log=lines.append, polls=7, clock=lambda: next(ticks))
+        red = t.wait_ci(H0)
+    beats = [ln for ln in lines if ln.startswith("beat:")]
+    check("the heartbeat beats once per HEARTBEAT_SECONDS of elapsed wait, not per poll "
+          "(clock jumps 100/240/300/480/700/960: beats at t+240, t+480, t+960), and the "
+          "wait still times out exactly as before",
+          red == ["TIMEOUT"] and len(beats) == 3
+          and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
+          and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
+          and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
+    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
+    ticks = iter([0, 240, 480, 700])
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None,
+                  log=lines.append, polls=3, clock=lambda: next(ticks))
+        red = t.wait_ci(H0, only=["fast", "tests"], beat="proof batch/t-1")
+    beats = [ln for ln in lines if ln.startswith("beat:")]
+    check("a proof wait beats with the proof branch in the line and names its own "
+          "concluded count among the required contexts",
+          red == ["TIMEOUT"] and len(beats) == 2
+          and beats[0] == "beat: waiting proof batch/t-1 (poll 1, t+240s, required: 2, concluded: 1/2)"
+          and beats[1] == "beat: waiting proof batch/t-1 (poll 2, t+480s, required: 2, concluded: 1/2)")
     rc, lines, calls = go({"carry": "CARRY: no a -> b: a commit of the branch's own"})
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"contains": [True, False]})
@@ -1227,6 +1307,12 @@ def _self_test() -> int:
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("a head behind main is recarried, then merged at the new head",
           rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
+    start_i = next((i for i, ln in enumerate(lines) if ln == "#7 recarry START (branch fix/x)"), None)
+    done_i = next((i for i, ln in enumerate(lines) if "recarry: main merged" in ln), None)
+    check("the recarry announces itself BEFORE remerge_main.sh runs, naming the branch "
+          "(5-15 min of prepr silence is visible mid-flight)",
+          rc == 0 and start_i is not None and done_i is not None and start_i < done_i)
     for way in ("SKIPPED: HEAD is the clean merge", "RUNS: HEAD has 3 parent(s)"):
         rc, lines, calls = go({"contains": [False], "heads": [H0, H1],
                                "remerge": f"app_push: RECARRY: prepr {way}\napp_push: PUSHED"})
@@ -1733,6 +1819,9 @@ def _batch_self_test(check) -> None:
           "before the first merge, and the entries still land in queue order",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and len(recarries) == 2
           and merges and max(recarries) < min(merges))
+    check("--overlap: each up-front recarry announces itself before it runs, so the "
+          "5-15 min of app_push prepr per entry is visible mid-flight",
+          all(any(ln == f"#{p} overlap: recarry start" for ln in w["lines"]) for p in (1, 2)))
     w = go(ovl, base="main", setup=real_remerge)
     merges = [i for i, ln in enumerate(w["lines"]) if " MERGED " in ln]
     recarries = [i for i, ln in enumerate(w["lines"]) if "recarry: main merged" in ln]
