@@ -222,6 +222,24 @@ fi
 
 cat "$WORKDIR/scope.print"
 
+# CI-cost metrics (tests/ci_ratchet.py): the gate's own scope decision, one
+# line -- class (full or scoped), how many scripts the scoped plan RUNS and
+# how many it scoped out. The fast job sets HPO_CI_METRICS; a local run
+# without it emits nothing.
+if [ -n "${HPO_CI_METRICS:-}" ]; then
+  _cls=full; _nrun=0; _nskip=0
+  if [ -n "$SCOPE_RUN" ]; then
+    _cls=scoped
+    _nrun=$(grep -c . "$SCOPE_RUN" 2>/dev/null || echo 0)
+    if [ -f "$WORKDIR/scope.skip" ]; then
+      _nskip=$(grep -c . "$WORKDIR/scope.skip" 2>/dev/null || echo 0)
+    fi
+  fi
+  printf 'fast\tmode\t%s\t%s\t%s\t%s\t%s\n' "$_cls" "$_nrun" "$_nskip" \
+    "${GITHUB_EVENT_NAME:-local}" "${GITHUB_RUN_ID:-local}" >> "$HPO_CI_METRICS"
+  unset _cls _nrun _nskip
+fi
+
 # The script a `run` line is actually running, for the scope lookup: the
 # first argument that names a file under tests/. Not the last argument --
 # env_drift.py takes a ref after its script path.
@@ -369,6 +387,12 @@ for f in tests/*.py tests/*.mjs; do
     closure.py) continue ;;
     # Gate-lock helper (#404): agents invoke it directly; not a suite test.
     gate_lock.py) continue ;;
+    # The lane-skip decision instrument (R9-CI-SKIP): the workflow's
+    # decision steps run it to decide whether fast/coverage/browser may
+    # report `skipped`; running it here would make the suite decide whether
+    # to run itself. tests/entities.py runs its self-test, and
+    # governance.yml's instrument-self-tests runs it on every pull request.
+    lane_skip.py) continue ;;
     # The #996 instance counter: the record seat runs it by hand against
     # the issue thread (or a --from fixture); it needs `gh`, which this
     # suite has no token for. tests/entities.py pins its counting rule.
@@ -391,6 +415,11 @@ for f in tests/*.py tests/*.mjs; do
     nightly_ha.py) continue ;;
     # The replay lane: a step of the nightly `slow` job, not a gate script.
     replay.py) continue ;;
+    # The CI ratchet (round-9): the `ci-ratchet` job runs it on the push a
+    # merge makes, over the ci-metrics artifacts this suite cannot see and
+    # the Actions API listing it has no token for. tests/entities.py drives
+    # its refusal rule and its null control instead.
+    ci_ratchet.py) continue ;;
     # The nightly's reporter (#533): the `nightly-status` job runs it on every
     # pull request. It reads the GitHub Actions API, which this suite has no
     # network and no token for, and its verdict is about CI's history rather
@@ -649,7 +678,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
+    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
