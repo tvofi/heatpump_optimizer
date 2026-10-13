@@ -174,11 +174,20 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   stamps, staleness behind main; worker seats judged from the work they were
   dispatched for; roster groups newly unblocked or blocked; main's tip, its
   required contexts re-read live, the mandate through `budget_raise_gate`'s
-  own reader, action-pin drift. When: the orchestrator's heartbeat, every few
-  minutes — it replaces re-deriving the sweep from conversation memory. It
-  does NOT act; the orchestrator acts on the list. Refusal: a section whose
-  read fails prints UNREADABLE, never a silent skip; a rule the tick cannot
-  read from the tree or API it does not report.
+  own reader, action-pin drift. When: run BY a watcher seat on a ~4-minute
+  loop — never inline in the orchestrator's turn, whose cron firings skip
+  while a turn runs (measured: ticks skipped for hours during one diagnosis
+  turn); the watcher seat notifies only on actionable events (TRAIN
+  DONE/STOPPED with skip classes, Traceback, silent train death, a new merge
+  → beats owed) and never diagnoses or fixes. It replaces re-deriving the
+  sweep from conversation memory. It does NOT act; the orchestrator acts on
+  the list. Operating contract it assumes: orchestrator turns stay SHORT; any
+  script with over a minute of wait or execution runs BACKGROUND (nohup, log
+  file, completion notification); findings are DISPATCHED, not merely printed
+  — a finding that only lands in tick output repeats the
+  PR-comment-is-not-propagation defect. Refusal: a section whose read fails
+  prints UNREADABLE, never a silent skip; a rule the tick cannot read from
+  the tree or API it does not report.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —

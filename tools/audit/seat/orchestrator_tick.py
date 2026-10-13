@@ -2224,6 +2224,8 @@ def self_test() -> int:
         rep = t.run()
         text = render(rep)
         a, f = check("null control", [
+            ("provenance line always prints",
+             text.startswith("BOARD measured from origin/main at ")),
             ("zero findings", rep["findings"] == []),
             ("empty list line printed", "DISPATCH LIST: empty" in text),
             ("all seven sections measured",
