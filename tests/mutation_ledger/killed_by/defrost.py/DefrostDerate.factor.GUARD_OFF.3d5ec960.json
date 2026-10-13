@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.factor GUARD_OFF 3d5ec960",
+  "killed_by": "tests/features.py",
+  "old": "        if hit is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d214c53a218f9169b0c6d4fde9351b4ec3121419: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
