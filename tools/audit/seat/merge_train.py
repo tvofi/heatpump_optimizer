@@ -1811,6 +1811,34 @@ def _batch_self_test(check) -> None:
           w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
           and any(ln.startswith("OVERLAP: ") and "is not green" in ln and "before admission" in ln
                   for ln in w["lines"]))
+
+    # THE WIRE, not the stubbed runs: wait_ci itself is counted. The arms above
+    # exercise the real wait_ci against stubbed gh output, so a main_green that
+    # still CALLS the looping wait first (the 2026-10-14 wedge: required
+    # contexts with no runs at all never complete) passes every stubbed arm.
+    # This one reddens that code: under --overlap the looping wait must not be
+    # invoked at main's tip at all; without the flag, exactly once.
+    real_wait_ci = Train.wait_ci
+
+    def counted_wait_ci(self, h, only=None):
+        tip_reads.append(h)
+        return real_wait_ci(self, h, only)
+
+    Train.wait_ci = counted_wait_ci
+    try:
+        tip_reads = []
+        w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+               setup=lambda w: w.update(pending_main=True), overlap=True)
+        overlap_tip_reads = sum(h == w["base_sha"] for h in tip_reads)
+        tip_reads = []
+        w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(pending_main=True))
+        nonoverlap_tip_reads = sum(h == w["base_sha"] for h in tip_reads)
+    finally:
+        Train.wait_ci = real_wait_ci
+    check("THE WIRE: under --overlap main_green never invokes the looping wait_ci at main's tip "
+          "(zero reads; the pre-fix code invoked it once and wedged there); without the flag the "
+          "blocking wait is called exactly once (R9-ADMIT-REQ)",
+          overlap_tip_reads == 0 and nonoverlap_tip_reads == 1)
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(pending_main=True))
     check("... and without --overlap the same pending main is still waited to completion, which stops it",
           w["rc"] == 1 and "main:" in w["lines"][-1] and "TIMEOUT" in w["lines"][-1]
