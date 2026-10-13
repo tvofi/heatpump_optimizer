@@ -1175,6 +1175,14 @@
    "custom_components/heatpump_optimizer/battery.py",
    "custom_components/heatpump_optimizer/binary_sensor.py",
    "custom_components/heatpump_optimizer/boost.py",
+   "custom_components/heatpump_optimizer/brand/dark_icon.png",
+   "custom_components/heatpump_optimizer/brand/dark_icon@2x.png",
+   "custom_components/heatpump_optimizer/brand/dark_logo.png",
+   "custom_components/heatpump_optimizer/brand/dark_logo@2x.png",
+   "custom_components/heatpump_optimizer/brand/icon.png",
+   "custom_components/heatpump_optimizer/brand/icon@2x.png",
+   "custom_components/heatpump_optimizer/brand/logo.png",
+   "custom_components/heatpump_optimizer/brand/logo@2x.png",
    "custom_components/heatpump_optimizer/button.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
@@ -1206,6 +1214,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/icon.png",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
@@ -1230,6 +1239,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/py.typed",
    "custom_components/heatpump_optimizer/quality_scale.yaml",
    "custom_components/heatpump_optimizer/quick_setup.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
@@ -1272,7 +1282,10 @@
    "docs/configuration.md",
    "hacs.json",
    "tests/README.md",
+   "tests/ci_budgets.json",
+   "tests/ci_ratchet.py",
    "tests/closures.json",
+   "tests/composed_closures.json",
    "tests/coverage_budgets.json",
    "tests/coverage_ratchet.py",
    "tests/delivery_status.py",
@@ -1325,6 +1338,7 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/issue996_count.py",
+   "tests/lane_skip.py",
    "tests/layout.json",
    "tests/layout.py",
    "tests/mutation_budgets.json",
@@ -1350,6 +1364,17 @@
    "tests/throwaway_git.py",
    "tests/typing_ruler.py",
    "tests/validate.py",
+   "tools/audit/archscore/__init__.py",
+   "tools/audit/archscore/counters.py",
+   "tools/audit/archscore/metrics/__init__.py",
+   "tools/audit/archscore/metrics/common.py",
+   "tools/audit/archscore/metrics/family_splits.py",
+   "tools/audit/archscore/metrics/footprint.py",
+   "tools/audit/archscore/metrics/hub_solve_writes.py",
+   "tools/audit/archscore/metrics/public_surface.py",
+   "tools/audit/archscore/metrics/shared_inplace_writes.py",
+   "tools/audit/archscore/metrics/untyped_payload_keys.py",
+   "tools/audit/archscore/vector.py",
    "tools/audit/judge_batch.py",
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
@@ -1359,6 +1384,7 @@
    "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/state_docs.py",
+   "tools/coverage/composed_proof.sh",
    "tools/merge/ledger_merge.py",
    "tools/policy/agreement.mjs",
    "tools/policy/brief_lint.mjs",
@@ -3150,6 +3176,7 @@
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
+   "tools/coverage/composed_proof.sh",
    "tools/policy/figure_lint.mjs"
   ],
   "tests/harness_headers.py": [
@@ -3717,7 +3744,7 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 1489.6
+   "seconds": 3379.1
   },
   "tests/card.mjs": {
    "rc": 0,
@@ -3761,7 +3788,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 288.5
+   "seconds": 598.2
   },
   "tests/finite_boundary.py": {
    "rc": 0,
