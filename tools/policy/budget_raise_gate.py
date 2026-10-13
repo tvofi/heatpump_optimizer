@@ -167,6 +167,20 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("type_ignores",), MAX),
         (("ruler", "**"), FROZEN),
     ],
+    # The CI ratchet (tests/ci_ratchet.py, round 9): every metric is a cap the
+    # ratchet's own compare refuses to see GROW, so `max` everywhere. The
+    # metadata pair is the consumer's own METADATA_KEYS. A key no rule matches
+    # falls to `frozen`, which is the reading the consumer itself gives an
+    # unknown metric ("is not a metric this ratchet knows"): a new metric
+    # reaches this file only through ci_ratchet.py, never past this gate.
+    "tests/ci_budgets.json": [
+        (("recorded_at",), FREE),
+        (("reason",), FREE),
+        (("archscore.*",), MAX),
+        (("script_runs_per_push",), MAX),
+        (("script_runs_full_case_pr",), MAX),
+        (("critical_path_minutes",), MAX),
+    ],
     "dev/governance/config/policy_budgets.json": [
         (("_band",), MAX),
         (("_*",), FREE),
@@ -715,6 +729,28 @@ def self_test() -> int:
           raised(P, p0, {**p0, "roles": {"fixer": {"opens": ["a"], "cap": 5852}}}), True)
     check("policy: a cap dropped while its file stays is a raise",
           raised(P, p0, {**p0, "files": {"CLAUDE.md": 211}}), True)
+
+    I = "tests/ci_budgets.json"
+    i0 = {"recorded_at": "a74520020", "reason": "initial", "archscore.family_splits": 0,
+          "archscore.duplication_copies": 68, "script_runs_per_push": 53,
+          "script_runs_full_case_pr": 53, "critical_path_minutes": 61.0}
+    check("ci: null control", raised(I, i0, i0), False)
+    check("ci: metrics tightened by a re-record are routine",
+          raised(I, i0, {**i0, "script_runs_per_push": 40, "script_runs_full_case_pr": 40,
+                         "critical_path_minutes": 60.5, "archscore.duplication_copies": 60,
+                         "recorded_at": "bbb", "reason": "headroom landed"}), False)
+    check("ci: a script-run count up is a raise",
+          raised(I, i0, {**i0, "script_runs_per_push": 54}), True)
+    check("ci: the full-case PR count up is a raise",
+          raised(I, i0, {**i0, "script_runs_full_case_pr": 54}), True)
+    check("ci: the critical path up is a raise",
+          raised(I, i0, {**i0, "critical_path_minutes": 61.5}), True)
+    check("ci: an archscore vector entry up is a raise",
+          raised(I, i0, {**i0, "archscore.duplication_copies": 69}), True)
+    check("ci: an archscore cap removed is a raise",
+          raised(I, i0, {k: v for k, v in i0.items() if k != "archscore.family_splits"}), True)
+    check("ci: a key the ratchet does not know is frozen (the consumer refuses it too)",
+          raised(I, i0, {**i0, "jobs_per_day": 3}), True)
 
     # A non-finite head value is no cap at all: each ratchet compares against
     # it and passes (`ok cut_views 110 <= nan`).

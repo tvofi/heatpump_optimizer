@@ -49,6 +49,9 @@ Commands
   affected --files ... | --diff REF | --files-from FILE
                  [--workdir DIR]  decide whether THIS check must run for a change,
                                   and which closures it has to re-derive
+  lane-plan --scripts-from FILE [--lanes N] [--out-dir DIR]
+                                  shard the scoped re-derive's scripts across
+                                  lanes (bound: 3 on CI, 4 on a seat box)
   show                            print the committed closures
   selftest                        pin merge() against a silent shrink (#527)
 
@@ -149,6 +152,14 @@ NOT_A_TEST = {
     # drives their operators and their kill rule, so a change to how either
     # classifies selects a script instead of selecting nothing.
     "coverage_ratchet.py", "mutation_table.py",
+    # The CI ratchet (round-9, tvofi's request): one-way budgets over CI cost
+    # and code health, graded in its own push-to-main job from the metrics
+    # the gate and its instruments emit -- this suite has neither the other
+    # jobs' artifacts nor the Actions API listing it needs. NOT_A_TEST and NOT
+    # inert: `tests/entities.py` imports it and drives its refusal rule,
+    # its --record guard and its null control, so a change to how it
+    # classifies selects that script.
+    "ci_ratchet.py",
     # The #996 instance counter: the record seat runs it by hand against
     # the issue thread via `gh`, which this suite has neither the network
     # nor the token for, and its verdict is about the record rather than
@@ -516,6 +527,11 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # Round 9 (C1): the composed-closure proof driver. tests/entities.py
+    # reads it to pin that it measures through closure.py's own comparison,
+    # so an edit to it selects that script; left inside the tools/coverage/
+    # prefix it would be declared unread while being read (#357).
+    "tools/coverage/composed_proof.sh",
     # R9-RO-4: tests/entities.py reads tools/pr/README.md. tools/pr/ is INERT
     # (R9-RO-6). Left inside the prefix the note is declared unread while
     # being read, and check refuses the committed table before it compares
@@ -683,6 +699,19 @@ INERT_EXCEPT = (
     "tools/policy/figure_lint.mjs",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
+    # R9-RO-14: tests/entities.py loads state_docs.py by importlib and runs
+    # its self-test, and that self-test SPAWNS the three state-doc generators
+    # on subprocess command lines -- a repo path on a command line is a real
+    # dependency of the spawning script, so all four land in entities.py's
+    # recorded closure. Left inside the `tools/audit/` prefix they would be
+    # declared unread while being read -- the #357 contradiction, measured
+    # three times on this list already. They leave the prefix the way
+    # record_row.py and roster_lib.py did, so an edit to the beat, or to a
+    # generator it runs, selects tests/entities.py instead of skipping it.
+    "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/resume_doc.py",
+    "tools/audit/seat/handover_prompt.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the
@@ -1020,7 +1049,13 @@ def _exec_record(script: str, out_path: str, extra_args: list[str]) -> int:
         "files": sorted(opened | modules),
         "inert_reads": sorted(f for f in opened if _is_real_file(f) and is_inert(f)),
         "spawned": [" ".join(a) for a in spawned][:200],
-        "how": "audithook+sys.modules",
+        # A composed run (C1) is the same instrumented execution carrying the
+        # coverage tracer beside this hook (COVERAGE_PROCESS_START set by
+        # tools/coverage/coverage_tree.sh); the marker says so, so a reader
+        # can tell a composed recording from a bare one without its artifact.
+        "how": ("audithook+sys.modules+coverage-tracer"
+                if os.environ.get("COVERAGE_PROCESS_START")
+                else "audithook+sys.modules"),
         "argv": [script, *extra_args],
     }
     Path(out_path).write_text(json.dumps(record, indent=1))
@@ -2395,6 +2430,240 @@ def _autofix_cmd(in_dir: Path, out: Path, partial: bool) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Composed recordings (C1) and the batch proof's recordings (C2), from the
+# round-9 heavy-script consolidation pre-study
+# (dev/audit/rounds/round9/prestudy/heavy-script-consolidation-prestudy.md,
+# landed on handoff/r9-heavy-consolidation-prestudy).
+#
+# Both mechanisms move a MEASUREMENT, never an answer, and neither stores
+# anything across trees: C1 derives two artifacts from one instrumented
+# execution of the script on this tree, and C2 re-checks recordings that a
+# proof run made on a BYTE-IDENTICAL tree with the same committed
+# tests/closures.json. Both fail closed -- a miss, a mismatch or an unhealthy
+# record re-records, which is the pre-study's safety property and CLAUDE.md
+# rule 1's ("a wrong closure survives longer than one merge" must be
+# impossible): the only silent case a mislabeled artifact is guarded by the
+# tree-hash key checked against a manifest written by the same checkout that
+# recorded, and the check that consumes recordings runs unchanged either way.
+
+
+COMPOSED = ROOT / "tests" / "composed_closures.json"
+
+# Scripts that may never be composed, with the rule that enumerates them:
+# a script the closures lane records with CHEAP arguments records a different
+# argv than the coverage lane runs (golden.py, env_drift.py), a script whose
+# lane sets a special environment (dst_checks.py) does not meet the coverage
+# lane's environment, arch_score.py's --smoke argv differs by design, and
+# features.py FAILS under any tracer (#525: its heartbeat pair reads zero
+# ticks, null control included). composing any of these would grade a
+# different execution than the one the table describes.
+CHEAP_ARGV_OR_ENV = {
+    "golden.py", "env_drift.py", "arch_score.py", "dst_checks.py",
+    "features.py",
+}
+
+
+def composed_scripts() -> list[str]:
+    """The allow-list of scripts whose closure may be derived from the
+    coverage job's traced run. Empty until proven per script on Linux CI
+    (read-set byte-identity traced-vs-bare; rc 0 under both)."""
+    if not COMPOSED.exists():
+        return []
+    data = json.loads(COMPOSED.read_text())
+    return list(data.get("scripts", []))
+
+
+def _manifest_tree(in_dir: Path) -> str | None:
+    manifest = in_dir / "tree.txt"
+    if not manifest.is_file():
+        return None
+    return manifest.read_text().strip()
+
+
+def _loadable_recordings(in_dir: Path) -> list[dict] | None:
+    """Every *.json in the dir, loadable and shaped like a recording, or None."""
+    out = []
+    for f in sorted(in_dir.glob("*.json")):
+        try:
+            rec = json.loads(f.read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+        if not isinstance(rec, dict) or "script" not in rec or "files" not in rec:
+            return None
+        out.append(rec)
+    return out
+
+
+def proof_consume(expect_tree: str, in_dir: Path) -> int:
+    """C2: refuse anything but this run's own tree's recordings.
+
+    The batch proof (a workflow_dispatch of the Tests workflow on a batch
+    branch) re-records every closure on tree P_n and uploads the recordings
+    under a name carrying that tree's hash. The last merge of the batch
+    produces a push run on a byte-identical tree, so its `closures` job can
+    consume them instead of re-recording -- but only when the artifact itself
+    proves the tree, and the proof's check already ran green on that same
+    tree against the same committed table (the batch would not have merged
+    otherwise). Everything here is refusal: a missing manifest, a mismatched
+    label, an empty artifact or a malformed recording exits 1 and the caller
+    falls back to the full re-record, which is the fail-closed direction.
+    """
+    problems = []
+    label = _manifest_tree(in_dir)
+    if label is None:
+        problems.append("no tree.txt manifest -- the artifact does not name "
+                        "the tree its recordings were made on")
+    elif label != expect_tree:
+        problems.append(
+            f"manifest tree {label} is not this run's tree {expect_tree}")
+    recs = _loadable_recordings(in_dir)
+    if recs is None:
+        problems.append("a recording is missing or malformed")
+        recs = []
+    for rec in recs:
+        if rec.get("rc") not in (0, None):
+            problems.append(
+                f"{rec['script']}'s recording exited {rec.get('rc')!r}; a "
+                "run that did not end has a truncated read set")
+    if not recs and not problems:
+        problems.append("the artifact carries no recordings")
+    # THE ROSTER: consuming means the full arm below is SKIPPED, so what is
+    # consumed must satisfy the full check's own "a selectable script with
+    # no recording at all" rule by itself. A proof set missing any script --
+    # a dispatch that consumed a composed record, say -- fails closed here
+    # and the merge's push run re-records fresh, rather than dying at the
+    # check step with half an arm.
+    have = {Path(rec["script"]).name for rec in recs}
+    missing = sorted(
+        name for name in
+        (Path(s).name for s in selectable_scripts())
+        if name not in have
+        and name not in DRIVEN_BY_OTHERS
+        and name not in SLOW_GATED
+    )
+    if missing:
+        problems.append(
+            f"the recordings cover {len(have)} script(s) but the selectable "
+            f"roster misses {missing[:6]}"
+            f"{'...' if len(missing) > 6 else ''}")
+    if problems:
+        for p in problems:
+            print(f"proof-consume: refusing to consume: {p}", file=sys.stderr)
+        print("proof-consume: failing closed to a full re-record",
+              file=sys.stderr)
+        return 1
+    print(f"consumed proof recordings (tree {expect_tree}, "
+          f"{len(recs)} scripts); tests/closure.py check still runs on them")
+    return 0
+
+
+def composed_verify(expect_tree: str, in_dir: Path) -> int:
+    """C1: which allow-listed scripts may be taken from the coverage job's
+    composed run, printed one per line on stdout. Refusal (exit 1) consumes
+    NOTHING -- the caller re-records every script bare."""
+    problems = []
+    label = _manifest_tree(in_dir)
+    if label is None:
+        problems.append("no tree.txt manifest")
+    elif label != expect_tree:
+        problems.append(f"manifest tree {label} is not this run's tree "
+                        f"{expect_tree}")
+    by_name = {}
+    recs = _loadable_recordings(in_dir)
+    if recs is None:
+        problems.append("a recording is missing or malformed")
+        recs = []
+    for rec in recs:
+        by_name[Path(rec["script"]).name] = rec
+    ok: list[str] = []
+    for script in composed_scripts():
+        name = Path(script).name
+        if name in CHEAP_ARGV_OR_ENV:
+            problems.append(
+                f"{script} is on the never-compose list "
+                f"(CHEAP_ARGV_OR_ENV); remove it from {COMPOSED} or prove "
+                "its equality first")
+            continue
+        rec = by_name.get(name)
+        if rec is None:
+            # Not composed this run -- the coverage plan reused the script's
+            # base data, so nothing was composed to consume. That is a skip,
+            # not a refusal: the script records bare below, the safe
+            # direction. (A present-but-invalid record IS a refusal.)
+            print(f"composed-verify: {script} was not composed this run; "
+                  "it records bare")
+            continue
+        if rec.get("rc") != 0:
+            problems.append(
+                f"{script}'s composed run exited {rec.get('rc')!r}; a run "
+                "that did not end has a truncated read set")
+            continue
+        if rec.get("argv") != [script]:
+            problems.append(
+                f"{script}'s composed argv {rec.get('argv')!r} is not the "
+                "closures lane's argv")
+            continue
+        if not rec.get("files"):
+            problems.append(f"{script}'s composed read set is empty")
+            continue
+        ok.append(script)
+    if problems:
+        for p in problems:
+            print(f"composed-verify: {p}", file=sys.stderr)
+        print("composed-verify: consuming nothing; the closures lane "
+              "re-records bare", file=sys.stderr)
+        return 1
+    for script in ok:
+        print(script)
+    return 0
+
+
+def composed_compare(composed_dir: Path, bare_dir: Path) -> int:
+    """The byte-identity proof: an allow-listed script's composed read set
+    must equal its bare recording's, files and inert_reads both. Red on any
+    inequality or on a bare recording with no composed counterpart."""
+    bad = 0
+    checked = 0
+    for script in composed_scripts():
+        bare = bare_dir / (Path(script).name + ".json")
+        comp = composed_dir / (Path(script).name + ".json")
+        if not bare.is_file():
+            continue
+        checked += 1
+        if not comp.is_file():
+            print(f"composed-compare: {script} has a bare recording and no "
+                  "composed one: the composition did not run for it")
+            bad += 1
+            continue
+        b = json.loads(bare.read_text())
+        c = json.loads(comp.read_text())
+        for field in ("files", "inert_reads"):
+            if sorted(b.get(field) or []) != sorted(c.get(field) or []):
+                only_bare = sorted(set(b.get(field) or []) - set(c.get(field) or []))
+                only_comp = sorted(set(c.get(field) or []) - set(b.get(field) or []))
+                print(f"composed-compare: {script} {field} differs")
+                print(f"  bare only: {only_bare[:6]}")
+                print(f"  composed only: {only_comp[:6]}")
+                bad += 1
+        if b.get("rc") != 0 or c.get("rc") != 0:
+            print(f"composed-compare: {script} rc bare={b.get('rc')!r} "
+                  f"composed={c.get('rc')!r}; equality is proven only for a "
+                  "run that ended")
+            bad += 1
+    if checked == 0:
+        print("composed-compare: no allow-listed script has a bare recording "
+              "here; nothing to compare (not a pass)")
+        return 2
+    if bad:
+        print(f"composed-compare: {bad} inequalit{'y' if bad == 1 else 'ies'}; "
+              f"remove the script from {COMPOSED} until it is proven")
+        return 1
+    print(f"composed-compare: {checked} script(s) byte-identical, files and "
+          "inert_reads both")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # selection
 
 
@@ -2673,12 +2942,15 @@ def _not_run_cmd(workdir: Path) -> int:
 #           or -- the case that matters -- is in NO recorded closure and not
 #           INERT. Nothing can be inferred about a file the table has never
 #           measured.
-#   scoped  some recorded closure contains a changed file: re-derive exactly
-#           those scripts, then run the same `check`. One entry is ~40 s
-#           against 12-22 minutes for the full table.
-#   skip    no recorded closure contains any changed file. Nothing the gate
-#           runs reads them, so no recording can move. A docs-only pull request
-#           must still cost nothing, or the scoping this replaces was pointless.
+#   scoped  some recorded closure contains a changed file, or some script's
+#           recorded `inert_reads` reaches one (#2109's class): re-derive
+#           exactly those scripts, then run the same `check`. One entry is
+#           ~40 s against 30-55 minutes for the full table (the round-9
+#           closures pre-study, jobs 114258919874 and 38059574126).
+#   skip    no recorded closure contains any changed file and no recorded
+#           inert read reaches one. Nothing the gate runs reads them, so no
+#           recording can move. A docs-only pull request must still cost
+#           nothing, or the scoping this replaces was pointless.
 #
 # The order matters, and the skip is LAST on purpose. The first draft asked
 # "is every changed file INERT?" first, and that is a different question: a
@@ -2709,6 +2981,91 @@ def _not_run_cmd(workdir: Path) -> int:
 # narrower draft.)
 
 
+def _ancestor_dirs(rel: str) -> set[str]:
+    """Every proper ancestor directory of a repo-relative path.
+
+    The root is deliberately absent: a root-level `inert_reads` entry
+    (LICENSE) must not make every other root-level file that entry's
+    script's business. Only files INSIDE a directory the recording reached
+    -- or the recorded file itself, matched exactly -- select a script.
+    """
+    parts = rel.split("/")
+    return {"/".join(parts[:i]) for i in range(1, len(parts))}
+
+
+def inert_read_owners(files: list[str], inert_reads: dict[str, list[str]],
+                      scripts: set[str]) -> dict[str, dict]:
+    """Which scripts' recorded ``inert_reads`` reach ``files``, and how.
+
+    ``inert_reads`` is a recorded READ: the Linux strace union of a real run
+    of the script opened that file and filed it under the script because the
+    INERT classification keeps it out of the closure (#1886). The #2109
+    incident class is exactly a diff the skip rule called INERT while a
+    recorded reader demonstrably rglobs its directory: the pull request
+    added ``dev/audit/rounds/round9/prestudy/boost_drift_refit.py``,
+    ``tests/harness_headers.py``'s discovery opens every
+    ``dev/audit/rounds/round*`` tree, the fast arm passed in 16 seconds, and
+    only the next push to main -- 54 minutes after the merge -- printed
+    ``INERT READS UNDER-APPROXIMATED``.
+
+    Two matches, both strictly over-selecting on purpose, because the rule
+    must fail toward selection and never toward skip:
+
+      exact   the changed file is itself a recorded inert read of the
+              script -- the recording already told us the script opens it;
+      dir     the changed file lives under a recorded entry's own directory
+              or under that directory's parent. A NEW file can never be in
+              the table (it did not exist at the last recording), so the
+              recording's reach into its directory is the only measured fact
+              about it, and one level above the recorded directory is how
+              far a discovery glob can widen without the recordings showing
+              it. The bound is what keeps the rule from selecting a script
+              for EVERY file under a shallow shared ancestor: unbounded
+              ancestor matching makes the one ``round6/D11/fix/`` entry
+              share ``dev/`` with all of ``dev/programme/`` and
+              ``dev/governance/``, and every prose pull request in this
+              repository lives there. The residual hole is a change in a
+              subtree NO recording's own-or-parent directory reaches (a
+              whole new ``round20/``): main's full arm stays its detector,
+              exactly as before this rule existed.
+    """
+    allowed_by_script: dict[str, set[str]] = {}
+    for s, reads in inert_reads.items():
+        allowed = set()
+        for e in reads:
+            dirs = sorted(_ancestor_dirs(e))
+            if not dirs:
+                continue                      # a root-level entry (LICENSE)
+            allowed.add(dirs[-1])              # the entry's own directory
+            if len(dirs) >= 2:
+                allowed.add(dirs[-2])          # and that directory's parent
+        allowed_by_script[s] = allowed
+    owners: dict[str, dict] = {}
+    for f in files:
+        unit = unit_of(f)
+        for s, reads in inert_reads.items():
+            if s not in scripts:
+                continue
+            via = None
+            if unit in reads:
+                via = f"inert_reads (exact: {unit})"
+            else:
+                hit = next(
+                    (d for d in sorted(allowed_by_script[s],
+                                       key=len, reverse=True)
+                     if f.startswith(d + "/")),
+                    None,
+                )
+                if hit is not None:
+                    via = f"inert_reads (dir: {hit})"
+            if via is None:
+                continue
+            owners.setdefault(s, {"changed": [], "via": via})["changed"].append(f)
+    for info in owners.values():
+        info["changed"].sort()
+    return owners
+
+
 def affected(files: list[str]) -> dict:
     """Decide whether the closures check must run, and on what. Returns a plan."""
     scripts = selectable_scripts()
@@ -2724,7 +3081,8 @@ def affected(files: list[str]) -> dict:
     # skipping that check's roster test there cannot hide an unrecorded script.
     if not CLOSURES.exists():
         return _full("tests/closures.json is missing")
-    closures = json.loads(CLOSURES.read_text())["closures"]
+    payload = json.loads(CLOSURES.read_text())
+    closures = payload["closures"]
     unknown = sorted(k for k in closures if k not in scripts)
     if unknown:
         return _full("closures.json describes scripts that no longer exist: "
@@ -2754,6 +3112,14 @@ def affected(files: list[str]) -> dict:
         hits = sorted({unit_of(f) for f in files} & set(closures[s]))
         if hits:
             why[s] = {"changed": hits, "via": "closure"}
+    # A recorded inert read is a recorded read (#2109's class, above): the
+    # script opened the file, or opens its directory, and a diff that touches
+    # it must re-derive that script or the only detector left is main's full
+    # arm, one merge late. A closure hit keeps its own entry -- the table's
+    # primary claim outranks the secondary one.
+    for s, info in inert_read_owners(
+            files, payload.get("inert_reads", {}), set(scripts)).items():
+        why.setdefault(s, info)
     # A recording is a real run: card.mjs reads the payload plan_view.py
     # writes, so re-deriving the consumer without its producer records a run
     # that found no payload -- and a failed run records only what it reached.
@@ -2780,11 +3146,12 @@ def affected(files: list[str]) -> dict:
     # selectable, so suite order cannot place it: it follows its driver.
     rederive = suite_order(why) + children
     if not rederive:
-        # Everything that changed is absent from every closure, and `unmapped`
-        # above already proved each such file is INERT. Nothing a recording
-        # could touch has moved.
+        # Everything that changed is absent from every closure, no recorded
+        # inert read reaches it, and `unmapped` above already proved each
+        # such file is INERT. Nothing a recording could touch has moved.
         return {"case": "skip",
-                "reason": "no recorded closure contains any changed file, and "
+                "reason": "no recorded closure contains any changed file, no "
+                          "script's recorded inert_reads reach them, and "
                           "every one of them is INERT",
                 "rederive": [], "why": {}, "changed": files}
     return {"case": "scoped",
@@ -2832,6 +3199,176 @@ def write_affected(plan: dict, workdir: Path) -> None:
     buf = io.StringIO()
     print_affected(plan, buf)
     (workdir / "affected.txt").write_text(buf.getvalue())
+
+
+# ---------------------------------------------------------------------------
+# The scoped re-derive's lane plan (round-9 merge-path pre-study, R1)
+#
+# The scoped arm used to loop `--single` over affected.scripts one script at
+# a time, so its wall was the SUM of the selected recordings -- 51m18s over
+# 24 scripts on #2071's `closures` job (job 114030702792) -- while the full
+# arm's lane-balanced wall is the MAX of its lanes (27m57s-54m45s the same
+# day): the scoped arm paid more than the full one for strictly less work,
+# and no runner-speed fix can change that floor. This planner shards the
+# same list across lanes so a scoped derivation pays a lane MAX too.
+# WHICH lane records a script changes WHEN it is recorded and never WHAT it
+# opens (R9-F10.15, the full arm's own result): one recording file per
+# script per out-dir, and the ordering constraints below are the documented
+# ones the serial loop's order already carried.
+
+# The owner's standing bound on concurrent heavy scripts: at most three
+# recordings at once on a CI runner, four on a seat box (the gate lease's
+# four heavy slots on the 8-core box, 2026-10-10).
+LANE_CAP_CI = 3
+LANE_CAP_LOCAL = 4
+
+
+def lane_edges(scripts: list[str]) -> list[tuple[str, str]]:
+    """Pairs that must share a lane, first before second.
+
+    Every ``PRODUCERS`` edge and every ``DRIVEN_BY_OTHERS`` pair with both
+    ends present. plan_view.py writes the payload the card scripts read, so
+    the consumer recorded ahead of its producer finds no payload (#1146),
+    and a driven child follows its driver -- the two constraints `affected`
+    already builds into the rederive list's order.
+    """
+    present = set(scripts)
+    edges = []
+    for consumer, producers in PRODUCERS.items():
+        for prod in producers:
+            if consumer in present and prod in present:
+                edges.append((prod, consumer))
+    for child, driver in DRIVEN_BY_OTHERS.items():
+        c, d = f"tests/{child}", f"tests/{driver}"
+        if c in present and d in present:
+            edges.append((d, c))
+    return edges
+
+
+def _lane_ordered(members: list[str], edges: list[tuple[str, str]]) -> list[str]:
+    """``members`` in input order, except where an edge demands otherwise.
+
+    A stable topological sort: the serial loop's relative order, with the
+    producer/driver moved ahead of its consumer/child even if the input list
+    put it later.
+    """
+    out: list[str] = []
+    remaining = list(members)
+    while remaining:
+        for s in remaining:
+            if not any(b == s and a in remaining for a, b in edges):
+                out.append(s)
+                remaining.remove(s)
+                break
+        else:  # a cycle among the constraints: keep the input order
+            out += remaining
+            break
+    return out
+
+
+def lane_plan(scripts: list[str], recorded: dict, lanes: int) -> list[list[str]]:
+    """Shard ``scripts`` (affected.scripts order) across ``lanes`` lanes.
+
+    Greedy longest-processing-time over the ``recorded`` seconds table --
+    each constraint group of `lane_edges` moves as one unit so its order
+    survives the shard -- and no lane is left out of the answer, so the
+    union of the lanes is exactly the input.
+    """
+    if lanes < 1:
+        raise ValueError("lanes must be >= 1")
+    order = {s: i for i, s in enumerate(scripts)}
+    if len(order) != len(scripts):
+        raise ValueError("duplicate script in the lane plan input: "
+                         + next(s for s in order if scripts.count(s) > 1))
+    edges = lane_edges(scripts)
+    # Union-find over the constraint pairs: a pair shares a lane.
+    parent = {s: s for s in scripts}
+
+    def find(x: str) -> str:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for a, b in edges:
+        parent[find(a)] = find(b)
+    groups: dict[str, list[str]] = {}
+    for s in scripts:
+        groups.setdefault(find(s), []).append(s)
+
+    def secs(s: str) -> float:
+        r = recorded.get(s)
+        if isinstance(r, dict):
+            return float(r.get("seconds", 0.0))
+        return float(r or 0.0)
+
+    ranked = sorted(([_lane_ordered(m, edges) for m in groups.values()]),
+                    key=lambda g: (-sum(secs(s) for s in g), order[g[0]]))
+    loads = [0.0] * lanes
+    out: list[list[str]] = [[] for _ in range(lanes)]
+    for group in ranked:
+        i = min(range(lanes), key=lambda k: (loads[k], k))
+        # The whole lane is re-ordered edge-stably at the end, so appending a
+        # group mid-lane cannot leave a consumer ahead of its producer.
+        out[i].extend(group)
+        loads[i] += sum(secs(s) for s in group)
+    return [_lane_ordered(ln, edges) for ln in out if ln]
+
+
+def lane_request(requested: int | None = None) -> int:
+    """The lane count a derivation may use, under the owner's standing bound.
+
+    ``requested`` (the ``--lanes`` flag) beats ``$DERIVE_LANES``, which beats
+    ``min(cap, cpu_count)``; nothing exceeds the cap. On a CI runner the cap
+    is three recordings at once, on a seat box four.
+    """
+    cap = LANE_CAP_CI if os.environ.get("CI") == "true" else LANE_CAP_LOCAL
+    n = requested
+    if n is None and os.environ.get("DERIVE_LANES"):
+        n = int(os.environ["DERIVE_LANES"])
+    if n is None:
+        n = min(cap, os.cpu_count() or 1)
+    return max(1, min(n, cap))
+
+
+def _lane_plan_cmd(scripts_from: Path, out_dir: Path,
+                   lanes: int | None) -> int:
+    """Write one ``lane.<n>`` file per lane and print the plan.
+
+    ``tests/derive_closures.sh --scripts-from`` runs the planner, then one
+    background shell per lane file. The input is what ``affected`` selected,
+    in its order; the planner may reorder within a lane only as far as the
+    constraint edges demand.
+    """
+    scripts = [l.strip() for l in scripts_from.read_text().splitlines()
+               if l.strip()]
+    if not scripts:
+        print(f"lane-plan: no scripts in {scripts_from}", file=sys.stderr)
+        return 2
+    recorded = {}
+    if CLOSURES.exists():
+        recorded = json.loads(CLOSURES.read_text()).get("recorded", {})
+    try:
+        lanes_out = lane_plan(scripts, recorded, lane_request(lanes))
+    except ValueError as exc:
+        print(f"lane-plan: {exc}", file=sys.stderr)
+        return 2
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for i, ln in enumerate(lanes_out, 1):
+        (out_dir / f"lane.{i}").write_text("".join(f"{s}\n" for s in ln))
+
+    def secs(s: str) -> float:
+        r = recorded.get(s)
+        return float(r.get("seconds", 0.0)) if isinstance(r, dict) else 0.0
+
+    cap = LANE_CAP_CI if os.environ.get("CI") == "true" else LANE_CAP_LOCAL
+    print(f"lane plan: {len(lanes_out)} lane(s) for {len(scripts)} script(s), "
+          f"bound {cap}"
+          + (f", requested {lanes}" if lanes is not None else ""))
+    for i, ln in enumerate(lanes_out, 1):
+        print(f"  lane {i} ({sum(secs(s) for s in ln):.1f}s recorded): "
+              + ", ".join(ln))
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -3368,11 +3905,354 @@ def selftest() -> int:
     print("\n=== a layout git merges without a driver (R9-CI-2b) ===")
     _selftest_layout(pin)
 
+    print("\n=== composed and proof recordings fail closed (round-9 C1/C2) ===")
+    _selftest_composed(pin)
+    _selftest_proof(pin)
+    print("\n=== the scoped re-derive's lane plan (round-9 R1) ===")
+    _selftest_lane_plan(pin)
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
     print(f"\nALL {n} closure shrink pins PASSED")
     return 0
+
+
+def _proof_fixture(td: Path, tree: str, *, manifest: bool = True,
+                    recordings: int | None = None, rc: int = 0,
+                    roster: bool = True) -> Path:
+    d = td / "proof"
+    d.mkdir(parents=True, exist_ok=True)
+    if manifest:
+        (d / "tree.txt").write_text(tree + "\n")
+    # None means the whole selectable roster; an int means a partial set
+    # (which the roster refusal below must catch).
+    names = ([Path(s).name for s in selectable_scripts()
+              if Path(s).name not in DRIVEN_BY_OTHERS
+              and Path(s).name not in SLOW_GATED] if roster
+             else [f"rec{i}.py" for i in range(recordings or 1)])
+    for i, name in enumerate(names[:recordings] if recordings is not None
+                             else names):
+        (d / f"rec{i}.json").write_text(json.dumps({
+            "script": f"tests/{name}", "rc": rc,
+            "files": [f"tests/{name}"],
+        }))
+    return d
+
+
+def _selftest_proof(pin) -> None:
+    good = "1" * 40
+    other = "2" * 40
+    with tempfile.TemporaryDirectory() as td:
+        d = _proof_fixture(Path(td), good)
+        with contextlib.redirect_stdout(io.StringIO()) as buf:
+            rc = proof_consume(good, d)
+        pin("proof-consume accepts recordings whose manifest names this tree",
+            rc == 0 and "consumed proof recordings" in buf.getvalue(),
+            f"rc={rc} out={buf.getvalue()[-200:]!r}")
+    for name, kwargs, why in (
+        ("a manifest naming ANOTHER tree",
+         {"tree": other, "expect": good},
+         "the #2109 class: recordings of a different tree passing the check"),
+        ("no manifest at all", {"manifest": False},
+         "the artifact does not name its tree"),
+        ("an artifact with no recordings", {"recordings": 0},
+         "nothing to check"),
+        ("an unhealthy recording", {"rc": 1},
+         "a run that died has a truncated read set"),
+        ("a set missing selectable scripts", {"recordings": 3},
+         "consuming skips the full arm, so the set must satisfy the full "
+         "check's roster rule alone"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            kwargs = dict(kwargs)
+            expect = kwargs.pop("expect", None)
+            tree = kwargs.pop("tree", good)
+            d = _proof_fixture(Path(td), tree, **kwargs)
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                rc = proof_consume(expect or good, d)
+            pin(f"proof-consume refuses {name}",
+                rc == 1, f"rc={rc}")
+    with tempfile.TemporaryDirectory() as td:
+        d = _proof_fixture(Path(td), good)
+        (d / "rec0.json").write_text("{not json")
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = proof_consume(good, d)
+        pin("proof-consume refuses a malformed recording",
+            rc == 1, f"rc={rc}")
+
+
+def _selftest_composed(pin) -> None:
+    tree = "3" * 40
+    script = composed_scripts()[0] if composed_scripts() else \
+        "tests/boost_drift_replay.py"
+    name = Path(script).name
+
+    def composed_dir(td: Path, *, rec: dict | None, manifest: str | None = tree):
+        d = td / "composed"
+        d.mkdir(parents=True, exist_ok=True)
+        if manifest is not None:
+            (d / "tree.txt").write_text(manifest + "\n")
+        if rec is not None:
+            (d / (name + ".json")).write_text(json.dumps(rec))
+        return d
+
+    good_rec = {"script": script, "rc": 0, "argv": [script],
+                "files": ["tests/harness.py", script],
+                "inert_reads": ["docs/x.md"], "how": "audithook+sys.modules+coverage-tracer"}
+    with tempfile.TemporaryDirectory() as td:
+        d = composed_dir(Path(td), rec=good_rec)
+        with contextlib.redirect_stdout(io.StringIO()) as buf:
+            rc = composed_verify(tree, d)
+        pin("composed-verify accepts a healthy record on the same tree",
+            rc == 0 and script in buf.getvalue().splitlines(),
+            f"rc={rc} out={buf.getvalue()!r}")
+    for label, rec, manifest in (
+        ("a run that did not end (rc 1)", {**good_rec, "rc": 1}, tree),
+        ("a run with the coverage lane's argv, not the closures lane's",
+         {**good_rec, "argv": [script, "--mode", "strict"]}, tree),
+        ("an empty read set", {**good_rec, "files": []}, tree),
+        ("a manifest naming another tree", good_rec, "4" * 40),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            d = composed_dir(Path(td), rec=rec, manifest=manifest)
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                rc = composed_verify(tree, d)
+            pin(f"composed-verify refuses {label} and consumes nothing",
+                rc == 1, f"rc={rc}")
+    with tempfile.TemporaryDirectory() as td:
+        d = composed_dir(Path(td), rec=good_rec)
+        (d / (name + ".json")).write_text(json.dumps(
+            {**good_rec, "script": "tests/features.py"}))
+        global COMPOSED
+        saved = COMPOSED
+        allow = Path(td) / "allow.json"
+        allow.write_text(json.dumps({"scripts": ["tests/features.py"]}))
+        COMPOSED = allow
+        try:
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()) as err:
+                rc = composed_verify(tree, d)
+            pin("composed-verify refuses a never-compose script even with a "
+                "healthy record", rc == 1 and "CHEAP_ARGV_OR_ENV" in err.getvalue(),
+                f"rc={rc} err={err.getvalue()[-200:]!r}")
+        finally:
+            COMPOSED = saved
+    # The committed allow-list itself: every entry is a real selectable
+    # script, off the never-compose list -- the seam the rule enumerates.
+    entries = composed_scripts()
+    bad = [s for s in entries
+           if not (ROOT / s).is_file()
+           or Path(s).name in CHEAP_ARGV_OR_ENV
+           or Path(s).name in NOT_A_TEST]
+    pin("every committed composed-closure entry is a selectable, composable script",
+        not bad, f"bad entries: {bad}")
+
+    # The byte-identity proof: equal passes, one file differs, bare-only.
+    bare = {"script": script, "rc": 0, "argv": [script],
+            "files": ["tests/harness.py", script], "inert_reads": ["docs/x.md"]}
+    with tempfile.TemporaryDirectory() as td:
+        b = Path(td) / "bare"; b.mkdir()
+        (b / (name + ".json")).write_text(json.dumps(bare))
+        c = composed_dir(Path(td), rec=good_rec)
+        with contextlib.redirect_stdout(io.StringIO()) as buf:
+            rc = composed_compare(c, b)
+        pin("composed-compare passes equal files and inert_reads (null control)",
+            rc == 0 and "byte-identical" in buf.getvalue(), f"rc={rc}")
+        shrunk = {**good_rec, "files": [script]}
+        c2 = composed_dir(Path(td) / "s", rec=shrunk)
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = composed_compare(c2, b)
+        pin("composed-compare reddens when the composed read set misses a file",
+            rc == 1, f"rc={rc}")
+        c3 = composed_dir(Path(td) / "n", rec=None)
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = composed_compare(c3, b)
+        pin("composed-compare reddens on a bare recording with no composed one",
+            rc == 1, f"rc={rc}")
+def _selftest_lane_plan(pin) -> None:
+    """The planner's invariants, on synthetic tables, plus the bash runner.
+
+    The pure-function pins fix the policy (coverage, constraints, balance,
+    the owner's lane bound); the subprocess pins drive the real
+    ``derive_closures.sh --scripts-from`` under a stub interpreter that
+    stands in for ``closure.py`` at the runner's own interface: the stub
+    implements ``lane-plan`` by splitting the input into ``$DERIVE_LANES``
+    lane files and ``record`` by touching one ``.json`` per script, so the
+    runner's contract -- plan, spawn one shell per lane file, record every
+    line -- is what is measured, without running a real recording.
+    """
+    four = ["tests/a.py", "tests/b.py", "tests/c.py", "tests/d.py"]
+    rec = {"tests/a.py": {"seconds": 100.0}, "tests/b.py": {"seconds": 90.0},
+           "tests/c.py": {"seconds": 20.0}, "tests/d.py": {"seconds": 10.0}}
+    plan = lane_plan(four, rec, 2)
+    pin("the lanes cover every script exactly once",
+        sorted(s for ln in plan for s in ln) == sorted(four), repr(plan))
+    pin("LPT balances the recorded seconds across the lanes",
+        sorted(sum(rec[s]["seconds"] for s in ln) for ln in plan)
+        == [110.0, 110.0],
+        repr([sum(rec[s]["seconds"] for s in ln) for ln in plan]))
+    pin("an unrecorded script plans at 0.0s rather than refusing",
+        lane_plan(["tests/new.py"], rec, 4) == [["tests/new.py"]],
+        repr(lane_plan(["tests/new.py"], rec, 4)))
+    pin("more lanes than scripts leaves no empty lane behind",
+        lane_plan(["tests/a.py"], rec, 4) == [["tests/a.py"]],
+        repr(lane_plan(["tests/a.py"], rec, 4)))
+    try:
+        lane_plan(["tests/a.py", "tests/a.py"], rec, 2)
+        pin("a duplicate input script is refused", False, "no ValueError")
+    except ValueError:
+        pin("a duplicate input script is refused", True, "ValueError")
+
+    # The two documented ordering constraints, with the input list putting
+    # the consumer FIRST -- the sharder, not the caller, must move the
+    # producer/driver ahead of it (the #1146 shape).
+    cards = ["tests/card.mjs", "tests/wood_advisor.py", "tests/card_drift.mjs",
+             "tests/plan_view.py"]
+    crec = {s: {"seconds": 1.0} for s in cards}
+    plan = lane_plan(cards, crec, 4)
+    card_lane = next(ln for ln in plan if "tests/card.mjs" in ln)
+    pin("plan_view.py shares a lane with both card scripts it feeds",
+        "tests/plan_view.py" in card_lane
+        and next(ln for ln in plan if "tests/card_drift.mjs" in ln) is card_lane,
+        repr(plan))
+    pin("and is recorded ahead of them, from a list that put it last",
+        card_lane.index("tests/plan_view.py")
+        < min(card_lane.index("tests/card.mjs"),
+              card_lane.index("tests/card_drift.mjs")),
+        repr(card_lane))
+    pair = lane_plan(["tests/dst_checks.py", "tests/features.py"],
+                     {"tests/features.py": {"seconds": 5.0}}, 2)
+    pin("a driven child shares its driver's lane, driver first",
+        len(pair) == 1 and pair[0] == ["tests/features.py", "tests/dst_checks.py"],
+        repr(pair))
+
+    saved = {k: os.environ.get(k) for k in ("CI", "DERIVE_LANES")}
+    try:
+        os.environ["CI"] = "true"
+        pin("the CI bound is three lanes", lane_request() == 3,
+            f"lane_request()={lane_request()}")
+        pin("and a request past it is clamped, never honoured",
+            lane_request(9) == 3, f"lane_request(9)={lane_request(9)}")
+        del os.environ["CI"]
+        pin("the seat bound is four lanes", lane_request(4) == 4,
+            f"lane_request(4)={lane_request(4)}")
+        pin("a seat request past four is clamped too",
+            lane_request(5) == 4, f"lane_request(5)={lane_request(5)}")
+        os.environ["DERIVE_LANES"] = "1"
+        pin("$DERIVE_LANES requests the lane count (the serial control)",
+            lane_request() == 1, f"lane_request()={lane_request()}")
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    # The planner over the tree's own table and names, through the CLI the
+    # runner calls: the card pair must land together with plan_view first.
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        want = ["tests/card.mjs", "tests/plan_view.py", "tests/wood_advisor.py"]
+        (td_path / "in.txt").write_text("".join(f"{s}\n" for s in want))
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "tests" / "closure.py"), "lane-plan",
+             "--scripts-from", str(td_path / "in.txt"),
+             "--out-dir", str(td_path / "lanes")],
+            cwd=ROOT, capture_output=True, text=True)
+        lane_files = sorted((td_path / "lanes").glob("lane.*"))
+        got = [l.strip() for f in lane_files for l in f.read_text().splitlines()
+               if l.strip()]
+        pin("the CLI plans every input script over the live table",
+            res.returncode == 0 and sorted(got) == sorted(want),
+            res.stdout + res.stderr)
+        card_file = next(f for f in lane_files if "card.mjs" in f.read_text())
+        lines = [l.strip() for l in card_file.read_text().splitlines() if l.strip()]
+        pin("the live-table plan keeps plan_view.py ahead of the card in its lane",
+            "tests/plan_view.py" in lines
+            and lines.index("tests/plan_view.py") < lines.index("tests/card.mjs"),
+            repr(lines))
+        pin("and never exceeds the owner's lane bound",
+            len(lane_files) <= lane_request(), f"{len(lane_files)} lane file(s)")
+
+    # The bash runner, under the stub described above: four one-second
+    # recordings across two lanes must overlap in time and produce exactly
+    # the input's recording set.
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        stub = td_path / "lanestub"
+        stub.write_text(
+            "#!/bin/sh\n"
+            "case \"$2\" in\n"
+            "  lane-plan)\n"
+            "    n=${DERIVE_LANES:-2}; i=0\n"
+            "    while read -r s; do\n"
+            "      [ -n \"$s\" ] || continue\n"
+            "      i=$((i + 1)); echo \"$s\" >> \"$6/lane.$(( (i - 1) % n + 1 ))\"\n"
+            "    done < \"$4\"\n"
+            "    exit 0 ;;\n"
+            "  record)\n"
+            "    printf 'S %s %s\\n' \"$3\" \"$(date +%s)\" >> \"$LANELOG\"\n"
+            "    sleep 1\n"
+            "    printf 'E %s %s\\n' \"$3\" \"$(date +%s)\" >> \"$LANELOG\"\n"
+            "    touch \"$5/$(basename \"$3\").json\" ;;\n"
+            "esac\n"
+            "exit 0\n")
+        stub.chmod(0o755)
+        want = [f"tests/p{i}.py" for i in range(1, 5)]
+        (td_path / "in.txt").write_text("".join(f"{s}\n" for s in want))
+        out = td_path / "rec"
+        log = td_path / "spans.log"
+        res = subprocess.run(
+            ["bash", "tests/derive_closures.sh", "--scripts-from",
+             str(td_path / "in.txt"), "--record-only", "--out-dir", str(out)],
+            cwd=ROOT, env={**os.environ, "PYTHON": str(stub),
+                           "DERIVE_LANES": "2", "LANELOG": str(log)},
+            capture_output=True, text=True)
+        got = sorted(p.name for p in out.glob("*.json"))
+        pin("the runner records every listed script exactly once",
+            res.returncode == 0
+            and got == sorted(Path(s).name + ".json" for s in want),
+            f"rc={res.returncode} got={got} {res.stdout[-300:]}")
+        spans: dict[str, tuple[int, int]] = {}
+        for line in log.read_text().splitlines():
+            parts = line.split()
+            if len(parts) == 3 and parts[0] in ("S", "E") and parts[1] in want:
+                t = spans.setdefault(parts[1], [0, 0])
+                t[0 if parts[0] == "S" else 1] = int(parts[2])
+        overlap = any(
+            spans[a][0] <= spans[b][1] and spans[b][0] <= spans[a][1]
+            for i, a in enumerate(want) for b in want[i + 1:])
+        pin("two recordings ran at the same time (a lane MAX, not a serial SUM)",
+            len(spans) == len(want) and overlap,
+            f"spans={spans!r}")
+        # A script the runner cannot record at all -- the stub refuses one
+        # by name -- must take the derive with it: a lane that silently
+        # drops a script would leave the scoped check comparing nothing.
+        stub.write_text(
+            "#!/bin/sh\n"
+            "case \"$2\" in\n"
+            "  lane-plan)\n"
+            "    cp \"$4\" \"$6/lane.1\"\n"
+            "    exit 0 ;;\n"
+            "  record)\n"
+            "    [ \"$3\" = \"tests/p2.py\" ] && exit 9\n"
+            "    touch \"$5/$(basename \"$3\").json\" ;;\n"
+            "esac\n"
+            "exit 0\n")
+        out2 = td_path / "rec2"
+        res = subprocess.run(
+            ["bash", "tests/derive_closures.sh", "--scripts-from",
+             str(td_path / "in.txt"), "--record-only", "--out-dir", str(out2)],
+            cwd=ROOT, env={**os.environ, "PYTHON": str(stub)},
+            capture_output=True, text=True)
+        pin("a script recorded by no lane fails the derive loudly",
+            res.returncode != 0 and "tests/p2.py" in res.stdout
+            and not (out2 / "p2.py.json").exists(),
+            f"rc={res.returncode} {res.stdout[-300:]}")
 
 
 def _selftest_layout(pin) -> None:
@@ -3680,10 +4560,24 @@ def main() -> int:
     f.add_argument("--files-from")
     f.add_argument("--json", action="store_true")
     f.add_argument("--workdir")
+    lp = sub.add_parser("lane-plan")
+    lp.add_argument("--scripts-from", required=True)
+    lp.add_argument("--lanes", type=int)
+    lp.add_argument("--out-dir", required=True)
     nr = sub.add_parser("not-run"); nr.add_argument("--workdir", required=True)
     cs = sub.add_parser("coverage-split")
     cs.add_argument("--plan", required=True)
     cs.add_argument("--reuse-dir", required=True)
+    pc = sub.add_parser("proof-consume")
+    pc.add_argument("--expect-tree", required=True)
+    pc.add_argument("--in-dir", required=True)
+    cv = sub.add_parser("composed-verify")
+    cv.add_argument("--expect-tree", required=True)
+    cv.add_argument("--in-dir", required=True)
+    cc = sub.add_parser("composed-compare")
+    cc.add_argument("--composed-dir", required=True)
+    cc.add_argument("--bare-dir", required=True)
+    sub.add_parser("composed-list")
     sub.add_parser("show")
     sub.add_parser("no-copies")
     sub.add_parser("selftest")
@@ -3705,8 +4599,20 @@ def main() -> int:
         return canonical()
     if a.cmd == "coverage-split":
         return coverage_split_cli(Path(a.plan), Path(a.reuse_dir))
+    if a.cmd == "proof-consume":
+        return proof_consume(a.expect_tree, Path(a.in_dir))
+    if a.cmd == "composed-verify":
+        return composed_verify(a.expect_tree, Path(a.in_dir))
+    if a.cmd == "composed-compare":
+        return composed_compare(Path(a.composed_dir), Path(a.bare_dir))
+    if a.cmd == "composed-list":
+        for script in composed_scripts():
+            print(script)
+        return 0
     if a.cmd == "not-run":
         return _not_run_cmd(Path(a.workdir))
+    if a.cmd == "lane-plan":
+        return _lane_plan_cmd(Path(a.scripts_from), Path(a.out_dir), a.lanes)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "selftest":
