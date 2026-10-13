@@ -4,17 +4,19 @@
 WHY THIS EXISTS. Round 9's fix heads went to review and were then reddened by
 two jobs whose repair a static read of the tree could have named first:
 `closures` (a file no closure lists, a new import an existing closure does not
-list, a new harness the INERT-read table does not list, a selectable script no
-derive lane records) and `mutation` (a site the diff adds with no pin). The
-autofix jobs meant to repair them repaired none of the twenty runs measured on
-this round's eight fix pull requests (R9-RO-11's pre-study, in its PR body), so
-the red reached a reviewer's head every time. Three arms call CI's own
-functions: UNCLASSIFIED (`closure.orphan_files`), the INERT test inside both
-closure arms (`closure.is_inert`), and ADDED UNPINNED (`mutation_table`'s
-source-only ratchet). Two are this predictor's own model, because CI learns
-the answer by running: the import arm resolves imports statically where CI
-records them at run time, and NO RECORDING reads the `rec tests/...` lines of
-`tests/derive_closures.sh` where CI sees which recordings exist. Every arm is
+list, a new harness the INERT-read table does not list) and `mutation` (a site
+the diff adds with no pin). The autofix jobs meant to repair them repaired
+none of the twenty runs measured on this round's eight fix pull requests
+(R9-RO-11's pre-study, in its PR body), so the red reached a reviewer's head
+every time. Three arms call CI's own functions: UNCLASSIFIED
+(`closure.orphan_files`), the INERT test inside both closure arms
+(`closure.is_inert`), and ADDED UNPINNED (`mutation_table`'s source-only
+ratchet). One is this predictor's own model, because CI learns the answer by
+running: the import arm resolves imports statically where CI records them at
+run time. (A fourth arm, NO RECORDING, read the `rec tests/...` lines of
+`tests/derive_closures.sh`; round-9 C1 derived the full arm's recording set
+from the tree and the class stopped being expressible -- `no_recording` below
+says so where it stood.) Every arm is
 scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
 or a mutant: seconds, never a heavy script.
@@ -37,7 +39,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -212,23 +213,20 @@ def inert_siblings(changed, inert_reads, closure):
 
 
 def no_recording(root, base, changed, closure):
-    """A selectable script no derive lane records: `NO recording this run`.
+    """Nothing, since round-9 C1 planned the full arm.
 
-    Only scripts the diff adds or changes, and scripts whose recording an
-    edit to the lane file drops: a script main already carries unrecorded is
-    main's red, and charging it to every branch -- or to every branch that
-    touches the lane file -- would refuse pushes nothing on them can fix.
+    This arm read the ``rec tests/...`` lines of ``tests/derive_closures.sh``
+    and predicted `NO recording this run` for a selectable script the diff
+    added that no lane named, or whose name a lane edit dropped. The full
+    arm's recording set is now derived from the tree (``lane-plan
+    --all-scripts``: every runnable test script but the SLOW_GATED ones), so
+    there is no lane file a new selectable script has to be added to and no
+    line whose deletion could drop a recording -- the class cannot fire.
+    The job's own missing-recording check holds the derive against the same
+    derived roster, so a dropped recording is loud on CI without a
+    prediction.
     """
-    lane = "tests/derive_closures.sh"
-
-    def recs(text):
-        return set(re.findall(r"\brec (tests/\S+)", text or ""))
-    recorded = recs((root / lane).read_text())
-    dropped = recs(show(root, base, lane)) - recorded if lane in changed else set()
-    return [("closures", f"NO RECORDING {s}: selectable, and no lane of "
-             f"{lane} records it")
-            for s in closure.selectable_scripts()
-            if s not in recorded and (s in changed or s in dropped)]
+    return []
 
 
 def orphans(changed, closure):
