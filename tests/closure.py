@@ -4371,9 +4371,16 @@ def _selftest_lane_plan(pin) -> None:
     # 2,706 s of a ~4,014 s table -- 2 * 2,706 > total, no second lane even
     # overlaps it. A planned max lane under half the table means the other
     # lanes together outweigh the pole, which is what a lane MAX wall buys.
-    pin("the planned max lane is under half the table's recorded seconds",
-        2 * max(loads) < sum(loads),
-        f"max {max(loads):.1f}s, total {sum(loads):.1f}s")
+    # One indivisible script heavier than half the table makes that
+    # unsatisfiable for EVERY plan, so the pin's second arm pins the optimum
+    # instead: no partition's max lane can drop below the heaviest single
+    # script, so a plan whose wall equals it has nothing left to prove. A
+    # degenerate plan (everything in one lane) still fails both arms.
+    pole = max(_rec_secs(s) for s in full_scripts)
+    pin("the planned max lane is under half the table's recorded seconds,"
+        " or equals the heaviest indivisible script no plan can beat",
+        2 * max(loads) < sum(loads) or max(loads) == pole,
+        f"max {max(loads):.1f}s, total {sum(loads):.1f}s, pole {pole:.1f}s")
 
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)

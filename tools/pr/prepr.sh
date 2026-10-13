@@ -709,6 +709,146 @@ moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 ski
   return 1
 }
 
+# --- closure-reachability skips for the heavy steps ---------------------------
+# WHY THIS EXISTS. A pull request whose diff is one delivery row, or one file
+# under tools/ or docs/, paid for prepr's heavy battery -- the mutants drive,
+# field coverage, the register check -- although the closure table proves those
+# checks' read-sets are disjoint from the diff (measured twice on 2026-10-12,
+# minutes each on a row-only branch). The scoped gate already expresses the
+# principle: a row-only diff prints `MODE: SCOPED -- 0 script(s) run`. This is
+# that principle inherited, not a new scope decision: the reachability engine
+# is `tests/closure.py affected`, the gate's own MEASURED derivation, never a
+# second opinion written here.
+#
+# THE RULE, AND EVERY BOUNDARY FAILS OPEN TO RUNNING, NEVER TO SKIPPING.
+#   * The derivation below must succeed and `closure.py affected` must return
+#     case `skip` or `scoped`. Anything else -- an unreadable diff, a tool
+#     that failed, a changed gate file, `no recorded closure mentions ...` --
+#     runs every heavy step exactly as before.
+#   * A diff touching any script the closure table itself measures (a key of
+#     tests/closures.json) runs every heavy step: a changed gate script is
+#     exactly the input no hand-declared read-set can be trusted against.
+#   * A step skips only when the three-dot diff intersects nothing in its
+#     read-set -- the measured closure of every script the step drives that
+#     the table records, plus the step's declared path list where no closure
+#     exists. Every skip prints prepr's `say skip` line WITH the reason: which
+#     closure, which declared list, which disjointness. A silent skip is the
+#     defect class this programme refuses.
+# Nothing is cached across invocations: the plan is derived per run and
+# removed with the run's temp files.
+#
+# THE AGREEMENT LANE IS DELIBERATELY NOT HERE. agreement_py.py reads the
+# branch's OWN merge-subject history (`git log --first-parent` since the tag
+# through HEAD) to compare its delivery-status and stamp readers against, so
+# every branch that adds a commit provably reaches it -- no file table can
+# call that read inert. It stays unconditional and says so nowhere but here.
+heavy_declared() { # step id -> one `dir <prefix>` or `file <path>` or `closure <script>` per line
+  case "$1" in
+    # policy_lint_mutants.mjs reads its own directory (the mutated TARGET,
+    # counts.mjs, render_md.mjs, the fixtures beside them) and drives
+    # policy_lint.mjs, whose corpus is POLICY_GLOBS: the two entry points,
+    # the rule/skill/brief trees, and the READMEs the corpus caps. Declared
+    # wider than any one read, never narrower: an over-approximated read-set
+    # only ever costs a skip.
+    mutants)
+      printf '%s\n' \
+        "dir tools/policy/" "dir .claude/workflows/" "dir .claude/rules/" \
+        "dir .claude/skills/" "dir .cursor/rules/" "dir dev/governance/" \
+        "file CLAUDE.md" "file AGENTS.md" "file .github/PULL_REQUEST_TEMPLATE.md" \
+        "file tests/README.md" "file tools/audit/README.md" "file dev/audit/README.md" ;;
+    # field_coverage.mjs reads .claude/settings.json, the workflow fixtures,
+    # the budget object and the policy files it caps, tools/release/stamp.py
+    # as text, codeowners_gap.py's walk of .github/, and SPAWNS
+    # `python3 tests/structure.py` -- whose read-set the closure table has
+    # measured, so the measured closure stands in for that spawn.
+    field\ coverage)
+      printf '%s\n' \
+        "dir .claude/" "dir .github/" "dir tools/policy/" "dir tools/release/" \
+        "dir dev/audit/rounds/round6/" "dir dev/governance/"
+      printf 'closure %s\n' tests/structure.py ;;
+    # fold_ledger.py `check` reads the bug-class ledger, the finding schema,
+    # every dev/audit/rounds/round*/JUDGE.json and the dev/audit/rca/ documents
+    # the ledger's rca keys must resolve to; `--self-test` plants only
+    # tempfile trees and reads none of this one.
+    register\ check)
+      printf '%s\n' \
+        "dir dev/audit/config/" "dir dev/audit/rounds/" "dir dev/audit/rca/" ;;
+    *) return 1 ;;
+  esac
+}
+
+heavy_plan() { # merge base, out plan file -> rc 0 plan written, 1 no proof
+  local tmp
+  tmp=${2%.json}
+  [ -f tests/closure.py ] && [ -f tests/closures.json ] || return 1
+  git diff --no-renames --name-only "$1"...HEAD > "$tmp.changed" 2>/dev/null || return 1
+  python3 tests/closure.py affected --files-from "$tmp.changed" --json > "$2" 2>/dev/null || { rm -f "$tmp.changed"; return 1; }
+  rm -f "$tmp.changed"
+  return 0
+}
+
+heavy_skip() { # step id, plan file -> reason on stdout; rc 0 skip, 1 run
+  local s=$1
+  [ -f "$2" ] || { echo "no reachability plan was derived, so nothing was proven"; return 1; }
+  # The spec rides the environment because the python heredoc cannot call a
+  # shell function; HEAVY_SPEC is one line per heavy_declared entry.
+  HEAVY_SPEC=$(heavy_declared "$s") python3 - "$s" "$2" <<'PY'
+import json, os, sys
+
+step, plan_path = sys.argv[1], sys.argv[2]
+
+def run(reason):
+    print(reason)
+    sys.exit(1)
+
+def skip(reason):
+    print(reason)
+    sys.exit(0)
+
+try:
+    plan = json.load(open(plan_path))
+except Exception:
+    run("the reachability plan did not parse, so nothing was proven")
+case = plan.get("case")
+if case not in ("skip", "scoped"):
+    run(f"the closure derivation cannot scope the diff ({plan.get('reason', 'no reason')}), so nothing was proven")
+changed = plan.get("changed", [])
+if not changed:
+    run("no changed files could be determined, so nothing was proven")
+try:
+    closures = json.load(open("tests/closures.json"))["closures"]
+except Exception:
+    run("tests/closures.json could not be read, so no read-set is measured")
+touched = sorted(s for s in closures if s in set(changed))
+if touched:
+    run("the diff touches measured gate script(s) " + " ".join(touched)
+        + ", so no declared read-set is proven against it")
+spec = {"mutants": [], "field coverage": [], "register check": []}
+if step not in spec:
+    run(f"no read-set is declared for {step}")
+dirs, files, meas = [], [], []
+for line in os.environ.get("HEAVY_SPEC", "").splitlines():
+    kind, _, val = line.partition(" ")
+    if kind == "dir":
+        dirs.append(val)
+    elif kind == "file":
+        files.append(val)
+    elif kind == "closure":
+        if val not in closures:
+            run(f"no measured closure for {val}, so {step}'s read-set is not proven")
+        meas.append(val)
+        files.extend(closures[val])
+hits = sorted({f for f in changed if f in set(files) or any(f.startswith(d) for d in dirs)})
+if hits:
+    run(f"{step} reads " + ", ".join(hits[:4]) + (", ..." if len(hits) > 4 else ""))
+if not dirs and not files:
+    run(f"{step} declares an empty read-set, which could prove nothing")
+skip(f"the diff changes no file {step} reads -- no hit in its declared path list"
+     + (f" nor in the measured closure(s) of {', '.join(meas)}" if meas else "")
+     + f"; the closure table maps all {len(changed)} changed file(s), so no read is reached")
+PY
+}
+
 # --- the ancestry red-check arm (#1860, R9-FR-2) -------------------------------
 # WHY THIS EXISTS. defect-root-cause.md's enforced trigger fires on "a check
 # that went red on a commit in the branch", but the push-time enforcement that
@@ -1594,6 +1734,71 @@ EOS
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
 
+  # The heavy steps' closure-reachability skips (`heavy_declared`, `heavy_plan`
+  # and `heavy_skip` above), over a throwaway clone with one fixture branch per
+  # diff shape: a row-only diff skips every step with a provable read-set and
+  # the skip names its disjointness; a diff to a measured gate script, a file
+  # no measured table knows, and the agreement lane (which reads the branch's
+  # own merge-subject history and is deliberately outside this) all run. The
+  # weakening-mutation arms delete one skip condition at a time and require the
+  # matching healthy arm to redden -- the gate may only ever ADD skips with
+  # proven empty reachability, so a mutation that makes a skip fire without its
+  # proof, or that takes a proof away, must be caught here, not on a reviewer.
+  HS=$(mktemp -d)
+  ORIG_MAIN=$(git rev-parse origin/main)
+  (set -e; throwaway_git_clone -q --shared . "$HS/r"; cd "$HS/r"
+    startbr=$(git symbolic-ref --quiet --short HEAD || :)
+    git checkout -q --detach
+    { [ -z "$startbr" ] || git branch -q -D "$startbr"; }
+    git checkout -q -b hbase "$ORIG_MAIN"
+    git checkout -q -b hrow; mkdir -p dev/programme/delivery; echo row > dev/programme/delivery/9999.md
+    git add -A; git commit -qm row
+    git checkout -q -b hfeat hbase; echo "# planted" >> tests/features.py; git commit -qam feat
+    git checkout -q -b hunmapped hbase; echo "X = 1" > custom_components/heatpump_optimizer/zz_heavy_planted.py
+    git add -A; git commit -qm unmapped) >/dev/null 2>&1
+  hskip() { # branch, step, [function] -> "<rc>:<reason>"
+    local out r
+    out=$(cd "$HS/r" && git checkout -q "$1" && heavy_plan "$ORIG_MAIN" "$HS/plan.json" \
+      && "${3:-heavy_skip}" "$2" "$HS/plan.json"); r=$?
+    echo "$r:$out"
+  }
+  for s in "mutants" "field coverage" "register check"; do
+    got=$(hskip hrow "$s")
+    st "${got%%:*}" 0 "a row-only diff skips $s (the arm the mutation rows redden)"
+    case "$got" in *"no hit in its declared path list"*) st 1 1 "and $s's skip line names the disjointness";; *) st 0 1 "and $s's skip line names the disjointness";; esac
+  done
+  got=$(hskip hrow "agreement lane")
+  st "${got%%:*}" 1 "the agreement lane is never skipped: it reads the branch's own merge-subject history"
+  case "$got" in *"no read-set is declared"*) st 1 1 "and says that no provable read-set exists for it";; *) st 0 1 "and says that no provable read-set exists for it";; esac
+  for s in "mutants" "field coverage" "register check"; do
+    got=$(hskip hfeat "$s")
+    st "${got%%:*}" 1 "a diff to a measured gate script runs $s"
+  done
+  got=$(hskip hfeat "mutants")
+  case "$got" in *"touches measured gate script(s) tests/features.py"*) st 1 1 "and the run reason names the gate script";; *) st 0 1 "and the run reason names the gate script";; esac
+  for s in "mutants" "field coverage" "register check"; do
+    got=$(hskip hunmapped "$s")
+    st "${got%%:*}" 1 "a file no measured table knows runs $s (fail open, never skip)"
+  done
+  got=$(hskip hunmapped "mutants")
+  case "$got" in *"cannot scope the diff"*) st 1 1 "and the run reason is the closure derivation's own";; *) st 0 1 "and the run reason is the closure derivation's own";; esac
+  # THE WEAKENING MUTATIONS, one skip condition each. `nospec` deletes the
+  # mutants entry from the spec, so its row-only skip has no proof left and
+  # arm (a) reddens; `notouch` deletes the gate-script guard, so the features
+  # diff would be skipped unproven and arm (b) reddens; `nocase` deletes the
+  # unscopable-diff guard, so the unmapped file would be and arm (c) reddens.
+  eval "$(declare -f heavy_skip | sed 's/^heavy_skip ()/heavy_skip_nospec ()/; s/"mutants": \[\], "field coverage"/"mutants_x": [], "field coverage"/')"
+  got=$(hskip hrow "mutants" heavy_skip_nospec)
+  st "${got%%:*}" 1 "MUTATION nospec: deleting one step's read-set reddens arm (a) -- no skip without its proof"
+  eval "$(declare -f heavy_skip | sed 's/^heavy_skip ()/heavy_skip_notouch ()/; s/^if touched:$/if False:/')"
+  got=$(hskip hfeat "mutants" heavy_skip_notouch)
+  st "${got%%:*}" 0 "MUTATION notouch: deleting the gate-script guard reddens arm (b) -- the unproven skip fires"
+  eval "$(declare -f heavy_skip | sed 's/^heavy_skip ()/heavy_skip_nocase ()/; s/^if case not in ("skip", "scoped"):$/if False:/')"
+  got=$(hskip hunmapped "mutants" heavy_skip_nocase)
+  st "${got%%:*}" 0 "MUTATION nocase: deleting the unscopable-diff guard reddens arm (c) -- the unproven skip fires"
+  rm -f "$HS/plan.json"
+  rm -rf "$HS"
+
   # R9-FR-5: the closures recorder's interpreter, resolved deliberately.
   # R9-FR-3 and R9-WEB-5 each lost a full prepr pass to the same defect:
   # derive_closures.sh records under the first python3 on PATH, and on a seat
@@ -2115,9 +2320,24 @@ rm -f /tmp/prepr-policy.$$
 # 350ms, against 1.6s for the lint pass beside it: the lane runs the acceptance
 # only, never the corpus. Three checks reached main measuring nothing, so the
 # cheaper detector this answers to is this one.
+# The heavy steps' reachability plan is derived HERE, once (`heavy_plan` and
+# `heavy_skip` above): steps 3a, 3f3 and 3f5 read the same plan, and it is
+# removed with 3f5 -- no cache crosses invocations. A derivation that fails
+# leaves HEAVY_PLAN_FILE empty, every heavy step runs, and it says so once.
+HEAVY_PLAN=/tmp/prepr-heavy.$$.json
+if [ -z "${HEAVY_PLAN_FILE:-}" ]; then
+  if heavy_plan "$BASE" "$HEAVY_PLAN"; then HEAVY_PLAN_FILE=$HEAVY_PLAN; else
+    say WARN "heavy skips" "the reachability derivation failed, so every heavy step runs"
+  fi
+fi
+HV=$(heavy_skip "mutants" "${HEAVY_PLAN_FILE:-}")
+if [ $? -eq 0 ]; then
+  say skip "mutants" "$HV"
+else
 if test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1; else node tools/policy/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1; fi
 step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
 rm -f /tmp/prepr-mutants.$$
+fi
 
 # --- 3b. the generated Cursor rules match their source.
 if test -f .claude/workflows/rules_sync.mjs; then node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1; else node tools/policy/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1; fi
@@ -2166,13 +2386,26 @@ rm -f /tmp/prepr-crr.$$
 # --- 3f3. field coverage (I3 barrier), which `policy-docs` runs from the base
 # once the base carries it. The whole program: without `gh` its ruleset arm
 # prints its UNCHECKED skip, and the other arms are offline.
+# Skipped on the closure derivation's proof (`heavy_skip` above): the plan was
+# derived at step 3a, and a diff reaching nothing this step reads -- including
+# the measured closure of the tests/structure.py run it spawns -- prints the
+# skip and its disjointness.
+HV=$(heavy_skip "field coverage" "${HEAVY_PLAN_FILE:-}")
+if [ $? -eq 0 ]; then
+  say skip "field coverage" "$HV"
+else
 if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; else node tools/policy/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; fi
 step "field coverage" $? "$(tail -1 /tmp/prepr-fc.$$)"
 rm -f /tmp/prepr-fc.$$
+fi
 
 # --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
 # base once the base carries it: the Python readers first, under -I, then the
 # lane over their answers. Needs full history for its merge-subject corpus.
+# NO CLOSURE SKIP HERE, deliberately: agreement_py.py reads the branch's OWN
+# merge-subject history (`git log --first-parent` since the tag through HEAD),
+# so every branch that adds a commit provably reaches it and no file table can
+# call that read inert (`heavy_skip`'s block above). It runs unconditionally.
 if test -f .claude/workflows/agreement_py.py; then
   python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
 else
@@ -2186,10 +2419,20 @@ rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
 # branch's own copy of the checker, not a pinned one: this head's ledger and the
 # rounds in the tree. Ownership (CODEOWNERS) is the only protection against a
 # branch editing the checker. Well under a second.
+# Skipped on the closure derivation's proof (`heavy_skip` above): the step's
+# read-set is the dev/audit/ config, rounds and rca trees, and a diff reaching
+# none of them prints the skip and its disjointness. The plan is removed here,
+# with the last heavy step that reads it.
+HV=$(heavy_skip "register check" "${HEAVY_PLAN_FILE:-}")
+if [ $? -eq 0 ]; then
+  say skip "register check" "$HV"
+else
 python3 -I tools/audit/fold_ledger.py --self-test >/tmp/prepr-fl.$$ 2>&1 \
   && python3 -I tools/audit/fold_ledger.py check >>/tmp/prepr-fl.$$ 2>&1
 step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
 rm -f /tmp/prepr-fl.$$
+fi
+rm -f "${HEAVY_PLAN:-}"
 
 # --- 3f6. no tracked script, workflow or decision record tied to a temp or
 # machine path, which `instrument-self-tests` runs on the branch's own copy.
