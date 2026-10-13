@@ -148,6 +148,24 @@ merge on the base it was recarried onto remaining main's ancestor -- main may
 advance only by this batch's own merges, and anything else stops the train.
 Without the flag the serial path is byte-for-byte today's: recarry one, wait,
 merge, next.
+
+`--approval-carry` (run and batch) answers a cost measured three times on
+2026-10-12: a recarry moves a head from h0 to h, the owner's APPROVED review no
+longer names the live head, and a budget-raise entry then hard-stops for an
+approval the owner already gave -- which the orchestrator then re-posts by
+hand. Under the flag, when THIS invocation's recarry moved the head from h0 to
+h, the `git diff --name-only h0..h` delta names no branch-own file (a clean
+merge of main's commits only -- a conflict resolution is branch-own by
+definition and never qualifies), and the pull request's latest owner APPROVED
+review sits at h0 with a body citing exactly one mandate comment, the train
+re-posts that approval at h: the prior body plus one line -- "Carried by the
+train's clean recarry from h0 (delta: main's commits only); prior owner review
+<id>; mandate re-read in force at merge: <label>." The mandate is RE-READ at
+the merge moment by budget_raise_gate's own mandate_state through the train's
+existing read, never cached from admission. Each of these leaves the entry
+exactly where today's train left it, stop included: the flag off, the mandate
+not in force, a branch-own file in the delta, no qualifying prior review, or a
+re-post that fails its byte-identical read-back.
 """
 
 from __future__ import annotations
@@ -328,6 +346,7 @@ class Train:
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
                  log=print, polls: int = 24, merge_tries: int = 8, base: str = "main",
                  skip_bad: bool = False, overlap: bool = False,
+                 approval_carry: bool = False,
                  clock: "callable" = time.monotonic) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
@@ -345,6 +364,10 @@ class Train:
         # `batch --overlap` only: main_green is log-only and the serial entries
         # are recarried up front. Default (False) is today's serial train.
         self.overlap = overlap
+        # `--approval-carry`: re-post an owner approval a clean recarry moved
+        # out from under, under a mandate re-read at the merge. Default (False)
+        # is today's train: a budget stop stops, however clean the recarry was.
+        self.approval_carry = approval_carry
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
@@ -440,6 +463,25 @@ class Train:
                     f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
                     cls=STALE_VERDICT_CARRY)
 
+    def _check_runs(self, h: str) -> "list[dict] | None":
+        """One paginated read of the check runs at <h>, parsed; None on a failed
+        or unparseable read (wait_ci's fetch, shared with main_green's
+        log-only overlap read)."""
+        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
+                              f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
+        try:
+            return [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _by_name(runs: "list[dict]") -> dict:
+        """The runs keyed by name, the latest started winning (wait_ci's order)."""
+        last: dict[str, dict] = {}
+        for c in sorted(runs, key=lambda c: c.get("started_at") or ""):
+            last[c["name"]] = c
+        return last
+
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -462,17 +504,8 @@ class Train:
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
         for k in range(1, self.polls + 1):
-            # One JSON object per line across every page: past 100 runs a head
-            # would otherwise read as complete on its first page alone.
-            code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
-                                  f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
-            try:
-                runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
-            except ValueError:
-                runs = None
-            last: dict[str, dict] = {}
-            for c in sorted(runs or (), key=lambda c: c.get("started_at") or ""):
-                last[c["name"]] = c
+            runs = self._check_runs(h)
+            last = self._by_name(runs or ())
             if only is not None and runs is not None and all(
                     last.get(n, {}).get("status") == "completed" for n in only):
                 return sorted(n for n in only if last[n]["conclusion"] not in GREEN)
@@ -619,6 +652,92 @@ class Train:
         return (f"policy content changed after the owner's review at {c[:12]} "
                 f"({', '.join(moved)}): a fresh owner review, not a carry") if moved else ""
 
+    def _owner_approval_at(self, pr: int, sha: str) -> "tuple[dict | None, int | None]":
+        """The owner's latest APPROVED review naming <sha> exactly, when its body
+        cites exactly one mandate comment -- (review, cited id); else
+        (None, None). A review citing no mandate, two mandates (one does not
+        decide, the gate's own rule), or sitting on another commit qualifies
+        for nothing."""
+        g = _mandate_gate()
+        code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                            f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+        if code:
+            raise Stop("approve", "the reviews could not be read for the carry: " + o.strip()[-160:])
+        reviews = [r for page in json.loads(o) for r in page]
+        prior = next((r for r in reversed(reviews)
+                      if g._is_owner(r.get("user")) and r.get("state") == "APPROVED"), None)
+        if prior is None or prior.get("commit_id") != sha:
+            return None, None
+        cited = {int(a or b) for a, b in g.MANDATE_CITE.findall(prior.get("body") or "")}
+        return (prior, cited.pop()) if len(cited) == 1 else (None, None)
+
+    def _post_carry(self, pr: int, h: str, body: str) -> str:
+        """Post <body> as an approval at <h> and READ IT BACK: the newest review
+        at <h> must carry this body byte-for-byte, or the post is a Stop, not a
+        pass -- a carried approval nobody can read back approves nothing."""
+        bf = self.state / f"carry{pr}.md"
+        bf.write_text(body)
+        if self.head(pr) != h:
+            raise Stop("approve", "head moved before the carried approval")
+        code, o = self.run(["gh", "pr", "review", str(pr), "--repo", self.repo, "--approve",
+                            "--body-file", str(bf)])
+        if code:
+            raise Stop("approve", "the carried review was refused: " + o[-200:])
+        try:
+            code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                                f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+            back = [r for page in json.loads(o) for r in page] if code == 0 else []
+        except ValueError:
+            back = []
+        if not any(r.get("state") == "APPROVED" and r.get("commit_id") == h
+                   and (r.get("body") or "") == body for r in back):
+            raise Stop("approve", "the carried approval did not read back byte-identical; "
+                       "a failed read-back is a Stop, not a pass")
+        return "carry"
+
+    def _carry_owner_approval(self, pr: int, h: str, item: dict, files: list[str]) -> "str | None":
+        """`--approval-carry`: a clean recarry moved the head h0 -> h under an
+        owner approval that still names h0; re-post that approval at h. None
+        means NO carry and the caller stops exactly as today. Every condition
+        is the owner's (2026-10-12): the recarry of THIS invocation moved the
+        head; the h0..h delta names no branch-own file (a conflict resolution
+        is branch-own by definition and re-reviews); the owner's latest
+        APPROVED review sits at h0 citing one mandate; and that mandate is
+        RE-READ in force at the merge moment -- `self.mandate_read` here, never
+        an admission's cached answer, `mandate_state`'s own rules."""
+        if not self.approval_carry or not self.mandate:
+            return None
+        h0 = item.get("carried_from")
+        if not is_sha(h0 or "") or h0 == h:
+            return None
+        code, out = self.run(["git", "diff", "--no-renames", "--name-only", h0, h])
+        if code:
+            raise Stop("approve", f"the recarry delta {h0[:12]}..{h[:12]} could not be "
+                       "read: " + out.strip()[-160:])
+        if [f for f in out.split() if f in files]:
+            return None  # a branch-own file moved: a resolution, and a resolution re-reviews
+        try:
+            prior, cid = self._owner_approval_at(pr, h0)
+            if prior is None:
+                return None
+            g = _mandate_gate()
+            now = datetime.datetime.now(datetime.timezone.utc)
+            comment, thread = self._mandate_read(cid)  # fresh, at the merge: never admission's read
+            live, _why = g.mandate_state(cid, comment, thread, now,
+                                         now.strftime("%Y-%m-%dT%H:%M:%SZ"), "merge")
+            if not live:
+                return None
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: an unread carry grants nothing
+            raise Stop("approve", f"the carry read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
+                       "an unread carry grants nothing") from None
+        body = (str(prior.get("body") or "").rstrip()
+                + f"\n\nCarried by the train's clean recarry from {h0} (delta: main's commits only); "
+                  f"prior owner review {prior.get('id')}; "
+                  f"mandate re-read in force at merge: {self.mandate}.\n")
+        return self._post_carry(pr, h, body)
+
     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
         code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
         if code == 0 and "REFUSE" not in o:
@@ -632,7 +751,10 @@ class Train:
             raise Stop("approve", f"code-owned ({owned.group(1).strip()}) and no --mandate given: the owner's review")
         budgets = [f for f in files if f.endswith("_budgets.json")]
         if budgets:
-            raise Stop("approve", f"code-owned and a budget file changed ({', '.join(budgets)}): a raise is the owner's (0013)")
+            carried = self._carry_owner_approval(pr, h, item, files)
+            if carried is None:
+                raise Stop("approve", f"code-owned and a budget file changed ({', '.join(budgets)}): a raise is the owner's (0013)")
+            return carried
         paths = ", ".join(f"`{p}`" for p in owned.group(1).split())
         body = (f"Agent approval for code-owned {paths}, given by {self.role} under {self.mandate}, at head {h}.\n\n"
                 f"Basis: `Fix review: merge {item['verdict']}` (comment {item.get('verdict_comment', '?')}), carried to {h} "
@@ -701,9 +823,13 @@ class Train:
                     # The refusal is several lines (each prepr step, then
                     # app_push's die). The last 200 characters were only the die.
                     raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-2000:])
+                # The carry record: THIS invocation moved the head h -> moved.
+                item["carried_from"] = h
                 h = moved
                 self.log(f"#{pr} recarry: app_push refused but the head moved to {h[:8]}; the push landed, not a stop")
             else:
+                # The carry record: THIS invocation moved the head h -> h'.
+                item["carried_from"] = h
                 h = self.head(pr)
             # app_push.sh --recarry's one line: prepr SKIPPED or RUNS, and why.
             path = next((ln.strip() for ln in o.splitlines() if "RECARRY:" in ln), "no RECARRY line")
@@ -1007,12 +1133,18 @@ class Train:
         wait on main's CI before a merge) -- a red base is logged, and the
         batch's own proofs and each head's own required contexts remain the
         gates that hold."""
-        red = self.wait_ci(tip, only=req)
+        # R9-ADMIT-REQ: under --overlap the read is ONE pass, non-blocking --
+        # the loop below would hold every batch through main's push-run window
+        # (40-60 min measured) before admission, the wait the flag exists to
+        # drop. The not-green names are logged and the batch starts.
         if self.overlap:
+            last = self._by_name(self._check_runs(tip) or ())
+            red = sorted(n for n in req if last.get(n, {}).get("conclusion") not in GREEN)
             if red:
                 self.log(f"OVERLAP: {self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; "
                          "--overlap logs it and does not wait")
             return
+        red = self.wait_ci(tip, only=req)
         if red:
             raise Stop("main", f"{self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; nothing more lands")
 
@@ -1168,6 +1300,7 @@ def _self_test() -> int:
         passed, failed = passed + cond, failed + (not cond)
         print(f"  {'ok  ' if cond else 'FAIL'} {name}")
 
+
     def fake(world: dict):
         calls: list[list[str]] = []
 
@@ -1175,7 +1308,9 @@ def _self_test() -> int:
             calls.append(argv)
             a = " ".join(argv)
             if argv[:3] == ["gh", "pr", "view"] and "headRefOid" in a:
-                return 0, world["heads"].pop(0) if len(world["heads"]) > 1 else world["heads"][0]
+                h = world["heads"].pop(0) if len(world["heads"]) > 1 else world["heads"][0]
+                world["_last_head"] = h
+                return 0, h
             if "merge-base --is-ancestor" in a:
                 return (0 if world["contains"].pop(0) else 1) if world["contains"] else 0, ""
             if "remerge_main.sh" in a:
@@ -1190,6 +1325,9 @@ def _self_test() -> int:
                 return world.get("base", (0, "e" * 40 + "\n"))
             if argv[:2] == ["git", "diff"] and len(argv) > 4 and argv[4] == world.get("reviewed"):
                 return 0, "\n".join(world.get("content_diff", []))
+            if argv[:2] == ["git", "diff"] and world.get("carry_delta") \
+                    and argv[4:6] == list(world["carry_delta"][:2]):
+                return 0, world["carry_delta"][2]  # the recarry's h0..h tree delta
             if "--carry" in a:
                 return 0, world.get("carry", "CARRY: yes")
             if argv[:2] == ["git", "diff"]:
@@ -1221,6 +1359,13 @@ def _self_test() -> int:
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "pr", "review"]:
+                # What GitHub would hold after the post: the next reviews read
+                # returns it -- unless the read-back is meant to fail.
+                if "--approve" in argv and not world.get("drop_posted"):
+                    world.setdefault("reviews", []).append(
+                        {"user": {"login": "orchestrator", "id": 1, "type": "User"},
+                         "state": "APPROVED", "commit_id": world.get("_last_head", H0),
+                         "body": Path(argv[argv.index("--body-file") + 1]).read_text(), "id": 987654321})
                 return 0, "reviewed"
             if "preflight.sh" in a:
                 return 0, world.get("preflight", "  clean    no refusal")
@@ -1234,7 +1379,7 @@ def _self_test() -> int:
     item = {"pr": 7, "verdict": V, "verdict_comment": "42", "worktree": "/nonexistent-wt", "branch": "fix/x"}
 
     def go(world: dict, mandate: str | None = None, q=None, min_runs: int = 1,
-           wrap=None) -> tuple[int, list[str], list[list[str]]]:
+           wrap=None, approval_carry: bool = False) -> tuple[int, list[str], list[list[str]]]:
         world.setdefault("heads", [H0])
         world.setdefault("contains", [])
         world.setdefault("runs", green)
@@ -1244,8 +1389,11 @@ def _self_test() -> int:
             run = wrap(run)
         with tempfile.TemporaryDirectory() as d:
             rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs, run=run,
-                       sleep=lambda s: None, log=lines.append, polls=2, merge_tries=3).train(q or [dict(item)])
-            world["approve_body"] = (Path(d) / "approve7.md").read_text() if (Path(d) / "approve7.md").exists() else ""
+                       sleep=lambda s: None, log=lines.append, polls=2, merge_tries=3,
+                       approval_carry=approval_carry).train(q or [dict(item)])
+            for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
+                f = Path(d) / name
+                world[key] = f.read_text() if f.exists() else ""
         return rc, lines, calls
 
     def merged(calls) -> bool:
@@ -1411,6 +1559,71 @@ def _self_test() -> int:
                            "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
     check("code-owned with a budget file is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
+    # --approval-carry: the recarry moved an owner-approved head, the owner
+    # approved a budget raise there, and the orchestrator no longer re-posts it
+    # by hand. `carry` is the fully-qualifying world; each arm below breaks
+    # exactly one safety condition and demands today's stop back.
+    RID = 4100000002
+    CB = "mandate 5951564627 (tvofi, #201)"
+    BUDGET = ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]
+
+    def carry_world(**over):
+        # The fully-qualifying carry world, fresh per arm: the mutable keys
+        # (contains, heads) must never be shared between `go` calls -- a
+        # recarry consumes them.
+        return dict({"approve": owned, "files": BUDGET, "contains": [False],
+                     "heads": [H0, H1],
+                     "carry_delta": (H0, H1, "docs/a-main-only-file.md\n")}, **over)
+
+    w = carry_world(reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW))
+    rc, lines, calls = go(w, mandate=CB, approval_carry=True)
+    check("approval-carry fires: the clean recarry's head gets the owner's approval re-posted "
+          "with the carry line, and the entry merges",
+          rc == 0 and merged(calls) and any("approved (carry)" in ln for ln in lines)
+          and all(x in w["carry_body"] for x in (
+              "Agent approval", "Carried by the train's clean recarry from " + H0,
+              "(delta: main's commits only)", f"prior owner review {RID}",
+              f"mandate re-read in force at merge: {CB}")))
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H0, NOW), id=RID)],
+                                      mandate=mandate(NOW),
+                                      carry_delta=(H0, H1, f"{ROW_DIR}/7.md\ntests/structure_budgets.json\n")),
+                          mandate=CB, approval_carry=True)
+    check("approval-carry MUTATION (the diff-empty check): a recarry delta naming a branch-own "
+          "file is a conflict resolution, and it stops exactly as today",
+          rc == 1 and "a raise is the owner's" in lines[-1] and not approved(calls) and not merged(calls))
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H0, NOW), id=RID)],
+                                      mandate=mandate(NOW, until_min=-1)), mandate=CB, approval_carry=True)
+    check("approval-carry MUTATION (the mandate in-force check): a mandate expired before the "
+          "merge re-reads as none, and it stops exactly as today",
+          rc == 1 and "a raise is the owner's" in lines[-1] and not approved(calls) and not merged(calls))
+    rc, lines, calls = go(carry_world(reviews=[], mandate=mandate(NOW)), mandate=CB, approval_carry=True)
+    check("approval-carry with no owner APPROVED review at h0 behaves as today", rc == 1
+          and "a raise is the owner's" in lines[-1] and not approved(calls) and not merged(calls))
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review("f" * 40, NOW), id=RID)],
+                                      mandate=mandate(NOW)), mandate=CB, approval_carry=True)
+    check("approval-carry with the owner's approval on another commit does not carry", rc == 1
+          and "a raise is the owner's" in lines[-1] and not approved(calls) and not merged(calls))
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H0, NOW, cite=False), id=RID)],
+                                      mandate=mandate(NOW)), mandate=CB, approval_carry=True)
+    check("approval-carry with an owner review citing no mandate does not carry", rc == 1
+          and "a raise is the owner's" in lines[-1] and not approved(calls) and not merged(calls))
+    w = carry_world(reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW))
+    rc, lines, calls = go(w, mandate=CB)
+    check("approval-carry FLAG OFF: the same qualifying world stops exactly as today -- the "
+          "default train is byte-identical", rc == 1 and "a raise is the owner's" in lines[-1]
+          and not approved(calls) and not merged(calls) and w["carry_body"] == ""
+          and w["approve_body"] == "")
+    rc, lines, calls = go(carry_world(approve=owned, files=BUDGET,
+                                      reviews=[dict(owner_review(H0, NOW), id=RID)],
+                                      mandate=mandate(NOW), contains=[], heads=[H0]),
+                          mandate=CB, approval_carry=True)
+    check("approval-carry with no recarry of this invocation (the head never moved) does not carry",
+          rc == 1 and "a raise is the owner's" in lines[-1] and not approved(calls) and not merged(calls))
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H0, NOW), id=RID)],
+                                      mandate=mandate(NOW), drop_posted=True),
+                          mandate=CB, approval_carry=True)
+    check("approval-carry whose re-post fails the byte-identical read-back is a Stop, not a pass",
+          rc == 1 and "byte-identical" in lines[-1] and approved(calls) and not merged(calls))
     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
@@ -1663,6 +1876,10 @@ def _batch_self_test(check) -> None:
         if sha == w["base_sha"]:  # main's own push run writes every required context
             runs += [{"name": n, "id": 15, "status": "completed", "started_at": "1", "conclusion": "success"}
                      for n in w["required"].split() if n == "never-dispatched"]
+            if w.get("pending_main"):  # a fresh push run: a required context still running
+                for r in runs:
+                    if r["name"] == R0:
+                        r["status"], r["conclusion"] = "in_progress", None
         if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
             runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
                      {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
@@ -1986,6 +2203,45 @@ def _batch_self_test(check) -> None:
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2]
           and any(ln.startswith("OVERLAP: main at") and "logs it and does not wait" in ln
                   for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(pending_main=True), overlap=True)
+    check("--overlap starts the batch while main's fresh push run is still in progress: the "
+          "pre-admission read is ONE pass, logged, never a completion wait (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and any(ln.startswith("OVERLAP: ") and "is not green" in ln and "before admission" in ln
+                  for ln in w["lines"]))
+
+    # THE WIRE, not the stubbed runs: wait_ci itself is counted. The arms above
+    # exercise the real wait_ci against stubbed gh output, so a main_green that
+    # still CALLS the looping wait first (the 2026-10-14 wedge: required
+    # contexts with no runs at all never complete) passes every stubbed arm.
+    # This one reddens that code: under --overlap the looping wait must not be
+    # invoked at main's tip at all; without the flag, exactly once.
+    real_wait_ci = Train.wait_ci
+
+    def counted_wait_ci(self, h, only=None, beat=None):
+        tip_reads.append(h)
+        return real_wait_ci(self, h, only, beat)
+
+    Train.wait_ci = counted_wait_ci
+    try:
+        tip_reads = []
+        w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+               setup=lambda w: w.update(pending_main=True), overlap=True)
+        overlap_tip_reads = sum(h == w["base_sha"] for h in tip_reads)
+        tip_reads = []
+        w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(pending_main=True))
+        nonoverlap_tip_reads = sum(h == w["base_sha"] for h in tip_reads)
+    finally:
+        Train.wait_ci = real_wait_ci
+    check("THE WIRE: under --overlap main_green never invokes the looping wait_ci at main's tip "
+          "(zero reads; the pre-fix code invoked it once and wedged there); without the flag the "
+          "blocking wait is called exactly once (R9-ADMIT-REQ)",
+          overlap_tip_reads == 0 and nonoverlap_tip_reads == 1)
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(pending_main=True))
+    check("... and without --overlap the same pending main is still waited to completion, which stops it",
+          w["rc"] == 1 and "main:" in w["lines"][-1] and "TIMEOUT" in w["lines"][-1]
+          and not w["merged"] and w["cr_reads"].get(w["base_sha"], 0) >= 2)
     w = go(ovl, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, stuck_nonreq=True)),
            overlap=True)
     check("--overlap's at_head wait concludes while a non-required lane stays in_progress at the "
@@ -1995,11 +2251,15 @@ def _batch_self_test(check) -> None:
     # --skip-bad (batch only): a bad entry is skipped, logged and reported, the
     # train carries on, and the exit code says an entry was left behind.
     plain = _parser().parse_args(["batch", "q.json"])
-    flagged = _parser().parse_args(["batch", "q.json", "--skip-bad", "--overlap"])
-    check("the CLI defaults keep today's train: neither --skip-bad nor --overlap "
-          "is on until the flag says so",
-          not plain.skip_bad and not plain.overlap
-          and flagged.skip_bad and flagged.overlap)
+    flagged = _parser().parse_args(["batch", "q.json", "--skip-bad", "--overlap", "--approval-carry"])
+    check("the CLI defaults keep today's train: none of --skip-bad, --overlap or "
+          "--approval-carry is on until the flag says so",
+          not plain.skip_bad and not plain.overlap and not plain.approval_carry
+          and flagged.skip_bad and flagged.overlap and flagged.approval_carry)
+    rplain = _parser().parse_args(["run", "q.json"])
+    rflag = _parser().parse_args(["run", "q.json", "--approval-carry"])
+    check("--approval-carry is a run flag too, and off by default",
+          not rplain.approval_carry and rflag.approval_carry)
     badmid = {1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}, 3: {"c.txt": "C\n"}}
     w = go(badmid, setup=lambda w: w.update(bot_heads={w["heads"][2]: "ci: pin killed mutants"}),
            skip_bad=True)
@@ -2046,6 +2306,12 @@ def _parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
     train_opts = argparse.ArgumentParser(add_help=False)
     train_opts.add_argument("--mandate", help="the owner's mandate, as quoted in a code-owned approval; omit to never approve one")
+    train_opts.add_argument("--approval-carry", action="store_true",
+                            help="after THIS invocation's recarry moves a head h0 -> h with no branch-own file "
+                                 "in the h0..h delta, and the owner's latest APPROVED review sits at h0 citing "
+                                 "one mandate, re-post that approval at h under a mandate RE-READ in force at "
+                                 "the merge; a re-post that fails its byte-identical read-back is a stop. "
+                                 "Default: off -- a budget stop stops, however clean the recarry was.")
     train_opts.add_argument("--approver-role", default="the orchestrator")
     train_opts.add_argument("--ignore-red", action="append", help="a check whose red does not stop the train (default nightly-status)")
     train_opts.add_argument("--state-dir", default=os.path.join(os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"), "merge_train"))
@@ -2082,8 +2348,10 @@ def main(argv: list[str]) -> int:
     ignore = tuple(a.ignore_red) if a.ignore_red else ("nightly-status",)
     if a.cmd == "batch":
         return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
-                     base=a.base, skip_bad=a.skip_bad, overlap=a.overlap).batch(queue, a.tag)
-    return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs).train(queue)
+                     base=a.base, skip_bad=a.skip_bad, overlap=a.overlap,
+                     approval_carry=a.approval_carry).batch(queue, a.tag)
+    return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
+                 approval_carry=a.approval_carry).train(queue)
 
 
 if __name__ == "__main__":
