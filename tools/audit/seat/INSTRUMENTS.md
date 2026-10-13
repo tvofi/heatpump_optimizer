@@ -199,6 +199,17 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
   but the gantt's grammar checks run in `--self-test`, not at render time.
+- `proof_watch.py` — watches one named check-run at one pinned head of one
+  pull request and, once it completes `success` beside green required contexts
+  and a valid merge verdict at that exact head, merges through `merge_pr.sh`.
+  When: a long validating run whose green-to-merge window would otherwise sit
+  unattended (the 4.5 h proof misread as failed, P8). Refusals: a head that
+  moved off the pin, a named check that completed not-success, an exceeded
+  `--budget`, a red required context (the ruleset's list, read through
+  `merge_train.required`), an unmergeable pull request and a head
+  `app_approve --dry-run` does not verdict — each aborts with a logged report
+  and no merge; one instance per pinned head (flock), and `--dry-run` passes
+  every guard and touches nothing.
 - `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
   the train launches: per entry PASS, PARK (the train's own Stop wording — a
   carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
