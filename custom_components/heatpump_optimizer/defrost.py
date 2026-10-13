@@ -149,6 +149,18 @@ DUTY_ALPHA = 0.10
 #: fallback estimator.
 STORE_VERSION = 2
 
+#: Ceiling on :attr:`DefrostDerate._factor_memo`. Between learns the answer
+#: for one exact ``(temperature, humidity)`` pair cannot change -- the grids
+#: move only in :meth:`DefrostDerate.observe` and
+#: :meth:`DefrostDerate.observe_duty`, both of which clear the memo -- and a
+#: solve asks the same handful of forecast pairs tens of millions of times
+#: (each of the batched gradient's evaluations re-walks the same steps), so
+#: the answers are memoized on the learner itself. Capped rather than
+#: unbounded because a coordinator lives for months and the forecast floats
+#: it asks about drift with the weather; a clear costs recompute, never a
+#: value.
+_FACTOR_MEMO_MAX = 8192
+
 
 def _bucket_index(value: float, edges: tuple[float, ...]) -> int:
     for i in range(len(edges) - 1):
@@ -221,6 +233,15 @@ class DefrostDerate:
     #: Published in the diagnostics so the upgrade is visible rather than
     #: silent.
     migrated: bool = False
+    #: Memoized :meth:`factor` answers, keyed on the exact
+    #: ``(temperature, humidity)`` floats after ``factor``'s own
+    #: normalisation. ``compare=False``/``repr=False`` because a cache is
+    #: call history, not learned state: two learners with identical grids
+    #: answer identically whatever they have cached, and a cache is never
+    #: persisted or printed.
+    _factor_memo: dict[tuple[float, float], float] = field(
+        default_factory=dict, repr=False, compare=False
+    )
 
     # -- lookup -------------------------------------------------------------
 
@@ -301,9 +322,38 @@ class DefrostDerate:
         rather than a step function of the bucket. With no humidity the dry
         bucket's centre is used, which keeps "no humidity" meaning "no frost"
         exactly as the bucket lookup did.
+
+        **Memoized between learns, bit-identically.** A solve asks the same
+        handful of exact ``(temperature, humidity)`` pairs tens of millions
+        of times -- every one of the batched gradient's evaluations re-walks
+        the same forecast steps -- and between learns the grids this answer
+        reads cannot move, so the value is cached per pair on this learner
+        and every learn clears it (:meth:`observe`, :meth:`observe_duty`).
+        The cache returns the very float :meth:`_factor_uncached` computed,
+        so a hit is identical to a recompute to the last bit; a NaN input
+        never hits (NaN compares unequal to itself), so it simply recomputes.
         """
         t = float(outdoor_temp)
         h = float(humidity) if humidity is not None else HUMIDITY_CENTERS[0]
+        key = (t, h)
+        memo = self._factor_memo
+        hit = memo.get(key)
+        if hit is not None:
+            return hit
+        if len(memo) >= _FACTOR_MEMO_MAX:
+            memo.clear()
+        value = self._factor_uncached(t, h)
+        memo[key] = value
+        return value
+
+    def _factor_uncached(self, t: float, h: float) -> float:
+        """:meth:`factor`'s law, on the already-normalised inputs.
+
+        The body this method held before the memo existed, unchanged: the
+        memo's whole claim is that it returns this computation's float
+        verbatim, so the two must stay separable -- anything that edits
+        this arithmetic edits every plan's COP and owes the drift gates.
+        """
         ti, tu = _interp_position(t, TEMP_CENTERS)
         hi, hu = _interp_position(h, HUMIDITY_CENTERS)
         f00 = self._decide(ti, hi)[1]
@@ -342,6 +392,9 @@ class DefrostDerate:
         if delivered_ratio <= 0 or delivered_ratio > 3.0:
             return
         t, h = self._bucket(outdoor_temp, humidity)
+        # The grids are about to move, so every memoized answer stops being
+        # the answer; the next ask recomputes from the new grids.
+        self._factor_memo.clear()
         target = min(max(float(delivered_ratio), DERATE_MIN), DERATE_MAX)
         current = self.factors[t][h]
         self.factors[t][h] = (1.0 - DERATE_ALPHA) * current + DERATE_ALPHA * target
@@ -366,6 +419,10 @@ class DefrostDerate:
         if not 0.0 <= duty <= 1.0:
             return
         t, h = self._bucket(outdoor_temp, humidity)
+        # As in observe(): the grids move here, so the memo is retired with
+        # them. A zero duty is a real observation and moves them like any
+        # other, so it invalidates too.
+        self._factor_memo.clear()
         current = self.duty[t][h]
         was = self.duty_counts[t][h]
         self.duty[t][h] = (1.0 - DUTY_ALPHA) * current + DUTY_ALPHA * duty

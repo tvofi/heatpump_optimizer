@@ -51,7 +51,10 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     listing that shows one run per check. For each gate check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is
-    `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
+    `blocked <sha> root-cause-unanswered: <check> went red, unanswered`, posted
+    only once the head's workflows all concluded and a `pr-contract` run started after
+    the last to conclude red, else the push-time run, checked the body (tvofi,
+    2026-10-08); while it refuses, wait or hand back unverdicted, saying so.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     **A red `nightly-status` or `delivery-status` is not this pull request's**

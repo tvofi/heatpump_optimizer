@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_interval_measured_heat_kw GUARD_OFF 16d45d5b",
+  "killed_by": "tests/features.py",
+  "old": "    if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
