@@ -4935,6 +4935,23 @@ R.check(
     "-- a coordinator lives for months; the cap is what keeps the cache "
     "from growing with the weather",
 )
+# And the bound is EXACT, read off one full turn of the cycle: a fresh
+# learner asked 8202 distinct pairs ends with 10 entries -- the cap
+# cleared once at 8192 and refilled. The number is hardcoded on purpose:
+# a cap moved by one (>= to >) ends at 9, a doubled cap at 8202, and
+# deriving the expectation from the module's own constant would inherit
+# either mutation. It is the cap's VALUE the plan's memory ceiling rests
+# on, so it is pinned by arithmetic, not by import.
+_exact = DefrostDerate()
+for _i in range(8202):
+    _exact.factor(-40.0 + _i * 0.01, 85.0)
+R.check(
+    "the memo's cap is 8192 exactly, one entry past it clears",
+    len(_exact._factor_memo) == 10,
+    f"{len(_exact._factor_memo)} entries after 8202 stores -- 10 says the "
+    "cycle is exactly (8202 - 1) mod 8192 + 1; a bound moved by one says "
+    "9, a doubled cap says 8202",
+)
 
 
 # ===========================================================================
