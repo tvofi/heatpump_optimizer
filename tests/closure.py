@@ -3499,10 +3499,17 @@ def _selftest_coverage_reuse(pin) -> None:
         with contextlib.redirect_stdout(io.StringIO()) as buf:
             rc_trusted = coverage_trust_cli(d, push)
             rc_discard = coverage_trust_cli(d / "absent", push)
+        # The rc pair and the captured output are deliberately NOT echoed
+        # in a detail: CodeQL's clear-text-logging query models the CLI's
+        # return (it reads the .measured-by marker, a file-derived value)
+        # as sensitive, and the flow lands in pin()'s FAIL print
+        # (code-scanning alert 36). On failure rerun `python3
+        # tests/closure.py coverage-trust` for the diagnosis.
         pin("coverage-trust exits 0 only on the trusted marker",
             rc_trusted == 0 and rc_discard == 1
             and "measuring every script" in buf.getvalue(),
-            f"{rc_trusted}/{rc_discard} {buf.getvalue()!r}")
+            "the rc pair and the CLI's output are deliberately not "
+            "echoed here: they carry the marker text (alert 36)")
 
     # Condition 3: the summary line, computed from the instrument's own
     # table and stated where the reader is.
