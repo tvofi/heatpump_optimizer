@@ -440,6 +440,25 @@ class Train:
                     f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
                     cls=STALE_VERDICT_CARRY)
 
+    def _check_runs(self, h: str) -> "list[dict] | None":
+        """One paginated read of the check runs at <h>, parsed; None on a failed
+        or unparseable read (wait_ci's fetch, shared with main_green's
+        log-only overlap read)."""
+        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
+                              f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
+        try:
+            return [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _by_name(runs: "list[dict]") -> dict:
+        """The runs keyed by name, the latest started winning (wait_ci's order)."""
+        last: dict[str, dict] = {}
+        for c in sorted(runs, key=lambda c: c.get("started_at") or ""):
+            last[c["name"]] = c
+        return last
+
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -462,17 +481,8 @@ class Train:
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
         for k in range(1, self.polls + 1):
-            # One JSON object per line across every page: past 100 runs a head
-            # would otherwise read as complete on its first page alone.
-            code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
-                                  f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
-            try:
-                runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
-            except ValueError:
-                runs = None
-            last: dict[str, dict] = {}
-            for c in sorted(runs or (), key=lambda c: c.get("started_at") or ""):
-                last[c["name"]] = c
+            runs = self._check_runs(h)
+            last = self._by_name(runs or ())
             if only is not None and runs is not None and all(
                     last.get(n, {}).get("status") == "completed" for n in only):
                 return sorted(n for n in only if last[n]["conclusion"] not in GREEN)
@@ -1007,12 +1017,18 @@ class Train:
         wait on main's CI before a merge) -- a red base is logged, and the
         batch's own proofs and each head's own required contexts remain the
         gates that hold."""
-        red = self.wait_ci(tip, only=req)
+        # R9-ADMIT-REQ: under --overlap the read is ONE pass, non-blocking --
+        # the loop below would hold every batch through main's push-run window
+        # (40-60 min measured) before admission, the wait the flag exists to
+        # drop. The not-green names are logged and the batch starts.
         if self.overlap:
+            last = self._by_name(self._check_runs(tip) or ())
+            red = sorted(n for n in req if last.get(n, {}).get("conclusion") not in GREEN)
             if red:
                 self.log(f"OVERLAP: {self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; "
                          "--overlap logs it and does not wait")
             return
+        red = self.wait_ci(tip, only=req)
         if red:
             raise Stop("main", f"{self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; nothing more lands")
 
@@ -1663,6 +1679,10 @@ def _batch_self_test(check) -> None:
         if sha == w["base_sha"]:  # main's own push run writes every required context
             runs += [{"name": n, "id": 15, "status": "completed", "started_at": "1", "conclusion": "success"}
                      for n in w["required"].split() if n == "never-dispatched"]
+            if w.get("pending_main"):  # a fresh push run: a required context still running
+                for r in runs:
+                    if r["name"] == R0:
+                        r["status"], r["conclusion"] = "in_progress", None
         if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
             runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
                      {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
@@ -1986,6 +2006,45 @@ def _batch_self_test(check) -> None:
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2]
           and any(ln.startswith("OVERLAP: main at") and "logs it and does not wait" in ln
                   for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(pending_main=True), overlap=True)
+    check("--overlap starts the batch while main's fresh push run is still in progress: the "
+          "pre-admission read is ONE pass, logged, never a completion wait (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and any(ln.startswith("OVERLAP: ") and "is not green" in ln and "before admission" in ln
+                  for ln in w["lines"]))
+
+    # THE WIRE, not the stubbed runs: wait_ci itself is counted. The arms above
+    # exercise the real wait_ci against stubbed gh output, so a main_green that
+    # still CALLS the looping wait first (the 2026-10-14 wedge: required
+    # contexts with no runs at all never complete) passes every stubbed arm.
+    # This one reddens that code: under --overlap the looping wait must not be
+    # invoked at main's tip at all; without the flag, exactly once.
+    real_wait_ci = Train.wait_ci
+
+    def counted_wait_ci(self, h, only=None, beat=None):
+        tip_reads.append(h)
+        return real_wait_ci(self, h, only, beat)
+
+    Train.wait_ci = counted_wait_ci
+    try:
+        tip_reads = []
+        w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+               setup=lambda w: w.update(pending_main=True), overlap=True)
+        overlap_tip_reads = sum(h == w["base_sha"] for h in tip_reads)
+        tip_reads = []
+        w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(pending_main=True))
+        nonoverlap_tip_reads = sum(h == w["base_sha"] for h in tip_reads)
+    finally:
+        Train.wait_ci = real_wait_ci
+    check("THE WIRE: under --overlap main_green never invokes the looping wait_ci at main's tip "
+          "(zero reads; the pre-fix code invoked it once and wedged there); without the flag the "
+          "blocking wait is called exactly once (R9-ADMIT-REQ)",
+          overlap_tip_reads == 0 and nonoverlap_tip_reads == 1)
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(pending_main=True))
+    check("... and without --overlap the same pending main is still waited to completion, which stops it",
+          w["rc"] == 1 and "main:" in w["lines"][-1] and "TIMEOUT" in w["lines"][-1]
+          and not w["merged"] and w["cr_reads"].get(w["base_sha"], 0) >= 2)
     w = go(ovl, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, stuck_nonreq=True)),
            overlap=True)
     check("--overlap's at_head wait concludes while a non-required lane stays in_progress at the "
