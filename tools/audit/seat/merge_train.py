@@ -2022,9 +2022,9 @@ def _batch_self_test(check) -> None:
     # invoked at main's tip at all; without the flag, exactly once.
     real_wait_ci = Train.wait_ci
 
-    def counted_wait_ci(self, h, only=None):
+    def counted_wait_ci(self, h, only=None, beat=None):
         tip_reads.append(h)
-        return real_wait_ci(self, h, only)
+        return real_wait_ci(self, h, only, beat)
 
     Train.wait_ci = counted_wait_ci
     try:
