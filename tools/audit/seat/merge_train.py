@@ -737,7 +737,7 @@ class Train:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
 
-    def admit(self, item: dict, base: str, graders: list[str], mf) -> dict:
+    def admit(self, item: dict, base: str, graders: list[str], mf, req: list[str]) -> dict:
         """The pull request as a batch entry: its head, its own files, and the
         merge_fastpath classes that route it serial (empty: it joins the batch)."""
         pr, v = int(item["pr"]), item["verdict"]
@@ -759,7 +759,10 @@ class Train:
         if route:
             self.log(f"#{pr} serial: {', '.join(route)}")
             return a
-        red = [n for n in self.wait_ci(h) if n not in self.ignore]
+        # R9-ADMIT-REQ: admission waits the ruleset's required contexts only,
+        # as settle/proof already does -- a non-required lane (e.g. the 180-min
+        # composed-proof) must never hold a batch whose required set is green.
+        red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
         if red:
             raise Stop("ci", f"#{pr} red at its head: " + ", ".join(red))
         if self.real:
@@ -940,10 +943,10 @@ class Train:
             entries = []
             for item in queue:
                 if not self.skip_bad:
-                    entries.append(self.admit(item, base, graders, mf))
+                    entries.append(self.admit(item, base, graders, mf, req))
                     continue
                 try:
-                    entries.append(self.admit(item, base, graders, mf))
+                    entries.append(self.admit(item, base, graders, mf, req))
                 except Stop as s:
                     if s.step == "main":
                         raise
@@ -1454,6 +1457,10 @@ def _batch_self_test(check) -> None:
         if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
             runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
                      {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
+        if w.get("stuck_nonreq") and sha in w["heads"].values():
+            # a non-required lane that never concludes (the composed-proof class)
+            runs += [{"name": "composed-proof", "id": 16, "status": "in_progress", "started_at": "1",
+                      "conclusion": None}]
         return runs
 
     def stub(w: dict):
@@ -1657,11 +1664,23 @@ def _batch_self_test(check) -> None:
           w["rc"] == 1 and not w["pushed"] and "proof:" in w["lines"][-1])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
            setup=lambda w: w.update(required=f"{R0}\npolicy-docs\nnever-dispatched\n"))
-    check("a required context the proof never receives is a TIMEOUT, which stops it rather than dropping an entry",
-          w["rc"] == 1 and not w["merged"] and "never completed" in w["lines"][-1])
+    check("a required context the head never receives is a TIMEOUT, which stops it rather than "
+          "dropping an entry -- now at admission itself, before any proof is spent (R9-ADMIT-REQ)",
+          w["rc"] == 1 and not w["merged"] and not w["pushed"] and "ci:" in w["lines"][-1]
+          and "TIMEOUT" in w["lines"][-1])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, ignore=("nightly-status",))
-    check("an entry red at its own head is refused at admission (pr-contract not ignored here)",
-          w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"])
+    check("a red NON-required context (pr-contract, PR_ONLY) does not hold admission: "
+          "admission waits only the ruleset's required set, as settle/proof already does (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(stuck_nonreq=True))
+    check("admission concludes while a non-required lane is still pending: a batch whose required "
+          "contexts are green is never held by a lane the ruleset does not require (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(ci_red="policy-docs", red={w["heads"][1], w["heads"][2]}))
+    check("a red REQUIRED context still stops admission (the fixed wait judges the required set, "
+          "and the ignore list still applies)",
+          w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"] and not w["merged"])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
            setup=lambda w: w.update(bot_heads={w["heads"][2]: "ci: pin killed mutants"}))
     check("a batch entry whose head is a GITHUB_TOKEN bot push is refused at admission, "
