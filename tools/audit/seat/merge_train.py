@@ -615,10 +615,10 @@ class Train:
             raise self.bot_refusal(pr, h, bot)
         return h
 
-    def one(self, item: dict) -> None:
-        self.at_head(item, self.recarry(item), None)
+    def one(self, item: dict, req: "list[str] | None" = None) -> None:
+        self.at_head(item, self.recarry(item), None, req if req is not None else self.required())
 
-    def one_overlap(self, item: dict) -> None:
+    def one_overlap(self, item: dict, req: "list[str] | None") -> None:
         """`--overlap`'s serial step for one entry: its head was re-carried UP
         FRONT (a dropped entry, routed only by the proof, re-carries here at
         its turn), so its pull_request runs fired with the others' and this
@@ -626,9 +626,9 @@ class Train:
         caller lands entries one at a time, an earlier still-pending entry
         never jumped by a later eligible one."""
         h = item.get("rc_head") or self.recarry(item)
-        self.at_head(item, h, item.get("rc_base"))
+        self.at_head(item, h, item.get("rc_base"), req)
 
-    def at_head(self, item: dict, h: str, rb: "str | None") -> None:
+    def at_head(self, item: dict, h: str, rb: "str | None", req: "list[str] | None") -> None:
         """Steps 2-7 at a settled head: wait its CI, carry the verdict, land
         it. `rb` None is today's serial guard (the head contains main). `rb`
         set (--overlap, recarried up front onto `rb`): the merge's guard is
@@ -637,7 +637,11 @@ class Train:
         longer main's ancestor is a change nobody graded. The file list is the
         three-dot diff either way: a head recarried up front meets current
         main exactly at `rb`, its merge-base."""
-        red = [n for n in self.wait_ci(h) if n not in self.ignore]
+        # R9-ADMIT-REQ: the head wait judges the ruleset's required contexts
+        # only, as admission and settle/proof do -- a non-required lane (e.g.
+        # the 180-min composed-proof) must never hold a landing whose
+        # required set is green.
+        red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
         self.log(f"#{item['pr']} {h[:8]} ci red={red}")
         if red:
             raise Stop("ci", "red at the head: " + ", ".join(red))
@@ -737,7 +741,7 @@ class Train:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
 
-    def admit(self, item: dict, base: str, graders: list[str], mf) -> dict:
+    def admit(self, item: dict, base: str, graders: list[str], mf, req: list[str]) -> dict:
         """The pull request as a batch entry: its head, its own files, and the
         merge_fastpath classes that route it serial (empty: it joins the batch)."""
         pr, v = int(item["pr"]), item["verdict"]
@@ -759,7 +763,10 @@ class Train:
         if route:
             self.log(f"#{pr} serial: {', '.join(route)}")
             return a
-        red = [n for n in self.wait_ci(h) if n not in self.ignore]
+        # R9-ADMIT-REQ: admission waits the ruleset's required contexts only,
+        # as settle/proof already does -- a non-required lane (e.g. the 180-min
+        # composed-proof) must never hold a batch whose required set is green.
+        red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
         if red:
             raise Stop("ci", f"#{pr} red at its head: " + ", ".join(red))
         if self.real:
@@ -940,10 +947,10 @@ class Train:
             entries = []
             for item in queue:
                 if not self.skip_bad:
-                    entries.append(self.admit(item, base, graders, mf))
+                    entries.append(self.admit(item, base, graders, mf, req))
                     continue
                 try:
-                    entries.append(self.admit(item, base, graders, mf))
+                    entries.append(self.admit(item, base, graders, mf, req))
                 except Stop as s:
                     if s.step == "main":
                         raise
@@ -1013,7 +1020,7 @@ class Train:
                 self.log(f"serial: {', '.join('#%d' % a['pr'] for a in later)}")
                 for a in later:
                     try:
-                        self.one_overlap(a) if self.overlap else self.one(a)
+                        self.one_overlap(a, req) if self.overlap else self.one(a, req)
                     except Stop as s:
                         if s.step == "main" or not self.skip_bad:
                             raise Stop(s.step, f"#{a['pr']} {s.why}") from None
@@ -1093,6 +1100,10 @@ def _self_test() -> int:
                     else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
                 return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
+            if "rulesets/7" in a:
+                return 0, world.get("required", "fast\n")
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "pr", "review"]:
@@ -1136,7 +1147,7 @@ def _self_test() -> int:
           rc == 1 and "row:" in lines[-1] and f"{ROW_DIR}/7.md" in lines[-1]
           and not merged(calls))
     check("nightly-status red is ignored by default", "red=[]" in " ".join(lines))
-    rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
+    rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
     check("a red required check stops the train before any approval", rc == 1 and "ci:" in lines[-1] and not merged(calls)
           and not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls))
     rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"},
@@ -1324,7 +1335,7 @@ def _self_test() -> int:
     check("a merge GitHub never takes stops it", rc == 1 and "merge:" in lines[-1])
     rc, lines, calls = go({}, q=[dict(item), dict(item, pr=8)])
     check("the queue runs in order", rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7", "8"])
-    rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]},
+    rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]},
                           q=[dict(item), dict(item, pr=8)])
     check("the first refusal stops the queue", rc == 1 and not any(c[:4] == ["gh", "pr", "view", "8"] for c in calls))
     owned7 = (1, "app_approve: REFUSE: #7 touches code-owned paths (tests/run.sh); the owner's GitHub review approves it, not the App")
@@ -1356,10 +1367,12 @@ def _self_test() -> int:
     rc, lines, calls = go({"approve": owned7, "base": (1, "fatal: no merge base")}, mandate="m")
     check("a failing git merge-base stops the train (B3)", rc == 1 and "files:" in lines[-1] and not approved(calls))
     rc, lines, calls = go({}, min_runs=3)
-    check("fewer check runs than --min-runs is not complete CI", rc == 1 and "TIMEOUT" in lines[-1] and not merged(calls))
+    check("the required-only head wait does not apply --min-runs: the required set is complete "
+          "below it, and a head still short of non-required lanes is not held (R9-ADMIT-REQ)",
+          rc == 0 and merged(calls))
     for c in ("action_required", "stale"):
-        rc, lines, calls = go({"runs": green + [{"name": "x", "status": "completed", "conclusion": c, "started_at": "1"}]})
-        check(f"{c} is not green", rc == 1 and lines[-1].endswith("red at the head: x") and not merged(calls))
+        rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": c, "started_at": "1"}]})
+        check(f"{c} is not green", rc == 1 and lines[-1].endswith("red at the head: fast") and not merged(calls))
     rc, lines, calls = go({"runs": green + [{"name": "y", "status": "completed", "conclusion": c, "started_at": "1"}
                                             for c in ("skipped",)] + [{"name": "z", "status": "completed",
                                                                         "conclusion": "neutral", "started_at": "1"}]})
@@ -1454,6 +1467,10 @@ def _batch_self_test(check) -> None:
         if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
             runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
                      {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
+        if w.get("stuck_nonreq") and sha in w["heads"].values():
+            # a non-required lane that never concludes (the composed-proof class)
+            runs += [{"name": "composed-proof", "id": 16, "status": "in_progress", "started_at": "1",
+                      "conclusion": None}]
         return runs
 
     def stub(w: dict):
@@ -1657,11 +1674,23 @@ def _batch_self_test(check) -> None:
           w["rc"] == 1 and not w["pushed"] and "proof:" in w["lines"][-1])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
            setup=lambda w: w.update(required=f"{R0}\npolicy-docs\nnever-dispatched\n"))
-    check("a required context the proof never receives is a TIMEOUT, which stops it rather than dropping an entry",
-          w["rc"] == 1 and not w["merged"] and "never completed" in w["lines"][-1])
+    check("a required context the head never receives is a TIMEOUT, which stops it rather than "
+          "dropping an entry -- now at admission itself, before any proof is spent (R9-ADMIT-REQ)",
+          w["rc"] == 1 and not w["merged"] and not w["pushed"] and "ci:" in w["lines"][-1]
+          and "TIMEOUT" in w["lines"][-1])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, ignore=("nightly-status",))
-    check("an entry red at its own head is refused at admission (pr-contract not ignored here)",
-          w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"])
+    check("a red NON-required context (pr-contract, PR_ONLY) does not hold admission: "
+          "admission waits only the ruleset's required set, as settle/proof already does (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(stuck_nonreq=True))
+    check("admission concludes while a non-required lane is still pending: a batch whose required "
+          "contexts are green is never held by a lane the ruleset does not require (R9-ADMIT-REQ)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(ci_red="policy-docs", red={w["heads"][1], w["heads"][2]}))
+    check("a red REQUIRED context still stops admission (the fixed wait judges the required set, "
+          "and the ignore list still applies)",
+          w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"] and not w["merged"])
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
            setup=lambda w: w.update(bot_heads={w["heads"][2]: "ci: pin killed mutants"}))
     check("a batch entry whose head is a GITHUB_TOKEN bot push is refused at admission, "
@@ -1755,6 +1784,11 @@ def _batch_self_test(check) -> None:
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2]
           and any(ln.startswith("OVERLAP: main at") and "logs it and does not wait" in ln
                   for ln in w["lines"]))
+    w = go(ovl, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, stuck_nonreq=True)),
+           overlap=True)
+    check("--overlap's at_head wait concludes while a non-required lane stays in_progress at the "
+          "head (the composed-proof class): the serial landing waits the required set only (R9-ADMIT-REQ)",
+          w["rc"] == 0 and list(w["merged"]) == [3, 1, 2])
 
     # --skip-bad (batch only): a bad entry is skipped, logged and reported, the
     # train carries on, and the exit code says an entry was left behind.
