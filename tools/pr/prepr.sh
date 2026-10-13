@@ -474,19 +474,29 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
     full) echo "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden"; r=3 ;;
     scoped)
       command -v strace >/dev/null && strace=1
-      rp=""
+      # R1 (the round-9 merge-path pre-study): the recordable subset goes to
+      # the recorder as ONE --scripts-from lane run, which shards it across
+      # lanes (bounded: four heavy slots on this box) instead of paying the
+      # serial SUM of a --single per script. The per-script decisions below --
+      # which recordings this machine takes and which are left to CI -- are
+      # unchanged, and the recordings are the same recordings.
+      : > "$cw/record.txt"
       while read -r s; do
         [ -n "$s" ] || continue
         if [ "$(closure_lane "$s" "$strace")" != record ]; then left="$left $s"; continue; fi
-        # Resolved on the first script this machine will actually record, so a
+        printf '%s\n' "$s" >> "$cw/record.txt"
+      done < "$cw/aff/affected.scripts"
+      rp=""
+      if [ -s "$cw/record.txt" ]; then
+        # Resolved only when this machine will actually record something, so a
         # diff whose recordings are all left to CI owes no interpreter (and
         # `closure_lane` above still ran on the ambient python3 it always did).
-        if [ -z "$rp" ]; then
-          rp=$(recorder_python) || { echo "$rp"; r=1; break; }
-        fi
-        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --single "$s" \
-          --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
-      done < "$cw/aff/affected.scripts"
+        rp=$(recorder_python) || { echo "$rp"; r=1; }
+      fi
+      if [ "$r" -ne 1 ] && [ -n "$rp" ]; then
+        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
+          --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+      fi
       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
       elif [ ! -d "$cw/rec" ]; then
         echo "nothing scoped can be recorded on this machine; left to CI:$left"; r=3
@@ -675,6 +685,27 @@ copies_line() { # tree root, changed-paths file -> one line; rc 0 clean, 1 a cop
   out=$(cd "$1" && PYTHONPATH=tests/hastub python3 tests/closure.py no-copies 2>&1); r=$?
   if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
   echo "$(printf '%s\n' "$out" | grep -m1 '^COPY-CLAIMED' || printf '%s\n' "$out" | tail -1) ($(printf '%s\n' "$out" | grep -c '^COPY-CLAIMED') in all) -- import the production symbol instead (tests/README.md), or the closures job refuses it"
+  return 1
+}
+
+# THE LAYOUT GUARD IS CI'S OWN COMMAND. `tests.yml`'s fast job runs `tests/layout.py`,
+# whose guard refuses a diff that re-adds a path the reorganisation moved (a new
+# file under a directory that has since moved); that took ~30 min to
+# surface on #2065 (29m50s to 30m48s on the three PRs) and runs in 0.44 to 2.10 s here, and no local path ran it
+# (R9-RCA-harness-path). The merge base is passed explicitly, so a stale
+# `origin/main` ref cannot move what is compared.
+moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 skipped
+  local out r
+  [ -f "$1/tests/layout.py" ] || { echo "no tests/layout.py under $1, so the layout guard was not run"; return 3; }
+  out=$(cd "$1" && python3 -I tests/layout.py --guard --base "$2" 2>&1); r=$?
+  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+  local first hint; first=$(grep -m1 '^    ' <<<"$out" | sed 's/^ *//')
+  case "$first" in
+    new-reference:*|unswept:*) hint="re-point the citation to its new path in tests/layout.json" ;;
+    *'it lives at'*) hint="move it to the new path" ;;
+    *) hint="place it where tests/layout.json says" ;;
+  esac
+  echo "$first -- $hint, or the fast job refuses it"
   return 1
 }
 
@@ -1329,6 +1360,44 @@ EOS
   st "$r" 3 "a tree with no tests/closure.py skips, never refuses"
   rm -rf "${CR:?}"
 
+  # The layout guard, driven through `moved_line` over a throwaway repo that
+  # holds THIS tree's tests/layout.py and layout.json: the base has a file at
+  # the new home, so the move has landed, and a branch then adds one file.
+  LR=$(mktemp -d)
+  mkdir -p "$LR/tests" "$LR/dev/audit/harnesses"
+  cp tests/layout.py tests/layout.json "$LR/tests/"
+  echo "# h" > "$LR/dev/audit/harnesses/seed.py"
+  lg() { git -C "$LR" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+  (lg init -q && lg checkout -q -b main && lg add -A && lg commit -qm base) >/dev/null 2>&1
+  LB=$(lg rev-parse HEAD)
+  # The retired directory is spelled in two halves: layout.py's own new-reference
+  # arm refuses a literal citation of it in a live file.
+  RD=tools/audit; RD=$RD/harnesses
+  lg checkout -q -b retired >/dev/null 2>&1; mkdir -p "$LR/$RD"; echo "# h" > "$LR/$RD/new.py"
+  lg add -A >/dev/null 2>&1; lg commit -qm retired >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new file under a landed-retired directory is refused"
+  case "$got" in *'re-adds a moved path'*'dev/audit/harnesses/'*) st 1 1 "and the refusal names the new path";; *) st 0 1 "and the refusal names the new path";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b clean >/dev/null 2>&1; echo "# h" > "$LR/dev/audit/harnesses/new.py"
+  lg add -A >/dev/null 2>&1; lg commit -qm clean >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 0 "the same file at dev/audit/harnesses/ passes (null control)"
+  case "$got" in *'GUARD: 0 refusal'*) st 1 1 "and the ok line is the guard's own, so it ran";; *) st 0 1 "and the ok line is the guard's own, so it ran";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b cite >/dev/null 2>&1; printf '# see %s/x.py\n' "$RD" >> "$LR/dev/audit/harnesses/seed.py"
+  lg add -A >/dev/null 2>&1; lg commit -qm cite >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new line citing a retired path is refused"
+  case "$got" in *'re-point the citation'*) st 1 1 "and the hint says to re-point the citation, not to place a file";; *) st 0 1 "and the hint says to re-point the citation, not to place a file";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b nocat >/dev/null 2>&1; mkdir -p "$LR/zz_no_category"; echo "# h" > "$LR/zz_no_category/x.md"
+  lg add -A >/dev/null 2>&1; lg commit -qm nocat >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new file in no category is refused"
+  case "$got" in *'place it where tests/layout.json says'*) st 1 1 "and a refusal with no new path does not say to move it there";; *) st 0 1 "and a refusal with no new path does not say to move it there";; esac
+  rm -f "$LR/tests/layout.py"
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 3 "a tree with no tests/layout.py skips, never refuses"
+  rm -rf "${LR:?}"
+
   # The call site. Driving the two functions above does not pin that a step
   # calls them: the #1591 self-test drove a helper while the step kept calling
   # the old one. The main flow is the text after this self-test returns.
@@ -1337,6 +1406,8 @@ EOS
   st $? 0 "the pr-body step calls body_line, so a predicted raise reaches the body check before the push"
   case "$flow" in *'copies_line "'*) true ;; *) false ;; esac
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
+  case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
+  st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
@@ -1584,6 +1655,8 @@ EOS
     && $G checkout -q -b fork \
     && $G checkout -q -b rec && mkdir -p docs/delivery && echo row > docs/delivery/9999.md \
     && $G add -A && $G commit -qm rec \
+    && $G checkout -q -b sk fork && mkdir -p dev/governance/rules && echo note > dev/governance/rules/9999.md \
+    && $G add -A && $G commit -qm sk \
     && $G checkout -q -b own fork && echo "# own" >> custom_components/heatpump_optimizer/away.py \
     && echo "own_lane  # this branch's claim" >> tests/golden/claimed_drift.txt && $G commit -qam own \
     && $G checkout -q -b cl fork && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam cl \
@@ -1627,12 +1700,30 @@ rec = {"script": s, "rc": 0, "seconds": 0.1, "files": files, "spawned": [], "how
 for sub, over in (("ok", {}), ("under", {"files": files + [extra]}), ("dead", {"rc": 3, "files": files + [extra]})):
     (d / sub / "wood_advisor.py.json").write_text(json.dumps(dict(rec, **over)))
 PY
-  printf '#!/bin/bash\nmkdir -p "$5" && cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n[ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
+  printf '#!/bin/bash\n[ -n "${CALLLOG:-}" ] && printf '"'"'%%s\\n'"'"' "$1" >> "$CALLLOG"\nmkdir -p "$5"\nif [ "$1" = "--scripts-from" ]; then\n  while read -r s; do\n    [ -n "$s" ] || continue\n    cp "$FIXTURE_REC/$(basename "$s").json" "$5/"\n    [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\n  done < "$2"\nelse\n  cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n  [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nfi\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
   closures_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork); echo "$?:${got%%:*}"); }
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
   got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
-  got=$(closures_at rec under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # `sk`, not `rec`: the inert_reads rule (#2109's fix) makes a NEW file
+  # under docs/ reach tests/doc_claims.py's recorded read (docs/site/ is one
+  # level below its parent), so `rec` -- a delivery row under docs/, kept for
+  # the claims arms above -- now derives scoped. The skip arm needs a diff
+  # genuinely outside every recorded reach; dev/governance/ is one at both
+  # ends (pinned in tests/entities.py beside the rule itself).
+  got=$(closures_at sk under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
+  # reaches the recorder as ONE --scripts-from lane run -- a serial --single
+  # per script pays the SUM of the recordings where the lane run pays a lane
+  # MAX. The stub logs every call it receives; at the merge base this arm
+  # failed with the log holding --single. `cl` is again the scoped branch.
+  : > "$CLM/calls"
+  full=$(cd "$CLM/r" && git checkout -q cl \
+    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" CALLLOG="$CLM/calls" \
+       closures_line fork 2>&1); rc=$?
+  st "$rc" 0 "6b drives the scoped set through the --scripts-from lane runner"
+  [ "$(sort -u "$CLM/calls" | tr -d '\n')" = "--scripts-from" ]
+  st $? 0 "and makes no serial --single call beside it (the merge-base arm's failure)"
   # R9-FR-5 through the step itself: the resolved interpreter reaches the
   # recorder as $PYTHON, and a resolution that refuses stops the step before
   # anything records. `cl` is the branch whose diff makes 6b scoped; the stub
@@ -2225,6 +2316,16 @@ else
   step "no-copies" 1 "the changed-path list did not derive from $BASE...HEAD, so no-copies was not run"
 fi
 rm -f "$COPY_PATHS"
+
+# --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
+# `moved_line` above, 0.4 to 2.1 s. It reads the index against $BASE, so it needs
+# no changed-path list.
+MOVED_LINE=$(moved_line "$PWD" "$BASE")
+case $? in
+  3) say skip "layout guard" "$MOVED_LINE" ;;
+  0) step "layout guard" 0 "$MOVED_LINE" ;;
+  *) step "layout guard" 1 "$MOVED_LINE" ;;
+esac
 
 # --- 7. the body, when one was passed.
 BODY="${1:-}"

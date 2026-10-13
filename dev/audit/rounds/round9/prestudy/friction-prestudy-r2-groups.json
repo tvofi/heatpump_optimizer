@@ -1,0 +1,113 @@
+{
+ "_comment": [
+  "PROPOSAL from study seat R9-FR-1 round 2, not a roster. The orchestrator applies `groups` into .claude/workflows/wave-r9-groups.json on handoff/audit-r9-fixplan (same key set as R9-FR-2/R9-FR-3), and applies `roster_edits` to existing entries. Measured at origin/main 86dbf0ca; the evidence is tools/audit/round9/prestudy/friction-prestudy-r2.md on handoff/r9-friction-study."
+ ],
+ "groups": [
+  {
+   "group": "R9-FR-11",
+   "lane": "FIX",
+   "issues": [
+    1951
+   ],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 2,
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "effort": "medium",
+   "fixture": null,
+   "owner_gate": null,
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [],
+   "brief": "Pre-study R9-FR-1 round 2 (2026-10-05, under tvofi's 2026-10-04 R9-FR-1 brief; measured at 86dbf0ca; evidence in the round-2 pre-study document on branch handoff/r9-friction-study): #1951, the typing share. The workstation seat recipe builds the pinned typing interpreter the cloud recipe already builds, so a Mac seat's scoped gate checks the mypy census before the handoff instead of CI's typing job finding it after. Measured: tools/audit/seat/cloud-setup.sh:61-68 \"HPO_TYPING_PYTHON\" builds venv-ha from tests/requirements-typing.txt and exports HPO_TYPING_PYTHON; tools/audit/seat/seat_venv.sh builds venv-ci only and tools/audit/seat/shims/seat-python execs venv-ci with nothing exported, so tests/typing_ruler.py on a Mac seat prints its census-not-checked skip line and passes while the census goes unmeasured. #1958 and #1959 were Mac seats blocked root-cause-unanswered on typing in the v6.7.16 window, and #1959's own Red-checks answer names this gap. Scope: seat_venv.sh gains the venv-ha build with cloud-setup.sh's exact pins call (hash-pinned, --no-deps) and its homeassistant version assertion; --check reports it; the shims export HPO_TYPING_PYTHON pointing at it only when it exists and the variable is unset, never overriding a value the seat set. Do not edit tests/typing_ruler.py, tests/run.sh or tests/closure.py: they are code-owned, and the ruler's PINNED_ENV contract does the rest once the variable is set. Acceptance, failing first: at the base, the shim-run ruler prints the not-checked line; at the head with venv-ha built it checks the census; null control: with venv-ha absent at the head the shim exports nothing and the not-checked line returns. Measure the venv-ha disk footprint with du and state it in the body: the environment family's Mac disk-full entries are this change's risk. Instrument in tools/, no policy-file edit. Body: Part of #1951 (R9-FR-12 is the other part), re-measurement command node .claude/workflows/policy_lint.mjs --stats --since <the tag after this merge>.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r9-fr-11",
+    "commit": null,
+    "last_step": null,
+    "next_step": "failing acceptance first (the not-checked line at the base), then the venv-ha build, then the null control",
+    "note_file": "handoff/round9/fix/resume/FR-11.md on fix/r9-fr-11",
+    "review_branch": null,
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
+  },
+  {
+   "group": "R9-FR-12",
+   "lane": "FIX",
+   "issues": [
+    1951
+   ],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 2,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "high",
+   "fixture": null,
+   "owner_gate": null,
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [],
+   "brief": "Pre-study R9-FR-1 round 2 (2026-10-05, under tvofi's 2026-10-04 R9-FR-1 brief; measured at 86dbf0ca; evidence in the round-2 pre-study document on branch handoff/r9-friction-study): #1951, the budget-raise-gate and no-copies shares. tools/audit/prepr.sh predicts two head reds offline, before the push that would produce them. Why not R9-FR-2's arm again: every root-cause-unanswered block in the v6.7.16 window named a red standing at the reviewed head, and the ancestry arm reads only commits already pushed (tools/audit/prepr.sh:579-581 \"no commit of this branch\"), so it cannot see the first block on a red by construction. (a) Budget raise: compute the diff's raises with file_raises from .claude/workflows/budget_raise_gate.py read at the merge base (the copy CI's gate restores), offline, with no review lookup; when any raise exists, the pr-body step's body check receives one extra --red budget-raise-gate, so a body whose Red checks section does not name it is refused before the push. It is the same body check pr-contract runs, fed one more name, not a second implementation. (b) Copy claim: when the diff touches a .py file under tests/ or custom_components/, run python3 tests/closure.py no-copies, the step .github/workflows/tests.yml:1818 \"no-copies\" runs in the closures job, and refuse on its failure. Both arms skip, never refuse, when their input is absent, and print that boundary. Do not edit .claude/workflows/budget_raise_gate.py or tests/closure.py (code-owned): call them. Extend --self-test, failing first: a diff raising a budget leaf with a silent body refuses; the same diff with the body naming the gate passes (null control); a diff touching no budget file passes; a test file defining a production top-level name refuses, and renamed it passes. State the no-copies wall time on the seat host in the body (the pre-study measured 11.8 to 27.7 s on a loaded Mac). Raise in the body, for the owner, that .claude/rules/defect-root-cause.md's Qualifies example says the no-copies countermeasure was built as an edit-time hook while no hook, prepr step or run.sh line ran it at 86dbf0ca; rewording that example is a policy edit this PR does not make. No policy-file edit. Body: Part of #1951 (R9-FR-11 is the other part), re-measurement command node .claude/workflows/policy_lint.mjs --stats --since <the tag after this merge>.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r9-fr-12",
+    "commit": null,
+    "last_step": null,
+    "next_step": "failing self-test fixtures first, then arm (a), then arm (b), then the null controls",
+    "note_file": "handoff/round9/fix/resume/FR-12.md on fix/r9-fr-12",
+    "review_branch": null,
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
+  }
+ ],
+ "roster_edits": [
+  {
+   "group": "R9-RO-6",
+   "field": "after",
+   "add": [
+    "R9-FR-11",
+    "R9-FR-12"
+   ],
+   "why": "R9-RO-6 moves tools/audit/prepr.sh and tools/audit/seat/; both folds edit those files, so the move lands after them rather than under them."
+  },
+  {
+   "group": "R9-FR-1",
+   "field": "resume",
+   "set": {
+    "stage": "done",
+    "branch": "handoff/r9-friction-study",
+    "last_step": "round 2 pre-study pushed; fold set R9-FR-11, R9-FR-12",
+    "next_step": "none for this seat: orchestrator applies groups and dispositions"
+   }
+  }
+ ],
+ "dispositions": {
+  "1951": "scheduled: R9-FR-11 + R9-FR-12 (Part of each); close on the second merge",
+  "1807": "close by re-triage: head-moved 0 PRs and 0 re-verifications over W16's 29 merges",
+  "1826": "refused (round 1 stands); close with condition >=3 PRs in one full window naming the same step",
+  "1855": "refused (round 1 stands); close with condition >=3 PRs in one full window, or >=3 naming the lease/queue",
+  "1825": "closed by #1892; unreleased at 86dbf0ca, next stamp names it",
+  "1860": "closed by #1891; unreleased at 86dbf0ca, next stamp names it",
+  "1881": "closed by re-triage; harness 0 in W16"
+ }
+}

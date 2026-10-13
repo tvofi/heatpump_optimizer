@@ -147,7 +147,7 @@ individually, because a range reads as complete while covering a fraction:
 openers and updaters, crash-safety snapshot, merge and absorb, CI watcher, seat
 venv, tmp-path detector); the gate-check family is in `.claude/workflows/`, the
 architecture score in `tools/audit/archscore/`, per-group harnesses in
-`tools/audit/harnesses/` and `tools/audit/round9/`. Check it before hand-rolling
+`dev/audit/harnesses/` and `dev/audit/rounds/round9/`. Check it before hand-rolling
 any merge, push, body, gate or watch loop; new reusable instruments land here,
 never only in /tmp (decision 0013).
 

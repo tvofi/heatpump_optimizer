@@ -1098,8 +1098,11 @@ days. However it ends, five self-tests then run once in the background, read
 only and within 15 minutes together: the stored documents against their
 declared domains, the accuracy monitor re-derived from its store, one what-if
 solve with no change, the inputs' missing and unchanged readings, and the price
-and forecast feeds across the week. Turning the option off deletes what was
-collected. Download diagnostics on the entry carries the week and those
+and forecast feeds across the week — with the longest gap between published
+payloads (a price feed that is failing publishes nothing, so the gap is the
+only record of it) and the outage streak the collection ended in. Turning the
+option off deletes what was collected. Download diagnostics on the entry
+carries the week and those
 results; a week over 8 MiB is carried as its summary and the name of the store
 file under `.storage/` that holds the rows.
 
