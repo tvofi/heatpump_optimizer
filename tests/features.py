@@ -6109,6 +6109,76 @@ def _d903_jac_f0_reuses_fun():
 _d903_jac_f0_reuses_fun()
 
 
+R.section("R9 vi-b: the evaluation memo's own arms (UX-6)")
+
+
+def _vib_memo_arms():
+    """Both arms of ``_memoized_value_and_gradient``'s contract, driven
+    directly. No production caller reaches the memo-None arm --
+    ``_multi_start_minimize`` always passes a live dict -- which is why the
+    mutation lanes measured optimizer.py:568 GUARD_OFF a survivor: nothing
+    in the tree asks the wrapper what it does without a memo. And the memo
+    arm's return is driven immediately and UNCAUGHT on purpose: a wrapper
+    that hands back None (RETURN_DEL at the ``return fun`` line) crashes
+    here, early in this script, where the mutation driver sees a verdict.
+    The same mutant caught-and-recorded merely disables the batched jac for
+    every later solve in this file, which is pathologically slow and reads
+    as a driver timeout, not a kill -- the red the lanes could not reach.
+    """
+    batch_calls: list[bytes] = []
+
+    def batch_obj(mat, *_a):
+        batch_calls.append(np.asarray(mat, dtype=float).tobytes())
+        d = np.asarray(mat, dtype=float) - 1.0
+        return np.einsum("ij,ij->i", d, d)
+
+    n = 6
+    x = np.full(n, 0.25)
+    bounds = [(-2.0, 2.0)] * n
+
+    memo: dict = {}
+    memo_fun = _grad_optmod._memoized_value_and_gradient(
+        batch_obj, bounds, 1e-4, memo,
+    )
+    first = memo_fun(x)   # computes the (value, gradient) pair and stores it
+    served = memo_fun(x)  # the repeat is served from the memo: no batch call
+    R.check(
+        "vi-b with a memo the wrapper returns the memoizing fun and the "
+        "repeat costs no batch evaluation",
+        len(memo) == 1 and len(batch_calls) == 1
+        and first[0] == served[0] and bool(np.array_equal(first[1], served[1]))
+        and bool(np.isfinite(served[0])) and served[1].shape == (n,),
+        f"memo entries={len(memo)} batch calls={len(batch_calls)} "
+        f"first={first[0]!r} served={served[0]!r}",
+    )
+
+    plain_fun = _grad_optmod._memoized_value_and_gradient(
+        batch_obj, bounds, 1e-4, None,
+    )
+    err = None
+    out = None
+    try:
+        out = plain_fun(x)
+    except Exception as exc:  # the None arm handed back the memo closure
+        err = exc             # (memo.get on None), not the plain fused fun
+    R.check(
+        "vi-b with no memo the wrapper returns the plain fused fun, working",
+        err is None and out is not None and len(out) == 2
+        and bool(np.isfinite(out[0])) and bool(np.all(np.isfinite(out[1]))),
+        f"err={err!r} out="
+        f"{None if out is None else (out[0], out[1].shape)}",
+    )
+    R.check(
+        "vi-b the memo's served pair is the plain fun's pair, to the bit",
+        out is not None and first[0] == out[0]
+        and bool(np.array_equal(first[1], out[1])),
+        f"plain={None if out is None else out[0]!r} memo={first[0]!r}",
+    )
+
+
+_vib_memo_arms()
+
+
 def _d0_restart_from_returned_point():
     """R3-D0-01/02: L-BFGS-B is restarted once from its own returned point."""
     x0s: list = []
