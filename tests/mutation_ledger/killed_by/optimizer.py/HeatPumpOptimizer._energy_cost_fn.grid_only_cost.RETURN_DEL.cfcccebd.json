@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._energy_cost_fn.grid_only_cost RETURN_DEL cfcccebd",
+  "killed_by": "tests/plan_view.py",
+  "old": "                return row_sums(prices * total_power) * dt",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7311cc51318f72dc03409ed793b8e4c6772815e8: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

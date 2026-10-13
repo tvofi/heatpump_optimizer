@@ -18379,6 +18379,64 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
+#
+# tests/lane_skip.py decides whether the heavy Tests lanes may report
+# `skipped` instead of re-running a provably identical tree. It is NOT_A_TEST
+# (the workflow's decision steps run it, never the suite) and a GATE_FILE (a
+# change to it changes what the lanes believe they may skip). Both claims are
+# classifications, so both are pinned -- and the decision's own teeth, the
+# planted-defect arm above all, are its self-test, which this script runs so
+# that an edit breaking `decide` selects this script and reddens here rather
+# than skipping quietly in CI.
+_lane_skip_selftest = _subprocess.run(
+    [sys.executable, str(_closure.ROOT / "tests" / "lane_skip.py"), "self-test"],
+    capture_output=True, text=True,
+)
+R.check(
+    "the lane-skip decision's self-test passes, teeth included",
+    _lane_skip_selftest.returncode == 0,
+    (_lane_skip_selftest.stdout + _lane_skip_selftest.stderr).strip()[-400:],
+)
+R.check(
+    "lane_skip.py is a gate file and never selectable",
+    _closure.is_gate_file("tests/lane_skip.py")
+    and "lane_skip.py" in _closure.NOT_A_TEST,
+    "a lane-skip tool that a diff could scope out of the gate would let the "
+    "diff edit the rule that decides whether the gate runs",
+)
+
+# The lane-skip wiring's own pinned decision, on the same forged inputs the
+# self-test uses but restated here so the pair cannot drift apart silently:
+# main's delta reaching a selected script's closure MUST land on RUN. This is
+# the guard rail the whole lever hangs from, asserted where the suite runs it.
+import lane_skip as _lane_skip  # noqa: E402 - beside its subject, one block
+
+_lk_payload = {
+    "closures": {
+        "tests/env_drift.py": [
+            "custom_components/heatpump_optimizer/const.py",
+        ],
+    },
+    "inert_reads": {},
+}
+_lk_plan = {"mode": "scoped", "run": ["tests/env_drift.py"], "skip": {}}
+_lk_run = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="b" * 40,
+    main_delta=["custom_components/heatpump_optimizer/const.py"],
+    plan=_lk_plan, payload=_lk_payload)
+_lk_skip = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="a" * 40, main_delta=[],
+    plan=_lk_plan, payload=_lk_payload)
+R.check(
+    "lane_skip runs on a planted defect inside a selected closure and skips "
+    "only on the identical base",
+    _lk_run["decision"] == "run" and _lk_skip["decision"] == "skip"
+    and _lk_skip.get("level") == 1,
+    f"defect -> {_lk_run['decision']} ({_lk_run['reason']}); identical base "
+    f"-> {_lk_skip['decision']} (level {_lk_skip.get('level')})",
+)
+
 # The instance moved from `governance.yml` to `hassfest.yml` when
 # `record-status` landed: this script now READS governance.yml, so it is scoped
 # rather than skipped, and its own case is checked above. The PROPERTY this
@@ -19366,6 +19424,51 @@ R.check(
     "request (R1 #2131), never the serial SUM a --single loop pays and "
     "never a second, dispatch-only derivation path",
 )
+# Round-9 C1: the FULL arm plans through the same planner, over a recording
+# set derived from the tree (`lane-plan --all-scripts`), not a hard-coded
+# lane layout. A `rec tests/...` line in derive_closures.sh is the layout
+# rot this replaced -- it named the recordings, so every new selectable
+# script needed a lane edit on pain of a red main, and the unbalanced
+# "everything else" lane set the 3,242 s wall the planner halves. Regrowth
+# of any hard-coded lane, or a loss of the --all-scripts plan, reddens here.
+# The pattern is word-boundary `\brec tests/`, not anchored `^\s*rec tests/`:
+# the old layout's lane 1 was `( rec tests/stress.py ) &` -- parenthesised --
+# and its driven child was `HASTUB_TZ=Europe/Stockholm rec
+# tests/dst_checks.py` -- environment-prefixed -- and both escape an
+# anchored pattern; with ci_predict's NO RECORDING arm retired by this same
+# change, that escape would leave a lane-form regrowth unguarded by both
+# the guard and the predictor. The planted arms below hold both directions:
+# the two escaping forms redden the anchored pattern and only the
+# word-boundary one.
+def _derive_lane_regrowth_guard(text: str) -> bool:
+    return ("--all-scripts" in text and "lane-plan" in text
+            and not _re.search(r"\brec tests/", text))
+
+
+_derive_txt = Path("tests/derive_closures.sh").read_text()
+R.check(
+    "the closures job's FULL arm is lane-planned over the derived script set",
+    _derive_lane_regrowth_guard(_derive_txt),
+    "derive_closures.sh names a recording with a hard-coded `rec tests/...` "
+    "line: the full arm must derive its set (lane-plan --all-scripts, round-9 "
+    "C1), which records every selectable script without a lane edit",
+)
+_derive_old_lane_forms = (
+    # The old lane 1, exactly as it stood: a subshell, not a bare line.
+    "( rec tests/stress.py ) &\n",
+    # The old driven child, exactly as it stood: an environment prefix.
+    "HASTUB_TZ=Europe/Stockholm rec tests/dst_checks.py\n",
+)
+_derive_anchored = _re.compile(r"(?m)^\s*rec tests/")
+_derive_wordb = _re.compile(r"\brec tests/")
+for _arm in _derive_old_lane_forms:
+    R.check(
+        f"a regrown lane line escapes no guard form: {_arm.strip()!r}",
+        not _derive_anchored.search(_arm) and _derive_wordb.search(_arm)
+        and not _derive_lane_regrowth_guard(f"--all-scripts\nlane-plan\n{_arm}"),
+        "the anchored pattern would miss this lane-line shape (the guard's "
+        "hole), and the word-boundary guard must refuse it",
+    )
 
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
@@ -25721,14 +25824,17 @@ steps:
         echo "a pinned governance grader changed: its own copy runs below"
       fi
 
+  # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
+  # fresh coverage.json to grade and the recorded green already passed the
+  # ratchet on the identical inputs. The canon matches the workflow's arm.
   - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
       path: ${{ runner.temp }}/coverage
 
   - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     run: |
       python3 tests/coverage_ratchet.py \
         --coverage "$RUNNER_TEMP/coverage/coverage.json"
