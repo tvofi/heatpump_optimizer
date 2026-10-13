@@ -28,14 +28,17 @@ beat's own `self_row` and every pre-merge row are answered by it.
 THE REVIEW IS A PREDICATE (tvofi, 2026-10-07): `--automerge-check` is the
 guard under which the job approves the record pull request as the approver
 App and merges it at the judged head once its required checks pass, with no
-review seat; `automerge_refusals` states what it requires. A STATUS REWRITE IS
-A MODIFIED FILE, so the guard refuses the beat that carries one -- measured:
+review seat; `automerge_refusals` states what it requires. A STATUS REWRITE
+IS A MODIFIED FILE, so a beat that carries one was refused here -- measured:
 the same generated line answers `[]` as `status: added` and
 `['not a new file adding exactly one line (status modified, -1)']` as
-`status: modified` -- and that beat is reviewed and merged by hand, which is
-the path this paragraph already describes for a guard refusal. Widening the
-guard to auto-merge a content change to the record is an owner's decision,
-not this generator's. WHAT STAYS MANUAL, by design (issue #1952,
+`status: modified` -- which staled every review, because the hold in
+`tests.yml` engages only on a guard pass and the beat rebuilt its branch on
+every main push instead. The guard now reads a rewrite in exactly the shape
+`_rewrite_granted` writes -- the deleted line the generator's own `**open**`
+row, the added line byte-equal to the API's facts, one line each way,
+nothing else -- and refuses every other modified file as before. WHAT STAYS
+MANUAL, by design (issue #1952,
 owner-approved 2026-10-04): the review of a record pull request the guard
 refuses, and the `dev/programme/HANDOVER.md` `updated-for:` line -- tied to
 merges that change owed work, not every beat, which a job would over-write.
@@ -491,6 +494,52 @@ def added_lines(patch: str) -> list[str] | None:
     return out
 
 
+def modified_lines(patch: str) -> tuple[str, str] | None:
+    """The `(deleted, added)` line pair of a one-line rewrite's patch, or None.
+
+    A status rewrite of a one-line row file is one hunk carrying exactly one
+    `-` line and one `+` line and nothing else: any context line, a second
+    change, or an empty side returns None, the same fail-closed answer
+    `added_lines` gives a patch that is not one hunk of `+` lines. The
+    markers are the only thing read; the lines themselves are judged by
+    `_row_refusal` and `_rewrite_refusal`, never parsed here."""
+    old: list[str] = []
+    new: list[str] = []
+    for ln in str(patch or "").split("\n"):
+        if ln.startswith("@@") or ln == "\\ No newline at end of file" or ln == "":
+            continue
+        if ln.startswith("-"):
+            old.append(ln[1:])
+        elif ln.startswith("+"):
+            new.append(ln[1:])
+        else:
+            return None
+    if len(old) != 1 or len(new) != 1:
+        return None
+    return old[0], new[0]
+
+
+def _rewrite_refusal(number: int, old: str, new: str, own: int,
+                     fact: dict | None) -> str:
+    """Why replacing row line `old` with `new` is not the status rewrite
+    the beat plans for `number`.
+
+    A rewrite moves a row TOWARD the merge (`_rewrite_granted`'s write-side
+    grant, read back here): the deleted line must be a row of `number` whose
+    status run is the generator's own `**open**` -- `line_status`, the same
+    parser the write side grants with, and deliberately not regenerated,
+    because the title an open row carried is often one the API no longer
+    reports. The added line is judged by `_row_refusal` exactly as an added
+    row would be: byte-equal to what the API's live facts generate."""
+    if number == own:
+        return (f"#{number}: the record pull request's own row is never "
+                "rewritten")
+    if not rowed_line(number, old) or line_status(old) != ("open", ""):
+        return (f"#{number}: the deleted line is not the open row this "
+                "generator wrote")
+    return _row_refusal(number, new, own, fact)
+
+
 def _row_refusal(number: int, line: str, own: int, fact: dict | None) -> str:
     """Why `line` is not the row the generator would write for `number`."""
     if not rowed_line(number, line):
@@ -518,13 +567,19 @@ def automerge_refusals(pr: dict, files: list[dict],
 
     Empty means it passes: the author is the hpo-author App by id, from the
     record branch of this repository into main; every file of the
-    three-dot diff (`/pulls/{n}/files`) is a NEW `dev/programme/delivery/<N>.md`
-    holding exactly one added line and nothing removed; that line anchors
-    <N> (`delivery_status.anchored`) and is byte-equal to what `row_line`
-    writes from the API's own facts for <N> -- merged, its merge commit,
-    its title -- or, for the pull request's own number, the `open_row_line`
-    self-row. The line is never parsed back: it is re-generated and
-    compared, so there is no second row grammar to drift.
+    three-dot diff (`/pulls/{n}/files`) is a canonical
+    `dev/programme/delivery/<N>.md` of one of two shapes. ADDED: exactly one
+    added line and nothing removed, anchoring <N>
+    (`delivery_status.anchored`) and byte-equal to what `row_line` writes
+    from the API's own facts for <N> -- merged, its merge commit, its title
+    -- or, for the pull request's own number, the `open_row_line` self-row.
+    MODIFIED (R9-ROW-STALE): exactly one deleted and one added line, where
+    the deleted line is the generator's own `**open**` row for <N> and the
+    added line passes the same regenerate-and-compare -- the status rewrite
+    the beat plans, and nothing more. No line is ever parsed back beyond
+    that status run: both are re-generated (or judged by the writer's own
+    `line_status`, for the deleted side whose title the API may no longer
+    carry) and compared, so there is no second row grammar to drift.
     """
     why = []
     user = pr.get("user") or {}
@@ -555,13 +610,27 @@ def automerge_refusals(pr: dict, files: list[dict],
             why.append(f"{path!r}: renamed, or not a canonical "
                        "dev/programme/delivery/<N>.md")
             continue
-        lines = added_lines(f.get("patch") or "")
-        if f.get("status") != "added" or lines is None or len(lines) != 1:
-            why.append(f"{path}: not a new file adding exactly one line "
-                       f"(status {f.get('status')}, -{f.get('deletions')})")
-            continue
         n = int(m.group(1))
-        r = _row_refusal(n, lines[0], own, facts.get(n))
+        status = f.get("status")
+        if status == "modified":
+            # The rewrite arm: one deleted line, one added line, nothing
+            # else. `facts` carries <N> here -- `automerge_check` reads it
+            # for every row number but the pull request's own, and the own
+            # number is refused inside `_rewrite_refusal` before the fact
+            # would be read.
+            pair = modified_lines(f.get("patch") or "")
+            if pair is None:
+                why.append(f"{path}: not a one-line status rewrite "
+                           f"(status {status}, -{f.get('deletions')})")
+                continue
+            r = _rewrite_refusal(n, pair[0], pair[1], own, facts.get(n))
+        else:
+            lines = added_lines(f.get("patch") or "")
+            if status != "added" or lines is None or len(lines) != 1:
+                why.append(f"{path}: not a new file adding exactly one line "
+                           f"(status {status}, -{f.get('deletions')})")
+                continue
+            r = _row_refusal(n, lines[0], own, facts.get(n))
         if r:
             why.append(r)
     return why
@@ -1081,6 +1150,23 @@ def self_test() -> int:
         ok("ledger still pending a record merge with no row",
            led["merges"][0]["state"] == "pending"
            and led["counts"]["overdue"] == 0)
+        # The stale row is the reporter's class too (R9-ROW-STALE): a merge
+        # carrying a sha is not rowed by a row that still reads **open** --
+        # the green that hid the twelve stale rows on main -- so classify
+        # counts it not rowed and the reporter reddens.
+        _stale_led = delivery_status.classify(
+            [{"number": 2100, "title": "fix: t", "merge_sha": "d" * 40,
+              "merged_at": "", "commits_after": 0}],
+            [f"- [#2100](https://github.com/{DEFAULT_REPO}/pull/2100)"
+             " — **open**, fix(R9-ROW-STALE): a row written before the "
+             "merge"])
+        _honest_led = delivery_status.classify(
+            [{"number": 2100, "title": "fix: t", "merge_sha": "d" * 40,
+              "merged_at": "", "commits_after": 0}],
+            [row_line(2100, "fix: t", "d" * 40, None)])
+        ok("classify: a merge whose row still reads open is not rowed",
+           _stale_led["merges"][0]["state"] != "rowed"
+           and _honest_led["merges"][0]["state"] == "rowed")
 
     # The automerge guard: one valid row-only pull request passes (the null
     # control), and each perturbation the guard exists for is refused ALONE
@@ -1114,6 +1200,30 @@ def self_test() -> int:
        automerge_refusals(_pr(), _good, _facts) == [])
     ok("automerge: a roster-suffixed row passes",
        automerge_refusals(_pr(), _grouped, _facts) == [])
+    # R9-ROW-STALE, the guard half: the beat PLANS a status rewrite of an
+    # existing row file, so the guard must pass the generated shape -- the
+    # deleted line the generator's own open row, the added line the API's
+    # facts -- and refuse each perturbation of it alone. The deleted line is
+    # judged by `line_status`, never regenerated: its title may be one the
+    # API no longer reports, and the rewrite grant accepts exactly that.
+    # A title the API no longer reports is the ordinary deleted line, and
+    # `open_row_line` refuses a title naming another pull request, so the
+    # deleted fixture carries neither the API's title nor a `#N` in it.
+    _open1995 = open_row_line(1995, "fix(R9-RO-4): archive plans")
+    _merged1995 = row_line(1995, _facts[1995]["title"], _sha, None)
+    _rewrite = [_file(1995, _merged1995, status="modified", additions=1,
+                      deletions=1,
+                      patch="@@ -1 +1 @@\n-" + _open1995 + "\n+"
+                      + _merged1995)]
+    ok("automerge: a generated open->merged rewrite passes",
+       automerge_refusals(_pr(), _rewrite, _facts) == [])
+    ok("automerge: a rewrite with the roster suffix passes",
+       automerge_refusals(_pr(), [_file(
+           1995, row_line(1995, _facts[1995]["title"], _sha, "R9-RO-4"),
+           status="modified", additions=1, deletions=1,
+           patch="@@ -1 +1 @@\n-" + _open1995 + "\n+"
+           + row_line(1995, _facts[1995]["title"], _sha, "R9-RO-4"))],
+           _facts) == [])
     _bad = {
         "another file": (_pr(), _good + [{"filename": "tests/run.sh",
                                          "status": "modified",
@@ -1123,6 +1233,43 @@ def self_test() -> int:
                                       status="modified", deletions=1,
                                       patch="@@ -1 +1 @@\n-old\n+"
                                       + _good[0]["patch"][15:])], _facts),
+        # The rewrite arms: each is the passing rewrite with ONE field moved,
+        # so the refusal names the arm under test and no other.
+        "a rewrite whose added line is not the API's facts": (
+            _pr(), [_file(1995, row_line(1995, _facts[1995]["title"],
+                                         "2" * 40, None),
+                          status="modified", additions=1, deletions=1,
+                          patch="@@ -1 +1 @@\n-" + _open1995 + "\n+"
+                          + row_line(1995, _facts[1995]["title"], "2" * 40,
+                                     None))], _facts),
+        "a rewrite whose added line still reads open": (
+            _pr(), [_file(1995, _open1995, status="modified", additions=1,
+                          deletions=1,
+                          patch="@@ -1 +1 @@\n-" + _open1995 + "\n+"
+                          + _open1995)], _facts),
+        "a rewrite that deletes a merged row, not an open one": (
+            _pr(), [_file(1995, _merged1995, status="modified", additions=1,
+                          deletions=1,
+                          patch="@@ -1 +1 @@\n-" + _merged1995 + "\n+"
+                          + row_line(1995, _facts[1995]["title"], _sha,
+                                     "R9-RO-4"))], _facts),
+        "a rewrite that deletes another number's row": (
+            _pr(), [_file(1995, _merged1995, status="modified", additions=1,
+                          deletions=1,
+                          patch="@@ -1 +1 @@\n-"
+                          + open_row_line(2000, "record: not this file")
+                          + "\n+" + _merged1995)], _facts),
+        "a rewrite of the record pull request's own row": (
+            _pr(), [_file(2002, _merged1995, status="modified", additions=1,
+                          deletions=1,
+                          patch="@@ -1 +1 @@\n-"
+                          + open_row_line(2002, OPEN_ROW_TITLE)
+                          + "\n+" + _merged1995)], _facts),
+        "a rewrite that keeps a context line": (
+            _pr(), [_file(1995, _merged1995, status="modified", additions=1,
+                          deletions=1,
+                          patch="@@ -1,2 +1,2 @@\n-" + _open1995 + "\n+"
+                          + _merged1995 + "\n prose a seat wrote")], _facts),
         "deletes a row": (_pr(), [{"filename": row_path(1995),
                                    "status": "removed", "deletions": 1,
                                    "patch": "@@ -1 +0,0 @@\n-x"}], _facts),
