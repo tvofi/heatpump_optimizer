@@ -1290,6 +1290,7 @@
    "tests/coverage_ratchet.py",
    "tests/delivery_status.py",
    "tests/deployment_shape.py",
+   "tests/derive_closures.sh",
    "tests/entities.py",
    "tests/env_drift.py",
    "tests/features.py",
@@ -1338,6 +1339,7 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/issue996_count.py",
+   "tests/lane_skip.py",
    "tests/layout.json",
    "tests/layout.py",
    "tests/mutation_budgets.json",
@@ -3736,15 +3738,15 @@
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 67.4
+   "seconds": 69.1
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 2.8
+   "seconds": 1.2
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 1489.6
+   "seconds": 3379.1
   },
   "tests/card.mjs": {
    "rc": 0,
@@ -3776,10 +3778,10 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 22.6
+   "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 259.6
   },
   "tests/env_drift.py": {
@@ -3788,7 +3790,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 288.5
+   "seconds": 598.2
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -3856,7 +3858,7 @@
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 20.9
+   "seconds": 21.9
   },
   "tests/wood_advisor.py": {
    "rc": 0,
