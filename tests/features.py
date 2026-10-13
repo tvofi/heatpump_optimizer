@@ -4953,6 +4953,31 @@ R.check(
     "9, a doubled cap says 8202",
 )
 
+# The uniform-shortcut in the factor's law (all four surrounding buckets
+# agree -> return that value) is a BIT-IDENTITY guarantee, not an
+# optimisation: the four-weight sum it skips returns 1.0 x weights, and
+# the weights sum to 1 only in exact arithmetic -- in floats the sum
+# differs from 1.0 at roughly one sampled pair in thirty (measured: 3379
+# of 100000), which would perturb every empty-learner plan's COP by
+# ~1e-16. A deterministic sweep pins that the data-less derate is inert
+# to the last bit across the plane, memo hit or miss.
+_shortcut = DefrostDerate()
+_shortcut_bad = 0
+for _i in range(2000):
+    _st = -35.0 + _i * 0.037
+    _sh = (_i * 37 % 102) - 0.5
+    if _shortcut.factor(_st, _sh) != 1.0:
+        _shortcut_bad += 1
+    if _shortcut.factor(_st, _sh) != 1.0:  # the repeat is a memo hit
+        _shortcut_bad += 1
+R.check(
+    "an empty learner's derate is exactly 1.0 across the plane",
+    _shortcut_bad == 0,
+    f"{_shortcut_bad} of 4000 sampled answers (hit and miss alike) left "
+    "1.0 -- the uniform shortcut is what keeps a data-less derate inert "
+    "to the last bit, not a speed choice",
+)
+
 
 # ===========================================================================
 # Weekly DHW windows: different days, different windows (owner request #3)
