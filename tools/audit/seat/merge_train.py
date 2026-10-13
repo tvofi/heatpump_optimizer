@@ -242,9 +242,27 @@ def _fastpath():
 
 
 class Stop(Exception):
-    def __init__(self, step: str, why: str) -> None:
+    def __init__(self, step: str, why: str, cls: "str | None" = None) -> None:
         super().__init__(f"{step}: {why}")
-        self.step, self.why = step, why
+        self.step, self.why, self.cls = step, why, cls
+
+
+# THE BLOCK CLASSES (tvofi, 2026-10-13, after train-batch3 stopped all eight
+# entries on one unexplained worktree refusal): every stop whose shape the
+# train has seen before carries its class, its verified cause and the exact
+# remedy IN THE LINE ITSELF -- a skip is self-describing and the orchestrator
+# never re-derives the fix from raw git output. The class goes in brackets
+# right after the step (`TRAIN STOPPED #7 recarry [HOLDER]: ...`), so a line
+# greps by class and the old `TRAIN STOPPED <step>:` prefix is unchanged.
+HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
+BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: no pull_request run can fire
+STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
+ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
+
+
+def classified(s: Stop) -> str:
+    """<why>, prefixed `[<class>] ` when the stop is one of the known shapes."""
+    return f"[{s.cls}] {s.why}" if s.cls else s.why
 
 
 # The one reader of the owner's recorded mandate, old path first (the TOOLS
@@ -379,7 +397,48 @@ class Train:
                     "only one writes never report -- the head looks settled and is unmergeable, "
                     "with nothing saying why. The required follow-up is an App push at this "
                     "head: run the train again once main has moved (its recarry is one), or "
-                    "have the orchestrator App-push the branch")
+                    "have the orchestrator App-push the branch", cls=BOT_HEAD)
+
+    def branch_holder(self, br: str) -> "str | None":
+        """The worktree path that has branch <br> checked out, from
+        `git worktree list --porcelain`; None when no worktree holds it (then
+        the worktree add failed for a reason this class does not describe)."""
+        code, o = self.run(["git", "worktree", "list", "--porcelain"])
+        if code:
+            return None
+        path = None
+        for ln in o.splitlines():
+            if ln.startswith("worktree "):
+                path = ln[len("worktree "):].strip()
+            elif ln.startswith("branch refs/heads/") and ln[len("branch refs/heads/"):].strip() == br:
+                return path
+        return None
+
+    def holder_refusal(self, wt: Path, br: str) -> Stop:
+        holder = self.branch_holder(br)
+        if holder is None:
+            return Stop("recarry", f"could not make a worktree at {wt}")
+        return Stop("recarry",
+                    f"could not make a worktree at {wt}: branch {br} is already checked out in "
+                    f"another worktree at {holder}. Free it: git worktree remove {holder} "
+                    f"(safe when its work is pushed; verify with git -C {holder} status)",
+                    cls=HOLDER)
+
+    def carry_refusal(self, pr: int, verdict: str, h: str, o: str) -> Stop:
+        """The `--carry` refusal, classified when its shape is the known one:
+        the verdict sha is no longer an ancestor of the head (a bot push
+        advanced the branch after the verdict) -- then the line carries the
+        exact remedy and the delta the fresh verdict will re-read. Any other
+        carry refusal is echoed exactly as today, unclassified."""
+        if "is not an ancestor of" not in o:
+            return Stop("carry", (o.strip().splitlines() or ["(no output)"])[-1][:200])
+        self.run(["git", "fetch", "-q", "origin", verdict])
+        code, d = self.run(["git", "diff", "--no-renames", "--name-only", verdict, h])
+        names = d.split() if code == 0 else []
+        delta = ", ".join(names[:12]) + (" ..." if len(names) > 12 else "") if names else "unreadable"
+        return Stop("carry", f"#{pr} verdict {verdict[:12]} does not carry to head {h[:8]}: the branch moved "
+                    f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
+                    cls=STALE_VERDICT_CARRY)
 
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
@@ -616,7 +675,7 @@ class Train:
                 # checkout often already holds the branch, and the recarry
                 # wants it reset to origin's state before the merge.
                 if not self.ok("git", "worktree", "add", "-q", "-B", br, str(wt), f"origin/{br}"):
-                    raise Stop("recarry", f"could not make a worktree at {wt}")
+                    raise self.holder_refusal(wt, br)
             body = self.state / f"rb{pr}.md"
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
             # The recarry itself takes 5-15 min inside app_push's prepr and logs
@@ -683,7 +742,7 @@ class Train:
         self.run(["git", "fetch", "-q", "origin", h])
         o = self.run(["bash", tool("app_approve"), "--carry", item["verdict"], h])[1]
         if "CARRY: yes" not in o:
-            raise Stop("carry", (o.strip().splitlines() or ["(no output)"])[-1][:200])
+            raise self.carry_refusal(item["pr"], item["verdict"], h, o)
         if rb is None and not self.contains_main(h):
             raise Stop("main", "origin/main moved during CI and is not in the head; run the train again")
         code, base = self.run(["git", "merge-base", "origin/main", h])
@@ -699,7 +758,9 @@ class Train:
         if row not in files:
             raise Stop("row", f"#{item['pr']} has no {row} in the three-dot diff; "
                        "the train writes none and the stamp's --require-rows "
-                       "bar refuses an unrowed merge")
+                       "bar refuses an unrowed merge. Remedy: add the row on-branch "
+                       "(moves the head: fresh verdict owed) or a separate row PR "
+                       "(2158-pattern)", cls=ROW_MISSING)
         def guard() -> None:
             if rb is not None:
                 self.run(["git", "fetch", "-q", "origin", "main"])
@@ -750,7 +811,7 @@ class Train:
             try:
                 self.one(item)
             except Stop as s:
-                self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {s.why}")
+                self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {classified(s)}")
                 return 1
         self.log("TRAIN DONE")
         return 0
@@ -804,9 +865,14 @@ class Train:
         if self.real:
             o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
             if "CARRY: yes" not in o:
-                raise Stop("carry", f"#{pr} " + (o.strip().splitlines() or ["(no output)"])[-1][:200])
+                s = self.carry_refusal(pr, v, h, o)
+                if s.cls is None:  # the unclassified echo keeps today's `#<pr>` prefix
+                    s.why = f"#{pr} {s.why}"
+                raise s
             if f"{ROW_DIR}/{pr}.md" not in files:
-                raise Stop("row", f"#{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff")
+                raise Stop("row", f"#{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff. "
+                           "Remedy: add the row on-branch (moves the head: fresh verdict "
+                           "owed) or a separate row PR (2158-pattern)", cls=ROW_MISSING)
             under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
             if under:
                 self.log(f"#{pr} policy head admitted under {under}")
@@ -950,13 +1016,17 @@ class Train:
         return self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "state,mergeCommit",
                         "--jq", '"\\(.state) \\(.mergeCommit.oid)"').startswith("MERGED")
 
-    def skip(self, pr: int, phase: str, why: str) -> None:
+    def skip(self, pr: int, phase: str, why: str, cls: "str | None" = None) -> None:
         """`--skip-bad`: record one skipped entry -- logged as
         `SKIP #<pr> <phase>: <reason>` (the reason echoed verbatim from the Stop
-        that would otherwise have printed `TRAIN STOPPED`) and collected for
-        skipped.json. A red main is never skippable: the caller re-raises it."""
-        self.log(f"SKIP #{pr} {phase}: {why}")
-        self.skipped.append({"pr": pr, "phase": phase, "reason": why})
+        that would otherwise have printed `TRAIN STOPPED`, its block class in
+        brackets when the shape is a known one) and collected for skipped.json.
+        A red main is never skippable: the caller re-raises it."""
+        self.log(f"SKIP #{pr} {phase}: " + (f"[{cls}] {why}" if cls else why))
+        row = {"pr": pr, "phase": phase, "reason": why}
+        if cls:
+            row["class"] = cls
+        self.skipped.append(row)
 
     def skip_report(self, total: int) -> None:
         """`--skip-bad`'s closing report: the skipped list under the state dir
@@ -989,7 +1059,7 @@ class Train:
                 except Stop as s:
                     if s.step == "main":
                         raise
-                    self.skip(int(item["pr"]), s.step, s.why)
+                    self.skip(int(item["pr"]), s.step, s.why, s.cls)
             serial = [a for a in entries if a["route"]]
             # --overlap: re-carry every serial entry UP FRONT, before anything
             # merges, pushing each branch so all their pull_request runs fire
@@ -1010,7 +1080,7 @@ class Train:
                     except Stop as s:
                         if s.step == "main" or not self.skip_bad:
                             raise
-                        self.skip(a["pr"], s.step, s.why)
+                        self.skip(a["pr"], s.step, s.why, s.cls)
             kept, proofs, dropped = self.settle(tag, base, [a for a in entries if not a["route"]], req)
             lone = len(kept) == 1
             if lone:
@@ -1043,7 +1113,8 @@ class Train:
                 except Stop as s:
                     if not self.skip_bad or s.step == "main":
                         raise
-                    self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step, s.why)
+                    self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step,
+                              s.why, s.cls)
             order = {int(item["pr"]): i for i, item in enumerate(queue)}
             bad = {s["pr"] for s in self.skipped}
             later = sorted([a for a in serial + dropped if a["pr"] not in bad], key=lambda a: order[a["pr"]])
@@ -1059,11 +1130,11 @@ class Train:
                         self.one_overlap(a) if self.overlap else self.one(a)
                     except Stop as s:
                         if s.step == "main" or not self.skip_bad:
-                            raise Stop(s.step, f"#{a['pr']} {s.why}") from None
+                            raise Stop(s.step, f"#{a['pr']} {s.why}", cls=s.cls) from None
                         self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step,
-                                  f"#{a['pr']} {s.why}")
+                                  f"#{a['pr']} {s.why}", s.cls)
         except Stop as s:
-            self.log(f"TRAIN STOPPED {s.step}: {s.why}")
+            self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(len(queue))
             return 1
@@ -1180,6 +1251,9 @@ def _self_test() -> int:
     check(f"a pull request with no {ROW_DIR}/<N>.md row is refused",
           rc == 1 and "row:" in lines[-1] and f"{ROW_DIR}/7.md" in lines[-1]
           and not merged(calls))
+    check("the row refusal is self-describing: class ROW-MISSING and both remedies in the line",
+          "[ROW-MISSING]" in lines[-1] and "add the row on-branch" in lines[-1]
+          and "2158-pattern" in lines[-1])
     check("nightly-status red is ignored by default", "red=[]" in " ".join(lines))
     rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
     check("a red required check stops the train before any approval", rc == 1 and "ci:" in lines[-1] and not merged(calls)
@@ -1226,6 +1300,43 @@ def _self_test() -> int:
           and beats[1] == "beat: waiting proof batch/t-1 (poll 2, t+480s, required: 2, concluded: 1/2)")
     rc, lines, calls = go({"carry": "CARRY: no a -> b: a commit of the branch's own"})
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
+    # BLOCK CLASS STALE-VERDICT-CARRY: app_approve --carry's ancestor line names
+    # the shape -- the branch moved after the verdict (a bot push) -- so the
+    # stop carries the class, the remedy and the delta the fresh verdict reads.
+    rc, lines, calls = go({"carry": f"REFUSE: {V} is not an ancestor of {H0}"})
+    check("a carry refusal whose shape is the stale-verdict ancestor line carries its "
+          "class, the re-verdict remedy and the delta",
+          rc == 1 and "[STALE-VERDICT-CARRY]" in lines[-1]
+          and "verdict at the live head" in lines[-1] and H0[:8] in lines[-1]
+          and "custom_components/x.py" in lines[-1] and not merged(calls))
+    # BLOCK CLASS HOLDER: all eight entries of train-batch3 stopped here -- the
+    # branch was still checked out in a previous session's worktree. The line
+    # names the holder path and the exact freeing commands.
+    def held(base_run):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "worktree add" in a:
+                return 1, "fatal: '" + "fix/x" + "' is already used by worktree at '/other/wt'"
+            if "worktree list" in a:
+                return 0, ("worktree /repo\nHEAD 0000000000000000000000000000000000000000\n"
+                           "branch refs/heads/main\n\n"
+                           "worktree /other/wt\nHEAD 1111111111111111111111111111111111111111\n"
+                           "branch refs/heads/fix/x\n")
+            return base_run(argv, cwd=cwd, stdin=stdin)
+        return run
+    rc, lines, calls = go({"contains": [False], "heads": [H0]}, wrap=held)
+    check("HOLDER: a recarry whose branch is checked out in another worktree names the "
+          "holder path and the exact freeing remedy, classified",
+          rc == 1 and "[HOLDER]" in lines[-1] and "recarry" in lines[-1]
+          and "another worktree at /other/wt" in lines[-1]
+          and "git worktree remove /other/wt" in lines[-1]
+          and "git -C /other/wt status" in lines[-1])
+    rc, lines, calls = go({"contains": [False], "heads": [H0]},
+                          wrap=lambda br: (lambda argv, cwd=ROOT, stdin=None:
+                                           (1, "fatal: cannot lock ref") if "worktree add" in " ".join(argv)
+                                           and "worktree list" not in " ".join(argv) else br(argv, cwd=cwd, stdin=stdin)))
+    check("a worktree add that fails with no holder stays today's plain refusal, unclassified",
+          rc == 1 and "could not make a worktree" in lines[-1] and "[HOLDER]" not in lines[-1])
     rc, lines, calls = go({"contains": [True, False]})
     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
     _g, owner_review, mandate, revoke = policy_fixture_builders()
@@ -1332,6 +1443,8 @@ def _self_test() -> int:
           and "App push" in lines[-1]
           and not merged(calls) and not approved(calls)
           and not any("check-runs" in " ".join(c) for c in calls))
+    check("the bot-head stop is classified BOT-HEAD in the line itself (the remedy text was already exact)",
+          "[BOT-HEAD]" in lines[-1])
     rc, lines, calls = go({"bot_tips": {H0: BOT}, "contains": [False], "heads": [H0, H1]})
     check("a bot head behind main is not refused: the recarry's App push IS the follow-up, "
           "and the train goes on at the new head (null control for the refusal above)",
@@ -1863,6 +1976,9 @@ def _batch_self_test(check) -> None:
           and any(ln == "SKIP REPORT: 1 skipped of 3" for ln in w["lines"])
           and [s["pr"] for s in (w["skip_json"] or [])] == [2]
           and w["lines"][-1] == "TRAIN DONE")
+    check("a skip carries its block class in the line and in skipped.json",
+          any(ln.startswith("SKIP #2 ci: [BOT-HEAD]") for ln in w["lines"])
+          and (w["skip_json"] or [{}])[0].get("class") == "BOT-HEAD")
     w = go(badmid, setup=lambda w: w.update(bot_heads={w["heads"][2]: "ci: pin killed mutants"}))
     check("without --skip-bad the same bad entry still stops the train before anything "
           "merges (the default did not change)",
