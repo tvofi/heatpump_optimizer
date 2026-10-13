@@ -79,11 +79,13 @@ hours from birth. What the day changed is frequency (saturation plus the R9-CI-S
 - **No fourth blocking wait site**: every `wait_ci` call at the #2171 head classified —
   `at_head`/`admit` (pull-request heads, whose runs the train knows fire; bot heads are
   refused first by `bot_refusal`), `settle` and its subsets (proof branches the train itself
-  launched; a `TIMEOUT` there is a *named* `Stop`, never silence), `main_green`
-  non-overlap (by design, named `Stop`). Class search beyond the train: `ci-watch.sh`
-  already judges ABSENT only at a settled head (its W3 arm is the same lesson learned
-  earlier); `merge_pr.sh` waits all runs but bounded at 60 min on the single-PR path;
-  `codeql-triage-poll.sh` polls specific runs, not a required set.
+  launched; a `TIMEOUT` there is a *named* `Stop`, never silence), and `main_green` — one
+  method, **three call sites** in `batch`: before admission (`merge_train.py:941`, the one
+  that wedged), right before each entry's merge (`:992`), and the D-merge revert guard
+  (`:1016`) — all three behind the same one-pass-under-overlap fix. Class search beyond the
+  train: `ci-watch.sh` already judges ABSENT only at a settled head (its W3 arm is the same
+  lesson learned earlier); `merge_pr.sh` waits all runs but bounded at 60 min on the
+  single-PR path; `codeql-triage-poll.sh` polls specific runs, not a required set.
 
 ## 5. The check demonstration — and what it found in the countermeasure
 
@@ -95,17 +97,30 @@ and passing once fixed. Both runs, measured:
 - the full self-test at the #2171 head: 113 checks, 0 failed (null control — it does not
   fire on the healthy tree).
 
-**But #2171's own new arm does not redden the defect.** Measured: with only the pre-fix
-`main_green` planted back into #2171's file (its fix hunks reverted, every test hunk kept),
-the suite still reports **113 checks, 0 failed** — the stubbed clock makes a blocking wait
-free, and the arm asserts outcomes (`rc`, merges, the log line), not the one-pass property.
-That is the exact "check that passes while the bug is present" shape the rule names, inside
-the countermeasure itself. The strengthening that detects it: assert **zero blocking sleeps
-at the pre-admission read** via the world's `on_sleep` clock (the harness measured 0 vs 24).
+**But the arm on #2171's branch head (`5499a38a`) does not redden the defect.** Measured:
+with only the pre-fix `main_green` planted back into #2171's file (its fix hunks reverted,
+every test hunk kept), the suite still reports **113 checks, 0 failed** — the stubbed clock
+makes a blocking wait free, and the landed arm asserts outcomes (`rc`, merges, the log
+line), not the one-pass property. That is the exact "check that passes while the bug is
+present" shape the rule names, inside the countermeasure itself.
+
+**The arm that does detect it is the invocation-counting form the fixer's instruction now
+pins**: a self-test where the `wait_ci` call is counted — main_green must drive it **zero
+times under `--overlap`** and **exactly once on the non-overlap path** (counting the calls
+whose `h` is main's base tip; admit/settle legitimately call it at their own heads).
+Demonstrated by this seat on the #2171 wiring, both runs measured:
+
+- current #2171 wiring + the counting arm: **113 checks, 0 failed** (count 0 under
+  overlap; the non-overlap control's count is exactly 1);
+- the same build with the pre-fix `main_green` planted (the blocking `wait_ci` before the
+  overlap branch): **113 checks, 1 failed** — the overlap arm goes red on the nonzero
+  count, while the non-overlap control still passes.
+
 An in-suite `cr_reads == 1` ceiling is wrong — measured `cr_reads[base] == 2` on the fixed
 tree, because `main_green` legitimately re-reads the tip at "right before #N's merge". The
-one-line sleep-count strengthening belongs **in #2171 before it merges**; this RCA reports
-it to the orchestrator rather than editing the fixer's branch.
+counting arm is **not yet on #2171's branch** as of `5499a38a`; it must land in #2171
+before that pull request merges. This RCA reports it to the orchestrator rather than
+editing the fixer's branch.
 
 ## 6. Record
 
