@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:<module> CONST f34de8e4",
-  "killed_by": "tests/stress.py",
-  "old": "_EVAL_MEMO_MAX_ENTRIES = 512",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 7311cc51318f72dc03409ed793b8e4c6772815e8: CONST (`_EVAL_MEMO_MAX_ENTRIES = 1024`) took tests/stress.py from rc=0 failed=0 to rc=1 failed=1."
-}
