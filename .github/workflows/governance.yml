@@ -309,6 +309,16 @@ jobs:
       - name: Show the push script's decisions refusing their own fixtures
         run: if test -f tools/audit/push.sh; then bash tools/audit/push.sh --self-test; else bash tools/pr/push.sh --self-test; fi
 
+      # The App push-and-open: the #678 ordering (the body contract before
+      # anything reaches the remote), the committed-tip and dirty-tree gates, the
+      # clean-carry condition, and the bounded three-outcome read-back that tells
+      # a race from a refused push (R9-RC-RECARRY-READBACK), over stubbed gh,
+      # git, curl and openssl -- no network, no key. Its siblings push.sh and
+      # app_approve.sh are driven here; the arms that fix adds are otherwise run
+      # by no check on the pull request (the diff is INERT, MODE: SCOPED -- 0).
+      - name: Show the App push refusing its own fixtures
+        run: if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh --self-test; else bash tools/pr/app_push.sh --self-test; fi
+
       # The App approval's refusals and token cleanup, over stubbed gh, curl
       # and openssl: no network, no key.
       - name: Show the App approval refusing its own fixtures
@@ -399,6 +409,11 @@ jobs:
           set -o pipefail
           python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
           grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
+
+      # The train launcher (tools/audit/seat/train.sh): missing arguments, a
+      # live pidfile on the state dir, and an unknown argument each refuse.
+      - name: Show the train launcher refusing its own fixtures
+        run: bash tools/audit/seat/train.sh --self-test
 
       - name: Show the figure check refusing its own fixtures
         if: always()

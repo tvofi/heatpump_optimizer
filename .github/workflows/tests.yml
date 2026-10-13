@@ -57,10 +57,13 @@ name: Tests
 #   wall clock. This is what stops the closures rotting the way a
 #   hand-written dependency table would.
 #
-#   On a push, nightly or dispatch it re-records EVERYTHING. On a pull
-#   request `closure-scope` decides, from the diff and the same table:
+#   On a push or the nightly it re-records EVERYTHING. On a pull request
+#   `closure-scope` decides, from the diff and the same table:
 #   full when a gate file or a file in no recorded closure is touched,
-#   and otherwise re-derive only the closures the diff intersects. The
+#   and otherwise re-derive only the closures the diff intersects. A
+#   `workflow_dispatch` (the batch proof's arm) is scoped the same way,
+#   from its own three-dot diff against origin/main, failing closed to
+#   full (a1, the round-9 closures pre-study). The
 #   old third case -- skip when every changed file is INERT -- is now the
 #   docs-only FAST ARM inside the job rather than a skip (#201 item 8):
 #   `closures` is a required context on `main-protect`, which SUCCESS
@@ -341,6 +344,10 @@ jobs:
 
       - name: Run the suite
         env:
+          # CI-cost metrics (tests/ci_ratchet.py): run.sh appends this run's
+          # scope decision here when the variable is set; local runs never
+          # set it and emit nothing.
+          HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-fast.tsv
           GOLDEN_MODE: drift
           # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
           # budget cannot tell a slower solver from a busier runner, and on
@@ -360,6 +367,19 @@ jobs:
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
         run: ./tests/run.sh
+
+      # CI-cost metrics, lane by lane: the ci-ratchet job on main reads this
+      # run's three artifacts plus the recent window's. Always uploaded,
+      # however the suite ended -- a red run's cost is still cost -- and
+      # empty on a run whose lane never executed a line.
+      - name: Upload the fast lane's CI metrics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ci-metrics-fast
+          path: ${{ runner.temp }}/ci-metrics-fast.tsv
+          if-no-files-found: ignore
+          retention-days: 7
 
       # The save half of the warm cache: the entry env_drift wrote under
       # the key from the step above, persisted where the PRs' restore
@@ -600,12 +620,18 @@ jobs:
       !cancelled() && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
+        || github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
       )
     runs-on: ubuntu-latest
     # The instrumented `fast` stage is the whole default gate minus the four
     # end-to-end scripts, run under a tracer that costs roughly a third again.
+    # The nightly (round-9 C1) runs it too: it composes the closure read set
+    # beside the line set for tests/composed_closures.json's scripts, and the
+    # nightly closures job records the same scripts bare on the same tree, so
+    # `composed-proof` compares the two for free once a night. Off every
+    # critical path: the nightly's wall clock is the slow lane's.
     timeout-minutes: 90
     steps:
       # Full history: the scope below diffs against the merge base and reads
@@ -688,6 +714,13 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-coverage.txt
 
+      # Round-9 C1: an allow-listed script's composed recording must be the
+      # closures lane's strace-unioned read set, not an audit-hook
+      # approximation of it -- `closure.py record` takes the strace path
+      # wherever strace exists, exactly as the closures job's does.
+      - name: Install strace
+        run: sudo apt-get update && sudo apt-get install -y strace
+
       # Writes nothing inside the worktree: W5P_OUT defaults under W5P_WORK, so
       # the measurement leaves no untracked evidence tree behind.
       #
@@ -698,6 +731,10 @@ jobs:
       # `fast`'s to judge, on an uninstrumented run, where it is honest. What
       # this job judges is the JSON.
       - name: Measure the tree
+        env:
+          # CI-cost metrics (tests/ci_ratchet.py): coverage_tree.sh appends
+          # one line per instrumented script execution here.
+          HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-coverage.tsv
         run: |
           # EXPORTED, not merely set: coverage_tree.sh reads W5P_WORK from the
           # environment and refuses without it, and the refusal is a one-line
@@ -738,6 +775,32 @@ jobs:
           name: coverage-json
           path: ${{ env.W5P_WORK }}/out/coverage.json
           if-no-files-found: ignore
+
+      # COMPOSED CLOSURES (round-9 C1): the read sets coverage_tree.sh
+      # derived beside its line sets for tests/composed_closures.json's
+      # scripts, keyed by the tree hash its own tree.txt names. The
+      # `closures` job of THIS run downloads it and verifies (tree, rc 0,
+      # the closures lane's argv) before consuming; a miss or refusal there
+      # re-records bare, so this upload is an offer, never an obligation.
+      # tree.txt is written every run, so the artifact exists whenever the
+      # job measured anything at all.
+      - name: Upload the composed closure recordings
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: composed-closures
+          path: ${{ env.W5P_WORK }}/out/closures
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload the coverage lane's CI metrics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ci-metrics-coverage
+          path: ${{ runner.temp }}/ci-metrics-coverage.tsv
+          if-no-files-found: ignore
+          retention-days: 7
 
       # The next pull requests' base: every script measured, on main. Copied
       # to the path the restore names, because a cache entry's version hashes
@@ -887,9 +950,11 @@ jobs:
   # split the sites by anchor (`pin_shard`) and run at once, each with the
   # whole budget; mutation-autofix merges their artifacts (`merge_pin_shards`)
   # into one commit. `mutation-pin-plan` sizes the matrix from the refusal's
-  # site count (`pin_shard_count`: six sites a shard, at most ten), so a big
-  # diff costs runners rather than wall clock. A base program without --shard
-  # runs whole on shard 1 and the other shards stand down.
+  # site count (`pin_shard_count`: five sites a shard, at most twelve -- the
+  # sizes the 260-minute budget and this job's concurrency were derived
+  # from), so a big diff costs runners rather than wall clock. A base
+  # program without --shard runs whole on shard 1 and the other shards stand
+  # down.
   mutation-pin-plan:
     needs: [mutation]
     if: >-
@@ -936,10 +1001,12 @@ jobs:
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # The step's 340 plus this runner's checkout, pip install and upload
+    # (R9-CI-1 round 2: the budget the step hands the base program is 260).
+    timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 12
       matrix:
         shard: ${{ fromJSON(needs.mutation-pin-plan.outputs.shards) }}
     steps:
@@ -966,7 +1033,7 @@ jobs:
 
       - name: Measure pins for the sites this diff added unpinned
         id: pins
-        timeout-minutes: 170
+        timeout-minutes: 340
         shell: bash
         env:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -983,13 +1050,22 @@ jobs:
           python3 -c 'import json, sys; sys.path.insert(0, "tests"); import mutation_table as m; print(json.dumps(m.load_budgets()))' \
             > "$RUNNER_TEMP/ledger-before.json"
           rm -f "$RUNNER_TEMP/pin-run.txt"
-          # Under the 170-minute step timeout with room for the runs in flight
-          # (R9-F10.12): admission charges a lazy driver its run alone, so a
-          # red run's baseline and null control are paid past the deadline --
-          # boost_drift_replay.py's three runs are ~26 minutes at its recorded
-          # seconds. At 90 minutes four shards of 14 pinned 19 of #2025's 56
-          # sites, each site ~2000 s of driver work; six sites a shard fit 120
-          # (R9-CI-1). Only a base program that has a flag gets it.
+          # 260 minutes under a 340-minute step and a 350-minute job, sized
+          # from the run that measured the pool instead of estimating it
+          # (R9-CI-1 round 2, run 37925123437 shard 3, base b2b6acd64: 5
+          # draw_range.py sites). Its shared drivers are ~3160 s of recorded
+          # seconds a site; the 3-worker pool cost 1.46x that, so five sites
+          # took ~128 min of shared work, and each survivor's EXCLUSIVE tail
+          # (stress.py and harness_headers.py, a settle and a run each, ~980 s)
+          # would have added ~114 min more -- ~248 min against the 120-minute
+          # budget the run had, so every tail was cut and the shard refused
+          # having completed nothing. 260 covers it. The step adds the worst
+          # run that can still be in flight at the deadline --
+          # driver_timeout is TIMEOUT_SCALE (3) x the driver's own seconds, so
+          # boost_drift_replay.py's recorded 1489.6 s is ~75 min -- and the
+          # job adds this runner's checkout, pip install and upload. A base
+          # program that has the flag gets it; pin_shard_count sizes the
+          # matrix so a shard holds five sites.
           budget=()
           shard=()
           run=1
@@ -999,7 +1075,7 @@ jobs:
              && grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
             echo tests/_mutation_table_base.py >> .git/info/exclude
             grep -q -- '--budget-minutes' tests/_mutation_table_base.py \
-              && budget=(--budget-minutes 120)
+              && budget=(--budget-minutes 260)
             if grep -q -- '--shard' tests/_mutation_table_base.py; then
               shard=(--shard "$SHARD/$SHARDS")
             elif [ "$SHARD" != 1 ]; then
@@ -1844,9 +1920,26 @@ jobs:
   # `closure.py affected` answers the right question instead, in three cases:
   # skip (every changed file is INERT), full (a gate file, or a file in no
   # recorded closure), scoped (re-derive only the closures the diff
-  # intersects, ~40 s an entry against 12-22 minutes for the table).
+  # intersects, ~40 s an entry against 30-55 minutes for the table).
+  #
+  # It also runs on `workflow_dispatch` (a1 of the round-9 closures
+  # pre-study): the merge train's batch proof pushes a `batch/<tag>-<n>`
+  # branch and dispatches this workflow on it, and a dispatch has no pull
+  # request base/head -- so before this, `SCOPE_CASE` was empty and the
+  # `closures` job below ran the FULL arm (~50 minutes) on every batch, for
+  # a diff whose entries had each already been scope-checked on their own
+  # pull requests. The dispatch arm derives the same three-dot diff, against
+  # `origin/main`, that a pull request derives against its base, and FAILS
+  # CLOSED: no origin/main, no merge base, an unreadable or EMPTY diff, or a
+  # failed `affected` all yield an empty file list, and `affected` answers
+  # `full` ("no changed files could be determined") for exactly that. A
+  # push to main and the nightly are NOT here on purpose: their full arm is
+  # rule 1's detector and stays untouched.
   closure-scope:
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: >-
+      github.event_name == 'pull_request'
+      || github.event_name == 'merge_group'
+      || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -1875,24 +1968,47 @@ jobs:
           # over-scopes, so it is safe, but it defeats the `skip` case this job
           # exists to keep cheap, and main moved four times today while a single
           # PR was open. fetch-depth: 0 above is what makes ... resolvable.
-          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
-          # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
-          # outside custom_components/, MEASURED by `closure.py record` over a
-          # real run of the lane (run 37764931838, both images, the same 37
-          # paths), plus the requirements file its job installs.
-          # tests/entities.py re-measures what `_stage` mounts into the
-          # container and refuses a path this list does not cover.
-          if git diff --quiet "$BASE"..."$HEAD" -- \
-              tests/nightly_ha.py \
-              tests/ha_contract.py \
-              tests/harness.py \
-              tests/hastub \
-              tests/golden/config_flow.json \
-              tests/requirements-nightly-ha.txt; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # The dispatch arm: derive the diff against origin.main, with the
+            # same fail-closed rule the fast arm below states -- a diff this
+            # job cannot derive is a diff the full arm must judge. Every
+            # failure path lands on an EMPTY changed.txt, and `affected`
+            # answers `full` for an empty list. The extra fetch keeps
+            # origin/main present even if checkout's refspec ever narrows;
+            # its failure is swallowed into the empty list too.
+            git fetch --quiet origin main || true
+            MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
+            if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
+              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+            else
+              : > "$RUNNER_TEMP/changed.txt"
+            fi
+            echo "dispatch diff (three-dot $MAIN_TIP...HEAD):"
+            cat "$RUNNER_TEMP/changed.txt"
+            # The nightly-ha lane is a pull-request decision: on a dispatch it
+            # keeps its pre-a1 behaviour (the job stays skipped) rather than
+            # widening this change beyond the closures arm it is for.
             echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
           else
-            echo "nightly_ha=true" >> "$GITHUB_OUTPUT"
-            echo "the diff touches what nightly-ha's driver reads: nightly-ha runs"
+            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+            # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
+            # outside custom_components/, MEASURED by `closure.py record` over a
+            # real run of the lane (run 37764931838, both images, the same 37
+            # paths), plus the requirements file its job installs.
+            # tests/entities.py re-measures what `_stage` mounts into the
+            # container and refuses a path this list does not cover.
+            if git diff --quiet "$BASE"..."$HEAD" -- \
+                tests/nightly_ha.py \
+                tests/ha_contract.py \
+                tests/harness.py \
+                tests/hastub \
+                tests/golden/config_flow.json \
+                tests/requirements-nightly-ha.txt; then
+              echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "nightly_ha=true" >> "$GITHUB_OUTPUT"
+              echo "the diff touches what nightly-ha's driver reads: nightly-ha runs"
+            fi
           fi
           python tests/closure.py affected \
             --files-from "$RUNNER_TEMP/changed.txt" \
@@ -1905,7 +2021,15 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   closures:
-    needs: [closure-scope]
+    # `coverage` is a need (round-9 C1): this job consumes the composed
+    # recordings the coverage job uploads, and an artifact exists to download
+    # only once that job finished. On the merge queue `coverage` is skipped
+    # (its own `if`), so `!cancelled()` below keeps this job running and the
+    # consume step simply finds no artifact and records bare. The
+    # under-approximation check and every other step are unchanged by the
+    # dependency; it only orders two already-parallel jobs, and `closures`
+    # sits off every critical path (the push wall is `fast`'s or `coverage`'s).
+    needs: [closure-scope, coverage]
     # `!cancelled()` is load-bearing, not decoration. `closure-scope` only runs
     # on a pull request, so on a push to main it is SKIPPED -- and a job whose
     # `needs` was skipped is skipped too, whatever its own `if` says. Without
@@ -1930,21 +2054,31 @@ jobs:
     # unless the answer is `skip` again -- while every code-touching diff
     # takes the full arm, whose steps are unchanged. The old condition's
     # fail-closed reading survives the move: an empty case (a failed
-    # `closure-scope`), an unknown event, a dispatch, the nightly and every
-    # push all take the full arm, exactly as they did when `!= 'skip'` was
-    # the last line of the `if`.
+    # `closure-scope`), an unknown event, the nightly and every push all
+    # take the full arm, exactly as they did when `!= 'skip'` was the last
+    # line of the `if`. A `workflow_dispatch` (a1) takes what its own
+    # re-derived case says, and its derivation fails closed to `full`.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 100
-    # 'true' exactly when this run is a `pull_request` whose diff the gate's
-    # own closure scoping derives as touching nothing measured. That is
-    # `closure-scope`'s output, computed by `tests/closure.py affected` -- the
-    # same rule `GATE_SCOPE=auto` uses in `fast` -- and NOT a paths filter of
-    # this workflow's own: a second rule for "docs-only" would drift from the
-    # gate's the first time either learned a new inert prefix.
+    # actions: read for the C2 consume step's artifact lookup below (the
+    # batch proof's recordings are found BY NAME through the API); contents
+    # stays at the workflow floor.
+    permissions:
+      contents: read
+      actions: read
+    # 'true' exactly when this run's diff the gate's own closure scoping
+    # derives as touching nothing measured. That is `closure-scope`'s output,
+    # computed by `tests/closure.py affected` -- the same rule
+    # `GATE_SCOPE=auto` uses in `fast` -- and NOT a paths filter of this
+    # workflow's own: a second rule for "docs-only" would drift from the
+    # gate's the first time either learned a new inert prefix. The dispatch
+    # arm (a1) is included: a batch whose whole diff is inert answers `skip`
+    # here exactly as a docs-only pull request does.
     env:
       DOCS_ONLY_FAST: ${{ (github.event_name == 'pull_request'
-                           || github.event_name == 'merge_group')
+                           || github.event_name == 'merge_group'
+                           || github.event_name == 'workflow_dispatch')
                          && needs.closure-scope.outputs.case == 'skip' }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -2000,15 +2134,29 @@ jobs:
         timeout-minutes: 5
         run: |
           set -euo pipefail
-          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
-          HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
           # The same three-dot, --files-from derivation closure-scope ran:
           # base.sha is the base branch tip, not the merge base, so two dots
           # would charge this job with files merged elsewhere while it was
           # open. A disagreement here is not retried or waved through; the
           # step fails and the full arm runs on the next event.
-          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
-          echo "changed files (three-dot $BASE...$HEAD):"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # The dispatch arm has no pull_request shas: the same
+            # fail-closed diff against origin/main closure-scope derives,
+            # restated here so this arm's success is its own measurement
+            # exactly as it is on a pull request.
+            git fetch --quiet origin main || true
+            MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
+            if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
+              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+            else
+              : > "$RUNNER_TEMP/changed.txt"
+            fi
+            echo "dispatch diff (three-dot $MAIN_TIP...HEAD):"
+          else
+            BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+            HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
+            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          fi
           cat "$RUNNER_TEMP/changed.txt"
           python tests/closure.py affected \
             --files-from "$RUNNER_TEMP/changed.txt" \
@@ -2022,10 +2170,106 @@ jobs:
             exit 1
           fi
 
+      # C2 (round-9 heavy-script consolidation): a batch's proof run -- the
+      # workflow_dispatch this workflow's merge train fires on the batch
+      # branch -- re-records every closure on tree P_n and, since this
+      # branch's change, uploads those recordings under a name carrying that
+      # tree hash. The batch's LAST merge produces this push run on a
+      # byte-identical tree, so this step can consume them instead of paying
+      # the ~28-55 min re-record again. Every refusal here is a fallback to
+      # the full arm below: no artifact for this tree, a failed download, a
+      # manifest naming another tree, an empty or unhealthy recording --
+      # `closure.py proof-consume` is the authority and it fails closed.
+      # The under-approximation check still runs, on the consumed
+      # recordings, unchanged. The fast and coverage arms of this push run
+      # are never skipped: they are the first verdict/line-set grades of
+      # this tree and the coverage base's producer.
+      - name: Consume the batch proof's recordings when the tree is byte-identical
+        id: proof_consume
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && env.DOCS_ONLY_FAST != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          TREE=$(git rev-parse 'HEAD^{tree}')
+          echo "this push run's tree: $TREE"
+          echo "PROOF_CONSUMED=false" >> "$GITHUB_ENV"
+          PROOF=$(mktemp -d)
+          # Found BY NAME, not by run: the name carries the tree hash, so a
+          # recording set made on any other tree cannot be selected here.
+          ID=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=closure-recordings-tree-$TREE" \
+                 --jq '[.artifacts[] | select(.expired == false)]
+                       | sort_by(.created_at) | .[-1].id // empty' || true)
+          if [ -z "$ID" ]; then
+            echo "no proof recordings for tree $TREE; re-recording fresh (fail closed)"
+            exit 0
+          fi
+          echo "found proof recordings artifact $ID for tree $TREE"
+          if ! gh api "repos/${{ github.repository }}/actions/artifacts/$ID/zip" > "$PROOF/proof.zip" \
+             || ! unzip -oq "$PROOF/proof.zip" -d "$PROOF/rec"; then
+            echo "could not download or unpack the artifact; re-recording fresh (fail closed)"
+            exit 0
+          fi
+          # upload-artifact zips the directory's contents; tolerate a single
+          # wrapping directory rather than assume it.
+          if [ ! -f "$PROOF/rec/tree.txt" ] && [ -f "$PROOF/rec/closures/tree.txt" ]; then
+            mv "$PROOF/rec/closures"/* "$PROOF/rec/"
+          fi
+          if python tests/closure.py proof-consume --expect-tree "$TREE" --in-dir "$PROOF/rec"; then
+            mkdir -p "$RUNNER_TEMP/closures"
+            cp "$PROOF"/rec/*.json "$RUNNER_TEMP/closures/"
+            echo "PROOF_CONSUMED=true" >> "$GITHUB_ENV"
+          else
+            echo "proof-consume refused; re-recording fresh (fail closed)"
+          fi
+
+      # C1: this run's OWN coverage job already executed the allow-listed
+      # scripts once under the tracer, deriving the line set AND the closure
+      # read set from that one execution. composed-verify refuses on any
+      # doubt -- tree mismatch, rc, argv, empty read set -- and a refusal
+      # consumes nothing: every script records bare below.
+      - name: Fetch this run's composed recordings
+        id: composed_fetch
+        if: >-
+          env.DOCS_ONLY_FAST != 'true' && env.PROOF_CONSUMED != 'true'
+          && github.event_name != 'schedule'
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v6
+        with:
+          name: composed-closures
+          path: ${{ runner.temp }}/composed
+
+      - name: Verify and stage the composed recordings
+        if: >-
+          env.DOCS_ONLY_FAST != 'true' && env.PROOF_CONSUMED != 'true'
+          && github.event_name != 'schedule'
+          && steps.composed_fetch.outcome == 'success'
+        run: |
+          set -euo pipefail
+          TREE=$(git rev-parse 'HEAD^{tree}')
+          if ! OUT=$(python tests/closure.py composed-verify \
+                       --expect-tree "$TREE" --in-dir "$RUNNER_TEMP/composed"); then
+            echo "composed verification refused; recording every script bare (fail closed)"
+            exit 0
+          fi
+          [ -n "$OUT" ] || { echo "nothing composed to consume"; exit 0; }
+          mkdir -p "$RUNNER_TEMP/closures"
+          for s in $OUT; do
+            cp "$RUNNER_TEMP/composed/$(basename "$s").json" "$RUNNER_TEMP/closures/"
+            echo "composed: consuming $s's recording from this run's coverage job"
+          done
+          # Space-separated, for derive_closures.sh's COMPOSED_CONSUMED match.
+          echo "COMPOSED_CONSUMED=$(printf '%s ' $OUT)" >> "$GITHUB_ENV"
+
       - name: Re-record the closures
         # Full arm only: the fast arm has no recording to make. Unchanged
-        # from before the fast lane on every diff that reaches it.
-        if: env.DOCS_ONLY_FAST != 'true'
+        # from before the fast lane on every diff that reaches it, except
+        # that a consumed proof (C2) or composed records (C1) already put
+        # recordings on disk and the arm skips what it would duplicate.
+        if: >-
+          env.DOCS_ONLY_FAST != 'true' && env.PROOF_CONSUMED != 'true'
         env:
           OMP_NUM_THREADS: "1"
           OPENBLAS_NUM_THREADS: "1"
@@ -2035,6 +2279,11 @@ jobs:
           # substitution.
           SCOPE_CASE: ${{ needs.closure-scope.outputs.case }}
           SCOPE_SCRIPTS: ${{ needs.closure-scope.outputs.scripts }}
+          # CI-cost metrics (tests/ci_ratchet.py): derive_closures.sh appends
+          # one line per script it records, classed by the same case
+          # closure-scope derived.
+          HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-closures.tsv
+          HPO_CI_SCOPE: ${{ needs.closure-scope.outputs.case == 'scoped' && 'scoped' || 'full' }}
         run: |
           REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
           # --record-only, on both paths: merging here would overwrite the
@@ -2044,11 +2293,17 @@ jobs:
             printf '%s\n' "$SCOPE_SCRIPTS" > "$RUNNER_TEMP/rederive.txt"
             echo "Scoped re-derive; every other closure is left as committed:"
             cat "$RUNNER_TEMP/rederive.txt"
-            while read -r s; do
-              [ -n "$s" ] || continue
-              GOLDEN_REF="$REF" ./tests/derive_closures.sh \
-                --single "$s" --out-dir "$RUNNER_TEMP/closures" --record-only
-            done < "$RUNNER_TEMP/rederive.txt"
+            # One --scripts-from lane run, not a --single per script: a
+            # serial loop pays the SUM of the selected recordings (51m18s
+            # over 24 scripts on #2071's job) where a lane-balanced run pays
+            # the MAX of its lanes. The runner shards the list itself
+            # (closure.py lane-plan: the producer/consumer and driver/child
+            # orderings kept inside one lane) and bounds itself to three
+            # lanes on this runner, so nothing is passed in here. The
+            # recordings are the same recordings the loop took (R9-F10.15).
+            GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+              --scripts-from "$RUNNER_TEMP/rederive.txt" \
+              --out-dir "$RUNNER_TEMP/closures" --record-only
           else
             GOLDEN_REF="$REF" ./tests/derive_closures.sh \
               --out-dir "$RUNNER_TEMP/closures" --record-only
@@ -2087,19 +2342,229 @@ jobs:
           PYTHONPATH: tests/hastub
         run: python tests/closure.py no-copies
 
+      # C2's producer side: the proof run (workflow_dispatch on a batch
+      # branch, fired by the merge train) writes its recordings' tree hash
+      # beside them, so the artifact's NAME and its manifest agree -- one
+      # upload step writes both, which is what makes a mislabel require a
+      # bug in this single step rather than a race. The nightly (schedule)
+      # gets the same tree-named upload for `composed-proof`'s free nightly
+      # comparison: its closures job records bare (the C1 consume step
+      # excludes schedule) on the same tree its coverage job composed.
+      - name: Write the recordings' tree hash
+        if: >-
+          always() && (github.event_name == 'workflow_dispatch'
+                       || github.event_name == 'schedule')
+          && env.DOCS_ONLY_FAST != 'true'
+        run: |
+          TREE=$(git rev-parse 'HEAD^{tree}')
+          echo "CLOSURES_TREE=$TREE" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/closures"
+          printf '%s\n' "$TREE" > "$RUNNER_TEMP/closures/tree.txt"
+
       - name: Upload closure recordings
         # Autofix needs the recordings even when the check above failed.
         # Full arm only: the fast arm makes no recordings, and a failure it
-        # could report is one no recording exists to repair.
+        # could report is one no recording exists to repair. A pull request
+        # uploads under the name `closures-autofix` merges; a dispatch (the
+        # batch proof) and the nightly upload tree-named, for the C2 consume
+        # step and `composed-proof` respectively.
         if: >-
-          always() && github.event_name == 'pull_request'
+          always() && (github.event_name == 'pull_request'
+                       || github.event_name == 'workflow_dispatch'
+                       || github.event_name == 'schedule')
           && env.DOCS_ONLY_FAST != 'true'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: closure-recordings
+          name: ${{ github.event_name == 'pull_request' && 'closure-recordings' || format('closure-recordings-tree-{0}', env.CLOSURES_TREE) }}
           path: ${{ runner.temp }}/closures
           if-no-files-found: ignore
           retention-days: 3
+
+      - name: Upload the closures lane's CI metrics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ci-metrics-closures
+          path: ${{ runner.temp }}/ci-metrics-closures.tsv
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # THE COMPOSED-CLOSURE PROOF (round-9 C1). The closures job consumes
+  # composed recordings fail-closed, so nothing else on a pull request ever
+  # records the allow-listed scripts bare; this job is where the instrument's
+  # own equality is measured. Two arms:
+  #   nightly (schedule): the nightly's own coverage job composed and
+  #     closures job recorded bare on the same tree -- both artifacts exist,
+  #     the comparison is free.
+  #   self (a pull request that changed the composition machinery): the
+  #     driver tools/coverage/composed_proof.sh measures all three executions
+  #     itself (bare, composed, traced-only) -- a PR's closures job consumes
+  #     the composed record, so no artifact on a PR records bare.
+  # Not a required context: a red here removes the script from
+  # tests/composed_closures.json (that removal IS the refusal); it does not
+  # block the pull request it fired on.
+  composed-proof:
+    needs: [coverage, closures]
+    if: >-
+      !cancelled() && (github.event_name == 'schedule'
+        || github.event_name == 'pull_request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Decide whether this run has proving to do
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "arm=nightly" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BASE="${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          if grep -qxE \
+            'tools/coverage/coverage_tree\.sh|tools/coverage/composed_proof\.sh|tests/closure\.py|tests/composed_closures\.json|\.github/workflows/tests\.yml' \
+            "$RUNNER_TEMP/changed.txt"; then
+            echo "arm=self" >> "$GITHUB_OUTPUT"
+          else
+            echo "arm=none" >> "$GITHUB_OUTPUT"
+            echo "composition machinery unchanged; nothing to prove"
+          fi
+
+      - name: Install pinned test dependencies
+        if: steps.decide.outputs.arm == 'self'
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+          -r tests/requirements-coverage.txt
+
+      - name: Install strace
+        if: steps.decide.outputs.arm == 'self'
+        run: sudo apt-get update && sudo apt-get install -y strace
+
+      - name: The self-sufficient proof (all three executions, this head)
+        if: steps.decide.outputs.arm == 'self'
+        run: tools/coverage/composed_proof.sh
+
+      # The nightly arm: both artifacts come from THIS run's own jobs, on the
+      # same tree, so the comparison costs nothing but the download.
+      - name: Compute this checkout's tree
+        if: steps.decide.outputs.arm == 'nightly'
+        run: echo "TREE=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_ENV"
+
+      - name: Fetch the nightly's composed recordings
+        if: steps.decide.outputs.arm == 'nightly'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v6
+        with:
+          name: composed-closures
+          path: ${{ runner.temp }}/composed
+
+      - name: Fetch the nightly's bare recordings
+        if: steps.decide.outputs.arm == 'nightly'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v6
+        with:
+          # The tree-named upload the closures job makes on schedule; the
+          # name and this checkout agree on the tree, and composed-compare
+          # re-verifies nothing here it cannot see.
+          name: closure-recordings-tree-${{ env.TREE }}
+          path: ${{ runner.temp }}/bare
+
+      - name: Compare read sets on the nightly's one tree
+        if: steps.decide.outputs.arm == 'nightly'
+        run: >-
+          python3 tests/closure.py composed-compare
+          --composed-dir "$RUNNER_TEMP/composed"
+          --bare-dir "$RUNNER_TEMP/bare"
+
+  # THE CI RATCHET (round-9, tvofi's request). One-way budgets over CI cost
+  # and code health, graded once per merge: this job runs on the push the
+  # merge makes, reads the ci-metrics artifacts the run's own lanes emitted
+  # plus the recent window's (a ratchet whose input is typed by a human is
+  # not a ratchet), and refuses any metric that grew. Never passes --record:
+  # the always-green shape (the same null control the coverage ratchet's
+  # wiring carries). Not a required context: the merge already happened; the
+  # red is a debt a follow-up pays or a deliberate --record re-records.
+  ci-ratchet:
+    needs: [fast, coverage, closures]
+    if: >-
+      !cancelled() && github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Gather this run's and the recent window's metrics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          M="$RUNNER_TEMP/metrics"; mkdir -p "$M"
+          # This run's three lanes, by name, from this run.
+          for lane in fast coverage closures; do
+            gh run download "$GITHUB_RUN_ID" --name "ci-metrics-$lane" \
+              --dir "$M" || echo "no ci-metrics-$lane artifact this run"
+          done
+          # The recent window: the newest ci-metrics artifact per lane per
+          # run of the last 15 runs that are not this one, whatever their
+          # event -- the scoping metric reads pull_request runs, the push
+          # counts read push runs, and every line carries its own event and
+          # run id, so the ratchet groups them itself.
+          gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '[.artifacts[]
+                   | select(.name | startswith("ci-metrics-"))
+                   | select(.expired == false)
+                   | select(.run_id != ($ENV.GITHUB_RUN_ID | tonumber))
+                   | {id: .id, run: .run_id, name: .name, at: .created_at}]
+                  | sort_by(.at) | reverse
+                  | unique_by(.run, .name)' > "$RUNNER_TEMP/window.json" || true
+          python3 - "$RUNNER_TEMP/window.json" "$M" <<'EOF'
+          import json, os, subprocess, sys, zipfile
+          window, out = sys.argv[1], sys.argv[2]
+          arts = json.load(open(window))[:45]
+          print(f"window: {len(arts)} ci-metrics artifact(s)")
+          repo = os.environ["GITHUB_REPOSITORY"]
+          for art in arts:
+              z = os.path.join(out, f"a{art['id']}.zip")
+              with open(z, "wb") as fh:
+                  subprocess.run(
+                      ["gh", "api", f"repos/{repo}/actions/artifacts/"
+                       f"{art['id']}/zip"], stdout=fh, check=True)
+              with zipfile.ZipFile(z) as f:
+                  for n in f.namelist():
+                      if n.endswith(".tsv"):
+                          dst = os.path.join(out, f"w{art['id']}-"
+                                             + os.path.basename(n))
+                          with open(dst, "wb") as wh:
+                              wh.write(f.read(n))
+          EOF
+      - name: Fetch the recent push runs' durations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api "repos/${{ github.repository }}/actions/workflows/tests.yml/runs?event=push&branch=main&per_page=8"
+          > "$RUNNER_TEMP/runs.json"
+
+      - name: Grade the ratchet
+        run: >-
+          python3 tests/ci_ratchet.py
+          --metrics-dir "$RUNNER_TEMP/metrics"
+          --runs-json "$RUNNER_TEMP/runs.json"
+
 
   # Same-repo PR only: the closures job already re-recorded under strace.
   # If check printed UNDER-SCOPED or INERT READS UNDER-APPROXIMATED, merge
@@ -2108,10 +2573,13 @@ jobs:
   # no-copies, a failed recording of a script the check named, an INERT
   # contradiction, or its own follow-up commit (`ci: re-record closures`).
   #
-  # A GITHUB_TOKEN push's pull_request runs wait action_required, so this
-  # job dispatches Tests (recheck=true), Hassfest, Validate and CodeQL on the
-  # new SHA; not Governance (why: tests/entities.py). CLOSURES_PUSH_TOKEN, if
-  # set, retriggers via synchronize and the dispatch is skipped.
+  # A GITHUB_TOKEN push triggers no pull_request run of its own (#2070 at
+  # a9ba0b88 and #2066 at 63084989, 2026-10-09: the only runs at such a head
+  # are the four dispatched below, and the approve step's 60 s poll found
+  # nothing held), so this job dispatches Tests (recheck=true), Hassfest,
+  # Validate and CodeQL on the new SHA; not Governance (why:
+  # tests/entities.py). CLOSURES_PUSH_TOKEN, if set, retriggers via
+  # synchronize and the dispatch is skipped.
   closures-autofix:
     needs: [closures]
     if: >-
@@ -2220,9 +2688,11 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
-          # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276); the
-          # pushed SHA is that step's poll key (#1283).
+          # A GITHUB_TOKEN push leaves no pull_request run at this head for
+          # the next step to approve (measured 2026-10-09 on two bot heads:
+          # four dispatched runs, none held). The poll stays, as #1276 added
+          # it -- it is the fail-soft insurance for a run that IS held --
+          # with the pushed SHA as its key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           # No -f recheck=: that input is only on default-branch YAML.
@@ -2239,9 +2709,13 @@ jobs:
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
 
-      # The dispatches above run at once, but the pull_request runs a
-      # GITHUB_TOKEN push triggers wait action_required for a human, and a
-      # pending required check shadows the dispatched green on the PR (#1276).
+      # The dispatches above run at once. #1276 added this step because a
+      # GITHUB_TOKEN push's pull_request runs were held action_required for a
+      # human, and a pending required check shadowed the dispatched green on
+      # the PR. Measured 2026-10-09, at two bot heads: no such run is created
+      # at all, so this step normally finds nothing to approve and the four
+      # dispatched runs stand alone (the five pull_request-only required
+      # contexts are absent there; an App push or a body edit writes them).
       # The listing is preceded by a bounded poll: GitHub creates the pushed
       # SHA's runs asynchronously, and a one-shot listing was measured
       # approving nothing while all five runs appeared moments later (#1283).
@@ -2487,9 +2961,11 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
-          # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276); the
-          # pushed SHA is that step's poll key (#1283).
+          # A GITHUB_TOKEN push leaves no pull_request run at this head for
+          # the next step to approve (measured 2026-10-09 on two bot heads:
+          # four dispatched runs, none held). The poll stays, as #1276 added
+          # it -- it is the fail-soft insurance for a run that IS held --
+          # with the pushed SHA as its key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           gh workflow run tests.yml --ref "$HEAD_REF"
@@ -2503,14 +2979,17 @@ jobs:
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
 
-      # As in closures-autofix (#1276): the dispatches run at once, the
-      # pull_request runs a GITHUB_TOKEN push triggers wait action_required
-      # for a human, and the approve step clears them as the Actions-only
-      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
-      # inline -- after the same bounded poll for the pushed SHA's runs
-      # (#1283). Fail-soft throughout: absent secrets print one notice and
-      # approve nothing, and a later error warns rather than reddening a
-      # job whose push already happened (red means "no bot commit", #523).
+      # As in closures-autofix (#1276): the dispatches run at once. That
+      # step exists because a GITHUB_TOKEN push's pull_request runs were held
+      # action_required for a human; measured 2026-10-09 at two bot heads, no
+      # such run is created at all, so the poll below normally finds nothing
+      # and the four dispatched runs stand alone. Where GitHub does hold one,
+      # the approve step clears it as the Actions-only App -- the RS256 mint
+      # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
+      # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent
+      # secrets print one notice and approve nothing, and a later error warns
+      # rather than reddening a job whose push already happened (red means
+      # "no bot commit", #523).
       - name: Approve the runs the push left holding
         if: steps.push.outputs.token_push == 'true'
         env:
@@ -2683,9 +3162,11 @@ jobs:
         with:
           python-version: "3.13"
 
-      # One artifact per shard (mutation-pins-1..4), each in its own
-      # subdirectory; `merge_pin_shards` folds them into the one directory
-      # `apply_pins` reads.
+      # One artifact per shard (mutation-pins-1..N), each in its own
+      # subdirectory -- except a lone match, which actions/download-artifact
+      # extracts into `path` itself and `merge_pin_shards` reads there
+      # (#2060, R9-CI-2); `merge_pin_shards` folds them into the one
+      # directory `apply_pins` reads.
       - name: Download the pins the mutation-pins shards measured
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         continue-on-error: true
@@ -2769,9 +3250,11 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
-          # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276); the
-          # pushed SHA is that step's poll key (#1283).
+          # A GITHUB_TOKEN push leaves no pull_request run at this head for
+          # the next step to approve (measured 2026-10-09 on two bot heads:
+          # four dispatched runs, none held). The poll stays, as #1276 added
+          # it -- it is the fail-soft insurance for a run that IS held --
+          # with the pushed SHA as its key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           gh workflow run tests.yml --ref "$HEAD_REF"
@@ -2785,14 +3268,17 @@ jobs:
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
 
-      # As in closures-autofix (#1276): the dispatches run at once, the
-      # pull_request runs a GITHUB_TOKEN push triggers wait action_required
-      # for a human, and the approve step clears them as the Actions-only
-      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
-      # inline -- after the same bounded poll for the pushed SHA's runs
-      # (#1283). Fail-soft throughout: absent secrets print one notice and
-      # approve nothing, and a later error warns rather than reddening a
-      # job whose push already happened (red means "no bot commit", #523).
+      # As in closures-autofix (#1276): the dispatches run at once. That
+      # step exists because a GITHUB_TOKEN push's pull_request runs were held
+      # action_required for a human; measured 2026-10-09 at two bot heads, no
+      # such run is created at all, so the poll below normally finds nothing
+      # and the four dispatched runs stand alone. Where GitHub does hold one,
+      # the approve step clears it as the Actions-only App -- the RS256 mint
+      # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
+      # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent
+      # secrets print one notice and approve nothing, and a later error warns
+      # rather than reddening a job whose push already happened (red means
+      # "no bot commit", #523).
       - name: Approve the runs the push left holding
         if: steps.push.outputs.token_push == 'true'
         env:

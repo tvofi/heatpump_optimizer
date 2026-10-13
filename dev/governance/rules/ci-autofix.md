@@ -11,23 +11,23 @@ paths:
 # Mechanical CI autofix (do not re-implement)
 
 Same-repo PRs have three jobs in `.github/workflows/tests.yml`. If `closures` is
-`UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait**.
-Do not open a parallel PR, do not Darwin `--single` an under-scope CI already recorded (Linux
-`strace` recordings are the ones to merge), and do not hand-empty claim files that match
-`origin/main`. Darwin can `--single` a **new** node script, or grow a node closure; it cannot
-replace a Linux node recording.
+`UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait** --
+a `DIRTY` head queues no run, so no bot commit comes. Do not open a parallel PR, do not
+Darwin `--single` an under-scope CI already recorded (Linux `strace` recordings are the ones
+to merge), and do not hand-empty claim files that match `origin/main`. Darwin can `--single` a
+**new** node script, or grow a node closure; it cannot replace a Linux node recording.
 
-**That wait is conditional: it holds only while the job reports that it is
+**That wait holds only while the job reports it is
 repairing.** Each job pushes on `changed` alone and prints its status to the
 job summary (#523). `closures-autofix` goes red on `skip-failed-recording`,
 `skip-merge-failed`, `skip-still-fails`, `skip-unchanged`,
 `skip-classifier-disagrees` and `skip-manual-repair-owed` — a repair was owed
-and it did not happen. **A red autofix job means there will be no bot commit.** The
+and it did not happen. **A red autofix job means no bot commit comes.** The
 `--single` prohibition above, which assumes the bot will merge, lapses. Read the summary
 line, re-derive the script it names and commit `tests/closures.json`; Python
 lanes record through `sys.addaudithook`, so Darwin is sound for them — except
 the inert dimension, which is Linux-recorded (`strace`-only): the bot merges
-INERT READS from the CI recordings too (#1886, R9-CI-1). On
+INERT READS from CI recordings too (#1886, R9-CI-1). On
 `skip-failed-recording` a script the check named (or its driven child) stopped
 while being recorded — fix it first; re-deriving would record the same truncation.
 
@@ -47,7 +47,7 @@ failure — so its summary line is its only signal.
 - **A committed phantom.** `check` fails the `closures` job when the committed
   table lists a path that is not a file (#1310), but the autofix reports no
   UNDER-SCOPED and stays green — the status a clean run also reports — so no bot
-  commit is coming: a recording cannot drop a dead path. Repair the table in
+  commit comes: a recording cannot drop a dead path. Repair the table in
   place: `python3 tests/closure.py prune`.
 - **The loop guard.** After the bot pushes, the next run's head subject is
   `ci: re-record closures`, so `autofix_allowed` returns false *before* any
@@ -59,7 +59,7 @@ failure — so its summary line is its only signal.
   reached — so where that truncation hides the *only* under-approximation,
   `check` passes and the job is green on `skip-clean` — or on `changed`, since
   an unnamed script's cut-short recording is left out (R9-CI-1). `skip-failed-recording`
-  fires only *after* UNDER-SCOPED has been printed, deliberately: a failed
+  fires only *after* UNDER-SCOPED is printed, deliberately: a failed
   recording is common to unrelated `no-copies` and NOT-A-FILE failures, and
   would send their reader to re-derive a closure that was never stale. The
   script that failed normally reddens `fast` in the same run; one that fails
@@ -74,10 +74,11 @@ failure — so its summary line is its only signal.
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 | unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
 
-Those subjects are loop guards. A `GITHUB_TOKEN` push's `pull_request` runs wait `action_required` for a
-human; the job dispatches Tests/Hassfest/Validate and CodeQL, which run at once. Governance's contexts come
-from the held run once approved (#1514). `recheck-gate` treats `ci:` as PR-like (not `slow`). All
-three approve those held runs as a dedicated Actions-only App, fail-soft while its secrets are absent.
+Those subjects are loop guards. The job dispatches Tests/Hassfest/Validate and CodeQL at once; a
+`GITHUB_TOKEN` push creates no `pull_request` run (measured 2026-10-09), so the contexts only that event
+writes are ABSENT at a bot head until an App push or body edit. Absent is not green (`orchestrator.md`
+section 11). `recheck-gate` treats `ci:` as PR-like (not `slow`). All three approve any held run there
+is, fail-soft while its secrets are absent.
 
 When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate survivor triage,
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is

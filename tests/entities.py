@@ -3784,7 +3784,11 @@ def _p2_registry(sources):
                  (ast.Call,), r"^getattr\(.*'(last_updated|last_changed|last_reported)'",
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
-             owners=["inputs.py::state_stamp"], dispositions={}),
+             owners=["inputs.py::state_stamp"], dispositions={
+                 "early_cutoff.py::_cycle_guard":
+                     "the pump's run length is the age of the switch's VALUE "
+                     "(last_changed); state_stamp answers when the entity was "
+                     "last heard from, which a re-reported 'on' resets"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -3793,11 +3797,11 @@ def _p2_registry(sources):
                      getattr(n.left, "value", None), getattr(n.right, "value", None))),
              owners=["thermal_model.py::on_threshold_kw"], dispositions={}),
         # D12-s2-02: the domain that writes a configured entity comes from
-        # the entity (coordinator._on_off_service, #1526), never a literal.
+        # the entity (pump_arbiter.on_off_service, #1526), never a literal.
         dict(fact="entity_write_domain", finding="D12-s2-02",
              match=_p2_match_literal_domain(
                  {"select", "switch", "input_select", "input_boolean", "number", "input_number"}),
-             owners=["coordinator.py::_on_off_service"],
+             owners=["pump_arbiter.py::on_off_service"],
              dispositions={
                  "coordinator.py::HeatPumpOptimizerCoordinator._command_frequency":
                      "the compressor_freq slot is number-only "
@@ -4351,7 +4355,7 @@ _EC_NOT_ENTRY = {
 _EC_MIGRATED = {
     "coordinator.py", "__init__.py", "binary_sensor.py", "optimizer.py", "climate.py",
     "disinfection.py", "legionella.py", "pump_arbiter.py", "pump_signals.py", "sensor.py",
-    "setpoint_check.py", "silent_mode.py",
+    "setpoint_check.py", "silent_mode.py", "early_cutoff.py",
 }
 
 
@@ -15495,10 +15499,15 @@ _D308_COMPARABLE = _D308_TOTAL - sum(
     for _b in sorted(_D308)[_i + 1:]
     if not ((set(_D308[_a]) & _D308_PROD) and (set(_D308[_b]) & _D308_PROD)))
 _D308_FULLCOV = sorted(s for s, fs in _D308.items() if _D308_PROD <= set(fs))
-# The lane is the only full-coverage closure but for one measured exception, admitted by name: the
-# architecture score's head check (R9-EG-A1) measures today's tree, so its closure is the package by
-# purpose. A third script reaching every file is still refused here.
-_D308_ADMITTED = sorted([_D308_DS, "tests/arch_score_head.py"])
+# The lane is the only full-coverage closure but for two measured
+# exceptions, admitted by name: the architecture score's head check
+# (R9-EG-A1) measures today's tree, so its closure is the package by
+# purpose; and tests/entities.py (round 9) drives the CI ratchet's
+# archscore measurement, which walks the package the same way -- its
+# closure grew to the package when that import landed, re-recorded with the
+# #1218 note. A fourth script reaching every file is still refused here.
+_D308_ADMITTED = sorted([_D308_DS, "tests/arch_score_head.py",
+                         "tests/entities.py"])
 _D308_SELECTED = _D308_DS in _closure.select(
     ["custom_components/heatpump_optimizer/optimizer.py"])["run"]
 R.check(
@@ -18546,12 +18555,96 @@ R.check(
 # it selects this script rather than skipping. SECURITY.md keeps the third
 # slot a genuinely inert document still fills.
 _A_DOCS = _closure.affected(
-    ["dev/programme/register/audit-2026-09.md", "LICENSE", "SECURITY.md"])
+    ["dev/governance/rules/gate-scoping.md", "SECURITY.md", "NOTICE"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",
     f"case is {_A_DOCS['case']}: {_A_DOCS['reason']} -- if a docs pull "
-    "request pays 12-22 minutes the scoping this replaces was pointless",
+    "request pays 30-55 minutes the scoping this replaces was pointless. "
+    "The probe files are ones no recording reaches at any depth: the "
+    "register markdown this check used to name is itself in "
+    "harness_headers.py's committed inert_reads, so under the inert-read "
+    "rule it correctly selects that script now, and a skip probe that "
+    "names a recorded read pins nothing",
+)
+# #2109's class (the inert_reads rule): `inert_reads` is a recorded READ --
+# the Linux strace union of a real run opened the file -- and until the fix
+# the skip rule never consulted it. PR #2109 added
+# dev/audit/rounds/round9/prestudy/boost_drift_refit.py under a tree
+# tests/harness_headers.py's discovery demonstrably rglobs; `affected` said
+# skip, the fast arm passed in 16 seconds, and only the next push to main
+# -- 54 minutes after the merge -- printed INERT READS UNDER-APPROXIMATED.
+# The rule is deliberately over-selecting in both its arms (exact file, and
+# the recorded entry's own directory or that directory's parent): the cost
+# is a recording, and the failure it prevents is a post-merge red on main.
+_A_IR_EXACT = _closure.affected(["LICENSE"])
+R.check(
+    "a changed recorded inert read re-derives every script that reads it",
+    _A_IR_EXACT["case"] == "scoped"
+    and {"tests/entities.py", "tests/harness_headers.py"}
+    <= set(_A_IR_EXACT["rederive"]),
+    f"case={_A_IR_EXACT['case']} rederive={_A_IR_EXACT['rederive']} -- "
+    "LICENSE is in both scripts' committed inert_reads, so editing it "
+    "must re-derive them, not skip",
+)
+_A_IR_2109 = _closure.affected(
+    ["dev/audit/rounds/round9/prestudy/nonesuch_probe.py"])
+R.check(
+    "a NEW file under a recorded inert-read tree re-derives its reader "
+    "(#2109)",
+    _A_IR_2109["case"] == "scoped"
+    and "tests/harness_headers.py" in _A_IR_2109["rederive"],
+    f"case={_A_IR_2109['case']} rederive={_A_IR_2109['rederive']} -- a "
+    "file that did not exist at the last recording can never be IN the "
+    "table; the recording's reach into its directory is the only measured "
+    "fact about it, and this is exactly the shape that reached main green",
+)
+# The bound, both edges. A NEW directory inside the discovery breadth (a
+# whole new round tree) still selects its reader: the parent of a recorded
+# entry's directory is as far as a discovery glob can widen without the
+# recordings showing it. And the bound stops there -- the shallow shared
+# ancestors of prose trees (dev/, dev/programme's parent chain beyond the
+# recorded reach) must NOT select anything, or every governance and
+# programme pull request pays a recording for a script that reads none of
+# them. Unbounded ancestor matching had exactly that failure: the single
+# round6/D11/fix entry shares dev/ with all of dev/programme and
+# dev/governance.
+_A_IR_NEWDIR = _closure.affected(
+    ["dev/audit/rounds/round20/new_probe.py"])
+R.check(
+    "a new tree inside the discovery breadth selects its reader",
+    _A_IR_NEWDIR["case"] == "scoped"
+    and "tests/harness_headers.py" in _A_IR_NEWDIR["rederive"],
+    f"case={_A_IR_NEWDIR['case']} rederive={_A_IR_NEWDIR['rederive']} -- "
+    "harness_headers.py's entries under dev/audit/harnesses put "
+    "dev/audit one level above a recorded directory",
+)
+_A_IR_BOUND = _closure.affected(
+    ["dev/governance/roles/fixer.md", "handoff/r9-x/note.md"])
+R.check(
+    "prose outside every recorded reach still skips (the bound's other edge)",
+    _A_IR_BOUND["case"] == "skip",
+    f"case={_A_IR_BOUND['case']}: {_A_IR_BOUND['reason']} -- the match "
+    "must stop one level above a recorded directory, or the over-selection "
+    "eats the docs-only skip case whole",
+)
+# The rule's two null controls. A file that is INERT and is neither a
+# recorded read nor inside one's directory breadth still skips.
+_A_IR_NONE = _closure.affected(["SECURITY.md"])
+R.check(
+    "an inert file no recording reaches still skips (null control)",
+    _A_IR_NONE["case"] == "skip",
+    f"case={_A_IR_NONE['case']}: {_A_IR_NONE['reason']}",
+)
+# And a root-level entry drags in nothing beside itself: LICENSE has no
+# directory, so the directory half of the rule cannot fire from it.
+_A_IR_ROOT = _closure.affected(["NOTICE"])
+R.check(
+    "a root-level inert read does not select scripts for root siblings",
+    _A_IR_ROOT["case"] == "skip",
+    f"case={_A_IR_ROOT['case']}: the ancestor match must exclude the root, "
+    "or one LICENSE entry makes every root-level file entities.py's "
+    "business",
 )
 # The skip is decided by the TABLE, not by the hand-written INERT list, and
 # the order is why. Until #357, quality_scale.yaml was on INERT and inside
@@ -19204,6 +19297,76 @@ R.check(
     "without it closures-autofix cannot see that its pinned classifier disagrees",
 )
 
+# (a1, the round-9 closures pre-study): the merge train's batch proof
+# dispatches this workflow on a `batch/<tag>-<n>` branch, and a dispatch has
+# no pull_request base/head -- so `closure-scope` never ran there, SCOPE_CASE
+# was empty, and the `closures` job paid the FULL ~50-minute re-derivation on
+# every batch for a diff whose entries had each already been scope-checked.
+# The fix runs `closure-scope` on the dispatch arm too, deriving the same
+# three-dot diff against origin/main and failing CLOSED to `full` (an
+# empty or underivable diff is an empty file list, and `affected` answers
+# `full` for exactly that). These pin the wiring the derivation hangs on.
+_CS_JOB = _workflow_job(_TESTS_YML, "closure-scope")
+_CS_IF = _CS_JOB[_CS_JOB.index("    if:"): _CS_JOB.index("    runs-on:")]
+R.check(
+    "closure-scope also runs on the workflow_dispatch arm (a1)",
+    _CS_IF.count("github.event_name ==") == 3
+    and "github.event_name == 'workflow_dispatch'" in _CS_IF,
+    f"the batch proof's dispatch has no PR shas; without this arm it "
+    f"derives no case and the closures job runs full on every batch: "
+    f"if-block={_CS_IF.strip()!r}",
+)
+R.check(
+    "the dispatch diff is derived in-job and fails closed to full",
+    "git merge-base" in _CS_JOB
+    and 'refs/remotes/origin/main' in _CS_JOB
+    and _CS_JOB.count(': > "$RUNNER_TEMP/changed.txt"') >= 2,
+    "an origin/main that cannot be resolved, a missing merge base or an "
+    "unreadable diff must all land on an EMPTY changed.txt, for which "
+    "`affected` answers full -- fail-closed, never fail-open",
+)
+_CS_NHA_FALSE = 'echo "nightly_ha=false" >> "$GITHUB_OUTPUT"'
+R.check(
+    "the nightly-ha decision stays a pull-request decision on dispatch",
+    "workflow_dispatch" in _CS_JOB
+    and _CS_NHA_FALSE in _CS_JOB
+    and _CS_JOB.index("workflow_dispatch") < _CS_JOB.index(_CS_NHA_FALSE),
+    "a1 scopes the closures arm; widening the nightly-ha lane to batch "
+    "dispatches is a separate change and must not ride along silently",
+)
+_CLOSURES_JOB = _workflow_job(_TESTS_YML, "closures")
+_CLOSURES_HEAD = _CLOSURES_JOB[:_CLOSURES_JOB.index("\n    steps:")]
+_DOCS_FAST_EXPR = _CLOSURES_HEAD[_CLOSURES_HEAD.index("DOCS_ONLY_FAST:"):]
+R.check(
+    "the docs-only fast lane covers the dispatch arm's skip case",
+    "github.event_name == 'workflow_dispatch'" in _DOCS_FAST_EXPR,
+    f"a batch whose whole diff is inert must answer SUCCESS the same way "
+    f"a docs-only pull request does, not fall through to the full arm: "
+    f"DOCS_ONLY_FAST={_DOCS_FAST_EXPR.strip()!r}",
+)
+# (a1 x R1 coupling -- the merge-path pre-study's explicit condition): the
+# dispatch arm's SCOPED case is derived by `closure-scope` above and consumed
+# by the closures job's shared "Re-record the closures" step, which R1
+# (#2131) drives through ONE `--scripts-from` lane run (`closure.py
+# lane-plan` shards it, bounded to three lanes on a CI runner) instead of a
+# serial `--single` loop. The step carries no event gate of its own, so a
+# scoped dispatch and a scoped pull request take the same lane runner --
+# "couple (a1) to that runner or scoped proofs pay serial sums". A step that
+# regrew a per-script loop, or grew an event gate that sent dispatches
+# elsewhere, would put batch proofs back on the serial SUM.
+_rerec_step = [s for s in _CLOSURES_JOB.split("\n      - ")
+               if s.startswith("name: Re-record the closures")]
+R.check(
+    "the dispatch arm's scoped derivation goes through the lane runner",
+    len(_rerec_step) == 1
+    and "--scripts-from" in _rerec_step[0]
+    and '--single "$s"' not in _rerec_step[0]
+    and "github.event_name" not in _rerec_step[0],
+    "a scoped batch/dispatch must pay the lane MAX like a scoped pull "
+    "request (R1 #2131), never the serial SUM a --single loop pays and "
+    "never a second, dispatch-only derivation path",
+)
+
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
     _blk = _workflow_job(_TESTS_YML, _job)
@@ -19457,9 +19620,11 @@ R.check(
     f"rederive={_A_CARD['rederive']}",
 )
 # ... and it pulls the producer in AHEAD of the consumer. `affected.scripts`
-# is the order the CI "Re-record the closures" step iterates with `--single`,
-# so a producer listed after its consumer is recorded too late: the card's
-# `--single` run finds no plan payload, fails, and `closures-autofix` then
+# is the order the CI "Re-record the closures" step's lane runner keeps
+# inside a lane (`--scripts-from`; `closure.py lane-plan` shards the list but
+# holds each producer/consumer pair in one lane, in this order), so a
+# producer listed after its consumer is recorded too late: the card's
+# recording finds no plan payload, fails, and `closures-autofix` then
 # answers `skip-failed-recording` for the WHOLE batch -- blocking a repair of
 # an unrelated genuine gap in it (#1146). Membership alone (the check above)
 # does not hold this; `sorted()` put card.mjs ("c") before plan_view.py ("p").
@@ -23790,17 +23955,22 @@ R.check(
 # A job-level block REPLACES the floor for that job and is inherited by none,
 # so the set IS the blast radius. The two autofix jobs have needed writes since
 # #523, and `mutation-autofix` the same two since it was argued for as the
-# ledger half of the mutation ratchet; a fifth override should have to be
-# argued for too.
+# ledger half of the mutation ratchet; `nightly-status` reads the Actions API.
+# Round 9 added two READ-ONLY widenings, each argued where it is used: the
+# `closures` job queries the artifacts API by name to consume the batch
+# proof's recordings (C2), and `ci-ratchet` downloads the recent ci-metrics
+# window the same way. Reads only -- a write override here still has to be
+# argued for on its own.
 _NS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly four jobs override the workflow's read-only floor",
-    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "mutation-autofix",
-                      "nightly-status"],
+    "exactly six jobs override the workflow's read-only floor, four of them "
+    "read-only",
+    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
+                      "closures-autofix", "mutation-autofix", "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -25059,6 +25229,43 @@ R.check(
     "for a branch no group claims -- a prefix rule would answer R9-FR-10 "
     "for fix/r9-fr-1, and a hotfix branch must row in the neutral phrasing "
     "a seat edits at approval, not in a group it does not belong to",
+)
+
+# --- the state-doc beat (R9-RO-14, #2102) -----------------------------------
+#
+# The state docs the standing instruction of 2026-10-09 requires continuously
+# regenerated are `state_docs.py`'s; what was missing is the recurring half,
+# and the orchestrator supplied it from a loop in its own scratch directory --
+# decision 0013's defect shape, an instrument the programme runs that lives
+# outside the tree, where no later session can test it and `worktree_gc` can
+# collect it. The beat lands inside the instrument that already owns the write
+# set and the orphan-ref push (fixer.md step 17: a second script beside it
+# would be a parallel mechanism), and the read below is what keeps it
+# drivable: the module is loaded and its self-test RUN here, so an edit to the
+# beat selects this script instead of skipping it. Without the read the file
+# sits under `tools/audit/`'s INERT prefix, a change to it selects NO script,
+# and the arms the issue names would be run by hand or never -- the same
+# defect one level down, which is why this is not optional decoration.
+# `_rr_cx`/`_rr_io` are the record_row block's redirect helpers, one block up.
+import importlib.util as _sd_util  # noqa: E402
+
+try:
+    _sd_spec = _sd_util.spec_from_file_location(
+        "hpo_state_docs",
+        _closure.ROOT / "tools" / "audit" / "seat" / "state_docs.py")
+    _sd = _sd_util.module_from_spec(_sd_spec)
+    _sd_spec.loader.exec_module(_sd)
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _sd_out, \
+            _rr_cx.redirect_stderr(_rr_io.StringIO()) as _sd_err:
+        _sd_ok = _sd.run_self_test() == 0
+    _sd_detail = _sd_out.getvalue() + _sd_err.getvalue()
+except Exception as _sd_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _sd_ok, _sd_detail = False, f"{type(_sd_exc).__name__}: {_sd_exc}"
+R.check(
+    "tools/audit/seat/state_docs.py --self-test passes, beat arms included",
+    _sd_ok,
+    "run `python3 tools/audit/seat/state_docs.py --self-test` for the "
+    "failing check names:\n" + _sd_detail,
 )
 
 # THE ROW THE TREE READS. `delivery_status.read_texts` is one of the two
@@ -31078,6 +31285,151 @@ R.check(
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 
+# --- the CI ratchet and the composed-closure allow-list (round 9) -----------
+#
+# tvofi's round-9 request: ratchet CI cost and code health (architecture,
+# complexity, script re-runs, scoping, critical path). tests/ci_ratchet.py is
+# the instrument; what is pinned here is what it CLAIMS: one-way budgets in a
+# committed data file, values derived from what the CI jobs emit, a refusal on
+# growth, --record as a deliberate path a job may never take, and the null
+# control that the committed table grades green at the tree it records.
+import ci_ratchet as _cir  # noqa: E402
+
+_CIR_TABLE = json.loads(Path("tests/ci_budgets.json").read_text())
+R.check(
+    "the CI ratchet is classified: NOT_A_TEST, and not on INERT",
+    "ci_ratchet.py" in _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/ci_ratchet.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+_CIR_JOB = _workflow_job(_TESTS_YML, "ci-ratchet")
+R.check(
+    "the CI ratchet is wired into a push-to-main job that never --records",
+    "github.event_name == 'push'" in _CIR_JOB
+    and "tests/ci_ratchet.py" in _CIR_JOB
+    and "--record" not in _CIR_JOB,
+    f"push={'push' in _CIR_JOB}, "
+    f"invoked={'tests/ci_ratchet.py' in _CIR_JOB}, "
+    f"records={'--record' in _CIR_JOB}",
+)
+R.check(
+    "the CI ratchet refuses a non-finite, mistyped or unknown budget row",
+    _cir.budget_problems(_CIR_TABLE) == []
+    and _cir.budget_problems({**_CIR_TABLE,
+                              "script_runs_per_push": float("nan")}) != []
+    and _cir.budget_problems({**_CIR_TABLE, "made_up_key": 1}) != []
+    and _cir.budget_problems({**_CIR_TABLE,
+                              "archscore.dead_members": 1.5}) != []
+    and _cir.budget_problems({"critical_path_minutes": 61.0}) != [],
+    f"committed table: {_cir.budget_problems(_CIR_TABLE)} (the null control)",
+)
+
+
+def _cir_main(table: dict, push_runs: int) -> int:
+    """ci_ratchet.main() over a scratch table and a scratch metrics window:
+    does the barrier refuse a growth the table's own rows would allow?"""
+    import contextlib as _cl
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        metrics = Path(td) / "metrics"
+        metrics.mkdir(parents=True)
+        lines = "".join(
+            f"closures\ttests/s{i}.py\tfull\t0\t1\tpush\t1\n"
+            for i in range(push_runs))
+        (metrics / "run.tsv").write_text(lines)
+        budgets = Path(td) / "ci_budgets.json"
+        budgets.write_text(json.dumps(table))
+        saved, _cir.BUDGETS = _cir.BUDGETS, budgets
+        argv = ["--metrics-dir", str(Path(td) / "metrics")]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()), \
+                    _cl.redirect_stderr(_io.StringIO()):
+                # No --runs-json: critical_path_minutes is then not derived
+                # and not graded, so the count metrics are the verdict.
+                return _cir.main(argv)
+        finally:
+            _cir.BUDGETS = saved
+
+
+_CIR_ARCH = {k: v for k, v in _CIR_TABLE.items()
+             if k.startswith("archscore.")}
+R.check(
+    "the CI ratchet's main() refuses a script-run count above its budget",
+    _cir_main(_CIR_TABLE, push_runs=int(_CIR_TABLE["script_runs_per_push"])
+              + 1) == 1,
+    "one more instrumented run than the row allows must redden the job",
+)
+R.check(
+    "and main() passes the committed table at its own recorded count "
+    "(the null control)",
+    _cir_main(_CIR_TABLE, push_runs=int(_CIR_TABLE["script_runs_per_push"]))
+    == 0,
+    "the recorded value must grade green at the tree it was recorded on",
+)
+R.check(
+    "a derived metric with no budget row is a growth, not a pass",
+    _cir_main({k: v for k, v in _CIR_TABLE.items()
+               if not k.startswith("archscore.")},
+              push_runs=1) == 1,
+    "the archscore vector is always derived; dropping its rows must redden",
+)
+
+# The composed-closure allow-list (round-9 C1): every entry a real selectable
+# script, off the never-compose list closure.py enumerates -- the class's seam
+# rule, not an instance check.
+_COMPOSED_LIST = json.loads(Path("tests/composed_closures.json").read_text())
+_COMPOSED_BAD = [
+    s for s in _COMPOSED_LIST.get("scripts", [])
+    if not Path(s).is_file()
+    or Path(s).name in _closure.CHEAP_ARGV_OR_ENV
+    or Path(s).name in _closure.NOT_A_TEST
+]
+R.check(
+    "every composed-closure entry is a selectable, composable script",
+    not _COMPOSED_BAD,
+    f"bad entries: {_COMPOSED_BAD}",
+)
+# The proof driver: `composed-proof`'s self arm runs it, and it must drive
+# the instrument's own comparison (composed-compare) over the allow-list
+# (composed-list) rather than a rule of its own -- read here so a change to
+# it selects this script, and so no parallel comparison logic grows beside
+# closure.py's.
+_CP_SH = Path("tools/coverage/composed_proof.sh").read_text()
+R.check(
+    "the composed-proof driver measures through closure.py's own comparison",
+    "tests/closure.py composed-compare" in _CP_SH
+    and "tests/closure.py composed-list" in _CP_SH,
+    "a driver with its own equality rule is a second owner for the proof",
+)
+
+# `composed-proof`'s first run died resolving `actions/checkout@<40-hex>`
+# before any step: the pin in its job body was one transposed character off
+# the canonical v5 SHA, and every pin-shaped check only counts hex digits, so
+# a well-formed name of a commit that does not exist passed them all. The
+# class's seam is that this repository pins each `actions/*` action at ONE
+# canonical commit across every workflow, so the detector is equality per
+# action, not existence (which would need the network): a copy-pasted pin
+# with a typo is an outlier against its own action's majority, however
+# well-formed. Committed here rather than in the job because `fast` runs on
+# every pull request and the failing job cannot check out anything to run a
+# check with.
+_ACTION_PINS: dict[str, set[str]] = {}
+for _wf_path in sorted(Path(".github/workflows").glob("*.yml")):
+    for _m in re.finditer(r"uses:\s*(actions/[\w.-]+)@([0-9a-f]{40})",
+                          _wf_path.read_text()):
+        _ACTION_PINS.setdefault(_m.group(1), set()).add(_m.group(2))
+_PIN_OUTLIERS = {
+    f"{action}: {sorted(shas)}" for action, shas in _ACTION_PINS.items()
+    if len(shas) != 1
+}
+R.check(
+    "every workflow pins each actions/* action at one canonical commit",
+    not _PIN_OUTLIERS,
+    f"actions pinned at more than one SHA: {sorted(_PIN_OUTLIERS)} -- "
+    "a pin that differs from every other use of its action is a typo the "
+    "runner resolves as a missing version (composed-proof, 2026-10-12)",
+)
+
 # --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
 #
 # Every red `mutation` job in the RCA's retained window (2026-09-11..17) was
@@ -32000,13 +32352,56 @@ R.check(
     and "verdict = budget_refusal(results)" in _MUT_MAIN_DEFER,
     f"out={_MUT_BR_OUT!r}",
 )
+# R9-CI-1 round 2: the tail cut told the never-started lie. live-power-clamp's
+# shard 3 (run 37925123437, base b2b6acd64) ran its 5 draw_range.py sites
+# through every shared driver for 128 minutes, all green, and then their
+# EXCLUSIVE tails no longer fit --budget-minutes; the report printed each as
+# "not started: it would have overrun", which reads as the 345-s-baseline
+# story RO-11 diagnosed from exactly this text and #2049 refuted. A tail cut
+# is its own fact: the site survived every shared driver and only the
+# EXCLUSIVE verdict is missing, so the line, the headline and the summary
+# count it apart.
+_MUT_BRT_RES = [({"file": "x.py", "line": 1, "kind": "CONST"}, "SKIP-BUDGET"),
+                ({'file': "x.py", "line": 3, "kind": "CONST"},
+                 "SKIP-BUDGET-TAIL")]
+import contextlib as _mut_brt_ctx  # noqa: E402
+import io as _mut_brt_io  # noqa: E402
+_MUT_BRT_OUT = []
+for _res in (_MUT_BRT_RES, _MUT_BRT_RES[1:]):
+    _buf = _mut_brt_io.StringIO()
+    with _mut_brt_ctx.redirect_stdout(_buf):
+        _rc = _mut.budget_refusal(_res)
+    _MUT_BRT_OUT.append((_rc, _buf.getvalue()))
+R.check(
+    "a budget refusal names a tail-cut site as one that survived every "
+    "shared driver, a never-started one as not started, and a tail-cut-only "
+    "run as no verdict measured -- all refused, none PASSED",
+    _MUT_BRT_OUT[0][0] == 1 and _MUT_BRT_OUT[1][0] == 1
+    and "not started: it would have overrun" in _MUT_BRT_OUT[0][1]
+    and "survived every shared driver" in _MUT_BRT_OUT[0][1]
+    and "survived every shared driver" in _MUT_BRT_OUT[1][1]
+    and "not started: it would have overrun" not in _MUT_BRT_OUT[1][1]
+    and "nothing was measured" not in _MUT_BRT_OUT[1][1]
+    and "no mutant was measured to a verdict" in _MUT_BRT_OUT[1][1],
+    f"out={[(rc, txt.strip().splitlines()[-3:]) for rc, txt in _MUT_BRT_OUT]!r}",
+)
 # Wired, against the YAML: each caller passes a budget under its timeout, the
 # pull request's pin step only to a base program that has the flag.
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation-pins", "&& budget=(--budget-minutes 120)"),
+    ("mutation-pins", "&& budget=(--budget-minutes 260)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
+    # The budget's ceilings, derived 2026-10-09 from the draw_range-class
+    # measurement (run 37925123437 shard 3): a 5-site all-survivor shard cost
+    # ~128 min of shared work at the 1.46x pool contention that run measured,
+    # and its EXCLUSIVE tail ~114 min more -- ~248 min against a 120-min
+    # budget, so the tail was cut and the shard refused. 260 covers it; the
+    # step adds the worst in-flight run at the deadline (TIMEOUT_SCALE 3 x
+    # boost_drift_replay.py's recorded 1489.6 s ~ 75 min) and the job the
+    # checkout, pip install and upload.
+    ("mutation-pins", "timeout-minutes: 340"),
+    ("mutation-pins", "timeout-minutes: 350"),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
     "mutation-nightly, mutation-ledger and the pin step each pass a budget",
@@ -32361,7 +32756,7 @@ R.check(
     "the split admits a mutant on its shared work and charges the EXCLUSIVE "
     "tail only to a survivor that reaches it; a lazy driver costs one run",
     _MUT_CI_OUT == (
-        (["killed by tests/a.py", "SKIP-BUDGET"],
+        (["killed by tests/a.py", "SKIP-BUDGET-TAIL"],
          [(0, "tests/a.py"), (1, "tests/a.py")]),
         (["killed by tests/a.py", "LIVES"],
          [(0, "tests/a.py"), (1, "tests/a.py"), (1, "tests/stress.py")]))
@@ -32419,37 +32814,87 @@ R.check(
     f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
     f"quiet={_sh_q} failed={_sh_f} one-artifact={_sh_1},{_sh_1p}",
 )
+# R9-CI-1 round 2: #2070's pin run (head 3ecb86adaf, run 37890872462) split
+# 49 sites into 9 shards and 8 REFUSED in under a minute -- "no full-line
+# comment in any file in the pool" -- because null_for() read the SHARD's
+# pool: the anchor deal landed shards whose files hold no whole-line comment,
+# so 43 of 49 sites were never measured and that head's fix review was
+# blocked on them. The null control is the RUN's artifact, one per refusal,
+# driven under every driver in play on unmutated trees -- so it is drawn from
+# the WHOLE pool before the split, and every shard drives the same one.
+_MSN_DIR = Path(_tempfile.mkdtemp(prefix="mutation-shard-null-"))
+_MSN_A = _MSN_DIR / "a_mod.py"
+_MSN_B = _MSN_DIR / "b_mod.py"
+_MSN_A.write_text("# fixture comment\nX = 1\n")
+_MSN_B.write_text("Y = 2  # trailing only\nZ = Y + 1\n")
+_MSN_POOL = [
+    {"file": str(_MSN_A), "line": 2, "kind": "CONST", "anchor": "a_mod.py:x",
+     "old": "X = 1", "new": "X = 2"},
+    {"file": str(_MSN_B), "line": 2, "kind": "CONST", "anchor": "b_mod.py:y",
+     "old": "Z = Y + 1", "new": "Z = Y + 2"},
+]
+_MSN_SH2 = _mut.pin_shard(_MSN_POOL, 2, 2)
+_MSN_SH_NULL = _mut.null_for(_MSN_SH2)
+_MSN_WHOLE_NULL = _mut.null_for(_MSN_POOL)
+R.check(
+    "a shard whose files hold no whole-line comment inherits the whole "
+    "pool's null control: null_for reads the pre-split pool, and main() "
+    "wires it that way",
+    # The preconditions: file A holds a whole-line comment, file B does not,
+    # and the split leaves B alone in shard 2 -- the shape #2070's eight
+    # shards refused on. A fixture that drifts out of this shape fails here,
+    # not silently in the wiring.
+    {m["anchor"] for m in _MSN_SH2} == {"b_mod.py:y"}
+    and _mut.null_control(_MSN_A) is not None
+    and _mut.null_control(_MSN_B) is None
+    and _MSN_SH_NULL is None and _MSN_WHOLE_NULL is not None
+    and _MSN_WHOLE_NULL["file"] == str(_MSN_A)
+    # The wiring: main() takes the whole pool before the split and null_for
+    # reads that copy, not the shard's.
+    and "whole = list(pool)" in _MUT_MAIN_DEFER
+    and "null = null_for(whole)" in _MUT_MAIN_DEFER
+    and _MUT_MAIN_DEFER.index("whole = list(pool)")
+    < _MUT_MAIN_DEFER.index("pool = pin_shard(pool, k, n)"),
+    f"shard null={_MSN_SH_NULL!r} whole null="
+    f"{_MSN_WHOLE_NULL and _MSN_WHOLE_NULL['file'][-8:]!r} "
+    f"wiring={'whole = list(pool' in _MUT_MAIN_DEFER}",
+)
+_mut_shutil.rmtree(_MSN_DIR, ignore_errors=True)
 # The shard count scales with the sites the diff added: six a shard, at most
 # ten, one when the table names none -- read off the refusal line the lane
 # prints, and wired into the matrix the pin job runs.
 _MUT_SC = [_mut.pin_shard_count(f"MUTATION TABLE REFUSED -- 9 unpinned site(s) "
                                 f"against 3 at the ratchet base x, {n} of them "
-                                f"added by this diff.") for n in (1, 6, 7, 56, 200)]
+                                f"added by this diff.") for n in (1, 5, 6, 10, 56, 200)]
 _MUT_SC0 = _mut.pin_shard_count("MUTATION TABLE PASSED")
 _MUT_PLAN = _workflow_job(_TESTS_YML, "mutation-pin-plan")
 R.check(
-    "the pin shard count scales with the diff's new sites, six a shard, "
-    "capped at ten, and sizes the matrix the shards run",
-    _MUT_SC == [1, 1, 2, 10, 10] and _MUT_SC0 == 1
+    "the pin shard count scales with the diff's new sites, five a shard, "
+    "capped at twelve, and sizes the matrix the shards run",
+    _MUT_SC == [1, 1, 2, 2, 12, 12] and _MUT_SC0 == 1
     and "mutation_table.pin_shard_count(" in _MUT_PLAN
     and "fromJSON(needs.mutation-pin-plan.outputs.shards)" in _ma_pins
-    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins,
+    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins
+    and f"max-parallel: {_mut.MAX_SHARDS}" in _ma_pins,
     f"counts={_MUT_SC} none={_MUT_SC0}",
 )
 # The summary line names budget cuts apart from survivors (R9-CI-1): #2025's
 # "46 left unpinned -- a survivor needs a killing check" was 46 sites the
 # budget never started and no survivor. The head stays PIN_SUMMARY's.
 _MUT_PS = [(dict(anchor=f"s:{i}"), v) for i, v in enumerate(
-    ["killed by t", "SKIP-BUDGET", "SKIP-BUDGET", "LIVES", "SKIP-TIMED-OUT in t"])]
+    ["killed by t", "SKIP-BUDGET", "SKIP-BUDGET-TAIL", "LIVES",
+     "SKIP-TIMED-OUT in t"])]
 _MUT_PS_CUT = _mut.pin_summary(1, 3, [r for r in _MUT_PS if r[1] != "LIVES"],
                                {"s:0": {}})
 _MUT_PS_LIVE = _mut.pin_summary(1, 4, _MUT_PS, {"s:0": {}})
 R.check(
-    "the pin summary counts budget cuts and timeouts apart from survivors, "
-    "and names a survivor's remedy only when one survived",
-    "(0 survived, 2 not started for the budget, 1 timed out, 0 skipped)" in _MUT_PS_CUT
+    "the pin summary counts budget cuts, exclusive-tail cuts and timeouts "
+    "apart from survivors, and names a survivor's remedy only when one "
+    "survived",
+    "(0 survived, 1 not started for the budget, 1 exclusive tails cut, "
+    "1 timed out, 0 skipped)" in _MUT_PS_CUT
     and "survivor needs" not in _MUT_PS_CUT
-    and "(1 survived, 2 not started" in _MUT_PS_LIVE
+    and "(1 survived, 1 not started" in _MUT_PS_LIVE
     and "survivor needs" in _MUT_PS_LIVE
     and _mut.PIN_SUMMARY.search(_MUT_PS_CUT.strip()) is not None,
     f"cut={_MUT_PS_CUT.strip()!r} live={_MUT_PS_LIVE.strip()!r}",
@@ -32772,9 +33217,9 @@ _MUT_MAIN = pathlib.Path(_mut.__file__).read_text()
 _MUT_MAIN = _MUT_MAIN[_MUT_MAIN.index("def main("):]
 R.check(
     "and an empty pool passes before a null control is sought",
-    "PASSED (empty pool)" in _MUT_MAIN and "null = null_for(pool)" in _MUT_MAIN
+    "PASSED (empty pool)" in _MUT_MAIN and "null = null_for(whole)" in _MUT_MAIN
     and _MUT_MAIN.index("PASSED (empty pool)")
-    < _MUT_MAIN.index("null = null_for(pool)"),
+    < _MUT_MAIN.index("null = null_for(whole)"),
     "main() must return on an empty pool before null_for, or a comment-only "
     "diff would be refused for having no null control",
 )
