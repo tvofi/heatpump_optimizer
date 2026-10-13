@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_simulate GUARD_OFF eb71d2bd",
+  "killed_by": "tests/features.py",
+  "old": "            if key in overrides:",
+  "reason": "Recorded by `mutation_table.py --drain` against 59b76606e0190139eecc8496607687a87cb05054: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

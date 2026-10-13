@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:<module> CONST 932d3627",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "DHW_PROFILE_MIN_INTENSITY = 0.2",
+  "reason": "Recorded by `mutation_table.py --drain` against 59b76606e0190139eecc8496607687a87cb05054: CONST (`DHW_PROFILE_MIN_INTENSITY = 0.4`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

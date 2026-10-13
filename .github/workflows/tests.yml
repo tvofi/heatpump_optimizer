@@ -118,6 +118,10 @@ on:
         description: "PR-like checks after an autofix push (skip slow)"
         type: boolean
         default: false
+      no-skip:
+        description: "Force every heavy lane to run, ignoring recorded green proofs (R9-CI-SKIP)"
+        type: boolean
+        default: false
   schedule:
     - cron: "17 2 * * *"
 
@@ -164,7 +168,20 @@ jobs:
           esac
 
   fast:
-    needs: [recheck-gate]
+    needs: [recheck-gate, closure-scope]
+    # R9-CI-SKIP: this lane stands down at the STEP level, never the job
+    # level, and that is measured, not taste. A matrix job skipped by a
+    # job-level `if:` reports its check WITHOUT the matrix suffix -- `fast`,
+    # not `fast (3.14)` -- and the required context is `fast (3.14)`, so a
+    # job-level skip leaves the merge rule waiting for a check that never
+    # reports (demonstrated live on this pull request's first demo head, run
+    # 38322500356). A skipped NON-matrix lane keeps its exact name -- `browser`
+    # and `coverage` skip at the job level below -- and a skipped required
+    # check satisfies the rule (the isolated probe, both arms). So `fast` runs
+    # a job that reports SUCCESS while standing down: every step after the
+    # report below is gated on the closure-scope decision, which is empty --
+    # RUN -- on every event the skip arm does not cover, push to main above
+    # all.
     if: >-
       !cancelled() && (
         github.event_name == 'push'
@@ -205,7 +222,18 @@ jobs:
     # step was cancelled mid-suite by its own timeout.
     timeout-minutes: 100
     steps:
+      # Unconditional: the one step a standing-down run still executes, so
+      # the log says what the run stands on even when nothing else runs.
+      - name: Report the lane-skip decision this run stands on
+        run: |
+          echo "fast: closure-scope decided '${{ needs.closure-scope.outputs.fast_skip || 'run' }}' for this base and diff."
+          if [ "${{ needs.closure-scope.outputs.fast_skip }}" = "skip" ]; then
+            echo "A recorded green run at this exact base and diff stands in for this"
+            echo "rerun; every step below is skipped and this job reports success."
+          fi
+
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           # env_drift needs the comparison ref's history to build its
           # baseline worktree.
@@ -218,10 +246,12 @@ jobs:
       # A cross-interpreter baseline is exactly the false drift that would
       # otherwise make this matrix unreadable.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           python-version: ${{ matrix.python-version }}
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           node-version: "22"
 
@@ -231,12 +261,14 @@ jobs:
       # `npm ci` over a committed package-lock.json. Why each flag is there is
       # in the header of tests/requirements-ci.txt and requirements-build.txt.
       - name: Install pinned test dependencies
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
       - name: Resolve the golden comparison ref
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # The PR's merge-base with its target: exactly the code this
@@ -293,6 +325,7 @@ jobs:
           github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || needs.recheck-gate.outputs.recheck == 'true'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         env:
           PYTHONPATH: tests/hastub
         run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
@@ -302,6 +335,7 @@ jobs:
           github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || needs.recheck-gate.outputs.recheck == 'true'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
@@ -321,6 +355,7 @@ jobs:
         if: >-
           (github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         env:
           PYTHONPATH: tests/hastub
         run: |
@@ -332,6 +367,7 @@ jobs:
       # Written as an explicit equality on the event name so an event this
       # file has not thought about lands on `full`, not on `auto`.
       - name: Decide the gate scope
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] \
              || [ "${{ github.event_name }}" = "merge_group" ] \
@@ -343,6 +379,7 @@ jobs:
           fi
 
       - name: Run the suite
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
         env:
           # CI-cost metrics (tests/ci_ratchet.py): run.sh appends this run's
           # scope decision here when the variable is set; local runs never
@@ -373,7 +410,7 @@ jobs:
       # however the suite ended -- a red run's cost is still cost -- and
       # empty on a run whose lane never executed a line.
       - name: Upload the fast lane's CI metrics
-        if: always()
+        if: always() && needs.closure-scope.outputs.fast_skip != 'skip'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ci-metrics-fast
@@ -389,6 +426,7 @@ jobs:
         if: >-
           (github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
+            && needs.closure-scope.outputs.fast_skip != 'skip'
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
@@ -401,7 +439,11 @@ jobs:
   # anything for this lane (it is in NOT_A_TEST) -- the card source is
   # in every closure that matters, and the lane runs on every PR.
   browser:
-    needs: [recheck-gate]
+    needs: [recheck-gate, closure-scope]
+    # R9-CI-SKIP: Level 1 only -- card_browser.mjs is NOT_A_TEST and no
+    # closure has ever measured it, so only the byte-identical-tree case is
+    # provable for this lane; closure-scope's browser decision never answers
+    # `skip` on a moved base. Empty output reads as RUN, as for `fast`.
     if: >-
       !cancelled() && (
         github.event_name == 'push'
@@ -409,7 +451,7 @@ jobs:
         || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
-      )
+      ) && needs.closure-scope.outputs.browser_skip != 'skip'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -615,7 +657,11 @@ jobs:
   # interpreter that ran it, and a second leg would pay a whole instrumented
   # suite to print the same floor.
   coverage:
-    needs: [recheck-gate]
+    needs: [recheck-gate, closure-scope]
+    # R9-CI-SKIP, both levels as for `fast`: this lane measures the same
+    # `closure.py select` plan under a tracer, so the closures table proves
+    # its inputs unmoved exactly as it proves fast's. Not a required context,
+    # so a skip here buys runner minutes and one queue slot, not a verdict.
     if: >-
       !cancelled() && (
         github.event_name == 'push'
@@ -623,7 +669,7 @@ jobs:
         || github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
-      )
+      ) && needs.closure-scope.outputs.coverage_skip != 'skip'
     runs-on: ubuntu-latest
     # The instrumented `fast` stage is the whole default gate minus the four
     # end-to-end scripts, run under a tracer that costs roughly a third again.
@@ -860,8 +906,13 @@ jobs:
   # the pin closes an edit to the grader, not a suite that misreports.
   coverage-ratchet:
     needs: [recheck-gate, coverage]
+    # R9-CI-SKIP: grades the JSON `coverage` measured, so a coverage that
+    # SKIPPED -- a recorded green stands in for the run -- has no fresh JSON
+    # and nothing to grade; the recorded run's ratchet already passed on the
+    # identical inputs. Without this guard a skip here would redden on the
+    # missing artifact, which is the failure the skip exists to prevent.
     if: >-
-      !cancelled() && (
+      !cancelled() && needs.coverage.result != 'skipped' && (
         github.event_name == 'push'
         || github.event_name == 'pull_request'
         || (github.event_name == 'workflow_dispatch'
@@ -1808,6 +1859,9 @@ jobs:
   # here nor a recorded reason.
   graders-head-copy:
     needs: [coverage]
+    # R9-CI-SKIP: the coverage-json download below is gated the same way, so
+    # a skipped `coverage` (no fresh artifact, its download step stands down)
+    # cannot redden this job on a missing artifact.
     if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1866,13 +1920,21 @@ jobs:
           fi
 
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        if: steps.changed.outputs.coverage_ratchet == 'true'
+        if: >-
+          steps.changed.outputs.coverage_ratchet == 'true'
+          && needs.coverage.result != 'skipped'
         with:
           name: coverage-json
           path: ${{ runner.temp }}/coverage
 
+      # R9-CI-SKIP: the two steps above this line and the one below stand
+      # down together when `coverage` skipped (no fresh JSON exists); every
+      # other grader below runs regardless, so a skipped lane never reddens
+      # its own downstream graders.
       - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
-        if: steps.changed.outputs.coverage_ratchet == 'true'
+        if: >-
+          steps.changed.outputs.coverage_ratchet == 'true'
+          && needs.coverage.result != 'skipped'
         run: |
           python3 tests/coverage_ratchet.py \
             --coverage "$RUNNER_TEMP/coverage/coverage.json"
@@ -1968,6 +2030,100 @@ jobs:
   # `full` ("no changed files could be determined") for exactly that. A
   # push to main and the nightly are NOT here on purpose: their full arm is
   # rule 1's detector and stays untouched.
+  # R9-CI-SKIP: the record half of the lane-skip lever. `closure-scope`
+  # decides whether a heavy lane may skip a rerun a recorded green run
+  # already answers; this job is what records those greens -- and ONLY after
+  # the lane actually ran and passed. It runs on the same events the skip arm
+  # covers, writes one tiny JSON per lane into the cache key that job's
+  # restore reads, and does nothing else: no checkout (the state is
+  # closure-scope's output, computed against the run's pinned GITHUB_SHA),
+  # no token, no gate script. A lane that skipped needs no new record -- the
+  # entry its skip stood on is the entry this job would write, byte-equal,
+  # and actions/cache keys are immutable, so `continue-on-error` absorbs the
+  # reserve refusal a legitimate rerun (a `no-skip` dispatch) would raise.
+  # The pull-request concurrency group cancels this job on a newer push, so a
+  # proof can never be recorded against a diff the lanes never judged.
+  lane-proofs:
+    needs: [closure-scope, fast, coverage, browser]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && github.event.inputs.recheck == 'true'
+            && github.event.inputs.no-skip != 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Record fast's green run at this base and diff
+        if: >-
+          needs.fast.result == 'success'
+          && needs.closure-scope.outputs.fast_skip != 'skip'
+        run: |
+          mkdir -p "$RUNNER_TEMP/lane-proof-fast"
+          # A quoted heredoc, never an interpolated double-quoted string: the
+          # state is JSON and carries its own double quotes, which would
+          # close the shell's quoting mid-value.
+          cat > "$RUNNER_TEMP/lane-proof-fast/state.json" <<'STATE_EOF'
+          ${{ needs.closure-scope.outputs.state_fast }}
+          STATE_EOF
+          cat "$RUNNER_TEMP/lane-proof-fast/state.json"
+      - name: Save fast's proof
+        if: >-
+          needs.fast.result == 'success'
+          && needs.closure-scope.outputs.fast_skip != 'skip'
+        continue-on-error: true
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/lane-proof-fast
+          key: lane-proof-fast-${{ needs.closure-scope.outputs.ls_branch }}-${{ needs.closure-scope.outputs.ls_diff }}-${{ needs.closure-scope.outputs.ls_base }}
+
+      - name: Record coverage's green run at this base and diff
+        if: >-
+          needs.coverage.result == 'success'
+          && needs.closure-scope.outputs.coverage_skip != 'skip'
+        run: |
+          mkdir -p "$RUNNER_TEMP/lane-proof-coverage"
+          # A quoted heredoc, never an interpolated double-quoted string: the
+          # state is JSON and carries its own double quotes, which would
+          # close the shell's quoting mid-value.
+          cat > "$RUNNER_TEMP/lane-proof-coverage/state.json" <<'STATE_EOF'
+          ${{ needs.closure-scope.outputs.state_coverage }}
+          STATE_EOF
+          cat "$RUNNER_TEMP/lane-proof-coverage/state.json"
+      - name: Save coverage's proof
+        if: >-
+          needs.coverage.result == 'success'
+          && needs.closure-scope.outputs.coverage_skip != 'skip'
+        continue-on-error: true
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/lane-proof-coverage
+          key: lane-proof-coverage-${{ needs.closure-scope.outputs.ls_branch }}-${{ needs.closure-scope.outputs.ls_diff }}-${{ needs.closure-scope.outputs.ls_base }}
+
+      - name: Record browser's green run at this base and diff
+        if: >-
+          needs.browser.result == 'success'
+          && needs.closure-scope.outputs.browser_skip != 'skip'
+        run: |
+          mkdir -p "$RUNNER_TEMP/lane-proof-browser"
+          # A quoted heredoc, never an interpolated double-quoted string: the
+          # state is JSON and carries its own double quotes, which would
+          # close the shell's quoting mid-value.
+          cat > "$RUNNER_TEMP/lane-proof-browser/state.json" <<'STATE_EOF'
+          ${{ needs.closure-scope.outputs.state_browser }}
+          STATE_EOF
+          cat "$RUNNER_TEMP/lane-proof-browser/state.json"
+      - name: Save browser's proof
+        if: >-
+          needs.browser.result == 'success'
+          && needs.closure-scope.outputs.browser_skip != 'skip'
+        continue-on-error: true
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/lane-proof-browser
+          key: lane-proof-browser-${{ needs.closure-scope.outputs.ls_branch }}-${{ needs.closure-scope.outputs.ls_diff }}-${{ needs.closure-scope.outputs.ls_base }}
+
   closure-scope:
     if: >-
       github.event_name == 'pull_request'
@@ -1979,6 +2135,18 @@ jobs:
       case: ${{ steps.decide.outputs.case }}
       scripts: ${{ steps.decide.outputs.scripts }}
       nightly_ha: ${{ steps.decide.outputs.nightly_ha }}
+      # R9-CI-SKIP: the heavy lanes' skip decisions and the state a green
+      # run of each would record. Empty on every event the skip arm does not
+      # cover (push above all), which every lane's `if:` reads as RUN.
+      fast_skip: ${{ steps.skipfast.outputs.decision }}
+      coverage_skip: ${{ steps.skipcoverage.outputs.decision }}
+      browser_skip: ${{ steps.skipbrowser.outputs.decision }}
+      ls_branch: ${{ steps.laneskip.outputs.branch }}
+      ls_base: ${{ steps.laneskip.outputs.base }}
+      ls_diff: ${{ steps.laneskip.outputs.diff }}
+      state_fast: ${{ steps.skipfast.outputs.state }}
+      state_coverage: ${{ steps.skipcoverage.outputs.state }}
+      state_browser: ${{ steps.skipbrowser.outputs.state }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -1986,6 +2154,108 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
+
+      # R9-CI-SKIP, step 1 of 3: identify what a heavy lane would be judged
+      # on -- the three-dot diff CONTENT against the merge base (the same ref
+      # `fast` resolves as GOLDEN_REF), and the merge-base commit itself.
+      # Keyed on the commit, not its tree: two commits can share a tree while
+      # the history the suite's checks read (`entities.py` reads origin/main)
+      # moved, and Level 1's byte-identical argument must not ride on that.
+      # Pull requests and the recheck dispatch only -- the events whose
+      # re-runs a recorded green can stand in for. A push to main (CLAUDE.md
+      # rule 1: forced full), the merge queue, the nightly and every other
+      # dispatch leave these outputs unset and every lane runs.
+      - name: Identify the diff and base the heavy lanes would judge
+        id: laneskip
+        if: >-
+          github.event_name == 'pull_request'
+          || (github.event_name == 'workflow_dispatch'
+              && github.event.inputs.recheck == 'true'
+              && github.event.inputs.no-skip != 'true')
+        run: |
+          git fetch --no-tags origin main
+          MB=$(git merge-base origin/main HEAD) || {
+            echo "no merge base against origin/main; lanes run"
+            exit 0
+          }
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          # GITHUB_SHA, not HEAD: the run's pinned commit -- refs/pull/N/merge
+          # on a pull request, the branch head on a dispatch -- so a branch
+          # that moves under this run cannot key a proof off a diff the lanes
+          # never judged.
+          DIFF=$(git diff "$MB"..."$GITHUB_SHA" | git hash-object --stdin)
+          {
+            echo "branch=$BRANCH"
+            echo "base=$MB"
+            echo "diff=$DIFF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Step 2 of 3: restore the last green proof for each lane. The exact
+      # key is (lane, branch, diff, base): a hit means the recorded green ran
+      # at exactly this base for exactly this diff. `restore-keys` reaches
+      # the newest entry for the same (lane, branch, diff) at an OLDER base,
+      # which is what Level 2 judges. A miss -- eviction, a fork pull request
+      # whose cache scope cannot see this branch, a first run -- is a RUN:
+      # the mechanism can only ever fail toward the expensive answer.
+      - name: Restore fast's last green proof
+        if: steps.laneskip.outputs.diff != ''
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/lane-proof-fast
+          key: lane-proof-fast-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-${{ steps.laneskip.outputs.base }}
+          restore-keys: lane-proof-fast-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-
+      - name: Restore coverage's last green proof
+        if: steps.laneskip.outputs.diff != ''
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/lane-proof-coverage
+          key: lane-proof-coverage-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-${{ steps.laneskip.outputs.base }}
+          restore-keys: lane-proof-coverage-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-
+      - name: Restore browser's last green proof
+        if: steps.laneskip.outputs.diff != ''
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/lane-proof-browser
+          key: lane-proof-browser-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-${{ steps.laneskip.outputs.base }}
+          restore-keys: lane-proof-browser-${{ steps.laneskip.outputs.branch }}-${{ steps.laneskip.outputs.diff }}-
+
+      # Step 3 of 3: the decision itself, in tests/lane_skip.py -- the one
+      # instrument, self-tested in governance's instrument-self-tests and
+      # pinned by tests/entities.py, never workflow-expression logic that no
+      # test can drive. The state file it also emits is what a GREEN run of
+      # the lane would record at exactly this base and diff; the `lane-proofs`
+      # job saves it, and nothing here ever does -- the lanes have not run.
+      - name: Decide whether fast may skip
+        id: skipfast
+        if: steps.laneskip.outputs.diff != ''
+        run: |
+          python tests/lane_skip.py decide --lane fast \
+            --diff-ref "${{ steps.laneskip.outputs.base }}" \
+            --state-file "$RUNNER_TEMP/lane-proof-fast/state.json" \
+            --workdir "$RUNNER_TEMP/lane-skip/fast"
+          echo "decision=$(cat "$RUNNER_TEMP/lane-skip/fast/decision")" >> "$GITHUB_OUTPUT"
+          echo "state=$(cat "$RUNNER_TEMP/lane-skip/fast/state.json")" >> "$GITHUB_OUTPUT"
+      - name: Decide whether coverage may skip
+        id: skipcoverage
+        if: steps.laneskip.outputs.diff != ''
+        run: |
+          python tests/lane_skip.py decide --lane coverage \
+            --diff-ref "${{ steps.laneskip.outputs.base }}" \
+            --state-file "$RUNNER_TEMP/lane-proof-coverage/state.json" \
+            --workdir "$RUNNER_TEMP/lane-skip/coverage"
+          echo "decision=$(cat "$RUNNER_TEMP/lane-skip/coverage/decision")" >> "$GITHUB_OUTPUT"
+          echo "state=$(cat "$RUNNER_TEMP/lane-skip/coverage/state.json")" >> "$GITHUB_OUTPUT"
+      - name: Decide whether browser may skip
+        id: skipbrowser
+        if: steps.laneskip.outputs.diff != ''
+        run: |
+          python tests/lane_skip.py decide --lane browser \
+            --diff-ref "${{ steps.laneskip.outputs.base }}" \
+            --state-file "$RUNNER_TEMP/lane-proof-browser/state.json" \
+            --workdir "$RUNNER_TEMP/lane-skip/browser"
+          echo "decision=$(cat "$RUNNER_TEMP/lane-skip/browser/decision")" >> "$GITHUB_OUTPUT"
+          echo "state=$(cat "$RUNNER_TEMP/lane-skip/browser/state.json")" >> "$GITHUB_OUTPUT"
+
       - id: decide
         run: |
           BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
@@ -2289,12 +2559,18 @@ jobs:
           fi
           [ -n "$OUT" ] || { echo "nothing composed to consume"; exit 0; }
           mkdir -p "$RUNNER_TEMP/closures"
+          CONSUMED=""
           for s in $OUT; do
+            if [ ! -f "$RUNNER_TEMP/composed/$(basename "$s").json" ]; then
+              echo "composed: '$(basename "$s")' is no composed recording's stem; $s records bare"
+              continue
+            fi
             cp "$RUNNER_TEMP/composed/$(basename "$s").json" "$RUNNER_TEMP/closures/"
             echo "composed: consuming $s's recording from this run's coverage job"
+            CONSUMED="$CONSUMED$(printf '%s ' "$s")"
           done
           # Space-separated, for derive_closures.sh's COMPOSED_CONSUMED match.
-          echo "COMPOSED_CONSUMED=$(printf '%s ' $OUT)" >> "$GITHUB_ENV"
+          echo "COMPOSED_CONSUMED=$CONSUMED" >> "$GITHUB_ENV"
 
       - name: Re-record the closures
         # Full arm only: the fast arm has no recording to make. Unchanged
@@ -2557,12 +2833,22 @@ jobs:
           # event -- the scoping metric reads pull_request runs, the push
           # counts read push runs, and every line carries its own event and
           # run id, so the ratchet groups them itself.
+          # The run association is read as .workflow_run.id with a .run_id
+          # fallback: the artifacts list API stopped returning .run_id
+          # (null for every artifact, 2026-10-12), which left the old
+          # query selecting on null -- null != GITHUB_RUN_ID is true, so
+          # THIS run's own artifacts passed the exclusion and unique_by
+          # over a null run collapsed the window to one artifact per
+          # name, double-counting this run's lanes (96 = 63 + 33 on the
+          # first grade). Both must stay null-safe.
           gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
             --jq '[.artifacts[]
                    | select(.name | startswith("ci-metrics-"))
                    | select(.expired == false)
-                   | select(.run_id != ($ENV.GITHUB_RUN_ID | tonumber))
-                   | {id: .id, run: .run_id, name: .name, at: .created_at}]
+                   | select((.workflow_run.id // .run_id // 0)
+                            != ($ENV.GITHUB_RUN_ID | tonumber))
+                   | {id: .id, run: (.workflow_run.id // .run_id),
+                      name: .name, at: .created_at}]
                   | sort_by(.at) | reverse
                   | unique_by(.run, .name)' > "$RUNNER_TEMP/window.json" || true
           python3 - "$RUNNER_TEMP/window.json" "$M" <<'EOF'

@@ -18379,6 +18379,64 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
+#
+# tests/lane_skip.py decides whether the heavy Tests lanes may report
+# `skipped` instead of re-running a provably identical tree. It is NOT_A_TEST
+# (the workflow's decision steps run it, never the suite) and a GATE_FILE (a
+# change to it changes what the lanes believe they may skip). Both claims are
+# classifications, so both are pinned -- and the decision's own teeth, the
+# planted-defect arm above all, are its self-test, which this script runs so
+# that an edit breaking `decide` selects this script and reddens here rather
+# than skipping quietly in CI.
+_lane_skip_selftest = _subprocess.run(
+    [sys.executable, str(_closure.ROOT / "tests" / "lane_skip.py"), "self-test"],
+    capture_output=True, text=True,
+)
+R.check(
+    "the lane-skip decision's self-test passes, teeth included",
+    _lane_skip_selftest.returncode == 0,
+    (_lane_skip_selftest.stdout + _lane_skip_selftest.stderr).strip()[-400:],
+)
+R.check(
+    "lane_skip.py is a gate file and never selectable",
+    _closure.is_gate_file("tests/lane_skip.py")
+    and "lane_skip.py" in _closure.NOT_A_TEST,
+    "a lane-skip tool that a diff could scope out of the gate would let the "
+    "diff edit the rule that decides whether the gate runs",
+)
+
+# The lane-skip wiring's own pinned decision, on the same forged inputs the
+# self-test uses but restated here so the pair cannot drift apart silently:
+# main's delta reaching a selected script's closure MUST land on RUN. This is
+# the guard rail the whole lever hangs from, asserted where the suite runs it.
+import lane_skip as _lane_skip  # noqa: E402 - beside its subject, one block
+
+_lk_payload = {
+    "closures": {
+        "tests/env_drift.py": [
+            "custom_components/heatpump_optimizer/const.py",
+        ],
+    },
+    "inert_reads": {},
+}
+_lk_plan = {"mode": "scoped", "run": ["tests/env_drift.py"], "skip": {}}
+_lk_run = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="b" * 40,
+    main_delta=["custom_components/heatpump_optimizer/const.py"],
+    plan=_lk_plan, payload=_lk_payload)
+_lk_skip = _lane_skip.decide(
+    "fast", prev_base="a" * 40, base="a" * 40, main_delta=[],
+    plan=_lk_plan, payload=_lk_payload)
+R.check(
+    "lane_skip runs on a planted defect inside a selected closure and skips "
+    "only on the identical base",
+    _lk_run["decision"] == "run" and _lk_skip["decision"] == "skip"
+    and _lk_skip.get("level") == 1,
+    f"defect -> {_lk_run['decision']} ({_lk_run['reason']}); identical base "
+    f"-> {_lk_skip['decision']} (level {_lk_skip.get('level')})",
+)
+
 # The instance moved from `governance.yml` to `hassfest.yml` when
 # `record-status` landed: this script now READS governance.yml, so it is scoped
 # rather than skipped, and its own case is checked above. The PROPERTY this
@@ -19366,6 +19424,51 @@ R.check(
     "request (R1 #2131), never the serial SUM a --single loop pays and "
     "never a second, dispatch-only derivation path",
 )
+# Round-9 C1: the FULL arm plans through the same planner, over a recording
+# set derived from the tree (`lane-plan --all-scripts`), not a hard-coded
+# lane layout. A `rec tests/...` line in derive_closures.sh is the layout
+# rot this replaced -- it named the recordings, so every new selectable
+# script needed a lane edit on pain of a red main, and the unbalanced
+# "everything else" lane set the 3,242 s wall the planner halves. Regrowth
+# of any hard-coded lane, or a loss of the --all-scripts plan, reddens here.
+# The pattern is word-boundary `\brec tests/`, not anchored `^\s*rec tests/`:
+# the old layout's lane 1 was `( rec tests/stress.py ) &` -- parenthesised --
+# and its driven child was `HASTUB_TZ=Europe/Stockholm rec
+# tests/dst_checks.py` -- environment-prefixed -- and both escape an
+# anchored pattern; with ci_predict's NO RECORDING arm retired by this same
+# change, that escape would leave a lane-form regrowth unguarded by both
+# the guard and the predictor. The planted arms below hold both directions:
+# the two escaping forms redden the anchored pattern and only the
+# word-boundary one.
+def _derive_lane_regrowth_guard(text: str) -> bool:
+    return ("--all-scripts" in text and "lane-plan" in text
+            and not _re.search(r"\brec tests/", text))
+
+
+_derive_txt = Path("tests/derive_closures.sh").read_text()
+R.check(
+    "the closures job's FULL arm is lane-planned over the derived script set",
+    _derive_lane_regrowth_guard(_derive_txt),
+    "derive_closures.sh names a recording with a hard-coded `rec tests/...` "
+    "line: the full arm must derive its set (lane-plan --all-scripts, round-9 "
+    "C1), which records every selectable script without a lane edit",
+)
+_derive_old_lane_forms = (
+    # The old lane 1, exactly as it stood: a subshell, not a bare line.
+    "( rec tests/stress.py ) &\n",
+    # The old driven child, exactly as it stood: an environment prefix.
+    "HASTUB_TZ=Europe/Stockholm rec tests/dst_checks.py\n",
+)
+_derive_anchored = _re.compile(r"(?m)^\s*rec tests/")
+_derive_wordb = _re.compile(r"\brec tests/")
+for _arm in _derive_old_lane_forms:
+    R.check(
+        f"a regrown lane line escapes no guard form: {_arm.strip()!r}",
+        not _derive_anchored.search(_arm) and _derive_wordb.search(_arm)
+        and not _derive_lane_regrowth_guard(f"--all-scripts\nlane-plan\n{_arm}"),
+        "the anchored pattern would miss this lane-line shape (the guard's "
+        "hole), and the word-boundary guard must refuse it",
+    )
 
 
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
@@ -25721,14 +25824,17 @@ steps:
         echo "a pinned governance grader changed: its own copy runs below"
       fi
 
+  # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
+  # fresh coverage.json to grade and the recorded green already passed the
+  # ratchet on the identical inputs. The canon matches the workflow's arm.
   - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
       path: ${{ runner.temp }}/coverage
 
   - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
-    if: steps.changed.outputs.coverage_ratchet == 'true'
+    if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     run: |
       python3 tests/coverage_ratchet.py \
         --coverage "$RUNNER_TEMP/coverage/coverage.json"
@@ -31804,6 +31910,108 @@ R.check(
     and "deferred = deferred_drivers(needed, args.scope)" in _MUT_MAIN_DEFER
     and "DEFERRED AND NEVER RUN" in _MUT_MAIN_DEFER,
     f"deferred={_MUT_D_OUT!r}",
+)
+
+# R9-RC-NIGHTLY-DEFER (#1930 (a)): `--scope full` drops the EXCLUSIVE pair from
+# its NET. That is not what the pin above measures, and the two are one word
+# apart: `deferred_drivers` postpones a driver's baseline and null control and
+# still drives it, where a driver out of the net drives no mutant, pays no
+# baseline, and can never refuse the lane. Only the second closes the arm that
+# reddened two of the six nights -- a null control killed by a driver that
+# measures the machine (harness_headers.py SIGXCPU rc=-24, run 37108891698;
+# stress.py's own cost budget at 8.0x against 7.9x, run 37189092011). Both arms
+# are pinned here because a seat reading "defer" would otherwise take the first.
+_mut_sd = getattr(_mut, "scope_deferred", None)
+_MUT_SD_OUT = ((_mut_sd("full"), _mut_sd("changed")) if _mut_sd else None)
+R.check(
+    "the full scope drops the EXCLUSIVE pair out of its net, the changed scope "
+    "drops nothing, and main() takes the drop from that rule",
+    _MUT_SD_OUT == (tuple(_mut.EXCLUSIVE), ())
+    and "for s in scope_deferred(args.scope):" in _MUT_MAIN_DEFER,
+    f"scope_deferred(full/changed)={_MUT_SD_OUT!r}, EXCLUSIVE="
+    f"{tuple(_mut.EXCLUSIVE)!r} -- a drop that reached the changed scope would "
+    "take the pair out of the pull-request gate that still pins new sites with "
+    "them, which is where the unpinned count is repaid",
+)
+
+# The null control, exhaustive rather than an instance: EVERY production file's
+# net before the drop and after it. Scoped to the pair means the difference is a
+# subset of EXCLUSIVE at each file, and the union over the whole tree loses
+# exactly the pair -- so "still drives every other driver" is measured over
+# every seam the net has, not over one file that happens to look right.
+_MUT_NET_BEFORE = _MUT_DEFAULT_LIST
+_MUT_NET_AFTER = [s for s in _MUT_NET_BEFORE
+                  if s not in (_mut_sd("full") if _mut_sd else ())]
+_MUT_PROD_FILES = sorted(str(p.relative_to(_mut.ROOT))
+                         for p in _mut.PRODUCTION.rglob("*.py"))
+_MUT_LOST_OTHER: list = []
+_MUT_LOST_ANY: list = []
+_MUT_UNION_BEFORE: set = set()
+_MUT_UNION_AFTER: set = set()
+for _rel in _MUT_PROD_FILES:
+    _b = set(_mut.drivers_for(_rel, _MUT_REAL_CLOSURES, _MUT_NET_BEFORE))
+    _a = set(_mut.drivers_for(_rel, _MUT_REAL_CLOSURES, _MUT_NET_AFTER))
+    _MUT_UNION_BEFORE |= _b
+    _MUT_UNION_AFTER |= _a
+    if not _b - _a <= set(_mut.EXCLUSIVE) or not _a <= _b:
+        _MUT_LOST_OTHER.append(_rel)
+    if _b - _a:
+        _MUT_LOST_ANY.append(_rel)
+R.check(
+    "a healthy full-scope run still drives every other driver on every file it "
+    "reached, and the drop costs the pair alone",
+    not _MUT_LOST_OTHER and bool(_MUT_LOST_ANY)
+    and _MUT_UNION_AFTER == _MUT_UNION_BEFORE - set(_mut.EXCLUSIVE),
+    f"{len(_MUT_PROD_FILES)} production file(s) walked; files losing a driver "
+    f"OUTSIDE EXCLUSIVE={_MUT_LOST_OTHER!r} (must stay empty); files losing one "
+    f"at all={len(_MUT_LOST_ANY)} (must be non-zero, or the drop is a no-op and "
+    f"this check passed vacuously); drivers unioned over the tree "
+    f"{len(_MUT_UNION_BEFORE)} -> {len(_MUT_UNION_AFTER)}",
+)
+
+# The census clause: what the drop leaves undriven is named, with its reason and
+# its count, so a pin this lane can no longer re-verify is not a silent one.
+# Driven against the REAL ledger as well as a fixture: the fixture separates the
+# pair's rows from another driver's and from a scope that drops nothing, and the
+# real ledger is what makes an empty clause a red rather than a quiet zero.
+_mut_dd = getattr(_mut, "deferred_dispositions", None)
+_MUT_DD_FIX = {"killed_by": {
+    "a.py:f BOOLOP 00000000": {"killed_by": "tests/stress.py", "old": "x"},
+    "b.py:f BOOLOP 11111111": {"killed_by": "tests/structure.py", "old": "y"},
+    "c.py:f GUARD_OFF 22222222":
+        {"killed_by": "tests/harness_headers.py", "old": "z"},
+}}
+_MUT_DD_WANT = sorted(
+    _k for _k, _e in _MUT_DD_FIX["killed_by"].items()
+    if _e["killed_by"] in set(_mut.EXCLUSIVE))
+_MUT_DD_REAL = (_mut_dd(_mut.load_budgets(), "full") if _mut_dd else None)
+_MUT_DD_REAL_WANT = sorted(
+    _k for _k, _e in _mut.load_budgets().get("killed_by", {}).items()
+    if isinstance(_e, dict) and _e.get("killed_by") in set(_mut.EXCLUSIVE))
+_MUT_DD_OUT = ((_mut_dd(_MUT_DD_FIX, "full"), _mut_dd(_MUT_DD_FIX, "changed"),
+                _mut_dd({}, "full")) if _mut_dd else None)
+R.check(
+    "the census names every disposition the drop leaves unverified, and nothing "
+    "it does not",
+    _MUT_DD_OUT == (_MUT_DD_WANT, [], [])
+    and _MUT_DD_REAL == _MUT_DD_REAL_WANT and bool(_MUT_DD_REAL),
+    f"fixture={_MUT_DD_OUT!r} want={_MUT_DD_WANT!r}; the real ledger names "
+    f"{None if _MUT_DD_REAL is None else len(_MUT_DD_REAL)} row(s) the full "
+    f"scope no longer drives, want {len(_MUT_DD_REAL_WANT)} -- an empty clause "
+    "here would mean the census prints a deferral of nothing",
+)
+_mut_cdn = getattr(_mut, "census_deferral_note", None)
+_MUT_CDN_FULL = (_mut_cdn(_MUT_DD_FIX, "full") if _mut_cdn else None)
+_MUT_CDN_CHG = (_mut_cdn(_MUT_DD_FIX, "changed") if _mut_cdn else None)
+R.check(
+    "and the clause names each deferred driver, its reason and the count, where "
+    "a scope that defers nothing prints nothing",
+    _MUT_CDN_CHG == "" and bool(_MUT_CDN_FULL)
+    and all(s in _MUT_CDN_FULL for s in _mut.EXCLUSIVE)
+    and f"{len(_MUT_DD_WANT)} recorded killed_by disposition(s)" in _MUT_CDN_FULL
+    and getattr(_mut, "DEFER_WHY", "") in _MUT_CDN_FULL
+    and "census_deferral_note(budgets, args.scope)" in _MUT_MAIN_DEFER,
+    f"full={_MUT_CDN_FULL!r}; changed={_MUT_CDN_CHG!r}",
 )
 
 # R9-F10.9b (#1812): under --scope changed every other shared driver but a

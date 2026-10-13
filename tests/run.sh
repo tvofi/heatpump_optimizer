@@ -387,6 +387,12 @@ for f in tests/*.py tests/*.mjs; do
     closure.py) continue ;;
     # Gate-lock helper (#404): agents invoke it directly; not a suite test.
     gate_lock.py) continue ;;
+    # The lane-skip decision instrument (R9-CI-SKIP): the workflow's
+    # decision steps run it to decide whether fast/coverage/browser may
+    # report `skipped`; running it here would make the suite decide whether
+    # to run itself. tests/entities.py runs its self-test, and
+    # governance.yml's instrument-self-tests runs it on every pull request.
+    lane_skip.py) continue ;;
     # The #996 instance counter: the record seat runs it by hand against
     # the issue thread (or a --from fixture); it needs `gh`, which this
     # suite has no token for. tests/entities.py pins its counting rule.
@@ -672,7 +678,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py) continue ;;
+    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"

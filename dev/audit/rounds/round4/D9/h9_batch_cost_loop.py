@@ -73,9 +73,15 @@ winter arm's structural per-gradient facts under plain names):
                                           at the head of each gradient's batch)
     RESULT null_control_batched_calls_per_gradient_delta=0
 Per-gradient ratios, not absolute counts: every gradient evaluation is
-exactly one batched-twin call (jac -> _batch_fd_gradient ->
+exactly one batched evaluation (jac -> _batch_fd_gradient ->
 objective_batch) of n_steps rows, so they hold on any backend where the
-iteration count itself does not reproduce. The absolute per-solve
+iteration count itself does not reproduce. Since the multi-start's
+evaluation memo (r9 boost-replay speed) serves a repeated point without
+re-entering the twins, the hooks count a memo hit as the batched
+evaluation it stands for -- one call, its rows -- so the pin still says
+"never the scalar fallback": a fallback evaluation reaches neither the
+twin nor the memo and drives the ratio below 1 the same way it always
+did. The absolute per-solve
 counts (njev 305 winter / 300 flat on the recording seat) stay unpinned
 deliberately -- they are solver-path numbers.
 
@@ -121,6 +127,7 @@ def reset():
         "ct_calls": 0, "ct_time": 0.0,
         "ctb_calls": 0, "ctb_time": 0.0,
         "batch_calls": 0, "batch_rows": 0, "batch_time": 0.0,
+        "memo_hits": 0, "memo_rows": 0,
         "njev": 0,
     })
 
@@ -130,6 +137,7 @@ def install():
     orig_ctb = OPT.HeatPumpOptimizer._cost_terms_batch
     orig_batch = TM.ThermalModel.simulate_trajectory_batch
     orig_min = OPT._scoped_minimize
+    orig_memo = OPT._memoized_value_and_gradient
 
     def ct(self, *a, **kw):
         t0 = time.perf_counter()
@@ -165,10 +173,34 @@ def install():
         S["njev"] += int(getattr(res, "njev", 0) or 0)
         return res
 
+    def memo(bo, bounds, fd_eps, memo_dict):
+        # The multi-start's evaluation memo (r9 boost-replay speed) serves
+        # a repeated point without re-entering the twins, so a hit is one
+        # gradient evaluation the hooks below cannot see. Counting hits --
+        # and their rows, 1 + n for the point's own FD stencil -- keeps
+        # every per-gradient ratio below measuring the batched path
+        # THROUGH the memo: the pin at "1" and "~97" still means every
+        # gradient evaluation is one batched evaluation, and still reddens
+        # the day one goes to the scalar fallback instead (which shows up
+        # here as neither a twin call nor a memo hit).
+        inner = orig_memo(bo, bounds, fd_eps, memo_dict)
+        if inner is None:
+            return None
+
+        def counting(x, *a):
+            key = np.asarray(x, dtype=float).tobytes()
+            if key in memo_dict:
+                S["memo_hits"] += 1
+                S["memo_rows"] += 1 + int(np.asarray(x).size)
+            return inner(x, *a)
+
+        return counting
+
     OPT.HeatPumpOptimizer._comfort_terms = ct
     OPT.HeatPumpOptimizer._cost_terms_batch = ctb
     TM.ThermalModel.simulate_trajectory_batch = batch
     OPT._scoped_minimize = smin
+    OPT._memoized_value_and_gradient = memo
 
 
 def arm(name, price_profile):
@@ -181,16 +213,18 @@ def arm(name, price_profile):
     proc = time.process_time() - p0
     thr = time.thread_time() - t0
     njev = S["njev"] or 1
+    batched_calls = S["ctb_calls"] + S["memo_hits"]
+    batched_rows = S["batch_rows"] + S["memo_rows"]
     C.result(f"{name}.comfort_terms_calls_per_solve", S["ct_calls"], "calls")
     C.result(f"{name}.comfort_terms_calls_per_gradient",
              float(S["ct_calls"] / njev), "calls/grad")
     C.result(f"{name}.cost_terms_batch_calls_per_solve",
-             S["ctb_calls"], "calls")
+             batched_calls, "calls")
     C.result(f"{name}.cost_terms_batch_calls_per_gradient",
-             float(S["ctb_calls"] / njev), "calls/grad")
-    C.result(f"{name}.batch_rows_per_solve", S["batch_rows"], "rows")
+             float(batched_calls / njev), "calls/grad")
+    C.result(f"{name}.batch_rows_per_solve", batched_rows, "rows")
     C.result(f"{name}.batch_rows_per_gradient",
-             float(S["batch_rows"] / njev), "rows/grad")
+             float(batched_rows / njev), "rows/grad")
     C.result(f"{name}.njev", S["njev"], "grads")
     C.result(f"{name}.comfort_terms_cpu_share_pct",
              float(100.0 * S["ct_time"] / wall), "pct")
@@ -206,7 +240,7 @@ def arm(name, price_profile):
     C.result(f"{name}.thread_factor", float(proc / thr) if thr else float("nan"))
     return dict(wall=wall, proc=proc, ct=S["ct_time"], batch=S["batch_time"],
                 ctb=S["ctb_time"], calls=S["ct_calls"], njev=S["njev"],
-                ctb_calls=S["ctb_calls"], batch_rows=S["batch_rows"])
+                ctb_calls=batched_calls, batch_rows=batched_rows)
 
 
 def main():

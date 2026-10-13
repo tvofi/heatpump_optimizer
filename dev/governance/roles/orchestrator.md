@@ -141,6 +141,32 @@ exactly that.
   root has destroyed another seat's work. It stops only a PID it started, never
   by pattern.
 
+## 5b. Before dispatching a seat to a lane, read the ref, not the record
+
+The roster's `resume.stage` and `resume.branch` are a seat's own claim, written
+at the moment it acted; `roster_edit.py set-stage` accepts any non-empty string
+and nothing verifies `branch` against the remote. Measured 2026-10-10: three of
+five orphaned lanes' `branch` values named refs the remote does not have, while
+the refs that do exist held 7-9 commits no pull request carried. Where the
+record carries `resume.commit`, `git merge-base --is-ancestor <commit> main` is
+one call and catches a lane called `done` at a commit main does not have.
+
+So before dispatching, ask the repository, not the record:
+
+    git ls-remote --heads origin "refs/heads/handoff/<topic>" \
+        "refs/heads/handoff-body/<topic>" "refs/heads/fix/<topic>" \
+        "refs/heads/fix/<topic>-pr"
+
+A `handoff-body/<topic>` ref with a `handoff/<topic>` ref and no pull request at
+either `fix/` name is a lane that **handed off and was never opened**: dispatch
+an opener (`tools/audit/seat/open_pr.sh`), never a fresh implementer. A pull
+request that exists but whose head is an ancestor of the ref is a different
+repair -- `tools/audit/seat/update_pr.sh` -- and dispatching an opener at it
+opens a second pull request for work one already carries; a ref and its pull
+request that have diverged needs your judgement, not a pattern's. `bus.sh
+orphans` answers all of it for every ref at once; this rule is what to do with
+the answer.
+
 ## 6. A conflict resolution is verified by reading the merged artifact
 
 Not by reading the diff. A word-level diff licensed a union that silently dropped
@@ -245,8 +271,8 @@ shape that lets a real error be waved through.
   unproved, gated by `main`'s FULL push run below. A workflow, claim, grader,
   budget or conflicting change takes `run`: `main` merged in, CI green again.
 - **Any red check on the branch is answered in the body**, or the reviewer
-  returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
-  (`defect-root-cause.md`).
+  returns `root-cause-unanswered` at a settled head (`fix-review.md` step 11,
+  `defect-root-cause.md`).
 - The merge message passes section 4.
 - Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
