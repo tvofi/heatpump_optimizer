@@ -1,7 +1,7 @@
 {
  "archscore._inlined_bases": 0,
  "archscore.computed_attr_access": 32,
- "archscore.coord_footprint": 2587,
+ "archscore.coord_footprint": 2592,
  "archscore.coordinator_multiassigned_attrs": 120,
  "archscore.coordinator_private_reach": 2,
  "archscore.dead_members": 1,
@@ -17,8 +17,8 @@
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
  "critical_path_minutes": 54.825,
- "reason": "Cold-start re-record after the ci-ratchet gather fix: the first grade (run 38302634903, job 115016595648) read a broken window -- the artifacts-list API stopped returning run_id (null for every artifact; the association moved to .workflow_run.id), so the self-exclusion selected on null and unique_by collapsed the window to one artifact per name, double-counting this run's own lanes (script_runs_per_push 96 = 63 + 33). All values below are the fixed selection's derivation (.workflow_run.id // .run_id): script_runs_per_push 63 = the push run's own closures (33) + coverage (20) + fast-lane probe (10) rows; script_runs_full_case_pr 63 = pull_request run 38293720450, fast mode full, 63 closures+coverage rows (the window's most expensive full-case PR); critical_path_minutes 54.825 = median of the 8 completed push Tests runs (GitHub API 2026-10-12, per_page 8); archscore.* unchanged at 81acae2b7.",
- "recorded_at": "81acae2b732bb2caee73783ea0be99b98a596162",
+ "reason": "Deliberate re-record of archscore.coord_footprint only: PR #2118 (fix/r9-ux-10-v2, merged at 9a6e0d9dd) grew the coordinator footprint 2587 -> 2592 and landed without re-recording, so every Tests push run on main since 2026-10-12 17:52Z (runs 38442170346 at 9a6e0d9dd and 38442812648 at c7a70cb24) has been red on the ci-ratchet null control in tests/entities.py. Derived independently at origin/main 4787610ad (tests/coverage via archscore.vector.measure): coord_footprint 2592; every other row unchanged from the 81acae2b7 recording. The ci-ratchet job never passes --record by design, so this is the deliberate follow-up re-record that job's red names.",
+ "recorded_at": "4787610ad312ce0e5edc3c55a23dfd0294591e0e",
  "script_runs_full_case_pr": 63,
  "script_runs_per_push": 63
 }
