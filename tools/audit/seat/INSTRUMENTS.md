@@ -168,6 +168,33 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   adds its own delivery row, re-pushes, prints N and the head. When: the
   orchestrator opens a seat's handed-off branch. Refusal: no BODY.md at
   `handoff-body/<topic>` — the body is the transport, not an afterthought.
+- `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
+  that measures the whole board — train liveness, stale queue entries, log/rc
+  tail, prepr slots; per open PR the latest check-run per name, reds unanswered
+  in `## Red checks`, missing delivery rows, moved verdicts with no carry,
+  DIRTY/BLOCKED, zero-run heads, absent required contexts, twin heads, claim
+  stamps, staleness behind main; worker seats judged from the work they were
+  dispatched for; roster groups newly unblocked or blocked; main's tip, its
+  required contexts re-read live, the mandate through `budget_raise_gate`'s
+  own reader, action-pin drift. When: run BY a watcher seat on a ~4-minute
+  loop — never inline in the orchestrator's turn, whose cron firings skip
+  while a turn runs (measured: ticks skipped for hours during one diagnosis
+  turn); the watcher seat notifies only on actionable events (TRAIN
+  DONE/STOPPED with skip classes, Traceback, silent train death, a new merge
+  → beats owed) and never diagnoses or fixes. Every failed lane at main's
+  tip — required or not — becomes a fixer dispatch brief (context, job id +
+  error line, suspected class, dispatch instruction; bot lanes lead with the
+  ci-autofix rule): a main-side issue the orchestrator cannot resolve in one
+  short turn is fixer work, and the orchestrator's duty is routing, not
+  diagnosing. It replaces re-deriving the
+  sweep from conversation memory. It does NOT act; the orchestrator acts on
+  the list. Operating contract it assumes: orchestrator turns stay SHORT; any
+  script with over a minute of wait or execution runs BACKGROUND (nohup, log
+  file, completion notification); findings are DISPATCHED, not merely printed
+  — a finding that only lands in tick output repeats the
+  PR-comment-is-not-propagation defect. Refusal: a section whose read fails
+  prints UNREADABLE, never a silent skip; a rule the tick cannot read from
+  the tree or API it does not report.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
