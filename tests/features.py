@@ -6176,7 +6176,7 @@ def _d0_restart_keeps_only_a_real_drop():
         best = _Res(np.zeros(2))
         bounds = [(-10.0, 10.0)] * 2
         tick = _grad_optmod._lbfgsb_restart(
-            best, obj, bounds, (), 20, None, 1e-4,
+            best, obj, bounds, (), 20, None,
         )
         R.check(
             "an ftol-tick restart is not adopted",
@@ -6185,7 +6185,7 @@ def _d0_restart_keeps_only_a_real_drop():
         )
         chosen["x"] = np.array([2.0, 2.0])
         drop = _grad_optmod._lbfgsb_restart(
-            best, obj, bounds, (), 20, None, 1e-4,
+            best, obj, bounds, (), 20, None,
         )
         R.check(
             "a 5e-2 relative drop is adopted",
