@@ -111,7 +111,7 @@ Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
-| `verifier.md` | one of three verifiers per dimension, receiving findings with claim, evidence, harness, metric and perturbation |
+| `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |
 | `COMMON.md` | **the finder's contract** — every audit dimension: what a finding is, what a non-finding is, and the report shape |
 
 **There is exactly one `COMMON.md`, and it is the finder's contract.** A running
