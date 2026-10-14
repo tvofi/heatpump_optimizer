@@ -25963,10 +25963,24 @@ def _raf_review_gated(job: str) -> bool:
 # review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
 # the guard's `--require-green` call, and never GitHub's auto-merge, which
 # merges later on a head nobody judged.
+#
+# The `--require-green` call must survive the step's shell. GitHub runs a
+# `run:` block under `bash -e`, so a BARE `guard --require-green; rc=$?`
+# ends the STEP with the guard's own exit -- 3 while a required check still
+# runs, 1 on a refusal -- before the `case` after it can turn either into
+# `say ...; exit 0`. Every pending or refused beat then reddens the job the
+# report step is the one meant to decide (measured: run 38553291314, exit 3,
+# no `AUTOMERGE:` line). A condition is exempt from `-e`, so the exit reaches
+# the case; `if guard --require-green; then rc=0; else rc=$?; fi` captures it.
+_RAF_BARE_GREEN = re.compile(r"(?m)^\s*guard --require-green\b")
+
+
 def _raf_merge_pinned(job: str) -> bool:
     g = job.find("guard --require-green")
     put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
     return (0 < g < put
+            and "if guard --require-green" in job
+            and _RAF_BARE_GREEN.search(job) is None
             and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
             and "AutoMerge" not in job)
 
@@ -26025,13 +26039,16 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace(
         'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1))
     and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(
+        "if guard --require-green", "guard --require-green", 1))
     and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
     "--force-with-lease or a bare --force, or dropping the self-row write "
     "that runs only after NUM is known, or dropping the automerge guard "
     "ahead of the review, or posting it with the author's token, or the "
-    "merge's green gate or its sha pin -- must "
+    "merge's green gate or its sha pin, or unwrapping the `--require-green` "
+    "call so `bash -e` aborts the step before its `case` -- must "
     "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
