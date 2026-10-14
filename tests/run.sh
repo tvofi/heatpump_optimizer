@@ -83,6 +83,12 @@ set -u
 cd "$(dirname "$0")/.."
 
 PYTHON="${PYTHON:-}"
+# CI-cost metrics (tests/ci_ratchet.py): the file is this shell's alone. Read
+# once and unset, so no script this one runs inherits it -- a selftest that
+# drives this instrument under a stub, or a nested gate, would append its
+# fixture rows to the run's real count (push run 38639862216).
+_hpo_ci_metrics="${HPO_CI_METRICS:-}"
+unset HPO_CI_METRICS
 if [ -z "$PYTHON" ]; then
   if [ -x .venv/bin/python ]; then PYTHON=.venv/bin/python; else PYTHON=python3; fi
 fi
@@ -226,7 +232,7 @@ cat "$WORKDIR/scope.print"
 # line -- class (full or scoped), how many scripts the scoped plan RUNS and
 # how many it scoped out. The fast job sets HPO_CI_METRICS; a local run
 # without it emits nothing.
-if [ -n "${HPO_CI_METRICS:-}" ]; then
+if [ -n "$_hpo_ci_metrics" ]; then
   _cls=full; _nrun=0; _nskip=0
   if [ -n "$SCOPE_RUN" ]; then
     _cls=scoped
@@ -236,7 +242,7 @@ if [ -n "${HPO_CI_METRICS:-}" ]; then
     fi
   fi
   printf 'fast\tmode\t%s\t%s\t%s\t%s\t%s\n' "$_cls" "$_nrun" "$_nskip" \
-    "${GITHUB_EVENT_NAME:-local}" "${GITHUB_RUN_ID:-local}" >> "$HPO_CI_METRICS"
+    "${GITHUB_EVENT_NAME:-local}" "${GITHUB_RUN_ID:-local}" >> "$_hpo_ci_metrics"
   unset _cls _nrun _nskip
 fi
 

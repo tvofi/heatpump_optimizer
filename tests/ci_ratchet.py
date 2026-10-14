@@ -121,18 +121,47 @@ def archscore_metrics() -> dict[str, int]:
     return {f"archscore.{k}": v for k, v in vector.measure(ROOT).items()}
 
 
+def file_lane(path: Path) -> str:
+    """The lane an artifact file is named for: each job writes its own
+    ci-metrics-<lane>.tsv, and the window keeps that basename behind a
+    w<artifact id>- prefix. A file naming no lane is refused, not guessed."""
+    for lane in ("fast", *LANES):
+        if path.name.endswith(f"ci-metrics-{lane}.tsv"):
+            return lane
+    raise SystemExit(f"ci-ratchet: {path.name} names no lane "
+                     "(ci-metrics-<lane>.tsv); its rows cannot be "
+                     "attributed (fail closed)")
+
+
 def read_metrics(metrics_dir: Path) -> dict[tuple[str, str], list[dict]]:
     """Every emitter line, grouped into runs by the (event, run id) every
     line carries: one run's three lane artifacts land as three files, and
-    the per-run counts must not read them as three runs."""
+    the per-run counts must not read them as three runs.
+
+    A row counts only from its own lane's file. A row of another lane inside
+    a file was written by a child of that lane's instrument that inherited
+    HPO_CI_METRICS -- closure.py's selftest driving derive_closures.sh under
+    a stub put fixture `closures` rows in ci-metrics-fast.tsv, and a nested
+    run.sh raced them to 69 on push run 38639862216. The emitters no longer
+    export the variable; this keeps the artifacts already in the window, and
+    any emitter added later, from being graded as cost."""
     runs: dict[tuple[str, str], list[dict]] = {}
+    foreign = 0
     for f in sorted(metrics_dir.rglob("*.tsv")):
+        lane = file_lane(f)
         for line in f.read_text().splitlines():
             parts = line.split("\t")
             if len(parts) < 7:
                 continue
+            if parts[0] != lane:
+                foreign += 1
+                continue
             runs.setdefault((parts[5], parts[6]), []).append(
                 {"lane": parts[0], "name": parts[1], "class": parts[2]})
+    if foreign:
+        print(f"ci-ratchet: not counted: {foreign} row(s) carried by another "
+              "lane's artifact (a child that inherited HPO_CI_METRICS)",
+              file=sys.stderr)
     return runs
 
 

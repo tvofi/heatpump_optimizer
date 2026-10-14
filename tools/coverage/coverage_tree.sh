@@ -87,6 +87,12 @@ set -u
 [ -f custom_components/heatpump_optimizer/manifest.json ] || { echo "run from the worktree root" >&2; exit 2; }
 STAGE="${1:-all}"
 PY="${PYTHON:-python3}"
+# CI-cost metrics (tests/ci_ratchet.py): the file is this shell's alone. Read
+# once and unset, so no script this one runs inherits it -- a selftest that
+# drives this instrument under a stub, or a nested gate, would append its
+# fixture rows to the run's real count (push run 38639862216).
+_hpo_ci_metrics="${HPO_CI_METRICS:-}"
+unset HPO_CI_METRICS
 WORK="${W5P_WORK:?set W5P_WORK to a private mktemp -d}"
 OUT="${W5P_OUT:-$WORK/out}"
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
@@ -160,9 +166,9 @@ COMPOSED=$(env -u COVERAGE_PROCESS_START PYTHONPATH="$PWD/tests/hastub" \
 # CI-cost metrics (tests/ci_ratchet.py): every instrumented script execution
 # this stage pays is a line in $HPO_CI_METRICS, classed full / scoped / reused.
 metric_line() {
-  [ -n "${HPO_CI_METRICS:-}" ] || return 0
+  [ -n "$_hpo_ci_metrics" ] || return 0
   printf 'coverage\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" \
-    "${GITHUB_EVENT_NAME:-local}" "${GITHUB_RUN_ID:-local}" >> "$HPO_CI_METRICS"
+    "${GITHUB_EVENT_NAME:-local}" "${GITHUB_RUN_ID:-local}" >> "$_hpo_ci_metrics"
 }
 measure() {
   while IFS=$'\t' read -r verb s; do
