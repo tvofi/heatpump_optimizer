@@ -26,7 +26,24 @@ import subprocess
 # gen_table_rev3.py's exact open set. A stage the orchestrator records that is
 # not in DONE_STAGES keeps the group open (and its after-edges constraining).
 DONE_STAGES = ("done", "rca-done")
-ROSTER_PATH = ".claude/workflows/wave-r9-groups.json"
+# The roster's home at closure (R9-CLOSURE-BRANCHES, #2086): the round-9 roster
+# moved into main so its ref could be archived as a tag and deleted. It lands
+# under `dev/programme/rosters/`, the programme-record directory tests/layout.json
+# already reserves for rosters -- NOT `.claude/workflows/`, where the basename
+# `wave-*-groups.json` is scanned as a LIVE web-fix-wave roster by `brief_lint.mjs`
+# (the `briefs` job, which refuses a carry that collides with a live group) and by
+# `check-wave-script.mjs` (the `wave-script` job, which asserts every committed
+# roster's stages are web-fix-wave's vocabulary). The round-9 roster uses the
+# round-9 orchestrator's vocabulary (`handoff`, `fixing`, `deferred`,
+# `not-started`, `rca-done`, `refuted`) and carries none of web-fix-wave's pointer
+# keys, so committing it under `.claude/workflows/` would redden BOTH jobs on
+# main. `.claude/workflows/wave-*-groups.json` stays reserved for a live roster.
+ROSTER_PATH = "dev/programme/rosters/wave-r9-groups.json"
+# Where the roster lived before the closure move. `show_roster` falls back to
+# it, so a caller still pointed at the old ref (`origin/handoff/audit-r9-fixplan`)
+# reads the roster through the transition rather than the neutral phrasing.
+LEGACY_ROSTER_PATHS = (".claude/workflows/wave-r9-groups.json",)
+
 # A brief opens with an attribution header ("tvofi, 2026-10-04 (...): ") before
 # its first sentence. The one-line description strips it when present.
 _ATTRIBUTION = re.compile(r"\A\s*[A-Za-z][\w .-]{0,40},\s*\d{4}-\d{2}-\d{2}"
@@ -39,10 +56,24 @@ def load_roster_file(path: str) -> dict:
 
 
 def show_roster(repo: str, ref: str) -> dict:
-    """The roster at <ref> of <repo>, through `git show <ref>:ROSTER_PATH`."""
-    out = subprocess.run(["git", "show", f"{ref}:{ROSTER_PATH}"], check=True,
-                         capture_output=True, text=True).stdout
-    return json.loads(out)
+    """The roster at <ref> of <repo>, through `git show <ref>:ROSTER_PATH`.
+
+    Tries the closure path first, then the pre-closure one, so a ref that has
+    not yet been retargeted (the old `handoff/audit-r9-fixplan`) still reads.
+    """
+    last = None
+    for path in (ROSTER_PATH, *LEGACY_ROSTER_PATHS):
+        try:
+            out = subprocess.run(["git", "show", f"{ref}:{path}"], check=True,
+                                 capture_output=True, text=True).stdout
+        except subprocess.CalledProcessError as e:  # noqa: PERF203 - path probe
+            last = e
+            continue
+        try:
+            return json.loads(out)
+        except json.JSONDecodeError:
+            continue
+    raise last or FileNotFoundError(f"no roster at {ref}:{ROSTER_PATH}")
 
 
 def groups_of(roster: dict) -> dict:

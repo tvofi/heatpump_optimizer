@@ -322,7 +322,7 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", default="tvofi/heatpump_optimizer")
     src = p.add_mutually_exclusive_group()
-    src.add_argument("--roster-ref", default="origin/handoff/audit-r9-fixplan")
+    src.add_argument("--roster-ref", default="origin/main")
     src.add_argument("--roster-file")
     p.add_argument("--checkout", default=".",
                    help="the clone the git operations and generators run in")

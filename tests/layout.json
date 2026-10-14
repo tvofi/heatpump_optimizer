@@ -67,6 +67,7 @@
     "dev/programme/delivery/*.md",
     "dev/programme/carries/carry-*.json",
     "dev/programme/rosters/*.json",
+    "dev/programme/round9/**",
     "dev/programme/register/*.md"
    ]
   },
@@ -932,6 +933,8 @@
   "dev/archive/",
   "dev/audit/rounds/",
   "dev/programme/delivery/",
+  "dev/programme/rosters/",
+  "dev/programme/round9/",
   "RELEASE_NOTES.md",
   "tests/golden/",
   "tests/mutation_ledger/",
