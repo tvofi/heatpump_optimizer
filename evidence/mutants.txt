@@ -1,0 +1,26 @@
+== M1 ci_ratchet: no lane filter
+  FAIL the CI ratchet counts a lane's rows only from that lane's own artifact -- closures rows inside ci-metrics-fast.tsv counted to 5 (want 2); the same rows in the closures artifact 5 (want 5, the null control); a file naming no lane 'ci-ratchet: run.tsv names no lane (ci-metrics-<lane>.tsv); its rows cannot be attributed (fail closed)' (want a refusal)
+RESULT fails=1
+== M2 file_lane: unnamed file guessed
+  FAIL the CI ratchet counts a lane's rows only from that lane's own artifact -- closures rows inside ci-metrics-fast.tsv counted to 2 (want 2); the same rows in the closures artifact 5 (want 5, the null control); a file naming no lane 2 (want a refusal)
+RESULT fails=1
+== M3 derive_closures.sh: no unset
+  FAIL every HPO_CI_METRICS emitter keeps the file from the children it runs -- emitters=['tests/derive_closures.sh', 'tests/run.sh', 'tools/coverage/coverage_tree.sh'], exporting it on=['tests/derive_closures.sh']
+  FAIL derive_closures.sh writes its own metrics row and hands its child none -- the recorded script saw HPO_CI_METRICS='/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpt_r_p45_/m.tsv'; rows=['closures\ttests/x.py\tfull\t0\t0\tlocal\tlocal'] rc=0
+RESULT fails=2
+== M4 run.sh: no unset
+  FAIL every HPO_CI_METRICS emitter keeps the file from the children it runs -- emitters=['tests/derive_closures.sh', 'tests/run.sh', 'tools/coverage/coverage_tree.sh'], exporting it on=['tests/run.sh']
+RESULT fails=1
+== M5 coverage_tree.sh: no unset
+  FAIL every HPO_CI_METRICS emitter keeps the file from the children it runs -- emitters=['tests/derive_closures.sh', 'tests/run.sh', 'tools/coverage/coverage_tree.sh'], exporting it on=['tools/coverage/coverage_tree.sh']
+RESULT fails=1
+== M6 run.sh: unset only in a comment
+RESULT fails=0
+== M7 derive_closures rec writes env var
+  FAIL derive_closures.sh writes its own metrics row and hands its child none -- the recorded script saw HPO_CI_METRICS=''; rows=[] rc=0
+RESULT fails=1
+== M8 derive_closures: read after unset
+  FAIL derive_closures.sh writes its own metrics row and hands its child none -- the recorded script saw HPO_CI_METRICS=''; rows=[] rc=0
+RESULT fails=1
+
+[exited with code 0]

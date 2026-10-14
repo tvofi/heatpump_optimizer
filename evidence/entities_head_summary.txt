@@ -1,0 +1,6 @@
+2375:  ok   the CI ratchet counts a lane's rows only from that lane's own artifact
+2376:  ok   every HPO_CI_METRICS emitter keeps the file from the children it runs
+2377:  ok   derive_closures.sh writes its own metrics row and hands its child none
+2601:ALL 2316 ENTITY CHECKS PASSED
+c97672f131c16d0abbc7fb61306c112b70034129  /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rv2216/ent_head.log
+head 25418620f9fb39304e82dceea3ce8d2114ad018f
