@@ -19,15 +19,13 @@ section below.
 **Round 10** opened 2026-10-14 under tvofi's rulings: all 15 dimensions
 (`dev/governance/dimensions/D0.md` to `D14.md`) this round; three disjoint
 finder seats per dimension; one verifier per dimension, where a refute marks a
-finding **disputed**; one common judge. D15, debugging run from a live
-diagnostics bundle, is in flight as #2209 together with a grader split; its
-brief is not in `dev/governance/dimensions/` until that merges.
+finding **disputed**; one common judge.
 
 - **Owner approvals** (CODEOWNER, policy, budget raise) run under mandate
   6175172275, a #201 comment, scope all, until 2026-10-28T18:14Z. Cite the
   mandate; a seat's own message is not approval (`CLAUDE.md`).
-- **Merged so far:** #2206 `31052f53c`, #2207 `554e2ecfa`, #2210 `a77faf30d`
-  (wave-script panel, round drivers, replay-export numeric-state pin).
+- **Merged round-10 pull requests** are the rows in `dev/programme/delivery/`,
+  not restated here.
 - **Volatile state** — open seats, lanes, PR heads, the next action — is on
   #201 and nowhere here (`writing-for-agents.md`).
 
