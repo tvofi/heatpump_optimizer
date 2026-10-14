@@ -1,0 +1,4 @@
+slow	UNKNOWN STEP	2026-10-13T09:42:54.7940814Z   48 cycles over 79 entities in 21.5 s; cost {'cpu_ratio': 2.1758, 'peak_kib': 1913.8, 'loop_cpu_ratio': 0.2697, 'timed': 23, 'traced': 24, 'ref_ms': 53.27557200000044}
+slow	UNKNOWN STEP	2026-10-13T09:42:54.7945591Z   cpu doubled at _async_update_data: cost {'cpu_ratio': 4.2073, 'peak_kib': 1922.0, 'loop_cpu_ratio': 2.3387, 'timed': 23, 'traced': 24, 'ref_ms': 53.92721900000019}
+slow	UNKNOWN STEP	2026-10-13T09:42:54.7947496Z   memory doubled at _async_update_data: cost {'cpu_ratio': 2.1659, 'peak_kib': 3835.7, 'loop_cpu_ratio': 0.2723, 'timed': 23, 'traced': 24, 'ref_ms': 53.74331500000018}
+slow	UNKNOWN STEP	2026-10-13T09:42:54.7949405Z   loop doubled at _async_update_data: cost {'cpu_ratio': 2.4482, 'peak_kib': 1916.7, 'loop_cpu_ratio': 0.549, 'timed': 23, 'traced': 24, 'ref_ms': 53.128348000001324}

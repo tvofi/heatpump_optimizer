@@ -1,0 +1,19 @@
+
+=== Stress and economics ===
+RESULT thread_factor=1.0 (reference solve, BLAS pinned to 1 thread)
+clean[0] {'load1': 54.47, 'cpu_ratio': 1.992, 'peak_kib': 1912.4, 'loop_cpu_ratio': 0.3322, 'timed': 23, 'traced': 24, 'ref_ms': 50.786}
+clean[1] {'load1': 77.51, 'cpu_ratio': 1.871, 'peak_kib': 1912.2, 'loop_cpu_ratio': 0.2876, 'timed': 23, 'traced': 24, 'ref_ms': 54.836999999999136}
+clean[2] {'load1': 77.82, 'cpu_ratio': 1.8174, 'peak_kib': 1912.3, 'loop_cpu_ratio': 0.293, 'timed': 23, 'traced': 24, 'ref_ms': 53.04399999999987}
+RESULT clean cpu_ratio median=1.871 min=1.8174 max=1.992
+cpu[0] {'load1': 89.04, 'cpu_ratio': 3.7832, 'peak_kib': 1912.4, 'loop_cpu_ratio': 2.2005, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 49.87700000000217} hot/clean=2.022
+cpu[1] {'load1': 128.99, 'cpu_ratio': 4.1033, 'peak_kib': 1912.5, 'loop_cpu_ratio': 2.3955, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 50.495999999999874} hot/clean=2.193
+cpu[2] {'load1': 133.37, 'cpu_ratio': 3.8018, 'peak_kib': 1912.1, 'loop_cpu_ratio': 2.205, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 53.64799999999903} hot/clean=2.032
+RESULT cpu hot/clean cpu_ratio median=2.032 min=2.022 max=2.193 injected_ratio=[1.0, 1.0, 1.0]
+loop[0] {'load1': 135.07, 'cpu_ratio': 2.4056, 'peak_kib': 1912.2, 'loop_cpu_ratio': 0.6374, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 50.99699999999996} hot/clean=1.286
+loop[1] {'load1': 112.14, 'cpu_ratio': 2.3309, 'peak_kib': 1912.9, 'loop_cpu_ratio': 0.664, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 52.41300000000004} hot/clean=1.246
+loop[2] {'load1': 81.15, 'cpu_ratio': 2.2267, 'peak_kib': 1912.4, 'loop_cpu_ratio': 0.5956, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 53.452000000000055} hot/clean=1.19
+RESULT loop hot/clean cpu_ratio median=1.246 min=1.19 max=1.286 injected_ratio=[1.0001, 1.0001, 1.0001]
+memory[0] {'load1': 67.77, 'cpu_ratio': 1.8314, 'peak_kib': 3825.4, 'loop_cpu_ratio': 0.2982, 'timed': 23, 'traced': 24, 'ref_ms': 53.940999999999796} hot/clean=0.979
+memory[1] {'load1': 61.18, 'cpu_ratio': 1.8776, 'peak_kib': 3825.0, 'loop_cpu_ratio': 0.3001, 'timed': 23, 'traced': 24, 'ref_ms': 55.53800000000031} hot/clean=1.004
+memory[2] {'load1': 55.32, 'cpu_ratio': 1.8894, 'peak_kib': 3826.2, 'loop_cpu_ratio': 0.301, 'timed': 23, 'traced': 24, 'ref_ms': 57.09000000000053} hot/clean=1.01
+RESULT memory hot/clean cpu_ratio median=1.004 min=0.979 max=1.01 injected_ratio=[None, None, None]

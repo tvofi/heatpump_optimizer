@@ -1,0 +1,6 @@
+slow	UNKNOWN STEP	2026-10-14T07:48:44.8356713Z   48 cycles over 81 entities in 7.1 s; cost {'cpu_ratio': 1.8804, 'peak_kib': 1913.1, 'loop_cpu_ratio': 0.405, 'timed': 23, 'traced': 24, 'ref_ms': 23.763685000000034}
+slow	UNKNOWN STEP	2026-10-14T07:48:44.8359437Z   cpu doubled at _async_update_data: cost {'cpu_ratio': 3.5628, 'peak_kib': 1917.1, 'loop_cpu_ratio': 2.1295, 'timed': 23, 'traced': 24, 'ref_ms': 24.063372000000527}
+slow	UNKNOWN STEP	2026-10-14T07:48:44.8359972Z   FAIL synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu  [cpu_ratio 3.5628 against clean 1.8804: loop_cpu_ratio 2.13 over its budget 0.426]
+slow	UNKNOWN STEP	2026-10-14T07:48:44.8360777Z   memory doubled at _async_update_data: cost {'cpu_ratio': 1.8056, 'peak_kib': 3837.8, 'loop_cpu_ratio': 0.3874, 'timed': 23, 'traced': 24, 'ref_ms': 23.907750000000007}
+slow	UNKNOWN STEP	2026-10-14T07:48:44.8361845Z   loop doubled at _async_update_data: cost {'cpu_ratio': 2.2289, 'peak_kib': 1916.2, 'loop_cpu_ratio': 0.7959, 'timed': 23, 'traced': 24, 'ref_ms': 24.138233999999592}
+slow	UNKNOWN STEP	2026-10-14T07:48:44.8363132Z 1 of 77 replay checks FAILED
