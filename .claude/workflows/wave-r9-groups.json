@@ -2954,8 +2954,7 @@
    "group": "R9-EG-B0",
    "lane": "EG",
    "issues": [
-    1736,
-    2089
+    1736
    ],
    "fixes": [],
    "findings": [],
@@ -6053,8 +6052,7 @@
    "group": "R9-UX-6",
    "lane": "UX",
    "issues": [
-    1795,
-    2104
+    1795
    ],
    "fixes": [],
    "findings": [],
@@ -6107,8 +6105,7 @@
    "group": "R9-UX-7",
    "lane": "UX",
    "issues": [
-    1795,
-    2105
+    1795
    ],
    "fixes": [],
    "findings": [],
@@ -7174,8 +7171,7 @@
    "group": "R9-DBG-2",
    "lane": "FIX",
    "issues": [
-    1940,
-    2087
+    1940
    ],
    "fixes": [],
    "findings": [],
@@ -7552,8 +7548,7 @@
    "group": "R9-DEFER-1793",
    "lane": "DEFER",
    "issues": [
-    1793,
-    2088
+    1793
    ],
    "fixes": [],
    "after": [],
@@ -7723,9 +7718,7 @@
   {
    "group": "R9-RO-10",
    "lane": "RO",
-   "issues": [
-    2099
-   ],
+   "issues": [],
    "fixes": [],
    "covers": [],
    "class": "governance",
@@ -7747,7 +7740,7 @@
    ],
    "brief": "Round-9 governance PR RO-10 (lane RO, restructuring sweep and placement guard). Owner-approved fold 2026-10-07. Stale references to retired paths recurred at least four times after the reorganisation (the RCA-1990, RCA-2004 and closures-repair pull requests, and the open_pr and bus poster paths), each found only when it broke. Part one: enumerate every reference to a retired path (the retired list in tests/layout.json, read the way the RCA-2004 widened rule reads it: spawns, reads, imports, base-ref git reads, workflow steps, quoted commands, prose), classify each as executed, quoted command or prose, verify every executed one by running it, and re-point all of them in one pull request; files an in-flight pull request already owns are named with that owner, not edited. Part two: a CI guard, extending tests/layout.py rather than adding a parallel tool, that refuses a new reference to a retired path, and that refuses a new tracked file landing outside the folder its kind belongs in (tools, docs, tests, dev evidence, policy) as the layout map already declares; cost bounded to a cheap scan on every pull request, with the measured cost stated. Owes: a perturbation proof for each refusal (plant a stale reference and a misplaced file, the check goes red; remove them, green), a null control on the current tree, and the RCA-2004 docstring carry from R9-RO-9 folded in. Rebase after R9-RO-8 and the RCA-2004 pull request merge.\n\nA LIVE INSTANCE, 2026-10-10: the corpus itself names a retired path. tests/layout.py refuses tools/audit/harnesses/, but CLAUDE.md's instrument list and dev/governance/roles/fixer.md step 18 both still name it, so a seat following the contract writes into a path the guard refuses -- found by the R9-RC-BUS-FETCHHEAD lane, which landed its harness at dev/audit/harnesses/ instead. That is this PR's class and it is in-tree today.",
    "resume": {
-    "stage": "done",
+    "stage": "not-started",
     "branch": null
    },
    "carry": [
@@ -7757,9 +7750,7 @@
   {
    "group": "R9-RO-11",
    "lane": "RO",
-   "issues": [
-    2100
-   ],
+   "issues": [],
    "fixes": [],
    "covers": [],
    "class": "governance",
@@ -7775,16 +7766,14 @@
    "after": [],
    "brief": "Round-9 governance PR RO-11 (lane RO, pre-push CI predictor). Owner-approved fold 2026-10-07: tvofi asked for items 1 and 3 with a small pre-study, adjusting if better options exist. Fixers repeatedly hand off heads that CI then reddens on closures (unclassified or under-approximated reads) and on unpinned mutation sites; seen this round on the EG-B11, UX-9, DBG-1 and #2007 pull requests. Pre-study first, recorded in the PR body: list the reds at handoff across this round's fix PRs, classify which a cheap static check could have predicted, and compare at least a prepr predictor, a handoff gate that waits for the CI autofix chain, and any better option found; implement the cheapest one that would have caught most of them. Default deliverable: a predictor step in tools/pr/prepr.sh that, from the three-dot diff, lists changed tracked files in no measured closure and not on tests/closure.py INERT, and changed lines no mutation pin covers, in seconds and without running heavy scripts; plus a fixer.md edit so it defers local --pin-killed to ci-autofix.md. Policy change: merges only on tvofi's approving review.",
    "resume": {
-    "stage": "done",
+    "stage": "not-started",
     "branch": null
    }
   },
   {
    "group": "R9-CI-1",
    "lane": "CI",
-   "issues": [
-    2084
-   ],
+   "issues": [],
    "fixes": [],
    "covers": [],
    "class": "governance",
@@ -7800,16 +7789,14 @@
    "after": [],
    "brief": "Round-9 CI PR CI-1 (lane CI, autofix chain repair). Owner-approved fold 2026-10-07: tvofi asked to repair the autofix chain. The RO-11 pre-study (PR #2030, evidence in its body) found the chain repaired nothing across 20 runs on this round's fix PRs: mutation-autofix ended skip-no-measurement in 8 runs, because a 345 s env_drift.py baseline consumed --budget-minutes before any site was measured, and skip-measure-failed in 2; closures-autofix ended skip-manual-repair-owed in 4 and skip-failed-recording in 6. Re-derive these figures from the job logs first. Then make mutation-autofix measure and pin within its budget (reuse a baseline already measured, a separate budget, or a cheaper baseline) and make closures-autofix repair the under-scoped cases it currently skips. Prove each with a run on a real PR head that previously skipped, plus a null control on a head CI kept green. The workflow file is code-owned: merges on tvofi's approving review.\n\nCARRIED FROM R9-RC-AUTOFIX-GOVERNANCE (2026-10-10, measured, not assumed): the obvious arm for the bot-head defect -- have the autofix job dispatch governance.yml beside the four runs it already dispatches -- restores only 3 of the 5 ABSENT required contexts, because pr-contract.yml and budget-raise-gate.yml take no workflow_dispatch trigger at all. It cannot clear the defect on its own, so this lane may not spend its budget on it. The built alternative (a watcher reporting ABSENT at a settled head, and a train that refuses a bot-tip head naming the App-push follow-up) is on handoff/r9-autofix-governance c32e90ddd; this lane additionally owes that lane's `ci-watch.sh --self-test` step, which needs a fixture whose head is settled but has contexts missing.",
    "resume": {
-    "stage": "done",
+    "stage": "fixing",
     "branch": null
    }
   },
   {
    "group": "R9-RO-12",
    "lane": "RO",
-   "issues": [
-    2101
-   ],
+   "issues": [],
    "fixes": [],
    "covers": [],
    "class": "governance",
@@ -7827,7 +7814,7 @@
    ],
    "brief": "Round-9 governance PR RO-12 (lane RO, batch merge). Owner-approved fold 2026-10-07: tvofi chose options B and D from the merge-batching pre-study (evidence /Users/timmalmstrom/hpo-seats/prestudy-merge-batching/). B: add a batch subcommand to tools/audit/seat/merge_train.py. Admit PRs green at their judged head; route PRs touching claim files, .github/, *_budgets.json or graders, or pairwise-conflicting under git merge-tree, to the serial path, importing merge_fastpath.py refusal classes rather than copying them. Build proof commits P_i over origin/main in merge order, push batch/<ts> with the App identity, dispatch the required-check workflows on it, read results with wait_ci; merge each PR with --match-head-commit only while main tree equals P_(i-1) and confirm main tree equals P_i after; stop on any mismatch; on a red proof drop the PR whose closure owns the failing script, else retest all-but-one sets. Record PRs join batches. D: single-PR merges skip the main re-merge and rely on the full post-merge run on main plus revert-first. Both need an orchestrator.md section 11 edit (policy; merges on tvofi approving review). Prove with a perturbation (two PRs green alone that break together are caught by the proof run) and a null control (a clean batch merges with tree equality at every step).",
    "resume": {
-    "stage": "done",
+    "stage": "not-started",
     "branch": null
    }
   },
@@ -7837,9 +7824,7 @@
    "wave": 1,
    "fixerModel": "sonnet",
    "reviewerModel": "sonnet",
-   "issues": [
-    2093
-   ],
+   "issues": [],
    "after": [],
    "brief": "Instrument fix, measured on PR #2065 at head 3c9fe53fa on 2026-10-09: tools/pr/app_approve.sh --carry refused a head whose only change over the verdicted head was the mutation-autofix bot's own pin commit (subject ci: pin killed mutants, eight added files, all under the mutation ledger's killed_by rows). Its reason: the commit changes files outside main's merge-driver set, which is read from .gitattributes (the two claim files, mutation_budgets.json, structure_budgets.json, tests/closures.json, bugclasses.json). The ledger rows are not in that set, so a pin push the branch did not author costs a full fresh review round even though no reviewed file moved. The effect is a treadmill: every branch whose diff adds killable sites gets a bot pin commit after its verdict, and each one voids the carry. Fix shape (the fixer verifies, does not inherit): widen the carry predicate's file set to the ledger writer's own guarded write set -- decision 0011's ledger-writer amendment already bounds that push to new files under the ledger's killed_by rows and nothing else, committed under a fixed subject by a dedicated App -- so a ci: pin commit that adds only rows carries, while any other file still refuses. Both arms need a demonstration: a row-only pin commit carries, and a pin commit that also touches a production file does not. The predicate lives in an owned instrument (the approval surface), so the change rides the owner's review; the null control is the same --carry call at today's head, which refuses. Do not solve it by weakening the predicate's other conditions (reviewer turn, head-moved, claim files equal to main's).",
    "resume": {
@@ -7872,9 +7857,7 @@
    "wave": 1,
    "fixerModel": "sonnet",
    "reviewerModel": "sonnet",
-   "issues": [
-    2094
-   ],
+   "issues": [],
    "after": [
     "R9-RC-NIGHTLY-BOUND"
    ],
@@ -7891,9 +7874,7 @@
    "wave": 1,
    "fixerModel": "sonnet",
    "reviewerModel": "sonnet",
-   "issues": [
-    2090
-   ],
+   "issues": [],
    "after": [],
    "brief": "A bot pin commit leaves a pull request unmergeable, and nothing reports why. Measured 2026-10-09 on two heads at once: PR #2066 at 63084989 and PR #2070 at a9ba0b88, both heads being a mutation-autofix `ci: pin killed mutants` push. A GITHUB_TOKEN push creates no `pull_request` workflow run at all, so the only runs at such a head are the four the autofix job dispatches itself (Tests, Hassfest, Validate, CodeQL); of the 17 required contexts of ruleset 23698884, five are ABSENT -- `pr-contract`, `policy-docs`, `env-matrix`, `budget-raise-gate`, `wave-script`, the governance.yml family, which fires only on `pull_request`. Absent is not green (orchestrator.md section 11), so the pull request cannot merge, and the reason is invisible: the head looks fully settled, thirty check-runs, nothing pending, because a dispatch retrigger ran everything it could. The pin lane itself is gated on `event_name == 'pull_request'`, so at such a head no further bot commit can come either, which is what turned #2066's body disposition \"left to mutation-autofix\" into a refutation. Recovery today was an orchestrator push as the App (a main merge), which creates the `pull_request` run and fires the family. Countermeasure candidates to price, in the order the cost test decides: the autofix job dispatches the governance workflows beside the four it already dispatches (it holds a dispatch path and an Actions-only App, and ci-autofix.md documents that the three autofix jobs approve held runs); or `merge_train.py` and the record lane treat an App recarry as a required follow-up to any bot pin commit, and `tools/audit/seat/ci-watch.sh` reports ABSENT required contexts at a head rather than only pending and red -- the cheap arm, since a watcher that cannot see an absence is what let two pull requests sit this way. Ownership: .github/workflows/tests.yml and governance.yml are code-OWNED paths, so the change rides the owner's review under the standing mandate; a watcher-only arm touches no owned path. Null control: at a head pushed by the App the five contexts report, and at a bot head they do not -- both arms measurable from the check-runs API without a merge.",
    "resume": {
@@ -7909,9 +7890,7 @@
    "wave": 4,
    "fixerModel": "sonnet",
    "reviewerModel": "sonnet",
-   "issues": [
-    2086
-   ],
+   "issues": [],
    "after": [],
    "brief": "Programme-closure work, and it runs LAST: after the final merge, after the roster and the state docs move into main, and after the citation sweep is green. Desired end state (tvofi, 2026-10-09): main plus at most three development branches, every other remote ref gone or archived as a tag. Reconcile and prune the remote refs, which today number in the hundreds -- derive the count and the family histogram with `git ls-remote --heads origin` piped through a prefix histogram, never carry one from this brief. THE ORDER IS THE WORK, and each step is gated by the one before: (1) move the roster and the state docs into main, because two refs are live infrastructure rather than history -- the roster ref is read at run time by .github/workflows/tests.yml as ROSTER_REF for the record beat, and the state ref carries the three generated docs -- so neither may be deleted while a workflow or a citation reads it; CLAUDE.md's programme block is deleted at closure anyway, which is the moment the roster's home becomes main. (2) Sweep the in-tree citations: `git grep -l` for the roster, state and audit-evidence ref names, and give each citation a disposition -- retarget to a tag at the same sha, or keep the ref -- then prove it with `node tools/policy/brief_lint.mjs`, which resolves tag citations and so can verify a retarget rather than take it on faith (dev/governance/rules/brief-citations.md). (3) Archive before deleting, because a deletion is irreversible for an unmerged tip: retag the orphan families (the body refs, and the bus's proposed and signed verdict refs, which are parentless by construction and so are never ancestors of main) under an archive tag namespace, then delete the branches. Tags are not branches, so the end state still holds and the evidence survives. (4) Prune by rule, and let the rule be a self-tested instrument under tools/audit/seat/ per decision 0013 -- a session-local loop is a defect: delete a ref already merged into main (decision 0010 keeps its commits as the merge's second parent, so nothing is lost); delete an unmerged handoff ref whose pull request MERGED, since the head that merged superseded it; keep every ref whose pull request is open; and for a ref with no pull request at all, disposition it individually -- the audit-round evidence refs are the bulk of that residue and are cited from the tree, which step 2 already settled. (5) Report the residue: every ref left, with the rule that kept it. HAZARDS the instrument must encode: nothing stops a wrong deletion (the ruleset's deletion rule protects main alone); tools/audit/worktree_gc.sh prunes local worktrees and branches only, never remote refs; the bus watcher reads the proposed and signed verdict refs, so pruning runs only after the last verdict posts; and a ref cited by a brief that is deleted breaks the linter rather than the build, which is why step 2 precedes step 4. OWNER DECISION, recorded here so no seat re-asks it and none assumes it: whether the orphan families are archived as tags (recommended, and the reversible arm) or deleted outright with the posted pull-request comments as the only record -- tvofi, answer on issue 201 before step 3 runs. This group changes no production code; its one pull request is the citation retargeting and the instrument, and the deletions themselves are account actions the orchestrator takes after that pull request merges.",
    "resume": {
@@ -7943,9 +7922,7 @@
    "wave": 4,
    "fixerModel": "sonnet",
    "reviewerModel": "sonnet",
-   "issues": [
-    2085
-   ],
+   "issues": [],
    "after": [],
    "brief": "Late-programme change, tvofi's direction of 2026-10-09: make the CodeQL gate report only what the change introduced, without narrowing what it analyses. Measured at a live head the same day: Analyze (actions) 52 s, Analyze (javascript-typescript) 79 s, Analyze (python) 22 m 16 s -- the python leg is the matrix's whole wall time and it sits inside the CI gate every merge waits on; and the repository carries 19 code-scanning alerts with 0 open, so findings are not what blocks merges, which makes this a latency and signal-quality change, not a security relaxation, and says so honestly in the body. WHAT STAYS: the analysis is whole-tree. A patch-scoped CodeQL database loses interprocedural dataflow and reports green from having analysed nothing, which is two classes this programme has already chased -- a check that passes while the defect is present, and a check over an empty set. The workflow header's own standing refusal of paths filters stays untouched for the same reason. WHAT CHANGES: filter the RESULTS to the patch on pull-request runs only, using github/codeql-action's filter-by-patch reusable workflow, SHA-pinned with the frozen tag in a trailing comment as this file requires, so a PR is judged by what its own diff introduced while `push: main` and the weekly schedule keep uploading the unfiltered SARIF -- latent findings in untouched code still land on main's analysis and get triaged there rather than blocking an unrelated pull request. GUARDRAILS the reviewer must see enforced: fail closed when the patch cannot be computed; never report filtered-and-empty as success when the unfiltered run had results, and print BOTH counts in the job annotation so a reader can see what was dropped; keep all three matrix legs required and running (absent is not green under orchestrator.md section 11, so a conditional job is the wrong tool). DEMONSTRATION owed: plant one hit in a line the diff changes and one in code the diff does not touch, and show the filtered run reports the first and main's unfiltered run still reports both; then remove the plants and show both clean. The files live at .github/workflows/codeql.yml (code-owned, so the owner's review rides the standing mandate) and, if the pin list needs it, tests/entities.py's workflow pins. Do not change languages, queries security-extended, threat model, or the schedule.",
    "resume": {
@@ -7960,9 +7937,7 @@
    "wave": 1,
    "fixerModel": "sonnet",
    "reviewerModel": "sonnet",
-   "issues": [
-    2102
-   ],
+   "issues": [],
    "after": [],
    "brief": "tvofi's standing instruction of 2026-10-09: the resume, plan and handover docs must be regenerated continuously, not at session end. tools/audit/seat/state_docs.py already does one regeneration (generators, guarded write set, push the orphan state ref, mirror to a local directory). What is missing is the beat: today the orchestrator runs it by hand after some merges and keeps a session-local loop in its own scratch directory to catch the rest, which is the shape decision 0013 calls a defect -- an instrument the programme runs, living outside the tree, untestable by a later session. Land it inside the existing state instrument -- a beat subcommand on tools/audit/seat/state_docs.py is the right owner, since that file already holds the guarded write set, the orphan-ref push and the mirror rule; a separate script beside it would be a parallel mechanism (fixer.md step 17): poll one ref, detect that origin/main moved, re-fetch the roster ref so resume fields written by other seats are visible, regenerate and push, and -- critically -- do NOT record the observed tip when the push fails, so the next pass retries instead of silently losing that merge from the record. It must be safe to run beside a merge train: never hold a lock, never cancel anything, one regeneration per change, and it must cost nothing when main has not moved (read the refs, write nothing). Requirements: stdlib plus gh/git only, every input a flag (repo, roster ref, state ref, checkout, mirror, interval), no machine path baked in (tools/audit/seat/tmp_paths.py refuses those), a --once mode and a --self-test that drives the whole loop against a temporary bare clone with no network -- the arms worth pinning are: a moved tip triggers exactly one push, an unchanged tip triggers none, and a failed push leaves the tip unrecorded so a retry happens. Close the loop with docs: tools/audit/seat/INSTRUMENTS.md gains the entry (what it does, when to use it, the refusal that saves you) in the same pull request, since that guide is the tree's inventory.",
    "resume": {
@@ -7974,9 +7949,7 @@
   {
    "group": "R9-RC-ROW-STALE",
    "lane": "fix",
-   "issues": [
-    2098
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "brief": "Round-9 record-instrument fix (lane fix, found by the R9-DBG-2 seat 2026-10-09 and measured by the orchestrator the same hour).\n\nDEFECT. `tools/audit/seat/record_row.py --plan` skips a merged pull request whose delivery row already exists, so a row written before the merge \u2014 `\u2014 **open**, <title>` by `open_row_line()` \u2014 is never rewritten to the merged form `row_line()` produces (`\u2014 **merged `<sha>`**, \u2026`). The skip is line 179 `if has_row(n, root): continue`, and `has_row()` (line 146) answers on the **anchor** (`rowed_line(number, line)`) plus prose mentions, never on the row's **status**. `record-autofix` runs on every push to main, so it has had many chances and cannot see this.\n\nMEASURED 2026-10-09T20:45Z: **24 rows under `dev/programme/delivery/` read `**open**` for a pull request GitHub reports MERGED** \u2014 2040 2041 2042 2044 2049 2050 2051 2053 2054 2055 2056 2057 2058 2059 2060 2061 2062 2064 2065 2067 2068 2069 2074 2078 \u2014 merge times from 2026-10-07T21:53:00Z to 2026-10-09T20:13:13Z, each read from `gh pr view --json state,mergedAt`. Two of them (#2074, #2078) merged within the previous ten minutes, so this is not a lag.\n\nWHY IT MATTERS BEYOND TIDINESS. `tools/audit/seat/plan_table.py` and `state_docs.py` generate the round's PLAN-TABLE and RESUME-CURRENT from these rows, and `tools/merge/stamp.py`'s `--require-rows` bar asks only that a row EXISTS \u2014 so the stale rows pass the bar while the generated documents tell every later seat that 24 lanes are still open. The orchestrator repeated that falsehood to the owner in status answers on 2026-10-09.\n\nFIX OWED. (1) A status-aware predicate: a row that exists but does not match the merge state must be planned for rewrite \u2014 the natural shape is a second predicate beside `has_row`, taking the merge sha as an argument (the fixer names it) because `has_row` is also the \"does this PR need any row at all\" question the self-merge row asks. (2) The rewrite must be idempotent: a row already reading `**merged `<sha>`**` must not be rewritten, and a row whose recorded sha differs from the API's merge sha must be corrected to the API's. (3) The generated row must keep `row_line()`'s exact grammar (anchor, `|`-to-`/` title sanitising, no closing keyword, group suffix) so `policy_lint --record` and `delivery_status.mentions()` keep reading it.\n\nARMS OWED, each with its perturbation shown. Failing first at a tree with one stale `open` row for a merged PR: `--plan` must list it, and must not list it once rewritten. A planted control that the fix must NOT trip: a genuinely open pull request with an `open` row stays untouched, and a PR with no row at all still gets `open_row_line()` (that is what `self_row()` and the pre-merge beat rely on). Re-take the 24 measured PRs as the live corpus: after `--apply` at the current main, `grep -l '\\*\\*open\\*\\*' dev/programme/delivery/*.md` for numbers >= 2040 must answer only rows whose PR is genuinely open, and the count must be printed beside the claim.\n\nBOUNDARY. The write set stays `dev/programme/delivery/<N>.md` only \u2014 the tool must not gain the ability to edit the plan of record's Delivery-status table or `dev/programme/HANDOVER.md` (that is deliberate per issue #1952, owner-approved 2026-10-04). `tools/audit/seat/record_row.py`'s `--self-test` must gain the arms above; a fix to a check that leaves it undrivable is refused by `pr-contract`.\n",
@@ -7996,9 +7969,7 @@
   {
    "group": "R9-RC-BUS-FETCHHEAD",
    "lane": "fix",
-   "issues": [
-    2092
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "brief": "Round-9 record-instrument fix (lane fix), found by #2071's round-4 reviewer 2026-10-09 and hit again by the orchestrator the same hour.\n\nDEFECT. `tools/audit/seat/bus.sh`'s `append_commit` keys the new commit's parent on `FETCH_HEAD`. `git fetch` sets `FETCH_HEAD` globally in the checkout, so when another seat or the orchestrator fetches anything between the ref fetch and the commit build, the parent becomes an unrelated tip and the push is refused non-fast-forward. The reviewer's first `push-verdict` from the shared reference checkout was refused exactly that way (`FETCH_HEAD` was main's tip `23d354970`); the guard held and nothing wrong landed, but a verdict was nearly posted onto main's lineage. The orchestrator hit the sibling form of the same bug minutes later: `git fetch -q origin <ref>` followed by `git -C <other worktree> reset --hard FETCH_HEAD` answered `ambiguous argument FETCH_HEAD`, because `FETCH_HEAD` is per-worktree state and the fetch wrote it in a different one.\n\nFIX OWED. Read the ref tip with `git ls-remote`, which `bus.sh` already calls to test existence, and pass that sha as the parent; never `FETCH_HEAD`, never a shell variable that survives a `cd`. Where the script must resolve a ref, resolve it inside the worktree that will use it.\n\nARMS OWED. The perturbation is the whole point: a planted intervening fetch (`git fetch origin main` after the ref fetch, before the commit build) must NOT change the parent the commit gets -- assert this by reading the built commit's parent against `ls-remote`, not by asserting the push succeeded, because a refused push is already the current behaviour and a check that passes on refusal proves nothing. The second arm: `bus.sh --self-test` gains a case that fetches an unrelated ref between the two steps and still appends onto the verdict ref's tip. A null control: an ordinary append with no intervening fetch behaves exactly as today, byte-for-byte on the ref tree.\n\nBOUNDARY. `bus.sh`'s refusals are the instrument's safety: `push-verdict` refuses a verdict outside `fix-review.md`'s grammar, one missing its dispatch's `bus-nonce:`, or one whose evidence dir does not name the 40-hex head. None of those may loosen to make the fetch fix easier, and `confirm`/`post` keep their existing recorded-before-post and withdrawn-on-refusal behaviour. The fix is the parent sha only. A note for the same lane: `bus.sh` computes `ROOT` as `$(dirname $0)/../../..`, so an out-of-tree copy resolves `ROOT` to `/` and its default poster to a nonexistent path -- `confirm` then signs and pushes the `verdict/<pr>` ref and fails at the post, a half-applied operation (#2074 hit this: verdict commit `7c64dd213` landed, the comment did not). Refuse, or document and pin, that running the script from outside a checkout is unsupported.",
@@ -8017,9 +7988,7 @@
   {
    "group": "R9-RC-BLAS-KERNEL-RED",
    "lane": "fix",
-   "issues": [
-    2091
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "brief": "Round-9 defect fix (lane fix): a macOS seat cannot open a pull request whose closure reaches tests/features.py, because one check in it is BLAS-kernel-red at main.\n\nMEASURED 2026-10-09. `tools/pr/prepr.sh` step 6b records closures by RUNNING the scripts a change reaches; `tests/features.py` exits 1 at current `origin/main` on this machine, on one check only: `R9-F2.1 P3`, reading `shipped 110.4366` against `seeded 110.1297`. It fails identically in a clean `git archive` tree of `a8ce87571` (one seat's reading) and at `d8a4bd36f` and `23d354970` (another's), and one seat measured that pinning BLAS to a single thread does not change it. Three seats reported the same red independently tonight. Consequence: `prepr` prints `REFUSE closures -- failed while being recorded: tests/features.py (exit 1) -- fix the script first; a re-derive would record the same truncation`, and `tools/pr/app_push.sh` therefore mints, pushes and posts NOTHING. Two brand-new pull requests were refused that way at 20:5xZ tonight (R9-DBG-2 at `c901f8f34` and R9-UX-10 at `f9809c06a`), and both lanes are now stranded: their heads are complete, their bodies pass `pr-body`/`figures`/`unpinned`, and only the closures recording refuses. A lane that must wait for CI to be openable is a lane that cannot be opened.\n\nWHY THE REFUSAL IS RIGHT AND MUST STAY. A recording whose script died is a truncated closure, and a truncated closure recorded as coverage is the `UNDER-SCOPED` failure mode `ci-autofix.md` says re-deriving would record again. So the answer is NOT a flag that waves the closures step past a red script. Whatever you build must still refuse a genuinely broken `tests/features.py`, and you owe an arm proving it: plant a real failure and show `prepr` refuses it exactly as it refuses this one.\n\nCANDIDATE ARMS, priced in cost-test order, choose by measurement not preference. (a) **Make the check kernel-stable.** `tests/README.md` section 'A knife-edge optimizer comparison must be measured across BLAS kernels' names both sanctioned shapes -- `env_drift.py`'s capture-twice (a same-run quantity whose basin choice cancels) or an arm measured bit-stable across kernels -- and the instrument is `tools/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via `OPENBLAS_CORETYPE`, with CI's own green logs as the AVX-512 point. That document also records the precedent: #1725's ftol check read 60.54-63.48 SEK across four kernels against a 0.1% bound while the production arm held 61.24-61.28, i.e. a bound set from two environments. Measure `R9-F2.1 P3`'s two arms per kernel on this box first, and say which quantity does not move. This is the arm that improves the suite; it may cost lines and must not raise a cap without the owner. (b) **Declare the drift** the way `dev/governance/dimensions/D2.md` describes for the five `may-drift` golden fixtures -- but note `env_drift.py` refuses a fixture that is both claimed and may-drift, `claims-for:` must equal `VERSION`, and only a canonical environment may honestly record a value-bearing fixture: a mac seat CANNOT record one, so if you reach for this arm you must show what the Linux lane recorded and not record a float yourself. (c) Anything better you find, with the same two tests: does a real features.py red still refuse, and does a macOS seat become able to open a PR.\n\nBOUNDARY AND PROOF. `tests/features.py` is measured production-reachable: keep `tests/closures.json` honest about it, and any new tracked file deliberately classified (a closure or `INERT`) or `tests/entities.py` refuses the branch. The null control is the platform the red does not appear on: at CI's kernel class the same check is green, so your arm must show the check is green there too -- cite the check-run, do not assert it. Owes a `## Root cause` answer beside the code (this check reached a state where every macOS seat's push refused and three seats each rediscovered it separately; name the process state that let a kernel-dependent comparison be committed green, per `dev/governance/rules/defect-root-cause.md`) and one line in `dev/programme/HANDOVER.md`'s owed list is NOT yours to write -- the record pass is the orchestrator's.",
@@ -8038,9 +8007,7 @@
   {
    "group": "R9-RC-RECARRY-READBACK",
    "lane": "fix",
-   "issues": [
-    2097
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "brief": "Round-9 instrument fix (lane fix): `tools/pr/app_push.sh --recarry` refuses a push that succeeded, and `merge_train.py` treats that refusal as fatal and stops the pass.\n\nMEASURED 2026-10-09T21:4xZ on #2071. The round-3 batch pass recarried the PR: `main` had advanced ten merges past the judged head `1f9d606dd`, and the clean merge produced `61617145f` (`Merge remote-tracking branch 'origin/main' into fix/live-diag`, parent `23d354970`). `app_push.sh` printed `RECARRY: prepr SKIPPED: HEAD 61617145 is the clean merge of the live head 1f9d606d and origin/main's 23d35497, and the body is the live one` -- so it minted and pushed -- and then printed `REFUSE: the pull request did not read back; its state is above -- re-read it by hand before touching anything`. Minutes later `gh pr view 2071 --json headRefOid` answered `61617145f4a2cc254f90b53ba683ea74f13100d4`, the branch was `BLOCKED` on not-yet-run contexts, and the commit existed as a real object on the remote. The push landed; the read-back raced GitHub's own index. `merge_train` read the refusal as a stop and the whole pass died with `RESULT pr=2071 head=61617145f...`, `rc=1`, taking four verdicted pull requests (#2072 #2073 #2063 #2010) down with it.\n\nWHY THE READ-BACK EXISTS AND MUST NOT BE DELETED. It is the same discipline as `comment-readback.md` and the #1256 incident that put decision 0011 in place: an author seat's mint returned 201 and then 404 inside a minute and left a branch wedged, so `app_push.sh` refuses to report success it cannot re-read. The defect is not that it checks, it is that it checks ONCE, with no settle, and cannot distinguish `pushed but not yet visible` from `push refused`. A silent retry-forever is the opposite failure: a genuinely refused push would read as slow success.\n\nFIX OWED. A bounded re-read with a stated budget -- poll the live `headRefOid` (or `GET /pulls/{n}`) a fixed number of times with a sleep between, and resolve to one of THREE outcomes, not two: `pushed and confirmed`, `pushed and not visible within the budget` (a distinct refusal, so an operator can tell a race from a wedge), and `refused`. On `pushed and confirmed` the script exits 0 and prints the confirmed sha. Keep the pre-push contract check exactly as it is -- `prepr.sh` runs BEFORE anything reaches the remote (#678's ordering), and this change must not move it after the push or make it skippable by anything but the existing clean-carry condition.\n\nARMS OWED. The perturbation must be the real shape, not a stub: force the read-back to race (a first read that answers the OLD sha and a second that answers the new one) and show the script now reports success at the second read, with the injected delay visible in its own output. The control that must still refuse: a push that GitHub actually refuses (a non-fast-forward, or a wedged branch) exits non-zero with the `refused` wording, and the `pushed and not visible` arm is exercised as its own case -- that third state is the deliverable, so a test that only covers the first two pins nothing. A null control on the clean path: a normal `--recarry` whose head is already current must not loop at all.\n\nALSO OWED, same file family. `tools/audit/seat/merge_train.py`'s handling of a recarry refusal: it currently stops the entire batch. Once `app_push.sh` can answer `pushed and confirmed` the stop should be unreachable for a race, so decide by measurement whether the train needs its own retry or whether it should keep stopping on a real refusal and simply re-read the head once before declaring one -- and say which you chose and why, in the body, with the observed API latency behind it.\n\nBOUNDARY. Do not change what `--recarry` may skip: it skips `prepr` only when HEAD is exactly the clean merge of the live head and `origin/main` and the body is the live one. That condition, `--self-test`, and the identity/minting rules of decision 0011 are unchanged. `tools/pr/app_push.sh` is a measured instrument with a `--self-test` the gate runs; an arm you add must be in it, not only in the body.",
@@ -8059,9 +8026,7 @@
   {
    "group": "R9-RO-PC1",
    "lane": "fix",
-   "issues": [
-    2103
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "brief": "Round-9 countermeasure for the prose-count class, from the root-cause seat R9-RO-PC1 (2026-10-09). Lane fix; one arm added to the instrument that already IS the I5 barrier.\n\nCAUSE, established by reproduction, not by reading. Two seats cut from the same main tip made the BYTE-IDENTICAL three prose edits to architecture.md (74 modules to 75, 27 of the 74 to 27 of the 75, the other 46 to 47) and put the new map row on DIFFERENT lines. Merging one into the other returned rc 0, auto-merged the document, and conflicted on nothing, while the merged tree held 76 modules and 48 HA-free: the prose sentences are identical so ort sees one change, the map rows both survive, and the count is false with git reporting nothing. That is the exact shape of the three incidents today (#2024, #2065, #2066), each of which cost a resolution round.\n\nWHY IT ESCAPED: state (c) -- followed, did not produce the result. The sentences ARE read at that tree (claims.py C32 matches a specific sentence in architecture.md, entities.py's opening counts and HA boundary, doc_claims.py and harness_headers.py too), but the coverage is keyed on specific sentences, not on the UNIT. doc_claims.py states the promise this class breaks: the claim set is derived by scanning the reader documents and a new sentence of the same shape enters the check the moment it lands. For counts that promise is kept once -- the multistart census arm IS corpus-wide and fires on a stale count -- and nowhere else: no equivalent census exists for modules, services, option pages, fields or sensors. Ground truth measured by the RCA seat: seven planted stale counts across the reader documents, one entities.py run over all of them at once, baseline 29 reds to planted 29 reds with NO check name moving, and on the same planted tree claims.py reports zero false, doc_claims.py ALL 160 PASSED, harness_headers.py ALL 109 PASSED. Four instruments, zero red, three sentences false. Cost of that gap, measured from artifact mtimes in the three resolution rounds: 110.0, 110.1 and 138.7 wall minutes, against a recurring countermeasure cost of 10.8 ms CPU per run as the root-cause seat measured it, and 250.3 ms CPU per run as the fixer measured the LANDED arm on a loaded box -- both orders of magnitude under the 110-139 minutes an occurrence costs, and say which box a figure came from (a corpus regex scan; the AST walk and the config_flow import it needs are already paid by claims.py). The test passes by three orders of magnitude and the recurrence is 3 in one day, with the exposure event (a resolution merge carrying a new production module) at about 2.7 per day.\n\nDELIVERABLE: the census arm, in doc_claims.py's own idiom, beside the multistart arm -- one more check_ arm over ten count SHAPES (not sentences) in README.md plus docs, each compared to a DERIVED measurement (the module glob, an AST walk, services.yaml, the option-pages table, the registered service fields helper). A narrow shape claims its span first, so the other-46 sentence reads as the HA-free count and not also as a module total. Reuse the registered helpers rather than re-deriving the schema: tests/README.md's rule that a test must never re-implement what it is testing is the boundary here, and entities.py is inside the fixer role's opens cap while doc_claims.py is not, which is the other reason the arm belongs in doc_claims.py.\n\nARMS OWED, all four, each shown moving. Failing: a planted stale option-pages count in two documents gives FALSE rows naming both, a nonzero claims_false, rc 1, on a tree where all four existing instruments are green. Passing: the same sentences corrected gives rc 0 with the checked-count printed. Null control on a healthy tree: main tip untouched, rc 0 with a positive checked count -- not green by skipping. Fail-closed: DELETE one of the reader documents and the arm must REFUSE (no occurrence of the shape), not pass silently -- that is doc_claims.py's own anchor rule and the arm inherits it. Then the arm at the reproduction tree: rc 1 with three FALSE rows (75 versus 76 twice, 47 versus 48).\n\nALSO OWED, and this is the part a fixer may not decide alone. (1) The class fold: bugclasses I5 already covers docs, comments and a compliance checklist drifting stale against the code and is already barriered by doc_claims.py -- append this rca id, list the three pull requests as non_round_instances (the counting rule lists instances, it does not count them), and extend the barrier's Not-reached clause with the honest new limit: prose counts in a document whose arm keys on a specific sentence, plus the sixty steps cells in configuration.md's tables, which remain unread because C30 and C31 compare only Default and min/max -- planting 0.5 steps to 0.7 steps left every instrument green. (2) The moratorium question (decision 0012): this is argued to be NOT a new lint class but an extension of an existing barrier's UNIT, per the root-cause contract's line that a countermeasure changes the unit, not the arm count. State that reading in the body and let the reviewer attack it; if the reviewer decides it IS a new policy instrument, the branch stops and comes back to the owner rather than merging.\n\nOut of scope and deliberately so: stale retired PATHS (group R9-RO-10) is a different class -- its truth condition is whether a path exists, this one is whether a number equals the tree's measurement, and no path check can see that. Do not fold them.",
@@ -8080,9 +8045,7 @@
   {
    "group": "R9-RC-ORPHAN-HANDOFF",
    "lane": "fix",
-   "issues": [
-    2095
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "brief": "Round-9 countermeasure for the orphaned-handoff class, from the root-cause seat of 2026-10-10 (the root-cause seat's 703-line analysis, in its own scratch directory under the orchestrator's session worktree with its scripts and two evidence sets beside it).\n\nTHE DEFECT. A `handoff/<topic>` ref can carry finished work that no pull request carries, and nothing in the programme reports it. Measured at origin/main 7cd5a588c: 212 handoff refs on the remote; 57 owe a pull request (a `handoff-body/<topic>` ref exists, which is the opener's own precondition); SEVEN carry work no pull request carries, each `git cherry`-unequivalent to main -- r9-eg-coordinator-seams (89.9 seat-hours), r9-ux-10 (54.4), r9-early-cutoff (13.4), r9-dbg-2 (10.5), r9-ux-6 (9.2), r9-ux-7 (9.1), r9-ux-10-v2 (9.0). Six need an opener; one needs an update to an existing pull request whose head is a strict ancestor of the ref. R9-UX-10's cost is measured directly: a fresh opus seat spent 5.13 hours re-implementing the lane before it found the orphan, and then produced a second head rather than reuse the first. The pile grows while it is measured -- three new refs appeared and four orphan tips moved between the root-cause seat's two passes, because recovery seats publish refs too.\n\nCAUSE. The bus reports a handoff ref's appearance once and mints no obligation from it: the watch is edge-triggered (it overwrites its state file each pass) and its dispatch arms cover `review` and `verdict` only. The review family has a nonce and an undispatched verdict; the handoff family has neither. The two records that would have shown it are claims never re-derived: the roster `stage` accepts any non-empty string and the brief linter checks non-emptiness only, while the row generator's presence test skips an existing row, so a row reading `open` can never be upgraded. Process state (c): the process exists, ran, and every check it passed was green; a record-reading detector would have caught NONE of the seven (two read handoff/done, five are named by no group at all, zero read not-started), and the cheaper detector that did not fire costs 10.6 s and no tokens. State (a) is refuted -- the opener is one atomic fail-closed instrument -- and (b) is mispredicted: three roster branch values name refs absent from the remote while the real refs hold the work.\n\nDELIVERABLE, and the arms it owes. A `bus.sh orphans` subcommand: a body ref, no pull request at `fix/<topic>` or `fix/<topic>-pr`, no ancestry in main or a live head, older than a two-hour window; it reports WHICH repair each line needs and never repairs -- one measured pair (r9-cop-duty-floor) has a ref and a pull request that have DIVERGED, which a repairer would silently overwrite. Demonstrated arms: red REPORTED 7 exit 1, green REPORTED 0 exit 0 with the skip counters printed so a green run is not green by skipping; each criterion load-bearing under its own perturbation (without the ancestry test 45 false positives, without the body-ref juncture 112). Null control: the 155 refs with no body-ref counterpart stay silent and a ref inside the two-hour window stays silent, because a lane's own in-flight ref is not an orphan. `bus.sh --self-test` gains the arms. Beside it: the class entry (this class is ABSENT from dev/audit/config/bugclasses.json entirely, so the ledger cannot report a class it does not carry), an `_rca` entry and its document landing in ONE commit (the ledger refuses either half alone: a cited id `_rca` does not index is UNKNOWN-RCA, and an `in_tree_home` with no file is DANGLING), and the two propagation diffs the analysis offered -- dev/governance/roles/orchestrator.md and dev/governance/rules/delivery-status-tracking.md -- which are POLICY and ride the owner's approving review at the head, not a seat's judgement.\n\nFILE OWNERSHIP. `tools/audit/seat/bus.sh` is edited concurrently by group R9-RC-BUS-FETCHHEAD (append_commit parenting and the out-of-tree ROOT resolution). This lane owns a NEW `orphans` subcommand -- its function, its dispatcher entry, one header paragraph -- and must not touch append_commit, ROOT, push-verdict, confirm or post; it merges the sibling's handoff ref when it exists, and on a conflict inside lines both changed it reports the hunk rather than picking a side.",
@@ -8101,9 +8064,7 @@
   {
    "group": "R9-RC-POSTREVIEW-MERGE",
    "lane": "fix",
-   "issues": [
-    2096
-   ],
+   "issues": [],
    "fixes": [],
    "after": [],
    "brief": "Round-9 root-cause lane (root-cause.md; runs beside the fixes and never inside them). CLASS: a merge of main into a reviewed branch reddens the head after review, and no local instrument sees it.\n\nINSTANCES, all 2026-10-09/10. (1) #2072: both `instrument-self-tests` and `pr-contract` were GREEN at the judged head `316a36414` (check-runs API), and the batch's recarry merged a main carrying the rule widened by `09d2061b247a77e27ba625c81ef25a9909726ef9` (PR #2067, merge `d0f085ffb`) under that head; the branch's own new self-test arm -- `printf '%s\\n' \"$flow\" | grep -q 'moved_line \"'`, an early-exit grep on a pipe under `pipefail` -- then failed `instrument-self-tests` at `04d10721b` (243 passed, 1 failed) and cascaded into `pr-contract`. The whole batch pass died on it. (2) #2066: the round-9 reviewer measured `merge-tree` clean against `d0f085ffb` and, at publish time, main had advanced with #2065/#2067/#2068/#2069/#2074 producing EIGHT real conflicts -- blocked `conflict`, now round 10. (3) #2075 round 3 was blocked `head-moved` because the PR never carried the handoff head.\n\nMECHANISM, already named by a fixer and to be tested rather than assumed: `tools/pr/app_push.sh --recarry` skips `prepr` entirely for a clean carry (added by PR #2069, `a9baf164c`), and `dev/governance/roles/fixer.md` step 6 tells a seat to `git merge origin/main` whenever it needs to, so a main merge lands in a reviewed branch with no local gate afterwards. The cheap detector that would have caught #2072 is not the whole `prepr` self-test (221-551 s on a loaded box) but the class arm itself: **0.036 s**.\n\nOWES: the named cause and the process state among defect-root-cause.md's four; a cost test with numbers (the round trips this cost, and what each candidate countermeasure costs to run on every recarry); and a countermeasure OR a recorded refusal, per root-cause.md -- the countermeasure changes the unit, not the arm count. Candidates to price, cheapest first, with a null control for each: (a) a recarry that runs a bounded cheap subset of the contract rather than skipping it or running it whole; (b) the train re-running `prepr --self-test` after recarry; (c) a reviewer-side step that asks whether main moved in a way that touches the head's own changed lines; (d) anything better found. A countermeasure must keep the recarry's purpose intact -- #2069 added the skip because a clean carry was paying minutes for nothing -- and must not make a genuinely broken recarry look green.\n\nBOUNDARY: the RCA seat does not fix, does not edit `app_push.sh`, `merge_train.py` or policy, and does not post to GitHub; it hands the orchestrator a document plus the propagation diffs it would apply, naming the brief and the exact sentence. The class is absent from dev/audit/config/bugclasses.json as far as this pass measured, so the class entry, the `_rca` entry and the document must land in ONE commit (fold_ledger refuses either half alone).",
