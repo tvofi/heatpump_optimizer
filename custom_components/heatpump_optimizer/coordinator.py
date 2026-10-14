@@ -213,7 +213,15 @@ from . import mixing_valve
 from . import topology
 from . import pv as pv_model
 from .accuracy import (
+    COP_REFUSED_BLENDED,
+    COP_REFUSED_DISTORTED,
+    COP_REFUSED_FROST_BAND,
+    COP_REFUSED_FROZEN,
+    COP_REFUSED_MODELLED,
+    COP_REFUSED_NO_POWER,
+    COP_REFUSED_OBSERVED,
     LEAD_BUCKETS,
+    MeasuredCop,
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
@@ -261,7 +269,13 @@ from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
 from .currency import declared_currency, resolve_currency
 from .drift import Cusum, stored_instant
-from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
+from .ledger import (
+    MonthlyLedger,
+    freeze_month_report,
+    month_key,
+    restate_total,
+    roll_receipts,
+)
 from .wear import StartCounter, wear_price_per_start
 from . import narrative
 from . import diagnosis
@@ -996,6 +1010,15 @@ async def _async_save_restored(coord: Any) -> None:
     await coord._dhw_learner.async_save_draws()
     await coord._async_save_price_model()
     await coord._async_save_accuracy()
+
+
+def predicted_next_room_temp(coord: Any) -> float | None:
+    """R9-UX-7 (#1795): the room temperature the running plan predicts for
+    the next interval -- the figure the accuracy tracker files and later
+    scores -- or ``None`` while no plan governs the room (the method's gate).
+    """
+    predict = getattr(coord, "_predicted_next_room_temp", None)
+    return predict() if callable(predict) else None
 
 
 def model_restart_advice(coord: Any) -> dict[str, Any]:
@@ -2547,6 +2570,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     mold_floor_series = _view("_mold_floor_series")
     optimization_running = _view("_optimization_running")
     accuracy = _view("_accuracy")
+    measured_cop = _view("_measured_cop")
     solve_failures = _view("_solve_failures")
 
     def __init__(
@@ -2902,16 +2926,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         #: Walking measured/commanded ratio; the COP fold judges outliers
         #: against it so a persistent efficiency shift can still teach.
         self._cop_ratio_ewma: float | None = None
-        self._last_measured_cop: float | None = None
-        # Which curve ``_last_measured_cop`` was judged against, and the tank
-        # temperature that curve was evaluated at. Recorded rather than the
-        # modelled *value* on purpose: the accuracy residual is taken at the
-        # settling sample's own outdoor temperature, not at the one the COP
-        # was learned from, and swapping in a stored value would silently
-        # change that for every install. Storing the curve *choice* leaves the
-        # default path expression for expression identical.
-        self._last_cop_curve_dhw: bool = False
-        self._last_cop_dhw_temp: float | None = None
+        self._measured_cop = MeasuredCop()
         self._apply_cop_scale(self._cop_scale)
 
         # --- Input health -------------------------------------------------
@@ -3703,6 +3718,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 )
             except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load COP scale: %s", err)
+        self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop"))
 
         # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
         # payload, and each loader tolerates garbage on its own.
@@ -3832,6 +3848,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # all costs on the nameplate figure.
             _COP_STORE_KEY: self._cop_scale,
             "cop_samples": self._cop_samples,
+            "measured_cop": self._measured_cop.as_dict(),  # the sensor's value, kept across a restart
             # v4.0.0 T4a — the detectors' memory, all additive keys.
             "vent_cusum": self._vent_cusum.as_dict(),
             # A space-curve bucket keeps its pre-v5.3.0 key ("4"), so an
@@ -4481,13 +4498,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         Returns ``(cop, dhw_curve, dhw_tank_temp)``. The choice is *returned*
         rather than stored on the instance: several of
         ``_learn_measured_cop``'s guards sit between this call and the point
-        where ``_last_measured_cop`` is written, so a method that recorded
+        where ``MeasuredCop.record`` writes, so a method that recorded
         the choice as a side effect re-pointed the residual's reference on
         every cycle that then declined to produce a COP at all — including
         the blended-interval branch below, which in ``HEATDHW`` with an even
         split is *every* cycle on the hardware this release targets. The
         stored COP would then be subtracted from a curve it was never
-        referenced to. ``_learn_measured_cop`` writes all three together.
+        referenced to. ``MeasuredCop.record`` writes all three together.
 
         v5.3.0. ``_learn_measured_cop`` used to compare every interval against
         ``compute_cop`` — the SPACE curve — including intervals the pump spent
@@ -4537,7 +4554,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             tank = float(ctx._current_state.dhw_temperature)
             return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
         return None, False, None
-    def _learn_measured_cop(self) -> None:
+    def _learn_measured_cop(self, draw: draw_range.DrawRange | None = None) -> None:
+        """Fold this interval into the COP learner (``draw``: the running-draw evidence)."""
+        self._measured_cop.refusal = self._fold_measured_cop(draw)
+    def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
         """Compare measured electrical input with modelled thermal output.
 
         Without a power entity the COP is a curve fitted to a nameplate figure,
@@ -4547,20 +4567,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         Only intervals where the pump is genuinely running carry information;
         at low duty the measured average is dominated by standby draw.
+        Returns the code of the guard that refused the interval, or ``None``
+        when it folded.
         """
         ctx = getattr(self, "_ctx", self)
         if self._measured_power is None:
-            return
+            return COP_REFUSED_NO_POWER
         if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY):
-            return
+            return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
         params = ctx._thermal_params
-        # Below a third of nameplate the reading is mostly auxiliaries and the
-        # ratio says little about compressor efficiency.
-        floor = params.flow_lift_power_floor_kw
-        if commanded < floor or self._measured_power < floor:
-            return
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params):
+            return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
         # which learns from the same signal; letting both learners fold in
@@ -4578,13 +4597,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if in_frost_band(ctx._current_state.outdoor_temperature):
             window = self._defrost_window.peek(dt_util.now())
             if not window.observed or window.any_defrost:
-                return
+                return COP_REFUSED_FROST_BAND
 
         # #11, extended by #1067: a resistive kW is not the compressor
         # being inefficient, and neither is a capped one. One predicate
         # (``_cop_fold_blocked``), inherited by everything on this tail.
         if _cop_fold_blocked(self):
-            return
+            return COP_REFUSED_DISTORTED
 
         # v4.0.5: delivered heat is not measured, so this ratio can only be
         # read as efficiency when the pump is plausibly running the plan. A
@@ -4599,7 +4618,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # against a walking ratio EWMA instead: a one-off blip deviates
         # from it and is dropped, while a persistent shift WALKS the EWMA
         # (it updates from every sample) and unlocks folding within a
-        # handful of intervals.
+        # handful of intervals. A draw that does not follow the ask at all
+        # walks it too, so a departure needs draw_range's evidence (off_ask).
         ratio = float(self._measured_power) / max(commanded, 1e-6)
         # Seeded at 1.0 — the model's own expectation, since ``commanded``
         # already carries the current scale — and gated against the value
@@ -4608,16 +4628,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # not: that is what lets a genuine persistent shift unlock.
         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
+        if refusal := MeasuredCop.judge_ratio(ratio, ewma, commanded, params, draw):
             _LOGGER.debug(
-                "Skipping COP sample: commanded %.2f kW vs measured %.2f kW "
-                "deviates from the running ratio %.2f — a tracking blip, "
-                "not an efficiency reading",
-                commanded,
-                self._measured_power,
-                ewma,
+                "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
+                "against the running ratio %.2f -- not an efficiency reading",
+                refusal, commanded, self._measured_power, ewma,
             )
-            return
+            return refusal
 
         modelled_cop, cop_curve_dhw, cop_dhw_temp = self._cop_reference_curve()
         if modelled_cop is None:
@@ -4626,22 +4643,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # cannot be attributed to either curve. Skipping is the honest
             # answer; guessing would put a DHW-shaped error into the space
             # multiplier every plan's cost runs through.
-            return
+            return COP_REFUSED_BLENDED
         if modelled_cop <= 0.1:
-            return
+            return COP_REFUSED_MODELLED
 
         # The thermal output the plan intended is commanded power times the
         # modelled COP; delivering that with a different electrical input means
         # the real COP differs by the ratio of the two inputs.
         observed_cop = modelled_cop * commanded / self._measured_power
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
-            return
-        # The COP and the curve it was judged against are written together,
-        # and only here. Every guard above returns without touching either,
-        # so the pair the accuracy residual reads can never be mismatched.
-        self._last_measured_cop = round(float(observed_cop), 2)
-        self._last_cop_curve_dhw = cop_curve_dhw
-        self._last_cop_dhw_temp = cop_dhw_temp
+            return COP_REFUSED_OBSERVED
+        self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp)
 
         # ``cop_scale`` multiplies the *nameplate* curve, and ``modelled_cop``
         # already has the current scale folded in. So the new absolute scale is
@@ -4678,6 +4690,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
         self._fold_capacity_envelope(float(observed_cop))
+        return None
     def _input_health_view(self) -> InputHealthView:
         """Diagnostics for the input watchdog, published as entity attributes."""
         health = self._input_health
@@ -6210,7 +6223,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Persisted on the same every-10-samples cadence as the house learner;
         # both share the thermal learning store.
         cop_samples_before = self._cop_samples
-        self._learn_measured_cop()
+        self._learn_measured_cop(self._accuracy.draw)
         if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
             await self._async_save_thermal_learning()
 
@@ -7506,10 +7519,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
             "buffer_cooling_rate_learned": self._buffer_cooling_samples > 0,
-            # Reports learned=True and an effective figure that the defect
-            # noted at _thermal_learning_payload can leave ~2x wrong after an
-            # options edit. The confidence shown here is in the sample count,
-            # not in the number. See dev/archive/backlog.md, "Open".
+            # The scale is re-anchored on load when an options edit changes
+            # the configured loss (#110, _reanchor_house_heat_loss_scale), so
+            # the effective figure is the configured one times a scale fitted
+            # against it; "learned" counts samples, not certainty.
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
@@ -7521,7 +7534,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
-            "measured_cop": self._last_measured_cop,
+            "measured_cop": self._measured_cop.cop,
             "defrost_derate": self._defrost.factor(
                 ctx._current_state.outdoor_temperature, self._current_humidity()
             ),
@@ -7640,6 +7653,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "pv_enabled": _ctx_of(self)._config.pv_enabled,
             "pv": self._pv_summary,
             "savings_months": self._ledger.savings_months(dt_util.now()),
+            "receipts": [self._month_reports[k] for k in sorted(self._month_reports)],
+            "plan_replay": self._accuracy.replay(dt_util.now()),
         }
 
     def _ecl110_view(self) -> Ecl110View:
@@ -7866,7 +7881,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         reports = stored.get("month_reports")
         if isinstance(reports, dict):
             self._month_reports = {
-                str(key): value
+                str(key): restate_total(value)
                 for key, value in reports.items()
                 if isinstance(value, dict) and admitted("ledger", {"month_reports": {key: value}})
             }
@@ -9195,7 +9210,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._prices
             else 1.0
         )
-        current = self._last_measured_cop or baseline
+        current = self._measured_cop.cop or baseline
         shortfall = max(0.0, (baseline - float(current)) / baseline)
         # In the instance currency: the prices are, so the product is
         # (audit D4-04, #168 -- the placeholder used to be named after SEK).
@@ -9780,7 +9795,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # the snapshots' accuracy tags and #12's history both see
                 # efficiency, not just temperature error.
                 if (
-                    self._last_measured_cop is not None
+                    self._measured_cop.cop is not None
                     and sample.outdoor_temp is not None
                 ):
                     try:
@@ -9792,18 +9807,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                         # with the pump. Without a mode entity the flag is
                         # never set and this is the v5.1.5 expression.
                         if (
-                            self._last_cop_curve_dhw
-                            and self._last_cop_dhw_temp is not None
+                            self._measured_cop.curve_dhw
+                            and self._measured_cop.dhw_temp is not None
                         ):
                             modelled = self._thermal_model.compute_cop_dhw(
-                                sample.outdoor_temp, self._last_cop_dhw_temp
+                                sample.outdoor_temp, self._measured_cop.dhw_temp
                             )
                         else:
                             modelled = self._thermal_model.compute_cop(
                                 sample.outdoor_temp
                             )
                         sample.cop_residual = round(
-                            float(self._last_measured_cop) - float(modelled),
+                            float(self._measured_cop.cop) - float(modelled),
                             3,
                         )
                     except Exception:  # noqa: BLE001 - tag is best-effort
@@ -9956,6 +9971,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if not trajectory:
             return
+        self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise
+            solve_time, dt_h, trajectory, result.power_schedule,
+            result.dhw_power_schedule, result.prices,
+        )
         for lead in LEAD_BUCKETS:
             idx = int(round(lead / dt_h))
             if 0 < idx < len(trajectory):
@@ -10252,112 +10271,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._schedule_ledger_save()
 
     def _roll_month(self, when: datetime) -> None:
-        """#40: freeze receipts for months that have closed.
+        """#40: restate this month's capacity line, then freeze closed months.
 
-        Derived from the ledger itself rather than a "last month seen"
-        marker: any ledger month strictly before the current one that has
-        no frozen receipt yet gets one now. Self-healing across restarts
-        and downtime spanning a month end — and bounded, because the
-        ledger prunes itself and each month freezes exactly once.
+        The capacity line is booked every settlement, because the peak tracker
+        wipes the month's peaks at month change: what it last stated before is
+        the charge (R9-UX-6), and ``roll_receipts`` hands back what it kept.
         """
-        current = month_key(when)
-        reports = self._month_reports
-        closed = sorted(
-            k for k in self._ledger.months if k < current and k not in reports
+        tariff = self._capacity_tariff()
+        if tariff.enabled:
+            self._ledger.book_capacity(
+                self._peak_tracker.month,
+                self._peak_tracker.billed_peak_kw(tariff),
+                tariff.price_per_kw,
+            )
+        self._month_reports, closed = roll_receipts(
+            self._ledger, self._month_reports, month_key(when), self._freeze_month_report
         )
-        for month in closed:
-            # Defense in depth: MonthlyLedger.from_dict already quarantines
-            # malformed months at load time, but a still-live month can in
-            # principle be freezable-yet-broken (a bug in this file, not the
-            # ledger's shape). Never let one bad month wedge every future
-            # cycle forever (#D1-01) -- skip it and mark it closed with an
-            # empty receipt so the cycle completes and it is not retried.
-            try:
-                reports[month] = self._freeze_month_report(month)
-            except Exception:  # noqa: BLE001 -- must never wedge the coordinator
-                _LOGGER.warning(
-                    "Skipping malformed ledger month %s while freezing "
-                    "monthly receipts; recording an empty receipt instead",
-                    month,
-                    exc_info=True,
-                )
-                reports[month] = {"month": month, "lines": {}}
         if closed:
-            # Receipts follow the ledger's retention; a receipt for a month
-            # the ledger no longer holds cannot be reconciled anyway.
-            extra = sorted(reports)[: max(0, len(reports) - KEEP_MONTHS)]
-            for old in extra:
-                del reports[old]
             self._schedule_ledger_save()
 
     def _freeze_month_report(self, month: str) -> dict[str, Any]:
-        """One month's itemised receipt, frozen at rollover (#40).
-
-        Everything in it comes from the ledger's own lines — the receipt is
-        a PRESENTATION of the accounting, never a second accounting. The
-        reason lines partition the spot line by construction, and the
-        receipt states how well that held rather than assuming it.
-        """
-        lines = self._ledger.month_summary(month)
-        reasons = {
-            name.split(":", 1)[1]: entry
-            for name, entry in lines.items()
-            if name.startswith("reason:")
-        }
-        # Reconcile on the RAW ledger values, not the rounded publication
-        # ones: with a full reason set the accumulated 2-decimal rounding
-        # alone can exceed the tolerance and cry wolf on a perfectly
-        # partitioned month.
-        raw_lines = self._ledger.months.get(month, {}).get("lines", {})
-        reason_kwh = sum(
-            self._ledger.line(month, name)["kwh"]
-            for name in raw_lines
-            if name.startswith("reason:")
+        """One month's receipt (#40), from ``ledger.freeze_month_report``."""
+        return freeze_month_report(
+            self._ledger,
+            month,
+            compressor_starts=self._start_counter.month_count(month),
+            contract_comparison=self._contract_comparison(month),
         )
-        reason_sek = sum(
-            self._ledger.line(month, name)["sek"]
-            for name in raw_lines
-            if name.startswith("reason:")
-        )
-        raw_spot = self._ledger.line(month, "spot")
-        spot = lines.get("spot", {"kwh": 0.0, "sek": 0.0})
-        report: dict[str, Any] = {
-            "month": month,
-            "lines": {
-                name: entry
-                for name, entry in lines.items()
-                if not name.startswith("reason:")
-            },
-            "reasons": reasons,
-            "total_kwh": round(
-                spot["kwh"] + lines.get("immersion", {}).get("kwh", 0.0), 3
-            ),
-            "total_sek": round(
-                sum(entry["sek"] for entry in lines.values() if entry)
-                - reason_sek,
-                2,
-            ),
-            "compressor_starts": self._start_counter.month_count(month),
-            "contract_comparison": self._contract_comparison(month),
-            # The partition check, published instead of asserted: a receipt
-            # that hides its own bookkeeping error is worse than one that
-            # admits it. None, not False, for a month with no reason lines
-            # at all — a pre-T6 month never had a partition to break, and
-            # publishing "failed" for it would make an upgrade look like
-            # the very bug the flag exists to expose.
-            "reasons_reconcile": (
-                bool(
-                    abs(reason_kwh - raw_spot["kwh"]) <= 0.05
-                    and abs(reason_sek - raw_spot["sek"]) <= 0.05
-                )
-                if reasons
-                else None
-            ),
-        }
-        mean_spot = self._ledger.meta_mean(month, "spot_price")
-        if mean_spot is not None:
-            report["mean_spot_price"] = round(mean_spot, 4)
-        return report
 
     def _fold_score_sample(
         self,

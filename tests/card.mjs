@@ -2452,6 +2452,71 @@ check("the hand-scheduled reason has a label",
     /12%/.test(savingsFilled) &&
     /estimated/.test(savingsFilled));
 
+  // R9-UX-6: the closed month's receipt, where its spot money went, and
+  // yesterday's plan against what was measured -- all from the backend.
+  const rcpStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const rcpRoom = Array.from({ length: 97 }, (_, i) => 21 - 0.01 * i);
+  const rcpCost = Array.from({ length: 97 }, (_, i) => 0.5 * i);
+  rcpStates["sensor.heat_pump_optimizer_monthly_savings"] = {
+    state: "100.00",
+    attributes: {
+      unit_of_measurement: "SEK",
+      savings_months: [
+        { month: "2026-01", baseline_sek: 800, actual_sek: 652, savings_sek: 148, savings_pct: 18.5, estimated: false },
+        { month: "2026-02", baseline_sek: 800, actual_sek: 700, savings_sek: 100, savings_pct: 12, estimated: true },
+      ],
+      receipts: [{
+        month: "2026-01",
+        lines: {
+          spot: { kwh: 1238, sek: 498 }, grid_fee: { kwh: 1238, sek: 74 },
+          capacity: { kwh: 0, sek: 40 }, space: { kwh: 900, sek: 360 },
+          savings_baseline: { kwh: 1300, sek: 646 },
+        },
+        basis: ["spot", "grid_fee", "capacity"],
+        total_sek: 612, capacity_peak_kw: 5.8, compressor_starts: 212,
+        reasons: { scheduled: { kwh: 200, sek: 96 }, cheap_price: { kwh: 900, sek: 312 } },
+      }],
+      plan_replay: {
+        day: "2026-02-14", start: "2026-02-14T00:05:00+01:00", step_minutes: 15,
+        room: rcpRoom, cost: rcpCost,
+        measured: { t: [6, 12, 24], room: [20.7, 20.4, 20.0], cost: [13, 25, 50] },
+      },
+    },
+  };
+  const rcp = build(rcpStates);
+  rcp._onCardClick({});
+  rcp.dialog.page = "savings";
+  rcp._render();
+  const rcpPage = collect(rcp.shadowRoot).join("\n");
+  check("UX-6: the receipt shows the backend's total and the lines it adds",
+    /612\.00 SEK/.test(rcpPage) && /Spot energy/.test(rcpPage) &&
+    /Grid energy fee/.test(rcpPage) && /Capacity charge/.test(rcpPage) &&
+    /peak 5\.8 kW/.test(rcpPage) && !/360\.00/.test(rcpPage) && !/646\.00/.test(rcpPage),
+    "space and savings_baseline restate spot; the receipt must not list them");
+  check("UX-6: unpriced wear says so instead of a zero",
+    /Compressor wear/.test(rcpPage) && /212 starts/.test(rcpPage) && /not priced/.test(rcpPage));
+  check("UX-6: the note names what the total covers",
+    /Covers spot energy, grid energy fee, capacity charge\. The savings figure compares spot cost only\./.test(rcpPage));
+  check("UX-6: the saving against a thermostat is the month's own row",
+    /Saved 148\.00 SEK \(19 %\) against a plain thermostat/.test(rcpPage));
+  check("UX-6: the money goes by reason, largest first",
+    /Where the money went/.test(rcpPage) &&
+    rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
+  check("UX-6: yesterday's replay names the promise and the measurement",
+    /Yesterday: the plan against reality/.test(rcpPage) &&
+    /Promised by the plan at 00:05/.test(rcpPage) && /Measured/.test(rcpPage) &&
+    /It cost 50\.00 SEK against 48\.00 SEK promised\./.test(rcpPage) &&
+    (rcpPage.match(/stroke-dasharray="6 4"/g) || []).length >= 2);
+  check("UX-6: the monthly table and its estimate badge still draw",
+    /2026-02/.test(rcpPage) && /estimated/.test(rcpPage) && /12%/.test(rcpPage));
+  delete rcpStates["sensor.heat_pump_optimizer_monthly_savings"].attributes.plan_replay.measured.cost;
+  const rcpNoMeter = build(rcpStates);
+  rcpNoMeter._onCardClick({});
+  rcpNoMeter.dialog.page = "savings";
+  rcpNoMeter._render();
+  check("UX-6: without a power meter the replay says the cost was not measured",
+    /No power meter, so the cost was not measured\./.test(collect(rcpNoMeter.shadowRoot).join("\n")));
+
   su.dialog.page = "setup";
   su._render();
   const setupPage = collect(su.shadowRoot).join("\n");
@@ -10929,6 +10994,75 @@ check("without an indoor reading the corner now label is absent",
   s3[`${PFX}_plan_monthly_savings`] = { state: "5", last_updated: "t3", attributes: {} };
   c.hass = { states: s3, callService: async () => {} };
   check("and the waiting sensors", c._signature() !== sig1 && c._signature() !== undefined);
+
+  // R9-UX-7 (#1795): "What the model has learned", read from the model-status
+  // sensor's attributes. A learner with evidence says how much and what it
+  // means against the settings' estimate; one without says it is still the
+  // estimate; the tank row exists only with a tank, the lower floor only once
+  // learned, and the internal-gains strip only with a 24-hour profile.
+  const MODEL = `${PFX}_learning_model_status`;
+  const modelStates = (over = {}) => {
+    const s = healthStates();
+    s[MODEL] = { state: "learned", last_updated: "t1", attributes: {
+      heat_loss_w_per_k: 142.0,
+      heat_loss: { scale: 1.08, samples: 21, learned: true },
+      lower_floor: { ratio: 1.0, samples: 0, learned: false },
+      solar_aperture: { scale: 1.15, samples: 6, needed: 30 },
+      tank_cooling: { rate_c_per_h: 0.9, samples: 30, learned: true },
+      cop: { scale: 0.97, samples: 12, alarm: false, watched_buckets: 2 },
+      internal_gains_kw: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.4, 0.4, 0.3, 0.3, 0.3, 0.3,
+        0.3, 0.3, 0.3, 0.3, 0.4, 0.5, 0.6, 0.5, 0.4, 0.3, 0.2, 0.2],
+      ...over } };
+    return s;
+  };
+  const modelOf = (states, lang) => {
+    const p = pageOf(mkHealth(states, lang).html());
+    const at = p.indexOf("health-model");
+    return at < 0 ? "" : p.slice(at, p.indexOf("health-support", at) < 0 ? undefined : p.indexOf("health-support", at));
+  };
+  const rowOf = (m, id) => (new RegExp(`data-model-row="${id}"[\\s\\S]*?</div>`).exec(m) || [""])[0];
+  const mp = modelOf(modelStates());
+  check("UX-7: the Health page has a 'What the model has learned' block from the model status sensor",
+    /What the model has learned/.test(mp), mp.slice(0, 300));
+  check("UX-7: heat loss shows W/K, its evidence and the comparison with the settings' estimate",
+    /142 W\/K/.test(rowOf(mp, "heat_loss")) && /21 samples/.test(rowOf(mp, "heat_loss"))
+    && /8 % faster than the settings estimated/.test(rowOf(mp, "heat_loss")), rowOf(mp, "heat_loss"));
+  check("UX-7: solar gain still learning says how far along, against the learner's own need",
+    /6 of about 30 samples/.test(rowOf(mp, "solar")), rowOf(mp, "solar"));
+  check("UX-7: tank cooling and heat pump efficiency have their rows",
+    /0\.9 °C per hour/.test(rowOf(mp, "tank")) && /Normal/.test(rowOf(mp, "cop"))
+    && /No sign of degradation/.test(rowOf(mp, "cop")), rowOf(mp, "tank") + rowOf(mp, "cop"));
+  check("UX-7: an unlearned lower floor has no row; a learned one does",
+    !/data-model-row="lower"/.test(mp)
+    && /20 % slower than the settings estimated/.test(rowOf(modelOf(modelStates({
+      lower_floor: { ratio: 0.8, samples: 14, learned: true } })), "lower")));
+  const strip = (mp.match(/class="gains-bar"/g) || []).length;
+  check("UX-7: the internal-gains strip draws 24 hourly bars and names the peak hour",
+    strip === 24 && /0\.6 kW around 18:00/.test(rowOf(mp, "gains")), `${strip} bars; ${rowOf(mp, "gains")}`);
+  check("UX-7: no tank row without a tank, and no strip without a profile",
+    !/data-model-row="tank"/.test(modelOf(modelStates({ tank_cooling: null })))
+    && !/gains-bar/.test(modelOf(modelStates({ internal_gains_kw: null }))));
+  const fresh7 = modelOf(modelStates({ heat_loss: { scale: 1.0, samples: 0, learned: false } }));
+  check("UX-7: a heat loss with no evidence says it is still the settings' estimate",
+    /still the settings' estimate/i.test(rowOf(fresh7, "heat_loss")), rowOf(fresh7, "heat_loss"));
+  check("UX-7: a COP alarm is said in words, with a warn tone",
+    /data-model-row="cop"[^>]*data-tone="warn"/.test(modelOf(modelStates({
+      cop: { scale: 0.8, samples: 40, alarm: true, watched_buckets: 3 } }))));
+  const noModel = healthStates();
+  check("UX-7: without the model status sensor the block is absent",
+    !/health-model/.test(pageOf(mkHealth(noModel).html())));
+  const un7 = modelStates();
+  un7[MODEL] = { state: "unavailable", attributes: {} };
+  check("UX-7: and absent while it is unavailable", !/health-model/.test(pageOf(mkHealth(un7).html())));
+  check("UX-7: the block speaks Swedish", /Vad modellen har lärt sig/.test(modelOf(modelStates(), "sv-SE")));
+  {
+    const hm = mkHealth(modelStates());
+    const sigA = hm.c._signature();
+    const moved = modelStates({ heat_loss_w_per_k: 150.0 });
+    moved[MODEL].last_updated = "t9";
+    hm.c.hass = { states: moved, callService: async () => {} };
+    check("UX-7: the render signature follows the model status sensor", hm.c._signature() !== sigA);
+  }
 
   const sv = mkHealth(healthStates(), "sv-SE").html();
   check("the Health page and pill speak Swedish",

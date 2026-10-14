@@ -495,6 +495,17 @@ function healthPageStates(st, now) {
       solve_time_ms: 1400, prices_available: 96, weather_forecast_available: 48 } },
     "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "unavailable", attributes: {} },
     "sensor.heat_pump_optimizer_learning_observed_cop": { state: "unavailable", attributes: {} },
+    // R9-UX-7: "What the model has learned" -- heat loss learned, solar
+    // still learning, a tank, a healthy COP watch and a gains profile.
+    "sensor.heat_pump_optimizer_learning_model_status": { state: "learned", last_updated: "t1", attributes: {
+      heat_loss_w_per_k: 142.0,
+      heat_loss: { scale: 1.08, samples: 21, learned: true },
+      lower_floor: { ratio: 1.0, samples: 0, learned: false },
+      solar_aperture: { scale: 1.15, samples: 6, needed: 30 },
+      tank_cooling: { rate_c_per_h: 0.9, samples: 30, learned: true },
+      cop: { scale: 0.97, samples: 40, alarm: false, watched_buckets: 3 },
+      internal_gains_kw: [0.2, 0.15, 0.15, 0.15, 0.15, 0.2, 0.35, 0.3, 0.25, 0.2, 0.2, 0.25,
+        0.3, 0.25, 0.2, 0.25, 0.35, 0.5, 0.6, 0.55, 0.45, 0.35, 0.3, 0.2] } },
   };
 }
 

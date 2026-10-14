@@ -21,15 +21,14 @@ Either of:
 
 The second trigger is a question, not a stopwatch: what separates is whether the
 same failure was reachable earlier and more cheaply than the gate that found it.
-
 Answer it by naming the cheaper detector and its standing cost, or by recording
 that none exists. A worked example of each:
 
 - **Qualifies.** `closure.py no-copies` refused a test symbol that shared a name
   with a production symbol, after roughly fifteen minutes of CI. The same check
   runs locally in **under a second** and existed already — it was simply in no
-  local path. Cheaper detector: an edit-time hook. Countermeasure built. A cheaper detector runs an existing check
-  sooner; it does not repair the failure, and licenses no autofix job.
+  local path. Cheaper detector: an edit-time hook; built — sooner, not a
+  repair, and no autofix.
 - **Does not qualify.** A solver regression caught by the golden fixtures. The
   cheapest detector that would have caught it *is* the gate that caught it.
   Record the finding, build nothing.
@@ -59,7 +58,9 @@ Every process failure is in exactly one of four states:
 
 Name the state. The countermeasure differs by state, and the most common
 mistake is treating (c) or (d) as (b) — writing a firmer instruction when the
-instruction was obeyed and wrong.
+instruction was obeyed and wrong. A check half-ported out of its lane is **(c)**:
+#2073's step 6d ran and passed on every stale-pin PR while its unit read one of
+`mutation`'s two directions.
 
 For **(d)**, the countermeasure is rarely a new rule: it is making the process
 notice its own precondition change.
@@ -107,11 +108,10 @@ on the defect it was written for, and passing once the defect is fixed.** Both
 runs go in the report.
 
 A check that passes while the bug is present is worse than no check: it converts
-an open defect into a closed one. This repository keeps producing that shape: a
-key-set check that supplied the value it asserted, an invariant that went green
-on a broken tree, an autofix job that reported success while skipping its own
-repair. Each was caught by a control that assumed the check was lying, and none
-of them by the check itself.
+an open defect into a closed one. The shape keeps recurring here — a key-set
+check that supplied the value it asserted, an invariant green on a broken tree,
+an autofix successful while skipping its own repair — each caught by a control
+that assumed the check was lying, none by the check itself.
 
 A check over a structured input is registered in `field_coverage.mjs`: a governance
 check is in the derived set and registers its input or declares none.
@@ -119,10 +119,10 @@ check is in the derived set and registers its input or declares none.
 ## Where it is recorded
 
 The analysis is `dev/audit/rca/<id>.md`, cited by `rca` in `bugclasses.json`:
-a class has no issue, and a pull-request body or comment can be deleted or its
-author retired. The qualifying defect's issue carries a short **Root cause**
-section: the state (a-d) with its evidence, the cost-test numbers, the
-countermeasure or the recorded refusal, and that path.
+a class has no issue, and a body or comment can be deleted or its author
+retired. The qualifying defect's issue carries a short **Root cause** section:
+the state (a-d) with its evidence, the cost-test numbers, the countermeasure
+or the recorded refusal, and that path.
 
 ## Enforcement
 

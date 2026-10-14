@@ -46,6 +46,9 @@ Commands
                  [--out PATH]     is no longer a file (#1310)
   select --files ... | --diff REF decide which scripts a change needs
                  [--workdir DIR]  ...and write the plan where run.sh reads it
+  coverage-trust --reuse-dir DIR --expect MARKER
+                                  tests.yml's per-script-coverage marker check
+  coverage-summary SCRIPTS_TSV   the coverage job's reuse count and backstop line
   affected --files ... | --diff REF | --files-from FILE
                  [--workdir DIR]  decide whether THIS check must run for a change,
                                   and which closures it has to re-derive
@@ -2873,8 +2876,11 @@ def coverage_split(plan: dict, stage: list[str],
     closure, so it executes the production lines it executed at the base --
     and its data is there. Everything else is measured: every script under a
     FULL plan, a script the plan runs, and a script with no base data, which a
-    cache miss makes every script. The skip claim is the gate's own, and the
-    push to main still measures every script unscoped.
+    cache miss makes every script. The skip claim is the gate's own. The V1
+    lever puts the push to main under the same split: its plan comes from the
+    same ``select`` at HEAD^1, so a push diff no closure mentions reuses
+    nothing, and one that clears a script reuses it, under the same
+    ``.measured-by`` marker discipline either arm trusts.
     """
     if plan.get("mode") != "scoped":
         return list(stage), []
@@ -2897,6 +2903,65 @@ def coverage_split_cli(plan_path: Path, reuse_dir: Path) -> int:
     for n in stage:
         print(f"{verb[f'tests/{n}.py']}\t{n}")
     return 0
+
+
+MEASURED_BY = ".measured-by"
+
+
+def measured_by_trusted(reuse_dir: Path, expect: str) -> bool:
+    """Whether a restored per-script coverage entry is the push to main's.
+
+    The push to main at commit C writes ``.measured-by`` = ``push
+    refs/heads/main C`` beside its per/ directory (tests.yml). A restored
+    entry is trusted only when its marker is exactly that string at the
+    base the key names. Anything else is a discard and every script is
+    measured, as on a cache miss: a pull-request head that saved under the
+    same key, a non-push run, an entry measured at another commit, a
+    marker that cannot be read. Reuse never engages from a non-push run
+    (R9-F10.9b, #1812); the V1 lever extends the same check to the push
+    arm itself, whose expected base is HEAD^1.
+    """
+    try:
+        return (reuse_dir / MEASURED_BY).read_text().strip() == expect
+    except OSError:
+        return False
+
+
+def coverage_trust_cli(reuse_dir: Path, expect: str) -> int:
+    """tests.yml's marker check, as a command. Exit 0 trusts the restored
+    entry; exit 1 discards it, and the caller measures every script."""
+    if measured_by_trusted(reuse_dir, expect):
+        print("trusted")
+        return 0
+    try:
+        marker = (reuse_dir / MEASURED_BY).read_text().strip()
+    except OSError:
+        marker = "none"
+    print(f"The restored coverage is not a push to main at the expected "
+          f"base (marker: {marker}); measuring every script.")
+    return 1
+
+
+def coverage_summary(scripts_tsv: Path) -> str:
+    """The coverage job's summary line, in the job's own words.
+
+    ``scripts_tsv`` is coverage_tree.sh's (script, exit-or-``reused``, wall)
+    table. The line states the reuse count and -- because the honest
+    statement belongs where the reader is, the V1 design verdict's
+    condition -- what the reuse costs: a reused script is not re-measured
+    by this run or by the pushes after it, so the full re-measure backstop
+    the push arm used to be is gone, and a wrong closure hides until the
+    coverage cache key changes.
+    """
+    rows = [line.split("\t") for line in
+            scripts_tsv.read_text().splitlines()[1:] if line.strip()]
+    total = len(rows)
+    reused = sum(1 for r in rows if len(r) > 1 and r[1] == "reused")
+    return (f"reused {reused} of {total} script measurements; a reused "
+            "script's data is trusted from the closures table and is NOT "
+            "re-measured by this run or by the pushes after it -- the full "
+            "re-measure backstop is gone, and a wrong closure hides until "
+            "the coverage cache key changes")
 
 
 def not_run(workdir: Path) -> tuple[list[tuple[str, str, str]], list[str]]:
@@ -3412,6 +3477,122 @@ def _selftest_write_records(rec_dir: Path, mapping: dict[str, list[str]],
         }))
 
 
+def _selftest_coverage_reuse(pin) -> None:
+    """The V1 lever's acceptance bar (the BUILD-with-conditions design
+    verdict), as tests: a push diff no closure mentions reuses nothing,
+    end to end; reuse never engages from a non-push run; and the coverage
+    job's summary line states the reuse count and the bounded loss where
+    the reader is."""
+    # Condition 1, at both ends of the chain the push arm runs: select()
+    # over a diff whose files no closure mentions answers FULL ...
+    stage = ["tests/a.py", "tests/b.py"]
+    full = select(["r9-v1-no-closure-probe.md"])
+    pin("a push diff no closure mentions selects a FULL plan",
+        full["mode"] == "full", str(full.get("reason")))
+    # ... and coverage_split under a FULL plan reuses nothing, even from a
+    # fully populated base: zero reuse is the plan mode's decision, not the
+    # skip list's -- a FULL plan that also names a skip measures the skipped
+    # script anyway.
+    split = coverage_split(full, stage, set(stage))
+    pin("the FULL plan reuses nothing from a fully populated base",
+        split == (stage, []), repr(split))
+    hostile = {"mode": "full", "run": ["tests/a.py"],
+               "skip": {"tests/b.py": {}}}
+    split = coverage_split(hostile, stage, set(stage))
+    pin("a FULL plan measures even the script its own skip names",
+        split == (stage, []), repr(split))
+
+    # Condition 2: the marker discipline. A non-push run's entry, an entry
+    # measured at another commit, and a missing marker are all discards.
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        push = "push refs/heads/main " + "5" * 40
+        (d / MEASURED_BY).write_text(push + "\n")
+        pin("the push marker at the expected base is trusted",
+            measured_by_trusted(d, push))
+        pr = "pull_request refs/pull/9/merge " + "5" * 40
+        pin("a non-push run's marker is discarded: reuse never engages "
+            "from a non-push run", not measured_by_trusted(d, pr))
+        pin("a push marker naming another commit is discarded",
+            not measured_by_trusted(d, "push refs/heads/main " + "6" * 40))
+        pin("a missing marker is a discard, never a trust",
+            not measured_by_trusted(d / "absent", push))
+        with contextlib.redirect_stdout(io.StringIO()) as buf:
+            rc_trusted = coverage_trust_cli(d, push)
+            rc_discard = coverage_trust_cli(d / "absent", push)
+        # The rc pair and the captured output are deliberately NOT echoed
+        # in a detail: CodeQL's clear-text-logging query models the CLI's
+        # return (it reads the .measured-by marker, a file-derived value)
+        # as sensitive, and the flow lands in pin()'s FAIL print
+        # (code-scanning alert 36). On failure rerun `python3
+        # tests/closure.py coverage-trust` for the diagnosis.
+        pin("coverage-trust exits 0 only on the trusted marker",
+            rc_trusted == 0 and rc_discard == 1
+            and "measuring every script" in buf.getvalue(),
+            "the rc pair and the CLI's output are deliberately not "
+            "echoed here: they carry the marker text (alert 36)")
+
+    # Condition 3: the summary line, computed from the instrument's own
+    # table and stated where the reader is.
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td) / "scripts.tsv"
+        t.write_text("script\texit\twall_s\n"
+                     "features\t0\t900\n"
+                     "golden\treused\t0\n"
+                     "layout\treused\t0\n"
+                     "plan_view\t0\t10\n")
+        line = coverage_summary(t)
+        pin("the summary line states the reuse count and the backstop loss",
+            line.startswith("reused 2 of 4 script measurements")
+            and "backstop" in line, repr(line))
+        t.write_text("script\texit\twall_s\nfeatures\t0\t900\n")
+        pin("a run that reused nothing says so",
+            coverage_summary(t).startswith("reused 0 of 1 script measurements"),
+            repr(coverage_summary(t)))
+
+    # The wiring, pinned where it runs: the push arm restores the parent
+    # push's entry through the same key formula, trusts it only through
+    # closure.py's marker check, and writes the summary into the job
+    # summary; the instrument provenances every entry it leaves in per/.
+    # The two Actions expressions are pinned piecewise: the line is
+    # located by its output identifier and its shell shape asserted in
+    # fragments, because a single literal naming a ${{ steps.*.outputs.*
+    # }} expression is modeled by CodeQL as sensitive data reaching this
+    # selftest's print (code-scanning alert 36 on #2163). The pin is not
+    # weakened: the same whole workflow line must still be present, the
+    # identifier must sit exactly between the shell fragments, and the
+    # mention must be unique -- so breaking or deleting the workflow line
+    # still fails the pin.
+    yml = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
+
+    def pinned_expr(hits: list, head: str, tail: str) -> str:
+        """The sole hit's identifier between head and tail, or "" unless
+        exactly one hit carries exactly that shape."""
+        if len(hits) != 1:
+            return ""
+        line = hits[0]
+        if line.startswith(head) and line.endswith(tail):
+            return line[len(head):-len(tail)]
+        return ""
+
+    pin("the push arm restores through the same key formula",
+        pinned_expr([ln.strip() for ln in yml.splitlines()
+                     if "steps.covkey.outputs.restore_key" in ln],
+                    "key: ${{ ", " }}")
+        == "steps.covkey.outputs.restore_key")
+    pin("the push arm's plan comes from select at the restored base",
+        pinned_expr([ln.strip() for ln in yml.splitlines()
+                     if "--diff" in ln and "restore_base" in ln],
+                    '--diff "${{ ', ' }}" \\')
+        == "steps.covkey.outputs.restore_base"
+        and "coverage-trust" in yml)
+    pin("the coverage job states the reuse count in its summary",
+        "coverage-summary" in yml and "GITHUB_STEP_SUMMARY" in yml)
+    tree_sh = (ROOT / "tools" / "coverage" / "coverage_tree.sh").read_text()
+    pin("coverage_tree.sh provenances every entry it leaves in per/",
+        tree_sh.count("provenance.tsv") >= 2)
+
+
 def selftest() -> int:
     """Drive merge() and check() against the #527 trap. No suite recording."""
     failed = 0
@@ -3895,6 +4076,8 @@ def selftest() -> int:
         pin("coverage-split reads .coverage.<n> and <n>.nodata as base data",
             buf.getvalue() == "measure\ta\nreuse\tb\nreuse\tc\nmeasure\td\n",
             repr(buf.getvalue()))
+
+    _selftest_coverage_reuse(pin)
 
     print("\n=== a recording's rc says whether it ended, and the log says it (#1987) ===")
     with tempfile.TemporaryDirectory() as td:
@@ -4751,6 +4934,11 @@ def main() -> int:
     cs = sub.add_parser("coverage-split")
     cs.add_argument("--plan", required=True)
     cs.add_argument("--reuse-dir", required=True)
+    ct = sub.add_parser("coverage-trust")
+    ct.add_argument("--reuse-dir", required=True)
+    ct.add_argument("--expect", required=True)
+    csum = sub.add_parser("coverage-summary")
+    csum.add_argument("scripts_tsv")
     pc = sub.add_parser("proof-consume")
     pc.add_argument("--expect-tree", required=True)
     pc.add_argument("--in-dir", required=True)
@@ -4782,6 +4970,11 @@ def main() -> int:
         return canonical()
     if a.cmd == "coverage-split":
         return coverage_split_cli(Path(a.plan), Path(a.reuse_dir))
+    if a.cmd == "coverage-trust":
+        return coverage_trust_cli(Path(a.reuse_dir), a.expect)
+    if a.cmd == "coverage-summary":
+        print(coverage_summary(Path(a.scripts_tsv)))
+        return 0
     if a.cmd == "proof-consume":
         return proof_consume(a.expect_tree, Path(a.in_dir))
     if a.cmd == "composed-verify":

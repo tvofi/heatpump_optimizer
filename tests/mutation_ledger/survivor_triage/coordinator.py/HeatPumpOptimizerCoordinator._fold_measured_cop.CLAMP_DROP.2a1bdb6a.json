@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop CLAMP_DROP 2a1bdb6a",
+  "old": "        ratio = float(self._measured_power) / max(commanded, 1e-6)",
+  "reason": "Equivalent (CLAMP_DROP, `max(commanded, 1e-6)` -> `(commanded)`): the line arrived with origin/main at 9b848580d inside `_learn_measured_cop`; this PR's rename to `_fold_measured_cop` is what makes its anchor new. The clamp cannot select its second arm: line 4459 returns unless `MeasuredCop.judge_floor(commanded, measured, params)` passes, which requires `min(commanded, measured) >= params.flow_lift_power_floor_kw`, and both arms of that property end in `max(..., 0.2)` -- measured over max_electrical_power in 0.2/1.0/2.0/4.0/14.0/40.0/100.0 crossed with min_electrical_power in 0.0/0.05/0.1/0.5/1.0/2.0/3.0 (21 pairs), the floor is >= 0.2 kW on every one. So `commanded >= 0.2 > 1e-6` whenever the line runs, and the division is the same number.",
+  "verdict": "equivalent"
+}
