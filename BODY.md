@@ -45,7 +45,9 @@ At the unmutated head, `node tools/policy/check-wave-script.mjs` passes all its 
 
 ## Red checks
 
-none at the head. Before the cap commit, `tests/entities.py`'s template-acceptance arm was red because `policy_lint` refused the uncapped D15. That refusal is the cheaper detector, and it already exists and fired.
+- `budget-raise-gate`: red by design. This diff makes two budget raises (`corpus_tokens` 60449 -> 61026, and the new D15 caps), and the gate stays red until tvofi approves at the head. That approval follows review and cites mandate 6175172275 (tvofi's #201 comment, scope all, 2026-10-14T18:14Z to 2026-10-28T18:14Z). There is no cheaper detector, because this gate is the detector.
+- `nightly-status`: this check grades main's nightly (#2205, which a fixer is working on), not this diff. The diff touches nothing the nightly reads: dimension briefs, audit config, audit drivers and policy caps. No cheaper detector applies to this branch.
+- `tests/entities.py`, template-acceptance arm: red only before the cap commit, because `policy_lint` refused the uncapped D15. That refusal is the cheaper detector, it already exists and it fired. It is green at the head.
 
 ## Forward-carry
 
