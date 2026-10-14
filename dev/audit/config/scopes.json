@@ -642,9 +642,9 @@
    ".cursor/**",
    "tools/**",
    "dev/audit/**",
-   "docs/decisions/**",
    "CLAUDE.md",
-   "AGENTS.md"
+   "AGENTS.md",
+   "dev/governance/**"
   ],
   "steps": [
    "M1",
