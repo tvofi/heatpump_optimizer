@@ -466,8 +466,8 @@ def controls() -> list[tuple[str, bool, str]]:
     lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8])
     pair("cycle_cost:loop_thread", cost_offenders(lhot, lbudget),
          cost_offenders(lclean, lbudget))
-    pair("cycle_cost:short_doubling", short_doubling(0.93) + short_doubling(float("nan")),
-         short_doubling(1.0001))
+    pair("cycle_cost:short_doubling", short_doubling(0.93), short_doubling(1.0001))
+    pair("cycle_cost:unmetered_doubling", short_doubling(float("nan")), short_doubling(1.0))
     pkg = "/x/custom_components/heatpump_optimizer/"
     pair("cycle_cost:coverage", uncovered_files({pkg + f for f in COST_FILES[1:]}),
          uncovered_files({pkg + f for f in COST_FILES}))
