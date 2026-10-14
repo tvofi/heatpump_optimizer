@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/diagnostics.py:_without_private_ids RETURN_DEL d4c9e2a6",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return value",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=3."
+}
