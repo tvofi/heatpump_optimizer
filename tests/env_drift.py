@@ -2360,6 +2360,54 @@ def judge_drift(branch: dict[str, object], baseline: dict[str, object],
     return drifted, claimed_hits, may_drift_hits
 
 
+def baseline_worktree_candidates(tmp: str, attempts: int = 2) -> list[str]:
+    """Checkout paths for the baseline worktree, one per add attempt.
+
+    The worktree name git registers under `.git/worktrees/` is the path's
+    basename, and every gate instance used to share the one literal
+    `baseline` -- so tests/mutation_table.py, which drives this script's
+    baseline and its null control at the same time in worker worktrees cut
+    from one checkout, put two concurrent `git worktree add` onto the one
+    registered name, and the null control's add died at exit 128 while the
+    baseline's, started seconds earlier, was still checking out (#2119).
+    The pid separates concurrent instances; the ordinal separates one
+    instance's own retries, because a failed add can leave a half-checked-
+    out directory at the first path that a retry there would meet as
+    "already exists".
+    """
+    return [os.path.join(tmp, f"baseline-{os.getpid()}-{n}")
+            for n in range(1, attempts + 1)]
+
+
+def add_baseline_worktree(repo: str, tmp: str, ref: str) -> tuple[str | None, str]:
+    """Cut the pristine baseline worktree, or `(None, git's own reason)`.
+
+    A bare `check=True` here used to raise CalledProcessError with git's
+    stderr still inside the exception object, so the one line of evidence
+    for why the add failed -- git's fatal message -- never reached a log:
+    the mutation lane's null-control run died as "returned non-zero exit
+    status 128" (#2119) and refused the whole lane with the cause lost.
+    stress.py's `baseline_worktree` already reports `add.stderr`; this is
+    that shape, plus one retry on a fresh name, because the failure class
+    that triggered it is transient (two adds racing in one shared `.git`).
+    """
+    why = ""
+    for path in baseline_worktree_candidates(tmp):
+        add = subprocess.run(
+            ["git", "worktree", "add", "--detach", path, ref],
+            cwd=repo, capture_output=True, text=True,
+        )
+        if add.returncode == 0:
+            return path, ""
+        why = (add.stderr or add.stdout or "no message").strip()[-300:]
+        print(f"  baseline worktree add failed on {os.path.basename(path)} "
+              f"(exit {add.returncode}): {why}")
+        # git's own junk cleanup unregisters the half-built worktree it
+        # leaves behind; the next candidate's fresh name sidesteps whatever
+        # it left checked out at this path.
+    return None, why
+
+
 def main() -> int:
     if len(sys.argv) >= 2 and sys.argv[1] == "--capture":
         everything = "--all" in sys.argv[4:]
@@ -2533,7 +2581,6 @@ def main() -> int:
                     print_cache_miss(why_not, entry_path, key, key_inputs, ref)
 
     tmp = tempfile.mkdtemp(prefix="env_drift_")
-    worktree = os.path.join(tmp, "baseline")
     # The worktree is built even on a hit: it costs a second or two against
     # the twenty minutes the capture costs, and it keeps the inherited-claims
     # check reading the baseline's claim file from a real checkout, exactly as
@@ -2547,10 +2594,14 @@ def main() -> int:
     # key, and every later run would hit that entry and compare against a
     # baseline that is not the one it names. Pinning to ref_sha closes the
     # window: the key and the checkout cannot disagree.
-    subprocess.run(
-        ["git", "worktree", "add", "--detach", worktree, ref_sha or ref],
-        cwd=repo, check=True, capture_output=True,
-    )
+    worktree, add_failure = add_baseline_worktree(repo, tmp, ref_sha or ref)
+    if worktree is None:
+        shutil.rmtree(tmp, ignore_errors=True)
+        print("BASELINE WORKTREE REFUSED: git could not check out "
+              f"{ref_sha or ref} for comparison ({add_failure}). No "
+              "comparison can run without the baseline it names; git's "
+              "message above is its own reason, not a verdict on this tree.")
+        return 1
     try:
         # Cheapest check that needs the baseline, so it runs before the two
         # capture subprocesses rather than after half an hour of solving.

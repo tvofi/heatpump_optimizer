@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio CMP_BOUND d2c128b3",
+  "old": "        if abs(ratio - 1.0) <= COP_ASK_TOLERANCE:",
+  "reason": "Equivalent (CMP_BOUND, `<=` -> `<`): the arms differ only where `abs(ratio - 1.0)` is exactly the double 0.15, and no double reaches it. For ratio in [0.5, 2] the subtraction is exact (Sterbenz), so the values it takes are the differences of two doubles; the two targets 1.0 +- double(0.15) are not doubles, and the neighbours either side were measured at 0.1499999999999999, 0.15000000000000013 and 0.1499999999999997, 0.15000000000000002, 0.15000000000000013, 0.1499999999999999 -- none equal to 0.15. Outside that interval |ratio - 1.0| >= 0.5, where both arms take the same branch. The operator's mutant therefore selects no input the function cannot already see.",
+  "verdict": "equivalent"
+}

@@ -525,7 +525,29 @@ costs a scrollbar rather than spilled content.
 
 ## The savings page
 
-The dialog's **Savings** tab settles the months so far in one table: for each
+The **Savings** tab opens on the last closed month's **receipt**: its total,
+what it saved against a plain thermostat, and one row per billed line with
+the basis it was priced on: spot energy and the grid energy fee in kWh, the
+capacity charge at the month's billed peak, an immersion heater's kWh, and
+compressor wear in starts. The total adds those lines and nothing else; a
+note under it says which lines it covers and that the savings figure
+compares spot cost only. Wear reads "not priced" until you set a
+compressor replacement cost. Beside it, **Where the money went** splits the
+spot line by the plan's reason for each kWh, largest first; the bars add up
+to the spot line. Every receipt the integration keeps (24 months) is on the
+**Plan Monthly Savings** sensor's `receipts` attribute.
+
+**Yesterday: the plan against reality** follows. The integration keeps the
+first plan it solves after midnight as that day's promise. The next day the
+page draws that promise dashed and the measurement solid on a shared time
+axis: indoor temperature in the house colour, and cumulative cost in the
+price colour. One sentence gives the average gap and the cost against what
+was promised. Without a power meter the cost is not measured, and the page
+says so. An interval the accuracy record skipped, such as an open window,
+is missing from the measured lines. A restart that misses the midnight hour
+leaves that day without a promise, so the next day shows no replay.
+
+Under both, the table settles the months so far: for each
 month the conventional baseline, what you actually paid, the difference and its
 percentage — the same `savings_months` rows the **Plan Monthly Savings** sensor
 publishes, so the page can never disagree with the entity. The savings column
@@ -623,11 +645,11 @@ The pill appears once the **Input Problem** sensor has a state.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/health-dark.png">
-  <img alt="The Health tab: an Inputs column with a stale outdoor temperature row (its age and limit) and fresh indoor and hot-water rows, a Plan column with when the plan was solved, the next solve, its steps and the solve time, and a Still learning block with savings and COP waiting; under them a Something looks wrong? row with a Download diagnostics button and a first-plan checklist with Assign and Show buttons" src="img/card/health-light.png">
+  <img alt="The Health tab: an Inputs column with a stale outdoor temperature row (its age and limit) and fresh indoor and hot-water rows, a Plan column with when the plan was solved, the next solve, its steps and the solve time, and a Still learning block with savings and COP waiting; under them a What the model has learned block whose rows each carry a value, its samples in words and an evidence bar, the house heat loss reading 142 W/K and 8 % faster than the settings estimate, solar gain at a window scale of 1.15 and still learning, hot-water tank cooling at 0.9 °C per hour, heat pump efficiency normal at a COP scale of 0.97 and a 24-bar internal-gains strip peaking around 18:00; then a Something looks wrong? row with a Download diagnostics button and a first-plan checklist with Assign and Show buttons" src="img/card/health-light.png">
 </picture>
 
-*Everything here is read from sensors the integration already publishes; the
-card adds no backend field.*
+*Everything here is read from the integration's sensors; the card computes no
+figure of its own.*
 
 - **Inputs.** One row per input the integration has read, with its age. A
   failing input says what is wrong in words (stale, unavailable, entity not
@@ -649,8 +671,24 @@ card adds no backend field.*
   attributes, so the card cannot read the sensor's own `waiting_for` code and
   the reason is keyed by the sensor. A sensor that has a value is not listed;
   with nothing waiting the block is absent.
+- **What the model has learned.** Read from the **Learning Model Status**
+  sensor's attributes, one row per learner with its value, its evidence in
+  words and a bar: the house heat loss in W/K and how much faster or slower
+  the house loses heat than the settings estimated; solar gain as a window
+  scale, with "Learning: 6 of about 30 samples" until the learner has the
+  evidence it needs; the lower floor, once learned; the hot-water tank's
+  cooling in °C per hour, on a plant with a tank; and heat pump efficiency,
+  which turns to **Below its own history** in the warn colour when the COP
+  health watch raises its alarm. With internal-gains learning on, a 24-hour
+  bar strip shows the learned gains per hour and names the peak. The block is
+  absent while the sensor is unavailable. The counts are samples, not days:
+  the learners count accepted observations.
 - **Something looks wrong?** **Download diagnostics** opens the integration's
-  page in Home Assistant; the diagnostics download is in that page's menu.
+  page in Home Assistant; the diagnostics download is in that page's menu. The
+  file holds the last diagnosis, the input states, a plan summary (counts and
+  totals, no per-step series) and the learning view, with the token, the entry
+  name, every `person.*` and `calendar.*` entity id and the precise location
+  removed.
 - **First-plan checklist.** Price source connected, weather forecast
   available (from the Optimization Status sensor's counts), an indoor
   temperature sensor, and heat pump control connected are ticked from what the
