@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:SlabTempSensor.native_value RETURN_DEL ab9d44f4",
+  "killed_by": "tests/env_drift.py",
+  "old": "            return round(val, 1) if val is not None else None",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=10."
+}

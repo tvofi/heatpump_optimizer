@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:WoodCheaperBinarySensor.is_on BOOLOP 81438a6e",
+  "killed_by": "tests/entities.py",
+  "old": "        return bool(fuel.get(\"ready\") and fuel.get(\"cheaper\"))",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: BOOLOP (`return bool(fuel.get(\"ready\") or fuel.get(\"cheaper\"))`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

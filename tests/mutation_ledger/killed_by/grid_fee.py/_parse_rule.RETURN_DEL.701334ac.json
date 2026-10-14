@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:_parse_rule RETURN_DEL 701334ac",
+  "killed_by": "tests/features.py",
+  "old": "    return FeeRule(rate=rate, months=months, days=days, hours=hours)",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
