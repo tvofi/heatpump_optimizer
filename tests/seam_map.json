@@ -169,7 +169,7 @@
   "_refresh_model_corrections": "learning",
   "_release_registrations": "core",
   "_resolve_away": "core",
-  "_roll_month": "core",
+  "_roll_month": "grid",
   "_run_system_identification": "core",
   "_schedule_ledger_save": "grid",
   "_scores_view": "views",
