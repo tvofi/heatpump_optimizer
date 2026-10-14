@@ -1,0 +1,72 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 9ac069d47..4b882033e 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -131,8 +131,7 @@ from collections import Counter, deque
+ from collections.abc import Mapping
+ from dataclasses import dataclass, field, replace
+ from datetime import datetime, timedelta, timezone
+-from functools import wraps
+-from typing import Any, Callable, TypeGuard
++from typing import Any, TypeGuard
+ from weakref import WeakKeyDictionary
+ 
+ from homeassistant.core import callback
+@@ -315,22 +314,6 @@ def duty_mode(config: Any) -> str:
+     return EntryConfig.from_mapping(config).pump_duty_mode
+ 
+ 
+-def _release_duty_floor(
+-    fn: Callable[..., str | None],
+-) -> Callable[..., str | None]:
+-    """Drop the plan's modulation floor if ``step_duty`` raises between the reads."""
+-    @wraps(fn)
+-    def _wrapped(*args: Any, **kwargs: Any) -> str | None:
+-        try:
+-            return fn(*args, **kwargs)
+-        finally:
+-            setattr(planned_draw_runs, "modulation_floor", None)
+-    return (
+-        _wrapped
+-    )
+-
+-
+-@_release_duty_floor
+ def step_duty(result: Any, now: datetime) -> str | None:
+     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
+ 
+@@ -350,12 +333,11 @@ def step_duty(result: Any, now: datetime) -> str | None:
+         return None
+     space = list(result.power_schedule or [])
+     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
+-    setattr(
+-        planned_draw_runs, "modulation_floor",
+-        getattr(result, "duty_floor_kw", None),
+-    )
+-    s_on = i < len(space) and planned_draw_runs(space[i])
+-    d_on = i < len(dhw) and planned_draw_runs(dhw[i])
++    # The plan's own floor, handed to the predicate as an argument: a
++    # function attribute set here was read by every concurrent caller.
++    floor = getattr(result, "duty_floor_kw", None)
++    s_on = i < len(space) and planned_draw_runs(space[i], modulation_floor=floor)
++    d_on = i < len(dhw) and planned_draw_runs(dhw[i], modulation_floor=floor)
+     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
+         (s_on, d_on), "idle"
+     )
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index bad273fd8..3caa9bd99 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1223,11 +1223,7 @@ def planned_draw_runs(
+     switch-plus-setpoint surface cannot realize one. ``None`` — every caller
+     that does not pass it — keeps the duty-cycle reading.
+     """
+-    floor = (
+-        modulation_floor
+-        if modulation_floor is not None
+-        else getattr(planned_draw_runs, "modulation_floor", None)
+-    )
++    floor = modulation_floor
+     total = float(space_kw) + float(dhw_kw)
+     below_floor = False
+     if floor is not None:
