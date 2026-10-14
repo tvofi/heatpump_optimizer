@@ -1,0 +1,11 @@
+RESULT ok   tibber_price:one_home_picked :: sensor.electricity_price_home_a rows=25
+RESULT ok   tibber_price:none_refused :: refused: the Tibber price source needs a recorded price sensor; found 0 usable of 0 Tibber price sensor(s) in the registry: none. Pass --price-entity SENSOR
+RESULT ok   tibber_price:two_homes_refused :: refused: the Tibber price source needs a recorded price sensor; found 2 usable of 2 Tibber price sensor(s) in the registry: sensor.electricity_price_home_a, sensor.electricity_price_home_b. Pass --price-entity SENSOR
+RESULT ok   tibber_price:flag_overrides_two :: sensor.electricity_price_home_b rows=25
+RESULT ok   tibber_price:flag_overrides_one :: sensor.electricity_price_home_b rows=25
+RESULT ok   tibber_price:entry_names_one :: sensor.electricity_price_home_b rows=25
+RESULT ok   tibber_price:disabled_skipped :: sensor.electricity_price_home_a rows=25
+RESULT ok   tibber_price:unrecorded_skipped :: sensor.electricity_price_home_b rows=25
+RESULT ok   tibber_price:unavailable_skipped :: sensor.electricity_price_home_a rows=25
+RESULT ok   tibber_price:entity_source_untouched :: None rows=0
+RESULT failed=0

@@ -1,0 +1,61 @@
+35c5f68d9d38fa57190e2a38b2683176a7d62162
+The owner's ask (tvofi, 2026-10-14): `tools/replay/export.py` must choose the Tibber price entity itself, so the export runs on the Home Assistant box with no `--price-entity`. Before this change, an install using the Tibber price source exported `price_series_entity: null` unless the flag was given, and the replay then raised "the fixture records no price series".
+
+What changed. With the Tibber source (any `price_source` other than `entity`, which is how `coordinator._entity_price_source` decides it) and no `--price-entity`, `build_export` takes the price sensor from `<config>/.storage/core.entity_registry` (`tibber_price_candidates`): an enabled `sensor.*` entry of platform `tibber` whose unique id has no underscore and whose `translation_key` is `electricity_price`, or absent (an older registry). It keeps only candidates with a numeric state in force during the window (read through the existing `read_states`). The entry's own `price_entity` breaks a tie between homes when it names one of the candidates. Otherwise exactly one candidate must remain, or the export refuses with a message that lists every candidate and says to pass `--price-entity`. An explicit `--price-entity` always wins, and the `entity` source is unchanged. The chosen sensor is printed on stderr. The code is stdlib only and opens no socket. The sanitiser, the allowlist and the leak self-search are untouched. The module docstring and the `--price-entity` help text describe the new default.
+
+The sensor's identity, from Home Assistant core: `homeassistant/components/tibber/sensor.py` at core commit `a108a5c3d7f6f9d27b5b4e8f3e3818084dfc3726`, the latest commit to touch that path when this was checked on 2026-10-14. The file's sha1 is `7f47370a65a130df928d54509727cf8b50efc3ce`. In it, `TibberSensorElPrice` sets `_attr_translation_key = "electricity_price"`, `_attr_unique_id = self._tibber_home.home_id` (the bare home id), `_attr_state_class = MEASUREMENT` and native unit `tibber_home.price_unit`, with the current price as its state. In the same file, `TibberDataSensor` uses the unique id `f"{home_id}_{key}"`, `TibberSensorRT` uses `f"{home_id}_rt_{key}"` and `TibberDataAPISensor` uses `f"{device.id}_{key}"`. `binary_sensor.py` (sha1 `889493b232916c61499f851be1a7e842e8b237d0`) uses `f"{device.id}_{key}"`. `notify.py` (sha1 `63c5adab0c783f050785cf6956a846928c4cdfbf`) keys its notify entity on the bare `entry.entry_id`, so the `sensor.` prefix rule is needed to exclude it.
+
+Known residual, for whoever reads an export before committing it: the picked entity id is written to the file, in `price_series_entity`, `inputs` and `states`. Home Assistant builds that id from the device name, and Tibber's device name is the home's app nickname or, failing that, its street address. So a Tibber price sensor's id can carry an address, for example `sensor.electricity_price_storgatan_12`. The sanitiser keeps entity ids as they are; its docstring already lists them under WHAT IT CANNOT REMOVE. An explicit `--price-entity` wrote the same id before this change, so the exposure is not new, but the export now writes it without being asked.
+
+Review round 1 at bef6242f9 (`mutation-survivor`): with the recorder cross-check's `_numeric(row[1])` replaced by `True`, every check stayed green. The new check `tibber_price:unavailable_skipped` is a second home whose subscription ended: its registry row stays enabled and the recorder holds only `unavailable` for it. The check requires home A to be picked, and that mutant (M11 below) now fails it.
+
+## Head
+
+35c5f68d9d38fa57190e2a38b2683176a7d62162 (merge base and origin/main tip 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7, unchanged since round 1; 2026-10-14T19:51:38Z)
+
+## Mutation proof
+
+The mutation script is `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/r10-tibber/mutate.py` (out of tree; sha1 in Figures). Each mutant edits one production line of `tools/replay/export.py`, runs `tests/replay.py`'s `tibber_price_checks` and restores the file byte-identical (asserted). Every mutant except M10 is killed:
+
+- M1 platform check removed: red `one_home_picked`, `none_refused`
+- M2 `sensor.` prefix removed: red `one_home_picked`, `none_refused`
+- M3 `disabled_by` check removed: red `disabled_skipped`
+- M4 bare-unique-id rule removed: red `one_home_picked`, `none_refused`
+- M5 translation-key rule removed: red `one_home_picked`, `none_refused`
+- M6 recorder filter removed: red `unrecorded_skipped`, `unavailable_skipped`
+- M7 entry `price_entity` preference removed: red `entry_names_one`
+- M8 explicit flag no longer wins: red `flag_overrides_two`, `flag_overrides_one`
+- M9 `entity` source no longer excluded: red `entity_source_untouched`
+- M11 numeric-state test replaced by `True` (the round-1 block): red `unavailable_skipped`
+- M12 `len(live) == 1` changed to `>= 1`: red `two_homes_refused`
+- M10 `unique_id or "_"` changed to `or ""` survives. This is a written triage: the mutant is equivalent on any real registry. The two spellings differ only for a registry row with no unique id or a null one, and Home Assistant registers an entity only when it has a unique id, which `core.entity_registry` stores as a string. The `or "_"` fallback is a type guard that makes such a row fail closed (rejected) rather than raise. No check pins it, because no real install can produce the input.
+
+## Null control
+
+M0 is the unmutated file under the same runner, with rc=0 and no red check. The test was written first. Run at the merge-base `export.py`, the new checks gave 7 red: `one_home_picked`, `none_refused`, `two_homes_refused`, `entry_names_one`, `disabled_skipped`, `unrecorded_skipped` and `unavailable_skipped`, each reading `None rows=0`. The 3 checks that pin behaviour this change keeps (`flag_overrides_two`, `flag_overrides_one`, `entity_source_untouched`) were green at both ends. `replay synthetic_reproduces` is green at the head: the entity-source synthetic fixture regenerates byte-identical through the changed exporter.
+
+## Figures
+
+- Out-of-tree instruments and outputs, by sha1. Runner `run_tibber_checks.py`: 6d88dce042ec47f95e28cb83245e5e2647c9458d. `mutate.py`: 7273fff1a3f9b7f520c8677f918e786f28dca129. `before.txt`: ec1ee8b8a2b9dfdefca184fb0491d753a9f530ba. `after.txt`: 298e5ea89ba6fa788f8d2df0b0711465e2d061af. `mutants.txt`: 064d2394fc0a83fafdbd100037174a18cf18f76f.
+- New checks, test-first, against the merge-base `export.py` (the head's `tests/replay.py`, with `tools/replay/export.py` set to `git show 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7:tools/replay/export.py` and restored afterwards): 7 red, 3 green. Command: `PYTHONPATH=tests/hastub python3 /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/r10-tibber/run_tibber_checks.py <worktree>` (runner sha1 in this list). Saved as `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/r10-tibber/before.txt`.
+- The same command at the head: 10 green, `0 failed`, rc=0. Saved as `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/r10-tibber/after.txt`.
+- Mutants M0 to M12: M0 (null) rc=0 with no red check; M1 to M9, M11 and M12 each rc=1 with the red checks listed above; M10 rc=0, the equivalent mutant triaged above. Command: `python3 /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/r10-tibber/mutate.py <worktree>`. Saved as `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/r10-tibber/mutants.txt`.
+- Scoped gate: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/entities.py`, `tests/features.py`), ending `6 TEST SCRIPT(S) PASSED; 29 SCOPED OUT AND NOT RUN`, rc=0, with python3.13 first on PATH. Command: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=17f1c55fad1bc97daf27174f2fbd6a18210d1fb7 ./tests/run.sh`. Inside it, `replay tibber_price:*` gave 10 ok and `replay synthetic_reproduces` ok.
+- Structure ratchet: `STRUCTURE RATCHET PASSED`, rc=0, with no budget file touched. Command: `python3 tests/structure.py`.
+- Diff: `git diff --stat 17f1c55fad1bc97daf27174f2fbd6a18210d1fb7...HEAD` lists 2 files, `tests/replay.py` and `tools/replay/export.py`. So the claim files, `VERSION`, the manifest and `RELEASE_NOTES.md` are byte-identical to the base, and the change adds no tracked file to classify.
+- Seam enumeration (step 8): `git grep -n -e '--price-entity' -e 'price_series_entity' -- tools tests docs README.md ':!tests/golden' ':!tests/replay/*.json'` returns `tools/replay/export.py` (changed here), `tests/replay.py` (the consumer at `fixture.get("price_series_entity")`, unchanged, plus the new checks), and `tests/dst_checks.py:1435`, which hand-sets `price_series_entity` on a synthetic fixture and never calls the exporter (dispositioned: not a producer seam). `docs/` and `README.md` return nothing.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+none
+
+## Friction
+
+none
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+

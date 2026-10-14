@@ -1,0 +1,37 @@
+Analyze (actions)	completed	success
+Analyze (javascript-typescript)	in_progress	-
+Analyze (python)	in_progress	-
+CodeQL	completed	neutral
+arch-score	completed	success
+arch-score	completed	success
+briefs	completed	success
+browser	in_progress	-
+budget-raise-gate	completed	success
+budget-raise-gate	completed	success
+closure-scope	completed	success
+coverage	in_progress	-
+delivery-status	completed	success
+delivery-status-publish	completed	skipped
+env-matrix	in_progress	-
+fast (3.14)	in_progress	-
+hassfest	completed	success
+instrument-self-tests	in_progress	-
+mutation	completed	success
+mutation-autofix	completed	skipped
+mutation-ledger	completed	skipped
+mutation-ledger-push	completed	skipped
+mutation-nightly	completed	skipped
+mutation-pin-plan	completed	skipped
+mutation-pins	completed	skipped
+nightly-ha	completed	skipped
+nightly-status	completed	failure
+policy-docs	completed	success
+pr-contract	completed	success
+pr-contract	completed	success
+recheck-gate	completed	skipped
+record	completed	skipped
+record-autofix	completed	skipped
+slow	completed	skipped
+typing	in_progress	-
+validate-hacs	completed	success
+wave-script	completed	success
