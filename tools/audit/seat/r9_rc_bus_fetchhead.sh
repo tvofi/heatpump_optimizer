@@ -64,6 +64,18 @@ git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --allow-empty -m bas
 git -C "$W/seat" push -q origin HEAD:refs/heads/main
 MAIN=$(git -C "$W/origin.git" rev-parse refs/heads/main)
 
+# The dispatch row gate (#1990 class E, #2107): a `dispatch` refuses a head
+# that carries no dev/programme/delivery/<pr>.md of its own. The dispatching
+# arms (race, ootree) dispatch pull request 21, so H1 is a REAL head carrying
+# 21's row, not the literal sha it stood in for before the gate existed; the
+# append case plants its dispatch record and needs no object.
+mkdir -p "$W/seat/dev/programme/delivery"
+printf -- '- [#21](https://github.com/o/r/pull/21) — **open**\n' > "$W/seat/dev/programme/delivery/21.md"
+git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
+git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "row for 21"
+git -C "$W/seat" push -q origin HEAD:refs/heads/main
+H1=$(git -C "$W/seat" rev-parse HEAD)
+
 mkdir -p "$W/state" "$W/ev1" "$W/ev2" "$W/ap" "$W/calls"
 printf 'measured at %s\n' "$H1" > "$W/ev1/run.log"
 printf 'round two at %s\n' "$H1" > "$W/ev2/run.log"
