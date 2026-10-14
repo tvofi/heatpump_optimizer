@@ -604,12 +604,14 @@ _TIBBER_DECOYS = (
 
 
 def _tibber_export(rows: list[tuple], entry: dict, price_entity: str | None = None,
-                   unrecorded: tuple[str, ...] = ()) -> str:
+                   unrecorded: tuple[str, ...] = (),
+                   unavailable: tuple[str, ...] = ()) -> str:
     """``price_series_entity`` of a Tibber install exported with ``rows`` in
     its registry, with its row count, or ``refused: <message>``. A row is
     (entity id, unique id, translation key[, disabled_by[, platform]]), the
     platform "tibber" unless given; each is recorded with an hourly numeric
-    price unless ``unrecorded`` names it."""
+    price, unless ``unrecorded`` names it (no rows) or ``unavailable`` does
+    (rows, every one ``unavailable``)."""
     import export
     import synthesize
 
@@ -621,7 +623,9 @@ def _tibber_export(rows: list[tuple], entry: dict, price_entity: str | None = No
         out = series()
         for row in rows:
             if row[0] not in unrecorded:
-                out[row[0]] = [(synthesize.DAY + timedelta(hours=h), f"{0.8 + h / 100:.3f}",
+                out[row[0]] = [(synthesize.DAY + timedelta(hours=h),
+                                "unavailable" if row[0] in unavailable
+                                else f"{0.8 + h / 100:.3f}",
                                 {"unit_of_measurement": "SEK/kWh",
                                  "state_class": "measurement"}) for h in range(-1, 24)]
         return out
@@ -676,6 +680,9 @@ def tibber_price_checks() -> list[tuple[str, bool, str]]:
         "disabled_skipped": (_tibber_export([_TIBBER_PRICE_A, (*_TIBBER_PRICE_B, "user")], {}),
                              picked(a)),
         "unrecorded_skipped": (_tibber_export(both, {}, unrecorded=(a,)), picked(b)),
+        # A second home whose subscription ended: its row stays enabled and
+        # the recorder holds only ``unavailable`` for it -- rows, no number.
+        "unavailable_skipped": (_tibber_export(both, {}, unavailable=(b,)), picked(a)),
         # The entity source is untouched: no series entity is invented.
         "entity_source_untouched": (
             _tibber_export([_TIBBER_PRICE_A], {"price_source": "entity",
