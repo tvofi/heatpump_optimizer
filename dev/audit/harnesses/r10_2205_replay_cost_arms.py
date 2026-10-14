@@ -6,10 +6,12 @@ doubled cycle cpu`` on synthetic-dhw-only.json: the cpu-doubled arm read
 cpu_ratio 3.5628 against a 3.576 cap, with the clean arm at 1.8804. This
 drives ``tests/replay.py --one`` (the lane's own subprocess entry point) for
 each arm N times and prints, per run, the arm's cost dict and
-``hot/clean``: the doubled arm's cpu_ratio over the median clean cpu_ratio,
-which is exactly 2.0 only when the perturbation doubles the span the metric
-times. The ``memory`` and ``loop`` arms are the null control: their
-``hot/clean`` on cpu_ratio must not move between base and head.
+``hot/clean``: the doubled arm's cpu_ratio over the median clean cpu_ratio
+(cross-process, so load moves it). The exact figure is the arm's own
+``injected_ratio`` in its cost dict, present from #2205's head on: the spin
+over the clean span its metric times, >= 1 for a doubling (the base's cpu
+arm spun ``_async_update_data`` alone and printed none). The ``memory`` arm
+is the null control: its ``hot/clean`` must not move between base and head.
 
 Every row carries load1 (``os.getloadavg``) taken before the run, and the
 reference solve's thread_factor (process CPU / this-thread CPU of
@@ -66,13 +68,14 @@ def main() -> int:
     mid = statistics.median(clean)
     print(f"RESULT clean cpu_ratio median={mid} min={min(clean)} max={max(clean)}")
     for arm in ("cpu", "loop", "memory"):
-        ratios = []
+        ratios, injected = [], []
         for i in range(n):
             h = run(arm)
             ratios.append(round(h["cpu_ratio"] / mid, 3))
+            injected.append(h.get("injected_ratio"))
             print(f"{arm}[{i}] {h} hot/clean={ratios[-1]}")
         print(f"RESULT {arm} hot/clean cpu_ratio median={statistics.median(ratios)} "
-              f"min={min(ratios)} max={max(ratios)}")
+              f"min={min(ratios)} max={max(ratios)} injected_ratio={injected}")
     return 0
 
 
