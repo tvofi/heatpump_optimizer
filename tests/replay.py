@@ -308,6 +308,9 @@ COST_FILES = ("coordinator.py", "sensor.py", "process_worker.py",
 #: accumulated by run_fixture's meter so the loop thread's own share is
 #: the cycle's thread CPU less this.
 _EXEC_CPU = [0.0]
+#: CPU the perturbation arms burnt, on the clock their metric reads, so the
+#: lane can show an arm doubled the whole span its metric times (#2205).
+_INJECTED_CPU = [0.0]
 #: The multiple a budget must be able to see, as ``tests/stress.py``'s
 #: DETECTION_TARGET: a budget is recorded at sqrt(2) x the measured cost, so
 #: the measurement sits in (budget / 2, budget] and a doubled cycle is over it.
@@ -687,6 +690,14 @@ class InProcessWorker:
         self.stdout.seek(0)
 
 
+def _spin(clock, seconds: float) -> None:
+    """The perturbation: burn ``seconds`` more of ``clock`` on this thread."""
+    began = clock()
+    while clock() < began + seconds:
+        pass
+    _INJECTED_CPU[0] += clock() - began
+
+
 def inject_cost(cm, kind: str | None) -> None:
     """The perturbation: double one cycle's CPU or its memory peak, in memory.
 
@@ -703,9 +714,7 @@ def inject_cost(cm, kind: str | None) -> None:
         began = time.process_time()
         out = await real(self)
         if kind == "cpu":
-            until = time.process_time() + (time.process_time() - began)
-            while time.process_time() < until:
-                pass
+            _spin(time.process_time, time.process_time() - began)
         elif tracemalloc.is_tracing():
             current, peak = tracemalloc.get_traced_memory()
             ballast = bytearray(max(0, 2 * peak - current))
@@ -743,6 +752,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     # Executor jobs run inline on this thread in the double, so the loop
     # thread's own work is the cycle's thread CPU less theirs.
     _EXEC_CPU[0] = 0.0
+    _INJECTED_CPU[0] = 0.0
     _real_exec = hass.async_add_executor_job
 
     async def _metered_exec(func, *args):
@@ -825,6 +835,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     ref_cpu = [reference_solve()[1] for _ in range(3)]
     cycle_cpu: list[float] = []
     loop_cpu: list[float] = []
+    injected: list[tuple[float, float]] = []
     peaks: list[int] = []
     traced: set[str] = set()
     while t < end:
@@ -856,6 +867,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             tracemalloc.start()
         began = time.process_time()
         began_thread, exec_before = time.thread_time(), _EXEC_CPU[0]
+        injected_before = _INJECTED_CPU[0]
         try:
             data = asyncio.run(coord._async_update_data())
             coord.data = data
@@ -868,15 +880,17 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         action = data.get("current_action") or {}
         records = sweep(entities, action, results["cycle"], t)
         own_loop = (time.thread_time() - began_thread) - (_EXEC_CPU[0] - exec_before)
+        # The arm's metric span before this point's spin, less any spin in it.
+        clean_span = ((own_loop if inject == "loop" else time.process_time() - began)
+                      - (_INJECTED_CPU[0] - injected_before))
         if inject == "loop":
             # The perturbation: exactly the loop thread's own work again.
-            until = time.thread_time() + own_loop
-            while time.thread_time() < until:
-                pass
+            _spin(time.thread_time, own_loop)
         if mode == "cpu":
             cycle_cpu.append((time.process_time() - began) * 1000.0)
             loop_cpu.append(((time.thread_time() - began_thread)
                              - (_EXEC_CPU[0] - exec_before)) * 1000.0)
+            injected.append((_INJECTED_CPU[0] - injected_before, clean_span))
         elif mode == "memory":
             peaks.append(tracemalloc.get_traced_memory()[1])
             tracemalloc.stop()
@@ -904,10 +918,13 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     ref_cpu += [reference_solve()[1] for _ in range(3)]
     results["not_frozen"] = frozen_offenders(pub_series, inp_series)
     figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu)
+    clean = sum(c for _, c in injected)
+    share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}
+             if inject in ("cpu", "loop") and clean > 0 else {})
     results["cycle_cost"] = uncovered_files(traced) + cost_offenders(
         figures, COST_BUDGETS.get(path.name))
     return {"fixture": path.name, "cycles": cycles, "entities": len(entities),
-            "cost": {**figures, "timed": len(cycle_cpu), "traced": len(peaks),
+            "cost": {**figures, **share, "timed": len(cycle_cpu), "traced": len(peaks),
                      "ref_ms": sorted(ref_cpu)[len(ref_cpu) // 2]},
             "seconds": round(time.monotonic() - started, 1),
             "results": {k: v[:12] + ([f"... {len(v) - 12} more"] if len(v) > 12 else [])
@@ -1277,6 +1294,10 @@ def main(argv: list[str] | None = None) -> int:
             R.check(f"{path.name}: cycle_cost sees a doubled cycle {kind}", bool(fired),
                     f"{key} {hot['cost'][key]} against clean {out['cost'][key]}: "
                     + " | ".join(hot["results"]["cycle_cost"][:3]))
+            if kind != "memory":  # a doubling burns the whole span its metric times
+                ratio = hot["cost"].get("injected_ratio", 0.0)
+                R.check(f"{path.name}: the {kind} arm doubles the whole span {key} times",
+                        ratio >= 1.0, f"injected {ratio} x the clean span, a doubling is >= 1")
     print(f"\nreplay lane wall time {time.monotonic() - began:.1f} s")
     return R.close("replay checks")
 
