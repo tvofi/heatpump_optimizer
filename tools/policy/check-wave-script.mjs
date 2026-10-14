@@ -828,13 +828,21 @@ await block('the scoped round driver', async () => {
     for (const d of s.dims) if (s.dims.indexOf(d) !== s.dims.lastIndexOf(d)) gaps.push(`DIMS names ${d} twice`)
     for (const d of s.isolated) if (!s.dims.includes(d)) gaps.push(`ISOLATED names ${d}, which DIMS does not`)
     for (const d of s.api) if (!s.isolated.includes(d)) gaps.push(`API_DIMS names ${d}, which ISOLATED does not (its history needs a worktree with .git)`)
-    if ([...s.baseline].sort().join(',') !== [...s.isolated].sort().join(',')) gaps.push(`prepare_baseline.sh ISOLATED_DIMS [${s.baseline}] != audit-find.js ISOLATED [${s.isolated}]`)
+    const known = s.baseline.filter((d) => s.dims.includes(d) || s.briefs.includes(d))
+    if ([...known].sort().join(',') !== [...s.isolated].sort().join(',')) gaps.push(`prepare_baseline.sh ISOLATED_DIMS [${known}] != audit-find.js ISOLATED [${s.isolated}]`)
     return gaps
   }
+  // A dimension in ISOLATED_DIMS with neither a brief nor a DIMS entry is one a
+  // pull request is landing: the graders merge first (CI grades with the
+  // base's copies), so the list leads the driver by one merge. Only that case
+  // is tolerated; a brief or a DIMS entry makes the dimension compared.
+  const pending = L.baseline.filter((d) => !L.dims.includes(d) && !L.briefs.includes(d))
   const lg = listGaps(L)
   t("every dimension brief is in the round driver's DIMS, and its worktree lists agree", L.briefs.length >= 15 && lg.length === 0, lg.join('; '))
   t('the check fires: a DIMS list that stops short of a brief is refused (positive control)', listGaps({ ...L, dims: L.dims.filter((d) => d !== 'D13') }).length > 0, 'a schedule missing D13 passed')
   t('the check fires: the two worktree lists drifting apart is refused (positive control)', listGaps({ ...L, baseline: L.baseline.filter((d) => d !== 'D13') }).length > 0, 'the lists may disagree')
+  t(`ISOLATED_DIMS may lead the driver only by a dimension with no brief and no DIMS entry (pending: ${pending.join(', ') || 'none'})`,
+    listGaps({ ...L, baseline: [...L.baseline, 'D2'] }).length > 0 && listGaps({ ...L, baseline: [...L.baseline, 'D99'] }).length === 0 && listGaps({ ...L, baseline: [...L.baseline, 'D99'], briefs: [...L.briefs, 'D99'], dims: [...L.dims, 'D99'] }).some((g) => /ISOLATED_DIMS/.test(g)), 'a declared or briefed dimension was tolerated, or a pending one refused')
   t('and an empty extraction is refused rather than reported clean (null control)', listGaps({ dims: [], isolated: [], api: [], baseline: [], briefs: [] }).length > 0, 'nothing read, nothing refused')
 
   // Two more readers of one thing each, pinned once a driver declares the
@@ -1021,13 +1029,18 @@ await block('the scoped round driver', async () => {
   t('every other finder keeps the earlier-findings wall (null control)', others.length > 0 && others.every((l) => walled(p(l))), others.filter((l) => !walled(p(l))).join(', '))
   // D15's bundle is out of tree, so its path reaches a seat only from args; with
   // none, the seat is told to report every step unfinished. The rest never see it.
-  const withBundle = await drive({ ...base, debug_bundle: '/o/diag.json', debug_export: '/o/export.json' })
+  // Armed once audit-find.js declares BUNDLE_DIMS, as the ROUND_DIR and CURRENT
+  // pins above are: the graders land one merge ahead of the driver.
+  const bundleDims = grab(/const BUNDLE_DIMS = new Set\(\[([^\]]*)\]/)
+  const armed = bundleDims.length > 0
+  const withBundle = armed ? await drive({ ...base, debug_bundle: '/o/diag.json', debug_export: '/o/export.json' }) : { calls: [] }
   const pb = (l) => withBundle.calls.find((c) => c.label === l)?.prompt ?? ''
-  const d15 = finders.filter((l) => l.startsWith('D15-'))
-  t(`D15's finders carry the named bundle and export, or are told to report every step unfinished (${d15.join(', ')})`,
-    d15.length > 0 && d15.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l))), pb(d15[0] ?? '').slice(0, 200))
-  t('...and no other finder is handed the bundle (null control)', finders.filter((l) => !l.startsWith('D15-')).every((l) => !pb(l).includes('/o/diag.json')), 'leaked')
-  t('a relative bundle path is refused before Prepare', /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error), 'accepted')
+  const isBundle = (l) => bundleDims.includes(l.split('-')[0])
+  const dB = finders.filter(isBundle)
+  t(`once audit-find.js declares BUNDLE_DIMS, its finders carry the named bundle and export, or are told to report every step unfinished (${armed ? dB.join(', ') : 'not declared'})`,
+    !armed || (dB.length > 0 && dB.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l)))), pb(dB[0] ?? '').slice(0, 200))
+  t(`...and no other finder is handed the bundle (null control${armed ? '' : ': not declared'})`, !armed || finders.filter((l) => !isBundle(l)).every((l) => !pb(l).includes('/o/diag.json')), 'leaked')
+  t(`a relative bundle path is refused before Prepare (${armed ? 'declared' : 'not declared'})`, !armed || /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error), 'accepted')
   // The schema the finder is held to by the runtime carries what the file does.
   const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
   const fs0 = r9.calls.find((c) => isFinder(c.label))?.schema ?? {}
