@@ -1,15 +1,16 @@
-// Adversarial verification of one round's findings, round 9's shape
-// (/mnt/project-files/audit-r9/PLAN.md sections 5-8, carried into policy by #1627):
+// Adversarial verification of one round's findings, round 10's shape: round
+// 9's (/mnt/project-files/audit-r9/PLAN.md sections 5-8, carried into policy
+// by #1627) with one verifier per dimension, by tvofi's ruling of 2026-10-14.
 //
-//   Panels   three verifiers per dimension, each owning one lens
+//   Panels   one verifier per dimension carrying all three lenses
 //            (dev/governance/roles/verifier.md), pipelined per dimension: a
-//            dimension's triple starts as soon as it is dispatched, never
-//            waiting on another dimension. Two `refute` votes, each carrying
-//            an executed number, kill a finding at panel; one sends it to the
-//            judge `disputed`. A refute with no number is `unresolved`, as a
-//            timing-only refute is by verifier.md step 5. A dimension with more
-//            findings than SHARD_SIZE gets another triple, split at a finder-
-//            seat boundary so no triple verifies across a scope boundary.
+//            dimension's verifier starts as soon as it is dispatched, never
+//            waiting on another dimension. No vote kills: a `refute` carrying
+//            an executed number sends the finding to the judge `disputed`. A
+//            refute with no number is `unresolved`, as a timing-only refute is
+//            by verifier.md step 5. A dimension with more findings than
+//            SHARD_SIZE gets another verifier, split at a finder-seat boundary
+//            so no verifier works across a scope boundary.
 //   Judge    one common judge (dev/governance/roles/judge.md): dedup across all
 //            dimensions first, then the scripted re-runs --
 //            tools/audit/judge_batch.py, serially under the gate lease, on
@@ -39,19 +40,19 @@
 // hands every reported finding to the judge unvoted (a relaunch after the
 // verifiers ran elsewhere).
 //
-//   /audit-verify with args {round: 9, repo: "<abs path>", branch: "claude/audit-r9-register", runners: 1}
+//   /audit-verify with args {round: 10, repo: "<abs path>", branch: "claude/audit-r10-register", runners: 1}
 //
-// tools/policy/check-wave-script.mjs ('the round-9 verification pass')
+// tools/policy/check-wave-script.mjs ('the panel verification pass')
 // evaluates the PANEL block alone and drives this body with agent() stubbed
 // per label; keep the labels. `wave-script` grades with the base's copy of that
 // checker (decision 0013), so a change to this shape lands there first.
 export const meta = {
   name: 'audit-verify',
-  description: 'Three lens verifiers per dimension with majority kill, one judge (dedup, scripted re-runs, classes), class sweep, issue drafts',
+  description: 'One verifier per dimension carrying three lenses, a refute sends the finding disputed, one judge (dedup, scripted re-runs, classes), class sweep, issue drafts',
   phases: ['Read the register', 'Panels', 'Judge', 'Class sweep', 'Fold the register', 'Issues and register', 'Round record'],
 }
 
-const round = args?.round ?? 9
+const round = args?.round ?? 10
 const repo = args?.repo
 const branch = args?.branch ?? `claude/audit-r${round}-register`
 const from = args?.from ?? 'panels'
@@ -62,6 +63,10 @@ if (from !== 'panels' && from !== 'judge') throw new Error('args.from must be "p
 
 // PLAN section 5: "start at 15".
 const SHARD_SIZE = Number(args?.shard_size ?? 15)
+// A round's evidence lives under dev/audit/rounds/ (R9-RO-8), where
+// tools/audit/fold_ledger.py reads JUDGE.json and the sweeps.
+const ROUND_DIR = `dev/audit/rounds/round${round}`
+// The three lenses one verifier runs in full on every finding of its unit.
 const LENSES = [
   { k: 1, name: 'reproduce', steps: '1 and 3', owns: "re-run the finder's harness exactly as its header says; run its perturbation (the finding is void if the number does not move in the stated direction); run the null control; leave-one-out on any aggregate" },
   { k: 2, name: 'independent', steps: '2 and 4', owns: "measure every finding with a harness and metric definition you write yourself, beside the finder's; for a test-gap claim, the single-line PRODUCTION mutation the suite misses and the file it lives in" },
@@ -96,12 +101,15 @@ function shardsFor(findings, size) {
 const hasNumber = (v) => v?.value !== undefined && v?.value !== null && String(v.value).trim() !== ''
 const normalise = (v) => (v?.vote === 'refute' && !hasNumber(v) ? { ...v, vote: 'unresolved', note: 'refute without an executed number' } : v)
 
+// One verifier per dimension (tvofi, 2026-10-14), so no panel kills: a refute
+// with an executed number sends the finding to the judge `disputed`, a verify
+// `verified`, anything else `contested`, and no vote at all `unvoted`.
+const VERIFIERS_PER_DIMENSION = 1
 function panelOf(votes) {
   const cast = votes.filter(Boolean).map(normalise)
-  const refutes = cast.filter((v) => v.vote === 'refute').length
-  if (refutes >= 2) return 'killed'
-  if (refutes === 1) return 'disputed'
-  return cast.length === 3 && cast.every((v) => v.vote === 'verify') ? 'unanimous' : 'split'
+  if (!cast.length) return 'unvoted'
+  if (cast.some((v) => v.vote === 'refute')) return 'disputed'
+  return cast.every((v) => v.vote === 'verify') ? 'verified' : 'contested'
 }
 
 // defect-root-cause.md, "Except an audit class".
@@ -110,12 +118,14 @@ const rcaOwed = (n, barriered) => n >= 3 || (barriered && n >= 1)
 
 phase('Read the register')
 const reg = await agent(
-  `In ${repo}, check out ${branch}. Read the Round ${round} findings register in dev/programme/register/audit-2026-09.md and every tools/audit/round${round}/D*/ report (REPORT*.md and report*.json). Return JSON {findings: [{id, dimension, scope, step, severity, title, claim, class_guess, report_path, harness_paths: [..], attached_refutation: string|null}]} for every finding with status reported; scope is the finder seat id (D<k>-s<n>), step the brief's method step the report names (D<k>.M<n>, null if none), class_guess the report's ledger id or "new". Do not include corroborations of open issues.`,
+  `In ${repo}, check out ${branch}. Read the Round ${round} findings register in dev/programme/register/audit-2026-09.md and every ${ROUND_DIR}/D*/ report (REPORT*.md and report*.json). Return JSON {findings: [{id, dimension, scope, step, severity, title, claim, class_guess, report_path, harness_paths: [..], attached_refutation: string|null}]} for every finding with status reported; scope is the finder seat id (D<k>-s<n>), step the brief's method step the report names (D<k>.M<n>, null if none), class_guess the report's ledger id or "new". Do not include corroborations of open issues.`,
   { label: 'read', schema: { type: 'object', required: ['findings'] } },
 )
 if (!reg) throw new Error('register read failed (agent returned null); relaunch')
 
 const tally = {}
+// Always empty since round 10 (no vote kills), and kept in the return so a
+// reader of round 9's `panel.killed` reads an honest zero, not a missing key.
 const killed = []
 let toJudge = reg.findings.map((f) => ({ ...f, panel: 'unvoted', votes: [] }))
 if (from === 'panels') {
@@ -125,39 +135,33 @@ if (from === 'panels') {
   for (const dim of Object.keys(byDim).sort()) {
     const shards = shardsFor(byDim[dim], SHARD_SIZE)
     shards.forEach((findings, i) => units.push({ dim, tag: shards.length > 1 ? `${dim}#${i + 1}` : dim, findings }))
-    if (shards.length > 1) log(`${dim}: ${byDim[dim].length} findings > ${SHARD_SIZE}, ${shards.length} triples split by finder seat`)
+    if (shards.length > 1) log(`${dim}: ${byDim[dim].length} findings > ${SHARD_SIZE}, ${shards.length} verifiers split by finder seat`)
   }
 
-  const verifier = (u, lens) => agent(
-    `You are verifier V${lens.k} (${lens.name}) of dimension ${u.dim} in audit round ${round}; two other verifiers vote on the same findings from other containers -- do not coordinate numbers with them. Work in a fresh worktree: from ${repo} run git worktree add ../audit-r${round}-verify-${u.tag.replace('#', '-')}-v${lens.k} ${branch}. Read dev/governance/roles/verifier.md and dev/audit/README.md there and follow them. Do not read the register's verdict columns, GitHub, or another verifier's report.
-Every finding below gets your vote, refute-first, with an executed number (verifier.md steps 1-5 all apply). Your lens, run in full on every finding (verifier.md steps ${lens.steps}): ${lens.owns}.
-Two refutes, each with an executed number, kill a finding at panel; a refute without one counts as unresolved, and so does a refute resting on a timing mismatch alone. Timing and memory numbers taken while other seats run are provisional: quote load1 and thread_factor beside them.
-Findings (reports and harnesses under tools/audit/round${round}/${u.dim}/): ${JSON.stringify(u.findings.map((f) => ({ id: f.id, scope: seatOf(f), title: f.title, claim: f.claim, class_guess: f.class_guess, harness_paths: f.harness_paths, attached_refutation: f.attached_refutation })))}.
-Write your report to tools/audit/round${round}/${u.dim}/verify-v${lens.k}${u.tag === u.dim ? '' : '-' + u.tag.split('#')[1]}.md and return JSON {votes: [{id, vote: "verify"|"weaken"|"refute"|"unresolved", severity, value, metric_definition, method, attacks, class, seam_rule_enumerates}]}; class and seam_rule_enumerates are V3's, null for the others.`,
-    { label: `${u.tag}/v${lens.k}`, phase: 'Panels', schema: { type: 'object', required: ['votes'] } },
+  const verifier = (u) => agent(
+    `You are the verifier of dimension ${u.dim}${u.tag === u.dim ? '' : ` (unit ${u.tag}, split by finder seat)`} in audit round ${round}, the one verifier of these findings: you carry all three lenses. Work in a fresh worktree: from ${repo} run git worktree add ../audit-r${round}-verify-${u.tag.replace('#', '-')} ${branch}. Read dev/governance/roles/verifier.md and dev/audit/README.md there and follow them. Do not read the register's verdict columns, GitHub, or another verifier's report.
+Every finding below gets your vote, refute-first, with an executed number (verifier.md steps 1-5 all apply). Run each lens in full on every finding: ${LENSES.map((l) => `V${l.k} ${l.name} (verifier.md steps ${l.steps}): ${l.owns}`).join('; ')}.
+No vote kills a finding: a refute with an executed number sends it to the common judge disputed, who re-measures it; a refute without one counts as unresolved, and so does a refute resting on a timing mismatch alone. Timing and memory numbers taken while other seats run are provisional: quote load1 and thread_factor beside them.
+Findings (reports and harnesses under ${ROUND_DIR}/${u.dim}/): ${JSON.stringify(u.findings.map((f) => ({ id: f.id, scope: seatOf(f), title: f.title, claim: f.claim, class_guess: f.class_guess, harness_paths: f.harness_paths, attached_refutation: f.attached_refutation })))}.
+Write your report to ${ROUND_DIR}/${u.dim}/verify${u.tag === u.dim ? '' : '-' + u.tag.split('#')[1]}.md and return JSON {votes: [{id, vote: "verify"|"weaken"|"refute"|"unresolved", severity, value, metric_definition, method, attacks, reproduced, independent_value, reachable, class, seam_rule_enumerates}]}: reproduced is V1's number, independent_value V2's, and reachable, class and seam_rule_enumerates V3's.`,
+    { label: `${u.tag}/verify`, phase: 'Panels', schema: { type: 'object', required: ['votes'] } },
   )
-  // A null verifier is re-run once; still null, its votes are missing and the
-  // panel for its findings can at most be `split` or `disputed`, never killed by it.
-  const triple = (u) => parallel(LENSES.map((lens) => async () => (await verifier(u, lens)) ?? (await verifier(u, lens))))
 
   phase('Panels')
-  const panels = await pipeline(units, (u) => triple(u))
+  // A null verifier is re-run once; still null, its findings go to the judge
+  // `unvoted`, never dropped.
+  const panels = await pipeline(units, async (u) => (await verifier(u)) ?? (await verifier(u)))
   toJudge = []
   units.forEach((u, i) => {
-    const seats = panels[i] ?? []
     for (const f of u.findings) {
-      const votes = LENSES.map((lens, j) => {
-        const v = seats[j]?.votes?.find((x) => x.id === f.id)
-        return v ? { lens: lens.name, ...normalise(v) } : null
-      })
+      const v = panels[i]?.votes?.find((x) => x.id === f.id)
+      const votes = v ? [{ lenses: LENSES.map((l) => l.name).join(', '), ...normalise(v) }] : []
       const panel = panelOf(votes)
-      tally[f.id] = { panel, votes: votes.map((v) => v?.vote ?? 'unvoted') }
-      if (panel === 'killed') killed.push(f.id)
-      else toJudge.push({ ...f, panel, votes: votes.filter(Boolean) })
+      tally[f.id] = { panel, votes: votes.map((x) => x.vote) }
+      toJudge.push({ ...f, panel, votes })
     }
   })
-  killed.sort()
-  log(`panels done: ${units.length} triple(s), ${killed.length} killed at panel, ${toJudge.length} to the judge (${toJudge.filter((f) => f.panel === 'disputed').length} disputed)`)
+  log(`panels done: ${units.length} verifier(s), ${toJudge.length} finding(s) to the judge (${toJudge.filter((f) => f.panel === 'disputed').length} disputed, ${toJudge.filter((f) => f.panel === 'unvoted').length} unvoted)`)
 } else {
   log(`args.from is "judge": panels skipped, ${toJudge.length} finding(s) go to the judge unvoted`)
 }
@@ -167,8 +171,8 @@ const lease = `python3 tests/gate_lock.py take --label judge-r${round}; renew be
 const dedup = await agent(
   `You are the one common judge of audit round ${round}. Work alone on the quiet box in a fresh worktree: from ${repo}, git worktree add ../audit-r${round}-judge ${branch}. Read dev/governance/roles/judge.md and follow it. Any measurement you take holds the gate lease: ${lease}.
 This call is judge.md's first step only: DEDUP, across all dimensions, before any verdict. Cluster the findings below by instrumented symbol, files, phenomenon_property and class_guess (read each finding's full record from its report). In each cluster pick the canonical finding and merge another into it only where the canonical finding's perturbation moves the other's harness too -- quote that number; no number, no merge. Merged findings keep their ids ("merged into <id>").
-Then write tools/audit/round${round}/JUDGE-INPUT.json: a JSON list of every canonical finding's full record in tools/audit/finding.schema.json's shape, which tools/audit/judge_batch.py reads. Where a harness header has no JUDGE-RUN / JUDGE-PERTURB / JUDGE-NULL / JUDGE-METRIC line (judge_batch.py's docstring gives the form), add a "judge_batch" object with the commands you derive from the header's prose, so the scripted re-run covers it; a perturbation you cannot express as a command is left out and re-run by hand.
-Findings, each with its panel (unanimous, split, disputed, or unvoted) and votes:
+Then write ${ROUND_DIR}/JUDGE-INPUT.json: a JSON list of every canonical finding's full record in dev/audit/config/finding.schema.json's shape, which tools/audit/judge_batch.py reads. Where a harness header has no JUDGE-RUN / JUDGE-PERTURB / JUDGE-NULL / JUDGE-METRIC line (judge_batch.py's docstring gives the form), add a "judge_batch" object with the commands you derive from the header's prose, so the scripted re-run covers it; a perturbation you cannot express as a command is left out and re-run by hand.
+Findings, each with its panel (verified, contested, disputed, or unvoted) and its verifier's vote:
 <<FINDINGS>>${JSON.stringify(toJudge)}<</FINDINGS>>
 Return JSON {canonical: [id], merged: [{id, into, number}], input_path}.`,
   { label: 'judge/dedup', schema: { type: 'object', required: ['canonical', 'merged', 'input_path'] } },
@@ -177,7 +181,7 @@ if (!dedup) throw new Error('judge dedup failed (agent returned null); relaunch 
 
 const runnerRows = await parallel(Array.from({ length: runners }, (_, i) => () => agent(
   `You are a mechanical re-run runner for audit round ${round}'s judge: you measure, you do not decide. On a quiet box, fresh worktree from ${repo}: git worktree add ../audit-r${round}-runner-${i + 1} ${branch}. Run, from the worktree root:
-python3 tools/audit/judge_batch.py --input ${dedup.input_path} --label judge-r${round}-runner${i + 1}${runners > 1 ? ` --shard ${i + 1}/${runners}` : ''} --out-json tools/audit/round${round}/judge-batch-${i + 1}.json --out-md tools/audit/round${round}/judge-batch-${i + 1}.md
+python3 tools/audit/judge_batch.py --input ${dedup.input_path} --label judge-r${round}-runner${i + 1}${runners > 1 ? ` --shard ${i + 1}/${runners}` : ''} --out-json ${ROUND_DIR}/judge-batch-${i + 1}.json --out-md ${ROUND_DIR}/judge-batch-${i + 1}.md
 It takes and releases the gate lease itself and runs every command serially. Read its exit code; do not edit a row. Return JSON {table, rows, rc}.`,
   { label: `judge/runner-${i + 1}`, schema: { type: 'object', required: ['table', 'rows'] } },
 )))
@@ -185,7 +189,7 @@ It takes and releases the gate lease itself and runs every command serially. Rea
 const judge = await agent(
   `You are the judge of audit round ${round}, continuing in ../audit-r${round}-judge (from ${repo}) after your dedup (${JSON.stringify(dedup)}). Hold the gate lease for any measurement: ${lease}.
 The scripted re-runs are in ${JSON.stringify(runnerRows.map((r) => r?.table ?? null))} (one row per canonical finding, with load1 and thread_factor; a null entry is a runner that died -- run judge_batch.py for its shard yourself). Read every row. Re-run by hand every finding whose row is disputed at panel, void, by-hand, not reproduced, flagged for a re-take (thread_factor > 1.05), or whose null control is by-hand. Then follow judge.md steps 1-7 for every canonical finding: compare the finder's and the verifiers' metric definitions, leave-one-out on aggregates, the null control on cost, gain and time claims, stop_rule_class from the number, and a class for every survivor. Reuse before minting: compare the finding's mechanism with the nearest class in dev/audit/config/bugclasses.json and use its id unless the mechanism differs; a class is a mechanism, never a site. A new class (P13..., I6..., N-<name>) carries its mechanism in one line, the id of the nearest existing class as nearest, and in differs what the mechanism does that the nearest does not; tools/audit/fold_ledger.py refuses a new id without both, and two ids minted this round with one nearest are counted as one for the trigger.
-Write tools/audit/round${round}/JUDGE.md and JUDGE.json (the round, and the verdicts as returned) and return JSON {verdicts: [{id, verdict: "verified"|"weakened"|"refuted"|"unreproduced", severity, value, stop_rule_class, class, class_mechanism, nearest, differs, note}]} for the canonical findings; nearest and differs only on a verdict whose class is new.`,
+Write ${ROUND_DIR}/JUDGE.md and JUDGE.json (the round, and the verdicts as returned) and return JSON {verdicts: [{id, verdict: "verified"|"weakened"|"refuted"|"unreproduced", severity, value, stop_rule_class, class, class_mechanism, nearest, differs, note}]} for the canonical findings; nearest and differs only on a verdict whose class is new.`,
   { label: 'judge', schema: { type: 'object', required: ['verdicts'] } },
 )
 if (!judge) throw new Error('judge failed (agent returned null); relaunch to re-run the judge')
@@ -215,7 +219,7 @@ const classIds = Object.keys(byClass).sort()
 const sweeps = await pipeline(classIds, (cls) => agent(
   `You are the class-sweep seat for class ${cls} of audit round ${round} (PLAN phase D). Fresh worktree from ${repo}: git worktree add ../audit-r${round}-sweep-${cls} ${branch}. Read dev/governance/dimensions/D14.md and run its method steps 3-4 for this class: an enumerator listing every seam of the class across the whole package (start from the findings' seam_rules), its positive control (it re-finds every finding below), its null control (zero on a clean fixture) and its perturbation (it moves under a one-line re-introduction); then disposition every seam it returns as instance (with a probe that fails on it), guarded (name the guard) or not applicable (the reason). Read the class's status in dev/audit/config/bugclasses.json.
 Findings in the class: ${JSON.stringify(byClass[cls])}.
-Write tools/audit/round${round}/sweep-${cls}.md, and the JSON you return as tools/audit/round${round}/sweep-${cls}.json, which tools/audit/fold_ledger.py reads: {class, instances, barriered, enumerator, instance_list: [{file, symbol, probe, beyond_finding}]}. Every seam in instance_list carries a boolean beyond_finding: true when it is NOT the site of a finding above, false when it is a judged site itself; instances is the count of true ones.`,
+Write ${ROUND_DIR}/sweep-${cls}.md, and the JSON you return as ${ROUND_DIR}/sweep-${cls}.json, which tools/audit/fold_ledger.py reads: {class, instances, barriered, enumerator, instance_list: [{file, symbol, probe, beyond_finding}]}. Every seam in instance_list carries a boolean beyond_finding: true when it is NOT the site of a finding above, false when it is a judged site itself; instances is the count of true ones.`,
   { label: `sweep/${cls}`, phase: 'Class sweep', schema: { type: 'object', required: ['instances', 'barriered', 'enumerator'] } },
 ))
 const classes = classIds.map((cls, i) => {
@@ -234,7 +238,7 @@ for (const c of classes) if (!c.swept) log(`class ${c.class}: the sweep seat ret
 
 phase('Fold the register')
 const fold = await agent(
-  `Fold audit round ${round} into the bug-class register. In ${repo} on ${branch}, from the repository root, run exactly: python3 tools/audit/fold_ledger.py fold --round ${round}; then python3 tools/audit/fold_ledger.py check. Do not edit dev/audit/config/bugclasses.json or dev/audit/config/finding.schema.json by hand: the script writes both. If fold exits non-zero it has refused (a survivor with no class, a new class without nearest and differs, a sweep seam without beyond_finding): change nothing, and return its output verbatim. Otherwise commit dev/audit/config/bugclasses.json, dev/audit/config/finding.schema.json and tools/audit/round${round}/ with the subject "audit round ${round}: fold the register".
+  `Fold audit round ${round} into the bug-class register. In ${repo} on ${branch}, from the repository root, run exactly: python3 tools/audit/fold_ledger.py fold --round ${round}; then python3 tools/audit/fold_ledger.py check. Do not edit dev/audit/config/bugclasses.json or dev/audit/config/finding.schema.json by hand: the script writes both. If fold exits non-zero it has refused (a survivor with no class, a new class without nearest and differs, a sweep seam without beyond_finding): change nothing, and return its output verbatim. Otherwise commit dev/audit/config/bugclasses.json, dev/audit/config/finding.schema.json and ${ROUND_DIR}/ with the subject "audit round ${round}: fold the register".
 Return JSON {rc: <fold's exit code>, check_rc: <check's exit code>, output: <both outputs, verbatim>}.`,
   { label: 'fold', phase: 'Fold the register', schema: { type: 'object', required: ['rc', 'output'] } },
 )
@@ -244,15 +248,15 @@ if (typeof fold.check_rc === 'number' && fold.check_rc !== 0) log(`the register 
 
 phase('Issues and register')
 const writer = await agent(
-  `Record the outcome of audit round ${round} verification. In ${repo} on ${branch}: update the Round ${round} register tables in dev/programme/register/audit-2026-09.md with each verdict from ${JSON.stringify(verdicts)} and each finding's panel ${JSON.stringify(tally)} (killed at panel: ${JSON.stringify(killed)}); add today's date to the section header; commit tools/audit/round${round}/ verifier, judge, judge-batch and sweep reports. dev/audit/config/bugclasses.json is already folded (the fold step): do not edit it. In dev/audit/config/rotation.json set rounds["${round}"].yield for each dimension to exactly ${JSON.stringify(sortedYield)} (a dimension's map replaces its yield whole; keys sorted, two-space indent, trailing newline).
-One issue per class, not per finding (PLAN section 8.1). Classes: ${JSON.stringify(classes)}. Write tools/audit/round${round}/ISSUES.json: per class {class, title: "[R${round}-<class>] <mechanism>", labels: ["audit", "round-${round}", "class:<class>", "sev:<highest severity in the class>"], body}, the body carrying the class mechanism, each finding (id, severity, harness, verdict), each sweep instance, the enumerator command, and "RCA: owed" when rca is true or "RCA: not triggered (N=<n>)". Write the draft roster .claude/workflows/wave-r${round}-groups.json: one group per class with its issue (null until filed), its file set from the sweep, after dependencies, and the RCA flag; run node tools/policy/brief_lint.mjs and read its exit code and error lines, not the summary.
+  `Record the outcome of audit round ${round} verification. In ${repo} on ${branch}: update the Round ${round} register tables in dev/programme/register/audit-2026-09.md with each verdict from ${JSON.stringify(verdicts)} and each finding's panel ${JSON.stringify(tally)} (killed at panel: ${JSON.stringify(killed)}); add today's date to the section header; commit ${ROUND_DIR}/ verifier, judge, judge-batch and sweep reports. dev/audit/config/bugclasses.json is already folded (the fold step): do not edit it. In dev/audit/config/rotation.json set rounds["${round}"].yield for each dimension to exactly ${JSON.stringify(sortedYield)} (a dimension's map replaces its yield whole; keys sorted, two-space indent, trailing newline).
+One issue per class, not per finding (PLAN section 8.1). Classes: ${JSON.stringify(classes)}. Write ${ROUND_DIR}/ISSUES.json: per class {class, title: "[R${round}-<class>] <mechanism>", labels: ["audit", "round-${round}", "class:<class>", "sev:<highest severity in the class>"], body}, the body carrying the class mechanism, each finding (id, severity, harness, verdict), each sweep instance, the enumerator command, and "RCA: owed" when rca is true or "RCA: not triggered (N=<n>)". Write the draft roster .claude/workflows/wave-r${round}-groups.json: one group per class with its issue (null until filed), its file set from the sweep, after dependencies, and the RCA flag; run node tools/policy/brief_lint.mjs and read its exit code and error lines, not the summary.
 ${fileIssues ? `Filing is on (args.file): as tvofi, for each class run gh issue list --search "\\"[R${round}-<class>]\\" in:title" and skip one that exists, else create it; put the numbers in ISSUES.json, the register rows and the roster.` : 'Do not file issues, push, or open a pull request: filing and pushing are the Mac seat\'s (decision 0011). Commit on the branch and stop.'}
 Return JSON {issues: [{class, number}], issues_path, roster, brief_lint_rc}.`,
   { label: 'register', schema: { type: 'object', required: ['issues'] } },
 )
 phase('Round record')
 const record = await agent(
-  `The round record of audit round ${round} is branch ${branch} in ${repo}: the folded register (dev/audit/config/bugclasses.json), its reports under tools/audit/round${round}/, the register section of dev/programme/register/audit-2026-09.md. Write its pull request body to a file outside the worktree under the form of .github/PULL_REQUEST_TEMPLATE.md (the first line \`_Requested by **tvofi**_\`, the head sha, the fold's output: ${JSON.stringify(String(fold.output ?? '').slice(0, 1500))}).
+  `The round record of audit round ${round} is branch ${branch} in ${repo}: the folded register (dev/audit/config/bugclasses.json), its reports under ${ROUND_DIR}/, the register section of dev/programme/register/audit-2026-09.md. Write its pull request body to a file outside the worktree under the form of .github/PULL_REQUEST_TEMPLATE.md (the first line \`_Requested by **tvofi**_\`, the head sha, the fold's output: ${JSON.stringify(String(fold.output ?? '').slice(0, 1500))}).
 ${fileIssues ? `Filing is on (args.file): run tools/pr/app_push.sh <owner/repo> <worktree> ${branch} <body> as the Mac seat, which checks the body, pushes and opens the pull request as the hpo-author App, and return its output.` : 'Do not push or open the pull request: the App key is the Mac seat\'s (decision 0011). Return the exact app_push.sh command line for the orchestrator.'}
 Return JSON {branch, body_path, pr: <number or null>, command}.`,
   { label: 'record', phase: 'Round record', schema: { type: 'object', required: ['branch'] } },
