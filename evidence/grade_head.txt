@@ -1,0 +1,10 @@
+head 25418620f9fb39304e82dceea3ce8d2114ad018f, run 38639862216 own artifacts
+ci-ratchet: not counted: 17 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
+  ?     script_runs_full_case_pr: not derived this run (missing input); not graded
+  ok    script_runs_per_push: 54 (budget 68)
+ci-ratchet: every metric at or under its budget
+head, window of 38 artifacts + run
+ci-ratchet: not counted: 209 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
+  ok    script_runs_full_case_pr: 54 (budget 68)
+  ok    script_runs_per_push: 54 (budget 68)
+ci-ratchet: every metric at or under its budget

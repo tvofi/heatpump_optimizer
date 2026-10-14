@@ -1,0 +1,8 @@
+base c698d504a, run 38639862216 own artifacts
+ci-ratchet: 1 metric(s) grew; pay the debt or re-record deliberately with --record "<reason>" (CLAUDE.md rule 2)
+  ?     script_runs_full_case_pr: not derived this run (missing input); not graded
+  GREW  script_runs_per_push: 69 (budget 68)
+base, window of 38 artifacts + run
+ci-ratchet: 1 metric(s) grew; pay the debt or re-record deliberately with --record "<reason>" (CLAUDE.md rule 2)
+  ok    script_runs_full_case_pr: 67 (budget 68)
+  GREW  script_runs_per_push: 69 (budget 68)
