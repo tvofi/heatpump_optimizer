@@ -36,8 +36,15 @@ CODE=$(git rev-parse "$CODE")
 git diff --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
 # The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
 # transport commit above the code head, until no open handoff carries one.
-if git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then
-  git show FETCH_HEAD:BODY.md > "$B" || { echo "no BODY.md at handoff-body/$TOPIC"; exit 1; }
+# The body is read from the sha origin ANSWERED for the ref, never FETCH_HEAD.
+# This runs in the MAIN checkout, where fetches are constant, so an intervening
+# fetch -- another seat publishing its own body -- makes `git show
+# FETCH_HEAD:BODY.md` publish ANOTHER TOPIC'S body as this pull request's
+# (R9-RC-BUS-FETCHHEAD: the predicate bus.sh carried, with a wrong artifact
+# instead of a refusal).
+tip=$(git ls-remote origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null | awk 'NF { print $1; exit }') || tip=""
+if [ -n "$tip" ] && git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then
+  git show "$tip:BODY.md" > "$B" || { echo "no BODY.md at handoff-body/$TOPIC"; exit 1; }
 else
 bf=${BODYPATH:-$(git diff --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --name-only "$CODE" "$T")"; exit 1; }
 git show "${T}:${bf}" > "$B"
