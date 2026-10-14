@@ -4180,7 +4180,14 @@ jobs:
                 echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
             fi
           fi
-          guard --require-green; rc=$?
+          # A CONDITION, not a bare `guard --require-green; rc=$?`: this step
+          # runs under `bash -e` (GitHub's `run:` default), so a bare call
+          # would end the STEP with the guard's own exit -- 3 while a required
+          # check still runs, 1 on a refusal -- before the `case` below turns
+          # either into `say ...; exit 0`. Every outcome here is green; the
+          # report step reddens a beat that did not land. `-e` exempts a
+          # condition, so the exit reaches the case.
+          if guard --require-green; then rc=0; else rc=$?; fi
           case "$rc" in
             0) ;;
             3) say approved-pending; exit 0 ;;
