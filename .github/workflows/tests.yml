@@ -691,32 +691,41 @@ jobs:
           python-version: "3.13"
 
       # Per-script coverage is reused from the push run at the diff's base
-      # (R9-F10.9b, #1812). The key is that base commit plus everything that
+      # (R9-F10.9b, #1812) -- and, since the V1 lever, the push arm reuses
+      # the same way: its entry is derivable by the same formula at the
+      # first parent (HEAD^1, the previous push to main), so a push diff
+      # that clears a script's closure copies that script's data instead of
+      # re-measuring it. The key is the base commit plus everything that
       # decides what a script's data means: the instrument, the tracer and
       # dependency locks, and the interpreter. A change to any of them is a
-      # different key, so a miss, so every script is measured. A push keys its
-      # own commit and saves. The runner's OS is in the key as well, since the
-      # tracer's data is the platform's (#1822 review, R9-F10.9c).
+      # different key, so a miss, so every script is measured. A push keys
+      # its own commit and saves. The runner's OS is in the key as well,
+      # since the tracer's data is the platform's (#1822 review, R9-F10.9c).
       - name: Key the per-script coverage
         id: covkey
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             BASE=$(git rev-parse HEAD)
+            RESTORE_BASE=$(git rev-parse HEAD^1)
           else
             BASE=$(git merge-base origin/main HEAD)
+            RESTORE_BASE=$BASE
           fi
           PY=$(python -c 'import sys; print(sys.version.split()[0])')
+          HASH="${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tools/coverage/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tools/coverage/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
+          echo "restore_base=$RESTORE_BASE" >> "$GITHUB_OUTPUT"
+          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-$HASH" >> "$GITHUB_OUTPUT"
+          echo "restore_key=coverage-per-v1-${{ runner.os }}-$RESTORE_BASE-py$PY-$HASH" >> "$GITHUB_OUTPUT"
 
-      # An exact key and no restore-keys: data from any other commit is a miss.
+      # An exact key and no restore-keys: data from any other commit is a
+      # miss. The push arm restores its parent's entry by the same rule.
       - name: Restore the base's per-script coverage
         id: covbase
-        if: github.event_name != 'push'
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ${{ runner.temp }}/coverage-base
-          key: ${{ steps.covkey.outputs.key }}
+          key: ${{ steps.covkey.outputs.restore_key }}
 
       # THE ENTRY MUST BE MAIN'S PUSH RUN'S (#1822 review, R9-F10.9c). A
       # restore searches this pull request's own cache scope before main's, so
@@ -724,20 +733,25 @@ jobs:
       # this key would be restored here in place of the push run's data. The
       # push run writes a marker naming its event, ref and commit; an entry
       # whose marker is not a push to main at this key's base is discarded and
-      # every script is measured, as on a miss. A head that forges the marker
-      # too is not caught here: the push to main measures every script
-      # unscoped, as it does behind every scoped lane.
+      # every script is measured, as on a miss. BASE here is that base: the
+      # merge base on a pull request, HEAD^1 on a push. A head that forges the
+      # marker too is not caught here: the diff's plan then still skips only
+      # what select says it may, and the scoped gate's own discipline applies.
       - name: Check the restored coverage is main's push run's
         id: covtrust
         if: steps.covbase.outputs.cache-hit == 'true'
         env:
-          BASE: ${{ steps.covkey.outputs.base }}
+          BASE: ${{ steps.covkey.outputs.restore_base }}
         run: |
-          MARK="$RUNNER_TEMP/coverage-base/.measured-by"
-          if [ -f "$MARK" ] && [ "$(cat "$MARK")" = "push refs/heads/main $BASE" ]; then
+          # The decision is closure.py's, not this step's, so the selftest
+          # pins it: a non-push marker, a marker at another commit and a
+          # missing marker are all discards, and reuse never engages from a
+          # non-push run.
+          if python tests/closure.py coverage-trust \
+              --reuse-dir "$RUNNER_TEMP/coverage-base" \
+              --expect "push refs/heads/main $BASE"; then
             echo "trusted=true" >> "$GITHUB_OUTPUT"
           else
-            echo "The restored coverage is not a push to main at $BASE (marker: $(cat "$MARK" 2>/dev/null || echo none)); measuring every script."
             rm -rf "$RUNNER_TEMP/coverage-base"
           fi
 
@@ -791,11 +805,14 @@ jobs:
           echo "W5P_WORK=$W5P_WORK" >> "$GITHUB_ENV"
           # The gate's own scope for this diff decides which scripts can
           # reuse the base's data: a script the plan skips has no changed file
-          # in its measured closure. Only on a hit the marker check trusted; a
+          # in its measured closure. The diff is against the restored base --
+          # the merge base on a pull request, HEAD^1 on a push (V1: the push
+          # arm reuses under the same rule and the same FULL plan on a diff
+          # no closure mentions). Only on a hit the marker check trusted; a
           # miss or a discarded entry measures everything.
           if [ "${{ steps.covtrust.outputs.trusted }}" = "true" ]; then
             PYTHONPATH=tests/hastub python tests/closure.py select \
-              --diff "${{ steps.covkey.outputs.base }}" \
+              --diff "${{ steps.covkey.outputs.restore_base }}" \
               --workdir "$RUNNER_TEMP/coverage-scope"
             export W5P_SCOPE="$RUNNER_TEMP/coverage-scope/scope.json"
             export W5P_REUSE="$RUNNER_TEMP/coverage-base"
@@ -812,6 +829,20 @@ jobs:
             echo "failing, not the ratchet: there is no measurement to judge."
             exit 1
           }
+
+      # The honest count, where the reader is (V1): how many script
+      # measurements this run copied from the base instead of re-measuring,
+      # with the bounded loss stated in the same line.
+      - name: Summarize the per-script reuse
+        if: always()
+        run: |
+          if test -s "$W5P_WORK/out/scripts.tsv"; then
+            python tests/closure.py coverage-summary "$W5P_WORK/out/scripts.tsv" \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "no per-script table: the instrument produced no measurement" \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       # Kept on a failure too: the run that refuses because the floor moved is
       # exactly the run whose per-module numbers are wanted.
@@ -848,9 +879,11 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      # The next pull requests' base: every script measured, on main. Copied
-      # to the path the restore names, because a cache entry's version hashes
-      # its path: saved from the mktemp directory, no restore would ever hit.
+      # The next runs' base: this commit's per/ directory, every script in it
+      # either measured here or copied from the previous push with its
+      # provenance.tsv saying which (V1). Copied to the path the restore
+      # names, because a cache entry's version hashes its path: saved from
+      # the mktemp directory, no restore would ever hit.
       - name: Stage this commit's per-script coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
