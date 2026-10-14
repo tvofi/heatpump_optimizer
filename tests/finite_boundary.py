@@ -1306,6 +1306,7 @@ def _a6_enrich(coord, t0) -> None:
         dhw_slots=None, expires_at=_A4_NOW + _dt.timedelta(hours=6), created_at=t0)
     coord._away_state.migrated_helpers = True
     coord._flow_bias.bias_k, coord._flow_bias.samples = 2.5, 4
+    coord._measured_cop.record(3.17, True, 52.5)
     learner = coord._dhw_learner
     for name, low in (("hourly_profile", 0.5), ("profile_weekday", 0.75), ("profile_weekend", 0.25)):
         # Dyadic, mean exactly 1: the loader's renormalisation is the identity

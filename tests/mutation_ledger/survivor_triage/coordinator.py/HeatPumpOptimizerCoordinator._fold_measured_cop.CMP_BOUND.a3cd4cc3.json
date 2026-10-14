@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop CMP_BOUND a3cd4cc3",
+  "old": "        if not np.isfinite(observed_cop) or observed_cop <= 0.1:",
+  "reason": "Arrived with origin/main at df7db8215; this PR's rename of `_learn_measured_cop` to `_fold_measured_cop` made the anchor new, and the round-5 pin pass drove it and found no killing check. A real gap: the arms differ only where `observed_cop` is exactly the double 0.1 -- `modelled_cop * commanded / measured` at 0.1 -- while the interval must already have passed the tracking gate (|ratio - ewma| within 30 % of the walking ewma) and either the ask tolerance or `follows_ask`. No driver in play constructs that ratio together with a modelled COP exactly a tenth of it; the guard's neighbours are tested (the off-ask, blended, modelled-zero and frost-band refusals each have a check) but the boundary itself is not. Left as a gap rather than called equivalent: the input exists, it is just not reached. Its GUARD_OFF twin on the same line is pinned by a row this branch's own mutation-pin pass wrote at head `d1538a73b` against ratchet base `b2b6acd64` -- not by the round-5 pass, which never reached it.",
+  "verdict": "gap"
+}

@@ -94,6 +94,7 @@
   "_floor_widening": "core",
   "_fold_capacity_envelope": "core",
   "_fold_internal_gains": "core",
+  "_fold_measured_cop": "learning",
   "_fold_score_sample": "core",
   "_fold_solar_aperture": "fetch",
   "_forecast_arrays": "core",

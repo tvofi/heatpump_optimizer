@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:follows_ask CMP_BOUND c5289931",
+  "killed_by": "tests/features.py",
+  "old": "        [(d, a) for d, a in draw.samples if a >= floor and a > 0.0], dtype=float",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CMP_BOUND` ([(d, a) for d, a in draw.samples if a >= floor and a >= 0.0], dtype=float) flips the condition of tests/features.py's R.check \"asks spanning exactly 1.15 are evidence (the span bound is `<`), and an ask exactly at the configured floor counts as a running level\" -- `a >= floor` -> `a > floor` reads False on the span case (the 8 asks at exactly the configured floor are dropped, leaving 40 below MIN_SAMPLES) and `a > 0.0` -> `a >= 0.0` reads False on the asked-0.0 case: each of the 2 sites under this anchor was killed.. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}
