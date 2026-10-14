@@ -339,8 +339,14 @@ COST_DETECTION = 2.0
 #: sqrt(2) x their geometric midpoint 0.3012 is 0.426. Both edges then sit
 #: 24 % inside the band (floor 0.213), and every doubled loop arm, 0.581-
 #: 0.682 with its cpu_ratio 2.82-3.24 under 3.576, is over the cap by 36 %.
+#: ``cpu_ratio`` re-recorded down the same way (#2205): #2142's solve memo
+#: cut the cycle to 0.671x (two interleaved local rounds, its merge against
+#: the last nightly head before it), so the five nightlies before it, 2.156-
+#: 2.769, project to 1.446-1.857, and the first after it read 1.880;
+#: sqrt(2) x the geometric midpoint of 1.446 and 1.880 is 2.332, each edge
+#: 19-24 % inside the band.
 COST_BUDGETS: dict[str, dict[str, float]] = {
-    "synthetic-dhw-only.json": {"cpu_ratio": 3.576, "peak_kib": 2686.0,
+    "synthetic-dhw-only.json": {"cpu_ratio": 2.332, "peak_kib": 2686.0,
                                 "loop_cpu_ratio": 0.426},
 }
 #: A reference solve after every this many cycles, beside the ones before
@@ -378,6 +384,13 @@ def cost_offenders(figures: dict[str, float], budget: dict[str, float] | None,
             out.append(f"{key} {value:.4g}: budget {cap:.4g} cannot see a "
                        f"{detection:g}x cycle; re-record {math.sqrt(detection) * value:.4g}")
     return out
+
+
+def short_doubling(injected_ratio: float) -> list[str]:
+    """A perturbation arm that burnt less than the clean span its metric
+    times is no doubling (#2205: the cpu arm spun the update alone, ~0.93)."""
+    return [] if injected_ratio >= 1.0 else [
+        f"injected {injected_ratio:.4g} x the clean span, a doubling is >= 1"]
 
 
 def uncovered_files(traced: set[str]) -> list[str]:
@@ -453,6 +466,8 @@ def controls() -> list[tuple[str, bool, str]]:
     lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8])
     pair("cycle_cost:loop_thread", cost_offenders(lhot, lbudget),
          cost_offenders(lclean, lbudget))
+    pair("cycle_cost:short_doubling", short_doubling(0.93) + short_doubling(float("nan")),
+         short_doubling(1.0001))
     pkg = "/x/custom_components/heatpump_optimizer/"
     pair("cycle_cost:coverage", uncovered_files({pkg + f for f in COST_FILES[1:]}),
          uncovered_files({pkg + f for f in COST_FILES}))
@@ -699,23 +714,20 @@ def _spin(clock, seconds: float) -> None:
 
 
 def inject_cost(cm, kind: str | None) -> None:
-    """The perturbation: double one cycle's CPU or its memory peak, in memory.
+    """The perturbation: double one cycle's memory peak, in memory.
 
     Wraps ``_async_update_data`` rather than editing ``coordinator.py`` on
     disk, which a concurrent run in the same tree would import.
     """
-    if kind in (None, "loop"):  # the loop arm is spun in run_fixture
+    if kind != "memory":  # the cpu and loop arms are spun in run_fixture
         return
     import tracemalloc
 
     real = cm.HeatPumpOptimizerCoordinator._async_update_data
 
     async def doubled(self):
-        began = time.process_time()
         out = await real(self)
-        if kind == "cpu":
-            _spin(time.process_time, time.process_time() - began)
-        elif tracemalloc.is_tracing():
+        if tracemalloc.is_tracing():
             current, peak = tracemalloc.get_traced_memory()
             ballast = bytearray(max(0, 2 * peak - current))
             del ballast
@@ -883,9 +895,10 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         # The arm's metric span before this point's spin, less any spin in it.
         clean_span = ((own_loop if inject == "loop" else time.process_time() - began)
                       - (_INJECTED_CPU[0] - injected_before))
-        if inject == "loop":
-            # The perturbation: exactly the loop thread's own work again.
-            _spin(time.thread_time, own_loop)
+        if inject in ("cpu", "loop"):
+            # The perturbation: exactly that span again -- the loop thread's
+            # own work, or the whole cycle's update, jobs and entity sweep.
+            _spin(time.thread_time if inject == "loop" else time.process_time, clean_span)
         if mode == "cpu":
             cycle_cpu.append((time.process_time() - began) * 1000.0)
             loop_cpu.append(((time.thread_time() - began_thread)
@@ -1288,16 +1301,16 @@ def main(argv: list[str] | None = None) -> int:
             hot = replay_one(R, path, args.step_minutes, kind)
             if hot is None:
                 continue
-            print(f"  {kind} doubled at _async_update_data: cost {hot['cost']}")
+            print(f"  {kind} doubled: cost {hot['cost']}")
             fired = [o for o in hot["results"]["cycle_cost"]
                      if o.startswith(f"{key} ") and "over its budget" in o]
             R.check(f"{path.name}: cycle_cost sees a doubled cycle {kind}", bool(fired),
                     f"{key} {hot['cost'][key]} against clean {out['cost'][key]}: "
                     + " | ".join(hot["results"]["cycle_cost"][:3]))
-            if kind != "memory":  # a doubling burns the whole span its metric times
-                ratio = hot["cost"].get("injected_ratio", 0.0)
+            if kind != "memory":
+                short = short_doubling(hot["cost"].get("injected_ratio", float("nan")))
                 R.check(f"{path.name}: the {kind} arm doubles the whole span {key} times",
-                        ratio >= 1.0, f"injected {ratio} x the clean span, a doubling is >= 1")
+                        not short, " | ".join(short))
     print(f"\nreplay lane wall time {time.monotonic() - began:.1f} s")
     return R.close("replay checks")
 
