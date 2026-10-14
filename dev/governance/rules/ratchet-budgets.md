@@ -86,10 +86,9 @@ same diff. If the floor fell and the corpus did not, the saving is a
 reclassification and the body says so in those words.
 
 **Raising a cap is the LAST RESORT, and it needs the repository owner's explicit
-confirmation, obtained before the branch is pushed** — the same gate
-`CLAUDE.md` rule 2 puts on the structural ratchet, and it binds here whether the
-change is a production feature or governance prose. The order is an order, not a
-preference:
+confirmation, obtained before the branch is pushed** — or, under a mandate in
+force, `CLAUDE.md` rule 2's exception, whose payments include step 1's cuts. It
+binds a production feature and governance prose alike, in this order:
 
 1. **Pay for it.** Cut prose that is spent, duplicated, or now carried by a
    mechanical detector; `writing-for-agents.md`'s uniqueness test
