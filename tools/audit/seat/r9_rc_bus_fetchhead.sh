@@ -266,8 +266,14 @@ fi
 if [ "$MODE" = append ]; then
   # A fixed nonce, not one `dispatch` mints: the verdict file's bytes are part
   # of the commit, so a random nonce would change every sha below and the two
-  # runs would differ for a reason that has nothing to do with the fix.
+  # runs would differ for a reason that has nothing to do with the fix. The
+  # nonce is planted into the dispatch state as a line in `dispatch`'s own
+  # format (<pr> <head> <reviewer> <nonce>), because #2115 binds a verdict's
+  # nonce to its dispatch's pull request and head: an unplanted nonce is
+  # refused before any append, which would green the arm on a refusal and pin
+  # nothing. With the plant, the bytes are what they always were.
   N=0123456789abcdef0123456789abcdef
+  printf '30 %s cmsg_append %s\n' "$H1" "$N" >> "$W/state/dispatched"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$H1" "$N" > "$W/n1.md"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$H1" "$N" > "$W/n2.md"
   out=$(bus push-verdict 30 "$W/n1.md" "$W/ev1") || { echo "round 1 failed: $out" >&2; exit 2; }
