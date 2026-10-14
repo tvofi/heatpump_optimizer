@@ -1,0 +1,497 @@
+{
+  "box": "B7",
+  "missing": [],
+  "reports": {
+    "D14-s1": {
+      "dimension": "D14",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D14/s1/REPORT.md",
+      "exposure": "Read dev/audit/config/bugclasses.json in full. Read the git history of the worktree's .git for these instances: N-name-sort ea95fb88c, 9af8a477f, 87eeaeefd and dc977f693, plus their parents' translations; P10 c4e1e0c07 (R9-F1.7). Read the #1679 comment on N-step-grid in config_flow._number. Read the in-tree barriers tests/replay.py kernel_checks and tests/entities.py #1760. No gh.",
+      "coverage": [
+        {
+          "step": "M2",
+          "depth": "deep",
+          "evidence": "Ledger open production classes enumerated. Picked P10 and N-name-sort (6 rounds each) plus N-step-grid. P8 deferred."
+        },
+        {
+          "step": "M3",
+          "depth": "deep",
+          "evidence": "Three committed detectors: p10_seams.py (35 static seams; replay routes base, fallback, sysid and away), namesort_seams.py (81 instantiated entities; re-finds at dc977f693^ and 9af8a477f^) and stepgrid_seams.py (84 number fields). Each one moves under a one-line re-introduction."
+        },
+        {
+          "step": "M4",
+          "depth": "deep",
+          "evidence": "One finding (P10 away seam) with seam classification and a proposed barrier. N-name-sort and N-step-grid returned non-findings."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "M3",
+          "what": "P10 pre-fix re-find at c4e1e0c07^ was not run, because replay.kernel_routes post-dates that fix. The coordinator._replay_interval seam (house and lower-floor loss learners) is listed but not driven, because the fixture is DHW-only."
+        },
+        {
+          "step": "M2",
+          "what": "P8 (currency precedence) was not given a detector."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D14-s1-01",
+          "scope": "D14-s1",
+          "step": "M4",
+          "title": "Away-recovery estimate runs ThermalModel.simulate_step on the event loop; the P10 replay barrier never reaches it",
+          "severity": "low",
+          "claim": "With an away override and return time set and the house below its recovery target, each optimization cycle calls ThermalModel.simulate_step on the event loop. The call comes from away.estimate_recovery_hours (coordinator._resolve_away -> away.resolve -> _apply_return, inline in async_run_optimization): 183 calls over 6 replayed cycles, and up to 96 per cycle. tests/replay.py kernel_checks stays green because none of its arms sets away.",
+          "evidence": {
+            "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s1/p10_seams.py --away",
+            "harness_path": "dev/audit/rounds/round10/D14/s1/p10_seams.py",
+            "value": 183,
+            "unit": "loop kernel calls / 6 cycles",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B7 macOS arm64",
+            "cpu_or_wall": "count",
+            "contention_note": "count, contention-immune",
+            "tolerance": 0,
+            "load1": 87.17,
+            "thread_factor": 1.001
+          },
+          "instrumented_symbol": "heatpump_optimizer.away:estimate_recovery_hours (ThermalModel.simulate_step counted by route via tests/replay.py:kernel_routes)",
+          "perturbation": {
+            "change": "--deficit 0 (house at its recovery target, so estimate_recovery_hours returns before simulating). Alternatively, run estimate_recovery_hours via _await_off_loop.",
+            "expected_direction": "down to 0"
+          },
+          "metric_definition": "Calls to ThermalModel.simulate_* made outside process_worker.run_worker and off any executor thread, at the outermost kernel call, attributed to away.py, over 3 h of the synthetic-dhw-only replay with the away override active and a 12 h return.",
+          "phenomenon_property": "No model kernel runs on the event loop. Seam rule: the static AST list in p10_seams.py of every simulate_*/linalg/scipy.optimize call site, each driven by a replay arm that reaches it.",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s1/p10_seams.py [--away] (static_seams list plus loop/executor/worker routes)",
+          "stop_rule_class": "bug",
+          "class_guess": "P10",
+          "files": [
+            "custom_components/heatpump_optimizer/away.py",
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "tests/replay.py"
+          ],
+          "proposed_fix_scope": "Compute the recovery estimate off the loop (worker or cached per solve), and add away and space-learner arms to tests/replay.py KERNEL_ARMS so the barrier enumerates these seams.",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "N-name-sort: every declared family of instantiated entities sorts as one contiguous run in en and sv. The detector re-finds the pre-F7.5 splits.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s1/namesort_seams.py ; --names-at dc977f693^",
+          "value": "0/0 splits over 81 entities and 16 families; pre-fix en 1, sv 2; --perturb en 1"
+        },
+        {
+          "claim": "N-step-grid: no stepped NumberSelector has its max or static default off its own grid. Box fields use step any.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s1/stepgrid_seams.py",
+          "value": "off_grid=0 of 42 stepped fields; --perturb 8"
+        },
+        {
+          "claim": "P10: the base, fallback and sysid replay arms run no widened kernel (simulate_*, linprog, minimize, linalg) on the loop.",
+          "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s1/p10_seams.py --hours 24",
+          "value": "loop_kernels_all=0 over 48 cycles; --perturb 6967"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D14/s1/p10_seams.py",
+        "dev/audit/rounds/round10/D14/s1/namesort_seams.py",
+        "dev/audit/rounds/round10/D14/s1/stepgrid_seams.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "dev/audit/config/bugclasses.json",
+          "symbol": "N-name-sort.status, N-step-grid.status, P10.status",
+          "what": "The ledger says open, but in-tree checks exist: tests/entities.py #1760 contiguity, the #1679 box step any, and the tests/replay.py P10 kernel_checks. The status and detector fields look stale."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_replay_interval / _async_learn_house_heat_loss",
+          "what": "Calls simulate_step on the loop once per cycle; the DHW-only replay fixture does not reach it."
+        }
+      ]
+    },
+    "D14-s2": {
+      "dimension": "D14",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D14/s2/REPORT.md",
+      "exposure": "Read dev/audit/config/bugclasses.json (all classes; P8 instances and detector_idea); git log --grep=1657 (7cccba3a7 F1.8 money follows feed currency); git show -s eaa2a06af, 3490cb16e. No gh, no registers.",
+      "coverage": [
+        {
+          "step": "D14.M1",
+          "depth": "deep",
+          "evidence": "bugclasses.json enumerated: open production classes P8, P10, N-name-sort, N-step-grid, N-reap-lock, N-staleness; open instrument N-postreview-merge-red, N-approval-rebuy, N-finally-return; prototype-only N-orphaned-handoff"
+        },
+        {
+          "step": "D14.M2",
+          "depth": "spot",
+          "evidence": "picked P8 (8 instances over 6 rounds, money consequence); N-name-sort and P10 not picked"
+        },
+        {
+          "step": "D14.M3",
+          "depth": "spot",
+          "evidence": "p8_money_units.py: live replay EUR feed on SEK instance plus AST enumeration of resolve_currency seams (9); pre-fix re-find not run"
+        },
+        {
+          "step": "D14.M4",
+          "depth": "spot",
+          "evidence": "one finding for P8 with seams and barrier proposal"
+        },
+        {
+          "step": "D14.M5",
+          "depth": "spot",
+          "evidence": "barrier proposed: tests/ replay arm + structure rule on resolve_currency call form, <2 s"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D14.M3",
+          "what": "re-find P8 instances at pre-fix commits (e.g. 3490cb16) and detectors for N-name-sort/P10; config_flow fee-bound seams listed but not probed"
+        },
+        {
+          "step": "D14.M4",
+          "what": "detector/barriered-axis classes not swept for new seams"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D14-s2-01",
+          "scope": "D14-s2",
+          "step": "D14.M4",
+          "title": "P8 live: plan narrative names the instance currency while every money unit names the feed currency",
+          "severity": "high",
+          "claim": "With a EUR/kWh price feed on a SEK instance, coordinator.currency (all sensor units) is EUR but _narrative_view renders every cost line in SEK via resolve_currency(hass): 3/3 lines mislabelled; 0 under SEK-feed null control; 0 when resolve_currency is patched to the feed code.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py",
+            "harness_path": "dev/audit/rounds/round10/D14/s2/p8_money_units.py",
+            "value": 3,
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B7 macOS arm64",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, contention-immune",
+            "tolerance": "exact",
+            "load1": 76.82,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._narrative_view",
+          "perturbation": {
+            "change": "--perturb: mock.patch.object(coordinator, 'resolve_currency', lambda h: 'EUR') (equivalently pass self.currency at coordinator.py:10456)",
+            "expected_direction": "mismatch 3 -> 0"
+          },
+          "metric_definition": "Count of money surfaces (coordinator.currency plus each _narrative_view lines entry) whose currency token differs from currency.declared_currency of the price feed unit.",
+          "phenomenon_property": "Every published money figure names the price feed's declared currency; the instance label only where the feed declares none.",
+          "seam_rule": "harness AST pass: every resolve_currency(...) call in custom_components/heatpump_optimizer/*.py outside currency.py not in an `x or resolve_currency(...)` fallback (9 seams: coordinator.py:10456 instance; coordinator.py:1979,1992 guarded repair issue; config_flow.py:553,3736,3737,3777,3795,3796 fee bound/labels in instance currency vs coordinator.py:7068 feed currency, unprobed)",
+          "stop_rule_class": "bug",
+          "class_guess": "P8",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/narrative.py",
+            "custom_components/heatpump_optimizer/config_flow.py"
+          ],
+          "proposed_fix_scope": "pass coordinator.currency to narrative.render (fix stale docstring); decide config_flow fee-bound currency; barrier: tests arm replaying a foreign-currency feed over all money surfaces plus a rule on resolve_currency call form"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "coordinator.currency (sensor units, payload currency leaf) follows the feed currency",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py",
+          "value": "coordinator_unit_mismatch=0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D14/s2/p8_money_units.py"
+      ],
+      "leads": []
+    },
+    "D14-s3": {
+      "dimension": "D14",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D14/s3/REPORT.md",
+      "exposure": "Read dev/audit/config/bugclasses.json (class list; P8, P10, N-staleness entries). Git history from the worktree .git: git log of custom_components/heatpump_optimizer/currency.py (F1.8 commits 82667c41a, 7cccba3a7, e76686d2d, f12c00b91) and git log -S QUIET_STORE_MAX_AGE_MINUTES (3e9f1878b). Ran harnesses in detached temp worktrees at 82667c41a^ (5dfa6684f) and 3e9f1878b^ (7be8738ed), removed after. No gh, no registers, no GitHub.",
+      "coverage": [
+        {
+          "step": "M1",
+          "depth": "deep",
+          "evidence": "bugclasses.json read in full; open production classes listed: P8, P10, N-name-sort, N-step-grid, N-reap-lock, N-staleness"
+        },
+        {
+          "step": "M2",
+          "depth": "deep",
+          "evidence": "picked P8 (6 rounds), P10 (6 rounds), N-staleness (replay-shaped detector_idea) for the nightly-replay axis"
+        },
+        {
+          "step": "M3",
+          "depth": "deep",
+          "evidence": "p8_replay_currency.py: base 1, clean 0, fix 0, reintroduction 14, pre-fix 82667c41a^ 14/14. staleness_on_change.py: clean 0, 2 seams, each drops to 0 under the perturbation; misses R9 D1-s5-51 at 3e9f1878b^ because of the fixture (recorded). P10: replay --kernels base loop=0"
+        },
+        {
+          "step": "M4",
+          "depth": "deep",
+          "evidence": "one finding per class with a live seam: D14-s3-01 (P8), D14-s3-02 (N-staleness); P10 recorded as a non-finding"
+        },
+        {
+          "step": "M5",
+          "depth": "deep",
+          "evidence": "barriers proposed in REPORT.md: a replay currency invariant plus a lint; a replay on_change arm plus a quiet fixture; gate cost provisional"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "M3",
+          "what": "N-staleness detector does not re-find R9 D1-s5-51 at its pre-fix tree: the synthetic fixture's indoor/dhw probes change every ~10 min, so there is no quiet gap over 60 min; needs a quiet-night fixture. Mode-select seam downstream consequence (MODE_LAST_GOOD 180 min -> full capability) not measured."
+        },
+        {
+          "step": "M2",
+          "what": "N-name-sort, N-step-grid, N-reap-lock not picked this round"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D14-s3-01",
+          "scope": "D14-s3",
+          "step": "M4",
+          "title": "Plan narrative names the instance currency over feed-denominated money",
+          "severity": "medium",
+          "claim": "On a EUR/kWh feed with a SEK instance, 1 of 14 published money seams (sensor plan_narrative attr lines) names SEK. HeatPumpOptimizerCoordinator._narrative_view passes resolve_currency(hass) to narrative.render, while every other surface uses coordinator.currency (feed-declared since #1657).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/p8_replay_currency.py",
+            "harness_path": "dev/audit/rounds/round10/D14/s3/p8_replay_currency.py",
+            "value": "base_mismatched_seams=1 of 14; clean 0; narrative_fixed 0; reintroduce 14; pre-fix 82667c41a^ 14",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B7 macOS arm64",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, contention-immune",
+            "tolerance": "0",
+            "load1": "16.95",
+            "thread_factor": "0.109 (parent only; work runs in child interpreters; no timing claim)"
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._narrative_view (driven via tests/replay.py:run_fixture/sweep)",
+          "perturbation": {
+            "change": "narrative.render handed coordinator.currency (narrative_fixed arm) -> 0; coordinator.declared_currency -> None (reintroduce arm) -> 14",
+            "expected_direction": "down to 0 under the fix; up to 14 under reintroduction"
+          },
+          "metric_definition": "distinct (entity, field-path) whose delivered unit/state/attribute string names an ISO currency code other than the feed's declared code, over a 6-cycle replay with a EUR/kWh feed",
+          "phenomenon_property": "every published money label (unit, currency attribute, rendered text) names coordinator.currency, the feed-declared code",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/p8_replay_currency.py (base arm's mismatched list)",
+          "stop_rule_class": "bug",
+          "class_guess": "P8",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/narrative.py"
+          ],
+          "proposed_fix_scope": "pass self.currency to narrative.render and correct the render docstring; barrier: replay currency invariant (EUR feed on SEK instance) with the reintroduce arm as its control",
+          "provisional": false
+        },
+        {
+          "id": "D14-s3-02",
+          "scope": "D14-s3",
+          "step": "M4",
+          "title": "A report-on-change power meter is declared stale on 39 of 48 cycles; measured_power and compressor_starts go unavailable",
+          "severity": "medium",
+          "claim": "In the nightly replay, rewriting each guarded input as its report-on-change twin (rows kept only on change) makes heat_pump_power_entity stale on 39 of 48 cycles (30 min limit) and heat_pump_mode_entity stale on 47 of 48 (60 min limit). On the power-meter day, sensor measured_power and compressor_starts are unavailable on 39 cycles each (78 entity-cycles), cycles on which both are available on the polling day. The polling day has 0 stale cycles.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/staleness_on_change.py",
+            "harness_path": "dev/audit/rounds/round10/D14/s3/staleness_on_change.py",
+            "value": "power 39 stale cycles, 78 newly-unavailable entity-cycles; mode 47; polling 0; seams=2; perturbed 0 and 0",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B7 macOS arm64",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, contention-immune",
+            "tolerance": "0",
+            "load1": "58.80",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "heatpump_optimizer.inputs:InputHealth.record (stale readings) with const.INPUT_MAX_AGE_MINUTES, driven via tests/replay.py:run_fixture",
+          "perturbation": {
+            "change": "const.INPUT_MAX_AGE_MINUTES[key] = 1e9 for each seam key",
+            "expected_direction": "down to 0 stale cycles"
+          },
+          "metric_definition": "cycles out of 48 (30-minute steps over the synthetic day) on which the input's InputReading.problem == 'stale', when that input is rewritten as its report-on-change twin",
+          "phenomenon_property": "no guarded input's age limit is shorter than the legitimate quiet interval of a report-on-change source holding a valid value",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/staleness_on_change.py (RESULT seams and each <key>_stale_cycles)",
+          "stop_rule_class": "bug",
+          "class_guess": "N-staleness",
+          "files": [
+            "custom_components/heatpump_optimizer/const.py",
+            "custom_components/heatpump_optimizer/inputs.py"
+          ],
+          "proposed_fix_scope": "key power and mode staleness on liveness rather than value age (as pump_signals does), or widen the limits; barrier: an on_change replay arm in tests/replay.py that requires no newly-unavailable entity, plus a quiet-night fixture",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "P10: on a replayed day no model kernel runs on the loop or an executor; already barriered via tests/entities.py -> replay.kernel_checks",
+          "command": "PYTHONPATH=tests/hastub python3 tests/replay.py --kernels base",
+          "value": "worker 9277, loop 0, executor 0 over 6 cycles"
+        },
+        {
+          "claim": "Quiet-store inputs (indoor, dhw 360 min; outdoor 180 min) are not falsely stale on the synthetic day's report-on-change twin",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/staleness_on_change.py",
+          "value": "0 stale cycles each; fixture-limited (no gap over 60 min, so R9 D1-s5-51 is not re-found at 3e9f1878b^)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D14/s3/p8_replay_currency.py",
+        "dev/audit/rounds/round10/D14/s3/staleness_on_change.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "dev/audit/config/bugclasses.json",
+          "symbol": "P10.status",
+          "what": "P10 is listed as open, but tests/replay.py:kernel_checks (run by tests/entities.py) is a detector plus barrier with three arms; the ledger status looks stale"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/config_flow.py",
+          "symbol": "resolve_currency uses at lines 553 and 3736-3796",
+          "what": "the options dialog labels money fields (grid fee, fee_bound) in the instance currency, while figures follow the feed currency; the price_currency_mismatch repair names this but does not fix the label"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/const.py",
+          "symbol": "INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_MODE_ENTITY], MODE_LAST_GOOD_MAX_AGE_MINUTES",
+          "what": "a select written only on change reads stale after 60 min; after 180 min the mode resolves to full capability, so a DHW-only pump may plan space heating (not measured)"
+        }
+      ]
+    },
+    "D11-s2": {
+      "dimension": "D11",
+      "baseline_sha": "17f1c55fad1bc97daf27174f2fbd6a18210d1fb7",
+      "report_path": "dev/audit/rounds/round10/D11/s2/REPORT.md",
+      "exposure": "GitHub API: repos/tvofi/heatpump_optimizer/rulesets, rulesets/22628467, rulesets/23698884, apps/github-actions; git log of v7.0.0; policy_lint.mjs --stats --since v6.0.0 with GITHUB_TOKEN (PR bodies/comments fetch, did not complete).",
+      "coverage": [
+        {
+          "step": "D11.M2",
+          "depth": "spot",
+          "evidence": "scorecard_hand.py: 13 workflows, 123 uses refs, unpinned=0 (perturb ->1), no_top_perms=0, pull_request_target=0; ruleset API read for Branch-Protection/Code-Review; SECURITY.md present. SLSA, Best Practices, NIST, OWASP LLM not executed."
+        },
+        {
+          "step": "D11.M3",
+          "depth": "spot",
+          "evidence": "policy_lint.mjs --budgets all within cap+band; policy_lint_mutants.mjs: 23 PIN mutants killed, MUTANTS ok; --stats did not finish."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D11.M2",
+          "what": "SLSA build level, OpenSSF Best Practices criteria, NIST AI 100-1/600-1 GOVERN, OWASP LLM Top 10 checks, Scorecard CI-Tests/SAST/Maintained/Signed-Releases"
+        },
+        {
+          "step": "D11.M3",
+          "what": "friction histogram (--stats with token ran >10 min over 541 PRs), lines added/deleted ratio, sampled conformance table, staleness of decisions/handover"
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "All workflow uses: refs are SHA-pinned, every workflow declares top-level permissions, none uses pull_request_target",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D11/s2/scorecard_hand.py",
+          "value": "unpinned=0 no_top_perms=0 pull_request_target=0 of 13 workflows/123 refs; --perturb unpinned=1"
+        },
+        {
+          "claim": "Policy size within caps",
+          "command": "node tools/policy/policy_lint.mjs --budgets",
+          "value": "all five aggregates within cap+500 band; fixer 5917 vs cap 5852"
+        },
+        {
+          "claim": "Every policy_lint check class has a live mutation control",
+          "command": "node tools/policy/policy_lint_mutants.mjs",
+          "value": "23 PIN killed, 1 DRIVEN, MUTANTS ok"
+        },
+        {
+          "claim": "Stale-review dismissal off on main ruleset is a recorded owner decision, not an unrecorded gap",
+          "command": "gh api repos/tvofi/heatpump_optimizer/rulesets/23698884",
+          "value": "dismiss_stale_reviews_on_push=false, require_last_push_approval=false; recorded in tools/policy/fixtures/required-contexts.json _ruleset_objects"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D11/s2/scorecard_hand.py"
+      ],
+      "leads": []
+    },
+    "D11-s3": {
+      "dimension": "D11",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D11/s3/REPORT.md",
+      "exposure": "Read tree files only. I read no GitHub API and no git history.",
+      "coverage": [
+        {
+          "step": "D11.M4",
+          "depth": "spot",
+          "evidence": "Ran policy_lint_mutants.mjs: MUTANTS ok for 11 corpus checks and 12 record checks. Ran both hook self-tests (16/0 and 26/0). Ran the pre_edit_multiedit.py perturbation at both arms (2 -> 3)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D11.M4",
+          "what": "No perturbation yet for these mechanisms: the main ruleset (read with both arms), structure.py budgets, brief_lint.mjs, the claim files, prepr.sh."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D11-s3-01",
+          "scope": "D11-s3",
+          "step": "D11.M4",
+          "title": "pre-edit hook RELEASE_NOTES heading refusal skips MultiEdit payloads",
+          "severity": "low",
+          "claim": "The PreToolUse matcher includes MultiEdit, but the hook's program reads only top-level new_string, content and new_source. A MultiEdit whose edits[].new_string adds a '## v' heading to RELEASE_NOTES.md on a branch is allowed.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
+            "harness_path": "dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
+            "value": "refused_heading_payloads=2 (of 3); multiedit_refused=0; null_refused=0",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 B7",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, immune to load",
+            "tolerance": "0",
+            "load1": 79.56,
+            "thread_factor": 1.001
+          },
+          "instrumented_symbol": ".claude/hooks/pre-edit.sh:decide (HPO_PRE_EDIT_PY program)",
+          "perturbation": {
+            "change": "--perturb: one-line edit of the text join to also read edits[].new_string",
+            "expected_direction": "refused_heading_payloads rises from 2 to 3 and multiedit_refused from 0 to 1; null_refused stays 0 (observed)"
+          },
+          "metric_definition": "Of the Write, Edit and MultiEdit payloads that each add '## v9.9.9' to RELEASE_NOTES.md on branch 'feature', the number for which the production hook program prints a refusal.",
+          "phenomenon_property": "Each text-bearing key of every tool_input shape the matcher admits reaches the hook's content checks.",
+          "seam_rule": "grep -n matcher .claude/settings.json, crossed with the tool_input keys read in the HPO_PRE_EDIT_PY block of .claude/hooks/pre-edit.sh",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            ".claude/hooks/pre-edit.sh",
+            ".claude/settings.json"
+          ],
+          "proposed_fix_scope": "Join edits[].new_string in the RELEASE_NOTES text, and add a MultiEdit refusal case to --self-test.",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every wired policy_lint corpus and record check turns the acceptance red when it is emptied",
+          "command": "HPO_PLANDATA=$(mktemp -d) node tools/policy/policy_lint_mutants.mjs",
+          "value": "MUTANTS ok: 11 corpus, 12 record"
+        },
+        {
+          "claim": "The pre-edit hook self-test passes, including its end-to-end and fail-open cases",
+          "command": "bash .claude/hooks/pre-edit.sh --self-test",
+          "value": "16 passed, 0 failed"
+        },
+        {
+          "claim": "The stop-selfcheck hook self-test passes",
+          "command": "bash .claude/hooks/stop-selfcheck.sh --self-test",
+          "value": "26 passed, 0 failed"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py"
+      ],
+      "leads": []
+    }
+  }
+}
