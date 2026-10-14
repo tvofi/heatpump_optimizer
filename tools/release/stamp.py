@@ -269,6 +269,8 @@ def bump(version: str, part: str) -> str:
         return f"{major}.{minor}.{patch + 1}"
     if part == "minor":
         return f"{major}.{minor + 1}.0"
+    if part == "major":
+        return f"{major + 1}.0.0"
     raise ValueError(part)
 
 
@@ -583,6 +585,7 @@ def self_test() -> int:
 
     check("bump patch", bump("6.2.12", "patch") == "6.2.13")
     check("bump minor", bump("6.2.12", "minor") == "6.3.0")
+    check("bump major", bump("6.2.12", "major") == "7.0.0")
     check("tag order", version_tuple("v6.2.12") > version_tuple("v6.2.9"))
     notes = "# Notes\n\n## v6.2.13\n\n### T\n\nB (#170) and (#171).\n\n## v6.2.12\n\nold\n"
     check("notes: first section found", notes_section(notes, "6.2.13") == "### T\n\nB (#170) and (#171).")
@@ -1810,7 +1813,7 @@ def publish_stamp(args, nxt: str, head: str, push_via=push_via, refresh_origin=r
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--bump", choices=("patch", "minor"))
+    ap.add_argument("--bump", choices=("patch", "minor", "major"))
     ap.add_argument("--title", help="what shipped, for the commit subject and the claim files")
     ap.add_argument("--push", action="store_true", help="push the commit and the tag to origin")
     ap.add_argument("--push-key", metavar="PATH",
