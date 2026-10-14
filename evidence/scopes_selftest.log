@@ -1,0 +1,52 @@
+ref=4b58d3d6ebeb64a7d1d780474eefeed671491840 seats=45
+ok D0 mode=cells seats=3 universe=3 [s1:3f/20805loc, s2:3f/20805loc, s3:3f/20805loc]
+FAIL D1 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+   owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/away.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/away.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/battery.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/battery.py', 'M4', None) by ['s1', 's2']
+ok D2 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+ok D3 mode=cells seats=3 universe=77 [s1:12f/29130loc, s2:18f/13679loc, s3:47f/33264loc]
+ok D4 mode=cells seats=3 universe=9 [s1:9f/18809loc, s2:9f/18809loc, s3:9f/18809loc]
+ok D5 mode=cells seats=3 universe=85 [s1:8f/0loc, s2:8f/0loc, s3:85f/76073loc]
+ok D6 mode=files seats=3 universe=15 [s1:2f/0loc, s2:7f/0loc, s3:6f/0loc]
+ok D7 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4610loc, s2:6f/4610loc, s3:6f/4610loc]
+ok D9 mode=cells seats=3 universe=77 [s1:77f/76073loc, s2:77f/76073loc, s3:77f/76073loc]
+ok D10 mode=cells seats=3 universe=94 [s1:94f/76073loc, s2:94f/76073loc, s3:94f/76073loc]
+ok D11 mode=cells seats=3 universe=2150 [s1:2150f/0loc, s2:2150f/0loc, s3:2150f/0loc]
+ok D12 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D0 mode=cells seats=3 universe=3 [s1:3f/20805loc, s2:3f/20805loc, s3:3f/20805loc]
+ok D1 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+FAIL D2 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/batchmath.py', 'M3', None)
+ok D3 mode=cells seats=3 universe=77 [s1:12f/29130loc, s2:18f/13679loc, s3:47f/33264loc]
+ok D4 mode=cells seats=3 universe=9 [s1:9f/18809loc, s2:9f/18809loc, s3:9f/18809loc]
+ok D5 mode=cells seats=3 universe=85 [s1:8f/0loc, s2:8f/0loc, s3:85f/76073loc]
+ok D6 mode=files seats=3 universe=15 [s1:2f/0loc, s2:7f/0loc, s3:6f/0loc]
+ok D7 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4610loc, s2:6f/4610loc, s3:6f/4610loc]
+ok D9 mode=cells seats=3 universe=77 [s1:77f/76073loc, s2:77f/76073loc, s3:77f/76073loc]
+ok D10 mode=cells seats=3 universe=94 [s1:94f/76073loc, s2:94f/76073loc, s3:94f/76073loc]
+ok D11 mode=cells seats=3 universe=2150 [s1:2150f/0loc, s2:2150f/0loc, s3:2150f/0loc]
+ok D12 mode=cells seats=3 universe=76 [s1:76f/61563loc, s2:76f/61563loc, s3:76f/61563loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+SELF-TEST passed (both perturbed scopes refused)
