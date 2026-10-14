@@ -18,7 +18,7 @@ Alternatives considered:
 
 ## Head
 
-ba0ce1719 (branch `r10-checker-wt`: 4c6dabebf plus two fix-review commits; merge base 17f1c55fad1b = origin/main, read 2026-10-14).
+c674dc3b8 (branch `fix/r10-instruments-checker`). The code and every figure below were measured at ba0ce1719; c674dc3b8 adds only the orchestrator's delivery row `dev/programme/delivery/2206.md` on top, which no check below reads. Merge base 17f1c55fad1b = origin/main, read 2026-10-14.
 
 ## Mutation proof
 
@@ -43,7 +43,7 @@ This checker at ba0ce1719 on main's own drivers, scopes, rotation and prepare_ba
 
 ## Red checks
 
-none
+`nightly-status` is red on this branch's commits. It grades `main`'s nightly run, red on the round-9 replay CPU finding #2205 (the orchestrator's attribution, not re-measured here); this diff changes no production, test or nightly input (only the audit drivers, their checker and config, and governance prose). The cheaper detector is the nightly run itself, already standing at no extra cost to this pull request; the red is #2205's to clear, not this branch's.
 
 ## Forward-carry
 
