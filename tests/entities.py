@@ -368,6 +368,17 @@ DATA = {
     "capacity_envelope": {"buckets": {"-9": [4.8, 12]}},
     "solar_aperture": {"scale": 1.15, "samples": 40},
     "internal_gains_profile": None,
+    # The rest of the learning view the model-status sensor reads (R9-UX-7).
+    "house_heat_loss_effective": 0.142,
+    "house_heat_loss_scale": 1.08,
+    "house_heat_loss_samples": 21,
+    "house_heat_loss_learned": True,
+    "lower_floor_loss_ratio": 0.38,
+    "lower_floor_loss_samples": 14,
+    "lower_floor_loss_learned": True,
+    "dhw_cooling_rate": 0.9,
+    "dhw_cooling_samples": 30,
+    "dhw_cooling_rate_learned": True,
     "heat_curve": {"bias_k": -0.4, "comfortable_days": 1, "resets": 0},
     "insight": {
         "narrative": {
@@ -5537,6 +5548,141 @@ R.check(
     "just TotalCostSensor",
 )
 
+# --- R9-UX-7 (#1795): model status and the next-interval prediction ---------
+#
+# The learning view the coordinator already publishes had no reader but the
+# diagnostics dump: heat loss, lower floor, solar aperture, tank cooling, COP
+# health, internal gains, the capacity envelope and system identification.
+# One sensor reads it; the bulky parts stay out of the recorder. The plan's
+# next-interval room prediction -- the figure the accuracy tracker files and
+# scores -- gets a recorded sensor of its own, so history keeps what was
+# predicted beside what happened. Looked up by name so a tree without the
+# classes fails these checks instead of aborting the section.
+_ux7_status_cls = getattr(sensor, "ModelStatusSensor", None)
+_ux7_pred_cls = getattr(sensor, "PredictedIndoorTempSensor", None)
+
+
+def _ux7_status(data):
+    return _ux7_status_cls(FakeCoordinator(data), ENTRY) if _ux7_status_cls else None
+
+
+def _ux7_attrs(entity):
+    try:
+        return dict(entity.extra_state_attributes or {}) if entity else {}
+    except Exception as err:  # noqa: BLE001 -- a raise is a failed check here
+        return {"__raised__": repr(err)}
+
+
+_ux7_s = _ux7_status(DATA)
+_ux7_a = _ux7_attrs(_ux7_s)
+R.check(
+    "UX-7: the model status reads the learned heat loss in W/K, and each learner's evidence",
+    _ux7_s is not None
+    and _ux7_a.get("heat_loss_w_per_k") == 142.0
+    and _ux7_a.get("heat_loss") == {"scale": 1.08, "samples": 21, "learned": True}
+    and _ux7_a.get("lower_floor") == {"ratio": 0.38, "samples": 14, "learned": True}
+    and _ux7_a.get("tank_cooling")
+    == {"rate_c_per_h": 0.9, "samples": 30, "learned": True}
+    and (_ux7_a.get("solar_aperture") or {}).get("samples") == 40
+    and (_ux7_a.get("cop") or {}).get("alarm") is False
+    and (_ux7_a.get("cop") or {}).get("samples") == 12,
+    f"{_ux7_a!r}",
+)
+R.check(
+    "UX-7: the solar row says how much evidence the learner needs, from the learner's own constant",
+    (_ux7_a.get("solar_aperture") or {}).get("needed")
+    == const.SOLAR_APERTURE_MIN_SAMPLES,
+    f"{_ux7_a.get('solar_aperture')!r}",
+)
+_ux7_states = {
+    "learned": _ux7_s.native_value if _ux7_s else None,
+    "learning": getattr(
+        _ux7_status({**DATA, "house_heat_loss_learned": False,
+                     "house_heat_loss_samples": 0}), "native_value", None),
+    "attention": getattr(
+        _ux7_status({**DATA, "cop_health": {"watched_buckets": 2, "alarm": True,
+                                            "evidence": ["x"]}}),
+        "native_value", None),
+}
+R.check(
+    "UX-7: the status is learned, still learning, or needs attention on a COP alarm",
+    all(k == v for k, v in _ux7_states.items())
+    and set(getattr(_ux7_status_cls, "_attr_options", None) or ())
+    == {"learning", "learned", "attention"},
+    f"{_ux7_states!r} options={getattr(_ux7_status_cls, '_attr_options', None)!r}",
+)
+_ux7_unrec = getattr(_ux7_status_cls, "_unrecorded_attributes", frozenset())
+R.check(
+    "UX-7: the bulky learner state stays out of the recorder; the compact rows are recorded",
+    {"internal_gains_kw", "capacity_envelope", "system_identification"} <= _ux7_unrec
+    and not ({"heat_loss", "heat_loss_w_per_k", "cop"} & _ux7_unrec),
+    f"unrecorded={sorted(_ux7_unrec)!r}",
+)
+_ux7_nodhw = _ux7_attrs(_ux7_status({**DATA, "dhw_enabled": False}))
+R.check(
+    "UX-7: a plant with no hot water publishes no tank-cooling row",
+    "tank_cooling" in _ux7_nodhw and _ux7_nodhw["tank_cooling"] is None
+    and _ux7_a.get("tank_cooling") is not None,
+    f"no-DHW tank_cooling={_ux7_nodhw.get('tank_cooling')!r}",
+)
+_ux7_gains = [0.3] * 18 + [0.6] * 6
+_ux7_g = _ux7_attrs(_ux7_status({**DATA, "internal_gains_profile": _ux7_gains}))
+R.check(
+    "UX-7: the internal-gains profile is published per hour, in kW, as the learner holds it",
+    _ux7_g.get("internal_gains_kw") == _ux7_gains
+    and _ux7_a.get("internal_gains_kw") is None,
+    f"{_ux7_g.get('internal_gains_kw')!r}",
+)
+_ux7_none = _ux7_status(None)
+R.check(
+    "UX-7: before the first update the model status is unknown and does not raise",
+    _ux7_none is not None
+    and getattr(_ux7_none, "native_value", "x") is None
+    and "__raised__" not in _ux7_attrs(_ux7_none),
+    f"{_ux7_attrs(_ux7_none)!r}",
+)
+
+
+def _ux7_pred(value):
+    if _ux7_pred_cls is None:
+        return None
+    coord = FakeCoordinator(DATA, _predicted_next_room_temp=lambda: value)
+    return _ux7_pred_cls(coord, ENTRY)
+
+
+_ux7_p = _ux7_pred(21.437)
+_ux7_p_off = _ux7_pred(None)
+R.check(
+    "UX-7: the predicted indoor temperature is the plan's next-interval prediction, recorded",
+    _ux7_p is not None
+    and _ux7_p.available
+    and _ux7_p.native_value == 21.44
+    and getattr(_ux7_pred_cls, "_attr_state_class", None)
+    == SensorStateClass.MEASUREMENT
+    and not getattr(_ux7_pred_cls, "_unrecorded_attributes", frozenset()),
+    f"value={getattr(_ux7_p, 'native_value', None)!r}",
+)
+R.check(
+    "UX-7: and unavailable while no plan governs the room, rather than a stale number",
+    _ux7_p_off is not None and not _ux7_p_off.available,
+    f"available={getattr(_ux7_p_off, 'available', None)!r}",
+)
+_ux7_wait = {
+    "governing": _ux7_attrs(_ux7_p).get("waiting_for", "absent"),
+    "no_plan": _ux7_attrs(_ux7_p_off).get("waiting_for"),
+    "not_in_control": _ux7_attrs(
+        _ux7_pred_cls(FakeCoordinator(
+            {**DATA, "space_plan": {"forecast": [{"room": 21.0}]}},
+            _predicted_next_room_temp=lambda: None), ENTRY)
+    ).get("waiting_for") if _ux7_pred_cls else None,
+}
+R.check(
+    "UX-7: waiting_for names why: no plan yet, or a plan that does not run the room",
+    _ux7_wait == {"governing": None, "no_plan": "first_plan",
+                  "not_in_control": "plan_not_in_control"},
+    f"{_ux7_wait!r}",
+)
+
 # --- unknown-versus-broken --------------------------------------------------
 R.section("Waiting for evidence is not the same as broken")
 
@@ -5627,8 +5773,12 @@ class _AllGates:
     mixing_valve_mode = "manual"
 
 
-_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
-_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
+# The plan governing the room is the predicted indoor temperature's gate
+# (R9-UX-7): the real coordinator answers None outside auto/economy mode.
+_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates(),
+                           _predicted_next_room_temp=lambda: 21.4)
+_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates(),
+                          _predicted_next_room_temp=lambda: 21.4)
 _broken.last_update_success = False
 # The finalize button's gate is a running collection, not a payload field.
 # Both coordinators hold one, so a forgotten ``super().available and`` is the
@@ -11048,6 +11198,10 @@ _expected_diagnostic = {
     # #1936: the drift alarm's restart points. Enabled — an ordinary install
     # always has a heat-loss scale — and Diagnostic, like the other advisors.
     "model_restart_advisor",
+    # R9-UX-7 (#1795): what the learners believe, and the plan's prediction
+    # for the next interval -- the model's own machinery, like the accuracy.
+    "model_status",
+    "indoor_temp_predicted",
 }
 _actually_diagnostic = {
     s._key
@@ -11797,11 +11951,18 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "MoldFloorBreachBinarySensor": frozenset({
         "floor_c", "shortfall_c", "space_blocked"
     }),
+    "ModelStatusSensor": frozenset({
+        "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
+        "internal_gains_kw", "lower_floor", "solar_aperture",
+        "system_identification", "tank_cooling"
+    }),
     "MonthlyPeakSensor": frozenset({
         "free_headroom_threshold_kw", "fuse_advisor", "month",
         "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
     }),
-    "MonthlySavingsSensor": frozenset({"savings_months", "waiting_for"}),
+    "MonthlySavingsSensor": frozenset(
+        {"plan_replay", "receipts", "savings_months", "waiting_for"}
+    ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
         "defrost_samples", "modelled_cop", "waiting_for"
@@ -11823,6 +11984,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "PowerHeadroomSensor": frozenset({
         "baseline_source", "headroom_kw", "horizon_headroom_kw", "limit_kw"
     }),
+    "PredictedIndoorTempSensor": frozenset({"waiting_for"}),
     "PredictedSavingsSensor": frozenset({"stat_kind"}),
     "PredictionAccuracySensor": frozenset({
         "last_diagnosis", "temperature_bias", "temperature_mae", "trust",
@@ -12739,8 +12901,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "the sensor platform builds 60 entities, the model restart advisor included",
-    len(sensors) == 60,
+    "the sensor platform builds 62 entities, the model status and the predicted indoor temperature included",
+    len(sensors) == 62,
     str(len(sensors)),
 )
 R.check(
@@ -15453,6 +15615,103 @@ R.check(
     "the register into this script's RECORDED closure -- a direct read, "
     "not a widened one, so the exclusion above still holds.)",
 )
+
+
+# #2119: the mutation lane's null-control run of the drift gate died as
+# `subprocess.CalledProcessError: ... 'git', 'worktree', 'add' ...
+# exit status 128` -- with git's own fatal line still inside the exception
+# object, because the baseline add ran under `check=True` and never printed
+# stderr. The lane drives the gate's baseline and its null control at the
+# same time, in worker worktrees cut from one checkout, so two concurrent
+# `git worktree add` shared the one registered name `baseline` while the
+# first was still checking out. Driven at the seam itself: a git that
+# refuses the add (an unresolvable ref -- git's own exit 128, the class
+# CI hit) must come back as a refusal naming git's message; a resolvable
+# ref must build the worktree (the null control that keeps the first arm
+# honest); and two gate instances, being two processes, must reach for
+# distinct registered names.
+def _ed_add_refusal_names_git_reason() -> tuple[bool, str]:
+    """The failing arm: the unresolvable ref is the same exit-128 class the
+    lane hit, and the reason git prints must survive into the return."""
+    try:
+        with _tempfile.TemporaryDirectory() as td:
+            _path, _why = _env_drift.add_baseline_worktree(
+                str(_closure.ROOT), td, "0" * 40,
+            )
+    except Exception as exc:  # noqa: BLE001 -- a crash is this check's red
+        return False, f"raised {type(exc).__name__}: {exc}"
+    ok = _path is None and "invalid reference" in _why
+    return ok, f"path={_path} why={_why[:120]}"
+
+
+def _ed_add_builds_and_unregisters() -> tuple[bool, str]:
+    """The null control: a ref that resolves must build a real checkout and
+    leave nothing registered once it is removed."""
+    with _tempfile.TemporaryDirectory() as td:
+        try:
+            path, why = _env_drift.add_baseline_worktree(
+                str(_closure.ROOT), td, "HEAD",
+            )
+        except Exception as exc:  # noqa: BLE001 -- a crash is this check's red
+            return False, f"raised {type(exc).__name__}: {exc}"
+        if path is None:
+            return False, f"a HEAD add refused: {why[:120]}"
+        built = (Path(path) / "tests" / "env_drift.py").is_file()
+        _subprocess.run(
+            ["git", "worktree", "remove", "--force", path],
+            cwd=str(_closure.ROOT), capture_output=True,
+        )
+        listed = _subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=str(_closure.ROOT), capture_output=True, text=True,
+        ).stdout
+    return built and path not in listed, f"built={built} registered_after={path in listed}"
+
+
+def _ed_worktree_names_differ_per_process() -> tuple[bool, str]:
+    """Two gate instances are two processes: their first candidate names must
+    differ (the pid separates them), neither may be the old shared literal
+    `baseline`, and one instance's own retry names must not repeat."""
+    child = ("import sys; import env_drift; "
+             "print(env_drift.baseline_worktree_candidates(sys.argv[1])[0])")
+    env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+    with _tempfile.TemporaryDirectory() as td:
+        names = [
+            _subprocess.run(
+                [sys.executable, "-c", child, td],
+                cwd=str(_closure.ROOT), capture_output=True, text=True, env=env,
+            ).stdout.strip()
+            for _ in range(2)
+        ]
+    own = _env_drift.baseline_worktree_candidates("/x")
+    ok = (
+        all(names) and len(set(names)) == len(names)
+        and not any(n.endswith("/baseline") for n in names)
+        and len(set(own)) == len(own)
+    )
+    return ok, f"children={names} own={[os.path.basename(p) for p in own]}"
+
+
+R.check(
+    "a refused baseline worktree add reports git's own reason, not a bare "
+    "exit 128 (#2119)",
+    *_ed_add_refusal_names_git_reason(),
+)
+R.check(
+    "a resolvable ref builds the baseline worktree and unregisters cleanly "
+    "(null control)",
+    *_ed_add_builds_and_unregisters(),
+)
+try:
+    _ed_names_ok, _ed_names_detail = _ed_worktree_names_differ_per_process()
+except Exception as _ed_exc:  # a crash is this check's red, not the script's
+    _ed_names_ok, _ed_names_detail = False, f"raised {_ed_exc!r}"
+R.check(
+    "concurrent gate instances name distinct baseline worktrees (#2119)",
+    _ed_names_ok,
+    _ed_names_detail,
+)
+
 
 # #1218 (D3-08): the deployment-shape lane's measured closure is the whole
 # tracked package -- it materialises the package file by file, and the
@@ -22779,6 +23038,111 @@ R.check(
         for k in ("accuracy", "comfort_learner", "curve_learner", "price_model")
     ),
     repr({k: _diag_duck_snap[k] for k in ("solve_failures", "cop_scale")}),
+)
+
+
+# --- R9-UX-7 (#1795): the bundle a bug report needs, without the household ---
+#
+# The download adds the last diagnosis, the input states, a plan summary and
+# the published learning view. The away presence and holiday calendar ids
+# name people and a family calendar, so they leave the instance redacted
+# wherever they sit: in the entry, or echoed in an input problem. The
+# controls: an ordinary sensor id survives in the same lists, and the plan
+# summary carries no per-step series.
+_UX7_PERSON = "person.anna_lindqvist"
+_UX7_RETURN = "person.erik_lindqvist"
+_UX7_CAL = "calendar.familjen_lindqvist"
+_ux7_data = {
+    **_DIAG_DATA,
+    const.CONF_AWAY_PRESENCE_ENTITY: _UX7_PERSON,
+    const.CONF_HOLIDAY_CALENDAR_ENTITY: _UX7_CAL,
+}
+_ux7_options = {**_DIAG_OPTIONS, const.CONF_AWAY_RETURN_ENTITY: _UX7_RETURN}
+_ux7_entry = FakeEntry(data=dict(_ux7_data), options=dict(_ux7_options))
+_ux7_entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
+    FakeHass(), FakeEntry(data=dict(_ux7_data), options=dict(_ux7_options))
+)
+_UX7_STEP = {"t": "2026-02-01T10:00:00+01:00", "room": 21.2, "space_power": 1.5}
+_ux7_entry.runtime_data.data = {
+    **DATA,
+    "input_problems": [
+        *DATA["input_problems"],
+        {"input": "away_presence_entity", "entity_id": _UX7_PERSON,
+         "problem": "unavailable", "age_minutes": None, "max_age_minutes": None},
+    ],
+    "problem_inputs": ["sensor.indoor", _UX7_PERSON],
+    "problem_messages": [
+        *DATA["problem_messages"], f"{_UX7_PERSON}: unavailable",
+    ],
+    "space_plan": {
+        "forecast": [dict(_UX7_STEP) for _ in range(4)],
+        "slots": [{"start": "2026-02-01T10:00:00+01:00", "kwh": 1.5}],
+        "total_energy_kwh": 6.2,
+        "total_cost": 8.4,
+        "active_now": False,
+    },
+}
+_ux7_diag = asyncio.run(
+    _diag_mod.async_get_config_entry_diagnostics(FakeHass(), _ux7_entry)
+)
+_ux7_blob = _json.dumps(_ux7_diag, default=str)
+_ux7_space = _diag_at(_ux7_diag, "plan", "space") or {}
+R.check(
+    "UX-7: the bundle carries the last diagnosis, the input states and the learning view",
+    _diag_at(_ux7_diag, "last_diagnosis") == DATA["insight"]["last_diagnosis"]
+    and _diag_at(_ux7_diag, "inputs", "input_health") == DATA["input_health"]
+    and _diag_at(_ux7_diag, "inputs", "input_ages_minutes")
+    == DATA["input_ages_minutes"]
+    and _diag_at(_ux7_diag, "inputs", "learner_freeze_reason")
+    == DATA["learner_freeze_reason"]
+    and _diag_at(_ux7_diag, "learning", "house_heat_loss_effective") == 0.142
+    and _diag_at(_ux7_diag, "learning", "solar_aperture")
+    == DATA["solar_aperture"],
+    f"top-level keys {sorted(_ux7_diag)!r}",
+)
+R.check(
+    "UX-7: the plan summary counts steps and slots and carries the totals, not the series",
+    _ux7_space.get("steps") == 4
+    and _ux7_space.get("slots") == 1
+    and _ux7_space.get("total_energy_kwh") == 6.2
+    and _ux7_space.get("total_cost") == 8.4
+    and _ux7_space.get("active_now") is False
+    and "forecast" not in _ux7_space
+    and _diag_at(_ux7_diag, "plan", "mode") == "auto",
+    f"plan={_diag_at(_ux7_diag, 'plan')!r}",
+)
+_ux7_leaks = [i for i in (_UX7_PERSON, _UX7_RETURN, _UX7_CAL) if i in _ux7_blob]
+R.check(
+    "UX-7: no person or calendar id leaves the instance, from the entry or an input problem",
+    not _ux7_leaks
+    and _diag_at(_ux7_diag, "config", const.CONF_AWAY_PRESENCE_ENTITY) == _HA_REDACTED
+    and _diag_at(_ux7_diag, "config", const.CONF_HOLIDAY_CALENDAR_ENTITY)
+    == _HA_REDACTED,
+    f"leaked: {_ux7_leaks!r}",
+)
+R.check(
+    "UX-7: the over-redaction control -- an ordinary sensor id survives beside them",
+    _diag_at(_ux7_diag, "inputs", "problem_inputs", 0) == "sensor.indoor"
+    and _diag_at(_ux7_diag, "inputs", "problem_messages", 0)
+    == DATA["problem_messages"][0]
+    and _diag_at(_ux7_diag, "inputs", "problem_messages", 1)
+    == f"{_HA_REDACTED}: unavailable"
+    and _diag_at(_ux7_diag, "inputs", "input_problems", 0, "entity_id")
+    == "sensor.indoor"
+    and _diag_at(_ux7_diag, "config", "indoor_temp_entity")
+    == _CRED_DATA["indoor_temp_entity"],
+    f"inputs={_diag_at(_ux7_diag, 'inputs', 'problem_inputs')!r}",
+)
+_ux7_bare = asyncio.run(
+    _diag_mod.async_get_config_entry_diagnostics(FakeHass(), _diag_entry)
+)
+R.check(
+    "UX-7: a coordinator that has not published yet still downloads, with empty sections",
+    _diag_at(_ux7_bare, "last_diagnosis") is None
+    and _diag_at(_ux7_bare, "inputs") == {}
+    and _diag_at(_ux7_bare, "learning") == {}
+    and isinstance(_diag_at(_ux7_bare, "plan"), dict),
+    f"{ {k: _ux7_bare.get(k) for k in ('last_diagnosis', 'inputs', 'learning', 'plan')}!r}",
 )
 
 

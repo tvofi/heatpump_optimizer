@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict CMP_BOUND 0cacf25d",
+  "killed_by": "tests/features.py",
+  "old": "        if not np.isfinite(cop) or cop < 0.1 or (dhw and temp is None):",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CMP_BOUND` (if not np.isfinite(cop) or cop <= 0.1 or (dhw and temp is None):) flips the condition of tests/features.py's R.check \"an unreadable stored COP record loads as no measurement, whole\" -- the new check \"the store's 0.1 bar is exclusive\" reads False: `cop <= 0.1` drops a stored 0.1 the tree reads back. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

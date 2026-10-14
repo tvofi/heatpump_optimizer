@@ -22,17 +22,27 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable, Mapping
 
 import numpy as np
 
-from .payload import SavingsMonth
+from .payload import ContractComparison, SavingsMonth
 
 _LOGGER = logging.getLogger(__name__)
 
 #: Months kept before pruning. Two years covers a year-over-year comparison
 #: with a margin, and keeps the store size bounded forever.
 KEEP_MONTHS = 24
+
+#: The lines a receipt's total adds up: what the month cost. Every other line
+#: restates one of these -- ``space`` and ``dhw`` split the spot energy by
+#: circuit, the ``reason:`` lines partition it by why, and the two
+#: ``savings_`` lines compare it with a thermostat -- so adding any of them
+#: counts the same money again (R9-UX-6).
+BILLED_LINES = ("spot", "grid_fee", "capacity", "immersion", "wear")
+
+#: The month's billed peak, kW, beside the capacity line it prices.
+CAPACITY_PEAK_META = "capacity_peak_kw"
 
 
 def month_key(when: datetime) -> str:
@@ -131,6 +141,20 @@ class MonthlyLedger:
         entry = meta.setdefault(name, {"sum": 0.0, "count": 0})
         entry["sum"] = float(entry["sum"]) + float(value)
         entry["count"] = int(entry["count"]) + 1
+
+    def book_capacity(self, month: str, peak_kw: float, price_per_kw: float) -> None:
+        """Restate ``month``'s capacity charge from the peaks billed so far.
+
+        Set, not added: the billed peak is a running figure the peak tracker
+        restates, so the line follows it, and it keeps the last statement
+        made before the tracker wipes the month's peaks at month change. The
+        line is money, not energy (kWh 0), like the wear line.
+        """
+        if not month or not (math.isfinite(peak_kw) and math.isfinite(price_per_kw)):
+            return
+        data = self._month(month)
+        data["lines"]["capacity"] = {"kwh": 0.0, "sek": float(peak_kw) * float(price_per_kw)}
+        data["meta"][CAPACITY_PEAK_META] = {"sum": float(peak_kw), "count": 1}
 
     def observe_spot_and_settle_savings(
         self,
@@ -288,3 +312,131 @@ class MonthlyLedger:
             ledger.months = clean
             ledger._prune()
         return ledger
+
+
+def billed_total(lines: Mapping[str, Mapping[str, float]]) -> tuple[float, list[str]]:
+    """(total SEK, the billed lines it adds) of a receipt's published lines."""
+    basis = [name for name in BILLED_LINES if name in lines]
+    return round(sum(float(lines[name]["sek"]) for name in basis), 2), basis
+
+
+def restate_total(report: dict[str, Any]) -> dict[str, Any]:
+    """A stored receipt with its total restated from its own lines.
+
+    Receipts frozen before R9-UX-6 summed every line but the reasons; their
+    lines are right, so the total is re-derived from them on load.
+    """
+    lines = report.get("lines")
+    if not isinstance(lines, dict):
+        return report
+    total, basis = billed_total(lines)
+    return {**report, "total_sek": total, "basis": basis}
+
+
+def freeze_month_report(
+    ledger: MonthlyLedger,
+    month: str,
+    *,
+    compressor_starts: int,
+    contract_comparison: ContractComparison,
+) -> dict[str, Any]:
+    """One month's itemised receipt, frozen at rollover (#40).
+
+    Everything in it comes from the ledger's own lines -- the receipt is a
+    PRESENTATION of the accounting, never a second accounting. The reason
+    lines partition the spot line by construction, and the receipt states how
+    well that held rather than assuming it.
+    """
+    lines = ledger.month_summary(month)
+    reasons = {
+        name.split(":", 1)[1]: entry
+        for name, entry in lines.items()
+        if name.startswith("reason:")
+    }
+    # Reconcile on the RAW ledger values, not the rounded publication ones:
+    # with a full reason set the accumulated 2-decimal rounding alone can
+    # exceed the tolerance and cry wolf on a perfectly partitioned month.
+    raw = [ledger.line(month, name) for name in ledger.months.get(month, {}).get("lines", {})
+           if name.startswith("reason:")]
+    reason_kwh = sum(entry["kwh"] for entry in raw)
+    reason_sek = sum(entry["sek"] for entry in raw)
+    raw_spot = ledger.line(month, "spot")
+    spot = lines.get("spot", {"kwh": 0.0, "sek": 0.0})
+    billed = {name: entry for name, entry in lines.items() if not name.startswith("reason:")}
+    total, basis = billed_total(billed)
+    report: dict[str, Any] = {
+        "month": month,
+        "lines": billed,
+        "reasons": reasons,
+        "total_kwh": round(spot["kwh"] + lines.get("immersion", {}).get("kwh", 0.0), 3),
+        "total_sek": total,
+        "basis": basis,
+        "compressor_starts": compressor_starts,
+        "contract_comparison": contract_comparison,
+        # The partition check, published instead of asserted: a receipt that
+        # hides its own bookkeeping error is worse than one that admits it.
+        # None, not False, for a month with no reason lines at all -- a
+        # pre-T6 month never had a partition to break, and publishing
+        # "failed" for it would make an upgrade look like the very bug the
+        # flag exists to expose.
+        "reasons_reconcile": (
+            bool(
+                abs(reason_kwh - raw_spot["kwh"]) <= 0.05
+                and abs(reason_sek - raw_spot["sek"]) <= 0.05
+            )
+            if reasons
+            else None
+        ),
+    }
+    for key, name, digits in (("mean_spot_price", "spot_price", 4),
+                              ("capacity_peak_kw", CAPACITY_PEAK_META, 2)):
+        mean = ledger.meta_mean(month, name)
+        if mean is not None:
+            report[key] = round(mean, digits)
+    return report
+
+
+def roll_receipts(
+    ledger: MonthlyLedger,
+    reports: dict[str, dict[str, Any]],
+    current: str,
+    freeze: Callable[[str], dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], bool]:
+    """#40: freeze a receipt for every ledger month before ``current``.
+
+    Derived from the ledger itself rather than a "last month seen" marker:
+    any ledger month strictly before the current one that has no frozen
+    receipt yet gets one now. Self-healing across restarts and downtime
+    spanning a month end -- and bounded, because the ledger prunes itself
+    and each month freezes exactly once.
+
+    Pure: it RETURNS the receipts to keep and whether a month closed, rather
+    than writing into the mapping it is handed. ``_month_reports`` is the
+    coordinator's, and a collaborator module mutating coordinator-held state
+    is the hazard ``shared_inplace_writes`` prices (R9-EG-A4), so the caller
+    adopts the returned mapping by rebinding its own slot. The copy is
+    shallow on purpose: a receipt is frozen once and never edited in place.
+    """
+    closed = sorted(k for k in ledger.months if k < current and k not in reports)
+    kept = dict(reports)
+    for month in closed:
+        # Defense in depth: MonthlyLedger.from_dict already quarantines
+        # malformed months at load time, but a still-live month can in
+        # principle be freezable-yet-broken. Never let one bad month wedge
+        # every future cycle forever (#D1-01) -- skip it and mark it closed
+        # with an empty receipt so the cycle completes and it is not retried.
+        try:
+            kept[month] = freeze(month)
+        except Exception:  # noqa: BLE001 -- must never wedge the coordinator
+            _LOGGER.warning(
+                "Skipping malformed ledger month %s while freezing monthly "
+                "receipts; recording an empty receipt instead",
+                month,
+                exc_info=True,
+            )
+            kept[month] = {"month": month, "lines": {}}
+    # Receipts follow the ledger's retention; a receipt for a month the
+    # ledger no longer holds cannot be reconciled anyway.
+    for old in sorted(kept)[: max(0, len(kept) - KEEP_MONTHS)]:
+        del kept[old]
+    return kept, bool(closed)

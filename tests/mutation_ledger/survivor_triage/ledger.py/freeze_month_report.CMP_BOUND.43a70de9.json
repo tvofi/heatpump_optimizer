@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:freeze_month_report CMP_BOUND 43a70de9",
+  "old": "                and abs(reason_sek - raw_spot[\"sek\"]) <= 0.05",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. The sek arm of the same published partition flag: the bound flip shows only for a month whose reason lines differ from raw spot by exactly 0.05 SEK. Same measurement gap as the kwh arm on the line above; no recorded driver builds one.",
+  "verdict": "gap"
+}

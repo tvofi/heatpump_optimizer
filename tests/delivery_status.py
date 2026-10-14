@@ -376,9 +376,15 @@ def classify(merges: list[dict], texts: list[str],
     """
     rows = []
     for m in merges:
-        has_row = mentions(int(m["number"]), texts)
+        n = int(m["number"])
+        has_row = mentions(n, texts)
+        # A merge whose row still reads **open** is not rowed by it (see
+        # `open_anchored`): the twelve rows that read open on main over
+        # merges already landed were the green that hid the beat's stall.
+        stale_open = bool(str(m.get("merge_sha") or "")) \
+            and open_anchored(n, texts)
         after = int(m.get("commits_after", 0))
-        state = "rowed" if has_row else (
+        state = "rowed" if has_row and not stale_open else (
             "overdue" if after >= stale_after else "pending")
         rows.append({**m, "state": state})
     overdue = [r for r in rows if r["state"] == "overdue"]
@@ -575,6 +581,30 @@ def anchored(number: int, line: str) -> bool:
     """
     m = ROW_ANCHOR.match(line)
     return bool(m) and int(m.group(1)) == int(m.group(2)) == int(number)
+
+
+#: The status run a row writer emits between the em dash and the title.
+#: `anchored` above decides WHOSE row a line is; this marker decides only
+#: what the row still says about its merge. It is not a second row grammar:
+#: `tools/audit/seat/record_row.py`'s row writers emit exactly `**open**`
+#: and `**merged `sha`**`, and this reads the open one of the two on a line
+#: the anchor has already accepted. A seat's rich bold (`**open, policy;
+#: ...**`) does not carry the exact marker and stays a row, as before.
+OPEN_STATUS = "**open**"
+
+
+def open_anchored(number: int, texts: list[str]) -> bool:
+    """Whether an anchored row line for `number` still reads **open**.
+
+    A row is a record of the MERGE, not merely the pull request, so a merge
+    carrying a sha is not rowed by a row written before it landed -- the
+    class `record_row.row_matches_merge` plans the rewrite for, read here so
+    `classify` reddens over stale rows instead of staying green."""
+    for t in texts:
+        for line in t.splitlines():
+            if anchored(number, line) and OPEN_STATUS in line:
+                return True
+    return False
 
 
 def read_texts() -> list[str]:

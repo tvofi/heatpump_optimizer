@@ -26,7 +26,7 @@
 //     without anyone listing it; one with a DIFFERENT grammar is not, which is
 //     why the pairs arm exists and why a fix that finds a sibling registers it.
 //
-//   node .claude/workflows/agreement.mjs [--only pairs|discovery]
+//   node tools/policy/agreement.mjs [--only pairs|discovery]
 // exit 0: no disagreement, no unregistered or dead grammar, no refusal.
 
 import fs from 'node:fs'
@@ -66,7 +66,7 @@ let PY = null
 function py(key) {
   if (!PY) {
     const i = process.argv.indexOf('--py-json')
-    if (i < 0 || !process.argv[i + 1]) throw new Error('no --py-json FILE: run `python3 -I .claude/workflows/agreement_py.py --run`')
+    if (i < 0 || !process.argv[i + 1]) throw new Error('no --py-json FILE: run `python3 -I tools/policy/agreement_py.py --run`')
     PY = JSON.parse(fs.readFileSync(process.argv[i + 1], 'utf8'))
   }
   if (!PY[key]) throw new Error(`the Python readers' JSON has no ${key}`)
