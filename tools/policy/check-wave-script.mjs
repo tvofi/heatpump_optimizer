@@ -837,6 +837,41 @@ await block('the scoped round driver', async () => {
   t('the check fires: the two worktree lists drifting apart is refused (positive control)', listGaps({ ...L, baseline: L.baseline.filter((d) => d !== 'D13') }).length > 0, 'the lists may disagree')
   t('and an empty extraction is refused rather than reported clean (null control)', listGaps({ dims: [], isolated: [], api: [], baseline: [], briefs: [] }).length > 0, 'nothing read, nothing refused')
 
+  // Two more readers of one thing each, pinned once a driver declares the
+  // constant (round 10; round 9's drivers declare neither and are not held):
+  // the round directory both drivers write and fold_ledger.py reads, and the
+  // list Prepare copies over the baseline, which prepare_baseline.sh copies too.
+  const vsrcRD = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
+  const roundDir = (src) => (/^const ROUND_DIR = `([^`]*)`/m.exec(src) ?? [])[1]
+  const foldRead = (/f"(dev\/audit\/rounds\/round)\{rnd\}"/.exec(fs.readFileSync(at('tools/audit/fold_ledger.py'), 'utf8')) ?? [])[1]
+  const dirGaps = (find, verify, fold) => {
+    if (find === undefined) return []
+    const gaps = []
+    if (!fold) gaps.push('no directory read off fold_ledger.py (an empty extraction is a gap)')
+    else if (find !== `${fold}\${round}`) gaps.push(`audit-find.js ROUND_DIR ${find} is not where fold_ledger.py reads (${fold}<N>)`)
+    if (find !== verify) gaps.push(`audit-find.js ROUND_DIR ${find} != audit-verify.js ROUND_DIR ${verify}`)
+    return gaps
+  }
+  const dg = dirGaps(roundDir(rd), roundDir(vsrcRD), foldRead)
+  t(`once audit-find.js declares ROUND_DIR, both drivers write where fold_ledger.py reads (${roundDir(rd) ?? 'not declared: round 9 driver'})`, dg.length === 0, dg.join('; '))
+  t('the check fires: a finder writing the old home while verify reads the new is refused (positive control)',
+    dirGaps('tools/audit/round${round}', 'dev/audit/rounds/round${round}', 'dev/audit/rounds/round').length === 2 && dirGaps('dev/audit/rounds/round${round}', 'dev/audit/rounds/round${round}', undefined).length > 0, 'passed')
+  const norm = (xs) => [...xs].map((x) => x.replace(/\/+$/, '')).sort()
+  const curFind = (/^const CURRENT = \[([^\]]*)\]/m.exec(rd) ?? [])[1]
+  const curShell = (/^CURRENT_PATHS="([^"]*)"/m.exec(shell) ?? [])[1]
+  // Keyed on BOTH declaring it: CI restores prepare_baseline.sh from the base
+  // (decision 0013), so the pull request introducing the pair is graded against
+  // a base script that has no CURRENT_PATHS yet; from its merge on, both hold.
+  const curGaps = (f, s) => {
+    if (f === undefined || s === undefined) return []
+    const a = norm([...f.matchAll(/'([^']*)'/g)].map((m) => m[1])), b = norm(s.split(/\s+/).filter(Boolean))
+    if (!a.length || !b.length) return ['an empty CURRENT list (an empty extraction is a gap)']
+    return J(a) === J(b) ? [] : [`audit-find.js CURRENT ${J(a)} != prepare_baseline.sh CURRENT_PATHS ${J(b)}`]
+  }
+  const cg = curGaps(curFind, curShell)
+  t(`once both declare it, audit-find.js CURRENT is prepare_baseline.sh's CURRENT_PATHS (${curFind === undefined || curShell === undefined ? 'not both declared' : 'both declared'})`, cg.length === 0, cg.join('; '))
+  t('the check fires: CURRENT narrowed to tools/audit/ alone is refused (positive control)', curGaps("'tools/audit/'", 'tools/audit dev/audit/config').length > 0 && curGaps("'tools/audit/'", 'tools/audit').length === 0, 'passed')
+
   // The dispatch block, evaluated alone: it uses nothing outside itself.
   const blk = rd.match(/\/\/ DISPATCH:BEGIN[\s\S]*?\/\/ DISPATCH:END/)
   t('the dispatch block is delimited in audit-find.js', !!blk, 'no DISPATCH:BEGIN..END block')
