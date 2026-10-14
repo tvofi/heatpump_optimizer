@@ -1,0 +1,4 @@
+PROBE level3 heading (False, 'the body has no `## Raise justification` section, which a mandated raise owes')
+PROBE no verdict word (False, '`## Raise justification` lacks an `Architecture score: dS` line from score.py')
+PROBE valid (True, "the body's `## Raise justification` names the payments tried and the arch_score figures")
+PROBE figure only (False, '`## Raise justification` lacks a `Payments tried:` line')
