@@ -483,7 +483,7 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
     res.append(("control:sanitise_clears",
                 not export.violations(export.sanitise(raw, conf, dropped), conf),
                 f"dropped {len(dropped)} value(s)"))
-    return res + leak_probes()
+    return res + leak_probes() + tibber_price_checks()
 
 
 #: The review of #1508's leak probe (the first eleven): shapes of private data a recorder
@@ -577,6 +577,112 @@ def leak_probes() -> list[tuple[str, bool, str]]:
         found = export.violations(planted, conf)
         res.append((f"leak_probe:{name}:check_refuses", bool(found), "; ".join(found[:3])))
     return res
+
+
+#: A Tibber install's registry rows, as Home Assistant core's Tibber
+#: integration writes them (``export.py``'s TIBBER_* cite the source): the
+#: price sensor's unique id is the bare home id; every other Tibber sensor's
+#: is ``<home id>_<key>`` or ``<home id>_rt_<key>``.
+_HOME_A = "96a14971-525a-4420-aae9-e5aedaa129ff"
+_HOME_B = "4c1e6f3b-0d2a-4b7e-9a51-2f8c3d4e5a6b"
+_TIBBER_PRICE_A = ("sensor.electricity_price_home_a", _HOME_A, "electricity_price")
+_TIBBER_PRICE_B = ("sensor.electricity_price_home_b", _HOME_B, "electricity_price")
+#: Entities that are not the price, each recorded with numeric states, one
+#: per rule of ``export.tibber_price_candidates``: the month's cost (once with
+#: no translation key, as an older registry stores it) and a real-time power
+#: reading; Tibber's notify entity, keyed on the bare config-entry id; a
+#: template sensor keyed on a bare UUID; and a Tibber sensor keyed on a bare
+#: id under another translation key, which core does not publish today.
+_TIBBER_DECOYS = (
+    ("sensor.home_a_monthly_cost", f"{_HOME_A}_month_cost", "month_cost"),
+    ("sensor.home_a_monthly_cost_2", f"{_HOME_A}_month_cost", None),
+    ("sensor.home_a_power", f"{_HOME_A}_rt_power", "power"),
+    ("notify.tibber", "01JTIBBERENTRY00000000000", None),
+    ("sensor.template_price", "0b6a7d2e-3f41-4c5a-9e8d-7c6b5a4f3e2d", None, None, "template"),
+    ("sensor.home_a_price_level", "e2b1c0d9-8f7e-4a6b-9c5d-4e3f2a1b0c9d", "price_level"),
+)
+
+
+def _tibber_export(rows: list[tuple], entry: dict, price_entity: str | None = None,
+                   unrecorded: tuple[str, ...] = ()) -> str:
+    """``price_series_entity`` of a Tibber install exported with ``rows`` in
+    its registry, with its row count, or ``refused: <message>``. A row is
+    (entity id, unique id, translation key[, disabled_by[, platform]]), the
+    platform "tibber" unless given; each is recorded with an hourly numeric
+    price unless ``unrecorded`` names it."""
+    import export
+    import synthesize
+
+    series, data = synthesize._series, synthesize.ENTRY_DATA
+    synthesize.ENTRY_DATA = {**{k: v for k, v in data.items() if k != "price_entity"},
+                             "price_source": "tibber", **entry}
+
+    def patched(series=series):
+        out = series()
+        for row in rows:
+            if row[0] not in unrecorded:
+                out[row[0]] = [(synthesize.DAY + timedelta(hours=h), f"{0.8 + h / 100:.3f}",
+                                {"unit_of_measurement": "SEK/kWh",
+                                 "state_class": "measurement"}) for h in range(-1, 24)]
+        return out
+
+    synthesize._series = patched
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            db = synthesize.write_install(Path(tmp))
+            reg_path = Path(tmp) / ".storage" / "core.entity_registry"
+            reg = json.loads(reg_path.read_text())
+            reg["data"]["entities"] += [
+                {"entity_id": r[0], "platform": r[4] if len(r) > 4 else "tibber",
+                 "unique_id": r[1],
+                 "translation_key": r[2], "config_entry_id": "01JTIBBER",
+                 "disabled_by": r[3] if len(r) > 3 else None} for r in rows]
+            reg_path.write_text(json.dumps(reg))
+            with contextlib.redirect_stderr(io.StringIO()):
+                payload = export.build_export(
+                    Path(tmp), db, 1, (synthesize.DAY + timedelta(days=1)).date().isoformat(),
+                    None, [], price_entity)
+        chosen = payload["price_series_entity"]
+        return f"{chosen} rows={len(payload['states'].get(chosen) or [])}"
+    except SystemExit as err:
+        return f"refused: {err}"
+    finally:
+        synthesize._series, synthesize.ENTRY_DATA = series, data
+
+
+def tibber_price_checks() -> list[tuple[str, bool, str]]:
+    """With the Tibber source and no ``--price-entity``, the export picks the
+    one Tibber price sensor the registry and the recorder agree on, and
+    refuses -- naming the candidates -- when there is none or more than one."""
+    a, b = _TIBBER_PRICE_A[0], _TIBBER_PRICE_B[0]
+    decoys = list(_TIBBER_DECOYS)
+    both = [_TIBBER_PRICE_A, _TIBBER_PRICE_B]
+
+    def picked(eid: str):
+        return lambda out: out.startswith(f"{eid} rows=") and not out.endswith("rows=0")
+
+    cases = {
+        # One home: its price sensor, not the cost or power sensor beside it.
+        "one_home_picked": (_tibber_export([_TIBBER_PRICE_A] + decoys, {}), picked(a)),
+        "none_refused": (_tibber_export(decoys, {}),
+                         lambda o: o.startswith("refused") and "--price-entity" in o),
+        "two_homes_refused": (_tibber_export(both + decoys, {}),
+                              lambda o: o.startswith("refused") and a in o and b in o
+                              and "--price-entity" in o),
+        "flag_overrides_two": (_tibber_export(both, {}, price_entity=b), picked(b)),
+        "flag_overrides_one": (_tibber_export([_TIBBER_PRICE_A, (*_TIBBER_PRICE_B[:2], "x")],
+                                              {}, price_entity=_TIBBER_PRICE_B[0]), picked(b)),
+        "entry_names_one": (_tibber_export(both, {"price_entity": b}), picked(b)),
+        "disabled_skipped": (_tibber_export([_TIBBER_PRICE_A, (*_TIBBER_PRICE_B, "user")], {}),
+                             picked(a)),
+        "unrecorded_skipped": (_tibber_export(both, {}, unrecorded=(a,)), picked(b)),
+        # The entity source is untouched: no series entity is invented.
+        "entity_source_untouched": (
+            _tibber_export([_TIBBER_PRICE_A], {"price_source": "entity",
+                                               "price_entity": "sensor.nordpool_kwh_se3_sek"}),
+            lambda o: o.startswith("None rows=")),
+    }
+    return [(f"tibber_price:{name}", ok(out), out) for name, (out, ok) in cases.items()]
 
 
 def synthetic_reproduces() -> tuple[str, bool, str]:
