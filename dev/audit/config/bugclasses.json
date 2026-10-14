@@ -3918,8 +3918,8 @@
       "parts_missing": [],
       "process_state": "(c) the automerge guard was obeyed and pinned the wrong shape, refusing the exact open->merged rewrite the beat was built to plan",
       "countermeasure": "tools/audit/seat/record_row.py's modified_lines/_rewrite_refusal pair (#2176) admits the open->merged rewrite while refusing any other modified file; tests/delivery_status.py's open_anchored/classify counts a stale row as owed rather than rowed. Mutation-proven both ways in #2176's body; #2151's 12 and #2182's 27 rewrites landed under the fixed guard.",
-      "in_tree_home": null,
-      "landed": null,
+      "in_tree_home": "dev/audit/rca/R9-RCA-ROW-STALE.md",
+      "landed": "4cc639844",
       "doc": [
         "dev/audit/rca/R9-RCA-ROW-STALE.md (landed by #2193)"
       ]
