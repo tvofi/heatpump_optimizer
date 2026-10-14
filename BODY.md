@@ -37,7 +37,7 @@ Alternatives considered:
 
 ## Head
 
-4b58d3d6e (branch `fix/r10-instruments`: d176dd143, the fix-review commit 7706f1dad, and `r10-checker-wt` (ba0ce1719) merged in, never rebased; merge base 17f1c55fad1b = origin/main, read 2026-10-14).
+17fd924a6 (branch `fix/r10-instruments`). The code and every figure below were measured at 4b58d3d6e (d176dd143, the fix-review commit 7706f1dad, and `r10-checker-wt` at ba0ce1719 merged in, never rebased); 17fd924a6 adds only the orchestrator's delivery row `dev/programme/delivery/2207.md`, which no check below reads. Merge base 17f1c55fad1b = origin/main, read 2026-10-14.
 
 ## Mutation proof
 
@@ -76,7 +76,9 @@ Mutants applied in place and restored byte-for-byte by the scratch runner `mutan
 
 ## Red checks
 
-`wave-script` is red on this pull request until the checker pull request merges: the base checker refuses the new shapes, 20 checks. That is the ordering, not a defect. The cheaper detector is that checker itself, landing first.
+`wave-script` is red on this pull request until the checker pull request #2206 merges: the base checker refuses the new shapes, 20 checks. That is the ordering, not a defect; the cheaper detector is that checker itself, landing first.
+
+`nightly-status` is red on this branch's commits. It grades `main`'s nightly run, red on the round-9 replay CPU finding #2205 (the orchestrator's attribution, not re-measured here); this diff changes no production, test or nightly input (only the audit drivers, their checker and config, and governance prose). The cheaper detector is the nightly run itself, already standing at no extra cost to this pull request; the red is #2205's to clear, not this branch's.
 
 ## Forward-carry
 
