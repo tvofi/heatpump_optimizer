@@ -218,6 +218,31 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "estimated",
     "savings.empty": "No settled savings months yet.",
+    "receipt.closed": "{month} \u00b7 closed",
+    "receipt.saved": "Saved {amount} {unit} ({pct}) against a plain thermostat",
+    "receipt.col_line": "Line",
+    "receipt.col_basis": "Basis",
+    "receipt.col_cost": "Cost",
+    "receipt.line_spot": "Spot energy",
+    "receipt.line_grid_fee": "Grid energy fee",
+    "receipt.line_capacity": "Capacity charge",
+    "receipt.line_immersion": "Immersion heater",
+    "receipt.line_wear": "Compressor wear",
+    "receipt.total": "Total",
+    "receipt.not_priced": "not priced",
+    "receipt.peak": "peak {kw} kW",
+    "receipt.starts": "{n} starts",
+    "receipt.covers": "Covers {lines}. The savings figure compares spot cost only.",
+    "receipt.by_reason": "Where the money went",
+    "replay.title": "Yesterday: the plan against reality",
+    "replay.promised": "Promised by the plan at {time}",
+    "replay.measured": "Measured",
+    "replay.indoor": "Indoor temperature",
+    "replay.cost": "Cost",
+    "replay.cost_unit": "{unit}, cumulative",
+    "replay.summary_temp": "Indoor was {dev} \u00b0C from the promise on average.",
+    "replay.summary_cost": "It cost {measured} {unit} against {promised} {unit} promised.",
+    "replay.no_meter": "No power meter, so the cost was not measured.",
     "header.close": "Close",
 
     // legend / series
@@ -863,6 +888,31 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "uppskattat",
     "savings.empty": "Inga avräknade sparandemånader ännu.",
+    "receipt.closed": "{month} \u00b7 avslutad",
+    "receipt.saved": "Sparade {amount} {unit} ({pct}) mot en vanlig termostat",
+    "receipt.col_line": "Post",
+    "receipt.col_basis": "Underlag",
+    "receipt.col_cost": "Kostnad",
+    "receipt.line_spot": "Spotenergi",
+    "receipt.line_grid_fee": "Elnätets energiavgift",
+    "receipt.line_capacity": "Effektavgift",
+    "receipt.line_immersion": "Elpatron",
+    "receipt.line_wear": "Kompressorslitage",
+    "receipt.total": "Totalt",
+    "receipt.not_priced": "ej prissatt",
+    "receipt.peak": "topp {kw} kW",
+    "receipt.starts": "{n} starter",
+    "receipt.covers": "Omfattar {lines}. Sparandet jämför bara spotkostnaden.",
+    "receipt.by_reason": "Vart pengarna gick",
+    "replay.title": "I går: planen mot verkligheten",
+    "replay.promised": "Utlovat av planen kl. {time}",
+    "replay.measured": "Uppmätt",
+    "replay.indoor": "Inomhustemperatur",
+    "replay.cost": "Kostnad",
+    "replay.cost_unit": "{unit}, ackumulerat",
+    "replay.summary_temp": "Inomhus låg i snitt {dev} \u00b0C från löftet.",
+    "replay.summary_cost": "Det kostade {measured} {unit} mot utlovade {promised} {unit}.",
+    "replay.no_meter": "Ingen effektmätare, så kostnaden mättes inte.",
     "header.close": "Stäng",
 
     "series.price": "Elpris",
@@ -8762,6 +8812,157 @@ function healthPageHtml(host) {
     <div class="setup-result" role="status"></div></div>`;
 }
 
+// ---- The Savings tab's receipt and replay (R9-UX-6) -------------------------
+//
+// Both read the enabled monthly-savings sensor: `receipts` (every month the
+// ledger froze, oldest first) and `plan_replay` (yesterday's promise beside
+// what was measured). The total, the lines it adds (`basis`) and the
+// partition by reason are the backend's; this only lays them out.
+// Module-level, like the advisor page, for the host's own-member ratchet.
+
+// Scoped to the page that draws them, so the card's shared style block and
+// every other page's markup stay as they were.
+const RECEIPT_CSS = `
+/* The month's receipt beside where its spot money went, and
+   yesterday's plan against what was measured. Rows are the savings
+   table's typography; the reason bars are one hue, labelled directly. */
+.receipt-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(18em, 1fr));
+  gap: var(--hpo-space-3, 12px) var(--hpo-space-5, 24px); margin: 0.5em 0 1em;
+}
+.receipt-sub, .replay-sub { color: var(--hpo-text-2, #727272); font-size: var(--hpo-text-sm, 14px); }
+.receipt-total { font-size: 2em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.receipt-h { margin: 0 0 6px; font-size: 1em; font-weight: 600; }
+.receipt-bar {
+  display: grid; grid-template-columns: minmax(0, 1fr) 7em auto;
+  gap: 8px; align-items: center; font-size: var(--hpo-text-sm, 14px); padding: 3px 0;
+}
+.receipt-bar .rb-track {
+  height: 10px; border-radius: 5px; overflow: hidden;
+  background: var(--hpo-divider, #e0e0e0);
+}
+.receipt-bar .rb-fill { display: block; height: 100%; background: var(--hpo-accent, #026aa8); }
+.receipt-bar .rb-val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.replay { margin: 0.5em 0 1em; }
+.replay-leg {
+  display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0;
+  font-size: var(--hpo-text-sm, 14px); color: var(--hpo-text-2, #727272);
+}
+.replay-leg span { display: inline-flex; gap: 6px; align-items: center; }
+.replay svg { width: 100%; height: auto; display: block; }
+`;
+
+const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);
+
+/** The latest receipt's lines, its total and where its spot money went. */
+function receiptHtml(st, rows, cur) {
+  const list = Array.isArray(st.attributes.receipts) ? st.attributes.receipts : [];
+  const r = list.length ? list[list.length - 1] : null;
+  if (!r || !r.lines || typeof r.lines !== "object") return "";
+  const basis = Array.isArray(r.basis) ? r.basis.filter((n) => r.lines[n]) : [];
+  const money = (n) => (finiteNum(n) ? `${n.toFixed(2)} ${cur}` : "—");
+  const kwh = (e) => (finiteNum(e.kwh) ? `${e.kwh.toFixed(0)} kWh` : "");
+  const starts = L("receipt.starts", { n: finiteNum(r.compressor_starts) ? r.compressor_starts : 0 });
+  const what = {
+    capacity: () => (finiteNum(r.capacity_peak_kw) ? L("receipt.peak", { kw: r.capacity_peak_kw.toFixed(1) }) : ""),
+    wear: () => starts,
+  };
+  const tr = (label, basisText, cost, cls = "") =>
+    `<tr${cls}><td>${esc(label)}</td><td class="num">${esc(basisText)}</td><td class="num">${esc(cost)}</td></tr>`;
+  const lines = basis.map((n) =>
+    tr(L(`receipt.line_${n}`), (what[n] || (() => kwh(r.lines[n])))(), money(r.lines[n].sek)));
+  // Wear is booked only once the user prices a start; until then the
+  // receipt says so rather than showing a zero it never measured.
+  if (!basis.includes("wear") && finiteNum(r.compressor_starts) && r.compressor_starts > 0) {
+    lines.push(tr(L("receipt.line_wear"), starts, L("receipt.not_priced")));
+  }
+  const row = rows.find((x) => x && x.month === r.month);
+  const saved = row && finiteNum(row.savings_sek)
+    ? `<div>${esc(L("receipt.saved", {
+        amount: row.savings_sek.toFixed(2), unit: cur,
+        pct: finiteNum(row.savings_pct) ? `${row.savings_pct.toFixed(0)} %` : "—",
+      }))}</div>`
+    : "";
+  const covers = basis.map((n) => L(`receipt.line_${n}`).toLowerCase()).join(", ");
+  const reasons = Object.entries(r.reasons || {})
+    .filter(([, e]) => e && finiteNum(e.sek) && e.sek > 0)
+    .sort((a, b) => b[1].sek - a[1].sek);
+  const top = reasons.length ? reasons[0][1].sek : 0;
+  const bars = reasons.map(([code, e]) => {
+    const label = REASON_LABELS[code] ? L(REASON_LABELS[code]) : code;
+    return `<div class="receipt-bar"><span>${esc(label)}</span><span class="rb-track"><i class="rb-fill" style="width:${((e.sek / top) * 100).toFixed(1)}%"></i></span><span class="rb-val">${esc(money(e.sek))}</span></div>`;
+  }).join("");
+  return `<div class="receipt-grid"><div class="receipt">
+      <div class="receipt-sub">${esc(L("receipt.closed", { month: String(r.month || "") }))}</div>
+      <div class="receipt-total">${esc(money(r.total_sek))}</div>${saved}
+      <table class="savings-table receipt-table"><thead><tr>
+        <th>${esc(L("receipt.col_line"))}</th><th class="num">${esc(L("receipt.col_basis"))}</th>
+        <th class="num">${esc(L("receipt.col_cost"))}</th></tr></thead>
+      <tbody>${lines.join("")}${tr(L("receipt.total"), "", money(r.total_sek), ' class="receipt-total-row"')}</tbody></table>
+      <div class="receipt-sub">${esc(L("receipt.covers", { lines: covers }))}</div></div>
+    ${bars ? `<div class="receipt-reasons"><h3 class="receipt-h">${esc(L("receipt.by_reason"))}</h3>${bars}</div>` : ""}</div>`;
+}
+
+/** The promise's value at `h` hours, interpolated between its steps. */
+function promiseAt(values, stepH, h) {
+  const i = Math.min(Math.max(h / stepH, 0), values.length - 1);
+  const lo = Math.floor(i);
+  const hi = Math.min(lo + 1, values.length - 1);
+  return values[lo] + (values[hi] - values[lo]) * (i - lo);
+}
+
+/** One concept-A panel: a dashed promise and a solid measurement, one colour. */
+function replayPanel(y0, series, colour, title, unit) {
+  const W = 600, LEFT = 40, RIGHT = 8, H = 110;
+  const vals = series.flatMap((pts) => pts.map((p) => p[1]));
+  let lo = Math.floor(Math.min(...vals)), hi = Math.ceil(Math.max(...vals));
+  if (hi <= lo) hi = lo + 1;
+  const x = (h) => LEFT + ((W - LEFT - RIGHT) * h) / 24;
+  const y = (v) => y0 + H - ((v - lo) / (hi - lo)) * H;
+  const grid = [lo, (lo + hi) / 2, hi].map((v) =>
+    `<line x1="${LEFT}" x2="${W - RIGHT}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--hpo-divider, #e0e0e0)"/><text x="${LEFT - 6}" y="${(y(v) + 4).toFixed(1)}" font-size="11" text-anchor="end" fill="var(--hpo-text-2, #727272)">${Number(v.toFixed(1))}</text>`).join("");
+  const paths = series.map((pts, k) => pts.length < 2 ? "" :
+    `<path d="${pts.map((p, j) => `${j ? "L" : "M"}${x(p[0]).toFixed(1)} ${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${colour}" stroke-width="2" stroke-linejoin="round"${k === 0 ? ' stroke-dasharray="6 4"' : ""}/>`).join("");
+  return `<text x="${LEFT}" y="${y0 - 8}" font-size="12" font-weight="600" fill="var(--hpo-text, #212121)">${esc(title)}</text><text x="${W - RIGHT}" y="${y0 - 8}" font-size="11" text-anchor="end" fill="var(--hpo-text-2, #727272)">${esc(unit)}</text>${grid}${paths}`;
+}
+
+/** Yesterday: the plan's promise at midnight against what was measured. */
+function replayHtml(st, cur) {
+  const rp = st.attributes.plan_replay;
+  if (!rp || !Array.isArray(rp.room) || !Array.isArray(rp.cost) || !(rp.step_minutes > 0)) return "";
+  const stepH = rp.step_minutes / 60;
+  const m = rp.measured || {};
+  const t = Array.isArray(m.t) ? m.t : [];
+  const room = t.map((h, i) => [h, m.room && m.room[i]]).filter((p) => finiteNum(p[1]));
+  const cost = Array.isArray(m.cost) ? t.map((h, i) => [h, m.cost[i]]).filter((p) => finiteNum(p[1])) : null;
+  const promised = (vals) => vals.map((v, i) => [i * stepH, v]);
+  const dev = room.length
+    ? room.reduce((n, p) => n + Math.abs(p[1] - promiseAt(rp.room, stepH, p[0])), 0) / room.length
+    : null;
+  const words = [];
+  if (dev !== null) words.push(L("replay.summary_temp", { dev: dev.toFixed(1) }));
+  if (cost && cost.length) {
+    const last = cost[cost.length - 1];
+    words.push(L("replay.summary_cost", {
+      measured: last[1].toFixed(2), promised: promiseAt(rp.cost, stepH, last[0]).toFixed(2), unit: cur,
+    }));
+  } else {
+    words.push(L("replay.no_meter"));
+  }
+  const ticks = [0, 6, 12, 18, 24].map((h) =>
+    `<text x="${(40 + (552 * h) / 24).toFixed(1)}" y="324" font-size="11" text-anchor="${h === 0 ? "start" : h === 24 ? "end" : "middle"}" fill="var(--hpo-text-2, #727272)">${String(h).padStart(2, "0")}:00</text>`).join("");
+  const house = "var(--hpo-series-house_temp, #008300)";
+  const price = "var(--hpo-series-price, #4a3aa7)";
+  const svg = `<svg viewBox="0 0 600 330" role="img" aria-label="${esc(L("replay.title"))}">${
+    replayPanel(28, [promised(rp.room), room], house, L("replay.indoor"), "°C")}${
+    replayPanel(182, [promised(rp.cost), cost || []], price, L("replay.cost"), L("replay.cost_unit", { unit: cur }))}${ticks}</svg>`;
+  const key = (dash) => `<svg width="26" height="8" aria-hidden="true"><line x1="0" x2="26" y1="4" y2="4" stroke="currentColor" stroke-width="2"${dash ? ' stroke-dasharray="6 4"' : ""}/></svg>`;
+  const at = typeof rp.start === "string" ? rp.start.slice(11, 16) : "00:00";
+  return `<div class="replay"><h3 class="receipt-h">${esc(L("replay.title"))}</h3>
+    <div class="replay-sub">${esc(words.join(" "))}</div>
+    <div class="replay-leg"><span>${key(true)}${esc(L("replay.promised", { time: at }))}</span><span>${key(false)}${esc(L("replay.measured"))}</span></div>${svg}</div>`;
+}
+
 // ---- The sensor advisor page (#1269) ---------------------------------------
 //
 // Draws the `sensor_advisor` attribute the plan sensors publish: the
@@ -13591,6 +13792,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // headline reads through, and the one a card-config `currency:` must not
     // override (R7-D4-03, #1456).
     const cur = savingsUnit(this.plan, "_plan_monthly_savings");
+    // R9-UX-6: the closed month's receipt and yesterday's replay come first;
+    // the table of every month below them is unchanged.
+    const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+    const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
     const money = (n) =>
       typeof n === "number" && Number.isFinite(n) ? n.toFixed(2) : "—";
     const pct = (n) =>
@@ -13623,7 +13828,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the same unit down the whole column, and repeating it is what pushed
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
-    return `<table class="savings-table">
+    return `${top}<table class="savings-table">
       <thead><tr>
         <th>${esc(L("savings.col_month"))}</th>
         <th class="num">${head("savings.col_baseline")}</th>

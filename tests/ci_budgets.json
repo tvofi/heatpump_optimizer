@@ -17,8 +17,8 @@
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
  "critical_path_minutes": 54.825,
- "reason": "Deliberate re-record of archscore.coord_footprint only: PR #2118 (fix/r9-ux-10-v2, merged at 9a6e0d9dd) grew the coordinator footprint 2587 -> 2592 and landed without re-recording, so every Tests push run on main since 2026-10-12 17:52Z (runs 38442170346 at 9a6e0d9dd and 38442812648 at c7a70cb24) has been red on the ci-ratchet null control in tests/entities.py. Derived independently at origin/main 4787610ad (tests/coverage via archscore.vector.measure): coord_footprint 2592; every other row unchanged from the 81acae2b7 recording. The ci-ratchet job never passes --record by design, so this is the deliberate follow-up re-record that job's red names.",
- "recorded_at": "4787610ad312ce0e5edc3c55a23dfd0294591e0e",
- "script_runs_full_case_pr": 63,
- "script_runs_per_push": 63
+ "reason": "Deliberate re-record of the two script_runs rows only: the ci-ratchet grade on push run 38465320087 (job 115542644363, 2026-10-13 21:17Z, tree 664a4c05e) printed GREW script_runs_full_case_pr 68 (budget 63) and GREW script_runs_per_push 68 (budget 63); critical_path_minutes settled back under budget (45.03 vs 54.825) and stays untouched. The growth is the designed cost of the lane machinery, not a gather bug -- the morning's gather fix (.workflow_run.id // .run_id) is already in. Verified history from the push runs: script_runs_per_push was 96-vs-53 at 12:30Z (pre-#2160 baseline), 66-vs-63 by 16:57Z (the #2165/#2166/#2167-era closures FULL arm), 68 now (#2173's GATE_FILE diff forces the full recording set on pushes, +5 rows); script_runs_full_case_pr 35 at 16:57Z, 68 now (the window's most expensive full-case PR run is #2173's own FULL-mode lane set). script_runs_per_push 68 reproduced locally by grading this table against run 38465320087's own ci-metrics artifacts; full_case_pr cited from the CI log (the artifact window has moved since 21:17Z). archscore rows unchanged (the coord_footprint 2592 re-record at 4787610ad). The ci-ratchet job never passes --record by design, so this is the deliberate follow-up re-record that job's red names.",
+ "recorded_at": "664a4c05e3ead3100e252d3f2f2a0b4cdd230e00",
+ "script_runs_full_case_pr": 68,
+ "script_runs_per_push": 68
 }

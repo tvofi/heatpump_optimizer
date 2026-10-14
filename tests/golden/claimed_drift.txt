@@ -697,3 +697,8 @@ coord_dhw # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and
 coord_grid_fee # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
 coord_minimal # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
 coord_two_zone # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_all_features # R9-UX-6: the monthly-savings sensor publishes the kept receipts and the day-ahead plan_replay; both keys are new (empty list and null in these captures), no value moved
+coord_dhw # R9-UX-6: the monthly-savings sensor publishes the kept receipts and the day-ahead plan_replay; both keys are new (empty list and null in these captures), no value moved
+coord_grid_fee # R9-UX-6: the monthly-savings sensor publishes the kept receipts and the day-ahead plan_replay; both keys are new (empty list and null in these captures), no value moved
+coord_minimal # R9-UX-6: the monthly-savings sensor publishes the kept receipts and the day-ahead plan_replay; both keys are new (empty list and null in these captures), no value moved
+coord_two_zone # R9-UX-6: the monthly-savings sensor publishes the kept receipts and the day-ahead plan_replay; both keys are new (empty list and null in these captures), no value moved

@@ -525,7 +525,10 @@ class Train:
                 self.log(f"beat: waiting {what} (poll {k}, t+{int(now - start)}s, "
                          f"required: {req}, concluded: {done}/{req})")
                 due = now + HEARTBEAT_SECONDS
-            self.sleep(POLL_SECONDS)
+            # Sleep only until the next beat is due: POLL_SECONDS (300) behind
+            # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
+            # t+305s (tvofi, 2026-10-14) -- a beat never waits on a poll.
+            self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
         return ["TIMEOUT"]
 
     def policy_paths(self, files: list[str]) -> list[str]:
@@ -936,6 +939,8 @@ class Train:
         return st.split()[-1]
 
     def train(self, queue: list[dict]) -> int:
+        self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
+                 f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
         for item in queue:
             try:
@@ -1174,6 +1179,12 @@ class Train:
         self.log(f"SKIP REPORT: {len(self.skipped)} skipped of {total}")
 
     def batch(self, queue: list[dict], tag: str) -> int:
+        # The banner is the FIRST output, before any blocking call: a
+        # daemonized launch is attributable from the log's first line even if
+        # everything after it hangs (tvofi, 2026-10-14, tag traintest).
+        self.log(f"BATCH {tag} pid={os.getpid()} base={self.base} queue={len(queue)} "
+                 f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})"
+                 f"{' --overlap' if self.overlap else ''}{' --skip-bad' if self.skip_bad else ''}")
         self.state.mkdir(parents=True, exist_ok=True)
         self.branches: list[str] = []
         self.skipped: list[dict] = []
@@ -1457,6 +1468,41 @@ def _self_test() -> int:
           red == ["TIMEOUT"] and len(beats) == 2
           and beats[0] == "beat: waiting proof batch/t-1 (poll 1, t+240s, required: 2, concluded: 1/2)"
           and beats[1] == "beat: waiting proof batch/t-1 (poll 2, t+480s, required: 2, concluded: 1/2)")
+    # THE BEAT LEADS THE POLL (tvofi, 2026-10-14, tag traintest): a beat due
+    # mid-interval fired only at the NEXT poll boundary -- POLL_SECONDS (300)
+    # behind HEARTBEAT_SECONDS (240), so the first beat landed at t+305s
+    # (measured at main 981a45802: main_green's required-only wait, 11/14
+    # concluded) and every one of them sat in a block buffer. The poll sleeps
+    # only until the next beat is due: a beat never waits on a poll, and a
+    # silent interval never exceeds HEARTBEAT_SECONDS.
+    hang[0]["status"], hang[0]["conclusion"] = "in_progress", None
+    clk = [0.0]
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run,
+                  sleep=lambda s: clk.__setitem__(0, clk[0] + s),
+                  log=lines.append, polls=3, clock=lambda: clk[0])
+        red = t.wait_ci(H0)
+    beats = [ln for ln in lines if ln.startswith("beat:")]
+    check("a beat is never held behind a poll boundary: the poll sleeps to the next beat, "
+          "so beats land at t+240 and t+480 (not t+300/t+600 behind POLL_SECONDS)",
+          red == ["TIMEOUT"] and len(beats) == 2
+          and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
+          and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 3, t+480s, required: 1, concluded: 0/1)")
+    # THE ENTRY IS UNBUFFERED (tvofi, 2026-10-14, tag traintest): the train ran
+    # 8+ minutes healthy under a daemonizing wrapper whose dup2 made stdout a
+    # file -- block-buffered -- so every beat sat in an 8KB buffer the kill
+    # dropped, and a log with only the wrapper's launch line read as dead. The
+    # entry point reconfigures stdout line-buffered before any queue read; the
+    # instrument is self-sufficient and cannot rely on the launcher's flags.
+    sys.stdout.reconfigure(line_buffering=False)
+    try:
+        main(["batch", "/nonexistent/queue.json"])
+    except FileNotFoundError:
+        pass
+    check("the entry point reconfigures stdout line-buffered before reading the queue, so a "
+          "redirected launch's beats reach the log as they print",
+          getattr(sys.stdout, "line_buffering", None) is True)
     rc, lines, calls = go({"carry": "CARRY: no a -> b: a commit of the branch's own"})
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
     # BLOCK CLASS STALE-VERDICT-CARRY: app_approve --carry's ancestor line names
@@ -2014,6 +2060,10 @@ def _batch_self_test(check) -> None:
           and len(w["tree_ok"]) == 2 and w["main_tree"] == (w["proof_trees"] or [""])[-1] and w["lines"][-1] == "TRAIN DONE")
     check("the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch",
           w["pushed"][0][0] == "batch/t-1" and sorted(w["dispatched"]) == sorted((f, "batch/t-1") for f, _ in DISPATCH))
+    check("batch announces itself in its FIRST line -- tag, pid, base, the queue's PRs -- before any "
+          "blocking call, so a daemonized launch is attributable from the log's first line",
+          w["lines"][0].startswith("BATCH t pid=") and "base=batch/base" in w["lines"][0]
+          and "#1" in w["lines"][0] and "#2" in w["lines"][0])
     check("a rehearsal base approves nothing and collects no worktree", w["approved"] == [] and w["gc"] == 0)
     w = go({1: {"led.json": "X\n2\n3\n4\n5\n6\n"}, 2: {"led.json": "1\n2\n3\n4\n5\nY\n"}})
     check("a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree "
@@ -2337,6 +2387,14 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str]) -> int:
+    # A daemonized launch's stdout is a file, and Python block-buffers a file:
+    # every beat and banner sat in an 8KB buffer a kill dropped, and a healthy
+    # train read as dead (tvofi, 2026-10-14, tag traintest: 8+ minutes, a log
+    # holding only the wrapper's launch line). The instrument is
+    # self-sufficient -- it cannot rely on the launcher passing -u -- so the
+    # entry point goes line-buffered before anything else runs.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(line_buffering=True)
     if argv[:1] == ["--self-test"]:
         return _self_test()
     a = _parser().parse_args(argv)
