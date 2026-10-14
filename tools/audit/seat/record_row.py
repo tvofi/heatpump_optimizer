@@ -15,8 +15,10 @@ commit-to-pull-request map `policy_lint --record` reads, then `/pulls/{n}` for
 title, state and head branch), `--plan` computes the rows the checked-out tree
 still lacks, and `--apply` writes them behind a guarded write set. Stateless
 like the other seat tools: every input is a flag, the roster through
-`--roster-ref` (a git ref whose `.claude/workflows/wave-r9-groups.json` is
-read with `git show`) or `--roster-file`, nothing about a session hardcoded.
+`--roster-ref` (a git ref whose roster -- `roster_lib.ROSTER_PATH`,
+`dev/programme/rosters/wave-r9-groups.json`, with the pre-closure
+`.claude/workflows/wave-r9-groups.json` as fallback -- is read with `git show`) or
+`--roster-file`, nothing about a session hardcoded.
 
 A row records the MERGE, not merely the pull request, so a row the tree already
 carries is not automatically done: `--plan` drops a merge whose row exists AND

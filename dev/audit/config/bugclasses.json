@@ -45,6 +45,44 @@
       "class_rca_on_record": true
     }
   },
+  "R9-ROW-STALE": {
+    "kind": "instrument",
+    "mechanism": "A record guard refuses the exact rewrite the record beat exists to perform, so a merged pull request's delivery row keeps reading its pre-merge status under a green reporter: tools/audit/seat/record_row.py's automerge guard admitted only files whose git status was `added`, so the open->merged rewrites its own planner produced could never land, the hold in tests.yml's record job never engaged, every push to main rebuilt and force-pushed record/autofix (25 rebuilds, one dismissed approver review) and the stale rows accumulated while tests/delivery_status.py counted them as rowed",
+    "rounds": [
+      9
+    ],
+    "instances": [
+      "R9 #2111",
+      "R9 #2150/#2151",
+      "R9 #2176/#2182"
+    ],
+    "per_round": {
+      "R9": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": "the reporter half, tests/delivery_status.py's open_anchored/classify, demonstrated by the live before/after count in dev/audit/rca/R9-RCA-ROW-STALE.md: 49 rowed / 8 pending / 1 overdue unfixed -> 37 rowed / 12 pending / 9 overdue fixed, where the red that followed was the fix working",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/record_row.py's modified_lines/_rewrite_refusal pair (#2176), which admits the one deleted + one added line of the open->merged rewrite the beat plans while still refusing any other modified file, plus the open_anchored reporter arm in tests/delivery_status.py, which counts a stale row as owed rather than rowed",
+    "status": "barriered",
+    "nearest_existing": "I3",
+    "mechanism_difference": "I3 is a required check skipped, run on a stale ref, or bypassable at its boundary; here the guard ran and refused -- but it pinned the wrong shape and refused the exact rewrite the beat was built to plan, so a process that was obeyed (state c) published the wrong result and the reporter counted the consequence as rowed",
+    "aliases": [
+      "new: a delivery row's status decays while the record beat cannot legally rewrite it"
+    ],
+    "non_round_note": "The three round-9 instances are process incidents named by their PR numbers, where the stale row surfaced; the fix for each landed under that PR. They are counted here because the class is round-9 and the three-instance audit rule is what it met.",
+    "non_round_instances": [],
+    "rca": [
+      "R9-RCA-ROW-STALE"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
   "_source": "v2, 2026-09-28: one-time enumeration and classification of every surviving finding of rounds 1-9 (alt/register/rows_v2.tsv: 486 rows from the A1 enumeration plus 88 survivors the round-8 findings.tsv omitted, missing_rows.tsv / RECON.md; A1 flags and three RCA-seat moves applied, each recorded in its row), folded with the inventory of every RCA conducted (alt/register/rca_inventory.json) and the bulk RCAs owed by the rebuild (alt/rca/RCA-BULK-{1,2,3}.md). v1 was seeded from the round-8 classification of rounds 1-7 and never received a round-8 member. Counts derive from rows_v2.tsv by build_v2.py.",
   "_status": "open: no detector; detector: a command enumerates every seam; barriered: that command is a CI check.",
   "_counting": "An instance is a judged survivor or an instance counted beyond it (a sweep, RCA or fixer seat found the seam and it is not the judged site); non_round_instances are incidents and screens, listed, not counted. trigger.per_round is the rule in force (defect-root-cause.md:87-91); trigger.cross_round is the proposed clause (>=3 over any 3 consecutive rounds, or >=5 total while open), owner-gated in R9-EG-R1.",
@@ -3869,6 +3907,22 @@
       "process_state": "(c) class; (a) residual: no level-triggered enumerator exists",
       "countermeasure": "bus.sh orphans, token-free, three ls-remote families and local ancestry; red on the defect and green with none present, plus a content-equivalence arm that reads a superseded ref (EG-B7) out of the stranded list",
       "in_tree_home": "dev/audit/rca/R9-ORPHAN-HANDOFF.md"
+    },
+    "R9-RCA-ROW-STALE": {
+      "class": "R9-ROW-STALE",
+      "level": "class",
+      "subject": "R9-ROW-STALE class: a delivery row's status decayed while the record beat could not legally rewrite it (3 instances, round 9)",
+      "trigger": "class (3 instances in round 9)",
+      "date": "2026-10-14",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) the automerge guard was obeyed and pinned the wrong shape, refusing the exact open->merged rewrite the beat was built to plan",
+      "countermeasure": "tools/audit/seat/record_row.py's modified_lines/_rewrite_refusal pair (#2176) admits the open->merged rewrite while refusing any other modified file; tests/delivery_status.py's open_anchored/classify counts a stale row as owed rather than rowed. Mutation-proven both ways in #2176's body; #2151's 12 and #2182's 27 rewrites landed under the fixed guard.",
+      "in_tree_home": null,
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/R9-RCA-ROW-STALE.md (landed by #2193)"
+      ]
     }
   }
 }

@@ -6,8 +6,10 @@
         [--cadence DAYS] [--live overlay.json]
 
 Stateless: every input arrives as a flag -- the roster through `--roster-ref`
-(a git ref whose `.claude/workflows/wave-r9-groups.json` is read with
-`git show`) or `--roster-file`, the live notes through `--live`. Nothing about
+(a git ref whose roster -- `roster_lib.ROSTER_PATH`,
+`dev/programme/rosters/wave-r9-groups.json`, with the pre-closure
+`.claude/workflows/wave-r9-groups.json` as fallback -- is read with `git show`) or
+`--roster-file`, the live notes through `--live`. Nothing about
 a session is hardcoded, and the tool never writes GitHub state.
 
 Sections emitted (markdown, one file or stdout):
