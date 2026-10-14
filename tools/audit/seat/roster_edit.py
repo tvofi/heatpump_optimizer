@@ -64,7 +64,11 @@ import tempfile
 from pathlib import Path
 
 SELF = "tools/audit/seat/roster_edit.py"
-ROSTER_PATH = ".claude/workflows/wave-r9-groups.json"
+# The roster's home at closure (#2086): `dev/programme/rosters/`, not
+# `.claude/workflows/` (whose `wave-*-groups.json` basename the `briefs` and
+# `wave-script` scans treat as a LIVE web-fix-wave roster). Same value as
+# roster_lib.ROSTER_PATH.
+ROSTER_PATH = "dev/programme/rosters/wave-r9-groups.json"
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
 SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 # Historical path first, then the moved one: the same preference as
