@@ -837,35 +837,94 @@ await block('the scoped round driver', async () => {
   t('the check fires: the two worktree lists drifting apart is refused (positive control)', listGaps({ ...L, baseline: L.baseline.filter((d) => d !== 'D13') }).length > 0, 'the lists may disagree')
   t('and an empty extraction is refused rather than reported clean (null control)', listGaps({ dims: [], isolated: [], api: [], baseline: [], briefs: [] }).length > 0, 'nothing read, nothing refused')
 
+  // Two more readers of one thing each, pinned once a driver declares the
+  // constant (round 10; round 9's drivers declare neither and are not held):
+  // the round directory both drivers write and fold_ledger.py reads, and the
+  // list Prepare copies over the baseline, which prepare_baseline.sh copies too.
+  const vsrcRD = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
+  const roundDir = (src) => (/^const ROUND_DIR = `([^`]*)`/m.exec(src) ?? [])[1]
+  const foldRead = (/f"(dev\/audit\/rounds\/round)\{rnd\}"/.exec(fs.readFileSync(at('tools/audit/fold_ledger.py'), 'utf8')) ?? [])[1]
+  const dirGaps = (find, verify, fold) => {
+    if (find === undefined) return []
+    const gaps = []
+    if (!fold) gaps.push('no directory read off fold_ledger.py (an empty extraction is a gap)')
+    else if (find !== `${fold}\${round}`) gaps.push(`audit-find.js ROUND_DIR ${find} is not where fold_ledger.py reads (${fold}<N>)`)
+    if (find !== verify) gaps.push(`audit-find.js ROUND_DIR ${find} != audit-verify.js ROUND_DIR ${verify}`)
+    return gaps
+  }
+  const dg = dirGaps(roundDir(rd), roundDir(vsrcRD), foldRead)
+  t(`once audit-find.js declares ROUND_DIR, both drivers write where fold_ledger.py reads (${roundDir(rd) ?? 'not declared: round 9 driver'})`, dg.length === 0, dg.join('; '))
+  t('the check fires: a finder writing the old home while verify reads the new is refused (positive control)',
+    dirGaps('tools/audit/round${round}', 'dev/audit/rounds/round${round}', 'dev/audit/rounds/round').length === 2 && dirGaps('dev/audit/rounds/round${round}', 'dev/audit/rounds/round${round}', undefined).length > 0, 'passed')
+  const norm = (xs) => [...xs].map((x) => x.replace(/\/+$/, '')).sort()
+  const curFind = (/^const CURRENT = \[([^\]]*)\]/m.exec(rd) ?? [])[1]
+  const curShell = (/^CURRENT_PATHS="([^"]*)"/m.exec(shell) ?? [])[1]
+  // Keyed on BOTH declaring it: CI restores prepare_baseline.sh from the base
+  // (decision 0013), so the pull request introducing the pair is graded against
+  // a base script that has no CURRENT_PATHS yet; from its merge on, both hold.
+  const curGaps = (f, s) => {
+    if (f === undefined || s === undefined) return []
+    let lit = []
+    try { lit = JSON.parse('[' + f.replaceAll("'", '"') + ']') } catch { return [`audit-find.js CURRENT is not a list of string literals: [${f}]`] }
+    const a = norm(lit), b = norm(s.split(/\s+/).filter(Boolean))
+    if (!a.length || !b.length) return ['an empty CURRENT list (an empty extraction is a gap)']
+    return J(a) === J(b) ? [] : [`audit-find.js CURRENT ${J(a)} != prepare_baseline.sh CURRENT_PATHS ${J(b)}`]
+  }
+  const cg = curGaps(curFind, curShell)
+  t(`once both declare it, audit-find.js CURRENT is prepare_baseline.sh's CURRENT_PATHS (${curFind === undefined || curShell === undefined ? 'not both declared' : 'both declared'})`, cg.length === 0, cg.join('; '))
+  t('the check fires: CURRENT narrowed to tools/audit/ alone is refused (positive control)', curGaps("'tools/audit/'", 'tools/audit dev/audit/config').length > 0 && curGaps("'tools/audit/'", 'tools/audit').length === 0, 'passed')
+
   // The dispatch block, evaluated alone: it uses nothing outside itself.
   const blk = rd.match(/\/\/ DISPATCH:BEGIN[\s\S]*?\/\/ DISPATCH:END/)
   t('the dispatch block is delimited in audit-find.js', !!blk, 'no DISPATCH:BEGIN..END block')
   if (!blk) return
   t('the dispatch block draws on no randomness and no clock', !/Math\.random|Date\b|performance\.now|crypto/.test(blk[0]), 'found one')
   t('and no planSeats: seats come from the scopes, not a rotation over the ledger', !/planSeats/.test(rd), 'audit-find.js still names planSeats')
-  const D = new Function(`${blk[0]}\nreturn { CADENCE, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps }`)()
-  t('round 9 runs all fifteen dimensions (the round-9 plan, section 2 default 1)', L.dims.every((d) => D.activeIn(9, d)), J(L.dims.filter((d) => !D.activeIn(9, d))))
-  t('...and the cadence is otherwise read from the round number (D11 off at 10 and on at 12, D5 on at 10 and off at 11)',
-    !D.activeIn(10, 'D11') && D.activeIn(12, 'D11') && D.activeIn(10, 'D5') && !D.activeIn(11, 'D5') && D.activeIn(11, 'D0'), 'the cadence is not derived from the round')
+  const D = new Function(`${blk[0]}\nreturn { CADENCE, EVERY_DIM_ROUNDS, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps }`)()
+  // The seat ids and boxes below are read off the committed scopes and the
+  // DISPATCH block, never named here: a re-cut of either (round 10 gave every
+  // dimension three seats) must not turn a control into a test of old names.
+  const every = [...(D.EVERY_DIM_ROUNDS ?? [])]
+  t('round 9, and every round in EVERY_DIM_ROUNDS, runs all fifteen dimensions (round 9: its plan, section 2 default 1)',
+    every.includes(9) && every.every((r) => L.dims.every((d) => D.activeIn(r, d))), J(every.map((r) => [r, L.dims.filter((d) => !D.activeIn(r, d))])))
+  // The cadence controls run at rounds no override names: `off` is neither even
+  // nor a multiple of three, `on6` is a multiple of six.
+  const free = Array.from({ length: 60 }, (_, i) => i + 10).filter((r) => !every.includes(r))
+  const off = free.find((r) => r % 2 !== 0 && r % 3 !== 0), on6 = free.find((r) => r % 6 === 0)
+  t(`...and the cadence is otherwise read from the round number (D11 and D5 off at ${off}, both on at ${on6}, D0 on at ${off})`,
+    !!off && !!on6 && !D.activeIn(off, 'D11') && D.activeIn(on6, 'D11') && D.activeIn(on6, 'D5') && !D.activeIn(off, 'D5') && D.activeIn(off, 'D0'), 'the cadence is not derived from the round')
   const ids = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d).map((s) => s.id))
   const fileSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
   t('one seat per scopes.json seat, id <dim>-s<n>, nothing added or dropped', J(ids) === J(fileSeats), `${ids.length} vs ${fileSeats.length}`)
-  const d10 = D.seatsFromScopes(scopes, 'D10').find((s) => s.key === 's2')
-  t("a seat's deep focus is every step its blocks name, in the brief's order (D10-s2 has two blocks)", J(d10?.steps) === J(['M1', 'M2', 'M3']), J(d10))
+  // A seat whose blocks name different steps: its deep focus is their union in
+  // the brief's order, not the first block's.
+  const multi = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d)).find((s) => s.blocks.length > 1 && new Set(s.blocks.map((b) => J(b.steps))).size > 1)
+  const union = multi ? scopes[multi.dim].steps.filter((m) => multi.blocks.some((b) => (b.steps ?? []).includes(m))) : null
+  t(`a seat's deep focus is every step its blocks name, in the brief's order (${multi?.id ?? 'no seat'} has ${multi?.blocks.length ?? 0} blocks)`,
+    !!multi && J(multi.steps) === J(union) && multi.blocks.every((b) => b.steps.every((m) => multi.steps.includes(m))), J(multi))
   t('the same scopes dispatch the same seats (a relaunch replays)', J(D.seatsFromScopes(scopes, 'D1')) === J(D.seatsFromScopes(JSON.parse(JSON.stringify(scopes)), 'D1')), 'differs')
   const bg = D.boxGaps(D.BOXES, ids)
   const heavy = Object.values(D.BOXES).reduce((n, b) => n + b.heavy.length, 0)
   console.log(`  boxes  ${Object.keys(D.BOXES).length} box(es), ${ids.length} seat(s), ${heavy} compute-heavy`)
   t('every seat is on exactly one box, at most three compute-heavy per box, the Chromium seat alone', bg.length === 0, bg.join('; '))
   const move = (from, to, seat, kind = 'heavy') => { const B = JSON.parse(JSON.stringify(D.BOXES)); B[from][kind] = B[from][kind].filter((s) => s !== seat); B[to][kind].push(seat); return B }
-  t('the check fires: a fourth heavy seat on a box is refused (positive control)', D.boxGaps(move('B6', 'B8', 'D12-s1'), ids).some((g) => /B8 runs 4/.test(g)), 'four heavy passed')
-  t('the check fires: a seat beside the Chromium seat is refused (positive control)', D.boxGaps(move('B9', 'B10', 'D4-s2', 'light'), ids).some((g) => /Chromium/.test(g)), 'Chromium shared')
-  t('the check fires: a seat on no box, or a box naming a seat the scopes lack, is refused (positive control)',
-    D.boxGaps(D.BOXES, ids.filter((s) => s !== 'D1-s5')).some((g) => /D1-s5, which the scopes/.test(g)) && D.boxGaps(D.BOXES, [...ids, 'D1-s6']).some((g) => /D1-s6 is in 0/.test(g)), 'passed')
-  const twice = JSON.parse(JSON.stringify(D.BOXES)); twice.B10.light.push('D1-s5')
-  t('the check fires: a seat listed on two boxes is refused (positive control)', D.boxGaps(twice, ids).some((g) => /D1-s5 is in 2 box/.test(g)), J(D.boxGaps(twice, ids)))
-  const dup = JSON.parse(JSON.stringify(D.BOXES)); dup.B5.light.push('D1-s5')
-  t('the check fires: a seat listed twice in one box is refused (positive control)', D.boxGaps(dup, ids).some((g) => /D1-s5 is in 2 box/.test(g)), J(D.boxGaps(dup, ids)))
+  const boxOf = (s) => Object.keys(D.BOXES).find((b) => [...D.BOXES[b].heavy, ...D.BOXES[b].light].includes(s))
+  const full = Object.keys(D.BOXES).find((b) => D.BOXES[b].heavy.length === 3)
+  const donor = Object.keys(D.BOXES).find((b) => b !== full && D.BOXES[b].heavy.length)
+  t(`the check fires: a fourth heavy seat on a box is refused (positive control: ${donor} -> ${full})`,
+    !!full && !!donor && D.boxGaps(move(donor, full, D.BOXES[donor].heavy[0]), ids).some((g) => g.startsWith(`${full} runs 4`)), 'four heavy passed')
+  const chrome = [...D.CHROMIUM][0], chromeBox = boxOf(chrome)
+  const lightBox = Object.keys(D.BOXES).find((b) => b !== chromeBox && D.BOXES[b].light.some((s) => !D.CHROMIUM.has(s)))
+  t('the check fires: a seat beside the Chromium seat is refused (positive control)',
+    !!chromeBox && !!lightBox && D.boxGaps(move(lightBox, chromeBox, D.BOXES[lightBox].light.find((s) => !D.CHROMIUM.has(s)), 'light'), ids).some((g) => /Chromium/.test(g)), 'Chromium shared')
+  const last = ids.at(-1) ?? 'D1-s1'
+  const ghost = last.replace(/s(\d+)$/, (_, n) => `s${Number(n) + 1}`)
+  t(`the check fires: a seat on no box, or a box naming a seat the scopes lack, is refused (positive control: ${last}, ${ghost})`,
+    !ids.includes(ghost) && D.boxGaps(D.BOXES, ids.filter((s) => s !== last)).some((g) => g.includes(`${last}, which the scopes`)) && D.boxGaps(D.BOXES, [...ids, ghost]).some((g) => g.includes(`${ghost} is in 0`)), 'passed')
+  const twice = JSON.parse(JSON.stringify(D.BOXES)); twice[Object.keys(D.BOXES).find((b) => b !== boxOf(last))].light.push(last)
+  t('the check fires: a seat listed on two boxes is refused (positive control)', D.boxGaps(twice, ids).some((g) => g.includes(`${last} is in 2 box`)), J(D.boxGaps(twice, ids)))
+  const dup = JSON.parse(JSON.stringify(D.BOXES)); dup[boxOf(last)].light.push(last)
+  t('the check fires: a seat listed twice in one box is refused (positive control)', D.boxGaps(dup, ids).some((g) => g.includes(`${last} is in 2 box`)), J(D.boxGaps(dup, ids)))
   t('and an empty extraction is refused rather than reported clean (null control)', D.boxGaps({}, []).length > 0, 'nothing read, nothing refused')
 
   // The whole driver, stubbed.
@@ -908,30 +967,39 @@ await block('the scoped round driver', async () => {
   const rcText = await refusedBy({ scopes_rc: '0' })
   t('...and when it came back as text rather than the integer the shell returned', rcText.error !== '' && rcText.finders === 0, J(rcText))
   const notOk = await refusedBy({ scopes_ok: false, scopes_note: 'differs' })
-  t('a scopes table that is not the committed file stops the round before any finder', /not the committed tools\/audit\/scopes\.json/.test(notOk.error) && notOk.finders === 0, J(notOk))
+  t('a scopes table that is not the committed file stops the round before any finder', /not the committed (tools\/audit|dev\/audit\/config)\/scopes\.json/.test(notOk.error) && notOk.finders === 0, J(notOk))
   const rotBad = await refusedBy({ rotation_ok: false, rotation_note: 'differs' })
-  t('a ledger that is not the committed file stops the round before any finder', /not the committed tools\/audit\/rotation\.json/.test(rotBad.error) && rotBad.finders === 0, J(rotBad))
+  t('a ledger that is not the committed file stops the round before any finder', /not the committed (tools\/audit|dev\/audit\/config)\/rotation\.json/.test(rotBad.error) && rotBad.finders === 0, J(rotBad))
   t('a round with no scopes, or no ledger, is refused', /args\.scopes is required/.test((await drive({ ...base, scopes: undefined })).error) && /args\.rotation is required/.test((await drive({ ...base, rotation: undefined })).error), 'did not throw')
-  const short = JSON.parse(JSON.stringify(scopes)); delete short.D1.seats.s5
+  const short = JSON.parse(JSON.stringify(scopes)); delete short.D1.seats[Object.keys(short.D1.seats).at(-1)]
   const sh = await drive({ ...base, scopes: short })
   t('scopes the boxes do not match are refused before Prepare', /boxes and args\.scopes disagree/.test(sh.error) && sh.labels.length === 0, sh.error || J(sh.labels))
 
   // Per container: a box runs its own seats and pushes its evidence; intake
-  // gathers every box. B8 is D14's three compute-heavy seats.
-  const b8 = await drive({ ...base, box: 'B8' })
-  t('box B8 runs exactly its seats, collects, and does not run intake', J(b8.labels.filter(isFinder).sort()) === J(['D14-s1', 'D14-s2', 'D14-s3']) && b8.labels.includes('collect-B8') && !b8.labels.includes('intake'), J(b8.labels))
+  // gathers every box. The box driven is the one holding D14-s1, read off BOXES.
+  const bx = boxOf('D14-s1')
+  const bxSeats = [...D.BOXES[bx].heavy, ...D.BOXES[bx].light]
+  const bxIso = bxSeats.filter((s) => isoDims.has(s.split('-')[0]))
+  const outsider = fileSeats.find((s) => isoDims.has(s.split('-')[0]) && !bxSeats.includes(s))
+  const b8 = await drive({ ...base, box: bx })
+  t(`box ${bx} runs exactly its seats, collects, and does not run intake`, J(b8.labels.filter(isFinder).sort()) === J([...bxSeats].sort()) && b8.labels.includes(`collect-${bx}`) && !b8.labels.includes('intake'), J(b8.labels))
   const b8prep = b8.calls[0]?.prompt ?? ''
-  t("...and Prepare makes a worktree for each of that box's isolated seats only", /D14-s1, D14-s2, D14-s3/.test(b8prep) && !/D0-s1/.test(b8prep), b8prep.slice(0, 300))
+  t(`...and Prepare makes a worktree for each of that box's isolated seats only (${bxIso.join(', ')}; not ${outsider})`,
+    bxIso.length > 0 && b8prep.includes(bxIso.join(', ')) && !!outsider && !b8prep.split(/[^A-Za-z0-9-]/).includes(outsider), b8prep.slice(0, 300))
   const gi = await drive({ ...base, from: 'intake' })
   t('from "intake" runs no finder, gathers every box, then intake', gi.labels.filter(isFinder).length === 0 && gi.labels.includes('gather') && gi.labels.at(-1) === 'intake', J(gi.labels))
-  t('an unknown box is refused', /is not one of/.test((await drive({ ...base, box: 'B11' })).error), 'B11 accepted')
+  const noBox = `B${Object.keys(D.BOXES).length + 1}`
+  t(`an unknown box is refused (${noBox})`, !D.BOXES[noBox] && /is not one of/.test((await drive({ ...base, box: noBox })).error), `${noBox} accepted`)
   const both = await drive({ ...base, box: 'B1', from: 'intake' })
   t('box and from "intake" together are refused before Prepare', /exclusive/.test(both.error) && both.labels.length === 0, both.error || J(both.labels))
-  // Round 10 runs neither D11 nor D13 (cadence 3): B3 then carries only its
-  // two heavy seats, and the placement check is taken over the active seats.
-  const r10 = await drive({ ...base, round: 10, box: 'B3' })
-  t('a round that runs a subset places only the active seats (round 10, box B3: D0-s3 and D3-s3, no D11 or D13)',
-    r10.error === '' && J(r10.labels.filter(isFinder).sort()) === J(['D0-s3', 'D3-s3']), r10.error || J(r10.labels))
+  // Round `off` runs neither D5, D6, D11 nor D13 (cadence 2 and 3): a box
+  // holding both active and inactive seats carries only the active ones, and
+  // the placement check is taken over the active seats.
+  const mixed = Object.keys(D.BOXES).find((b) => { const ss = [...D.BOXES[b].heavy, ...D.BOXES[b].light].map((s) => D.activeIn(off, s.split('-')[0])); return ss.includes(true) && ss.includes(false) })
+  const want = mixed ? [...D.BOXES[mixed].heavy, ...D.BOXES[mixed].light].filter((s) => D.activeIn(off, s.split('-')[0])).sort() : []
+  const r10 = await drive({ ...base, round: off, box: mixed })
+  t(`a round that runs a subset places only the active seats (round ${off}, box ${mixed}: ${want.join(', ')})`,
+    !!mixed && r10.error === '' && J(r10.labels.filter(isFinder).sort()) === J(want), r10.error || J(r10.labels))
 
   // The finder prompt: its cells, the wall, the fields.
   const p = (l) => r9.calls.find((c) => c.label === l)?.prompt ?? ''
@@ -941,14 +1009,15 @@ await block('the scoped round driver', async () => {
     finders.every((l) => { const [d, k] = l.split('-'); return p(l).includes(J(scopes[d].seats[k])) }), finders.filter((l) => { const [d, k] = l.split('-'); return !p(l).includes(J(scopes[d].seats[k])) }).join(', '))
   t("an isolated seat works in its own worktree, and an export seat in the export (D0-s2 and D14-s3 vs D5-s1)",
     p('D0-s2').includes('Work only in /w/D0-s2 ') && p('D14-s3').includes('Work only in /w/D14-s3 ') && p('D5-s1').includes('Work only in /x ') && !p('D0-s2').includes('/w/D0-s1'), [p('D0-s2'), p('D5-s1')].map((q) => (/Work only in (\S+)/.exec(q) ?? [])[1]).join(' | '))
-  // Read off the file's blocks directly: D9-s2 owns M1 and M2 in two blocks.
+  // Read off the file's blocks directly, the multi-block seat above among them.
   const owns = (l) => { const [d, k] = l.split('-'); const named = new Set(scopes[d].seats[k].flatMap((b) => b.steps)); return scopes[d].steps.filter((m) => named.has(m)).map((m) => `${d}.${m}`).join(', ') }
-  t('and exactly the steps its blocks name, each a deep focus (D9-s2: two blocks)',
-    owns('D9-s2') === 'D9.M1, D9.M2' && finders.every((l) => p(l).includes(`Every step you own is a deep focus: ${owns(l)}.`)), finders.filter((l) => !p(l).includes(`deep focus: ${owns(l)}.`)).join(', '))
+  t(`and exactly the steps its blocks name, each a deep focus (${multi?.id}: ${multi?.blocks.length} blocks)`,
+    !!multi && owns(multi.id) === union.map((m) => `${multi.dim}.${m}`).join(', ') && finders.every((l) => p(l).includes(`Every step you own is a deep focus: ${owns(l)}.`)), finders.filter((l) => !p(l).includes(`deep focus: ${owns(l)}.`)).join(', '))
   const walled = (q) => /must not go looking for earlier findings/.test(q)
   const others = finders.filter((l) => !l.startsWith('D14-'))
-  t("D14's finders may read the class ledger and its instances' history, and are not told the wall forbids it",
-    ['D14-s1', 'D14-s5'].every((l) => !walled(p(l)) && /tools\/audit\/bugclasses\.json/.test(p(l)) && /pre-fix commits/.test(p(l))), p('D14-s1').slice(0, 200))
+  const d14 = finders.filter((l) => l.startsWith('D14-'))
+  t(`D14's finders may read the class ledger and its instances' history, and are not told the wall forbids it (${d14[0]}, ${d14.at(-1)})`,
+    d14.length > 0 && [d14[0], d14.at(-1)].every((l) => !walled(p(l)) && /(tools\/audit|dev\/audit\/config)\/bugclasses\.json/.test(p(l)) && /pre-fix commits/.test(p(l))), p(d14[0] ?? '').slice(0, 200))
   t('every other finder keeps the earlier-findings wall (null control)', others.length > 0 && others.every((l) => walled(p(l))), others.filter((l) => !walled(p(l))).join(', '))
   // The schema the finder is held to by the runtime carries what the file does.
   const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
@@ -1008,7 +1077,7 @@ await block('the scoped round driver', async () => {
 // 8's one-verifier pass is graded by whatever checker is on main when it is
 // proposed. This checker knows both shapes, keyed on the driver's own
 // PANEL:BEGIN block: round 8's pins below run until that block exists, and
-// 'the round-9 verification pass' holds the driver from then on. The driver's
+// 'the panel verification pass' holds the driver from then on. The driver's
 // pull request may drop round 8's arm; a driver with neither shape fails both.
 const PANEL_DRIVER = /\/\/ PANEL:BEGIN/.test(fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8'))
 if (!PANEL_DRIVER) {
@@ -1092,23 +1161,41 @@ await block('the verification pass', async () => {
 })
 }
 
-console.log('-- The round-9 verification pass: three lenses per dimension, majority kill, one judge')
+console.log('-- The panel verification pass: the lenses per dimension, the panel rule, one judge')
 // Round 9 (dev/governance/roles/verifier.md and judge.md as #1627 merged them):
 // three verifiers per dimension, each owning a lens; two refutes, each with an
 // executed number, kill at panel and one sends the finding to the judge
-// disputed; a dimension over the shard size gets another triple, split at a
+// disputed. Round 10 (tvofi, 2026-10-14): ONE verifier per dimension carries all
+// three lenses, and its refute with an executed number sends the finding to the
+// judge disputed -- no vote kills alone. The driver declares its shape:
+// `VERIFIERS_PER_DIMENSION = 1` in its PANEL block is round 10's, its absence
+// round 9's, and each arm pins its own. This checker is main's copy when a
+// driver changes (decision 0013), so it knows both shapes before either lands.
+// Both: a dimension over the shard size gets another unit, split at a
 // finder-seat boundary; the judge dedups first, then tools/audit/judge_batch.py
 // re-runs the canonical findings on `runners` boxes, then verdicts and classes;
 // one sweep per class, and RCA owed at three instances of a class or at any
 // instance of a barriered one (defect-root-cause.md). The rules are evaluated
 // alone from the PANEL block, then the body is driven against stubbed agents.
-if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
+if (PANEL_DRIVER) await block('the panel verification pass', async () => {
   const vsrc = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
   const blk = vsrc.match(/\/\/ PANEL:BEGIN[\s\S]*?\/\/ PANEL:END/)
   t('the panel rules are delimited in audit-verify.js', !!blk, 'no PANEL:BEGIN..END block')
-  const P = new Function(`${blk?.[0] ?? ''}\nreturn { seatOf, shardsFor, panelOf, rcaOwed }`)()
+  const P = new Function(`${blk?.[0] ?? ''}\nreturn { seatOf, shardsFor, panelOf, rcaOwed, per: typeof VERIFIERS_PER_DIMENSION === 'undefined' ? undefined : VERIFIERS_PER_DIMENSION }`)()
+  const ONE = P.per === 1
+  t(`the PANEL block declares no verifier count (round 9: three) or exactly one (round 10): ${J(P.per ?? null)}`, P.per === undefined || ONE, J(P.per))
   const V = (vote, value = '1') => ({ vote, value })
-  const panels = [
+  const panels = ONE ? [
+    [[V('refute')], 'disputed'],
+    [[V('refute', '')], 'contested'],
+    [[V('refute', null)], 'contested'],
+    [[V('verify')], 'verified'],
+    [[V('weaken')], 'contested'],
+    [[V('unresolved')], 'contested'],
+    [[null], 'unvoted'],
+    [[], 'unvoted'],
+    [[V('refute'), V('refute'), V('refute')], 'disputed'],
+  ] : [
     [[V('refute'), V('refute'), V('verify')], 'killed'],
     [[V('refute'), V('verify'), V('verify')], 'disputed'],
     [[V('refute'), V('refute', ''), V('verify')], 'disputed'],
@@ -1119,14 +1206,15 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
     [[V('verify'), V('verify'), null], 'split'],
   ]
   const got = panels.map(([vs]) => P.panelOf(vs))
-  t('two refutes with executed numbers kill; one, or one plus a refute without a number, sends it disputed; nothing else kills',
+  t(ONE ? 'a refute with an executed number sends the finding disputed; one without a number is contested; no vote, not even three refutes, kills'
+    : 'two refutes with executed numbers kill; one, or one plus a refute without a number, sends it disputed; nothing else kills',
     J(got) === J(panels.map(([, w]) => w)), `got ${J(got)}`)
   t('owes an RCA at three instances of a class or any instance of a barriered one, not at two or at none',
     J([[2, false], [3, false], [1, true], [0, true]].map(([n, b]) => P.rcaOwed(n, b))) === J([false, true, true, false]), 'rcaOwed disagrees')
   const Fs = (seat, n, dim = 'D2') => Array.from({ length: n }, (_, k) => ({ id: `${seat}-${String(k + 1).padStart(2, '0')}`, dimension: dim }))
   const sixteen = [...Fs('D2-s1', 9), ...Fs('D2-s2', 7)]
   const sh = P.shardsFor(sixteen, 15)
-  t('sixteen findings over two seats make two triples, each within one seat; fifteen make one',
+  t('sixteen findings over two seats make two units, each within one seat; fifteen make one',
     sh.length === 2 && sh.every((s) => new Set(s.map(P.seatOf)).size === 1) && sh.flat().length === 16 && P.shardsFor(sixteen.slice(0, 15), 15).length === 1,
     J(sh.map((s) => s.map((f) => f.id))))
   t('a finding\'s scope wins over its id when naming its seat', P.seatOf({ id: 'D1-s1-01', scope: 'D1-s3' }) === 'D1-s3', P.seatOf({ id: 'D1-s1-01', scope: 'D1-s3' }))
@@ -1135,7 +1223,10 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
   const F = (id, dimension) => ({ id, dimension, scope: id.replace(/-\d+$/, ''), step: `${dimension}.M1`, severity: 'low', title: id, claim: id, class_guess: 'new', report_path: 'r', harness_paths: [], attached_refutation: null })
   const d1 = ['D1-s1-01', 'D1-s1-02', 'D1-s1-03'].map((x) => F(x, 'D1'))
   const d2 = [...Fs('D2-s1', 9), ...Fs('D2-s2', 7)].map((f) => F(f.id, 'D2'))
+  // Round 9: one lens's vote per position. Round 10: the one verifier's vote and value.
   const PLAN = { 'D1-s1-01': ['refute', 'refute', 'verify'], 'D1-s1-02': ['refute', 'verify', 'verify'] }
+  const PLAN1 = { 'D1-s1-01': ['refute', '1'], 'D1-s1-02': ['refute', ''] }
+  const isVerifier = (label) => (ONE ? /^D\d+(?:#\d+)?\/verify$/ : /^D\d+(?:#\d+)?\/v[123]$/).test(label)
   const drive = async (args, { nullLabel, flagged, foldRc } = {}) => {
     const calls = []
     let judged = []
@@ -1143,11 +1234,11 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
       const label = o?.label ?? '?'
       calls.push({ label, prompt })
       if (label === 'read') return { findings: [...d1, ...d2] }
-      const m = /^(D\d+)(?:#\d+)?\/v([123])$/.exec(label)
-      if (m) {
+      const m = /^(D\d+)(?:#\d+)?\/(?:v([123])|verify)$/.exec(label)
+      if (m && isVerifier(label)) {
         if (label === nullLabel) return null
         const ids = [...d1, ...d2].filter((f) => prompt.includes(`"${f.id}"`)).map((f) => f.id)
-        return { votes: ids.map((id) => ({ id, vote: PLAN[id]?.[Number(m[2]) - 1] ?? 'verify', value: '1' })) }
+        return { votes: ids.map((id) => (ONE ? { id, vote: PLAN1[id]?.[0] ?? 'verify', value: PLAN1[id]?.[1] ?? '1' } : { id, vote: PLAN[id]?.[Number(m[2]) - 1] ?? 'verify', value: '1' })) }
       }
       if (label === 'judge/dedup') {
         judged = [...d1, ...d2].filter((f) => prompt.includes(`"id":"${f.id}"`)).map((f) => f.id)
@@ -1173,29 +1264,53 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
     return { out, calls, judged }
   }
   const r = await drive({})
-  const vs = r.calls.filter((c) => /\/v[123]$/.test(c.label))
-  t('three verifiers per triple, one per lens, and D2\'s sixteen findings get two triples (9 calls in all)',
-    vs.length === 9 && ['v1', 'v2', 'v3'].every((v) => vs.filter((c) => c.label.endsWith(v)).length === 3)
-    && vs.every((c) => /verifier\.md/.test(c.prompt)) && /reproduce/.test(vs.find((c) => c.label === 'D1/v1')?.prompt) && /reach and class/.test(vs.find((c) => c.label === 'D1/v3')?.prompt),
-    J(vs.map((c) => c.label)))
-  t('the killed finding never reaches the judge; the disputed one does, marked',
-    J(r.out?.panel?.killed) === J(['D1-s1-01']) && !r.judged.includes('D1-s1-01') && r.judged.length === 18
-    && /"id":"D1-s1-02"[^}]*"panel":"disputed"/.test(r.calls.find((c) => c.label === 'judge/dedup')?.prompt ?? ''),
-    `killed ${J(r.out?.panel?.killed)}; judged ${r.judged.length}`)
+  const vs = r.calls.filter((c) => isVerifier(c.label))
+  const dedupPrompt = r.calls.find((c) => c.label === 'judge/dedup')?.prompt ?? ''
+  if (ONE) {
+    t('one verifier per unit carrying all three lenses, and D2\'s sixteen findings get two units (3 calls in all)',
+      J(vs.map((c) => c.label).sort()) === J(['D1/verify', 'D2#1/verify', 'D2#2/verify'])
+      && vs.every((c) => /verifier\.md/.test(c.prompt) && /reproduce/.test(c.prompt) && /independent/.test(c.prompt) && /reach and class/.test(c.prompt)),
+      J(vs.map((c) => c.label)))
+    t('nothing is killed at panel: the refuted finding reaches the judge disputed, the refute without a number contested',
+      J(r.out?.panel?.killed) === J([]) && r.judged.length === 19
+      && /"id":"D1-s1-01"[^}]*"panel":"disputed"/.test(dedupPrompt) && /"id":"D1-s1-02"[^}]*"panel":"contested"/.test(dedupPrompt),
+      `killed ${J(r.out?.panel?.killed)}; judged ${r.judged.length}`)
+  } else {
+    t('three verifiers per triple, one per lens, and D2\'s sixteen findings get two triples (9 calls in all)',
+      vs.length === 9 && ['v1', 'v2', 'v3'].every((v) => vs.filter((c) => c.label.endsWith(v)).length === 3)
+      && vs.every((c) => /verifier\.md/.test(c.prompt)) && /reproduce/.test(vs.find((c) => c.label === 'D1/v1')?.prompt) && /reach and class/.test(vs.find((c) => c.label === 'D1/v3')?.prompt),
+      J(vs.map((c) => c.label)))
+    t('the killed finding never reaches the judge; the disputed one does, marked',
+      J(r.out?.panel?.killed) === J(['D1-s1-01']) && !r.judged.includes('D1-s1-01') && r.judged.length === 18
+      && /"id":"D1-s1-02"[^}]*"panel":"disputed"/.test(dedupPrompt),
+      `killed ${J(r.out?.panel?.killed)}; judged ${r.judged.length}`)
+  }
+  // Judged per class, read off the run, so the counts below hold in either shape.
+  const jP1 = r.judged.filter((id) => id.startsWith('D1')).length, jP2 = r.judged.filter((id) => id.startsWith('D2')).length
   const order = r.calls.map((c) => c.label).filter((l) => l.startsWith('judge'))
   t('the judge dedups first, the batch re-runner measures next, the verdicts come last',
     J(order) === J(['judge/dedup', 'judge/runner-1', 'judge']) && /tools\/audit\/judge_batch\.py --input in\.json/.test(r.calls.find((c) => c.label === 'judge/runner-1')?.prompt ?? ''),
     J(order))
-  t('one sweep per surviving class, and the class count adds its swept instances (P1: 2 judged + 1 swept = 3, owed; P2: 16, owed)',
-    J(r.out?.classes?.map((c) => [c.class, c.n, c.rca])) === J([['P1', 3, true], ['P2', 16, true]]), J(r.out?.classes))
+  t(`one sweep per surviving class, and the class count adds its swept instances (P1: ${jP1} judged + 1 swept = ${jP1 + 1}, owed; P2: ${jP2}, owed)`,
+    jP1 >= 2 && jP2 === 16 && J(r.out?.classes?.map((c) => [c.class, c.n, c.rca])) === J([['P1', jP1 + 1, true], ['P2', jP2, true]]), J(r.out?.classes))
   // R-register (#1759): the unit of N is a field the sweep sets, the fold is a script run after the sweeps,
   // a class is minted only with its nearest class and the difference, and the round record is one branch.
   const fl = await drive({}, { flagged: true })
-  t('a sweep that flags its seams counts only the beyond_finding ones, and the class carries both terms (P1: 2 judged + 1 flagged = 3, not 2 + 5)',
-    J(fl.out?.classes?.map((c) => [c.class, c.judged, c.beyond_finding, c.n])) === J([['P1', 2, 1, 3], ['P2', 16, 0, 16]]), J(fl.out?.classes))
+  t(`a sweep that flags its seams counts only the beyond_finding ones, and the class carries both terms (P1: ${jP1} judged + 1 flagged = ${jP1 + 1}, not ${jP1} + 5)`,
+    J(fl.out?.classes?.map((c) => [c.class, c.judged, c.beyond_finding, c.n])) === J([['P1', jP1, 1, jP1 + 1], ['P2', jP2, 0, jP2]]), J(fl.out?.classes))
   const sw = r.calls.find((c) => c.label === 'sweep/P1')?.prompt ?? ''
   t('the sweep is told to flag every seam beyond_finding and to write the JSON the fold reads', /beyond_finding/.test(sw) && /sweep-P1\.json/.test(sw) && /fold_ledger\.py/.test(sw), 'sweep prompt')
   const jd = r.calls.find((c) => c.label === 'judge')?.prompt ?? ''
+  if (ONE) {
+    // Two readers of one directory: the fold reads JUDGE.json and the sweeps
+    // where fold_ledger.py's own source says, and the driver must write them
+    // there. Round 9's driver wrote tools/audit/round<N>/, which the fold had
+    // stopped reading (R9-RO-8); read off the script, never restated here.
+    const foldSrc = fs.readFileSync(at('tools/audit/fold_ledger.py'), 'utf8')
+    const foldDir = (/f"(dev\/audit\/rounds\/round)\{rnd\}"/.exec(foldSrc) ?? [])[1]
+    t(`the judge and the sweeps write where fold_ledger.py reads (${foldDir ?? 'no directory read off the fold'}9/)`,
+      !!foldDir && jd.includes(`${foldDir}9/JUDGE.md and JUDGE.json`) && sw.includes(`${foldDir}9/sweep-P1.json`), `${jd.slice(jd.indexOf('Write '), jd.indexOf('Write ') + 80)} | ${sw.slice(sw.indexOf('Write '), sw.indexOf('Write ') + 80)}`)
+  }
   t('the judge reuses before minting: nearest and differs are named, and a class is a mechanism never a site', /Reuse before minting/.test(jd) && /nearest/.test(jd) && /differs/.test(jd) && /never a site/.test(jd), 'judge prompt')
   const lab = r.calls.map((c) => c.label)
   t('the fold runs once after every sweep and before the writer, then the round record last',
@@ -1218,18 +1333,29 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
   t('two runners split the batch with --shard 1/2 and 2/2; args.file lets the writer search before it files',
     runs.length === 2 && /--shard 1\/2/.test(runs[0].prompt) && /--shard 2\/2/.test(runs[1].prompt)
     && /gh issue list/.test(two.calls.find((c) => c.label === 'register')?.prompt ?? ''), J(runs.map((c) => c.label)))
-  // V2 carries one of D1-s1-01's two refutes; null twice, that refute is gone
-  // and the finding goes to the judge disputed, not killed. V3 null leaves the
-  // kill standing: the two refutes that remain are V1's and V2's.
-  const nul2 = await drive({}, { nullLabel: 'D1/v2' })
-  const nul3 = await drive({}, { nullLabel: 'D1/v3' })
-  t('a null verifier is re-run once, and a kill needs two refutes actually cast',
-    nul2.calls.filter((c) => c.label === 'D1/v2').length === 2 && J(nul2.out?.panel?.killed) === J([]) && nul2.judged.includes('D1-s1-01')
-    && J(nul3.out?.panel?.killed) === J(['D1-s1-01']),
-    `D1/v2 calls ${nul2.calls.filter((c) => c.label === 'D1/v2').length}; killed ${J(nul2.out?.panel?.killed)} / ${J(nul3.out?.panel?.killed)}`)
+  if (ONE) {
+    // The one verifier null twice: re-run exactly once, and its findings still
+    // reach the judge, marked unvoted rather than dropped.
+    const nul = await drive({}, { nullLabel: 'D1/verify' })
+    const nd = nul.calls.find((c) => c.label === 'judge/dedup')?.prompt ?? ''
+    t('a null verifier is re-run once, and its findings reach the judge unvoted',
+      nul.calls.filter((c) => c.label === 'D1/verify').length === 2 && J(nul.out?.panel?.killed) === J([]) && nul.judged.length === 19
+      && ['D1-s1-01', 'D1-s1-02', 'D1-s1-03'].every((id) => new RegExp(`"id":"${id}"[^}]*"panel":"unvoted"`).test(nd)),
+      `D1/verify calls ${nul.calls.filter((c) => c.label === 'D1/verify').length}; judged ${nul.judged.length}`)
+  } else {
+    // V2 carries one of D1-s1-01's two refutes; null twice, that refute is gone
+    // and the finding goes to the judge disputed, not killed. V3 null leaves the
+    // kill standing: the two refutes that remain are V1's and V2's.
+    const nul2 = await drive({}, { nullLabel: 'D1/v2' })
+    const nul3 = await drive({}, { nullLabel: 'D1/v3' })
+    t('a null verifier is re-run once, and a kill needs two refutes actually cast',
+      nul2.calls.filter((c) => c.label === 'D1/v2').length === 2 && J(nul2.out?.panel?.killed) === J([]) && nul2.judged.includes('D1-s1-01')
+      && J(nul3.out?.panel?.killed) === J(['D1-s1-01']),
+      `D1/v2 calls ${nul2.calls.filter((c) => c.label === 'D1/v2').length}; killed ${J(nul2.out?.panel?.killed)} / ${J(nul3.out?.panel?.killed)}`)
+  }
   const res = await drive({ from: 'judge' })
   t('from "judge" runs no verifier and hands the judge every registered finding, unvoted',
-    !res.calls.some((c) => /\/v[123]$/.test(c.label)) && res.judged.length === 19, `judged ${res.judged.length}`)
+    !res.calls.some((c) => /\/(v[123]|verify)$/.test(c.label)) && res.judged.length === 19, `judged ${res.judged.length}`)
 })
 
 console.log('-- The verification pass feeds the rotation ledger its yield')
