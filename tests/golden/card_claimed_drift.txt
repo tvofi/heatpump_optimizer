@@ -702,5 +702,47 @@
 # R9-UX-5: where the hovered step publishes an idle sub-code, the tooltip
 # says Because and that reason. The raw code is not also a reason label.
 
-shared_steps_hover # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules); R9-UX-5: the shared idle step uses the same Because block
-tooltip_hover # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules); R9-UX-5: idle sub-code replaces the raw reason label with Because
+# R9-UX-7 (#1795): every state but editor_schema renders the card stylesheet,
+# which gains the learned-model block's rules; with those rules removed
+# card_drift reports all 40 states identical, so the stylesheet is the
+# whole of the drift. No state renders the Health page.
+
+no_plan # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+no_plan_expanded # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+plan_inline # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+plan_inline_sv # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+plan_short_window # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+custom_title_currency # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+hidden_series # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+score_open # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+expanded_plan # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+what_if_off # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+expanded_zoomed # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+draft_dirty_menu_open # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+draft_mid_drag # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+whatif_edited # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+whatif_weekly # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+override_active # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+shared_steps # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+shared_steps_hover # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+tooltip_hover # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+coarse_pointer # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+reduced_motion # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+setup_single_buffer # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+setup_two_tank # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+setup_coil # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+advisor_page # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+layout_editing_dragged # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+layout_editing_tidy # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+picker_open_filtered # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+wood_alert # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+wood_lane # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+wood_whatif # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+away_toggle # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+away_return # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+away_status # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+history_panned # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+history_deep_panned # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+history_no_power # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+history_unavailable # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)
+history_pending # R9-UX-7: stylesheet (.model-value, .model-bar, .gains-strip and .gains-bar rules for the Health tab's learned-model block)

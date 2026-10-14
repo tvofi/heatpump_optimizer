@@ -1004,6 +1004,15 @@ async def _async_save_restored(coord: Any) -> None:
     await coord._async_save_accuracy()
 
 
+def predicted_next_room_temp(coord: Any) -> float | None:
+    """R9-UX-7 (#1795): the room temperature the running plan predicts for
+    the next interval -- the figure the accuracy tracker files and later
+    scores -- or ``None`` while no plan governs the room (the method's gate).
+    """
+    predict = getattr(coord, "_predicted_next_room_temp", None)
+    return predict() if callable(predict) else None
+
+
 def model_restart_advice(coord: Any) -> dict[str, Any]:
     """R9-DIAG-2S (#1936): the restart points the drift alarm can offer.
 
