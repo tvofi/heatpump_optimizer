@@ -123,6 +123,22 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
+- `daemonize.py` — detaches one long-running instrument from the session that
+  started it: fork/setsid/dup2/execvp around any `-- CMD`, with the log's
+  first line a banner naming the child pid, UTC time and full argv (the #2180
+  lessons: banner first, unbuffered), append mode so relaunches extend one
+  attributable file. When: a watch or sweep that must outlive its session —
+  round 9 re-derived the wrapper in /tmp four times before this existed.
+  Refusal: `--log` is mandatory and a non-existent `--cwd` aborts; no lock or
+  pid bookkeeping — the printed pid and `kill` are the stop story.
+- `failure_logs.sh` — answers why a PR's newest red at its live head is red:
+  latest failing check-runs (grouped by name, newest `started_at` wins, so
+  red-then-green is not read as a failure) -> `details_url` -> job log ->
+  error lines, per-check log files and a `HEAD.txt` under the out-dir. When:
+  any red whose cause a watcher's state line does not carry. Refusal: a
+  non-Actions check prints NO-JOB, an unserved log prints NO-LOG and exits 1
+  with the count over readable logs beside the unread one; no error-marker
+  match falls back to the log's tail, never a silent zero.
 - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
   `hpo-author` with body, title and its own delivery row. When: only where
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
@@ -210,6 +226,20 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `app_approve --dry-run` does not verdict — each aborts with a logged report
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
   every guard and touches nothing.
+- `prune_refs.py` — reconciles the remote branch refs down to main plus a few
+  development branches at programme closure, archive-as-tags first. When: the
+  R9-CLOSURE-BRANCHES step 4 (prune by rule), and any future round's closure.
+  Four rules -- keep `main` and any ref whose pull request is OPEN; delete a
+  ref already merged into main, and an unmerged `handoff/*` ref whose pull
+  request merged (a same-named PR, or the branch of a roster group the roster
+  records `done`); enumerate the residue (no PR, or a closed-unmerged one) for
+  an individual disposition, archived-and-deleted by default. Refusals: a plan
+  that would act on `main`, and any `verdict/*` deletion while `--verdicts-drained`
+  is unset (the bus watcher reads those refs). Every tag is created before any
+  deletion, and `--archive-scope none` deletes nothing, so no tip is ever
+  dropped unarchived; `--dry-run` (the default) prints the plan and writes
+  nothing. `--self-test` drives the classifier, the planner, the precedence and
+  the ordering offline (22 checks).
 - `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
   the train launches: per entry PASS, PARK (the train's own Stop wording — a
   carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
