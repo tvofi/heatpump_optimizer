@@ -1,0 +1,13 @@
+RESULT M1_platform rc=1 KILLED red=['tibber_price:one_home_picked', 'tibber_price:none_refused']
+RESULT M2_sensor_prefix rc=1 KILLED red=['tibber_price:one_home_picked', 'tibber_price:none_refused']
+RESULT M3_disabled rc=1 KILLED red=['tibber_price:disabled_skipped']
+RESULT M4_bare_uid rc=1 KILLED red=['tibber_price:one_home_picked', 'tibber_price:none_refused']
+RESULT M5_translation_key rc=1 KILLED red=['tibber_price:one_home_picked', 'tibber_price:none_refused']
+RESULT M6_recorder rc=1 KILLED red=['tibber_price:unrecorded_skipped', 'tibber_price:unavailable_skipped']
+RESULT M7_entry_pref rc=1 KILLED red=['tibber_price:entry_names_one']
+RESULT M8_flag_wins rc=1 KILLED red=['tibber_price:flag_overrides_two', 'tibber_price:flag_overrides_one']
+RESULT M9_entity_source rc=1 KILLED red=['tibber_price:entity_source_untouched']
+RESULT M10_uid_none_default rc=0 SURVIVED red=[]
+RESULT M11_numeric rc=1 KILLED red=['tibber_price:unavailable_skipped']
+RESULT M12_one_to_first rc=1 KILLED red=['tibber_price:two_homes_refused']
+RESULT restore clean: True
