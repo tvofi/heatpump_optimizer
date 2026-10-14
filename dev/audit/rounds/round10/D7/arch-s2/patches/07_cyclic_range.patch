@@ -1,0 +1,71 @@
+diff --git a/custom_components/heatpump_optimizer/grid_fee.py b/custom_components/heatpump_optimizer/grid_fee.py
+index 11aa96735..d2a91aa57 100644
+--- a/custom_components/heatpump_optimizer/grid_fee.py
++++ b/custom_components/heatpump_optimizer/grid_fee.py
+@@ -111,41 +111,39 @@ class GridFeeError(ValueError):
+     """Raised when a grid-fee specification cannot be parsed."""
+ 
+ 
+-def parse_month_range(token: str) -> frozenset[int]:
+-    """``"Nov-Mar"`` or ``"Jul"`` as the set of month numbers it covers."""
++def _parse_cyclic_range(
++    token: str, names: dict[str, int], first: int, size: int, what: str
++) -> frozenset[int]:
++    """``"<a>-<b>"`` or ``"<a>"`` over a named cycle, as the values it covers.
++
++    ``names`` maps each spelling to its value in ``first .. first + size - 1``;
++    a range whose end comes before its start wraps the cycle, so ``Nov-Mar``
++    is Nov, Dec, Jan, Feb, Mar and ``Sat-Mon`` is Sat, Sun, Mon.
++    """
+     token = token.strip().lower()
+     if "-" in token:
+         start_token, _, end_token = token.partition("-")
+-        start = _MONTHS.get(start_token.strip())
+-        end = _MONTHS.get(end_token.strip())
++        start = names.get(start_token.strip())
++        end = names.get(end_token.strip())
+         if start is None or end is None:
+-            raise GridFeeError(f"Unknown month in '{token}'")
+-        if start <= end:
+-            return frozenset(range(start, end + 1))
+-        # Wrapping: Nov-Mar is Nov, Dec, Jan, Feb, Mar.
+-        return frozenset(list(range(start, 13)) + list(range(1, end + 1)))
+-    month = _MONTHS.get(token)
+-    if month is None:
+-        raise GridFeeError(f"Unknown month '{token}'")
+-    return frozenset({month})
++            raise GridFeeError(f"Unknown {what} in '{token}'")
++        return frozenset(
++            first + (start - first + k) % size for k in range((end - start) % size + 1)
++        )
++    value = names.get(token)
++    if value is None:
++        raise GridFeeError(f"Unknown {what} '{token}'")
++    return frozenset({value})
++
++
++def parse_month_range(token: str) -> frozenset[int]:
++    """``"Nov-Mar"`` or ``"Jul"`` as the set of month numbers it covers."""
++    return _parse_cyclic_range(token, _MONTHS, 1, 12, "month")
+ 
+ 
+ def parse_day_range(token: str) -> frozenset[int]:
+     """``"Mon-Fri"`` or ``"Sat"`` as the set of ``datetime.weekday()`` values."""
+-    token = token.strip().lower()
+-    if "-" in token:
+-        start_token, _, end_token = token.partition("-")
+-        start = _DAYS.get(start_token.strip())
+-        end = _DAYS.get(end_token.strip())
+-        if start is None or end is None:
+-            raise GridFeeError(f"Unknown weekday in '{token}'")
+-        if start <= end:
+-            return frozenset(range(start, end + 1))
+-        return frozenset(list(range(start, 7)) + list(range(0, end + 1)))
+-    day = _DAYS.get(token)
+-    if day is None:
+-        raise GridFeeError(f"Unknown weekday '{token}'")
+-    return frozenset({day})
++    return _parse_cyclic_range(token, _DAYS, 0, 7, "weekday")
+ 
+ 
+ @dataclass(frozen=True)
