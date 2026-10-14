@@ -864,7 +864,9 @@ await block('the scoped round driver', async () => {
   // a base script that has no CURRENT_PATHS yet; from its merge on, both hold.
   const curGaps = (f, s) => {
     if (f === undefined || s === undefined) return []
-    const a = norm([...f.matchAll(/'([^']*)'/g)].map((m) => m[1])), b = norm(s.split(/\s+/).filter(Boolean))
+    let lit = []
+    try { lit = JSON.parse('[' + f.replaceAll("'", '"') + ']') } catch { return [`audit-find.js CURRENT is not a list of string literals: [${f}]`] }
+    const a = norm(lit), b = norm(s.split(/\s+/).filter(Boolean))
     if (!a.length || !b.length) return ['an empty CURRENT list (an empty extraction is a gap)']
     return J(a) === J(b) ? [] : [`audit-find.js CURRENT ${J(a)} != prepare_baseline.sh CURRENT_PATHS ${J(b)}`]
   }
