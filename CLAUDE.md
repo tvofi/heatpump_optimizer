@@ -197,24 +197,3 @@ check-shaped countermeasure owes are in `defect-root-cause.md` and
 `root-cause.md`. Only the red-check trigger is enforced: the fixer names the
 check in the pull-request body and answers it there, and the fix reviewer
 returns `blocked` on one the body left unanswered.
-
-<!-- ▼ PROGRAMME BLOCK. Everything below is scoped to one programme and is
-     deleted when it closes. It carries no state of its own — only where the
-     state is — so it cannot go stale while the programme is open. -->
-
-## The open-issues programme
-
-Tracking issue **#201**; its newest comment is the live state, and nothing in
-the tree competes with it for that job.
-
-Four places carry the rest, and each answers a different question. The plan of
-record is `dev/programme/plan-2026-09-open-issues.md`; its frozen Delivery-status table
-and `dev/programme/delivery/` outrank a wave body that disagrees — if they look stale
-against #201, they are the bug and fixing them comes first.
-`dev/programme/HANDOVER.md` carries what the code cannot say: decisions and why,
-corrections to the record, the traps a previous session hit, and owed work.
-`.claude/workflows/wave-*-groups.json` hold the per-group briefs, each with a
-`resume` field saying where it restarts — and a brief records what a judge
-already **established and refuted**, so reading only the issue body will have
-you implement a plan that was overturned. `dev/programme/register/audit-2026-09.md` is the
-evidence register the plan delivers against.
