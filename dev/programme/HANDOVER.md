@@ -1,46 +1,47 @@
 # Handover — the open-issues programme
 
-updated-for: fe8c213320c77da5e10011b57b4efd9ab46591f3
-
-Taken at this record seat's own merge base off `origin/main`. W1067-G8
-re-pointed this line to `a53fc75` (origin/main's tip) as it closed wave 1067
-out; the merges since the prior stamp `25696f8` (#1147) are #1142 `da63bbb`,
-#1149 `7b4071c`, #1152 `69a0896`, #1150 `582d2ee` and #1153 `a53fc75`. Re-derive
-rather than trust this line if it reads stale against `origin/main` HEAD.
+updated-for: a77faf30d9e4dd0f7c5f3074f0b1a16de50f34c4
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
 `dev/programme/plan-2026-09-open-issues.md` plus one `dev/programme/delivery/<N>.md` per pull
 request (#1081), linked from here and never restated.
 
-## Round 9 in flight — the audit fix programme
+## Round 9 closed at v7.0.0; round 10 open
 
-Round 9 (the audit fix programme, tracking issue #201) runs off `main` and keeps
-its live state on two branches, so any session resumes from the tree alone:
+**Round 9** (tracking issue #201) is closed: v7.0.0, no interim 6.7.x stamp. Its
+handoff branches, including `handoff/audit-r9-fixplan` and `handoff/audit-r9-plan`,
+are archived as tags under `archive/handoff/` (`git tag -l 'archive/handoff/audit-r9-*'`),
+so a round-9 plan, roster or `RESUME-CURRENT.md` is read from its tag, never
+resumed. The closure sequence and the delivery-row beat are in the 2026-10-13/14
+section below.
 
-- **`handoff/audit-r9-fixplan`** — the fix plan: `handoff/round9/FIX-PLAN.md`,
-  the roster `.claude/workflows/wave-r9-groups.json` (per-PR briefs with
-  `resume` and model fields), the per-lane briefs `handoff/round9/fix/F*.md`,
-  and the standing template `handoff/round9/fix/src/standing.md`, which binds
-  every fixer and reviewer seat this round.
-- **`handoff/audit-r9-plan`** — `handoff/round9/state/RESUME-CURRENT.md`, the
-  regenerated state file (under 10 KB) a crashed session resumes from, beside
-  `LOCAL-ORCHESTRATOR-PROMPT.md`, the startup prompt, and `RESUME-ARCHIVE.md`,
-  the frozen pre-2026-10-01 log.
+**Round 10** opened 2026-10-14 under tvofi's rulings: all 15 dimensions
+(`dev/governance/dimensions/D0.md` to `D14.md`) this round; three disjoint
+finder seats per dimension; one verifier per dimension, where a refute marks a
+finding **disputed**; one common judge. D15, debugging run from a live
+diagnostics bundle, is in flight as #2209 together with a grader split; its
+brief is not in `dev/governance/dimensions/` until that merges.
 
-A local orchestrator on tvofi's Mac dispatches the fixer and reviewer seats and
-merges; the seat scripts it uses (`merge_train.py`, `remerge_main.sh`,
+- **Owner approvals** (CODEOWNER, policy, budget raise) run under mandate
+  6175172275, a #201 comment, scope all, until 2026-10-28T18:14Z. Cite the
+  mandate; a seat's own message is not approval (`CLAUDE.md`).
+- **Merged so far:** #2206 `31052f53c`, #2207 `554e2ecfa`, #2210 `a77faf30d`
+  (wave-script panel, round drivers, replay-export numeric-state pin).
+- **Volatile state** — open seats, lanes, PR heads, the next action — is on
+  #201 and nowhere here (`writing-for-agents.md`).
+
+Seat scripts the orchestrator uses (`merge_train.py`, `remerge_main.sh`,
 `handoff_push.sh`, `seat_venv.sh`) live in `tools/audit/seat/` (decision 0013,
-#1879). Reviewer seats work detached at the head SHA, post `Fix review: merge
-<sha>` or `blocked` as hpo-approver, and the train merges one pull request at a
-time on a merge verdict carried to the live head with green CI.
+#1879). Reviewer seats work detached at the head SHA and post `Fix review: merge
+<sha>` or `blocked` as hpo-approver.
 
 - **Crash recovery.** Every worktree with unpushed or uncommitted work is
   snapshotted every 15 minutes to `wip-sync/<slug>` on origin, and the
-  orchestrator's scratch (train scripts, PR bodies, pre-studies, sweep reports)
-  to `wip-sync/orchestrator-scratch`, by `tools/audit/seat/wt_sync.sh` in a
-  detached loop (`--scratch <dir>` adds the orchestrator's folder). A seat's lost work is recovered from its
-  `wip-sync/` branch, never re-derived.
+  orchestrator's scratch to `wip-sync/orchestrator-scratch`, by
+  `tools/audit/seat/wt_sync.sh` in a detached loop (`--scratch <dir>` adds the
+  orchestrator's folder). A seat's lost work is recovered from its `wip-sync/`
+  branch, never re-derived.
 - **The merge fast path can fire.** `tools/audit/merge_fastpath.py` printed
   `FASTPATH ELIGIBLE` for record PR #1888 (three delivery rows, 2026-10-04); a
   pull request that edits a gate file is still never eligible, because `full`
