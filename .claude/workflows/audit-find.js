@@ -9,6 +9,9 @@
 //                         rotation: <the parsed dev/audit/config/rotation.json at repo's HEAD>,
 //                         scopes: <the parsed dev/audit/config/scopes.json at repo's HEAD>,
 //                         box: "B4"      -- optional: run only that container's seats
+//                         debug_bundle: "<abs path>", debug_export: "<abs path>"
+//                                        -- optional, out of tree: D15's diagnostics
+//                                           download and its export.py document
 //                         from: "intake" -- optional: gather every box's reports, leads, intake}
 //
 // One cloud container is one box (dev/audit/README.md). A round split across
@@ -33,6 +36,9 @@ const box = args?.box
 const from = args?.from
 const defer = Array.isArray(args?.defer) ? args.defer : []
 const judgeFlags = typeof args?.judge_flags === 'string' ? args.judge_flags : ''
+const debugBundle = typeof args?.debug_bundle === 'string' ? args.debug_bundle : ''
+const debugExport = typeof args?.debug_export === 'string' ? args.debug_export : ''
+if ([debugBundle, debugExport].some((x) => x && !x.startsWith('/'))) throw new Error('args.debug_bundle and args.debug_export are absolute paths outside every tree (dev/governance/dimensions/D15.md, Privacy)')
 if (!Number.isInteger(round) || !baseline || !repo) throw new Error('args.round (integer), args.baseline (sha) and args.repo (absolute path of a checkout) are required')
 // The ledger and the scopes are passed, not read: this runtime has no
 // filesystem. The prepare agent below compares both against the committed
@@ -43,7 +49,7 @@ if (!scopes || typeof scopes !== 'object') throw new Error('args.scopes is requi
 if (from !== undefined && from !== 'intake') throw new Error(`args.from is "intake" or absent, not ${JSON.stringify(from)}`)
 if (from && box) throw new Error('args.box and args.from are exclusive: a box runs finders, intake gathers every box')
 
-const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13', 'D14']
+const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13', 'D14', 'D15']
 // D11 audits the process itself, so it needs `.git` and the API: a worktree, not
 // an export. D13 reads the same sources and needs the same (dev/governance/dimensions/
 // D13.md), so it is isolated too. DIMS and ISOLATED are the schedule: EVERY brief
@@ -55,7 +61,8 @@ const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10',
 // (dev/governance/dimensions/D14.md), and runs its detectors against pre-fix commits.
 // An isolated seat gets its OWN worktree: seats of one dimension that share a
 // box would otherwise mutate one tree under each other.
-const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14'])
+// D15 is isolated because its perturbations edit production (dev/governance/dimensions/D15.md).
+const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14', 'D15'])
 // WHICH FINDERS MAY READ GITHUB, narrower than ISOLATED on purpose: D0, D3 and D9
 // are isolated to MUTATE production, not to read the API, and the wall COMMON.md
 // draws (a finder's verdicts are its population, never its evidence) is what this
@@ -69,6 +76,9 @@ const API_DIMS = new Set(['D11', 'D13'])
 // it reads dev/audit/config/bugclasses.json and, in its worktree's .git, the history of
 // the instances listed there (pre-fix commits). No GitHub: that stays API_DIMS'.
 const LEDGER_DIMS = new Set(['D14'])
+// D15 debugs the owner's own install from its diagnostics download, which no
+// tree carries: the path reaches its seats only through args.debug_bundle.
+const BUNDLE_DIMS = new Set(['D15'])
 
 // DISPATCH:BEGIN -- check-wave-script.mjs evaluates this block on its own, so it
 // uses nothing from outside it.
@@ -77,7 +87,7 @@ const LEDGER_DIMS = new Set(['D14'])
 // three. A round in EVERY_DIM_ROUNDS runs all of them: round 9 widens coverage
 // on the owner's ask (the round-9 plan, section 2 default 1), round 10 by the
 // owner's override of 2026-10-14, and the cadence is otherwise left alone.
-const CADENCE = { D0: 1, D1: 1, D2: 1, D3: 1, D4: 1, D7: 1, D8: 1, D9: 1, D10: 1, D12: 1, D14: 1, D5: 2, D6: 2, D11: 3, D13: 3 }
+const CADENCE = { D0: 1, D1: 1, D2: 1, D3: 1, D4: 1, D7: 1, D8: 1, D9: 1, D10: 1, D12: 1, D14: 1, D15: 1, D5: 2, D6: 2, D11: 3, D13: 3 }
 const EVERY_DIM_ROUNDS = new Set([9, 10])
 const activeIn = (r, dim) => !!CADENCE[dim] && (EVERY_DIM_ROUNDS.has(r) || r % CADENCE[dim] === 0)
 // The seats of a dimension, from dev/audit/config/scopes.json and nothing else: one
@@ -109,7 +119,7 @@ const BOXES = {
   B5: { heavy: ['D2-s2', 'D12-s2', 'D7-s2'], light: ['D7-s1', 'D7-s3', 'D8-s2'] },
   B6: { heavy: ['D2-s3', 'D12-s3'], light: ['D8-s3', 'D4-s2', 'D11-s1'] },
   B7: { heavy: ['D14-s1', 'D14-s2', 'D14-s3'], light: ['D11-s2', 'D11-s3'] },
-  B8: { heavy: [], light: ['D13-s1', 'D13-s2', 'D13-s3'] },
+  B8: { heavy: ['D15-s2', 'D15-s3'], light: ['D13-s1', 'D13-s2', 'D13-s3', 'D15-s1'] },
   B9: { heavy: [], light: ['D4-s1'] },
   B10: { heavy: [], light: ['D4-s3'] },
 }
@@ -225,7 +235,7 @@ log(`round ${round}${box ? ` box ${box}` : ''}: ${ACTIVE.length} dimension(s), $
 
 const workdir = (s) => (ISOLATED.has(s.dim) ? prep.worktrees[s.id] : prep.exportDir)
 const finder = (seat) => { const dim = seat.dim; const b = boxOf(seat.id); return agent(
-  `You are finder seat ${seat.id} of audit round ${round}, dimension ${dim}, on box ${b} (${BOXES[b].heavy.includes(seat.id) ? 'a compute-heavy seat: at most three share this box' : 'a light seat'}${CHROMIUM.has(seat.id) ? '; the Chromium seat, alone on its box' : ''}). Work only in ${workdir(seat)} (an export/worktree of baseline ${baseline}; ${LEDGER_DIMS.has(dim) ? 'your brief is the exception to the earlier-findings wall: read dev/audit/config/bugclasses.json and the git history of the instances it lists (their pre-fix commits, from this worktree\'s .git), and record what you read under exposure' : 'the earlier-round files left in it are the ones the gate reads, not a record for you, and you must not go looking for earlier findings'}; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
+  `You are finder seat ${seat.id} of audit round ${round}, dimension ${dim}, on box ${b} (${BOXES[b].heavy.includes(seat.id) ? 'a compute-heavy seat: at most three share this box' : 'a light seat'}${CHROMIUM.has(seat.id) ? '; the Chromium seat, alone on its box' : ''}). Work only in ${workdir(seat)} (an export/worktree of baseline ${baseline}; ${LEDGER_DIMS.has(dim) ? 'your brief is the exception to the earlier-findings wall: read dev/audit/config/bugclasses.json and the git history of the instances it lists (their pre-fix commits, from this worktree\'s .git), and record what you read under exposure' : 'the earlier-round files left in it are the ones the gate reads, not a record for you, and you must not go looking for earlier findings'}; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.${BUNDLE_DIMS.has(dim) ? ` ${debugBundle ? `The real bundle is ${debugBundle}${debugExport ? ` and its export.py document ${debugExport}` : ' (no export.py document was named, so the timeline replay is unfinished)'}: read them in place, never copy either into a tree.` : 'No real bundle was named: rehearse on the synthetic week and report every step unfinished, with no finding.'}` : ''}
 Read dev/governance/roles/COMMON.md, then dev/governance/dimensions/${dim}.md, then dev/audit/README.md, and follow them exactly. The brief's numbered method steps are ${dim}.M1, ${dim}.M2, ... in order.
 YOUR CELLS. Your scope is ${seat.id} in dev/audit/config/scopes.json: ${JSON.stringify(seat.blocks)}. List them resolved with \`python3 ${repo}/tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --seat ${seat.id}\` (one line per step set, axis value set and file). Every step you own is a deep focus: ${seat.steps.map((m) => `${dim}.${m}`).join(', ')}. Measure only these cells. Outside them, do not measure and write no harness: record a lead {owner_seat, file, symbol, what} in your report's leads, owner_seat being the seat whose cells hold it (\`--seat\` lists any seat's) or "unknown". Leads go to the leads seat after the fan-out.
 Write your harnesses under ${seatDir(seat)}/ and your report to ${seatDir(seat)}/REPORT.md. Every finding needs an executed number from a committed harness that hooks a named production symbol and moves under a named perturbation; a finding without those cannot be returned. Mark any wall/CPU/RSS number provisional: true -- the judge's batch re-runner re-takes it on a quiet container.

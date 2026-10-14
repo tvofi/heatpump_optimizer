@@ -741,10 +741,10 @@ await block('the finder report schema', async () => {
   const re = (k) => new RegExp(F.properties?.[k]?.pattern ?? '$^')
   const idRe = re('id'), scopeRe = re('scope')
   const ownerRe = new RegExp(S.properties?.leads?.items?.properties?.owner_seat?.pattern ?? '$^')
-  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D15-s1'), String(scopeRe))
+  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D16-s1'), String(scopeRe))
   t('a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)', idRe.test('D13-s1-01') && idRe.test('D1-s3-51'), String(idRe))
   t("a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)",
-    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D15-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
+    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D16-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
   // A design choice, said so: the guess is refused unless it is a class the
   // ledger HAS, so a class the judge adds is added to bugclasses.json and to
   // this enum in one pull request -- this check fails until both carry it.
@@ -885,7 +885,7 @@ await block('the scoped round driver', async () => {
   // DISPATCH block, never named here: a re-cut of either (round 10 gave every
   // dimension three seats) must not turn a control into a test of old names.
   const every = [...(D.EVERY_DIM_ROUNDS ?? [])]
-  t('round 9, and every round in EVERY_DIM_ROUNDS, runs all fifteen dimensions (round 9: its plan, section 2 default 1)',
+  t('round 9, and every round in EVERY_DIM_ROUNDS, runs every dimension (round 9: its plan, section 2 default 1)',
     every.includes(9) && every.every((r) => L.dims.every((d) => D.activeIn(r, d))), J(every.map((r) => [r, L.dims.filter((d) => !D.activeIn(r, d))])))
   // The cadence controls run at rounds no override names: `off` is neither even
   // nor a multiple of three, `on6` is a multiple of six.
@@ -1019,6 +1019,15 @@ await block('the scoped round driver', async () => {
   t(`D14's finders may read the class ledger and its instances' history, and are not told the wall forbids it (${d14[0]}, ${d14.at(-1)})`,
     d14.length > 0 && [d14[0], d14.at(-1)].every((l) => !walled(p(l)) && /(tools\/audit|dev\/audit\/config)\/bugclasses\.json/.test(p(l)) && /pre-fix commits/.test(p(l))), p(d14[0] ?? '').slice(0, 200))
   t('every other finder keeps the earlier-findings wall (null control)', others.length > 0 && others.every((l) => walled(p(l))), others.filter((l) => !walled(p(l))).join(', '))
+  // D15's bundle is out of tree, so its path reaches a seat only from args; with
+  // none, the seat is told to report every step unfinished. The rest never see it.
+  const withBundle = await drive({ ...base, debug_bundle: '/o/diag.json', debug_export: '/o/export.json' })
+  const pb = (l) => withBundle.calls.find((c) => c.label === l)?.prompt ?? ''
+  const d15 = finders.filter((l) => l.startsWith('D15-'))
+  t(`D15's finders carry the named bundle and export, or are told to report every step unfinished (${d15.join(', ')})`,
+    d15.length > 0 && d15.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l))), pb(d15[0] ?? '').slice(0, 200))
+  t('...and no other finder is handed the bundle (null control)', finders.filter((l) => !l.startsWith('D15-')).every((l) => !pb(l).includes('/o/diag.json')), 'leaked')
+  t('a relative bundle path is refused before Prepare', /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error), 'accepted')
   // The schema the finder is held to by the runtime carries what the file does.
   const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
   const fs0 = r9.calls.find((c) => isFinder(c.label))?.schema ?? {}

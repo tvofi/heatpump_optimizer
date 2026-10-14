@@ -9,7 +9,7 @@
 # worktrees directory:
 #   ../audit-r<round>-baseline        the export (D1, D2, D4, D5, D6, D7, D8, D10, D12)
 #   ../audit-r<round>-<dim>           a worktree per dimension in ISOLATED_DIMS below
-#                                     (the instrumenting finders, D14, and D11 and D13, which
+#                                     (the instrumenting finders, D14, D15, and D11 and D13, which
 #                                      audit the process and read `main`'s history and
 #                                      the API, so they need .git)
 # and writes dev/audit/rounds/round<round>/BASELINE.md into each with the paths the
@@ -245,7 +245,8 @@ strip_earlier_rounds "$EXPORT"
 # tools/policy/check-wave-script.mjs derives both lists and refuses them
 # drifting apart again. D14 joined because it mutates production to prove its
 # detectors move and runs them at pre-fix commits (dev/governance/dimensions/D14.md).
-ISOLATED_DIMS="D0 D3 D9 D11 D13 D14"
+# D15 joined because its perturbations edit production (dev/governance/dimensions/D15.md).
+ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15"
 
 for dim in $ISOLATED_DIMS; do
   wt="$PARENT/audit-r${ROUND}-${dim}"
