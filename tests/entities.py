@@ -11960,7 +11960,9 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "free_headroom_threshold_kw", "fuse_advisor", "month",
         "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
     }),
-    "MonthlySavingsSensor": frozenset({"savings_months", "waiting_for"}),
+    "MonthlySavingsSensor": frozenset(
+        {"plan_replay", "receipts", "savings_months", "waiting_for"}
+    ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
         "defrost_samples", "modelled_cop", "waiting_for"
@@ -15613,6 +15615,103 @@ R.check(
     "the register into this script's RECORDED closure -- a direct read, "
     "not a widened one, so the exclusion above still holds.)",
 )
+
+
+# #2119: the mutation lane's null-control run of the drift gate died as
+# `subprocess.CalledProcessError: ... 'git', 'worktree', 'add' ...
+# exit status 128` -- with git's own fatal line still inside the exception
+# object, because the baseline add ran under `check=True` and never printed
+# stderr. The lane drives the gate's baseline and its null control at the
+# same time, in worker worktrees cut from one checkout, so two concurrent
+# `git worktree add` shared the one registered name `baseline` while the
+# first was still checking out. Driven at the seam itself: a git that
+# refuses the add (an unresolvable ref -- git's own exit 128, the class
+# CI hit) must come back as a refusal naming git's message; a resolvable
+# ref must build the worktree (the null control that keeps the first arm
+# honest); and two gate instances, being two processes, must reach for
+# distinct registered names.
+def _ed_add_refusal_names_git_reason() -> tuple[bool, str]:
+    """The failing arm: the unresolvable ref is the same exit-128 class the
+    lane hit, and the reason git prints must survive into the return."""
+    try:
+        with _tempfile.TemporaryDirectory() as td:
+            _path, _why = _env_drift.add_baseline_worktree(
+                str(_closure.ROOT), td, "0" * 40,
+            )
+    except Exception as exc:  # noqa: BLE001 -- a crash is this check's red
+        return False, f"raised {type(exc).__name__}: {exc}"
+    ok = _path is None and "invalid reference" in _why
+    return ok, f"path={_path} why={_why[:120]}"
+
+
+def _ed_add_builds_and_unregisters() -> tuple[bool, str]:
+    """The null control: a ref that resolves must build a real checkout and
+    leave nothing registered once it is removed."""
+    with _tempfile.TemporaryDirectory() as td:
+        try:
+            path, why = _env_drift.add_baseline_worktree(
+                str(_closure.ROOT), td, "HEAD",
+            )
+        except Exception as exc:  # noqa: BLE001 -- a crash is this check's red
+            return False, f"raised {type(exc).__name__}: {exc}"
+        if path is None:
+            return False, f"a HEAD add refused: {why[:120]}"
+        built = (Path(path) / "tests" / "env_drift.py").is_file()
+        _subprocess.run(
+            ["git", "worktree", "remove", "--force", path],
+            cwd=str(_closure.ROOT), capture_output=True,
+        )
+        listed = _subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=str(_closure.ROOT), capture_output=True, text=True,
+        ).stdout
+    return built and path not in listed, f"built={built} registered_after={path in listed}"
+
+
+def _ed_worktree_names_differ_per_process() -> tuple[bool, str]:
+    """Two gate instances are two processes: their first candidate names must
+    differ (the pid separates them), neither may be the old shared literal
+    `baseline`, and one instance's own retry names must not repeat."""
+    child = ("import sys; import env_drift; "
+             "print(env_drift.baseline_worktree_candidates(sys.argv[1])[0])")
+    env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+    with _tempfile.TemporaryDirectory() as td:
+        names = [
+            _subprocess.run(
+                [sys.executable, "-c", child, td],
+                cwd=str(_closure.ROOT), capture_output=True, text=True, env=env,
+            ).stdout.strip()
+            for _ in range(2)
+        ]
+    own = _env_drift.baseline_worktree_candidates("/x")
+    ok = (
+        all(names) and len(set(names)) == len(names)
+        and not any(n.endswith("/baseline") for n in names)
+        and len(set(own)) == len(own)
+    )
+    return ok, f"children={names} own={[os.path.basename(p) for p in own]}"
+
+
+R.check(
+    "a refused baseline worktree add reports git's own reason, not a bare "
+    "exit 128 (#2119)",
+    *_ed_add_refusal_names_git_reason(),
+)
+R.check(
+    "a resolvable ref builds the baseline worktree and unregisters cleanly "
+    "(null control)",
+    *_ed_add_builds_and_unregisters(),
+)
+try:
+    _ed_names_ok, _ed_names_detail = _ed_worktree_names_differ_per_process()
+except Exception as _ed_exc:  # a crash is this check's red, not the script's
+    _ed_names_ok, _ed_names_detail = False, f"raised {_ed_exc!r}"
+R.check(
+    "concurrent gate instances name distinct baseline worktrees (#2119)",
+    _ed_names_ok,
+    _ed_names_detail,
+)
+
 
 # #1218 (D3-08): the deployment-shape lane's measured closure is the whole
 # tracked package -- it materialises the package file by file, and the

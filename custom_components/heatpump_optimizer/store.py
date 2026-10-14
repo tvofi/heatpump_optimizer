@@ -45,6 +45,7 @@ from .draw_range import RUNNING_FLOOR_KW
 from .drift import STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
+from .ledger import BILLED_LINES
 from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
@@ -255,6 +256,8 @@ _ROW = "the update path's cone repair clips and renormalises the whole row (obse
 _PAIR = "an unreadable bin restarts the pair with a warning (_stored_rows/_stored_counts, #922)"
 _PROFILE = "normalize_profile renormalises to mean 1, and quarantines a non-finite profile whole"
 _LEADS = tuple(str(h) for h in LEAD_BUCKETS)
+#: R9-UX-6: a receipt's total and basis are re-derived from its lines on load.
+_RESTATED = "ledger.restate_total re-derives them from the receipt's own lines on load"
 #: The DHW profile: normalize_profile's clip is [0.2, 3.5], but a fresh
 #: install stores the configured draw pattern verbatim (cells of 0.1) until
 #: the first fold, so the writer's floor is zero. dhw_learning imports this
@@ -278,6 +281,9 @@ _ACCURACY: dict[str, Domain | str] = {
     "lead_pending/#/2": _R,
     # #1936: the last restore -- pairs before it never feed a refit.
     "evidence_since": _AT,
+    # R9-UX-6: the plan's day-ahead promise per local date (plan_promise).
+    "promises/~": _DAY, "promises/*/start": _AT, "promises/*/step_minutes": Domain("real", _POS),
+    "promises/*/room/#": _R, "promises/*/cost/#": _R,
     # The metered running draw beside the space level asked (draw_range):
     # a sample at or below standby is not a running one, and is dropped.
     "draw/samples/#/0": Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf)),
@@ -366,10 +372,14 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"month_reports/*/{k}/~": _TEXT for k in ("lines", "reasons")},
         **{f"month_reports/*/{k}/*/kwh": _R for k in ("lines", "reasons")},
         **{f"month_reports/*/{k}/*/sek": _R for k in ("lines", "reasons")},
-        "month_reports/*/total_kwh": _R, "month_reports/*/total_sek": _R,
+        "month_reports/*/total_kwh": _R,
+        "month_reports/*/total_sek": Domain("real", unread=_RESTATED),
         "month_reports/*/compressor_starts": _COUNT,
         "month_reports/*/reasons_reconcile": Domain("flag", null=True),
         "month_reports/*/mean_spot_price": _R,
+        # R9-UX-6: the billed lines the total adds, and the peak the capacity line prices.
+        "month_reports/*/basis/#": Domain("choice", choices=BILLED_LINES, unread=_RESTATED),
+        "month_reports/*/capacity_peak_kw": _Z,
         "month_reports/*/contract_comparison/month": _MONTH,
         "month_reports/*/contract_comparison/kwh": _R,
         **{f"month_reports/*/contract_comparison/{k}": _R for k in (

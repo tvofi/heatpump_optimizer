@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:_stored_promise CMP_BOUND 892f9a17",
+  "old": "            or len(room) != len(cost) or len(room) < 2",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Moving the len(room) < 2 bound rejects a minimal valid promise of exactly 2 points (len <= 2 instead of < 2). The UX-6 bad-promise row in tests/features.py is dropped by the ragged-cost arm, not the length arm, and every valid stored promise in the fixtures is 97 points; no recorded driver stores a minimal 2-point promise.",
+  "verdict": "gap"
+}
