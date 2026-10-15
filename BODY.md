@@ -26,7 +26,7 @@ Alternatives considered:
 
 ## Head
 
-`793116abde990a6821140e8fa181a858d2ba5696`. This is a merge of origin/main `b22db919d` into the branch, which was cut at `5603ee319`. Main's delta since then is `tests/closures.json`, `.claude/workflows/audit-find.js` and `dev/` records; no production file changed. Measurements below name the commit they ran at. Every production file is identical between `5b7225456` and the head (`git diff 5b7225456 HEAD -- custom_components` is empty).
+`29a78210097977248eb2fc713c7eb10fdcc73c35`. The branch was cut at `5603ee319` and merged with origin/main twice: `b22db919d`, then `3d650d26c`. Main's delta across both is `tests/closures.json`, `.claude/workflows/audit-find.js` and `dev/` records; no production file changed. The last commit adds the two new harnesses to `tests/harness_headers.py`'s inert reads in `tests/closures.json`. Measurements below name the commit they ran at. Every production file is identical between `5b7225456` and the head (`git diff 5b7225456 HEAD -- custom_components` is empty).
 
 ## Mutation proof
 
@@ -123,8 +123,7 @@ All runs used the seat venv (python 3.14) at `5b7225456` unless stated otherwise
 
 ## Red checks
 
-- `closures` (predicted by `prepr.sh` CI PREDICT): INERT READS. `tests/harness_headers.py` reads the two new harnesses in `dev/audit/harnesses/`. Answer: `ci-autofix.md`'s `closures-autofix` merges INERT READS from the Linux recording (`ci: re-record closures`). A Darwin `--single` cannot replace that recording, so the seat waits for the bot commit. Cheaper detector: `prepr.sh`'s CI PREDICT already caught it before the push, so none is owed.
-- Any other red on this head is answered here when it lands.
+none at the push. `prepr.sh` CI PREDICT named two `closures` INERT READS before it: `tests/harness_headers.py` reads the two new harnesses. `open_pr.sh` refused on them, and without a PR no bot run comes. `derive_closures.sh --single tests/harness_headers.py` re-recorded the closure on Darwin, and it moved only the `seconds` field, because the inert dimension is strace-only. The two paths were therefore added to `inert_reads["tests/harness_headers.py"]` by hand (commit `29a782100`). Re-run, `tools/pr/ci_predict.py` prints `no closures or fast red predicted against 3d650d26c762`. The cheaper detector is CI PREDICT itself, which caught it before any push. Any red on this head is answered here when it lands.
 
 ## Forward-carry
 
