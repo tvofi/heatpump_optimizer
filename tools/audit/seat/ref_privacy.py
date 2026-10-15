@@ -244,11 +244,12 @@ def calls_guard(text: str) -> bool:
 
 
 def scope(path: str) -> bool:
-    if path == SELF or re.match(r"tools/audit/(?:round\d+|handoff|w5-[^/]*|archscore/planted)/"
-                                r"|tools/policy/vendor/", path):
+    """tmp_paths.py's instrument scope (its one owner), narrowed to the pushing trees."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import tmp_paths
+    if path == SELF or re.match(r"tools/audit/archscore/planted/|tools/policy/vendor/", path):
         return False
-    return bool(re.match(r"\.github/workflows/[^/]+\.ya?ml$", path)
-                or re.match(r"(?:tools|\.claude/workflows)/.*\.(?:sh|py|mjs|js|cjs)$", path))
+    return path.startswith(("tools/", ".claude/workflows/", ".github/workflows/")) and tmp_paths.scope(path)
 
 
 def sites(lines) -> dict[str, list[int]]:
