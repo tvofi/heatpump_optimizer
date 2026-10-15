@@ -3217,6 +3217,8 @@
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
    "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
+   "dev/audit/harnesses/r10_month_last_window_billed.py",
+   "dev/audit/harnesses/r10_weekday_range_twins.py",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
    "dev/audit/harnesses/r9_fr3_family_consumer.mjs",
