@@ -1,12 +1,6 @@
-Review of PR #2209 at head 4666a7dd8d43e7bd8d5cae9c51268c31db031dd9 (merge base 554e2ecfa7ad5b1660a1256ebf6cf6ac3810d9ef), detached worktree /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev2209, python 3.14.7.
-roles diff merge-base...origin/main -- dev/governance/roles/: empty (contract current).
-check_scopes.py --repo . --ref HEAD rc=0 (ok D15 mode=cells seats=3; s1 M1-M4, s2 M5-M6, s3 M7-M8)
-check_scopes.py --self-test rc=0 (both perturbed scopes refused)
-check-wave-script.mjs (head grader) 180 passed 0 failed rc=0
-CI wave-script job 116154063244: grader restored from 554e2ecfa, 173 passed 3 failed (two D15-s1 negative controls, ISOLATED_DIMS lacks D15) -- pending #2214
-policy_lint rc=0 (0 errors / 41 files); --budgets rc=0: D15.md 39/39 lines, 728/728 tokens; corpus 61026 cap 61026 (+band 500). Base corpus 60283 vs cap+band 60949; head overshoot without raise = 77 tokens.
-rules_sync --check rc=0; brief_lint rc=0; tests/structure.py PASSED; tests/layout.py ok
-Mutants: BUNDLE_DIMS.has->false: 179/1 FAIL (killed). abs-path refusal disabled: 179/1 FAIL (killed). Own mutant BUNDLE_DIMS=new Set([]): 180/0 SURVIVES.
-merge-tree origin/main(c698d504a) x head: rc=0, clean.
-budget-raise-gate red (raise: corpus_tokens 60449->61026 + new D15 caps); needs tvofi approving review at head. nightly-status red: main's (#2205).
-Referenced symbols exist at head: tools/replay/{export,dbg_bundle_gen,debug_ingest(--bundle,--corrupt accuracy),debug_replay(--bundle,--start,--end)}.py, tests/replay.py LEAK_PROBES, export.violations, store._sanitize, store.DOMAINS, tests/seam_map.json, Cusum/observe_bias/async_bundle.
+Re-review of PR #2209 at head 860afdbcb5e9578460022fa95585e760e1403ff7 (merge base edf9d32925a530fc611cf0c4893cf75858611be8), worktree /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev2209b, python 3.14.7.
+Branch-own content vs reviewed 4666a7dd8: audit-find.js, scopes.json, rotation.json, finding.schema.json unchanged; D15.md only loses the moratorium sentence and fix-phase lead (71560c02b); caps 39->37 lines, 728->690 tokens; corpus_tokens 61026 unchanged. CLAUDE.md two-dot delta is main's (#2211), branch adds only the D15 index row.
+check_scopes --ref HEAD rc=0, --self-test rc=0; check-wave-script 180/0; policy_lint rc=0; --budgets: D15 37/37, 690/690, corpus 61082 cap 61026 (+500=61526); rules_sync ok; brief_lint rc=0; structure PASSED; layout ok.
+Base corpus at edf9d3292: 60377 (cap 60449+500=60949). Head 61082-60949 = 133 over without the raise. Payment: D15 728->690 (-38).
+budget_raise_gate.justification(body) with main's gate (identical at head): (True, ...). archscore --diff edf9d3292 HEAD: Architecture score: dS +0.0000 NULL rc=0.
+CI at head: wave-script success 116192949667; budget-raise-gate failure 116192949454 (RAISE corpus_tokens 60449->61026, files_tokens D15 None->690; awaiting approval); nightly-status failure (main's #2205); pr-contract success x2; closures and Analyze(python) in progress at 01:17Z; everything else success.

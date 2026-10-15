@@ -1,30 +1,14 @@
-Fix review: merge 4666a7dd8d43e7bd8d5cae9c51268c31db031dd9
-bus-nonce: 350314353015cc73b94f8b372c66e811
-reviewer: r10-d15-reviewer, round 1
+Fix review: merge 860afdbcb5e9578460022fa95585e760e1403ff7
+bus-nonce: 6bfdded3947a7523cb89bd4cda4c43f8
+reviewer: r10-d15-reviewer, round 2. This re-reviews the head after my merge verdict at 4666a7dd8.
 
-Measured at 4666a7dd8d43e7bd8d5cae9c51268c31db031dd9 (merge base 554e2ecfa), from a detached worktree, with the head's own graders.
-
-RESULT check_scopes --ref HEAD rc=0, ok D15 mode=cells seats=3; --self-test rc=0. The seats are disjoint by step: s1 M1-M4, s2 M5-M6, s3 M7-M8.
-RESULT check-wave-script.mjs with the grader from #2214 merged in: 180 passed, 0 failed.
-RESULT policy_lint rc=0 (0 errors, 41 files). --budgets rc=0: D15.md 39/39 lines and 728/728 tokens; corpus 61026 against cap 61026.
-RESULT rules_sync --check rc=0. brief_lint rc=0. tests/structure.py PASSED. tests/layout.py ok.
-RESULT mutation proof: the two named mutants are killed (each gives 179/1). merge-tree against origin/main c698d504a is clean.
-
-The brief is in the owner's terms:
-- It debugs a real install from the hpo-debug/1 download, and the synthetic bundle is the null control.
-- It states the version-attribution rule: the newest release tag dated before the last restart that precedes the cycle. Each anomaly is then re-checked at the baseline.
-- The bundle stays out of tree: absolute paths, never copied, and audit-find.js refuses a relative path.
-- Every symbol the method cites exists at the head. Steps 3 and 8 state their perturbations.
-
-Red checks, all answered in the body:
-- wave-script: pending on #2214. CI restores the grader from the base (job 116154063244: 173/3). The three failures are exactly the ones #2214's grader fixes.
-- budget-raise-gate: this is a raise (corpus_tokens 60449 -> 61026, plus new D15 caps). It merges only on tvofi's approving review at the head, under mandate 6175172275's rules. The commit message 21ef4cdbf justifies it.
-- nightly-status: this is main's check (#2205).
+RESULT delta against 4666a7dd8 (three-dot over the branch's own content): two things changed and nothing else. D15.md drops the moratorium-override sentence and the fix-phase lead (71560c02b), and the D15 caps drop from 39 to 37 lines and from 728 to 690 tokens. audit-find.js, scopes.json, rotation.json and finding.schema.json are unchanged. The grader files have left the diff now that #2214 is merged.
+RESULT check_scopes --ref HEAD rc=0 and --self-test rc=0. check-wave-script: 180 passed, 0 failed. CI wave-script is green (116192949667).
+RESULT policy_lint rc=0. --budgets: D15 37/37 lines and 690/690 tokens; corpus 61082 against cap 61026 plus a band of 500. rules_sync, brief_lint, structure and layout all pass.
+RESULT the 133 is honest. Corpus at the base edf9d3292 is 60377; at the head it is 61082. The ceiling without the raise is 60449 + 500 = 60949, and 61082 - 60949 = 133. The payment is real: 38 tokens of prose that did no work for a finder.
+RESULT the justification parses under main's gate (identical at the head): justification(body) returns True. archscore --diff edf9d3292 HEAD prints "Architecture score: dS +0.0000 NULL", which matches the body. The diff changes no Python that the score reads.
+RESULT budget-raise-gate is red by design: RAISE corpus_tokens 60449->61026 and files_tokens D15 None->690. It merges only on an approval at this head under the rules of mandate 6175172275. nightly-status is main's (#2205). pr-contract is green.
 
 Non-blocking:
-- (a) The raise is only partly avoidable. Without it the head exceeds cap+band by 77 tokens. About 38 tokens of D15.md do no work for a finder: the moratorium-override sentence and the fix-phase lead. Even cut, the raise would not be avoided.
-- (b) A surviving mutant in #2214's grader: with BUNDLE_DIMS = new Set([]) the result is 180/0. The check reads the set from the driver it grades, so D15's membership is not pinned. Carried to #2214's review.
-- (c) M1 sets no gap threshold for a restart. An upgrade restart shorter than the cycle interval would be attributed to the older version. The baseline re-check bounds this.
-- (d) The bundle-specific v6.7.17/v7.0.0 case belongs in the D15 dispatch prompt. The rule itself is carried in M1.
-
-Merge preconditions: #2214 merged and main merged in (judged as a resolution delta), and tvofi's approving review at the final head.
+- The fix-phase lead (each cycle row should record its version) is a feature suggestion, not a measured finding that constrains a later stage. finding-propagation does not bind it. The body points it at the R10-DIAG-REPLAY brief, which is not yet written.
+- Carried from round 1: the surviving mutant in #2214's grader (BUNDLE_DIMS = new Set([]) gives 180/0), and M1 setting no gap threshold for a restart.
