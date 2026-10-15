@@ -284,3 +284,34 @@ gate reads, and the agent stays declared.
   once it is on `main`. After that merge the approval seat cites the mandate
   comment id in each approval body, and `tvofi` posts the first MANDATE
   comment on #201.
+
+## Amendment, 2026-10-14: a mandated raise only when no payment improves the code
+
+The owner's ruling of 2026-10-14, given in session to the round-10
+orchestrator: "Budget raises are within your mandate, but only if it is truly
+not possible to pay in a way that improves the code." Further: "moving,
+deleting and sharing should only pay for it if it results in a sounder
+architecture. Arch_score is the metric for that but good judgement is also
+needed. Refactoring is also an option." And: "Make this shape permanent, but
+exclusively permittible and possible during a valid mandate."
+
+- **When an agent may raise.** Only while a mandate in force covers budget
+  raises (scope `budget-raise` or `all`, read as the amendment above reads it),
+  and only after showing that no payment improving the architecture exists.
+- **What a payment is.** Moving, deleting or sharing code, or refactoring it.
+  It counts only when `tools/audit/archscore/score.py --diff`, run before and
+  after it, does not worsen and judgement agrees the architecture is sounder.
+  A payment that games the score, or worsens it, does not count; nor does
+  deleting working functionality (`CLAUDE.md` rule 2). For a prose cap the
+  payments are also `ratchet-budgets.md` step 1's cuts.
+- **What the pull request records.** Its body carries `## Raise justification`:
+  a `Payments tried:` line naming each payment and why it was not taken, and
+  the `Architecture score: dS <n> <verdict>` line `score.py` printed for it.
+- **What the gate checks.** `budget_raise_gate.py` (`justification`) refuses a
+  mandated approval when that section, its `Payments tried:` line or a score
+  line is missing, or the body cannot be read. It checks the shape; the fix
+  review judges whether the payments were real. The owner's own approving
+  review owes no section and is unchanged, and outside a mandate an agent's
+  approval still decides nothing.
+- The gate is pinned to the base, so this amendment grades pull requests only
+  once it is on `main`.

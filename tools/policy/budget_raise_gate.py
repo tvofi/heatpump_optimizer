@@ -40,8 +40,9 @@ and was submitted on this exact head SHA, by the login AND numeric id AND
 account type pinned below, and does not say in its own body that an agent gave
 it (AGENT_DECLARED below) -- or, if it does, cites one mandate the owner
 recorded on #201 that covers budget raises and was in force when the review
-was submitted (MANDATE_GRAMMAR, mandate_check). Anything else, a failed API
-read included, is exit 1.
+was submitted (MANDATE_GRAMMAR, mandate_check), and the body carries the raise
+justification (JUSTIFICATION_HEADING, justification). Anything else, a failed
+API read included, is exit 1.
 
 WHAT IT DOES NOT SEE. A ledger disposition (`survivor_triage`, `killed_by`)
 is a per-site record, not a cap, and is `free` here: an `equivalent` verdict
@@ -120,6 +121,18 @@ MANDATE_COVERS_RAISE = ("budget-raise", "all")
 # written record. The strictest reading is the safe one: a scope that does not
 # name this act does not license it.
 MANDATE_COVERS_POLICY = ("all",)
+# tvofi, 2026-10-14: an agent raises a cap only under a mandate, and only after
+# showing no payment that improves the architecture exists -- moving, deleting,
+# sharing or refactoring code that arch_score (tools/audit/archscore/) does not
+# read as worse. So a mandated approval is decisive only when the pull request
+# body carries this section, naming the payments tried (a `Payments tried:`
+# line with text after it) and at least one report line score.py printed for
+# them (`Architecture score: dS <n> <verdict>`). The owner's own approval owes
+# no section; the gate checks the shape, review judges the substance.
+JUSTIFICATION_HEADING = "## Raise justification"
+JUSTIFICATION_PAID = re.compile(r"^[ \t]*(?:[-*][ \t]+)?Payments tried:[ \t]*\S", re.M)
+JUSTIFICATION_SCORE = re.compile(
+    r"^[ \t]*(?:[-*][ \t]+)?Architecture score: dS [+-]?\d+(?:\.\d+)? (?:IMPROVES|NULL|WORSENS)\b", re.M)
 SUFFIX = "_budgets.json"
 
 FREE, MAX, MAX0, MIN, OVERRIDE, CAPFILE, SUPERSET, FROZEN = (
@@ -389,7 +402,29 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
                          str(review.get("submitted_at")))
 
 
-def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=None) -> tuple[bool, str]:
+def justification(body) -> tuple[bool, str]:
+    """(present, why): the body's JUSTIFICATION_HEADING section, up to the next
+    heading of level one or two, holds both a payment line and a score line."""
+    lines = str(body or "").splitlines()
+    starts = [i for i, ln in enumerate(lines) if ln.strip() == JUSTIFICATION_HEADING]
+    if not starts:
+        return False, f"the body has no `{JUSTIFICATION_HEADING}` section, which a mandated raise owes"
+    section = []
+    for ln in lines[starts[0] + 1:]:
+        if re.match(r"#{1,2} ", ln):
+            break
+        section.append(ln)
+    text = "\n".join(section)
+    missing = [what for what, rx in (("a `Payments tried:` line", JUSTIFICATION_PAID),
+                                      ("an `Architecture score: dS` line from score.py", JUSTIFICATION_SCORE))
+               if not rx.search(text)]
+    if missing:
+        return False, f"`{JUSTIFICATION_HEADING}` lacks {' and '.join(missing)}"
+    return True, f"the body's `{JUSTIFICATION_HEADING}` names the payments tried and the arch_score figures"
+
+
+def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=None,
+             justify=None) -> tuple[bool, str]:
     """(approved, why): the owner's latest decisive review is an APPROVED one
     submitted on `head`. A review under the owner's account whose body says an
     agent gave it is not the owner's (AGENT_DECLARED), unless it is an approval
@@ -398,7 +433,9 @@ def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=
     `mandate_validator(review, cid, comment, thread) -> (bool, str)` replaces
     that reading for the gate's second reader -- merge_train.py, which judges
     the same mandate_state rules at the merge moment and scoped for policy
-    merging (R9-RO-13); omitted, the gate's own raise reading stands."""
+    merging (R9-RO-13); omitted, the gate's own raise reading stands.
+    `justify() -> (bool, str)`, when given, must also pass for a mandated
+    approval to decide (the raise justification); the owner's own never asks."""
     check_mandate = mandate_validator or mandate_check
     own = [r for r in reviews if _is_owner(r.get("user"))]
     decisive, under, notes = [], {}, []
@@ -438,12 +475,16 @@ def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=
         return False, (f"{OWNER_LOGIN}'s approval is on {str(last.get('commit_id'))[:12]}, "
                        f"not this head {head[:12]}: an approval covers only the commit it was given on{tail}")
     if id(last) in under:
+        if justify is not None:
+            ok, why = justify()
+            if not ok:
+                return False, f"a mandated approval is on this head, but {why}{tail}"
         return True, (f"an agent approved this head {head[:12]} under {OWNER_LOGIN}'s account, "
                       f"declared as an agent's, under {under[id(last)]}")
     return True, f"{OWNER_LOGIN} approved this head {head[:12]}"
 
 
-def decide(raises: list[str], reviews_fn, head: str, mandate_fn=None) -> tuple[int, list[str]]:
+def decide(raises: list[str], reviews_fn, head: str, mandate_fn=None, body_fn=None) -> tuple[int, list[str]]:
     lines = [f"RAISE {r}" for r in raises]
     lines.append(f"RESULT budget_raises={len(raises)} count")
     if not raises:
@@ -462,9 +503,10 @@ def decide(raises: list[str], reviews_fn, head: str, mandate_fn=None) -> tuple[i
             read[cid] = mandate_fn(cid)
         return read[cid]
     try:
-        ok, why = approval(reviews, head, mandate if mandate_fn else None)
-    except Exception as e:  # fail closed: an unread mandate grants nothing
-        lines.append(f"REFUSED: a cited mandate could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
+        ok, why = approval(reviews, head, mandate if mandate_fn else None,
+                           justify=lambda: justification(body_fn() if body_fn else None))
+    except Exception as e:  # fail closed: an unread mandate or body grants nothing
+        lines.append(f"REFUSED: a cited mandate or the body could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
                      "a raise needs the owner's approval, and an unread mandate grants none")
         return 1, lines
     lines.append(("PASS: " if ok else "REFUSED: ") + why)
@@ -513,6 +555,13 @@ def _mandate(repo: str, cid: int) -> tuple[dict | None, list[dict]]:
     return comment, [c for page in json.loads(out.stdout) for c in page]
 
 
+def _body(repo: str, pr: str) -> str:
+    out = subprocess.run(["gh", "api", f"repos/{repo}/pulls/{pr}"], capture_output=True, text=True)
+    if out.returncode != 0:
+        raise RuntimeError(f"gh api exited {out.returncode}: {out.stderr.strip()}")
+    return json.loads(out.stdout).get("body") or ""
+
+
 def gate(base: str, head: str, pr: str, repo: str) -> int:
     mb = _git("merge-base", base, head).strip()
     tree = {sha: set(_git("ls-tree", "-r", "--name-only", sha).splitlines()) for sha in (mb, head)}
@@ -525,7 +574,8 @@ def gate(base: str, head: str, pr: str, repo: str) -> int:
         raises += file_raises(p, _show(mb, locate(p, tree[mb].__contains__)),
                               _show(head, locate(p, tree[head].__contains__)), head_files.__contains__)
     print(f"# merge base {mb[:12]}, head {head[:12]}: {len(paths)} budget file(s): {', '.join(paths)}")
-    rc, lines = decide(raises, lambda: _reviews(repo, pr), head, lambda cid: _mandate(repo, cid))
+    rc, lines = decide(raises, lambda: _reviews(repo, pr), head, lambda cid: _mandate(repo, cid),
+                       lambda: _body(repo, pr))
     print("\n".join(lines))
     return rc
 
@@ -874,21 +924,35 @@ def self_test() -> int:
                 "body": f"Agent review of the raise, under {OWNER_LOGIN}'s {cite}.\n\n"
                         "---\n_Generated by [Claude Code](https://claude.ai/code)_"}
 
-    def rcm(reviews, comment=None, thread=(), raises=R):
+    # tvofi, 2026-10-14: a mandated raise also owes the body's justification
+    # section (JUSTIFICATION_HEADING); the owner's own approval does not.
+    JUST = ("## Summary\n\nRaise.\n\n## Raise justification\n\n"
+            "Payments tried: moved the helper into its caller; reverted, arch_score worsened.\n"
+            "Architecture score: dS -0.1234 WORSENS\n  hub_writes 70 -> 71  -0.0310\n\n## Tests\n\nx\n")
+
+    def rcm(reviews, comment=None, thread=(), raises=R, body=JUST):
         if comment is None:
             comment = mandate()
         calls.clear()
+        reads.clear()
 
         def fetch(cid):
             calls.append(cid)
             if isinstance(comment, Exception):
                 raise comment
             return (comment if comment != "missing" else None), list(thread)
+
+        def text():
+            reads.append(1)
+            if isinstance(body, Exception):
+                raise body
+            return body
         try:
-            return decide(raises, lambda: reviews, H, fetch)
+            return decide(raises, lambda: reviews, H, fetch, text)
         except Exception as e:  # an escape is a verdict too, and never 0 or 1
             return f"raised {type(e).__name__}", []
     calls: list = []
+    reads: list = []
 
     ok_ = rcm([agent()])
     check("mandate: an agent's approval at the head under a budget-raise mandate passes", ok_[0], 0)
@@ -984,6 +1048,36 @@ def self_test() -> int:
           rcm([rv(own, "CHANGES_REQUESTED"), agent(), rv(own, "APPROVED")])[0], 0)
     check("mandate: tvofi's own earlier DISMISSED blocks nothing",
           rcm([rv(own, "DISMISSED"), agent()])[0], 0)
+
+    # The raise justification (tvofi, 2026-10-14): under a mandate, the body
+    # names the payments tried and the arch_score figures; the owner's own
+    # approval owes no section, and outside a mandate no section helps an agent.
+    no_sec = "## Summary\n\nRaise.\n\n## Tests\n\nx\n"
+    ok_ = rcm([agent()])
+    check("justification: mandated + section passes", (ok_[0], len(reads)), (0, 1))
+    check("justification: mandated + no section is refused", rcm([agent()], body=no_sec)[0], 1)
+    check("justification: ... and the refusal names the section",
+          any("Raise justification" in ln for ln in rcm([agent()], body=no_sec)[1]), True)
+    check("justification: owner's own review passes without the section, body unread",
+          (rcm([rv(own, "APPROVED")], body=no_sec)[0], reads), (0, []))
+    check("justification: an expired mandate is refused, section or not",
+          rcm([agent(at="2026-10-03T06:00:01Z")])[0], 1)
+    check("justification: an agent with no mandate is refused, section or not",
+          rcm([agent(cite="explicit mandate")])[0], 1)
+    check("justification: no raise reads no body (null control)", (rcm([agent()], raises=[])[0], reads), (0, []))
+    check("justification: a section with no arch_score figure is refused",
+          rcm([agent()], body=JUST.replace("Architecture score: dS -0.1234 WORSENS", "Architecture score: worse"))[0], 1)
+    check("justification: a section with no payment is refused",
+          rcm([agent()], body=JUST.replace("Payments tried: moved", "Payments tried:\nmoved"))[0], 1)
+    check("justification: figures under another heading do not count",
+          rcm([agent()], body=JUST.replace("## Raise justification\n\n", "") .replace("## Tests", "## Raise justification\n\n## Tests"))[0], 1)
+    check("justification: figures in a later section do not count for an empty one",
+          rcm([agent()], body=("## Raise justification\n\nnone\n\n## Tests\n\n"
+                               "Payments tried: x\nArchitecture score: dS +0.1000 IMPROVES\n"))[0], 1)
+    check("justification: a heading only inside other text does not count",
+          rcm([agent()], body=JUST.replace("## Raise justification", "See ## Raise justification"))[0], 1)
+    check("justification: an empty body is refused", rcm([agent()], body=None)[0], 1)
+    check("justification: a body read that fails, fails closed", rcm([agent()], body=RuntimeError("HTTP 502"))[0], 1)
 
     # Every tracked budget file, as it stands: the schema must know it, a copy
     # must not raise against itself, every cap moved the strict way must be
@@ -1121,7 +1215,7 @@ with open(os.path.join(d, "calls"), "a") as f:
     f.write(json.dumps(sys.argv[1:]) + "\\n")
 spec = json.load(open(os.path.join(d, "reviews.json")))
 for key, route in spec.get("routes", {}).items():
-    if key in sys.argv[-1]:
+    if (sys.argv[-1] == key[1:]) if key.startswith("=") else (key in sys.argv[-1]):
         sys.stderr.write(route.get("err", ""))
         sys.stdout.write(json.dumps(route.get("out")))
         sys.exit(route.get("rc", 0))
@@ -1246,15 +1340,28 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         agent_rv = {**approved(raise_), "id": 9, "submitted_at": "2026-10-02T07:00:00Z",
                     "body": f"Agent review under mandate {cid}.\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_"}
         thread_key = f"issues/{MANDATE_ISSUE}/comments"
+        pr_key = f"=repos/{DEFAULT_REPO}/pulls/7"
+        just = {"body": (f"## Summary\n\nx\n\n{JUSTIFICATION_HEADING}\n\nPayments tried: none improved it.\n"
+                         "Architecture score: dS +0.0000 NULL\n")}
         rc_, text, calls = run(raise_, pages=[[agent_rv]],
                                routes={f"issues/comments/{cid}": {"out": mand},
-                                       thread_key: {"out": [[]]}})
+                                       thread_key: {"out": [[]]}, pr_key: {"out": just}})
         out.append(("e2e: a raise approved at the head under a mandate in force exits 0",
                     (rc_, f"under mandate {cid}" in text), (0, True)))
-        out.append(("e2e: ... after reading the comment, then #201 since it was written",
+        out.append(("e2e: ... after reading the comment, #201 since it was written, then the body",
                     [c[-1] for c in calls][1:],
                     [f"repos/tvofi/heatpump_optimizer/issues/comments/{cid}",
-                     f"repos/tvofi/heatpump_optimizer/{thread_key}?per_page=100&since=2026-10-02T05:30:00Z"]))
+                     f"repos/tvofi/heatpump_optimizer/{thread_key}?per_page=100&since=2026-10-02T05:30:00Z",
+                     pr_key[1:]]))
+        rc_, text, _ = run(raise_, pages=[[agent_rv]],
+                           routes={f"issues/comments/{cid}": {"out": mand}, thread_key: {"out": [[]]},
+                                   pr_key: {"out": {"body": "## Summary\n\nx\n"}}})
+        out.append(("e2e: ... and exits 1 when the body has no raise justification",
+                    (rc_, JUSTIFICATION_HEADING in text), (1, True)))
+        rc_, text, _ = run(raise_, pages=[[agent_rv]],
+                           routes={f"issues/comments/{cid}": {"out": mand}, thread_key: {"out": [[]]},
+                                   pr_key: {"rc": 1, "err": "HTTP 502"}})
+        out.append(("e2e: ... and exits 1 when the body read fails", (rc_, "could not be read" in text), (1, True)))
         revoked = {**mand, "id": cid + 1, "created_at": "2026-10-02T08:00:00Z",
                    "body": f"MANDATE REVOKED {cid}"}
         rc_, text, _ = run(raise_, pages=[[agent_rv]],
