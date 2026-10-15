@@ -1,34 +1,17 @@
+measured head 5f47b7911e138ec564b53774f9f8e1fea4519b5d (round 2, resolution delta from 6285ed67c)
 == head unmutated
+186 passed, 0 failed
+== M4 prompt reverted to base wording
+  FAIL the reviewer prompt defines root-cause-detectable as a red a cheaper detector could have shown before the handoff definition missing or moved
+  FAIL the reviewer prompt defines root-cause-unrecorded as a red whose cheapest detector is the check that went red definition missing or moved
   FAIL (probe, expected) threw: deliberate
-184 passed, 0 failed
-== M1 delete vocabulary line
-204:  'root-cause-detectable', 'root-cause-unrecorded',
- .claude/workflows/web-fix-wave.js | 1 -
- 1 file changed, 1 deletion(-)
-  FAIL a root-cause-detectable verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair {"class":"other","calls":["reconcile roster against origin","fix A","review A","repair A","re-review A"]}
-  FAIL the stats histogram keys root-cause-detectable as its own row, the same class the wave routes key=root-cause-detectable route=other
-  FAIL a root-cause-unrecorded verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair {"class":"other","calls":["reconcile roster against origin","fix A","review A","repair A","re-review A"]}
-  FAIL the stats histogram keys root-cause-unrecorded as its own row, the same class the wave routes key=root-cause-unrecorded route=other
+184 passed, 2 failed
+== M5 definitions swapped
+  FAIL the reviewer prompt defines root-cause-detectable as a red a cheaper detector could have shown before the handoff definition missing or moved
+  FAIL the reviewer prompt defines root-cause-unrecorded as a red whose cheapest detector is the check that went red definition missing or moved
   FAIL (probe, expected) threw: deliberate
-180 passed, 4 failed
-== M2 revert ROOT_CAUSE_CLASSES
--const ROOT_CAUSE_CLASSES = ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded']
-+const ROOT_CAUSE_CLASSES = ['root-cause-unanswered']
-  FAIL a root-cause-detectable verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair {"class":"root-cause-detectable","calls":["reconcile roster against origin","fix A","review A","repair A","re-review A"]}
-  FAIL a root-cause-unrecorded verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair {"class":"root-cause-unrecorded","calls":["reconcile roster against origin","fix A","review A","repair A","re-review A"]}
-  FAIL (probe, expected) threw: deliberate
-182 passed, 2 failed
-?? .reviewer-hold
-== M3 (reviewer's own) drop only root-cause-unrecorded from ROOT_CAUSE_CLASSES
-  FAIL a root-cause-unrecorded verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair {"class":"root-cause-unrecorded","calls":["reconcile roster against origin","fix A","review A","repair A","re-review A"]}
-  FAIL (probe, expected) threw: deliberate
-183 passed, 1 failed
-== M4 (reviewer's own) prompt text reverted only
-308:Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: m
-== M4 run: reviewer prompt guidance reverted to base wording
-  FAIL (probe, expected) threw: deliberate
-184 passed, 0 failed
-== M5 (reviewer's own) swap the two definitions in the reviewer prompt
-use root-cause-unrecorded if a detector cheaper than that check could have shown the red before the handoff (name it after the check), root-cause-detectable if the cheapest
-  FAIL (probe, expected) threw: deliberate
-184 passed, 0 failed
+184 passed, 2 failed
+== M1 vocabulary line deleted
+182 passed, 4 failed
+== M2 ROOT_CAUSE_CLASSES reverted
+184 passed, 2 failed
