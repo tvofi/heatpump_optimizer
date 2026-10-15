@@ -645,7 +645,7 @@ def _day_peaks(
     excess: np.ndarray,
     window_days: np.ndarray | None,
     window_minutes: int,
-    day_max_of: Callable[[np.ndarray], float],
+    top_sum_of: Callable[[np.ndarray, int], float],
 ) -> np.ndarray:
     """Each plan day's excess: one value per day, in plan order (#1512).
 
@@ -655,30 +655,16 @@ def _day_peaks(
     no labels (no clock) is taken to start at local midnight on the metering
     grid: the anchor ``metering_windows``' ``offset_steps=0`` already
     assumes. Windows past the labels join the last labelled day's run.
+    A day's peak is its top-1 under the charge's own top-k rule, so the exact
+    charge takes the hard max and the solver's surrogate the plateau-aware
+    one, and the two rules cannot be paired wrongly.
     """
     if window_days is None:
         window_days = np.arange(excess.size) * int(window_minutes) // (24 * 60)
     edges = np.flatnonzero(np.diff(np.asarray(window_days)[: excess.size])) + 1
     return np.asarray(
-        [day_max_of(run) for run in np.split(excess, edges)], dtype=float
+        [top_sum_of(run, 1) for run in np.split(excess, edges)], dtype=float
     )
-
-
-def _hard_day_max(run: np.ndarray) -> float:
-    return float(np.max(run))
-
-
-def _plateau_aware_day_max(run: np.ndarray) -> float:
-    """A day's peak for the solver: exact unless its windows tie at the top.
-
-    #232's blindness one level down: a hard max over tied windows reads flat
-    to a downward probe on any one of them, so on a same-day plateau the
-    smooth top-1 spreads the descent signal across the tied windows.
-    """
-    peak = float(np.max(run))
-    if int(np.sum(run >= peak - _PEAK_TIE_BAND)) > 1:
-        return _smooth_topk_sum(run, 1, _PEAK_SMOOTH_TAU)
-    return peak
 
 
 # Soft top-k temperature as a fraction of the largest excess. Small enough
@@ -736,19 +722,22 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
 
 
 def _smooth_topk_sum_batch(values: np.ndarray, k: int, tau: float) -> np.ndarray:
-    """``_smooth_topk_sum`` for each row of a [B, m] matrix, bit for bit.
+    """Differentiable approximation to ``sum(sort(row)[-k:])``, per row of a [B, m] matrix.
+
+    A hard top-k has zero gradient on every tied window beyond the kth, which
+    leaves gradient-based solvers blind on the peak plateau that capacity
+    tariffs create. Here a logistic threshold is chosen so the soft weights
+    sum to *k*; when many windows tie, each gets weight ``k/n`` and the
+    approximate sum stays ``k × tie_level``.
 
     The bisection is elementwise across the rows -- ``mid``, ``lo`` and
     ``hi`` are per-row vectors, ``z``/``w`` per-row matrices -- and both
     float reductions (``count`` and the final weighted sum) go through
     ``row_sums``, numpy's own scalar summation order, so a row is the
-    scalar bisection on that row's values to the bit. A row whose root is
-    found early is frozen (``np.where`` keeps its ``mid``); the scalar
-    ``break`` left that row's ``mid`` where it converged, which is the
-    same thing. Rows with nothing positive return 0.0, as the scalar guard
-    does (R9 F2.5, RC-rca1: this replaced the per-row re-entry of the
-    scalar helper inside ``peak_cost_batch``'s row loop, 18k entries per
-    capacity-tariff solve at the round-9 RCA's baseline).
+    scalar bisection (``_smooth_topk_sum``) on that row's values to the bit.
+    A row whose root is found early is frozen (``np.where`` keeps its
+    ``mid``), which is where the scalar ``break`` leaves it. Rows with
+    nothing positive return 0.0, as the scalar guard does.
     """
     n_rows, m = values.shape
     out = np.zeros(n_rows)
@@ -761,8 +750,14 @@ def _smooth_topk_sum_batch(values: np.ndarray, k: int, tau: float) -> np.ndarray
     x = values[positive]
     peak = np.max(x, axis=1)
     scale = np.maximum(tau * peak, 1e-9)
-    # See _smooth_topk_sum for the bracket: padded by the temperature
-    # itself, so the tie root stays inside as the peak moves (#925).
+    # The tie root sits at peak + scale*ln((n-k)/k), which moves with the
+    # peak's own magnitude: a bracket padded by a constant 1 kW stops
+    # containing it once the plateau is high enough, the bisection parks on
+    # the bracket end, and every tied window keeps weight sigmoid(-1/scale)
+    # -- charging a multiple of the billed top-k instead of approximating
+    # it (#925). Pad by the temperature itself; ln((n-k)/k) is under 5.25
+    # for any horizon this optimizer plans, so 40*scale holds the root with
+    # an order of magnitude to spare.
     pad = 40.0 * scale
     lo = np.min(x, axis=1) - 1.0 - pad
     hi = peak + 1.0 + pad
@@ -837,19 +832,44 @@ def _exact_topk_sum(excess: np.ndarray, k: int) -> float:
     return float(np.sum(np.sort(excess)[-k:]))
 
 
-def _plateau_aware_topk_sum(excess: np.ndarray, k: int) -> float:
-    """Exact while at most k windows sit at the peak, smooth above that.
+def _plateau_aware_topk_sum_batch(x: np.ndarray, k: int) -> np.ndarray:
+    """Each row's top-k sum: exact while at most k windows sit at the peak, smooth above that.
 
     The solver's rule (#232): a hard top-k has no finite-difference gradient
     at a bound-pinned plateau -- the probe points downward and the top-k just
     swaps in another tied window -- so once more than ``k`` windows tie at
-    the peak the smooth sum spreads the descent signal across them.
+    the peak the smooth sum spreads the descent signal across them. ``k`` is
+    already clamped to ``1..m``. The exact arm is the row's max for k = 1 and
+    ``row_sums`` over the sorted tail otherwise: ``np.sort`` along a row is
+    value-exact and ``row_sums`` is numpy's scalar summation order, so a row
+    is the scalar top-k on that row to the bit.
+    """
+    peak = np.max(x, axis=1)
+    n_at_peak = np.sum(x >= peak[:, None] - _PEAK_TIE_BAND, axis=1)
+    out = np.empty(x.shape[0])
+    smooth = np.flatnonzero(n_at_peak > k)
+    if smooth.size:
+        out[smooth] = _smooth_topk_sum_batch(x[smooth], k, _PEAK_SMOOTH_TAU)
+    exact = np.flatnonzero(n_at_peak <= k)
+    if exact.size:
+        out[exact] = (
+            peak[exact] if k == 1
+            else row_sums(np.sort(x[exact], axis=1)[:, -k:])
+        )
+    return out
+
+
+def _plateau_aware_topk_sum(excess: np.ndarray, k: int) -> float:
+    """The solver's top-k on one plan, by ``_plateau_aware_topk_sum_batch``'s rule.
+
+    Scalar arithmetic throughout, the bisection included: the solver's
+    scalar objective calls this once per day, and a one-row batch costs
+    several times the scalar's ufunc overhead there.
     """
     peak = float(np.max(excess))
-    n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
-    if n_at_peak > k:
+    if int(np.sum(excess >= peak - _PEAK_TIE_BAND)) > k:
         return _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
-    return _exact_topk_sum(excess, k)
+    return peak if k == 1 else _exact_topk_sum(excess, k)
 
 
 def _peak_charge(
@@ -863,7 +883,6 @@ def _peak_charge(
     offset_steps: int,
     window_factors: np.ndarray | None,
     top_sum_of: Callable[[np.ndarray, int], float],
-    day_max_of: Callable[[np.ndarray], float],
     window_days: np.ndarray | None,
     distinct_days: bool,
 ) -> float:
@@ -884,7 +903,7 @@ def _peak_charge(
     if excess is None:
         return 0.0
     if distinct_days:
-        excess = _day_peaks(excess, window_days, window_minutes, day_max_of)
+        excess = _day_peaks(excess, window_days, window_minutes, top_sum_of)
     k = max(1, min(int(peaks_averaged), excess.size))
     return float(price_per_kw * top_sum_of(excess, k))
 
@@ -952,8 +971,7 @@ def peak_cost(
     return _peak_charge(
         total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
         window_minutes, dt_hours, peaks_averaged, offset_steps,
-        window_factors, _exact_topk_sum, _hard_day_max, window_days,
-        distinct_days,
+        window_factors, _exact_topk_sum, window_days, distinct_days,
     )
 
 
@@ -995,8 +1013,7 @@ def peak_cost_smooth(
     return _peak_charge(
         total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
         window_minutes, dt_hours, peaks_averaged, offset_steps,
-        window_factors, _plateau_aware_topk_sum, _plateau_aware_day_max,
-        window_days, distinct_days,
+        window_factors, _plateau_aware_topk_sum, window_days, distinct_days,
     )
 
 
@@ -1062,15 +1079,12 @@ def _day_peaks_batch(
     window_days: np.ndarray | None,
     window_minutes: int,
 ) -> np.ndarray:
-    """``_day_peaks`` with ``_plateau_aware_day_max`` for a [B, W] batch.
+    """``_day_peaks`` under the solver's top-k rule, for a [B, W] batch.
 
     A day's run is the same contiguous slice of windows for every row, so
-    each day is one pass: the max and the tie count are exact (no rounding
-    to differ by), and only the rows whose windows tie at the day's peak
-    take the smooth top-1 -- the batched bisection on those rows alone,
-    which is bit for bit the scalar ``_plateau_aware_day_max`` on each
-    (its float reductions run over arrays the arithmetic itself freshly
-    allocates, so a row view in and a fresh array in give the same bits).
+    each day is one pass of ``_plateau_aware_topk_sum_batch`` at k = 1: the
+    max and the tie count are exact (no rounding to differ by), and only the
+    rows whose windows tie at the day's peak take the smooth top-1.
     """
     size = excess.shape[1]
     if window_days is None:
@@ -1081,17 +1095,7 @@ def _day_peaks_batch(
     bounds = [0, *(edges.tolist()), size]
     out = np.empty((excess.shape[0], len(bounds) - 1))
     for d, (s, e) in enumerate(zip(bounds, bounds[1:])):
-        run = excess[:, s:e]
-        day_max = np.max(run, axis=1)
-        n_tied = np.sum(
-            run >= day_max[:, None] - _PEAK_TIE_BAND, axis=1
-        )
-        out[:, d] = day_max
-        plateau = np.flatnonzero(n_tied > 1)
-        if plateau.size:
-            out[plateau, d] = _smooth_topk_sum_batch(
-                run[plateau], 1, _PEAK_SMOOTH_TAU
-            )
+        out[:, d] = _plateau_aware_topk_sum_batch(excess[:, s:e], 1)
     return out
 
 
@@ -1161,25 +1165,7 @@ def peak_cost_batch(
             chargeable, window_days, window_minutes
         )
     k = max(1, min(int(peaks_averaged), chargeable.shape[1]))
-    peak = np.max(chargeable, axis=1)
-    n_at_peak = np.sum(
-        chargeable >= peak[:, None] - _PEAK_TIE_BAND, axis=1
-    )
-    top_sums = np.empty(chargeable.shape[0])
-    smooth = np.flatnonzero(n_at_peak > k)
-    if smooth.size:
-        top_sums[smooth] = _smooth_topk_sum_batch(
-            chargeable[smooth], k, _PEAK_SMOOTH_TAU
-        )
-    exact = np.flatnonzero(n_at_peak <= k)
-    if exact.size:
-        # np.sort along the row is value-exact, and the top-k slice sum is
-        # ``row_sums`` over the last k columns: the scalar's np.sum of the
-        # sorted array's tail, in its own order.
-        top_sums[exact] = row_sums(
-            np.sort(chargeable[exact], axis=1)[:, -k:]
-        )
-    out[above] = price_per_kw * top_sums
+    out[above] = price_per_kw * _plateau_aware_topk_sum_batch(chargeable, k)
     return out
 
 
