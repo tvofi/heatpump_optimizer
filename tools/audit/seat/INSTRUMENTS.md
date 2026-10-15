@@ -287,12 +287,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   unknown group, a duplicate issue or carry, and for `set-resume` an empty
   value on the non-null fields (`stage`, `branch`) or a non-sha on
   `--field commit`; an empty value on a nullable field clears it to null.
+  `--roster-ref` defaults to `main` and `--branch` to the round's
+  `handoff/audit-r<N>-roster`, never main itself; `--roster-path` overrides
+  the newest roster.
   A no-op edit reproduces the roster's bytes exactly and reports `no change`
   instead of an empty commit — the round-trip the self-test pins, because a
   dump that misses the file's formatting rewrites all 7503 lines on any edit.
 - `roster_lib.py` — shared roster parsing and wave logic (depth, critical
-  path, open groups, the branch-to-group lookup). Not a CLI: import it.
-  When: any tool that reads the roster — one schema reader, not several.
+  path, open groups, the branch-to-group lookup), and the one owner of WHICH
+  roster: `roster_path` picks the newest `dev/programme/rosters/wave-r<N>-groups.json`
+  (at a ref or on the checkout) unless `--roster-path` names one. Import it;
+  `--self-test` is its only CLI. When: any tool that reads the roster — one
+  schema reader, not several. Refusal: no roster where one was asked for
+  raises `RosterNotFound`, never a fallback to another round's.
 - `seat_venv.sh` — builds the seat interpreter venvs reproducibly and installs
   the `shims/`. When: a new workstation or cloud seat; CI features are
   container-only on the Mac (no local venv for the Accelerate wheels).
@@ -316,8 +323,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--ignore-red` argv shape, the absent-venv refusal).
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
-  their outputs to the orphan ref `handoff/audit-r9-plan` at
-  `handoff/round9/state/`, and mirrors them to `--mirror`. When: every state
+  their outputs to the orphan ref `handoff/audit-r<N>-plan` at
+  `handoff/round<N>/state/`, N the roster's round, and mirrors them to
+  `--mirror`. When: every state
   beat — it replaces the five hand commands (worktree, copy, commit, push,
   mirror) and runs the generators instead of copying their logic. Dry run by
   default: without `--push` nothing remote is written. Refusals: any path

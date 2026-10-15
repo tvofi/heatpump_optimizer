@@ -2,13 +2,13 @@
 """The resume markdown, regenerated from a roster and live pull-request state.
 
     python3 tools/audit/seat/resume_doc.py [--repo OWNER/REPO] \
-        [--roster-ref GITREF | --roster-file PATH] [--out PATH] \
+        [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH] [--out PATH] \
         [--traps FILE] [--budget-bytes N]
     python3 tools/audit/seat/resume_doc.py --offline --roster-file R \
         --pr-state S --self-test
 
-Stateless: the roster arrives through --roster-ref (`git show`) or
---roster-file, the pull-request rows through `gh pr list --json` at run time
+Stateless: the roster arrives through --roster-ref (`git show` of
+`roster_lib.roster_path`'s pick there, or of --roster-path) or --roster-file, the pull-request rows through `gh pr list --json` at run time
 or through --pr-state (a fixture, with --offline, so the self-test needs no
 network and no `gh`). A resume doc that a session hand-writes drifts from the
 roster it summarizes; this regenerates the factual sections instead:
@@ -98,8 +98,11 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", default="tvofi/heatpump_optimizer")
     src = p.add_mutually_exclusive_group()
-    src.add_argument("--roster-ref", default="handoff/audit-r9-fixplan")
+    src.add_argument("--roster-ref", default=roster_lib.DEFAULT_ROSTER_REF)
     src.add_argument("--roster-file")
+    p.add_argument("--roster-path",
+                   help="the roster at --roster-ref (default: the newest "
+                        "dev/programme/rosters/wave-r<N>-groups.json there)")
     p.add_argument("--out")
     p.add_argument("--traps")
     p.add_argument("--budget-bytes", type=int, default=DEFAULT_BUDGET)
@@ -111,8 +114,10 @@ def main(argv=None) -> int:
     if a.self_test:
         return _self_test()
     roster = (roster_lib.load_roster_file(a.roster_file) if a.roster_file
-              else roster_lib.show_roster(a.repo, a.roster_ref))
-    source = a.roster_file or a.roster_ref
+              else roster_lib.show_roster(".", a.roster_ref, a.roster_path))
+    source = a.roster_file or (
+        f"{a.roster_ref}:"
+        f"{roster_lib.roster_path('.', a.roster_ref, a.roster_path)}")
     if a.offline:
         if not a.pr_state:
             print("resume_doc: --offline needs --pr-state", file=sys.stderr)
