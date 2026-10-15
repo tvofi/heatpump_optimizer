@@ -9,8 +9,8 @@ module the metrics cannot parse. This is that check, and it is the only part tha
   * every score metric and every tripwire is a number on this tree;
   * a tree compared with itself reads NULL, and the report names no metric;
   * the coordinator class the metrics key on is the one ``tests/structure.py`` keys on;
-  * nothing the scheduled cycle or the what-if reaches writes the coordinator's three hubs,
-    except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included;
+  * nothing the scheduled cycle, the what-if or an event callback reaches writes the coordinator's
+    three hubs, except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included;
   * the payload census reaches the away view, which today's tree publishes through an annotated
     parameter (counter C14, D7-s3-51).
 
@@ -82,6 +82,13 @@ CYCLE_HUB_WRITERS = {
         {"_thermal_params.dhw_hourly_draw_pattern"}, "a restored DHW profile is adopted"),
     "dhw_learning:DhwProfileLearner.async_learn_usage": (
         {"_thermal_params.dhw_hourly_draw_pattern"}, "the DHW learner adopts a learned draw profile"),
+    # Event callbacks (counter C16, ARCH2-s2 P4's instrument half): Home Assistant calls them back
+    # with the live hubs, so a write there is a reading at the event that changed it.
+    _C + "_async_handle_ecl110_state_message": (
+        {"_current_state.ecl110_effective_displace", "_current_state.ecl110_displace_command"},
+        "the ECL110 MQTT state message stores the controller's displacement"),
+    _C + "_on_power_event": (
+        {"_current_state.peak_guard_active"}, "the meter event flips the peak guard on a crossing"),
 }
 LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
 #: The planted writes the controls add: one as async_run_optimization's first
@@ -179,10 +186,8 @@ def hub_writers(root: Path) -> set[tuple[str, str]]:
         pkg = common.load(str(flat))
         eng = common.engine(pkg)
         out: set[tuple[str, str]] = set()
-        for r in hub_solve_writes.ROOTS:
-            q = f"{common.COORD_MODULE}:{common.COORD_CLASS}.{r}"
-            if q in pkg.funcs:
-                out |= {(x[4], f"{x[2]}.{x[3]}") for x in hub_solve_writes._sites(eng, q)}
+        for q in hub_solve_writes.roots(pkg):
+            out |= {(x[4], f"{x[2]}.{x[3]}") for x in hub_solve_writes._sites(eng, q)}
         return out
 
 
