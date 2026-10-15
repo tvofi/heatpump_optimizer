@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_cop_health BOOLOP 70038ecd",
+  "killed_by": "tests/features.py",
+  "old": "        if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5:",
+  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: BOOLOP (`if count >= COP_BASELINE_MIN_SAMPLES or baseline > 0.5:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
