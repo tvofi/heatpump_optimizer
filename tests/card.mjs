@@ -11135,5 +11135,136 @@ check("without an indoor reading the corner now label is absent",
   }
 }
 
+// --- Every link-emitting button goes through haLink (R10-DEEPLINK) ----------
+//
+// The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup
+// "Configure" and Health "Show" each built their own Home Assistant link and
+// each landed on the integration's front page. `haLink` is now the one
+// builder, so this test enumerates the buttons rather than naming them: it
+// renders every dialog page, presses every element there that carries a click
+// listener of its own, one fresh card per press, and records what reached
+// `history.pushState`. Each path must be one `haLink` builds for this entry.
+// A link not yet converted is listed in LINK_PENDING under the roster group
+// that converts it; that group deletes its rows, and a row no press still
+// produces is refused as stale, so the list can only shrink.
+//
+// The census asserts its own precondition: every source line that calls
+// `navigateTo` (outside `openHaLink`) or `openHaLink` must have been reached
+// by some press. A link wired through a delegated listener the walk does not
+// press, or on a row this fixture does not render, fails here rather than
+// passing unenumerated -- extend the fixture until it is reached.
+{
+  const ENTRY = "01JDEEPLINKENTRY";
+  const PENDING = {
+    "advisor:settings": "R10-ADVISOR",
+    "health:settings": "R10-UX-HEALTH",
+    "health:diagnostics": "R10-UX-HEALTH",
+  };
+  const haLink = fn("haLink");
+  const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
+  const states = () => {
+    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    s[BIN] = { state: "off", last_updated: "t1", attributes: { problems: [], input_ages_minutes: {} } };
+    return s;
+  };
+  // The registry lookup the card makes for its own config entry; real HA
+  // answers config/entity_registry/get with the entity's config_entry_id.
+  const callWS = async (msg) => {
+    if (msg && msg.type === "config/entity_registry/get" && msg.entity_id in states()) {
+      return { entity_id: msg.entity_id, config_entry_id: ENTRY };
+    }
+    throw new Error(`not found: ${JSON.stringify(msg)}`);
+  };
+  const open = (page) => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: states(), callService: async () => {}, callWS };
+    c._onCardClick({});
+    c.dialog.page = page;
+    c._render();
+    return c;
+  };
+  const pressables = (c) => {
+    const body = c.shadowRoot.querySelector(".dlg-body");
+    const out = [];
+    const walk = (n) => {
+      if (n !== body && n._listeners && (n._listeners.click || []).length) out.push(n);
+      (n.children || []).forEach(walk);
+    };
+    if (body) walk(body);
+    return out;
+  };
+  const built = new Set([haLink("options", ENTRY), haLink("entities", ENTRY),
+    ...Object.keys(states()).map((id) => haLink("entity", ENTRY, id))]);
+  const seen = {};
+  const wrong = [];
+  const census = [];
+  const realHistory = ctx.history;
+  // Which source line each navigation came from: the frame above the wrapper.
+  const callerLine = () => {
+    const m = /evalmachine[^:]*:(\d+):\d+/.exec((new Error().stack || "").split("\n")[3] || "");
+    return m ? Number(m[1]) : -1;
+  };
+  const hits = new Set();
+  const realNav = ctx.navigateTo;
+  const realOpen = ctx.openHaLink;
+  ctx.navigateTo = (path) => { hits.add(callerLine()); return realNav(path); };
+  ctx.openHaLink = (...a) => { hits.add(callerLine()); return realOpen(...a); };
+  for (const page of ["plan", "setup", "savings", "advisor", "health"]) {
+    const n = pressables(open(page)).length;
+    census.push(`${page}=${n}`);
+    for (let i = 0; i < n; i++) {
+      const c = open(page);
+      const el = pressables(c)[i];
+      const pushed = [];
+      ctx.history = { pushState: (_a, _b, path) => pushed.push(path) };
+      try {
+        await Promise.all((el._listeners.click || []).map((f) => f({
+          stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
+      } catch (_err) { /* a press that throws emits no link; not this test's concern */ }
+      const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
+      for (const path of pushed) {
+        (seen[key] ||= new Set()).add(path);
+        if (!built.has(path) && !(key in PENDING)) wrong.push(`${key} -> ${path}`);
+      }
+    }
+  }
+  ctx.history = realHistory;
+  ctx.navigateTo = realNav;
+  ctx.openHaLink = realOpen;
+  check("haLink builds the three deep links Home Assistant routes",
+    haLink("options", ENTRY) === `/config/integrations/integration/heatpump_optimizer#config_entry=${ENTRY}`
+    && haLink("entities", ENTRY) === `/config/entities?config_entry=${ENTRY}`
+    && haLink("entity", ENTRY, "sensor.a b") ===
+      `/config/entities?config_entry=${ENTRY}&more-info-entity-id=sensor.a%20b&more-info-view=settings`,
+    [...built].slice(0, 3).join(" | "));
+  check("haLink refuses an unknown kind and an entity link with no entity",
+    haLink("nowhere", ENTRY) === null && haLink("entity", ENTRY) === null);
+  check("haLink without a resolved entry falls back to the domain, never a guessed entry",
+    haLink("options", null) === "/config/integrations/integration/heatpump_optimizer"
+    && haLink("entities", null) === "/config/entities?domain=heatpump_optimizer"
+    && haLink("entity", null, "sensor.x") ===
+      "/config/entities?domain=heatpump_optimizer&more-info-entity-id=sensor.x&more-info-view=settings");
+  const srcLines = cardSrc.split("\n");
+  const helperAt = srcLines.findIndex((l) => /^async function openHaLink\(/.test(l));
+  const helperEnd = srcLines.findIndex((l, i) => i > helperAt && l === "}");
+  const sites = srcLines.map((l, i) => [l, i + 1])
+    .filter(([l, i]) => /\b(navigateTo|openHaLink)\(/.test(l) && !/^(async )?function /.test(l)
+      && !(i - 1 > helperAt && i - 1 < helperEnd && /navigateTo\(/.test(l)))
+    .map(([, i]) => i);
+  const unreached = sites.filter((i) => !hits.has(i));
+  check("the census reached every line that emits a Home Assistant link",
+    sites.length > 0 && unreached.length === 0,
+    `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
+  check("every link a button emits is one haLink builds for this entry",
+    wrong.length === 0, wrong.join("; "));
+  const stale = Object.keys(PENDING).filter((k) => !seen[k] || [...seen[k]].every((p) => built.has(p)));
+  check("every LINK_PENDING row still names a button that emits an unconverted link",
+    stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
+  const pushSites = (cardSrc.match(/\.pushState\(/g) || []).length;
+  check("navigateTo is the card's only history write, so the census's sink sees every link",
+    pushSites === 1 && !/window\.open\(|location\.(href|assign|replace)\b/.test(cardSrc), `pushState sites ${pushSites}`);
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
