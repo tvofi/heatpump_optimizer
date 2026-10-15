@@ -1,0 +1,2 @@
+usage: closure.py check [-h] --in-dir IN_DIR [--partial]
+closure.py check: error: the following arguments are required: --in-dir
