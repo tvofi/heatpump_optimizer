@@ -1,0 +1,10 @@
+MOVED rt_90_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_91_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_92_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_93_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_94_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_95_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_96_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_97_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_98_probe: recorded None now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+calibration moved on 128 case(s)
