@@ -1239,5 +1239,15 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    the setup tab still renders beside Health
   ok    the savings tab still renders beside Health
   ok    the advisor tab still renders beside Health
+  ok    haLink builds the three deep links Home Assistant routes
+  ok    haLink refuses an unknown kind and an entity link with no entity
+  ok    haLink without a resolved entry falls back to the domain, never a guessed entry
+  ok    the census reached every line that emits a Home Assistant link
+  ok    every link a button emits is one haLink builds for this entry
+  ok    every LINK_PENDING row still names a button that emits an unconverted link
+  ok    openSetupSlot opens the slot's picker, focused only from the keyboard
+  ok    navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
+  ok    openHaLink asks the registry for its own plan sensor and links this entry
+  ok    openHaLink falls back to the whole integration when the registry refuses
 
 ALL CARD CHECKS PASSED

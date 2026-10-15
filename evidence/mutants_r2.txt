@@ -1,6 +1,5 @@
-RESULT mutant=M1 rc=1 fails=2
+RESULT mutant=M1 rc=1 fails=1
     FAIL  haLink builds the three deep links Home Assistant routes
-    FAIL  every LINK_PENDING row still names a button that emits an unconverted link
 RESULT mutant=M2 rc=1 fails=2
     FAIL  haLink builds the three deep links Home Assistant routes
     FAIL  haLink without a resolved entry falls back to the domain, never a guessed entry
@@ -16,10 +15,13 @@ RESULT mutant=R1_bypass rc=1 fails=3
     FAIL  Assign sensor opens the setup picker for the gap's top slot
     FAIL  Assign on the power meter opens the Setup picker for that slot
     FAIL  every link a button emits is one haLink builds for this entry
-RESULT mutant=R1b_bypass_samestring rc=1 fails=0
-    tail: ['    at file:///private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/revdeeplink/tests/card.mjs:3255:9', '', 'Node.js v20.10.0']
-RESULT mutant=R1c_bypass_location rc=1 fails=0
-    tail: ['    at file:///private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/revdeeplink/tests/card.mjs:3255:9', '', 'Node.js v20.10.0']
+RESULT mutant=R1b_bypass_samestring rc=1 fails=2
+    FAIL  Assign sensor opens the setup picker for the gap's top slot
+    FAIL  Assign on the power meter opens the Setup picker for that slot
+RESULT mutant=R1c_bypass_location rc=1 fails=3
+    FAIL  Assign sensor opens the setup picker for the gap's top slot
+    FAIL  Assign on the power meter opens the Setup picker for that slot
+    FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
 RESULT mutant=R1d_bypass_wrongentry rc=1 fails=3
     FAIL  Assign sensor opens the setup picker for the gap's top slot
     FAIL  Assign on the power meter opens the Setup picker for that slot
@@ -27,5 +29,14 @@ RESULT mutant=R1d_bypass_wrongentry rc=1 fails=3
 RESULT mutant=R2_stale rc=1 fails=1
     FAIL  every LINK_PENDING row still names a button that emits an unconverted link
 RESULT mutant=R3_openSetupSlot_render rc=0 fails=0
-RESULT mutant=R4_entry_ignored rc=0 fails=0
+RESULT mutant=R5_anchor_href rc=1 fails=2
+    FAIL  every link a button emits is one haLink builds for this entry
+    FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
+RESULT mutant=R6_more_info_event rc=1 fails=4
+    FAIL  Assign sensor opens the setup picker for the gap's top slot
+    FAIL  Assign on the power meter opens the Setup picker for that slot
+    FAIL  every link a button emits is one haLink builds for this entry
+    FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
+RESULT mutant=R4_entry_ignored rc=1 fails=1
+    FAIL  openHaLink asks the registry for its own plan sensor and links this entry
 RESTORED-CLEAN
