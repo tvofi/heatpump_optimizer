@@ -8,7 +8,7 @@ each arm's model on the shared closed-loop trajectory; arms compared pairwise
 on common random numbers.
 
 Command (repository root):
-    PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reseed_rolling.py \
+    PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/study-reseed/reseed_rolling.py \
         [--plant NAME] [--sigma 0.1] [--trust-region X] [--days 10]
 Expected: see REPORT.md in the study scratch; arm B (reseed) vs A (none) std
 ratio ~1.0 on the null plant, != 1 where the prior was wrong.

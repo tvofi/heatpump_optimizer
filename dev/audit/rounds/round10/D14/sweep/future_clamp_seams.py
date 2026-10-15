@@ -18,7 +18,20 @@ store added later is enumerated without editing this file.
 import ast, math, pathlib, sys
 from datetime import timedelta
 
-ROOT = pathlib.Path(__file__).resolve().parents[6]
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 PKG = ROOT / "custom_components" / "heatpump_optimizer"
 sys.path.insert(0, str(ROOT / "tests" / "hastub")); sys.path.insert(0, str(ROOT))
 

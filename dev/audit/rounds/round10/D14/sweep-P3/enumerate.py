@@ -48,7 +48,20 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[5]
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+REPO = repo_root(__file__)
 SEAM_RE = re.compile(r"^_?(as_float|as_num|optional_float|finite|finite_or_none|finite_float|number|at_least)$")
 RATIO_NAMES = {"lower_floor_loss_ratio", "_lower_floor_loss_ratio"}
 SCALE_NAMES = {"house_heat_loss_scale", "_house_heat_loss_scale", "loss_scale"}

@@ -8,7 +8,7 @@ Metric (one line): mean over wrong-prior plants of ratio_B_over_A.<m>
 (post-reseed window) and ratio_F_over_E.<m> (after a reset to the prior);
 < 1 favours the reseed.
 Command (repository root):
-    python3 tools/audit/round10/study-reseed/aggregate.py OUT_DIR
+    python3 dev/audit/rounds/round10/study-reseed/aggregate.py OUT_DIR
     (OUT_DIR holds base_<plant>.out and tr_<plant>.out from reseed_rolling.py)
 Baseline SHA: 17f1c55fa. No production symbol is driven here; the numbers are
 reseed_rolling.py's (instrumented symbols and perturbation in its header).

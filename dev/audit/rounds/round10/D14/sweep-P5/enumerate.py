@@ -17,7 +17,20 @@ from __future__ import annotations
 import ast, sys
 from pathlib import Path
 
-ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[6] / "custom_components/heatpump_optimizer"
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else repo_root(__file__) / "custom_components/heatpump_optimizer"
 
 def _names(node):
     return {n.id for n in ast.walk(node) if isinstance(n, ast.Name)} | {n.attr for n in ast.walk(node) if isinstance(n, ast.Attribute)}

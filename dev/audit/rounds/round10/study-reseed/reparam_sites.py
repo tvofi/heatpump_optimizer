@@ -11,7 +11,7 @@ learned state s=1.567, r=1.922 (Health tab, 2026-10-14) on the stock two-zone
 test house (tests/profiles.py:house(two_zone=True)) -- no private data.
 
 Command (repository root):
-    PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py
+    PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/study-reseed/reparam_sites.py
 Expected: model rollout, optimizer-facing view and sysid prior ~0 (<1e-9);
     _space_demand_kw and sysid adoption base != 0 (they read the raw lower
     nameplate without the ratio); options-edit reseed of the lower zone

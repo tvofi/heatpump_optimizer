@@ -24,7 +24,20 @@ Run from the repository root: PYTHONPATH=tests/hastub python3 dev/audit/rounds/r
 import argparse, ast, importlib, json, math, shutil, sys, tempfile, types
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[6]
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+REPO = repo_root(__file__)
 STATE_PROPS = {"native_value", "current_temperature", "target_temperature", "is_on", "native_value",
                "current_option", "current_operation"}
 PROBES = [21.456, True, "21.5"]

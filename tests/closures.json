@@ -2244,6 +2244,19 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "dev/audit/rounds/round10/D0/verify_s1_random.py",
+   "dev/audit/rounds/round10/D0/verify_s2_shipped.py",
+   "dev/audit/rounds/round10/D1/v_m1_own.py",
+   "dev/audit/rounds/round10/D1/v_m4_climate_path.py",
+   "dev/audit/rounds/round10/D1/v_s2_bound_own.py",
+   "dev/audit/rounds/round10/D1/v_s2_price_own.py",
+   "dev/audit/rounds/round10/D1/v_s2_weather_own.py",
+   "dev/audit/rounds/round10/D1/v_s3_tibber_own.py",
+   "dev/audit/rounds/round10/D13/verify_v13.py",
+   "dev/audit/rounds/round10/D14/period_rollover_seams.py",
+   "dev/audit/rounds/round10/D14/probe_n_no_expiry.py",
+   "dev/audit/rounds/round10/D14/sweep_n_no_expiry.py",
+   "dev/audit/rounds/round10/D8/verify_indep_active_now.py",
    "dev/audit/rounds/round3/D0/arms_decomposition.py",
    "dev/audit/rounds/round3/D0/budget_slack.py",
    "dev/audit/rounds/round3/D0/coopt_gate.py",
@@ -3819,7 +3832,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 220.7
+   "seconds": 99.7
   },
   "tests/layout.py": {
    "rc": 0,

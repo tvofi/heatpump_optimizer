@@ -16,7 +16,7 @@ Metric (one line): |delta| between arm A (as is) and arm B (prior := learned)
 on each production seam, at the install's learned state; and the effective
 UA's weekly path in W/K.
 Command (repository root):
-    PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/live_store.py /path/to/diag.json
+    PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/study-reseed/live_store.py /path/to/diag.json
 Expected: rollout delta 0; prior residual share < 1 % (house), ~5 % (lower);
     space-demand and sysid-adoption seams off by (U+L*r)/(U+L) - 1.
 Baseline SHA: 17f1c55fa. Machine: macOS arm64, Python 3.11.
