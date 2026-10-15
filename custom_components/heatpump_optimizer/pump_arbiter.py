@@ -143,7 +143,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, pump_mode, quiet_windows, setpoint_check
+from . import boost, issues, pump_mode, quiet_windows, setpoint_check
 from .const import (
     DOMAIN,
     MODE_AUTO,
@@ -776,7 +776,7 @@ def hold(coord: Any, now: datetime) -> None:
         if not _differs(slot, observed, value):
             held.misses.pop(slot, None)
             if held.retry.pop(slot, None) is not None and not held.retry:
-                _clear(coord, ISSUE_IGNORED)
+                issues.clear_issue(coord.hass, ISSUE_IGNORED)
             continue
         del held.written[slot]
         held.misses[slot] = held.misses.get(slot, 0) + 1
@@ -789,7 +789,7 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
     """A rewrite did not hold either: warn, and send it again in a few minutes."""
     held.retry[slot] = utc_shift(now, timedelta(minutes=RETRY_MINUTES))
     _LOGGER.warning("Pump duty: the pump does not hold a write, %s; retrying", detail)
-    setpoint_check.create_issue(
+    issues.create_issue(
         coord.hass,
         DOMAIN,
         ISSUE_IGNORED,
@@ -798,13 +798,6 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
         translation_key=ISSUE_IGNORED,
         translation_placeholders={"detail": detail},
     )
-
-
-def _clear(coord: Any, issue: str) -> None:
-    try:
-        ir.async_delete_issue(coord.hass, DOMAIN, issue)
-    except Exception as err:  # noqa: BLE001 - clearing is best-effort
-        _LOGGER.debug("Could not clear %s: %s", issue, err)
 
 
 def _forget(held: ArbiterState) -> None:
@@ -961,7 +954,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         if held.written or held.retry:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
-            _clear(coord, ISSUE_IGNORED)
+            issues.clear_issue(coord.hass, ISSUE_IGNORED)
             await _persist(coord)
         if inp.mode == MODE_OFF:
             return
@@ -1109,7 +1102,7 @@ async def _load(coord: Any) -> None:
     if raw is None:
         return
     if raw.get("manual"):
-        _clear(coord, ISSUE_MANUAL)
+        issues.clear_issue(coord.hass, ISSUE_MANUAL)
     written = raw.get("written")
     for slot, pair in written.items() if isinstance(written, dict) else ():
         try:

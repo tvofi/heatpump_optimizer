@@ -36,7 +36,7 @@ from .disinfection import DisinfectionSwitch
 from .entry_config import EntryConfig
 from .optimizer import REASON_LEGIONELLA
 from .payload import CurrentAction
-from .setpoint_check import create_issue
+from .issues import create_issue
 from .thermal_model import ThermalParameters
 
 _LOGGER = logging.getLogger(__name__)

@@ -233,7 +233,7 @@ from .accuracy import (
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import early_cutoff, pump_arbiter, pump_signals
-from . import setpoint_check
+from . import issues, setpoint_check
 from . import quiet_windows
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
@@ -341,7 +341,7 @@ if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
     from homeassistant.helpers.event import EventStateChangedData
 
 _LOGGER = logging.getLogger(__name__)
-_create_issue = setpoint_check.create_issue
+_create_issue = issues.create_issue
 # The learned scale's store key and published attribute are this config key.
 _COP_STORE_KEY = CONF_COP_SCALE
 

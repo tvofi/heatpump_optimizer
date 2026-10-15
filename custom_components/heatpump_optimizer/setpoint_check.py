@@ -10,18 +10,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable
 
-from homeassistant.helpers import issue_registry as ir
-
-from .const import (
-    DOMAIN,
-    MIXING_VALVE_WRITE_EPSILON,
-)
+from .const import MIXING_VALVE_WRITE_EPSILON
 from .entry_config import EntryConfig
+from .issues import set_issue
 from .inputs import state_unit, temperature_c, temperature_from_c
 from .quiet_windows import silent_unenforceable
-
-# Manifest ``documentation`` — the URL every repair notice links to (#558 F2).
-DOCUMENTATION_URL = "https://github.com/tvofi/heatpump_optimizer"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,12 +25,6 @@ ISSUE_SPACE = "space_setpoint_unreadable"
 #: setup diagram (or SW-4's Modbus schedule) can make.
 ISSUE_QUIET = "quiet_silent_not_enforced"
 _INVALID = ("unknown", "unavailable", "none", "")
-
-
-def create_issue(hass: Any, domain: str, issue_id: str, **kwargs: Any) -> None:
-    """Raise a repair notice, defaulting the documentation link (#558 F2)."""
-    kwargs.setdefault("learn_more_url", DOCUMENTATION_URL)
-    ir.async_create_issue(hass, domain, issue_id, **kwargs)
 
 
 def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
@@ -156,35 +143,3 @@ def _setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | 
         attrs = getattr(state, "attributes", None) or {}
         value = temperature_c(attrs.get("temperature"), unit)
     return None if value is None else (value, unit)
-
-
-def set_issue(
-    hass: Any,
-    issue_id: str,
-    raise_it: bool,
-    *,
-    fixable: bool = False,
-    placeholders: dict[str, str] | None = None,
-    data: dict[str, Any] | None = None,
-) -> None:
-    """Raise or clear one repair: the writer every pure finding feeds.
-
-    Its ``translation_key`` is its ``issue_id``, its severity a warning;
-    called each cycle, since creating an existing issue updates it and
-    deleting an absent one does nothing.
-    """
-    if not raise_it:
-        try:
-            ir.async_delete_issue(hass, DOMAIN, issue_id)
-        except Exception as err:  # noqa: BLE001 - clearing is best-effort
-            _LOGGER.debug("Could not clear %s: %s", issue_id, err)
-        return
-    kwargs: dict[str, Any] = {
-        "is_fixable": fixable,
-        "severity": ir.IssueSeverity.WARNING,
-        "translation_key": issue_id,
-        "translation_placeholders": placeholders or {},
-    }
-    if data is not None:
-        kwargs["data"] = data
-    create_issue(hass, DOMAIN, issue_id, **kwargs)

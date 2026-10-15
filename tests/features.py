@@ -45416,6 +45416,7 @@ from heatpump_optimizer import comfort_band as _g8_band  # noqa: E402
 from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
 from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
 from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
+from heatpump_optimizer import issues as _g8_issues  # noqa: E402
 from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
@@ -45654,13 +45655,13 @@ class _G8SpIssues:
 
 
 _g8_sp_reg = _G8SpIssues()
-_g8_sp_real_delete = _g8_sp.ir.async_delete_issue
+_g8_sp_real_delete = _g8_issues.ir.async_delete_issue
 try:
-    _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
+    _g8_issues.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
     _g8_sp_clear = _t6_call(
-        _g8_sp.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+        _g8_issues.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
 finally:
-    _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
+    _g8_issues.ir.async_delete_issue = _g8_sp_real_delete
 R.check(
     "a registry that refuses the clear is logged, not raised",
     _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
@@ -50518,6 +50519,7 @@ from types import SimpleNamespace as _p8_ns  # noqa: E402
 from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
 from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
 from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
+from heatpump_optimizer import issues as _p8_issues  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_GRID_FEE_ENTITY as _P8_FEE,
     CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
@@ -52866,7 +52868,7 @@ R.check(
     f"{_pa.state_for(_pa_sd).written=} {_pa.state_for(_pa_sd_again).written=}",
 )
 _pa_stored = _PaCoord(_PA_TUYA)
-_p8_sp.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
+_p8_issues.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
 _pa_aio.run(_pa._store(_pa_stored).async_save({
     "manual": "select.pump_mode: Heating (set by the optimizer: DHW)",
     "written": {},
