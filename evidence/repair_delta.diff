@@ -1,0 +1,82 @@
+diff --git a/tools/policy/friction_issues.mjs b/tools/policy/friction_issues.mjs
+index 0f7ef12cb..e3f7d8143 100644
+--- a/tools/policy/friction_issues.mjs
++++ b/tools/policy/friction_issues.mjs
+@@ -20,13 +20,15 @@
+ // output the job has already produced. The classifier -- the verdict grammar
+ // read from web-fix-wave.js, the threshold of three, and the exclusion that
+ // withholds the passing verdict from its own row, while the rework that row
+-// cannot show is counted under the wave's `head-moved` -- stays in
++// cannot show is counted on its own `head-moved (rework)` row -- stays in
+ // exactly one place, policy_lint.mjs, and this script cannot fire on a class
+ // that classifier excluded, because an excluded class prints `not opened:` and
+-// never `would open "`. The `head-moved` row is NOT excluded (it is the rework
+-// the passing verdict spells), so this lane can and will file on it: that is
+-// the row's whole purpose, and a window at the threshold opens
+-// `[policy] recurring friction: head-moved` like any other.
++// never `would open "`. The rework row is NOT excluded (it is the rework the
++// passing verdict spells), so this lane can and will file on it: that is the
++// row's whole purpose, and a window at the threshold opens
++// `[policy] recurring friction: head-moved (rework)` like any other. The bare
++// `head-moved` key is the verdict-class row, the blocked verdicts a reviewer
++// wrote with that class word (#2221).
+ //
+ // IDEMPOTENCE IS THE WHOLE SAFETY ARGUMENT. A cron with `issues: write` and no
+ // memory would file one issue per beat per key, and a flaky API that made the
+@@ -771,7 +773,7 @@ export function selfTest() {
+   // The line below is policy_lint's own, verbatim, so the fixture cannot drift
+   // from the text this lane classifies against (#1405 moved its tail).
+   const excluded = parseHistogram(
+-    `  INFO    [stats] (window): not opened: verdict class "merge" at 9 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- the rework a merge verdict spells is keyed under the wave's "head-moved", a later verdict naming a moved head. Friction is rework.\n${STATS_OK(0)}`)
++    `  INFO    [stats] (window): not opened: verdict class "merge" at 9 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a \`merge\` is counted on the "head-moved (rework)" row, and a repair after a block is on the STATS ROUNDS line. Friction is rework.\n${STATS_OK(0)}`)
+   st(excluded.ok && excluded.entries.length, 0,
+     'a passing-verdict line over threshold is NOT a trigger (the exclusion lives in policy_lint and this parser only reads `would open`)')
+ 
+diff --git a/tools/policy/policy_lint.mjs b/tools/policy/policy_lint.mjs
+index 4967cd642..d27905f28 100644
+--- a/tools/policy/policy_lint.mjs
++++ b/tools/policy/policy_lint.mjs
+@@ -2740,32 +2740,28 @@ const bump = (hist, key, pr) => {
+ // never written. Measured over v6.6.0..e336cc2c, all 11 rework rounds named a
+ // moved head and `head-moved` held 0 verdicts. So a second-or-later parseable
+ // verdict that follows a `merge` verdict and names a different head is a
+-// re-verification of a moved head, and is keyed on the class the wave
+-// defines for it -- in a row of its own, beside the passing row that cannot show
+-// it, because that row is where the verdict landed and a histogram that emptied
+-// it would be reading the grammar rather than counting it. So the rows stop
+-// partitioning the window's verdicts: the same round is one `merge` entry AND
+-// one `head-moved` entry, and the second is the one that says a head moved.
++// re-verification of a moved head, counted on the REWORK row below -- a row
++// outside the verdict table, so the `merge` row keeps the verdict that landed
++// there and the table still partitions the window's verdicts.
+ // KEYED AGAINST THE VERDICT BEFORE IT, NOT THE FIRST (#1549, D13-s1-01). Keyed
+ // against the first verdict's head, the row also took a repair after a block
+ // and a verdict repeating the previous head: over the round-8 window it read 19,
+ // of which 15 were re-verifications. Every round after a pull request's first
+ // is now one of three parts by the verdict before it -- `reverify`, `repair`,
+-// `repeat` -- and only the first enters this row; a reviewer who wrote
+-// `blocked <sha> head-moved` on that round is already in it by the word.
++// `repeat` -- and the rework row is the first part, whatever word the
++// reviewer wrote on that round.
+ // Every parseable verdict names a full head -- the wave's grammar requires one
+ // on both arms -- so there is no missing side to infer from: a `Fix review:`
+ // line with no head is outside the grammar and reaches the rework arm never.
+ // The key is the wave's own word -- a class the wave stops teaching is a key
+ // nothing routes on, which the extraction check in tests/entities.py refuses by
+ // name.
+-// ITS OWN ROW, NOT A VERDICT ROW (#2221, D13-s2-02). The round was bumped into
+-// the VERDICT map beside the word a reviewer writes, so one `head-moved` row
+-// carried two definitions: 133 entries over v6.7.16..17f1c55fad1b against 4
+-// blocked verdicts naming that class. The verdict map now partitions the
+-// parsable verdicts, and the rework row is `rounds.reverify` itself under
+-// REWORK_KEY -- suffixed like a family row, so the census and the filer never
+-// see one key on two rows.
++// ONE DEFINITION PER ROW (#2221, D13-s2-02). The verdict table's `head-moved`
++// row counts only the blocked verdicts whose class word a reviewer wrote. The
++// rework row is `rounds.reverify` itself under REWORK_KEY, suffixed like a
++// family row so the census and the filer never see one key on two rows. Until
++// #2221 the round was bumped into the verdict map under the bare word, and
++// that row read 133 entries over v6.7.16..17f1c55fad1b against 4 such verdicts.
+ export const REWORK_CLASS = 'head-moved'
+ export const REWORK_KEY = `${REWORK_CLASS} (rework)`
+ 
