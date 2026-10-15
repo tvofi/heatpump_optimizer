@@ -25698,6 +25698,27 @@ R.check(
     "a seat edits at approval, not in a group it does not belong to",
 )
 
+# WHICH ROSTER (R10-TICK b, d): `roster_lib.roster_path` is the one owner of
+# the choice every seat tool makes -- the newest round's roster, compared as
+# an integer, unless an override names one, and a loud refusal when there is
+# none. A constant round-9 path kept every tool on the closed roster after
+# round 10's landed beside it. Its self-test is run here for the reason the
+# state-doc block below gives: under the INERT `tools/audit/` prefix an edit
+# would otherwise select no script.
+try:
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rlw_out:
+        _rlw_ok = _rl._self_test() == 0
+    _rlw_detail = _rlw_out.getvalue()
+except Exception as _rlw_exc:  # noqa: BLE001 -- a crash is one red check
+    _rlw_ok, _rlw_detail = False, f"{type(_rlw_exc).__name__}: {_rlw_exc}"
+R.check(
+    "tools/audit/seat/roster_lib.py --self-test passes: the newest roster, "
+    "the override, the loud refusal",
+    _rlw_ok,
+    "run `python3 tools/audit/seat/roster_lib.py --self-test` for the failing "
+    "check names:\n" + _rlw_detail,
+)
+
 # --- the state-doc beat (R9-RO-14, #2102) -----------------------------------
 #
 # The state docs the standing instruction of 2026-10-09 requires continuously
@@ -29287,14 +29308,18 @@ def _sp_index(path):
     return subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True).stdout
 
 
-def _sp_cited(texts, rx=_SP_CITE):
-    """{historical executable: [citing file, ...]}, each citation via the move map."""
+def _sp_cited(texts, rx=_SP_CITE, stale=None):
+    """{historical executable: [citing file, ...]}, each citation via the move map.
+    With `stale` (a list), each citation whose spelling names no file is
+    appended to it as (citing file, spelling, where the move map puts it)."""
     out = {}
     for f, text in texts:
         for m in rx.finditer(text):
             p = _layout_locate(m.group(1))
             if any(p.startswith(h) for h in _SP_HIST):
                 out.setdefault(p, []).append(f)
+                if stale is not None and not Path(m.group(1)).is_file():
+                    stale.append((f, m.group(1), p))
     return out
 
 
@@ -29373,9 +29398,14 @@ _SP_CARRIES = sorted(f for f in subprocess.run(
     ["git", "ls-files", "dev/programme/carries/"], capture_output=True, text=True).stdout.split()
     if re.fullmatch(r"dev/programme/carries/carry-\d+\.json", f))
 _SP_CITED = _sp_cited((f, _sp_index(f)) for f in _SP_POLICY)
+# A carry COMMAND is pasted as written, so its spelling must name the file too:
+# carry-201 told a seat to run corpus_churn.py at its pre-move path, which
+# the move map follows and a shell does not (ENOENT). Policy prose citing a
+# retired path is tests/layout.py's `reference` arm; a command is this arm's.
+_SP_STALE_RUN = []
 for _sp_p, _sp_by in _sp_cited(
         ((f, "\n".join(_sp_remeasures(json.loads(_sp_index(f) or "{}")))) for f in _SP_CARRIES),
-        _SP_RUN).items():
+        _SP_RUN, _SP_STALE_RUN).items():
     _SP_CITED.setdefault(_sp_p, []).extend(_sp_by)
 _SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
 for _sp_p, _sp_f in _SP_FAULTS.items():
@@ -29386,10 +29416,11 @@ R.check(
     "historical prefix, loads and resolves the paths it opens (#2227)",
     len(_SP_POLICY) >= 20 and len(_SP_CARRIES) >= 1
     and sum(any(c in _SP_CARRIES for c in v) for v in _SP_CITED.values()) >= 1
-    and len(_SP_CITED) >= 3 and not any(_SP_FAULTS.values()),
+    and len(_SP_CITED) >= 3 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN,
     f"policy files {len(_SP_POLICY)}, carries {len(_SP_CARRIES)}, cited {len(_SP_CITED)} "
     f"(floors: an arm that finds nothing is not a pass); "
-    f"faults {[f for v in _SP_FAULTS.values() for f in v]}",
+    f"faults {[f for v in _SP_FAULTS.values() for f in v]}; commands naming no file "
+    f"{[f'{c}: {w} (now {p})' for c, w, p in _SP_STALE_RUN]}",
 )
 _sp_unit = "dev/audit/rounds/round4/D12/units.py"
 _sp_cog = "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
@@ -29399,6 +29430,16 @@ _sp_cog = "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
 _sp_old = next(r["old"] for r in _SP_LAYOUT["retired"]
                if r["new"] and not r["old"].endswith("/") and Path(r["new"]).is_file())
 _sp_unit_src = Path(_sp_unit).read_text()
+
+
+def _sp_check_stale(new):
+    """A command spelled at the pre-move path of `new` is reported stale; the
+    same command at `new` is not."""
+    old = _layout_canon(new)
+    got, ok = [], []
+    _sp_cited([("c.json", f"python3 {old}")], _SP_RUN, got)
+    _sp_cited([("c.json", f"python3 {new}")], _SP_RUN, ok)
+    return old != new and got == [("c.json", old, new)] and ok == []
 _sp_cog_held = [x for x in _sp_literals(Path(_sp_cog).read_text(), opened=False)
                 if not Path(x[2].rstrip("/")).exists()]
 R.check(
@@ -29417,7 +29458,8 @@ R.check(
     == {"dev/audit/rounds/round4/D11/dora_keys.py": ["x.md"]}
     and _sp_cited([("c.json", "run `python3 -I dev/audit/rounds/round4/D12/units.py`; "
                               "see dev/audit/rounds/round4/D11/dora_keys.py")], _SP_RUN)
-    == {_sp_unit: ["c.json"]},
+    == {_sp_unit: ["c.json"]}
+    and _sp_check_stale(_sp_unit),
     f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
     f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
 )
