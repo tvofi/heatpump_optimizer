@@ -22,12 +22,16 @@ import argparse, importlib, inspect, math, os, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
 def repo_root(start):
-    here = Path(start).resolve().parent
-    m = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
-    for c in (here, *here.parents):
-        if (c / m).is_file():
-            return c
-    raise RuntimeError("no root")
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
 
 REPO = repo_root(__file__)
 BASE = "554e2ecfa7ad5b1660a1256ebf6cf6ac3810d9ef"
