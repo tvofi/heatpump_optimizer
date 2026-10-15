@@ -1,7 +1,0 @@
-RESULT mutant=N1t_replaceState_in_try_after_pending_push rc=0 fails=0
-RESULT mutant=N3t_globalThis_open_in_try rc=0 fails=0
-RESULT mutant=H9t_innerHTML_template_in_try rc=1 fails=1
-    FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
-      pushState sites 1; href lines try { const u = "/config/integrations/integration/heatpump_o
-restored ?? .keep-untracked
-
