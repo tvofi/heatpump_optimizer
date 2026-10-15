@@ -2619,7 +2619,10 @@ function policyKeyIndex(files = null) {
 function frictionKey(id) {
   if (id === FRICTION_UNLABELLED) return id
   const raw = String(id ?? '').trim()
-  const bare = raw.replace(/^`+|`+$/g, '').replace(/#.*$/, '')
+  // canon() (#2221, D13-s2-51): the index is built from the corpus's CANONICAL
+  // spellings, so an id naming a moved file where it lives now is canonicalised
+  // first, or a contract's friction splits across its two paths.
+  const bare = canon(raw.replace(/^`+|`+$/g, '').replace(/#.*$/, ''))
   if (!bare) return raw
   POLICY_KEY_INDEX ??= policyKeyIndex()
   if (POLICY_KEY_INDEX.has(bare)) return POLICY_KEY_INDEX.get(bare)
@@ -2756,7 +2759,15 @@ const bump = (hist, key, pr) => {
 // The key is the wave's own word -- a class the wave stops teaching is a key
 // nothing routes on, which the extraction check in tests/entities.py refuses by
 // name.
+// ITS OWN ROW, NOT A VERDICT ROW (#2221, D13-s2-02). The round was bumped into
+// the VERDICT map beside the word a reviewer writes, so one `head-moved` row
+// carried two definitions: 133 entries over v6.7.16..17f1c55fad1b against 4
+// blocked verdicts naming that class. The verdict map now partitions the
+// parsable verdicts, and the rework row is `rounds.reverify` itself under
+// REWORK_KEY -- suffixed like a family row, so the census and the filer never
+// see one key on two rows.
 export const REWORK_CLASS = 'head-moved'
+export const REWORK_KEY = `${REWORK_CLASS} (rework)`
 
 // WHICH ENDPOINT A VERDICT ARRIVED ON (#1471, D13-01). A verdict is an issue
 // comment or a pull-request review, and `fetchWindow` asked only for
@@ -2835,10 +2846,8 @@ export function statsHistogram(prs, fetched, classes) {
       bump(verdicts, word, pr)
       bump(endpoints, origin, pr)
     }
-    // THE REWORK ARM (#1405; #1549): each round after the first, by the verdict
-    // before it (see REWORK_CLASS above). A re-verification is bumped BESIDE the
-    // row the verdict already landed in, never instead of it, and once: a
-    // reviewer's own `head-moved` word already put it there.
+    // THE REWORK ARM (#1405; #1549; #2221): each round after the first, by the
+    // verdict before it (see REWORK_CLASS above).
     if (heads.length && heads[0].passed) rounds.firstMerge += 1
     if (heads.length === 1 && heads[0].passed) rounds.oneRound += 1
     for (let i = 1; i < heads.length; i += 1) {
@@ -2847,7 +2856,6 @@ export function statsHistogram(prs, fetched, classes) {
       const kind = !prev.passed ? 'repair' : cur.head !== prev.head ? 'reverify' : 'repeat'
       rounds[kind].entries += 1
       rounds[kind].prs.add(pr)
-      if (kind === 'reverify' && cur.word !== REWORK_CLASS) bump(verdicts, REWORK_CLASS, pr)
     }
     for (const id of frictionIds(f.body)) bump(friction, id, pr)
   }
@@ -2866,14 +2874,33 @@ export function statsHistogram(prs, fetched, classes) {
   const all = prs.map(({ pr }) => pr)
   const noVerdict = all.filter((pr) => !verdictPrs.has(pr))
   const unfetched = all.filter((pr) => !fetched.has(pr))
+  // ...split by the pull request's class (#2220, D13-s1-01), so a merge the
+  // rules exempt from review and one that skipped it are not one list.
+  const byClass = new Map()
+  for (const pr of all) {
+    const k = prClass(fetched.get(pr))
+    if (!byClass.has(k)) byClass.set(k, { window: [], noVerdict: [] })
+    byClass.get(k).window.push(pr)
+    if (!verdictPrs.has(pr)) byClass.get(k).noVerdict.push(pr)
+  }
   return {
     verdicts,
     friction,
     unclassified,
     endpoints,
     rounds,
-    coverage: { window: prs.length, verdictPrs, noVerdict, unfetched },
+    rework: new Map(rounds.reverify.entries ? [[REWORK_KEY, rounds.reverify]] : []),
+    coverage: { window: prs.length, verdictPrs, noVerdict, unfetched, byClass },
   }
+}
+
+// A pull request's class is its title's conventional type, `type(scope)!:`,
+// lowercased -- `record: delivery rows` is `record`, the class the record beat
+// writes and delivery-status-tracking.md exempts from review. A title with no
+// type and a pull request never fetched are classes of their own, not guesses.
+function prClass(f) {
+  if (!f) return '(unfetched)'
+  return /^([a-z]+)(?:\([^)]*\))?!?:/i.exec(String(f.title ?? ''))?.[1].toLowerCase() ?? '(untyped)'
 }
 
 // THE YIELD, UNDER THE RULE EACH NAME STATES (#1549, D13-s1-01). A merge whose
@@ -2888,7 +2915,7 @@ export function statsRoundsLine({ rounds, coverage }) {
   const share = (k) => `${k}/${n}${n ? ` = ${(k / n).toFixed(3)}` : ''}`
   const { reverify, repair, repeat } = rounds
   const later = reverify.entries + repair.entries + repeat.entries
-  return `STATS ROUNDS: over the ${n} merged pull request(s) carrying a parsable verdict, first-verdict yield ${share(rounds.firstMerge)} (the first verdict was \`merge\`), one-round yield ${share(rounds.oneRound)} (merged on that one verdict, no later parsable one). Of the ${later} parsable verdict(s) after a pull request's first, by the verdict before each: ${reverify.entries} re-verified a head that moved after a \`merge\` (${reverify.prs.size} PR(s), the "${REWORK_CLASS}" row), ${repair.entries} repaired after a \`blocked\`, ${repeat.entries} repeated the previous verdict's head. A \`Fix review:\` line outside the grammar is in none of these; each is reported below.`
+  return `STATS ROUNDS: over the ${n} merged pull request(s) carrying a parsable verdict, first-verdict yield ${share(rounds.firstMerge)} (the first verdict was \`merge\`), one-round yield ${share(rounds.oneRound)} (merged on that one verdict, no later parsable one). Of the ${later} parsable verdict(s) after a pull request's first, by the verdict before each: ${reverify.entries} re-verified a head that moved after a \`merge\` (${reverify.prs.size} PR(s), the "${REWORK_KEY}" row), ${repair.entries} repaired after a \`blocked\`, ${repeat.entries} repeated the previous verdict's head. A \`Fix review:\` line outside the grammar is in none of these; each is reported below.`
 }
 
 // WHICH ENDPOINT THE WINDOW'S VERDICTS ARRIVED ON (#1471, D13-01), printed
@@ -2927,6 +2954,17 @@ export function statsCoverageLine({ window: total, verdictPrs, noVerdict, unfetc
   return `STATS COVERAGE: ${seen} of ${total} merged pull request(s) in the window carried a parsable verdict${gap}${unf}; the histogram's verdict denominator is ${seen}, not the window's merge count`
 }
 
+// The coverage gap by class (#2220, D13-s1-01), pure over the same `coverage`:
+// per class, the merges carrying none of that class's window, most first.
+export function statsCoverageClassLine({ byClass }) {
+  const rows = [...byClass].sort((a, b) => b[1].noVerdict.length - a[1].noVerdict.length || a[0].localeCompare(b[0]))
+  const cell = ([k, { window: w, noVerdict: n }]) => {
+    const more = n.length > COVERAGE_LIST_CAP ? ` +${n.length - COVERAGE_LIST_CAP} more` : ''
+    return `${k} ${n.length} of ${w.length}${n.length ? ` (${n.slice(0, COVERAGE_LIST_CAP).map((p) => `#${p}`).join(' ')}${more})` : ''}`
+  }
+  return `STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- ${rows.map(cell).join('; ')}`
+}
+
 // Findings are severity `info`: the acceptance counts every finding by class, so
 // these are pinned like any other check, while main() only ever exits non-zero
 // on `error`. That is how a reporting mode is made undeletable without being
@@ -2940,7 +2978,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
       message: `could not fetch pull-request bodies and comments: ${fetchError}. Printing no histogram rather than a histogram of zeroes -- a zero meaning "no data" and a zero meaning "no friction" are opposite claims, and only one of them is a reason to relax.`,
     }]
   }
-  const { verdicts, friction, unclassified } = statsHistogram(prs, fetched, classes)
+  const { verdicts, friction, rework, unclassified } = statsHistogram(prs, fetched, classes)
   const out = []
   // THE VERDICT ARM IS A TAUTOLOGY ONLY WHEN THE GRAMMAR COLLAPSES TO ONE
   // NON-PASSING KEY (#1041, and #1240's correction). The words the reviewer
@@ -2956,7 +2994,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
     ...(blocks ?? []),
   ])]
   const verdictArmInforms = nonPassing.length > 1
-  for (const [kind, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
+  for (const [kind, hist] of [['verdict class', verdicts], ['rework', rework], ['friction rule id', friction]]) {
     for (const [k, cell] of [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size)) {
       const n = cell.prs.size
       if (n < FRICTION_THRESHOLD) continue
@@ -2965,7 +3003,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
           severity: 'info',
           check: 'stats',
           where: '(window)',
-          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the passing verdict ${WAVE_SCRIPT} requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a \`merge\` is keyed under the wave's "${REWORK_CLASS}", and a repair after a block is on the STATS ROUNDS line. Friction is rework.`,
+          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the passing verdict ${WAVE_SCRIPT} requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a \`merge\` is counted on the "${REWORK_KEY}" row, and a repair after a block is on the STATS ROUNDS line. Friction is rework.`,
         })
         continue
       }
@@ -3228,6 +3266,7 @@ export function fetchWindow(prs) {
     if (!reviews.ok) return { fetched: new Map(), fetchError: reviews.why }
     fetched.set(pr, {
       body: body.data?.body ?? '',
+      title: body.data?.title ?? '',
       comments: Array.isArray(comments.data) ? comments.data : [],
       reviews: Array.isArray(reviews.data) ? reviews.data : [],
     })
@@ -6801,13 +6840,14 @@ function cmdStats(since) {
     : fetchWindow(prs)
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
-    const { verdicts, friction, coverage, endpoints, rounds } = statsHistogram(prs, fetched, classes)
+    const { verdicts, friction, rework, coverage, endpoints, rounds } = statsHistogram(prs, fetched, classes)
     // The coverage line, under `STATS:` and above the tables it describes
     // (#1406, D13-02): the verdict table's denominator is the pull requests
     // that carried a verdict, and until this line existed the mode printed only
     // the window's merge count -- so a merge with no verdict read as one more
     // row of a full window rather than as a gap in the table's population.
     console.log(statsCoverageLine(coverage))
+    console.log(statsCoverageClassLine(coverage))
     // ...and the endpoint census beside it (#1471, D13-01): the coverage line
     // says how many merges carried a verdict, this one says which of the two
     // endpoints they arrived on, so a reviews row at zero is read as "none were
@@ -6822,8 +6862,8 @@ function cmdStats(since) {
     // over BOTH maps (FRICTION_FAMILIES: mutation's siblings are verdict
     // classes, environment's are friction rule ids). A window with no family
     // member prints none, and stays byte-identical to the pre-fold counter.
-    const families = { 'verdict class': statsFamilies(verdicts), 'friction rule id': statsFamilies(friction) }
-    for (const [label, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
+    const families = { 'verdict class': statsFamilies(verdicts), rework: [], 'friction rule id': statsFamilies(friction) }
+    for (const [label, hist] of [['verdict class', verdicts], ['rework', rework], ['friction rule id', friction]]) {
       console.log(`\n${label} (PRs / entries):`)
       const rows = [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size || b[1].entries - a[1].entries)
       if (!rows.length) console.log('  (none in this window)')
@@ -6848,7 +6888,7 @@ function cmdStats(since) {
       for (const [k, cell] of rows) console.log(`CENSUS\t${label}\t${cell.prs.size}\t${cell.entries}\t${k}`)
       for (const fam of families[label]) console.log(`CENSUS\t${label.replace(' class', ' family').replace('rule id', 'family')}\t${fam.prs.size}\t${fam.entries}\t${fam.name} (family)`)
     }
-    console.log(`\nCENSUS: ${verdicts.size + friction.size + families['verdict class'].length + families['friction rule id'].length} key(s)`)
+    console.log(`\nCENSUS: ${verdicts.size + rework.size + friction.size + families['verdict class'].length + families['friction rule id'].length} key(s)`)
   }
   const found = statsFindings({ prs, fetched, fetchError, classes, blocks })
   console.log(`\nthreshold: ${FRICTION_THRESHOLD} or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.`)
