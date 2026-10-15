@@ -56,6 +56,34 @@ def _parsed(ann: ast.AST) -> ast.AST:
     return ann
 
 
+#: Wrappers that state no type of their own: the annotation is the first argument.
+_QUALIFIERS = ("Required", "NotRequired", "ReadOnly")
+_WRAPPERS = (*_QUALIFIERS, "Annotated")
+
+
+def annotation_members(ann: ast.AST, spellings: bool = True) -> list[ast.AST]:
+    """The types an annotation admits, each wrapper and union taken apart: ``Required`` /
+    ``NotRequired`` / ``ReadOnly`` / ``Annotated[X, ..]`` are ``X``; ``Optional[X]`` is ``X`` and
+    ``None``; ``Union[..]`` and ``a | b`` are their members, in any order; a string annotation is the
+    expression it spells. The one reader of an annotation's spelling, shared by ``is_any`` (C1b) and
+    ``Flow.seed`` (C14), so the two cannot disagree on what a spelling is (#2293's review).
+    ``spellings=False`` is C1 alone: only the TypedDict qualifiers are taken apart."""
+    if spellings:
+        ann = _parsed(ann)
+        if isinstance(ann, ast.BinOp) and isinstance(ann.op, ast.BitOr):
+            return annotation_members(ann.left) + annotation_members(ann.right)
+    if isinstance(ann, ast.Subscript):
+        head = ast.unparse(ann.value).split(".")[-1]
+        elts = ann.slice.elts if isinstance(ann.slice, ast.Tuple) else [ann.slice]
+        if head in _QUALIFIERS or (spellings and head in _WRAPPERS):
+            return annotation_members(elts[0], spellings)
+        if spellings and head == "Optional":
+            return annotation_members(elts[0]) + [ast.Constant(value=None)]
+        if spellings and head == "Union":
+            return [m for e in elts for m in annotation_members(e)]
+    return [ann]
+
+
 def is_any(ann: ast.AST) -> bool:
     """An annotation that states no type: ``Any`` or ``object``, under Required / NotRequired / ReadOnly.
 
@@ -66,17 +94,8 @@ def is_any(ann: ast.AST) -> bool:
     ``Union[float, Any]``), because a union with ``Any`` accepts every value. A package alias of one is
     resolved by the caller (``resolve_aliases``), which knows the package.
     """
-    if ANY_SPELLINGS:
-        ann = _parsed(ann)
-        if isinstance(ann, ast.BinOp) and isinstance(ann.op, ast.BitOr):
-            return is_any(ann.left) or is_any(ann.right)
-    if isinstance(ann, ast.Subscript):
-        head = ast.unparse(ann.value).split(".")[-1]
-        elts = ann.slice.elts if isinstance(ann.slice, ast.Tuple) else [ann.slice]
-        if head in ("Required", "NotRequired", "ReadOnly") or (ANY_SPELLINGS and head in ("Optional", "Annotated")):
-            return is_any(elts[0])
-        return ANY_SPELLINGS and head == "Union" and any(is_any(e) for e in elts)
-    return ast.unparse(ann).split(".")[-1] in ("Any", "object")
+    return any(ast.unparse(m).split(".")[-1] in ("Any", "object")
+               for m in annotation_members(ann, ANY_SPELLINGS))
 
 
 def _alias_bindings(tree: ast.Module):
@@ -173,20 +192,18 @@ class Flow:
         return self.envs[fn.qual]
 
     def seed(self, fn: C.Fn) -> dict:
-        """The engine's seed, and C14: a parameter annotated with a package class (``X``, ``X | None``,
-        ``Optional[X]``, as a string too) holds an instance of it, the role a method's own ``self`` has,
+        """The engine's seed, and C14: a parameter annotated with a package class (``X``, or ``X`` and
+        ``None`` in any spelling ``annotation_members`` takes apart) holds an instance of it, the role
+        a method's own ``self`` has,
         so ``state.as_dict()`` on ``state: away_mode.AwayState`` reaches the method whose dict is
         published (ARCH-s3, round 10: ten away keys were invisible; attempt 16)."""
         env = self.eng.seed_env(fn)
         a = fn.node.args
         for p in (a.posonlyargs + a.args + a.kwonlyargs) if FOLLOW_ANNOTATED else ():
-            ann = _parsed(p.annotation) if p.annotation is not None and p.arg not in env else None
-            if isinstance(ann, ast.BinOp) and isinstance(ann.op, ast.BitOr):
-                parts = [x for x in (ann.left, ann.right) if ast.unparse(x) != "None"]
-                ann = parts[0] if len(parts) == 1 else None
-            elif isinstance(ann, ast.Subscript) and ast.unparse(ann.value).split(".")[-1] == "Optional":
-                ann = ann.slice
-            r = self.pkg.resolve_expr_static(fn.mod, _parsed(ann)) if ann is not None else None
+            if p.annotation is None or p.arg in env:
+                continue
+            types = [m for m in annotation_members(p.annotation) if ast.unparse(m) != "None"]
+            r = self.pkg.resolve_expr_static(fn.mod, types[0]) if len(types) == 1 else None
             if r and r[0] == "class" and r[1] not in self.td:
                 env[p.arg] = frozenset({("self", r[1])})
         return env

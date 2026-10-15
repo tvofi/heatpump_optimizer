@@ -9,6 +9,12 @@ census sees) is declared ``S``. A spelling that states no type reads 6; one that
 The null control switches counter C1b off (``ANY_SPELLINGS = False``, ``ARCHSCORE_ABLATE=C1b``'s
 switch): the eight spellings must then read 0 again, and bare ``Any`` still 6.
 
+The second half reads the same spelling rule from the other side (C14, #2293's round-1 review): for each
+spelling of ``_fold_away``'s parameter type (``away_mode.AwayState``, with ``None``, in a union of either
+order, ``Optional``, ``Annotated``, as a string), how many of the keys ``AwayState.as_dict`` publishes the
+payload census sees. Every spelling must read all of them; ``AwayState | int`` (not one class) reads 0, and
+with C14 off (``FOLLOW_ANNOTATED = False``) every spelling reads 0.
+
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_archscore_any_spellings.py
 
 Root: the working directory; the tree is copied to a private temp dir, never edited in place.
@@ -53,6 +59,32 @@ def headline(tmp: Path, name: str, spelling: str) -> int:
     return U.measure(tmp / name)["value"]
 
 
+PARAM = {  # the spellings C14 reads as one class, and one it must not
+    "plain": "away_mode.AwayState", "or_none": "away_mode.AwayState | None", "none_or": "None | away_mode.AwayState",
+    "optional": "Optional[away_mode.AwayState]", "union_none": "Union[away_mode.AwayState, None]",
+    "union_none_first": "Union[None, away_mode.AwayState]", "annotated": 'Annotated[away_mode.AwayState, "x"]',
+    "string_or_none": '"away_mode.AwayState | None"', "optional_string": 'Optional["away_mode.AwayState"]',
+    "control_or_int": "away_mode.AwayState | int",
+}
+PARAM_AT = "def _fold_away(state: away_mode.AwayState, "
+
+
+def away_seen(tmp: Path, name: str, spelling: str) -> int:
+    dst = tmp / ("p_" + name) / C.PKG_REL
+    shutil.copytree(ROOT / C.PKG_REL, dst, ignore=shutil.ignore_patterns("__pycache__"))
+    p = dst / "coordinator.py"
+    src = p.read_text()
+    if src.count(PARAM_AT) != 1:
+        raise SystemExit("coordinator.py moved: _fold_away's parameter is not where this harness reads it")
+    p.write_text(src.replace(PARAM_AT, f"def _fold_away(state: {spelling}, ")
+                 + "\nfrom typing import Annotated, Optional, Union  # noqa: E402,F401\n")
+    C.reset_caches()
+    pkg = C.load(str(tmp / ("p_" + name)))
+    flow = U.Flow(pkg, C.engine(pkg))
+    produced = flow.returned_keys(f"{C.COORD_MODULE}:{C.COORD_CLASS}._async_update_data")[0]
+    return len(set(flow.returned_keys("away:AwayState.as_dict")[0]) & set(produced))
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory(prefix="r10-any-") as tmp:
         tmp = Path(tmp)
@@ -68,6 +100,14 @@ def main() -> None:
                 print(f"RESULT null_c1b_off_{name}={headline(tmp, 'off_' + name, s)} count")
         finally:
             U.ANY_SPELLINGS = True
+        for name, s in PARAM.items():
+            print(f"RESULT away_keys_seen_param_{name}={away_seen(tmp, name, s)} count")
+        U.FOLLOW_ANNOTATED = False
+        try:
+            for name, s in PARAM.items():
+                print(f"RESULT null_c14_off_away_keys_seen_param_{name}={away_seen(tmp, 'off_' + name, s)} count")
+        finally:
+            U.FOLLOW_ANNOTATED = True
 
 
 if __name__ == "__main__":
