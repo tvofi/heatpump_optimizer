@@ -680,6 +680,9 @@ if [ "$PR" = "none" ]; then say arm "$ARM" "no pull request is open on $BR"
 else say arm "$ARM" "#$PR on branch $BR"; fi
 
 push_branch() {
+  # A branch or commit message naming this host is refused (#2310).
+  python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$BR" --commits HEAD \
+    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310)"; exit 5; }
   git push --set-upstream origin "$BR" || { say REFUSE "push" "git push failed"; exit 5; }
   say ok "push" "origin/$BR at $(git rev-parse --short HEAD)"
 }

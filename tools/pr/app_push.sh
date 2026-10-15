@@ -374,6 +374,10 @@ NOTE
   [ "$recarry" = 0 ] || [ "$head" = "$RV_HEAD" ] \
     || die "--recarry: HEAD moved to $head after the verdict judged $RV_HEAD; nothing was minted or pushed"
   local subject; subject=$(git -C "$wt" log -1 --format=%s) || die "could not read the tip commit's subject"
+  # The branch name and every commit message the push publishes for the first
+  # time: one naming this host is refused before anything is minted (#2310).
+  python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$br" --commits "$head" -C "$wt" \
+    || die "the branch or a commit it publishes would publish this host (#2310); NOTHING was minted or pushed"
 
   if [ "$dry" = 1 ]; then
     if [ "$prnum" = "none" ]; then
@@ -478,6 +482,8 @@ W=$(mktemp -d) || exit 2
 trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid" "$W/tool" "$W/tool-wt"
 cp "$SELF" "$W/tool/app_push.sh"
+# The real guard, at the path the copy resolves it by (../audit/seat/).
+mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/"
 FAILS=0; N=0
 st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
 SHA=1111111111111111111111111111111111111111
@@ -531,6 +537,9 @@ case "$*" in
     if [ -f "$STUB/tip-moved" ]; then printf '%s\n' "$OTHER_SHA_STUB"; else cat "$STUB/../head.sha"; fi ;;
   *"status --porcelain") [ -f "$STUB/dirty" ] && printf ' M tools/audit/x.sh'; true ;;
   *"log -1 --format=%s") printf 'fix: the stub subject' ;;
+  *"--not --remotes")  # ref_privacy.py's read of the commits the push publishes
+    if [ -f "$STUB/leaky-log" ]; then printf 'a\037fix: notes in /%s/exampleuser/x\036' Users
+    else printf 'a\037fix: the stub subject\036'; fi ;;
   *"push https://github.com/"*)
     if [ -f "$STUB/push-fails" ]; then echo "error: stub push refused" >&2; exit 1; fi
     for a in "$@"; do
@@ -678,6 +687,10 @@ run preprfail o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: prepr fails,
 st "$(calls preprfail curl)" 0 "no curl call at all: the refusal precedes the mint"
 st "$(grep -c '^git .*push' "$W/preprfail/log")" 0 "and no push either (the ok case above is the healthy arm: it pushes exactly once)"
 
+mkcase leaky; : > "$W/leaky/leaky-log"
+run leaky o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: a commit message naming a host path (#2310)"
+st "$(grep -c 'would publish this host (#2310)' "$W/leaky/err")" 1 "naming the reason"
+st "$(calls leaky curl)$(grep -c '^git .*push' "$W/leaky/log")" 00 "and nothing was minted or pushed"
 mkcase dirty; : > "$W/dirty/dirty"
 run dirty o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: a dirty worktree, prepr passed"
 st "$(grep -c 'dirty; only a committed tip' "$W/dirty/err")" 1 "naming the dirty worktree"

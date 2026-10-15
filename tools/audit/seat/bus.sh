@@ -255,6 +255,8 @@ append_commit() { # family pr tree message -> pushes one commit on <family>/<pr>
   fi
   # shellcheck disable=SC2086 # $parent is empty or exactly "-p <sha>"
   c=$(git commit-tree "$tree" $parent -m "$msg") || { printf 'bus: REFUSE: commit-tree failed\n' >&2; return 1; }
+  python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard --ref "$fam/$pr" --message "$msg" \
+    || { printf 'bus: REFUSE: %s/%s would publish this host (#2310)\n' "$fam" "$pr" >&2; return 1; }
   git push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
   printf '%s/%s %s\n' "$fam" "$pr" "$c"
 }

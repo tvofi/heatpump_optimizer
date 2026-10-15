@@ -1832,6 +1832,12 @@ def main() -> int:
         return self_test()
     if not args.bump or not args.title:
         ap.error("--bump and --title are required (or --self-test)")
+    # The title is the stamp commit's subject: one naming this host is refused (#2310).
+    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
+    import ref_privacy
+    why = ref_privacy.refusal("main", (("the title", args.title),))
+    if why:
+        raise Refuse("title", why + " would publish this host; nothing was written")
     if args.push_key is not None and not args.push:
         ap.error("--push-key only means something with --push")
     if args.push_key is not None:
