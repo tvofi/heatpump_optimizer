@@ -53,7 +53,8 @@ No daemon bookkeeping is kept: the pid is printed and logged, and `kill` by
 that pid is the stop story. An instrument that wants its own locking (the
 proof_watch flock, the gate lease) keeps it — this does not touch locks.
 
-Self-test: offline, no repo state touched. It daemonizes a `python3 -c`
+Self-test: offline, no repo state touched. It parses the command line's
+`-- CMD` and bare forms through `parse_cli`, then daemonizes a `python3 -c`
 child that writes two lines and exits, polls the log for both plus the
 banner, checks the banner's pid equals the pid this process printed, and
 daemonizes a second child against the same log to grade append mode.
@@ -119,6 +120,34 @@ def self_test() -> int:
         print(f"  {'ok  ' if cond else 'FAIL'} {name}")
         ok = ok and cond
 
+    # The command line, parsed (R10-TICK j): the documented `-- CMD` form
+    # must yield exactly CMD, a later `--` stays the command's, the bare form
+    # still parses, and an empty command is refused.
+    def cli(*argv):
+        try:
+            return parse_cli(list(argv)).cmd
+        except SystemExit as e:
+            return f"exit {e.code}"
+
+    check("`-- CMD` parses to CMD, the `--` dropped",
+          cli("--log", "L", "--", "python3", "-c", "x") == ["python3", "-c", "x"])
+    def env_of(*argv):
+        try:
+            return parse_cli(list(argv)).env_add
+        except SystemExit as e:
+            return f"exit {e.code}"
+
+    check("options before `--` still parse",
+          env_of("--log", "L", "--cwd", "/", "--env", "A=1", "--", "true")
+          == {"A": "1"})
+    check("a later `--` belongs to the command",
+          cli("--log", "L", "--", "git", "log", "--", "p")
+          == ["git", "log", "--", "p"])
+    check("the bare form without `--` still parses",
+          cli("--log", "L", "true") == ["true"])
+    check("an empty command after `--` is refused", cli("--log", "L", "--")
+          == "exit 2")
+
     with tempfile.TemporaryDirectory() as tmp:
         log = os.path.join(tmp, "t.log")
         marker = os.path.join(tmp, "done")
@@ -174,28 +203,47 @@ def self_test() -> int:
     return 0 if ok else 1
 
 
-def main() -> int:
-    if "--self-test" in sys.argv[1:]:
-        return self_test()
+USAGE = ("usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... "
+         "[--path-prepend DIR] -- CMD [ARG]...")
+
+
+def parse_cli(argv: list[str]) -> argparse.Namespace:
+    """The options and the command. The command is everything after the
+    FIRST `--`, split here rather than by argparse: `nargs=REMAINDER` keeps
+    that `--` as the command's first word on Python 3.14, so the documented
+    `-- CMD` form was refused as an empty command (R10-TICK j). A later `--`
+    belongs to the command (`git log -- path`) and is kept. Without any `--`
+    the bare `--log L CMD` form still parses through REMAINDER."""
     ap = argparse.ArgumentParser(add_help=True, description=__doc__.split("\n")[0])
     ap.add_argument("--log", required=True)
     ap.add_argument("--cwd")
     ap.add_argument("--env", action="append", default=[], metavar="K=V")
     ap.add_argument("--path-prepend")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
-    a = ap.parse_args()
+    if "--" in argv:
+        i = argv.index("--")
+        a = ap.parse_args(argv[:i])
+        a.cmd = argv[i + 1:]
+    else:
+        a = ap.parse_args(argv)
     if not a.cmd or a.cmd[0] == "--":
-        ap.error("usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... "
-                 "[--path-prepend DIR] -- CMD [ARG]...")
-    env_add = {}
+        ap.error(USAGE)
+    a.env_add = {}
     for kv in a.env:
         k, _, v = kv.partition("=")
         if not k:
             ap.error(f"--env wants K=V, got {kv!r}")
-        env_add[k] = v
+        a.env_add[k] = v
     if a.cwd and not os.path.isdir(a.cwd):
         ap.error(f"--cwd {a.cwd!r} does not exist")
-    pid = daemonize(a.cmd, a.log, a.cwd, env_add, a.path_prepend)
+    return a
+
+
+def main() -> int:
+    if "--self-test" in sys.argv[1:]:
+        return self_test()
+    a = parse_cli(sys.argv[1:])
+    pid = daemonize(a.cmd, a.log, a.cwd, a.env_add, a.path_prepend)
     print(f"daemonize: detached pid {pid} log {a.log}")
     return 0
 
