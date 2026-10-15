@@ -8,6 +8,7 @@ What changed:
 
 - `tests/features.py`, D3 findings. **D3-s1-01**: a fetch that raises while a previous forecast exists must keep that forecast, marked stale. With no forecast and no entity state, the fetch fabricates nothing. **D3-s1-02**: a four-step plan whose optional schedules are two steps long. Inside them, every key is read. Past them, every one of the twelve `X and i < len(X)` guards in `get_current_action` falls back and nothing raises. **D3-s2-01**: the ledger and snapshot-ring loaders each log one `Quarantined 1 ...` WARNING on a malformed load and none on a clean load.
 - `tests/features.py`, the sweep. The I1 sweep (`sweep-I1.md` at d23205d13) lists seventeen guard sites beyond the findings. One self-contained block hands each of them a series two steps short.
+- `tests/closures.json`: the three new harnesses are added by hand to `tests/harness_headers.py`'s `inert_reads`, because `ci_predict` named them as INERT READS and `derive_closures --single` does not clear an inert read.
 - `tests/stress.py`, **D9-s3-01**. `WORK_PROBE_DRIVER` now captures each baseline scenario's `solve_cpu_ms`. `solve_cpu_median` takes the median, over `work_drift_compare`'s covered scenarios, of this tree's solve CPU per unit of the baseline's, dividing out the work the counts vouch for. `solve_cpu_over_verdict` judges that median at `SWEEP_SOLVE_CPU_FACTOR = sqrt(DETECTION_TARGET)`, the file's own geometric-midpoint rule. The detection check refuses a factor at or above `DETECTION_TARGET`. Synthetic arm (b4) pins three things: the 2x fires, the null stays quiet, and neither counted growth nor a single scenario moves the median.
 
 Alternatives for D9-s3-01, and why each lost:
@@ -20,7 +21,7 @@ The median of 54 same-machine ratios clears the noise without re-solves, and cos
 
 ## Head
 
-4098a04cf (code head); the figures below were taken at 696762ddb, 8aa0dd467 and 4098a04cf as each row names, all on merge base 5603ee319.
+665f903c2. That is 4098a04cf merged with origin/main 78324e4a1, plus the inert-reads commit 665f903c2. The figures below were taken at 696762ddb, 8aa0dd467 and 4098a04cf, as each row names, on merge base 5603ee319. Main's delta to 78324e4a1 touches only `.claude/workflows/audit-find.js`, `dev/governance/config/corpus_excluded.json`, `tests/closures.json` and dev records. entities, doc_claims and harness_headers were re-run after the merge.
 
 ## Mutation proof
 
