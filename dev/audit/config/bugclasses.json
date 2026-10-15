@@ -1985,13 +1985,15 @@
     "aliases": [
       "new: staleness limit shorter than a report-on-change sensor's quiet interval"
     ],
-    "rca": [],
+    "rca": [
+      "R10-N-staleness"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-silent-zero": {
@@ -4073,6 +4075,96 @@
       "doc": [
         "dev/audit/rca/R10-RCA-2205.md"
       ]
+    },
+    "R10-N-staleness": {
+      "class": "N-staleness",
+      "level": "class",
+      "subject": "#2234 class: a staleness limit shorter than a report-on-change source's quiet interval declares a valid unchanged reading stale (7 instances: R9 1, R10 6)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-10-15",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) the round-9 S6 sweep was run and filed power, mode, energy, supply and return 'not applicable' on const.py comments, not on a probe; F4.1 fixed only the slow stores",
+      "countermeasure": "proposed barrier: a declared INPUT_QUIET_MINUTES table beside INPUT_MAX_AGE_MINUTES and a static tests/ arm refusing limit < quiet outside a reasoned guarded list (0.27 s; 5 s/release against 513 s/release expected)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-N-staleness.md",
+      "doc": [
+        "dev/audit/rca/R10-N-staleness.md"
+      ]
+    },
+    "R10-N-no-expiry": {
+      "class": "N-no-expiry",
+      "level": "class",
+      "subject": "#2229 class: a covering-entry lookup (bisect_right - 1) gives the last entry no end, so a last-known price, forecast or plan value is published and booked as current indefinitely (3 instances, R10)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-10-15",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D1 step 3's 'price list that stops updating' was driven in round 9 but read the plan horizon, never the published current price or the ledger booking; two of three seams were written by fixes bounding the other edge",
+      "countermeasure": "proposed barrier: one covering-slot helper with an end bound, plus a static tests/ arm over the sweep's AST rule with a reasoned 3-entry allow-list (0.54 s; 10 s/release against 257 s/release); D1 step-3 read-point sentence proposed to tvofi",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-N-no-expiry.md",
+      "doc": [
+        "dev/audit/rca/R10-N-no-expiry.md"
+      ]
+    },
+    "R10-N-log-flood": {
+      "class": "N-log-flood",
+      "level": "class",
+      "subject": "#2226 class: a persisting condition is logged at WARNING on every cycle instead of once per transition (7 instances, R10)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-10-15",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D10's log-when-unavailable was graded done by a substring test for one latched site, and D1 steps 5-6 ask 'does it log once' only of except handlers and parsers",
+      "countermeasure": "proposed barrier: a transition-latch helper extracted from the outage counters, plus a static tests/ arm refusing an unlatched per-cycle WARNING/ERROR outside the sweep's reasoned list (0.36 s; 7 s/release against 604 s/release); the 15.8 s runtime probe stays an audit instrument",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-N-log-flood.md",
+      "doc": [
+        "dev/audit/rca/R10-N-log-flood.md"
+      ]
+    },
+    "R10-N-move-stale-path": {
+      "class": "N-move-stale-path",
+      "level": "class",
+      "subject": "#2227 class: a move leaves an executable consumer importing or opening the old path (36 instances, R10; all under the historical dev/audit/rounds prefix, one of them a live-cited instrument)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-10-15",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) the RO move checks (tests/layout.py, brief_lint) were followed and key on a cited path existing, not on the cited program running; D13 names a historical harness as a live instrument",
+      "countermeasure": "proposed narrow barrier: a tests/ arm probing every live-cited executable under a historical prefix (2 today, 0.1 s); recorded refusal of a whole-tree barrier over evidence-only harnesses (dominated, and contrary to D2); the 35 evidence-only seams' disposition asked of tvofi",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-N-move-stale-path.md",
+      "doc": [
+        "dev/audit/rca/R10-N-move-stale-path.md"
+      ]
+    },
+    "R10-N-confounded-learner": {
+      "class": "N-confounded-learner",
+      "level": "class",
+      "subject": "#2223 class: a residual-fed learner absorbs a mis-modelled covariate's error into its parameter (4 instances, R10)",
+      "trigger": "class: per_round, cross_round",
+      "date": "2026-10-15",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by the class's fix PR"
+      ],
+      "process_state": "(c) D2 step 5 perturbs estimators with measurement noise and clamps only, never with a model error in another regressor; the #1936 fix carried the shape into heat_loss_refit",
+      "countermeasure": "proposed barrier: the sweep's covariate-error probes as a tests/ script (within 5% of truth) plus a registration arm refusing an unprobed residual-fed fold (1.78 s; 33 s/release against 128 s/release); D2 step-5 clause proposed to tvofi",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-N-confounded-learner.md",
+      "doc": [
+        "dev/audit/rca/R10-N-confounded-learner.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -4158,13 +4250,15 @@
     "mechanism_difference": "there is no staleness limit at all, rather than one shorter than the source quiet interval",
     "minted": "R10",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R10-N-no-expiry"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-log-flood": {
@@ -4194,13 +4288,15 @@
     "mechanism_difference": "it over-reports a condition rather than hiding one",
     "minted": "R10",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R10-N-log-flood"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-gate-yield": {
@@ -4289,13 +4385,15 @@
     "mechanism_difference": "the stale reference is executable and breaks a tool, not prose drifting from code",
     "minted": "R10",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R10-N-move-stale-path"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   },
   "N-period-rollover": {
@@ -4352,13 +4450,15 @@
     "mechanism_difference": "no gate is involved: the estimate itself is biased by a correlated regressor",
     "minted": "R10",
     "aliases": [],
-    "rca": [],
+    "rca": [
+      "R10-N-confounded-learner"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": true,
       "cross_round": true,
       "barriered_any": false,
-      "class_rca_on_record": false
+      "class_rca_on_record": true
     }
   }
 }
