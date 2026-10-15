@@ -46,6 +46,53 @@ from typing import TYPE_CHECKING, TypedDict
 if TYPE_CHECKING:
     from .open_meteo import SolarDiagnostics  # standalone-loaded by a test: not imported at run time
 
+# ---------------------------------------------------------------------------
+# The vocabulary of the reason fields (``CurrentAction.space_reason`` /
+# ``dhw_reason`` and every plan row's ``reason``): the optimizer writes these
+# codes, the legionella guard and the card read them (item 16).
+# ---------------------------------------------------------------------------
+
+REASON_COMFORT_FLOOR = "comfort_floor"
+REASON_CHEAP_PRICE = "cheap_price"
+REASON_PREHEAT_WEATHER = "preheat_weather"
+#: The neutral fall-through: a step that is none of the specific cases below,
+#: which is to say an ordinary slot holding the house at target. Until v5.1.7
+#: these steps were tagged ``preheat_weather`` — the same code as the genuine
+#: high-heat-loss branch — so the card told a user that a mid-price hour on a
+#: mild afternoon was "Pre-heating before colder weather". A reason code that
+#: doubles as a default is a reason code that cannot be trusted, and this one
+#: was read as evidence that the optimizer was chasing weather it had not been
+#: shown.
+REASON_SCHEDULED = "scheduled"
+REASON_TERMINAL_VALUE = "terminal_value"
+REASON_SOLAR_SURPLUS = "solar_surplus"
+REASON_DHW_WINDOW = "dhw_window"
+REASON_DHW_READY = "dhw_ready"
+REASON_DHW_PREHEAT = "dhw_preheat"
+REASON_LEGIONELLA = "legionella"
+REASON_IDLE = "idle"
+#: Why an idle step is idle, when the solved plan shows it (R9-UX-5). One
+#: code, the most specific that applies: a hard limit, then a named wait,
+#: then the price, then coasting. ``idle`` remains the fall-through.
+REASON_IDLE_OTHER = "idle_other_channel"
+REASON_IDLE_FUSE = "idle_fuse"
+REASON_IDLE_SOLAR = "idle_solar"
+REASON_IDLE_DEARER = "idle_dearer"
+REASON_IDLE_COASTING = "idle_coasting"
+
+#: A step ran because the manual plan said so, not because the optimizer chose
+#: it. Kept distinct from the automatic reasons so a pinned slot is never
+#: mistaken for the solver's own decision.
+REASON_MANUAL = "manual_plan"
+
+#: A step is empty because the heat pump's *operating mode* cannot serve that
+#: channel at all — a unit in ``heat`` makes no hot water, a unit in ``DHW`` or
+#: ``cool`` heats no rooms. Deliberately distinct from ``idle``: idle means the
+#: optimizer chose not to run, and a user reading "not heating" against a
+#: comfort floor the plan is missing would look for a bug in the optimizer
+#: instead of at the mode selector on the pump. See ``pump_mode.py``.
+REASON_PUMP_MODE = "pump_mode"
+
 
 class CurrentAction(TypedDict, total=False):
     mode: str
