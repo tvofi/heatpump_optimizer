@@ -2740,32 +2740,28 @@ const bump = (hist, key, pr) => {
 // never written. Measured over v6.6.0..e336cc2c, all 11 rework rounds named a
 // moved head and `head-moved` held 0 verdicts. So a second-or-later parseable
 // verdict that follows a `merge` verdict and names a different head is a
-// re-verification of a moved head, and is keyed on the class the wave
-// defines for it -- in a row of its own, beside the passing row that cannot show
-// it, because that row is where the verdict landed and a histogram that emptied
-// it would be reading the grammar rather than counting it. So the rows stop
-// partitioning the window's verdicts: the same round is one `merge` entry AND
-// one `head-moved` entry, and the second is the one that says a head moved.
+// re-verification of a moved head, counted on the REWORK row below -- a row
+// outside the verdict table, so the `merge` row keeps the verdict that landed
+// there and the table still partitions the window's verdicts.
 // KEYED AGAINST THE VERDICT BEFORE IT, NOT THE FIRST (#1549, D13-s1-01). Keyed
 // against the first verdict's head, the row also took a repair after a block
 // and a verdict repeating the previous head: over the round-8 window it read 19,
 // of which 15 were re-verifications. Every round after a pull request's first
 // is now one of three parts by the verdict before it -- `reverify`, `repair`,
-// `repeat` -- and only the first enters this row; a reviewer who wrote
-// `blocked <sha> head-moved` on that round is already in it by the word.
+// `repeat` -- and the rework row is the first part, whatever word the
+// reviewer wrote on that round.
 // Every parseable verdict names a full head -- the wave's grammar requires one
 // on both arms -- so there is no missing side to infer from: a `Fix review:`
 // line with no head is outside the grammar and reaches the rework arm never.
 // The key is the wave's own word -- a class the wave stops teaching is a key
 // nothing routes on, which the extraction check in tests/entities.py refuses by
 // name.
-// ITS OWN ROW, NOT A VERDICT ROW (#2221, D13-s2-02). The round was bumped into
-// the VERDICT map beside the word a reviewer writes, so one `head-moved` row
-// carried two definitions: 133 entries over v6.7.16..17f1c55fad1b against 4
-// blocked verdicts naming that class. The verdict map now partitions the
-// parsable verdicts, and the rework row is `rounds.reverify` itself under
-// REWORK_KEY -- suffixed like a family row, so the census and the filer never
-// see one key on two rows.
+// ONE DEFINITION PER ROW (#2221, D13-s2-02). The verdict table's `head-moved`
+// row counts only the blocked verdicts whose class word a reviewer wrote. The
+// rework row is `rounds.reverify` itself under REWORK_KEY, suffixed like a
+// family row so the census and the filer never see one key on two rows. Until
+// #2221 the round was bumped into the verdict map under the bare word, and
+// that row read 133 entries over v6.7.16..17f1c55fad1b against 4 such verdicts.
 export const REWORK_CLASS = 'head-moved'
 export const REWORK_KEY = `${REWORK_CLASS} (rework)`
 
