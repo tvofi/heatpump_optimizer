@@ -1,8 +1,8 @@
-# baseline 5014df1399aebbffde19178a50ab6fd999d4b379
-RESULT corpus_added=7385 lines
+# baseline 60c4b9b13e5a02bf54199b707c961e29bfe321a6
+RESULT corpus_added=7374 lines
 RESULT corpus_deleted=5482 lines
 RESULT corpus_churn_ratio=1.35 added_per_deleted
-RESULT top_net_growth=tests/README.md:1223-791; CLAUDE.md:730-524; .claude/workflows/web-fragments.md:271-116; .claude/rules/defect-root-cause.md:211-58; .claude/skills/steward/SKILL.md:157-23
+RESULT top_net_growth=tests/README.md:1212-791; CLAUDE.md:730-524; .claude/workflows/web-fragments.md:271-116; .claude/rules/defect-root-cause.md:211-58; .claude/skills/steward/SKILL.md:157-23
 RESULT rowless_past_interval=28 merges
 RESULT rowless_pending=0 merges
 RESULT rowless_prs=1157,1159,1158,1160,1162,1161,1163,1164,1165,1248,1243,1247,1249,1252,1246,1244,1270,1271,1273,1274,1275,1292,1376,1446,1749,1778,1780,1828
@@ -13,5 +13,5 @@ RESULT tag_window v6.7.16: merges=11 rowless=0 (-)
 RESULT tag_window v6.7.17: merges=65 rowless=0 (-)
 RESULT tag_window v7.0.0: merges=97 rowless=0 (-)
 RESULT thread_factor=1.0
-RESULT load1=20.4
+RESULT load1=12.78
 counts only; no timing measured

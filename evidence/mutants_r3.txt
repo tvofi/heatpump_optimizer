@@ -1,0 +1,4 @@
+Reviewer's own targeted mutants, driven with arm.py (the round-1/2 reviewer's driver of the tests/entities.py #2227 arm block) at 60c4b9b13, carry-201.json restored with git checkout after each.
+M9  /carries/1 "run the D13 instrument (tools/audit/round5/D13/seat-a/dora_cfr.py)" restored, staged: FAIL (commands naming no file)  -- killed
+M10 /carries/2 `node .claude/workflows/policy_lint.mjs` restored, staged: FAIL (commands naming no file)  -- killed
+M11 M10 left unstaged: PASS (index read by design, #357; same as round 1's unstaged plant)
