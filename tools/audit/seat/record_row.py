@@ -3,7 +3,7 @@
 
     python3 tools/audit/seat/record_row.py --enumerate --repo O/R --since v6.7.6
     python3 tools/audit/seat/record_row.py --plan --merges-file F \
-        [--roster-ref GITREF | --roster-file PATH]
+        [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH]
     python3 tools/audit/seat/record_row.py --apply --plan-file F [--root DIR]
     python3 tools/audit/seat/record_row.py --row-numbers --plan-file F
     python3 tools/audit/seat/record_row.py --write-self-row --pr N [--root DIR]
@@ -15,10 +15,10 @@ commit-to-pull-request map `policy_lint --record` reads, then `/pulls/{n}` for
 title, state and head branch), `--plan` computes the rows the checked-out tree
 still lacks, and `--apply` writes them behind a guarded write set. Stateless
 like the other seat tools: every input is a flag, the roster through
-`--roster-ref` (a git ref whose roster -- `roster_lib.ROSTER_PATH`,
-`dev/programme/rosters/wave-r9-groups.json`, with the pre-closure
-`.claude/workflows/wave-r9-groups.json` as fallback -- is read with `git show`) or
-`--roster-file`, nothing about a session hardcoded.
+`--roster-ref` (a git ref whose roster -- `roster_lib.roster_path`'s pick,
+the newest `dev/programme/rosters/wave-r<N>-groups.json` there unless
+`--roster-path` names one -- is read with `git show`) or `--roster-file`,
+nothing about a session hardcoded.
 
 A row records the MERGE, not merely the pull request, so a row the tree already
 carries is not automatically done: `--plan` drops a merge whose row exists AND
@@ -796,7 +796,8 @@ def _load_roster(args) -> dict | None:
     if getattr(args, "roster_file", None):
         return roster_lib.load_roster_file(args.roster_file)
     if getattr(args, "roster_ref", None):
-        return roster_lib.show_roster(".", args.roster_ref)
+        return roster_lib.show_roster(".", args.roster_ref,
+                                      getattr(args, "roster_path", None) or None)
     return None
 
 
@@ -1457,6 +1458,9 @@ def main() -> int:
     ap.add_argument("--plan-file", default="")
     ap.add_argument("--roster-ref", default="")
     ap.add_argument("--roster-file", default="")
+    ap.add_argument("--roster-path", default="",
+                    help="the roster at --roster-ref (default: the newest "
+                         "dev/programme/rosters/wave-r<N>-groups.json there)")
     ap.add_argument("--root", default=".")
     ap.add_argument("--head", default="", help="the pushed head SHA")
     ap.add_argument("--base", default="", help="the main SHA the beat ran on")
