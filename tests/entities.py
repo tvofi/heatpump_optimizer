@@ -29265,7 +29265,8 @@ R.check(
 #
 # THE SOURCES. Every executable a POLICY file cites (policy_lint.mjs's own
 # `policyFiles()`, never a copy of its globs), and every program a CARRY's
-# `remeasure` tells a seat to run (`python3`/`node`/`bash`/`run <path>`): a carry is
+# `remeasure` names (any executable path token in it, whatever verb or bracket
+# surrounds it -- "run the D13 instrument (<path>)" is a command too): a carry is
 # the brief of a stage with no roster group, and carry-201 told seats to run
 # `corpus_churn.py` at a path two moves old. A citation is followed through the
 # move map (`locate`), and kept when it lands under a layout.json `historical`
@@ -29292,7 +29293,6 @@ _SP_LAYOUT = json.loads(Path("tests/layout.json").read_text())
 _SP_HIST = [h for h in _SP_LAYOUT["historical"] if h.endswith("/")]
 _SP_EXE = r"((?:[\w.-]+/)+[\w.-]+\.(?:py|mjs|js|sh))(?![\w.])"
 _SP_CITE = re.compile(r"(?<![\w./-])" + _SP_EXE)
-_SP_RUN = re.compile(r"\b(?:python3|node|bash|run)(?:\s+-[A-Za-z]+)*\s+" + _SP_EXE)
 _SP_TOPS = {Path(p).parts[0] for p in subprocess.run(
     ["git", "ls-files"], capture_output=True, text=True).stdout.split()}
 _SP_OPENS = {"open", "Path", "join", "run", "check_output", "check_call", "call",
@@ -29308,18 +29308,28 @@ def _sp_index(path):
     return subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True).stdout
 
 
-def _sp_cited(texts, rx=_SP_CITE, stale=None):
-    """{historical executable: [citing file, ...]}, each citation via the move map.
-    With `stale` (a list), each citation whose spelling names no file is
-    appended to it as (citing file, spelling, where the move map puts it)."""
+def _sp_cited(texts):
+    """{historical executable: [citing file, ...]}, each citation via the move map."""
     out = {}
     for f, text in texts:
-        for m in rx.finditer(text):
+        for m in _SP_CITE.finditer(text):
             p = _layout_locate(m.group(1))
             if any(p.startswith(h) for h in _SP_HIST):
                 out.setdefault(p, []).append(f)
-                if stale is not None and not Path(m.group(1)).is_file():
-                    stale.append((f, m.group(1), p))
+    return out
+
+
+def _sp_moved_spellings(texts):
+    """(citing file, spelling, where it lives) for every executable path token
+    spelled at a path the move map retired -- under a historical prefix or not:
+    a seat pastes the spelling, and a shell does not follow the move map."""
+    out = []
+    for f, text in texts:
+        for m in _SP_CITE.finditer(text):
+            w = m.group(1)
+            p = _layout_locate(w)
+            if p != w and not Path(w).is_file() and Path(p).is_file():
+                out.append((f, w, p))
     return out
 
 
@@ -29402,10 +29412,10 @@ _SP_CITED = _sp_cited((f, _sp_index(f)) for f in _SP_POLICY)
 # carry-201 told a seat to run corpus_churn.py at its pre-move path, which
 # the move map follows and a shell does not (ENOENT). Policy prose citing a
 # retired path is tests/layout.py's `reference` arm; a command is this arm's.
-_SP_STALE_RUN = []
-for _sp_p, _sp_by in _sp_cited(
-        ((f, "\n".join(_sp_remeasures(json.loads(_sp_index(f) or "{}")))) for f in _SP_CARRIES),
-        _SP_RUN, _SP_STALE_RUN).items():
+_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_index(f) or "{}"))))
+                  for f in _SP_CARRIES]
+_SP_STALE_RUN = _sp_moved_spellings(_SP_REMEASURES)
+for _sp_p, _sp_by in _sp_cited(_SP_REMEASURES).items():
     _SP_CITED.setdefault(_sp_p, []).extend(_sp_by)
 _SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
 for _sp_p, _sp_f in _SP_FAULTS.items():
@@ -29436,10 +29446,11 @@ def _sp_check_stale(new):
     """A command spelled at the pre-move path of `new` is reported stale; the
     same command at `new` is not."""
     old = _layout_canon(new)
-    got, ok = [], []
-    _sp_cited([("c.json", f"python3 {old}")], _SP_RUN, got)
-    _sp_cited([("c.json", f"python3 {new}")], _SP_RUN, ok)
-    return old != new and got == [("c.json", old, new)] and ok == []
+    return (old != new
+            and _sp_moved_spellings([("c.json", f"python3 {old}")]) == [("c.json", old, new)]
+            and _sp_moved_spellings([("c.json", f"run the D12 instrument ({old}) with its "
+                                                "fixtures")]) == [("c.json", old, new)]
+            and _sp_moved_spellings([("c.json", f"python3 {new}")]) == [])
 _sp_cog_held = [x for x in _sp_literals(Path(_sp_cog).read_text(), opened=False)
                 if not Path(x[2].rstrip("/")).exists()]
 R.check(
@@ -29456,8 +29467,7 @@ R.check(
     and _sp_cited([("x.md", "run `dev/audit/rounds/round4/D11/dora_keys.py` and "
                             "`tests/golden/config_flow.json`")])
     == {"dev/audit/rounds/round4/D11/dora_keys.py": ["x.md"]}
-    and _sp_cited([("c.json", "run `python3 -I dev/audit/rounds/round4/D12/units.py`; "
-                              "see dev/audit/rounds/round4/D11/dora_keys.py")], _SP_RUN)
+    and _sp_cited([("c.json", "run the D12 instrument (dev/audit/rounds/round4/D12/units.py)")])
     == {_sp_unit: ["c.json"]}
     and _sp_check_stale(_sp_unit),
     f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
