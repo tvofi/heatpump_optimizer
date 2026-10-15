@@ -17,7 +17,7 @@ Plants:
   H1-H10   location navigations, in and out of try; href in eight spellings,
            on a selector the stub resolves (".zz") and one it cannot ("a.zz").
 
-    python3 dev/audit/harnesses/r10_deeplink_mutants.py [plant ...]
+    python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
 Run from the worktree root after `PYTHONPATH=tests/hastub python3
 tests/plan_view.py` (card.mjs reads its payload). Null control: run with no
