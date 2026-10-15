@@ -1,0 +1,45 @@
+diff --git a/dev/audit/rca/R10-RCA-2205.md b/dev/audit/rca/R10-RCA-2205.md
+index 778ed87a6..94445eb6f 100644
+--- a/dev/audit/rca/R10-RCA-2205.md
++++ b/dev/audit/rca/R10-RCA-2205.md
+@@ -57,19 +57,19 @@ promised to cover, so the precondition it changed is not one the process relied
+ ## 3. Cost test
+ 
+ `cost(countermeasure, recurring) < cost(defect) x P(recurrence)`, per release cycle.
+-There were 20 stamps between 2026-09-25 and 2026-10-14, about one per nightly.
++The window is 2026-09-25T07:00Z to 2026-10-14T07:41:52Z (the red nightly's start), by committer date on main. It holds 19 stamps, about one per nightly.
+ 
+ - **Measured frequency.** 1 red in 37 timed cost-lane runs (0.027 per run). The
+   triggering kind of event, a production speed-up large enough to move the clean
+-  reading near the floor, happened once in 20 release cycles (0.05).
++  reading near the floor, happened once in 19 release cycles (0.05).
+ - **Defect cost.** From the issue (2026-10-14T15:46Z) to the fixer's handoff
+   (21:14Z) was 5.5 h of seat chain. `nightly-status` was red on main from 07:48Z and
+   was still red at 22:12Z, at least 14.4 h. That red held record PR #2202.
+ - **The candidate countermeasure, a per-PR timed replay** of the cost arms on pull
+   requests that touch the replay cost files, costs this much. The lane ran 38-128 s
+-  (20 nightlies), plus about 90 s of job setup. In the window, 64 of 335 merged pull
+-  requests touched `COST_FILES`, `optimizer.py` or `tests/replay.py`, which is 3.2
+-  per release cycle. That is about 10 runner-minutes per cycle, plus the timed lane's
++  (20 nightlies), plus about 90 s of job setup. In the window, 60 of the 335 pull requests merged
++  into main's first-parent history touched one of the five `COST_FILES`,
++  `optimizer.py` or `tests/replay.py`, which is 3.2 per release cycle. That is about 10 runner-minutes per cycle, plus the timed lane's
+   own false-red exposure on pull requests.
+ - **P(recurrence) after the fix is about 0 for this mechanism.** The fix spins
+   exactly the clean span on the clock the metric reads. `short_doubling` checks that
+@@ -99,12 +99,12 @@ lowering, which the ratchet permits.
+ 
+ **`loop_cpu_ratio` 0.426 cannot be re-centred without a raise.** The code did not
+ move it: on the seat box the medians are 0.319 at `59b76606e` and 0.313 at
+-`9111acceb` (0.98x). Its runner spread is 0.2441-0.405 (factor 1.66), and the centre
++`9111acceb` (0.98x). Its runner spread over the 30 runs that print it (the channel dates from 2026-10-01) is 0.2441-0.405 (factor 1.66), and the centre
+ is sqrt(0.2441 x 0.405) x sqrt2 = 0.445, which is a raise. The best value without a
+ raise is 0.426 as it stands, with 5.2 % top and 14.6 % bottom headroom. The spread is
+ the runner class, not the code. Across 30 runs, corr(loop_cpu_ratio, ref_ms) is
+--0.94. On the 19 slow-class runners (ref_ms 52-54) the loop reads 0.2441-0.2742, a
+-spread of 1.12x. On the 11 fast-class runners (ref_ms 22-43) it reads 0.295-0.405.
++-0.94. On the 17 slow-class runners (ref_ms 52-54) the loop reads 0.2441-0.2783, a
++spread of 1.14x. On the 13 fast-class runners (ref_ms 22-43) it reads 0.2957-0.405.
+ The BLAS-bound reference solve speeds up more than the pure-Python loop does. Lowering
+ the spread therefore means changing the normaliser, either to a reference with the
+ loop's instruction mix or to per-class budgets keyed on ref_ms. That is a measurement
