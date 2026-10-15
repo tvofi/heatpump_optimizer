@@ -2,14 +2,14 @@
 """The plan artifact over a wave-groups roster: swimlanes, gantt, detail, ETA.
 
     python3 tools/audit/seat/plan_table.py [--repo OWNER/REPO] \
-        [--roster-ref GITREF | --roster-file PATH] [--out PATH] \
+        [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH] [--out PATH] \
         [--cadence DAYS] [--live overlay.json]
 
 Stateless: every input arrives as a flag -- the roster through `--roster-ref`
-(a git ref whose roster -- `roster_lib.ROSTER_PATH`,
-`dev/programme/rosters/wave-r9-groups.json`, with the pre-closure
-`.claude/workflows/wave-r9-groups.json` as fallback -- is read with `git show`) or
-`--roster-file`, the live notes through `--live`. Nothing about
+(a git ref whose roster -- `roster_lib.roster_path`'s pick, the newest
+`dev/programme/rosters/wave-r<N>-groups.json` there unless `--roster-path`
+names one -- is read with `git show`) or `--roster-file`, the live notes
+through `--live`. Nothing about
 a session is hardcoded, and the tool never writes GitHub state.
 
 Sections emitted (markdown, one file or stdout):
@@ -284,8 +284,11 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", default="tvofi/heatpump_optimizer")
     src = p.add_mutually_exclusive_group()
-    src.add_argument("--roster-ref", default="handoff/audit-r9-fixplan")
+    src.add_argument("--roster-ref", default=roster_lib.DEFAULT_ROSTER_REF)
     src.add_argument("--roster-file")
+    p.add_argument("--roster-path",
+                   help="the roster at --roster-ref (default: the newest "
+                        "dev/programme/rosters/wave-r<N>-groups.json there)")
     p.add_argument("--out")
     p.add_argument("--cadence", type=float, default=DEFAULT_CADENCE)
     p.add_argument("--live")
@@ -297,8 +300,9 @@ def main(argv=None) -> int:
         roster = roster_lib.load_roster_file(a.roster_file)
         source = a.roster_file
     else:
-        roster = roster_lib.show_roster(a.repo, a.roster_ref)
-        source = a.roster_ref
+        roster = roster_lib.show_roster(".", a.roster_ref, a.roster_path)
+        source = (f"{a.roster_ref}:"
+                  f"{roster_lib.roster_path('.', a.roster_ref, a.roster_path)}")
     live = {}
     if a.live:
         live = json.loads(Path(a.live).read_text(encoding="utf-8"))
