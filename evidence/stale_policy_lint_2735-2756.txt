@@ -1,0 +1,22 @@
+// the wave requires before it merges, so the exclusion above prints it and
+// counts rework nowhere -- and the rework this programme pays takes exactly
+// that shape. A head that moves under a review is re-verified and re-merged,
+// spelled `merge <new head>`; `fix-review.md` step 12 leaves re-measuring to
+// the reviewer, so the `blocked <sha> head-moved` that class exists for was
+// never written. Measured over v6.6.0..e336cc2c, all 11 rework rounds named a
+// moved head and `head-moved` held 0 verdicts. So a second-or-later parseable
+// verdict that follows a `merge` verdict and names a different head is a
+// re-verification of a moved head, and is keyed on the class the wave
+// defines for it -- in a row of its own, beside the passing row that cannot show
+// it, because that row is where the verdict landed and a histogram that emptied
+// it would be reading the grammar rather than counting it. So the rows stop
+// partitioning the window's verdicts: the same round is one `merge` entry AND
+// one `head-moved` entry, and the second is the one that says a head moved.
+// KEYED AGAINST THE VERDICT BEFORE IT, NOT THE FIRST (#1549, D13-s1-01). Keyed
+// against the first verdict's head, the row also took a repair after a block
+// and a verdict repeating the previous head: over the round-8 window it read 19,
+// of which 15 were re-verifications. Every round after a pull request's first
+// is now one of three parts by the verdict before it -- `reverify`, `repair`,
+// `repeat` -- and only the first enters this row; a reviewer who wrote
+// `blocked <sha> head-moved` on that round is already in it by the word.
+// Every parseable verdict names a full head -- the wave's grammar requires one
