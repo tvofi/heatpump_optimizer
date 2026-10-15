@@ -808,10 +808,19 @@ class Train:
             raise Stop("approve", f"the reviews could not be read for {what}: " + o.strip()[-160:])
         return [r for page in json.loads(o) for r in page]
 
+    def _body(self, pr: int) -> str:
+        """The pull request's body; an unreadable one stops (a raise's
+        justification that cannot be read justifies nothing)."""
+        code, o = self.run(["gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body"])
+        if code:
+            raise Stop("approve", "the body could not be read for the raise justification: " + o.strip()[-160:])
+        return o
+
     def _owner_at_head(self, pr: int, h: str) -> "str | None":
         """The owner's approval ALREADY at <h> -- budget_raise_gate's own
-        `approval` (the raise reading), its mandate judged AT THE MERGE as
-        policy_gate judges one -- else None. GitHub re-anchors an approval's
+        `approval` with the gate's own `justification` of the body (what
+        `decide` passes), its mandate judged AT THE MERGE rather than at the
+        review's submission -- else None. GitHub re-anchors an approval's
         commit_id across a clean merge of the base (#2209: review 5526967770
         names 8a8e66e7 in its body, the API reports the recarried 8876da3b),
         so after a recarry the owner's approval can already name the live
@@ -821,7 +830,8 @@ class Train:
         at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
         try:
             ok, why = g.approval(self._reviews(pr, "the owner's approval"), h, self._mandate_read,
-                                 lambda _r, cid, c, t: g.mandate_state(cid, c, t, now, at, "merge"))
+                                 lambda _r, cid, c, t: g.mandate_state(cid, c, t, now, at, "merge"),
+                                 justify=lambda: g.justification(self._body(pr)))
         except Stop:
             raise
         except Exception as e:  # fail closed: an unread approval is none
@@ -1641,6 +1651,8 @@ def _self_test() -> int:
             if argv[:3] == ["gh", "pr", "merge"] and argv[3] == "9":
                 world.setdefault("bot_merged", []).append(9)
                 return 0, ""
+            if argv[:3] == ["gh", "pr", "view"] and "--json" in argv and argv[argv.index("--json") + 1] == "body":
+                return 0, world.get("pr_body", "")
             if argv[:3] == ["gh", "pr", "merge"] and world.get("merge_outs"):
                 return world["merge_outs"].pop(0)
             if argv[:3] == ["gh", "pr", "view"] and "state,headRefOid" in a:  # pre-flight's read
@@ -1921,6 +1933,11 @@ def _self_test() -> int:
         check(f"--bot-prs: a guard exit {code} never merges the record PR ({word}), and the train goes on",
               rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
               and any(ln.startswith(f"BOT #9 {word}") for ln in lines))
+    rc, lines, calls = go({"bot_find": (0, "0")}, bot_prs=True)
+    check("--bot-prs with no open record PR (the lookup answers 0) guards nothing and merges nothing "
+          "but the queue",
+          rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
+          and not any("--automerge-check" in c for c in calls) and not any(ln.startswith("BOT") for ln in lines))
     rc, lines, calls = go({"bot_find": (0, "9")})
     check("without --bot-prs no record PR is looked up (the default is today's train)",
           rc == 0 and not any("record_row.py" in " ".join(c) for c in calls))
@@ -1932,6 +1949,14 @@ def _self_test() -> int:
     check("--pre-flight: an entry the pre-flight refuses is PARKed and left out; the rest lands; rc 1",
           rc == 1 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7"]
           and any(ln.startswith("PARK #6 queue:") for ln in lines) and lines[-1] == "TRAIN DONE")
+    seen_pf: list = []
+    with tempfile.TemporaryDirectory() as d:
+        pf_q = [bad, dict(item)]
+        got = Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=ROOT, stdin=None: (seen_pf.append(argv), (0, ""))[1],
+                    base="batch/r", pre_flight=True).preflight(pf_q)
+    check("--pre-flight on a batch/ rehearsal reads nothing and parks nothing: its reads grade a "
+          "merge into main, which a rehearsal never makes",
+          got == pf_q and seen_pf == [])
     rc, lines, calls = go({}, q=[bad, dict(item)])
     check("... without --pre-flight the same entry stops the train at its turn (null control)",
           rc == 1 and not merged(calls) and "queue:" in lines[-1])
@@ -1941,7 +1966,7 @@ def _self_test() -> int:
     # --free-holders: a clean holder at origin/<branch> is detached, nothing else.
     seen: list[list[str]] = []
 
-    def holding(state: str, at: str):
+    def holding(state: str, at: str, here: str = "1" * 40):
         seen.clear()
 
         def wrap(base_run):
@@ -1956,9 +1981,9 @@ def _self_test() -> int:
                 if argv[:4] == ["git", "-C", "/other/wt", "status"]:
                     return 0, state
                 if argv[:4] == ["git", "-C", "/other/wt", "rev-parse"]:
-                    return 0, "1" * 40
+                    return (0 if is_sha(here) else 128), here
                 if argv[:3] == ["git", "rev-parse", "origin/fix/x"]:
-                    return 0, at
+                    return (0 if is_sha(at) else 128), at
                 if argv[:4] == ["git", "-C", "/other/wt", "checkout"]:
                     freed.append(1)
                     return 0, ""
@@ -1979,6 +2004,13 @@ def _self_test() -> int:
               "today's HOLDER stop, the reason appended, nothing detached",
               rc == 1 and "[HOLDER]" in lines[-1] and f"not freed: " in lines[-1] and why in lines[-1]
               and not detached(calls) and not merged(calls))
+    UNREAD = "fatal: not a git repository"
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, wrap=holding("", UNREAD, here=UNREAD),
+                          free_holders=True)
+    check("--free-holders refuses a holder whose HEAD and origin/<branch> both fail to read: two "
+          "equal failures are no sha, and nothing is detached",
+          rc == 1 and "[HOLDER]" in lines[-1] and "unpushed work" in lines[-1]
+          and not detached(calls) and not merged(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, wrap=holding("", "1" * 40))
     check("without --free-holders even a freeable holder stops exactly as today (null control)",
           rc == 1 and "[HOLDER]" in lines[-1] and "not freed" not in lines[-1] and not detached(calls))
@@ -2074,8 +2106,10 @@ def _self_test() -> int:
     # approval named h, not h0, and `prior.commit_id != h0` returned no carry.
     # An owner approval already at the live head is the owner's (the gate's
     # raise reading, its mandate re-read at the merge): nothing to re-post.
+    JUST = ("## Summary\n\nRaise.\n\n## Raise justification\n\n- Payments tried: none left.\n"
+            "- Architecture score: dS +0.4 IMPROVES\n")
     for flag in (True, False):
-        w = carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW))
+        w = carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW), pr_body=JUST)
         rc, lines, calls = go(w, mandate=CB, approval_carry=flag)
         check(f"#2209's shape (approval-carry {'on' if flag else 'off'}): the owner's approval GitHub "
               "re-anchored to the recarried head is the owner's at that head -- the budget entry "
@@ -2083,10 +2117,16 @@ def _self_test() -> int:
               rc == 0 and merged(calls) and any("approved (owner)" in ln for ln in lines)
               and not approved(calls) and w["carry_body"] == "")
     rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)],
-                                      mandate=mandate(NOW, until_min=-1)), mandate=CB, approval_carry=True)
+                                      mandate=mandate(NOW, until_min=-1), pr_body=JUST), mandate=CB, approval_carry=True)
     check("#2209's shape MUTATION (the mandate re-read at the merge): a re-anchored approval "
           "under an expired mandate stops exactly as today",
           rc == 1 and "a raise is the owner's" in lines[-1] and not merged(calls))
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW),
+                                      pr_body=JUST.replace("Payments tried", "Paid")), mandate=CB, approval_carry=True)
+    check("#2209's shape MUTATION (the gate's own justification): a mandated approval at the head "
+          "whose body lacks the raise justification's payment line is not the owner's -- it stops "
+          "exactly as today, as budget-raise-gate would refuse it",
+          rc == 1 and "a raise is the owner's" in lines[-1] and not merged(calls) and not approved(calls))
     w = carry_world(reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW),
                     contains=[False, False, False, True], heads=[H0, H1, H1, H2],
                     carry_delta=(H0, H2, "docs/a-main-only-file.md\n"))
@@ -2095,6 +2135,17 @@ def _self_test() -> int:
           "carries to the second recarry's head, its delta read from that first head",
           rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
           and "Carried by the train's clean recarry from " + H0 in w["carry_body"])
+    # The MIDDLE head (R11): #2209's re-anchor put the owner's approval on the
+    # first recarry's head H1, then main moved during CI and a second recarry
+    # made H2. H1 is neither the first head nor the live one.
+    w = carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW),
+                    contains=[False, False, False, True], heads=[H0, H1, H1, H2],
+                    carry_delta=(H1, H2, "docs/a-main-only-file.md\n"))
+    rc, lines, calls = go(w, mandate=CB, approval_carry=True, main_moved_tries=1)
+    check("approval-carry from the MIDDLE of the carry chain: an approval re-anchored to the first "
+          "recarry's head carries to the second's, its delta read from that middle head",
+          rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H2 for c in calls)
+          and "Carried by the train's clean recarry from " + H1 in w["carry_body"])
     rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H0, NOW), id=RID)],
                                       mandate=mandate(NOW),
                                       carry_delta=(H0, H1, f"{ROW_DIR}/7.md\ntests/structure_budgets.json\n")),
@@ -2125,7 +2176,7 @@ def _self_test() -> int:
           and not approved(calls) and not merged(calls) and w["carry_body"] == ""
           and w["approve_body"] == "")
     w = carry_world(approve=owned, files=BUDGET, reviews=[dict(owner_review(H0, NOW), id=RID)],
-                    mandate=mandate(NOW), contains=[], heads=[H0])
+                    mandate=mandate(NOW), contains=[], heads=[H0], pr_body=JUST)
     rc, lines, calls = go(w, mandate=CB, approval_carry=True)
     check("approval-carry with no recarry of this invocation (the head never moved) does not carry: "
           "the owner's approval already at the head is the owner's, and nothing is re-posted",
@@ -2444,6 +2495,20 @@ def _batch_self_test(check) -> None:
     def stub(w: dict):
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            if "record_row.py" in a:  # --bot-prs: an open record PR #9 whose guard passes
+                w.setdefault("bot_calls", []).append(argv)
+                return (0, "9") if "--find-open" in argv else (0, "AUTOMERGE OK #9")
+            if argv[:3] == ["gh", "auth", "token"]:
+                return 0, "tok"
+            if argv[:3] in (["gh", "pr", "view"], ["gh", "pr", "merge"]) and argv[3] == "9":
+                if argv[2] == "merge":  # the record PR lands on the base as GitHub would
+                    (w["R"] / "rec.txt").write_text("row\n")
+                    g(w["R"], "add", "-A")
+                    g(w["R"], "commit", "-qm", "record")
+                    w["bot_merged"] = g(w["R"], "rev-parse", "HEAD")[1]
+                    return 0, ""
+                return 0, ("e" * 40 if "headRefOid" in a else
+                           f"MERGED {w['bot_merged']}" if w.get("bot_merged") else "OPEN None")
             if argv[0] == "git" and "--delete" in argv:  # the proof branches live only in w["pushed"]
                 w["deleted"] = argv[argv.index("--delete") + 1:]
                 return w.get("delete_rc", (0, ""))
@@ -2539,7 +2604,7 @@ def _batch_self_test(check) -> None:
         return run
 
     def go(prs, base="batch/base", cap=2, setup=None, ignore=("nightly-status", "pr-contract"),
-           skip_bad=False, overlap=False, main_moved_tries=0):
+           skip_bad=False, overlap=False, main_moved_tries=0, **opts):
         with tempfile.TemporaryDirectory() as d:
             w = world(Path(d), base, prs, cap)
             (setup or (lambda w: None))(w)
@@ -2547,7 +2612,7 @@ def _batch_self_test(check) -> None:
             lines: list[str] = []
             t = Train("o/r", Path(d) / "state", None, "the orchestrator", ignore, 1, run=stub(w),
                       sleep=lambda s: w.get("on_sleep", lambda: None)(), log=lines.append, polls=2, merge_tries=2,
-                      base=base, skip_bad=skip_bad, overlap=overlap, main_moved_tries=main_moved_tries)
+                      base=base, skip_bad=skip_bad, overlap=overlap, main_moved_tries=main_moved_tries, **opts)
             q = [{"pr": n, "verdict": w["heads"][n]} for n in prs]
             rc = t.batch(q, "t")
             w["rc"], w["lines"] = rc, lines
@@ -2559,6 +2624,7 @@ def _batch_self_test(check) -> None:
             w["main_tree"] = g(w["R"], "rev-parse", f"{base}^{{tree}}")[1]
             w["led"] = g(w["R"], "show", f"{base}:led.json")[1]
             w["proof_trees"] = [g(w["L"], "rev-parse", f"{sha}^{{tree}}")[1] for _, sha in w["pushed"]]
+            w["proof_names"] = [g(w["L"], "ls-tree", "--name-only", sha)[1].split() for _, sha in w["pushed"]]
             return w
 
     unit = {"units/a": "a\n"}
@@ -2621,6 +2687,25 @@ def _batch_self_test(check) -> None:
           w["rc"] == 0 and list(w["merged"]) == [1] and w.get("reviews_reads") == ["1", "1"]
           and w["approved"] == [1])
 
+    # --bot-prs in the batch: the record PR merges BEFORE the base is read, so
+    # it is under every proof (R16) -- and never from a rehearsal, whose
+    # merges reach no main (R14).
+    had_token = os.environ.get("GH_TOKEN")
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, base="main", bot_prs=True)
+    bot = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("BOT #9 MERGED")), None)
+    proof = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("proof ")), None)
+    check("batch --bot-prs: the record PR merges before the base is read -- before the proof, "
+          "which carries its commit -- and both entries land on that proof",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and bot is not None and proof is not None
+          and bot < proof and "rec.txt" in (w["proof_names"] or [[]])[0])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, bot_prs=True)
+    check("batch --bot-prs on a batch/ rehearsal looks nothing up and merges no record PR -- a "
+          "rehearsal writes nothing to main -- while the rehearsal itself still lands",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and not w.get("bot_calls")
+          and not w.get("bot_merged") and not any(ln.startswith("BOT") for ln in w["lines"]))
+    if had_token is None:
+        os.environ.pop("GH_TOKEN", None)
+
     def moved(w):
         def push():  # after #1's merge and its tree check, before #2's attempt
             if 1 in w["merged"] and not (w["R"] / "c.txt").exists():
@@ -2642,6 +2727,22 @@ def _batch_self_test(check) -> None:
           and any(ln.startswith("[MAIN-MOVED] before #2's merge: re-proving #2, #3") for ln in w["lines"])
           and [b for b, _ in w["pushed"]] == ["batch/t-1", "batch/t-m1-1"]
           and w["main_tree"] == w["proof_trees"][-1] and len(w["tree_ok"]) == 3)
+
+    def moved_red(w):
+        moved(w)
+        push = w["on_sleep"]
+
+        def push_red():  # the foreign commit is RED: only a main_green re-read sees it
+            push()
+            if (w["R"] / "c.txt").exists():
+                w["red"].add(g(w["R"], "rev-parse", w["base"])[1])
+        w["on_sleep"] = push_red
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}, 3: {"units/b": "b\n"}}, setup=moved_red, main_moved_tries=1)
+    check("--main-moved-tries: the FIRST merge on the re-proof re-reads the moved main green -- a "
+          "red foreign tip stops it right before #2, nothing landing on a red main",
+          w["rc"] == 1 and list(w["merged"]) == [1]
+          and any(ln.startswith("[MAIN-MOVED] before #2's merge") for ln in w["lines"])
+          and w["lines"][-1].startswith("TRAIN STOPPED main:") and "right before #2" in w["lines"][-1])
 
     def moving(w):
         def push():  # a foreign commit on EVERY wait once #1 merged: main never settles
@@ -2904,13 +3005,18 @@ def _batch_self_test(check) -> None:
           and any(ln.startswith("TRAIN STOPPED main:") for ln in w["lines"])
           and w2["rc"] == 1 and not w2["merged"]
           and any(ln.startswith("TRAIN STOPPED main:") and "right before #1" in ln for ln in w2["lines"]))
-    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=mangled, skip_bad=True)
-    check("--skip-bad: a Stop after the merge API call is fatal for that entry only -- "
-          "logged post-merge, never retried, and the next entry is not merged onto an unread tree",
-          w["rc"] == 1 and list(w["merged"]) == [1]
-          and any(ln.startswith("SKIP #1 post-merge:") and "tree is not proof" in ln for ln in w["lines"])
-          and any(ln.startswith("SKIP #2 merge:") and "moved" in ln for ln in w["lines"])
-          and [s["phase"] for s in (w["skip_json"] or [])] == ["post-merge", "merge"])
+    # The CLI's default bound too (R4): the next entry's guard sees the tree
+    # change and raises MainMoved, which must not re-prove onto that tree.
+    for tries in (0, MAIN_MOVED_TRIES):
+        w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=mangled, skip_bad=True, main_moved_tries=tries)
+        check(f"--skip-bad (--main-moved-tries {tries}): a Stop after the merge API call is fatal for that "
+              "entry only -- logged post-merge, never retried, and the next entry is neither merged nor "
+              "re-proved onto the unread tree",
+              w["rc"] == 1 and list(w["merged"]) == [1] and len(w["pushed"]) == 1
+              and not any(ln.startswith("[MAIN-MOVED] before") for ln in w["lines"])
+              and any(ln.startswith("SKIP #1 post-merge:") and "tree is not proof" in ln for ln in w["lines"])
+              and any(ln.startswith("SKIP #2 merge:") and "moved" in ln for ln in w["lines"])
+              and [s["phase"] for s in (w["skip_json"] or [])] == ["post-merge", "merge"])
 
 
 def _parser() -> argparse.ArgumentParser:
