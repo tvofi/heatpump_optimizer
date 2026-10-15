@@ -2119,9 +2119,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done (#2284 merged 8747bbfc4; #2219 closed)",
     "branch": "handoff/r10-i1",
-    "commit": null,
+    "commit": "8747bbfc4d4628fa8419634792229fd15dcc21e2",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
