@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Carry destination for the round-10 P2 class issue (#2238), which has no live roster group.",
+    "Written by the round-10 catch-up record (branch audit/r10-catchup-register) from",
+    "dev/audit/rounds/round10/CATCHUP-JUDGE.json. Shape and required fields:",
+    "dev/governance/rules/finding-propagation.md. Linted by tools/policy/brief_lint.mjs."
+  ],
+  "issue": 2238,
+  "stage": "the round-10 P2 fix (#2238), not yet dispatched",
+  "carries": [
+    {
+      "from": "the round-10 catch-up record, D7-s2-51 (catch-up id D7-arch2-01)",
+      "effect": "narrows",
+      "control": "Catch-up judge on origin/main d749c986d: patch 00 moves the mixin probe's nan_published 1 -> 0, and patch 01 without 00 moves escapes 0 -> 17; null control: NaN on the entity class itself is scrubbed (0). Under patch 00 the verifier's probe reads nan_published_outside_pkg 0 -> 1.",
+      "remeasure": "Run dev/audit/rounds/round10/catchup/arch-s2/probe_scrub_mixin.py on your merge base and on your fix: nan_published_outside_pkg must read 0 on both.",
+      "brief": "The finite-scrub patch 00 for D7-s2-51 opens a case outside the package: under it a mixin defined outside custom_components publishes NaN. Patch 00 must not ship without that case covered, and patch 01 must not ship without 00. Harness: dev/audit/rounds/round10/catchup/arch-s2/probe_scrub_mixin.py."
+    }
+  ]
+}
