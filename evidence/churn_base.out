@@ -1,4 +1,4 @@
-# baseline 694120d5aa296b65c7d7be097f8684e7bc3b5f61
+# baseline 613b10c51b1bf9ed7c1c18c6ecc4f4a2d05c14d1
 Traceback (most recent call last):
   File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/revstale-base/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 188, in <module>
     main()
