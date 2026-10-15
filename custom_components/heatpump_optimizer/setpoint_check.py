@@ -13,7 +13,7 @@ from typing import Any, Callable
 from .const import MIXING_VALVE_WRITE_EPSILON
 from .entry_config import EntryConfig
 from .issues import set_issue
-from .inputs import state_unit, temperature_c, temperature_from_c
+from .inputs import read_setpoint, setpoint_and_unit, temperature_from_c
 from .quiet_windows import silent_unenforceable
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ ISSUE_SPACE = "space_setpoint_unreadable"
 #: them. A warning, not a fix -- the remedy is an assignment only the
 #: setup diagram (or SW-4's Modbus schedule) can make.
 ISSUE_QUIET = "quiet_silent_not_enforced"
-_INVALID = ("unknown", "unavailable", "none", "")
 
 
 def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
@@ -81,7 +80,7 @@ def _dhw_floor(params: Any) -> float:
 
 def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
     entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity
-    pump, unit = _setpoint_and_unit(hass, entity_id) or (None, None)
+    pump, unit = setpoint_and_unit(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
     # The pump-duty arbiter's own space-only gate is a step decision, not
     # a set-point below the disinfection floor (``pump_arbiter.dhw_gated``).
@@ -110,36 +109,10 @@ def _space(hass: Any, config: dict[str, Any]) -> None:
     if not entity_id:
         set_issue(hass, ISSUE_SPACE, False)
         return
-    readable = _read_setpoint(hass, entity_id) is not None
+    readable = read_setpoint(hass, entity_id) is not None
     set_issue(
         hass,
         ISSUE_SPACE,
         not readable,
         placeholders={"entity": entity_id},
     )
-
-
-def _read_setpoint(hass: Any, entity_id: str | None) -> float | None:
-    """The set-point in degC, or ``None`` when it cannot be read."""
-    reading = _setpoint_and_unit(hass, entity_id)
-    return None if reading is None else reading[0]
-
-
-def _setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
-    """The set-point in degC and the unit its entity is written in (#1513).
-
-    A number entity declares its unit; a climate entity's state is its HVAC
-    mode and its target an attribute in the instance's unit system.
-    """
-    state = hass.states.get(entity_id) if entity_id else None
-    raw = getattr(state, "state", None)
-    if raw is None or str(raw).lower() in _INVALID:
-        return None
-    unit = state_unit(state)
-    value = temperature_c(raw, unit)
-    if value is None:
-        units = getattr(getattr(hass, "config", None), "units", None)
-        unit = getattr(units, "temperature_unit", None)
-        attrs = getattr(state, "attributes", None) or {}
-        value = temperature_c(attrs.get("temperature"), unit)
-    return None if value is None else (value, unit)

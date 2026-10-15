@@ -45417,6 +45417,7 @@ from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
 from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
 from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
 from heatpump_optimizer import issues as _g8_issues  # noqa: E402
+from heatpump_optimizer import inputs as _g8_inputs  # noqa: E402
 from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
@@ -45592,18 +45593,18 @@ class _G8SpHass:
 
 _G8_SP_ID = "number.pump_dhw_setpoint"
 _g8_sp_reads = {
-    "absent entity": _g8_sp._read_setpoint(_G8SpHass(), _G8_SP_ID),
-    "unavailable": _g8_sp._read_setpoint(
+    "absent entity": _g8_inputs.read_setpoint(_G8SpHass(), _G8_SP_ID),
+    "unavailable": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("unavailable")}), _G8_SP_ID),
-    "no entity id": _g8_sp._read_setpoint(_G8SpHass(), None),
-    "text, no attribute": _g8_sp._read_setpoint(
+    "no entity id": _g8_inputs.read_setpoint(_G8SpHass(), None),
+    "text, no attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("warm")}), _G8_SP_ID),
-    "text, bad attribute": _g8_sp._read_setpoint(
+    "text, bad attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("warm", {"temperature": "warmer"})}),
         _G8_SP_ID),
-    "plain float": _g8_sp._read_setpoint(
+    "plain float": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("52.5")}), _G8_SP_ID),
-    "float on the attribute": _g8_sp._read_setpoint(
+    "float on the attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("heat", {"temperature": 48.0})}),
         _G8_SP_ID),
 }
@@ -54723,7 +54724,7 @@ import asyncio as _p6_aio  # noqa: E402
 
 from harness import FakeEntry as _P6Entry  # noqa: E402
 from heatpump_optimizer import config_flow as _p6_cf  # noqa: E402
-from heatpump_optimizer import repairs as _p6_repairs  # noqa: E402
+from heatpump_optimizer import inputs as _p6_inputs  # noqa: E402
 from heatpump_optimizer import topology as _p6_topo  # noqa: E402
 from heatpump_optimizer.disinfection import DisinfectionSwitch as _P6Dis  # noqa: E402
 
@@ -54846,7 +54847,7 @@ async def _p6_freq(eid):
 
 async def _p6_setpoint(eid):
     hass = FakeHass({})
-    await _p6_repairs._write_setpoint(hass, eid, 55.0)
+    await _p6_inputs.write_setpoint(hass, eid, 55.0)
     return hass.services.calls
 
 

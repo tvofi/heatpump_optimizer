@@ -154,9 +154,8 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
-from .inputs import state_unit, temperature_c, temperature_from_c
+from .inputs import read_setpoint, state_unit, temperature_c, write_setpoint_c
 from .payload import CurrentAction
-from .repairs import _write_setpoint
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
@@ -758,7 +757,7 @@ def _observed(inp: ArbiterInputs, slot: str) -> Any:
         if raw == "off":
             return False
         return None
-    return setpoint_check._read_setpoint(inp.hass, entity)
+    return read_setpoint(inp.hass, entity)
 
 
 def hold(coord: Any, now: datetime) -> None:
@@ -807,7 +806,7 @@ def _forget(held: ArbiterState) -> None:
 def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
     """The service and its data that write ``value`` to ``slot``.
 
-    ``None`` for a set-point, which goes through ``_write_setpoint``.
+    ``None`` for a set-point, which goes through ``inputs.write_setpoint_c``.
     """
     if slot == "mode":
         return "select_option", {"option": _option_for(state, value)}
@@ -835,7 +834,7 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
     service = _service(slot, state, value)
     try:
         if service is None:
-            await _write_setpoint(coord.hass, entity, temperature_from_c(value, state_unit(state)))
+            await write_setpoint_c(coord.hass, entity, value)
         else:
             await inp.hass.services.async_call(
                 domain, service[0], {"entity_id": entity, **service[1]}, blocking=True,

@@ -348,6 +348,70 @@ def temperature_from_c(value_c: float, unit: Any) -> float:
     return value_c / factor - offset
 
 
+#: A set-point state that holds no reading: the entity is down or has not reported.
+_NO_SETPOINT = ("unknown", "unavailable", "none", "")
+#: The service, and its data key, that writes a temperature set-point, per domain.
+SETPOINT_SERVICES = {
+    "climate": ("set_temperature", "temperature"),
+    "number": ("set_value", "value"),
+    "input_number": ("set_value", "value"),
+}
+
+
+def setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
+    """The set-point in degC and the unit its entity is written in (#1513).
+
+    A number entity declares its unit; a climate entity's state is its HVAC
+    mode and its target an attribute in the instance's unit system.
+    """
+    state = hass.states.get(entity_id) if entity_id else None
+    raw = getattr(state, "state", None)
+    if raw is None or str(raw).lower() in _NO_SETPOINT:
+        return None
+    unit = state_unit(state)
+    value = temperature_c(raw, unit)
+    if value is None:
+        units = getattr(getattr(hass, "config", None), "units", None)
+        unit = getattr(units, "temperature_unit", None)
+        attrs = getattr(state, "attributes", None) or {}
+        value = temperature_c(attrs.get("temperature"), unit)
+    return None if value is None else (value, unit)
+
+
+def read_setpoint(hass: Any, entity_id: str | None) -> float | None:
+    """The set-point in degC, or ``None`` when it cannot be read."""
+    reading = setpoint_and_unit(hass, entity_id)
+    return None if reading is None else reading[0]
+
+
+async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
+    """Write ``value``, already in the entity's own unit, to a set-point entity.
+
+    ``False``, and nothing called, for a domain with no set-point service.
+    """
+    domain = entity_id.split(".", 1)[0]
+    service = SETPOINT_SERVICES.get(domain)
+    if service is None:
+        return False
+    await hass.services.async_call(
+        domain, service[0], {"entity_id": entity_id, service[1]: round(float(value), 1)},
+        blocking=True,
+    )
+    return True
+
+
+async def write_setpoint_c(hass: Any, entity_id: str, value_c: float) -> bool:
+    """Write ``value_c`` degC in the unit :func:`setpoint_and_unit` reads the entity in.
+
+    One rule for the read and the write, so a written set-point reads back as
+    itself: a climate target is in the instance's unit system, which its
+    state does not declare. An entity with no reading yet keeps its declared unit.
+    """
+    reading = setpoint_and_unit(hass, entity_id)
+    unit = reading[1] if reading is not None else state_unit(hass.states.get(entity_id))
+    return await write_setpoint(hass, entity_id, temperature_from_c(value_c, unit))
+
+
 def normalize_price_per_kwh(value: float, unit: Any) -> float | None:
     """Convert a price to major currency per kWh using its unit (#1513).
 
