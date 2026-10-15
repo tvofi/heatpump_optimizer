@@ -8,7 +8,7 @@
  "archscore.duplication_copies": 68,
  "archscore.family_orphan_overrides": 0,
  "archscore.family_splits": 0,
- "archscore.hub_solve_writes": 38,
+ "archscore.hub_solve_writes": 41,
  "archscore.import_cycle_modules": 0,
  "archscore.params_over_10": 12,
  "archscore.public_unused": 1,
@@ -17,8 +17,8 @@
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
  "critical_path_minutes": 54.825,
- "reason": "Deliberate re-record of the two script_runs rows only: the ci-ratchet grade on push run 38465320087 (job 115542644363, 2026-10-13 21:17Z, tree 664a4c05e) printed GREW script_runs_full_case_pr 68 (budget 63) and GREW script_runs_per_push 68 (budget 63); critical_path_minutes settled back under budget (45.03 vs 54.825) and stays untouched. The growth is the designed cost of the lane machinery, not a gather bug -- the morning's gather fix (.workflow_run.id // .run_id) is already in. Verified history from the push runs: script_runs_per_push was 96-vs-53 at 12:30Z (pre-#2160 baseline), 66-vs-63 by 16:57Z (the #2165/#2166/#2167-era closures FULL arm), 68 now (#2173's GATE_FILE diff forces the full recording set on pushes, +5 rows); script_runs_full_case_pr 35 at 16:57Z, 68 now (the window's most expensive full-case PR run is #2173's own FULL-mode lane set). script_runs_per_push 68 reproduced locally by grading this table against run 38465320087's own ci-metrics artifacts; full_case_pr cited from the CI log (the artifact window has moved since 21:17Z). archscore rows unchanged (the coord_footprint 2592 re-record at 4787610ad). The ci-ratchet job never passes --record by design, so this is the deliberate follow-up re-record that job's red names.",
- "recorded_at": "664a4c05e3ead3100e252d3f2f2a0b4cdd230e00",
+ "reason": "Deliberate re-record of archscore.hub_solve_writes 38 -> 41 only (R10-ARCHSCORE-COVERAGE part 2, counter C16): the census now roots at the coordinator's event callbacks, so it counts three in-place hub writes the package already makes -- _async_handle_ecl110_state_message's ecl110_effective_displace and ecl110_displace_command, and _on_power_event's peak_guard_active (ARCH2-s2's event_hub_writes.py names the same three). No package code changed. Derived with ci_ratchet.archscore_metrics() at 880373298; every other archscore row at or under its budget there. The payment, retiring the three writes (ARCH2-s2 P4, 3 -> 0), is R10-ARCH-LIVESTATE's, carried into its roster brief to lower this row by 3 in the same PR. Approved under mandate 6175172275; precedent 4d6d329e5.",
+ "recorded_at": "880373298f0ac449df088c61772d2db9704da31c",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 68
 }
