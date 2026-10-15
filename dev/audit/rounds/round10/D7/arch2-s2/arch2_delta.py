@@ -14,7 +14,7 @@ Command:  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch2-s2/a
           origin/handoff/audit-r10-arch-s1 at S1_SHA), and the prototype is that base plus PATCH.
 Perturbation: --revert applies the patches and then reverses them (git apply -R, last first)
           before measuring: the tree is the base again and delta_S must be exactly 0.0000.
-Root rule: ROOT is resolved from this file (five parents up); both trees are read from git
+Root rule: ROOT is repo_root(__file__); both trees are read from git
           objects at BASELINE, never from the working tree.
 """
 from __future__ import annotations
@@ -32,7 +32,22 @@ import time  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[5]
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 sys.path.insert(0, str(ROOT / "tools" / "audit"))
 
 from archscore import score, vector  # noqa: E402
@@ -53,7 +68,7 @@ def resolve(ref: str) -> str:
 
 
 def apply(root: Path, patch: Path, reverse: bool = False) -> None:
-    cmd = ["git", "apply", "--include=custom_components/*", "--whitespace=nowarn"]
+    cmd = ["git", "apply", "-C2", "--include=custom_components/*", "--whitespace=nowarn"]
     if reverse:
         cmd.append("-R")
     subprocess.run([*cmd, str(patch)], cwd=root, check=True)
