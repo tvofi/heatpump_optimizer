@@ -90,9 +90,21 @@ none
 
 ## Forward-carry
 
-1. `tests/card.mjs` carries two of the constraints for the later groups in its own code. Its pending list names R10-ADVISOR and R10-UX-HEALTH as owners and refuses a stale row, so each group must delete its rows when it converts its button. Its reach precondition refuses a link line that no press reaches, so R10-UX-SETUP's Configure must be pressable in the census fixture.
-2. Home Assistant (frontend 20260826.7) has no URL into an options-flow step, so `haLink("options")` lands on the entry highlighted. R10-ADVISOR item 7 must name the step in its copy, or link the option's entity. The destination is the R10-ADVISOR entry in `dev/programme/rosters/wave-r10-groups.json`, which is now on main. The orchestrator writes it there; at origin/main 694120d5a the entry does not yet carry it. Until it does, the carry is stated here and beside `haLink` in `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`.
-3. The reviewer's carry for R10-UX-HEALTH item 4 is that "exactly the disabled entities" cannot be reached by a URL. The frontend's `_setFiltersFromUrl` always clears the state filter. The orchestrator routes it to the R10-UX-HEALTH entry in the same roster file.
+Delivered: #2287 (9b1320d37, on origin/main) writes every carry from this PR into the briefs of the three groups that run `after` it, in `dev/programme/rosters/wave-r10-groups.json`:
+- **R10-ADVISOR:**
+  - there is no URL into an options-flow step;
+  - this group deletes its `PENDING` row `advisor:settings` in `tests/card.mjs`;
+  - any new link button is built with `haLink`/`openHaLink` and is reachable by a press in the census.
+- **R10-UX-SETUP:**
+  - the options-flow-step limit;
+  - the haLink/press-reachability rule for its "Configure" affordance.
+- **R10-UX-HEALTH:**
+  - the options-flow-step limit;
+  - it deletes its `PENDING` rows `health:settings` and `health:diagnostics`;
+  - the haLink/press-reachability rule;
+  - the reviewer's disabled-only carry: `?config_entry=` shows enabled and disabled entities together, so item 4 cannot be met by a URL. The copy narrows, or the button links a single disabled entity with `haLink("entity")`.
+
+`tests/card.mjs` also enforces the `PENDING` and reachability carries mechanically.
 
 ## Friction
 
