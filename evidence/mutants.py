@@ -1,0 +1,20 @@
+# Reviewer-planted mutants for PR #2305 (rev-2305). Each: (id, file, old, new).
+M = [
+ ("R1", "merge_train.py", "        if not is_sha(here) or here != there:", "        if here != there:"),
+ ("R2", "merge_train.py", "        for n in range(self.main_moved_tries + 1):", "        for n in range(self.main_moved_tries + 2):"),
+ ("R3", "merge_train.py", "and recover and moves < self.main_moved_tries:", "and recover and moves <= self.main_moved_tries:"),
+ ("R4", "merge_train.py", "                    recover = recover and phase != \"post-merge\"", "                    recover = True"),
+ ("R5", "merge_train.py", "        return why if ok else None\n", "        return why or 'mut'\n"),
+ ("R6", "merge_train.py", "        if n == \"0\":\n            return\n", ""),
+ ("R7", "merge_train.py", "        self.run([\"gh\", \"pr\", \"merge\", n, \"--repo\", self.repo, \"--merge\", \"--match-head-commit\", h])", "        self.run([\"gh\", \"pr\", \"merge\", n, \"--repo\", self.repo, \"--merge\"])"),
+ ("R8", "merge_train.py", "        if not (self.pre_flight and self.real):\n            return list(queue)", "        if not (self.pre_flight):\n            return list(queue)"),
+ ("R9", "merge_train.py", "        return 1 if self.skipped else 0", "        return 0"),
+ ("R10", "merge_train.py", "        if why is None and self.ok(\"git\", \"-C\", holder, \"checkout\"", "        if self.free_holders and holder and self.ok(\"git\", \"-C\", holder, \"checkout\""),
+ ("R11", "merge_train.py", "        chain = [c for c in item.get(\"carried_chain\") or [item.get(\"carried_from\")] if is_sha(c or \"\") and c != h]", "        chain = [c for c in [item.get(\"carried_from\")] if is_sha(c or \"\") and c != h]"),
+ ("R12", "merge_train.py", "            if [f for f in out.split() if f in files]:\n                return None  # a branch-own file moved", "            if False:\n                return None  # a branch-own file moved"),
+ ("R13", "merge_train.py", "BASE_MOVED = re.compile(r\"base branch was modified|not up to date|head branch is behind|is behind the base\", re.I)", "BASE_MOVED = re.compile(r\"not up to date|head branch is behind|is behind the base\", re.I)"),
+ ("R14", "merge_train.py", "        if not (self.bot_prs and self.real):\n            return", "        if not (self.bot_prs):\n            return"),
+ ("R15", "merge_train.py", "                        todo, first = list(zip(k2, p2)), True", "                        todo, first = list(zip(k2, p2)), False"),
+ ("R16", "merge_train.py", "            self.sweep_bots()  # before the base is read", "            pass  # before the base is read"),
+ ("R17", "merge_train.py", "                        prev = self.git(\"rev-parse\", f\"origin/{self.base}\")\n                        rest", "                        rest"),
+]

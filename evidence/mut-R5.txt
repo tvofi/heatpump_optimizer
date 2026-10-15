@@ -1,0 +1,8 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant R5 rc=1 merge_train self-test: 171 checks, 12 failed
+  FAIL code-owned with a budget file is not mandate-approved
+  FAIL approval-carry fires: the clean recarry's head gets the owner's approval re-posted with the carry line, and the entry merges
+  FAIL #2209's shape MUTATION (the mandate re-read at the merge): a re-anchored approval under an expired mandate stops exactly as today
+  FAIL approval-carry across a main-moved recovery: the owner's approval at the FIRST head carries to the second recarry's head, its delta read from that first head
+  FAIL approval-carry MUTATION (the diff-empty check): a recarry delta naming a branch-own file is a conflict resolution, and it stops exactly as today
+  FAIL approval-carry MUTATION (the mandate in-force check): a mandate expired before the merge re-reads as none, and it stops exactly as today

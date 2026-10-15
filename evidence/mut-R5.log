@@ -1,0 +1,254 @@
+  ok   a green, carried, non-policy pull request merges (null control)
+  ok   a wait that settles on its first poll beats nothing (heartbeat null control)
+  ok   a pull request with no dev/programme/delivery/<N>.md row is refused
+  ok   the row refusal is self-describing: class ROW-MISSING and both remedies in the line
+  ok   nightly-status red is ignored by default
+  ok   a red required check stops the train before any approval
+  ok   a re-run that went green supersedes the earlier red
+  ok   CI that never completes stops it as TIMEOUT
+  ok   the heartbeat beats once per HEARTBEAT_SECONDS of elapsed wait, not per poll (clock jumps 100/240/300/480/700/960: beats at t+240, t+480, t+960), and the wait still times out exactly as before
+  ok   a proof wait beats with the proof branch in the line and names its own concluded count among the required contexts
+  ok   a beat is never held behind a poll boundary: the poll sleeps to the next beat, so beats land at t+240 and t+480 (not t+300/t+600 behind POLL_SECONDS)
+  ok   the entry point reconfigures stdout line-buffered before reading the queue, so a redirected launch's beats reach the log as they print
+  ok   a verdict that does not carry stops it
+  ok   a carry refusal whose shape is the stale-verdict ancestor line carries its class, the re-verdict remedy and the delta
+  ok   HOLDER: a recarry whose branch is checked out in another worktree names the holder path and the exact freeing remedy, classified
+  ok   a worktree add that fails with no holder stays today's plain refusal, unclassified
+  ok   main moving during CI stops it
+  ok   main moving during CI is recovered: a second recarry onto the new main, CI again, and the merge pinned at the new head
+  ok   the recovery is bounded: main moving again past --main-moved-tries stops as today, naming the spent bound
+  ok   --main-moved-tries 0 (the constructor's default) is today's train: one recarry, then the stop
+  ok   main moving between the approval and the merge is recovered too: recarried, CI again, re-approved and merged at the new head only
+  ok   --bot-prs: the open record PR passing record_row.py's guard at its head merges FIRST, pinned there, and the queue then lands
+  ok   --bot-prs: a guard exit 3 never merges the record PR (pending), and the train goes on
+  ok   --bot-prs: a guard exit 1 never merges the record PR (refused by the guard), and the train goes on
+  ok   without --bot-prs no record PR is looked up (the default is today's train)
+  ok   --pre-flight: an entry the pre-flight refuses is PARKed and left out; the rest lands; rc 1
+  ok   ... without --pre-flight the same entry stops the train at its turn (null control)
+  ok   --pre-flight passes a bot tip the train cures itself (its recarry is the App push)
+  ok   --free-holders: a clean holder at origin/<branch> is detached, logged with its restore, and the recarry goes on to the merge
+  ok   --free-holders refuses a holder with uncommitted or untracked (M x.py): today's HOLDER stop, the reason appended, nothing detached
+  ok   --free-holders refuses a holder with uncommitted or untracked (?? note.md): today's HOLDER stop, the reason appended, nothing detached
+  ok   --free-holders refuses a holder with unpushed work (HEAD off origin): today's HOLDER stop, the reason appended, nothing detached
+  ok   without --free-holders even a freeable holder stops exactly as today (null control)
+  ok   a policy head whose owner approval at this exact head cites a mandate in force lands
+  ok   a policy head with NO mandate is refused as before -- the approval is at the head, so the refusal names the mandate, not the review (the fallback is the point)
+  ok   a policy head with a mandate but no owner approval at its head is refused, named as the review
+  ok   a mandate whose window has passed behaves as no mandate (expiry arm)
+  ok   a revoked mandate refuses the policy head, named as revoked
+  ok   a mandate scoped budget-raise does not cover policy merging
+  ok   a code-owned mandate licenses approvals, not the train landing policy (MANDATE_COVERS_POLICY is `all`)
+  ok   policy content that moved after the owner's review is refused and named as that change
+  ok   an approval not at this exact head is refused as that, when the policy blobs did not move
+  ok   a head that moves before the approval stops it
+  ok   a policy filter that fails its sentinel probe stops it
+  ok   code-owned without --mandate stops it
+  ok   code-owned with --mandate approves and merges
+  ok   the mandate body names the label, role, paths, verdict comment and head
+  FAIL code-owned with a budget file is not mandate-approved
+  FAIL approval-carry fires: the clean recarry's head gets the owner's approval re-posted with the carry line, and the entry merges
+  ok   #2209's shape (approval-carry on): the owner's approval GitHub re-anchored to the recarried head is the owner's at that head -- the budget entry lands with nothing re-posted
+  ok   #2209's shape (approval-carry off): the owner's approval GitHub re-anchored to the recarried head is the owner's at that head -- the budget entry lands with nothing re-posted
+  FAIL #2209's shape MUTATION (the mandate re-read at the merge): a re-anchored approval under an expired mandate stops exactly as today
+  FAIL approval-carry across a main-moved recovery: the owner's approval at the FIRST head carries to the second recarry's head, its delta read from that first head
+  FAIL approval-carry MUTATION (the diff-empty check): a recarry delta naming a branch-own file is a conflict resolution, and it stops exactly as today
+  FAIL approval-carry MUTATION (the mandate in-force check): a mandate expired before the merge re-reads as none, and it stops exactly as today
+  FAIL approval-carry with no owner APPROVED review at h0 behaves as today
+  FAIL approval-carry with the owner's approval on another commit does not carry
+  FAIL approval-carry with an owner review citing no mandate does not carry
+  FAIL approval-carry FLAG OFF: the same qualifying world stops exactly as today -- the default train is byte-identical
+  ok   approval-carry with no recarry of this invocation (the head never moved) does not carry: the owner's approval already at the head is the owner's, and nothing is re-posted
+  FAIL ... and with no owner approval at that head it stops exactly as today (null control)
+  FAIL approval-carry whose re-post fails the byte-identical read-back is a Stop, not a pass
+  ok   a missing-evidence refusal is not overridden by a mandate
+  ok   a recarry conflict stops it, named as one
+  ok   a recarry that pushed nothing and left the head where it was stops it (the refusal is real)
+  ok   a recarry refusal whose head nonetheless moved is treated as landed, not a stop
+  ok   a head behind main is recarried, then merged at the new head
+  ok   the recarry announces itself BEFORE remerge_main.sh runs, naming the branch (5-15 min of prepr silence is visible mid-flight)
+  ok   the recarry logs app_push's path line (prepr SKIPPED)
+  ok   the recarry logs app_push's path line (prepr RUNS)
+  ok   a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
+  ok   the bot-head stop is classified BOT-HEAD in the line itself (the remedy text was already exact)
+  ok   a bot head behind main is not refused: the recarry's App push IS the follow-up, and the train goes on at the new head (null control for the refusal above)
+  ok   remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on
+  ok   an absorbed-branch recarry lands in a real fixture repo: the worktree is the branch, the tip gate passes, the merge runs
+  ok   a title preflight refusal stops it before the merge
+  ok   a REFUSE line stops it even beside a clean line
+  ok   the merge is retried until GitHub reports MERGED
+  ok   a merge GitHub never takes stops it
+  ok   every refused merge attempt is logged with GitHub's own words, and the stop names the last
+  ok   a refusal saying the base moved is a MainMoved: recarried, CI again, merged at the new head
+  ok   every attempt refused while main moved past the head (the #2290 shape) is recarried, not stopped
+  ok   ... while the same refusals on a head that still contains main stop as before (null control)
+  ok   a recarry worktree the train made under its state dir is removed at the run's end, never forced
+  ok   ... and a queue entry's own worktree is never touched (null control)
+  ok   the queue runs in order
+  ok   the first refusal stops the queue
+  ok   a blocked verdict echoing the code-owned words is not mandate-approved (B1)
+  ok   a blocked verdict QUOTING app_approve's own code-owned line mid-line is not mandate-approved (anchor)
+  ok   a merge base that exits 0 but is not a sha stops the train
+  ok   the anchored code-owned refusal line still takes the mandate path (null control)
+  ok   another pull request's code-owned line does not take the mandate path for this one
+  ok   a head that moves between the App's refusal and the mandate review stops it
+  ok   a rename that moves a policy file out of the corpus is refused as policy (B2)
+  ok   a failing git diff stops the train (B3)
+  ok   a failing git merge-base stops the train (B3)
+  ok   the required-only head wait does not apply --min-runs: the required set is complete below it, and a head still short of non-required lanes is not held (R9-ADMIT-REQ)
+  ok   action_required is not green
+  ok   stale is not green
+  ok   skipped and neutral are green (null control)
+  ok   the CI read pages past the first 100 runs
+  ok   main moving after approval and before the merge stops it
+  ok   a preflight that never says clean stops it
+  ok   a queue entry with a malformed verdict sha is refused
+  ok   the train's app_approve script is in the tree (tools/audit/app_approve.sh or tools/pr/app_approve.sh)
+  ok   the train's app_push script is in the tree (tools/audit/app_push.sh or tools/pr/app_push.sh)
+  ok   the train's preflight script is in the tree (tools/audit/preflight.sh or tools/pr/preflight.sh)
+  ok   the train's remerge_main script is in the tree (tools/audit/seat/remerge_main.sh)
+  ok   the train's worktree_gc script is in the tree (tools/audit/worktree_gc.sh)
+  ok   the train's mandate reader budget_raise_gate.py is in the tree (.claude/workflows/budget_raise_gate.py or tools/policy/budget_raise_gate.py)
+  ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+  ok   every script the train runs resolves through TOOLS, none by a bare path
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
+  ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
+  ok   batch announces itself in its FIRST line -- tag, pid, base, the queue's PRs -- before any blocking call, so a daemonized launch is attributable from the log's first line
+  ok   a rehearsal base approves nothing and collects no worktree
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree still equals after each merge
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   PERTURBATION: two pull requests each green alone, together past the ratchet: the proof is red, neither pair merges as one; the later goes serial and the first merges unproved (D)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a red with no script: every all-but-one set is proved, and the green one dropping the latest entry merges
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   every all-but-one set red stops the batch with nothing merged
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   workflow, claim, budget and grader changes go serial, by merge_fastpath's classes
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   an entry that conflicts with one before it goes serial; the rest are proved and merge
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   D: a batch of one merges at its head with no proof and no dispatch
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   batch fallback: a policy head with no owner approval at its head stops admission before any proof is spent (the no-mandate fallback, on the batch side)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   batch mandate: the same head is admitted and merges, its approval and mandate RE-READ at the merge itself (admission reads, land reads again)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   the base moving between two merges stops the batch before the second
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --main-moved-tries: a foreign merge before the second merge re-proves the rest on the new main (a fresh proof branch), and they merge on THAT proof's trees
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   the batch recovery is bounded: a main still moving after the re-proof stops, naming the spent bound
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a merge whose tree is not the proof's stops the batch
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a pull request aimed at another base stops the batch
+  ok   required contexts that cannot be read stop the batch before any proof
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a required context the head never receives is a TIMEOUT, which stops it rather than dropping an entry -- now at admission itself, before any proof is spent (R9-ADMIT-REQ)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a red NON-required context (pr-contract, PR_ONLY) does not hold admission: admission waits only the ruleset's required set, as settle/proof already does (R9-ADMIT-REQ)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   admission concludes while a non-required lane is still pending: a batch whose required contexts are green is never held by a lane the ruleset does not require (R9-ADMIT-REQ)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a red REQUIRED context still stops admission (the fixed wait judges the required set, and the ignore list still applies)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a batch entry whose head is a GITHUB_TOKEN bot push goes serial, not into a proof, and its recarry after #1's merge is the App push: it lands
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   ... and with nothing merged before it, main never moved: no recarry is possible and it is refused as before, [BOT-HEAD] (null control)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)
+  ok   a lone entry is not merged while main's tip is red (D's bound needs a green main)
+  ok   a pair on a red main merges nothing and is not bisected: no proof, no drop
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   ... the same pair on a green main is proved and merges (null control)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a proof branch the remote would not delete is reported left, never deleted (R9-RO-9a)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   main's tip going red after the proof and before the first merge stops it: the gate is re-read right before
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   after an unproved merge the train waits for main's run on it, and a red there stops it before anything else lands
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   ... and a green run there lets the serial entry go on (null control: its recarry stops here)
+  ok   a base that is neither main nor batch/ is refused
+  ok   tests.yml is in this tree and takes workflow_dispatch
+  ok   governance.yml is in this tree and takes workflow_dispatch
+  ok   codeql.yml is in this tree and takes workflow_dispatch
+  ok   hassfest.yml is in this tree and takes workflow_dispatch
+  ok   validate.yml is in this tree and takes workflow_dispatch
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --overlap: every serial entry is re-carried UP FRONT -- both recarries happen before the first merge, and the entries still land in queue order
+  ok   the recarry worktrees the batch made in the real clone are gone when it ends (the next run's pre-flight finds no train worktree holding a branch)
+  ok   --overlap: each up-front recarry announces itself before it runs, so the 5-15 min of app_push prepr per entry is visible mid-flight
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   without --overlap the serial path is byte-for-byte today's: the first recarry happens only after the earlier entries merged (recarry one, wait, merge, next)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --overlap never jumps the queue: #2's contexts were green from the start, yet still-pending #1 merged first, after waiting a poll for its own
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --overlap does not wait on main's CI: a red base at step 0 is logged, not fatal
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --overlap starts the batch while main's fresh push run is still in progress: the pre-admission read is ONE pass, logged, never a completion wait (R9-ADMIT-REQ)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --overlap leaves a bot-routed head out of the up-front recarry (main has not moved, so none is possible); it recarries at its turn, after the earlier merges, and lands
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   THE WIRE: under --overlap main_green never invokes the looping wait_ci at main's tip (zero reads; the pre-fix code invoked it once and wedged there); without the flag the blocking wait is called exactly once (R9-ADMIT-REQ)
+  ok   ... and without --overlap the same pending main is still waited to completion, which stops it
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --overlap's at_head wait concludes while a non-required lane stays in_progress at the head (the composed-proof class): the serial landing waits the required set only (R9-ADMIT-REQ)
+  ok   the CLI defaults keep today's train but for the main-moved recovery: none of --skip-bad, --overlap, --approval-carry, --bot-prs, --pre-flight or --free-holders is on until the flag says so; --main-moved-tries is 3 unless given (0 is today's stop)
+  ok   record_row.py takes every option the bot sweep passes, and the record beat merges behind the same --automerge-check ... --head ... --require-green guard
+  ok   --approval-carry is a run flag too, and off by default
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --skip-bad: a queue of [good, bad, good] merges the two goods, reports the bad, and rc is non-zero -- the queue ran to its end with an entry left behind
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a skip carries its block class in the line and in skipped.json
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   without --skip-bad the same bad entry still stops the train before anything merges (the default did not change)
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --skip-bad: a red main still stops everything -- at step 0 and through the merge guard's re-read, both outside the per-entry skip
+/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/mw/R5/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   --skip-bad: a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is not merged onto an unread tree
+merge_train self-test: 171 checks, 12 failed
