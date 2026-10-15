@@ -2,7 +2,7 @@
  "_comment": [
   "Round-10 fix wave (Phase 3). Inputs: ISSUES.json and JUDGE.json on handoff/audit-r10-register (PR #2244, head d23205d13); CATCHUP-JUDGE.json at 33ffa7aa9; issues #2219-#2243; the orchestrator's plan (owner-reported, study, instrument and arch groups).",
   "One entry per pull request. Grouped by class first, then classes touching the same owning seam merged; a group that would span more than one owning module is split, so a class issue can sit in several groups. `fixes` names the issues a group closes because it is the deepest group holding them (wave depth); the body says Part of for the rest. Where two holders are unordered and the deeper one merges first, the orchestrator moves the closing keyword to the last merge and verifies the close.",
-  "`pending_issues` holds issues not yet filed: ISSUE:<class> for the four class issues another seat is filing (N-leaf-imports-solver, N-restore-race, N-order-coupling, N-solve-recompute), and DRAFT:<group> for drafts in dev/audit/rounds/round10/ROSTER-ISSUES.json that the orchestrator files. On filing, wire the number with roster_edit.py wire-issue and drop the token. The roster check: no group without an issue or a pending token, and no open round-10 issue without a group.",
+  "Every group holds at least one filed issue. The 22 group issues from dev/audit/rounds/round10/ROSTER-ISSUES.json (#2252-#2273) and the four class issues N-leaf-imports-solver, N-restore-race, N-order-coupling and N-solve-recompute (#2247-#2250) are wired into `issues`; no pending token remains. The roster check: no group without an issue, and no open round-10 issue without a group.",
   "`files` is the conflict map's input and `after` serialises every pair of groups sharing a file, except the shared test and record files every group appends to (tests/features.py, tests/entities.py, tests/seam_map.json, tests/finite_boundary.py, tests/guard_pins.py, tests/dst_checks.py, tests/arch_score_head.py, tests/structure_budgets.json, the mutation ledger): a conflict there is a rebase the fixer seat resolves at its own merge base, re-deriving every budget figure.",
   "Hot files (const.py, coordinator.py, optimizer.py, config_flow.py, the card script) carry an architect note in each group's brief (orchestrator.md section 5, fixer.md step 17).",
   "Ordering rules applied: high and critical first; structure-reducing groups before code-adding ones; defect fixes before the large arch moves on the same files; the deep-link helper before UX-SETUP, UX-HEALTH and ADVISOR; RATIO-SITES before SCORES, the identifiability groups and TRUST-RELATIVE; HEAT-METER before COP-GATE; ARCHSCORE-COVERAGE before the D7 M7/M8 policy fold (R10-BRIEFS-FOLD).",
@@ -38,10 +38,8 @@
    "kind": "defect",
    "issues": [
     2242,
-    2243
-   ],
-   "pending_issues": [
-    "ISSUE:N-leaf-imports-solver"
+    2243,
+    2247
    ],
    "fixes": [],
    "findings": [
@@ -89,7 +87,7 @@
     "Choose the unit by climate domain, not by the target attribute: P2 still falls back to the state unit when a degF climate has no target attribute or it is None. The catch-up judge recorded this residual (CATCHUP-JUDGE.md at 33ffa7aa9); a test with the target attribute absent is owed.",
     "Null control: the same harness on a degC install reads 0 before and after (`dev/audit/rounds/round10/D12/s3/surface_units.py` at d23205d13)."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 1 of 24; before you: none; next: R10-FEEDS, R10-RATIO-SITES). Owning seam in this group: `_command_valve_target` and the set-point write path only. Shape: route every set-point write through the inputs owner; no new state on the coordinator. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 1 of 25; before you: none; next: R10-TARIFF, R10-FEEDS). Owning seam in this group: `_command_valve_target` and the set-point write path only; `_roll_month`'s monthly booking belongs to R10-TARIFF, which merges next on coordinator.py. Shape: route every set-point write through the inputs owner; no new state on the coordinator. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-fahrenheit",
@@ -110,7 +108,6 @@
     2233,
     2236
    ],
-   "pending_issues": [],
    "fixes": [
     2226,
     2229,
@@ -125,7 +122,7 @@
    "class": "N-no-expiry,N-silent-zero,N-log-flood,P1",
    "severity": "high",
    "size": "L",
-   "wave": 2,
+   "wave": 3,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/price_model.py",
@@ -151,14 +148,14 @@
     "R10-N-log-flood"
    ],
    "after": [
-    "R10-FAHRENHEIT"
+    "R10-TARIFF"
    ],
    "carry": [
     "RCAs are on the register: `dev/audit/rca/R10-N-no-expiry.md` and `dev/audit/rca/R10-N-log-flood.md` at d23205d13. Their countermeasure is built in THIS pull request, not a later one.",
     "Owed for the D1 dimension, not for you: the D1 brief edit (step 3 checks the published and booked value, not only the plan) lands in R10-BRIEFS-FOLD.",
     "Null control: a covered cycle (a fresh price exists) must still publish exactly as at the merge base; the finder's covered-control arm reads 2 before and after."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 2 of 24; before you: R10-FAHRENHEIT; next: R10-RATIO-SITES, R10-VENT-DETECTOR). Owning seam in this group: the price and weather ingest methods named above. Shape: an age-bounded last-known holder plus a distinct failure value; no new coordinator attributes beyond one holder (coordinator_attrs is at zero headroom). Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 3 of 25; before you: R10-FAHRENHEIT, R10-TARIFF; next: R10-RATIO-SITES, R10-VENT-DETECTOR). Owning seam in this group: the price and weather ingest methods named above. Shape: an age-bounded last-known holder plus a distinct failure value; no new coordinator attributes beyond one holder (coordinator_attrs is at zero headroom). Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-feeds",
@@ -176,7 +173,6 @@
    "issues": [
     2239
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "D2-s1-71 (D-1)",
@@ -185,7 +181,7 @@
    "class": "P3",
    "severity": "low",
    "size": "S",
-   "wave": 3,
+   "wave": 4,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/payload.py",
@@ -215,7 +211,7 @@
     "Null control: ratio 1.0 drives the error to 0.0000 (`--ratio 1.0` on the reseed harness).",
     "This group precedes R10-SCORES, the identifiability groups (R10-VENT-DETECTOR, R10-NIGHT-FOLDS, R10-LEARNER-ETA, R10-COP-GATE) and R10-TRUST-RELATIVE, which read the same inputs."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 3 of 24; before you: R10-FAHRENHEIT, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 25; before you: R10-TARIFF, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-ratio-sites",
@@ -233,7 +229,6 @@
    "issues": [
     2241
    ],
-   "pending_issues": [],
    "fixes": [
     2241
    ],
@@ -243,7 +238,7 @@
    "class": "P5",
    "severity": "medium",
    "size": "M",
-   "wave": 4,
+   "wave": 5,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py"
    ],
@@ -270,7 +265,7 @@
     "Null control: delivery 1.0 reads 0 trips before and after; the fix must keep a real open-window signature tripping (plant one).",
     "R10-NIGHT-FOLDS (G-ID-1) runs after this group and is re-measured on the owner's bundle once both land; the deferred joint estimator (G-ID-5) is decided only after that re-measurement."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 24; before you: R10-FEEDS, R10-RATIO-SITES; next: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR). Owning seam in this group: `_vent_cusum` and `_learning_frozen`. Shape: a detector input independent of the replay residual. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 5 of 25; before you: R10-FEEDS, R10-RATIO-SITES; next: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR). Owning seam in this group: `_vent_cusum` and `_learning_frozen`. Shape: a detector input independent of the replay residual. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-vent-detector",
@@ -288,7 +283,6 @@
    "issues": [
     2223
    ],
-   "pending_issues": [],
    "fixes": [
     2223
    ],
@@ -298,7 +292,7 @@
    "class": "N-confounded-learner",
    "severity": "medium",
    "size": "M",
-   "wave": 5,
+   "wave": 6,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/accuracy.py"
@@ -329,7 +323,7 @@
     "Null control: the flat-irradiance arm reads spread 0.0000 before and after.",
     "Owed for the D2 dimension, not for you: step 5 tests learners under error in the other covariate; it lands in R10-BRIEFS-FOLD."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 5 of 24; before you: R10-RATIO-SITES, R10-VENT-DETECTOR; next: R10-RATIO-ANCHOR, R10-INPUT-STALENESS). Owning seam in this group: the heat-loss fold methods named above. Shape: a night-interval predicate at the fold; no new learner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 6 of 25; before you: R10-RATIO-SITES, R10-VENT-DETECTOR; next: R10-RATIO-ANCHOR, R10-INPUT-STALENESS). Owning seam in this group: the heat-loss fold methods named above. Shape: a night-interval predicate at the fold; no new learner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-night-folds",
@@ -347,7 +341,6 @@
    "issues": [
     2239
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "D12-s2-71 (D-3)",
@@ -356,7 +349,7 @@
    "class": "P3",
    "severity": "medium",
    "size": "M",
-   "wave": 6,
+   "wave": 7,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/store.py",
@@ -388,7 +381,7 @@
     "Lead for the sysid stage (fails safe, not owed): at scale 1.3 with ratio at least 1.2 the production experiment aborts as drifted beyond its excursion.",
     "Null control: ratio 1.0 reads 0.0000 on both zones."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 1 of 3; before you: none; next: R10-HEAT-METER, R10-CONFIGFLOW-PAGES); coordinator.py (position 6 of 24; before you: R10-VENT-DETECTOR, R10-NIGHT-FOLDS; next: R10-INPUT-STALENESS, R10-CURRENCY). Owning seam in this group: the options-save path and the stored ratio. Shape: re-anchor at the write of the prior; no new coordinator state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 1 of 3; before you: none; next: R10-HEAT-METER, R10-CONFIGFLOW-PAGES); coordinator.py (position 7 of 25; before you: R10-VENT-DETECTOR, R10-NIGHT-FOLDS; next: R10-INPUT-STALENESS, R10-CURRENCY). Owning seam in this group: the options-save path and the stored ratio. Shape: re-anchor at the write of the prior; no new coordinator state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-ratio-anchor",
@@ -406,7 +399,6 @@
    "issues": [
     2234
    ],
-   "pending_issues": [],
    "fixes": [
     2234
    ],
@@ -416,7 +408,7 @@
    "class": "N-staleness",
    "severity": "medium",
    "size": "S",
-   "wave": 7,
+   "wave": 8,
    "files": [
     "custom_components/heatpump_optimizer/const.py",
     "custom_components/heatpump_optimizer/coordinator.py"
@@ -447,7 +439,7 @@
     "RCA `dev/audit/rca/R10-N-staleness.md` at d23205d13; its countermeasure ships here.",
     "Null control: the finder's unbounded max-age arm reads 0 and 0; a polling source must still go stale on the bound it has today."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: const.py (position 1 of 2; before you: none; next: R10-HEAT-METER); coordinator.py (position 7 of 24; before you: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR; next: R10-CURRENCY, R10-STORE). Owning seam in this group: the max-age table and the freshness check that reads it. Shape: one freshness rule keyed on the source's reporting kind. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: const.py (position 1 of 2; before you: none; next: R10-HEAT-METER); coordinator.py (position 8 of 25; before you: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR; next: R10-CURRENCY, R10-STORE). Owning seam in this group: the max-age table and the freshness check that reads it. Shape: one freshness rule keyed on the source's reporting kind. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-input-staleness",
@@ -466,7 +458,6 @@
     2222,
     2243
    ],
-   "pending_issues": [],
    "fixes": [
     2222,
     2243
@@ -479,7 +470,7 @@
    "class": "P8,I5",
    "severity": "medium",
    "size": "S",
-   "wave": 8,
+   "wave": 9,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/narrative.py",
@@ -507,7 +498,7 @@
    "carry": [
     "Null control: the reintroduce arm of the finder's harness reads 14 and the clean arm 0 (`dev/audit/rounds/round10/D14/s3/p8_replay_currency.py` at d23205d13); both must hold after the fix."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 8 of 24; before you: R10-RATIO-ANCHOR, R10-INPUT-STALENESS; next: R10-STORE, R10-LEAF-IMPORTS). Owning seam in this group: `_narrative_view` money rendering. Shape: read the currency from one owner; delete the local precedence. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 9 of 25; before you: R10-RATIO-ANCHOR, R10-INPUT-STALENESS; next: R10-STORE, R10-LEAF-IMPORTS). Owning seam in this group: `_narrative_view` money rendering. Shape: read the currency from one owner; delete the local precedence. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-currency",
@@ -528,7 +519,6 @@
     2236,
     2238
    ],
-   "pending_issues": [],
    "fixes": [
     2224
    ],
@@ -542,7 +532,7 @@
    "class": "N-future-clamp,P1,N-shared-config,P2",
    "severity": "low",
    "size": "M",
-   "wave": 9,
+   "wave": 10,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/store.py",
@@ -576,7 +566,7 @@
     "Null control for P3: perturbing the quarantine to ignore poisoned keys moves 0 to 1764; it must read 0 after.",
     "R10-DIAG-REPLAY edits the debugger and the replay tools after you; leave their interfaces as P3 left them."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 9 of 24; before you: R10-INPUT-STALENESS, R10-CURRENCY; next: R10-LEAF-IMPORTS, R10-TRUST-RELATIVE). Owning seam in this group: the store wiring (snapshot store, save digest, price-learner days). Shape: the store owns load, save and report rules; the coordinator only calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 10 of 25; before you: R10-INPUT-STALENESS, R10-CURRENCY; next: R10-LEAF-IMPORTS, R10-TRUST-RELATIVE). Owning seam in this group: the store wiring (snapshot store, save digest, price-learner days). Shape: the store owns load, save and report rules; the coordinator only calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-store",
@@ -595,7 +585,6 @@
     2230,
     2238
    ],
-   "pending_issues": [],
    "fixes": [
     2230
    ],
@@ -608,13 +597,15 @@
    "class": "N-period-rollover,P2",
    "severity": "medium",
    "size": "M",
-   "wave": 1,
+   "wave": 2,
    "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/tariff.py",
     "custom_components/heatpump_optimizer/grid_fee.py",
     "custom_components/heatpump_optimizer/optimizer.py"
    ],
    "hot_files": [
+    "coordinator.py",
     "optimizer.py"
    ],
    "fixerModel": "opus",
@@ -630,12 +621,14 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-FAHRENHEIT"
+   ],
    "carry": [
     "P5 edits the peak keyword arguments in the optimizer; R10-LEAF-IMPORTS and R10-SOLVER edit the optimizer after you.",
     "Null control: closing before the reset must not change a period with no open window."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: optimizer.py (position 1 of 4; before you: none; next: R10-LEAF-IMPORTS, R10-SAV-REASONS). Owning seam in this group: the peak-day keyword arguments only. Shape: one billing record. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chains: coordinator.py (position 2 of 25; before you: R10-FAHRENHEIT; next: R10-FEEDS, R10-RATIO-SITES); optimizer.py (position 1 of 4; before you: none; next: R10-LEAF-IMPORTS, R10-SAV-REASONS). Owning seams in this group: the peak-day keyword arguments in optimizer.py, and `_roll_month`'s monthly booking in coordinator.py (the #2230 fix) and nothing else in coordinator.py. Shape: one billing record. Touch only the owning seams named here; a hunk outside them is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-tariff",
@@ -650,9 +643,8 @@
    "group": "R10-LEAF-IMPORTS",
    "lane": "PS",
    "kind": "arch",
-   "issues": [],
-   "pending_issues": [
-    "ISSUE:N-leaf-imports-solver"
+   "issues": [
+    2247
    ],
    "fixes": [],
    "findings": [
@@ -662,7 +654,7 @@
    "class": "N-leaf-imports-solver",
    "severity": "low",
    "size": "M",
-   "wave": 10,
+   "wave": 11,
    "files": [
     "custom_components/heatpump_optimizer/drift.py",
     "custom_components/heatpump_optimizer/accuracy.py",
@@ -700,7 +692,7 @@
     "Measured gain is import time for tests and tools (store import 447 to 213 ms); Home Assistant loads the coordinator anyway, so claim no runtime gain. Re-take any timing quiet.",
     "Null control: the runtime-closure harness reads the optimizer OUT of every leaf after, and the revert arm reads it back IN."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 10 of 24; before you: R10-CURRENCY, R10-STORE; next: R10-TRUST-RELATIVE, R10-FREQ-DEFROST); optimizer.py (position 2 of 4; before you: R10-TARIFF; next: R10-SAV-REASONS, R10-SOLVER). Owning seam in this group: import edges only (no behaviour). Shape: move symbols to their leaf owners; re-export nothing. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 11 of 25; before you: R10-CURRENCY, R10-STORE; next: R10-TRUST-RELATIVE, R10-FREQ-DEFROST); optimizer.py (position 2 of 4; before you: R10-TARIFF; next: R10-SAV-REASONS, R10-SOLVER). Owning seam in this group: import edges only (no behaviour). Shape: move symbols to their leaf owners; re-export nothing. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-leaf-imports",
@@ -715,9 +707,8 @@
    "group": "R10-TRUST-RELATIVE",
    "lane": "LR",
    "kind": "study",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-TRUST-RELATIVE"
+   "issues": [
+    2252
    ],
    "fixes": [],
    "findings": [
@@ -726,7 +717,7 @@
    "class": "study",
    "severity": "medium",
    "size": "M",
-   "wave": 11,
+   "wave": 12,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/accuracy.py"
@@ -754,7 +745,7 @@
     "Null control: a house whose settings already match the learned values must show the same learner variance and forecast error before and after.",
     "Re-measure on the owner's bundle stores; the study's figures are snapshots."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 11 of 24; before you: R10-STORE, R10-LEAF-IMPORTS; next: R10-FREQ-DEFROST, R10-LOOP-CPU). Owning seam in this group: the trust-region clamp in the heat-loss learners. Shape: one relative clamp. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 12 of 25; before you: R10-STORE, R10-LEAF-IMPORTS; next: R10-FREQ-DEFROST, R10-LOOP-CPU). Owning seam in this group: the trust-region clamp in the heat-loss learners. Shape: one relative clamp. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-trust-relative",
@@ -770,10 +761,8 @@
    "lane": "UI",
    "kind": "owner",
    "issues": [
-    2238
-   ],
-   "pending_issues": [
-    "DRAFT:R10-DEEPLINK"
+    2238,
+    2253
    ],
    "fixes": [],
    "findings": [
@@ -823,10 +812,8 @@
    "kind": "owner",
    "issues": [
     2222,
-    2238
-   ],
-   "pending_issues": [
-    "DRAFT:R10-UX-SETUP"
+    2238,
+    2254
    ],
    "fixes": [],
    "findings": [
@@ -883,7 +870,6 @@
    "issues": [
     2238
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "D7-s2-01"
@@ -891,7 +877,7 @@
    "class": "P2",
    "severity": "low",
    "size": "S",
-   "wave": 12,
+   "wave": 13,
    "files": [
     "custom_components/heatpump_optimizer/freq_control.py",
     "custom_components/heatpump_optimizer/coordinator.py"
@@ -918,7 +904,7 @@
    "carry": [
     "Null control: the clean arm reads 8 before; the perturbed arm 0. A non-defrost interval must still fold."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 12 of 24; before you: R10-LEAF-IMPORTS, R10-TRUST-RELATIVE; next: R10-LOOP-CPU, R10-SAV-BASELINE). Owning seam in this group: `_observe_frequency`. Shape: one defrost predicate, owned by the frequency map. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 13 of 25; before you: R10-LEAF-IMPORTS, R10-TRUST-RELATIVE; next: R10-LOOP-CPU, R10-SAV-BASELINE). Owning seam in this group: `_observe_frequency`. Shape: one defrost predicate, owned by the frequency map. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-freq-defrost",
@@ -936,7 +922,6 @@
    "issues": [
     2237
    ],
-   "pending_issues": [],
    "fixes": [
     2237
    ],
@@ -946,7 +931,7 @@
    "class": "P10",
    "severity": "low",
    "size": "S",
-   "wave": 13,
+   "wave": 14,
    "files": [
     "custom_components/heatpump_optimizer/away.py",
     "custom_components/heatpump_optimizer/coordinator.py"
@@ -974,7 +959,7 @@
     "Null control: with the deficit at 0 the count reads 0 before and after.",
     "R10-LIVESTATE edits the away override path after you; do not reshape it here."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 13 of 24; before you: R10-TRUST-RELATIVE, R10-FREQ-DEFROST; next: R10-SAV-BASELINE, R10-SAV-REASONS). Owning seam in this group: `_replay_interval` call site. Shape: offload, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 14 of 25; before you: R10-TRUST-RELATIVE, R10-FREQ-DEFROST; next: R10-SAV-BASELINE, R10-SAV-REASONS). Owning seam in this group: `_replay_interval` call site. Shape: offload, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-loop-cpu",
@@ -989,9 +974,8 @@
    "group": "R10-SAV-BASELINE",
    "lane": "SV",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-SAV-BASELINE"
+   "issues": [
+    2255
    ],
    "fixes": [],
    "findings": [
@@ -1000,7 +984,7 @@
    "class": "owner",
    "severity": "medium",
    "size": "L",
-   "wave": 14,
+   "wave": 15,
    "files": [
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/coordinator.py",
@@ -1029,7 +1013,7 @@
     "Null control (owner-required): savings read about 0 on a flat-price profile.",
     "R10-SCORES and R10-ADVISOR read these figures after you; one view of savings."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 14 of 24; before you: R10-FREQ-DEFROST, R10-LOOP-CPU; next: R10-SAV-REASONS, R10-ADVISOR). Owning seam in this group: `_contract_comparison`, `_baseline_house_load`, the month freeze. Shape: the ledger owns the month figures; the coordinator reads them. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 15 of 25; before you: R10-FREQ-DEFROST, R10-LOOP-CPU; next: R10-SAV-REASONS, R10-ADVISOR). Owning seam in this group: `_contract_comparison`, `_baseline_house_load`, the month freeze. Shape: the ledger owns the month figures; the coordinator reads them. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-sav-baseline",
@@ -1044,9 +1028,8 @@
    "group": "R10-SAV-REASONS",
    "lane": "SV",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-SAV-REASONS"
+   "issues": [
+    2256
    ],
    "fixes": [],
    "findings": [
@@ -1055,7 +1038,7 @@
    "class": "owner",
    "severity": "medium",
    "size": "M",
-   "wave": 15,
+   "wave": 16,
    "files": [
     "custom_components/heatpump_optimizer/narrative.py",
     "custom_components/heatpump_optimizer/coordinator.py",
@@ -1087,7 +1070,7 @@
     "Null control: on a flat-price profile no category may carry a cost a different category would not.",
     "The R10-I1 sweep lists unexercised guards in the same classification functions; any test added there is R10-I1's, not yours."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 15 of 24; before you: R10-LOOP-CPU, R10-SAV-BASELINE; next: R10-ADVISOR, R10-SCORES); optimizer.py (position 3 of 4; before you: R10-TARIFF, R10-LEAF-IMPORTS; next: R10-SOLVER). Owning seam in this group: reason tagging at booking and at classification. Shape: every booked interval carries one reason code from the shared vocabulary. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 16 of 25; before you: R10-LOOP-CPU, R10-SAV-BASELINE; next: R10-ADVISOR, R10-SCORES); optimizer.py (position 3 of 4; before you: R10-TARIFF, R10-LEAF-IMPORTS; next: R10-SOLVER). Owning seam in this group: reason tagging at booking and at classification. Shape: every booked interval carries one reason code from the shared vocabulary. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-sav-reasons",
@@ -1102,9 +1085,8 @@
    "group": "R10-ADVISOR",
    "lane": "UI",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-ADVISOR"
+   "issues": [
+    2257
    ],
    "fixes": [],
    "findings": [
@@ -1113,7 +1095,7 @@
    "class": "owner",
    "severity": "medium",
    "size": "M",
-   "wave": 16,
+   "wave": 17,
    "files": [
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
     "custom_components/heatpump_optimizer/coordinator.py"
@@ -1143,7 +1125,7 @@
     "Null control: savings about 0 on a flat-price profile.",
     "The what-if delta is computed from noisy single solves; say in the pull request how the horizon removes the noise, with numbers."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 16 of 24; before you: R10-SAV-BASELINE, R10-SAV-REASONS; next: R10-SCORES, R10-LIVESTATE); heatpump-optimizer-card.js (position 3 of 5; before you: R10-DEEPLINK, R10-UX-SETUP; next: R10-SCORES, R10-UX-HEALTH). Owning seam in this group: the advisor what-if and its card section. Shape: a horizon-averaged delta with a sign check before render. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 25; before you: R10-SAV-BASELINE, R10-SAV-REASONS; next: R10-SCORES, R10-LIVESTATE); heatpump-optimizer-card.js (position 3 of 5; before you: R10-DEEPLINK, R10-UX-SETUP; next: R10-SCORES, R10-UX-HEALTH). Owning seam in this group: the advisor what-if and its card section. Shape: a horizon-averaged delta with a sign check before render. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-advisor",
@@ -1159,10 +1141,8 @@
    "lane": "UI",
    "kind": "owner",
    "issues": [
-    2238
-   ],
-   "pending_issues": [
-    "DRAFT:R10-SCORES"
+    2238,
+    2258
    ],
    "fixes": [],
    "findings": [
@@ -1172,7 +1152,7 @@
    "class": "owner,P2",
    "severity": "medium",
    "size": "L",
-   "wave": 17,
+   "wave": 18,
    "files": [
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
     "custom_components/heatpump_optimizer/coordinator.py",
@@ -1204,7 +1184,7 @@
     "R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them.",
     "The card rendering of the dash states joins R10-UX-HEALTH."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 18 of 25; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-scores",
@@ -1222,7 +1202,6 @@
    "issues": [
     2231
    ],
-   "pending_issues": [],
    "fixes": [
     2231
    ],
@@ -1278,7 +1257,6 @@
     2232,
     2238
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "D2-s2-01",
@@ -1327,10 +1305,8 @@
    "lane": "AR",
    "kind": "arch",
    "issues": [
-    2232
-   ],
-   "pending_issues": [
-    "ISSUE:N-restore-race"
+    2232,
+    2248
    ],
    "fixes": [],
    "findings": [
@@ -1346,7 +1322,7 @@
    "class": "N-shared-config,N-restore-race",
    "severity": "medium",
    "size": "XL",
-   "wave": 18,
+   "wave": 19,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/away.py",
@@ -1385,7 +1361,7 @@
     "No golden drift was measured on the union; re-check with tests/golden.py at your merge base.",
     "Mutation-ledger re-key and a quiet-window stress re-take are owed."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 18 of 24; before you: R10-ADVISOR, R10-SCORES; next: R10-CONFIG-NOTICES, R10-PARAMS-OWNER). Owning seam in this group: `_current_state`, the away state, the event callbacks, the price-tile cursor. Shape: copy, then publish whole; no in-place writes to published state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 19 of 25; before you: R10-ADVISOR, R10-SCORES; next: R10-CONFIG-NOTICES, R10-PARAMS-OWNER). Owning seam in this group: `_current_state`, the away state, the event callbacks, the price-tile cursor. Shape: copy, then publish whole; no in-place writes to published state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-livestate",
@@ -1403,7 +1379,6 @@
    "issues": [
     2232
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "ARCH2-s2-P1"
@@ -1411,7 +1386,7 @@
    "class": "N-shared-config",
    "severity": "low",
    "size": "S",
-   "wave": 19,
+   "wave": 20,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/setpoint_check.py"
@@ -1436,7 +1411,7 @@
     "R10-LIVESTATE"
    ],
    "carry": [],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 19 of 24; before you: R10-SCORES, R10-LIVESTATE; next: R10-PARAMS-OWNER, R10-ARCH-SHAPES). Owning seam in this group: the config-notice fields. Shape: move them behind the owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 20 of 25; before you: R10-SCORES, R10-LIVESTATE; next: R10-PARAMS-OWNER, R10-ARCH-SHAPES). Owning seam in this group: the config-notice fields. Shape: move them behind the owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-config-notices",
@@ -1454,7 +1429,6 @@
    "issues": [
     2238
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "D10-s1-51"
@@ -1501,10 +1475,8 @@
    "kind": "instrument",
    "issues": [
     2228,
-    2235
-   ],
-   "pending_issues": [
-    "DRAFT:R10-ARCHSCORE-COVERAGE"
+    2235,
+    2259
    ],
    "fixes": [
     2228
@@ -1564,10 +1536,8 @@
    "lane": "AR",
    "kind": "arch",
    "issues": [
-    2232
-   ],
-   "pending_issues": [
-    "ISSUE:N-order-coupling"
+    2232,
+    2249
    ],
    "fixes": [
     2232
@@ -1580,7 +1550,7 @@
    "class": "N-shared-config,N-order-coupling",
    "severity": "low",
    "size": "XL",
-   "wave": 20,
+   "wave": 21,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/dhw_learning.py",
@@ -1614,7 +1584,7 @@
     "Leads, not owed: two owners of the ECL110 displace limits; a runtime seal on published snapshots (P1b) is a follow-up.",
     "Mutation-ledger re-key and a quiet-window stress re-take are owed."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 20 of 24; before you: R10-LIVESTATE, R10-CONFIG-NOTICES; next: R10-ARCH-SHAPES, R10-LEARNER-ETA). Owning seam in this group: `_thermal_params` and the coordinator context. Shape: one owner, copy-on-write, published whole. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 21 of 25; before you: R10-LIVESTATE, R10-CONFIG-NOTICES; next: R10-ARCH-SHAPES, R10-LEARNER-ETA). Owning seam in this group: `_thermal_params` and the coordinator context. Shape: one owner, copy-on-write, published whole. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-params-owner",
@@ -1633,7 +1603,6 @@
     2238,
     2242
    ],
-   "pending_issues": [],
    "fixes": [
     2242
    ],
@@ -1648,7 +1617,7 @@
    "class": "P2,P6",
    "severity": "low",
    "size": "L",
-   "wave": 18,
+   "wave": 19,
    "files": [
     "custom_components/heatpump_optimizer/sensor.py",
     "custom_components/heatpump_optimizer/entity.py",
@@ -1695,7 +1664,6 @@
     2238,
     2239
    ],
-   "pending_issues": [],
    "fixes": [
     2236,
     2239
@@ -1708,7 +1676,7 @@
    "class": "P2,P3,P1",
    "severity": "low",
    "size": "L",
-   "wave": 21,
+   "wave": 22,
    "files": [
     "custom_components/heatpump_optimizer/dhw_draws.py",
     "custom_components/heatpump_optimizer/dhw_schedule.py",
@@ -1747,7 +1715,7 @@
     "Patch 06 changes the pump arbiter's coercion answers (bool and string policy); state it in the pull request. Bool policy: True is not a number.",
     "Mutation-ledger re-key and a quiet-window stress re-take are owed."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 21 of 24; before you: R10-CONFIG-NOTICES, R10-PARAMS-OWNER; next: R10-LEARNER-ETA, R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 22 of 25; before you: R10-CONFIG-NOTICES, R10-PARAMS-OWNER; next: R10-LEARNER-ETA, R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-arch-shapes",
@@ -1762,9 +1730,8 @@
    "group": "R10-LEARNER-ETA",
    "lane": "LR",
    "kind": "study",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-LEARNER-ETA"
+   "issues": [
+    2260
    ],
    "fixes": [],
    "findings": [
@@ -1773,7 +1740,7 @@
    "class": "study",
    "severity": "medium",
    "size": "M",
-   "wave": 22,
+   "wave": 23,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/payload.py"
@@ -1800,7 +1767,7 @@
    "carry": [
     "Validate against synthetic ground truth (the study's harness); a day count shown for a settling learner is the defect."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 22 of 24; before you: R10-PARAMS-OWNER, R10-ARCH-SHAPES; next: R10-HEAT-METER, R10-COP-GATE). Owning seam in this group: the learner status published to the payload. Shape: read-only view, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 23 of 25; before you: R10-PARAMS-OWNER, R10-ARCH-SHAPES; next: R10-HEAT-METER, R10-COP-GATE). Owning seam in this group: the learner status published to the payload. Shape: read-only view, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-learner-eta",
@@ -1815,9 +1782,8 @@
    "group": "R10-HEAT-METER",
    "lane": "LR",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-HEAT-METER"
+   "issues": [
+    2261
    ],
    "fixes": [],
    "findings": [
@@ -1826,7 +1792,7 @@
    "class": "owner",
    "severity": "medium",
    "size": "XL",
-   "wave": 23,
+   "wave": 24,
    "files": [
     "custom_components/heatpump_optimizer/const.py",
     "custom_components/heatpump_optimizer/config_flow.py",
@@ -1865,7 +1831,7 @@
     "Add the new key's max age through R10-INPUT-STALENESS's freshness rule.",
     "R10-COP-GATE runs after you and handles only installs without a heat meter."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 2 of 3; before you: R10-RATIO-ANCHOR; next: R10-CONFIGFLOW-PAGES); const.py (position 2 of 2; before you: R10-INPUT-STALENESS; next: none); coordinator.py (position 23 of 24; before you: R10-ARCH-SHAPES, R10-LEARNER-ETA; next: R10-COP-GATE). Owning seam in this group: a new input key, its options step, and the COP and house-learner sample sites. Shape: one heat-energy reader module; the coordinator calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 2 of 3; before you: R10-RATIO-ANCHOR; next: R10-CONFIGFLOW-PAGES); const.py (position 2 of 2; before you: R10-INPUT-STALENESS; next: none); coordinator.py (position 24 of 25; before you: R10-ARCH-SHAPES, R10-LEARNER-ETA; next: R10-COP-GATE). Owning seam in this group: a new input key, its options step, and the COP and house-learner sample sites. Shape: one heat-energy reader module; the coordinator calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-heat-meter",
@@ -1880,9 +1846,8 @@
    "group": "R10-COP-GATE",
    "lane": "LR",
    "kind": "study",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-COP-GATE"
+   "issues": [
+    2262
    ],
    "fixes": [],
    "findings": [
@@ -1891,7 +1856,7 @@
    "class": "study",
    "severity": "medium",
    "size": "M",
-   "wave": 24,
+   "wave": 25,
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/sensor.py"
@@ -1920,7 +1885,7 @@
     "Null control: an install whose draw does follow the plan still reaches a COP model.",
     "R10-UX-HEALTH renders the state; the score dash rule is R10-SCORES'."
    ],
-   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 24 of 24; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
+   "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 25 of 25; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-cop-gate",
@@ -1935,9 +1900,8 @@
    "group": "R10-UX-HEALTH",
    "lane": "UI",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-UX-HEALTH"
+   "issues": [
+    2263
    ],
    "fixes": [],
    "findings": [
@@ -1946,7 +1910,7 @@
    "class": "owner",
    "severity": "medium",
    "size": "L",
-   "wave": 25,
+   "wave": 26,
    "files": [
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
     "custom_components/heatpump_optimizer/strings.json",
@@ -1995,7 +1959,6 @@
    "issues": [
     2238
    ],
-   "pending_issues": [],
    "fixes": [
     2238
    ],
@@ -2007,7 +1970,7 @@
    "class": "P2",
    "severity": "low",
    "size": "L",
-   "wave": 24,
+   "wave": 25,
    "files": [
     "custom_components/heatpump_optimizer/config_flow.py"
    ],
@@ -2050,10 +2013,8 @@
    "lane": "AR",
    "kind": "defect",
    "issues": [
-    2240
-   ],
-   "pending_issues": [
-    "ISSUE:N-solve-recompute"
+    2240,
+    2250
    ],
    "fixes": [
     2240
@@ -2066,7 +2027,7 @@
    "class": "P4,N-solve-recompute",
    "severity": "low",
    "size": "M",
-   "wave": 16,
+   "wave": 17,
    "files": [
     "custom_components/heatpump_optimizer/optimizer.py"
    ],
@@ -2113,7 +2074,6 @@
    "issues": [
     2219
    ],
-   "pending_issues": [],
    "fixes": [
     2219
    ],
@@ -2167,7 +2127,6 @@
    "issues": [
     2220
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "D11-s1-01 (D11-s3-01 merged)"
@@ -2216,7 +2175,6 @@
     2220,
     2221
    ],
-   "pending_issues": [],
    "fixes": [
     2220,
     2221
@@ -2269,7 +2227,6 @@
    "issues": [
     2225
    ],
-   "pending_issues": [],
    "fixes": [
     2225
    ],
@@ -2319,7 +2276,6 @@
    "issues": [
     2227
    ],
-   "pending_issues": [],
    "fixes": [
     2227
    ],
@@ -2372,7 +2328,6 @@
    "issues": [
     2235
    ],
-   "pending_issues": [],
    "fixes": [
     2235
    ],
@@ -2424,7 +2379,6 @@
    "issues": [
     2222
    ],
-   "pending_issues": [],
    "fixes": [],
    "findings": [
     "D5-s1-01",
@@ -2482,9 +2436,8 @@
    "group": "R10-TICK-ORCH",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-TICK-ORCH"
+   "issues": [
+    2264
    ],
    "fixes": [],
    "findings": [
@@ -2531,9 +2484,8 @@
    "group": "R10-TICK-DRIVERS",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-TICK-DRIVERS"
+   "issues": [
+    2265
    ],
    "fixes": [],
    "findings": [
@@ -2583,9 +2535,8 @@
    "group": "R10-TICK-TRAIN",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-TICK-TRAIN"
+   "issues": [
+    2266
    ],
    "fixes": [],
    "findings": [
@@ -2629,9 +2580,8 @@
    "group": "R10-PREPR-CAP",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-PREPR-CAP"
+   "issues": [
+    2267
    ],
    "fixes": [],
    "findings": [
@@ -2678,9 +2628,8 @@
    "group": "R10-D15-GRADER",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-D15-GRADER"
+   "issues": [
+    2268
    ],
    "fixes": [],
    "findings": [
@@ -2728,10 +2677,8 @@
    "lane": "IN",
    "kind": "policy",
    "issues": [
-    2222
-   ],
-   "pending_issues": [
-    "DRAFT:R10-BRIEFS-FOLD"
+    2222,
+    2269
    ],
    "fixes": [],
    "findings": [
@@ -2792,9 +2739,8 @@
    "group": "R10-REPLAY-LOOPNORM",
    "lane": "RP",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-REPLAY-LOOPNORM"
+   "issues": [
+    2270
    ],
    "fixes": [],
    "findings": [
@@ -2840,9 +2786,8 @@
    "group": "R10-DIAG-REPLAY",
    "lane": "RP",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-DIAG-REPLAY"
+   "issues": [
+    2271
    ],
    "fixes": [],
    "findings": [
@@ -2851,7 +2796,7 @@
    "class": "owner",
    "severity": "medium",
    "size": "L",
-   "wave": 11,
+   "wave": 12,
    "files": [
     "custom_components/heatpump_optimizer/debugger.py",
     "custom_components/heatpump_optimizer/diagnostics.py",
@@ -2897,9 +2842,8 @@
    "group": "R10-REPLAY-LANE",
    "lane": "RP",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-REPLAY-LANE"
+   "issues": [
+    2272
    ],
    "fixes": [],
    "findings": [
@@ -2908,7 +2852,7 @@
    "class": "owner",
    "severity": "medium",
    "size": "M",
-   "wave": 12,
+   "wave": 13,
    "files": [
     "tests/replay.py",
     ".github/workflows/nightly.yml"
@@ -2949,9 +2893,8 @@
    "group": "R10-REPLAY-SCOPED",
    "lane": "RP",
    "kind": "owner",
-   "issues": [],
-   "pending_issues": [
-    "DRAFT:R10-REPLAY-SCOPED"
+   "issues": [
+    2273
    ],
    "fixes": [],
    "findings": [
@@ -2960,7 +2903,7 @@
    "class": "owner",
    "severity": "low",
    "size": "S",
-   "wave": 13,
+   "wave": 14,
    "files": [
     "tests/replay.py",
     ".github/workflows/tests.yml",
