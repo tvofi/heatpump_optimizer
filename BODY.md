@@ -26,7 +26,7 @@ Alternatives considered:
 
 ## Head
 
-`29a78210097977248eb2fc713c7eb10fdcc73c35`. The branch was cut at `5603ee319` and merged with origin/main twice: `b22db919d`, then `3d650d26c`. Main's delta across both is `tests/closures.json`, `.claude/workflows/audit-find.js` and `dev/` records; no production file changed. The last commit adds the two new harnesses to `tests/harness_headers.py`'s inert reads in `tests/closures.json`. Measurements below name the commit they ran at. Every production file is identical between `5b7225456` and the head (`git diff 5b7225456 HEAD -- custom_components` is empty).
+`532eb85d3580f9f87bfff250342cea21ca6db14e`, the orchestrator's merge of origin/main `78324e4a1` into the seat's handoff head `29a782100`. That merge adds only `dev/programme/delivery/` rows; `git diff 29a782100 532eb85d3 -- custom_components tests tools` is empty, so every figure taken at `29a782100` and earlier describes this tree. The branch was cut at `5603ee319` and merged with origin/main twice: `b22db919d`, then `3d650d26c`. Main's delta across both is `tests/closures.json`, `.claude/workflows/audit-find.js` and `dev/` records; no production file changed. The last commit adds the two new harnesses to `tests/harness_headers.py`'s inert reads in `tests/closures.json`. Measurements below name the commit they ran at. Every production file is identical between `5b7225456` and the head (`git diff 5b7225456 HEAD -- custom_components` is empty).
 
 ## Mutation proof
 
@@ -123,7 +123,10 @@ All runs used the seat venv (python 3.14) at `5b7225456` unless stated otherwise
 
 ## Red checks
 
-none at the push. `prepr.sh` CI PREDICT named two `closures` INERT READS before it: `tests/harness_headers.py` reads the two new harnesses. `open_pr.sh` refused on them, and without a PR no bot run comes. `derive_closures.sh --single tests/harness_headers.py` re-recorded the closure on Darwin, and it moved only the `seconds` field, because the inert dimension is strace-only. The two paths were therefore added to `inert_reads["tests/harness_headers.py"]` by hand (commit `29a782100`). Re-run, `tools/pr/ci_predict.py` prints `no closures or fast red predicted against 3d650d26c762`. The cheaper detector is CI PREDICT itself, which caught it before any push. Any red on this head is answered here when it lands.
+none at the push. `prepr.sh` CI PREDICT named two `closures` INERT READS before it: `tests/harness_headers.py` reads the two new harnesses. `open_pr.sh` refused on them, and without a PR no bot run comes. `derive_closures.sh --single tests/harness_headers.py` re-recorded the closure on Darwin, and it moved only the `seconds` field, because the inert dimension is strace-only. The two paths were therefore added to `inert_reads["tests/harness_headers.py"]` by hand (commit `29a782100`). Re-run, `tools/pr/ci_predict.py` prints `no closures or fast red predicted against 3d650d26c762`. The cheaper detector is CI PREDICT itself, which caught it before any push.
+
+- `mutation` (red at `532eb85d3`): it refuses the 28 unpinned sites this diff adds, the same 28 listed under Unpinned sites and named by `prepr.sh` step 6d before the push. Answer: `ci-autofix.md`'s `mutation-autofix` (`mutation-pins` 1-6, running) pins every site a driver kills, in `ci: pin killed mutants`. A survivor gets its triage under Unpinned sites. Cheaper detector: `prepr.sh` step 6d already lists the sites locally. Its standing cost is nil, so none is owed; the red is the ratchet working.
+- `pr-contract` (red at `532eb85d3`, run 116531242827): `mutation` was red and this section did not name it. This entry answers it. Cheaper detector: none is owed, because `prepr.sh` step 7c reads only reds already pushed, and this one did not exist until CI ran.
 
 ## Forward-carry
 
