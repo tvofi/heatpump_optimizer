@@ -493,6 +493,16 @@ await block('group 11b -- the root-cause class, split by whether a cheaper detec
     // the row agrees with the wave's route only once the vocabulary teaches it.
     t(`the stats histogram keys ${word} as its own row, the same class the wave routes`, key === word && key === r.class, `key=${key} route=${r.class}`)
   }
+  // The split measures nothing unless the reviewer is told which word means
+  // which: the prompt is that definition for a web wave, so each word is pinned
+  // to its own definition (a swap of the two fails both).
+  let prompt = ''
+  await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: async (p, o) => { if (o.label.startsWith('review')) prompt = p; return REVIEW(`Fix review: merge ${'a'.repeat(40)}`)(p, o) } })
+  t('the reviewer prompt defines root-cause-detectable as a red a cheaper detector could have shown before the handoff',
+    /use root-cause-detectable if a detector cheaper than that check could have shown the red before the handoff/.test(prompt), 'definition missing or moved')
+  t('the reviewer prompt defines root-cause-unrecorded as a red whose cheapest detector is the check that went red',
+    /root-cause-unrecorded if the cheapest detector is the check that went red/.test(prompt), 'definition missing or moved')
 })
 await block('group 12', async () => {
   const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
