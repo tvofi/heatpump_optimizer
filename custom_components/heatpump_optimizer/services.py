@@ -931,9 +931,8 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
     user restarting anything.
     """
     data = dict(call.data)
-    # Resolved before anything can return, as every sibling action does: an
-    # empty call naming no config entry, or made with none loaded, is
-    # refused rather than answered "nothing to apply" (D10-s1-51).
+    # Resolved first, as in every sibling: an empty call naming no entry, or
+    # with none loaded, is refused, not "nothing to apply" (D10-s1-51).
     targets = _loaded_entries(hass, data.pop("entry_id", None))
 
     updates: dict[str, Any] = {}
