@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Shared roster parsing and wave logic for the round-9 record tools.
+"""Shared roster parsing and wave logic for the record tools.
 
     import roster_lib  # from tools/audit/seat/; the record tools import it
+    python3 tools/audit/seat/roster_lib.py --self-test
 
-This module is the one place the roster schema is read: the wave computation is
+This module is the one place the roster schema is read, and the one owner of
+which roster a tool reads (`roster_path`). The wave computation is
 `gen_table_rev3.py`'s (handoff/audit-r9-alt:handoff/round9/state/alt), the
 critical path is `dev/audit/rounds/round9/fixplan/gen.py`'s `longest_chain()`, and
 the open-group rule is its own: a group is OPEN while
 `resume.stage not in DONE_STAGES`, so a done group's after-edges count as
-satisfied and stop constraining the groups behind them. Nothing here shells out
-or touches the network; the roster reaches a tool as a parsed dict.
+satisfied and stop constraining the groups behind them. Only `roster_path` and
+`show_roster` shell out (to git); nothing touches the network, and the roster
+reaches a tool as a parsed dict.
 
 Roster shape (dev/audit/rounds/round9/fixplan/gen.py writes it):
   {"groups": [{"group", "lane", "issues", "fixes", "wave", "after", "brief",
@@ -22,32 +25,88 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
+from pathlib import Path
 
 # gen_table_rev3.py's exact open set. A stage the orchestrator records that is
 # not in DONE_STAGES keeps the group open (and its after-edges constraining).
 DONE_STAGES = ("done", "rca-done")
-# The roster's home at closure (R9-CLOSURE-BRANCHES, #2086): the round-9 roster
-# moved into main so its ref could be archived as a tag and deleted. It lands
-# under `dev/programme/rosters/`, the programme-record directory tests/layout.json
-# already reserves for rosters -- NOT `.claude/workflows/`, where the basename
-# `wave-*-groups.json` is scanned as a LIVE web-fix-wave roster by `brief_lint.mjs`
-# (the `briefs` job, which refuses a carry that collides with a live group) and by
-# `check-wave-script.mjs` (the `wave-script` job, which asserts every committed
-# roster's stages are web-fix-wave's vocabulary). The round-9 roster uses the
-# round-9 orchestrator's vocabulary (`handoff`, `fixing`, `deferred`,
-# `not-started`, `rca-done`, `refuted`) and carries none of web-fix-wave's pointer
-# keys, so committing it under `.claude/workflows/` would redden BOTH jobs on
-# main. `.claude/workflows/wave-*-groups.json` stays reserved for a live roster.
-ROSTER_PATH = "dev/programme/rosters/wave-r9-groups.json"
-# Where the roster lived before the closure move. `show_roster` falls back to
-# it, so a caller still pointed at the old ref (`origin/handoff/audit-r9-fixplan`)
-# reads the roster through the transition rather than the neutral phrasing.
-LEGACY_ROSTER_PATHS = (".claude/workflows/wave-r9-groups.json",)
+# WHICH ROSTER -- the one owner (R10-TICK b, d). Every seat tool that reads or
+# edits a roster asks `roster_path()`; none carries a path of its own. A round's
+# roster is `dev/programme/rosters/wave-r<N>-groups.json`, the programme-record
+# directory tests/layout.json reserves for rosters -- NOT `.claude/workflows/`,
+# where the basename `wave-*-groups.json` is scanned as a LIVE web-fix-wave
+# roster by `brief_lint.mjs` and `check-wave-script.mjs`, whose vocabulary the
+# orchestrator's rosters do not use. The default is the NEWEST round present,
+# compared as an integer (`wave-r10` sorts before `wave-r9` as text); a
+# `--roster-path` override wins; no roster at all refuses loudly. A constant
+# path is what kept every tool on the closed round-9 roster after round 10's
+# landed beside it: `git show <r10 ref>:<r9 path>` still succeeds there, since
+# the round-10 tree carries the round-9 file too.
+ROSTERS_DIR = "dev/programme/rosters"
+_ROSTER_NAME = re.compile(r"\Awave-r(\d+)-groups\.json\Z")
+#: The ref a reader defaults to: the roster lives on main once its PR merges.
+DEFAULT_ROSTER_REF = "origin/main"
 
-# A brief opens with an attribution header ("tvofi, 2026-10-04 (...): ") before
-# its first sentence. The one-line description strips it when present.
-_ATTRIBUTION = re.compile(r"\A\s*[A-Za-z][\w .-]{0,40},\s*\d{4}-\d{2}-\d{2}"
-                          r"(?:\s*\([^)]*\))?\s*[:.]\s*")
+
+class RosterNotFound(Exception):
+    """No roster where one was asked for: a refusal, never a silent fallback
+    to some other round's roster."""
+
+
+def roster_round(path: str) -> int:
+    """The round number a roster path names (`.../wave-r10-groups.json` -> 10)."""
+    m = _ROSTER_NAME.match(path.rsplit("/", 1)[-1])
+    if not m:
+        raise RosterNotFound(f"{path!r} is not a wave-r<N>-groups.json roster")
+    return int(m.group(1))
+
+
+def newest_roster(names) -> str | None:
+    """Of the paths or basenames given, the roster with the highest round, as
+    a `ROSTERS_DIR` path; None when none of them is a roster."""
+    found = [(int(m.group(1)), m.group(0)) for n in names
+             if (m := _ROSTER_NAME.match(str(n).rsplit("/", 1)[-1]))]
+    return f"{ROSTERS_DIR}/{max(found)[1]}" if found else None
+
+
+def _git(repo: str, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", repo, *args], capture_output=True,
+                          text=True)
+
+
+def roster_path(repo: str = ".", ref: str | None = None,
+                override: str | None = None) -> str:
+    """THE answer to "which roster", relative to the repository root.
+
+    `override` (a tool's `--roster-path`) wins, once it is shown to exist.
+    Otherwise the newest `ROSTERS_DIR/wave-r<N>-groups.json` -- in the tree of
+    `ref` when one is given (read with `git ls-tree`, so a ref need not be
+    checked out), else on disk under `repo`, the checkout. A missing override
+    and an absent roster both raise RosterNotFound.
+    """
+    if override:
+        there = (_git(repo, "cat-file", "-e", f"{ref}:{override}").returncode == 0
+                 if ref else (Path(repo) / override).is_file())
+        if not there:
+            raise RosterNotFound(f"--roster-path {override} is not a file at "
+                                 f"{ref or Path(repo).resolve()}")
+        return override
+    if ref:
+        r = _git(repo, "ls-tree", "--name-only", ref, ROSTERS_DIR + "/")
+        if r.returncode:
+            raise RosterNotFound(f"cannot list {ROSTERS_DIR}/ at {ref} in "
+                                 f"{repo}: {(r.stderr or r.stdout).strip()[:200]}")
+        names, where = r.stdout.split(), f"{ref} in {repo}"
+    else:
+        d = Path(repo) / ROSTERS_DIR
+        names = sorted(p.name for p in d.iterdir()) if d.is_dir() else []
+        where = str(Path(repo).resolve())
+    path = newest_roster(names)
+    if path is None:
+        raise RosterNotFound(f"no {ROSTERS_DIR}/wave-r<N>-groups.json at "
+                             f"{where}; pass --roster-path or --roster-ref")
+    return path
 
 
 def load_roster_file(path: str) -> dict:
@@ -55,25 +114,26 @@ def load_roster_file(path: str) -> dict:
         return json.load(fh)
 
 
-def show_roster(repo: str, ref: str) -> dict:
-    """The roster at <ref> of <repo>, through `git show <ref>:ROSTER_PATH`.
+def show_roster(repo: str, ref: str, path: str | None = None) -> dict:
+    """The roster at <ref> of <repo>: `git show <ref>:<roster_path()>`.
 
-    Tries the closure path first, then the pre-closure one, so a ref that has
-    not yet been retargeted (the old `handoff/audit-r9-fixplan`) still reads.
+    `path` is the `--roster-path` override; without it the newest roster in
+    the ref's tree is read. A path the ref does not carry refuses loudly.
     """
-    last = None
-    for path in (ROSTER_PATH, *LEGACY_ROSTER_PATHS):
-        try:
-            out = subprocess.run(["git", "show", f"{ref}:{path}"], check=True,
-                                 capture_output=True, text=True).stdout
-        except subprocess.CalledProcessError as e:  # noqa: PERF203 - path probe
-            last = e
-            continue
-        try:
-            return json.loads(out)
-        except json.JSONDecodeError:
-            continue
-    raise last or FileNotFoundError(f"no roster at {ref}:{ROSTER_PATH}")
+    path = roster_path(repo, ref, path)
+    return json.loads(_git(repo, "show", f"{ref}:{path}").stdout)
+
+
+# A brief opens with an attribution header ("tvofi, 2026-10-04 (...): ") before
+# its first sentence. The one-line description strips it when present.
+_ATTRIBUTION = re.compile(r"\A\s*[A-Za-z][\w .-]{0,40},\s*\d{4}-\d{2}-\d{2}"
+                          r"(?:\s*\([^)]*\))?\s*[:.]\s*")
+
+
+def round_branch(path: str) -> str:
+    """The branch a round's roster edits ride to main on:
+    `handoff/audit-r<N>-roster`, round-10's roster pull request's own."""
+    return f"handoff/audit-r{roster_round(path)}-roster"
 
 
 def groups_of(roster: dict) -> dict:
@@ -197,3 +257,91 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
         if gid and gid == tail:
             return g.get("group")
     return None
+
+
+# ------------------------------------------------------------------ self-test
+def _self_test() -> int:
+    """Which roster, offline in a throwaway repository: the newest of two
+    wins (as an integer, not as text), at a ref and on disk; an override
+    wins; no roster refuses loudly. The ref arm is the R10-TICK defect: a
+    round-10 tree carries the round-9 roster too, and a fixed path read it."""
+    import tempfile
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_environ, throwaway_git_init
+    fails: list[str] = []
+    n = [0]
+
+    def check(name, ok, got=""):
+        n[0] += 1
+        if not ok:
+            fails.append(f"{name} (got: {got})")
+
+    def refuses(call) -> str:
+        try:
+            call()
+        except RosterNotFound as e:
+            return str(e)
+        return ""
+
+    check("round of a path", roster_round(f"{ROSTERS_DIR}/wave-r10-groups.json") == 10)
+    check("newest is numeric, not textual",
+          newest_roster(["wave-r9-groups.json", "wave-r10-groups.json"])
+          == f"{ROSTERS_DIR}/wave-r10-groups.json")
+    check("non-rosters are ignored",
+          newest_roster(["README.md", "wave-r9-groups.json.bak"]) is None)
+    with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "repo"
+        (repo / ROSTERS_DIR).mkdir(parents=True)
+        throwaway_git_init(repo, "-q", "-b", "main")
+
+        def put(rnd: int, gid: str) -> None:
+            (repo / ROSTERS_DIR / f"wave-r{rnd}-groups.json").write_text(
+                json.dumps({"groups": [{"group": gid}]}), encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m",
+                            f"r{rnd}"], check=True)
+
+        (repo / "README.md").write_text("x\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "0"],
+                       check=True)
+        why = refuses(lambda: roster_path(str(repo), "HEAD"))
+        check("no roster at a ref refuses loudly",
+              "no dev/programme/rosters/wave-r<N>-groups.json" in why, why)
+        why = refuses(lambda: show_roster(str(repo), "HEAD"))
+        check("show_roster with no roster refuses, never falls back", why, why)
+        why = refuses(lambda: roster_path(str(Path(td) / "empty")))
+        check("no roster on disk refuses loudly", "--roster-path" in why, why)
+        put(9, "R9-A")
+        put(10, "R10-A")
+        check("two rosters at a ref: the newest",
+              roster_path(str(repo), "HEAD")
+              == f"{ROSTERS_DIR}/wave-r10-groups.json")
+        check("two rosters on disk: the newest",
+              roster_path(str(repo)) == f"{ROSTERS_DIR}/wave-r10-groups.json")
+        got = show_roster(str(repo), "HEAD")
+        check("show_roster reads the newest round's groups",
+              list(groups_of(got)) == ["R10-A"], list(groups_of(got)))
+        got = show_roster(str(repo), "HEAD",
+                          f"{ROSTERS_DIR}/wave-r9-groups.json")
+        check("an override wins over the newest",
+              list(groups_of(got)) == ["R9-A"], list(groups_of(got)))
+        check("an override wins on disk too",
+              roster_path(str(repo), None, "README.md") == "README.md")
+        why = refuses(lambda: show_roster(str(repo), "HEAD", "nope.json"))
+        check("an override the ref lacks refuses loudly", "nope.json" in why, why)
+        why = refuses(lambda: roster_path(str(repo), None, "nope.json"))
+        check("an override the checkout lacks refuses loudly",
+              "nope.json" in why, why)
+        check("the round's roster branch",
+              round_branch(roster_path(str(repo))) == "handoff/audit-r10-roster")
+    print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
+    for f in fails:
+        print("FAIL", f)
+    return 1 if fails else 0
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--self-test"]:
+        sys.exit(_self_test())
+    sys.exit(__doc__)
