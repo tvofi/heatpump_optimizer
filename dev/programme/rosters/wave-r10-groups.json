@@ -2722,7 +2722,8 @@
    ],
    "carry": [
     "Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose.",
-    "If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0)."
+    "If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).",
+    "From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed."
    ],
    "architect_note": null,
    "resume": {
