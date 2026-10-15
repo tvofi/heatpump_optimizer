@@ -29333,13 +29333,17 @@ R.check(
     f"finds nothing is not a pass); faults {[f for v in _SP_FAULTS.values() for f in v]}",
 )
 _sp_unit = "dev/audit/rounds/round4/D12/units.py"
+# The planted stale literal is a file the move map retired, read from the
+# manifest rather than spelled here: a retired path written into a live file is
+# what tests/layout.py's guard refuses.
+_sp_old = next(r["old"] for r in _SP_LAYOUT["retired"]
+               if r["new"] and not r["old"].endswith("/") and Path(r["new"]).is_file())
 R.check(
     "the cited-program arm: a cited harness that runs passes, a planted stale literal "
     "and a planted unloadable citation are refused (null control, perturbation)",
     _sp_unit in _SP_CITED and not _sp_faults(_sp_unit)
-    and _sp_faults(_sp_unit, Path(_sp_unit).read_text() + "\n_X = '.claude/workflows/cfr_exclusions.json'\n")
-    and not _sp_faults(_sp_unit, Path(_sp_unit).read_text()
-                       + "\n_X = locate('.claude/workflows/cfr_exclusions.json')\n")
+    and _sp_faults(_sp_unit, Path(_sp_unit).read_text() + f"\n_X = {_sp_old!r}\n")
+    and not _sp_faults(_sp_unit, Path(_sp_unit).read_text() + f"\n_X = locate({_sp_old!r})\n")
     and _sp_faults("dev/audit/rounds/round4/D11/no_such_harness.py")
     and _sp_cited([("x.md", "run `dev/audit/rounds/round4/D11/dora_keys.py` and "
                             "`tests/golden/config_flow.json`")])
