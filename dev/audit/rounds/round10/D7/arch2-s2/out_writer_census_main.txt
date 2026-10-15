@@ -1,0 +1,121 @@
+_accuracy                                2 _async_load_accuracy, _init_features
+_away_state                              2 _init_features, _resolve_away
+_band_issue_problem                      2 _audit_comfort_band, _init_grid
+_buffer_cooling_rate                     2 _apply_buffer_cooling_rate, _init_thermal_learning
+_buffer_cooling_samples                  4 _async_learn_buffer_cooling, _async_load_thermal_learning, _init_thermal_learning, async_update_thermal_params
+_buffer_heating_since_sample             2 _async_learn_buffer_cooling, _init_thermal_learning
+_capacity_envelope                       2 _apply_learner_payloads, _init_insurance
+_comfort_learner                         3 _apply_learner_payloads, _async_load_accuracy, _init_features
+_cop_ratio_ewma                          2 _fold_measured_cop, _init_measurements
+_cop_samples                             3 _async_load_thermal_learning, _fold_measured_cop, _init_measurements
+_cop_scale                               2 _apply_cop_scale, _init_measurements
+_current_action                          2 _init_runtime_state, adopt_action
+_curve_day                               2 _init_insurance, _track_curve_comfort
+_curve_day_worst                         2 _init_insurance, _track_curve_comfort
+_curve_learner                           3 _apply_learner_payloads, _init_insurance, _load_t4b_learners
+_day_inputs_healthy                      2 _async_watch_learning_drift, _init_insurance
+_defrost                                 3 _apply_learner_payloads, _async_load_accuracy, _init_features
+_dhw_accuracy                            2 _async_load_accuracy, _init_features
+_dhw_temperature                         2 _init_dhw_learning, _update_current_state
+_ecl110_current_displace                 4 _async_handle_ecl110_state_message, _init_ecl110, _update_current_state, async_publish_ecl110_command
+_ecl110_last_payload                     2 _init_ecl110, async_publish_ecl110_command
+_energy_totals_since                     3 _async_load_energy_totals, _build_data_dict, _init_features
+_entry_released                          3 _init_runtime_state, _release_registrations, async_shutdown
+_external_heat_active                    2 _init_features, _update_external_heat_detection
+_external_probe_stale_warned             2 _external_heat_override, _init_features
+_floor_return_temp                       2 _init_runtime_state, _update_current_state
+_flow_bias                               3 _apply_learner_payloads, _init_frequency, _load_t4b_learners
+_freq_fallback                           3 _async_load_thermal_learning, _init_frequency, _observe_frequency
+_freq_last_write                         2 _command_frequency, _init_frequency
+_freq_map                                3 _apply_learner_payloads, _init_frequency, _load_t4b_learners
+_fuse_advisor                            2 _init_grid, _maybe_run_fuse_advisor
+_fuse_advisor_at                         2 _init_grid, _maybe_run_fuse_advisor
+_grid_fee_cache                          2 _grid_fee_schedule, _init_grid
+_grid_fee_issue_value                    2 _audit_grid_fee, _init_grid
+_grid_fee_sign_issue_value               2 _audit_grid_fee, _init_grid
+_guard_last_fold                         2 _init_grid, _on_power_event
+_house_heat_loss_samples                 6 _adopt_system_identification, _async_learn_house_heat_loss, _async_load_thermal_learning, _init_thermal_learning, _reanchor_house_heat_loss_scale, async_update_thermal_params
+_house_heat_loss_scale                   2 _apply_house_heat_loss_scale, _init_thermal_learning
+_immersion_active                        2 _detect_immersion, _init_insurance
+_immersion_clear_count                   2 _detect_immersion, _init_insurance
+_immersion_events                        2 _async_load_thermal_learning, _init_insurance
+_immersion_over_count                    2 _detect_immersion, _init_insurance
+_input_health                            2 _init_measurements, _update_current_state
+_internal_gains_profile                  4 _apply_learner_payloads, _fold_internal_gains, _init_insurance, _load_t4b_learners
+_last_buffer_sample_time                 2 _async_learn_buffer_cooling, _init_thermal_learning
+_last_buffer_temp_sample                 2 _async_learn_buffer_cooling, _init_thermal_learning
+_last_diagnosis                          2 _init_grid, coordinator:_store_diagnosis
+_last_heavy_snow                         3 _async_load_thermal_learning, _init_insurance, _update_snow_memory
+_last_house_sample                       2 _async_learn_house_heat_loss, _init_thermal_learning
+_last_house_sample_time                  2 _async_learn_house_heat_loss, _init_thermal_learning
+_last_interval_record                    2 _init_grid, coordinator:_settle_interval_diag
+_last_manual_setpoint                    2 _init_features, record_setpoint_override
+_last_optimization                       3 _init_runtime_state, async_run_optimization, coordinator:_republish_handover_ages
+_last_simulation                         2 _init_features, async_simulate
+_learner_freeze_reason                   5 _async_learn_buffer_cooling, _async_learn_house_heat_loss, _async_learn_lower_floor_loss, _init_measurements, _update_current_state
+_ledger                                  2 _async_load_ledger, _init_grid
+_lower_floor_issue_raised                2 _audit_lower_floor_sensor, _init_grid
+_lower_floor_loss_ratio                  2 _apply_lower_floor_loss_ratio, _init_thermal_learning
+_lower_floor_loss_samples                3 _async_learn_lower_floor_loss, _async_load_thermal_learning, _init_thermal_learning
+_manual_override                         5 _async_load_manual_plan, _init_features, _manual_pins, async_apply_manual_plan, async_clear_manual_plan
+_measured_cop                            2 _async_load_thermal_learning, _init_measurements
+_measured_energy                         2 _init_measurements, _update_current_state
+_measured_house_power                    2 _init_measurements, _update_current_state
+_measured_power                          2 _init_measurements, _update_current_state
+_mode                                    3 _async_load_accuracy, _init_runtime_state, async_set_mode
+_month_reports                           3 _async_load_ledger, _init_grid, _roll_month
+_next_optimization                       2 _async_update_data, _init_runtime_state
+_open_meteo                              2 _fetch_solar_forecast, _init_runtime_state
+_operation_score                         3 _async_load_ledger, _close_score_day, _init_grid
+_optimization_rerun_requested            2 _init_runtime_state, async_run_optimization
+_optimization_result                     2 _init_runtime_state, async_run_optimization
+_optimization_running                    2 _init_runtime_state, async_run_optimization
+_optimizer                               2 _init_model, async_update_thermal_params
+_outage_dhw_until                        2 _detect_outage, _init_grid
+_outage_recovery_until                   2 _detect_outage, _init_grid
+_peak_tracker                            2 _async_load_accuracy, _init_grid
+_pending_prediction                      2 _init_features, _record_accuracy
+_price_days_seen                         2 _async_load_price_model, _init_grid
+_price_known_steps                       2 _init_grid, _price_series
+_price_model                             3 _apply_learner_payloads, _async_load_price_model, _init_grid
+_price_qdays_seen                        2 _async_load_price_model, _init_grid
+_price_tile_cursor                       2 _init_grid, _maybe_refresh_price_tile
+_prices                                  2 _fetch_tibber_prices, _init_runtime_state
+_pump_mode_expired_notice                2 _check_pump_mode_expired, _init_features
+_pump_mode_last_good                     2 _init_features, _update_current_state
+_pump_mode_last_good_at                  2 _init_features, _update_current_state
+_pump_signals                            2 _init_features, _update_current_state
+_pv_production                           2 _init_grid, _pv_forecast
+_pv_summary                              2 _init_grid, _pv_forecast
+_pv_surplus                              2 _init_grid, _pv_surplus_series
+_refresh_task                            3 _async_update_data, _init_runtime_state, async_shutdown
+_reload_handover                         2 _async_first_refresh_light, _init_runtime_state
+_rollback_done_for_alarm                 2 _async_watch_learning_drift, _init_insurance
+_score_day                               3 _async_load_ledger, _close_score_day, _init_grid
+_simulation_cache                        2 _init_features, async_simulate
+_skip_solve_once                         2 _async_update_data, _init_runtime_state
+_snapshot_ring                           2 _async_load_snapshots, _init_insurance
+_snapshots_loaded                        2 _async_load_snapshots, _init_insurance
+_snow_accum_cm                           3 _async_load_thermal_learning, _init_insurance, _update_snow_memory
+_snow_accum_last                         3 _async_load_thermal_learning, _init_insurance, _update_snow_memory
+_solar_aperture                          2 _apply_learner_payloads, _init_insurance
+_solar_radiation                         2 _init_runtime_state, _update_current_state
+_solar_radiation_forecast                2 _fetch_weather_forecast, _init_runtime_state
+_solve_failures                          3 _init_runtime_state, async_run_optimization, coordinator:_note_solve_failure
+_start_counter                           2 _async_load_ledger, _init_grid
+_thermal_model                           2 _init_model, async_update_thermal_params
+_tibber_outage_cycles                    3 _init_runtime_state, _tibber_fetch_failed, _tibber_fetch_recovered
+_tibber_reauth_started                   3 _init_runtime_state, _tibber_fetch_recovered, _tibber_start_reauth
+_unsub_defrost                           2 _async_setup_defrost_watch, _init_features
+_unsub_ecl110_state                      2 _async_setup_ecl110_state_subscription, _init_ecl110
+_unsub_peak_guard                        2 _async_setup_peak_guard, _init_grid
+_unsub_timer                             2 _init_runtime_state, async_shutdown
+_valve_commanded_target                  2 _command_valve_target, _init_features
+_weather_forecast                        2 _fetch_weather_forecast, _init_runtime_state
+_weather_outage_cycles                   3 _init_runtime_state, _weather_fetch_failed, _weather_fetch_recovered
+_weather_stale_since                     3 _init_runtime_state, _weather_fetch_failed, _weather_fetch_recovered
+currency                                 2 __init__, _update_current_state
+integration_version                      2 __init__:async_setup_entry, _init_runtime_state
+RESULT coordinator_attrs=151 count
+RESULT coordinator_multiassigned_attrs=118 count
+RESULT init_plus_one_mutator=86 count

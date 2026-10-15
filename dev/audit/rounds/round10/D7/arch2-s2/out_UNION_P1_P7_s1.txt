@@ -1,10 +1,10 @@
 base=9061fbd3d710 + ARCH-s1 ALL patches=['UNION_P1_P7.patch']
-Architecture score: dS +5.5236 IMPROVES
+Architecture score: dS +5.5253 IMPROVES
   shared_inplace_writes 12 -> 6  +4.8610
-  coord_footprint 2574 -> 2518  +0.0317
+  coord_footprint 2574 -> 2515  +0.0334
   coordinator_multiassigned_attrs 118 -> 110  +0.1004
   params_over_10 12 -> 8  +0.5305
-RESULT delta_S=+5.5236 weighted-log2
+RESULT delta_S=+5.5253 weighted-log2
 RESULT verdict=IMPROVES
 RESULT admissible=True
 RESULT hub_solve_writes_base=16 count
@@ -26,8 +26,8 @@ RESULT family_splits_base=0 count
 RESULT family_splits_proto=0 count
 RESULT family_splits_term=+0.0000 weighted-log2 (other)
 RESULT coord_footprint_base=2574 count
-RESULT coord_footprint_proto=2518 count
-RESULT coord_footprint_term=+0.0317 weighted-log2 (cell)
+RESULT coord_footprint_proto=2515 count
+RESULT coord_footprint_term=+0.0334 weighted-log2 (cell)
 RESULT coordinator_multiassigned_attrs_base=118 count
 RESULT coordinator_multiassigned_attrs_proto=110 count
 RESULT coordinator_multiassigned_attrs_term=+0.1004 weighted-log2 (cell)
@@ -59,7 +59,7 @@ RESULT cells_share=7.1512 weighted-log2 (every cell cut by 30%, ARCH-s1's defini
 RESULT cells_bar_150pct=10.7268 weighted-log2
 RESULT scope_cells_share=1.5450 weighted-log2 (every cell cut by 30%, ARCH-s1's definition)
 RESULT scope_cells_bar_150pct=2.3175 weighted-log2
-RESULT cells_delta_S=+5.5236 weighted-log2
+RESULT cells_delta_S=+5.5253 weighted-log2
 RESULT thread_factor=1.000
-RESULT load1=68.72
+RESULT load1=4.43
 RESULT swapins=n/a (static count; no timing RESULT)

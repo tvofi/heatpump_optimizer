@@ -58,5 +58,5 @@ RESULT scope_cells_share=1.5450 weighted-log2 (every cell cut by 30%, ARCH-s1's 
 RESULT scope_cells_bar_150pct=2.3175 weighted-log2
 RESULT cells_delta_S=+0.0011 weighted-log2
 RESULT thread_factor=1.000
-RESULT load1=55.81
+RESULT load1=3.34
 RESULT swapins=n/a (static count; no timing RESULT)
