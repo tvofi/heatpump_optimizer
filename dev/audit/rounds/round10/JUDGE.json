@@ -320,32 +320,35 @@
   {
    "id": "D2-s3-72",
    "verdict": "verified",
-   "severity": "high",
-   "value": "vent trips 17.2-18.7 % of intervals at delivery 0.4, 0 at 1.0",
+   "severity": "medium",
+   "value": "vent_tripped_share 0.187 (P0) / 0.172 (P1) at delivery 0.4, 0 at 1.0; production _learning_frozen: 0.984 / 0.983 frozen at 0.4, learner stalls at UA bias +0.19 / +0.18",
    "stop_rule_class": "bug",
    "class": "P5",
    "class_mechanism": "",
-   "note": "Re-run: vent(fix1) 0.187 (P0) and 0.172 (P1) at g0.40, 0.000 at g1.00 on all plants."
+   "note": "Catch-up ruling (R10-ID-02) supersedes the main judge's (verified high bug P5): main judge: verified HIGH -> medium: reach starts below delivery 0.5 (0 at 0.6 and above on both houses), i.e. a meter or COP off by 2x. The catch-up judge (CATCHUP-JUDGE.json) re-ran the harness later on a quieter machine, so its ruling stands over the main judge's (orchestrator ruling, 2026-10-15). Main judge's note: Re-run: vent(fix1) 0.187 (P0) and 0.172 (P1) at g0.40, 0.000 at g1.00 on all plants.",
+   "source": "CATCHUP-JUDGE.json (R10-ID-02) over JUDGE.json"
   },
   {
    "id": "D2-s1-71",
    "verdict": "verified",
-   "severity": "medium",
-   "value": "space demand 43.7 % low (7.741 vs 11.122 kW)",
+   "severity": "low",
+   "value": "space_demand_rel_diff 0.4367 (7.741 vs model-consistent 11.122 kW); V2 -0.2213 at r=1.6",
    "stop_rule_class": "bug",
    "class": "P3",
    "class_mechanism": "",
-   "note": "Same harness as D12-s2-71: space_demand_rel_diff 0.4367; --ratio 1.0: 0."
+   "note": "Catch-up ruling (D-1) supersedes the main judge's (verified medium bug P3): main judge: verified MEDIUM -> low: the only consumer of _space_demand_kw is the external-heat detector's evidence (coordinator.py:4460); the solve and the model do not read it. The catch-up judge (CATCHUP-JUDGE.json) re-ran the harness later on a quieter machine, so its ruling stands over the main judge's (orchestrator ruling, 2026-10-15). Main judge's note: Same harness as D12-s2-71: space_demand_rel_diff 0.4367; --ratio 1.0: 0.",
+   "source": "CATCHUP-JUDGE.json (D-1) over JUDGE.json"
   },
   {
    "id": "D2-s3-73",
-   "verdict": "verified",
+   "verdict": "refuted",
    "severity": "medium",
-   "value": "sysid adopts 614.6 W/K for a 427.8 fit (43.7 % high)",
+   "value": "end to end (production sysid.step + identify_slab + adoption_decision, s=1.0): adopted/true effective UA - 1 = -0.0007 at r=1.6, -0.0006 at r=1.3, -0.0008 at r=1.0; fit heat_loss_kw_per_c 189.9 W/K = (U+L)s",
    "stop_rule_class": "bug",
    "class": "P3",
    "class_mechanism": "",
-   "note": "Same harness: sysid_adopt_effective_rel_err_A 0.4367, B 0; --ratio 1.0: 0."
+   "note": "Catch-up ruling (D-2) supersedes the main judge's (verified medium bug P3): main judge: verified medium P3 -> REFUTED (conflict: the main judge re-ran the finder's oracle, which is the wrong basis). The catch-up judge (CATCHUP-JUDGE.json) re-ran the harness later on a quieter machine, so its ruling stands over the main judge's (orchestrator ruling, 2026-10-15). Main judge's note: Same harness: sysid_adopt_effective_rel_err_A 0.4367, B 0; --ratio 1.0: 0.",
+   "source": "CATCHUP-JUDGE.json (D-2) over JUDGE.json"
   },
   {
    "id": "D3-s1-01",
@@ -551,11 +554,12 @@
    "id": "D7-s2-56",
    "verdict": "verified",
    "severity": "low",
-   "value": "delta_S +1.1717, 68 -> 62",
-   "stop_rule_class": "hygiene",
+   "value": "delta_S +1.1717 (68 -> 62); probe_rerender: 9 cleared stored slots re-render the stored entity at baseline, 0 patched",
+   "stop_rule_class": "bug",
    "class": "P2",
    "class_mechanism": "",
-   "note": "run_findings 08_page reproduced; perturbed 0."
+   "note": "Catch-up ruling (D7-arch2-06) supersedes the main judge's (verified low hygiene P2): main judge: verified low hygiene P2; stop class changed to bug: a cleared entity slot re-renders as the stored entity on a rejected form (9 of 9). The catch-up judge (CATCHUP-JUDGE.json) re-ran the harness later on a quieter machine, so its ruling stands over the main judge's (orchestrator ruling, 2026-10-15). Main judge's note: run_findings 08_page reproduced; perturbed 0.",
+   "source": "CATCHUP-JUDGE.json (D7-arch2-06) over JUDGE.json"
   },
   {
    "id": "D7-s2-57",
@@ -599,13 +603,14 @@
   },
   {
    "id": "D7-s2-61",
-   "verdict": "unreproduced",
+   "verdict": "weakened",
    "severity": "low",
-   "value": "4 implementations, 3 disagreeing states; --sign-blind leaves 3",
+   "value": "4 parsers, 3 disagreeing states (-0.4, 0, 1e400 kW); inf/1e400 -> silent cap 6.0 kW = p_max, identical to a finite 100 kW",
    "stop_rule_class": "hygiene",
-   "class": "P3",
+   "class": "P1",
    "class_mechanism": "",
-   "note": "Perturbation does not move: disagreeing states stay -0.4kW, 0kW, 1e400kW under --sign-blind. Harness void."
+   "note": "Catch-up ruling (D7-arch2-11) supersedes the main judge's (unreproduced low hygiene P3): main judge: unreproduced low hygiene P3 -> now weakened, re-classed P1 (an out-of-domain power reading crosses into the cap unguarded; inf_changes_decision=1). The catch-up judge (CATCHUP-JUDGE.json) re-ran the harness later on a quieter machine, so its ruling stands over the main judge's (orchestrator ruling, 2026-10-15). Main judge's note: Perturbation does not move: disagreeing states stay -0.4kW, 0kW, 1e400kW under --sign-blind. Harness void.",
+   "source": "CATCHUP-JUDGE.json (D7-arch2-11) over JUDGE.json"
   },
   {
    "id": "D7-s3-01",
@@ -659,13 +664,14 @@
   },
   {
    "id": "D7-s3-54",
-   "verdict": "verified",
+   "verdict": "weakened",
    "severity": "low",
-   "value": "578917 wrong reads of 1808075 (32 %; finder 437525/1419348, 31 %)",
-   "stop_rule_class": "bug",
+   "value": "synthetic race leaks 700284 of 2130323 reads (1 us switch), 1077088 of 3876621 at the default 5 ms; production: in_optimize_floorless 0 over 50 solves, off_main_thread 0, loop_floorless 2 (both on the loop)",
+   "stop_rule_class": "hygiene",
    "class": "N-shared-config",
    "class_mechanism": "",
-   "note": "Absolute counts scale with workload; share reproduces. Null idle-writer arm 0; patch arch3-04: 0."
+   "note": "Catch-up ruling (D7-arch3-04) supersedes the main judge's (verified low bug N-shared-config): main judge: verified low BUG -> hygiene: no production reader of the floorless channel runs on another thread, so the race is not reachable today. The catch-up judge (CATCHUP-JUDGE.json) re-ran the harness later on a quieter machine, so its ruling stands over the main judge's (orchestrator ruling, 2026-10-15). Main judge's note: Absolute counts scale with workload; share reproduces. Null idle-writer arm 0; patch arch3-04: 0.",
+   "source": "CATCHUP-JUDGE.json (D7-arch3-04) over JUDGE.json"
   },
   {
    "id": "D8-s1-01",
@@ -676,6 +682,351 @@
    "class": "P2",
    "class_mechanism": "",
    "note": "Re-run 1; --perturb 1 -> 0."
+  },
+  {
+   "id": "D9-s1-01",
+   "verdict": "weakened",
+   "severity": "low",
+   "value": "cont sse/grad 192 (+96 cont_fun) -> 97 fused, total SSE 62121 -> 53717; capture CPU 1379-1395 -> 1307-1323 ms (-5.5 %), 3 interleaved reps, load1 4.6-4.8, thread_factor 1.000",
+   "stop_rule_class": "bug",
+   "class": "N-solve-recompute",
+   "class_mechanism": "",
+   "note": "Reproduced exactly. The 288-vs-97 headline counts a batch row as 1 and a scalar horizon as 96; the verifier's horizon metric (98 vs 97 per gradient) is the honest unit, so votes and finder are not comparable on the headline; decided on CPU: a 5.5-8.7 % share of a two-zone no-DHW solve, value-neutral fix.",
+   "source": "CATCHUP-JUDGE.json (D9-s1-01)"
+  },
+  {
+   "id": "D9-s1-02",
+   "verdict": "refuted",
+   "severity": "low",
+   "value": "max loop gap at load1 3.3-5.2: shipped 11.7-11.8 ms (finder ~124 ms); noyield 11.6-14.1; realsleep 11.5-11.8 (gil.py, 2 runs x 3 reps, thread_factor 1.024-1.038, one 1.062 arm re-taken at 1.032). Interleaved gil_null.py 5 reps, load1 4.89, thread_factor 1.030: shipped 20.6, noyield 11.8, realsleep 11.7, idle 2.2, process 1.3 ms",
+   "stop_rule_class": "bug",
+   "class": "P10",
+   "class_mechanism": "",
+   "note": "Quiet-box re-take the verifier asked for. In-process starvation exists (9x idle) but is ~12-21 ms, and the sleep(0) yield is not the lever the finding names. Void by step 2; the re-measure contradicts the claimed magnitude, so refuted rather than left unreproduced.",
+   "source": "CATCHUP-JUDGE.json (D9-s1-02)"
+  },
+  {
+   "id": "D9-s3-01",
+   "verdict": "verified",
+   "severity": "medium",
+   "value": "flagged_solve_arm 0 of 5 at 2x solve CPU (median x1.984); budget margins 0.62-0.86; load1 3.80, thread_factor 1.002",
+   "stop_rule_class": "bug",
+   "class": "I1",
+   "class_mechanism": "",
+   "note": "Under the gate lease. The quieter box widened the margin (the verifier's 1.000 cell reads 0.86 here), so the blindness is not a load artefact.",
+   "source": "CATCHUP-JUDGE.json (D9-s3-01)"
+  },
+  {
+   "id": "D7-s1-82",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "main: holder_mutated 1, torn_at_await 6, unclamped_at_await 1 (room_thermal_mass 0.1 < floor); V2 mixed 3/3, unclamped_hub 3, unclamped_solve 0",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "Severity low, not the verifier's medium: the solve copy is never torn (unclamped_solve 0) and no production reader is shown at that await. P1's delta_S is partly the D7-s1-83 blind spot (3 of 5 spellings the P1 tree uses are invisible to the census), so the score credit must be re-derived after the census is extended.",
+   "source": "CATCHUP-JUDGE.json (D7-s1-82)"
+  },
+  {
+   "id": "D7-s1-83",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "proto: via_live_model, via_guard_reader, via_learner_reader unseen (23 -> 23); main: all seen (38 -> 39)",
+   "stop_rule_class": "hygiene",
+   "class": "N-structure-blind",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (D7-s1-83)"
+  },
+  {
+   "id": "ARCH2-s2-P1",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.0588; 0 shared sites (coord_footprint + multiassigned_attrs only)",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s2-P1)"
+  },
+  {
+   "id": "ARCH2-s2-P2",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.3513; 1 shared site removed",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s2-P2)"
+  },
+  {
+   "id": "ARCH2-s2-P3",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.3519; 1 shared site removed",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s2-P3)"
+  },
+  {
+   "id": "ARCH2-s2-P4",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.0011; 0 shared sites; event_hub_inplace_writes 3 -> 0",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "Also an instrument instance: v2_event_root_blind plants an in-place hub write in two event handlers and the census reads +0 on both (cycle plant +1), which is why P4 scores +0.0011. That half belongs to N-structure-blind #2235.",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s2-P4)"
+  },
+  {
+   "id": "ARCH2-s2-P6",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.7300; 2 shared sites removed",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "Fixer note carried: PriceTileRotation.take advances the cursor before the await, so a CancelledError now skips a spec.",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s2-P6)"
+  },
+  {
+   "id": "ARCH2-s2-P7",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.7652; 2 shared sites removed",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s2-P7)"
+  },
+  {
+   "id": "D7-s3-8x-tariff",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.3789 (01, 68 -> 66) / +0.1880 (01b); equiv_tariff 0 of 8160 mismatches on both",
+   "stop_rule_class": "hygiene",
+   "class": "P2",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (D7-s3-8x-tariff)"
+  },
+  {
+   "id": "D7-s3-8x-slotfloor",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "implementations 4, disagreeing 0 of 10; patch 02: 3 implementations; delta_S 0.0000; V2 0 of 24686 instants",
+   "stop_rule_class": "hygiene",
+   "class": "P2",
+   "class_mechanism": "",
+   "note": "No behavioural consequence; fold into another pump_arbiter fix rather than stand alone.",
+   "source": "CATCHUP-JUDGE.json (D7-s3-8x-slotfloor)"
+  },
+  {
+   "id": "D7-s3-81",
+   "verdict": "merged into D7-arch2-11 (D7-s2-61)",
+   "severity": "low",
+   "value": "silent cap 6.0 kW on inf and 1e400 -> 3.6 kW with patch 03; implementations 4 -> 2",
+   "stop_rule_class": "bug",
+   "class": "P1",
+   "class_mechanism": "",
+   "note": "Perturbation-cross: patch 03 on D7-arch2-11's harness 3 -> 2 (1e400 reconciled); --sign-blind moves neither harness. Same four parsers, same seam: merged; patch 03 is the fix prototype arch2-11 lacked.",
+   "source": "CATCHUP-JUDGE.json (D7-s3-81)"
+  },
+  {
+   "id": "D7-s4-8x-layering",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "static closure store 28 (optimizer IN) -> 21 out, snapshots 29 -> 22, setpoint_check 22 -> 13, quiet_windows 21 -> 11, silent_mode 20 -> 8; runtime store 29 -> 22, optimizer 1 -> 0 on all five",
+   "stop_rule_class": "hygiene",
+   "class": "N-leaf-imports-solver",
+   "class_mechanism": "A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve",
+   "note": "Absorbs ARCH3-s6-P1: its patch takes store/snapshots out on this harness (2 of 5 cells), while this patch takes store/notifier/debugger out on ARCH3-s6-P1's runtime_closure (all its cells).",
+   "source": "CATCHUP-JUDGE.json (D7-s4-8x-layering)",
+   "nearest": "I2",
+   "differs": "I2 is a measured closure that diverges from the real dependency graph; here the graph itself is wrong (a production import edge into the solver), and the closure measures it faithfully",
+   "class_kind": "production"
+  },
+  {
+   "id": "D7-s4-81",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "load_prelude raising_seams 1 (Notifier.async_load, AttributeError on 'x'); real HA 2026.9.3: setup_raises 2 of 2 non-mapping arms",
+   "stop_rule_class": "bug",
+   "class": "P1",
+   "class_mechanism": "",
+   "note": "Consequence high (entry setup fails), reach low (needs a foreign or hand-edited .storage file).",
+   "source": "CATCHUP-JUDGE.json (D7-s4-81)"
+  },
+  {
+   "id": "D7-s4-8x-fabric",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "main: production order lower 12/12, swapped order lower 0/12; P3: 12/12 both orders",
+   "stop_rule_class": "hygiene",
+   "class": "N-order-coupling",
+   "class_mechanism": "Two sibling updaters consume one shared interval and the first closes it destructively, so correctness depends on call order that only a comment and a source-order test hold",
+   "note": "The 0-sample state is not reached in production; the value of P3 is removing the order coupling.",
+   "source": "CATCHUP-JUDGE.json (D7-s4-8x-fabric)",
+   "nearest": "P2",
+   "differs": "P2 is one fact decided twice by divergent predicates; here there is one predicate and one consumer starves the other through a shared, destructively-read state",
+   "class_kind": "production"
+  },
+  {
+   "id": "ARCH2-s5-C1..C4",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "card shapes 33 -> 9, dead 1 -> 0 (C1 31, C2 31, C3 18, C4 28); union: card_drift 40/40 identical, card_pages_drift 18/18, card.mjs ALL PASSED",
+   "stop_rule_class": "hygiene",
+   "class": "P2",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s5-C1..C4)"
+  },
+  {
+   "id": "ARCH2-s5-F1",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "spelled_twice 44, disagree 0 at main; F1: spelled_twice 0",
+   "stop_rule_class": "hygiene",
+   "class": "P2",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s5-F1)"
+  },
+  {
+   "id": "ARCH2-s5-hot_water_pumps-label",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "menu_disagree 1 of 23 (advanced.hot_water_pumps), en label_vs_title 1 of 23",
+   "stop_rule_class": "hygiene",
+   "class": "I5",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s5-hot_water_pumps-label)"
+  },
+  {
+   "id": "D7-s6-91",
+   "verdict": "merged into D12-s3-01",
+   "severity": "high",
+   "value": "setpoint_unit defect 42.222 K, null 0.000 (load1 6.18, thread_factor 1.004); real HA 2026.9.3 imperial: payload 55.0 -> device 12.778 C",
+   "stop_rule_class": "bug",
+   "class": "P8",
+   "class_mechanism": "",
+   "note": "Perturbation-cross both ways: D12-s3-01's --perturb on this harness 42.222 -> 0.000 (null 0); P2 on D12-s3-01's surface_units.py 2 -> 0 cells (null 0). Residual of P2: a degF climate with no target attribute still falls back to state_unit.",
+   "source": "CATCHUP-JUDGE.json (D7-s6-91)"
+  },
+  {
+   "id": "ARCH3-s6-P1",
+   "verdict": "merged into D7-s4-8x-layering",
+   "severity": "low",
+   "value": "runtime store 29 -> 20, notifier/debugger 30 -> 21, solver IN -> out, import 396 -> 180 ms (K=3, load1 5.4-5.7, thread_factor 1.000); delta_S +0.0006",
+   "stop_rule_class": "hygiene",
+   "class": "N-leaf-imports-solver",
+   "class_mechanism": "A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH3-s6-P1)",
+   "nearest": "I2",
+   "differs": "I2 is a measured closure that diverges from the real dependency graph; here the graph itself is wrong (a production import edge into the solver), and the closure measures it faithfully",
+   "class_kind": "production"
+  },
+  {
+   "id": "ARCH3-s6-P2",
+   "verdict": "verified",
+   "severity": "high",
+   "value": "P1+P2 delta_S +0.0028 (P2 alone +0.0022); setpoint defect 42.222 -> 0.000",
+   "stop_rule_class": "bug",
+   "class": "P8",
+   "class_mechanism": "",
+   "note": "A fix shape, not a separate defect: carried to #2243 as D12-s3-01's prototype; severity is the defect's.",
+   "source": "CATCHUP-JUDGE.json (ARCH3-s6-P2)"
+  },
+  {
+   "id": "ARCH3-s6-P3",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "store_report_equiv 36279 pairs, 0 mismatches; e2e debugger.store_report 10506 pairs, 0 mismatches, 0 exceptions",
+   "stop_rule_class": "hygiene",
+   "class": "P2",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH3-s6-P3)"
+  },
+  {
+   "id": "ARCH3-s6-P4",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "legionella runtime closure 31 -> 22 modules, solver+scipy IN -> out, import 399 -> 182 ms (load1 5.5, thread_factor 1.000); private_reach 21 -> 17 over P1..P4",
+   "stop_rule_class": "hygiene",
+   "class": "N-leaf-imports-solver",
+   "class_mechanism": "A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve",
+   "note": "Not merged with D7-s4-8x-layering: that patch leaves legionella IN (31 modules).",
+   "source": "CATCHUP-JUDGE.json (ARCH3-s6-P4)",
+   "nearest": "I2",
+   "differs": "I2 is a measured closure that diverges from the real dependency graph; here the graph itself is wrong (a production import edge into the solver), and the closure measures it faithfully",
+   "class_kind": "production"
+  },
+  {
+   "id": "L1-smart-write-unit",
+   "verdict": "verified",
+   "severity": "medium",
+   "value": "valve target on a degF climate and on a degF-declared number: written 21.0 for 69.8 (abs err 48.8); _command_valve_target has no unit conversion",
+   "stop_rule_class": "bug",
+   "class": "P8",
+   "class_mechanism": "",
+   "note": "Distinct site from D12-s3-01: _command_valve_target (coordinator.py:7256) never calls state_unit, so D12-s3-01's perturbation cannot move it; a new P8 instance, reach = smart_write valve on a degF install.",
+   "source": "CATCHUP-JUDGE.json (L1-smart-write-unit)"
+  },
+  {
+   "id": "L2-bounded-climate-keys",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "_bounded on a climate {min_temp 7, max_temp 50}: 3 of 4 values out of range; reach: desired(duty='dhw') commands 55.0 to a 50-max climate",
+   "stop_rule_class": "bug",
+   "class": "P6",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (L2-bounded-climate-keys)"
+  },
+  {
+   "id": "L3-restore-session-race",
+   "verdict": "weakened",
+   "severity": "low",
+   "value": "3 of 3 interleavings (away-off, boost cancel, _resolve_away replace) differ from serial order",
+   "stop_rule_class": "bug",
+   "class": "N-restore-race",
+   "class_mechanism": "A restore applies persisted state after an await during which a writer changed the same state, so the stale snapshot overwrites the live write (or the write lands on an object the restore then replaces)",
+   "note": "Latent: the window is the startup store-load await.",
+   "source": "CATCHUP-JUDGE.json (L3-restore-session-race)",
+   "nearest": "N-restart",
+   "differs": "N-restart loses a user-set state because the setter persisted too late or not at all; here persistence is correct and the defect is restore-vs-writer ordering inside the load await",
+   "class_kind": "production"
+  },
+  {
+   "id": "L4-legionella-stale-config",
+   "verdict": "refuted",
+   "severity": "low",
+   "value": "in-process replace leaves 3 quiet-window keys stale in the guard's context (M1 3) but 0 keys the guard reads (M2 0); options path reloads (1 reload)",
+   "stop_rule_class": "hygiene",
+   "class": "N-shared-config",
+   "class_mechanism": "",
+   "note": "Residual hygiene, not a survivor: CoordinatorContext is documented write-once but replaced at coordinator.py ~5901; propagate to the D7 brief.",
+   "source": "CATCHUP-JUDGE.json (L4-legionella-stale-config)"
+  },
+  {
+   "id": "ARCH2-s2-P5",
+   "verdict": "verified",
+   "severity": "low",
+   "value": "delta_S +0.5305; 0 sites (params_over_10 only)",
+   "stop_rule_class": "hygiene",
+   "class": "_unclassified",
+   "class_mechanism": "",
+   "note": "",
+   "source": "CATCHUP-JUDGE.json (ARCH2-s2-P5)"
   }
  ]
 }
