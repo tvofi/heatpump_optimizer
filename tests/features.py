@@ -33620,9 +33620,13 @@ _seed_prices(_ger_hass)
 _ger_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_entry(_integ, _ger_hass, _ger_entry))
 _ger_id = {"entry_id": _ger_entry.entry_id}
-_ger_empty = _asyncio.run(_ger_hass.services.async_call(_DOMAIN, "apply_schedule", _ger_id))
-_ger_set = _asyncio.run(_ger_hass.services.async_call(
-    _DOMAIN, "apply_schedule", {**_ger_id, "dhw_windows": "06:00-07:00"}))
+try:
+    _ger_empty = _asyncio.run(
+        _ger_hass.services.async_call(_DOMAIN, "apply_schedule", _ger_id))
+    _ger_set = _asyncio.run(_ger_hass.services.async_call(
+        _DOMAIN, "apply_schedule", {**_ger_id, "dhw_windows": "06:00-07:00"}))
+except _ET_HAE as _ger_refused:
+    _ger_empty = _ger_set = _ger_refused
 R.check(
     "apply_schedule on a known, loaded entry still answers an empty call and "
     "applies a valid one (the D10-s1-51 census's null control)",
