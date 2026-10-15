@@ -2578,9 +2578,9 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-review: pins merged #2297; main PR #2305 round 2",
     "branch": "handoff/r10-tick-train",
-    "commit": null,
+    "commit": "8087e8576d99c2e1e74cb85e4c4206861d610ccf",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
