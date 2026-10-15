@@ -1,0 +1,13 @@
+head measured: 3c807ab5bb62d2d4da36003d2787437d2b012b4b (merge base d4c94f9a4e96ec930e11a63b8f8ab3e4b5985892)
+RESULT preamble roles diff merge-base...origin/main: empty (contract current)
+RESULT merge_train self-test at head: 171 checks, 0 failed
+RESULT queue_pre_flight self-test at head: 32 checks, 0 failed
+RESULT train.sh self-test at head: ok
+RESULT train.sh mutants T1..T4: all killed rc=2 (train-mutants.txt)
+RESULT reviewer merge_train mutants: 17 planted, 8 killed (R3 R5 R7 R9 R10 R12 R13 R17), 9 survive
+RESULT survivors non-equivalent on new predicates: R4 R11 R14 R15 R16
+RESULT survivors low-risk/near-equivalent: R1 R6 R8; equivalent: R2 (n==tries raises before the extra range)
+RESULT CI mutation lane: "MUTATION TABLE PASSED (empty scope)" -- evaluates nothing under tools/
+RESULT #2209 reviews 5526849236/5526967770 commit_id 8876da3b: re-derived, matches body
+RESULT class (dirname/.. and parents[N] root computations): 9 sh/mjs + 10 py sites read, all resolve to root; train.sh was the only wrong one
+RESULT merge-tree origin/main head: rc 0; VERSION/manifest/notes untouched
