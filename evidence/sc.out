@@ -1,0 +1,6 @@
+factor=1.0 RESULT flagged=0 RESULT median_solve_cpu_ratio=0.944 RESULT judged=54 of 54 RESULT count_or_kernel_fired=0 RESULT load1=59.66 RESULT thread_factor=1.000 load1_end=59.66 
+factor=2.0 RESULT flagged=1 RESULT median_solve_cpu_ratio=2.073 RESULT judged=54 of 54 RESULT count_or_kernel_fired=0 RESULT load1=37.15 RESULT thread_factor=1.000 load1_end=37.15 
+factor=1.3 RESULT flagged=0 RESULT median_solve_cpu_ratio=1.174 RESULT judged=54 of 54 RESULT count_or_kernel_fired=0 RESULT load1=65.64 RESULT thread_factor=1.000 load1_end=65.64 
+factor=1.0 RESULT flagged=0 RESULT median_solve_cpu_ratio=1.072 RESULT judged=54 of 54 RESULT count_or_kernel_fired=0 RESULT load1=30.50 RESULT thread_factor=1.000 load1_end=30.50 
+factor=1.0 RESULT flagged=0 RESULT median_solve_cpu_ratio=0.902 RESULT judged=54 of 54 RESULT count_or_kernel_fired=0 RESULT load1=20.52 RESULT thread_factor=1.000 load1_end=20.52 
+ALLDONE

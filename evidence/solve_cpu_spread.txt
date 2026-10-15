@@ -1,0 +1,5 @@
+sc-0-f1.0.log START factor=1.0 load1=26.57 15:47:35Z n=54 min=0.73 p10=0.79 med=0.94 p90=1.02 max=1.18
+sc-1-f2.0.log START factor=2.0 load1=59.66 16:00:39Z n=54 min=1.62 p10=1.79 med=2.07 p90=2.29 max=2.55
+sc-2-f1.3.log START factor=1.3 load1=37.15 16:13:52Z n=54 min=0.98 p10=1.02 med=1.17 p90=1.39 max=1.57
+sc-3-f1.0.log START factor=1.0 load1=65.64 16:22:41Z n=54 min=0.81 p10=0.87 med=1.06 p90=1.30 max=1.42
+sc-4-f1.0.log START factor=1.0 load1=30.50 16:27:49Z n=54 min=0.67 p10=0.77 med=0.90 p90=1.07 max=1.18

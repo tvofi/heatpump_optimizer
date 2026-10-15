@@ -1,0 +1,7 @@
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+rc=1
+    out.append(round(float(values[idx]), 2))
+                           ~~~~~~^^^^^
+IndexError: list index out of range
+rc=1

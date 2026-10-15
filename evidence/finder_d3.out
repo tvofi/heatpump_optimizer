@@ -1,0 +1,48 @@
+=== revbase 5603ee319
+-- D3/s1/forecast_keep.py
+RESULT prior_kept=1 count RESULT fabricated=0 count RESULT rows=24 count RESULT thread_factor=1.000 RESULT load1=41.65 
+-- D3/s1/forecast_keep.py --mutant
+
+-- D3/s1/forecast_keep.py --no-prior
+
+-- D3/s1/action_guards.py
+RESULT guards=12 count RESULT live_guards=12 count RESULT thread_factor=1.000 RESULT load1=39.68 
+-- D3/s1/action_guards.py --equal
+
+-- D3/s2/quarantine_warn.py
+RESULT loaders_correct=2 of_2 RESULT tests_naming_warning=0 files [] RESULT thread_factor=1.000 RESULT load1=39.68 
+-- D3/s2/quarantine_warn.py --mutate
+
+=== revi1 4098a04cf
+-- D3/s1/forecast_keep.py
+RESULT prior_kept=1 count RESULT fabricated=0 count RESULT rows=24 count RESULT thread_factor=1.000 RESULT load1=39.38 
+-- D3/s1/forecast_keep.py --mutant
+
+-- D3/s1/forecast_keep.py --no-prior
+
+-- D3/s1/action_guards.py
+RESULT guards=12 count RESULT live_guards=12 count RESULT thread_factor=1.000 RESULT load1=39.38 
+-- D3/s1/action_guards.py --equal
+
+-- D3/s2/quarantine_warn.py
+RESULT loaders_correct=2 of_2 RESULT tests_naming_warning=1 files ['tests/features.py'] RESULT thread_factor=1.000 RESULT load1=39.19 
+-- D3/s2/quarantine_warn.py --mutate
+
+=== revbase 5603ee319
+-- D3/s1/forecast_keep.py --mutant
+RESULT prior_kept=0 count RESULT fabricated=1 count RESULT rows=48 count RESULT thread_factor=0.999 RESULT load1=38.53 
+-- D3/s1/forecast_keep.py --no-prior
+RESULT prior_kept=0 count RESULT fabricated=1 count RESULT rows=48 count RESULT thread_factor=1.000 RESULT load1=38.53 
+-- D3/s1/action_guards.py --equal
+RESULT guards=12 count RESULT live_guards=0 count RESULT thread_factor=1.000 RESULT load1=38.17 
+-- D3/s2/quarantine_warn.py --mutate
+RESULT loaders_correct=0 of_2 RESULT tests_naming_warning=0 files [] RESULT thread_factor=1.000 RESULT load1=38.17 
+=== revi1 4098a04cf
+-- D3/s1/forecast_keep.py --mutant
+RESULT prior_kept=0 count RESULT fabricated=1 count RESULT rows=48 count RESULT thread_factor=1.000 RESULT load1=37.75 
+-- D3/s1/forecast_keep.py --no-prior
+RESULT prior_kept=0 count RESULT fabricated=1 count RESULT rows=48 count RESULT thread_factor=0.999 RESULT load1=37.75 
+-- D3/s1/action_guards.py --equal
+RESULT guards=12 count RESULT live_guards=0 count RESULT thread_factor=1.000 RESULT load1=35.77 
+-- D3/s2/quarantine_warn.py --mutate
+RESULT loaders_correct=0 of_2 RESULT tests_naming_warning=1 files ['tests/features.py'] RESULT thread_factor=1.000 RESULT load1=35.77 

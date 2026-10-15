@@ -1,0 +1,21 @@
+head ce4d5d5ca6518370cc05c78a9ad261fb63fcd1d6
+NULL rc[A]=0
+NULL rc[B]=0
+NULL rc[C]=0
+NULL rc[D]=0
+MUT if state or not self._weather_forecast:
+M08 rc[B]=1
+  FAIL a raising fetch with a previous forecast keeps it, marked stale  [entries 48, stale since 2026-10-15 16:41:43.250245+00:00]
+  FAIL a raising fetch with no forecast and no entity state fabricates nothing  [raised None, entries 48]
+MUT if result.valve_target_schedule or i < len(result.valve_target_schedule):
+M01 rc[C]=1
+  FAIL past a short optional schedule get_current_action falls back on every key and raises nothing  [[('raised', "IndexError('list index out of range')")]]
+MUT if result.dhw_power_schedule or i < len(result.dhw_power_schedule):
+M03 rc[C]=1
+  FAIL past a short optional schedule get_current_action falls back on every key and raises nothing  [[('raised', "IndexError('list index out of range')")]]
+MUT if not (dropped):
+M35 rc[A]=1
+  FAIL the ledger loader warns once per malformed load, counting the drop, and never on a clean load  [clean load warned ['Quarantined 0 malformed ledger month(
+MUT if not (dropped):
+M26 rc[A]=1
+  FAIL the snapshot ring loader warns once per malformed load, counting the drop, and never on a clean load  [clean load warned ['Quarantined 0 malformed snapsh
