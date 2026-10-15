@@ -1,0 +1,7 @@
+  GOLDEN_MODE: drift
+  MODE: SCOPED -- 5 script(s) run, 28 scoped out.
+ALL 4125 FEATURE CHECKS PASSED
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+  whole-solve CPU: median 0.990x of the baseline beside this run over 54 of 54 covered scenarios, on work the counts vouch for; factor 1.414x
+  ok   the whole-solve CPU channel judged every covered scenario (R10 D9-s3-01)
+ALL 110 STRESS CHECKS PASSED

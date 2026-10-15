@@ -1,0 +1,4 @@
+== revbase 5603ee319
+RESULT flagged_solve_arm=0 of 5 scenarios RESULT solve_cpu_ratio_median=1.951 x (provisional) RESULT scenario_budget_factor=3.0 RESULT thread_factor=1.000 RESULT load1=23.51 RESULT swapins=0 
+== revi1 4098a04cf
+RESULT flagged_solve_arm=0 of 5 scenarios RESULT solve_cpu_ratio_median=2.031 x (provisional) RESULT scenario_budget_factor=3.0 RESULT thread_factor=1.000 RESULT load1=26.63 RESULT swapins=0 
