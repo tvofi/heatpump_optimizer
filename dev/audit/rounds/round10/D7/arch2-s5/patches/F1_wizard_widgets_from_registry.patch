@@ -1,0 +1,325 @@
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+index 8629b83b2..0e3946756 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -1948,6 +1948,33 @@ def _prefill_row(key: str) -> _F:
+     return next(row for row in _OPTION_FIELDS if row.key == key)
+ 
+ 
++def _wizard_fields(
++    marker: Callable[..., Any], defaults: Mapping[str, Any]
++) -> dict[Any, Any]:
++    """Setup-wizard fields, each rendered by its options-registry widget.
++
++    A setting's selector -- bounds, step, unit, slider -- is declared once, on
++    its ``_OPTION_FIELDS`` row. The wizard asks the same question earlier and
++    with its own default and marker, so it takes the widget from that row
++    rather than spelling a second one: the two flows cannot then offer a
++    different range for one setting, which is the disagreement
++    ``_StoredValuesAlwaysFit`` would otherwise be left to paper over.
++    """
++    return {
++        marker(key, default=default): _prefill_row(key).widget
++        for key, default in defaults.items()
++    }
++
++
++#: The heat pump's nameplate, asked on both wizard paths (``building_extras``
++#: after the questionnaire, ``thermal`` on the expert path).
++_NAMEPLATE_DEFAULTS: Final = {
++    CONF_HEAT_PUMP_COP_NOMINAL: DEFAULT_HEAT_PUMP_COP_NOMINAL,
++    CONF_HEAT_PUMP_MAX_POWER: DEFAULT_HEAT_PUMP_MAX_POWER,
++    CONF_HEAT_PUMP_MIN_POWER: DEFAULT_HEAT_PUMP_MIN_POWER,
++}
++
++
+ def _prefill_fits(key: str, value: Any) -> bool:
+     """A suggestion its own field would accept: a number inside its range.
+ 
+@@ -2659,37 +2686,18 @@ class HeatPumpOptimizerConfigFlow(
+             step_id="temperature",
+             errors=errors,
+             data_schema=vol.Schema(
+-                {
+-                    vol.Required(
+-                        CONF_TARGET_TEMP, default=DEFAULT_TARGET_TEMP
+-                    ): _number(15, 28, 0.5, "°C", slider=True),
+-                    vol.Required(
+-                        CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
+-                    ): _number(14, 25, 0.5, "°C", slider=True),
+-                    vol.Required(
+-                        CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
+-                    ): _number(18, 28, 0.5, "°C", slider=True),
+-                    vol.Required(
+-                        CONF_COMFORT_TEMP_DAY, default=DEFAULT_COMFORT_TEMP_DAY
+-                    ): _number(
+-                        COMFORT_TEMP_DAY_SELECTOR_MIN,
+-                        COMFORT_TEMP_DAY_SELECTOR_MAX,
+-                        0.5, "°C", slider=True,
+-                    ),
+-                    vol.Required(
+-                        CONF_COMFORT_TEMP_NIGHT, default=DEFAULT_COMFORT_TEMP_NIGHT
+-                    ): _number(
+-                        COMFORT_TEMP_NIGHT_SELECTOR_MIN,
+-                        COMFORT_TEMP_NIGHT_SELECTOR_MAX,
+-                        0.5, "°C", slider=True,
+-                    ),
+-                    vol.Required(
+-                        CONF_DAY_START_HOUR, default=DEFAULT_DAY_START_HOUR
+-                    ): _number(0, 23, 1, slider=True),
+-                    vol.Required(
+-                        CONF_DAY_END_HOUR, default=DEFAULT_DAY_END_HOUR
+-                    ): _number(1, 24, 1, slider=True),
+-                }
++                _wizard_fields(
++                    vol.Required,
++                    {
++                        CONF_TARGET_TEMP: DEFAULT_TARGET_TEMP,
++                        CONF_MIN_TEMP: DEFAULT_MIN_TEMP,
++                        CONF_MAX_TEMP: DEFAULT_MAX_TEMP,
++                        CONF_COMFORT_TEMP_DAY: DEFAULT_COMFORT_TEMP_DAY,
++                        CONF_COMFORT_TEMP_NIGHT: DEFAULT_COMFORT_TEMP_NIGHT,
++                        CONF_DAY_START_HOUR: DEFAULT_DAY_START_HOUR,
++                        CONF_DAY_END_HOUR: DEFAULT_DAY_END_HOUR,
++                    },
++                )
+             ),
+         )
+ 
+@@ -2760,20 +2768,7 @@ class HeatPumpOptimizerConfigFlow(
+         return self.async_show_form(
+             step_id="building_extras",
+             errors=errors,
+-            data_schema=vol.Schema(
+-                {
+-                    vol.Required(
+-                        CONF_HEAT_PUMP_COP_NOMINAL,
+-                        default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
+-                    ): _number(1.5, 6.0, 0.1),
+-                    vol.Required(
+-                        CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
+-                    ): _number(1, 20, 0.5, "kW"),
+-                    vol.Required(
+-                        CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
+-                    ): _number(0, 10, 0.5, "kW"),
+-                }
+-            ),
++            data_schema=vol.Schema(_wizard_fields(vol.Required, _NAMEPLATE_DEFAULTS)),
+         )
+ 
+     async def async_step_thermal(
+@@ -2791,41 +2786,19 @@ class HeatPumpOptimizerConfigFlow(
+             step_id="thermal",
+             errors=errors,
+             data_schema=vol.Schema(
+-                {
+-                    vol.Required(
+-                        CONF_HOUSE_THERMAL_MASS, default=DEFAULT_HOUSE_THERMAL_MASS
+-                    ): _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"),
+-                    vol.Required(
+-                        CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+-                        default=DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
+-                    ): _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"),
+-                    vol.Required(
+-                        CONF_SLAB_THERMAL_MASS, default=DEFAULT_SLAB_THERMAL_MASS
+-                    ): _number(*RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"),
+-                    vol.Required(
+-                        CONF_SLAB_HEAT_TRANSFER, default=DEFAULT_SLAB_HEAT_TRANSFER
+-                    ): _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"),
+-                    vol.Required(
+-                        CONF_HEAT_PUMP_COP_NOMINAL,
+-                        default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
+-                    ): _number(1.5, 6.0, 0.1),
+-                    vol.Required(
+-                        CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
+-                    ): _number(1, 20, 0.5, "kW"),
+-                    vol.Required(
+-                        CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
+-                    ): _number(0, 10, 0.5, "kW"),
+-                    vol.Required(
+-                        CONF_OPTIMIZATION_INTERVAL,
+-                        default=DEFAULT_OPTIMIZATION_INTERVAL,
+-                    ): _number(10, 120, 5, "min", slider=True),
+-                    vol.Required(
+-                        CONF_PRICE_WEIGHT, default=DEFAULT_PRICE_WEIGHT
+-                    ): _number(0.1, 10, 0.1),
+-                    vol.Required(
+-                        CONF_COMFORT_WEIGHT, default=DEFAULT_COMFORT_WEIGHT
+-                    ): _number(0.1, 20, 0.1),
+-                }
++                _wizard_fields(
++                    vol.Required,
++                    {
++                        CONF_HOUSE_THERMAL_MASS: DEFAULT_HOUSE_THERMAL_MASS,
++                        CONF_HOUSE_HEAT_LOSS_COEFFICIENT: DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
++                        CONF_SLAB_THERMAL_MASS: DEFAULT_SLAB_THERMAL_MASS,
++                        CONF_SLAB_HEAT_TRANSFER: DEFAULT_SLAB_HEAT_TRANSFER,
++                        **_NAMEPLATE_DEFAULTS,
++                        CONF_OPTIMIZATION_INTERVAL: DEFAULT_OPTIMIZATION_INTERVAL,
++                        CONF_PRICE_WEIGHT: DEFAULT_PRICE_WEIGHT,
++                        CONF_COMFORT_WEIGHT: DEFAULT_COMFORT_WEIGHT,
++                    },
++                )
+             ),
+         )
+ 
+@@ -2866,49 +2839,22 @@ class HeatPumpOptimizerConfigFlow(
+                             "suggested_value": mode == TWO_ZONE_MODE_ON
+                         },
+                     ): selector.BooleanSelector(),
+-                    vol.Optional(
+-                        CONF_UPPER_FLOOR_THERMAL_MASS,
+-                        default=DEFAULT_UPPER_FLOOR_THERMAL_MASS,
+-                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+-                    vol.Optional(
+-                        CONF_LOWER_FLOOR_THERMAL_MASS,
+-                        default=DEFAULT_LOWER_FLOOR_THERMAL_MASS,
+-                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+-                    vol.Optional(
+-                        CONF_UPPER_FLOOR_HEAT_LOSS,
+-                        default=DEFAULT_UPPER_FLOOR_HEAT_LOSS,
+-                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+-                    vol.Optional(
+-                        CONF_LOWER_FLOOR_HEAT_LOSS,
+-                        default=DEFAULT_LOWER_FLOOR_HEAT_LOSS,
+-                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+-                    vol.Optional(
+-                        CONF_INTER_ZONE_TRANSFER,
+-                        default=DEFAULT_INTER_ZONE_TRANSFER,
+-                    ): _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"),
+-                    vol.Optional(
+-                        CONF_RADIATOR_POWER_FRACTION,
+-                        default=DEFAULT_RADIATOR_POWER_FRACTION,
+-                    ): _number(0.0, 1.0, 0.05, slider=True),
+-                    vol.Optional(
+-                        CONF_UPPER_FLOOR_AREA_RATIO,
+-                        default=DEFAULT_UPPER_FLOOR_AREA_RATIO,
+-                    ): _number(0.1, 0.9, 0.05, slider=True),
+-                    vol.Optional(
+-                        CONF_BUFFER_TANK_VOLUME,
+-                        default=DEFAULT_BUFFER_TANK_VOLUME,
+-                    ): _number(10, 1500, 5, "L"),
+-                    vol.Optional(
+-                        CONF_WINDOW_AREA, default=DEFAULT_WINDOW_AREA
+-                    ): _number(POSITIVE_PARAM_FLOOR, 50, 0.5, "m²"),
+-                    vol.Optional(
+-                        CONF_SOLAR_ORIENTATION_FACTOR,
+-                        default=DEFAULT_SOLAR_ORIENTATION_FACTOR,
+-                    ): _number(0.0, 1.0, 0.05, slider=True),
+-                    vol.Optional(
+-                        CONF_SOLAR_HEAT_GAIN_COEFF,
+-                        default=DEFAULT_SOLAR_HEAT_GAIN_COEFF,
+-                    ): _number(0.1, 1.0, 0.05, slider=True),
++                    **_wizard_fields(
++                        vol.Optional,
++                        {
++                            CONF_UPPER_FLOOR_THERMAL_MASS: DEFAULT_UPPER_FLOOR_THERMAL_MASS,
++                            CONF_LOWER_FLOOR_THERMAL_MASS: DEFAULT_LOWER_FLOOR_THERMAL_MASS,
++                            CONF_UPPER_FLOOR_HEAT_LOSS: DEFAULT_UPPER_FLOOR_HEAT_LOSS,
++                            CONF_LOWER_FLOOR_HEAT_LOSS: DEFAULT_LOWER_FLOOR_HEAT_LOSS,
++                            CONF_INTER_ZONE_TRANSFER: DEFAULT_INTER_ZONE_TRANSFER,
++                            CONF_RADIATOR_POWER_FRACTION: DEFAULT_RADIATOR_POWER_FRACTION,
++                            CONF_UPPER_FLOOR_AREA_RATIO: DEFAULT_UPPER_FLOOR_AREA_RATIO,
++                            CONF_BUFFER_TANK_VOLUME: DEFAULT_BUFFER_TANK_VOLUME,
++                            CONF_WINDOW_AREA: DEFAULT_WINDOW_AREA,
++                            CONF_SOLAR_ORIENTATION_FACTOR: DEFAULT_SOLAR_ORIENTATION_FACTOR,
++                            CONF_SOLAR_HEAT_GAIN_COEFF: DEFAULT_SOLAR_HEAT_GAIN_COEFF,
++                        },
++                    ),
+                 }
+             ),
+         )
+@@ -2966,54 +2912,22 @@ class HeatPumpOptimizerConfigFlow(
+                             )
+                         },
+                     ): selector.BooleanSelector(),
+-                    vol.Optional(
+-                        CONF_DHW_TANK_VOLUME,
+-                        default=DEFAULT_DHW_TANK_VOLUME,
+-                    ): _number(50, 1500, 10, "L"),
+-                    vol.Optional(
+-                        CONF_DHW_SETPOINT,
+-                        default=DEFAULT_DHW_SETPOINT,
+-                    ): _number(40, 65, 1, "°C", slider=True),
+-                    vol.Optional(
+-                        CONF_DHW_MIN_TEMP,
+-                        default=DEFAULT_DHW_MIN_TEMP,
+-                    ): _number(35, 55, 1, "°C", slider=True),
+-                    vol.Optional(
+-                        CONF_DHW_DAILY_CONSUMPTION,
+-                        default=DEFAULT_DHW_DAILY_CONSUMPTION,
+-                    ): _number(50, 1500, 10, "L/day"),
+-                    vol.Optional(
+-                        CONF_DHW_COOLING_RATE,
+-                        default=DEFAULT_DHW_COOLING_RATE,
+-                    ): _number(0.05, 3.0, 0.05, "°C/h"),
+-                    vol.Optional(
+-                        CONF_DHW_SCHEDULE_ENABLED,
+-                        default=DEFAULT_DHW_SCHEDULE_ENABLED,
+-                    ): selector.BooleanSelector(),
+-                    vol.Optional(
+-                        CONF_DHW_WINDOWS,
+-                        default=DEFAULT_DHW_WINDOWS,
+-                    ): selector.TextSelector(
+-                        selector.TextSelectorConfig(
+-                            type=selector.TextSelectorType.TEXT,
+-                        )
++                    **_wizard_fields(
++                        vol.Optional,
++                        {
++                            CONF_DHW_TANK_VOLUME: DEFAULT_DHW_TANK_VOLUME,
++                            CONF_DHW_SETPOINT: DEFAULT_DHW_SETPOINT,
++                            CONF_DHW_MIN_TEMP: DEFAULT_DHW_MIN_TEMP,
++                            CONF_DHW_DAILY_CONSUMPTION: DEFAULT_DHW_DAILY_CONSUMPTION,
++                            CONF_DHW_COOLING_RATE: DEFAULT_DHW_COOLING_RATE,
++                            CONF_DHW_SCHEDULE_ENABLED: DEFAULT_DHW_SCHEDULE_ENABLED,
++                            CONF_DHW_WINDOWS: DEFAULT_DHW_WINDOWS,
++                            CONF_DHW_IDLE_MIN_TEMP: DEFAULT_DHW_IDLE_MIN_TEMP,
++                            CONF_DHW_LEGIONELLA_ENABLED: DEFAULT_DHW_LEGIONELLA_ENABLED,
++                            CONF_DHW_LEGIONELLA_TEMP: DEFAULT_DHW_LEGIONELLA_TEMP,
++                            CONF_DHW_LEGIONELLA_INTERVAL_DAYS: DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
++                        },
+                     ),
+-                    vol.Optional(
+-                        CONF_DHW_IDLE_MIN_TEMP,
+-                        default=DEFAULT_DHW_IDLE_MIN_TEMP,
+-                    ): _number(10, 55, 1, "°C", slider=True),
+-                    vol.Optional(
+-                        CONF_DHW_LEGIONELLA_ENABLED,
+-                        default=DEFAULT_DHW_LEGIONELLA_ENABLED,
+-                    ): selector.BooleanSelector(),
+-                    vol.Optional(
+-                        CONF_DHW_LEGIONELLA_TEMP,
+-                        default=DEFAULT_DHW_LEGIONELLA_TEMP,
+-                    ): _number(55, 70, 1, "°C", slider=True),
+-                    vol.Optional(
+-                        CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+-                        default=DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
+-                    ): _number(1, 30, 1, "days", slider=True),
+                 }
+             ),
+         )
+@@ -3029,16 +2943,13 @@ class HeatPumpOptimizerConfigFlow(
+         return self.async_show_form(
+             step_id="weather_sensitivity",
+             data_schema=vol.Schema(
+-                {
+-                    vol.Optional(
+-                        CONF_WIND_SENSITIVITY,
+-                        default=DEFAULT_WIND_SENSITIVITY,
+-                    ): _number(0.0, 0.5, 0.01),
+-                    vol.Optional(
+-                        CONF_RAIN_HEAT_LOSS_MULTIPLIER,
+-                        default=DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
+-                    ): _number(1.0, 1.5, 0.01),
+-                }
++                _wizard_fields(
++                    vol.Optional,
++                    {
++                        CONF_WIND_SENSITIVITY: DEFAULT_WIND_SENSITIVITY,
++                        CONF_RAIN_HEAT_LOSS_MULTIPLIER: DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
++                    },
++                )
+             ),
+         )
+ 
