@@ -2219,9 +2219,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2294",
     "branch": "handoff/r10-policy-lint-stats",
-    "commit": null,
+    "commit": "98fe51b42b5c5e0fd0392fdc88f49f2a9fd12ac9",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
