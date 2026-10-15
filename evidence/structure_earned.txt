@@ -1,0 +1,6 @@
+-- structure.py with coordinator.py reverted to the merge base:
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+RESULT max_class_loc=8705 count
+FAIL max_class_loc 8705 > 8690 (+15)
+head:   ok   max_class_loc 8690 <= 8690
+head: STRUCTURE RATCHET PASSED

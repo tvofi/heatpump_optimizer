@@ -1,0 +1,27 @@
+### companion base (archive of 74cf47b9c; its custom_components equal the merge base 8747bbfc4; re-run at 8747bbfc4 in base_harnesses.txt)
+RESULT write_cells_degF=2 of 6
+RESULT write_cells_degC_null=0 of 6
+RESULT no_target_degF=2 of 2
+RESULT valve_degF=2 of 2
+RESULT valve_degC_null=0 of 2
+RESULT range_climate_degF=3 of 4
+RESULT range_climate_degC=3 of 4
+RESULT range_number_degC_null=0 of 4
+### companion head
+RESULT write_cells_degF=0 of 6
+RESULT write_cells_degC_null=0 of 6
+RESULT no_target_degF=0 of 2
+RESULT valve_degF=0 of 2
+RESULT valve_degC_null=0 of 2
+RESULT range_climate_degF=0 of 4
+RESULT range_climate_degC=0 of 4
+RESULT range_number_degC_null=0 of 4
+### companion head --perturb
+RESULT write_cells_degF=0 of 6
+RESULT write_cells_degC_null=0 of 6
+RESULT no_target_degF=2 of 2
+RESULT valve_degF=0 of 2
+RESULT valve_degC_null=0 of 2
+RESULT range_climate_degF=2 of 4
+RESULT range_climate_degC=0 of 4
+RESULT range_number_degC_null=0 of 4

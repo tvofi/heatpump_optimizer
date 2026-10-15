@@ -1,0 +1,29 @@
+RESULT M1 setpoint_unit climate predicate off: rc=1 3 of 5 FEATURES BLOCK FAILED
+     FAIL a degF climate with no target attribute is still written in degF  [{'absent': 50.0, 'None': 50.0}]
+     FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)  [{'climate on degF': ([74.3], 23.5), 'climate on degF, no target': ([23.5], 23.5), 'number declari
+     FAIL a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)  [{'climate on degF, above max': 55.0, 'climate on degF, below min': 44.5, 'climate on degC, abo
+RESULT M2 write_setpoint_c writes value_c unconverted: rc=1 3 of 5 FEATURES BLOCK FAILED
+     FAIL every arbiter set-point write reaches its entity in that entity's unit, a climate on a degF install included (D12-s3-01)  [6 of 12 cells misdelivered: {('dhw_setpoint', 'climate', '°F'): (50.0, 1
+     FAIL a degF climate with no target attribute is still written in degF  [{'absent': 50.0, 'None': 50.0}]
+     FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)  [{'climate on degF': ([23.5], 23.5), 'climate on degF, no target': ([23.5], 23.5), 'number declari
+RESULT M3 valve via raw write_setpoint: rc=1 1 of 5 FEATURES BLOCK FAILED
+     FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)  [{'climate on degF': ([], None), 'climate on degF, no target': ([], None), 'number declaring degF'
+RESULT M4 _RANGE_KEYS emptied: rc=1 1 of 5 FEATURES BLOCK FAILED
+     FAIL a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)  [{'climate on degF, above max': 55.0, 'climate on degF, below min': 3.0, 'climate on degC, abov
+RESULT M5 setpoint_and_unit not-entity guard off: rc=1 1 of 5 FEATURES BLOCK FAILED
+     FAIL a set-point slot with no entity id reads nothing, before any state lookup, so the consistency check still reaches the space notice  [{'None': ('raised AttributeError', 'raised AttributeError'), "
+RESULT R1 setpoint_range_c in state unit: rc=1 1 of 5 FEATURES BLOCK FAILED
+     FAIL a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)  [{'climate on degF, above max': 55.0, 'climate on degF, below min': 44.5, 'climate on degC, abo
+RESULT R2 _bounded drops the high clamp: rc=1 1 of 5 FEATURES BLOCK FAILED
+     FAIL a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)  [{'climate on degF, above max': 55.0, 'climate on degF, below min': 7.0, 'climate on degC, abov
+RESULT R3 _bounded drops the low clamp: rc=1 1 of 5 FEATURES BLOCK FAILED
+     FAIL a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)  [{'climate on degF, above max': 50.0, 'climate on degF, below min': 3.0, 'climate on degC, abov
+RESULT R4 write_setpoint_c ignores the reading unit: rc=1 2 of 5 FEATURES BLOCK FAILED
+     FAIL every arbiter set-point write reaches its entity in that entity's unit, a climate on a degF install included (D12-s3-01)  [6 of 12 cells misdelivered: {('dhw_setpoint', 'climate', '°F'): (50.0, 1
+     FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)  [{'climate on degF': ([23.5], 23.5), 'climate on degF, no target': ([74.3], 23.5), 'number declari
+RESULT R5 arbiter _write raw write_setpoint: rc=1 2 of 5 FEATURES BLOCK FAILED
+     FAIL every arbiter set-point write reaches its entity in that entity's unit, a climate on a degF install included (D12-s3-01)  [6 of 12 cells misdelivered: {('dhw_setpoint', 'climate', '°F'): (50.0, 1
+     FAIL a degF climate with no target attribute is still written in degF  [{'absent': 50.0, 'None': 50.0}]
+clean: yes
+M3b   FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)  [{'climate on degF': ([23.5], 23.5), 'climate on degF, no target': ([23.5], 23.5), 'number declaring degF': ([23.5], 23.5), 'climate on degC': ([23.5], 23.5
+M3b 1 of 5 FEATURES BLOCK FAILED

@@ -1,0 +1,4 @@
+measured head 77b042d4f51acc23f620914377d9b765fc2c7347
+merge base 8747bbfc4d4628fa8419634792229fd15dcc21e2
+origin/main at review 39b77a467928fa4e9b37d01c38f7b64d3e9534f5
+harness sha1 prefixes: surface_units d741b52a, setpoint_unit 386e5afb, l1_valve_unit a9fadaed, l2_bounded_climate 5ff600f1, realha_climate 459f055b
