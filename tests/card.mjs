@@ -11149,9 +11149,10 @@ check("without an indoor reading the corner now label is absent",
 // Each must be a path `haLink` builds for this entry; an event never is, so
 // an entity dialog goes through `haLink("entity")`'s URL instead.
 // A link not yet converted is listed in PENDING under the roster group that
-// converts it, with the one path it is known to emit: the row excuses that
-// path and nothing else, so a pending button that starts emitting some other
-// link (an event, a different path) still fails. That group deletes its rows,
+// converts it, with the one navigation it is known to make: the row excuses
+// that path reached through navigateTo and nothing else, so a pending button
+// that starts emitting some other link (an event, an anchor, a different
+// path) still fails. That group deletes its rows,
 // and a row no press still produces is refused as stale, so the list can only
 // shrink.
 //
@@ -11168,7 +11169,10 @@ check("without an indoor reading the corner now label is absent",
     "health:settings": { group: "R10-UX-HEALTH", path: BARE },
     "health:diagnostics": { group: "R10-UX-HEALTH", path: BARE },
   };
-  const excused = (key, path) => built.has(path) || (key in PENDING && PENDING[key].path === path);
+  // `via` is how the link left: "push" (history), "href" (an anchor) or
+  // "event"; only a pending row's own push is excused.
+  const excused = (key, via, path) => built.has(path)
+    || (via === "push" && key in PENDING && PENDING[key].path === path);
   const haLink = fn("haLink");
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
   const states = () => {
@@ -11250,8 +11254,8 @@ check("without an indoor reading the corner now label is absent",
     census.push(`${page}=${n}`);
     for (const href of anchors(shown)) {
       const key = `${page}:a`;
-      (seen[key] ||= new Set()).add(href);
-      if (!excused(key, href)) wrong.push(`${key} -> ${href}`);
+      (seen[key] ||= new Set()).add(`href ${href}`);
+      if (!excused(key, "href", href)) wrong.push(`${key} -> href ${href}`);
     }
     for (let i = 0; i < n; i++) {
       const c = open(page);
@@ -11266,9 +11270,11 @@ check("without an indoor reading the corner now label is absent",
       const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
       // Anchors present after the press, so a link written at click time is
       // seen as well as one written at render.
-      for (const path of [...pushed, ...events, ...anchors(c)]) {
-        (seen[key] ||= new Set()).add(path);
-        if (!excused(key, path)) wrong.push(`${key} -> ${path}`);
+      const left = [...pushed.map((p) => ["push", p]), ...events.map((e) => ["event", e]),
+        ...anchors(c).map((h) => ["href", h])];
+      for (const [via, path] of left) {
+        (seen[key] ||= new Set()).add(`${via} ${path}`);
+        if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
       }
     }
   }
@@ -11302,7 +11308,7 @@ check("without an indoor reading the corner now label is absent",
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
   check("every link a button emits is one haLink builds for this entry",
     wrong.length === 0, wrong.join("; "));
-  const stale = Object.keys(PENDING).filter((k) => !seen[k] || !seen[k].has(PENDING[k].path));
+  const stale = Object.keys(PENDING).filter((k) => !seen[k] || !seen[k].has(`push ${PENDING[k].path}`));
   check("every LINK_PENDING row still names a button that emits an unconverted link",
     stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
   // ARCH2-s5 C2: the in-card deep link into a Setup slot opens that slot's
