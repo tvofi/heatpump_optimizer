@@ -1899,6 +1899,67 @@ def kernel_cost_over_verdict(
     return observed_ms > baseline_ms * vouched_ratio * SCENARIO_KERNEL_FACTOR
 
 
+#: The whole-solve CPU channel (R10 D9-s3-01). Every channel above meters a
+#: named quantity -- scipy's evaluations, the simulate step-equivalents, the
+#: three kernels' own seconds, the production calls -- or the solve's CPU
+#: against the recorded table at SCENARIO_BUDGET_FACTOR 3.0. A per-call
+#: slowdown in code outside the kernels (the objective assembly, the cost
+#: terms, L-BFGS-B's Python, the multi-start bookkeeping: about half the
+#: solve) moves none of the named quantities, and an injected exact 2x of
+#: the whole solve tripped no check on 5 of 5 scenarios.
+#:
+#: One scenario's solve CPU against the baseline beside it still moves
+#: 1.10-1.44x of itself (#346), which is why capture_work_rows refused it
+#: per scenario. The MEDIAN over the covered scenarios does not: the same
+#: machine solves both halves minutes apart, a runner's basin choice cancels
+#: as it does for the counts, the work the counts vouch for is divided out
+#: per scenario as kernel_cost_over_verdict does, and one scenario's noise
+#: reaches the median not at all. The factor is this file's derivation for
+#: every budget it holds to DETECTION_TARGET: the geometric midpoint between
+#: an unchanged tree (1.0) and the regression the gate must see, so the
+#: margin against a false failure equals the margin against a miss. What it
+#: does not see is a slowdown confined to fewer than half the covered
+#: scenarios; that stays with the per-scenario channels above.
+SWEEP_SOLVE_CPU_FACTOR = DETECTION_TARGET ** 0.5
+
+
+def solve_cpu_median(
+    observed_ms: dict[str, float],
+    observed_evals: dict[str, int],
+    observed_simulate: dict[str, int],
+    baseline: dict[str, dict],
+    covered: list[str],
+) -> tuple[float | None, int]:
+    """The median, over ``covered``, of this tree's solve CPU per unit of
+    the baseline's on work the counts vouch for; and how many it judged.
+
+    ``covered`` is work_drift_compare's population (same plan both sides).
+    A scenario with no positive solve CPU on either side is not judged, and
+    the count returned says how many were; None when none were. Shared by
+    the sweep and the checks that prove it can fail, so a test cannot pass
+    by re-implementing the statistic it pins.
+    """
+    ratios = []
+    for label in covered:
+        entry = baseline.get(label) or {}
+        base_ms = entry.get("solve_cpu_ms")
+        got_ms = observed_ms.get(label, 0.0)
+        if not isinstance(base_ms, (int, float)) or base_ms <= 0.0 or got_ms <= 0.0:
+            continue
+        vouched = observed_evals[label] / entry["evals"]
+        if isinstance(entry.get("simulate"), int) and entry["simulate"] > 0:
+            vouched = max(vouched, observed_simulate[label] / entry["simulate"])
+        ratios.append(got_ms / (float(base_ms) * vouched))
+    if not ratios:
+        return None, 0
+    return float(np.median(ratios)), len(ratios)
+
+
+def solve_cpu_over_verdict(median: float) -> bool:
+    """Did the sweep's median solve CPU grow past SWEEP_SOLVE_CPU_FACTOR?"""
+    return median > SWEEP_SOLVE_CPU_FACTOR
+
+
 #: Interleaved rounds the per-call-cost arm solves (round-5 D9-07). One
 #: plain solve against one doubled solve is a ratio of two single ~50 ms
 #: kernel readings, and under contention one reading moves by more than
@@ -2329,6 +2390,9 @@ for combo in stress.sweep_combinations():
         # it (round-5 D9-07), plus the DHW kernel when the tree's own
         # channel does not meter it.
         "kernel_ms": round(tree_kms, 3),
+        # The whole solve's CPU (R10 D9-s3-01), judged only as the sweep's
+        # MEDIAN against this tree's: see solve_cpu_drift().
+        "solve_cpu_ms": round(float(run.get("solve_cpu_ms") or 0.0), 3),
     }
 with open(out_path, "w") as fh:
     json.dump(rows, fh, indent=1, sort_keys=True)
@@ -2594,20 +2658,16 @@ def capture_work_rows(
     """Run one tree's sweep in a child process and read back its work rows.
 
     ``{label: {"evals": int, "simulate": int, "objective": float,
-    "kernel_ms": float}}`` -- the numbers the comparison needs and nothing
-    more (the simulate count added for #1229, the kernel seconds for
-    round-5 D9-07). Whole-solve timing is still not captured, on purpose:
-    CPU moves between two runs of the same box (1.10x to 1.44x over six
-    repeats of bit-identical work, measured for #346) while the counts do
-    not move at all, and a baseline is only worth having in the quantity
-    that does not move. The kernel-seam seconds are the one measured
-    exception, and it is honest because the signal clears the movement
-    the noise does not: an exact 2x of per-call kernel cost leaves both
-    counts flat and doubles this field, while the same 2x reaches only
-    1.49-1.54x of the whole solve (the seams are about half of it) --
-    inside the 1.44x movement, which is exactly why solve-wide CPU is
-    still refused here. SCENARIO_KERNEL_FACTOR (1.80) sits between the
-    two.
+    "kernel_ms": float, "solve_cpu_ms": float}}`` -- the numbers the
+    comparison needs and nothing more (the simulate count added for #1229,
+    the kernel seconds for round-5 D9-07, the solve CPU for R10 D9-s3-01).
+    One scenario's CPU moves between two runs of the same box (1.10x to
+    1.44x over six repeats of bit-identical work, measured for #346) while
+    the counts do not move at all, so CPU is judged here only where the
+    signal clears that movement: the kernel seconds per scenario, because
+    an exact 2x of per-call kernel cost doubles them with both counts flat
+    (SCENARIO_KERNEL_FACTOR 1.80 sits between), and the whole solve only
+    as the sweep's median (SWEEP_SOLVE_CPU_FACTOR), never per scenario.
     """
     env = dict(os.environ)
     env["PYTHONPATH"] = os.path.join(root, "tests", "hastub")
@@ -3416,6 +3476,7 @@ if __name__ == "__main__":
             "simulate": 400 + 11 * i,
             "objective": 100.0 + i,
             "kernel_ms": 30.0 + 5.0 * i,
+            "solve_cpu_ms": 60.0 + 9.0 * i,
         }
         for i in range(51)
     }
@@ -3553,6 +3614,34 @@ if __name__ == "__main__":
         not _verdict(kernel=1.99, sim=1.99, only={_VICTIM}).cost_over,
         "kernel seconds at 1.99x moved by counted work fired the "
         "per-call channel",
+    )
+
+    # (b4) the whole-solve CPU channel (R10 D9-s3-01): a slowdown outside
+    # every named seam moves no count and no kernel second, only the solve.
+    def _solve_median(cpu=1.0, work=1.0, only=None):
+        hot = lambda label: only is None or label in only  # noqa: E731
+        got = {l: r["solve_cpu_ms"] * (cpu if hot(l) else 1.0) for l, r in _SYN.items()}
+        evals = {l: int(round(r["evals"] * (work if hot(l) else 1.0))) for l, r in _SYN.items()}
+        sims = {l: int(round(r["simulate"] * (work if hot(l) else 1.0))) for l, r in _SYN.items()}
+        return solve_cpu_median(got, evals, sims, _SYN, _SYN_LABELS)
+
+    _sc_null, _sc_n = _solve_median()
+    _sc_2x, _ = _solve_median(cpu=1.99)
+    R.check(
+        "a 2x whole-solve slowdown with every count flat fires the solve-CPU "
+        "channel, and an unchanged sweep does not (R10 D9-s3-01)",
+        solve_cpu_over_verdict(_sc_2x) and not solve_cpu_over_verdict(_sc_null)
+        and _sc_n == len(_SYN),
+        f"median {_sc_2x:.3f}x at 1.99x, {_sc_null:.3f}x unchanged, "
+        f"{_sc_n} of {len(_SYN)} judged",
+    )
+    R.check(
+        "...solve CPU that grows only with the counts does not fire it, and "
+        "one scenario's reading does not move the median",
+        not solve_cpu_over_verdict(_solve_median(cpu=1.99, work=1.99)[0])
+        and not solve_cpu_over_verdict(_solve_median(cpu=3.0, only={_VICTIM})[0]),
+        "the vouching or the median let a counted or single-scenario "
+        "movement through",
     )
     # ...and the doubt band under the factor, where one reading of a real
     # 2x can land: named for a re-solve, never failed on one reading, and
@@ -4371,6 +4460,7 @@ if __name__ == "__main__":
     observed_simulate: dict[str, int] = {}
     observed_kernel: dict[str, float] = {}
     observed_objective: dict[str, float] = {}
+    observed_solve_cpu: dict[str, float] = {}
     if not record_mode and not budget_table:
         print(
             "  NOTE: no budget table found; run `stress.py --record-budgets`\n"
@@ -4421,6 +4511,7 @@ if __name__ == "__main__":
         # NaN when the solve failed, which same_basin() reads as "cannot
         # tell" rather than as agreement.
         observed_objective[label] = float(run["result"].objective_value)
+        observed_solve_cpu[label] = solve_ms
         sweep_reference_ms += sample_ms
         sweep_solve_ms += solve_ms
         sweep_solve_thread_ms += float(run["solve_thread_ms"])
@@ -4678,6 +4769,8 @@ if __name__ == "__main__":
                 and isinstance(entry.get("kernel_ms"), (int, float))
                 and not isinstance(entry.get("kernel_ms"), bool)
                 and entry["kernel_ms"] > 0.0
+                and isinstance(entry.get("solve_cpu_ms"), (int, float))
+                and entry["solve_cpu_ms"] > 0.0
             )
         ]
         if not baseline_work:
@@ -4685,7 +4778,8 @@ if __name__ == "__main__":
         else:
             _sim_why = (
                 f"{len(_sim_base_missing)} of {len(baseline_work)} baseline "
-                f"rows carry no positive simulate count or kernel seconds "
+                f"rows carry no positive simulate count, kernel seconds or "
+                f"solve CPU "
                 f"({', '.join(_sim_base_missing[:5])}"
                 + (" ..." if len(_sim_base_missing) > 5 else "")
                 + "), so the simulate and kernel-cost checks judged nothing "
@@ -4694,8 +4788,9 @@ if __name__ == "__main__":
                 "tree needs no channel of its own"
             )
         R.check(
-            "the baseline capture carries simulate counts and kernel "
-            "seconds this meter can read (#1229, round-5 D9-07)",
+            "the baseline capture carries simulate counts, kernel seconds "
+            "and solve CPU this meter can read (#1229, round-5 D9-07, R10 "
+            "D9-s3-01)",
             bool(baseline_work) and not _sim_base_missing,
             _sim_why,
         )
@@ -4729,6 +4824,33 @@ if __name__ == "__main__":
             "at 1.49-1.54x passing every budget in this file, so the "
             "kernel's own CPU seconds against the baseline captured "
             "beside this run is the only channel that moves",
+        )
+        _solve_median, _solve_judged = solve_cpu_median(
+            observed_solve_cpu, observed_evals, observed_simulate,
+            baseline_work, drift.covered,
+        )
+        print(
+            f"  whole-solve CPU: median "
+            + ("n/a" if _solve_median is None else f"{_solve_median:.3f}x")
+            + f" of the baseline beside this run over {_solve_judged} of "
+            f"{len(drift.covered)} covered scenarios, on work the counts "
+            f"vouch for; factor {SWEEP_SOLVE_CPU_FACTOR:.3f}x"
+        )
+        R.check(
+            "the whole-solve CPU channel judged every covered scenario "
+            "(R10 D9-s3-01)",
+            _solve_median is not None and _solve_judged == len(drift.covered),
+            f"{_solve_judged} of {len(drift.covered)} judged",
+        )
+        timing_check(
+            "the sweep's solves did not get slower per unit of counted work, "
+            "median over the covered scenarios (R10 D9-s3-01)",
+            _solve_median is None or not solve_cpu_over_verdict(_solve_median),
+            f"median {_solve_median}x of the baseline's solve CPU on work the "
+            f"counts vouch for, over the {SWEEP_SOLVE_CPU_FACTOR:.3f}x factor; "
+            "a slowdown outside the named seams moves no count, no kernel "
+            "second and no production call, so this is the only channel "
+            "that sees it under SCENARIO_BUDGET_FACTOR",
         )
         # The production-call channel (round 9): every call production
         # bytecode executes, both trees, one scenario per family.
@@ -5321,6 +5443,12 @@ if __name__ == "__main__":
         f"the real ones (measured 1.7x of ratio compression between an M1 "
         f"and a CI runner); re-record here to get the figures above"
     )
+    if SWEEP_SOLVE_CPU_FACTOR >= DETECTION_TARGET:
+        _blind.append(
+            f"the whole-solve CPU factor is {SWEEP_SOLVE_CPU_FACTOR:.2f}x: it "
+            f"cannot see a {DETECTION_TARGET:.0f}x slowdown outside the "
+            f"named seams (R10 D9-s3-01)"
+        )
     _smallest = min(
         SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9),
         SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9),
