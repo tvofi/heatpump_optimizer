@@ -18387,6 +18387,7 @@ R.check(
 # orphan and forces MODE: FULL (#408).
 from heatpump_optimizer import repairs as _repairs_mod  # noqa: E402
 from heatpump_optimizer import setpoint_check as _setpoint_check_mod  # noqa: E402
+from heatpump_optimizer import issues as _issues_mod  # noqa: E402
 
 R.check(
     "repairs.py is imported so the dynamically loaded platform is classified",
@@ -18401,10 +18402,10 @@ R.check(
 _f2_docs = json.loads((ROOT / "manifest.json").read_text())["documentation"]
 R.check(
     "the documentation link is the one the manifest publishes",
-    getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None) == _f2_docs,
-    repr(getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None)),
+    getattr(_issues_mod, "DOCUMENTATION_URL", None) == _f2_docs,
+    repr(getattr(_issues_mod, "DOCUMENTATION_URL", None)),
 )
-_f2_create = getattr(_setpoint_check_mod, "create_issue", None)
+_f2_create = getattr(_issues_mod, "create_issue", None)
 _f2_hass = FakeHass()
 if callable(_f2_create):
     _f2_create(_f2_hass, const.DOMAIN, "f2_default")
@@ -23739,7 +23740,7 @@ for _fname, _tree in _PKG_TREES.items():
     for _fn in ast.walk(_tree):
         if not isinstance(_fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
-        if _fname == "setpoint_check.py" and _fn.name == "create_issue":
+        if _fname == "issues.py" and _fn.name == "create_issue":
             continue
         for _node in ast.walk(_fn):
             if not isinstance(_node, ast.Call):

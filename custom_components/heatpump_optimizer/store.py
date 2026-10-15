@@ -49,7 +49,7 @@ from .ledger import BILLED_LINES
 from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
-from .setpoint_check import create_issue
+from .issues import create_issue
 
 _LOGGER = logging.getLogger(__name__)
 
