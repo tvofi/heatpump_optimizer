@@ -1,0 +1,639 @@
+{
+  "box": "B1",
+  "missing": [],
+  "reports": {
+    "D0-s1": {
+      "dimension": "D0",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D0/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D0.M1",
+          "depth": "deep",
+          "evidence": "race.py patches optimizer:_multi_start_minimize and captures objective, candidates, bounds, args, maxiter, batch_objective and result for every call in 80 cells (grid_dhw0.out)"
+        },
+        {
+          "step": "D0.M2",
+          "depth": "deep",
+          "evidence": "Three challengers ran in all 80 cells: C1 is production's multi-start with structured seeds added, C2 is a warm L-BFGS-B at maxiter 5000 and ftol 1e-12 on the same batched jac, C3 is C2 at FD eps 1e-6. No global outer bound was run."
+        },
+        {
+          "step": "D0.M3",
+          "depth": "spot",
+          "evidence": "Room band violation from simulate_trajectory, compared with production's, discarded 0 challengers. Bounds were enforced by clipping. DHW windows and pins were not exercised because the DHW arm crashed."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D0.M2",
+          "what": "No global outer bound (differential_evolution or coarse DP). The DHW-on arm, horizons 6/48 h and valve/wood topologies were not raced. The harness crashed on ThermalState(dhw_tank_temperature=...)."
+        },
+        {
+          "step": "D0.M3",
+          "what": "Feasibility parity was not checked for DHW availability or manual pins, because no DHW or pinned cell ran."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D0-s1-01",
+          "scope": "D0-s1",
+          "step": "D0.M2",
+          "title": "Multi-start returns plans above what a wider seed set reaches with the same minimizer on the same objective",
+          "severity": "low",
+          "claim": "On the 80-cell grid (8 price x 5 weather x single/two-zone, DHW off, 24 h), production's _multi_start_minimize result is above the best feasible challenger on its own captured objective by more than 1e-3 relative in 26 cells and by more than 1e-2 in 2 cells (max 5.06e-2). Most of this is reached by C1, the same minimizer with structured seeds added.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
+            "harness_path": "dev/audit/rounds/round10/D0/s1/race.py",
+            "value": 26,
+            "unit": "cells with gap_rel > 1e-3 (of 80)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B1 Apple Silicon macOS, venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, about 3 seats on the box, load1 15.88; counts and objective ratios are contention-immune",
+            "tolerance": "\u00b13 cells / \u00b11e-3 relative across BLAS builds",
+            "load1": 15.88,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+          "perturbation": {
+            "change": "--perturb-maxiter 20 (the production call runs at maxiter 20); on tz=1 winter_typical/winter_cold",
+            "expected_direction": "up",
+            "observed_value": "gap_rel 3.99e-3 -> 5.80e-3; with --perturb-maxiter 2000 it stays at 3.99e-3"
+          },
+          "metric_definition": "gap_rel = (f(prod.x) - min feasible challenger f) / |f(prod.x)|, where f is the captured production objective. A challenger is feasible only if its room band violation is no worse than production's.",
+          "phenomenon_property": "The candidate set production seeds into L-BFGS-B misses basins that price-ranked bang-bang and constant-level seeds reach. The returned plan is then not the minimum of production's own objective that production's own minimizer can find.",
+          "seam_rule": "dev/audit/rounds/round10/D0/s1/race.py (each call captured at _multi_start_minimize; the by=c1 column marks the seed-caused gaps)",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "proposed_fix_scope": "Candidate construction in the space-only and space-with-DHW paths of HeatPumpOptimizer (starts list before _multi_start_minimize)",
+          "null_control": {
+            "command": "same command; RESULT flat_gap_rel_max",
+            "value": "4.98e-3",
+            "note": "The gap survives flat prices, so it is a basin/seeding gap of the solver and not a missed price arbitrage. Consequential priced cells: tz0 shoulder/winter_cold 8.8e-3 on a 40 SEK bill; tz1 winter_narrow/winter_cold 5.1e-3, with 1.93 SEK/day less energy on a 112 SEK bill."
+          },
+          "leave_one_out": {
+            "cells": 80,
+            "min": 0,
+            "max": 0.0506,
+            "drop_most_favourable": 0.00139
+          }
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The iteration budget does not bind: maxiter 2000 leaves the two-zone gap unchanged",
+          "command": "race.py --prices winter_typical,flat --weather winter_cold --tz 1 --perturb-maxiter 2000",
+          "value": "gap_rel 3.99e-3 and 4.98e-3, both unchanged"
+        },
+        {
+          "claim": "The gap is not a finite-difference step artefact",
+          "command": "race.py --prices winter_typical,flat --weather winter_cold --tz 1 --perturb-fd-eps 1e-6",
+          "value": "gap_rel 8.24e-3 and 4.86e-3, not reduced"
+        },
+        {
+          "claim": "No challenger plan was cheaper by trading away comfort",
+          "command": "race.py (full grid)",
+          "value": "infeasible_discarded=0 in all 80 cells"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D0/s1/race.py"
+      ],
+      "leads": []
+    },
+    "D3-s1": {
+      "dimension": "D3",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D3/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "depth": "deep",
+          "evidence": "mutants.py sample walks the AST of all 12 modules in my cells: 1278 candidates; one-line operators (< and <=, > and >=, min and max, and/or). Weights are module consequence (1-3) x operator (min/max 3, else 2) x 2 for an if/elif/while/return guard. Seed 10, 36 sampled, at most 4 per module. process_worker has no candidate, so it was not sampled."
+        },
+        {
+          "step": "D3.M2",
+          "depth": "deep",
+          "evidence": "24 of the 36 pre-screened (M01-M24). Each mutant ran in a baseline worktree that carries one empty marker commit, so env_drift.py --all 17f1c55fad1b does not refuse a self-comparison. The chain is the measured closure minus stress, edge, backtest, boost_drift_replay and golden.py (drift mode), plus env_drift --all. The null control was green on every script; env_drift is green standalone in 184.5 s. Result: 12 killed, 12 survived; raw lines in dev/audit/rounds/round10/D3/s1/prescreen/results.txt."
+        },
+        {
+          "step": "D3.M3",
+          "depth": "deep",
+          "evidence": "Prescreened list returned. The top six survivors for the quiet-window full gate are M08, M01, M03, M22, M21 and M19. M05, M06, M10, M11 and M23 are classed equivalent or equality-only. M18 is on a harness-only path (sysid.identify, #1395)."
+        },
+        {
+          "step": "D3.M4",
+          "depth": "deep",
+          "evidence": "Every survivor has a named production line and the check that should fail. Two have executed probes: forecast_keep.py (M08: prior_kept 1 at baseline -> 0 under the mutant, null arm --no-prior fabricates in both arms) and action_guards.py (M01/M03 family: live_guards 12 of 12 with short schedules -> 0 under --equal)."
+        },
+        {
+          "step": "D3.M5",
+          "depth": "spot",
+          "evidence": "Median per-script wall from 27 runs compared with closures.json recorded seconds: env_drift 301.2 s against 0.9 s recorded (disclosed #934), features 748.6 against 598.2, optimality 256.4 against 186.3, finite_boundary 154.7 against 90.4, card.mjs 41.7 against 18.7. These are provisional: load 5-150. Duplicated kills: 2 of 12 (M12, M13; both second kills by env_drift). features.py is the only killer of 6 of 12. Optimality, finite_boundary and validate killed 0 of the mutants they saw."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D3.M2",
+          "what": "M25-M36 (seed 10) were sampled but not pre-screened. Other seats drove box load to 20-150, so one mutant took 6-40 minutes. Rerun with: PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/mutants.py run M25,...,M36, from a baseline worktree that has one marker commit."
+        },
+        {
+          "step": "D3.M3",
+          "what": "The full GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors (M08, M01, M03, M22, M21, M19) is owed to the quiet window."
+        },
+        {
+          "step": "D3.M5",
+          "what": "Assertions per solve and closure over-approximation were not measured. Wall numbers were taken under heavy contention."
+        },
+        {
+          "step": "D3.M3",
+          "what": "REPORT.md was not written: the subagent environment refused a write of a report .md file. Its full content (method, pre-screen table, M4 answers, M5 table, non-findings) is carried in this JSON. The orchestrator must write it to dev/audit/rounds/round10/D3/s1/REPORT.md if needed."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D3-s1-01",
+          "scope": "D3-s1",
+          "step": "D3.M4",
+          "title": "No check pins that a raising weather fetch keeps the previous forecast; the and->or mutant at coordinator.py:6522 survives",
+          "severity": "medium",
+          "claim": "Flipping `if state and not self._weather_forecast:` to `or` in HeatPumpOptimizerCoordinator._fetch_weather_forecast replaces a 24-row previous forecast with the fabricated 48-row constant trajectory (prior_kept 1 -> 0), and the file's whole non-structural closure plus env_drift --all stays green on that mutant (M08 SURVIVED).",
+          "mechanism": "tests/features.py 'Weather staleness is surfaced (M2)' covers three cases: a raise with no prior forecast (fabricates), an empty result with a prior forecast (keeps), and a good fetch. It does not cover a raise with a prior forecast. The method's own docstring says the fabricated constant forecast cost +41.9 % realized and may be built only when nothing better exists.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/forecast_keep.py [--mutant|--no-prior]; suite arm: PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/mutants.py run M08 (from a baseline worktree with one marker commit)",
+            "harness_path": "dev/audit/rounds/round10/D3/s1/forecast_keep.py",
+            "value": "prior_kept=1 baseline, 0 mutant; null --no-prior: fabricated=1 in both arms; mutants.py RESULT M08=SURVIVED",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "owner 8-core Mac, Darwin 25.6, venv-ci python 3.14",
+            "cpu_or_wall": "count",
+            "contention_note": "other seats drove load 20-150; count metric, contention-immune",
+            "tolerance": "exact",
+            "load1": 18.07,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+          "perturbation": {
+            "change": "--mutant: the guard on line 6522 flipped from `and` to `or`, in memory (the method is re-compiled from its source and patched onto the class)",
+            "expected_direction": "prior_kept 1 -> 0 (fabricated 0 -> 1, rows 24 -> 48)"
+          },
+          "metric_definition": "prior_kept = 1 when, after a raising service call with a live weather entity at -8.0 C and a previous 24-row 2.0 C forecast, the coordinator's own _weather_forecast is still those 24 rows; else 0.",
+          "phenomenon_property": "Each branch of the weather-forecast fallback ladder (raise/empty/none x prior/no-prior) has a check that fails when that branch's keep-or-fabricate decision inverts.",
+          "seam_rule": "grep -n '_weather_fetch_failed\\|_fabricated_forecast(' custom_components/heatpump_optimizer/coordinator.py",
+          "stop_rule_class": "bug",
+          "class_guess": "I1",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "tests/features.py"
+          ],
+          "proposed_fix_scope": "Add the missing case (raise with a prior forecast must keep it, marked stale) to the features.py M2 section, and prove it kills M08."
+        },
+        {
+          "id": "D3-s1-02",
+          "scope": "D3-s1",
+          "step": "D3.M4",
+          "title": "get_current_action's 12 per-key length guards are live but no check feeds them a short schedule; M01 and M03 survive",
+          "severity": "low",
+          "claim": "With any optional schedule shorter than power_schedule, flipping `and` to `or` in each of the 12 `if result.X and i < len(result.X)` guards in HeatPumpOptimizer.get_current_action raises IndexError (12 of 12 live). Two sampled flips, at optimizer.py:5541 and 5557, survive the full non-structural closure plus env_drift --all.",
+          "mechanism": "Every test plan builds schedules of equal length, so the length half of each guard is never exercised. A refactor that drops it would pass the gate and crash the action read if a shorter schedule ever reached it. Whether production can produce a shorter schedule is not shown, hence severity low.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/action_guards.py [--equal]; suite arm: PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/mutants.py run M01,M03",
+            "harness_path": "dev/audit/rounds/round10/D3/s1/action_guards.py",
+            "value": "live_guards=12 of guards=12 (short schedules); 0 under --equal; mutants.py RESULT M01=SURVIVED, M03=SURVIVED",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "owner 8-core Mac, Darwin 25.6, venv-ci python 3.14",
+            "cpu_or_wall": "count",
+            "contention_note": "other seats drove load 20-150; count metric, contention-immune",
+            "tolerance": "exact",
+            "load1": 76.99,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action",
+          "perturbation": {
+            "change": "--equal: give every optional schedule power_schedule's length (null arm)",
+            "expected_direction": "live_guards 12 -> 0"
+          },
+          "metric_definition": "live_guards = number of get_current_action length guards whose in-memory and->or flip changes the returned action (or raises) on a 4-step plan with 2-entry optional schedules and now in the last step.",
+          "phenomenon_property": "Each per-step optional-schedule read in get_current_action has a check that hands it a schedule shorter than the step index.",
+          "seam_rule": "grep -n 'and i < len(result\\.' custom_components/heatpump_optimizer/optimizer.py",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I1",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py",
+            "tests/features.py"
+          ],
+          "proposed_fix_scope": "One table-driven features.py check that calls get_current_action on a short-schedule plan and asserts each optional key is absent with no raise. Prove it kills M01 and M03."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The pre-screen chain is green at baseline on this machine, so a kill is a real kill",
+          "command": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/mutants.py run M02 --null (optimizer chain); also M04 --null and M23 --null; env_drift standalone: python tests/env_drift.py --all 17f1c55fad1b",
+          "value": "Every script rc=0 except env_drift timing out at 300 s under load. env_drift standalone: NO UNCLAIMED DRIFT, 56 scenarios, 184.5 s"
+        },
+        {
+          "claim": "12 of 24 sampled mutants are killed by the closure",
+          "command": "mutants.py run M01..M24",
+          "value": "killed: M02 M07 M14 M17 M20 (env_drift), M04 M09 M15 M16 M24 (features), M12 (manual_plan + env_drift), M13 (card.mjs + env_drift)"
+        },
+        {
+          "claim": "Survivors M05, M06, M10, M11 and M23 are equivalent or equality-only, not gaps",
+          "command": "mutants.py run M05,M06,M10,M11,M23 plus reading the guard and its neighbouring line",
+          "value": "M05: total_seconds() is always a float. M06: samples==0 returns the inert learner on the next line. M10 (mean_spot==0.01), M11 (margins==1e-9) and M23 (known_count==n_steps) differ only at exact equality."
+        },
+        {
+          "claim": "M18 survives only on a harness-only path",
+          "command": "mutants.py run M18; sysid.py:1706/1743/1788 notes (#1395)",
+          "value": "SURVIVED; SystemIdentification.identify is harness-only, so there is no production consequence"
+        },
+        {
+          "claim": "env_drift's 0.9 s recorded closure time is a known, disclosed stub figure, not an unreported drift",
+          "command": "python3 tools aggregation over the mutant logs; tests/closure.py CLOSURES_COMMENT",
+          "value": "median 301.2 s real against 0.9 s recorded; disclosed in closures.json _comment (#934)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D3/s1/mutants.py",
+        "dev/audit/rounds/round10/D3/s1/action_guards.py",
+        "dev/audit/rounds/round10/D3/s1/forecast_keep.py",
+        "dev/audit/rounds/round10/D3/s1/prescreen/results.txt"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tests/closure.py",
+          "symbol": "lane_plan",
+          "what": "Greedy lane balancing uses recorded.seconds, and that table records env_drift.py at 0.9 s and golden.py at a stub figure. A real env_drift --all took 184-550 s here, so any lane holding it is under-weighted."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tests/env_drift.py",
+          "symbol": "may-drift fixtures",
+          "what": "env_drift --all reports 'may-drift ... did not move' for several fixtures (winter_two_zone_*, wood_*, valve_upper_direct_slab). A mutant that moves only a may-drift fixture is not killed by the differential gate. The size of that blind spot is unmeasured."
+        }
+      ]
+    },
+    "D9-s1": {
+      "dimension": "D9",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D9/s1/REPORT.md",
+      "exposure": "none: did not read docs/ or GitHub",
+      "coverage": [
+        {
+          "step": "D9.M1",
+          "depth": "deep",
+          "evidence": "sse_grad.py (SSE/grad by phase over 8 golden scenarios + 6-cell two-zone grid), cycle.py (solves and loop-thread CPU per cycle, 4 configs x 3 cycles), gil.py (real loop + ThreadPoolExecutor, idle null control, 3 perturbations)"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D9.M1",
+          "what": "gil_hold numbers taken at load1 16-28; need a quiet-window re-take. The contyield arm was inconclusive."
+        },
+        {
+          "step": "D9.M1",
+          "what": "solves_per_cycle: the shadow/what-if (coordinator ~11148) and diagnose paths were not triggered by the rig"
+        },
+        {
+          "step": "D9.M1",
+          "what": "DHW planning loops' SSE per gradient not split out separately"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D9-s1-01",
+          "scope": "D9-s1",
+          "step": "D9.M1",
+          "title": "Two-zone continuation pays 288 SSE per gradient instead of the fused 97",
+          "severity": "medium",
+          "claim": "_optimize_space_only.move_starts runs L-BFGS-B with a callable jac that evaluates float(objective(x)) as f0 plus a scalar fun. Each gradient costs 96 batch rows + 2 scalar horizons = 288 SSE, against 97 for the fused value-and-gradient the main loop uses. Across a 6-cell two-zone no-DHW grid, fusing removes 13.5-31.1% of total solve SSE, or 13.5-29.2% after dropping the largest cell. The flat-price cell removes 29.2%, so the cost does not depend on prices. The iterate path is unchanged: main gradient counts are identical in both arms.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py --scenarios tz:winter_typical:winter_cold,tz:winter_extreme:winter_cold,tz:shoulder:shoulder,tz:winter_typical:winter_mild,tz:summer_typical:summer_cool,tz:flat:winter_cold [--perturb fuse]",
+            "harness_path": "dev/audit/rounds/round10/D9/s1/sse_grad.py",
+            "value": "cont sse_per_grad 192 in the jac + 96 in cont_fun per grad (288 total); with fuse 97. winter_two_zone_no_dhw total SSE 62121 -> 53717",
+            "unit": "simulate-step-equivalents per gradient",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Darwin arm64 audit box B1",
+            "cpu_or_wall": "cpu",
+            "contention_note": "Counts are exact and contention-immune. Continuation CPU 314->204 ms (and 5 other cells) was taken at load1 ~20-26 and is provisional.",
+            "tolerance": "counts +-0; CPU +-30%",
+            "load1": "19.98-25.98",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "heatpump_optimizer.optimizer:_scoped_minimize (callable jac from _optimize_space_only.move_starts), heatpump_optimizer.thermal_model:ThermalModel.simulate_step, ThermalModel.simulate_trajectory_batch, heatpump_optimizer.optimizer:_batch_fd_gradient",
+          "perturbation": {
+            "change": "--perturb fuse: give the continuation the fused value+gradient (jac=True, x as row 0 of the batch), as _fused_value_and_gradient does",
+            "expected_direction": "cont sse_per_grad 288 -> 97; cont_fun SSE -> 0; total SSE falls 13.5-31%; main grads unchanged"
+          },
+          "metric_definition": "(scalar simulate_step calls + simulate_trajectory_batch rows) per _batch_fd_gradient call, split by phase (main fused / continuation jac / continuation fun)",
+          "phenomenon_property": "An L-BFGS-B call inside a solve that passes a callable jac rather than the fused jac=True evaluates the objective at each iterate as separate scalar horizons on top of the batched gradient.",
+          "seam_rule": "grep -n \"jac=(lambda\\|jac=lambda\" custom_components/heatpump_optimizer/*.py",
+          "stop_rule_class": "bug",
+          "class_guess": "N-solve-recompute",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "proposed_fix_scope": "In _optimize_space_only.move_starts, build the continuation's fun with _fused_value_and_gradient(objective_batch, bounds, 1e-4) and jac=True, matching _multi_start_minimize.",
+          "provisional": false
+        },
+        {
+          "id": "D9-s1-02",
+          "scope": "D9-s1",
+          "step": "D9.M1",
+          "title": "_gil_yield's sleep(0) does not bound the loop starvation of an in-process solve",
+          "severity": "low",
+          "claim": "On the #511 in-process fallback, the solve runs on an executor thread. During a two-zone solve the event-loop heartbeat's max gap is 87-124 ms and the starvation share is 0.70-0.89. The idle null control in the same session shows 14-21 ms and 0.08-0.17. Removing _gil_yield barely changes the gap, while a real 0.1 ms sleep cuts it to about 30 ms. So the per-evaluation sleep(0) does not act as a GIL handoff.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/gil.py --scenarios idle,winter_single_dhw,winter_two_zone_dhw,shoulder_two_zone [--perturb realsleep|noyield]",
+            "harness_path": "dev/audit/rounds/round10/D9/s1/gil.py",
+            "value": "max gap winter_two_zone_dhw 123.9 ms, shoulder_two_zone 86.6 ms (idle 14.1); realsleep: 29.4 / 32.1 ms",
+            "unit": "ms",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Darwin arm64 audit box B1",
+            "cpu_or_wall": "wall",
+            "contention_note": "load1 16-28 (saturated box); all values provisional and must be re-taken in a quiet window",
+            "tolerance": "+-50% under load",
+            "load1": "26.16-27.58",
+            "thread_factor": "1.002 (residual after subtracting the deliberate executor thread CPU)"
+          },
+          "instrumented_symbol": "heatpump_optimizer.optimizer:_gil_yield, HeatPumpOptimizer.optimize",
+          "perturbation": {
+            "change": "--perturb realsleep: _gil_yield sleeps 0.1 ms instead of sleep(0)",
+            "expected_direction": "max heartbeat gap falls (measured 124->29 ms, 87->32 ms)"
+          },
+          "metric_definition": "Max gap between 1 ms asyncio heartbeat ticks on a real loop while HeatPumpOptimizer.optimize runs in a ThreadPoolExecutor; starvation share = wall fraction covered by gaps > 5 ms",
+          "phenomenon_property": "A GIL yield implemented as time.sleep(0) inside the solver thread does not hand the GIL to a waiting event-loop thread.",
+          "seam_rule": "grep -n \"sleep(0)\\|_gil_yield()\" custom_components/heatpump_optimizer/optimizer.py",
+          "stop_rule_class": "bug",
+          "class_guess": "P10",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "proposed_fix_scope": "Make _gil_yield a real handoff (a sub-ms non-zero sleep, rate-limited), or document that only the process-worker path bounds the hold. Re-measure quiet first.",
+          "provisional": true
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The main multi-start gradient costs exactly 97 SSE per gradient with no scalar steps and no scipy approx_derivative fallback. This holds on the default two-zone DHW, single-zone, fuse_guard (capped/zero-range bounds) and tariff scenarios.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py",
+          "value": "main.sse_per_grad=97.00 and scalar_per_grad=0.00 on all 7 scenarios"
+        },
+        {
+          "claim": "A plain cycle runs only the main solve: 2 _multi_start_minimize entries with DHW (space solve plus the _co_optimize re-solve) and 1 space-only. No shadow, what-if or diagnose solve ran in these configs.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
+          "value": "solves[optimize_in_process<-async_run_optimization]=2 (dhw, all_features) / 1 (space_only) per cycle"
+        },
+        {
+          "claim": "Loop-thread work per cycle, excluding offloaded jobs, is small (provisional).",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
+          "value": "7.6-12.1 ms thread CPU = 0.16-0.25 reference_solve after the first cycle (53.9 ms warm-up)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D9/s1/sse_grad.py",
+        "dev/audit/rounds/round10/D9/s1/cycle.py",
+        "dev/audit/rounds/round10/D9/s1/gil.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer._co_optimize",
+          "what": "A DHW cycle runs a second full _multi_start_minimize (2 per cycle against 1 space-only). Whether the re-solve changes the shipped plan often enough to pay for itself was not measured; this is a price-optimality (D0) question."
+        }
+      ]
+    },
+    "D5-s1": {
+      "dimension": "D5",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D5/s1/REPORT.md",
+      "exposure": "Read README.md and docs/*.md as D5 requires. In-code comments cite earlier finding ids. RELEASE_NOTES.md version history was not checked. One link points to dev/archive/backlog.md, which the finder wall removed.",
+      "coverage": [
+        {
+          "step": "D5.M1",
+          "depth": "deep",
+          "evidence": "ui_labels.py: mismatches=5 across README.md and docs/*.md, checked against manifest.json name and strings.json menu_options. Ran a relative link and anchor check over all 8 files (1 miss, the finder-wall export artefact). Compared 313 settings-table labels against strings.json and spot-checked 21 of the 69 that differ."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M1",
+          "what": "The feature reader paths (two-tank storage, ECL110, capacity tariff) were checked only at label level. The paragraph-by-paragraph walk for dead ends and forward references was not recorded exhaustively."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D5-s1-01",
+          "scope": "D5-s1",
+          "step": "D5.M1",
+          "title": "Docs tell the reader to click UI labels the production UI does not display",
+          "severity": "low",
+          "claim": "Five places in the docs name a UI label that is not shown verbatim. docs/configuration.md:23 says 'Add integration \u2192 Heat Pump Optimizer', but the picker shows the manifest name 'Heat Pump Cost Optimizer', which contradicts README.md:281 and docs/setup.md:48. README.md:356, docs/configuration.md:43, :164 and docs/setup.md:70 name the menu button 'Enter thermal values directly (expert)', but strings.json config.step.building.menu_options.thermal is 'Enter thermal values directly'.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
+            "harness_path": "dev/audit/rounds/round10/D5/s1/ui_labels.py",
+            "value": 5,
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B1 macOS darwin",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count; contention-immune",
+            "tolerance": "exact",
+            "load1": 6.45,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/strings.json:config.step.building.menu_options.thermal and manifest.json:name",
+          "perturbation": {
+            "change": "In memory, append ' (expert)' to strings.json config.step.building.menu_options.thermal (run with --perturb)",
+            "expected_direction": "down: 5 -> 1"
+          },
+          "metric_definition": "Count of (doc, line, label) in README.md and docs/*.md where an 'Add integration \u2192 X' target differs from manifest.json name, or a bold or quoted label equals a strings.json menu_options value plus a parenthetical suffix the UI does not show",
+          "phenomenon_property": "Every UI navigation label the docs tell a reader to click equals the text the production UI renders",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D5/s1/ui_labels.py",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "docs/configuration.md",
+            "docs/setup.md",
+            "README.md"
+          ],
+          "proposed_fix_scope": "Change the docs labels to the rendered UI text, or rename the menu option to carry (expert) in strings.json and translations"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every relative link and anchor in README.md and docs/*.md resolves",
+          "command": "Inline anchor and link check (slugified headings), run over README.md and docs/*.md",
+          "value": "1 miss: docs/how-it-works.md -> ../dev/archive/backlog.md, removed by the finder wall (export artefact)"
+        },
+        {
+          "claim": "Settings-table first-column labels in configuration.md, setup.md and ecl110.md match the UI apart from dropped unit or (optional) suffixes",
+          "command": "difflib comparison of table first columns against strings.json config/options strings",
+          "value": "69 of 313 not verbatim; the 21 spot-checked are all suffix drops or merged pairs"
+        },
+        {
+          "claim": "The developer path reaches the test documentation",
+          "command": "grep -n tests/README.md README.md docs/architecture.md",
+          "value": "README.md:980 and docs/architecture.md:299 link to tests/README.md, which exists"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D5/s1/ui_labels.py"
+      ],
+      "leads": []
+    },
+    "D6-s1": {
+      "dimension": "D6",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D6/s1/REPORT.md",
+      "exposure": "README.md, DISCLAIMER.md",
+      "coverage": [
+        {
+          "step": "D6.M1",
+          "depth": "spot",
+          "evidence": "Extracted the numeric, default, count and version claims from README.md. DISCLAIMER.md is legal prose and has no quantified claims that code can check."
+        },
+        {
+          "step": "D6.M2",
+          "depth": "spot",
+          "evidence": "claims.py ran 20 checks against async_setup_entry, async_register_services, the schema keys, const defaults, VERSION, the manifest and hacs.json. claims_false=0. The --perturb arm gives claims_false=2."
+        },
+        {
+          "step": "D6.M3",
+          "depth": "spot",
+          "evidence": "The CLAIM lines in the claims.py output are the claims table."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D6.M2",
+          "what": "Five claims are not checked. Four have no direct const and need flow or engine harnesses: 23 options pages, up to 20 manual-plan hours, 8 weekly snapshots and \u00b112 %. The fifth is link HEAD requests, which were not run because no network was used."
+        },
+        {
+          "step": "D6.M1",
+          "what": "Behavioural prose claims (the 'optimizer will\u2026' sentences) were not exhaustively numbered."
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "The README's entity counts hold: 81 total, 62 sensors, 6 binary sensors and 5 buttons.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s1/claims.py",
+          "value": "entities_total=81, sensors_total=62. With --perturb the counts fall to 80 and 61."
+        },
+        {
+          "claim": "The service claims hold: 13 services are registered, and set_thermal_parameters has 31 fields.",
+          "command": "same",
+          "value": "13 services, 31 fields"
+        },
+        {
+          "claim": "The README defaults match const.py: interval 30, target 21, day 21, night 19.5, day 07-22, legionella 60 \u00b0C every 7 days, wind 3 %, rain 15 %, comfort_weight 5, mold margin 0.5.",
+          "command": "same",
+          "value": "claims_false=0 across C07-C18"
+        },
+        {
+          "claim": "The versions match: the minimum Home Assistant is 2025.2.0 in hacs.json, and the manifest version equals VERSION (7.0.0).",
+          "command": "same",
+          "value": "true"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D6/s1/claims.py"
+      ],
+      "leads": []
+    },
+    "D10-s1": {
+      "dimension": "D10",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D10/s1/REPORT.md",
+      "exposure": "None. The only docs read were README.md headings and service names, for the docs-* rule checks. No GitHub reads.",
+      "coverage": [
+        {
+          "step": "D10.M1",
+          "depth": "deep",
+          "evidence": "rules.py runs one executed check for each Bronze and Silver rule (28 rows). The checks are a dynamic census of 81 entities built through each platform's real async_setup_entry, all 13 registered actions called with no loaded entry, entity availability after last_update_success=False, AST/grep checks for the structural rules, and README lookups for the docs rules. Result: rules_todo=0; under --perturb, rules_todo=3."
+        },
+        {
+          "step": "D10.M2",
+          "depth": "deep",
+          "evidence": "The tier table is the ROW lines of rules.py: 28 of 28 done (vacuous: docs-triggers, docs-conditions). The draft is dev/audit/rounds/round10/D10/s1/quality_scale.yaml. No row is todo, so no minimum HA release is needed above the hacs.json floor of 2025.2.0."
+        },
+        {
+          "step": "D10.M3",
+          "depth": "deep",
+          "evidence": "Coverage: the per-script data from coverage_tree.sh fast (20 scripts) was combined and measured per module by coverage_modules.py. modules_below_95=0, lowest is accuracy.py at 96.80%, package 98.56%, config_flow 100.00%. With --drop config_flow_steps, config_flow falls to 84.83%. strict-typing: mypy_strict.py gives 0 errors over 76 files against real HA 2026.9.3, and 1 under --perturb. The stub arm gives 416 errors, all stub-shape artefacts."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D10.M3",
+          "what": "The coverage figure is from the fast stage only. The e2e stage (validate, edge, backtest, optimality) was not added; since coverage data is a union, adding it can only raise the numbers. REPORT.md was not written: the harness refused writing a report file from this subagent. The report content is in this JSON."
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "All 20 Bronze rules and the 8 measured Silver rules hold at baseline. The two coverage rows (config-flow-test-coverage, test-coverage) are measured by coverage_modules.py.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/rules.py [--perturb]",
+          "value": "rules_todo=0 at baseline; 3 under --perturb (unique_id nulled on one sensor, switch PARALLEL_UPDATES deleted, _loaded_coordinators returns [])"
+        },
+        {
+          "claim": "entity-unique-id and has-entity-name: every constructed entity delivers a unique id and has_entity_name",
+          "command": "rules.py",
+          "value": "81 entities; without unique_id 0; duplicates 0; without has_entity_name 0"
+        },
+        {
+          "claim": "action-exceptions: every registered action called with no loaded entry raises HomeAssistantError",
+          "command": "rules.py",
+          "value": "13/13 raise, 0 silent (9 silent under --perturb)"
+        },
+        {
+          "claim": "entity-unavailable: no entity stays available after a failed coordinator update",
+          "command": "rules.py",
+          "value": "available_after_failed_update=0 of 81"
+        },
+        {
+          "claim": "docs-configuration/installation-parameters: every config and options field carries a data_description",
+          "command": "rules.py",
+          "value": "374/374"
+        },
+        {
+          "claim": "test-coverage (Silver): no integration module is below 95% statement coverage",
+          "command": "W=$(mktemp -d); mkdir -p $W/site; venv-ci python -m pip install -q --target $W/site coverage; W5P_WORK=$W PYTHON=venv-ci/python bash tools/coverage/coverage_tree.sh fast; PYTHONPATH=$W/site:tests/hastub venv-ci/python dev/audit/rounds/round10/D10/s1/coverage_modules.py $W/out [--drop config_flow_steps]",
+          "value": "modules_below_95=0, lowest accuracy.py 96.80%, package 98.56%, config_flow 100.00%; with --drop config_flow_steps, config_flow 84.83% and modules_below_95=1"
+        },
+        {
+          "claim": "strict-typing: mypy --strict is clean against real Home Assistant. The 416 stub-arm errors (no-untyped-call 201, attr-defined 137, misc 36, ...) are stub-shape artefacts, a harness gap in tests/hastub and not an integration defect.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]",
+          "value": "mypy_real_errors=0 over 76 files (1 under --perturb); stub arm 416"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D10/s1/rules.py",
+        "dev/audit/rounds/round10/D10/s1/mypy_strict.py",
+        "dev/audit/rounds/round10/D10/s1/coverage_modules.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/__init__.py",
+          "symbol": "async_setup / _async_register_services",
+          "what": "The docstrings say 'the twelve services', and 'twelve handlers and the eleven hass.services.async_register calls'. services.py registers 13 (grep -c '.async_register(' = 13), so the code comments are stale. This belongs to D5 (code comments)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/services.py",
+          "symbol": "handle_apply_schedule",
+          "what": "A call with no applicable fields returns {'updated': {}, 'reason': 'nothing to apply'} before _loaded_entries runs. A bogus entry_id is therefore not refused when the call is empty, which is a possible action-exceptions edge."
+        }
+      ]
+    }
+  }
+}

@@ -3,66 +3,748 @@
   "_seeded": "Round 8's seat focuses and reports were not reachable from the local tree (they live in the cloud thread's project files), so every rounds map starts empty. Round 9 dispatches from dev/audit/config/scopes.json, not from this ledger.",
   "D0": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6", "M7"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "spot",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "spot",
+          "M7": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 3
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 1,
+          "s3": 0
+        },
+        "seats": [
+          ["M1", "M2", "M3"],
+          ["M4", "M5", "M6"],
+          ["M4", "M5", "M6", "M7"]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "No global outer bound (differential_evolution or coarse DP). The DHW-on arm, horizons 6/48 h and valve/wood topologies were not raced. The harness crashed on ThermalState(dhw_tank_temperature=...)."
+          },
+          {
+            "step": "M3",
+            "what": "Feasibility parity was not checked for DHW availability or manual pins, because no DHW or pinned cell ran."
+          },
+          {
+            "step": "M4",
+            "what": "valve storage, wood, horizon 6/48 h and coordinator captures not run in the winter cells (box load 40-94)"
+          },
+          {
+            "step": "M6",
+            "what": "augmented-challenger closed loop cut after 2 of 7 cells; realised objective (not only energy cost) not scored; multi-day loop not run"
+          },
+          {
+            "step": "M4",
+            "what": "valve storage, wood, 6/48 h horizons and the coordinator captures were not raced on my price axis"
+          },
+          {
+            "step": "M6",
+            "what": "rolling ran only one cell with plant == model; the score omits comfort-pull and cycling terms"
+          }
+        ]
+      }
+    }
   },
   "D1": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "spot",
+          "M5": "spot",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 2
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 3,
+          "s3": 2
+        },
+        "seats": [
+          ["M1", "M4"],
+          ["M2", "M3"],
+          ["M5", "M6"]
+        ],
+        "unfinished": [
+          {
+            "step": "M4",
+            "what": "Enumerate every self._* read by _solve_record/_solve_hubs and the arrays passed by reference into the in-process fallback (horizon.*, limits.*), then race each loop-side writer; only _mode was raced."
+          },
+          {
+            "step": "M1",
+            "what": "tests/harness.py:ha_unload_entry runs async_on_unload callbacks and drops a returned coroutine (RuntimeWarning: async_shutdown never awaited), where real HA schedules it. This instrument divergence is not quantified yet."
+          },
+          {
+            "step": "M2",
+            "what": "Not fuzzed: the manual_plan, dhw profile/draws, boost, pump_arbiter, notifier and debug stores. Two cycles did not populate them. Also missing: a positive control proving the fuzz harness counts a cycle failure. The one-log-line property is confounded by WARNINGs that a healthy restart already logs."
+          },
+          {
+            "step": "M3",
+            "what": "DST transitions (dt.freeze across the spring/autumn change) and a backward host-clock jump on the watchdog and age sensors were not driven."
+          },
+          {
+            "step": "M5",
+            "what": "List every try/except that swallows an exception across custom_components and inject an exception into each one. For each, check that it logs once, sets last_update_success and recovers on the next cycle."
+          },
+          {
+            "step": "M6",
+            "what": "Not yet driven with hostile payloads: the ECL110 MQTT state handler (_async_handle_ecl110_state_message / _parse_ecl110_state), the pump_signals state parsing, the weather-entity forecast through _fetch_weather_forecast, and the Open-Meteo async_refresh JSON path above _parse_block."
+          }
+        ]
+      }
+    }
   },
   "D2": {
     "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "spot",
+          "M4": "spot",
+          "M5": "spot"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 0
+        },
+        "returned": {
+          "s1": 0,
+          "s2": 1,
+          "s3": 1
+        },
+        "seats": [
+          ["M1"],
+          ["M2"],
+          ["M3", "M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "Store bounds were checked on random states, not on every tests/golden.py SCENARIOS trajectory. measured_heat_kw parity was not checked because the batch twin has no such input."
+          },
+          {
+            "step": "M2",
+            "what": "Capacity envelope never below demand-at-derate without a reason code (coordinator._capacity_caps / _fold_capacity_envelope) not measured; no stated Carnot-fraction band found in tree to test against"
+          },
+          {
+            "step": "M3",
+            "what": "savings identity, terminal credit sign/magnitude vs re-simulated continuation, penalty scaling with price_weight, solver gradient vs central FD"
+          },
+          {
+            "step": "M4",
+            "what": "23/25-hour DST price folding sweep, grid-fee weekday/day-night window sweep, currency conversion, month-boundary price folding"
+          },
+          {
+            "step": "M5",
+            "what": "confidence gate vs bias under larger noise/plant grid; COP and heat-loss learner clamps"
+          }
+        ]
+      }
+    }
   },
   "D3": {
     "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "spot"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 4
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 1,
+          "s3": 0
+        },
+        "seats": [
+          ["M1", "M2", "M3", "M4", "M5"],
+          ["M1", "M2", "M3", "M4", "M5"],
+          ["M1", "M2", "M3", "M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "M25-M36 (seed 10) were sampled but not pre-screened. Other seats drove box load to 20-150, so one mutant took 6-40 minutes. Rerun with: PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s1/mutants.py run M25,...,M36, from a baseline worktree that has one marker commit."
+          },
+          {
+            "step": "M3",
+            "what": "The full GATE_SCOPE=full GOLDEN_MODE=drift gate for the top six survivors (M08, M01, M03, M22, M21, M19) is owed to the quiet window."
+          },
+          {
+            "step": "M5",
+            "what": "Assertions per solve and closure over-approximation were not measured. Wall numbers were taken under heavy contention."
+          },
+          {
+            "step": "M3",
+            "what": "REPORT.md was not written: the subagent environment refused a write of a report .md file. Its full content (method, pre-screen table, M4 answers, M5 table, non-findings) is carried in this JSON. The orchestrator must write it to dev/audit/rounds/round10/D3/s1/REPORT.md if needed."
+          },
+          {
+            "step": "M2",
+            "what": "env_drift.py --all <baseline> (it refuses ref==HEAD, so it needs a temp commit) and finite_boundary.py/optimality.py were not run on the 4 survivors M26, M35, M04, M07; the quiet-window GATE_SCOPE=full GOLDEN_MODE=drift run should cover them"
+          },
+          {
+            "step": "M5",
+            "what": "No quiet-box gate table: per-script CPU vs closures.json seconds, assertions per solve, duplicate kills (the screen stopped at first kill), and whether the 5734s closures (boost_drift_replay, stress) over-approximate for cell files were all left unmeasured"
+          },
+          {
+            "step": "M1",
+            "what": "Only 18 mutants, against the 30-40 target. At about 25 minutes of wall time per mutant on the shared box, 12 or more remain."
+          },
+          {
+            "step": "M5",
+            "what": "The kill-overlap matrix needs every closure script run on every mutant, with no early stop. It was not taken."
+          }
+        ]
+      }
+    }
   },
   "D4": {
     "steps": ["M1", "M2", "M3"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "spot",
+          "M2": "spot",
+          "M3": "spot"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 2
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 0,
+          "s3": 2
+        },
+        "seats": [
+          ["M1"],
+          ["M2"],
+          ["M3"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "Keyboard tab order through every focusable, console-error sweep, layout shift on hover, the reduced-motion-off arm (CELLS=motion is defined but was not run), screenshots; also the run used Chromium 131 (rev 1148), not the lock's rev 1194"
+          },
+          {
+            "step": "M2",
+            "what": "Drive the quick_setup and device_prefill install branches; score each page against a written rubric (field adjacency, jargon without help); trigger each validation error dynamically rather than by literal inventory."
+          },
+          {
+            "step": "M3",
+            "what": "Spacing consistency against the --hpo-space scale across states, headline-number alignment across tiles/stats, error states (pin_fail, save_fail, status_fallback), and the sv language were not measured."
+          }
+        ]
+      }
+    }
   },
   "D5": {
     "steps": ["M1", "M2", "M3", "M4"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "spot",
+          "M4": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 0
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 1,
+          "s3": 1
+        },
+        "seats": [
+          ["M1"],
+          ["M2", "M3"],
+          ["M1", "M2", "M3", "M4"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "The feature reader paths (two-tank storage, ECL110, capacity tariff) were checked only at label level. The paragraph-by-paragraph walk for dead ends and forward references was not recorded exhaustively."
+          },
+          {
+            "step": "M3",
+            "what": "Mechanism paragraphs in how-it-works.md and configuration.md were not traced one by one against the code paths"
+          },
+          {
+            "step": "M1",
+            "what": "reader paths over the code/JS cells not walked"
+          },
+          {
+            "step": "M2",
+            "what": "structure over the code/JS cells not measured"
+          },
+          {
+            "step": "M3",
+            "what": "mechanism paragraphs in docstrings were checked only where M4 hits led"
+          },
+          {
+            "step": "M4",
+            "what": "cited-number-vs-adjacent-constant check not automated; www/*.js comments not scanned for symbols; README/docs M4 cell not run"
+          }
+        ]
+      }
+    }
   },
   "D6": {
     "steps": ["M1", "M2", "M3"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 1
+        },
+        "returned": {
+          "s1": 0,
+          "s2": 0,
+          "s3": 0
+        },
+        "seats": [
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"],
+          ["M1", "M2", "M3"]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "Five claims are not checked. Four have no direct const and need flow or engine harnesses: 23 options pages, up to 20 manual-plan hours, 8 weekly snapshots and ±12 %. The fifth is link HEAD requests, which were not run because no network was used."
+          },
+          {
+            "step": "M1",
+            "what": "Behavioural prose claims (the 'optimizer will…' sentences) were not exhaustively numbered."
+          },
+          {
+            "step": "M1",
+            "what": "Prose claims (behaviour, units, performance, version) in how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md and automations.md were not extracted."
+          },
+          {
+            "step": "M2",
+            "what": "Behavioural claims were not checked against golden scenarios, and external links got no HEAD requests."
+          }
+        ]
+      }
+    }
   },
   "D7": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "spot",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 2,
+          "raised": 2
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 1,
+          "s3": 2
+        },
+        "seats": [
+          ["M1", "M5"],
+          ["M2", "M3", "M4"],
+          ["M6"]
+        ],
+        "unfinished": [
+          {
+            "step": "M5",
+            "what": "The executed spot-mutation table for each addition since v4 is not done: batched gradient and bounds gate, drift gate, scoped gate, card collaborators, stress budgets, weekly windows, topology catalogue, wood and coil variants, DHW confidence, Tuya, re-anchor law. Each needs a test that fails on deletion, a doc paragraph and an owning module. Box load1 was 68-84, which made a features.py run per mutation infeasible within the budget."
+          },
+          {
+            "step": "M3",
+            "what": "End-to-end ingestion was measured only for freq_map; the other 7 learners are gate-level. dhw_learning's _frozen and comfort_learner are not tabled."
+          }
+        ]
+      }
+    }
   },
   "D8": {
     "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 3
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 0,
+          "s3": 0
+        },
+        "seats": [
+          ["M1", "M2"],
+          ["M3"],
+          ["M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "Value-follows-payload: 54 entity keys static between cycles A and B (matrix.py STATIC lines) not yet resolved per key against their source payload key. MonthlySavingsSensor available-but-None when only settled months exist was found by reading code and not measured."
+          }
+        ]
+      }
+    }
   },
   "D9": {
     "steps": ["M1", "M2"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 1
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 0,
+          "s3": 1
+        },
+        "seats": [
+          ["M1"],
+          ["M1"],
+          ["M2"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "gil_hold numbers taken at load1 16-28; need a quiet-window re-take. The contyield arm was inconclusive."
+          },
+          {
+            "step": "M1",
+            "what": "solves_per_cycle: the shadow/what-if (coordinator ~11148) and diagnose paths were not triggered by the rig"
+          },
+          {
+            "step": "M1",
+            "what": "DHW planning loops' SSE per gradient not split out separately"
+          },
+          {
+            "step": "M1",
+            "what": "ru_maxrss subprocess measurement not taken; a >672-cycle run to observe the _accuracy plateau directly not run (~3 h at load1 40-80)"
+          },
+          {
+            "step": "M2",
+            "what": "Memory channel (rss_peak_mb/traced_peak_mb x MEMORY_BUDGET_FACTOR 1.5) not tested against an injected 2x retained-bytes regression"
+          }
+        ]
+      }
+    }
   },
   "D10": {
     "steps": ["M1", "M2", "M3"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep"
+        },
+        "leads": {
+          "converted": 2,
+          "raised": 3
+        },
+        "returned": {
+          "s1": 0,
+          "s2": 0,
+          "s3": 0
+        },
+        "seats": [
+          ["M1", "M2", "M3"],
+          ["M1", "M2"],
+          ["M1", "M2"]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "The coverage figure is from the fast stage only. The e2e stage (validate, edge, backtest, optimality) was not added; since coverage data is a union, adding it can only raise the numbers. REPORT.md was not written: the harness refused writing a report file from this subagent. The report content is in this JSON."
+          },
+          {
+            "step": "M1",
+            "what": "7 docs-* gold rules and entity-category/device-class/disabled-by-default not separately counted; HA rule pages not fetched."
+          }
+        ]
+      }
+    }
   },
   "D11": {
     "steps": ["M1", "M2", "M3", "M4"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "spot",
+          "M2": "spot",
+          "M3": "spot",
+          "M4": "spot"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 0
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 0,
+          "s3": 1
+        },
+        "seats": [
+          ["M1"],
+          ["M2", "M3"],
+          ["M4"]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "Ruleset on main and required-check-to-job mapping (API), policy_lint.mjs classes with positive controls, brief_lint.mjs, tests/structure.py, claim files, prepr.sh, session-start and stop hooks: rows not inventoried"
+          },
+          {
+            "step": "M2",
+            "what": "SLSA build level, OpenSSF Best Practices criteria, NIST AI 100-1/600-1 GOVERN, OWASP LLM Top 10 checks, Scorecard CI-Tests/SAST/Maintained/Signed-Releases"
+          },
+          {
+            "step": "M3",
+            "what": "friction histogram (--stats with token ran >10 min over 541 PRs), lines added/deleted ratio, sampled conformance table, staleness of decisions/handover"
+          },
+          {
+            "step": "M4",
+            "what": "No perturbation yet for these mechanisms: the main ruleset (read with both arms), structure.py budgets, brief_lint.mjs, the claim files, prepr.sh."
+          }
+        ]
+      }
+    }
   },
   "D12": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "spot",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 0
+        },
+        "returned": {
+          "s1": 0,
+          "s2": 0,
+          "s3": 1
+        },
+        "seats": [
+          ["M1", "M6"],
+          ["M2", "M4"],
+          ["M3", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M6",
+            "what": "fail_cells does not move under plant shrink (0 everywhere); no per-cell solve, so plan-publish usability is not covered by this harness (M2-M5 seats)"
+          },
+          {
+            "step": "M2",
+            "what": "Hydronic layout overrides (topology_layout=valve_upper_direct_slab, explicit two_tank_4way) and the mixing_valve_mode manual/smart_write cells were not driven; only none and smart_read are on the grid."
+          },
+          {
+            "step": "M3",
+            "what": "switch, ECL110 MQTT, Tuya and compressor-frequency (on/off vs modulating) surfaces not driven through a coordinator cycle; pump_arbiter._bounded reading min/max instead of climate min_temp/max_temp not measured"
+          }
+        ]
+      }
+    }
   },
   "D13": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 4
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 2,
+          "s3": 1
+        },
+        "seats": [
+          ["M1", "M2"],
+          ["M3", "M6"],
+          ["M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M4",
+            "what": "deployment frequency, lead time and time-to-restore not computed by the round-10 harness (CFR only)"
+          }
+        ]
+      }
+    }
   },
   "D14": {
     "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 5
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 1,
+          "s3": 2
+        },
+        "seats": [
+          ["M2", "M3", "M4"],
+          ["M1", "M2", "M3", "M4", "M5"],
+          ["M1", "M2", "M3", "M4", "M5"]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "P10 pre-fix re-find at c4e1e0c07^ was not run, because replay.kernel_routes post-dates that fix. The coordinator._replay_interval seam (house and lower-floor loss learners) is listed but not driven, because the fixture is DHW-only."
+          },
+          {
+            "step": "M2",
+            "what": "P8 (currency precedence) was not given a detector."
+          },
+          {
+            "step": "M3",
+            "what": "re-find P8 instances at pre-fix commits (e.g. 3490cb16) and detectors for N-name-sort/P10; config_flow fee-bound seams listed but not probed"
+          },
+          {
+            "step": "M4",
+            "what": "detector/barriered-axis classes not swept for new seams"
+          },
+          {
+            "step": "M3",
+            "what": "N-staleness detector does not re-find R9 D1-s5-51 at its pre-fix tree: the synthetic fixture's indoor/dhw probes change every ~10 min, so there is no quiet gap over 60 min; needs a quiet-night fixture. Mode-select seam downstream consequence (MODE_LAST_GOOD 180 min -> full capability) not measured."
+          },
+          {
+            "step": "M2",
+            "what": "N-name-sort, N-step-grid, N-reap-lock not picked this round"
+          }
+        ]
+      }
+    }
   },
   "D15": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8"],
-    "rounds": {}
+    "rounds": {
+      "10": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "none",
+          "M6": "deep",
+          "M7": "spot",
+          "M8": "none"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 5,
+          "s2": 0,
+          "s3": 0
+        },
+        "seats": [
+          ["M1", "M2", "M3", "M4"],
+          ["M5", "M6"],
+          ["M7", "M8"]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "export.violations over the whole bundle fails (209, benign prose under the text allowlist), which by the brief stops the run; M3/M4 measured in memory with counts only, no bundle value written"
+          },
+          {
+            "step": "M5",
+            "what": "Timeline replay owes a replay half: either a bundle with debug.replay filled or a tools/replay/export.py document from the same box and window"
+          },
+          {
+            "step": "M6",
+            "what": "Days 2026-10-10..12 have no stored accuracy samples (192-sample cap), so those days are not re-run; Cusum has no accuracy_drift latch to compare against"
+          },
+          {
+            "step": "M7",
+            "what": "v6.7.17 solve-time outliers (payload up to 272 s, wall up to 401 s) cannot be re-checked at baseline without a replay half; only 2 v7.0.0 rows exist"
+          },
+          {
+            "step": "M8",
+            "what": "no replay half (replay null, no export.py document), so no anomaly reproduced by debug_replay.py --start/--end or mapped to a seam"
+          }
+        ]
+      }
+    }
   }
 }

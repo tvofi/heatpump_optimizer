@@ -1,0 +1,348 @@
+{
+  "box": "B6",
+  "missing": [],
+  "reports": {
+    "D2-s3": {
+      "dimension": "D2",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D2/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D2.M3",
+          "depth": "spot",
+          "evidence": "predicted_cost identity checked on all 50 golden fixtures carrying it (max |diff| 1.3e-4, PV-netted for shoulder/summer_dhw_only); savings, terminal credit, price_weight scaling and gradient-vs-FD not measured"
+        },
+        {
+          "step": "D2.M4",
+          "depth": "spot",
+          "evidence": "capacity tariff monthly-peak-once measured by month_last_window.py over 12 months x {15,60} min windows; grid_fee/price folding/PV piecewise read, not swept"
+        },
+        {
+          "step": "D2.M5",
+          "depth": "spot",
+          "evidence": "sysid_bias.py: identify() over 3 plants x 20 seeds x 4 noise arms (clean, white 0.05C, quantised 0.1C, drift 0.05C/h); learner clamps not measured"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D2.M3",
+          "what": "savings identity, terminal credit sign/magnitude vs re-simulated continuation, penalty scaling with price_weight, solver gradient vs central FD"
+        },
+        {
+          "step": "D2.M4",
+          "what": "23/25-hour DST price folding sweep, grid-fee weekday/day-night window sweep, currency conversion, month-boundary price folding"
+        },
+        {
+          "step": "D2.M5",
+          "what": "confidence gate vs bias under larger noise/plant grid; COP and heat-loss learner clamps"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D2-s3-01",
+          "scope": "D2-s3",
+          "step": "D2.M4",
+          "title": "PeakTracker discards each month's final metering window at month rollover; it never enters billed peaks",
+          "severity": "medium",
+          "claim": "On the first sample of a new month PeakTracker.observe resets peaks and the open window without closing it, so the month's final metering window is never billed: with a 5 kW load only in that window, 0 of 24 month/window cells record it and the billed-equivalent max stays 1.0 kW.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D2/s3/month_last_window.py",
+            "harness_path": "dev/audit/rounds/round10/D2/s3/month_last_window.py",
+            "value": "0 of 24",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 audit box B6",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, other finder seats running; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 44.13,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:PeakTracker.observe",
+          "perturbation": {
+            "change": "call self._close_window(tariff) before the month-change reset in PeakTracker.observe (harness --perturb)",
+            "expected_direction": "up",
+            "observed_value": "24 of 24, 5.000 kW"
+          },
+          "metric_definition": "Count of (month, window_minutes) cells whose final metering window's kW ever appears in PeakTracker.peaks while tracker.month is that month; 12 months x {15,60}.",
+          "phenomenon_property": "Every closed metering window of a month, including the last, must be folded into that month's peaks before the month's state is reset.",
+          "seam_rule": "grep -n 'month != self.month' custom_components/heatpump_optimizer/tariff.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/tariff.py",
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "proposed_fix_scope": "Close the open window into the old month before resetting in PeakTracker.observe and ensure _roll_month books capacity from the closed state; add a regression test with a last-window spike."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "predicted_cost equals sum(price * max(power+dhw - pv_surplus, 0) * dt) on every golden fixture",
+          "command": "inline check over tests/golden/*.json (see REPORT.md)",
+          "value": "50 fixtures, max |diff| 1.3e-4 SEK (stored-array rounding)"
+        },
+        {
+          "claim": "sysid.identify is unbiased on clean and linearly drifting sensors, and the confidence gate admits no fit under white 0.05C or 0.1C-quantised noise",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D2/s3/sysid_bias.py",
+          "value": "clean/drift median |UA err| 0.0000 (40 admitted, 0 over 20%); white 2.98%, quant 3.60% median, 0 admitted"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D2/s3/month_last_window.py",
+        "dev/audit/rounds/round10/D2/s3/sysid_bias.py"
+      ],
+      "leads": []
+    },
+    "D12-s3": {
+      "dimension": "D12",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D12/s3/REPORT.md",
+      "exposure": "none",
+      "coverage": [
+        {
+          "step": "D12.M3",
+          "depth": "spot",
+          "evidence": "surface_units.py drives pump_arbiter._write for space/DHW slots on climate, number, input_number under degC and degF (12 cells); switch, ECL110, Tuya, frequency surfaces not driven"
+        },
+        {
+          "step": "D12.M5",
+          "depth": "deep",
+          "evidence": "surface_units.py degC arm is the reference-unit null control: 0 of 6 cells misdelivered"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D12.M3",
+          "what": "switch, ECL110 MQTT, Tuya and compressor-frequency (on/off vs modulating) surfaces not driven through a coordinator cycle; pump_arbiter._bounded reading min/max instead of climate min_temp/max_temp not measured"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D12-s3-01",
+          "scope": "D12-s3",
+          "step": "D12.M3",
+          "title": "Climate set-point surface written in degC on a Fahrenheit Home Assistant instance",
+          "severity": "high",
+          "claim": "pump_arbiter._write converts with temperature_from_c(value, state_unit(state)); a climate state has no unit_of_measurement so the conversion is identity and climate.set_temperature receives the degC number, interpreted by HA in the instance unit (degF). Space 21 degC is delivered as 21 degF (-6.1 degC), DHW 50 degC as 50 degF (10 degC). The read path setpoint_check._setpoint_and_unit already falls back to hass.config.units.temperature_unit; the write path does not.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
+            "harness_path": "dev/audit/rounds/round10/D12/s3/surface_units.py",
+            "value": 2,
+            "unit": "cells of 6 (degF arm); null degC arm 0 of 6",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 B6",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, contention-immune",
+            "tolerance": "0",
+            "load1": 37.25,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.pump_arbiter:_write",
+          "perturbation": {
+            "change": "--perturb: patch pump_arbiter.state_unit to fall back to hass.config.units.temperature_unit for a unit-less state",
+            "expected_direction": "misdelivered_cells 2 -> 0 (measured)"
+          },
+          "metric_definition": "Cells (slot x surface domain x unit system) where the value in the captured service-call payload, read back by setpoint_check._read_setpoint, differs from the intended degC by more than 0.5",
+          "phenomenon_property": "Every set-point write to an entity without unit_of_measurement must convert from degC using the instance unit system, as the read path does",
+          "seam_rule": "grep -n \"temperature_from_c(\" custom_components/heatpump_optimizer/*.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/inputs.py",
+            "custom_components/heatpump_optimizer/setpoint_check.py"
+          ],
+          "proposed_fix_scope": "Resolve the write unit in pump_arbiter._write with the same fallback _setpoint_and_unit uses (instance temperature_unit for climate/unit-less states)",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "number and input_number set-point surfaces deliver the intended degC under both degC and degF instances",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
+          "value": "0 of 8 cells misdelivered"
+        },
+        {
+          "claim": "climate surface on a Celsius instance (null control) delivers correctly",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
+          "value": "0 of 2 cells"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D12/s3/surface_units.py"
+      ],
+      "leads": []
+    },
+    "D8-s3": {
+      "dimension": "D8",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D8/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D8.M4",
+          "depth": "deep",
+          "evidence": "first_hour.py: ordinary install, 81 entities/61 enabled across 6 platforms; full card dependency parse 27 ids: card_missing=0, card_disabled=3 (all input-gated and unavailable; --perturb moves 3->2); enabled_unnamed_by_card_or_readme=1 (climate, harness gap)"
+        },
+        {
+          "step": "D8.M5",
+          "depth": "deep",
+          "evidence": "first_hour.py is deterministic, offline, one RESULT line per violation class (card_disabled, card_missing, enabled_unnamed_by_card_or_readme), ready to graduate into tests/"
+        }
+      ],
+      "unfinished": [],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "Every entity id the card addresses (literal, DEFAULTS, statEntity/statNumber/derive suffixes, HEADLINE/ADVISOR/HEALTH tables) resolves to a constructed entity on the ordinary install",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
+          "value": "card_missing=0 of card_ids=27"
+        },
+        {
+          "claim": "Card dependencies disabled by default are exactly the three input-gated optional readouts (dhw_temperature, lower_floor_temperature, valve_target_recommendation), each unavailable without its input; harness live under ConfiguredInputMixin default forced True",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py [--perturb]",
+          "value": "card_disabled=3 (perturbed: 2)"
+        },
+        {
+          "claim": "No enabled entity is unread by both card and README, except the climate entity, which has no translation name (harness gap; README mentions the thermostat 8 times)",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
+          "value": "enabled_unnamed_by_card_or_readme=1"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D8/s3/first_hour.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tests/entities.py",
+          "symbol": "_card_ids (#1335 'nothing the card addresses is disabled by default')",
+          "what": "The check parses only literal ids plus HEADLINE_SUFFIXES: 10 of the card's 27 dependency ids. ADVISOR_SUFFIXES, HEALTH_* and statEntity/derive literals (e.g. _learning_model_status, _optimization_status, _plan_monthly_savings) are unprotected; flipping one to disabled would pass the suite. D3 test-gap candidate."
+        }
+      ]
+    },
+    "D4-s2": {
+      "dimension": "D4",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D4/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D4.M2",
+          "depth": "spot",
+          "evidence": "pages.py: 23 options pages and 223 fields, label and help checked in strings/en/sv; config_labels.py: 10 install forms; ranges.py: 91 numeric defaults checked against their selectors, and 8 install steps counted; error-key coverage checked for both flows. The rubric scoring and the quick_setup/device_prefill branches were not done."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D4.M2",
+          "what": "Drive the quick_setup and device_prefill install branches; score each page against a written rubric (field adjacency, jargon without help); trigger each validation error dynamically rather than by literal inventory."
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "Every options-page field and section has a label and data_description in strings.json, en.json and sv.json",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D4/s2/pages.py",
+          "value": "pages=23 fields=223 missing_label/help=0 in all three files"
+        },
+        {
+          "claim": "Every config-flow form field reached by the install walk is labelled and has help in all three files",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D4/s2/config_labels.py",
+          "value": "config_forms=10, missing=0"
+        },
+        {
+          "claim": "No numeric default or suggested value lies outside its NumberSelector range or off its step grid",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D4/s2/ranges.py",
+          "value": "numeric_fields_checked=91 defaults_outside_selector=0; config_steps_to_entry=8"
+        },
+        {
+          "claim": "Every error code emitted by the config flow is in config.error, and every code emitted by the options flow is in options.error, in all three files",
+          "command": "inventory of errors[...] literals and _prefill_errors checked against translation error maps (in REPORT.md)",
+          "value": "0 missing"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D4/s2/pages.py",
+        "dev/audit/rounds/round10/D4/s2/config_labels.py",
+        "dev/audit/rounds/round10/D4/s2/ranges.py"
+      ],
+      "leads": []
+    },
+    "D11-s1": {
+      "dimension": "D11",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D11/s1/REPORT.md",
+      "exposure": "No GitHub API or history read; local tree only (hooks, settings.json, workflows listing).",
+      "coverage": [
+        {
+          "step": "D11.M1",
+          "depth": "spot",
+          "evidence": "settings.json hooks inventoried; pre-edit.sh driven end to end by pre_edit_multiedit.py and --self-test (16/0); other M1 rows not done"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D11.M1",
+          "what": "Ruleset on main and required-check-to-job mapping (API), policy_lint.mjs classes with positive controls, brief_lint.mjs, tests/structure.py, claim files, prepr.sh, session-start and stop hooks: rows not inventoried"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D11-s1-01",
+          "scope": "D11-s1",
+          "step": "D11.M1",
+          "title": "pre-edit hook lets a MultiEdit write a RELEASE_NOTES version heading off main",
+          "severity": "low",
+          "claim": "The pre-edit hook checks only top-level new_string/content/new_source, so a MultiEdit whose edits[*].new_string adds a '## ' heading to RELEASE_NOTES.md on a non-main branch exits 0. The same text through Edit exits 2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+            "harness_path": "dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 B6",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, contention-immune",
+            "tolerance": 0,
+            "load1": 30.64,
+            "thread_factor": 0.999
+          },
+          "instrumented_symbol": ".claude/hooks/pre-edit.sh:decide (HPO_PRE_EDIT_PY block), driven end to end",
+          "perturbation": {
+            "change": "also append edits[*].new_string to the text the RELEASE_NOTES branch inspects (harness --perturb)",
+            "expected_direction": "escaped_heading_writes 1 -> 0 (measured)"
+          },
+          "metric_definition": "Count of probe payloads writing a new '## ' heading into RELEASE_NOTES.md off main that the real hook script exits 0 on",
+          "phenomenon_property": "A content-inspecting refusal in the hook reads only the fields of some of the tool shapes its matcher admits",
+          "seam_rule": "grep -n 'k in (\"new_string\"' .claude/hooks/pre-edit.sh; grep -n matcher .claude/settings.json",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            ".claude/hooks/pre-edit.sh"
+          ],
+          "proposed_fix_scope": "Flatten tool_input.edits[*].new_string into the inspected text, and add a MultiEdit refuse case to --self-test",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "pre-edit.sh self-test is alive and passes, including end-to-end cases",
+          "command": "bash .claude/hooks/pre-edit.sh --self-test",
+          "value": "16 passed, 0 failed"
+        },
+        {
+          "claim": "The Edit-shaped heading write is refused end to end (control)",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+          "value": "control_refused=1"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py"
+      ],
+      "leads": []
+    }
+  }
+}

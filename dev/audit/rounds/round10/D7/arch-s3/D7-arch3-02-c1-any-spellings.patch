@@ -1,0 +1,69 @@
+diff --git a/tools/audit/archscore/metrics/untyped_payload_keys.py b/tools/audit/archscore/metrics/untyped_payload_keys.py
+index 461294164..c8a471c25 100644
+--- a/tools/audit/archscore/metrics/untyped_payload_keys.py
++++ b/tools/audit/archscore/metrics/untyped_payload_keys.py
+@@ -43,14 +43,60 @@ def is_any(ann: ast.AST) -> bool:
+ 
+     A key declared this way is not a contract: a ``total=False`` TypedDict of every
+     key as ``Any`` read 164 -> 0 with no consumer checked (red-team attempt 01).
++    Nor is one that only spells it differently (ARCH-s3, round 10): a string annotation
++    ``"Any"``, a union with an ``Any`` member (``Any | None``, ``Optional[Any]``,
++    ``Union[float, Any]`` -- a union with ``Any`` accepts every value), ``Annotated[Any, ..]``,
++    and a package alias of ``Any`` (``_J = Any``, ``_J: TypeAlias = Any``, ``type _J = Any``).
+     """
+-    text = ast.unparse(ann)
+-    while text.split("[", 1)[0].split(".")[-1] in ("Required", "NotRequired", "ReadOnly") and text.endswith("]"):
+-        text = text.split("[", 1)[1][:-1]
+-    return text.split(".")[-1] in ("Any", "object")
++    if isinstance(ann, ast.Constant) and isinstance(ann.value, str):
++        try:
++            ann = ast.parse(ann.value, mode="eval").body
++        except SyntaxError:
++            return False
++    if isinstance(ann, ast.BinOp) and isinstance(ann.op, ast.BitOr):
++        return is_any(ann.left) or is_any(ann.right)
++    if isinstance(ann, ast.Subscript):
++        head = ast.unparse(ann.value).split(".")[-1]
++        elts = ann.slice.elts if isinstance(ann.slice, ast.Tuple) else [ann.slice]
++        if head in ("Required", "NotRequired", "ReadOnly", "Optional", "Annotated"):
++            return is_any(elts[0])
++        if head == "Union":
++            return any(is_any(e) for e in elts)
++        return False
++    return ast.unparse(ann).split(".")[-1] in ("Any", "object", *ANY_ALIASES)
++
++
++ANY_ALIASES: set[str] = set()
++
++
++def any_aliases(pkg: C.Pkg) -> set[str]:
++    """Module-level names bound to an untyped annotation, to a fixed point (an alias of an alias)."""
++    found: set[str] = set()
++    for _ in range(4):
++        before = len(found)
++        ANY_ALIASES.clear()
++        ANY_ALIASES.update(found)
++        for m in pkg.mods.values():
++            for s in m.tree.body:
++                if isinstance(s, ast.Assign) and len(s.targets) == 1 and isinstance(s.targets[0], ast.Name):
++                    name, val = s.targets[0].id, s.value
++                elif isinstance(s, ast.AnnAssign) and isinstance(s.target, ast.Name) and s.value is not None:
++                    name, val = s.target.id, s.value
++                elif type(s).__name__ == "TypeAlias":
++                    name, val = s.name.id, s.value
++                else:
++                    continue
++                if is_any(val):
++                    found.add(name)
++        if len(found) == before:
++            break
++    ANY_ALIASES.clear()
++    return found
+ 
+ 
+ def typed_dicts(pkg: C.Pkg) -> dict[tuple[str, str], set[str]]:
++    ANY_ALIASES.clear()
++    ANY_ALIASES.update(any_aliases(pkg))
+     out: dict[tuple[str, str], set[str]] = {}
+     todo = list(pkg.classes.values())
+     for _ in range(4):

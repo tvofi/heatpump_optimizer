@@ -1,0 +1,43 @@
+# Draft quality_scale.yaml, D10-s1 round 10, baseline 17f1c55fad1b.
+# Bronze + Silver rows only (this seat's cells); each row is the status
+# rules.py / coverage_modules.py executed. Gold/Platinum rows other than
+# strict-typing (mypy_strict.py) belong to other seats.
+rules:
+  # Bronze
+  action-setup: done
+  appropriate-polling: done
+  brands: done
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done   # config_flow.py 100.00 % (fast stage)
+  dependency-transparency: done
+  docs-actions: done
+  docs-triggers:
+    status: done
+    comment: vacuous, 0 trigger modules
+  docs-conditions:
+    status: done
+    comment: vacuous, 0 condition modules
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow: done
+  test-coverage: done               # 0 modules below 95 %, lowest 96.80 %
+  # Platinum (M3 measurement only)
+  strict-typing: done               # mypy --strict vs HA 2026.9.3: 0 errors

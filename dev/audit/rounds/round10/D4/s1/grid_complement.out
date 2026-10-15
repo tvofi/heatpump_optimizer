@@ -1,0 +1,31 @@
+P9 grid: 175 cells, 11177 text runs, 88 box-intersecting pairs inked, 96 colour rules, 88.9 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
+  ok    P9 grid: every visible text run clears WCAG AA against what is under it
+  FAIL  P9 grid: no two text runs share ink
+        4: text "2" x text "3" 2 px of shared ink
+  ok    P9 grid: no pop-up leaves the viewport or its chart
+  ok    P9 grid: every listbox option reads differently from its siblings as shown
+  ok    P9 grid: no text is clipped where its ancestor cannot scroll to it
+  ok    P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+RESULT complement_small_instances=0 count
+RESULT complement_small_distinct=0 count
+RESULT complement_contrast_instances=0 count
+RESULT complement_contrast_distinct=0 count
+RESULT complement_overflow_instances=0 count
+RESULT complement_overflow_distinct=0 count
+RESULT complement_popups_instances=0 count
+RESULT complement_popups_distinct=0 count
+RESULT complement_overlap_instances=4 count
+RESULT complement_overlap_distinct=1 count
+  overlap: text "2" x text "3" 2 px of shared ink
+RESULT complement_options_instances=0 count
+RESULT complement_options_distinct=0 count
+RESULT complement_threw_instances=0 count
+RESULT complement_threw_distinct=0 count
+RESULT complement_missed_instances=0 count
+RESULT complement_missed_distinct=0 count
+RESULT complement_cells_states=175 count
+RESULT thread_factor=1.0
+RESULT load1=22.72
+RESULT swapins=0

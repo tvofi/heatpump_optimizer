@@ -1,0 +1,24 @@
+RESULT window=185 count
+RESULT api_failures=0 count
+RESULT window_prod=185 count (mode api, why null)
+RESULT window_set_diff=0 count (only mine -; only prod -)
+RESULT api_failures_after_bodies=0 count
+RESULT verdict_prs=163 count
+RESULT first_verdict_yield=0.613 ratio (100/163)
+RESULT rounds_mean=2.663 verdicts/merge (434/163)
+RESULT rounds_max=14 verdicts (#2066)
+RESULT outside_grammar=0 count
+rounds histogram: 1:60 2:41 3:22 4:16 5:8 6:5 7:4 8:4 9:2 14:1
+RESULT prod_verdicts_full=434 count; prod_coverage_full=163; prod_firstMerge_full=100
+RESULT prod_verdicts_fetchWindow=434 count; prod_coverage_fetchWindow=163; prod_firstMerge_fetchWindow=100
+RESULT truncation_verdicts_dropped=0 count
+RESULT truncated_prs=0 count ()
+RESULT coverage=163/185 merges carrying a parsable verdict
+RESULT no_verdict=22 count
+COVER	fix-feature	hpo-author[bot]	88	none=2	#2203(fix) #2173(fix)
+COVER	other	hpo-author[bot]	50	none=3	#2196(closure) #2179(test) #2005(policy)
+COVER	record-chore	hpo-author[bot]	47	none=17	#2198(record) #2197(docs) #2195(record) #2192(record) #2190(record) #2189(record) #2188(record) #2187(record) #2184(record) #2181(record) #2050(record) #2001(record) #2000(record) #1998(record) #1992(record) #1991(record) #1989(record)
+RESULT api_requests_this_run=753 count
+RESULT thread_factor=1
+RESULT load1=15.18
+RESULT swapins=0

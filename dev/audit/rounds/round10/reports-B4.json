@@ -1,0 +1,656 @@
+{
+  "box": "B4",
+  "missing": [],
+  "reports": {
+    "D2-s1": {
+      "dimension": "D2",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D2/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D2.M1",
+          "depth": "deep",
+          "evidence": "m1_thermal.py ran 9 cells (single, single substep, two-zone no valve, valve 200L/35L, wood two-tank, direct slab, Carnot, valve substep). Energy residual 1.563e-13 kWh over 3600 states. Parity 0/216 mismatches. Monotonicity 0/540 violations. Bounds 0 violations. Cap over-read check and dt-invariance were also run."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D2.M1",
+          "what": "Store bounds were checked on random states, not on every tests/golden.py SCENARIOS trajectory. measured_heat_kw parity was not checked because the batch twin has no such input."
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "Per-step energy conservation holds in every topology, including the buffer and wood refused-heat ledgers. The harness moves to 3.65e-3 kWh under the tank_ambient_shift perturbation.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D2/s1/m1_thermal.py",
+          "value": "energy_resid_max=1.563e-13 kWh (n=3600)"
+        },
+        {
+          "claim": "simulate_trajectory_batch is bitwise equal to simulate_trajectory in 9 cells, substep cells included (n_sub up to 9)",
+          "command": "same",
+          "value": "parity_mismatch=0 of 216"
+        },
+        {
+          "claim": "More electrical power never cools a store",
+          "command": "same",
+          "value": "monotone_viol=0 of 540"
+        },
+        {
+          "claim": "No store crosses a physical bound over 24 h of charge and coast",
+          "command": "same",
+          "value": "bound_viol=0"
+        },
+        {
+          "claim": "The buffer cap clamps a rate, not a state",
+          "command": "same",
+          "value": "cap_overread_drop=4.2612 K in 15 min from cap+15 K"
+        },
+        {
+          "claim": "dt invariance is first order, as Euler predicts",
+          "command": "same",
+          "value": "max 0.26 K (two-zone no-valve lower floor); valve cells at or below 0.19 K"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D2/s1/m1_thermal.py"
+      ],
+      "leads": []
+    },
+    "D12-s1": {
+      "dimension": "D12",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D12/s1/REPORT.md",
+      "exposure": "none",
+      "coverage": [
+        {
+          "step": "D12.M1",
+          "depth": "deep",
+          "evidence": "cells.py derives 23 option pages, 43 optional entity slots, 42 bool toggles via seeded fixed point; 5 coordinator_scenarios, 50 golden SCENARIOS; 129 cells on richest plant"
+        },
+        {
+          "step": "D12.M6",
+          "depth": "deep",
+          "evidence": "cells.py --shrink dhw|pv|zone: fail_cells 0 in all arms; fabricated_reading_cells 0 in all arms, 129 under --perturb-reading-ok (sensor:_reading_ok -> True)"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D12.M6",
+          "what": "fail_cells does not move under plant shrink (0 everywhere); no per-cell solve, so plan-publish usability is not covered by this harness (M2-M5 seats)"
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "No option-page cell (129, richest plant) crashes coordinator assembly, sensor setup or the no-NaN invariant, in reference and DHW/PV/zone-shrunk arms",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D12/s1/cells.py --shrink {none,dhw,pv,zone}",
+          "value": "fail_cells=0 of 129 in each of 4 arms"
+        },
+        {
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D12/s1/cells.py [--perturb-reading-ok]",
+          "claim": "Unmapped thermometer sensors (dhw_temperature 55.0, upper/lower_floor_temp 21.0 defaults) are unavailable via sensor:_reading_ok, not published as fabricated values",
+          "value": "fabricated_reading_cells=0; 129 under perturbation"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D12/s1/cells.py"
+      ],
+      "leads": []
+    },
+    "D1-s1": {
+      "dimension": "D1",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D1/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D1.M1",
+          "depth": "deep",
+          "evidence": "m1_lifecycle.py (real loop + ThreadPoolExecutor: setup, solve, reload mid-solve, unload mid-solve, setup): leaked_tasks=0 exceptions=0 new_cycle_ok=1; m1_reload_leak.py torn_alive=5/5 -> D1-s1-01"
+        },
+        {
+          "step": "D1.M4",
+          "depth": "spot",
+          "evidence": "m4_mode_midsolve.py raced the _mode writer (climate async_set_mode) against the in-flight solve: torn 2/2, null 0 -> D1-s1-02; the other self._* readers were not enumerated"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D1.M4",
+          "what": "Enumerate every self._* read by _solve_record/_solve_hubs and the arrays passed by reference into the in-process fallback (horizon.*, limits.*), then race each loop-side writer; only _mode was raced."
+        },
+        {
+          "step": "D1.M1",
+          "what": "tests/harness.py:ha_unload_entry runs async_on_unload callbacks and drops a returned coroutine (RuntimeWarning: async_shutdown never awaited), where real HA schedules it. This instrument divergence is not quantified yet."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D1-s1-01",
+          "scope": "D1-s1",
+          "step": "D1.M1",
+          "title": "Every unload leaks the torn-down coordinator through early_cutoff._STATES",
+          "severity": "medium",
+          "claim": "After N setup->cycle->unload rounds on a real loop, N torn-down HeatPumpOptimizerCoordinator objects remain alive after gc, because early_cutoff._STATES (a WeakKeyDictionary) holds CutoffState.wiring.inputs, a bound method of its own key.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s1/m1_reload_leak.py --rounds 5",
+            "harness_path": "dev/audit/rounds/round10/D1/s1/m1_reload_leak.py",
+            "value": 5,
+            "unit": "coordinators alive of 5 torn",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Mac darwin arm64, seat box B4",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, three compute seats on box; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 33.57,
+            "thread_factor": 1.05
+          },
+          "instrumented_symbol": "heatpump_optimizer.early_cutoff:arm (_STATES / CutoffInputs) via HeatPumpOptimizerCoordinator._apply_action",
+          "perturbation": {
+            "change": "--perturb: HeatPumpOptimizerCoordinator.async_shutdown additionally pops early_cutoff._STATES[self] (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of torn coordinators still alive by weakref after the harness drops its references and gc.collect(), over N reload rounds",
+          "phenomenon_property": "No module-level WeakKeyDictionary keyed by a coordinator may hold a value that strongly references that coordinator (directly or via a bound method/closure); a torn-down coordinator must be collectable after unload",
+          "seam_rule": "grep -n 'WeakKeyDictionary\\[' custom_components/heatpump_optimizer/*.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s1/m1_reload_leak.py --rounds 2",
+            "value": 2,
+            "note": "scales linearly with rounds (2->2, 5->5); the other registries (boost, pump_arbiter) hold torn keys only because early_cutoff keeps them alive. All go to 0 under the perturbation."
+          },
+          "reproduction_steps": [
+            "run m1_reload_leak.py: torn_alive=5",
+            "run with --perturb: torn_alive=0"
+          ],
+          "proposed_fix_scope": "early_cutoff: stop the per-coordinator value referencing its key (clear held.wiring in release/at unload, or hold a weakref to the inputs callable)",
+          "files": [
+            "custom_components/heatpump_optimizer/early_cutoff.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D1-s1-02",
+          "scope": "D1-s1",
+          "step": "D1.M4",
+          "title": "A mode write landing mid-solve is overwritten by the in-flight AUTO plan's action",
+          "severity": "medium",
+          "claim": "When async_set_mode(COMFORT or BOOST, refresh=False) runs while the scheduled AUTO solve is in the executor, the cycle then adopts, publishes and actuates the AUTO plan's action under the new mode, because async_run_optimization re-checks only _entry_released after the await.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s1/m4_mode_midsolve.py",
+            "harness_path": "dev/audit/rounds/round10/D1/s1/m4_mode_midsolve.py",
+            "value": 2,
+            "unit": "torn cells of 2 (comfort, boost)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Mac darwin arm64, seat box B4",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, shared box; the solve is gated, so the count is timing-independent",
+            "tolerance": "exact",
+            "load1": 41.81,
+            "thread_factor": 1.062
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_run_optimization (with async_set_mode as the loop-side writer)",
+          "perturbation": {
+            "change": "--perturb: wrap async_run_optimization to re-run the fixed-mode branch of _async_update_data when _mode left AUTO/ECONOMY during the await (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Cells where, after the in-flight cycle returns, data['mode'] is the fixed target (comfort/boost) but data['current_action']['mode'] is not",
+          "phenomenon_property": "Any loop-side write that changes what the solve's result should be (mode) during the executor await must be re-checked before the result is adopted, published or actuated",
+          "seam_rule": "grep -n 'await _await_optimize\\|await self.hass.async_add_executor_job\\|await _await_off_loop' custom_components/heatpump_optimizer/coordinator.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s1/m4_mode_midsolve.py",
+            "value": 0,
+            "note": "torn_null_total: the same mode written before the cycle starts gives 0 torn of 2"
+          },
+          "reproduction_steps": [
+            "run m4_mode_midsolve.py: torn_midsolve_total=2, tail_publishes_after_mode_write=2, torn_null_total=0",
+            "run with --perturb: torn_midsolve_total=0"
+          ],
+          "proposed_fix_scope": "coordinator.async_run_optimization: after the executor await, discard the result when _mode is no longer AUTO/ECONOMY (as it does for _entry_released)",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "A real-loop setup -> solve -> reload mid-solve -> unload mid-solve -> setup sequence leaves no live task referencing a torn coordinator, raises no loop exception, and the new instance's first solved cycle completes",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s1/m1_lifecycle.py",
+          "value": "leaked_tasks=0 exceptions=0 new_cycle_ok=1 gated_solves=4 (torn_coordinators_alive_after_gc=1 is D1-s1-01)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D1/s1/rig.py",
+        "dev/audit/rounds/round10/D1/s1/m1_lifecycle.py",
+        "dev/audit/rounds/round10/D1/s1/m1_reload_leak.py",
+        "dev/audit/rounds/round10/D1/s1/m4_mode_midsolve.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/snapshots.py",
+          "symbol": "snapshot store load (future-instant bounding)",
+          "what": "Every real-loop setup logs 5 'stored instant ... is ahead of the clock; bounded' lines for the snapshot store written by a previous run in the same process: the plan's future timestamps appear to be persisted as snapshot instants. This is the store/future-instant cell (D1.M2), not measured here."
+        }
+      ]
+    },
+    "D1-s2": {
+      "dimension": "D1",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D1/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D1.M2",
+          "depth": "deep",
+          "evidence": "store_fuzz.py: 8 stores x 200 seeded mutants on a real asyncio loop and a ThreadPoolExecutor, plus a clock-ahead restart arm. Result: 0 load exceptions, 0 failed cycles, 0 repeats. snapshot_bound.py gives D1-s2-01. Six stores were not populated and were not fuzzed (see unfinished)."
+        },
+        {
+          "step": "D1.M3",
+          "depth": "deep",
+          "evidence": "future_stamp.py (future last_reported), stale_price.py (price list stops updating, frozen clock), weather_warn.py (empty or absent forecast). Found D1-s2-02 and D1-s2-03. DST and backward clock jumps on the age sensors were not driven."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D1.M2",
+          "what": "Not fuzzed: the manual_plan, dhw profile/draws, boost, pump_arbiter, notifier and debug stores. Two cycles did not populate them. Also missing: a positive control proving the fuzz harness counts a cycle failure. The one-log-line property is confounded by WARNINGs that a healthy restart already logs."
+        },
+        {
+          "step": "D1.M3",
+          "what": "DST transitions (dt.freeze across the spring/autumn change) and a backward host-clock jump on the watchdog and age sensors were not driven."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D1-s2-01",
+          "scope": "D1-s2",
+          "step": "D1.M2",
+          "title": "Healthy snapshot store has its future lead_pending dues rewritten to now, with a WARNING per due, on every restart",
+          "severity": "low",
+          "claim": "After two healthy cycles and a plain restart with no corruption and no clock change, QuarantiningStore's instant bound rewrites 5 legitimate future lead_pending due-instants in the snapshots store to now and logs 5 'ahead of the clock' WARNINGs; the accuracy store holding the same dues rewrites 0.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/snapshot_bound.py",
+            "harness_path": "dev/audit/rounds/round10/D1/s2/snapshot_bound.py",
+            "value": 5,
+            "unit": "instants rewritten",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Apple-silicon macOS, box B4",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, three fuzz runs in parallel; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 28.31,
+            "thread_factor": 1.171
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.store:QuarantiningStore.async_load (_bound_instants) on coordinator._snapshot_store",
+          "perturbation": {
+            "change": "snapshot store _lead = timedelta(hours=max(LEAD_BUCKETS)) in memory (--perturb)",
+            "expected_direction": "down to 0 (measured 5 -> 0)"
+          },
+          "metric_definition": "len(coordinator._snapshot_store.bounded) after a healthy restart",
+          "phenomenon_property": "A store whose payload embeds another store's payload must bound instants with at least the lead of the embedded payload",
+          "seam_rule": "grep -n \"QuarantiningStore(\" custom_components/heatpump_optimizer/*.py  # compare each store's lead= with the leads of the payloads it embeds",
+          "stop_rule_class": "bug",
+          "class_guess": "N-future-instant",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/store.py"
+          ],
+          "proposed_fix_scope": "Give the snapshots store the accuracy store's lead, or have it exempt embedded learner payloads from the bound",
+          "provisional": false
+        },
+        {
+          "id": "D1-s2-02",
+          "scope": "D1-s2",
+          "step": "D1.M3",
+          "title": "A price list that stops updating publishes and books its last entry as the current price indefinitely",
+          "severity": "high",
+          "claim": "When the price list stops advancing and its last hourly entry started at T0+3h, every cycle at T0+5, 8, 30 and 50h (4/4) publishes current_price=1.3 and books _pending_prediction['price']=1.3 for settlement, with no failed cycle and no staleness signal.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/stale_price.py",
+            "harness_path": "dev/audit/rounds/round10/D1/s2/stale_price.py",
+            "value": 4,
+            "unit": "uncovered cycles publishing and booking a finite price (of 4)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Apple-silicon macOS, box B4",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 43.45,
+            "thread_factor": 1.138
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._current_spot_price",
+          "perturbation": {
+            "change": "in memory, _current_spot_price returns NaN once now >= last entry start + 1h (--perturb)",
+            "expected_direction": "down to 0 (measured 4 -> 0); covered-cycle control stays 2"
+          },
+          "metric_definition": "Count of cycles where no price entry covers now and both the published current_price and the booked pending-prediction price are finite",
+          "phenomenon_property": "A price whose slot has ended is never treated as the current price, published or booked",
+          "seam_rule": "grep -n \"_get_current_price()\\|_current_spot_price()\" custom_components/heatpump_optimizer/coordinator.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/price_model.py"
+          ],
+          "proposed_fix_scope": "Bound the last entry's coverage to one slot in _current_spot_price, and surface the absence as unknown or stale rather than a number",
+          "provisional": false
+        },
+        {
+          "id": "D1-s2-03",
+          "scope": "D1-s2",
+          "step": "D1.M3",
+          "title": "The no-weather-forecast WARNING is logged every cycle rather than once per outage",
+          "severity": "low",
+          "claim": "_weather_series logs 'No weather forecast available' at WARNING on 4 of 4 cycles, both with no weather entity configured and with an entity returning an empty forecast; the 48-row control logs 0.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/weather_warn.py",
+            "harness_path": "dev/audit/rounds/round10/D1/s2/weather_warn.py",
+            "value": 4,
+            "unit": "WARNING records over 4 cycles",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Apple-silicon macOS, box B4",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 37.26,
+            "thread_factor": 1.125
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._weather_series",
+          "perturbation": {
+            "change": "in memory, latch the line once per coordinator (--perturb)",
+            "expected_direction": "down (measured 4 -> 1 per arm)"
+          },
+          "metric_definition": "Count of WARNING records containing 'No weather forecast available' over 4 real cycles",
+          "phenomenon_property": "An ongoing input outage logs at WARNING once per outage, not once per cycle",
+          "seam_rule": "grep -n \"_LOGGER.warning\" custom_components/heatpump_optimizer/coordinator.py  # those reached unconditionally from _async_update_data",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "proposed_fix_scope": "Latch the warning the way _weather_fetch_failed already does",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Store fuzz: 8 stores x 200 mutants (1600 total) produced no load exception, no cycle-1 failure and no repeated failure",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/store_fuzz.py 200 <store>",
+          "value": "ok=200, load_exc=0, cycle1_fail=0, cycle2_fail=0 for each of accuracy, away, dhw_legionella, energy, ledger, price_model, snapshots, thermal_learning (fuzz_a/b/c.out)"
+        },
+        {
+          "claim": "Instants written 30 days ahead and carried across a restart do not break any store's restart or cycle",
+          "command": "CLOCK_AHEAD=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/store_fuzz.py 1",
+          "value": "8/8 ok, 0 failures (clock_ahead.out)"
+        },
+        {
+          "claim": "A future last_reported stamp marks the input stale and never fails the cycle",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/future_stamp.py",
+          "value": "cycles_failed=0 at -1s, +0.05s, +1s and +60s; 2 WARNINGs per cycle while the stamp is ahead (#775 design)"
+        },
+        {
+          "claim": "When indoor is stale, the default 21.0 in the payload is not published as measured: the indoor sensor, climate and the mold binary sensor all gate on reading_ok",
+          "command": "read of sensor.py:367-372 and climate.py:135-147, plus a stale-indoor cycle via future_stamp.py",
+          "value": "input_health='1 stale'; the sensor is gated by _reading_ok"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D1/s2/store_fuzz.py",
+        "dev/audit/rounds/round10/D1/s2/snapshot_bound.py",
+        "dev/audit/rounds/round10/D1/s2/stale_price.py",
+        "dev/audit/rounds/round10/D1/s2/weather_warn.py",
+        "dev/audit/rounds/round10/D1/s2/future_stamp.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/price_model.py",
+          "symbol": "pull_prices",
+          "what": "An entity price source returns 'ok' with a list that does not cover now. There is no coverage check, which is the production trigger for D1-s2-02. Possibly a D1.M6 parser cell."
+        }
+      ]
+    },
+    "D1-s3": {
+      "dimension": "D1",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D1/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D1.M5",
+          "depth": "spot",
+          "evidence": "Only the _fetch_tibber_prices generic-except arm was exercised: parser_fuzz.py found 207/400 hostile Tibber shapes that raise. The fetch contains them and turns them into UpdateFailed with a single ERROR line. No swallow-site inventory was done."
+        },
+        {
+          "step": "D1.M6",
+          "depth": "deep",
+          "evidence": "tibber_ingress.py drives the real fetch with malformed 200 bodies. parser_fuzz.py sends 400 seeded hostile inputs each into open_meteo._parse_block, coordinator._plausible_forecast_rows and price_model.prices_from_tibber_payload."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D1.M5",
+          "what": "List every try/except that swallows an exception across custom_components and inject an exception into each one. For each, check that it logs once, sets last_update_success and recovers on the next cycle."
+        },
+        {
+          "step": "D1.M6",
+          "what": "Not yet driven with hostile payloads: the ECL110 MQTT state handler (_async_handle_ecl110_state_message / _parse_ecl110_state), the pump_signals state parsing, the weather-entity forecast through _fetch_weather_forecast, and the Open-Meteo async_refresh JSON path above _parse_block."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D1-s3-01",
+          "scope": "D1-s3",
+          "step": "D1.M6",
+          "title": "An empty Tibber price response counts as a successful fetch and wipes the last good price list",
+          "severity": "medium",
+          "claim": "An HTTP-200 Tibber response whose today and tomorrow lists are empty makes _fetch_tibber_prices replace a good 96-row _prices with 0 rows. It returns success with no UpdateFailed and clears the outage latch.",
+          "mechanism": "prices_from_tibber_payload returns [] (a list, not a failure reason). pull_prices treats that as 'ok', and _fetch_tibber_prices assigns it to _prices and calls _tibber_fetch_recovered. The entity path (prices_from_entity_attributes) refuses the same no-rows case.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+            "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+            "value": 1,
+            "unit": "count (empty_ok_wipes)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 seat box B4",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out box shared with other seats; the count is contention-immune",
+            "tolerance": "exact",
+            "load1": 29.36,
+            "thread_factor": 0.999
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fetch_tibber_prices (via price_model:prices_from_tibber_payload)",
+          "perturbation": {
+            "change": "--perturb wraps price_model.prices_from_tibber_payload so that an empty row list returns a failure reason string",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "1 if a good 96-row fetch followed by an empty-lists 200 fetch leaves coordinator._prices at 0 rows with no UpdateFailed, else 0",
+          "phenomenon_property": "A price ingress path must never report success on a response that carries no usable price row. Such a response is a failed fetch, and the last good list is kept.",
+          "seam_rule": "grep -n 'return \"ok\"' custom_components/heatpump_optimizer/price_model.py",
+          "stop_rule_class": "bug",
+          "class_guess": "N-silent-zero",
+          "files": [
+            "custom_components/heatpump_optimizer/price_model.py",
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "proposed_fix_scope": "prices_from_tibber_payload returns a reason string when no row survives, so pull_prices falls back to the hourly query and then to 'fail'. This matches prices_from_entity_attributes."
+        },
+        {
+          "id": "D1-s3-02",
+          "scope": "D1-s3",
+          "step": "D1.M6",
+          "title": "Tibber rows without startsAt are admitted and then placed by position as hourly rows",
+          "severity": "medium",
+          "claim": "A Tibber response of 96 quarter-hour rows that lack startsAt is admitted whole with starts_at=''. _known_prices_for then falls back to positional hourly placement, so 95 of 96 horizon steps get the price of the wrong quarter.",
+          "mechanism": "prices_from_tibber_payload defaults a missing start to '' instead of dropping the row; the entity path's _raw_start drops it. When no entry has a parseable timestamp, _known_prices_for repeats each entry 4 times from the first step.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+            "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+            "value": 95,
+            "unit": "count (misplaced_steps of 96; startless_rows=96)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 seat box B4",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out box shared with other seats; the count is contention-immune",
+            "tolerance": "exact",
+            "load1": 29.36,
+            "thread_factor": 0.999
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._known_prices_for (fed by price_model:prices_from_tibber_payload through _fetch_tibber_prices)",
+          "perturbation": {
+            "change": "--perturb wraps prices_from_tibber_payload to drop rows whose starts_at fails datetime.fromisoformat (and to refuse a response left empty)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Of 96 quarter steps from midnight, the number where _known_prices_for's value differs from the row whose quarter that step is, after the real fetch of a startsAt-less payload",
+          "phenomenon_property": "No external price row with an unparseable start reaches _prices, and no consumer places a price by position instead of by timestamp.",
+          "seam_rule": "grep -n 'starts_at' custom_components/heatpump_optimizer/price_model.py custom_components/heatpump_optimizer/coordinator.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/price_model.py",
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "proposed_fix_scope": "Make the Tibber parser drop rows without a parseable start, as the entity path does. Retire the positional fallback in _known_prices_for, or log it once."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "open_meteo._parse_block neither raises nor emits a non-finite value on hostile blocks. The harness moves: removing the isfinite drop gives 39 non-finite values.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py [--perturb]",
+          "value": "raises_om=0 nonfinite_om=0 (perturbed 39) over 400 inputs"
+        },
+        {
+          "claim": "coordinator._plausible_forecast_rows neither raises nor emits a non-finite value on hostile forecast rows",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
+          "value": "raises_fc=0 nonfinite_fc=0 over 400 inputs"
+        },
+        {
+          "claim": "prices_from_tibber_payload never emits a non-finite total. The shapes it raises on (data null, a non-dict home) are contained by _fetch_tibber_prices' generic except, which turns them into UpdateFailed with a single ERROR line through the outage latch.",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
+          "value": "raises_tb=207/400 (all contained), nonfinite_tb=0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+        "dev/audit/rounds/round10/D1/s3/parser_fuzz.py"
+      ],
+      "leads": []
+    },
+    "D8-s1": {
+      "dimension": "D8",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D8/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D8.M1",
+          "depth": "deep",
+          "evidence": "matrix.py: 19 cells (5 coordinator_scenarios plus 14 feature overlays: dhw, two_zone, valve_storage, two_tank, coil, wood, ecl110, pv, capacity, grid_fee, tuya DHW-only select, tuya+min, min_modulation, away). Each cell runs the real _async_update_data (network fetches stubbed) for 2 cycles with changed inputs; 5 cells also walk 16 extra quarter-hours. Every entity of sensor/binary_sensor/button/climate/switch is built via async_setup_entry."
+        },
+        {
+          "step": "D8.M2",
+          "depth": "deep",
+          "evidence": "matrix.py per-entity checks (raises, numeric MEASUREMENT, tz-aware TIMESTAMP, ENUM options, unit vs device_class, monetary/measurement, translation_key, orjson/numpy/NaN, enabled+available+None): all 0. Operating-state oracle against current_action power+dhw_power/heat_pump_on in DHW-only and min-modulation cells: 1 hit, pinned by f1_active_now.py (D8-s1-01). Value-follows-payload resolved only to a STATIC list (54 keys); see unfinished."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D8.M2",
+          "what": "Value-follows-payload: 54 entity keys static between cycles A and B (matrix.py STATIC lines) not yet resolved per key against their source payload key. MonthlySavingsSensor available-but-None when only settled months exist was found by reading code and not measured."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D8-s1-01",
+          "scope": "D8-s1",
+          "step": "D8.M2",
+          "title": "Plan sensors publish 'heating now' on a step the plan's own on decision declares off",
+          "severity": "low",
+          "claim": "On a step whose space draw is between 0.05 and 0.1 kW, sensor plan_space_heating publishes 'heating now' while the same payload's current_action has heat_pump_on False (Heat Pump Action 'off', climate idle, Recommended Power 0), because active_now and _plan_slots use a literal 0.05 kW instead of the plan's running rule MIN_RUNNING_DRAW_KW=0.1.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D8/s1/f1_active_now.py",
+            "harness_path": "dev/audit/rounds/round10/D8/s1/f1_active_now.py",
+            "value": 1,
+            "unit": "snapshots (of 36) with plan sensor 'heating now' while heat_pump_on False; secondary 4 of 192 slot steps declared off",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64, shared B4 box",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats running; count is load-immune",
+            "tolerance": "exact",
+            "load1": 104.28,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "heatpump_optimizer.sensor:SpaceHeatingPlanSensor.native_value (via coordinator:HeatPumpOptimizerCoordinator._build_plan_views active_now)",
+          "perturbation": {
+            "change": "--perturb: wrap HeatPumpOptimizerCoordinator._build_plan_views in memory so active_now also requires result.heat_pump_on_schedule[0]",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Count of snapshots where plan_space_heating or plan_dhw_heating native_value == 'heating now' and current_action.heat_pump_on is False",
+          "phenomenon_property": "Every entity that publishes whether the pump is heating now, or how many heating slots are planned, decides that with the plan's own running rule (planned_draws_run / heat_pump_on_schedule), never with a separate kW literal.",
+          "seam_rule": "grep -n \"0\\.05\" custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/sensor.py  (seams: _plan_slots threshold, space_plan/dhw_plan active_now, DHWScheduleSensor fallback)",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/sensor.py"
+          ],
+          "proposed_fix_scope": "_build_plan_views active_now and _plan_slots slot membership use planned_draws_run / result.heat_pump_on_schedule; DHWScheduleSensor fallback likewise; add the matrix oracle as a tests/ check.",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D8/s1/matrix.py",
+            "value": "18 of 19 cells and every other operating-state entity: 0 oracle violations",
+            "note": "The disagreement appears only on a sub-0.1 kW step"
+          },
+          "reproduction_steps": [
+            "Run f1_active_now.py: HIT coord_all_features@17 space=0.07 on=False, heating_now_while_off=1",
+            "Run with --perturb: heating_now_while_off=0, slot_steps_declared_off stays 4"
+          ]
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "No entity raises, publishes a non-numeric MEASUREMENT, a naive TIMESTAMP, an ENUM value outside its options, a unit mismatching its device_class, a monetary MEASUREMENT, an untranslated key, or a numpy/NaN/non-orjson value, in any of 19 cells",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D8/s1/matrix.py",
+          "value": "all nine classes = 0 (cells=19)"
+        },
+        {
+          "claim": "No enabled, available sensor or binary_sensor publishes None when driven through the real _async_update_data",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D8/s1/matrix.py",
+          "value": "enabled_none=0 (17 earlier hits on next_optimization were a harness gap from bypassing _async_update_data)"
+        },
+        {
+          "claim": "Climate hvac_action, recommended_power, heat_pump_action and plan_dhw_heating agree with current_action's draw and heat_pump_on in DHW-only (Tuya select 'DHW (Hot Water)') and min-modulation cells across swept quarter-hours",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D8/s1/matrix.py",
+          "value": "climate_action_vs_plan=0, recommended_power_vs_plan=0, action_mode_vs_plan=0, dhw_plan_*=0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D8/s1/matrix.py",
+        "dev/audit/rounds/round10/D8/s1/f1_active_now.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D2-s1",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "_build_actions (p_norm / mode)",
+          "what": "In the min_modulation cell (min power 1.0 kW, max 12 kW), step 0 runs at 0.3 kW with mode 'eco', power_normalized 0.0 and heat_pump_on True. That draw is below nameplate minimum modulation, and the normalized power reads 0 while the pump is on."
+        },
+        {
+          "owner_seat": "D2-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "current_action payload",
+          "what": "current_action carries np.float64 values (solar_reduction_factor, pre_heat_urgency). No entity publishes them today, but the payload is not plain Python."
+        }
+      ]
+    }
+  }
+}

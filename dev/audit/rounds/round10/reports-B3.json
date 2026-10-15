@@ -1,0 +1,456 @@
+{
+  "box": "B3",
+  "missing": [],
+  "reports": {
+    "D0-s3": {
+      "dimension": "D0",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D0/s3/REPORT.md",
+      "exposure": "none: no docs/ or GitHub read",
+      "coverage": [
+        {
+          "step": "D0.M4",
+          "depth": "deep",
+          "evidence": "race.py, 80 cells (summer_typical, summer_negative, shoulder, flat x 5 weathers x 1/2 zones x DHW on/off, 24 h). Production-only control gap 0/80. Full race: 21/80 cells >0.1 %, 2/80 >1 % (summer_negative/shoulder, 0.015 SEK/day absolute). Max material gap 0.998 % (0.487 SEK), mean 0.218 %, 0.157 % with the best cell dropped."
+        },
+        {
+          "step": "D0.M5",
+          "depth": "deep",
+          "evidence": "race.py flat cells: max 0.521 %, so the gap survives flat prices. It is ftol-1e-6 termination slack, not price optimality. Same weather and topology as the largest priced cell: 0.0001 %."
+        },
+        {
+          "step": "D0.M6",
+          "depth": "spot",
+          "evidence": "rolling_mask.py on shoulder/winter_cold single-zone: tight budget realises -0.285 SEK. Flat null control swings +0.79 SEK under the same perturbation, so the realised gap cannot be told apart from noise."
+        },
+        {
+          "step": "D0.M7",
+          "depth": "deep",
+          "evidence": "decomp.py, 64 cells: iterating _co_optimize changes nothing in 0/64; the first pass adopts in 3/64; a cold replan gives at most 0.287 %. terminal.py on vs off: mean tail kWh 3.85 vs 0.20, cells with a tail floor breach 1 vs 12, so the docstring claim holds."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D0.M4",
+          "what": "valve storage, wood, 6/48 h horizons and the coordinator captures were not raced on my price axis"
+        },
+        {
+          "step": "D0.M6",
+          "what": "rolling ran only one cell with plant == model; the score omits comfort-pull and cycling terms"
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "Iterating the DHW<->space decomposition more than once never lowers the objective",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D0/s3/decomp.py",
+          "value": "0/64 cells, max gap 0.0000 %"
+        },
+        {
+          "claim": "A cold multi-start space solve in the replan pass gains nothing material",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D0/s3/decomp.py --cold",
+          "value": "3/64 cells improve, max 0.287 % (0.044 units)"
+        },
+        {
+          "claim": "The terminal credit prevents tail dumping as its docstring claims",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D0/s3/terminal.py [--off]",
+          "value": "tail kWh 3.85 vs 0.20; tail-breach cells 1 vs 12"
+        },
+        {
+          "claim": "No material price-optimality gap on summer, shoulder and flat cells",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D0/s3/race.py",
+          "value": "max 0.998 % (0.487 SEK); flat control up to 0.521 %; >1 % only on cells worth under 0.3 SEK/day"
+        },
+        {
+          "claim": "The largest priced gap is not shown to be realised under MPC",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D0/s3/rolling_mask.py --price shoulder [--tight]",
+          "value": "-0.285 SEK priced vs +0.79 SEK at flat"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D0/s3/race.py",
+        "dev/audit/rounds/round10/D0/s3/rolling_mask.py",
+        "dev/audit/rounds/round10/D0/s3/decomp.py",
+        "dev/audit/rounds/round10/D0/s3/terminal.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D0-s2",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer.optimize",
+          "what": "winter_typical/winter_cold single-zone with DHW: the shipped plan ends at room 16.895 C, 0.232 degree-steps below the 17 C floor in the last 2 h, at full tail power (terminal.py production arm)"
+        },
+        {
+          "owner_seat": "D0-s1",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer._solve_space",
+          "what": "the DHW path never receives the two-zone _DEEP_LOW_ENERGY_START_FRACTION 0.20 seed that _optimize_space_only gets"
+        },
+        {
+          "owner_seat": "D0-s1",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "_multi_start_minimize",
+          "what": "ftol 1e-6 termination leaves up to 0.52 % at flat prices and 0.89 % on shoulder/winter_cold, recovered by ftol 1e-12 and maxiter 3000 (M2 budget challenger)"
+        }
+      ]
+    },
+    "D3-s3": {
+      "dimension": "D3",
+      "baseline_sha": "17f1c55fad1bc97daf27174f2fbd6a18210d1fb7",
+      "report_path": "dev/audit/rounds/round10/D3/s3/REPORT.md",
+      "exposure": "none",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "depth": "spot",
+          "evidence": "18 hand-weighted mutants over 11 'rest' modules, at most 3 per module (mutants.py). That is below the brief's 30-40."
+        },
+        {
+          "step": "D3.M2",
+          "depth": "deep",
+          "evidence": "prescreen.py ran each mutant's closure scripts in clean worktrees, and drift_check.py ran env_drift --all against the baseline with the mutant committed. Controls held: features rc=0 and drift CTRL rc=0. 16 of 18 mutants were killed."
+        },
+        {
+          "step": "D3.M3",
+          "depth": "deep",
+          "evidence": "The prescreened list is in laneA/B/C.out. Only M15 and M18 survived, and equiv.py shows both are equivalent mutants, so no candidate goes to the full gate."
+        },
+        {
+          "step": "D3.M4",
+          "depth": "deep",
+          "evidence": "Neither survivor needs an answer. M18 differed on 0 of 32 probes. M15 differed on 0 inputs in the non-negative range, which is the only range its sole caller produces (dhw_learning.py:418)."
+        },
+        {
+          "step": "D3.M5",
+          "depth": "spot",
+          "evidence": "Per-script wall times (provisional) compared with closures.json. The golden.py stub record is documented (#934). The overlap matrix was not taken."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D3.M1",
+          "what": "Only 18 mutants, against the 30-40 target. At about 25 minutes of wall time per mutant on the shared box, 12 or more remain."
+        },
+        {
+          "step": "D3.M5",
+          "what": "The kill-overlap matrix needs every closure script run on every mutant, with no early stop. It was not taken."
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "16 of the 18 mutants were killed by closure assertion scripts: features.py killed 8, entities.py killed 7 and config_flow_steps.py killed 1.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D3/s3/prescreen.py <clean worktree> M01 ... M18",
+          "value": "16/18 killed"
+        },
+        {
+          "claim": "M18 (away.interpret_presence dropping 'away') is an equivalent mutant, because the fall-through branch also returns True.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D3/s3/equiv.py",
+          "value": "M18_diff=0 of 32 probes"
+        },
+        {
+          "claim": "M15 (removing the DrawStats.fold max(0,...) clamp) is equivalent for its only caller, which already clamps energy to be non-negative. The perturbation arm moves on negative inputs.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D3/s3/equiv.py",
+          "value": "M15_diff_nonneg=0, M15_diff_negative=3"
+        },
+        {
+          "claim": "The differential guard is clean at the baseline. env_drift.py refuses a ref that resolves to HEAD, so a mutant must be committed before it can be compared.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D3/s3/drift_check.py . CTRL",
+          "value": "rc=0, 56 scenarios"
+        },
+        {
+          "claim": "A pre-screen run in the export tree itself is void. entities.py fails its closure-workflow check on the export's uncommitted edits, even with no mutant applied.",
+          "command": "PYTHONPATH=tests/hastub python3 tests/entities.py (in the export root)",
+          "value": "1 of 2303 ENTITY CHECKS FAILED, with no mutant applied"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D3/s3/mutants.py",
+        "dev/audit/rounds/round10/D3/s3/prescreen.py",
+        "dev/audit/rounds/round10/D3/s3/drift_check.py",
+        "dev/audit/rounds/round10/D3/s3/equiv.py"
+      ],
+      "leads": []
+    },
+    "D9-s3": {
+      "dimension": "D9",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D9/s3/REPORT.md",
+      "exposure": "none",
+      "coverage": [
+        {
+          "step": "D9.M2",
+          "depth": "deep",
+          "evidence": "gate_blind_2x.py: solve arm 0/5 flagged at x2.015, STRESS_SCENARIO_FACTOR=1.5 -> 5/5, null --factor 1.0 -> 0/5, kernel arm 5/5"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D9.M2",
+          "what": "Memory channel (rss_peak_mb/traced_peak_mb x MEMORY_BUDGET_FACTOR 1.5) not tested against an injected 2x retained-bytes regression"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D9-s3-01",
+          "scope": "D9-s3",
+          "step": "D9.M2",
+          "title": "Stress gate cannot see a 2x solve CPU regression outside the metered simulate seams",
+          "severity": "medium",
+          "claim": "A synthetic exact 2x CPU regression of HeatPumpOptimizer.optimize that lies outside the simulate_step/simulate_trajectory_batch/simulate_dhw_step seams trips none of the gate's verdicts (work_over_verdict on both count channels, kernel_cost_over_verdict, scenario_verdict, global ratio) on any of 5 sweep scenarios, because the only solve-wide CPU check uses SCENARIO_BUDGET_FACTOR=3.0 > DETECTION_TARGET=2.0.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
+            "harness_path": "dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
+            "value": "flagged_solve_arm=0 of 5 (solve CPU x2.015 median, range 1.89-2.21; counts 1.000x; kernel 0.91-1.09x)",
+            "unit": "scenarios flagged",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "Apple Silicon macOS dev box B3, venv-ci python 3.14",
+            "cpu_or_wall": "cpu (process_time)",
+            "contention_note": "fan-out, three compute seats; flagged count is a verdict count, solve ratio provisional",
+            "tolerance": "flagged exact; solve ratio +-0.3",
+            "load1": "40.56",
+            "thread_factor": "1.000"
+          },
+          "provisional": true,
+          "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize (wrapped by tests/stress.py:cpu_scaler), judged by tests/stress.py:scenario_verdict/work_over_verdict/kernel_cost_over_verdict",
+          "perturbation": {
+            "change": "STRESS_SCENARIO_FACTOR=1.5",
+            "expected_direction": "flagged_solve_arm 0 -> 5 (measured 5/5); null --factor 1.0 stays 0/5; positive control --arm kernel gives 5/5"
+          },
+          "metric_definition": "Number of 5 sweep scenarios where any stress.py verdict fires on a solve injected with exactly 2x CPU via cpu_scaler around HeatPumpOptimizer.optimize, baseline = clean solve of same scenario in same process.",
+          "phenomenon_property": "Solve CPU spent outside SolverWork-wrapped seams is judged only by the per-scenario recorded budget at 3.0x and the 244x global ratio, both above DETECTION_TARGET 2.0.",
+          "seam_rule": "grep -n \"_wrapped = \" tests/stress.py  (metered set; every other symbol reached from HeatPumpOptimizer.optimize is unjudged below 3x)",
+          "stop_rule_class": "bug",
+          "class_guess": "I1",
+          "files": [
+            "tests/stress.py",
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "proposed_fix_scope": "tests/stress.py: judge solve-wide CPU per vouched count against the in-run baseline tree (as kernel_cost_over_verdict does for seams) with median re-measure, or meter the objective/non-seam work as a further channel"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "A 2x per-call regression in the metered simulate seams is caught by the kernel-cost channel",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D9/s3/gate_blind_2x.py --arm kernel",
+          "value": "flagged_kernel_arm=5 of 5"
+        },
+        {
+          "claim": "Null injection (factor 1.0) fires no verdict",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D9/s3/gate_blind_2x.py --factor 1.0",
+          "value": "flagged_solve_arm=0 of 5"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D9/s3/gate_blind_2x.py"
+      ],
+      "leads": []
+    },
+    "D5-s3": {
+      "dimension": "D5",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D5/s3/REPORT.md",
+      "exposure": "Production comments cite earlier finding ids (D2-01, #1657, #1067 and others); read as context only. docs/configuration.md was seen via a grep hit only. RELEASE_NOTES.md history could not be checked.",
+      "coverage": [
+        {
+          "step": "D5.M4",
+          "depth": "deep",
+          "evidence": "comment_symbols.py scanned all 76 production modules' comments and docstrings: 27 raw unresolved identifiers, 26 triaged as external or notation, 1 genuinely stale"
+        },
+        {
+          "step": "D5.M1",
+          "depth": "none",
+          "evidence": "no reader-path walk over the code/JS cells"
+        },
+        {
+          "step": "D5.M2",
+          "depth": "none",
+          "evidence": "not run"
+        },
+        {
+          "step": "D5.M3",
+          "depth": "spot",
+          "evidence": "read the code paths for the 27 hits (sensor.py currency attributes, ECL110 topics, DHW mixed water); all but one matched the code"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M1",
+          "what": "reader paths over the code/JS cells not walked"
+        },
+        {
+          "step": "D5.M2",
+          "what": "structure over the code/JS cells not measured"
+        },
+        {
+          "step": "D5.M3",
+          "what": "mechanism paragraphs in docstrings were checked only where M4 hits led"
+        },
+        {
+          "step": "D5.M4",
+          "what": "cited-number-vs-adjacent-constant check not automated; www/*.js comments not scanned for symbols; README/docs M4 cell not run"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D5-s3-01",
+          "scope": "D5-s3",
+          "step": "D5.M4",
+          "title": "coordinator comment names a nonexistent sensor attribute `money_currency`",
+          "severity": "low",
+          "claim": "The #1657 comment in coordinator.py says the sensors publish the feed currency as ``money_currency``, but no code token anywhere in the repository has that name; sensors expose it as unit_of_measurement and a \"currency\" attribute.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D5/s3/comment_symbols.py",
+            "harness_path": "dev/audit/rounds/round10/D5/s3/comment_symbols.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 (box B3)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box under fan-out load; the count is contention-immune",
+            "tolerance": "exact",
+            "load1": 38.96,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:_check_price_units (comment at coordinator.py:1975-1977), tokenized source",
+          "perturbation": {
+            "change": "--perturb drops the production name async_setup_entry from the code-token set, which simulates renaming it; alternatively, renaming the comment to the real \"currency\" attribute",
+            "expected_direction": "--perturb raises comment_symbols_untriaged_missing from 1 to 10 (executed); fixing the comment lowers it to 0"
+          },
+          "metric_definition": "Count of backticked identifiers in production .py comments/docstrings that match no identifier token in non-comment code of custom_components/, tests/, tools/ or the package json/yaml/js, excluding a read-triaged external set",
+          "phenomenon_property": "A comment names a code identifier that does not exist",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D5/s3/comment_symbols.py | grep '^MISSING'",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "proposed_fix_scope": "reword the comment at coordinator.py:1976 to name the real carrier: the sensors' unit_of_measurement and \"currency\" attribute",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "In 75 of 76 production modules, every backticked comment identifier resolves to code or is a triaged external name",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D5/s3/comment_symbols.py",
+          "value": "untriaged=1 of 27 raw hits, all in coordinator.py"
+        },
+        {
+          "claim": "The dev/audit/harnesses paths cited in draw_range.py and early_cutoff.py exist",
+          "command": "ls dev/audit/harnesses/draw_range_evidence.py dev/audit/harnesses/early_cutoff_closed_loop.py",
+          "value": "both present"
+        },
+        {
+          "claim": "modbus_prefill.py's tools/gen_gchv_package.py is correctly attributed to the external tvofi/tuya_heat_pump repository",
+          "command": "grep -n gen_gchv custom_components/heatpump_optimizer/modbus_prefill.py",
+          "value": "line 6 names the other repository"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D5/s3/comment_symbols.py"
+      ],
+      "leads": []
+    },
+    "D6-s3": {
+      "dimension": "D6",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D6/s3/REPORT.md",
+      "exposure": "none; no docs/ or audit-era documents opened beyond COMMON.md, D6.md, dev/audit/README.md",
+      "coverage": [
+        {
+          "step": "D6.M1",
+          "depth": "deep",
+          "evidence": "svc_claims.py enumerates every services.yaml service/field/required/example/select option/number bound, every catalogue leaf in strings/en/sv, and manifest/hacs values: claims_checked=3741"
+        },
+        {
+          "step": "D6.M2",
+          "depth": "deep",
+          "evidence": "each claim executed against the schemas captured from services:async_register_services, VERSION, const.DOMAIN, importlib; links HEAD 200/200; claims_false=0; perturbing SERVICE_SCHEMA_SET_MODE moves claims_false 0->3"
+        },
+        {
+          "step": "D6.M3",
+          "depth": "deep",
+          "evidence": "harness prints a FALSE line per false claim (table); REPORT.md records counts: 3741 checked, 0 false, 0 stale, 2 unverifiable"
+        }
+      ],
+      "unfinished": [],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "All 13 services.yaml services, fields, required flags, examples, select options and number bounds agree with the registered voluptuous schemas; catalogue service fields and en/sv key sets match strings.json; manifest version/domain/name/requirements consistent",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D6/s3/svc_claims.py",
+          "value": "claims_checked=3741 claims_false=0"
+        },
+        {
+          "claim": "manifest documentation and issue_tracker links resolve",
+          "command": "curl -sI -o /dev/null -w '%{http_code}' https://github.com/tvofi/heatpump_optimizer{,/issues}",
+          "value": "200, 200"
+        },
+        {
+          "claim": "hacs.json homeassistant 2025.2.0 minimum and quality_scale platinum",
+          "command": "grep -rn 'MIN_HA|2025.2' custom_components/heatpump_optimizer/const.py",
+          "value": "unverifiable: no in-tree minimum; quality scale is D10"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D6/s3/svc_claims.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/manifest.json",
+          "symbol": "quality_scale",
+          "what": "platinum claim is unverified by D6; belongs to the D10 quality-scale seat"
+        }
+      ]
+    },
+    "D10-s3": {
+      "dimension": "D10",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D10/s3/REPORT.md",
+      "exposure": "none; the rule list came from the D10 brief, and no web page was fetched",
+      "coverage": [
+        {
+          "step": "D10.M1",
+          "depth": "deep",
+          "evidence": "platinum.py: async_dependency=0, inject_websession=0, py_typed=1, unannotated_returns=0/1971"
+        },
+        {
+          "step": "D10.M2",
+          "depth": "deep",
+          "evidence": "REPORT.md tier table plus quality_scale.draft.yaml; no rule is todo, so no HA release above the 2025.2.0 floor is needed"
+        }
+      ],
+      "unfinished": [],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "inject-websession holds: no aiohttp.ClientSession is constructed in the integration",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D10/s3/platinum.py",
+          "value": "inject_websession=0"
+        },
+        {
+          "claim": "async-dependency holds: the integration imports no synchronous HTTP library, and its requirements are compute-only",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D10/s3/platinum.py",
+          "value": "async_dependency=0"
+        },
+        {
+          "claim": "strict-typing marker holds: py.typed is shipped and every function has a return annotation",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D10/s3/platinum.py",
+          "value": "py_typed=1, unannotated_returns=0 of 1971"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D10/s3/platinum.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer",
+          "symbol": "strict-typing (mypy --strict)",
+          "what": "mypy is not installed in venv-ci, so the D10.M3 mypy-strict count by category was not run; the seat that owns M3 needs an interpreter that has mypy"
+        }
+      ]
+    }
+  }
+}
