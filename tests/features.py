@@ -55370,6 +55370,272 @@ R.check(
     f"{_p3_cap_at(None):.4f}",
 )
 
+# R10 I1 sweep: every per-step length guard meets a short input. The block
+# builds every fixture it reads, so dev/audit/harnesses/r10_i1_sweep_guards.py
+# can execute it alone against each guard's flip.
+# The round-10 I1 sweep (dev/audit/rounds/round10/sweep-I1.md) enumerated the
+# `<seq> and i < len(<seq>)` guards in the package and traced them through
+# the gate: seventeen beyond the D3 findings never evaluated False, because
+# every plan in this suite gives its optional per-step series the horizon's
+# length. Each is handed a series two steps short here, and each check pins
+# both halves: inside the series the value is read, past it the guard's own
+# fallback stands and nothing raises.
+from harness import FakeEntry as _SwEntry, FakeHass as _SwHass  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HeatPumpOptimizerCoordinator as _SwCoord,
+    _apply_result_payload as _sw_apply_payload,
+)
+from heatpump_optimizer.const import CAPACITY_MIN_SAMPLES as _SW_CAP_MIN  # noqa: E402
+from heatpump_optimizer.dhw_planner import _dhw_windows_at as _sw_windows_at  # noqa: E402
+from heatpump_optimizer.narrative import group_by_reason as _sw_group  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _SwOpt,
+    OptimizationConfig as _SwCfg,
+    OptimizationResult as _SwRes,
+    classify_dhw_steps as _sw_dhw_steps,
+    classify_space_steps as _sw_space_steps,
+)
+from heatpump_optimizer.pump_arbiter import step_duty as _sw_step_duty  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _SwModel,
+    ThermalParameters as _SwParams,
+    ThermalState as _SwState,
+    WeatherSeries as _SwWS,
+)
+
+
+def _sw_try(fn):
+    try:
+        return fn(), None
+    except Exception as exc:  # the check names it
+        return None, repr(exc)
+
+
+_sw_n = 4
+_sw_ts = [
+    datetime(2026, 3, 1, tzinfo=timezone.utc) + timedelta(minutes=15 * i)
+    for i in range(_sw_n)
+]
+_sw_on = np.ones(_sw_n)
+
+# optimizer.classify_space_steps: the PV surplus and heat-loss series.
+_sw_space, _sw_err = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.array([1.5, 1.5]), np.array([1.0, 1.0]), _sw_n,
+))
+_sw_full, _ = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.full(_sw_n, 1.0), np.zeros(_sw_n), _sw_n,
+))
+R.check(
+    "classify_space_steps reads a short surplus and heat-loss series inside "
+    "them and classifies past them as if absent",
+    _sw_err is None and _sw_full is not None
+    and _sw_space[:2] == ["solar_surplus", "solar_surplus"]
+    and _sw_space[2:] == _sw_full[2:],
+    f"raised {_sw_err}, short {_sw_space}, absent {_sw_full}",
+)
+_sw_space_hl, _sw_err = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.array([1.5, 1.5]), None, _sw_n,
+))
+R.check(
+    "...and a short heat-loss series marks weather pre-heat inside it only",
+    _sw_err is None
+    and _sw_space_hl[:2] == ["preheat_weather", "preheat_weather"]
+    and _sw_space_hl[2:] == _sw_full[2:],
+    f"raised {_sw_err}, {_sw_space_hl} vs {_sw_full}",
+)
+
+# optimizer.classify_dhw_steps: the ready-temperature and window series.
+_sw_dhw, _sw_err = _sw_try(lambda: _sw_dhw_steps(
+    _sw_on, np.array([True, True]), np.array([0.0, 55.0]), None, _sw_n,
+))
+R.check(
+    "classify_dhw_steps reads short ready and window series inside them and "
+    "pre-heats past them",
+    _sw_err is None
+    and _sw_dhw == ["dhw_window", "dhw_ready", "dhw_preheat", "dhw_preheat"],
+    f"raised {_sw_err}, {_sw_dhw}",
+)
+
+# narrative.group_by_reason: a reasons list shorter than the schedule.
+_sw_groups, _sw_err = _sw_try(lambda: _sw_group(
+    [1.0] * _sw_n, [2.0] * _sw_n, ["cheap_price"] * 2, 0.25,
+))
+R.check(
+    "group_by_reason books steps past a short reasons list as untagged",
+    _sw_err is None
+    and _sw_groups["cheap_price"]["kwh"] == 0.5
+    and _sw_groups["untagged"]["kwh"] == 0.5,
+    f"raised {_sw_err}, {_sw_groups}",
+)
+
+
+# pump_arbiter.step_duty: power schedules shorter than the timestamps.
+class _SwPlan:
+    timestamps = _sw_ts
+    power_schedule = [1.0, 0.0]
+    dhw_power_schedule = [0.0, 1.0]
+
+
+_sw_duty = [
+    _sw_try(lambda k=k: _sw_step_duty(_SwPlan, _sw_ts[k] + timedelta(minutes=1)))
+    for k in range(_sw_n)
+]
+R.check(
+    "step_duty reads short schedules inside them and reads idle past them",
+    [d for d, _ in _sw_duty] == ["space", "dhw", "idle", "idle"],
+    f"{_sw_duty}",
+)
+
+# dhw_planner._dhw_windows_at: holiday flags shorter than the horizon.
+_sw_normal, _sw_holiday = [(6, 7)], [(10, 11)]
+_sw_win = [
+    _sw_try(lambda k=k: _sw_windows_at(
+        None, None, k, _sw_normal, _sw_holiday, np.array([True, True]),
+    ))
+    for k in range(_sw_n)
+]
+R.check(
+    "a step past short holiday flags gets the ordinary DHW windows",
+    [w for w, _ in _sw_win]
+    == [_sw_holiday, _sw_holiday, _sw_normal, _sw_normal],
+    f"{_sw_win}",
+)
+
+# HeatPumpOptimizer._compute_baseline_power: comfort targets and external
+# heat shorter than the weather.
+_sw_opt = _SwOpt(_SwModel(_SwParams()), _SwCfg(target_temp=21.0))
+_sw_state = _SwState(
+    room_temperature=21.0, slab_temperature=26.0, outdoor_temperature=-5.0
+)
+_sw_wx = dict(
+    outdoor_temps=np.full(_sw_n, -5.0), wind_speeds=np.zeros(_sw_n),
+    precipitation=np.zeros(_sw_n), solar_radiation=np.zeros(_sw_n),
+)
+_sw_bl_ref, _ = _sw_opt._compute_baseline_power(_SwWS(**_sw_wx), _sw_state, 0.25)
+_sw_bl_ct, _sw_err_ct = _sw_try(lambda: _sw_opt._compute_baseline_power(
+    _SwWS(**_sw_wx), _sw_state, 0.25, np.array([21.0, 21.0]),
+)[0])
+_sw_bl_ext, _sw_err_ext = _sw_try(lambda: _sw_opt._compute_baseline_power(
+    _SwWS(**_sw_wx, external_heat_kw=np.zeros(2)), _sw_state, 0.25,
+)[0])
+R.check(
+    "the baseline thermostat holds the configured target past short comfort "
+    "targets and burns no free heat past a short external-heat series",
+    _sw_err_ct is None and _sw_err_ext is None
+    and np.allclose(_sw_bl_ct, _sw_bl_ref)
+    and np.allclose(_sw_bl_ext, _sw_bl_ref),
+    f"raised {_sw_err_ct} / {_sw_err_ext}",
+)
+
+# HeatPumpOptimizer._safety_release_steps: a DHW trajectory that stops one
+# step short reads that step's tank as cold, which releases the off-block
+# before it; the full trajectory, warm throughout, releases nothing.
+_sw_opt._dhw_requirement = np.full(3, 50.0)
+
+
+def _sw_release(traj):
+    res = _SwRes(
+        power_schedule=[0.0] * 3, room_temp_trajectory=[21.0] * 4,
+        slab_temp_trajectory=[22.0] * 4, timestamps=_sw_ts[:3],
+        prices=[1.0] * 3, predicted_cost=0.0, baseline_cost=0.0,
+        predicted_savings=0.0, savings_percentage=0.0,
+        optimal_setpoints=[21.0] * 3, status="optimal",
+        dhw_power_schedule=[0.0] * 3, dhw_temp_trajectory=traj,
+    )
+    return _sw_opt._safety_release_steps(res, np.full(3, 18.0), None, np.zeros(3))
+
+
+_sw_rel, _sw_err = _sw_try(lambda: _sw_release([50.0, 55.0, 55.0]))
+_sw_rel_full, _ = _sw_try(lambda: _sw_release([50.0, 55.0, 55.0, 55.0]))
+R.check(
+    "the DHW safety release reads a short tank trajectory as cold past its end",
+    _sw_err is None and _sw_rel == ([], [0, 1, 2]) and _sw_rel_full == ([], []),
+    f"raised {_sw_err}, released {_sw_rel} short, {_sw_rel_full} full",
+)
+
+# HeatPumpOptimizerCoordinator._plan_slots: the other channel's powers and the
+# reasons, both shorter than the slot.
+_sw_slots, _sw_err = _sw_try(lambda: _SwCoord._plan_slots(
+    _sw_ts, [1.0] * _sw_n, [2.0] * _sw_n, 0.25,
+    reasons=["cheap_price"] * 2, other_powers=[1.0] * 2,
+))
+R.check(
+    "a plan slot counts shared energy and reasons only where the shorter "
+    "series reach",
+    _sw_err is None and len(_sw_slots) == 1
+    and _sw_slots[0].get("shared_kwh") == 0.5
+    and _sw_slots[0].get("reasons") == ["cheap_price"],
+    f"raised {_sw_err}, {_sw_slots}",
+)
+
+# The coordinator's payload: displace, on/off and reason series shorter than
+# the plan, through _build_plan_views (reason_at) and _apply_result_payload.
+_sw_res = _SwRes(
+    power_schedule=[1.0] * _sw_n, room_temp_trajectory=[21.0] * (_sw_n + 1),
+    slab_temp_trajectory=[22.0] * (_sw_n + 1), timestamps=_sw_ts,
+    prices=[1.0] * _sw_n, predicted_cost=10.0, baseline_cost=12.0,
+    predicted_savings=2.0, savings_percentage=16.7,
+    optimal_setpoints=[21.0] * _sw_n, status="optimal",
+    dhw_power_schedule=[0.5] * _sw_n, dhw_temp_trajectory=[50.0] * (_sw_n + 1),
+    displace_schedule=[0.5] * 2, heat_pump_on_schedule=[False] * 2,
+    space_reasons=["cheap_price"] * 2, dhw_reasons=["dhw_window"] * 2,
+)
+
+
+def _sw_coord(**config):
+    return _SwCoord(_SwHass(), _SwEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", **config,
+    }))
+
+
+def _sw_payload():
+    views = _sw_coord(dhw_tank_volume=180.0)._build_plan_views(_sw_res)
+    data: dict = {}
+    _sw_apply_payload(data, _sw_res, {}, views)
+    return views, data
+
+
+_sw_pl, _sw_err = _sw_try(_sw_payload)
+_sw_views, _sw_data = _sw_pl if _sw_pl else ({}, {})
+_sw_sched = _sw_data.get("schedule") or []
+R.check(
+    "the published schedule reads short displace and on/off series inside "
+    "them and falls back past them",
+    _sw_err is None and len(_sw_sched) == _sw_n
+    and [r["displace"] for r in _sw_sched] == [0.5, 0.5, 0.0, 0.0]
+    and [r["heat_pump_on"] for r in _sw_sched] == [False, False, True, True],
+    f"raised {_sw_err}, {_sw_sched}",
+)
+R.check(
+    "the plan forecast carries a reason inside a short reasons list and None "
+    "past it, on both circuits",
+    _sw_err is None
+    and [s["reason"] for s in _sw_views["space_plan"]["forecast"]]
+    == ["cheap_price", "cheap_price", None, None]
+    and [s["reason"] for s in _sw_views["dhw_plan"]["forecast"]]
+    == ["dhw_window", "dhw_window", None, None],
+    f"raised {_sw_err}",
+)
+
+# HeatPumpOptimizerCoordinator._capacity_caps: humidity shorter than the
+# outdoor forecast prices the steps past it at the ambient humidity.
+_sw_cc = _sw_coord(capacity_curve_enabled=True)
+_sw_cc._thermal_params.ambient_humidity = 55.0
+_sw_cc._capacity_envelope[0] = [8.0, _SW_CAP_MIN + 2]
+_sw_cc_caps, _sw_err = _sw_try(lambda: _sw_cc._capacity_caps(
+    np.array([1.0, 1.0, 1.0]), np.array([90.0, 60.0]),
+))
+_sw_cc_ambient = _sw_cc._capacity_caps(np.array([1.0]))
+R.check(
+    "the capacity envelope prices a step past short humidity at the ambient",
+    _sw_err is None and _sw_cc_caps is not None and _sw_cc_ambient is not None
+    and abs(float(_sw_cc_caps[2]) - float(_sw_cc_ambient[0])) < 1e-12,
+    f"raised {_sw_err}, caps {_sw_cc_caps} vs ambient {_sw_cc_ambient}",
+)
+
 # The seam rule, as a barrier (R8-P3; widened in round 2 from the fix review).
 # Over the planner's modules and the coordinator, every call to a function that
 # takes ``humidity`` passes it -- by keyword or by position, and never as a
