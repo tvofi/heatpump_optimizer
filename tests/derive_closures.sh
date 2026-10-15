@@ -60,6 +60,12 @@ set -u
 cd "$(dirname "$0")/.."
 export PYTHONPATH="$PWD/tests/hastub:${PYTHONPATH:-}"
 PYTHON="${PYTHON:-python3}"
+# CI-cost metrics (tests/ci_ratchet.py): the file is this shell's alone. Read
+# once and unset, so no script this one runs inherits it -- a selftest that
+# drives this instrument under a stub, or a nested gate, would append its
+# fixture rows to the run's real count (push run 38639862216).
+_hpo_ci_metrics="${HPO_CI_METRICS:-}"
+unset HPO_CI_METRICS
 GOLDEN_REF="${GOLDEN_REF:-origin/main}"
 
 OUTDIR=""
@@ -138,10 +144,10 @@ rec() {
   # derived), carrying the runner's event and run id so a ratchet window can
   # group one run's lane artifacts together. No file, no line: a local run
   # emits nothing.
-  if [ -n "${HPO_CI_METRICS:-}" ]; then
+  if [ -n "$_hpo_ci_metrics" ]; then
     printf 'closures\t%s\t%s\t%s\t0\t%s\t%s\n' "$script" \
       "${HPO_CI_SCOPE:-full}" "$rc" "${GITHUB_EVENT_NAME:-local}" \
-      "${GITHUB_RUN_ID:-local}" >> "$HPO_CI_METRICS"
+      "${GITHUB_RUN_ID:-local}" >> "$_hpo_ci_metrics"
   fi
 }
 

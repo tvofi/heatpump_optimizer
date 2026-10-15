@@ -548,6 +548,10 @@ INERT_EXCEPT = (
     # so an edit to it selects that script; left inside the tools/coverage/
     # prefix it would be declared unread while being read (#357).
     "tools/coverage/composed_proof.sh",
+    # #2216: tests/entities.py reads the coverage stage, one of the three
+    # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
+    # scripts it runs; same reason as the proof driver above.
+    "tools/coverage/coverage_tree.sh",
     # R9-RO-4: tests/entities.py reads tools/pr/README.md. tools/pr/ is INERT
     # (R9-RO-6). Left inside the prefix the note is declared unread while
     # being read, and check refuses the committed table before it compares
