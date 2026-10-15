@@ -48,6 +48,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .payload import (
+    REASON_LEGIONELLA,
     AwayFold,
     Battery,
     ContractComparison,
@@ -325,7 +326,6 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .optimizer import (
-    REASON_LEGIONELLA,
     ForecastSeries,
     HeatPumpOptimizer,
     OptimizationConfig,
