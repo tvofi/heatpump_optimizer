@@ -523,6 +523,11 @@ def stored_fields(name: str, payload: Any) -> list[tuple[tuple[Any, ...], bool, 
     return out
 
 
+def _declared(domain: Domain | None, value: Any) -> bool:
+    """Whether a stored field is declared and inside its declaration: the one rule."""
+    return domain is not None and in_domain(domain, value)
+
+
 def admitted(name: str, payload: Any) -> bool:
     """Whether every field of ``payload`` -- store ``name``'s payload, or a
     fragment of it from its root -- is declared and inside its declaration.
@@ -530,10 +535,27 @@ def admitted(name: str, payload: Any) -> bool:
     For a loader whose stored record is opaque to it (a presentation dict
     it republishes whole) and that drops the record rather than repair it.
     """
-    return all(d is not None and in_domain(d, v) for _p, _k, d, v in stored_fields(name, payload))
+    return all(_declared(d, v) for _p, _k, d, v in stored_fields(name, payload))
 
 
-def _store_name(key: str) -> str | None:
+def off_domain(key: str, payload: Any) -> list[str]:
+    """The ``/``-joined path of every field of ``payload``, the document of the
+    store keyed ``key``, that is undeclared or outside its declaration, in walk
+    order (a map key and its value may both be listed). A key no ``DOMAINS``
+    entry names declares nothing, so every field of its document is off.
+    """
+    return [
+        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(store_name(key) or "", payload)
+        if not _declared(domain, value)
+    ]
+
+
+def quarantines(payload: Any) -> bool:
+    """Whether the next load would scrub a poisoned leaf of ``payload`` (``_sanitize``)."""
+    return _sanitize(payload) != payload
+
+
+def store_name(key: str) -> str | None:
     """The ``DOMAINS`` entry a store key names (its longest matching suffix)."""
     names = [name for name in DOMAINS if key.endswith("_" + name)]
     return max(names, key=len) if names else None
@@ -546,11 +568,7 @@ def _log_off_domain(store: Any, data: Any) -> None:
     entry in ``DOMAINS`` declares is refused by the standing sweep, not here.
     """
     where = str(getattr(store, "key", None) or getattr(store, "_key", "store"))
-    name = _store_name(where)
-    off = [
-        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(name or "", data)
-        if domain is None or not in_domain(domain, value)
-    ] if name else []
+    off = off_domain(where, data) if store_name(where) else []
     if off:
         _LOGGER.debug("%s: %d stored field(s) off their declared domain: %s", where, len(off), off[:5])
 

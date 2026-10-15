@@ -557,10 +557,10 @@ def _kinds_arm() -> None:
     R.check("each kind's shape and parse conjuncts decide alone", not bad, f"{bad}")
 
     name = next(iter(_store.DOMAINS))
-    got = _store._store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
+    got = _store.store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
     R.check(
         "a store key names its DOMAINS entry, and a foreign key names none",
-        got == name and _store._store_name("no_such_entry_key") is None,
+        got == name and _store.store_name("no_such_entry_key") is None,
         f"{got!r}",
     )
 
