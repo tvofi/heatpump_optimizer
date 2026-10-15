@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:write_setpoint_c RETURN_DEL 31399f36",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return await write_setpoint(hass, entity_id, temperature_from_c(value_c, unit))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 694120d5aa296b65c7d7be097f8684e7bc3b5f61: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

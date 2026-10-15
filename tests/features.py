@@ -33655,6 +33655,75 @@ _et_check(
     "no_loaded_config_entry",
 )
 
+# D10-s1-51 (#2238, class P2): _loaded_entries decides which entries a call
+# acts on, and every action must consult it before it returns.
+# apply_schedule's "nothing to apply" return came first, so an empty call
+# naming no config entry, or made with none loaded, succeeded where every
+# sibling refused. "Resolved before any return" has no AST shape, so this
+# census holds it (_P2_CENSUSES in tests/entities.py): every registered
+# action, through the registry and its schema, with the smallest payload the
+# schema accepts, in both refusing states. Its preconditions: it drives the
+# whole catalog, each action's payload reaches the handler without an
+# entry_id, and the only refusal it accepts from a schema is of entry_id
+# itself (five actions act on every loaded entry and take none).
+import voluptuous as _ger_vol  # noqa: E402
+
+#: The fields an action's schema requires; any other's smallest payload is {}.
+_GER_REQUIRED = {
+    "set_mode": {"mode": "auto"}, "set_away": {"active": True},
+    "debug_collect": {"action": "status"},
+    "assign_entity": {"key": "outdoor_temp_entity", "entity_id": ""},
+    "apply_topology": {"layout": "no_valve"},
+}
+_ger_actions = sorted(_et_idle.services.async_services()[_DOMAIN])
+_ger_bad, _ger_unreached = [], []
+for _ger_name in _ger_actions:
+    _ger_base = _GER_REQUIRED.get(_ger_name, {})
+    for _ger_payload, _ger_key in (
+        (_ger_base, "no_loaded_config_entry"),
+        ({**_ger_base, "entry_id": "ghost"}, "config_entry_not_found"),
+    ):
+        try:
+            _ger_err = _et_call(_et_idle, _ger_name, _ger_payload)
+        except _ger_vol.Invalid as _ger_inv:
+            if "entry_id" not in _ger_payload or {
+                tuple(_e.path) for _e in getattr(_ger_inv, "errors", [_ger_inv])
+            } != {("entry_id",)}:
+                _ger_unreached.append(f"{_ger_name}: {_ger_inv}")
+            continue
+        if _ger_err is None or _et_why(_ger_err, _ger_key):
+            _ger_bad.append(f"{_ger_name}{sorted(_ger_payload)}: "
+                            f"{_et_why(_ger_err, _ger_key) if _ger_err else 'returned'}")
+R.check(
+    "every action resolves its config entries before it returns: an unknown "
+    "entry_id, or none loaded, is refused by all of them (D10-s1-51)",
+    set(_ger_actions) == _lc_catalog and set(_GER_REQUIRED) <= set(_ger_actions)
+    and not _ger_unreached and not _ger_bad,
+    f"silent or wrong: {_ger_bad}; census unreached: {_ger_unreached}",
+)
+# Its null control: a known, loaded entry still takes apply_schedule -- an
+# empty call answers "nothing to apply" and a valid field reaches its options.
+_ger_hass = FakeHass()
+_seed_prices(_ger_hass)
+_ger_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _ger_hass, _ger_entry))
+_ger_id = {"entry_id": _ger_entry.entry_id}
+try:
+    _ger_empty = _asyncio.run(
+        _ger_hass.services.async_call(_DOMAIN, "apply_schedule", _ger_id))
+    _ger_set = _asyncio.run(_ger_hass.services.async_call(
+        _DOMAIN, "apply_schedule", {**_ger_id, "dhw_windows": "06:00-07:00"}))
+except _ET_HAE as _ger_refused:
+    _ger_empty = _ger_set = _ger_refused
+R.check(
+    "apply_schedule on a known, loaded entry still answers an empty call and "
+    "applies a valid one (the D10-s1-51 census's null control)",
+    _ger_empty == {"updated": {}, "reason": "nothing to apply"}
+    and _ger_set == {"updated": {_ger_entry.entry_id: {"dhw_windows": "06:00-07:00"}}}
+    and _ger_entry.options.get("dhw_windows") == "06:00-07:00",
+    f"empty: {_ger_empty!r}; set: {_ger_set!r}",
+)
+
 # A loaded entry, so the handlers that resolve targets get a coordinator.
 _et_hass = FakeHass()
 _seed_prices(_et_hass)  # #924
@@ -45562,6 +45631,8 @@ from heatpump_optimizer import comfort_band as _g8_band  # noqa: E402
 from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
 from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
 from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
+from heatpump_optimizer import issues as _g8_issues  # noqa: E402
+from heatpump_optimizer import inputs as _g8_inputs  # noqa: E402
 from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
@@ -45737,18 +45808,18 @@ class _G8SpHass:
 
 _G8_SP_ID = "number.pump_dhw_setpoint"
 _g8_sp_reads = {
-    "absent entity": _g8_sp._read_setpoint(_G8SpHass(), _G8_SP_ID),
-    "unavailable": _g8_sp._read_setpoint(
+    "absent entity": _g8_inputs.read_setpoint(_G8SpHass(), _G8_SP_ID),
+    "unavailable": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("unavailable")}), _G8_SP_ID),
-    "no entity id": _g8_sp._read_setpoint(_G8SpHass(), None),
-    "text, no attribute": _g8_sp._read_setpoint(
+    "no entity id": _g8_inputs.read_setpoint(_G8SpHass(), None),
+    "text, no attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("warm")}), _G8_SP_ID),
-    "text, bad attribute": _g8_sp._read_setpoint(
+    "text, bad attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("warm", {"temperature": "warmer"})}),
         _G8_SP_ID),
-    "plain float": _g8_sp._read_setpoint(
+    "plain float": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("52.5")}), _G8_SP_ID),
-    "float on the attribute": _g8_sp._read_setpoint(
+    "float on the attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("heat", {"temperature": 48.0})}),
         _G8_SP_ID),
 }
@@ -45800,13 +45871,13 @@ class _G8SpIssues:
 
 
 _g8_sp_reg = _G8SpIssues()
-_g8_sp_real_delete = _g8_sp.ir.async_delete_issue
+_g8_sp_real_delete = _g8_issues.ir.async_delete_issue
 try:
-    _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
+    _g8_issues.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
     _g8_sp_clear = _t6_call(
-        _g8_sp.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+        _g8_issues.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
 finally:
-    _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
+    _g8_issues.ir.async_delete_issue = _g8_sp_real_delete
 R.check(
     "a registry that refuses the clear is logged, not raised",
     _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
@@ -50664,6 +50735,7 @@ from types import SimpleNamespace as _p8_ns  # noqa: E402
 from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
 from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
 from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
+from heatpump_optimizer import issues as _p8_issues  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_GRID_FEE_ENTITY as _P8_FEE,
     CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
@@ -52853,7 +52925,7 @@ def _pa_failing_delete_issue(hass, domain, issue_id):
 _pa.ir.async_delete_issue = _pa_failing_delete_issue
 _pa_clear_ok = True
 try:
-    _pa._clear(_PaCoord(_PA_TUYA), _pa.ISSUE_IGNORED)
+    _pa.issues.clear_issue(_PaCoord(_PA_TUYA).hass, _pa.ISSUE_IGNORED)
 except Exception:  # noqa: BLE001 - the check is that nothing escapes
     _pa_clear_ok = False
 _pa.ir.async_delete_issue = _pa_orig_delete_issue
@@ -53012,7 +53084,7 @@ R.check(
     f"{_pa.state_for(_pa_sd).written=} {_pa.state_for(_pa_sd_again).written=}",
 )
 _pa_stored = _PaCoord(_PA_TUYA)
-_p8_sp.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
+_p8_issues.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
 _pa_aio.run(_pa._store(_pa_stored).async_save({
     "manual": "select.pump_mode: Heating (set by the optimizer: DHW)",
     "written": {},
@@ -54867,7 +54939,7 @@ import asyncio as _p6_aio  # noqa: E402
 
 from harness import FakeEntry as _P6Entry  # noqa: E402
 from heatpump_optimizer import config_flow as _p6_cf  # noqa: E402
-from heatpump_optimizer import repairs as _p6_repairs  # noqa: E402
+from heatpump_optimizer import inputs as _p6_inputs  # noqa: E402
 from heatpump_optimizer import topology as _p6_topo  # noqa: E402
 from heatpump_optimizer.disinfection import DisinfectionSwitch as _P6Dis  # noqa: E402
 
@@ -54990,7 +55062,7 @@ async def _p6_freq(eid):
 
 async def _p6_setpoint(eid):
     hass = FakeHass({})
-    await _p6_repairs._write_setpoint(hass, eid, 55.0)
+    await _p6_inputs.write_setpoint(hass, eid, 55.0)
     return hass.services.calls
 
 
@@ -60952,7 +61024,8 @@ R.check(
 )
 _pp_fb = _pa._flow_target(
     _PaNS(
-        config={_PP_FLOW_KEY: 48.0},
+        config={_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"},
+        hass=FakeHass({"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}),
         state=_PaNS(
             outdoor_temperature=-5.0,
             return_temperature=35.0,
@@ -60961,7 +61034,6 @@ _pp_fb = _pa._flow_target(
         thermal=_PaNS(curve_flow_temp=lambda _o: 60.0),
         plan=None,
     ),
-    FakeState("40", attributes={"min": 20, "max": 70}),
     None,
     _PA_T0,
 )
@@ -60972,7 +61044,8 @@ R.check(
 )
 _pp_low = _pa._flow_target(
     _PaNS(
-        config={_PP_FLOW_KEY: 48.0},
+        config={_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"},
+        hass=FakeHass({"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}),
         state=_PaNS(
             outdoor_temperature=15.0,
             return_temperature=35.0,
@@ -60981,7 +61054,6 @@ _pp_low = _pa._flow_target(
         thermal=_PaNS(curve_flow_temp=lambda _o: 20.0),
         plan=None,
     ),
-    FakeState("40", attributes={"min": 20, "max": 70}),
     None,
     _PA_T0,
 )
@@ -63577,6 +63649,215 @@ R.check(
     f"{_ec._cycle_guard(_ec_mon.arbiter_inputs(), _ec_mon_h, _ec_mon_now)}",
 )
 
+
+
+R.section("°F set-points: one unit rule for every set-point write (D12-s3-01, L1, L2)")
+
+# A climate entity's target and range are attributes in the instance's unit
+# system, which its state never declares; a number declares its own. Every
+# set-point write -- the arbiter's slots and the smart_write valve -- picks the
+# unit by that rule, by domain, so a 50 degC hot-water target on a US-customary
+# install reaches the pump as 122 degF and not as 50 degF (10 degC). The
+# expected values are the physical conversion, not a reader's round trip.
+import asyncio as _df_aio  # noqa: E402
+import itertools as _df_it  # noqa: E402
+from types import SimpleNamespace as _DfNS  # noqa: E402
+
+from harness import FakeEntry as _DfEntry  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _df_pa  # noqa: E402
+
+_DF, _DC = "°F", "°C"
+_DF_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_df_ids = _df_it.count()
+
+
+def _df_hass(states, instance):
+    hass = FakeHass(states)
+    hass.config.units = _DfNS(temperature_unit=instance)
+    return hass
+
+
+class _DfCoord:
+    """The arbiter keys its per-coordinator state weakly, so a plain class."""
+
+
+def _df_write(slot, entity, state, instance, value_c):
+    """What the arbiter's ``_write`` hands the service for ``value_c`` degC."""
+    hass = _df_hass({entity: state}, instance)
+    coord = _DfCoord()
+    coord.hass, coord.entry = hass, _DfNS(entry_id=f"df{next(_df_ids)}")
+    inp = _DfNS(hass=hass, config={f"{slot}_entity": entity})
+    _df_aio.run(_df_pa._write(coord, inp, slot, value_c, _DF_T0))
+    calls = [c for c in hass.services.calls if (c[2] or {}).get("entity_id") == entity]
+    data = calls[-1][2] if calls else {}
+    return data.get("temperature", data.get("value"))
+
+
+_df_cells = {}
+for _df_slot, _df_c in (("dhw_setpoint", 50.0), ("space_setpoint", 21.0)):
+    for _df_inst in (_DF, _DC):
+        _df_f = round(_df_c * 9 / 5 + 32, 1)
+        _df_want = _df_f if _df_inst == _DF else _df_c
+        _df_cells[(_df_slot, "climate", _df_inst)] = (_df_write(
+            _df_slot, f"climate.{_df_slot}",
+            FakeState("heat", attributes={"temperature": _df_want - 5.0}),
+            _df_inst, _df_c), _df_want)
+        for _df_dom in ("number", "input_number"):
+            _df_cells[(_df_slot, _df_dom, _df_inst)] = (_df_write(
+                _df_slot, f"{_df_dom}.{_df_slot}",
+                FakeState(str(_df_want - 5.0), unit=_df_inst), _df_inst, _df_c), _df_want)
+_df_bad = {k: v for k, v in _df_cells.items() if v[0] != v[1]}
+R.check(
+    "every arbiter set-point write reaches its entity in that entity's unit, "
+    "a climate on a degF install included (D12-s3-01)",
+    not _df_bad and len(_df_cells) == 12,
+    f"{len(_df_bad)} of {len(_df_cells)} cells misdelivered: {_df_bad}",
+)
+
+# The unit is chosen by the climate domain, not by whether a target reading
+# exists: a degF climate that reports no target yet (the attribute missing,
+# or None while it is off) is still written in degF.
+_df_none = {
+    label: _df_write("dhw_setpoint", "climate.dhw", FakeState("off", attributes=attrs), _DF, 50.0)
+    for label, attrs in (("absent", {}), ("None", {"temperature": None}))
+}
+R.check(
+    "a degF climate with no target attribute is still written in degF",
+    _df_none == {"absent": 122.0, "None": 122.0},
+    f"{_df_none}",
+)
+
+
+# L1: the smart_write valve target goes through the same rule. The commanded
+# value it remembers stays degC, so the unchanged-target guard compares like
+# with like.
+def _df_valve(entity, state, instance):
+    coord = Coord(FakeHass({entity: state}), _DfEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        "max_temperature": 23.5, "mixing_valve_mode": "smart_write",
+        "mixing_valve_write_entity": entity,
+    }))
+    coord.hass.config.units = _DfNS(temperature_unit=instance)
+    _df_aio.run(coord._command_valve_target())
+    _df_aio.run(coord._command_valve_target())
+    data = [c[2] for c in coord.hass.services.calls]
+    return [d.get("temperature", d.get("value")) for d in data], coord._valve_commanded_target
+
+
+_df_valves = {
+    "climate on degF": _df_valve("climate.valve", FakeState("heat", attributes={"temperature": 70.0}), _DF),
+    "climate on degF, no target": _df_valve("climate.valve", FakeState("off"), _DF),
+    "number declaring degF": _df_valve("number.valve", FakeState("70", unit=_DF), _DC),
+    "climate on degC": _df_valve("climate.valve", FakeState("heat", attributes={"temperature": 21.0}), _DC),
+    "number declaring degC": _df_valve("number.valve", FakeState("21", unit=_DC), _DC),
+}
+R.check(
+    "the smart_write valve target is written in the entity's unit, once, "
+    "and remembered in degC (L1)",
+    _df_valves == {
+        "climate on degF": ([74.3], 23.5),
+        "climate on degF, no target": ([74.3], 23.5),
+        "number declaring degF": ([74.3], 23.5),
+        "climate on degC": ([23.5], 23.5),
+        "number declaring degC": ([23.5], 23.5),
+    },
+    f"{_df_valves}",
+)
+
+
+# L2: a climate state carries its range as min_temp/max_temp, in the
+# instance's unit; a number carries min/max in its declared unit. The
+# arbiter clamps a set-point to that range whichever the slot is.
+def _df_dhw_command(entity, state, instance, setpoint_c):
+    hass = _df_hass({entity: state}, instance)
+    inp = _df_pa.ArbiterInputs(
+        hass=hass, config=EntryConfig.from_mapping({"dhw_setpoint_entity": entity}),
+        mode="auto", plan=None, plan_stale=False, entry_released=False,
+        state=_DfNS(outdoor_temperature=2.0), thermal=None,
+        params=_DfNS(dhw_setpoint=setpoint_c), action={}, measured_power_kw=None,
+        disinfecting=False,
+    )
+    return _df_pa.desired(None, inp, "dhw", _DF_T0).dhw_setpoint
+
+
+_df_ranges = {
+    "climate on degF, above max": _df_dhw_command(
+        "climate.dhw", FakeState("heat", attributes={"min_temp": 44.6, "max_temp": 122.0}), _DF, 55.0),
+    "climate on degF, below min": _df_dhw_command(
+        "climate.dhw", FakeState("heat", attributes={"min_temp": 44.6, "max_temp": 122.0}), _DF, 3.0),
+    "climate on degC, above max": _df_dhw_command(
+        "climate.dhw", FakeState("heat", attributes={"min_temp": 7, "max_temp": 50}), _DC, 55.0),
+    "number on degC, above max": _df_dhw_command(
+        "number.dhw", FakeState("45", unit=_DC, attributes={"min": 7, "max": 50}), _DC, 55.0),
+    "number on degC, inside": _df_dhw_command(
+        "number.dhw", FakeState("45", unit=_DC, attributes={"min": 7, "max": 50}), _DC, 45.0),
+}
+R.check(
+    "a climate set-point slot is clamped to its own min_temp/max_temp, read "
+    "in the instance's unit (L2)",
+    _df_ranges == {
+        "climate on degF, above max": 50.0,
+        "climate on degF, below min": 7.0,
+        "climate on degC, above max": 50.0,
+        "number on degC, above max": 50.0,
+        "number on degC, inside": 45.0,
+    },
+    f"{_df_ranges}",
+)
+
+
+# An unconfigured set-point slot is ``None`` (or empty), and Home Assistant's
+# StateMachine.get does ``self._states_data.get(entity_id) or
+# self._states_data.get(entity_id.lower())`` (2026.9.3), so it RAISES on None
+# where FakeStates' dict lookup returns None. This stub keeps that one upstream
+# behaviour, faithfully and locally, rather than changing FakeHass for every
+# test. The owner's guard returns no reading for a missing id before any
+# lookup; without it, setpoint_check.evaluate on an install with no DHW
+# entity raises inside _dhw and skips the space and quiet checks after it.
+class _DfStrictStates:
+    def __init__(self, mapping):
+        self._states_data = dict(mapping)
+
+    def get(self, entity_id):
+        return self._states_data.get(entity_id) or self._states_data.get(entity_id.lower())
+
+
+def _df_strict_hass(mapping):
+    hass = FakeHass({})
+    hass.states = _DfStrictStates(mapping)
+    return hass
+
+
+from heatpump_optimizer import inputs as _df_inputs  # noqa: E402
+from heatpump_optimizer import setpoint_check as _df_sc  # noqa: E402
+
+def _df_or_raised(fn, *args):
+    try:
+        return fn(*args)
+    except Exception as err:  # noqa: BLE001 - the raise is the reading
+        return f"raised {type(err).__name__}"
+
+
+_df_missing = {
+    repr(eid): (_df_or_raised(_df_inputs.read_setpoint, _df_strict_hass({}), eid),
+                _df_or_raised(_df_inputs.setpoint_and_unit, _df_strict_hass({}), eid))
+    for eid in (None, "")
+}
+_df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
+_df_sc.evaluate(_DfNS(
+    hass=_df_space_hass,
+    effective_config={"space_setpoint_entity": "number.space"},
+    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+                         dhw_legionella_temp=60.0),
+))
+R.check(
+    "a set-point slot with no entity id reads nothing, before any state lookup, "
+    "so the consistency check still reaches the space notice",
+    _df_missing == {"None": (None, None), "''": (None, None)}
+    and _df_sc.ISSUE_SPACE in str(getattr(_df_space_hass, "issues", [])),
+    f"{_df_missing} issues={getattr(_df_space_hass, 'issues', [])!r}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))

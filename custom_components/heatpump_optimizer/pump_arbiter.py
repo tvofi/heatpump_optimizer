@@ -143,7 +143,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, pump_mode, quiet_windows, setpoint_check
+from . import boost, issues, pump_mode, quiet_windows
 from .const import (
     DOMAIN,
     MODE_AUTO,
@@ -154,9 +154,8 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
-from .inputs import state_unit, temperature_c, temperature_from_c
+from .inputs import read_setpoint, setpoint_range_c, write_setpoint_c
 from .payload import CurrentAction
-from .repairs import _write_setpoint
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
@@ -393,14 +392,13 @@ def _option_for(state: Any, key: str) -> str | None:
     return next((o for o in options if pump_mode.resolve(o) == key), None)
 
 
-def _bounded(state: Any, value: float | None, floor: float = -1e9) -> float | None:
-    """``value`` (degC) inside the entity's own range, on a half degree."""
-    if value is None or state is None:
+def _bounded(
+    inp: ArbiterInputs, slot: str, value: float | None, floor: float = -1e9
+) -> float | None:
+    """``value`` (degC) inside the slot entity's own range, on a half degree."""
+    if value is None or _slot_state(inp, slot) is None:
         return None
-    attrs = getattr(state, "attributes", None) or {}
-    unit = state_unit(state)
-    low = temperature_c(attrs.get("min"), unit)
-    high = temperature_c(attrs.get("max"), unit)
+    low, high = setpoint_range_c(inp.hass, _entities(inp.config)[slot])
     value = max(value, floor, low if low is not None else floor)
     value = min(value, high) if high is not None else value
     return round(value * 2.0) / 2.0
@@ -418,11 +416,10 @@ def _planned_room(
 
 def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | None) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
-    state = _slot_state(inp, "space_setpoint")
     if _flow_unit(inp.config):
-        return _flow_target(inp, state, duty, now)
+        return _flow_target(inp, duty, now)
     room = _planned_room(result, now)
-    low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
+    low = setpoint_range_c(inp.hass, _entities(inp.config)["space_setpoint"])[0]
     if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
         # An "indoor" entity that cannot hold the room target is a flow
         # set-point declared as indoor: clamping 21 degC up to its minimum
@@ -433,7 +430,7 @@ def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | No
             _entities(inp.config)["space_setpoint"], low,
         )
         return None
-    return _bounded(state, room)
+    return _bounded(inp, "space_setpoint", room)
 
 
 def _step_kw(result: Any, now: datetime) -> float | None:
@@ -480,9 +477,7 @@ def _flow_inlet_c(inp: ArbiterInputs) -> float:
     )
 
 
-def _flow_target(
-    inp: ArbiterInputs, state: Any, duty: str | None, now: datetime
-) -> float | None:
+def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
     The model's weather curve is a pricing curve, not a set-point: it sizes
@@ -500,7 +495,8 @@ def _flow_target(
     if duty in ("space", "both"):
         p_min, p_max = _band_kw(inp)
         return _bounded(
-            state,
+            inp,
+            "space_setpoint",
             flow_setpoint_for_level(
                 _step_kw(inp.plan, now),
                 p_min,
@@ -511,12 +507,12 @@ def _flow_target(
             FLOW_GATE_C,
         )
     if duty is not None:
-        return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
+        return _bounded(inp, "space_setpoint", FLOW_GATE_C, FLOW_GATE_C)
     outdoor = float(inp.state.outdoor_temperature)
     curve = inp.thermal.curve_flow_temp(outdoor)
     ceiling = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
     hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), ceiling)
-    return _bounded(state, hold, FLOW_GATE_C)
+    return _bounded(inp, "space_setpoint", hold, FLOW_GATE_C)
 
 
 def _step_start(now: datetime) -> datetime:
@@ -578,8 +574,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
     mode_state = _slot_state(inp, "mode")
-    space_state = _slot_state(inp, "space_setpoint")
-    dhw = _bounded(_slot_state(inp, "dhw_setpoint"), float(inp.params.dhw_setpoint))
+    dhw = _bounded(inp, "dhw_setpoint", float(inp.params.dhw_setpoint))
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off,
         # the silent switch included.
@@ -600,14 +595,14 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "space":
         if _option_for(mode_state, pump_mode.MODE_HEAT):
             return PumpCommand(pump_mode.MODE_HEAT, dhw, space, silent)
-        return PumpCommand(both, _bounded(_slot_state(inp, "dhw_setpoint"), DHW_GATE_C), space, silent)
+        return PumpCommand(both, _bounded(inp, "dhw_setpoint", DHW_GATE_C), space, silent)
     if duty != "dhw":
         return PumpCommand(both, dhw, space, silent)
     if _option_for(mode_state, pump_mode.MODE_DHW):
         return PumpCommand(pump_mode.MODE_DHW, dhw, space, silent)
     if _flow_unit(inp.config):
         return PumpCommand(both, dhw, space, silent)
-    return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0), silent)
+    return PumpCommand(both, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0), silent)
 
 
 def dhw_gated(coord: Any, reading: float | None) -> bool:
@@ -758,7 +753,7 @@ def _observed(inp: ArbiterInputs, slot: str) -> Any:
         if raw == "off":
             return False
         return None
-    return setpoint_check._read_setpoint(inp.hass, entity)
+    return read_setpoint(inp.hass, entity)
 
 
 def hold(coord: Any, now: datetime) -> None:
@@ -776,7 +771,7 @@ def hold(coord: Any, now: datetime) -> None:
         if not _differs(slot, observed, value):
             held.misses.pop(slot, None)
             if held.retry.pop(slot, None) is not None and not held.retry:
-                _clear(coord, ISSUE_IGNORED)
+                issues.clear_issue(coord.hass, ISSUE_IGNORED)
             continue
         del held.written[slot]
         held.misses[slot] = held.misses.get(slot, 0) + 1
@@ -789,7 +784,7 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
     """A rewrite did not hold either: warn, and send it again in a few minutes."""
     held.retry[slot] = utc_shift(now, timedelta(minutes=RETRY_MINUTES))
     _LOGGER.warning("Pump duty: the pump does not hold a write, %s; retrying", detail)
-    setpoint_check.create_issue(
+    issues.create_issue(
         coord.hass,
         DOMAIN,
         ISSUE_IGNORED,
@@ -800,13 +795,6 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
     )
 
 
-def _clear(coord: Any, issue: str) -> None:
-    try:
-        ir.async_delete_issue(coord.hass, DOMAIN, issue)
-    except Exception as err:  # noqa: BLE001 - clearing is best-effort
-        _LOGGER.debug("Could not clear %s: %s", issue, err)
-
-
 def _forget(held: ArbiterState) -> None:
     held.written, held.misses, held.retry = {}, {}, {}
 
@@ -814,7 +802,7 @@ def _forget(held: ArbiterState) -> None:
 def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
     """The service and its data that write ``value`` to ``slot``.
 
-    ``None`` for a set-point, which goes through ``_write_setpoint``.
+    ``None`` for a set-point, which goes through ``inputs.write_setpoint_c``.
     """
     if slot == "mode":
         return "select_option", {"option": _option_for(state, value)}
@@ -842,7 +830,7 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
     service = _service(slot, state, value)
     try:
         if service is None:
-            await _write_setpoint(coord.hass, entity, temperature_from_c(value, state_unit(state)))
+            await write_setpoint_c(coord.hass, entity, value)
         else:
             await inp.hass.services.async_call(
                 domain, service[0], {"entity_id": entity, **service[1]}, blocking=True,
@@ -961,7 +949,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         if held.written or held.retry:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
-            _clear(coord, ISSUE_IGNORED)
+            issues.clear_issue(coord.hass, ISSUE_IGNORED)
             await _persist(coord)
         if inp.mode == MODE_OFF:
             return
@@ -1109,7 +1097,7 @@ async def _load(coord: Any) -> None:
     if raw is None:
         return
     if raw.get("manual"):
-        _clear(coord, ISSUE_MANUAL)
+        issues.clear_issue(coord.hass, ISSUE_MANUAL)
     written = raw.get("written")
     for slot, pair in written.items() if isinstance(written, dict) else ():
         try:
