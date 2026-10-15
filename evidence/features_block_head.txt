@@ -1,0 +1,8 @@
+-- °F set-points: one unit rule for every set-point write (D12-s3-01, L1, L2)
+  ok   every arbiter set-point write reaches its entity in that entity's unit, a climate on a degF install included (D12-s3-01)
+  ok   a degF climate with no target attribute is still written in degF
+  ok   the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)
+  ok   a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)
+  ok   a set-point slot with no entity id reads nothing, before any state lookup, so the consistency check still reaches the space notice
+
+ALL 5 FEATURES BLOCK PASSED

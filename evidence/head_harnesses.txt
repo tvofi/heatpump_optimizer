@@ -1,0 +1,37 @@
+### head surface_units (wrapper)
+RESULT misdelivered_cells=0 cells (of 6)
+RESULT null_misdelivered_cells=0 cells (of 6)
+RESULT thread_factor=1.000
+RESULT load1=19.43
+RESULT swapins=0
+### head surface_units --perturb (wrapper)
+RESULT misdelivered_cells=0 cells (of 6)
+RESULT null_misdelivered_cells=0 cells (of 6)
+RESULT thread_factor=1.000
+RESULT load1=19.31
+RESULT swapins=0
+### head setpoint_unit.py
+RESULT roundtrip_error_defect_K=0.000
+RESULT roundtrip_error_null_K=0.000
+RESULT thread_factor=1.001
+RESULT load1=19.31
+### head l1_valve_unit.py
+RESULT main arm_climate_on_degF_instance written=69.8 expected=69.8 abs_err=0.0
+RESULT main arm_number_degF_on_degC_instance written=69.8 expected=69.8 abs_err=0.0
+RESULT main null_climate_on_degC_instance written=21.0 expected=21.0 abs_err=0.0
+RESULT main null_number_degC written=21.0 expected=21.0 abs_err=0.0
+AssertionError: anchor moved
+### head l2_bounded_climate.py
+TypeError: _bounded() missing 1 required positional argument: 'value'
+### head realha_climate.py
+RESULT imperial: payload=131.0 device_C=55.000 delivered_error_K=0.000 climate_uom=None uom_in_attrs=False attr_temperature_shown=122
+RESULT null_metric: payload=55.0 device_C=55.000 delivered_error_K=0.000 climate_uom=None uom_in_attrs=False attr_temperature_shown=50.0
+RESULT thread_factor=1.000
+RESULT load1=18.64
+RESULT head arm_climate out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT head arm_climate_degC_instance out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT head arm_climate_degF_instance out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT head null_number out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT head null_number_on_degF_instance out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT head reach_desired_dhw_slot_climate command.dhw=50.0 outside_range=0
+RESULT head reach_desired_dhw_slot_climate_degF command.dhw=50.0 outside_range=0

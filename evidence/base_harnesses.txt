@@ -1,0 +1,50 @@
+# merge base 8747bbfc4d4628fa8419634792229fd15dcc21e2 (git archive)
+### base surface_units.py
+RESULT misdelivered_cells=2 cells (of 6)
+RESULT null_misdelivered_cells=0 cells (of 6)
+RESULT thread_factor=1.000
+RESULT load1=27.55
+RESULT swapins=0
+### base surface_units.py --perturb
+RESULT misdelivered_cells=0 cells (of 6)
+RESULT null_misdelivered_cells=0 cells (of 6)
+RESULT thread_factor=1.000
+RESULT load1=27.26
+RESULT swapins=0
+### base setpoint_unit.py
+RESULT roundtrip_error_defect_K=42.222
+RESULT roundtrip_error_null_K=0.000
+RESULT thread_factor=1.001
+RESULT load1=26.20
+### base l1_valve_unit.py
+RESULT main arm_climate_on_degF_instance written=21.0 expected=69.8 abs_err=48.8
+RESULT main arm_number_degF_on_degC_instance written=21.0 expected=69.8 abs_err=48.8
+RESULT main null_climate_on_degC_instance written=21.0 expected=21.0 abs_err=0.0
+RESULT main null_number_degC written=21.0 expected=21.0 abs_err=0.0
+RESULT perturbed arm_climate_on_degF_instance written=69.8 expected=69.8 abs_err=0.0
+RESULT perturbed arm_number_degF_on_degC_instance written=69.8 expected=69.8 abs_err=0.0
+RESULT perturbed null_climate_on_degC_instance written=21.0 expected=21.0 abs_err=0.0
+RESULT perturbed null_number_degC written=21.0 expected=21.0 abs_err=0.0
+RESULT sibling_arbiter_climate instance=°F written=21.0 expected=69.8 abs_err=48.8
+RESULT sibling_arbiter_climate instance=°C written=21.0 expected=21.0 abs_err=0.0
+### base l2_bounded_climate.py
+RESULT main arm_climate out_of_range=3 of 4 returned=[3.0, 10.0, 55.0, 70.0]
+RESULT main null_number out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT perturbed arm_climate out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT perturbed null_number out_of_range=0 of 4 returned=[7.0, 10.0, 50.0, 50.0]
+RESULT main reach_desired_dhw_slot_climate command.dhw=55.0 outside_range=1
+RESULT perturbed reach_desired_dhw_slot_climate command.dhw=50.0 outside_range=0
+### base realha_climate.py
+RESULT imperial: payload=55.0 device_C=12.778 delivered_error_K=42.222 climate_uom=None uom_in_attrs=False attr_temperature_shown=122
+RESULT null_metric: payload=55.0 device_C=55.000 delivered_error_K=0.000 climate_uom=None uom_in_attrs=False attr_temperature_shown=50.0
+RESULT thread_factor=1.000
+RESULT load1=28.51
+### companion base
+RESULT write_cells_degF=2 of 6
+RESULT write_cells_degC_null=0 of 6
+RESULT no_target_degF=2 of 2
+RESULT valve_degF=2 of 2
+RESULT valve_degC_null=0 of 2
+RESULT range_climate_degF=3 of 4
+RESULT range_climate_degC=3 of 4
+RESULT range_number_degC_null=0 of 4

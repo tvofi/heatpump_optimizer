@@ -1,0 +1,4 @@
+rc=0
+ tests/entities.py |  4 ++++
+ tests/features.py | 69 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 73 insertions(+)
