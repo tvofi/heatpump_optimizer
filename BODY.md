@@ -148,7 +148,8 @@ Harness sha1s: `surface_units.py` d741b52a (`dev/audit/rounds/round10/D12/s3/` a
 
 ## Red checks
 
-none. The first prepr, at 55fd737d9, predicted 3 reds on `closures` and `fast` for the new `issues.py` (UNDER-SCOPED, UNCLASSIFIED, INERT READS), and `open_pr.sh` refused that handoff. They are repaired in this head's closure commit, described under Figures. The cheaper detector is `prepr.sh`'s own CI PREDICT arm, which caught them before any PR existed. The process cause is R10-HANDOFF-PREPR-BOUNCE's.
+- `mutation`: red at the first PR head, e4b4c6fed. It is the unpinned-sites refusal for the 22 sites the diff adds, each listed under `## Unpinned sites`. mutation-autofix repairs it with its `ci: pin killed mutants` commit (`ci-autofix.md`), and naming it here is the answer `ci-autofix.md` asks for. Any survivor the bot reports comes back to this seat for a written triage. The cheaper detector already ran: `prepr.sh` step 6d listed the same 22 sites before the push.
+- `closures` / `fast` (predicted, never red): the first prepr, at 55fd737d9, predicted 3 reds for the new `issues.py` (UNDER-SCOPED, UNCLASSIFIED, INERT READS), and `open_pr.sh` refused that handoff. This head's closure commit repairs them, as described under Figures, and `prepr.sh`'s CI PREDICT arm caught them before any PR existed. The process cause is R10-HANDOFF-PREPR-BOUNCE's.
 
 ## Forward-carry
 
