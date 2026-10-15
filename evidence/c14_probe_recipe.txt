@@ -1,0 +1,14 @@
+Reviewer's own probes (disclosed as mine, not the finder's): copies of the PR's
+planted/redteam/16_payload_annotated_helper.py with only the parameter annotation re-spelled,
+run at the head with: PYTHONPATH=tests/hastub python tools/audit/archscore/calibrate.py --only rt_16_payload_annotated_helper,rt_90_probe..rt_95_probe
+rt_90  state: Union[away_mode.AwayState, None]     IMPROVES  (open)
+rt_91  state: Annotated[away_mode.AwayState, "x"]  IMPROVES  (open)
+rt_92  state: "away_mode.AwayState | None"         NULL      (closed)
+rt_93  state: None | away_mode.AwayState           NULL      (closed)
+rt_94  state: Optional["away_mode.AwayState"]      NULL      (closed)
+rt_95  state: Union[None, away_mode.AwayState]     IMPROVES  (open)
+rt_16  state: away_mode.AwayState                  NULL, as recorded (not in MOVED)
+Cause: untyped_payload_keys.Flow.seed unwraps only `X | None` (BinOp) and `Optional[X]`; `Union[...]`
+and `Annotated[...]` fall through to resolve_expr_static on the Subscript, which resolves to no class.
+The same diff's is_any (C1b) already reads Union and Annotated as spellings, so the two predicates of
+this one PR disagree on what a spelling is.

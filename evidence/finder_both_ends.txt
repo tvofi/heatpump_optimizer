@@ -1,0 +1,66 @@
+== base payload_census_coverage.py
+RESULT census_keys=166 count
+RESULT runtime_keys=169 count
+RESULT blind_keys=10 count
+RESULT headline_untyped=0 count
+RESULT thread_factor=1.000
+RESULT load1=11.76
+RESULT swapins=0
+== base payload_census_coverage.py --perturb
+== base payload_any_spellings.py
+RESULT baseline_headline=0 count
+RESULT untyped_with_float=0 count
+RESULT untyped_with_Any=6 count
+RESULT untyped_with_object=6 count
+RESULT untyped_with_NotRequired_Any=6 count
+RESULT untyped_with_Any_or_None=0 count
+RESULT untyped_with_Optional_Any=0 count
+RESULT untyped_with_string_Any=0 count
+RESULT untyped_with_alias_Any=0 count
+RESULT ablated_C1_untyped_with_Any=0 count
+RESULT thread_factor=1.000
+RESULT load1=14.06
+RESULT swapins=0
+== base family_pair_homing.py
+RESULT honest_family_splits=0 count
+RESULT honest_family_orphan_overrides=0 count
+RESULT plant_family_splits=2 count
+RESULT plant_family_orphan_overrides=0 count
+RESULT game_family_splits=0 count
+RESULT game_family_orphan_overrides=0 count
+RESULT thread_factor=1.000
+RESULT load1=16.61
+RESULT swapins=0
+== head payload_census_coverage.py
+RESULT census_keys=176 count
+RESULT runtime_keys=169 count
+RESULT blind_keys=0 count
+RESULT headline_untyped=0 count
+RESULT thread_factor=1.000
+RESULT load1=16.61
+RESULT swapins=0
+== head payload_census_coverage.py --perturb
+== head payload_any_spellings.py
+RESULT baseline_headline=0 count
+RESULT untyped_with_float=0 count
+RESULT untyped_with_Any=6 count
+RESULT untyped_with_object=6 count
+RESULT untyped_with_NotRequired_Any=6 count
+RESULT untyped_with_Any_or_None=6 count
+RESULT untyped_with_Optional_Any=6 count
+RESULT untyped_with_string_Any=6 count
+RESULT untyped_with_alias_Any=6 count
+RESULT ablated_C1_untyped_with_Any=0 count
+RESULT thread_factor=1.000
+RESULT load1=16.39
+RESULT swapins=0
+== head family_pair_homing.py
+RESULT honest_family_splits=0 count
+RESULT honest_family_orphan_overrides=0 count
+RESULT plant_family_splits=2 count
+RESULT plant_family_orphan_overrides=0 count
+RESULT game_family_splits=0 count
+RESULT game_family_orphan_overrides=2 count
+RESULT thread_factor=1.000
+RESULT load1=15.40
+RESULT swapins=0
