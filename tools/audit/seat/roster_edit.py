@@ -730,8 +730,8 @@ def _self_test() -> int:
     seed3 = Path(tmp, "seed3")
     seed3.mkdir()
     throwaway_git_init(seed3, "-q", "-b", "main")
-    (seed3 / ".claude/workflows").mkdir(parents=True)
-    (seed3 / ".claude/workflows/brief_lint.mjs").write_text(
+    (seed3 / BRIEF_LINT_NEW).parent.mkdir(parents=True)
+    (seed3 / BRIEF_LINT_NEW).write_text(
         "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
         encoding="utf-8")
     r9_path = FIXTURE_ROSTER
