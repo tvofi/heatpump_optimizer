@@ -1,0 +1,377 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..20aaeaf02 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -233,7 +233,7 @@ from .accuracy import (
+ from .comfort_learning import ComfortLearner, OverrideEvent
+ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
+ from . import early_cutoff, pump_arbiter, pump_signals
+-from . import setpoint_check
++from . import issues, setpoint_check
+ from . import quiet_windows
+ from .pump_mode import ModeCapability
+ from .pump_signals import PumpSignals
+@@ -341,7 +341,7 @@ if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
+     from homeassistant.helpers.event import EventStateChangedData
+ 
+ _LOGGER = logging.getLogger(__name__)
+-_create_issue = setpoint_check.create_issue
++_create_issue = issues.create_issue
+ # The learned scale's store key and published attribute are this config key.
+ _COP_STORE_KEY = CONF_COP_SCALE
+ 
+diff --git a/custom_components/heatpump_optimizer/issues.py b/custom_components/heatpump_optimizer/issues.py
+new file mode 100644
+index 000000000..d4f56302b
+--- /dev/null
++++ b/custom_components/heatpump_optimizer/issues.py
+@@ -0,0 +1,63 @@
++"""The repair-notice writer: the one place a notice is raised or cleared.
++
++A leaf (it imports only ``const``), so a module that raises a notice -- the
++store boundary, the legionella guard, the notifier, the pump-duty arbiter --
++does not inherit what the set-point consistency check imports to do its own
++work (the quiet windows and, through them, the solver).
++"""
++from __future__ import annotations
++
++import logging
++from typing import Any
++
++from homeassistant.helpers import issue_registry as ir
++
++from .const import DOMAIN
++
++# Manifest ``documentation`` — the URL every repair notice links to (#558 F2).
++DOCUMENTATION_URL = "https://github.com/tvofi/heatpump_optimizer"
++
++_LOGGER = logging.getLogger(__name__)
++
++
++def create_issue(hass: Any, domain: str, issue_id: str, **kwargs: Any) -> None:
++    """Raise a repair notice, defaulting the documentation link (#558 F2)."""
++    kwargs.setdefault("learn_more_url", DOCUMENTATION_URL)
++    ir.async_create_issue(hass, domain, issue_id, **kwargs)
++
++
++def set_issue(
++    hass: Any,
++    issue_id: str,
++    raise_it: bool,
++    *,
++    fixable: bool = False,
++    placeholders: dict[str, str] | None = None,
++    data: dict[str, Any] | None = None,
++) -> None:
++    """Raise or clear one repair: the writer every pure finding feeds.
++
++    Its ``translation_key`` is its ``issue_id``, its severity a warning;
++    called each cycle, since creating an existing issue updates it and
++    deleting an absent one does nothing.
++    """
++    if not raise_it:
++        clear_issue(hass, issue_id)
++        return
++    kwargs: dict[str, Any] = {
++        "is_fixable": fixable,
++        "severity": ir.IssueSeverity.WARNING,
++        "translation_key": issue_id,
++        "translation_placeholders": placeholders or {},
++    }
++    if data is not None:
++        kwargs["data"] = data
++    create_issue(hass, DOMAIN, issue_id, **kwargs)
++
++
++def clear_issue(hass: Any, issue_id: str) -> None:
++    """Clear one repair, best-effort: a failed clear is logged, never raised."""
++    try:
++        ir.async_delete_issue(hass, DOMAIN, issue_id)
++    except Exception as err:  # noqa: BLE001 - clearing is best-effort
++        _LOGGER.debug("Could not clear %s: %s", issue_id, err)
+diff --git a/custom_components/heatpump_optimizer/legionella.py b/custom_components/heatpump_optimizer/legionella.py
+index 2f48e8505..b575e2eda 100644
+--- a/custom_components/heatpump_optimizer/legionella.py
++++ b/custom_components/heatpump_optimizer/legionella.py
+@@ -36,7 +36,7 @@ from .disinfection import DisinfectionSwitch
+ from .entry_config import EntryConfig
+ from .optimizer import REASON_LEGIONELLA
+ from .payload import CurrentAction
+-from .setpoint_check import create_issue
++from .issues import create_issue
+ from .thermal_model import ThermalParameters
+ 
+ _LOGGER = logging.getLogger(__name__)
+diff --git a/custom_components/heatpump_optimizer/notifier.py b/custom_components/heatpump_optimizer/notifier.py
+index dc6aba0f4..e6121092f 100644
+--- a/custom_components/heatpump_optimizer/notifier.py
++++ b/custom_components/heatpump_optimizer/notifier.py
+@@ -23,7 +23,7 @@ floor-return sensor that has given no usable value for
+ ``FLOOR_RETURN_SILENT_MINUTES``. Without it the slab is advanced open-loop
+ from the plan's own trajectory, which a live install ran on unannounced.
+ :func:`floor_return_silence` is the pure finding; :class:`FloorReturnWatch`
+-holds its clock and writes it through ``setpoint_check.set_issue``.
++holds its clock and writes it through ``issues.set_issue``.
+ """
+ from __future__ import annotations
+ 
+@@ -37,7 +37,7 @@ from homeassistant.util import dt as dt_util
+ 
+ from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
+ from .payload import InputProblem, Payload
+-from .setpoint_check import set_issue
++from .issues import set_issue
+ from .store import QuarantiningStore
+ 
+ _LOGGER = logging.getLogger(__name__)
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 9ac069d47..08ed004a2 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -143,7 +143,7 @@ from homeassistant.helpers.event import (
+ )
+ from homeassistant.util import dt as dt_util
+ 
+-from . import boost, pump_mode, quiet_windows, setpoint_check
++from . import boost, issues, pump_mode, quiet_windows, setpoint_check
+ from .const import (
+     DOMAIN,
+     MODE_AUTO,
+@@ -776,7 +776,7 @@ def hold(coord: Any, now: datetime) -> None:
+         if not _differs(slot, observed, value):
+             held.misses.pop(slot, None)
+             if held.retry.pop(slot, None) is not None and not held.retry:
+-                _clear(coord, ISSUE_IGNORED)
++                issues.clear_issue(coord.hass, ISSUE_IGNORED)
+             continue
+         del held.written[slot]
+         held.misses[slot] = held.misses.get(slot, 0) + 1
+@@ -789,7 +789,7 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
+     """A rewrite did not hold either: warn, and send it again in a few minutes."""
+     held.retry[slot] = utc_shift(now, timedelta(minutes=RETRY_MINUTES))
+     _LOGGER.warning("Pump duty: the pump does not hold a write, %s; retrying", detail)
+-    setpoint_check.create_issue(
++    issues.create_issue(
+         coord.hass,
+         DOMAIN,
+         ISSUE_IGNORED,
+@@ -800,13 +800,6 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
+     )
+ 
+ 
+-def _clear(coord: Any, issue: str) -> None:
+-    try:
+-        ir.async_delete_issue(coord.hass, DOMAIN, issue)
+-    except Exception as err:  # noqa: BLE001 - clearing is best-effort
+-        _LOGGER.debug("Could not clear %s: %s", issue, err)
+-
+-
+ def _forget(held: ArbiterState) -> None:
+     held.written, held.misses, held.retry = {}, {}, {}
+ 
+@@ -961,7 +954,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
+         if held.written or held.retry:
+             # A pending retry dies with control, and so does its warning.
+             _forget(held)
+-            _clear(coord, ISSUE_IGNORED)
++            issues.clear_issue(coord.hass, ISSUE_IGNORED)
+             await _persist(coord)
+         if inp.mode == MODE_OFF:
+             return
+@@ -1109,7 +1102,7 @@ async def _load(coord: Any) -> None:
+     if raw is None:
+         return
+     if raw.get("manual"):
+-        _clear(coord, ISSUE_MANUAL)
++        issues.clear_issue(coord.hass, ISSUE_MANUAL)
+     written = raw.get("written")
+     for slot, pair in written.items() if isinstance(written, dict) else ():
+         try:
+diff --git a/custom_components/heatpump_optimizer/setpoint_check.py b/custom_components/heatpump_optimizer/setpoint_check.py
+index df2fc52c6..88bf66d6a 100644
+--- a/custom_components/heatpump_optimizer/setpoint_check.py
++++ b/custom_components/heatpump_optimizer/setpoint_check.py
+@@ -10,19 +10,12 @@ from __future__ import annotations
+ import logging
+ from typing import Any, Callable
+ 
+-from homeassistant.helpers import issue_registry as ir
+-
+-from .const import (
+-    DOMAIN,
+-    MIXING_VALVE_WRITE_EPSILON,
+-)
++from .const import MIXING_VALVE_WRITE_EPSILON
+ from .entry_config import EntryConfig
++from .issues import set_issue
+ from .inputs import state_unit, temperature_c, temperature_from_c
+ from .quiet_windows import silent_unenforceable
+ 
+-# Manifest ``documentation`` — the URL every repair notice links to (#558 F2).
+-DOCUMENTATION_URL = "https://github.com/tvofi/heatpump_optimizer"
+-
+ _LOGGER = logging.getLogger(__name__)
+ 
+ ISSUE_DHW = "dhw_setpoint_below_disinfection"
+@@ -34,12 +27,6 @@ ISSUE_QUIET = "quiet_silent_not_enforced"
+ _INVALID = ("unknown", "unavailable", "none", "")
+ 
+ 
+-def create_issue(hass: Any, domain: str, issue_id: str, **kwargs: Any) -> None:
+-    """Raise a repair notice, defaulting the documentation link (#558 F2)."""
+-    kwargs.setdefault("learn_more_url", DOCUMENTATION_URL)
+-    ir.async_create_issue(hass, domain, issue_id, **kwargs)
+-
+-
+ def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
+     """Read optional set-point entities and raise or clear the two issues.
+ 
+@@ -156,35 +143,3 @@ def _setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] |
+         attrs = getattr(state, "attributes", None) or {}
+         value = temperature_c(attrs.get("temperature"), unit)
+     return None if value is None else (value, unit)
+-
+-
+-def set_issue(
+-    hass: Any,
+-    issue_id: str,
+-    raise_it: bool,
+-    *,
+-    fixable: bool = False,
+-    placeholders: dict[str, str] | None = None,
+-    data: dict[str, Any] | None = None,
+-) -> None:
+-    """Raise or clear one repair: the writer every pure finding feeds.
+-
+-    Its ``translation_key`` is its ``issue_id``, its severity a warning;
+-    called each cycle, since creating an existing issue updates it and
+-    deleting an absent one does nothing.
+-    """
+-    if not raise_it:
+-        try:
+-            ir.async_delete_issue(hass, DOMAIN, issue_id)
+-        except Exception as err:  # noqa: BLE001 - clearing is best-effort
+-            _LOGGER.debug("Could not clear %s: %s", issue_id, err)
+-        return
+-    kwargs: dict[str, Any] = {
+-        "is_fixable": fixable,
+-        "severity": ir.IssueSeverity.WARNING,
+-        "translation_key": issue_id,
+-        "translation_placeholders": placeholders or {},
+-    }
+-    if data is not None:
+-        kwargs["data"] = data
+-    create_issue(hass, DOMAIN, issue_id, **kwargs)
+diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
+index bda33bee5..ac81aeb13 100644
+--- a/custom_components/heatpump_optimizer/store.py
++++ b/custom_components/heatpump_optimizer/store.py
+@@ -49,7 +49,7 @@ from .ledger import BILLED_LINES
+ from .price_model import (
+     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
+ )
+-from .setpoint_check import create_issue
++from .issues import create_issue
+ 
+ _LOGGER = logging.getLogger(__name__)
+ 
+diff --git a/tests/dst_checks.py b/tests/dst_checks.py
+index 7c15d45c1..7c3f1ad41 100644
+--- a/tests/dst_checks.py
++++ b/tests/dst_checks.py
+@@ -1708,10 +1708,10 @@ for _label, _l, _n in (
+     R.check(f"{_label}: a meter event a true hour on is not throttled", not _guard.throttled(_n), "")
+ 
+ _arb_held = _arbiter.ArbiterState()
+-_real_setpoint_check = _arbiter.setpoint_check
+-_arbiter.setpoint_check = SimpleNamespace(create_issue=lambda *a, **k: None)
++_real_issues = _arbiter.issues
++_arbiter.issues = SimpleNamespace(create_issue=lambda *a, **k: None)
+ _arbiter._not_held(SimpleNamespace(hass=None), _arb_held, "mode", "x", _FOLD_LAST)
+-_arbiter.setpoint_check = _real_setpoint_check
++_arbiter.issues = _real_issues
+ _retry_min = (_arb_held.retry["mode"].astimezone(UTC) - _FOLD_LAST_S).total_seconds() / 60.0
+ R.check(
+     "a pump write retry set on the fold night waits a true 5 minutes",
+diff --git a/tests/entities.py b/tests/entities.py
+index a951a3fb4..78038ceeb 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -18387,6 +18387,7 @@ R.check(
+ # orphan and forces MODE: FULL (#408).
+ from heatpump_optimizer import repairs as _repairs_mod  # noqa: E402
+ from heatpump_optimizer import setpoint_check as _setpoint_check_mod  # noqa: E402
++from heatpump_optimizer import issues as _issues_mod  # noqa: E402
+ 
+ R.check(
+     "repairs.py is imported so the dynamically loaded platform is classified",
+@@ -18401,10 +18402,10 @@ R.check(
+ _f2_docs = json.loads((ROOT / "manifest.json").read_text())["documentation"]
+ R.check(
+     "the documentation link is the one the manifest publishes",
+-    getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None) == _f2_docs,
+-    repr(getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None)),
++    getattr(_issues_mod, "DOCUMENTATION_URL", None) == _f2_docs,
++    repr(getattr(_issues_mod, "DOCUMENTATION_URL", None)),
+ )
+-_f2_create = getattr(_setpoint_check_mod, "create_issue", None)
++_f2_create = getattr(_issues_mod, "create_issue", None)
+ _f2_hass = FakeHass()
+ if callable(_f2_create):
+     _f2_create(_f2_hass, const.DOMAIN, "f2_default")
+@@ -23739,7 +23740,7 @@ for _fname, _tree in _PKG_TREES.items():
+     for _fn in ast.walk(_tree):
+         if not isinstance(_fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+             continue
+-        if _fname == "setpoint_check.py" and _fn.name == "create_issue":
++        if _fname == "issues.py" and _fn.name == "create_issue":
+             continue
+         for _node in ast.walk(_fn):
+             if not isinstance(_node, ast.Call):
+diff --git a/tests/features.py b/tests/features.py
+index 64f66afb2..3f0465e92 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -45416,6 +45416,7 @@ from heatpump_optimizer import comfort_band as _g8_band  # noqa: E402
+ from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
+ from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
+ from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
++from heatpump_optimizer import issues as _g8_issues  # noqa: E402
+ from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
+ from heatpump_optimizer.const import (  # noqa: E402
+     CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
+@@ -45654,13 +45655,13 @@ class _G8SpIssues:
+ 
+ 
+ _g8_sp_reg = _G8SpIssues()
+-_g8_sp_real_delete = _g8_sp.ir.async_delete_issue
++_g8_sp_real_delete = _g8_issues.ir.async_delete_issue
+ try:
+-    _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
++    _g8_issues.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
+     _g8_sp_clear = _t6_call(
+-        _g8_sp.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
++        _g8_issues.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+ finally:
+-    _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
++    _g8_issues.ir.async_delete_issue = _g8_sp_real_delete
+ R.check(
+     "a registry that refuses the clear is logged, not raised",
+     _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
+@@ -50518,6 +50519,7 @@ from types import SimpleNamespace as _p8_ns  # noqa: E402
+ from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
+ from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
+ from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
++from heatpump_optimizer import issues as _p8_issues  # noqa: E402
+ from heatpump_optimizer.const import (  # noqa: E402
+     CONF_GRID_FEE_ENTITY as _P8_FEE,
+     CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
+@@ -52866,7 +52868,7 @@ R.check(
+     f"{_pa.state_for(_pa_sd).written=} {_pa.state_for(_pa_sd_again).written=}",
+ )
+ _pa_stored = _PaCoord(_PA_TUYA)
+-_p8_sp.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
++_p8_issues.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
+ _pa_aio.run(_pa._store(_pa_stored).async_save({
+     "manual": "select.pump_mode: Heating (set by the optimizer: DHW)",
+     "written": {},

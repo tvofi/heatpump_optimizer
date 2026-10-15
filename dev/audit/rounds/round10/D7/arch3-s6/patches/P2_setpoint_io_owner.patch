@@ -1,0 +1,352 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 20aaeaf02..67d7a7b49 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -197,6 +197,7 @@ from .inputs import (
+     stale_summary,
+     state_unit,
+     temperature_c,
++    write_setpoint,
+ )
+ from .external_heat import (
+     ExternalHeatConfig,
+@@ -7293,28 +7294,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             < MIXING_VALVE_WRITE_EPSILON
+         ):
+             return
+-        domain = entity_id.split(".", 1)[0]
+         try:
+-            if domain == "climate":
+-                await self.hass.services.async_call(
+-                    "climate",
+-                    "set_temperature",
+-                    {"entity_id": entity_id, "temperature": round(target, 1)},
+-                    blocking=True,
+-                )
+-            elif domain in ("number", "input_number"):
+-                await self.hass.services.async_call(
+-                    domain,
+-                    "set_value",
+-                    {"entity_id": entity_id, "value": round(target, 1)},
+-                    blocking=True,
+-                )
+-            else:
++            if not await write_setpoint(self.hass, entity_id, target):
+                 _LOGGER.warning(
+                     "Valve write entity %s is a %s; smart_write can command "
+                     "number, input_number and climate entities",
+                     entity_id,
+-                    domain,
++                    entity_id.split(".", 1)[0],
+                 )
+                 return
+         except Exception as err:  # noqa: BLE001 - never break planning
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index c85c81376..9f7826c84 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -348,6 +348,70 @@ def temperature_from_c(value_c: float, unit: Any) -> float:
+     return value_c / factor - offset
+ 
+ 
++#: A set-point state that holds no reading: the entity is down or has not reported.
++_NO_SETPOINT = ("unknown", "unavailable", "none", "")
++#: The service, and its data key, that writes a temperature set-point, per domain.
++SETPOINT_SERVICES = {
++    "climate": ("set_temperature", "temperature"),
++    "number": ("set_value", "value"),
++    "input_number": ("set_value", "value"),
++}
++
++
++def setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
++    """The set-point in degC and the unit its entity is written in (#1513).
++
++    A number entity declares its unit; a climate entity's state is its HVAC
++    mode and its target an attribute in the instance's unit system.
++    """
++    state = hass.states.get(entity_id) if entity_id else None
++    raw = getattr(state, "state", None)
++    if raw is None or str(raw).lower() in _NO_SETPOINT:
++        return None
++    unit = state_unit(state)
++    value = temperature_c(raw, unit)
++    if value is None:
++        units = getattr(getattr(hass, "config", None), "units", None)
++        unit = getattr(units, "temperature_unit", None)
++        attrs = getattr(state, "attributes", None) or {}
++        value = temperature_c(attrs.get("temperature"), unit)
++    return None if value is None else (value, unit)
++
++
++def read_setpoint(hass: Any, entity_id: str | None) -> float | None:
++    """The set-point in degC, or ``None`` when it cannot be read."""
++    reading = setpoint_and_unit(hass, entity_id)
++    return None if reading is None else reading[0]
++
++
++async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
++    """Write ``value``, already in the entity's own unit, to a set-point entity.
++
++    ``False``, and nothing called, for a domain with no set-point service.
++    """
++    domain = entity_id.split(".", 1)[0]
++    service = SETPOINT_SERVICES.get(domain)
++    if service is None:
++        return False
++    await hass.services.async_call(
++        domain, service[0], {"entity_id": entity_id, service[1]: round(float(value), 1)},
++        blocking=True,
++    )
++    return True
++
++
++async def write_setpoint_c(hass: Any, entity_id: str, value_c: float) -> bool:
++    """Write ``value_c`` degC in the unit :func:`setpoint_and_unit` reads the entity in.
++
++    One rule for the read and the write, so a written set-point reads back as
++    itself: a climate target is in the instance's unit system, which its
++    state does not declare. An entity with no reading yet keeps its declared unit.
++    """
++    reading = setpoint_and_unit(hass, entity_id)
++    unit = reading[1] if reading is not None else state_unit(hass.states.get(entity_id))
++    return await write_setpoint(hass, entity_id, temperature_from_c(value_c, unit))
++
++
+ def normalize_price_per_kwh(value: float, unit: Any) -> float | None:
+     """Convert a price to major currency per kWh using its unit (#1513).
+ 
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 08ed004a2..4f3fe99db 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -154,9 +154,8 @@ from .const import (
+ )
+ from .entry_config import EntryConfig
+ from .modbus_prefill import night_mode_write_ids, package_prefix
+-from .inputs import state_unit, temperature_c, temperature_from_c
++from .inputs import read_setpoint, state_unit, temperature_c, write_setpoint_c
+ from .payload import CurrentAction
+-from .repairs import _write_setpoint
+ from .accuracy import utc_elapsed_seconds, utc_shift
+ from .drift import stored_instant
+ from .store import QuarantiningStore, load_mapping
+@@ -758,7 +757,7 @@ def _observed(inp: ArbiterInputs, slot: str) -> Any:
+         if raw == "off":
+             return False
+         return None
+-    return setpoint_check._read_setpoint(inp.hass, entity)
++    return read_setpoint(inp.hass, entity)
+ 
+ 
+ def hold(coord: Any, now: datetime) -> None:
+@@ -807,7 +806,7 @@ def _forget(held: ArbiterState) -> None:
+ def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
+     """The service and its data that write ``value`` to ``slot``.
+ 
+-    ``None`` for a set-point, which goes through ``_write_setpoint``.
++    ``None`` for a set-point, which goes through ``inputs.write_setpoint_c``.
+     """
+     if slot == "mode":
+         return "select_option", {"option": _option_for(state, value)}
+@@ -835,7 +834,7 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
+     service = _service(slot, state, value)
+     try:
+         if service is None:
+-            await _write_setpoint(coord.hass, entity, temperature_from_c(value, state_unit(state)))
++            await write_setpoint_c(coord.hass, entity, value)
+         else:
+             await inp.hass.services.async_call(
+                 domain, service[0], {"entity_id": entity, **service[1]}, blocking=True,
+diff --git a/custom_components/heatpump_optimizer/repairs.py b/custom_components/heatpump_optimizer/repairs.py
+index 806943292..5e3e91df2 100644
+--- a/custom_components/heatpump_optimizer/repairs.py
++++ b/custom_components/heatpump_optimizer/repairs.py
+@@ -15,13 +15,11 @@ from homeassistant.data_entry_flow import FlowResult
+ from homeassistant.helpers import issue_registry as ir
+ 
+ from .const import DOMAIN
++from .inputs import write_setpoint
+ from .setpoint_check import ISSUE_DHW, ISSUE_SPACE
+ 
+ _LOGGER = logging.getLogger(__name__)
+ 
+-_NUMERIC_DOMAINS = ("number", "input_number")
+-
+-
+ class DhwSetpointRepairFlow(RepairsFlow):
+     """Write the configured DHW floor to the pump's set-point entity."""
+ 
+@@ -50,7 +48,7 @@ class DhwSetpointRepairFlow(RepairsFlow):
+         # raised before it existed carries only the degC ``target``.
+         value = data.get("value", target)
+         if entity_id and value is not None:
+-            await _write_setpoint(self.hass, str(entity_id), float(value))
++            await write_setpoint(self.hass, str(entity_id), float(value))
+         try:
+             ir.async_delete_issue(self.hass, DOMAIN, ISSUE_DHW)
+         except Exception as err:  # noqa: BLE001 - clearing is best-effort
+@@ -58,26 +56,6 @@ class DhwSetpointRepairFlow(RepairsFlow):
+         return self.async_create_entry(data={})
+ 
+ 
+-async def _write_setpoint(hass: Any, entity_id: str, target: float) -> None:
+-    domain = entity_id.split(".", 1)[0]
+-    value = round(float(target), 1)
+-    if domain == "climate":
+-        await hass.services.async_call(
+-            "climate",
+-            "set_temperature",
+-            {"entity_id": entity_id, "temperature": value},
+-            blocking=True,
+-        )
+-        return
+-    if domain in _NUMERIC_DOMAINS:
+-        await hass.services.async_call(
+-            domain,
+-            "set_value",
+-            {"entity_id": entity_id, "value": value},
+-            blocking=True,
+-        )
+-
+-
+ async def async_create_fix_flow(
+     hass: HomeAssistant,
+     issue_id: str,
+diff --git a/custom_components/heatpump_optimizer/setpoint_check.py b/custom_components/heatpump_optimizer/setpoint_check.py
+index 88bf66d6a..debc0c119 100644
+--- a/custom_components/heatpump_optimizer/setpoint_check.py
++++ b/custom_components/heatpump_optimizer/setpoint_check.py
+@@ -13,7 +13,7 @@ from typing import Any, Callable
+ from .const import MIXING_VALVE_WRITE_EPSILON
+ from .entry_config import EntryConfig
+ from .issues import set_issue
+-from .inputs import state_unit, temperature_c, temperature_from_c
++from .inputs import read_setpoint, setpoint_and_unit, temperature_from_c
+ from .quiet_windows import silent_unenforceable
+ 
+ _LOGGER = logging.getLogger(__name__)
+@@ -24,7 +24,6 @@ ISSUE_SPACE = "space_setpoint_unreadable"
+ #: them. A warning, not a fix -- the remedy is an assignment only the
+ #: setup diagram (or SW-4's Modbus schedule) can make.
+ ISSUE_QUIET = "quiet_silent_not_enforced"
+-_INVALID = ("unknown", "unavailable", "none", "")
+ 
+ 
+ def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
+@@ -81,7 +80,7 @@ def _dhw_floor(params: Any) -> float:
+ 
+ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
+     entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity
+-    pump, unit = _setpoint_and_unit(hass, entity_id) or (None, None)
++    pump, unit = setpoint_and_unit(hass, entity_id) or (None, None)
+     floor = _dhw_floor(params)
+     # The pump-duty arbiter's own space-only gate is a step decision, not
+     # a set-point below the disinfection floor (``pump_arbiter.dhw_gated``).
+@@ -110,36 +109,10 @@ def _space(hass: Any, config: dict[str, Any]) -> None:
+     if not entity_id:
+         set_issue(hass, ISSUE_SPACE, False)
+         return
+-    readable = _read_setpoint(hass, entity_id) is not None
++    readable = read_setpoint(hass, entity_id) is not None
+     set_issue(
+         hass,
+         ISSUE_SPACE,
+         not readable,
+         placeholders={"entity": entity_id},
+     )
+-
+-
+-def _read_setpoint(hass: Any, entity_id: str | None) -> float | None:
+-    """The set-point in degC, or ``None`` when it cannot be read."""
+-    reading = _setpoint_and_unit(hass, entity_id)
+-    return None if reading is None else reading[0]
+-
+-
+-def _setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
+-    """The set-point in degC and the unit its entity is written in (#1513).
+-
+-    A number entity declares its unit; a climate entity's state is its HVAC
+-    mode and its target an attribute in the instance's unit system.
+-    """
+-    state = hass.states.get(entity_id) if entity_id else None
+-    raw = getattr(state, "state", None)
+-    if raw is None or str(raw).lower() in _INVALID:
+-        return None
+-    unit = state_unit(state)
+-    value = temperature_c(raw, unit)
+-    if value is None:
+-        units = getattr(getattr(hass, "config", None), "units", None)
+-        unit = getattr(units, "temperature_unit", None)
+-        attrs = getattr(state, "attributes", None) or {}
+-        value = temperature_c(attrs.get("temperature"), unit)
+-    return None if value is None else (value, unit)
+diff --git a/tests/features.py b/tests/features.py
+index 3f0465e92..e87a675bf 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -45417,6 +45417,7 @@ from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
+ from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
+ from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
+ from heatpump_optimizer import issues as _g8_issues  # noqa: E402
++from heatpump_optimizer import inputs as _g8_inputs  # noqa: E402
+ from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
+ from heatpump_optimizer.const import (  # noqa: E402
+     CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
+@@ -45592,18 +45593,18 @@ class _G8SpHass:
+ 
+ _G8_SP_ID = "number.pump_dhw_setpoint"
+ _g8_sp_reads = {
+-    "absent entity": _g8_sp._read_setpoint(_G8SpHass(), _G8_SP_ID),
+-    "unavailable": _g8_sp._read_setpoint(
++    "absent entity": _g8_inputs.read_setpoint(_G8SpHass(), _G8_SP_ID),
++    "unavailable": _g8_inputs.read_setpoint(
+         _G8SpHass({_G8_SP_ID: _G8SpState("unavailable")}), _G8_SP_ID),
+-    "no entity id": _g8_sp._read_setpoint(_G8SpHass(), None),
+-    "text, no attribute": _g8_sp._read_setpoint(
++    "no entity id": _g8_inputs.read_setpoint(_G8SpHass(), None),
++    "text, no attribute": _g8_inputs.read_setpoint(
+         _G8SpHass({_G8_SP_ID: _G8SpState("warm")}), _G8_SP_ID),
+-    "text, bad attribute": _g8_sp._read_setpoint(
++    "text, bad attribute": _g8_inputs.read_setpoint(
+         _G8SpHass({_G8_SP_ID: _G8SpState("warm", {"temperature": "warmer"})}),
+         _G8_SP_ID),
+-    "plain float": _g8_sp._read_setpoint(
++    "plain float": _g8_inputs.read_setpoint(
+         _G8SpHass({_G8_SP_ID: _G8SpState("52.5")}), _G8_SP_ID),
+-    "float on the attribute": _g8_sp._read_setpoint(
++    "float on the attribute": _g8_inputs.read_setpoint(
+         _G8SpHass({_G8_SP_ID: _G8SpState("heat", {"temperature": 48.0})}),
+         _G8_SP_ID),
+ }
+@@ -54723,7 +54724,7 @@ import asyncio as _p6_aio  # noqa: E402
+ 
+ from harness import FakeEntry as _P6Entry  # noqa: E402
+ from heatpump_optimizer import config_flow as _p6_cf  # noqa: E402
+-from heatpump_optimizer import repairs as _p6_repairs  # noqa: E402
++from heatpump_optimizer import inputs as _p6_inputs  # noqa: E402
+ from heatpump_optimizer import topology as _p6_topo  # noqa: E402
+ from heatpump_optimizer.disinfection import DisinfectionSwitch as _P6Dis  # noqa: E402
+ 
+@@ -54846,7 +54847,7 @@ async def _p6_freq(eid):
+ 
+ async def _p6_setpoint(eid):
+     hass = FakeHass({})
+-    await _p6_repairs._write_setpoint(hass, eid, 55.0)
++    await _p6_inputs.write_setpoint(hass, eid, 55.0)
+     return hass.services.calls
+ 
+ 
+diff --git a/tests/guard_pins.py b/tests/guard_pins.py
+index 94d4c57b2..abbf616bf 100644
+--- a/tests/guard_pins.py
++++ b/tests/guard_pins.py
+@@ -623,7 +623,7 @@ def _service_dispatch_pins() -> dict[str, bool]:
+     """R9-SW-2: kill ``pump_arbiter._service``'s sites ``--pin-killed`` timed out.
+ 
+     Each slot's one write through ``_write``: the mode an option select, the
+-    silent switch turn_on/turn_off, a set-point ``_write_setpoint``'s
++    silent switch turn_on/turn_off, a set-point ``inputs.write_setpoint_c``'s
+     set_value. ``tests/features.py`` holds the behaviour; this is the cheap
+     driver the pin lane can finish.
+     """

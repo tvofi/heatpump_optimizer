@@ -1,0 +1,177 @@
+diff --git a/custom_components/heatpump_optimizer/debugger.py b/custom_components/heatpump_optimizer/debugger.py
+index 152d8d174..7da784564 100644
+--- a/custom_components/heatpump_optimizer/debugger.py
++++ b/custom_components/heatpump_optimizer/debugger.py
+@@ -43,12 +43,10 @@ from .drift import stored_instant
+ from .store import (
+     DOMAINS,
+     QuarantiningStore,
+-    _sanitize,
+-    _store_name,
+     admitted,
+-    in_domain,
+     load_mapping,
+-    stored_fields,
++    off_domain,
++    quarantines,
+ )
+ 
+ _LOGGER = logging.getLogger(__name__)
+@@ -196,13 +194,9 @@ def store_report(stores: dict[str, tuple[Any, Any]]) -> dict[str, Any]:
+     quarantine would scrub a leaf of it on the next load."""
+     report = {}
+     for key, (version, data) in stores.items():
+-        off = list(dict.fromkeys(
+-            "/".join(map(str, path))
+-            for path, _key, domain, value in stored_fields(_store_name(key) or "", data)
+-            if domain is None or not in_domain(domain, value)
+-        ))
++        off = list(dict.fromkeys(off_domain(key, data)))
+         report[key] = {"version": version, "off_domain": off[:10], "off_count": len(off),
+-                       "quarantined": _dumps(_sanitize(data)) != _dumps(data)}
++                       "quarantined": quarantines(data)}
+     return report
+ 
+ 
+diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
+index ac81aeb13..d13c55910 100644
+--- a/custom_components/heatpump_optimizer/store.py
++++ b/custom_components/heatpump_optimizer/store.py
+@@ -523,6 +523,11 @@ def stored_fields(name: str, payload: Any) -> list[tuple[tuple[Any, ...], bool,
+     return out
+ 
+ 
++def _declared(domain: Domain | None, value: Any) -> bool:
++    """Whether a stored field is declared and inside its declaration: the one rule."""
++    return domain is not None and in_domain(domain, value)
++
++
+ def admitted(name: str, payload: Any) -> bool:
+     """Whether every field of ``payload`` -- store ``name``'s payload, or a
+     fragment of it from its root -- is declared and inside its declaration.
+@@ -530,10 +535,27 @@ def admitted(name: str, payload: Any) -> bool:
+     For a loader whose stored record is opaque to it (a presentation dict
+     it republishes whole) and that drops the record rather than repair it.
+     """
+-    return all(d is not None and in_domain(d, v) for _p, _k, d, v in stored_fields(name, payload))
++    return all(_declared(d, v) for _p, _k, d, v in stored_fields(name, payload))
++
++
++def off_domain(key: str, payload: Any) -> list[str]:
++    """The ``/``-joined path of every field of ``payload``, the document of the
++    store keyed ``key``, that is undeclared or outside its declaration, in walk
++    order (a map key and its value may both be listed). A key no ``DOMAINS``
++    entry names declares nothing, so every field of its document is off.
++    """
++    return [
++        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(store_name(key) or "", payload)
++        if not _declared(domain, value)
++    ]
++
++
++def quarantines(payload: Any) -> bool:
++    """Whether the next load would scrub a poisoned leaf of ``payload`` (``_sanitize``)."""
++    return _sanitize(payload) != payload
+ 
+ 
+-def _store_name(key: str) -> str | None:
++def store_name(key: str) -> str | None:
+     """The ``DOMAINS`` entry a store key names (its longest matching suffix)."""
+     names = [name for name in DOMAINS if key.endswith("_" + name)]
+     return max(names, key=len) if names else None
+@@ -546,11 +568,7 @@ def _log_off_domain(store: Any, data: Any) -> None:
+     entry in ``DOMAINS`` declares is refused by the standing sweep, not here.
+     """
+     where = str(getattr(store, "key", None) or getattr(store, "_key", "store"))
+-    name = _store_name(where)
+-    off = [
+-        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(name or "", data)
+-        if domain is None or not in_domain(domain, value)
+-    ] if name else []
++    off = off_domain(where, data) if store_name(where) else []
+     if off:
+         _LOGGER.debug("%s: %d stored field(s) off their declared domain: %s", where, len(off), off[:5])
+ 
+diff --git a/dev/audit/harnesses/r9_dbg2_selftest_price.py b/dev/audit/harnesses/r9_dbg2_selftest_price.py
+index a5f21e969..aa54d0bc3 100644
+--- a/dev/audit/harnesses/r9_dbg2_selftest_price.py
++++ b/dev/audit/harnesses/r9_dbg2_selftest_price.py
+@@ -59,7 +59,7 @@ for _p in (ROOT / "tests" / "hastub", ROOT / "tests", ROOT / "custom_components"
+ from harness import FakeHass  # noqa: E402
+ from heatpump_optimizer import debugger  # noqa: E402
+ from heatpump_optimizer.accuracy import AccuracyTracker  # noqa: E402
+-from heatpump_optimizer.store import _store_name  # noqa: E402
++from heatpump_optimizer.store import store_name as _store_name  # noqa: E402
+ 
+ ENTRY = "price"
+ 
+diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index 4725a4e9f..545abf113 100644
+--- a/tests/finite_boundary.py
++++ b/tests/finite_boundary.py
+@@ -557,10 +557,10 @@ def _kinds_arm() -> None:
+     R.check("each kind's shape and parse conjuncts decide alone", not bad, f"{bad}")
+ 
+     name = next(iter(_store.DOMAINS))
+-    got = _store._store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
++    got = _store.store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
+     R.check(
+         "a store key names its DOMAINS entry, and a foreign key names none",
+-        got == name and _store._store_name("no_such_entry_key") is None,
++        got == name and _store.store_name("no_such_entry_key") is None,
+         f"{got!r}",
+     )
+ 
+diff --git a/tools/replay/debug_ingest.py b/tools/replay/debug_ingest.py
+index 0b6644266..75fa68d46 100644
+--- a/tools/replay/debug_ingest.py
++++ b/tools/replay/debug_ingest.py
+@@ -51,12 +51,6 @@ def load_bundle(path: Path) -> dict:
+     return json.loads(raw)
+ 
+ 
+-def domain_suffix(key: str, domains) -> str | None:
+-    """Longest ``DOMAINS`` suffix of a store key (entry ids carry underscores)."""
+-    hits = [s for s in domains if key.endswith("_" + s)]
+-    return max(hits, key=len) if hits else None
+-
+-
+ class Results:
+     def __init__(self) -> None:
+         self.fails: list[str] = []
+@@ -99,10 +93,10 @@ def ingest(bundle: dict, *, corrupt: str = "") -> Results:
+     from heatpump_optimizer.accuracy import AccuracyTracker
+     stores = copy.deepcopy(bundle.get("stores") or {})
+     results.check("stores-present", bool(stores), f"{len(stores)} stores")
+-    undeclared = [k for k in stores if domain_suffix(k, store_mod.DOMAINS) is None]
++    undeclared = [k for k in stores if store_mod.store_name(k) is None]
+     results.check("stores-declared", not undeclared, ",".join(undeclared[:3]))
+     dirty = [k for k, document in stores.items()
+-             if store_mod._sanitize(document) != document]
++             if store_mod.quarantines(document)]
+     results.check("stores-sanitize-idempotent", not dirty, ",".join(dirty[:3]))
+ 
+     accuracy_docs = [k for k in stores if k.endswith("_accuracy")]
+diff --git a/tools/replay/debug_replay.py b/tools/replay/debug_replay.py
+index 50a5ed626..b083dc79b 100644
+--- a/tools/replay/debug_replay.py
++++ b/tools/replay/debug_replay.py
+@@ -56,7 +56,7 @@ def seed_stores(stores: dict, *, entry_id: str = REPLAY_ENTRY_ID) -> list[str]:
+     from homeassistant.helpers import storage as stub
+     written: list[str] = []
+     for key, document in stores.items():
+-        suffix = debug_ingest.domain_suffix(key, store_mod.DOMAINS)
++        suffix = store_mod.store_name(key)
+         if suffix is None:
+             continue
+         dest = f"{DOMAIN}_{entry_id}_{suffix}"
+@@ -154,8 +154,7 @@ def gate_checks() -> list[tuple[str, bool, str]]:
+     dest_acc = f"{DOMAIN}_{REPLAY_ENTRY_ID}_accuracy"
+     dest_en = f"{DOMAIN}_{REPLAY_ENTRY_ID}_energy"
+     loaded = json.loads(stub._DISK.get(dest_en, "{}"))
+-    undeclared = debug_ingest.domain_suffix(
+-        "heatpump_optimizer_foreign_nope", store_mod.DOMAINS)
++    undeclared = store_mod.store_name("heatpump_optimizer_foreign_nope")
+     replay = json.loads(
+         (ROOT / "tests" / "replay" / "synthetic-dhw-only.json").read_text())
+     start = datetime.fromisoformat(replay["window"]["start"])
