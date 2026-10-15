@@ -29229,6 +29229,124 @@ R.check(
     "merged pull request's comments",
 )
 
+# --- N-move-stale-path (#2227): a program live policy names still runs --------
+#
+# tests/layout.py's `reference` arm skips the `historical` prefixes (tvofi's D2:
+# evidence keeps the paths true when it was written), and brief_lint resolves
+# that a cited path EXISTS. Neither runs what is cited. When a policy file names
+# a program under a historical prefix as an instrument to run, a file move on
+# either side of that line breaks it in silence: D13.md's
+# `dev/audit/rounds/round4/D11/dora_keys.py` imported a `d11lib` the move left
+# under tools/, and opened `cfr_exclusions.json` at its pre-move home
+# (dev/audit/rca/R10-N-move-stale-path.md, countermeasure form (ii)). The pin
+# above loads the same file in THIS process, where governance_cost.py already
+# put d11lib on sys.path -- so it passed while the instrument could not start.
+#
+# The arm, narrow by the RCA's cost test: every executable path a POLICY file
+# (policy_lint.mjs's own `policyFiles()`, never a copy of its globs) cites under
+# a layout.json `historical` prefix. A cited `.py` is loaded in a fresh
+# interpreter the way a seat runs it (cwd the root, its directory first on
+# sys.path, PYTHONPATH=tests/hastub, nothing this process imported), and every
+# repository path its code holds as a string literal must resolve -- through
+# layout.py's `locate`/`canon` where the literal is that call's argument, as
+# written otherwise. A cited executable of another kind is refused: the arm
+# cannot load it, and an unprobed instrument must not read as a running one.
+_SP_POLICY = subprocess.run(
+    ["node", "--input-type=module", "-e",
+     _PL_IMPORT + ".then((m) => console.log(m.policyFiles().join('\\n')))"],
+    capture_output=True, text=True).stdout.split()
+_SP_LAYOUT = json.loads(Path("tests/layout.json").read_text())
+_SP_HIST = [h for h in _SP_LAYOUT["historical"] if h.endswith("/")]
+_SP_CITE = re.compile(r"(?<![\w./-])((?:%s)[\w./-]*\.(?:py|mjs|js|sh))(?![\w.])"
+                      % "|".join(re.escape(h) for h in _SP_HIST))
+_SP_TOPS = {Path(p).parts[0] for p in subprocess.run(
+    ["git", "ls-files"], capture_output=True, text=True).stdout.split()}
+_SP_LOAD = (
+    "import importlib.util as u, os, sys\n"
+    "f = sys.argv[1]; sys.path.insert(0, os.path.dirname(os.path.abspath(f)))\n"
+    "s = u.spec_from_file_location('hpo_cited_instrument', f)\n"
+    "s.loader.exec_module(u.module_from_spec(s))\n")
+
+
+def _sp_cited(texts):
+    """{cited path: [policy file, ...]} for every historical executable cited."""
+    out = {}
+    for f, text in texts:
+        for m in _SP_CITE.finditer(text):
+            out.setdefault(m.group(1), []).append(f)
+    return out
+
+
+def _sp_literals(src):
+    """(line, literal, resolved) for each repository path a module's code holds."""
+    tree = ast.parse(src)
+    docs = {id(n.body[0].value) for n in ast.walk(tree)
+            if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+            and n.body and isinstance(n.body[0], ast.Expr)
+            and isinstance(n.body[0].value, ast.Constant)}
+    via = {}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Call) and n.args and isinstance(n.args[0], ast.Constant):
+            name = getattr(n.func, "id", None) or getattr(n.func, "attr", None)
+            if name in ("locate", "canon"):
+                via[id(n.args[0])] = _layout_locate if name == "locate" else _layout_canon
+    out = []
+    for n in ast.walk(tree):
+        if (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
+                and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", n.value)
+                and n.value.split("/")[0] in _SP_TOPS):
+            out.append((n.lineno, n.value, via.get(id(n), lambda v: v)(n.value)))
+    return out
+
+
+def _sp_faults(path, src=None):
+    """Why the cited program `path` does not run here; [] when it does."""
+    if not Path(path).is_file():
+        return [f"{path}: cited, and no such file"]
+    if not path.endswith(".py"):
+        return [f"{path}: a cited executable this arm cannot load"]
+    faults = []
+    proc = subprocess.run([sys.executable, "-c", _SP_LOAD, path], capture_output=True, text=True,
+                          env={**os.environ, "PYTHONPATH": "tests/hastub"})
+    if proc.returncode:
+        faults.append(f"{path}: does not load -- {(proc.stderr.strip().splitlines() or ['?'])[-1]}")
+    for line, lit, got in _sp_literals(Path(path).read_text() if src is None else src):
+        if not Path(got.rstrip("/")).exists():
+            faults.append(f"{path}:{line} opens {lit!r}, which resolves to nothing")
+    return faults
+
+
+# policyFiles() spells a moved policy file by its pre-move name (canon); the
+# text is read where the file now lives.
+_SP_POLICY = sorted({_layout_locate(f) for f in _SP_POLICY})
+_SP_CITED = _sp_cited((f, Path(f).read_text()) for f in _SP_POLICY if Path(f).is_file())
+_SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
+for _sp_p, _sp_f in _SP_FAULTS.items():
+    print(f"  cited  {_sp_p} by {', '.join(sorted(set(_SP_CITED[_sp_p])))}: "
+          f"{'runs' if not _sp_f else '; '.join(_sp_f)}")
+R.check(
+    "every program live policy cites under a historical prefix loads and resolves "
+    "the paths it opens (#2227)",
+    len(_SP_POLICY) >= 20 and len(_SP_CITED) >= 2
+    and not any(_SP_FAULTS.values()),
+    f"policy files {len(_SP_POLICY)}, cited {len(_SP_CITED)} (floor 2: an arm that "
+    f"finds nothing is not a pass); faults {[f for v in _SP_FAULTS.values() for f in v]}",
+)
+_sp_unit = "dev/audit/rounds/round4/D12/units.py"
+R.check(
+    "the cited-program arm: a cited harness that runs passes, a planted stale literal "
+    "and a planted unloadable citation are refused (null control, perturbation)",
+    _sp_unit in _SP_CITED and not _sp_faults(_sp_unit)
+    and _sp_faults(_sp_unit, Path(_sp_unit).read_text() + "\n_X = '.claude/workflows/cfr_exclusions.json'\n")
+    and not _sp_faults(_sp_unit, Path(_sp_unit).read_text()
+                       + "\n_X = locate('.claude/workflows/cfr_exclusions.json')\n")
+    and _sp_faults("dev/audit/rounds/round4/D11/no_such_harness.py")
+    and _sp_cited([("x.md", "run `dev/audit/rounds/round4/D11/dora_keys.py` and "
+                            "`tests/golden/config_flow.json`")])
+    == {"dev/audit/rounds/round4/D11/dora_keys.py": ["x.md"]},
+    f"units.py faults {_sp_faults(_sp_unit)}",
+)
+
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
 #
 # The refusing step carried `continue-on-error: true`, which is exactly what
