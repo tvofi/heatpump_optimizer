@@ -1265,6 +1265,7 @@
    "dev/audit/rounds/round4/D11/dora_keys.py",
    "dev/audit/rounds/round4/D12/units.py",
    "dev/audit/rounds/round4/D6/claims.json",
+   "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
    "dev/audit/rounds/round5/D13/seat-a/dora_cfr.py",
    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_1cc89e020f.json",
    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_2de1c18233.json",
@@ -3190,6 +3191,7 @@
   ],
   "tests/entities.py": [
    "LICENSE",
+   "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
@@ -4006,7 +4008,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 582.5
+   "seconds": 284.1
   },
   "tests/env_drift.py": {
    "rc": 0,
