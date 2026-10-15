@@ -1,0 +1,9 @@
+WINDOW v6.7.16..17f1c55fad1b prs=185
+RESULT verdict_head_moved=133 count
+RESULT blocked_head_moved=4 count
+RESULT rework_entries=absent count
+RESULT reverify_entries=130 count
+RESULT verdict_total=563 count
+RESULT parsable_total=434 count
+STATS COVERAGE: 163 of 185 merged pull request(s) in the window carried a parsable verdict; 22 carried none (#1989 #1991 #1992 #1998 #2000 #2001 #2005 #2050 #2173 #2179 +12 more); the histogram's verdict denominator is 163, not the window's merge count
+STATS COVERAGE BY CLASS: (absent)

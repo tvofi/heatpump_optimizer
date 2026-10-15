@@ -1,0 +1,106 @@
+WINDOW v6.7.16..17f1c55fad1b merges=185 prs=185 api_failures=0
+RESULT blocked_verdicts=124 count
+RESULT block_class[root-cause-unanswered]=37 count
+RESULT block_class[harness]=23 count
+RESULT block_class[other]=15 count
+RESULT block_class[conflict]=9 count
+RESULT block_class[head-moved]=4 count
+RESULT block_class[carry-missing]=4 count
+RESULT block_class[architecture-unsound]=4 count
+RESULT block_class[claims]=3 count
+RESULT block_class[metric-gamed]=2 count
+RESULT block_class[class-open]=2 count
+RESULT block_class[untaught:body-stale]=2 count
+RESULT block_class[untaught:defect]=2 count
+RESULT block_class[untaught:mutation-unpinned]=1 count
+RESULT block_class[untaught:vacuous]=1 count
+RESULT block_class[untaught:re-cut]=1 count
+RESULT block_class[untaught:closures-under-approximated]=1 count
+RESULT block_class[untaught:body-false]=1 count
+RESULT block_class[untaught:null-control-unpinned]=1 count
+RESULT block_class[untaught:docs-code-mismatch]=1 count
+RESULT block_class[untaught:guard]=1 count
+RESULT block_class[untaught:over-fire]=1 count
+RESULT block_class[untaught:d-unbounded]=1 count
+RESULT block_class[untaught:body-figures]=1 count
+RESULT block_class[untaught:skip-abusable]=1 count
+RESULT block_class[untaught:skip-dead]=1 count
+RESULT block_class[untaught:conflict-resolution]=1 count
+RESULT block_class[untaught:record-stale]=1 count
+RESULT block_class[untaught:resolution-docstring-corruption]=1 count
+RESULT block_class[untaught:instruments-stale]=1 count
+RESULT block_bucket[record-and-body]=44 count
+RESULT block_bucket[orchestration]=49 count
+RESULT block_bucket[engineering]=31 count
+RESULT blocked_outside_grammar=0 count
+  PROD verdict_row[root-cause-unanswered] prs=25 entries=37
+  PROD verdict_row[merge] prs=162 entries=310
+  PROD verdict_row[conflict] prs=7 entries=9
+  PROD verdict_row[claims] prs=2 entries=3
+  PROD verdict_row[harness] prs=18 entries=23
+  PROD verdict_row[other] prs=10 entries=15
+  PROD verdict_row[head-moved] prs=4 entries=4
+  PROD verdict_row[mutation-unpinned] prs=1 entries=1
+  PROD verdict_row[vacuous] prs=1 entries=1
+  PROD verdict_row[metric-gamed] prs=2 entries=2
+  PROD verdict_row[re-cut] prs=1 entries=1
+  PROD verdict_row[class-open] prs=2 entries=2
+  PROD verdict_row[closures-under-approximated] prs=1 entries=1
+  PROD verdict_row[body-false] prs=1 entries=1
+  PROD verdict_row[null-control-unpinned] prs=1 entries=1
+  PROD verdict_row[docs-code-mismatch] prs=1 entries=1
+  PROD verdict_row[body-stale] prs=1 entries=2
+  PROD verdict_row[carry-missing] prs=4 entries=4
+  PROD verdict_row[guard] prs=1 entries=1
+  PROD verdict_row[over-fire] prs=1 entries=1
+  PROD verdict_row[d-unbounded] prs=1 entries=1
+  PROD verdict_row[body-figures] prs=1 entries=1
+  PROD verdict_row[architecture-unsound] prs=4 entries=4
+  PROD verdict_row[defect] prs=1 entries=2
+  PROD verdict_row[skip-abusable] prs=1 entries=1
+  PROD verdict_row[skip-dead] prs=1 entries=1
+  PROD verdict_row[conflict-resolution] prs=1 entries=1
+  PROD verdict_row[record-stale] prs=1 entries=1
+  PROD verdict_row[resolution-docstring-corruption] prs=1 entries=1
+  PROD verdict_row[instruments-stale] prs=1 entries=1
+RESULT prod_unclassified=0 count
+RESULT friction_entries=89 count
+RESULT friction_one_file=69 count
+RESULT friction_ambiguous=0 count
+RESULT friction_no_file=20 count
+RESULT friction_one_file_share=0.775 ratio
+RESULT friction_prod_key_is_budget_file=67 count
+RESULT friction_rule_file_but_prod_verbatim=2 count
+  DISAGREE #2063 budgets->.claude/workflows/fixtures/policy-rot/budgets.md
+  DISAGREE #2109 fixer->tools/audit/briefs/fixer.md
+  FILE .claude/rules/ratchet-budgets.md .claude/rules/ratchet-budgets.md=4
+  FILE tools/audit/briefs/fixer.md tools/audit/briefs/fixer.md=17 fixer=1
+  FILE .claude/rules/gate-scoping.md .claude/rules/gate-scoping.md=13
+  FILE .claude/rules/defect-root-cause.md .claude/rules/defect-root-cause.md=6
+  FILE .claude/rules/ci-autofix.md .claude/rules/ci-autofix.md=11
+  FILE .claude/rules/finding-propagation.md .claude/rules/finding-propagation.md=2
+  FILE CLAUDE.md CLAUDE.md=1
+  FILE tools/audit/briefs/fix-review.md tools/audit/briefs/fix-review.md=1
+  FILE .claude/workflows/fixtures/policy-rot/budgets.md budgets=1
+  FILE .claude/rules/claim-files.md .claude/rules/claim-files.md=2
+  FILE .claude/rules/brief-citations.md .claude/rules/brief-citations.md=3
+  FILE .claude/rules/delivery-status-tracking.md .claude/rules/delivery-status-tracking.md=5
+  FILE tests/README.md tests/README.md=1
+  FILE tools/audit/briefs/orchestrator.md tools/audit/briefs/orchestrator.md=1
+  NONE .claude/workflows/friction_issues.mjs=1
+  NONE roster-edit-dump-format=1
+  NONE entities-py-local-python=1
+  NONE tools/audit/preflight.sh=1
+  NONE budget-raise-gate=1
+  NONE local-drive=2
+  NONE record-provenance=1
+  NONE ancestry-reds=1
+  NONE heavy-scripts-in-ci=1
+  NONE fixer-brief=2
+  NONE tools/audit/seat/bus.sh=1
+  NONE R9-RC-NIGHTLY-DEFER=1
+  NONE R9-ROW-STALE=1
+  NONE R9-TRANSPORT-RETRY=1
+  NONE unclear=2
+  NONE .claude/workflows/agreement.mjs=1
+  NONE .claude/workflows/field_coverage.mjs=1

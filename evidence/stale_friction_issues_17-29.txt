@@ -1,0 +1,13 @@
+// THE TRIGGER TEXT IS THE HISTOGRAM'S OWN LINE, not a re-derivation. This
+// script does not recount friction and does not classify verdicts: it parses
+// the `would open "[policy] recurring friction: <key>"` lines out of a stats
+// output the job has already produced. The classifier -- the verdict grammar
+// read from web-fix-wave.js, the threshold of three, and the exclusion that
+// withholds the passing verdict from its own row, while the rework that row
+// cannot show is counted under the wave's `head-moved` -- stays in
+// exactly one place, policy_lint.mjs, and this script cannot fire on a class
+// that classifier excluded, because an excluded class prints `not opened:` and
+// never `would open "`. The `head-moved` row is NOT excluded (it is the rework
+// the passing verdict spells), so this lane can and will file on it: that is
+// the row's whole purpose, and a window at the threshold opens
+// `[policy] recurring friction: head-moved` like any other.
