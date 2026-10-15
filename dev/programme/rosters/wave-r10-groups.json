@@ -1465,9 +1465,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done (#2290 merged d8c13ac5b)",
     "branch": "handoff/r10-services-guard",
-    "commit": null,
+    "commit": "d8c13ac5bddfafad52ed385fca5a9d170608feba",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
