@@ -26,7 +26,7 @@ Alternatives not taken:
 
 ## Head
 
-aea95a72457da8c7f954ad2d521e26cde2844d52, merge base 5603ee319d73cd464d38a3cbbad90d83d4cf4cdf (origin/main at branch time).
+1b038bbd0e3e67c58ecb4a702e06e310a51ffe32: aea95a724 with origin/main 93f5970e9 merged in (merge base 93f5970e90d088c52eda63638b997b8de96a9927). The merge changed neither the card nor tests/card.mjs (`git diff --quiet aea95a724 1b038bbd0 -- <card> tests/card.mjs` exits 0), so the mutation proofs and harness figures taken at aea95a724 describe these two files at this head. The scoped gate and structure ratchet were re-run here.
 
 ## Mutation proof
 
@@ -60,8 +60,8 @@ These are the finder's harnesses, run from exports, on the card at the base (`gi
   - `dead` 1 -> 2. The added dead symbol is `openHaLink`. It has no caller until R10-ADVISOR / R10-UX-HEALTH convert their sites, per the architect note ("one pure helper; the three call sites stay for their groups").
 - `node $EXPORT/dev/audit/rounds/round10/catchup/arch-b/v2_card_lines.mjs <card>` (sha1 b3a1890e77115f9dbe0e2b64954bb21419890366, from handoff/audit-r10-catchup-verify):
   - `picker_lines` 5 -> 3, `total` 36 -> 34. The other columns are equal.
-- Scoped gate: `GATE_SCOPE=auto bash tests/run.sh` gives MODE: SCOPED. The selection is `tests/closure.py select --diff 5603ee319`. The result is `12 TEST SCRIPT(S) PASSED; 23 SCOPED OUT AND NOT RUN`, rc 0, at aea95a724. card_drift.mjs ran in that set and printed `card_drift: identical in all 40 states`, so the markup is unchanged.
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. No budget moved, and no host member was added (`HOST_MEMBER_CEILING` check green).
+- Scoped gate: `GATE_SCOPE=auto bash tests/run.sh` gives MODE: SCOPED. The selection is `tests/closure.py select --diff 93f5970e9`. The result is `12 TEST SCRIPT(S) PASSED; 23 SCOPED OUT AND NOT RUN`, rc 0, at 1b038bbd0. card_drift.mjs ran in that set against origin/main and printed `card_drift: identical in all 40 states`, so the markup is unchanged.
+- `python3 tests/structure.py` at 1b038bbd0: STRUCTURE RATCHET PASSED. No budget moved, and no host member was added (`HOST_MEMBER_CEILING` check green).
 - Step 8 seam enumeration: the rule is the census itself, meaning every source line calling `navigateTo` or `openHaLink`, reached by a press. It returns 2 sites:
   - the advisor/health `.adv-act` handler: pending, owned by R10-ADVISOR (`settings`) and R10-UX-HEALTH (`settings`, `diagnostics`)
   - `openHaLink`'s own navigation: closed in this diff
@@ -73,14 +73,11 @@ none
 
 ## Forward-carry
 
-These go to the orchestrator for the roster entries of the three groups (dev/programme/rosters/wave-r10-groups.json, R10-ADVISOR, R10-UX-SETUP and R10-UX-HEALTH):
-
-1. Home Assistant (frontend 20260826.7) has no URL into an options-flow step. `haLink("options")` lands on this entry highlighted, and its Configure button opens the flow. R10-ADVISOR item 7 ("deep-link to the specific config-flow step or option") must say which step to open next in the row's copy, or find an option that is an entity (`haLink("entity")`).
-2. Each group deletes its own `PENDING` rows in `tests/card.mjs` when it converts its handler. The test refuses a stale row.
-3. A new link button must be reachable by a press in the census fixture. A delegated listener or an unrendered row fails the reach precondition, and the fix is to extend the fixture.
+1. `tests/card.mjs` carries two of the constraints for the later groups in its own code. Its pending list names R10-ADVISOR and R10-UX-HEALTH as owners and refuses a stale row, so each group must delete its rows when it converts its button. Its reach precondition refuses a link line that no press reaches, so R10-UX-SETUP's Configure must be pressable in the census fixture.
+2. Home Assistant (frontend 20260826.7) has no URL into an options-flow step: `haLink("options")` lands on the entry highlighted. R10-ADVISOR item 7 must name the step in its copy, or link the option's entity. The orchestrator is writing this into the R10-ADVISOR roster entry. The roster file is not yet on main (it lands with the round-10 roster pull request), so the carry is stated here and in `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js` above `haLink`, where the next editor of a link reads it.
 
 ## Friction
 
-- fixer.md step 6 / FIXER-BRIEF: contradiction. The shared seat brief said to open the PR with app_push.sh and post on #201, while fixer.md step 6 and the group brief say seats push refs only. The orchestrator corrected the brief mid-task, and refs only were pushed.
+- fixer-step-6: contradiction: the shared seat brief told the seat to open the PR with app_push.sh and post on #201, while fixer.md step 6 and the group brief say seats push refs only; the orchestrator corrected it mid-task and only refs were pushed.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
