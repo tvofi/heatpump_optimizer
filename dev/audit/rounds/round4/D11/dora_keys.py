@@ -65,7 +65,7 @@ that judgement needs. `.claude/workflows/cfr_exclusions.json` records the
 refusal in its `not_excluded` map, and tests/entities.py pins it.
 
 COMMAND (from the repository root):
-  PYTHONPATH=tests/hastub python3 tools/audit/round4/D11/dora_keys.py
+  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D11/dora_keys.py
 
 EXPECTED at baseline 7dd68dd (tolerance: exact; counts and date arithmetic):
   releases_per_day=1.12  lead_time_median_h=7.41  cfr_any=0.477
@@ -84,8 +84,23 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# WHERE THE LIBRARY AND THE EXCLUSION LIST LIVE IS THE MOVE MAP'S ANSWER (#2227).
+# R9-RO-8 moved this file under dev/audit/rounds/ and left d11lib.py live under
+# tools/audit/round4/D11/; bc0f17ddb moved cfr_exclusions.json out of
+# .claude/workflows/. A sibling import and a literal path each broke in silence,
+# so both resolve through tests/layout.py: the library beside this file while it
+# is there, else at the path layout.json moved it from (`canon`), and the list
+# at wherever layout.json moved it to (`locate`). tests/entities.py loads every
+# program live policy cites under a historical prefix, this one included.
+_ROOT = next(p for p in Path(__file__).resolve().parents
+             if (p / "tests/layout.py").is_file())
+sys.path.append(str(_ROOT / "tests"))
+from layout import canon, locate  # noqa: E402
+
+_LIB = Path(__file__).resolve().with_name("d11lib.py").relative_to(_ROOT).as_posix()
+sys.path.insert(0, str((_ROOT / (_LIB if (_ROOT / _LIB).is_file() else canon(_LIB))).parent))
 import d11lib as L  # noqa: E402
 
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-08T00:00:00Z")
@@ -100,7 +115,7 @@ W1 = os.environ.get("D11_WINDOW_END", "2026-09-12T10:44:12Z")
 D13_SINCE = os.environ.get("D13_SINCE", "v6.6.0")
 D13_HEAD = os.environ.get(
     "D13_HEAD", "e336cc2c530882a142ef298de6420706d96a6300")
-CFR_EXCLUSIONS = ".claude/workflows/cfr_exclusions.json"
+CFR_EXCLUSIONS = locate(".claude/workflows/cfr_exclusions.json")
 
 
 def latest_by_name(runs):
