@@ -1,0 +1,22 @@
+RESULT mutant=N1_replaceState_after_pending_push rc=1 fails=0
+RESULT mutant=N2_replaceState_on_dismiss rc=1 fails=0
+RESULT mutant=N3_globalThis_open rc=1 fails=0
+RESULT mutant=N4_location_assign_bare rc=0 fails=0
+RESULT mutant=N5_open_on_dismiss rc=1 fails=0
+RESULT mutant=H1_setAttribute_backtick_rendered rc=1 fails=1
+    FAIL  every link a button emits is one haLink builds for this entry
+      health:a -> href /config/integrations/integration/heatpump_optimizer; health:diagnostics -> href /config/integrations/integration/heatpump_optimizer; health:settings -> href /config/integrations/integration/heatpump_opti
+RESULT mutant=H2_setAttribute_backtick_unrendered rc=0 fails=0
+RESULT mutant=H3_Reflect_set_rendered rc=1 fails=1
+    FAIL  every link a button emits is one haLink builds for this entry
+      health:a -> href /config/integrations/integration/heatpump_optimizer; health:diagnostics -> href /config/integrations/integration/heatpump_optimizer; health:settings -> href /config/integrations/integration/heatpump_opti
+RESULT mutant=H4_Reflect_set_unrendered rc=0 fails=0
+RESULT mutant=H5_Object_assign_unrendered rc=0 fails=0
+RESULT mutant=H6_bracket_unrendered rc=0 fails=0
+RESULT mutant=H7_attributes_setNamedItem rc=0 fails=0
+RESULT mutant=H8_innerHTML_anchor_single_quote rc=1 fails=1
+    FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
+      pushState sites 1; href lines { const d = root.querySelector('.setup-result'); if (d) d.in
+RESULT mutant=H9_innerHTML_template rc=1 fails=0
+restored ?? .keep-untracked
+

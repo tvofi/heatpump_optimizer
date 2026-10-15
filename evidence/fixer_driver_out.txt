@@ -1,0 +1,81 @@
+head 0c78705926a8af8910996b876ca9ddbc922cbef7
+== M1 options drops #config_entry
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  haLink builds the three deep links Home Assistant routes
+            /config/integrations/integration/heatpump_optimizer | /config/entities?config_entry=01JDEEPLINKENTRY | /config/entities?config_entry=01JDEEPLINKENTRY&more-info-entity-id=sensor.heat_pump_optimizer_solar_irradiance&more-info-view=settings
+== M2 entity drops the settings view
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  haLink builds the three deep links Home Assistant routes
+            /config/integrations/integration/heatpump_optimizer#config_entry=01JDEEPLINKENTRY | /config/entities?config_entry=01JDEEPLINKENTRY | /config/entities?config_entry=01JDEEPLINKENTRY&more-info-entity-id=sensor.heat_pump_optimizer_solar_irradiance
+    --
+      FAIL  haLink without a resolved entry falls back to the domain, never a guessed entry
+      ok    the census reached every line that emits a Home Assistant link
+== M3 delete the advisor PENDING row
+ 1 file changed, 1 deletion(-)
+      FAIL  every link a button emits is one haLink builds for this entry
+            advisor:settings -> push /config/integrations/integration/heatpump_optimizer; advisor:settings -> push /config/integrations/integration/heatpump_optimizer; advisor:settings -> push /config/integrations/integration/heatpump_optimizer; advisor:settings -> push /config/integrations/integration/heatpump_optimizer
+== M4 a link site no press reaches
+ 1 file changed, 2 insertions(+)
+      FAIL  the census reached every line that emits a Home Assistant link
+            pressed plan=12 setup=0 savings=0 advisor=4 health=3; sites 8998,9296; unreached 8998
+== M5 openPicker hands no focus
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  openSetupSlot opens the slot's picker, focused only from the keyboard
+            keys false/true mouse false/false
+== M6 convert advisor settings (stale row)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  every LINK_PENDING row still names a button that emits an unconverted link
+            stale (delete these rows): advisor:settings, health:settings, health:diagnostics
+== R4 entry ignored
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  openHaLink asks the registry for its own plan sensor and links this entry
+            [{"type":"config/entity_registry/get","entity_id":"sensor.heat_pump_optimizer_plan_space_heating"},{"type":"config/entity_registry/get","entity_id":"sensor.heat_pump_optimizer_plan_space_heating"}] -> /config/entities?domain=heatpump_optimizer | /config/entities?domain=heatpump_optimizer&more-info-entity-id=binary_sensor.heat_pump_optimizer_input_problem&more-info-view=settings
+== R5 anchor href
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  every link a button emits is one haLink builds for this entry
+            health:a -> href /config/integrations/integration/heatpump_optimizer; health:diagnostics -> href /config/integrations/integration/heatpump_optimizer; health:settings -> href /config/integrations/integration/heatpump_optimizer
+    --
+      FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
+            pushState sites 1; href lines <a href="/config/integrations/integration/heatpump_optimizer
+== R6 hass-more-info event
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  pressing it opens /config/integrations/integration/heatpump_optimizer
+            []
+    --
+      FAIL  the census reached every line that emits a Home Assistant link
+            pressed plan=12 setup=0 savings=0 advisor=4 health=3; sites ; unreached 
+      FAIL  every link a button emits is one haLink builds for this entry
+            advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; health:diagnostics -> event hass-more-info:{"entityId":"sensor.x"}; health:settings -> event hass-more-info:{"entityId":"sensor.x"}
+      FAIL  every LINK_PENDING row still names a button that emits an unconverted link
+            stale (delete these rows): advisor:settings, health:settings, health:diagnostics
+    --
+      FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
+            pushState sites 1; href lines 
+== R6b pending button fires hass-more-info too (runtime type)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  every link a button emits is one haLink builds for this entry
+            advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; advisor:settings -> event hass-more-info:{"entityId":"sensor.x"}; health:diagnostics -> event hass-more-info:{"entityId":"sensor.x"}; health:settings -> event hass-more-info:{"entityId":"sensor.x"}
+== R6c Assign fires hass-more-info (runtime type)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      FAIL  Assign sensor opens the setup picker for the gap's top slot
+            page=advisor picker=null
+    --
+      FAIL  Assign on the power meter opens the Setup picker for that slot
+            health null
+    --
+      FAIL  every link a button emits is one haLink builds for this entry
+            health:assign -> event hass-more-info:{"entityId":"sensor.x"}
+== R7b setAttribute("href") on a.zz at attach (literal; the stub never resolves a.zz)
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+      FAIL  navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href
+            pushState sites 1; href lines for (const a of root.querySelectorAll("a.zz")) a.setAttribut
+== R7c setAttribute(runtime name) on .zz at attach
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+      FAIL  every link a button emits is one haLink builds for this entry
+            health:a -> href /config/integrations/integration/heatpump_optimizer; health:diagnostics -> href /config/integrations/integration/heatpump_optimizer; health:settings -> href /config/integrations/integration/heatpump_optimizer
+== R7d setAttribute(runtime name) on .zz at click time
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+      FAIL  every link a button emits is one haLink builds for this entry
+            health:diagnostics -> href /config/integrations/integration/heatpump_optimizer; health:settings -> href /config/integrations/integration/heatpump_optimizer
+?? .keep-untracked
+done

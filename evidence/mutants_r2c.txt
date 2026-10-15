@@ -1,2 +1,0 @@
-RESULT mutant=R7b_setattr_href_literal rc=0 fails=0
-RESTORED-CLEAN
