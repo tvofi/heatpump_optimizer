@@ -1,0 +1,146 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..b25fe38d5 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -86,7 +86,7 @@ from .payload import (
+     SpacePlan,
+     ThermalView,
+ )
+-from .store import QuarantiningStore, admitted
++from .store import QuarantiningStore, admitted, load_mapping
+ from .entry_config import EntryConfig
+ from homeassistant.util import dt as dt_util
+ 
+@@ -7834,12 +7834,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     async def _async_load_price_model(self) -> None:
+         """Restore the learned diurnal price shape."""
+-        try:
+-            stored = await self._price_model_store.async_load()
+-        except Exception as err:  # noqa: BLE001 - never block setup on storage
+-            _LOGGER.debug("Could not load price model: %s", err)
+-            return
+-        if not isinstance(stored, dict):
++        stored = await load_mapping(self._price_model_store, "price model")
++        if stored is None:
+             return
+         self._price_model = PriceShapeModel.from_dict(stored.get("model"))
+         days = stored.get("days_seen")
+@@ -7867,12 +7863,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     async def _async_load_ledger(self) -> None:
+         """Restore the monthly ledger (T1)."""
+-        try:
+-            stored = await self._ledger_store.async_load()
+-        except Exception as err:  # noqa: BLE001 - never block setup on storage
+-            _LOGGER.debug("Could not load ledger: %s", err)
+-            return
+-        if not isinstance(stored, dict):
++        stored = await load_mapping(self._ledger_store, "ledger")
++        if stored is None:
+             return
+         self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
+         # T6, all additive on the same payload: absent keys on a pre-T6
+@@ -7932,12 +7924,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     async def _async_load_accuracy(self) -> None:
+         ctx = getattr(self, "_ctx", self)
+-        try:
+-            stored = await self._accuracy_store.async_load()
+-        except Exception as err:  # noqa: BLE001
+-            _LOGGER.debug("Could not load accuracy history: %s", err)
+-            return
+-        if not isinstance(stored, dict):
++        stored = await load_mapping(self._accuracy_store, "accuracy history")
++        if stored is None:
+             return
+         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
+         # Additive keys: an older store has none; an older build ignores extras.
+@@ -7992,12 +7980,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             _LOGGER.debug("Could not persist accuracy history: %s", err)
+ 
+     async def _async_load_energy_totals(self) -> None:
+-        try:
+-            stored = await self._energy_store.async_load()
+-        except Exception as err:  # noqa: BLE001
+-            _LOGGER.debug("Could not load energy totals: %s", err)
+-            return
+-        if not isinstance(stored, dict):
++        stored = await load_mapping(self._energy_store, "energy totals")
++        if stored is None:
+             return
+         for key in list(self._energy_totals):
+             value = stored.get(key)
+@@ -9461,15 +9445,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     async def _async_load_snapshots(self) -> None:
+         try:
+-            stored = await self._snapshot_store.async_load()
+-        except Exception as err:  # noqa: BLE001
+-            _LOGGER.debug("Could not load learner snapshots: %s", err)
+-            return
++            stored = await load_mapping(self._snapshot_store, "learner snapshots")
+         finally:
+             # Set even on failure: a lost store means an empty ring, and
+             # the insurance must keep running rather than disarm forever.
+             self._snapshots_loaded = True
+-        if isinstance(stored, dict):
++        if stored is not None:
+             self._snapshot_ring = SnapshotRing.from_dict(stored)
+ 
+     async def _async_save_snapshots(self) -> None:
+diff --git a/custom_components/heatpump_optimizer/dhw_learning.py b/custom_components/heatpump_optimizer/dhw_learning.py
+index 8d845ea60..c519c9d85 100644
+--- a/custom_components/heatpump_optimizer/dhw_learning.py
++++ b/custom_components/heatpump_optimizer/dhw_learning.py
+@@ -25,7 +25,7 @@ from typing import Any
+ import numpy as np
+ 
+ from homeassistant.core import HomeAssistant
+-from .store import QuarantiningStore
++from .store import QuarantiningStore, load_mapping
+ from homeassistant.util import dt as dt_util
+ 
+ from .accuracy import utc_elapsed_seconds
+@@ -298,12 +298,8 @@ class DhwProfileLearner:
+ 
+     async def async_load_draws(self) -> None:
+         """Load the per-window draw statistics (#32)."""
+-        try:
+-            stored = await self.draws_store.async_load()
+-        except Exception as err:  # noqa: BLE001
+-            _LOGGER.debug("Could not load DHW draw statistics: %s", err)
+-            return
+-        if isinstance(stored, dict):
++        stored = await load_mapping(self.draws_store, "DHW draw statistics")
++        if stored is not None:
+             self.draw_stats = DrawStats.from_dict(stored)
+ 
+     async def async_save_draws(self) -> None:
+diff --git a/custom_components/heatpump_optimizer/notifier.py b/custom_components/heatpump_optimizer/notifier.py
+index dc6aba0f4..fa1429b3d 100644
+--- a/custom_components/heatpump_optimizer/notifier.py
++++ b/custom_components/heatpump_optimizer/notifier.py
+@@ -38,7 +38,7 @@ from homeassistant.util import dt as dt_util
+ from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
+ from .payload import InputProblem, Payload
+ from .setpoint_check import set_issue
+-from .store import QuarantiningStore
++from .store import QuarantiningStore, load_mapping
+ 
+ _LOGGER = logging.getLogger(__name__)
+ 
+@@ -264,11 +264,8 @@ class Notifier:
+         self._baseline = True
+ 
+     async def async_load(self) -> None:
+-        try:
+-            raw = await self._store.async_load()
+-        except Exception as err:  # noqa: BLE001 - a bad store only costs a repeat
+-            _LOGGER.debug("Could not load notifier state: %s", err)
+-            return
++        # A bad store only costs a repeat; one that is not a mapping is a bad store.
++        raw = await load_mapping(self._store, "notifier state")
+         sent = raw.get("sent") if raw else None
+         if isinstance(sent, dict):
+             self._sent = {
