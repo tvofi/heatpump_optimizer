@@ -53,7 +53,11 @@
             "step": "M6",
             "what": "rolling ran only one cell with plant == model; the score omits comfort-pull and cycling terms"
           }
-        ]
+        ],
+        "yield": {
+          "M2": 1,
+          "M4": 1
+        }
       }
     }
   },
@@ -108,7 +112,14 @@
             "step": "M6",
             "what": "Not yet driven with hostile payloads: the ECL110 MQTT state handler (_async_handle_ecl110_state_message / _parse_ecl110_state), the pump_signals state parsing, the weather-entity forecast through _fetch_weather_forecast, and the Open-Meteo async_refresh JSON path above _parse_block."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 1,
+          "M2": 1,
+          "M3": 2,
+          "M4": 1,
+          "M6": 2
+        }
       }
     }
   },
@@ -158,7 +169,13 @@
             "step": "M5",
             "what": "confidence gate vs bias under larger noise/plant grid; COP and heat-loss learner clamps"
           }
-        ]
+        ],
+        "yield": {
+          "M1": 1,
+          "M2": 1,
+          "M4": 1,
+          "M5": 3
+        }
       }
     }
   },
@@ -220,7 +237,11 @@
             "step": "M5",
             "what": "The kill-overlap matrix needs every closure script run on every mutant, with no early stop. It was not taken."
           }
-        ]
+        ],
+        "yield": {
+          "M3": 1,
+          "M4": 2
+        }
       }
     }
   },
@@ -260,7 +281,8 @@
             "step": "M3",
             "what": "Spacing consistency against the --hpo-space scale across states, headline-number alignment across tiles/stats, error states (pin_fail, save_fail, status_fallback), and the sv language were not measured."
           }
-        ]
+        ],
+        "yield": {}
       }
     }
   },
@@ -313,7 +335,12 @@
             "step": "M4",
             "what": "cited-number-vs-adjacent-constant check not automated; www/*.js comments not scanned for symbols; README/docs M4 cell not run"
           }
-        ]
+        ],
+        "yield": {
+          "M1": 1,
+          "M2": 1,
+          "M4": 2
+        }
       }
     }
   },
@@ -396,7 +423,12 @@
             "step": "M3",
             "what": "End-to-end ingestion was measured only for freq_map; the other 7 learners are gate-level. dhw_learning's _frozen and comfort_learner are not tabled."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 18,
+          "M3": 1,
+          "M6": 2
+        }
       }
     }
   },
@@ -430,7 +462,10 @@
             "step": "M2",
             "what": "Value-follows-payload: 54 entity keys static between cycles A and B (matrix.py STATIC lines) not yet resolved per key against their source payload key. MonthlySavingsSensor available-but-None when only settled months exist was found by reading code and not measured."
           }
-        ]
+        ],
+        "yield": {
+          "M2": 1
+        }
       }
     }
   },
@@ -513,7 +548,10 @@
             "step": "M1",
             "what": "7 docs-* gold rules and entity-category/device-class/disabled-by-default not separately counted; HA rule pages not fetched."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 1
+        }
       }
     }
   },
@@ -558,7 +596,10 @@
             "step": "M4",
             "what": "No perturbation yet for these mechanisms: the main ruleset (read with both arms), structure.py budgets, brief_lint.mjs, the claim files, prepr.sh."
           }
-        ]
+        ],
+        "yield": {
+          "M1": 2
+        }
       }
     }
   },
@@ -601,7 +642,11 @@
             "step": "M3",
             "what": "switch, ECL110 MQTT, Tuya and compressor-frequency (on/off vs modulating) surfaces not driven through a coordinator cycle; pump_arbiter._bounded reading min/max instead of climate min_temp/max_temp not measured"
           }
-        ]
+        ],
+        "yield": {
+          "M2": 1,
+          "M3": 1
+        }
       }
     }
   },
@@ -636,7 +681,13 @@
             "step": "M4",
             "what": "deployment frequency, lead time and time-to-restore not computed by the round-10 harness (CFR only)"
           }
-        ]
+        ],
+        "yield": {
+          "M2": 1,
+          "M3": 2,
+          "M4": 1,
+          "M6": 1
+        }
       }
     }
   },
@@ -690,7 +741,10 @@
             "step": "M2",
             "what": "N-name-sort, N-step-grid, N-reap-lock not picked this round"
           }
-        ]
+        ],
+        "yield": {
+          "M4": 3
+        }
       }
     }
   },
@@ -743,7 +797,8 @@
             "step": "M8",
             "what": "no replay half (replay null, no export.py document), so no anomaly reproduced by debug_replay.py --start/--end or mapped to a seam"
           }
-        ]
+        ],
+        "yield": {}
       }
     }
   }

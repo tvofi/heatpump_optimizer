@@ -1,0 +1,777 @@
+{
+  "_comment": [
+    "Round-10 fix wave, draft roster: one group per bug class (PLAN section 8.1), from dev/audit/rounds/round10/ISSUES.json.",
+    "issue is null until filed. files = the class sweep's instance files; after = earlier groups sharing a file. Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
+  ],
+  "fork": null,
+  "session": "claude-code",
+  "repo": "~/heatpump_optimizer",
+  "serial": false,
+  "struck": [],
+  "groups": [
+    {
+      "group": "R10-I1",
+      "issues": [],
+      "issue": null,
+      "class": "I1",
+      "severity": "medium",
+      "findings": [
+        "D3-s1-01",
+        "D3-s1-02",
+        "D3-s2-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/dhw_planner.py",
+        "custom_components/heatpump_optimizer/ledger.py",
+        "custom_components/heatpump_optimizer/narrative.py",
+        "custom_components/heatpump_optimizer/optimizer.py",
+        "custom_components/heatpump_optimizer/pump_arbiter.py",
+        "custom_components/heatpump_optimizer/snapshots.py"
+      ],
+      "after": [],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class I1 across every instance its sweep lists (dev/audit/rounds/round10/sweep-I1.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-I3",
+      "issues": [],
+      "issue": null,
+      "class": "I3",
+      "severity": "low",
+      "findings": [
+        "D11-s1-01",
+        "D13-s1-01"
+      ],
+      "files": [
+        ".claude/hooks/pre-edit.sh",
+        "tools/policy/policy_lint.mjs"
+      ],
+      "after": [],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class I3 across every instance its sweep lists (dev/audit/rounds/round10/sweep-I3.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-I4",
+      "issues": [],
+      "issue": null,
+      "class": "I4",
+      "severity": "medium",
+      "findings": [
+        "D13-s2-02",
+        "D13-s2-51"
+      ],
+      "files": [
+        "tools/policy/policy_lint.mjs"
+      ],
+      "after": [
+        "R10-I3"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class I4 across every instance its sweep lists (dev/audit/rounds/round10/sweep-I4.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-I5",
+      "issues": [],
+      "issue": null,
+      "class": "I5",
+      "severity": "low",
+      "findings": [
+        "D11-s1-51",
+        "D5-s1-01",
+        "D5-s2-01",
+        "D5-s3-01",
+        "D5-s3-51"
+      ],
+      "files": [
+        "README.md",
+        "custom_components/heatpump_optimizer/__init__.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "dev/governance/dimensions/D7.md",
+        "dev/governance/dimensions/D9.md",
+        "docs/configuration.md",
+        "docs/dashboard-card.md",
+        "docs/setup.md",
+        "tests/stress.py",
+        "tests/structure.py"
+      ],
+      "after": [
+        "R10-I1"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class I5 across every instance its sweep lists (dev/audit/rounds/round10/sweep-I5.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-confounded-learner",
+      "issues": [],
+      "issue": null,
+      "class": "N-confounded-learner",
+      "severity": "medium",
+      "findings": [
+        "D2-s3-71"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/accuracy.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-I5"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-confounded-learner across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-confounded-learner.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-future-clamp",
+      "issues": [],
+      "issue": null,
+      "class": "N-future-clamp",
+      "severity": "low",
+      "findings": [
+        "D1-s2-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-N-confounded-learner"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-future-clamp across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-future-clamp.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-gate-yield",
+      "issues": [],
+      "issue": null,
+      "class": "N-gate-yield",
+      "severity": "medium",
+      "findings": [
+        "D13-s2-01"
+      ],
+      "files": [
+        ".claude/workflows/web-fix-wave.js"
+      ],
+      "after": [],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-gate-yield across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-gate-yield.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-log-flood",
+      "issues": [],
+      "issue": null,
+      "class": "N-log-flood",
+      "severity": "low",
+      "findings": [
+        "D1-s2-03"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-N-future-clamp"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-log-flood across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-log-flood.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-move-stale-path",
+      "issues": [],
+      "issue": null,
+      "class": "N-move-stale-path",
+      "severity": "medium",
+      "findings": [
+        "D13-s3-01"
+      ],
+      "files": [
+        "dev/audit/rounds/round3/D11/approval_gate.py",
+        "dev/audit/rounds/round3/D11/conformance.py",
+        "dev/audit/rounds/round3/D11/mechanisms.py",
+        "dev/audit/rounds/round3/D11/standards.py",
+        "dev/audit/rounds/round4/D11/d11_own_D11-03.py",
+        "dev/audit/rounds/round4/D11/d11_own_D11-04.py",
+        "dev/audit/rounds/round4/D11/d11_own_D11-06.py",
+        "dev/audit/rounds/round4/D11/dora_keys.py",
+        "dev/audit/rounds/round4/D11/mechanism_inventory.py",
+        "dev/audit/rounds/round4/D11/merge_census.py",
+        "dev/audit/rounds/round4/D11/ruleset_probe.py",
+        "dev/audit/rounds/round4/D11/standards_scorecard.py",
+        "dev/audit/rounds/round4/D11/untrusted_text.py",
+        "dev/audit/rounds/round4/D11/verdict_sample.py",
+        "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
+        "dev/audit/rounds/round5/D13/seat-a/block_fold.mjs",
+        "dev/audit/rounds/round5/D13/seat-a/friction_keys.mjs",
+        "dev/audit/rounds/round7-fix/governance/report_step_driver.py",
+        "dev/audit/rounds/round8/evidence/D11/s2_owner_closure.py",
+        "dev/audit/rounds/round8/evidence/D11/v1_owner_flip.py",
+        "dev/audit/rounds/round9/D11/s2/owner_review.py",
+        "dev/audit/rounds/round9/D14/s2/i4_roster.py",
+        "dev/audit/rounds/round9/D4/s2/step_grid.py"
+      ],
+      "after": [],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-move-stale-path across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-move-stale-path.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-name-sort",
+      "issues": [],
+      "issue": null,
+      "class": "N-name-sort",
+      "severity": "low",
+      "findings": [
+        "D7-s3-53"
+      ],
+      "files": [
+        "tests/entities.py",
+        "tools/audit/archscore/counters.py"
+      ],
+      "after": [],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-name-sort across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-name-sort.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-no-expiry",
+      "issues": [],
+      "issue": null,
+      "class": "N-no-expiry",
+      "severity": "high",
+      "findings": [
+        "D1-s2-02"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-N-log-flood"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-no-expiry across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-no-expiry.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-period-rollover",
+      "issues": [],
+      "issue": null,
+      "class": "N-period-rollover",
+      "severity": "medium",
+      "findings": [
+        "D2-s3-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/tariff.py"
+      ],
+      "after": [],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-period-rollover across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-period-rollover.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-registry-leak",
+      "issues": [],
+      "issue": null,
+      "class": "N-registry-leak",
+      "severity": "medium",
+      "findings": [
+        "D1-s1-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/early_cutoff.py"
+      ],
+      "after": [],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-registry-leak across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-registry-leak.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-shared-config",
+      "issues": [],
+      "issue": null,
+      "class": "N-shared-config",
+      "severity": "medium",
+      "findings": [
+        "D1-s1-02",
+        "D7-s1-51",
+        "D7-s1-52",
+        "D7-s1-53",
+        "D7-s3-54"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/away.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-N-no-expiry"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-shared-config across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-shared-config.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-silent-zero",
+      "issues": [],
+      "issue": null,
+      "class": "N-silent-zero",
+      "severity": "medium",
+      "findings": [
+        "D1-s3-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-N-shared-config"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-silent-zero across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-silent-zero.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-staleness",
+      "issues": [],
+      "issue": null,
+      "class": "N-staleness",
+      "severity": "medium",
+      "findings": [
+        "D14-s3-02"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/const.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-N-silent-zero"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-staleness across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-staleness.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-N-structure-blind",
+      "issues": [],
+      "issue": null,
+      "class": "N-structure-blind",
+      "severity": "low",
+      "findings": [
+        "D7-s1-01",
+        "D7-s3-01",
+        "D7-s3-02",
+        "D7-s3-51",
+        "D7-s3-52"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+        "tests/structure.py",
+        "tools/audit/archscore/metrics/untyped_payload_keys.py"
+      ],
+      "after": [
+        "R10-I5"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class N-structure-blind across every instance its sweep lists (dev/audit/rounds/round10/sweep-N-structure-blind.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P1",
+      "issues": [],
+      "issue": null,
+      "class": "P1",
+      "severity": "low",
+      "findings": [
+        "D1-s3-02"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/price_model.py"
+      ],
+      "after": [
+        "R10-N-staleness"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P1 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P1.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P10",
+      "issues": [],
+      "issue": null,
+      "class": "P10",
+      "severity": "low",
+      "findings": [
+        "D14-s1-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/away.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-P1"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P10 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P10.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P2",
+      "issues": [],
+      "issue": null,
+      "class": "P2",
+      "severity": "low",
+      "findings": [
+        "D10-s1-51",
+        "D2-s2-01",
+        "D7-s2-01",
+        "D7-s2-51",
+        "D7-s2-52",
+        "D7-s2-53",
+        "D7-s2-54",
+        "D7-s2-55",
+        "D7-s2-56",
+        "D7-s2-57",
+        "D7-s2-59",
+        "D8-s1-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/climate.py",
+        "custom_components/heatpump_optimizer/config_flow.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/dhw_draws.py",
+        "custom_components/heatpump_optimizer/dhw_schedule.py",
+        "custom_components/heatpump_optimizer/freq_control.py",
+        "custom_components/heatpump_optimizer/grid_fee.py",
+        "custom_components/heatpump_optimizer/optimizer.py",
+        "custom_components/heatpump_optimizer/pump_arbiter.py",
+        "custom_components/heatpump_optimizer/quiet_windows.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/services.py",
+        "custom_components/heatpump_optimizer/tariff.py",
+        "custom_components/heatpump_optimizer/thermal_model.py"
+      ],
+      "after": [
+        "R10-N-period-rollover",
+        "R10-P10"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P2 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P2.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P3",
+      "issues": [],
+      "issue": null,
+      "class": "P3",
+      "severity": "medium",
+      "findings": [
+        "D12-s2-71",
+        "D2-s1-71",
+        "D2-s3-73",
+        "D7-s2-58"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/away.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/entry_config.py",
+        "custom_components/heatpump_optimizer/inputs.py",
+        "custom_components/heatpump_optimizer/pump_arbiter.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/store.py",
+        "custom_components/heatpump_optimizer/sysid.py",
+        "custom_components/heatpump_optimizer/thermal_model.py",
+        "custom_components/heatpump_optimizer/wood_fuel.py"
+      ],
+      "after": [
+        "R10-P2"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P3 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P3.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P4",
+      "issues": [],
+      "issue": null,
+      "class": "P4",
+      "severity": "low",
+      "findings": [
+        "D0-s1-01",
+        "D0-s2-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "after": [
+        "R10-I1",
+        "R10-P2"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P4 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P4.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P5",
+      "issues": [],
+      "issue": null,
+      "class": "P5",
+      "severity": "high",
+      "findings": [
+        "D2-s3-72"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [
+        "R10-P3"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P5 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P5.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P6",
+      "issues": [],
+      "issue": null,
+      "class": "P6",
+      "severity": "low",
+      "findings": [
+        "D7-s2-60"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py"
+      ],
+      "after": [
+        "R10-P3"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P6 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P6.md), not only the judged findings. RCA owed."
+    },
+    {
+      "group": "R10-P8",
+      "issues": [],
+      "issue": null,
+      "class": "P8",
+      "severity": "high",
+      "findings": [
+        "D12-s3-01",
+        "D14-s3-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/pump_arbiter.py"
+      ],
+      "after": [
+        "R10-P5"
+      ],
+      "rca": true,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "blocked_on": null,
+      "resume": {
+        "stage": "pending",
+        "note": "Draft roster; no seat started."
+      },
+      "brief": "Fix class P8 across every instance its sweep lists (dev/audit/rounds/round10/sweep-P8.md), not only the judged findings. RCA owed."
+    }
+  ]
+}

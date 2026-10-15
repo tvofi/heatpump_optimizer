@@ -1,0 +1,13 @@
+guard_pins	0	1
+block_duty	0	2
+solar_alignment	0	2
+debug_collect	0	2
+wood_advisor	0	2
+plan_view	0	2
+manual_plan	0	8
+config_flow_steps	0	23
+validate	0	31
+edge	0	34
+finite_boundary	0	130
+optimality	0	174
+features	0	430

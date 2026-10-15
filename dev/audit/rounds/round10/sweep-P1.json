@@ -1,0 +1,7 @@
+{"class": "P1", "instances": 1, "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P1/p1_ts_seams.py",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/price_model.py", "symbol": "prices_from_tibber_payload", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py (startless_rows=96)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._known_prices_for", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py (misplaced_steps=95)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._current_spot_price", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P1/probe_spot_head.py (spot_wrong=1; --perturb 0)", "beyond_finding": true}
+ ]}
