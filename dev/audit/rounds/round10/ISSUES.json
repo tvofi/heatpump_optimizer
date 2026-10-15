@@ -15,7 +15,8 @@
       "findings": [
         "D3-s1-01",
         "D3-s1-02",
-        "D3-s2-01"
+        "D3-s2-01",
+        "D9-s3-01"
       ],
       "files": [
         "custom_components/heatpump_optimizer/coordinator.py",
@@ -99,7 +100,8 @@
         "D5-s1-01",
         "D5-s2-01",
         "D5-s3-01",
-        "D5-s3-51"
+        "D5-s3-51",
+        "ARCH2-s5-hot_water_pumps-label"
       ],
       "files": [
         "README.md",
@@ -376,7 +378,14 @@
         "D7-s1-51",
         "D7-s1-52",
         "D7-s1-53",
-        "D7-s3-54"
+        "D7-s3-54",
+        "ARCH2-s2-P1",
+        "ARCH2-s2-P2",
+        "ARCH2-s2-P3",
+        "ARCH2-s2-P4",
+        "ARCH2-s2-P6",
+        "ARCH2-s2-P7",
+        "D7-s1-82"
       ],
       "files": [
         "custom_components/heatpump_optimizer/away.py",
@@ -457,7 +466,8 @@
         "D7-s3-01",
         "D7-s3-02",
         "D7-s3-51",
-        "D7-s3-52"
+        "D7-s3-52",
+        "D7-s1-83"
       ],
       "files": [
         "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
@@ -484,7 +494,9 @@
     "plan": {
       "severity": "low",
       "findings": [
-        "D1-s3-02"
+        "D1-s3-02",
+        "D7-s2-61",
+        "D7-s4-81"
       ],
       "files": [
         "custom_components/heatpump_optimizer/coordinator.py",
@@ -547,7 +559,12 @@
         "D7-s2-56",
         "D7-s2-57",
         "D7-s2-59",
-        "D8-s1-01"
+        "D8-s1-01",
+        "ARCH2-s5-C1..C4",
+        "ARCH2-s5-F1",
+        "ARCH3-s6-P3",
+        "D7-s3-8x-slotfloor",
+        "D7-s3-8x-tariff"
       ],
       "files": [
         "custom_components/heatpump_optimizer/climate.py",
@@ -588,7 +605,6 @@
       "findings": [
         "D12-s2-71",
         "D2-s1-71",
-        "D2-s3-73",
         "D7-s2-58"
       ],
       "files": [
@@ -643,12 +659,12 @@
       "audit",
       "round-10",
       "class:P5",
-      "sev:high"
+      "sev:medium"
     ],
     "body": "## Class P5\n\n**Mechanism.** A sysid/adoption gate keyed on a quantity other than the bias it gates\n\n## Findings\n\n| id | severity | verdict | harness |\n|---|---|---|---|\n| D2-s3-72 | high | verified (vent trips 17.2-18.7 % at delivery 0.4, 0 at 1.0) | `dev/audit/rounds/round10/study-ident/ident_rolling.py` |\n\n## Sweep instances\n\n| file | symbol | beyond finding | probe |\n|---|---|---|---|\n| `custom_components/heatpump_optimizer/coordinator.py` | HeatPumpOptimizerCoordinator._vent_cusum (fed at the heat-loss replay residual, read in _learning_frozen -> 'ventilation') | no | `python3 dev/audit/rounds/round10/D14/sweep-P5/probe_vent_bias.py` |\n\n## Enumerator\n\n`python3 dev/audit/rounds/round10/D14/sweep-P5/enumerate.py`\n\nSwept: yes; folded into `dev/audit/config/bugclasses.json` by `tools/audit/fold_ledger.py fold --round 10`: judged 1 + beyond_finding 0 = N 1 this round.\n\nRCA: owed -- the ledger trigger met: per_round, cross_round, barriered_any; the class is barriered, so this round's instances say its barrier leaked\n\nEvidence: `dev/audit/rounds/round10/JUDGE.md`, `dev/audit/rounds/round10/sweep-P5.md`, on branch `handoff/audit-r10-register` until the round-10 record pull request merges.",
     "number": 2241,
     "plan": {
-      "severity": "high",
+      "severity": "medium",
       "findings": [
         "D2-s3-72"
       ],
@@ -675,7 +691,8 @@
     "plan": {
       "severity": "low",
       "findings": [
-        "D7-s2-60"
+        "D7-s2-60",
+        "L2-bounded-climate-keys"
       ],
       "files": [
         "custom_components/heatpump_optimizer/sensor.py"
@@ -701,7 +718,9 @@
       "severity": "high",
       "findings": [
         "D12-s3-01",
-        "D14-s3-01"
+        "D14-s3-01",
+        "ARCH3-s6-P2",
+        "L1-smart-write-unit"
       ],
       "files": [
         "custom_components/heatpump_optimizer/coordinator.py",
@@ -711,6 +730,103 @@
         "R10-P5"
       ],
       "rca": true
+    }
+  },
+  {
+    "class": "N-leaf-imports-solver",
+    "title": "[R10-N-leaf-imports-solver] A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve",
+    "labels": [
+      "audit",
+      "round-10",
+      "class:N-leaf-imports-solver",
+      "sev:low"
+    ],
+    "body": "## Class N-leaf-imports-solver\n\n**Mechanism.** A leaf module (store, notifier, debugger, legionella, setpoint helpers) reaches the solver and scipy through one misplaced symbol, so importing the leaf loads the optimizer (~400 ms in a fresh interpreter) and couples it to the solve\n\nNew class, minted by `tools/audit/fold_ledger.py fold --round 10` from the catch-up judgment. Nearest existing: `I2`. Differs: I2 is a measured closure that diverges from the real dependency graph; here the graph itself is wrong (a production import edge into the solver), and the closure measures it faithfully.\n\n## Findings\n\n| id | severity | verdict | harness |\n|---|---|---|---|\n| D7-s4-8x-layering | low | verified (static closure store 28 (optimizer IN) -> 21 out, snapshots 29 -> 22, setpoint_check 22 -> 13, quiet_windows 21 -> 11, silent_mode 20 -> 8; runtime store 29 -> 22, optimizer 1 -> 0 on all five) | `dev/audit/rounds/round10/catchup/arch-b/v2_s4_import_closure.py`; finder `handoff/audit-r10-arch2-s4@b202335e2:dev/audit/rounds/round10/D7/arch2-s4/layering.py` |\n| ARCH3-s6-P4 | low | verified (legionella runtime closure 31 -> 22 modules, solver+scipy IN -> out, import 399 -> 182 ms (load1 5.5, thread_factor 1.000); private_reach 21 -> 17 over P1..P4) | finder `handoff/audit-r10-arch3-s6@532d8d09d:dev/audit/rounds/round10/D7/arch3-s6/runtime_closure.py` |\n\nMerged into a finding above: ARCH3-s6-P1 (merged into D7-s4-8x-layering: s4-P1 takes store, notifier and debugger out of the solver closure on s6's `runtime_closure.py`, every cell s6-P1 claims).\n\n## Sweep instances\n\nnone: the catch-up judgment ran no class sweep.\n\n## Enumerator\n\nnone\n\nSwept: no; folded into `dev/audit/config/bugclasses.json` by `tools/audit/fold_ledger.py fold --round 10`: judged 2 + beyond_finding 0 = N 2 this round.\n\nRCA: not triggered (N=2)\n\nEvidence: `dev/audit/rounds/round10/CATCHUP-JUDGE.md` (with `CATCHUP-JUDGE.json`), `dev/audit/rounds/round10/CATCHUP-VERIFY.md`, on branch `audit/r10-catchup-register` until the round-10 catch-up record pull request merges.",
+    "number": 2247,
+    "plan": {
+      "severity": "low",
+      "findings": [
+        "D7-s4-8x-layering",
+        "ARCH3-s6-P4"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/store.py",
+        "custom_components/heatpump_optimizer/notifier.py",
+        "custom_components/heatpump_optimizer/debugger.py",
+        "custom_components/heatpump_optimizer/legionella.py"
+      ],
+      "after": [],
+      "rca": false
+    }
+  },
+  {
+    "class": "N-restore-race",
+    "title": "[R10-N-restore-race] A restore applies persisted state after an await during which a writer changed the same state, so the stale snapshot overwrites the live write (or the write lands on an object the restore then replaces)",
+    "labels": [
+      "audit",
+      "round-10",
+      "class:N-restore-race",
+      "sev:low"
+    ],
+    "body": "## Class N-restore-race\n\n**Mechanism.** A restore applies persisted state after an await during which a writer changed the same state, so the stale snapshot overwrites the live write (or the write lands on an object the restore then replaces)\n\nNew class, minted by `tools/audit/fold_ledger.py fold --round 10` from the catch-up judgment. Nearest existing: `N-restart`. Differs: N-restart loses a user-set state because the setter persisted too late or not at all; here persistence is correct and the defect is restore-vs-writer ordering inside the load await.\n\n## Findings\n\n| id | severity | verdict | harness |\n|---|---|---|---|\n| L3-restore-session-race | low | weakened (3 of 3 interleavings (away-off, boost cancel, _resolve_away replace) differ from serial order) | `dev/audit/rounds/round10/catchup/leads/l3_restore_race.py` |\n\n## Sweep instances\n\nnone: the catch-up judgment ran no class sweep.\n\n## Enumerator\n\nnone\n\nSwept: no; folded into `dev/audit/config/bugclasses.json` by `tools/audit/fold_ledger.py fold --round 10`: judged 1 + beyond_finding 0 = N 1 this round.\n\nRCA: not triggered (N=1)\n\nEvidence: `dev/audit/rounds/round10/CATCHUP-JUDGE.md` (with `CATCHUP-JUDGE.json`), `dev/audit/rounds/round10/CATCHUP-VERIFY.md`, on branch `audit/r10-catchup-register` until the round-10 catch-up record pull request merges.",
+    "number": 2248,
+    "plan": {
+      "severity": "low",
+      "findings": [
+        "L3-restore-session-race"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/boost.py",
+        "custom_components/heatpump_optimizer/away.py"
+      ],
+      "after": [],
+      "rca": false
+    }
+  },
+  {
+    "class": "N-order-coupling",
+    "title": "[R10-N-order-coupling] Two sibling updaters consume one shared interval and the first closes it destructively, so correctness depends on call order that only a comment and a source-order test hold",
+    "labels": [
+      "audit",
+      "round-10",
+      "class:N-order-coupling",
+      "sev:low"
+    ],
+    "body": "## Class N-order-coupling\n\n**Mechanism.** Two sibling updaters consume one shared interval and the first closes it destructively, so correctness depends on call order that only a comment and a source-order test hold\n\nNew class, minted by `tools/audit/fold_ledger.py fold --round 10` from the catch-up judgment. Nearest existing: `P2`. Differs: P2 is one fact decided twice by divergent predicates; here there is one predicate and one consumer starves the other through a shared, destructively-read state.\n\n## Findings\n\n| id | severity | verdict | harness |\n|---|---|---|---|\n| D7-s4-8x-fabric | low | verified (main: production order lower 12/12, swapped order lower 0/12; P3: 12/12 both orders) | `dev/audit/rounds/round10/catchup/arch-b/v2_s4_fabric.py`; finder `handoff/audit-r10-arch2-s4@b202335e2:dev/audit/rounds/round10/D7/arch2-s4/fabric_order.py` |\n\n## Sweep instances\n\nnone: the catch-up judgment ran no class sweep.\n\n## Enumerator\n\nnone\n\nSwept: no; folded into `dev/audit/config/bugclasses.json` by `tools/audit/fold_ledger.py fold --round 10`: judged 1 + beyond_finding 0 = N 1 this round.\n\nRCA: not triggered (N=1)\n\nEvidence: `dev/audit/rounds/round10/CATCHUP-JUDGE.md` (with `CATCHUP-JUDGE.json`), `dev/audit/rounds/round10/CATCHUP-VERIFY.md`, on branch `audit/r10-catchup-register` until the round-10 catch-up record pull request merges.",
+    "number": 2249,
+    "plan": {
+      "severity": "low",
+      "findings": [
+        "D7-s4-8x-fabric"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "after": [],
+      "rca": false
+    }
+  },
+  {
+    "class": "N-solve-recompute",
+    "title": "[R10-N-solve-recompute] The solve recomputes interpreter-bound work per iterate or per row that is invariant or vectorisable (per-row Python loops, uncached parameter derivations, scalar re-evaluation, polishes whose result is discarded)",
+    "labels": [
+      "audit",
+      "round-10",
+      "class:N-solve-recompute",
+      "sev:low"
+    ],
+    "body": "## Class N-solve-recompute\n\n**Mechanism.** The solve recomputes interpreter-bound work per iterate or per row that is invariant or vectorisable (per-row Python loops, uncached parameter derivations, scalar re-evaluation, polishes whose result is discarded)\n\n`N-solve-recompute` is an existing class (ledger total 15); this is its first round-10 issue, filed from the catch-up judgment.\n\n## Findings\n\n| id | severity | verdict | harness |\n|---|---|---|---|\n| D9-s1-01 | low | weakened (cont sse/grad 192 (+96 cont_fun) -> 97 fused, total SSE 62121 -> 53717; capture CPU 1379-1395 -> 1307-1323 ms (-5.5 %), 3 interleaved reps, load1 4.6-4.8, thread_factor 1.000) | `dev/audit/rounds/round10/catchup/d9/cont_fuse.py`; finder `dev/audit/rounds/round10/D9/s1/sse_grad.py` |\n\n## Sweep instances\n\nnone: the catch-up judgment ran no class sweep.\n\n## Enumerator\n\nnone\n\nSwept: no; folded into `dev/audit/config/bugclasses.json` by `tools/audit/fold_ledger.py fold --round 10`: judged 1 + beyond_finding 0 = N 1 this round.\n\nRCA: on record (`R9-N-solve-recompute`); the class is barriered, so this round's instance says its barrier leaked. `fold_ledger.py check` does not list it OWED, because the RCA document is in tree.\n\nEvidence: `dev/audit/rounds/round10/CATCHUP-JUDGE.md` (with `CATCHUP-JUDGE.json`), `dev/audit/rounds/round10/CATCHUP-VERIFY.md`, on branch `audit/r10-catchup-register` until the round-10 catch-up record pull request merges.",
+    "number": 2250,
+    "plan": {
+      "severity": "low",
+      "findings": [
+        "D9-s1-01"
+      ],
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "after": [],
+      "rca": false
     }
   }
 ]
