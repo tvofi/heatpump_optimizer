@@ -3,7 +3,8 @@
 
     python3 tools/audit/seat/orchestrator_tick.py [--repo OWNER/REPO] [--checkout DIR]
         [--queue FILE] [--train-log FILE] [--workers-file FILE]
-        [--roster-file PATH | --roster-ref GITREF] [--mandate-id N]
+        [--roster-file PATH | --roster-ref GITREF [--roster-path PATH]]
+        [--mandate-id N]
         [--stall-hours H] [--behind-max N] [--only TRAIN,PRS,WORKERS,PLAN,MAIN]
         [--json]
     python3 tools/audit/seat/orchestrator_tick.py --self-test
@@ -220,7 +221,8 @@ class Tick:
                  policy_state: str | None = None,
                  train_log: str | None = None, workers_file: str | None = None,
                  roster_file: str | None = None,
-                 roster_ref: str | None = "origin/handoff/audit-r9-fixplan",
+                 roster_ref: str | None = None,
+                 roster_path: str | None = None,
                  mandate_id: int | None = None, stall_hours: float = 2.0,
                  grace_hours: float = 0.5, behind_max: int = 25,
                  mandate_since_days: int = 14,
@@ -232,6 +234,7 @@ class Tick:
         self.train_log = train_log
         self.workers_file = workers_file
         self.roster_file, self.roster_ref = roster_file, roster_ref
+        self.roster_path = roster_path
         self.mandate_id, self.mandate_since_days = mandate_id, mandate_since_days
         self.stall_hours, self.grace_hours = stall_hours, grace_hours
         self.behind_max = behind_max
@@ -787,16 +790,32 @@ class Tick:
                 self.unreadable(S, f"roster file {self.roster_file}", str(e)[:120])
                 return None, None
         else:
-            code, o = self.git(["show", f"{self.roster_ref or 'origin/main'}:"
-                                f"{rl.ROSTER_PATH}"])
+            # WHICH roster is roster_lib's answer (newest_roster over the
+            # ref's tree, or --roster-path); only the git reads are the
+            # tick's, so the self-test drives them through the stub. A fixed
+            # round-9 path read round 9's groups at a round-10 ref, whose
+            # tree carries both rosters (R10-TICK b).
+            ref = self.roster_ref or rl.DEFAULT_ROSTER_REF
+            path = self.roster_path
+            if not path:
+                code, o = self.git(["ls-tree", "--name-only", ref,
+                                    rl.ROSTERS_DIR + "/"])
+                path = None if code else rl.newest_roster(o.split())
+                if path is None:
+                    self.unreadable(S, f"roster at {ref}",
+                                    o.strip()[-120:] if code else
+                                    f"no {rl.ROSTERS_DIR}/wave-r<N>-groups.json")
+                    return None, None
+            code, o = self.git(["show", f"{ref}:{path}"])
             if code:
-                self.unreadable(S, f"roster at {self.roster_ref}", o.strip()[-120:])
+                self.unreadable(S, f"roster at {ref}:{path}", o.strip()[-120:])
                 return None, None
             try:
                 roster = json.loads(o)
             except ValueError as e:
-                self.unreadable(S, f"roster at {self.roster_ref}", str(e)[:120])
+                self.unreadable(S, f"roster at {ref}:{path}", str(e)[:120])
                 return None, None
+            self.line(S, f"roster {ref}:{path}")
         return rl, roster
 
     # ---------------------------------------------------------------- PLAN
@@ -1997,6 +2016,45 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- PLAN: which roster at a ref (R10-TICK b) ----
+        # A round-10 tree carries round 9's roster too. The tick reads the
+        # newest round unless --roster-path names one; no roster at all is
+        # UNREADABLE, never a silent read of another round's groups.
+        r9p = "dev/programme/rosters/wave-r9-groups.json"
+        r10p = "dev/programme/rosters/wave-r10-groups.json"
+        r9g = json.dumps({"groups": [
+            {"group": "R9-X", "resume": {"stage": "not-started"}}]})
+        r10g = json.dumps({"groups": [
+            {"group": "R10-A", "resume": {"stage": "done"}},
+            {"group": "R10-B", "resume": {"stage": "not-started"},
+             "after": ["R10-A"]}]})
+
+        def ref_tick(listing, **kw2):
+            t2 = tick(roster_ref="origin/r10", **kw2)
+            t2._git.on(("ls-tree", "origin/r10"), out=listing)
+            t2._git.on(f"origin/r10:{r9p}", out=r9g)
+            t2._git.on(f"origin/r10:{r10p}", out=r10g)
+            t2.plan()
+            return t2, [l["text"] for l in t2.sections["PLAN"]]
+
+        t, txt = ref_tick(f"{r9p}\n{r10p}\n")
+        t9, txt9 = ref_tick(f"{r9p}\n{r10p}\n", roster_path=r9p)
+        t0, txt0 = ref_tick("dev/programme/rosters/README.md\n")
+        a, f = check("PLAN roster", [
+            ("two rosters: the newest round's group is unblocked",
+             any(x["text"].startswith("R10-B: UNBLOCKED") for x in t.findings)),
+            ("two rosters: no round-9 group is read",
+             not any("R9-X" in x for x in txt)),
+            ("the roster read is named", f"roster origin/r10:{r10p}" in txt),
+            ("--roster-path wins over the newest",
+             any(x["text"].startswith("R9-X: UNBLOCKED") for x in t9.findings)
+             and not any("R10-" in x for x in txt9)),
+            ("no roster at the ref is UNREADABLE, loudly",
+             any("UNREADABLE: roster at origin/r10" in x["text"]
+                 for x in t0.findings) and not any("R9-X" in x for x in txt0)),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- MAIN ----
         gh = Stub()
         gh.on("commits/main", out=H1)
@@ -2522,7 +2580,11 @@ def main() -> int:
     ap.add_argument("--train-log")
     ap.add_argument("--workers-file")
     ap.add_argument("--roster-file")
-    ap.add_argument("--roster-ref", default="origin/handoff/audit-r9-fixplan")
+    ap.add_argument("--roster-ref", default=None,
+                    help="default origin/main (roster_lib.DEFAULT_ROSTER_REF)")
+    ap.add_argument("--roster-path", default=None,
+                    help="the roster at --roster-ref (default: the newest "
+                         "dev/programme/rosters/wave-r<N>-groups.json there)")
     ap.add_argument("--mandate-id", type=int)
     ap.add_argument("--mandate-since-days", type=int, default=14)
     ap.add_argument("--policy-state",
@@ -2548,7 +2610,8 @@ def main() -> int:
         a.policy_state = str(Path(a.queue[0]).parent / "policy-drift.state")
     t = Tick(a.repo, a.checkout, queue=a.queue, policy_state=a.policy_state, train_log=a.train_log,
              workers_file=a.workers_file, roster_file=a.roster_file,
-             roster_ref=a.roster_ref, mandate_id=a.mandate_id,
+             roster_ref=a.roster_ref, roster_path=a.roster_path,
+             mandate_id=a.mandate_id,
              mandate_since_days=a.mandate_since_days,
              stall_hours=a.stall_hours, behind_max=a.behind_max)
     rep = t.run(only)
