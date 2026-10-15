@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 76 modules, of which 28 import the
+knows nothing about Home Assistant: 77 modules, of which 28 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -78,6 +78,7 @@ custom_components/heatpump_optimizer/
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
 ├── inputs.py             # Guarded state reads with a staleness watchdog
+├── issues.py             # The repair-notice writer: raise, clear, the docs link
 ├── comfort_band.py       # The band's cross-field rules, shared by the config
 │                         #   flow, the apply_schedule service and the thermostat
 │
@@ -195,16 +196,16 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-28 of the 76 modules import `homeassistant` at module level: `__init__`,
+28 of the 77 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
-`dhw_learning`, `diagnostics`, `early_cutoff`, `entity`, `legionella`, `notifier`, `pump_arbiter`, `repairs`, `services`,
-`setpoint_check`, `store`. One module outside that set touches it at all: `inputs`
+`dhw_learning`, `diagnostics`, `early_cutoff`, `entity`, `issues`, `legionella`, `notifier`, `pump_arbiter`, `repairs`, `services`,
+`store`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 47 modules are deliberately free of it, so each can be driven
+The other 48 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
