@@ -18,9 +18,11 @@ let src = fs.readFileSync(CARD_PATH, "utf8");
 if (process.env.HPO_SENT_INJECT) src += '\ntextWidth("x", 10);\n';
 const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const decls = [...code.matchAll(/^function\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+// Every regex metacharacter, backslash included, so a name is matched literally.
+const escapeRe = (s) => s.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
 // An occurrence is a bare identifier: not preceded by [\w$] and not a
 // member access (a single '.'); a spread '...name' counts.
-const uses = (n) => (code.match(new RegExp(`(?<![\\w$])(?<!(?<!\\.\\.)\\.)${n.replace(/\$/g, "\\$")}(?![\\w$])`, "g")) || []).length;
+const uses = (n) => (code.match(new RegExp(`(?<![\\w$])(?<!(?<!\\.\\.)\\.)${escapeRe(n)}(?![\\w$])`, "g")) || []).length;
 const dead = decls.filter((n) => uses(n) === 1);
 console.log("static-dead:", dead.join(",") || "(none)");
 
