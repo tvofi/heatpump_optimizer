@@ -1,0 +1,31 @@
+RESULT mutant=M1 rc=1 fails=2
+    FAIL  haLink builds the three deep links Home Assistant routes
+    FAIL  every LINK_PENDING row still names a button that emits an unconverted link
+RESULT mutant=M2 rc=1 fails=2
+    FAIL  haLink builds the three deep links Home Assistant routes
+    FAIL  haLink without a resolved entry falls back to the domain, never a guessed entry
+RESULT mutant=M3 rc=1 fails=1
+    FAIL  every link a button emits is one haLink builds for this entry
+RESULT mutant=M4 rc=1 fails=1
+    FAIL  the census reached every line that emits a Home Assistant link
+RESULT mutant=M5 rc=1 fails=1
+    FAIL  openSetupSlot opens the slot's picker, focused only from the keyboard
+RESULT mutant=M6 rc=1 fails=1
+    FAIL  every LINK_PENDING row still names a button that emits an unconverted link
+RESULT mutant=R1_bypass rc=1 fails=3
+    FAIL  Assign sensor opens the setup picker for the gap's top slot
+    FAIL  Assign on the power meter opens the Setup picker for that slot
+    FAIL  every link a button emits is one haLink builds for this entry
+RESULT mutant=R1b_bypass_samestring rc=1 fails=0
+    tail: ['    at file:///private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/revdeeplink/tests/card.mjs:3255:9', '', 'Node.js v20.10.0']
+RESULT mutant=R1c_bypass_location rc=1 fails=0
+    tail: ['    at file:///private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/revdeeplink/tests/card.mjs:3255:9', '', 'Node.js v20.10.0']
+RESULT mutant=R1d_bypass_wrongentry rc=1 fails=3
+    FAIL  Assign sensor opens the setup picker for the gap's top slot
+    FAIL  Assign on the power meter opens the Setup picker for that slot
+    FAIL  every link a button emits is one haLink builds for this entry
+RESULT mutant=R2_stale rc=1 fails=1
+    FAIL  every LINK_PENDING row still names a button that emits an unconverted link
+RESULT mutant=R3_openSetupSlot_render rc=0 fails=0
+RESULT mutant=R4_entry_ignored rc=0 fails=0
+RESTORED-CLEAN
