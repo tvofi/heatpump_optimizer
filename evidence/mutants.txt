@@ -1,0 +1,4 @@
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: dev/audit/rounds/round4/D11/dora_keys.py:118 opens '.claude/workflows/cfr_exclusions.json', which resolves to nothing
+FAIL every program live policy or a carry's remeasure tells a seat to run, under a historical p :: policy files 41, carries 8, cited 5 (floors: an arm that finds nothing is not a pass); faults ["dev/audit/rounds/round4/D11/dora_keys.py:118 opens '.claude/workflows/cfr_exclusions.json', which resolves to nothing"]
+PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+ARM FAIL [False, True]
