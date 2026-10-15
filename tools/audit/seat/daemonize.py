@@ -53,7 +53,8 @@ No daemon bookkeeping is kept: the pid is printed and logged, and `kill` by
 that pid is the stop story. An instrument that wants its own locking (the
 proof_watch flock, the gate lease) keeps it — this does not touch locks.
 
-Self-test: offline, no repo state touched. It daemonizes a `python3 -c`
+Self-test: offline, no repo state touched. It parses the command line's
+`-- CMD` and bare forms through `parse_cli`, then daemonizes a `python3 -c`
 child that writes two lines and exits, polls the log for both plus the
 banner, checks the banner's pid equals the pid this process printed, and
 daemonizes a second child against the same log to grade append mode.
@@ -130,9 +131,15 @@ def self_test() -> int:
 
     check("`-- CMD` parses to CMD, the `--` dropped",
           cli("--log", "L", "--", "python3", "-c", "x") == ["python3", "-c", "x"])
+    def env_of(*argv):
+        try:
+            return parse_cli(list(argv)).env_add
+        except SystemExit as e:
+            return f"exit {e.code}"
+
     check("options before `--` still parse",
-          parse_cli(["--log", "L", "--cwd", "/", "--env", "A=1", "--",
-                     "true"]).env_add == {"A": "1"})
+          env_of("--log", "L", "--cwd", "/", "--env", "A=1", "--", "true")
+          == {"A": "1"})
     check("a later `--` belongs to the command",
           cli("--log", "L", "--", "git", "log", "--", "p")
           == ["git", "log", "--", "p"])

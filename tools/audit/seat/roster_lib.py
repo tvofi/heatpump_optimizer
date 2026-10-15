@@ -121,7 +121,11 @@ def show_roster(repo: str, ref: str, path: str | None = None) -> dict:
     the ref's tree is read. A path the ref does not carry refuses loudly.
     """
     path = roster_path(repo, ref, path)
-    return json.loads(_git(repo, "show", f"{ref}:{path}").stdout)
+    r = _git(repo, "show", f"{ref}:{path}")
+    if r.returncode:
+        raise RosterNotFound(f"no roster at {ref}:{path} in {repo}: "
+                             f"{(r.stderr or r.stdout).strip()[:200]}")
+    return json.loads(r.stdout)
 
 
 # A brief opens with an attribution header ("tvofi, 2026-10-04 (...): ") before
@@ -277,10 +281,14 @@ def _self_test() -> int:
             fails.append(f"{name} (got: {got})")
 
     def refuses(call) -> str:
+        """The refusal's text; "" when the call returned, and the crash
+        named when it raised anything else -- a refusal is RosterNotFound."""
         try:
             call()
         except RosterNotFound as e:
             return str(e)
+        except Exception as e:  # noqa: BLE001 -- a crash is not a refusal
+            return f"CRASH, not a refusal: {type(e).__name__}"
         return ""
 
     check("round of a path", roster_round(f"{ROSTERS_DIR}/wave-r10-groups.json") == 10)
@@ -309,7 +317,8 @@ def _self_test() -> int:
         check("no roster at a ref refuses loudly",
               "no dev/programme/rosters/wave-r<N>-groups.json" in why, why)
         why = refuses(lambda: show_roster(str(repo), "HEAD"))
-        check("show_roster with no roster refuses, never falls back", why, why)
+        check("show_roster with no roster refuses, never falls back",
+              why and not why.startswith("CRASH"), why)
         why = refuses(lambda: roster_path(str(Path(td) / "empty")))
         check("no roster on disk refuses loudly", "--roster-path" in why, why)
         put(9, "R9-A")
