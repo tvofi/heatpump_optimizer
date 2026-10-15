@@ -1,0 +1,125 @@
+== head window.json
+SEAM root-cause-unanswered count=37 engineering_max=23 INSTANCE
+SEAM other count=15 engineering_max=23 below
+SEAM conflict count=9 engineering_max=23 below
+SEAM head-moved count=4 engineering_max=23 below
+SEAM carry-missing count=4 engineering_max=23 below
+SEAM claims count=3 engineering_max=23 below
+SEAM untaught:body-stale count=2 engineering_max=23 below
+SEAM untaught:re-cut count=1 engineering_max=23 below
+SEAM untaught:body-false count=1 engineering_max=23 below
+SEAM untaught:body-figures count=1 engineering_max=23 below
+SEAM untaught:conflict-resolution count=1 engineering_max=23 below
+SEAM untaught:record-stale count=1 engineering_max=23 below
+SEAM untaught:instruments-stale count=1 engineering_max=23 below
+RESULT seams=13 instances=1 engineering_max=23
+RESULT blocked_verdicts=124 count
+RESULT block_class[root-cause-unanswered]=37 count
+RESULT block_class[harness]=23 count
+RESULT block_class[other]=15 count
+RESULT block_class[conflict]=9 count
+RESULT block_class[head-moved]=4 count
+RESULT block_class[carry-missing]=4 count
+RESULT block_class[architecture-unsound]=4 count
+RESULT block_class[claims]=3 count
+RESULT block_class[metric-gamed]=2 count
+RESULT block_class[class-open]=2 count
+RESULT block_class[untaught:body-stale]=2 count
+RESULT block_class[untaught:defect]=2 count
+RESULT block_class[untaught:mutation-unpinned]=1 count
+RESULT block_class[untaught:vacuous]=1 count
+RESULT block_class[untaught:re-cut]=1 count
+RESULT block_class[untaught:closures-under-approximated]=1 count
+RESULT block_class[untaught:body-false]=1 count
+RESULT block_class[untaught:null-control-unpinned]=1 count
+RESULT block_class[untaught:docs-code-mismatch]=1 count
+RESULT block_class[untaught:guard]=1 count
+RESULT block_class[untaught:over-fire]=1 count
+RESULT block_class[untaught:d-unbounded]=1 count
+RESULT block_class[untaught:body-figures]=1 count
+RESULT block_class[untaught:skip-abusable]=1 count
+RESULT block_class[untaught:skip-dead]=1 count
+RESULT block_class[untaught:conflict-resolution]=1 count
+RESULT block_class[untaught:record-stale]=1 count
+RESULT block_class[untaught:resolution-docstring-corruption]=1 count
+RESULT block_class[untaught:instruments-stale]=1 count
+RESULT block_bucket[record-and-body]=44 count
+RESULT block_bucket[orchestration]=49 count
+RESULT block_bucket[engineering]=31 count
+RESULT blocked_outside_grammar=0 count
+  PROD verdict_row[root-cause-unanswered] prs=25 entries=37
+RESULT prod_unclassified=0 count
+RESULT friction_entries=89 count
+RESULT friction_one_file=68 count
+RESULT friction_ambiguous=0 count
+RESULT friction_no_file=21 count
+RESULT friction_one_file_share=0.764 ratio
+RESULT friction_prod_key_is_budget_file=66 count
+RESULT friction_rule_file_but_prod_verbatim=2 count
+== head window_rev_planted.json
+SEAM root-cause-unanswered count=37 engineering_max=23 INSTANCE
+SEAM other count=15 engineering_max=23 below
+SEAM conflict count=9 engineering_max=23 below
+SEAM head-moved count=4 engineering_max=23 below
+SEAM carry-missing count=4 engineering_max=23 below
+SEAM claims count=3 engineering_max=23 below
+SEAM untaught:body-stale count=2 engineering_max=23 below
+SEAM root-cause-detectable count=1 engineering_max=23 below
+SEAM root-cause-unrecorded count=1 engineering_max=23 below
+SEAM untaught:root-cause-invented count=1 engineering_max=23 below
+SEAM untaught:re-cut count=1 engineering_max=23 below
+SEAM untaught:body-false count=1 engineering_max=23 below
+SEAM untaught:body-figures count=1 engineering_max=23 below
+SEAM untaught:conflict-resolution count=1 engineering_max=23 below
+SEAM untaught:record-stale count=1 engineering_max=23 below
+SEAM untaught:instruments-stale count=1 engineering_max=23 below
+RESULT seams=16 instances=1 engineering_max=23
+RESULT blocked_verdicts=127 count
+RESULT block_class[root-cause-unanswered]=37 count
+RESULT block_class[harness]=23 count
+RESULT block_class[other]=15 count
+RESULT block_class[conflict]=9 count
+RESULT block_class[head-moved]=4 count
+RESULT block_class[carry-missing]=4 count
+RESULT block_class[architecture-unsound]=4 count
+RESULT block_class[claims]=3 count
+RESULT block_class[metric-gamed]=2 count
+RESULT block_class[class-open]=2 count
+RESULT block_class[untaught:body-stale]=2 count
+RESULT block_class[untaught:defect]=2 count
+RESULT block_class[root-cause-detectable]=1 count
+RESULT block_class[root-cause-unrecorded]=1 count
+RESULT block_class[untaught:root-cause-invented]=1 count
+RESULT block_class[untaught:mutation-unpinned]=1 count
+RESULT block_class[untaught:vacuous]=1 count
+RESULT block_class[untaught:re-cut]=1 count
+RESULT block_class[untaught:closures-under-approximated]=1 count
+RESULT block_class[untaught:body-false]=1 count
+RESULT block_class[untaught:null-control-unpinned]=1 count
+RESULT block_class[untaught:docs-code-mismatch]=1 count
+RESULT block_class[untaught:guard]=1 count
+RESULT block_class[untaught:over-fire]=1 count
+RESULT block_class[untaught:d-unbounded]=1 count
+RESULT block_class[untaught:body-figures]=1 count
+RESULT block_class[untaught:skip-abusable]=1 count
+RESULT block_class[untaught:skip-dead]=1 count
+RESULT block_class[untaught:conflict-resolution]=1 count
+RESULT block_class[untaught:record-stale]=1 count
+RESULT block_class[untaught:resolution-docstring-corruption]=1 count
+RESULT block_class[untaught:instruments-stale]=1 count
+RESULT block_bucket[record-and-body]=44 count
+RESULT block_bucket[orchestration]=52 count
+RESULT block_bucket[engineering]=31 count
+RESULT blocked_outside_grammar=0 count
+  PROD verdict_row[root-cause-unanswered] prs=25 entries=37
+  PROD verdict_row[root-cause-detectable] prs=1 entries=1
+  PROD verdict_row[root-cause-unrecorded] prs=1 entries=1
+  PROD verdict_row[root-cause-invented] prs=1 entries=1
+RESULT prod_unclassified=0 count
+RESULT friction_entries=89 count
+RESULT friction_one_file=68 count
+RESULT friction_ambiguous=0 count
+RESULT friction_no_file=21 count
+RESULT friction_one_file_share=0.764 ratio
+RESULT friction_prod_key_is_budget_file=66 count
+RESULT friction_rule_file_but_prod_verbatim=2 count
