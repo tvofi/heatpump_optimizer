@@ -1,22 +1,18 @@
-Fix review: blocked 25418620f9fb39304e82dceea3ce8d2114ad018f closures-red: the diff's new emitter check makes tests/entities.py read tools/coverage/coverage_tree.sh, an INERT file; closures job 116164533770 printed INERT READS UNDER-APPROXIMATED and closures-autofix 116172854754 refused (skip-merge-failed)
-bus-nonce: d64afca2d7fe235ac47547e8d4a395aa
+Fix review: merge e530ff16701d78656e458acc4da6b40d6ad204ef
+bus-nonce: 4beaafd2bc855474ebda1f87aae592bd
 reviewer: r10-ratchet-reviewer
-round: 2 (same head; round 1 was body-stale)
+round: 3 (round 1 body-stale at 25418620f; round 2 closures-red at 25418620f; rework 0963ab414; main merged at e530ff16)
 
-Head 25418620f9fb39304e82dceea3ce8d2114ad018f re-read at post time: unchanged.
+Head e530ff16701d78656e458acc4da6b40d6ad204ef, re-read at post time: unchanged. Merge base = origin/main 2ff04949f.
 
-Round-1 body-stale: resolved. Title is now "fix(ci-ratchet): count metrics rows only in their own lane file; stop leaking HPO_CI_METRICS to children". I re-read the whole body against the head. It lists 6 files including dev/programme/delivery/2216.md and names the M6 gap. The new claims check out: `git diff --quiet cc326217b HEAD -- <the five fix files>` exits 0, and main's job 116157526420 at c698d504a printed "window: 35", "ok script_runs_per_push: 67 (budget 68)" and "every metric at or under its budget". The body was rewritten before `closures` concluded, so it does not mention that red.
-
-NEW BLOCK, caused by this diff. tests/entities.py's new check "every HPO_CI_METRICS emitter keeps the file from the children it runs" calls Path(p).read_text() on every `git grep -l HPO_CI_METRICS -- '*.sh'` hit. That includes tools/coverage/coverage_tree.sh, and closure.is_inert('tools/coverage/coverage_tree.sh') is True at head. CI's strace recording sees the read:
-  closures job 116164533770 (run 38653583589): "INERT READS UNDER-APPROXIMATED ... tests/entities.py: tools/coverage/coverage_tree.sh", exit 1.
-  closures-autofix job 116172854754: "files on the INERT list are actually read by tests: tools/coverage/coverage_tree.sh ... remove them from INERT in tests/closure.py, or except them", "AUTOFIX: skip-merge-failed -- THE REPAIR DID NOT HAPPEN".
-The fix needs a deliberate classification. Either take coverage_tree.sh off INERT, or add an exception or inert_reads entry for entities.py, with closures.json re-derived. The other option is to read the emitters without a recorded open (unlikely: the check exists to read them). This changes code, so the head moves and gets a fresh review. The fixer's body must also name and answer the closures red (defect-root-cause.md trigger 2). The cheaper detector question is fair: a local `closure.py check` on the recording of entities.py would have shown it.
-
-Carried from round 1 (code unchanged at this head, all still valid):
-RESULT grade base c698d504a on run 38639862216's artifacts: GREW script_runs_per_push 69 (budget 68), rc=1. Head: ok 54, 17 rows not counted, rc=0.
-RESULT rebuilt 38-artifact window: base per_push 69 and full_case_pr 67; head 54 and 54. Zero real rows dropped: every dropped row is a fixture or a nested `fast mode` line. Full-case classification is the same at base and head for all 13 PR runs.
-RESULT mutants (my harness, the three checks copied verbatim): M1, M2, M3, M4, M5, M7 and M8 killed; M6 (unset left only in a comment) survived. The body now names M6.
-RESULT entities.py at head (local): rc=0, ALL 2316 ENTITY CHECKS PASSED.
-RESULT budgets and VERSION untouched; not a raise.
-RESULT check-runs at head (API, 00:09Z): fast (3.14) success; coverage and coverage-ratchet success; pr-contract success (re-run 00:03Z after the re-body); closures FAILURE; closures-autofix FAILURE; nightly-status failure (main's, answered); composed-proof still in progress.
-RESULT code-owned paths: tests/run.sh and tests/derive_closures.sh. tvofi's review is still required.
+RESULT delta 0963ab414..e530ff16: the tree is byte-identical to `git merge-tree --write-tree 0963ab414 2ff04949f` (tree 5aa241da6, empty diff), so there is no hand resolution. The LEDGER-MERGE driver resolved tests/closures.json. Against 2ff04949f, closures.json differs only in closures["tests/entities.py"]: +tools/coverage/coverage_tree.sh, nothing lost, still sorted (267 entries).
+RESULT fix files byte-identical 0963ab414 vs head (git diff --quiet over ci_ratchet.py, closure.py, derive_closures.sh, entities.py, run.sh, coverage_tree.sh: rc 0). Every round-1 and round-2 measurement carries.
+RESULT classification: coverage_tree.sh moves to INERT_EXCEPT and into entities.py's closure. This follows 476dac6e0's composed_proof.sh and R9-RO-4's tools/pr/README.md, the same case of entities.py reading a file under an INERT prefix. An inert_reads entry would not select entities.py on an edit to the emitter it pins. CI's Linux recording agrees: closures success at head (04:17Z), closures-autofix skipped.
+RESULT M6: the emitter check is now `(?m)^\s*unset HPO_CI_METRICS\s*$`. My harness (evidence/emitter_check.py, copied from 0963ab414's entities.py) gives null 0 fails. M6 (run.sh `: # unset ...`) killed; M6b (coverage_tree.sh `# unset ...`) killed; M6c (derive_closures `echo unset ...`) killed.
+RESULT red runs graded. Run 38639862216: base 69 GREW, head 54 (17 not counted). Rebuilt window: base 69/67, head 54/54. Zero real rows dropped across all 15 runs. Main's second red, run 38672094207: fast 15 closures + 2 fast, closures 34 + 1 fast, coverage 20 + 1 fast; base 69 GREW, head 54.
+RESULT mutants carried: M1, M2, M3, M4, M5, M7, M8 killed (round 1). M6 now killed.
+RESULT check-runs at head (API, 04:37Z), all concluded, no failure. Green: closures, fast (3.14), coverage, coverage-ratchet, composed-proof, lane-proofs, wave-script, pr-contract x2, nightly-status, typing, mutation, CodeQL and the rest; the remainder were skipped. mutation green with no production line, so no mutant drawn.
+RESULT conflict: `git merge-tree --write-tree origin/main e530ff16` rc 0.
+RESULT body: re-read in full at head. Head SHA matches, 8 files listed correctly, closures and wave-script reds named and answered with the cheaper-detector discussion, M6 named. The nightly-status paragraph is historical (that check is green at head), which is harmless.
+RESULT budgets: ci_budgets.json and every *_budgets.json untouched. Not a raise. VERSION, manifest and notes untouched.
+RESULT code-owned paths: tests/run.sh, tests/derive_closures.sh, tests/closure.py. tvofi's approving review is still required.

@@ -1,0 +1,16 @@
+head e530ff16701d78656e458acc4da6b40d6ad204ef
+merge-tree 0963ab414+2ff04949f tree: 5aa241da6cf853a7dff1d9e9d2accc5fc546a9f1
+head tree: 5aa241da6cf853a7dff1d9e9d2accc5fc546a9f1
+fix files identical rc=0
+diff --git a/tests/closures.json b/tests/closures.json
+index 9e0c54b26..907ece464 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1386,6 +1386,7 @@
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/state_docs.py",
+    "tools/coverage/composed_proof.sh",
++   "tools/coverage/coverage_tree.sh",
+    "tools/merge/ledger_merge.py",
+    "tools/policy/agreement.mjs",
+    "tools/policy/brief_lint.mjs",
