@@ -764,7 +764,9 @@
     2238,
     2253
    ],
-   "fixes": [],
+   "fixes": [
+    2253
+   ],
    "findings": [
     "ARCH2-s5-C2"
    ],
@@ -850,7 +852,8 @@
    "carry": [
     "The three D4 rows (D4-s1-01, D4-s3-01, D4-s3-02) were UNREPRODUCED by the judge (no browser on the box); they are not owed here. If the browser lane reproduces one on this tab, it folds in.",
     "D4 lead, not owed: \"19%\" against \"19 %\".",
-    "Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop."
+    "Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.",
+    "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so copy that points at a step must name it or link the option's entity. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1123,7 +1126,8 @@
    ],
    "carry": [
     "Null control: savings about 0 on a flat-price profile.",
-    "The what-if delta is computed from noisy single solves; say in the pull request how the horizon removes the noise, with numbers."
+    "The what-if delta is computed from noisy single solves; say in the pull request how the horizon removes the noise, with numbers.",
+    "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so ADVISOR item 7 must name the step in its copy or link the option's entity. This group deletes its own PENDING row advisor:settings in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 25; before you: R10-SAV-BASELINE, R10-SAV-REASONS; next: R10-SCORES, R10-LIVESTATE); heatpump-optimizer-card.js (position 3 of 5; before you: R10-DEEPLINK, R10-UX-SETUP; next: R10-SCORES, R10-UX-HEALTH). Owning seam in this group: the advisor what-if and its card section. Shape: a horizon-averaged delta with a sign check before render. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1939,7 +1943,8 @@
    ],
    "carry": [
     "Item 6 (internal gains peaking around 03:00) is a LEAD to the D2 estimator seat and D15, not owed here unless a finder measures it as a learner artefact.",
-    "Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop."
+    "Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.",
+    "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step (haLink(\"options\") lands on the entry, and its Configure opens the flow). This group deletes its own PENDING rows health:settings and health:diagnostics in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
