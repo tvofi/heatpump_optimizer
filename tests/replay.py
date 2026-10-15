@@ -340,13 +340,13 @@ COST_DETECTION = 2.0
 #: 24 % inside the band (floor 0.213), and every doubled loop arm, 0.581-
 #: 0.682 with its cpu_ratio 2.82-3.24 under 3.576, is over the cap by 36 %.
 #: ``cpu_ratio`` re-recorded down the same way (#2205): #2142's solve memo
-#: cut the cycle to 0.671x (two interleaved local rounds, its merge against
-#: the last nightly head before it), so the five nightlies before it, 2.156-
-#: 2.769, project to 1.446-1.857, and the first after it read 1.880;
-#: sqrt(2) x the geometric midpoint of 1.446 and 1.880 is 2.332, each edge
-#: 19-24 % inside the band.
+#: cut the cycle to 0.656x (R10-RCA-2205's interleaved medians), so all 36
+#: timed slow lanes before it, 1.915-2.824, project to 1.256-1.853; the two
+#: after it read 1.880 and 1.391; sqrt(2) x the geometric midpoint of 1.256
+#: and 1.880 is 2.173, each edge 15.6 % inside the band (floor 1.087).
+#: Re-centre at the next timed week, not on one run.
 COST_BUDGETS: dict[str, dict[str, float]] = {
-    "synthetic-dhw-only.json": {"cpu_ratio": 2.332, "peak_kib": 2686.0,
+    "synthetic-dhw-only.json": {"cpu_ratio": 2.173, "peak_kib": 2686.0,
                                 "loop_cpu_ratio": 0.426},
 }
 #: A reference solve after every this many cycles, beside the ones before
