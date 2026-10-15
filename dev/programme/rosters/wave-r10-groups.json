@@ -89,9 +89,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 1 of 25; before you: none; next: R10-TARIFF, R10-FEEDS). Owning seam in this group: `_command_valve_target` and the set-point write path only; `_roll_month`'s monthly booking belongs to R10-TARIFF, which merges next on coordinator.py. Shape: route every set-point write through the inputs owner; no new state on the coordinator. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2285",
     "branch": "handoff/r10-fahrenheit",
-    "commit": null,
+    "commit": "19ff374e9298e64a19edb5217b38c1dc7e941c08",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
