@@ -17520,6 +17520,58 @@ R.check(
     )
     == 1,
 )
+# R10 D3-s2-01: the two store loaders' quarantine WARNING is the only trace a
+# dropped record leaves, so it must fire once, counting the drop, on a
+# malformed load -- and never on a clean one, where it would cry wolf every
+# start-up.
+import logging as _qw_logging
+from heatpump_optimizer import ledger as _qw_ledger_mod
+from heatpump_optimizer import snapshots as _qw_snap_mod
+
+
+class _QwSink(_qw_logging.Handler):
+    def __init__(self):
+        super().__init__(level=_qw_logging.DEBUG)
+        self.warnings = []
+
+    def emit(self, record):
+        if record.levelno >= _qw_logging.WARNING:
+            self.warnings.append(record.getMessage())
+
+
+def _qw_quarantine_warnings(module, load, payload):
+    sink, logger = _QwSink(), module._LOGGER
+    real_level = logger.level
+    logger.addHandler(sink)
+    logger.setLevel(_qw_logging.DEBUG)
+    try:
+        load(payload)
+    finally:
+        logger.removeHandler(sink)
+        logger.setLevel(real_level)
+    return [m for m in sink.warnings if m.startswith("Quarantined")]
+
+
+_qw_snap = {"taken_at": "2026-01-01T00:00:00+00:00", "accuracy": None,
+            "learners": {}}
+_qw_month = {"lines": {}, "meta": {}}
+for _qw_name, _qw_mod, _qw_load, _qw_clean, _qw_bad in (
+    ("ledger", _qw_ledger_mod, _qw_ledger_mod.MonthlyLedger.from_dict,
+     {"months": {"2026-01": _qw_month}},
+     {"months": {"2026-01": _qw_month, "2026-02": {"lines": 3}}}),
+    ("snapshot ring", _qw_snap_mod, _qw_snap_mod.SnapshotRing.from_dict,
+     {"snapshots": [_qw_snap]}, {"snapshots": [_qw_snap, "junk"]}),
+):
+    _qw_on_clean = _qw_quarantine_warnings(_qw_mod, _qw_load, _qw_clean)
+    _qw_on_bad = _qw_quarantine_warnings(_qw_mod, _qw_load, _qw_bad)
+    R.check(
+        f"the {_qw_name} loader warns once per malformed load, counting the "
+        "drop, and never on a clean load",
+        not _qw_on_clean
+        and len(_qw_on_bad) == 1
+        and _qw_on_bad[0].startswith("Quarantined 1 "),
+        f"clean load warned {_qw_on_clean}, malformed load warned {_qw_on_bad}",
+    )
 _r7 = SnapshotRing()
 _live = {"thermal": {"scale": 1.0}}
 _r7.take(_T4, _live, {"temperature_bias": 0.1}, True)
@@ -33376,6 +33428,42 @@ R.check(
     f"{_wx_empty._weather_stale_since}",
 )
 
+# The raise path's two other rungs (R10 D3-s1-01). With a previous forecast
+# the fetch keeps it, marked stale: the fabricated constant trajectory may
+# replace nothing better (it cost +41.9 % realized). With no previous forecast
+# and no entity state there is nothing to fabricate from, and the fetch stays
+# quiet rather than throwing.
+_wx_kept = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+_wx_kept.hass.services.async_call = _wx_raising_call
+_wx_kept.hass.states.set(
+    _WX_ENTITY,
+    FakeState("cold", attributes={"temperature": "-8.0", "wind_speed": "3.0"}),
+)
+_wx_kept._weather_forecast = [{"temperature": 2.0} for _ in range(24)]
+_asyncio.run(_wx_kept._fetch_weather_forecast())
+R.check(
+    "a raising fetch with a previous forecast keeps it, marked stale",
+    len(_wx_kept._weather_forecast) == 24
+    and all(fc["temperature"] == 2.0 for fc in _wx_kept._weather_forecast)
+    and _wx_kept._weather_stale_since is not None,
+    f"entries {len(_wx_kept._weather_forecast)}, stale since "
+    f"{_wx_kept._weather_stale_since}",
+)
+_wx_bare = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+_wx_bare.hass.services.async_call = _wx_raising_call
+_wx_bare_err = None
+try:
+    _asyncio.run(_wx_bare._fetch_weather_forecast())
+except Exception as _exc:  # the check below names it
+    _wx_bare_err = _exc
+R.check(
+    "a raising fetch with no forecast and no entity state fabricates nothing",
+    _wx_bare_err is None
+    and not _wx_bare._weather_forecast
+    and _wx_bare._weather_stale_since is not None,
+    f"raised {_wx_bare_err!r}, entries {len(_wx_bare._weather_forecast)}",
+)
+
 # R5-D1-07 (#1298): the success path must be exception-safe. One hostile
 # entry in an otherwise healthy forecast reached the bare float() at the
 # parse seam, so the fetch threw AFTER _weather_forecast was replaced but
@@ -37125,6 +37213,64 @@ R.check(
     "a 0.0 baseline step is copied, not treated as missing",
     "baseline_kw" in _act_zero and _act_zero["baseline_kw"] == 0.0,
     repr(_act_zero.get("baseline_kw")),
+)
+
+# R10 D3-s1-02: every optional per-step schedule get_current_action reads is
+# guarded by `X and i < len(X)`, and every other plan in this suite gives all
+# schedules power_schedule's length, so the length half of the twelve guards
+# ran on no input. Here each optional schedule is two steps long on a
+# four-step plan: inside it every key is read, past it every key falls back
+# (absent, None, 0.0 or the plan's own running rule) and nothing raises.
+_short_sched = _SavOR(
+    power_schedule=[1.0] * 4,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[22.0] * 5,
+    timestamps=_ts_sav,
+    prices=[1.0] * 4,
+    predicted_cost=1.0,
+    baseline_cost=2.0,
+    predicted_savings=1.0,
+    savings_percentage=50.0,
+    optimal_setpoints=[21.0] * 4,
+    status="optimal",
+)
+for _ss_name in ("displace_schedule", "dhw_power_schedule",
+                 "baseline_power_schedule", "valve_target_schedule",
+                 "upper_setpoints", "lower_setpoints", "solar_gain_trajectory",
+                 "dhw_temp_trajectory"):
+    setattr(_short_sched, _ss_name, [0.5] * 2)
+_short_sched.heat_pump_on_schedule = [False] * 2
+_short_sched.space_reasons = ["r"] * 2
+_short_sched.dhw_reasons = ["r"] * 2
+_SS_KEYS = ("valve_target", "upper_setpoint", "lower_setpoint",
+            "solar_gain_kw", "dhw_power", "dhw_heating_active", "baseline_kw",
+            "dhw_temperature")
+_ss_in = _bl_opt.get_current_action(_short_sched, _ts_sav[1])
+R.check(
+    "inside a short optional schedule get_current_action reads every key",
+    all(k in _ss_in for k in _SS_KEYS)
+    and _ss_in["displace_value"] == 0.5
+    and _ss_in["heat_pump_on"] is False
+    and _ss_in["space_reason"] == "r"
+    and _ss_in["dhw_reason"] == "r",
+    repr(sorted(_ss_in.items())),
+)
+try:
+    _ss_past = _bl_opt.get_current_action(
+        _short_sched, _ts_sav[3] + timedelta(minutes=1)
+    )
+except Exception as _ss_exc:  # the check below names it
+    _ss_past = {"raised": repr(_ss_exc)}
+R.check(
+    "past a short optional schedule get_current_action falls back on every "
+    "key and raises nothing",
+    "raised" not in _ss_past
+    and not any(k in _ss_past for k in _SS_KEYS)
+    and _ss_past["displace_value"] == 0.0
+    and _ss_past["heat_pump_on"] is True
+    and _ss_past["space_reason"] is None
+    and _ss_past["dhw_reason"] is None,
+    repr(sorted(_ss_past.items())),
 )
 
 # #1499: Heat Pump Action read "off" while the pump ran. The band is keyed on
