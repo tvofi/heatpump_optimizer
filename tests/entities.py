@@ -3870,13 +3870,13 @@ def _p2_registry(sources):
              owners=["grid_fee.py::_parse_cyclic_range"],
              dispositions={
                  "dhw_schedule.py::_parse_day_selector":
-                     "distinct finding (R10-TARIFF report): the hot-water weekday "
+                     "distinct finding (#2238 / R10-ARCH-SHAPES): the hot-water weekday "
                      "selector spells the same wrap in its own tokens; "
                      "dev/audit/harnesses/r10_weekday_range_twins.py reads 0 of "
                      "49 pairs disagreeing",
                  "dhw_schedule.py::_format_day_selector":
-                     "the same distinct finding: the selector's renderer walks "
-                     "the wrap back to a range",
+                     "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
+                     "selector's renderer walks the wrap back to a range",
              }),
     ]
 
