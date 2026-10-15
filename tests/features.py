@@ -17520,6 +17520,58 @@ R.check(
     )
     == 1,
 )
+# R10 D3-s2-01: the two store loaders' quarantine WARNING is the only trace a
+# dropped record leaves, so it must fire once, counting the drop, on a
+# malformed load -- and never on a clean one, where it would cry wolf every
+# start-up.
+import logging as _qw_logging
+from heatpump_optimizer import ledger as _qw_ledger_mod
+from heatpump_optimizer import snapshots as _qw_snap_mod
+
+
+class _QwSink(_qw_logging.Handler):
+    def __init__(self):
+        super().__init__(level=_qw_logging.DEBUG)
+        self.warnings = []
+
+    def emit(self, record):
+        if record.levelno >= _qw_logging.WARNING:
+            self.warnings.append(record.getMessage())
+
+
+def _qw_quarantine_warnings(module, load, payload):
+    sink, logger = _QwSink(), module._LOGGER
+    real_level = logger.level
+    logger.addHandler(sink)
+    logger.setLevel(_qw_logging.DEBUG)
+    try:
+        load(payload)
+    finally:
+        logger.removeHandler(sink)
+        logger.setLevel(real_level)
+    return [m for m in sink.warnings if m.startswith("Quarantined")]
+
+
+_qw_snap = {"taken_at": "2026-01-01T00:00:00+00:00", "accuracy": None,
+            "learners": {}}
+_qw_month = {"lines": {}, "meta": {}}
+for _qw_name, _qw_mod, _qw_load, _qw_clean, _qw_bad in (
+    ("ledger", _qw_ledger_mod, _qw_ledger_mod.MonthlyLedger.from_dict,
+     {"months": {"2026-01": _qw_month}},
+     {"months": {"2026-01": _qw_month, "2026-02": {"lines": 3}}}),
+    ("snapshot ring", _qw_snap_mod, _qw_snap_mod.SnapshotRing.from_dict,
+     {"snapshots": [_qw_snap]}, {"snapshots": [_qw_snap, "junk"]}),
+):
+    _qw_on_clean = _qw_quarantine_warnings(_qw_mod, _qw_load, _qw_clean)
+    _qw_on_bad = _qw_quarantine_warnings(_qw_mod, _qw_load, _qw_bad)
+    R.check(
+        f"the {_qw_name} loader warns once per malformed load, counting the "
+        "drop, and never on a clean load",
+        not _qw_on_clean
+        and len(_qw_on_bad) == 1
+        and _qw_on_bad[0].startswith("Quarantined 1 "),
+        f"clean load warned {_qw_on_clean}, malformed load warned {_qw_on_bad}",
+    )
 _r7 = SnapshotRing()
 _live = {"thermal": {"scale": 1.0}}
 _r7.take(_T4, _live, {"temperature_bias": 0.1}, True)
@@ -33376,6 +33428,42 @@ R.check(
     f"{_wx_empty._weather_stale_since}",
 )
 
+# The raise path's two other rungs (R10 D3-s1-01). With a previous forecast
+# the fetch keeps it, marked stale: the fabricated constant trajectory may
+# replace nothing better (it cost +41.9 % realized). With no previous forecast
+# and no entity state there is nothing to fabricate from, and the fetch stays
+# quiet rather than throwing.
+_wx_kept = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+_wx_kept.hass.services.async_call = _wx_raising_call
+_wx_kept.hass.states.set(
+    _WX_ENTITY,
+    FakeState("cold", attributes={"temperature": "-8.0", "wind_speed": "3.0"}),
+)
+_wx_kept._weather_forecast = [{"temperature": 2.0} for _ in range(24)]
+_asyncio.run(_wx_kept._fetch_weather_forecast())
+R.check(
+    "a raising fetch with a previous forecast keeps it, marked stale",
+    len(_wx_kept._weather_forecast) == 24
+    and all(fc["temperature"] == 2.0 for fc in _wx_kept._weather_forecast)
+    and _wx_kept._weather_stale_since is not None,
+    f"entries {len(_wx_kept._weather_forecast)}, stale since "
+    f"{_wx_kept._weather_stale_since}",
+)
+_wx_bare = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+_wx_bare.hass.services.async_call = _wx_raising_call
+_wx_bare_err = None
+try:
+    _asyncio.run(_wx_bare._fetch_weather_forecast())
+except Exception as _exc:  # the check below names it
+    _wx_bare_err = _exc
+R.check(
+    "a raising fetch with no forecast and no entity state fabricates nothing",
+    _wx_bare_err is None
+    and not _wx_bare._weather_forecast
+    and _wx_bare._weather_stale_since is not None,
+    f"raised {_wx_bare_err!r}, entries {len(_wx_bare._weather_forecast)}",
+)
+
 # R5-D1-07 (#1298): the success path must be exception-safe. One hostile
 # entry in an otherwise healthy forecast reached the bare float() at the
 # parse seam, so the fetch threw AFTER _weather_forecast was replaced but
@@ -37125,6 +37213,64 @@ R.check(
     "a 0.0 baseline step is copied, not treated as missing",
     "baseline_kw" in _act_zero and _act_zero["baseline_kw"] == 0.0,
     repr(_act_zero.get("baseline_kw")),
+)
+
+# R10 D3-s1-02: every optional per-step schedule get_current_action reads is
+# guarded by `X and i < len(X)`, and every other plan in this suite gives all
+# schedules power_schedule's length, so the length half of the twelve guards
+# ran on no input. Here each optional schedule is two steps long on a
+# four-step plan: inside it every key is read, past it every key falls back
+# (absent, None, 0.0 or the plan's own running rule) and nothing raises.
+_short_sched = _SavOR(
+    power_schedule=[1.0] * 4,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[22.0] * 5,
+    timestamps=_ts_sav,
+    prices=[1.0] * 4,
+    predicted_cost=1.0,
+    baseline_cost=2.0,
+    predicted_savings=1.0,
+    savings_percentage=50.0,
+    optimal_setpoints=[21.0] * 4,
+    status="optimal",
+)
+for _ss_name in ("displace_schedule", "dhw_power_schedule",
+                 "baseline_power_schedule", "valve_target_schedule",
+                 "upper_setpoints", "lower_setpoints", "solar_gain_trajectory",
+                 "dhw_temp_trajectory"):
+    setattr(_short_sched, _ss_name, [0.5] * 2)
+_short_sched.heat_pump_on_schedule = [False] * 2
+_short_sched.space_reasons = ["r"] * 2
+_short_sched.dhw_reasons = ["r"] * 2
+_SS_KEYS = ("valve_target", "upper_setpoint", "lower_setpoint",
+            "solar_gain_kw", "dhw_power", "dhw_heating_active", "baseline_kw",
+            "dhw_temperature")
+_ss_in = _bl_opt.get_current_action(_short_sched, _ts_sav[1])
+R.check(
+    "inside a short optional schedule get_current_action reads every key",
+    all(k in _ss_in for k in _SS_KEYS)
+    and _ss_in["displace_value"] == 0.5
+    and _ss_in["heat_pump_on"] is False
+    and _ss_in["space_reason"] == "r"
+    and _ss_in["dhw_reason"] == "r",
+    repr(sorted(_ss_in.items())),
+)
+try:
+    _ss_past = _bl_opt.get_current_action(
+        _short_sched, _ts_sav[3] + timedelta(minutes=1)
+    )
+except Exception as _ss_exc:  # the check below names it
+    _ss_past = {"raised": repr(_ss_exc)}
+R.check(
+    "past a short optional schedule get_current_action falls back on every "
+    "key and raises nothing",
+    "raised" not in _ss_past
+    and not any(k in _ss_past for k in _SS_KEYS)
+    and _ss_past["displace_value"] == 0.0
+    and _ss_past["heat_pump_on"] is True
+    and _ss_past["space_reason"] is None
+    and _ss_past["dhw_reason"] is None,
+    repr(sorted(_ss_past.items())),
 )
 
 # #1499: Heat Pump Action read "off" while the pump ran. The band is keyed on
@@ -55222,6 +55368,272 @@ R.check(
     f"caps {None if _p3_cc_caps is None else _p3_cc_caps.tolist()} vs "
     f"{_p3_cap_at(90.0):.4f}/{_p3_cap_at(60.0):.4f}; at the ambient "
     f"{_p3_cap_at(None):.4f}",
+)
+
+# R10 I1 sweep: every per-step length guard meets a short input. The block
+# builds every fixture it reads, so dev/audit/harnesses/r10_i1_sweep_guards.py
+# can execute it alone against each guard's flip.
+# The round-10 I1 sweep (dev/audit/rounds/round10/sweep-I1.md) enumerated the
+# `<seq> and i < len(<seq>)` guards in the package and traced them through
+# the gate: seventeen beyond the D3 findings never evaluated False, because
+# every plan in this suite gives its optional per-step series the horizon's
+# length. Each is handed a series two steps short here, and each check pins
+# both halves: inside the series the value is read, past it the guard's own
+# fallback stands and nothing raises.
+from harness import FakeEntry as _SwEntry, FakeHass as _SwHass  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HeatPumpOptimizerCoordinator as _SwCoord,
+    _apply_result_payload as _sw_apply_payload,
+)
+from heatpump_optimizer.const import CAPACITY_MIN_SAMPLES as _SW_CAP_MIN  # noqa: E402
+from heatpump_optimizer.dhw_planner import _dhw_windows_at as _sw_windows_at  # noqa: E402
+from heatpump_optimizer.narrative import group_by_reason as _sw_group  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _SwOpt,
+    OptimizationConfig as _SwCfg,
+    OptimizationResult as _SwRes,
+    classify_dhw_steps as _sw_dhw_steps,
+    classify_space_steps as _sw_space_steps,
+)
+from heatpump_optimizer.pump_arbiter import step_duty as _sw_step_duty  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _SwModel,
+    ThermalParameters as _SwParams,
+    ThermalState as _SwState,
+    WeatherSeries as _SwWS,
+)
+
+
+def _sw_try(fn):
+    try:
+        return fn(), None
+    except Exception as exc:  # the check names it
+        return None, repr(exc)
+
+
+_sw_n = 4
+_sw_ts = [
+    datetime(2026, 3, 1, tzinfo=timezone.utc) + timedelta(minutes=15 * i)
+    for i in range(_sw_n)
+]
+_sw_on = np.ones(_sw_n)
+
+# optimizer.classify_space_steps: the PV surplus and heat-loss series.
+_sw_space, _sw_err = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.array([1.5, 1.5]), np.array([1.0, 1.0]), _sw_n,
+))
+_sw_full, _ = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.full(_sw_n, 1.0), np.zeros(_sw_n), _sw_n,
+))
+R.check(
+    "classify_space_steps reads a short surplus and heat-loss series inside "
+    "them and classifies past them as if absent",
+    _sw_err is None and _sw_full is not None
+    and _sw_space[:2] == ["solar_surplus", "solar_surplus"]
+    and _sw_space[2:] == _sw_full[2:],
+    f"raised {_sw_err}, short {_sw_space}, absent {_sw_full}",
+)
+_sw_space_hl, _sw_err = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.array([1.5, 1.5]), None, _sw_n,
+))
+R.check(
+    "...and a short heat-loss series marks weather pre-heat inside it only",
+    _sw_err is None
+    and _sw_space_hl[:2] == ["preheat_weather", "preheat_weather"]
+    and _sw_space_hl[2:] == _sw_full[2:],
+    f"raised {_sw_err}, {_sw_space_hl} vs {_sw_full}",
+)
+
+# optimizer.classify_dhw_steps: the ready-temperature and window series.
+_sw_dhw, _sw_err = _sw_try(lambda: _sw_dhw_steps(
+    _sw_on, np.array([True, True]), np.array([0.0, 55.0]), None, _sw_n,
+))
+R.check(
+    "classify_dhw_steps reads short ready and window series inside them and "
+    "pre-heats past them",
+    _sw_err is None
+    and _sw_dhw == ["dhw_window", "dhw_ready", "dhw_preheat", "dhw_preheat"],
+    f"raised {_sw_err}, {_sw_dhw}",
+)
+
+# narrative.group_by_reason: a reasons list shorter than the schedule.
+_sw_groups, _sw_err = _sw_try(lambda: _sw_group(
+    [1.0] * _sw_n, [2.0] * _sw_n, ["cheap_price"] * 2, 0.25,
+))
+R.check(
+    "group_by_reason books steps past a short reasons list as untagged",
+    _sw_err is None
+    and _sw_groups["cheap_price"]["kwh"] == 0.5
+    and _sw_groups["untagged"]["kwh"] == 0.5,
+    f"raised {_sw_err}, {_sw_groups}",
+)
+
+
+# pump_arbiter.step_duty: power schedules shorter than the timestamps.
+class _SwPlan:
+    timestamps = _sw_ts
+    power_schedule = [1.0, 0.0]
+    dhw_power_schedule = [0.0, 1.0]
+
+
+_sw_duty = [
+    _sw_try(lambda k=k: _sw_step_duty(_SwPlan, _sw_ts[k] + timedelta(minutes=1)))
+    for k in range(_sw_n)
+]
+R.check(
+    "step_duty reads short schedules inside them and reads idle past them",
+    [d for d, _ in _sw_duty] == ["space", "dhw", "idle", "idle"],
+    f"{_sw_duty}",
+)
+
+# dhw_planner._dhw_windows_at: holiday flags shorter than the horizon.
+_sw_normal, _sw_holiday = [(6, 7)], [(10, 11)]
+_sw_win = [
+    _sw_try(lambda k=k: _sw_windows_at(
+        None, None, k, _sw_normal, _sw_holiday, np.array([True, True]),
+    ))
+    for k in range(_sw_n)
+]
+R.check(
+    "a step past short holiday flags gets the ordinary DHW windows",
+    [w for w, _ in _sw_win]
+    == [_sw_holiday, _sw_holiday, _sw_normal, _sw_normal],
+    f"{_sw_win}",
+)
+
+# HeatPumpOptimizer._compute_baseline_power: comfort targets and external
+# heat shorter than the weather.
+_sw_opt = _SwOpt(_SwModel(_SwParams()), _SwCfg(target_temp=21.0))
+_sw_state = _SwState(
+    room_temperature=21.0, slab_temperature=26.0, outdoor_temperature=-5.0
+)
+_sw_wx = dict(
+    outdoor_temps=np.full(_sw_n, -5.0), wind_speeds=np.zeros(_sw_n),
+    precipitation=np.zeros(_sw_n), solar_radiation=np.zeros(_sw_n),
+)
+_sw_bl_ref, _ = _sw_opt._compute_baseline_power(_SwWS(**_sw_wx), _sw_state, 0.25)
+_sw_bl_ct, _sw_err_ct = _sw_try(lambda: _sw_opt._compute_baseline_power(
+    _SwWS(**_sw_wx), _sw_state, 0.25, np.array([21.0, 21.0]),
+)[0])
+_sw_bl_ext, _sw_err_ext = _sw_try(lambda: _sw_opt._compute_baseline_power(
+    _SwWS(**_sw_wx, external_heat_kw=np.zeros(2)), _sw_state, 0.25,
+)[0])
+R.check(
+    "the baseline thermostat holds the configured target past short comfort "
+    "targets and burns no free heat past a short external-heat series",
+    _sw_err_ct is None and _sw_err_ext is None
+    and np.allclose(_sw_bl_ct, _sw_bl_ref)
+    and np.allclose(_sw_bl_ext, _sw_bl_ref),
+    f"raised {_sw_err_ct} / {_sw_err_ext}",
+)
+
+# HeatPumpOptimizer._safety_release_steps: a DHW trajectory that stops one
+# step short reads that step's tank as cold, which releases the off-block
+# before it; the full trajectory, warm throughout, releases nothing.
+_sw_opt._dhw_requirement = np.full(3, 50.0)
+
+
+def _sw_release(traj):
+    res = _SwRes(
+        power_schedule=[0.0] * 3, room_temp_trajectory=[21.0] * 4,
+        slab_temp_trajectory=[22.0] * 4, timestamps=_sw_ts[:3],
+        prices=[1.0] * 3, predicted_cost=0.0, baseline_cost=0.0,
+        predicted_savings=0.0, savings_percentage=0.0,
+        optimal_setpoints=[21.0] * 3, status="optimal",
+        dhw_power_schedule=[0.0] * 3, dhw_temp_trajectory=traj,
+    )
+    return _sw_opt._safety_release_steps(res, np.full(3, 18.0), None, np.zeros(3))
+
+
+_sw_rel, _sw_err = _sw_try(lambda: _sw_release([50.0, 55.0, 55.0]))
+_sw_rel_full, _ = _sw_try(lambda: _sw_release([50.0, 55.0, 55.0, 55.0]))
+R.check(
+    "the DHW safety release reads a short tank trajectory as cold past its end",
+    _sw_err is None and _sw_rel == ([], [0, 1, 2]) and _sw_rel_full == ([], []),
+    f"raised {_sw_err}, released {_sw_rel} short, {_sw_rel_full} full",
+)
+
+# HeatPumpOptimizerCoordinator._plan_slots: the other channel's powers and the
+# reasons, both shorter than the slot.
+_sw_slots, _sw_err = _sw_try(lambda: _SwCoord._plan_slots(
+    _sw_ts, [1.0] * _sw_n, [2.0] * _sw_n, 0.25,
+    reasons=["cheap_price"] * 2, other_powers=[1.0] * 2,
+))
+R.check(
+    "a plan slot counts shared energy and reasons only where the shorter "
+    "series reach",
+    _sw_err is None and len(_sw_slots) == 1
+    and _sw_slots[0].get("shared_kwh") == 0.5
+    and _sw_slots[0].get("reasons") == ["cheap_price"],
+    f"raised {_sw_err}, {_sw_slots}",
+)
+
+# The coordinator's payload: displace, on/off and reason series shorter than
+# the plan, through _build_plan_views (reason_at) and _apply_result_payload.
+_sw_res = _SwRes(
+    power_schedule=[1.0] * _sw_n, room_temp_trajectory=[21.0] * (_sw_n + 1),
+    slab_temp_trajectory=[22.0] * (_sw_n + 1), timestamps=_sw_ts,
+    prices=[1.0] * _sw_n, predicted_cost=10.0, baseline_cost=12.0,
+    predicted_savings=2.0, savings_percentage=16.7,
+    optimal_setpoints=[21.0] * _sw_n, status="optimal",
+    dhw_power_schedule=[0.5] * _sw_n, dhw_temp_trajectory=[50.0] * (_sw_n + 1),
+    displace_schedule=[0.5] * 2, heat_pump_on_schedule=[False] * 2,
+    space_reasons=["cheap_price"] * 2, dhw_reasons=["dhw_window"] * 2,
+)
+
+
+def _sw_coord(**config):
+    return _SwCoord(_SwHass(), _SwEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", **config,
+    }))
+
+
+def _sw_payload():
+    views = _sw_coord(dhw_tank_volume=180.0)._build_plan_views(_sw_res)
+    data: dict = {}
+    _sw_apply_payload(data, _sw_res, {}, views)
+    return views, data
+
+
+_sw_pl, _sw_err = _sw_try(_sw_payload)
+_sw_views, _sw_data = _sw_pl if _sw_pl else ({}, {})
+_sw_sched = _sw_data.get("schedule") or []
+R.check(
+    "the published schedule reads short displace and on/off series inside "
+    "them and falls back past them",
+    _sw_err is None and len(_sw_sched) == _sw_n
+    and [r["displace"] for r in _sw_sched] == [0.5, 0.5, 0.0, 0.0]
+    and [r["heat_pump_on"] for r in _sw_sched] == [False, False, True, True],
+    f"raised {_sw_err}, {_sw_sched}",
+)
+R.check(
+    "the plan forecast carries a reason inside a short reasons list and None "
+    "past it, on both circuits",
+    _sw_err is None
+    and [s["reason"] for s in _sw_views["space_plan"]["forecast"]]
+    == ["cheap_price", "cheap_price", None, None]
+    and [s["reason"] for s in _sw_views["dhw_plan"]["forecast"]]
+    == ["dhw_window", "dhw_window", None, None],
+    f"raised {_sw_err}",
+)
+
+# HeatPumpOptimizerCoordinator._capacity_caps: humidity shorter than the
+# outdoor forecast prices the steps past it at the ambient humidity.
+_sw_cc = _sw_coord(capacity_curve_enabled=True)
+_sw_cc._thermal_params.ambient_humidity = 55.0
+_sw_cc._capacity_envelope[0] = [8.0, _SW_CAP_MIN + 2]
+_sw_cc_caps, _sw_err = _sw_try(lambda: _sw_cc._capacity_caps(
+    np.array([1.0, 1.0, 1.0]), np.array([90.0, 60.0]),
+))
+_sw_cc_ambient = _sw_cc._capacity_caps(np.array([1.0]))
+R.check(
+    "the capacity envelope prices a step past short humidity at the ambient",
+    _sw_err is None and _sw_cc_caps is not None and _sw_cc_ambient is not None
+    and abs(float(_sw_cc_caps[2]) - float(_sw_cc_ambient[0])) < 1e-12,
+    f"raised {_sw_err}, caps {_sw_cc_caps} vs ambient {_sw_cc_ambient}",
 )
 
 # The seam rule, as a barrier (R8-P3; widened in round 2 from the fix review).
