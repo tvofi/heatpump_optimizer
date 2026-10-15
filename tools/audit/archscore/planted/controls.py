@@ -153,11 +153,12 @@ def plan():
     # 4b the payload census through an annotated parameter (counter C14, ARCH-s3 round 10)
     away_call = "        data.update(self._away_state.as_dict())\n"
 
-    def away_helper(w, ret="dict[str, Any]", extra='"probe_away_key": 1'):
+    def away_helper(w, ann="away_mode.AwayState"):
         sub(w, "coordinator.py", away_call, "        data.update(_away_view(self._away_state))\n")
         sub(w, "coordinator.py", "\nclass HeatPumpOptimizerCoordinator(",
-            f"\ndef _away_view(state: away_mode.AwayState) -> {ret}:\n"
-            f"    return {{**state.as_dict(), {extra}}}\n\n\nclass HeatPumpOptimizerCoordinator(")
+            "\nfrom typing import Annotated, Union  # noqa: E402\n\n\n"
+            f"def _away_view(state: {ann}) -> dict[str, Any]:\n"
+            '    return {**state.as_dict(), "probe_away_key": 1}\n\n\nclass HeatPumpOptimizerCoordinator(')
 
     def away_contract(w):
         # The keys AwayState.as_dict's literal publishes, read from the tree, not from the census under test.
@@ -166,8 +167,8 @@ def plan():
         fn = next(f for f in cls.body if isinstance(f, ast.FunctionDef) and f.name == "as_dict")
         ret = next(n for n in ast.walk(fn) if isinstance(n, ast.Return))
         keys = sorted(k.value for k in ret.value.keys) + ["probe_away_key"]
-        sub(w, "coordinator.py", "def _away_view(state: away_mode.AwayState) -> dict[str, Any]:\n",
-            "def _away_view(state: away_mode.AwayState) -> AwayViewProbe:\n")
+        sub(w, "coordinator.py", ") -> dict[str, Any]:\n    return {**state.as_dict(), ",
+            ") -> AwayViewProbe:\n    return {**state.as_dict(), ")
         sub(w, "coordinator.py", "\ndef _away_view(",
             "\nfrom typing import TypedDict  # noqa: E402\n\n\nclass AwayViewProbe(TypedDict, total=False):\n"
             + "".join(f"    {k}: bool | float | str | None\n" for k in keys) + "\n\ndef _away_view(")
@@ -178,6 +179,17 @@ def plan():
         fix=("[on top of control] the helper's return is a TypedDict declaring every key it publishes",
              away_contract),
         on={"fix": "a3_payload_annotated_param_control"},
+    )
+
+    # 4b' the same, the parameter's type spelled in the forms #2293's review found open
+    P["payload_annotated_param_spelling"] = dict(
+        control=("as payload_annotated_param's control, the parameter spelled `Union[None, away_mode.AwayState]`",
+                 lambda w: away_helper(w, "Union[None, away_mode.AwayState]")),
+        control_write=("as payload_annotated_param's control, the parameter spelled `Annotated[away_mode.AwayState, \"x\"]`",
+                       lambda w: away_helper(w, 'Annotated[away_mode.AwayState, "x"]')),
+        fix=("[on top of control] the helper's return is a TypedDict declaring every key it publishes",
+             away_contract),
+        on={"fix": "a3_payload_annotated_param_spelling_control"},
     )
 
     # 4c a key that states no type, spelled other than a bare Any (counter C1b, ARCH-s3 round 10)
