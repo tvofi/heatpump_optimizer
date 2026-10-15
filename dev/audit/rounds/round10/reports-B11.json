@@ -1,0 +1,399 @@
+{
+  "box": "B11",
+  "missing": [],
+  "reports": {
+    "D15-s2": {
+      "dimension": "D15",
+      "baseline_sha": "fe01b938f71b",
+      "report_path": "dev/audit/rounds/round10/D15/s2/REPORT.md",
+      "exposure": "Real bundle diag.json read in place; replay half null; no export.py document.",
+      "coverage": [
+        {
+          "step": "D15.M5",
+          "depth": "none",
+          "evidence": "debug.replay is null in the bundle and no export.py document was supplied; debug_replay.py has nothing to replay"
+        },
+        {
+          "step": "D15.M6",
+          "depth": "deep",
+          "evidence": "m6_monitor.py re-ran AccuracyTracker.temperature_bias/mae per day and SnapshotRing.observe_bias over the 192 stored samples: window bias 0.221, MAE 0.275 (matches diagnostics.accuracy), latch False = recorded False; +1.0 C offset trips it (bias -0.779, 7 days); synthetic null control behaves the same"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D15.M5",
+          "what": "Timeline replay owes a replay half: either a bundle with debug.replay filled or a tools/replay/export.py document from the same box and window"
+        },
+        {
+          "step": "D15.M6",
+          "what": "Days 2026-10-10..12 have no stored accuracy samples (192-sample cap), so those days are not re-run; Cusum has no accuracy_drift latch to compare against"
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "The recorded accuracy_drift latch (alarmed False, bias_days 0) matches the production monitor re-run over the bundle's samples",
+          "command": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round10/D15/s2/m6_monitor.py --bundle <diag.json> [--offset 1.0]",
+          "value": "offset 0: bias 0.221 C, MAE 0.275 C, RERUN alarmed False, agree True; offset 1.0: bias -0.779, alarmed True (harness moves)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D15/s2/m6_monitor.py"
+      ],
+      "leads": []
+    },
+    "D15-s3": {
+      "dimension": "D15",
+      "baseline_sha": "fe01b938f71b",
+      "report_path": "dev/audit/rounds/round10/D15/s3/REPORT.md",
+      "exposure": "none",
+      "coverage": [
+        {
+          "step": "D15.M7",
+          "depth": "spot",
+          "evidence": "row_scan.py over 554 cycle_rows, 3 version segments: 0 solve failures, 0 wall>900s, 0 on/action contradictions, 0 null feeds; self_tests null (vacuous); outliers only in v6.7.17"
+        },
+        {
+          "step": "D15.M8",
+          "depth": "none",
+          "evidence": "bundle replay is null; debug_replay.py --start/--end has nothing to replay"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D15.M7",
+          "what": "v6.7.17 solve-time outliers (payload up to 272 s, wall up to 401 s) cannot be re-checked at baseline without a replay half; only 2 v7.0.0 rows exist"
+        },
+        {
+          "step": "D15.M8",
+          "what": "no replay half (replay null, no export.py document), so no anomaly reproduced by debug_replay.py --start/--end or mapped to a seam"
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "cycle_rows pass the privacy gate and the planted-credential arm fires",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D15/s3/row_scan.py BUNDLE TAGS",
+          "value": "privacy_rows_violations=0"
+        },
+        {
+          "claim": "no solve failures in any version segment",
+          "command": "same",
+          "value": "solve_failures_rows=0 in all 3 segments"
+        },
+        {
+          "claim": "no solve exceeded one 15-min cycle",
+          "command": "same",
+          "value": "wall_over_cycle=0; max 401110 ms (v6.7.17), 30250 ms (v7.0.0)"
+        },
+        {
+          "claim": "heat_pump_on never contradicts action_mode; no null sensor feeds",
+          "command": "same",
+          "value": "on_vs_action_contradictions=0, null_feeds=0"
+        },
+        {
+          "claim": "solve-time outliers are old-version only",
+          "command": "same",
+          "value": "v6.7.17 wall_max 272936/401110 ms; v7.0.0 (2 rows) wall_max 30250 ms"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D15/s3/row_scan.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "solve wall time",
+          "what": "live box v6.7.17 solve_wall_ms p50 20-27 s, max 401 s on the user's HA host; re-check at baseline with a replay (D9)"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer (accuracy monitor)",
+          "symbol": "accuracy power_ratio / cost_error_percent",
+          "what": "diagnostics.accuracy power_ratio 0.404, cost_error_percent 133.15, lead_sigma 24h 2.625 vs 12h 0.434: candidate for the M6 monitor re-run"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer (debug collector)",
+          "symbol": "DebugCollector manifest self_tests / replay",
+          "what": "manifest.self_tests and replay are both null in the live download, so the self-test re-derivation and timeline replay steps run on nothing"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer (debug collector)",
+          "symbol": "cycle_rows first row after restart",
+          "what": "first v7.0.0 row after restart has no action_mode/action_kw/heat_pump_on keys"
+        }
+      ]
+    },
+    "D15-s1": {
+      "dimension": "D15",
+      "baseline_sha": "fe01b938f71b",
+      "report_path": "dev/audit/rounds/round10/D15/s1/REPORT.md",
+      "exposure": "none: no docs/ or GitHub read; real bundle read in place; only counts written",
+      "coverage": [
+        {
+          "step": "D15.M1",
+          "depth": "deep",
+          "evidence": "intake.py: bundle_unwrapped=1, restart_gaps=1, rows v6.7.17=552, v7.0.0=2 (tags from r10-repo for-each-ref); synthetic null control untagged=48"
+        },
+        {
+          "step": "D15.M2",
+          "depth": "deep",
+          "evidence": "intake.py: leak_probe_controls_green=42/42, planted_arm_violations=2, bundle_violations=209 (208 text-allowlist, 1 credential-key on a bool, 0 SECRET_TEXT/HOST_PATH/HEX12 hits)"
+        },
+        {
+          "step": "D15.M3",
+          "depth": "deep",
+          "evidence": "debug_ingest.ingest wrapped fails=6, unwrapped fails=1 (bias-rederived, delta 0.115), --corrupt accuracy 192->0 refused; replay-clean vacuous on null replay"
+        },
+        {
+          "step": "D15.M4",
+          "depth": "deep",
+          "evidence": "14 stores, sanitize dirty=0, refused versions=0, off-domain/undeclared leaves=25 (pump_duty silent, snapshots peak_tracker); synthetic=0"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D15.M2",
+          "what": "export.violations over the whole bundle fails (209, benign prose under the text allowlist), which by the brief stops the run; M3/M4 measured in memory with counts only, no bundle value written"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D15-s1-01",
+          "scope": "D15-s1",
+          "step": "D15.M3",
+          "title": "debug_ingest stage-4 bias re-derivation tails repeated cycle rows, false-failing on a real bundle",
+          "severity": "medium",
+          "claim": "ingest compares the store-window bias to the last N cycle rows' accuracy_sample, but every row repeats the latest sample (192 tail rows = 78 distinct samples), so delta=0.115 C and bias-rederived fails; matched by sample t the delta is 0.000",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
+            "value": "bias_delta_tail=0.115; bias_delta_by_t=0.0; ingest_fails_unwrapped=1",
+            "unit": "celsius / count",
+            "baseline_sha": "fe01b938f71b",
+            "machine": "B11 macOS arm64",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "contention-immune counts",
+            "tolerance": "0.001",
+            "load1": "5.51",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "tools/replay/debug_ingest.py:ingest",
+          "perturbation": {
+            "change": "--perturb dedupe: rows deduplicated by sample t and store window restricted to them",
+            "expected_direction": "ingest_fails_unwrapped 1 -> 0, accuracy_bias_delta 0.115 -> 0.0"
+          },
+          "metric_definition": "|store-window temperature_bias - rows-window temperature_bias| as gated by ingest stage 4 (< 0.05)",
+          "phenomenon_property": "a re-derivation over cycle_rows must key samples by their own t, not by row position",
+          "seam_rule": "grep -n 'accuracy_sample' tools/replay/*.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "tools/replay/debug_ingest.py"
+          ],
+          "proposed_fix_scope": "dedupe row samples by t and compare on the shared window",
+          "provisional": false
+        },
+        {
+          "id": "D15-s1-02",
+          "scope": "D15-s1",
+          "step": "D15.M3",
+          "title": "debug_ingest replay-clean passes vacuously when the replay half is null",
+          "severity": "low",
+          "claim": "stage 2 runs export.violations over bundle['replay'] or {} and passes on the empty dict; the live bundle's replay is null",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
+            "value": "replay_clean_passed_on_absent_replay=1",
+            "unit": "bool",
+            "baseline_sha": "fe01b938f71b",
+            "machine": "B11 macOS arm64",
+            "cpu_or_wall": "n/a",
+            "contention_note": "count",
+            "tolerance": "exact",
+            "load1": "5.51",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "tools/replay/debug_ingest.py:ingest",
+          "perturbation": {
+            "change": "--perturb nonempty: violations on an empty replay returns a refusal",
+            "expected_direction": "replay_clean_passed_on_absent_replay 1 -> 0"
+          },
+          "metric_definition": "1 when replay-clean is ok and the bundle's replay half is empty",
+          "phenomenon_property": "a privacy check must fail, not pass, on an absent section",
+          "seam_rule": "grep -n 'or {}' tools/replay/debug_ingest.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "tools/replay/debug_ingest.py"
+          ],
+          "proposed_fix_scope": "refuse or mark skipped when replay is empty",
+          "provisional": false
+        },
+        {
+          "id": "D15-s1-03",
+          "scope": "D15-s1",
+          "step": "D15.M3",
+          "title": "debug_ingest --bundle fails 6 of 12 stages on the download as handed (no data.debug unwrap)",
+          "severity": "low",
+          "claim": "the Download diagnostics file nests hpo-debug/1 under data.debug; ingest reads the top level, so schema/manifest/rows/stores/bias fail",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
+            "value": "ingest_fails_wrapped=6",
+            "unit": "count",
+            "baseline_sha": "fe01b938f71b",
+            "machine": "B11 macOS arm64",
+            "cpu_or_wall": "n/a",
+            "contention_note": "count",
+            "tolerance": "exact",
+            "load1": "5.51",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "tools/replay/debug_ingest.py:ingest",
+          "perturbation": {
+            "change": "--perturb unwrap: take data.debug before ingest",
+            "expected_direction": "ingest_fails_wrapped 6 -> 1"
+          },
+          "metric_definition": "count of failed ingest stages on the unmodified download file",
+          "phenomenon_property": "bundle loaders must accept the download envelope",
+          "seam_rule": "grep -n 'def load_bundle' tools/replay/*.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "tools/replay/debug_ingest.py"
+          ],
+          "proposed_fix_scope": "unwrap data.debug in load_bundle",
+          "provisional": false
+        },
+        {
+          "id": "D15-s1-04",
+          "scope": "D15-s1",
+          "step": "D15.M2",
+          "title": "export credential-named-key rule flags a boolean value",
+          "severity": "low",
+          "claim": "export._walk reports 'a credential-named key carries a value' for diagnostics.tibber_reauth_started=False, since False is not in (None,'',[],{})",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
+            "value": "bundle_credential_key_violations=1",
+            "unit": "count",
+            "baseline_sha": "fe01b938f71b",
+            "machine": "B11 macOS arm64",
+            "cpu_or_wall": "n/a",
+            "contention_note": "count",
+            "tolerance": "exact",
+            "load1": "5.51",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "tools/replay/export.py:_walk",
+          "perturbation": {
+            "change": "--perturb boolkey: credential-key rule skips bool values",
+            "expected_direction": "bundle_credential_key_violations 1 -> 0"
+          },
+          "metric_definition": "count of credential-named-key violations in export.violations over data.debug",
+          "phenomenon_property": "the credential-key rule must judge only value types that can carry a secret",
+          "seam_rule": "grep -n 'SECRET_KEY.search' tools/replay/export.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "tools/replay/export.py"
+          ],
+          "proposed_fix_scope": "exempt bool from the credential-key rule",
+          "provisional": false
+        },
+        {
+          "id": "D15-s1-05",
+          "scope": "D15-s1",
+          "step": "D15.M4",
+          "title": "store.DOMAINS omits writer fields pump_duty written/silent and snapshots learners peak_tracker",
+          "severity": "medium",
+          "claim": "25 stored leaves in the real stores have no declaration in store.DOMAINS (pump_arbiter _SLOTS writes 'silent'; snapshot learners carry peak_tracker); synthetic bundle shows 0",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
+            "value": "store_off_domain_fields=25",
+            "unit": "count",
+            "baseline_sha": "fe01b938f71b",
+            "machine": "B11 macOS arm64",
+            "cpu_or_wall": "n/a",
+            "contention_note": "count",
+            "tolerance": "exact",
+            "load1": "5.51",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/store.py:stored_fields",
+          "perturbation": {
+            "change": "--perturb declare: add written/silent/0,1 to pump_duty and alias snapshots/#/learners/peak_tracker to accuracy/peaks",
+            "expected_direction": "store_off_domain_fields 25 -> 0"
+          },
+          "metric_definition": "count of stored_fields leaves with domain None or outside in_domain, over every store document of the bundle",
+          "phenomenon_property": "every field a store writer persists has a DOMAINS declaration",
+          "seam_rule": "python: for each bundle store, store.stored_fields(_store_name(key), doc) with domain None",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/store.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/snapshots.py"
+          ],
+          "proposed_fix_scope": "declare the silent slot and peak_tracker learner in DOMAINS",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "LEAK_PROBES controls green",
+          "command": "intake.py --bundle <diag.json>",
+          "value": "leak_probe_controls_green=42/42"
+        },
+        {
+          "claim": "planted credential caught",
+          "command": "intake.py --bundle <diag.json>",
+          "value": "planted_arm_violations=2"
+        },
+        {
+          "claim": "no secret/host/hex text in bundle; 208 violations are benign prose under the text allowlist",
+          "command": "intake.py --bundle <diag.json>",
+          "value": "bundle_text_allowlist_violations=208, SECRET_TEXT/HOST_PATH/HEX12 hits=0"
+        },
+        {
+          "claim": "store sanitize idempotent and versions accepted",
+          "command": "intake.py --bundle <diag.json>",
+          "value": "store_sanitize_dirty=0, store_refused_version=0 over 14 stores"
+        },
+        {
+          "claim": "--corrupt accuracy refused by loader",
+          "command": "tools/replay/debug_ingest.py on data.debug --corrupt accuracy",
+          "value": "accuracy_samples_loaded 192 -> 0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D15/s1/intake.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D15-s2",
+          "file": "custom_components/heatpump_optimizer/accuracy.py",
+          "symbol": "AccuracyTracker samples",
+          "what": "accuracy samples stop for 115 h (store gap after 2026-10-09T01:11+02) while cycle rows continue every ~15 min; one sample repeated across 446 rows (v6.7.17 window, re-check at baseline)"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tools/replay/export.py",
+          "symbol": "violations / text_ok",
+          "what": "D15.M2 runs export.violations over the whole debug bundle, but its text allowlist refuses benign prose (208 hits), so the gate can never pass on a real bundle; brief/allowlist mismatch"
+        },
+        {
+          "owner_seat": "D15-s2",
+          "file": "custom_components/heatpump_optimizer/debugger.py",
+          "symbol": "DebugCollector.async_bundle",
+          "what": "replay half null in live bundle, so M5 timeline replay cannot run"
+        }
+      ]
+    }
+  }
+}
