@@ -13,8 +13,9 @@ throwaway bare repository, so nothing it does reaches GitHub, then drives the
 tools of `--tree` (a worktree at the commit under test) against it:
 
   wire_r10       roster_edit.py wire-issue <r10 group> <issue> at the roster
-                 ref, without --push: its rc, and which roster file the local
-                 commit touched;
+                 ref, without --push: its rc (0 ready, 2 refused, 3 the lint
+                 gate refused a committed edit), and which roster file the
+                 local commit touched;
   null_r9_main   the null control: the same op on a round-9 group at `main`,
                  where only round 9's roster exists -- it must succeed at the
                  base AND at the head (the fix changes nothing with one roster);
@@ -81,6 +82,16 @@ def main() -> int:
                 return 2
             drv = tmp / "drv"
             throwaway_git_clone(bare, drv, "-q")
+            # The roster's briefs cite commits on other refs, which
+            # brief_lint (the roster_edit lint gate) resolves. Borrow the real
+            # clone's object store read-only, so a lint refusal is the
+            # roster's own and never an artifact of the two-ref mirror.
+            objs = Path(sh(["git", "-C", a.repo, "rev-parse",
+                            "--git-common-dir"]).stdout.strip())
+            objs = (objs if objs.is_absolute() else Path(a.repo) / objs) / "objects"
+            (drv / ".git" / "objects" / "info").mkdir(parents=True, exist_ok=True)
+            (drv / ".git" / "objects" / "info" / "alternates").write_text(
+                f"{objs.resolve()}\n", encoding="utf-8")
             r9_group = a.r9_group or json.loads(sh(
                 ["git", "-C", str(drv), "show", f"origin/main:{R9}"]
             ).stdout)["groups"][0]["group"]
