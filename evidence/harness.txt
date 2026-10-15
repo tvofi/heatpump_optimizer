@@ -1,0 +1,26 @@
+== base
+RESULT live_guard=10 count
+RESULT state_sig=4 count
+RESULT null_number=5 count
+RESULT finite_inline=7 count
+RESULT picker_open=3 count
+RESULT char_width_inline=2 count
+RESULT no_plan_state=2 count
+RESULT total=33 count
+  dead: top:textWidth
+RESULT definitions=467 count
+RESULT dead=1 count
+RESULT base.js dead_entity_lines=12 isfinite_lines=7 nullish3_lines=5 char_width_lines=3 no_plan_lines=4 picker_lines=5 total=36
+== head
+RESULT live_guard=10 count
+RESULT state_sig=4 count
+RESULT null_number=5 count
+RESULT finite_inline=7 count
+RESULT picker_open=1 count
+RESULT char_width_inline=2 count
+RESULT no_plan_state=2 count
+RESULT total=31 count
+  dead: top:textWidth top:openHaLink
+RESULT definitions=471 count
+RESULT dead=2 count
+RESULT head.js dead_entity_lines=12 isfinite_lines=7 nullish3_lines=5 char_width_lines=3 no_plan_lines=4 picker_lines=3 total=34
