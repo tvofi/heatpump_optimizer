@@ -22,7 +22,9 @@
 //   --page-all      swap fetchWindow's map for the fully paginated map: truncation -> 0.
 // RUN (repo root): GITHUB_TOKEN=$(gh auth token) PYTHONPATH=tests/hastub \
 //   node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7 [--reshape-one] [--page-all]
-// Raw API answers are cached under $TMPDIR/d13s1-cache-<since>/ (delete it to re-fetch).
+// Raw API answers are cached under ~/.cache/hpo/d13s1-cache-<since>/, created
+// owner-only (0700) (delete it to re-fetch). Not the shared temp dir: a
+// predictable name there lets another user plant or swap the cached answers.
 // EXPECTED at baseline 17f1c55fad1b, window 1913f0dd7..origin/main (exact, counts):
 //   window=185 api_failures=0; see REPORT.md for the rest.
 // MACHINE: macOS arm64 (Darwin 25.6.0), node, B8 light seat. Counts: no thread pin needed
@@ -41,14 +43,20 @@ const PAGE_ALL = argv.includes('--page-all')
 const token = process.env.GITHUB_TOKEN
 if (!token) { console.error('GITHUB_TOKEN required'); process.exit(2) }
 const slug = 'tvofi/heatpump_optimizer'
-const cacheDir = path.join(process.env.TMPDIR || os.tmpdir(), `d13s1-cache-${since}`)
-fs.mkdirSync(cacheDir, { recursive: true })
+const cacheDir = path.join(os.homedir(), '.cache', 'hpo', `d13s1-cache-${since}`)
+fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 })
+fs.chmodSync(cacheDir, 0o700)
+// Read a cache entry in one call: an exists-then-read pair races a writer.
+function readCache(file) {
+  try { return fs.readFileSync(file, 'utf8') } catch (e) { if (e.code === 'ENOENT') return null; throw e }
+}
 
 let apiFailures = 0
 let apiRequests = 0
 function get(p) {
   const key = path.join(cacheDir, p.replace(/[^A-Za-z0-9]+/g, '_') + '.json')
-  if (fs.existsSync(key)) return JSON.parse(fs.readFileSync(key, 'utf8'))
+  const hit = readCache(key)
+  if (hit !== null) return JSON.parse(hit)
   apiRequests += 1
   const raw = execFileSync('curl', ['-sS', '-w', '\n%{http_code}', '-K', '-', 'https://api.github.com' + p], {
     input: `header = "Authorization: Bearer ${token}"\nheader = "Accept: application/vnd.github+json"\n`,
@@ -57,7 +65,7 @@ function get(p) {
   const cut = raw.lastIndexOf('\n')
   if (raw.slice(cut + 1).trim() !== '200') { apiFailures += 1; return null }
   const data = JSON.parse(raw.slice(0, cut))
-  fs.writeFileSync(key, JSON.stringify(data))
+  fs.writeFileSync(key, JSON.stringify(data), { mode: 0o600 })
   return data
 }
 function getAll(p) {
@@ -104,12 +112,13 @@ for (const { pr } of prs) {
 console.log(`RESULT api_failures_after_bodies=${apiFailures} count`)
 const prodCache = path.join(cacheDir, 'fetchWindow.json')
 let paged
-if (fs.existsSync(prodCache)) paged = new Map(JSON.parse(fs.readFileSync(prodCache, 'utf8')))
+const prodHit = readCache(prodCache)
+if (prodHit !== null) paged = new Map(JSON.parse(prodHit))
 else {
   const r = PL.fetchWindow(prs)
   if (r.fetchError) { console.log(`fetchWindow error: ${r.fetchError}`); process.exit(1) }
   paged = r.fetched
-  fs.writeFileSync(prodCache, JSON.stringify([...paged]))
+  fs.writeFileSync(prodCache, JSON.stringify([...paged]), { mode: 0o600 })
 }
 const classes = ['blocked', 'merge']
 const re = PL.waveVerdictRe()

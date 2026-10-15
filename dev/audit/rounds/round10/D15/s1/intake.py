@@ -200,7 +200,9 @@ def m4(dbg, perturb=""):
                if d is None or not store_mod.in_domain(d, v)]
         off += len(bad)
         for p, v in bad[:3]:
-            print(f"  off-domain {name}: {'/'.join(map(str, p))}={str(v)[:40]}")
+            # the path and the value's type only: a store document can hold a
+            # credential, and this line goes to stdout and into evidence logs
+            print(f"  off-domain {name}: {'/'.join(map(str, p))} ({type(v).__name__})")
     sv = dbg["manifest"].get("store_versions") or {}
     for key, ver in sv.items():
         name = store_mod._store_name(key)

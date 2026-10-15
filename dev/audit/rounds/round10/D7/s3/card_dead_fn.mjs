@@ -20,7 +20,7 @@ const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const decls = [...code.matchAll(/^function\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
 // An occurrence is a bare identifier: not preceded by [\w$] and not a
 // member access (a single '.'); a spread '...name' counts.
-const uses = (n) => (code.match(new RegExp(`(?<![\\w$])(?<!(?<!\\.\\.)\\.)${n.replace("$", "\\$")}(?![\\w$])`, "g")) || []).length;
+const uses = (n) => (code.match(new RegExp(`(?<![\\w$])(?<!(?<!\\.\\.)\\.)${n.replace(/\$/g, "\\$")}(?![\\w$])`, "g")) || []).length;
 const dead = decls.filter((n) => uses(n) === 1);
 console.log("static-dead:", dead.join(",") || "(none)");
 
