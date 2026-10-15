@@ -286,7 +286,7 @@ def plan():
                             "from . import topology\nfrom . import mixing_valve\n")),
     )
 
-    # 6b layer_bound: modules a heavy boundary binds (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)
+    # 6b layer_violations: modules reaching a layer above their own (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)
     def step_clock(w):
         src = _p(w, "optimizer.py").read_text()
         a, b = func_span(src, "_utc_step_starts")
@@ -302,11 +302,11 @@ def plan():
         sub(w, "silent_mode.py", "from .optimizer import _utc_step_starts\n",
             "from .step_clock import utc_step_starts as _utc_step_starts\n")
 
-    P["layer_bound"] = dict(
-        control=("drift.py imports the optimizer, so the solver's scipy binds it",
+    P["layer_violations"] = dict(
+        control=("drift.py, a pure module, imports the optimizer, so it reaches the solver's layer",
                  lambda w: sub(w, "drift.py", "import numpy as np\n",
                                "import numpy as np\n\nfrom .optimizer import HeatPumpOptimizer  # noqa: F401\n")),
-        fix=("the horizon clock moves out of the optimizer into step_clock.py; silent_mode imports it there",
+        fix=("the horizon clock moves out of the optimizer into step_clock.py; silent_mode, pure, imports it there",
              step_clock),
         null=("silent_mode's optimizer import moves above its const import (same module level, same edge)",
               lambda w: (sub(w, "silent_mode.py", "from .optimizer import _utc_step_starts\n", ""),

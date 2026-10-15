@@ -1,43 +1,48 @@
-"""layering: how many package modules are bound to each heavy boundary, and how many private names cross
-a module boundary (R10-ARCHSCORE-COVERAGE item 1; ARCH2-s4, round 10).
+"""layering: package modules that reach a heavier layer than their own, and private names that cross a
+module boundary (R10-ARCHSCORE-COVERAGE item 1; ARCH2-s4, round 10).
 
-Two counts over the package's import graph. An edge is a relative import at ANY scope, a function's
-``from .optimizer import f`` included, because a lazy import is the same coupling paid later (counter C17).
-An import under ``if TYPE_CHECKING:`` is no edge: nothing runs it.
+The layers, lowest first: a PURE module (it imports neither boundary), the SOLVER layer (it imports scipy),
+the GLUE layer (it imports Home Assistant). A module's layer is the highest boundary it imports itself.
+An import may go down or across, never up: glue may use the solver and pure code, the solver may use pure
+code. Over the package's import graph -- a relative import at ANY scope is an edge, a function's
+``from .optimizer import f`` included, because a lazy import is the same coupling paid later (counter
+C17); an import under ``if TYPE_CHECKING:`` is no edge, nothing runs it --
 
-  layer_bound      per boundary in LAYERS, the modules that cannot load without it: those importing it,
-                   and those reaching a module that does. A light module dragging in the solver's dependency
-                   (``store`` reached the optimizer, and with it scipy, through ``quiet_windows``' import of
-                   ``optimizer._utc_step_starts``) or a pure model module dragging in Home Assistant is a
-                   module the boundary binds although it never names it; one that imports the boundary
-                   itself is bound too, so adding the import to escape the reach moves nothing (counter
-                   C19, attempt 23).
+  layer_violations   modules that reach, through other package modules, a layer above their own: a pure
+                     module that cannot load without scipy (``quiet_windows`` and ``silent_mode`` reached
+                     the optimizer for its private ``_utc_step_starts``) or without Home Assistant, or a
+                     solver module that drags in Home Assistant. A decomposition does not move it: a module
+                     extracted from the glue that imports Home Assistant is glue.
   private_cross_module   distinct private names (one leading underscore) of one package module named by
-                   another: ``from .m import _x``, ``m._x`` through a module binding, and
-                   ``getattr(m, "_x")`` (counter C18: the attribute spellings are the same reach as the
-                   import).
+                     another: ``from .m import _x``, ``m._x`` through a module binding, and
+                     ``getattr(m, "_x")`` (counter C18: the attribute spellings are the same reach).
+  unused_boundary_imports  (gate-only, counter C19) imports of a boundary whose names the module never reads:
+                     a module would otherwise climb a layer, and leave its violation, by an import that does
+                     nothing (attempt 23).
 
 LAYERS is a design choice, stated: Home Assistant is the integration's glue edge (model, optimizer and
 learner modules take no ``homeassistant`` import, fixer.md step 17), and scipy is the solver's dependency.
 numpy is used by nearly every module and is no boundary. A dynamic import (``importlib.import_module``
-with a computed name) is invisible to both counts; the package's two are ``__init__``'s platform loader
-and the optimizer's optional threadpool limiter.
+with a computed name) is invisible; the package's two are ``__init__``'s platform loader and the
+optimizer's optional threadpool limiter.
 """
 from __future__ import annotations
 
 import ast
+import re
 import time
 from pathlib import Path
 
 from . import common as C
 
-LAYERS = ("homeassistant", "scipy")
+#: boundary -> layer rank; a module's rank is the highest it imports, 0 for a pure module.
+LAYERS = {"scipy": 1, "homeassistant": 2}
 #: Counter C17: a function-scope import is an edge. ``vector.py`` switches it off.
 ALL_SCOPES = True
 #: Counter C18: a private name read through a module binding is a crossing. ``vector.py`` switches it off.
 PRIVATE_ATTRS = True
-#: Counter C19: a module importing the boundary itself is bound by it. ``vector.py`` switches it off.
-COUNT_OWNERS = True
+#: Counter C19: an unread boundary import is a tripwire. ``vector.py`` switches it off.
+UNUSED_IMPORTS = True
 
 
 def _private(name: str) -> bool:
@@ -120,21 +125,48 @@ def closure(edges: dict[str, set[str]], m: str) -> set[str]:
     return seen
 
 
+def unused_boundary_imports(pkg: C.Pkg) -> list[str]:
+    """``module: name`` for each name a boundary import binds that the module never reads (a loaded name,
+    or a word of a string annotation)."""
+    out = []
+    for m, mod in pkg.mods.items():
+        bound: dict[str, str] = {}
+        for n in C.walk(mod.tree):
+            if isinstance(n, ast.Import):
+                for a in n.names:
+                    if a.name.split(".")[0] in LAYERS:
+                        bound[a.asname or a.name.split(".")[0]] = a.name
+            elif isinstance(n, ast.ImportFrom) and not n.level and n.module and n.module.split(".")[0] in LAYERS:
+                for a in n.names:
+                    bound[a.asname or a.name] = f"{n.module}.{a.name}"
+        if not bound:
+            continue
+        read = {n.id for n in C.walk(mod.tree) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
+        for n in C.walk(mod.tree):
+            if isinstance(n, ast.Constant) and isinstance(n.value, str) and len(n.value) < 200:
+                read |= set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", n.value))
+        out += [f"{m}: {name}" for name in sorted(bound) if name not in read]
+    return out
+
+
 def measure(root: Path) -> dict:
     t0 = time.perf_counter()
     pkg = C.load(str(root))
     edges, ext, crossings = graph(pkg)
-    owners = {layer: sorted(m for m in pkg.mods if layer in ext[m]) for layer in LAYERS}
-    reach = {layer: sorted(m for m in pkg.mods if layer not in ext[m]
-                           and any(layer in ext[n] for n in closure(edges, m))) for layer in LAYERS}
+    rank = {m: max([LAYERS[x] for x in ext[m] if x in LAYERS], default=0) for m in pkg.mods}
+    violations = sorted(f"{m} ({rank[m]} -> {max(rank[n] for n in closure(edges, m))})" for m in pkg.mods
+                        if closure(edges, m) and max(rank[n] for n in closure(edges, m)) > rank[m])
+    unused = unused_boundary_imports(pkg) if UNUSED_IMPORTS else []
     return {
         "metric": "layering",
-        "layer_bound": sum(len(owners[x]) * COUNT_OWNERS + len(reach[x]) for x in LAYERS),
+        "layer_violations": len(violations),
         "private_cross_module": len(crossings),
+        "unused_boundary_imports": len(unused) if UNUSED_IMPORTS else None,
         "details": {
-            "owners": owners,
-            "reach": reach,
+            "layers": {r: sorted(m for m in pkg.mods if rank[m] == r) for r in (0, *sorted(LAYERS.values()))},
+            "violations": violations,
             "crossings": sorted(crossings),
+            "unused_boundary_imports": unused,
         },
         "runtime_s": round(time.perf_counter() - t0, 3),
     }

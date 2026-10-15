@@ -52,6 +52,9 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
 | C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
 | C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
+| C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10) | 21 |
+| C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)` | 22 |
+| C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -104,6 +107,23 @@ event writes `tests/arch_score_head.py` now lists as producers. C15 moves no cor
 every hub handle as a path. It closes the spellings the next refactor would use (attempt 19), and ARCH2-s1's
 `census_probe.py --tree proto` reads all three of its blind spellings as seen. Each counter carries a planted BAD and
 GOOD pair (`a3_hub_reader_*`, `a3_hub_event_write_*`) and an attempt; `ARCHSCORE_ABLATE=C15` or `C16` reopens its own.
+
+### What R10-ARCHSCORE-COVERAGE part 3 moved (layering: `layer_violations`, `private_cross_module`)
+
+Two score metrics at the floor weight (they guard no register class; `weights.json` is unchanged and its floor
+applies) and a tripwire. `layer_violations` counts modules reaching, through other package modules, a layer
+above their own: pure < the scipy solver < the Home Assistant glue, a module's layer being the highest boundary
+it imports itself. `private_cross_module` counts distinct private names one module names of another.
+ARCH2-s4's P1 (one owner of the UTC clock), which every earlier metric read as 0.0000, now reads as both
+falling (`score_delta.py`).
+
+The first definition, modules bound to a boundary by import or reach, was calibrated first and dropped: it
+read four GOOD corpus decompositions (`ca937daa`, `69781076`, `ec263d82`, `33cedffa`) as WORSENS, because a module
+extracted from the glue that imports Home Assistant is one more bound module. Under the layer rule a glue
+module extracted from the glue is glue, and no recorded corpus verdict moves (`calibrate.py --stored-only`
+after `--measure-corpus --only-metric layering`). `56cb0027` (GOOD, already WORSENS on `duplication_copies`)
+also rises on `layer_violations`: its unit read made `price_model`, a pure module, reach Home Assistant through
+`inputs`.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 

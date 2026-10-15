@@ -69,11 +69,12 @@ SCORE_METRICS = {
     "import_cycle_modules": (None, "modules in an import cycle, function-scope imports included"),
     "public_unused": (None, "public names nothing uses"),
     "params_over_10": (None, "functions with more than 10 parameters (the fragment-chain guard)"),
-    "layer_bound": (None, "modules that cannot load without Home Assistant, or without scipy (each counted per boundary)"),
+    "layer_violations": (None, "modules reaching a layer above their own (pure < scipy solver < Home Assistant glue)"),
     "private_cross_module": (None, "private names of one package module named by another"),
 }
 # Weight 0: must not rise, never counted. They retire when the role engine reads these spellings.
-GATE_ONLY = ("reflective_writes", "computed_attr_access", "family_orphan_overrides", "unread_private_globals")
+GATE_ONLY = ("reflective_writes", "computed_attr_access", "family_orphan_overrides", "unread_private_globals",
+             "unused_boundary_imports")
 
 
 def ablated() -> set[str]:
@@ -152,7 +153,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         hub_solve_writes.EVENT_ROOTS = "C16" not in off
         layering.ALL_SCOPES = "C17" not in off
         layering.PRIVATE_ATTRS = "C18" not in off
-        layering.COUNT_OWNERS = "C19" not in off
+        layering.UNUSED_IMPORTS = "C19" not in off
         jobs = {
             "structure": lambda: structure_rows(flat),
             "hub_solve_writes": lambda: hub_solve_writes.measure(flat)["value"],
@@ -188,7 +189,8 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
                                                    "coordinator_private_reach", "import_cycle_modules",
                                                    "dead_members")})
             elif name == "layering":
-                out["layer_bound"] = v["layer_bound"] if v else None
+                out["layer_violations"] = v["layer_violations"] if v else None
+                out["unused_boundary_imports"] = v["unused_boundary_imports"] if v else None
                 out["private_cross_module"] = v["private_cross_module"] if v else None
             elif name == "footprint":
                 out["coord_footprint"] = v["coord_footprint"] if v else None
