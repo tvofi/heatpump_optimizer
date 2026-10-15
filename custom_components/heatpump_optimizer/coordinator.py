@@ -197,6 +197,7 @@ from .inputs import (
     stale_summary,
     state_unit,
     temperature_c,
+    write_setpoint_c,
 )
 from .external_heat import (
     ExternalHeatConfig,
@@ -233,7 +234,7 @@ from .accuracy import (
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import early_cutoff, pump_arbiter, pump_signals
-from . import setpoint_check
+from . import issues, setpoint_check
 from . import quiet_windows
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
@@ -341,7 +342,7 @@ if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
     from homeassistant.helpers.event import EventStateChangedData
 
 _LOGGER = logging.getLogger(__name__)
-_create_issue = setpoint_check.create_issue
+_create_issue = issues.create_issue
 # The learned scale's store key and published attribute are this config key.
 _COP_STORE_KEY = CONF_COP_SCALE
 
@@ -7293,28 +7294,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             < MIXING_VALVE_WRITE_EPSILON
         ):
             return
-        domain = entity_id.split(".", 1)[0]
         try:
-            if domain == "climate":
-                await self.hass.services.async_call(
-                    "climate",
-                    "set_temperature",
-                    {"entity_id": entity_id, "temperature": round(target, 1)},
-                    blocking=True,
-                )
-            elif domain in ("number", "input_number"):
-                await self.hass.services.async_call(
-                    domain,
-                    "set_value",
-                    {"entity_id": entity_id, "value": round(target, 1)},
-                    blocking=True,
-                )
-            else:
+            if not await write_setpoint_c(self.hass, entity_id, target):
                 _LOGGER.warning(
                     "Valve write entity %s is a %s; smart_write can command "
                     "number, input_number and climate entities",
                     entity_id,
-                    domain,
+                    entity_id.split(".", 1)[0],
                 )
                 return
         except Exception as err:  # noqa: BLE001 - never break planning

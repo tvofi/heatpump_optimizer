@@ -15,12 +15,10 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 
 from .const import DOMAIN
+from .inputs import write_setpoint
 from .setpoint_check import ISSUE_DHW, ISSUE_SPACE
 
 _LOGGER = logging.getLogger(__name__)
-
-_NUMERIC_DOMAINS = ("number", "input_number")
-
 
 class DhwSetpointRepairFlow(RepairsFlow):
     """Write the configured DHW floor to the pump's set-point entity."""
@@ -50,32 +48,12 @@ class DhwSetpointRepairFlow(RepairsFlow):
         # raised before it existed carries only the degC ``target``.
         value = data.get("value", target)
         if entity_id and value is not None:
-            await _write_setpoint(self.hass, str(entity_id), float(value))
+            await write_setpoint(self.hass, str(entity_id), float(value))
         try:
             ir.async_delete_issue(self.hass, DOMAIN, ISSUE_DHW)
         except Exception as err:  # noqa: BLE001 - clearing is best-effort
             _LOGGER.debug("Could not clear %s after repair: %s", ISSUE_DHW, err)
         return self.async_create_entry(data={})
-
-
-async def _write_setpoint(hass: Any, entity_id: str, target: float) -> None:
-    domain = entity_id.split(".", 1)[0]
-    value = round(float(target), 1)
-    if domain == "climate":
-        await hass.services.async_call(
-            "climate",
-            "set_temperature",
-            {"entity_id": entity_id, "temperature": value},
-            blocking=True,
-        )
-        return
-    if domain in _NUMERIC_DOMAINS:
-        await hass.services.async_call(
-            domain,
-            "set_value",
-            {"entity_id": entity_id, "value": value},
-            blocking=True,
-        )
 
 
 async def async_create_fix_flow(
