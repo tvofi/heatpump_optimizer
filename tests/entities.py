@@ -3862,6 +3862,10 @@ _P2_CENSUSES = {
     "written_slot_domain_routed": (
         "tests/features.py",
         "every slot accepting a commandable domain is a driven writer or a named"),
+    # D10-s1-51 (#2238): which entries a service call acts on is
+    # _loaded_entries's, consulted by every action before it can return.
+    "service_entries_resolved_first": (
+        "tests/features.py", "every action resolves its config entries before it returns"),
 }
 
 
