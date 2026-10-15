@@ -61290,6 +61290,66 @@ R.check(
     and "capacity" in _ux6_march.get("basis", []),
     f"{_ux6_march}",
 )
+# #2230 (R10 D2-s3-01, N-period-rollover): the month's LAST metering window
+# reaches the month's bill. The tracker closes a window only when the next
+# one opens, so the window open at midnight closed into the NEW month and
+# was wiped with it; the settlement before midnight had booked the month
+# without it. Driven through the real settlement order: a cycle settles the
+# interval that started at the previous cycle (_roll_month on pending
+# "when"), then folds its own sample.
+from heatpump_optimizer.tariff import PeakTracker as _r2230_PT  # noqa: E402
+
+
+def _r2230_month(coord, *, spike_windows_back=1, restart_at_rollover=False):
+    tariff = coord._capacity_tariff()
+    window = timedelta(minutes=tariff.window_minutes)
+    end = datetime(2026, 4, 1, tzinfo=UTC)
+    spike = end - spike_windows_back * window
+    t, interval_start = datetime(2026, 3, 31, 12, 0, tzinfo=UTC), None
+    while t < end + timedelta(hours=1):
+        if t.minute % 15 == 0:
+            if interval_start is not None:
+                coord._roll_month(interval_start)
+            interval_start = t
+        coord._peak_tracker.observe(t, 5.0 if spike <= t < spike + window else 1.0, tariff)
+        if restart_at_rollover and t == end:
+            # A restart between the rollover and the settlement that books it.
+            coord._peak_tracker = _r2230_PT.from_dict(coord._peak_tracker.as_dict())
+        t += timedelta(minutes=5)
+    return coord._month_reports.get("2026-03", {}).get("capacity_peak_kw")
+
+
+_r2230_cfg = dict(peak_tariff_enabled=True, peak_tariff_price_per_kw=45.0,
+                  peak_tariff_peaks_averaged=1, peak_tariff_window_minutes=60)
+_r2230_last = _r2230_month(_ux6_coord(**_r2230_cfg))
+_r2230_restart = _r2230_month(_ux6_coord(**_r2230_cfg), restart_at_rollover=True)
+_r2230_null = _r2230_month(_ux6_coord(**_r2230_cfg), spike_windows_back=2)
+R.check(
+    "#2230: a spike in the month's last metering window reaches that month's "
+    "capacity receipt, across a restart between rollover and settlement too",
+    _r2230_last == 5.0 and _r2230_restart == 5.0,
+    f"last window {_r2230_last}, after a restart {_r2230_restart} (want 5.0; "
+    "1.0 is the window lost at the reset)",
+)
+R.check(
+    "#2230 null control: a spike one window earlier was always billed",
+    _r2230_null == 5.0,
+    f"{_r2230_null}",
+)
+# Null control on the tracker itself: closing before the reset changes
+# nothing for a period with no open window -- a tracker loaded with a
+# month's peaks and no window key carries exactly those into the closed
+# month's statement.
+_r2230_tariff = _ux6_coord(**_r2230_cfg)._capacity_tariff()
+_r2230_bare = _r2230_PT.from_dict({"month": "2026-03", "peaks": [4.0, 2.0]})
+_r2230_bare.observe(datetime(2026, 4, 1, 0, 5, tzinfo=UTC), 1.0, _r2230_tariff)
+R.check(
+    "#2230 null control: a rollover with no open window closes the month on "
+    "its recorded peaks unchanged",
+    _r2230_bare.billing_statements(_r2230_tariff)
+    == [("2026-03", 4.0), ("2026-04", 0.0)],
+    f"{_r2230_bare.billing_statements(_r2230_tariff)}",
+)
 _ux6_nocap = _ux6_coord()
 _ux6_nocap._peak_tracker.month = "2026-03"
 _ux6_nocap._peak_tracker.peaks = [6.0, 5.0, 4.0]
