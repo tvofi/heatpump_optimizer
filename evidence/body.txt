@@ -1,0 +1,74 @@
+860afdbcb5e9578460022fa95585e760e1403ff7
+Adds audit dimension D15, a debugging run from a live diagnostics bundle (#1938's addendum: scope, graders, pass/refuse bar), and registers it in every enumeration the round drivers and checks read. The grader half landed first as #2214; `origin/main` (`edf9d3292`, #2214 merged) is merged in, so this diff no longer carries `tools/policy/check-wave-script.mjs` or `tools/audit/prepare_baseline.sh`.
+
+D15 is isolated (own worktree), because its perturbations edit production. It runs every round (CADENCE 1). Its three seats sit on box B8: D15-s2 and D15-s3 are heavy, D15-s1 is light. The bundle path reaches D15 seats only through `args.debug_bundle` and `args.debug_export`, which must be absolute paths. The seat split is disjoint by `check_scopes.py`:
+
+- s1: M1 to M4, covering intake and version seam, the privacy gate, ingest, and store replay.
+- s2: M5 and M6, timeline replay and the monitor re-run.
+- s3: M7 and M8, the row scan and anomaly-to-seam mapping.
+
+Two items are handed to the orchestrator because their destinations are not yet in the tree:
+
+- The R10-DIAG-REPLAY group's brief, not yet written, should carry the fix-phase lead cut from D15.md: each cycle row of the debug bundle should record the integration version that wrote it.
+- The round-10 D15 seat brief, out of tree, should carry the bundle-specific version attribution case: v6.7.17 against v7.0.0, rows 1 to 552 and 553 to 554.
+
+## Approval
+
+Owner approval is required before merge on three counts:
+
+- **New policy file** `dev/governance/dimensions/D15.md` and its `CLAUDE.md` index row.
+- **Moratorium override:** decision 0012's process moratorium (to 2026-10-31) refuses a new policy file. tvofi ruled on 2026-10-14, in session, to override it for this one file.
+- **Budget raise**, approved by the owner before the first push: tvofi, 2026-10-14, in session, verbatim "Approve raise (Recommended)", for `files` D15.md 39, `files_tokens` D15.md 728 and `corpus_tokens` 60449 -> 61026. This head records less than that approval: after the payment cut below, the D15 caps are re-recorded down to the value `node tools/policy/policy_lint.mjs --budgets` measures, and `corpus_tokens` stays at 61026, with the head inside its band. The merge approval at the head cites mandate 6175172275 (tvofi's #201 comment, scope all, 2026-10-14T18:14Z to 2026-10-28T18:14Z).
+
+## Raise justification
+
+Payments tried: (1) Cut the D15.md prose that does no finder work: the moratorium-override sentence, recorded under the Approval section instead, and the per-row version fix-phase lead, handed to the orchestrator above. Taken, commit `71560c02b`. (2) Cut D15.md further, to fit inside the corpus band. Refused: the remaining prose is the eight method steps, the inputs, the bar and the privacy rule, and the overage is larger than any of them that could go without dropping a step, a grader or the privacy gate. (3) Cut other policy files. Refused: they are outside this lane, and each sits at or near its own zero-headroom cap. Without the raise, this head exceeds the recorded `corpus_tokens` cap plus its band. The measurement is `node tools/policy/policy_lint.mjs --budgets` at this head, against cap 60449 plus `_band`. D15.md is prose, so no code payment exists that `arch_score` could read.
+Architecture score: dS +0.0000 NULL
+
+## Head
+
+`860afdbcb5e9578460022fa95585e760e1403ff7` (`handoff/r10-d15`), merge base `edf9d3292` (`origin/main`, #2214 merged).
+
+## Mutation proof
+
+Both mutants, run at `4666a7dd8`, which has the same `audit-find.js` and checker as this head:
+
+- `.claude/workflows/audit-find.js`, replacing `BUNDLE_DIMS.has(dim) ?` with `false ?`: `node tools/policy/check-wave-script.mjs` turns red with `FAIL once audit-find.js declares BUNDLE_DIMS, its finders carry the named bundle and export, ...` (179 passed, 1 failed).
+- Disabling the absolute-path refusal (`if (false && [debugBundle, debugExport].some`): it turns red with `FAIL a relative bundle path is refused before Prepare (declared)` (179 passed, 1 failed).
+
+## Null control
+
+At the unmutated head, `node tools/policy/check-wave-script.mjs` passes every check. Its null arm, which checks that no non-D15 finder prompt carries the bundle path, passes.
+
+## Figures
+
+Each command below ran at this head, with `$HOME/.local/state/hpo/bin` first on PATH (python 3.14.7):
+
+- `python3 tools/audit/check_scopes.py --repo . --ref HEAD` rc=0 (prints `ok D15 mode=cells seats=3`)
+- `python3 tools/audit/check_scopes.py --repo . --ref HEAD --self-test` rc=0
+- `node tools/policy/check-wave-script.mjs` rc=0
+- `node tools/policy/policy_lint.mjs` rc=0
+- `node tools/policy/policy_lint.mjs --budgets` rc=0; it prints D15 and the corpus against their caps
+- `node tools/policy/rules_sync.mjs --check` rc=0
+- `node tools/policy/brief_lint.mjs` rc=0
+- `PYTHONPATH=tests/hastub python3 tests/structure.py` rc=0
+- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD` rc=0
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` rc=0, `MODE: SCOPED -- 0 script(s) run, 33 scoped out` (the scoped mode line, not FULL), with the run_always lines: `4 TEST SCRIPT(S) PASSED`
+- `git diff $(git merge-base origin/main HEAD)...HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md` is empty
+
+## Red checks
+
+- `budget-raise-gate`: red by design. This diff raises budgets (`corpus_tokens` 60449 -> 61026, and the new D15 caps), and the gate stays red until an approval at the head. That approval follows review and cites mandate 6175172275, with the raise justification above. There is no cheaper detector, because this gate is the detector.
+- `nightly-status`: this check grades main's nightly (#2205), not this diff. The diff touches nothing the nightly reads: a dimension brief, audit config, the round driver and policy caps. No cheaper detector applies to this branch.
+- `wave-script`: red at earlier heads of this branch (check-run 116063565766 at `21ef4cdbf`: 173 passed, 3 failed). CI grades it with the base's copies of `tools/policy/check-wave-script.mjs` and `tools/audit/*.sh`, and those lacked D15. The grader half landed as #2214, and this head merges `origin/main` with #2214 in, so the base checker now carries D15. Locally, `node tools/policy/check-wave-script.mjs` at this head gives 180 passed, 0 failed. The base-graded check is the detector, so no cheaper detector exists.
+
+## Forward-carry
+
+none
+
+## Friction
+
+- `policy-caps-canon-path`: unclear: existing dimension briefs are capped as `tools/audit/briefs/D<k>.md`, but a new file's cap must use its own path `dev/governance/dimensions/D15.md`. The canon key refuses with "matched by no POLICY_GLOBS pattern".
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+

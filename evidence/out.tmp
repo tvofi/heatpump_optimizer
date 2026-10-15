@@ -1,4 +1,4 @@
-layout: 4834 tracked path(s) enumerated
+layout: 4839 tracked path(s) enumerated
   category  11 finding(s)
     outside the allowed categories: .claude/workflows/carry-1921.json
     outside the allowed categories: .claude/workflows/wave-3l-groups.json
@@ -29,7 +29,7 @@ layout: 4834 tracked path(s) enumerated
     ... 1222 more (--verbose)
   dead      0 finding(s)
 layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
-layout: GUARD: 0 refusal(s) against 554e2ecfa7ad
+layout: GUARD: 0 refusal(s) against edf9d32925a5
   ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 216 of 216 listed
   ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 217 of 217 listed
   ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 216 of 216 listed
