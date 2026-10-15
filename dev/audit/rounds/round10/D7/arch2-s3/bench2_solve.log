@@ -1,0 +1,39 @@
+gate_lock: waiting for the lease held by arch2-s2 until 2026-10-15 06:32:24.112677+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+rep 1/5 done, order ['slow_control', 'p1b_tariff_kept_bisection', 'base_copy', 'p1_tariff_v2', 'base']
+rep 2/5 done, order ['base', 'base_copy', 'slow_control', 'p1b_tariff_kept_bisection', 'p1_tariff_v2']
+rep 3/5 done, order ['base_copy', 'slow_control', 'p1_tariff_v2', 'base', 'p1b_tariff_kept_bisection']
+rep 4/5 done, order ['base', 'p1_tariff_v2', 'base_copy', 'slow_control', 'p1b_tariff_kept_bisection']
+rep 5/5 done, order ['p1_tariff_v2', 'base', 'p1b_tariff_kept_bisection', 'slow_control', 'base_copy']
+scenario                                    base_copy           p1_tariff_v2 p1b_tariff_kept_bisection           slow_control
+winter/1z/dhw                    cpu 0.955 wall 1.263   cpu 0.933 wall 0.961   cpu 0.942 wall 0.937   cpu 1.111 wall 1.102   base cpu   226.2 ms
+winter/2z/dhw                    cpu 0.934 wall 1.054   cpu 0.913 wall 0.911   cpu 0.917 wall 0.897   cpu 1.165 wall 1.354   base cpu  1994.3 ms
+winter/2z/dhw+tariff             cpu 0.987 wall 1.045   cpu 0.984 wall 0.980   cpu 0.962 wall 0.939   cpu 1.209 wall 1.335   base cpu  2541.3 ms
+shoulder/2z/tariff+pv+cycle      cpu 1.020 wall 1.067   cpu 0.980 wall 1.017   cpu 0.977 wall 0.981   cpu 1.226 wall 1.224   base cpu 10562.9 ms
+winter/1z/space+tariff           cpu 0.981 wall 1.047   cpu 1.048 wall 1.020   cpu 0.957 wall 0.920   cpu 1.235 wall 1.240   base cpu  2563.5 ms
+winter/heavy_old                 cpu 1.049 wall 1.083   cpu 1.045 wall 1.040   cpu 1.064 wall 1.066   cpu 1.275 wall 1.287   base cpu   971.2 ms
+winter/2z/fusecap                cpu 1.008 wall 1.111   cpu 1.023 wall 1.061   cpu 1.018 wall 1.024   cpu 1.216 wall 1.231   base cpu  2947.4 ms
+flat/2z/dhw+tariff               cpu 0.955 wall 1.027   cpu 1.008 wall 1.017   cpu 0.988 wall 0.987   cpu 1.215 wall 1.195   base cpu  3140.4 ms
+RESULT base_copy_cpu_ratio_median=0.9841 ratio
+RESULT base_copy_cpu_ratio_range=0.9336..1.0486 ratio
+RESULT base_copy_cpu_ratio_median_drop_most_favourable=0.9872 ratio
+RESULT base_copy_wall_ratio_median=1.0603 ratio
+RESULT base_copy_plan_identical=1 bool
+RESULT p1_tariff_v2_cpu_ratio_median=0.9962 ratio
+RESULT p1_tariff_v2_cpu_ratio_range=0.9126..1.0480 ratio
+RESULT p1_tariff_v2_cpu_ratio_median_drop_most_favourable=1.0083 ratio
+RESULT p1_tariff_v2_wall_ratio_median=1.0167 ratio
+RESULT p1_tariff_v2_plan_identical=1 bool
+RESULT p1b_tariff_kept_bisection_cpu_ratio_median=0.9698 ratio
+RESULT p1b_tariff_kept_bisection_cpu_ratio_range=0.9165..1.0645 ratio
+RESULT p1b_tariff_kept_bisection_cpu_ratio_median_drop_most_favourable=0.9772 ratio
+RESULT p1b_tariff_kept_bisection_wall_ratio_median=0.9598 ratio
+RESULT p1b_tariff_kept_bisection_plan_identical=1 bool
+RESULT slow_control_cpu_ratio_median=1.2150 ratio
+RESULT slow_control_cpu_ratio_range=1.1106..1.2746 ratio
+RESULT slow_control_cpu_ratio_median_drop_most_favourable=1.2145 ratio
+RESULT slow_control_wall_ratio_median=1.2357 ratio
+RESULT slow_control_plan_identical=1 bool
+RESULT reference_solve_thread_ms=base:47.3,base_copy:44.9,p1_tariff_v2:46.0,p1b_tariff_kept_bisection:45.3,slow_control:44.4
+RESULT load1=20.46
+RESULT thread_factor=1.000
+RESULT reps=5 count

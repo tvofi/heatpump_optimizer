@@ -1,0 +1,26 @@
+diff --git a/tests/features.py b/tests/features.py
+index 64f66afb2..8051af2e6 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -75,7 +75,7 @@ from heatpump_optimizer.sysid import (
+ from heatpump_optimizer.tariff import (
+     CapacityTariff,
+     PeakTracker,
+-    _smooth_topk_sum,
++    _smooth_topk_sum_batch,
+     peak_cost,
+     peak_cost_smooth,
+     realised_peak,
+@@ -90,6 +90,12 @@ from heatpump_optimizer.optimizer import _Horizon
+ R = Results("Feature modules")
+ 
+ 
++def _smooth_topk_sum(values, k, tau):
++    """The production smooth top-k on one row (the bisection has no scalar twin)."""
++    return float(_smooth_topk_sum_batch(np.asarray(values, dtype=float).reshape(1, -1), k, tau)[0])
++
++
++
+ def _WS(outdoor, wind=None, rain=None, solar=None, humidity=None, ext=None):
+     """The physics module's weather record from this file's fixture arrays
+     (#1776): the series the trajectory entry points now take as one frozen

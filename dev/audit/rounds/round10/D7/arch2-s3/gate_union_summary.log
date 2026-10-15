@@ -1,0 +1,69 @@
+########## environment ##########
+########## scoped gate ##########
+  MODE: SCOPED -- 27 script(s) run, 6 scoped out.
+########## python3 tests/env_drift.py --claims-only 9061fbd3d ##########
+########## python3 tests/closure.py selftest ##########
+########## python3 tests/features.py ##########
+########## python3 tests/entities.py ##########
+  FAIL and every mark still names a mutant this tree generates, pin and all (#1217)  [stale=['custom_components/heatpump_optimizer/quiet_windows.py:_power_entity_kw CMP_BOUND 18712c03', 'custom_components/heatpump_optimizer/quiet_windows.py:_power_entity_kw CMP_BOUND ff9edf11', 'custom_components/heatpump_optimizer/quiet_windows.py:_power_entity_kw GUARD_OFF ff9edf11'], problems=[] -- a mark is on
+  FAIL --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)  [has pin=True real=(1, "MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:\n    - custom_components/heatpump_optimizer/quiet_windows.py:_power_entity_kw BOOLOP 18712c03: dispo
+  FAIL every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)  [1 site(s); ('coordinator.py', '_on_power_event', 'float(raw_state)') is dispositioned but no longer a site; ('coordinator.py', '_pv_measured_production', 'float(state.state)') is dispositioned but no longer a site]
+  FAIL null control: a bare read, direct or through a local, is refused  [["('coordinator.py', '_indoor_humidity_value', 'float(state.state)') is dispositioned but no longer a site", "('coordinator.py', '_on_power_event', 'float(raw_state)') is dispositioned but no longer a site", "('coordinator.py', '_pv_measured_production', 'float(state.state)') is dispositioned but no longer a site", "('probe.
+  ok   judge_batch: a harness that takes flock itself under the batch's label (gate_lock.py flock-wrap, run.sh's route onto stress.py) runs, and does not wait out the timeout
+6 of 2318 ENTITY CHECKS FAILED
+>>> FAILED: python3 tests/entities.py
+########## python3 tests/block_duty.py ##########
+########## python3 tests/doc_claims.py ##########
+########## python3 tests/wood_advisor.py ##########
+########## python3 tests/config_flow_steps.py ##########
+########## python3 tests/structure.py ##########
+########## counting-rule self-check ##########
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+########## monster methods: top 10 of 17 over 150 LOC ##########
+########## worst 5 cyclomatic (of 30 over 15) ##########
+########## .const import fan-out (names imported per module) ##########
+########## import cycles (function-scope imports in, TYPE_CHECKING out) ##########
+########## dead top-level symbols ##########
+########## dead members (no live attribute load reaches them) ##########
+########## dynamic-reference allowlist (not counted above) ##########
+########## duplication: clone classes (2-statement AST windows, package-wide) ##########
+########## coordinator private reach (outside its methods and helpers) ##########
+########## coordinator attributes written outside its methods ##########
+########## coordinator seam table (helpers charged: 18) ##########
+########## RESULT lines ##########
+########## ratchet vs structure_budgets.json (recorded_at 8b495603a136) ##########
+########## 3 metric(s) IMPROVED and not yet recorded ##########
+3 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED
+>>> FAILED: python3 tests/structure.py
+########## python3 tests/arch_score_head.py ##########
+########## python3 tests/typing_ruler.py ##########
+########## errors by module (reported, not ratcheted) ##########
+########## python3 tests/manual_plan.py ##########
+########## python3 tests/solar_alignment.py ##########
+########## python3 tests/guard_pins.py ##########
+########## python3 tests/debug_collect.py ##########
+########## python3 tests/finite_boundary.py ##########
+########## python3 tests/harness_headers.py ##########
+  FAIL every inlined walk matches the canonical helper and no depth root remains  [ RESULT (#817) ===
+1 of 109 HARNESS HEADER CHECKS FAILED
+>>> FAILED: python3 tests/harness_headers.py
+########## python3 tests/layout.py ##########
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+########## python3 tests/deployment_shape.py ##########
+########## python3 tests/env_drift.py --all 9061fbd3d ##########
+########## committed fixtures: staleness (#347) ##########
+########## python3 tests/validate.py ##########
+########## python3 tests/edge.py ##########
+########## python3 tests/backtest.py ##########
+########## python3 tests/boost_drift_replay.py ##########
+########## python3 tests/optimality.py ##########
+########## python3 tests/plan_view.py ##########
+########## node tests/card.mjs ##########
+########## node tests/card_drift.mjs 9061fbd3d ##########
+########## python3 tests/stress.py ##########
+gate_lock: flock-wrap refused, arch2-s3 holds no lease: lease held by judge-r10-runner1, not arch2-s3
+>>> FAILED: python3 tests/stress.py
+########## wall clock ##########
+########## NOT RUN: scoped out of this gate ##########
+4 TEST SCRIPT(S) FAILED
+rc=1

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 9ac069d47..48c8ebd00 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -900,7 +900,7 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
+ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
+     """Fold this pass into the current step's ledger row; close the last one."""
+     held.last_duty = duty
+-    start = now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
++    start = _step_start(now)
+     tank = getattr(inp.state, "dhw_temperature", None)
+     row = held.step
+     if row is None or row["start"] != start:

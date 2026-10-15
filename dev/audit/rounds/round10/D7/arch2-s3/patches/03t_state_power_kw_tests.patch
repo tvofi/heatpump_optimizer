@@ -1,0 +1,24 @@
+diff --git a/tests/manual_plan.py b/tests/manual_plan.py
+index 37c771f75..87331258e 100644
+--- a/tests/manual_plan.py
++++ b/tests/manual_plan.py
+@@ -727,6 +727,19 @@ def test_quiet_window_arms(R: Results) -> None:
+         bad_unit is None,
+         f"got {bad_unit!r}",
+     )
++    # D7-s3-8x: a non-finite state ("inf", or a number past the float range)
++    # passed the <= 0 guard and made the silent ceiling the nameplate itself,
++    # skipping the frequency and fraction fallbacks.
++    inf_kw = [
++        call(_qw._power_entity_kw, "sensor.hp",
++             _quiet_get({"sensor.hp": _PowerState(raw, "kW")}))
++        for raw in ("inf", "1e400")
++    ]
++    R.check(
++        "a non-finite power reading is no reading",
++        inf_kw == [None, None],
++        f"got {inf_kw!r}",
++    )
+     R.check(
+         "no state callable and a non-positive nameplate measure nothing",
+         _qw.measured_ceiling_kw({CONF_POWER_ENTITY: "sensor.hp"}, None, 5.0) is None

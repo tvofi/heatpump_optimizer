@@ -1,0 +1,34 @@
+gate_lock: waiting for the lease held by judge-r10-runner1 until 2026-10-15 06:23:01.791524+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+rep 1/5 done, order ['p2a_objective_row', 'p1_tariff', 'base_copy', 'base']
+rep 2/5 done, order ['base', 'p1_tariff', 'base_copy', 'p2a_objective_row']
+rep 3/5 done, order ['p2a_objective_row', 'base', 'base_copy', 'p1_tariff']
+rep 4/5 done, order ['p2a_objective_row', 'p1_tariff', 'base_copy', 'base']
+rep 5/5 done, order ['base', 'base_copy', 'p1_tariff', 'p2a_objective_row']
+scenario                                    base_copy              p1_tariff      p2a_objective_row
+winter/1z/dhw                    cpu 0.977 wall 0.966   cpu 0.961 wall 1.408   cpu 1.099 wall 1.156   base cpu   199.8 ms
+winter/2z/dhw                    cpu 0.988 wall 1.018   cpu 0.985 wall 1.326   cpu 1.074 wall 1.290   base cpu  1743.9 ms
+winter/2z/dhw+tariff             cpu 1.001 wall 1.121   cpu 1.093 wall 1.301   cpu 1.054 wall 1.129   base cpu  2360.4 ms
+shoulder/2z/tariff+pv+cycle      cpu 0.975 wall 0.990   cpu 1.044 wall 1.174   cpu 1.041 wall 1.097   base cpu  9945.6 ms
+winter/1z/space+tariff           cpu 0.986 wall 0.929   cpu 1.024 wall 1.212   cpu 1.064 wall 1.114   base cpu  2385.9 ms
+winter/heavy_old                 cpu 0.893 wall 0.845   cpu 0.976 wall 1.003   cpu 1.010 wall 1.099   base cpu   968.7 ms
+winter/2z/fusecap                cpu 0.952 wall 0.938   cpu 0.958 wall 1.002   cpu 0.964 wall 1.000   base cpu  2887.3 ms
+flat/2z/dhw+tariff               cpu 0.981 wall 1.002   cpu 1.025 wall 1.163   cpu 0.998 wall 1.077   base cpu  2964.0 ms
+RESULT base_copy_cpu_ratio_median=0.9788 ratio
+RESULT base_copy_cpu_ratio_range=0.8928..1.0012 ratio
+RESULT base_copy_cpu_ratio_median_drop_most_favourable=0.9811 ratio
+RESULT base_copy_wall_ratio_median=0.9781 ratio
+RESULT base_copy_plan_identical=1 bool
+RESULT p1_tariff_cpu_ratio_median=1.0046 ratio
+RESULT p1_tariff_cpu_ratio_range=0.9584..1.0930 ratio
+RESULT p1_tariff_cpu_ratio_median_drop_most_favourable=0.9847 ratio
+RESULT p1_tariff_wall_ratio_median=1.1928 ratio
+RESULT p1_tariff_plan_identical=1 bool
+RESULT p2a_objective_row_cpu_ratio_median=1.0475 ratio
+RESULT p2a_objective_row_cpu_ratio_range=0.9639..1.0987 ratio
+RESULT p2a_objective_row_cpu_ratio_median_drop_most_favourable=1.0408 ratio
+RESULT p2a_objective_row_wall_ratio_median=1.1068 ratio
+RESULT p2a_objective_row_plan_identical=1 bool
+RESULT reference_solve_thread_ms=base:45.4,base_copy:44.2,p1_tariff:42.9,p2a_objective_row:46.5
+RESULT load1=23.52
+RESULT thread_factor=1.000
+RESULT reps=5 count

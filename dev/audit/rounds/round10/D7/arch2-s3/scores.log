@@ -1,0 +1,90 @@
+== 01_tariff on main
+Architecture score: dS +0.3789 IMPROVES
+  duplication_copies 68 -> 66  +0.3789
+RESULT delta_S=+0.3789 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== 01_tariff on main+ARCH-s2
+Architecture score: dS +0.6607 IMPROVES
+  duplication_copies 39 -> 37  +0.6607
+RESULT delta_S=+0.6607 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== 01b_tariff_kept_bisection on main
+Architecture score: dS +0.1880 IMPROVES
+  duplication_copies 68 -> 67  +0.1880
+RESULT delta_S=+0.1880 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== 01b_tariff_kept_bisection on main+ARCH-s2
+Architecture score: dS +0.3261 IMPROVES
+  duplication_copies 39 -> 38  +0.3261
+RESULT delta_S=+0.3261 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== 02_slot_floor on main
+Architecture score: dS +0.0000 NULL
+RESULT delta_S=+0.0000 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== 02_slot_floor on main+ARCH-s2
+Architecture score: dS +0.0000 NULL
+RESULT delta_S=+0.0000 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== 03_power_kw on main
+Architecture score: dS +0.3845 IMPROVES
+  duplication_copies 68 -> 66  +0.3789
+  coord_footprint 2580 -> 2570  +0.0056
+RESULT delta_S=+0.3845 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== 03_power_kw on main+ARCH-s2
+Architecture score: dS +0.6663 IMPROVES
+  duplication_copies 39 -> 37  +0.6607
+  coord_footprint 2580 -> 2570  +0.0056
+RESULT delta_S=+0.6663 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== union on main
+Architecture score: dS +0.7748 IMPROVES
+  duplication_copies 68 -> 64  +0.7692
+  coord_footprint 2580 -> 2570  +0.0056
+RESULT delta_S=+0.7748 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== union on main+ARCH-s2
+Architecture score: dS +1.3626 IMPROVES
+  duplication_copies 39 -> 35  +1.3570
+  coord_footprint 2580 -> 2570  +0.0056
+RESULT delta_S=+1.3626 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== union_b on main
+Architecture score: dS +0.5781 IMPROVES
+  duplication_copies 68 -> 65  +0.5725
+  coord_footprint 2580 -> 2570  +0.0056
+RESULT delta_S=+0.5781 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+== union_b on main+ARCH-s2
+Architecture score: dS +1.0097 IMPROVES
+  duplication_copies 39 -> 36  +1.0041
+  coord_footprint 2580 -> 2570  +0.0056
+RESULT delta_S=+1.0097 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+
+[exited with code 0]
