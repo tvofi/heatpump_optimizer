@@ -188,6 +188,38 @@ function check(name, cond, detail) {
   }
 }
 
+// --- A browser's navigation surface, complete and inert (R10-DEEPLINK) -----
+// The rig gives the card no history, open or location. A browser always has
+// them, so a handler that calls one must not crash an unrelated scenario that
+// presses it before the link census (at the end of this file) can see it.
+{
+  const history = { pushState() {}, replaceState() {} };
+  const open = () => null;
+  const location = { href: "/", assign() {}, replace() {} };
+  for (const g of [ctx, ctx.window]) Object.assign(g, { history, open, location });
+}
+
+// --- The link census's static arm, first (R10-DEEPLINK) --------------------
+// The card's code, with comments blanked line for line (card_shapes.mjs's
+// stripping), may not name a navigation token outside navigateTo's body: href
+// in any quoting or key form, location, pushState, replaceState, .open( (the
+// dialog's own `this.dialog.open()` excepted), hass-more-info or hass-action.
+// It runs here, before any card renders, so a plant that crashes a later
+// scenario is still refused by name. Its residual is a name split across a
+// string concatenation, which the census's dynamic arm sees on a rendered row.
+{
+  const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
+  const navAt = code.findIndex((l) => /^function navigateTo\(/.test(l));
+  const navEnd = code.findIndex((l, i) => i > navAt && l === "}");
+  const TOKEN = /href|\blocation\b|pushState|replaceState|\.open\s*\(|hass-more-info|hass-action/i;
+  const tokenLines = code.map((l, i) => [l.replace(/this\.dialog\.open\(\)/g, ""), i])
+    .filter(([l, i]) => !(i > navAt && i < navEnd) && TOKEN.test(l))
+    .map(([l, i]) => `${i + 1}: ${l.trim().slice(0, 60)}`);
+  check("no navigation token in the card's code outside navigateTo",
+    navAt >= 0 && navEnd > navAt && tokenLines.length === 0, tokenLines.join(" | "));
+}
+
 // --- Scenario 1: stock install, real (device-prefixed) entity ids ----------
 const card = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
 const dump = collect(card.shadowRoot).join("\n");
@@ -10973,7 +11005,7 @@ check("without an indoor reading the corner now label is absent",
     /data-act="diagnostics"/.test(page) && /Something looks wrong\?/.test(page));
   const dg = mkHealth(healthStates());
   const hist = [];
-  ctx.history = { pushState: (_a, _b, path) => hist.push(path) };
+  ctx.history = { ...ctx.history, pushState: (_a, _b, path) => hist.push(path) };
   const btn = dg.c.shadowRoot.querySelector('[data-act="diagnostics"]');
   if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
   check("pressing it opens /config/integrations/integration/heatpump_optimizer",
@@ -11152,12 +11184,7 @@ check("without an indoor reading the corner now label is absent",
 // does not model would otherwise be swallowed as "emitted nothing".
 //
 // Static: for a row the fixture does not render, or a selector the stub DOM
-// cannot resolve, the card's code (comments stripped) may not mention a
-// navigation token outside navigateTo's body: href in any quoting or key
-// form, location, pushState, replaceState, .open( (the dialog's own
-// `this.dialog.open()` excepted), hass-more-info or hass-action. A name split
-// across a string concatenation is the arm's residual; the dynamic arm sees
-// it on a rendered row.
+// cannot resolve, the token check at the top of this file.
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
@@ -11237,6 +11264,7 @@ check("without an indoor reading the corner now label is absent",
     },
   };
   const saved = { history: ctx.history, open: ctx.open, wHistory: ctx.window.history, wOpen: ctx.window.open,
+    location: ctx.location, wLocation: ctx.window.location,
     CustomEvent: ctx.CustomEvent, navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
   const locDesc = { get: () => sink.location, set: (v) => { left.push(["location", String(v)]); }, configurable: true };
   ctx.history = sink.history; ctx.window.history = sink.history;
@@ -11290,6 +11318,7 @@ check("without an indoor reading the corner now label is absent",
   ctx.history = saved.history; ctx.window.history = saved.wHistory;
   ctx.open = saved.open; ctx.window.open = saved.wOpen;
   delete ctx.location; delete ctx.window.location;
+  ctx.location = saved.location; ctx.window.location = saved.wLocation;
   ctx.CustomEvent = saved.CustomEvent;
   ctx.navigateTo = saved.navigateTo; ctx.openHaLink = saved.openHaLink;
 
@@ -11329,19 +11358,6 @@ check("without an indoor reading the corner now label is absent",
   check("every PENDING row still names a button that makes its unconverted navigation",
     stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
 
-  // The static arm, by token. Comments are blanked line for line (the same
-  // stripping as the finder's card_shapes.mjs), navigateTo's body is the one
-  // place the tokens belong, and `this.dialog.open()` is ExpandedDialog's.
-  const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
-  const [navAt, navEnd] = bodyOf(/^function navigateTo\(/);
-  const TOKEN = /href|\blocation\b|pushState|replaceState|\.open\s*\(|hass-more-info|hass-action/i;
-  const tokenLines = code.map((l, i) => [l.replace(/this\.dialog\.open\(\)/g, ""), i])
-    .filter(([l, i]) => !(i > navAt && i < navEnd) && TOKEN.test(l))
-    .map(([l, i]) => `${i + 1}: ${l.trim().slice(0, 60)}`);
-  check("no navigation token in the card's code outside navigateTo",
-    navAt >= 0 && navEnd > navAt && tokenLines.length === 0, tokenLines.join(" | "));
-
   // ARCH2-s5 C2: the in-card deep link into a Setup slot opens that slot's
   // picker, and hands focus into it only when the press came from the keyboard
   // (a click with detail 0), so a mouse user is never left with a stuck ring.
@@ -11364,7 +11380,7 @@ check("without an indoor reading the corner now label is absent",
     const c = open("advisor");
     c.hass = { ...c.hass, callWS: ws };
     const pushed = [];
-    ctx.history = { pushState: (_a, _b, path) => pushed.push(path) };
+    ctx.history = { ...saved.history, pushState: (_a, _b, path) => pushed.push(path) };
     try { await saved.openHaLink(c, kind, entityId); } finally { ctx.history = saved.history; }
     return pushed;
   };
