@@ -110,17 +110,6 @@ PARAMS_OVER_10_LEFT = {
     "optimizer.HeatPumpOptimizer._build_result":
         "keyword-only already, and every optional is one published result "
         "field; the OptimizationResult it assembles IS the record",
-    "tariff._peak_charge":
-        "the capacity-charge scaffolding's shared core; the tariff-record "
-        "family (peak_cost, peak_cost_smooth, peak_cost_batch, this) is the "
-        "next family owed, outside this group's line cap",
-    "tariff.peak_cost":
-        "the published capacity charge; the tariff-record family is the next "
-        "family owed, outside this group's line cap",
-    "tariff.peak_cost_batch":
-        "the batch twin; same family, same disposition",
-    "tariff.peak_cost_smooth":
-        "the solver's smooth surrogate; same family, same disposition",
     "thermal_model.ThermalModel._simulate_step_single":
         "the per-step hot path takes scalars; a frozen per-step record "
         "allocated one object per simulated step, and the sysid rollout was "

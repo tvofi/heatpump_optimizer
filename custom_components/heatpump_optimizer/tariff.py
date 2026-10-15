@@ -781,15 +781,33 @@ def _smooth_topk_sum_batch(values: np.ndarray, k: int, tau: float) -> np.ndarray
     return out
 
 
+@dataclass(frozen=True, eq=False)
+class PeakBilling:
+    """How a plan's capacity charge is billed: one record for the whole family.
+
+    The month's threshold and marginal price, the metering clock (window,
+    step, the plan's offset into its first window), the billing factors of
+    the #13 masks, each window's day and the distinct-days rule (#1512), and
+    k. The exact charge, the solver's smooth surrogate and its batch twin all
+    take this one value, so a caller building it once cannot price the
+    published figure and the solved plan against two different tariffs.
+    """
+
+    threshold_kw: float
+    price_per_kw: float
+    window_minutes: int
+    dt_hours: float
+    peaks_averaged: int = 3
+    offset_steps: int = 0
+    window_factors: np.ndarray | None = None
+    window_days: np.ndarray | None = None
+    distinct_days: bool = True
+
+
 def _peak_excess(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
-    threshold_kw: float,
-    price_per_kw: float,
-    window_minutes: int,
-    dt_hours: float,
-    offset_steps: int,
-    window_factors: np.ndarray | None,
+    bill: PeakBilling,
 ) -> np.ndarray | None:
     """The per-window excess above the threshold both peak charges share.
 
@@ -802,14 +820,15 @@ def _peak_excess(
     "nothing is chargeable" answer (disabled tariff, empty plan, no window
     above the threshold).
     """
-    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
+    if bill.price_per_kw <= 0 or not np.isfinite(bill.threshold_kw):
         return None
     house = np.asarray(total_power_kw, dtype=float) + np.asarray(
         baseline_load_kw, dtype=float
     )
     if house.size == 0:
         return None
-    windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
+    windows = metering_windows(house, bill.window_minutes, bill.dt_hours, bill.offset_steps)
+    window_factors = bill.window_factors
     if window_factors is not None and window_factors.size:
         # Billed-equivalent kW (#13): each window's average counts at its
         # hour's factor, against a threshold the tracker keeps in the same
@@ -821,7 +840,7 @@ def _peak_excess(
                 [factors, np.ones(windows.size - factors.size)]
             )
         windows = windows * factors
-    excess = np.maximum(0.0, windows - threshold_kw)
+    excess = np.maximum(0.0, windows - bill.threshold_kw)
     if not np.any(excess > 0):
         return None
     return excess
@@ -875,16 +894,8 @@ def _plateau_aware_topk_sum(excess: np.ndarray, k: int) -> float:
 def _peak_charge(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
-    threshold_kw: float,
-    price_per_kw: float,
-    window_minutes: int,
-    dt_hours: float,
-    peaks_averaged: int,
-    offset_steps: int,
-    window_factors: np.ndarray | None,
+    bill: PeakBilling,
     top_sum_of: Callable[[np.ndarray, int], float],
-    window_days: np.ndarray | None,
-    distinct_days: bool,
 ) -> float:
     """One scaffolding for both peak charges, parameterised by the top-k rule.
 
@@ -896,30 +907,19 @@ def _peak_charge(
     every input. The batch twin replicates this scaffolding columnwise
     (#948; batched at R9 F2.5) and does not go through this.
     """
-    excess = _peak_excess(
-        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
-        window_minutes, dt_hours, offset_steps, window_factors,
-    )
+    excess = _peak_excess(total_power_kw, baseline_load_kw, bill)
     if excess is None:
         return 0.0
-    if distinct_days:
-        excess = _day_peaks(excess, window_days, window_minutes, top_sum_of)
-    k = max(1, min(int(peaks_averaged), excess.size))
-    return float(price_per_kw * top_sum_of(excess, k))
+    if bill.distinct_days:
+        excess = _day_peaks(excess, bill.window_days, bill.window_minutes, top_sum_of)
+    k = max(1, min(int(bill.peaks_averaged), excess.size))
+    return float(bill.price_per_kw * top_sum_of(excess, k))
 
 
 def peak_cost(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
-    threshold_kw: float,
-    price_per_kw: float,
-    window_minutes: int,
-    dt_hours: float,
-    peaks_averaged: int = 3,
-    offset_steps: int = 0,
-    window_factors: np.ndarray | None = None,
-    window_days: np.ndarray | None = None,
-    distinct_days: bool = True,
+    bill: PeakBilling,
 ) -> float:
     """What this plan would add to the monthly capacity charge.
 
@@ -968,25 +968,13 @@ def peak_cost(
     # to k, so every unit of weight that leaks onto a window below the tie
     # level bills that unit at the lower level. The surrogate, and the reason
     # the solver still needs it, live in peak_cost_smooth.
-    return _peak_charge(
-        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
-        window_minutes, dt_hours, peaks_averaged, offset_steps,
-        window_factors, _exact_topk_sum, window_days, distinct_days,
-    )
+    return _peak_charge(total_power_kw, baseline_load_kw, bill, _exact_topk_sum)
 
 
 def peak_cost_smooth(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
-    threshold_kw: float,
-    price_per_kw: float,
-    window_minutes: int,
-    dt_hours: float,
-    peaks_averaged: int = 3,
-    offset_steps: int = 0,
-    window_factors: np.ndarray | None = None,
-    window_days: np.ndarray | None = None,
-    distinct_days: bool = True,
+    bill: PeakBilling,
 ) -> float:
     """The solver's capacity term: exact off plateaus, smooth on them.
 
@@ -1011,9 +999,7 @@ def peak_cost_smooth(
     is exact everywhere.
     """
     return _peak_charge(
-        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
-        window_minutes, dt_hours, peaks_averaged, offset_steps,
-        window_factors, _plateau_aware_topk_sum, window_days, distinct_days,
+        total_power_kw, baseline_load_kw, bill, _plateau_aware_topk_sum
     )
 
 
@@ -1102,15 +1088,7 @@ def _day_peaks_batch(
 def peak_cost_batch(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
-    threshold_kw: float,
-    price_per_kw: float,
-    window_minutes: int,
-    dt_hours: float,
-    peaks_averaged: int = 3,
-    offset_steps: int = 0,
-    window_factors: np.ndarray | None = None,
-    distinct_days: bool = True,
-    window_days: np.ndarray | None = None,
+    bill: PeakBilling,
 ) -> np.ndarray:
     """``peak_cost_smooth`` for a [B, n] batch of plans, one entry per row (#948).
 
@@ -1139,13 +1117,14 @@ def peak_cost_batch(
     """
     matrix = np.asarray(total_power_kw, dtype=float)
     n_rows = matrix.shape[0]
-    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
+    if bill.price_per_kw <= 0 or not np.isfinite(bill.threshold_kw):
         return np.zeros(n_rows)
     baseline = np.asarray(baseline_load_kw, dtype=float)
     houses = matrix + baseline
     windows = _window_means_batch(
-        houses, window_minutes, dt_hours, offset_steps
+        houses, bill.window_minutes, bill.dt_hours, bill.offset_steps
     )
+    window_factors = bill.window_factors
     if window_factors is not None and window_factors.size:
         # Billed-equivalent kW (#13); see ``peak_cost``.
         factors = window_factors[: windows.shape[1]]
@@ -1154,18 +1133,18 @@ def peak_cost_batch(
                 [factors, np.ones(windows.shape[1] - factors.size)]
             )
         windows = windows * factors
-    excess = np.maximum(0.0, windows - threshold_kw)
+    excess = np.maximum(0.0, windows - bill.threshold_kw)
     out = np.zeros(n_rows)
     above = np.flatnonzero(np.any(excess > 0, axis=1))
     if above.size == 0:
         return out
     chargeable = excess[above]
-    if distinct_days:
+    if bill.distinct_days:
         chargeable = _day_peaks_batch(
-            chargeable, window_days, window_minutes
+            chargeable, bill.window_days, bill.window_minutes
         )
-    k = max(1, min(int(peaks_averaged), chargeable.shape[1]))
-    out[above] = price_per_kw * _plateau_aware_topk_sum_batch(chargeable, k)
+    k = max(1, min(int(bill.peaks_averaged), chargeable.shape[1]))
+    out[above] = bill.price_per_kw * _plateau_aware_topk_sum_batch(chargeable, k)
     return out
 
 
