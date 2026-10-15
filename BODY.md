@@ -29,9 +29,16 @@ Alternatives considered:
 
 ## Head
 
-`55fd737d9ac86a0fff482ca59653d65979c5f759`
+`3c459205a5bdd560bd2ab8f08f7db2ceb6e4e8fe`
 
-It is cut from `origin/main` 5603ee319 (#2245's merge) and has two commits: the fix, and `record: max_class_loc 8705 -> 8690`.
+The branch was cut from `origin/main` 5603ee319 (#2245's merge) and has `origin/main` 93f5970e9 merged in (`f843df284`). It carries five commits of its own:
+- the fix;
+- `record: max_class_loc 8705 -> 8690`;
+- the merge;
+- the round-4 D6 module-count update;
+- the closure repair.
+
+Between 5603ee319 and 93f5970e9, main touched no file under `custom_components/`, no `tests/*.py`, no `tests/structure_budgets.json` and nothing under `tests/mutation_ledger/`. The only change in that set was `tests/closures.json`, which `git diff --stat 5603ee319 93f5970e9 -- custom_components tests/*.py tests/structure_budgets.json tests/mutation_ledger` confirms. So the mutation proof and every harness figure below, all taken against 5603ee319, still describe this head's code.
 
 ## Mutation proof
 
@@ -116,23 +123,32 @@ Harness sha1s: `surface_units.py` d741b52a (`dev/audit/rounds/round10/D12/s3/` a
   - `pump_arbiter.py:812`: GCHV night-mode hours. Not temperature.
   - The `strings.json` and translation hits are a translation key.
 - `python3 tests/structure.py --record`: `max_class_loc` 8705 → 8690. No other row moved; reason in the record commit. `python3 tests/structure.py` then exits 0.
-- `python3 tools/audit/archscore/score.py --diff 5603ee319`: `Architecture score: dS +0.0028 IMPROVES`, `coord_footprint 2580 -> 2575`.
+- `python3 tools/audit/archscore/score.py --diff 5603ee319` (main moved no production file since): `Architecture score: dS +0.0028 IMPROVES`, `coord_footprint 2580 -> 2575`.
 - `python3 tests/typing_ruler.py`: `ALL 9 typing-ruler checks PASSED`. The first draft added 3 mypy errors in `inputs.py`, fixed by an early return on a missing entity id.
 - `python3 tools/audit/seat/tmp_paths.py --check`: `0 refused`.
-- Scope: `python3 tests/closure.py select --diff 5603ee319 ...` printed `MODE: FULL`, because "no recorded closure mentions custom_components/heatpump_optimizer/issues.py". The new module is recorded by `closures-autofix` (`ci-autofix.md`), not by a Darwin re-derivation. Until then, 28 recorded closures reach a changed file.
-  Run locally under `PYTHONPATH=tests/hastub` with the seat venv:
-  - `tests/features.py` `ALL 4111 FEATURE CHECKS PASSED`. This ran on the pre-squash tree, before the typing early return; that edit is a no-op on every check's inputs, and CI re-runs it at the head.
-  - `tests/guard_pins.py` `ALL 50 GUARD PIN CHECKS PASSED`
-  - `tests/config_flow_steps.py` `ALL 499 checks PASSED`
+- Scope: `python3 tests/closure.py select --diff 93f5970e9 ...` at the head printed `MODE: SCOPED -- 28 script(s) run, 5 scoped out`. Before the closure repair it printed `MODE: FULL` ("no recorded closure mentions custom_components/heatpump_optimizer/issues.py").
+- Closure repair (fixer.md step 5 and the FIXER-BRIEF self-check):
+  - `tests/derive_closures.sh --scripts-from <list> --record-only` covered the 20 Python scripts whose recorded closure reached an importer of `issues.py`. `tests/closure.py merge --partial --allow-failures` merged the result while `entities.py` still failed only its classification checks, and `--single tests/entities.py` re-recorded it once it passed (rc 0).
+  - Result: 21 recorded closures gained exactly `custom_components/heatpump_optimizer/issues.py` and lost nothing. `card.mjs` and `card_drift.mjs` gained it through `plan_view.py`.
+  - The Darwin timings those runs wrote were reverted to main's `recorded` block.
+  - Two lines were added by hand, because both are strace-only dimensions a Darwin run cannot record (R10-HANDOFF-PREPR-BOUNCE; precedent 387128bb, fbc9400a9, d7bfeb0dd): `issues.py` in `tests/harness_headers.py`'s closure, and `dev/audit/harnesses/r10_fahrenheit_setpoints.py` in its `inert_reads`.
+  - `python3 tools/pr/ci_predict.py --base origin/main` then printed `CI PREDICT: no closures or fast red predicted against 93f5970e90d0`.
+- Two module-count records that the new module moves were updated with provenance, the way earlier additions were:
+  - `dev/audit/rounds/round4/D6/claims.py`'s two headers, 76 → 77. `tests/harness_headers.py` had refused `header='76' printed='77'`. The committed `claims.json` and `claims.md` are that harness's own regeneration.
+  - `tests/deployment_shape.py`'s selection-cost note, 94 → 95 files. `tests/entities.py`'s #1218 check had refused "missing markers -> ['all 95 files']". The three full-coverage pairs share 95 production files, measured from the merged closures.
+- Each recorded run below exited 0 at the post-merge tree, with the seat venv and `PYTHONPATH=tests/hastub`:
+  - `tests/harness_headers.py`
+  - `tests/entities.py`
   - `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`
-  - `tests/doc_claims.py` `ALL 169 checks PASSED`
-  - `tests/entities.py` `3 of 2318 ENTITY CHECKS FAILED`. All 3 are issues.py's classification ("these force the FULL suite when touched: custom_components/heatpump_optimizer/issues.py", and the two whole-package coverage checks). The autofix's recording closes them.
+  - `features.py`, `guard_pins.py`, `config_flow_steps.py`, `doc_claims.py`, `structure.py`, `typing_ruler.py`, `arch_score_head.py`, `block_duty.py`, `boost_drift_replay.py`, `debug_collect.py`, `finite_boundary.py`, `manual_plan.py`, `plan_view.py`, `solar_alignment.py`, `wood_advisor.py`, and `env_drift.py`/`golden.py` with their recording's cheap arguments, all through `derive_closures.sh`'s own run.
 
-  Left to CI as heavy (golden with `GOLDEN_MODE=drift` against 5603ee319, optimality, stress, backtest). No golden claim is filed: no plan value reads a set-point unit, and FakeHass has no unit system.
+  `tests/features.py` also passed separately before the merge: `ALL 4111 FEATURE CHECKS PASSED`.
+
+  Left to CI as heavy: golden with `GOLDEN_MODE=drift` against 93f5970e9, `optimality.py`, `stress.py`, `backtest.py`, `edge.py`, `validate.py`, and the node card scripts. No golden claim is filed: no plan value reads a set-point unit, and FakeHass has no unit system.
 
 ## Red checks
 
-none yet. `prepr.sh`'s CI PREDICT expects 3 reds on `closures` and `fast` against 5603ee319, all from the new `issues.py`: `closures` UNDER-SCOPED, and `tests/entities.py`'s classification checks (the same 3 that fail locally, above). Under `ci-autofix.md` these are the `closures-autofix` bot's to record. They are named here and answered by its commit, not by hand. Their cheaper detector is `prepr.sh` itself, which already caught them before the push.
+none. The first prepr, at 55fd737d9, predicted 3 reds on `closures` and `fast` for the new `issues.py` (UNDER-SCOPED, UNCLASSIFIED, INERT READS), and `open_pr.sh` refused that handoff. They are repaired in this head's closure commit, described under Figures. The cheaper detector is `prepr.sh`'s own CI PREDICT arm, which caught them before any PR existed. The process cause is R10-HANDOFF-PREPR-BOUNCE's.
 
 ## Forward-carry
 
@@ -140,5 +156,4 @@ none. Nothing found here changes how a later stage works. The one constraint the
 
 ## Friction
 
-- brief-mechanics: contradiction: the shared FIXER-BRIEF said "closing keyword ... one per line", while the roster's group entry says closing keywords only for `fixes`, which is empty here. Each of #2243, #2242 and #2247 also holds another group's finding, so this body uses Part of.
 - l2-harness: cost: the catch-up harnesses for L1 and L2 call `_bounded(state, v)` and splice source into `_command_valve_target`. Any fix that changes either signature or body cannot re-run them at its head, so a companion was needed.
