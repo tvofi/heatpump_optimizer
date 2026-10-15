@@ -49,7 +49,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C11 literal keys read from a `**kw` are parameters | keyword parameters turned into `**kw` | 11 |
 | C12 a `cast(T, x)` is its `x`: the payload census follows it and it types nothing, the footprint does not read it as delegation | the payload builder's return behind a cast (#1852 round-1 review) | 15 |
 | C13 the scheduled cycle is a hub root (`hub_solve_writes.ROOTS`) | a hub write moved out of the solve into a pre-solve step (#1887 round-1 review) | 14 |
-| C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`) | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys) | 16 |
+| C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -85,7 +85,9 @@ adding one explains the rise. `a1_N5_annotated_return` (NULL) is new and reads W
 
 C1b, C6b and C14 change three definitions, so each carries a planted BAD and GOOD pair (`a3_payload_any_spelling_*`,
 `a3_family_lead_homing_*`, `a3_payload_annotated_param_*`; the family pair has a redundant-override NULL) and
-a red-team attempt (16, 17, 18). Only those new cases entered `expected.json`: no recorded verdict moved, no weight
+a red-team attempt (16, 17, 18). C1b and C14 read an annotation through one unwrapper, `annotation_members`, after
+#2293's review found C14 taking apart fewer spellings than C1b; `a3_payload_annotated_param_spelling_*`, 16b and 16c
+pin the two it missed. Only those new cases entered `expected.json`: no recorded verdict moved, no weight
 perturbation moves one, and the corpus vectors re-measured for `untyped_payload_keys` and `family_orphan_overrides`
 are byte-identical (`calibrate.py --measure-corpus --only-metric untyped_payload_keys,family_orphan_overrides`).
 `ARCHSCORE_ABLATE=C14`, `C1b` or `C6b` reopens its own attempt (it reads IMPROVES) and leaves the other two closed.
