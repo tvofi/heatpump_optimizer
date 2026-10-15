@@ -1,0 +1,41 @@
+--- a/custom_components/heatpump_optimizer/sensor.py	2026-10-15 12:11:48
++++ b/custom_components/heatpump_optimizer/sensor.py	2026-10-15 12:11:48
+@@ -54,9 +54,9 @@
+ from .thermal_model import feedback_gaps
+ 
+ if TYPE_CHECKING:
+-    _SensorMixinBase = HeatPumpOptimizerEntity
++    _SensorMixinRoot = HeatPumpOptimizerEntity
+ else:
+-    _SensorMixinBase = object
++    _SensorMixinRoot = object
+ 
+ #: The ECL110 MQTT topics: any one stored means the hardware is in use, the
+ #: arm-off rule `_ecl110_topic` states for the publish and subscribe seams.
+@@ -187,7 +187,7 @@
+     return None, None
+ 
+ 
+-class _MeasuredStoreMixin(_SensorMixinBase):
++class _MeasuredStoreMixin(_SensorMixinRoot):
+     """A thermal-battery entity, gated on at least one store being sensed.
+ 
+     The battery view is assembled entirely from `ThermalState`: the house
+@@ -344,7 +344,7 @@
+         return unit
+ 
+ 
+-class _MeasuredTemperatureMixin(_SensorMixinBase):
++class _MeasuredTemperatureMixin(_SensorMixinRoot):
+     """A published temperature that is real only while its input reads OK.
+ 
+     ``ThermalState`` is a dataclass with constructor defaults: 55.0 °C for the
+@@ -373,7 +373,7 @@
+         )
+ 
+ 
+-class _WaitsForEvidenceMixin(_SensorMixinBase):
++class _WaitsForEvidenceMixin(_SensorMixinRoot):
+     """An entity whose source is configured but whose evidence has not arrived.
+ 
+     Three sensors were available the moment their *source* existed and then
