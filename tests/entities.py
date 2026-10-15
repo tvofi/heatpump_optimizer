@@ -29399,7 +29399,7 @@ _SP_CARRIES = sorted(f for f in subprocess.run(
     if re.fullmatch(r"dev/programme/carries/carry-\d+\.json", f))
 _SP_CITED = _sp_cited((f, _sp_index(f)) for f in _SP_POLICY)
 # A carry COMMAND is pasted as written, so its spelling must name the file too:
-# carry-201 told a seat to run `tools/audit/round5/.../corpus_churn.py`, which
+# carry-201 told a seat to run corpus_churn.py at its pre-move path, which
 # the move map follows and a shell does not (ENOENT). Policy prose citing a
 # retired path is tests/layout.py's `reference` arm; a command is this arm's.
 _SP_STALE_RUN = []
