@@ -8,9 +8,11 @@ root = sys.argv[1]
 d = metric("layering", root)["details"]
 top = {1: "scipy", 2: "homeassistant"}
 done = 0
+top_reached: dict[str, int] = {}
 for v in d["violations"]:
     m, ranks = v.split(" (")
-    reached = int(ranks.rstrip(")").split(" -> ")[1])
+    top_reached[m] = max(top_reached.get(m, 0), int(ranks.rstrip(")").split(" -> ")[1]))
+for m, reached in sorted(top_reached.items()):
     p = pkg(root) / (m.replace(".", "/") + ".py")
     src = p.read_text()
     anchor = "from __future__ import annotations\n"

@@ -8,11 +8,12 @@ code. Over the package's import graph -- a relative import at ANY scope is an ed
 ``from .optimizer import f`` included, because a lazy import is the same coupling paid later (counter
 C17); an import under ``if TYPE_CHECKING:`` is no edge, nothing runs it --
 
-  layer_violations   modules that reach, through other package modules, a layer above their own: a pure
-                     module that cannot load without scipy (``quiet_windows`` and ``silent_mode`` reached
-                     the optimizer for its private ``_utc_step_starts``) or without Home Assistant, or a
-                     solver module that drags in Home Assistant. A decomposition does not move it: a module
-                     extracted from the glue that imports Home Assistant is glue.
+  layer_violations   (module, layer) pairs where a module reaches, through other package modules, a layer
+                     above its own: a pure module that cannot load without scipy (``quiet_windows`` and
+                     ``silent_mode`` reached the optimizer for its private ``_utc_step_starts``) or without
+                     Home Assistant, or a solver module that drags in Home Assistant. Per pair, so freeing a
+                     pure module of the solver counts while it still reaches the glue. A decomposition does
+                     not move it: a module extracted from the glue that imports Home Assistant is glue.
   private_cross_module   distinct private names (one leading underscore) of one package module named by
                      another: ``from .m import _x``, ``m._x`` through a module binding, and
                      ``getattr(m, "_x")`` (counter C18: the attribute spellings are the same reach).
@@ -154,8 +155,8 @@ def measure(root: Path) -> dict:
     pkg = C.load(str(root))
     edges, ext, crossings = graph(pkg)
     rank = {m: max([LAYERS[x] for x in ext[m] if x in LAYERS], default=0) for m in pkg.mods}
-    violations = sorted(f"{m} ({rank[m]} -> {max(rank[n] for n in closure(edges, m))})" for m in pkg.mods
-                        if closure(edges, m) and max(rank[n] for n in closure(edges, m)) > rank[m])
+    violations = sorted(f"{m} ({rank[m]} -> {r})" for m in pkg.mods
+                        for r in {rank[n] for n in closure(edges, m)} if r > rank[m])
     unused = unused_boundary_imports(pkg) if UNUSED_IMPORTS else []
     return {
         "metric": "layering",

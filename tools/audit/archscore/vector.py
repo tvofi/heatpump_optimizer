@@ -69,7 +69,7 @@ SCORE_METRICS = {
     "import_cycle_modules": (None, "modules in an import cycle, function-scope imports included"),
     "public_unused": (None, "public names nothing uses"),
     "params_over_10": (None, "functions with more than 10 parameters (the fragment-chain guard)"),
-    "layer_violations": (None, "modules reaching a layer above their own (pure < scipy solver < Home Assistant glue)"),
+    "layer_violations": (None, "(module, layer) pairs: a module reaching a layer above its own (pure < scipy solver < HA glue)"),
     "private_cross_module": (None, "private names of one package module named by another"),
 }
 # Weight 0: must not rise, never counted. They retire when the role engine reads these spellings.
