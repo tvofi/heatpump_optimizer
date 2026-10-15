@@ -17,10 +17,10 @@ The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup "Config
 - The new test in `tests/card.mjs` works like this:
   - It renders each dialog page and presses every element there that has its own click listener, using a fresh card per press. It records every link it can see leave the card, and each must be a path `haLink` builds for this entry. The links it records are:
     - a `history.pushState` path;
-    - an anchor's `href` in the rendered page;
+    - an anchor's `href`, read from `getAttribute("href")` and `.href`, on the rendered page and again after every press;
     - a `hass-more-info` or `hass-action` event the card constructs. An event is never a `haLink` path, so an entity dialog goes through `haLink("entity")`'s URL instead.
-  - Links not yet converted are listed in `PENDING` under the group that owns them, with the one path each row is known to emit. A row excuses that path and nothing else. A row whose path no press still produces is refused as stale.
-  - The census asserts its own precondition. Every source line that calls `navigateTo` (outside `openHaLink`) or `openHaLink` must be reached by some press. A static guard covers rows the fixture does not render: `pushState` is the card's only history write, and the source holds no `window.open`, `location.href/assign/replace`, `hass-more-info`, `hass-action`, or `href=` built anywhere but from `haLink` on the same line.
+  - Links not yet converted are listed in `PENDING` under the group that owns them, with the one navigation each row is known to make. A row excuses that path reached through `navigateTo` and nothing else: not an anchor or event to the same path. A row whose navigation no press still produces is refused as stale.
+  - The census asserts its own precondition. Every source line that calls `navigateTo` (outside `openHaLink`) or `openHaLink` must be reached by some press. A static guard covers rows the fixture does not render: `pushState` is the card's only history write, and the source holds no `window.open`, `location.href/assign/replace`, `hass-more-info` or `hass-action`. Nor does it hold an href (`href=`, `setAttribute("href"` or `.href =`) built anywhere but from `haLink` on the same line.
   - `openHaLink` is driven directly, because no button calls it yet. With the fixture's `callWS` it asks the registry for its own plan sensor and links this entry (`entities`, `entity`). With a refusing registry it links the whole integration.
 
 Alternatives not taken:
@@ -30,7 +30,13 @@ Alternatives not taken:
 
 ## Head
 
-10a11f29e66e45f7787a2732791b1562d51baead. This is the PR head 0b4d46abd, with origin/main 694120d5a merged in (d2d4fc8cc) and two test commits on top (6a2decd2d, 10a11f29e). Merge base: 694120d5aa296b65c7d7be097f8684e7bc3b5f61. The merge changed neither the card nor `tests/card.mjs`.
+8960c7019bc157bbee1e6a339fd092ab48d58a5c. Merge base: 586455741e69d9c5adac6e374b65f8e61a69b44d. It is 10a11f29e (round 2) plus:
+- round-3 test commits a63e888e1 and ba3dbb5c5;
+- origin/main 586455741, merged in.
+
+The merge changed neither the card nor `tests/card.mjs`.
+
+Round 3, after the round-2 verdict (comment 6199232940) on R7b: an anchor given its link with `setAttribute("href", ...)` passed both arms. The repair is again in `tests/card.mjs` only. The card source is byte-identical to 0b4d46abd.
 
 Round 2, after #2283's blocked verdict at 0b4d46abd (comment 6197381541). The verdict found two gaps:
 - a surviving `entryId = null` mutant in `openHaLink`;
@@ -40,7 +46,7 @@ Both are repaired in `tests/card.mjs` only. The card source is byte-identical to
 
 ## Mutation proof
 
-All twelve were run at 10a11f29e with `node tests/card.mjs`, one plant at a time, and the tree was restored after each. The plants are scripted in the seat's scratch `round2_mutants.sh`; each is the exact one-line replacement named here.
+All fourteen were run at ba3dbb5c5 (the merge since changed neither file) with `node tests/card.mjs`, one plant at a time, and the tree was restored after each. The plants are scripted in the seat's scratch `round2_mutants.sh`; each is the exact one-line replacement named here.
 
 - M1: `haLink("options")` drops `#config_entry=`. Red: `haLink builds the three deep links Home Assistant routes`.
 - M2: `haLink("entity")` drops `more-info-view=settings`. Red: `haLink builds the three deep links ...` and `haLink without a resolved entry falls back to the domain, never a guessed entry`.
@@ -53,10 +59,14 @@ All twelve were run at 10a11f29e with `node tests/card.mjs`, one plant at a time
 - R6 (review): the advisor `settings` handler dispatches `hass-more-info` instead of navigating. Red: `every link a button emits ...` (`advisor:settings -> hass-more-info:{"entityId":"sensor.x"}`), the static guard, the reach check and the stale-row check.
 - R6b: the pending `settings` handler keeps `navigateTo(SETTINGS_PATH)` and also dispatches `hass-more-info`, with the type assembled at run time. That hides it from the static regex, and the reach check still finds the `navigateTo` line. Red: `every link a button emits ...` (`advisor:settings -> hass-more-info:...`). This is the dynamic sink on its own, through a pending row.
 - R6c: the reviewer's shape, the non-pending Assign branch dispatching `hass-more-info` with the type assembled at run time. Red: `every link a button emits ...` (`health:assign -> hass-more-info:...`), plus the two older Assign checks.
+- R7b (review, verbatim): an empty `<a class="zz">` on the Health diagnostics row, with `a.setAttribute("href", "/config/integrations/integration/heatpump_optimizer")` run on it in `attachAdvisorInbox`. Red: the static guard `navigateTo is the card's only way out: ...`. Its dynamic half cannot fire in Node: `tests/dom_stub.mjs` resolves no compound selector such as `"a.zz"`, so the planted `setAttribute` never runs under the stub. That is why the static guard is the arm for it.
+- R7c: the same at attach, through a selector the stub resolves (`.zz`), with the attribute name assembled at run time so the static regex cannot see it. Red: `every link a button emits ...` (`health:a -> href /config/...`), from the dynamic read alone.
+- R7d: the same written inside the click handler, before the branch. Red: `every link a button emits ...` (`health:diagnostics -> href /config/...`), from the after-press walk alone.
 
 Disclosed self-corrections:
+- In round 3, R7d first survived at a63e888e1. The pending `diagnostics` row excused its bare path whatever carried it, so an anchor to that path on a pending button passed. Since ba3dbb5c5 each recorded link carries how it left (push, href or event), and only a pending row's own push is excused.
 - At 79c5974e1 (round 1), M4 and M5 survived. The site filter skipped any line starting with `function `, and nothing pinned keyboard focus into the picker. Both were fixed at aea95a724.
-- In this round, R6b first survived the event sink. A `PENDING` row excused every link its key emitted, so a pending button that also fired `hass-more-info` passed. Each row now names its one excused path (10a11f29e). The reviewer's R4, R5 and R6 shapes are listed above as R4, R5, R6 and R6c.
+- In round 2, R6b first survived the event sink. A `PENDING` row excused every link its key emitted, so a pending button that also fired `hass-more-info` passed. Each row now names its one excused path (10a11f29e). The reviewer's R4, R5 and R6 shapes are listed above as R4, R5, R6 and R6c.
 
 Failing test first: before the helper existed, `tests/card.mjs` stopped with `ReferenceError: haLink is not defined`.
 
@@ -77,8 +87,8 @@ These are the finder's harnesses, run from exports, on the card at the base (`gi
   - `dead` 1 -> 2. The added dead symbol is `openHaLink`. It has no caller until R10-ADVISOR / R10-UX-HEALTH convert their sites, per the architect note ("one pure helper; the three call sites stay for their groups").
 - `node $EXPORT/dev/audit/rounds/round10/catchup/arch-b/v2_card_lines.mjs <card>` (sha1 b3a1890e77115f9dbe0e2b64954bb21419890366, from handoff/audit-r10-catchup-verify):
   - `picker_lines` 5 -> 3, `total` 36 -> 34. The other columns are equal.
-- Scoped gate: `GATE_SCOPE=auto bash tests/run.sh` gives MODE: SCOPED. The selection is `tests/closure.py select --diff 694120d5a`. The result is `12 TEST SCRIPT(S) PASSED; 23 SCOPED OUT AND NOT RUN`, rc 0, at 10a11f29e. card_drift.mjs ran in that set against origin/main and printed `card_drift: identical in all 40 states`, so the markup is unchanged.
-- `python3 tests/structure.py` at 10a11f29e: STRUCTURE RATCHET PASSED. No budget moved, and no host member was added (`HOST_MEMBER_CEILING` check green).
+- Scoped gate: `GATE_SCOPE=auto bash tests/run.sh` gives MODE: SCOPED. The selection is `tests/closure.py select --diff 586455741`. The result is `12 TEST SCRIPT(S) PASSED; 23 SCOPED OUT AND NOT RUN`, rc 0, at 8960c7019. card_drift.mjs ran in that set against origin/main and printed `card_drift: identical in all 40 states`, so the markup is unchanged.
+- `python3 tests/structure.py` at 8960c7019: STRUCTURE RATCHET PASSED. No budget moved, and no host member was added (`HOST_MEMBER_CEILING` check green).
 - Step 8 seam enumeration: the rule is the census itself, meaning every source line calling `navigateTo` or `openHaLink`, reached by a press. It also counts every anchor `href` and every `hass-more-info`/`hass-action` event the presses produce, and the static guard covers rows the fixture does not render. It returns 2 sites, and no anchor or event at this head:
   - the advisor/health `.adv-act` handler: pending, owned by R10-ADVISOR (`settings`) and R10-UX-HEALTH (`settings`, `diagnostics`)
   - `openHaLink`'s own navigation: closed in this diff
