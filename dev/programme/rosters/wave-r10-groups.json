@@ -2578,7 +2578,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
+   ],
    "architect_note": null,
    "resume": {
     "stage": "not-started",
@@ -2588,7 +2590,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "(f) The merge train's approval carry returned no carry for #2209 at its recarried head (owner approval at the first head citing the mandate, delta main-only); #2209 was merged by hand. Trace `_carry_owner_approval` in tools/audit/seat/merge_train.py and add a self-test for the case.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+   "brief": "(f) The merge train's approval carry returned no carry for #2209 at its recarried head (owner approval at the first head citing the mandate, delta main-only); #2209 was merged by hand. Trace `_carry_owner_approval` in tools/audit/seat/merge_train.py and add a self-test for the case.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
   },
   {
    "group": "R10-PREPR-CAP",
