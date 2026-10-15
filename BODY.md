@@ -26,7 +26,11 @@ Alternatives considered:
 
 ## Head
 
-`f7d2143d0`: `67d71eeb64a043c9b742ef163245491ba5eeef19` (update_pr's merge of the seat head `12043fe47` into the PR branch) plus one commit holding only this PR's own delivery row, `dev/programme/delivery/2282.md`. `12043fe47` merged the earlier PR head `d114395e6` (the merge-main bot's and the orchestrator's merges of origin/main, which touch no production file) and re-pointed the two `cyclic_range_wrap` dispositions in `tests/entities.py` at #2238 / R10-ARCH-SHAPES. `git diff 5b7225456 f7d2143d0 -- custom_components` is empty, so every production figure below describes this tree. The branch was cut at `5603ee319` and merged with origin/main twice: `b22db919d`, then `3d650d26c`. Main's delta across both is `tests/closures.json`, `.claude/workflows/audit-find.js` and `dev/` records; no production file changed. The last commit adds the two new harnesses to `tests/harness_headers.py`'s inert reads in `tests/closures.json`. Measurements below name the commit they ran at. Every production file is identical between `5b7225456` and the head (`git diff 5b7225456 HEAD -- custom_components` is empty).
+`a8df7964e2f62be2a6aebe56e6e4e1d2559ca442`. Built from the PR head `5f2371e69` (the merge-main bot's last move), it adds two things:
+- `4aaea2d07`: the 28 `killed_by` pins CI measured at `f09549085` (run 38796525102, shards 1-6, every status `measured`). They are applied with `mutation_table.apply_pins` on a checkout of that same head, because the bot moved the head before `mutation-autofix` could push them.
+- `a8df7964e`: survivor triage for the five keys that run left alive (see Unpinned sites).
+
+This branch's production diff against its merge base is unchanged: `git diff <merge-base>...HEAD --stat -- custom_components` is the same five files, +223/-239. The only production change since the figures below were measured is main's own `services.py` (3 lines, another PR), which this diff does not touch. The branch was cut at `5603ee319`. Its own commits are the four tariff items, the #2230 test-first commit, the structure record, the mutation-ledger repair, the P2 registry, the inert-read entries and the disposition re-point.
 
 ## Mutation proof
 
@@ -43,39 +47,18 @@ The three refactors are guarded by value-equivalence harnesses with perturbation
 
 ## Unpinned sites
 
-Each site this diff adds, by `prepr.sh` step 6d's key. Most replace a pinned site the refactor moved (the 11 `killed_by` rows removed above).
+Every site this diff adds now has a disposition, and `tools/pr/ci_predict.py` at head prints no ADDED UNPINNED line.
 
-- `custom_components/heatpump_optimizer/grid_fee.py:134 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/grid_fee.py:136 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/grid_fee.py:141 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/grid_fee.py:146 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:248 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:339 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:348 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:352 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:496 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:498 CLAMP_DROP`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:859 CMP_BOUND`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:859 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:879 CLAMP_DROP`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:903 CMP_BOUND`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:906 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:909 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:914 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:925 CMP_BOUND*2`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:925 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:927 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:949 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:951 CLAMP_DROP*2`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:952 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:1007 RETURN_DEL`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:1156 CMP_BOUND`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:1156 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:1172 CLAMP_DROP`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
-- `custom_components/heatpump_optimizer/tariff.py:1178 GUARD_OFF`: pinned by mutation-autofix when CI's drivers kill it; a survivor is triaged here before review closes
+28 are pinned `killed_by` from CI run 38796525102 (commit `4aaea2d07`). The five keys it left alive are triaged in `tests/mutation_ledger/survivor_triage/tariff.py/`. Each was already unpinned at base `5603ee319` under its pre-refactor spelling.
+- `tariff.py:_peak_excess CMP_BOUND 85b13431`: equivalent. A price of exactly 0 charges 0.0 either way.
+- `tariff.py:_peak_excess GUARD_OFF 85b13431`: equivalent. A zero price, an infinite threshold and a NaN threshold all reach the same None/0.0. A negative price is unreachable: the form bounds it to 0-500.
+- `tariff.py:_peak_charge CLAMP_DROP 2a3cb625` (*2): equivalent, as the batch twin's clamp is.
+- `tariff.py:_plateau_aware_topk_sum_batch CMP_BOUND c1441c77`: gap. Only a window exactly at the band edge differs.
+- `tariff.py:_plateau_aware_topk_sum CMP_BOUND 518b9490` (*2): gap. The band edge, and the scalar surrogate on an exactly-k plateau, which no driver prices.
 
 ## Null control
 
+- The local `mutation_table.py --pin-killed` run (orchestrator-approved after the bot kept resetting the CI chain) refused on its own null control. `tests/entities.py` read the comment-only edit at `grid_fee.py:104` as killed, and the `features.py` baseline timed out (rc=124 at 1795 s) at load ~100. Re-running entities on an export with that single edit differed from a clean run only in git-history and network checks a one-commit export cannot satisfy. This is a local environment artefact, not a finding; the pins above are CI's.
 - Bill harness `--null`: the spike one window earlier, which every tree bills. It reads `billed_spike_reached=24 of 24` at the base and at the head, so a 0 is the last-window defect and not a blind harness.
 - Tracker null, in features: a rollover with no open window closes the month on its recorded peaks unchanged. `billing_statements` returns `[("2026-03", 4.0), ("2026-04", 0.0)]`. This is the roster's forward-carried null ("closing before the reset must not change a period with no open window").
 - Equivalence identity arm: `equiv_tariff.py` base against base gives `mismatches=0`.
@@ -125,7 +108,8 @@ All runs used the seat venv (python 3.14) at `5b7225456` unless stated otherwise
 
 none at the push. `prepr.sh` CI PREDICT named two `closures` INERT READS before it: `tests/harness_headers.py` reads the two new harnesses. `open_pr.sh` refused on them, and without a PR no bot run comes. `derive_closures.sh --single tests/harness_headers.py` re-recorded the closure on Darwin, and it moved only the `seconds` field, because the inert dimension is strace-only. The two paths were therefore added to `inert_reads["tests/harness_headers.py"]` by hand (commit `29a782100`). Re-run, `tools/pr/ci_predict.py` prints `no closures or fast red predicted against 3d650d26c762`. The cheaper detector is CI PREDICT itself, which caught it before any push.
 
-- `mutation` (red at `532eb85d3`): it refuses the 30 unpinned sites this diff adds, listed under Unpinned sites as 28 keys, two of them `*2` and named by `prepr.sh` step 6d before the push. Answer: `ci-autofix.md`'s `mutation-autofix` (`mutation-pins` 1-6, running) pins every site a driver kills, in `ci: pin killed mutants`. A survivor gets its triage under Unpinned sites. Cheaper detector: `prepr.sh` step 6d already lists the sites locally. Its standing cost is nil, so none is owed; the red is the ratchet working.
+- The CI pin chain never finished on this PR. It takes about 2 h, and the merge-main bot moved the head under it three times (`532eb85d3`, `f7d2143d0`, `f09549085`) whenever main moved and the PR went DIRTY. Cheaper detector: none. The countermeasure is the orchestrator's, routed to TICK-TRAIN / ci-autofix: no reset while mutation-pins runs at a PR head, or a pin chain that survives a main-only merge.
+- `mutation` (red at `532eb85d3`, `d114395e6`, `67d71eeb6`, `f7d2143d0` and `f09549085`): the ratchet refused the 30 unpinned sites this diff adds (28 keys, two `*2`). Answered at this head: CI's pin run measured them, its 28 kills are applied in `4aaea2d07`, and the five surviving keys are triaged in `a8df7964e`. `ci_predict.py` reports no added unpinned site. Cheaper detector: `prepr.sh` step 6d already lists the sites before a push, so none is owed.
 - `pr-contract` (red at `532eb85d3`, run 116531242827): `mutation` was red and this section did not name it. This entry answers it. Cheaper detector: none is owed, because `prepr.sh` step 7c reads only reds already pushed, and this one did not exist until CI ran.
 
 ## Forward-carry
