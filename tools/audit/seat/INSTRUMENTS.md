@@ -157,7 +157,16 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   GITHUB_TOKEN bot push (author `github-actions[bot]`) stop the train — such
   a head has no `pull_request` run, the required contexts never report at it,
   and the required follow-up is an App push (step 1's recarry once main
-  moves; batch never recarries, so it refuses at admission).
+  moves; batch routes such a head serial, `bot-head`, where that recarry runs
+  after the batch's own merges). A foreign merge moving main under a settled
+  head is recovered up to `--main-moved-tries` (default 3; 0 is the old stop):
+  serially by a recarry and a fresh CI wait, in a batch by re-proving the rest
+  on the new main. An owner approval GitHub already holds at the live head is
+  the owner's, with nothing re-posted (GitHub re-anchors one across a clean
+  base merge: #2209). `--bot-prs` merges the open record/autofix pull request
+  in the train's own sequence behind record_row.py's identical guard;
+  `--pre-flight` runs `queue_pre_flight.py` first and PARKs a failing entry;
+  `--free-holders` detaches a clean, pushed holder worktree.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
@@ -249,6 +258,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   refusal parks the entry here instead of stopping a live queue mid-run.
   Refusal: exit 1 unless every entry passed; the checks are the train's own
   methods (`bot_tip`, `policy_gate`, `app_approve.sh --carry`), never new ones.
+  `merge_train.py --pre-flight` runs it inside the train, passing the two
+  shapes the train now cures itself: a bot tip, and under `--free-holders` a
+  holder `Train.freeable` clears.
 - `record_row.py` — the record-autofix generator: enumerates merged PRs from
   the REST API, plans the delivery rows the tree still lacks, applies them
   behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
@@ -313,14 +325,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   unbuffered (`-u`, so a detached caller's log shows stops and SKIP/OVERLAP
   lines in real time), a pidfile refusing a second live train on the same
   state dir, log and exit code under the state dir (`train.log`, `rc`), and
-  `--skip-bad`/`--overlap` passed straight through. Foreground: the caller
+  `--skip-bad`/`--overlap`/`--approval-carry`/`--bot-prs`/`--pre-flight`/
+  `--free-holders`/`--main-moved-tries N` passed straight through, each only
+  when given (a `0` default once passed `--skip-bad --overlap` on every
+  launch), and the child run from the repository root when `--checkout` is
+  absent (it once resolved to `tools/`). Foreground: the caller
   detaches and owns the schedule. When: every merge queue — the per-session
   scratch drivers this replaces duplicated the invocation, and one session's
   copy ran prepr under the wrong interpreter and refused a clean branch.
   Refusal: a live pidfile (take over only by removing it after checking the
   pid is dead). `--self-test` drives the five refusals and the child argv
   shape offline (missing required arg, live pidfile, unknown argument, the
-  `--ignore-red` argv shape, the absent-venv refusal).
+  `--ignore-red` argv shape, the absent-venv refusal), the child's cwd on a
+  launch without `--checkout`, and a bare launch's argv carrying no flag.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at

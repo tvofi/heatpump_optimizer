@@ -4,7 +4,8 @@
 #   tools/audit/seat/train.sh --queue Q.json --repo OWNER/REPO --state-dir DIR \
 #                             [--checkout DIR] [--min-runs N] [--mandate ID] \
 #                             [--ignore-red CONTEXT]... [--skip-bad] [--overlap] \
-#                             [--self-test]
+#                             [--approval-carry] [--bot-prs] [--pre-flight] \
+#                             [--free-holders] [--main-moved-tries N] [--self-test]
 #
 # What it adds over calling merge_train.py by hand, which the orchestrator's
 # scratch re-duplicated once per session before this existed:
@@ -20,6 +21,9 @@
 # `--skip-bad` and `--overlap` pass straight through to `merge_train.py batch`:
 # a bad entry is skipped and reported instead of stopping the train, and the
 # serial entries are re-carried up front with main's CI waited on log-only.
+# So do `--approval-carry`, `--bot-prs`, `--pre-flight`, `--free-holders` and
+# `--main-moved-tries N` (merge_train.py's own help states each). Without
+# --checkout the child runs from the repository root this script sits in.
 # Foreground by design: the caller detaches (`nohup ... &`) and owns the
 # schedule; this script owns only the invocation shape.
 
@@ -31,7 +35,7 @@ usage() { sed -n '2,16p' "$0" >&2; exit 2; }
 
 selftest=0
 queue="" repo="" checkout="" state="" minruns=1 mandate=""
-skipbad=0 overlap=0
+skipbad="" overlap="" opts=()
 ignores=()
 while [ $# -gt 0 ]; do
   case $1 in
@@ -45,6 +49,9 @@ while [ $# -gt 0 ]; do
       ignores+=("--ignore-red" "$2"); shift 2 ;;
     --skip-bad) skipbad=1; shift ;;
     --overlap) overlap=1; shift ;;
+    --approval-carry|--bot-prs|--pre-flight|--free-holders) opts+=("$1"); shift ;;
+    --main-moved-tries) [ $# -ge 2 ] || die "--main-moved-tries needs a value"
+      opts+=("$1" "$2"); shift 2 ;;
     --self-test) selftest=1; shift ;;
     --help|-h) usage ;;
     *) die "unknown argument '$1'" ;;
@@ -145,7 +152,49 @@ if [ "$selftest" = 1 ]; then
     *) rm -rf "$st"; die "self-test: --skip-bad/--overlap did not reach the child argv: $flags" ;;
   esac
   rm -rf "$st"
-  echo "train.sh self-test: ok (5 refusals shown)"
+  # 7. launched WITHOUT --checkout, the child runs from the REPOSITORY ROOT,
+  #    where tools/audit/seat/merge_train.py is (R10-TICK-TRAIN: the default
+  #    resolved to tools/, and every launch without --checkout died with
+  #    "can't open file '<repo>/tools/tools/audit/seat/merge_train.py'" --
+  #    arm 4's stub records argv only, so it never saw the cwd). The stub
+  #    records its cwd; the new options reach the child too.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state"
+  printf '#!/bin/bash\npwd > "%s/cwd"\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" "$st" \
+    > "$st/venv-ci/bin/python3"
+  chmod +x "$st/venv-ci/bin/python3"
+  : > "$st/queue.json"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" \
+    --approval-carry --bot-prs --pre-flight --free-holders --main-moved-tries 2 >/dev/null 2>&1
+  top=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
+  ran=$(cat "$st/cwd" 2>/dev/null)
+  [ -n "$ran" ] && [ "$(cd "$ran" && pwd -P)" = "$(cd "$top" && pwd -P)" ] \
+    && [ -f "$ran/tools/audit/seat/merge_train.py" ] \
+    || { rm -rf "$st"; die "self-test: launched without --checkout the child ran in '$ran', not the repository root $top"; }
+  flags=$(tr '\n' '|' < "$st/argv")
+  case $flags in
+    *"|--approval-carry|--bot-prs|--pre-flight|--free-holders|--main-moved-tries|2|"*) : ;;
+    *) rm -rf "$st"; die "self-test: the train options did not reach the child argv: $flags" ;;
+  esac
+  rm -rf "$st"
+  # 8. a flag NOT given never reaches the child: `${skipbad:+--skip-bad}`
+  #    over a default of 0 (non-empty) passed --skip-bad and --overlap on
+  #    EVERY launch (measured at origin/main 613b10c51). The bare launch's
+  #    argv must end at --min-runs 1.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state"
+  printf '#!/bin/bash\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" \
+    > "$st/venv-ci/bin/python3"
+  chmod +x "$st/venv-ci/bin/python3"
+  : > "$st/queue.json"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" >/dev/null 2>&1
+  flags=$(tr '\n' '|' < "$st/argv" 2>/dev/null)
+  rm -rf "$st"
+  case $flags in
+    *"|--min-runs|1|") : ;;
+    *) die "self-test: a bare launch passed flags it was not given: $flags" ;;
+  esac
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag)"
   exit 0
 fi
 
@@ -179,7 +228,9 @@ fi
 unset _HPO_STATE
 
 if [ -z "$checkout" ]; then
-  checkout=$(cd "$(dirname "$0")/../.." && pwd)
+  # This script is tools/audit/seat/train.sh: the root is three levels up
+  # (two named tools/, and every launch without --checkout died there).
+  checkout=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || die "no repository around $0; pass --checkout"
 fi
 [ -d "$checkout" ] || die "checkout directory not found: $checkout"
 
@@ -195,7 +246,8 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
     ${ignores[@]+"${ignores[@]}"} \
     ${skipbad:+--skip-bad} \
     ${overlap:+--overlap} \
-    ${mandate:+--mandate "$mandate"}
+    ${mandate:+--mandate "$mandate"} \
+    ${opts[@]+"${opts[@]}"}
 ) >> "$log" 2>&1
 rc=$?
 echo "TRAIN_RC=$rc end=$(date -u +%FT%TZ)" >> "$log"
