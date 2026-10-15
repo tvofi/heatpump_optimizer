@@ -2705,7 +2705,10 @@
     "dev/audit/config/scopes.json",
     "dev/audit/config/rotation.json",
     "tools/policy/check-wave-script.mjs",
-    "tools/audit/check_scopes.py"
+    "tools/audit/check_scopes.py",
+    "dev/governance/roles/fix-review.md",
+    "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
+    "dev/audit/rounds/round10/D14/sweep-N-gate-yield/enumerate.mjs"
    ],
    "hot_files": [],
    "fixerModel": "opus",
