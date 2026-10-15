@@ -11142,11 +11142,18 @@ check("without an indoor reading the corner now label is absent",
 // each landed on the integration's front page. `haLink` is now the one
 // builder, so this test enumerates the buttons rather than naming them: it
 // renders every dialog page, presses every element there that carries a click
-// listener of its own, one fresh card per press, and records what reached
-// `history.pushState`. Each path must be one `haLink` builds for this entry.
-// A link not yet converted is listed in LINK_PENDING under the roster group
-// that converts it; that group deletes its rows, and a row no press still
-// produces is refused as stale, so the list can only shrink.
+// listener of its own, one fresh card per press, and records every link it
+// can see leave the card: a `history.pushState` path, an anchor's `href` in
+// the rendered page, and a `hass-more-info` or `hass-action` event the card
+// constructs (Home Assistant's own way for a card to open an entity dialog).
+// Each must be a path `haLink` builds for this entry; an event never is, so
+// an entity dialog goes through `haLink("entity")`'s URL instead.
+// A link not yet converted is listed in PENDING under the roster group that
+// converts it, with the one path it is known to emit: the row excuses that
+// path and nothing else, so a pending button that starts emitting some other
+// link (an event, a different path) still fails. That group deletes its rows,
+// and a row no press still produces is refused as stale, so the list can only
+// shrink.
 //
 // The census asserts its own precondition: every source line that calls
 // `navigateTo` (outside `openHaLink`) or `openHaLink` must have been reached
@@ -11155,11 +11162,13 @@ check("without an indoor reading the corner now label is absent",
 // passing unenumerated -- extend the fixture until it is reached.
 {
   const ENTRY = "01JDEEPLINKENTRY";
+  const BARE = "/config/integrations/integration/heatpump_optimizer";
   const PENDING = {
-    "advisor:settings": "R10-ADVISOR",
-    "health:settings": "R10-UX-HEALTH",
-    "health:diagnostics": "R10-UX-HEALTH",
+    "advisor:settings": { group: "R10-ADVISOR", path: BARE },
+    "health:settings": { group: "R10-UX-HEALTH", path: BARE },
+    "health:diagnostics": { group: "R10-UX-HEALTH", path: BARE },
   };
+  const excused = (key, path) => built.has(path) || (key in PENDING && PENDING[key].path === path);
   const haLink = fn("haLink");
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
   const states = () => {
@@ -11206,32 +11215,61 @@ check("without an indoor reading the corner now label is absent",
     return m ? Number(m[1]) : -1;
   };
   const hits = new Set();
+  // Every Home Assistant UI event the card constructs, as a link the census
+  // cannot accept: the card's routes go through haLink's URLs.
+  const events = [];
+  const RealEvent = ctx.CustomEvent;
+  ctx.CustomEvent = class extends RealEvent {
+    constructor(type, o) {
+      super(type, o);
+      if (type === "hass-more-info" || type === "hass-action") {
+        events.push(`${type}:${JSON.stringify((o && o.detail) || {})}`);
+      }
+    }
+  };
+  const anchors = (c) => {
+    const out = [];
+    const walk = (n) => {
+      if (typeof n.href === "string") out.push(n.href);
+      (n.children || []).forEach(walk);
+    };
+    walk(c.shadowRoot);
+    return out;
+  };
   const realNav = ctx.navigateTo;
   const realOpen = ctx.openHaLink;
   ctx.navigateTo = (path) => { hits.add(callerLine()); return realNav(path); };
   ctx.openHaLink = (...a) => { hits.add(callerLine()); return realOpen(...a); };
   for (const page of ["plan", "setup", "savings", "advisor", "health"]) {
-    const n = pressables(open(page)).length;
+    const shown = open(page);
+    const n = pressables(shown).length;
     census.push(`${page}=${n}`);
+    for (const href of anchors(shown)) {
+      const key = `${page}:a`;
+      (seen[key] ||= new Set()).add(href);
+      if (!excused(key, href)) wrong.push(`${key} -> ${href}`);
+    }
     for (let i = 0; i < n; i++) {
       const c = open(page);
       const el = pressables(c)[i];
       const pushed = [];
+      events.length = 0;
       ctx.history = { pushState: (_a, _b, path) => pushed.push(path) };
       try {
         await Promise.all((el._listeners.click || []).map((f) => f({
           stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
       } catch (_err) { /* a press that throws emits no link; not this test's concern */ }
       const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
-      for (const path of pushed) {
+      for (const path of [...pushed, ...events]) {
         (seen[key] ||= new Set()).add(path);
-        if (!built.has(path) && !(key in PENDING)) wrong.push(`${key} -> ${path}`);
+        if (!excused(key, path)) wrong.push(`${key} -> ${path}`);
       }
     }
   }
   ctx.history = realHistory;
   ctx.navigateTo = realNav;
   ctx.openHaLink = realOpen;
+  ctx.CustomEvent = RealEvent;
   check("haLink builds the three deep links Home Assistant routes",
     haLink("options", ENTRY) === `/config/integrations/integration/heatpump_optimizer#config_entry=${ENTRY}`
     && haLink("entities", ENTRY) === `/config/entities?config_entry=${ENTRY}`
@@ -11258,7 +11296,7 @@ check("without an indoor reading the corner now label is absent",
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
   check("every link a button emits is one haLink builds for this entry",
     wrong.length === 0, wrong.join("; "));
-  const stale = Object.keys(PENDING).filter((k) => !seen[k] || [...seen[k]].every((p) => built.has(p)));
+  const stale = Object.keys(PENDING).filter((k) => !seen[k] || !seen[k].has(PENDING[k].path));
   check("every LINK_PENDING row still names a button that emits an unconverted link",
     stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
   // ARCH2-s5 C2: the in-card deep link into a Setup slot opens that slot's
@@ -11276,8 +11314,38 @@ check("without an indoor reading the corner now label is absent",
     && viaMouse.setup.pickerFocus === false && viaMouse.setup.pickerViaKeyboard === false,
     `keys ${viaKeys.setup.pickerFocus}/${viaKeys.setup.pickerViaKeyboard} mouse ${viaMouse.setup.pickerFocus}/${viaMouse.setup.pickerViaKeyboard}`);
   const pushSites = (cardSrc.match(/\.pushState\(/g) || []).length;
-  check("navigateTo is the card's only history write, so the census's sink sees every link",
-    pushSites === 1 && !/window\.open\(|location\.(href|assign|replace)\b/.test(cardSrc), `pushState sites ${pushSites}`);
+  // The static half, for a link on a row the fixture does not render: no
+  // other navigation primitive, no entity-dialog event, and no href= built
+  // anywhere but from haLink on the same line.
+  const hrefSites = srcLines.filter((l) => /\bhref\s*=/.test(l) && !/\bhaLink\(/.test(l));
+  check("navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href",
+    pushSites === 1 && !/window\.open\(|location\.(href|assign|replace)\b|hass-more-info|hass-action/.test(cardSrc)
+      && hrefSites.length === 0,
+    `pushState sites ${pushSites}; href lines ${hrefSites.map((l) => l.trim().slice(0, 60)).join(" | ")}`);
+  // openHaLink resolves this card's entry through the registry and follows
+  // haLink with it; a failed lookup links the whole integration. Driven
+  // directly, because no button calls it until a later group converts one.
+  const follow = async (ws, kind, entityId) => {
+    const c = open("advisor");
+    c.hass = { ...c.hass, callWS: ws };
+    const pushed = [];
+    ctx.history = { pushState: (_a, _b, path) => pushed.push(path) };
+    try { await realOpen(c, kind, entityId); } finally { ctx.history = realHistory; }
+    return pushed;
+  };
+  const asked = [];
+  const okWs = async (msg) => { asked.push(msg); return callWS(msg); };
+  const failWs = async () => { throw new Error("registry unreachable"); };
+  const viaEntry = await follow(okWs, "entities");
+  const viaEntity = await follow(okWs, "entity", BIN);
+  const fallback = await follow(failWs, "options");
+  check("openHaLink asks the registry for its own plan sensor and links this entry",
+    asked.length === 2 && asked.every((m) => m.type === "config/entity_registry/get" && m.entity_id === DEFAULT_SPACE)
+    && viaEntry.length === 1 && viaEntry[0] === haLink("entities", ENTRY)
+    && viaEntity.length === 1 && viaEntity[0] === haLink("entity", ENTRY, BIN),
+    `${JSON.stringify(asked)} -> ${viaEntry} | ${viaEntity}`);
+  check("openHaLink falls back to the whole integration when the registry refuses",
+    fallback.length === 1 && fallback[0] === haLink("options", null), String(fallback));
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
