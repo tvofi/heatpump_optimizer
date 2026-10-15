@@ -355,6 +355,8 @@
   "universe": [
    "README.md",
    "DISCLAIMER.md",
+   "docs/index.html",
+   "docs/site/*.css",
    "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
    "custom_components/heatpump_optimizer/translations/*.json",
@@ -370,7 +372,9 @@
     {
      "files": [
       "README.md",
-      "DISCLAIMER.md"
+      "DISCLAIMER.md",
+      "docs/index.html",
+      "docs/site/*.css"
      ],
      "steps": [
       "M1",
@@ -382,7 +386,7 @@
    "s2": [
     {
      "files": [
-      "docs/**"
+      "docs/*.md"
      ],
      "steps": [
       "M1",
