@@ -35,7 +35,7 @@ What holds:
 - Forward-carry: the 35-seams item is present in R10-BRIEFS-FOLD on main.
 
 Findings (not blocks):
-F4. carry-201's non-remeasure fields still spell moved paths: 26 tokens in from/control/brief, out of 37 moved spellings across 3 carries. The `brief` fields are forward constraints, not recounts. For example, /carries/2's brief says a corpus check belongs in `.claude/workflows/policy_lint.mjs`, which now lives in tools/policy/. These are prose citations, so they fall to tests/layout.py's reference arm, which stays in REPORT mode until R9-RO-9. Outside this arm's rule; listed in scan_all_paths.out.
+F4. carry-201's non-remeasure fields still spell moved paths: 30 tokens in from/control/brief. That is 30 of the 37 moved spellings across 3 carries; carry-1922 holds 6 and carry-1645 1. The `brief` fields are forward constraints, not recounts. For example, /carries/2's brief says a corpus check belongs in `.claude/workflows/policy_lint.mjs`, which now lives in tools/policy/. These are prose citations, so they fall to tests/layout.py's reference arm, which stays in REPORT mode until R9-RO-9. Outside this arm's rule; listed in scan_all_paths.out.
 
 Evidence: /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2289-r3/evidence
 - My own drivers and probes: arm.py, drive_d13.py and scan_all_paths.py. arm.py and drive_d13.py were inherited from round 2's reviewer.
