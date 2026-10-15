@@ -28914,7 +28914,7 @@ R.check(
 # tests/layout.py's `canon` (the twin `counts.mjs:canon` agrees with): each
 # moved file and its canonical spelling must reach one key, and that key is
 # the canonical path. The corpus must hold a moved file, or the check is empty.
-_FK_PL = _layout_locate(".claude/workflows/policy_lint.mjs")
+_FK_PL = "tools/policy/policy_lint.mjs"
 _FK_CORPUS = subprocess.run(
     ["node", _FK_PL, "--corpus-filter"], input="\n".join(_TWP_TRACKED) + "\n",
     capture_output=True, text=True).stdout.split()
