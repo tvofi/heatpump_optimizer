@@ -25702,6 +25702,27 @@ R.check(
     "a seat edits at approval, not in a group it does not belong to",
 )
 
+# WHICH ROSTER (R10-TICK b, d): `roster_lib.roster_path` is the one owner of
+# the choice every seat tool makes -- the newest round's roster, compared as
+# an integer, unless an override names one, and a loud refusal when there is
+# none. A constant round-9 path kept every tool on the closed roster after
+# round 10's landed beside it. Its self-test is run here for the reason the
+# state-doc block below gives: under the INERT `tools/audit/` prefix an edit
+# would otherwise select no script.
+try:
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rlw_out:
+        _rlw_ok = _rl._self_test() == 0
+    _rlw_detail = _rlw_out.getvalue()
+except Exception as _rlw_exc:  # noqa: BLE001 -- a crash is one red check
+    _rlw_ok, _rlw_detail = False, f"{type(_rlw_exc).__name__}: {_rlw_exc}"
+R.check(
+    "tools/audit/seat/roster_lib.py --self-test passes: the newest roster, "
+    "the override, the loud refusal",
+    _rlw_ok,
+    "run `python3 tools/audit/seat/roster_lib.py --self-test` for the failing "
+    "check names:\n" + _rlw_detail,
+)
+
 # --- the state-doc beat (R9-RO-14, #2102) -----------------------------------
 #
 # The state docs the standing instruction of 2026-10-09 requires continuously
