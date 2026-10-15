@@ -1,0 +1,141 @@
+D10-s1-51 (class P2): `handle_apply_schedule` answered an empty call
+`{"updated": {}, "reason": "nothing to apply"}` before it consulted
+`_loaded_entries`. So an unknown `entry_id`, or a call made with no entry
+loaded, succeeded where every sibling action refused with
+`config_entry_not_found` / `no_loaded_config_entry`. The handler now resolves
+its targets first, as every sibling does. The early answer for a known, loaded
+entry is unchanged.
+
+Part of #2238. This group's roster `fixes` list is empty, so this PR closes
+nothing; #2238 stays open for its other P2 instances.
+
+**One guard for every action.** `_loaded_entries` already owns the fact:
+which entries a call acts on. The defect was one handler returning before it
+asked. The class barrier (fixer.md step 8, P2) is a census in
+`tests/features.py`, registered in `tests/entities.py`'s `_P2_CENSUSES` as
+`service_entries_resolved_first`. Because "resolved before any return" has
+no AST shape, the census works by driving behaviour. It takes every action
+the registry holds and calls it through the registry and its schema, with the
+smallest payload that schema accepts. It does this in both refusing states,
+unknown id and none loaded, and asserts the translated refusal. It also
+asserts its own preconditions:
+- it covers the whole `services.yaml` catalog;
+- every payload reaches its handler without an `entry_id`;
+- the only schema refusal it accepts is of `entry_id` itself.
+
+Five actions take no `entry_id` and act on every loaded entry.
+
+Alternatives considered:
+- **A registration-level wrapper that resolves before dispatch.** Lost
+  because it decides the fact twice (the wrapper, then the handler).
+  `tests/features.py` also pins each registered service as the module's own
+  handler bound by `partial`, with signature `(hass, call)`.
+- **Passing the resolved targets into every handler.** Lost because it
+  changes 13 signatures and the pinned registration shape for one handler's
+  ordering bug. It would also widen the conflict surface with R10-PARAMS-OWNER
+  on `handle_set_thermal_params`.
+
+## Head
+
+`2e7840f75d148779437f7bd540c1011a5b7a489b`, branch `handoff/r10-services-guard`,
+merge base `3998c7fe9dcb` (origin/main at 2026-10-15T17:30:52Z).
+The gate run was taken at `22f9bf201` against base `694120d5a`. The merge of
+origin/main since then (`git diff --name-only 22f9bf201 2e7840f75`) adds only
+`dev/programme/delivery/*.md` rows and the roster JSON. At the head, the
+closure select still prints `MODE: SCOPED -- 13 script(s) run`, and the
+structure, archscore, tmp_paths, harness and census figures below were
+re-taken.
+
+## Mutation proof
+
+Two mutants:
+- **M1:** the fix's production lines reverted. This is the base
+  `services.py`: resolution after the early return.
+- **M2:** resolution kept at the top but skipped for an empty call
+  (`targets = _loaded_entries(...) if len(data) else []`).
+
+Under each mutant, the check that goes red is
+`every action resolves its config entries before it returns: an unknown entry_id, or none loaded, is refused by all of them (D10-s1-51)`,
+with `silent or wrong: ['apply_schedule[]: returned', "apply_schedule['entry_id']: returned"]`.
+
+M1 was run with the full `PYTHONPATH=tests/hastub python3 tests/features.py`
+on a `git archive` export of the base, with this branch's `tests/` copied in.
+Result: `2 of 4109 FEATURE CHECKS FAILED`. The second failure,
+`and the path that proceeds still stamps a resolvable recorded_at (#363)`, is
+the export runner's: a `git archive` copy has no git. fixer.md step 2 names
+this as the M0 artefact; it passes at the head. Restored head:
+`ALL 4109 FEATURE CHECKS PASSED`.
+
+Census self-controls, each red:
+- dropping `set_mode`'s required payload →
+  `census unreached: ["set_mode: required key not provided @ data['mode']", ...]`;
+- an over-refusing perturbation (always resolve a bogus id) → both D10-s1-51
+  checks FAIL.
+
+## Null control
+
+`apply_schedule on a known, loaded entry still answers an empty call and applies a valid one (the D10-s1-51 census's null control)`
+passes at base and head. This is the roster carry "a valid entry still
+applies": entries applied with a valid id and `dhw_windows` is 1. Under the
+over-refusing perturbation it is 0, and the check FAILs, reporting the
+refusal instead of aborting the script.
+
+The finder's `--perturb` arm reads 0 at base and head.
+
+## Figures
+
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D10/leads/bogus_entry_actions.py`
+  (sha1 `8eb9a0374123aa74bef51565ad048de2fee5aebb`, identical at base and head).
+  Count rule: registered actions that return without raising, given
+  `entry_id` = an id no entry has plus their schema's minimal payload.
+  - Base export `694120d5a`: `actions_silent_on_bogus_entry=1`
+    (`silent=['apply_schedule']`), `actions_raised_on_bogus_entry=7`.
+  - Head: `actions_silent_on_bogus_entry=0`, `actions_raised_on_bogus_entry=8`.
+  - `--perturb`: 0 at both ends.
+  - `actions_total=13` and `schema_rejected` (the same five) at both ends.
+- `PYTHONPATH=tests/hastub python3 tests/features.py`, the class census.
+  Its rule enumerates every registered action and both refusing states.
+  - Base (M1): exactly the two `apply_schedule` arms are silent.
+  - Head: none.
+  - Seam dispositions: `apply_schedule` is closed in this diff. Each of the
+    other 12 actions was already guarded: 7 refuse in both arms, and 5
+    refuse "none loaded" while their schema refuses `entry_id`.
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=694120d5a PYTHONPATH=tests/hastub ./tests/run.sh`
+  at `22f9bf201`: rc=0, `MODE: SCOPED -- 13 script(s) run, 20 scoped out`,
+  `ALL 4109 FEATURE CHECKS PASSED`, `ALL 2318 ENTITY CHECKS PASSED`,
+  `NO UNCLAIMED DRIFT: 56 scenario(s) checked`.
+- `PYTHONPATH=tests/hastub python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
+  `handle_apply_schedule` stays at its base span of 150 lines, measured by
+  AST `end_lineno - lineno + 1`. A first draft at 151 tripped
+  `methods_over_150`, so the comment was cut rather than the budget raised.
+- `python3 tools/audit/archscore/score.py --diff 3998c7fe9 HEAD` → `dS +0.0000 NULL`.
+- `python3 tools/audit/seat/tmp_paths.py --check` → `0 refused`.
+
+## Architecture score
+
+n/a: `dS +0.0000 NULL`, no gate rise.
+
+## Unpinned sites
+
+- `custom_components/heatpump_optimizer/services.py` `handle_apply_schedule`
+  (the moved `_loaded_entries` call): pinned by a value check. The D10-s1-51
+  census kills M1 and M2 (above).
+
+## Red checks
+
+none.
+
+## Forward-carry
+
+R10-PARAMS-OWNER's carry in `dev/programme/rosters/wave-r10-groups.json`,
+sent to the orchestrator, which owns the roster, to append. The constraint:
+its copy-on-write `handle_set_thermal_params` must still resolve
+`_loaded_coordinators(hass)` before any return. The D10-s1-51 census in
+`tests/features.py` drives that action with none loaded and fails on a silent
+return. The control is M1 above. Re-measure at that group's merge base.
+
+## Friction
+
+none.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
