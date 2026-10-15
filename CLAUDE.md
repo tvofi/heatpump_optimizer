@@ -19,17 +19,23 @@ file is.
    and the re-derivation trap: `gate-scoping.md`.
 2. **A structural ratchet refuses growth.** `tests/structure.py` measures every
    metric in `tests/structure_budgets.json` — **derive the count, do not carry
-   one**: it is the budget file's keys less the metadata `recorded_at`, and
-   `structure.py`'s own `ok` lines are a third number because they add the
-   counting-rule check and the `const.py` symbol checks. Every metric may only
-   move down, and several sit at zero headroom, so a change that adds lines to
-   the wrong class fails. Pay by improving code; failing that, re-record
-   deliberately with the reason **in the commit message**; and where only a
-   raise truly improves code (`fixer.md`), **raise the budget with the owner's
-   explicit confirmation, obtained before the branch is pushed** — never loosen one
+   one**: it is the budget file's keys less `recorded_at`; `structure.py`'s
+   `ok` lines are a third number (they add the counting-rule and `const.py`
+   symbol checks). Every metric may only move down, and several sit at zero
+   headroom. Pay by improving code; failing that, re-record deliberately with
+   the reason **in the commit message**; and where only a raise truly improves
+   code (`fixer.md`), **raise the budget with the owner's explicit
+   confirmation, obtained before the branch is pushed** — never loosen one
    quietly, never delete working functionality merely to fit, and stop and ask
    rather than push and explain. A raise in any `*_budgets.json` merges only on
    the owner's approving review at its head: `budget-raise-gate` (0013).
+   **Except under a mandate in force scoped `budget-raise` or `all` (0013)**:
+   an agent may approve a raise once no payment improving the architecture
+   exists — moving, deleting, sharing or refactoring code that
+   `tools/audit/archscore/`, run before and after, does not read as worse and
+   judgement finds sounder; gaming the score pays nothing. The body's
+   `## Raise justification` records each payment tried and its
+   `Architecture score: dS` line, or the gate refuses.
 3. **Value-bearing golden fixtures are claimed, not re-recorded.** Solver floats
    do not reproduce across BLAS builds, so only a canonical environment can
    honestly record one. Drift is declared in `tests/golden/claimed_drift.txt` (or

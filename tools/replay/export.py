@@ -22,6 +22,15 @@ publishes (from the registry; carried for comparison, never fed back), and any
 ``--extra-entity``. For each, the last state before the window and every state
 inside it.
 
+WITH THE TIBBER PRICE SOURCE the integration fetches prices itself, so the
+replay builds the day's series from a recorded price sensor
+(``price_series_entity``). ``--price-entity`` names it; without the flag the
+export takes the Tibber integration's own price sensor from the entity
+registry (``tibber_price_candidates``) that has a numeric state in the
+window, says which on stderr, and refuses -- listing the candidates -- when
+there is none or, with several homes, when the entry's ``price_entity`` does
+not name one of them.
+
 WHAT IT KEEPS is an allowlist, because the file goes into a public
 repository:
 
@@ -64,6 +73,8 @@ not its meaning, so a person reads the file before it is committed:
 on any violation; ``tests/replay.py`` runs it on every committed fixture.
 
     python3 export.py --config-dir /config --days 7 --out /config/hpo-replay.json
+    python3 export.py --config-dir /config --days 7 --out /config/hpo-replay.json \\
+        --price-entity sensor.electricity_price_home   # only to override the pick
     python3 export.py --check /config/hpo-replay.json
 """
 from __future__ import annotations
@@ -135,6 +146,66 @@ SERIES_VALUE_KEYS = frozenset({"value", "price", "total"})
 LABEL = re.compile(r"^[A-Za-z\u00b0][A-Za-z0-9 _+\-./()\u00b0%\u00b2\u00b3]{0,39}$")
 ISO_TIME = re.compile(r"^\d{4}-\d\d-\d\d([T ][\d:.]+([+-]\d\d:\d\d|Z)?)?$")
 CONST_PATTERN = re.compile(r'^CONF_\w+: Final = "([a-z0-9_]+)"', re.M)
+
+# THE TIBBER PRICE SENSOR. With the Tibber source the integration fetches
+# prices itself, so the replay needs a recorded sensor whose state is the
+# price. Home Assistant core's Tibber integration publishes one per home with
+# an active subscription (homeassistant/components/tibber/sensor.py,
+# ``TibberSensorElPrice``, at core commit a108a5c3d7f6f9d27b5b4e8f3e3818084dfc3726):
+# its unique id is the bare Tibber home id and its translation key
+# "electricity_price"; every other Tibber sensor's unique id is
+# ``<home id>_<key>``, ``<home id>_rt_<key>`` or ``<device id>_<key>``, so an
+# underscore rules it out. A registry too old to store translation keys holds
+# None there, which the unique-id rule alone then decides.
+TIBBER_PLATFORM = "tibber"
+TIBBER_PRICE_KEY = "electricity_price"
+#: ``const.PRICE_SOURCE_ENTITY``; every other source is Tibber's, as
+#: ``coordinator._entity_price_source`` decides it.
+PRICE_SOURCE_ENTITY = "entity"
+
+
+def tibber_price_candidates(registry: list[dict]) -> list[str]:
+    """The enabled Tibber price sensors in the entity registry, sorted."""
+    return sorted(
+        e["entity_id"] for e in registry
+        if e.get("platform") == TIBBER_PLATFORM
+        and str(e.get("entity_id", "")).startswith("sensor.")
+        and not e.get("disabled_by")
+        and "_" not in str(e.get("unique_id") or "_")
+        and e.get("translation_key") in (None, TIBBER_PRICE_KEY)
+    )
+
+
+def choose_price_entity(config: dict, registry: list[dict], recorded) -> str:
+    """The Tibber price sensor to build the replay's price series from.
+
+    A candidate must also have a numeric state in force during the window
+    (``recorded(entity_id)``). The entry's own ``price_entity``, when it names
+    one of them, decides between homes; otherwise exactly one must remain,
+    and anything else refuses with the candidates listed.
+    """
+    candidates = tibber_price_candidates(registry)
+    live = [c for c in candidates if recorded(c)]
+    if config.get("price_entity") in live:
+        return config["price_entity"]
+    if len(live) == 1:
+        return live[0]
+    listed = ", ".join(
+        f"{c}{'' if c in live else ' (no numeric state in the window)'}"
+        for c in candidates) or "none"
+    raise SystemExit(
+        f"the Tibber price source needs a recorded price sensor; found "
+        f"{len(live)} usable of {len(candidates)} Tibber price sensor(s) in the "
+        f"registry: {listed}. Pass --price-entity SENSOR"
+    )
+
+
+def _numeric(state: object) -> bool:
+    try:
+        float(state)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def entry_keys(*candidates: Path) -> frozenset[str]:
@@ -541,14 +612,14 @@ def build_export(
         entry.get("options", {})
     )
     inputs |= set(extra)
-    if price_entity:
-        inputs.add(price_entity)
+    registry = _storage(config_dir, "core.entity_registry")["entities"]
     published = sorted(
         e["entity_id"]
-        for e in _storage(config_dir, "core.entity_registry")["entities"]
+        for e in registry
         if e.get("platform") == DOMAIN
         and e.get("config_entry_id") == entry.get("entry_id")
     )
+    config = {**entry.get("data", {}), **entry.get("options", {})}
     conn = _open_ro(db)
     try:
         version = _schema_version(conn)
@@ -557,6 +628,15 @@ def build_export(
                 f"recorder schema {version} predates states_meta ({MIN_SCHEMA}); "
                 "upgrade Home Assistant or export by the History API instead"
             )
+        if not price_entity and config.get("price_source") != PRICE_SOURCE_ENTITY:
+            price_entity = choose_price_entity(
+                config, registry,
+                lambda eid: any(_numeric(row[1]) for row in read_states(
+                    conn, eid, start.timestamp(), end.timestamp())))
+            print(f"price series from the Tibber price sensor {price_entity} "
+                  "(--price-entity overrides)", file=sys.stderr)
+        if price_entity:
+            inputs.add(price_entity)
         states = {
             eid: read_states(conn, eid, start.timestamp(), end.timestamp())
             for eid in sorted(inputs | set(published))
@@ -607,7 +687,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--price-entity",
         help="with the Tibber source: a recorded price sensor (its state is "
-        "the price) the replay builds the day's series from",
+        "the price) the replay builds the day's series from; default: the one "
+        "Tibber price sensor the entity registry and the recorder hold",
     )
     ap.add_argument("--const", type=Path, help="the integration's const.py "
                     "(default: <config-dir>/custom_components/heatpump_optimizer/const.py)")
