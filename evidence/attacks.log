@@ -1,0 +1,14 @@
+RESULT A newest of r9,r10,r11,r1 = dev/programme/rosters/wave-r11-groups.json
+RESULT B at ref origin/main -> dev/programme/rosters/wave-r9-groups.json | on disk -> dev/programme/rosters/wave-r10-groups.json
+RESULT B plan_table at origin/main rc 0 R10-A in out: False R9-A in out: True
+RESULT B state_docs default -> ['round state: handoff/audit-r9-plan at handoff/round9/state/']
+RESULT D no-args rc 0 main moved: False heads: ['handoff/audit-r9-roster', 'main'] :: roster: dev/programme/rosters/wave-r9-groups.json on handoff/audit-r9-roster
+RESULT D2 r10 group, main has r9 only: rc 2 :: roster_edit: REFUSED: no roster group 'R10-A' (known: 1 groups)
+RESULT D3 rc 0 main moved: False heads: ['handoff/audit-r10-roster', 'handoff/audit-r9-roster', 'main'] :: roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+RESULT D4 explicit --roster-ref main, no --push: rc 0 :: roster: dev/programme/rosters/wave-r10-groups.json on main
+RESULT C roster_edit.py rc=2 tb=False :: roster_edit: REFUSED: --roster-path nope.json is not a file at /private/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmplcc_t9wk/wtC
+RESULT C plan_table.py rc=1 tb=True :: roster_lib.RosterNotFound: --roster-path nope.json is not a file at origin/main
+RESULT C resume_doc.py rc=1 tb=True :: roster_lib.RosterNotFound: --roster-path nope.json is not a file at origin/main
+RESULT C handover_prompt.py rc=1 tb=True :: roster_lib.RosterNotFound: --roster-path nope.json is not a file at origin/main
+RESULT C state_docs.py rc=2 tb=False :: state_docs: REFUSED: which round: --roster-path nope.json is not a file at origin/main
+RESULT C orchestrator_tick.py rc=0 tb=False ::   code, o = self.git(["grep", "-oh", "#[0-9]\+", "origin/main", "--",
