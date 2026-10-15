@@ -38,15 +38,18 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | counter | closes | attempt |
 |---|---|---|
 | C1 an `Any` or `object` key is untyped | an all-`Any` TypedDict | 01 |
+| C1b so is any other spelling of one: a union with one, `Optional`, `Annotated`, a string, a package alias | the all-untyped contract re-spelled (ARCH-s3, round 10) | 17 |
 | C2 `reflective_writes`, C2b `computed_attr_access` (tripwires) | `object.__setattr__`, `type(x).__setitem__`, a hub handle behind a computed name | 02, 03, 10, 13 |
 | C3 a clone window is any two statements of a block, in order | junk interleaved in every clone window | 04, 04b to 04zb |
 | C4 the coordinator is measured as its whole package class hierarchy | a rename plus an empty subclass, a mixin | 05, 05b, 05c, 05d |
 | C5 a passthrough property reads as its private | public `raw_<x>` accessors | 06 |
 | C6 `family_orphan_overrides` | families declared into one-member families | 07 |
+| C6b an override's target is the first word of the entity's English name | two neighbours declared one invented family (ARCH-s3, round 10) | 18 |
 | C7 `unread_private_globals` | a keep-alive registry | 08 |
 | C11 literal keys read from a `**kw` are parameters | keyword parameters turned into `**kw` | 11 |
 | C12 a `cast(T, x)` is its `x`: the payload census follows it and it types nothing, the footprint does not read it as delegation | the payload builder's return behind a cast (#1852 round-1 review) | 15 |
 | C13 the scheduled cycle is a hub root (`hub_solve_writes.ROOTS`) | a hub write moved out of the solve into a pre-solve step (#1887 round-1 review) | 14 |
+| C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`) | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys) | 16 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -77,6 +80,16 @@ IMPROVES, because its forecast-seeded outdoor reading is one more live-state wri
 (70 -> 71). The cycle-wide census charges a new reading the way it charges a solve value; a pull request
 adding one explains the rise. `a1_N5_annotated_return` (NULL) is new and reads WORSENS: the wave's
 #1867 disagreement, an annotated alias and a bare `return <name>` that the footprint counts as logic.
+
+### What R10-ARCHSCORE-COVERAGE moved (ARCH-s3's three holes)
+
+C1b, C6b and C14 change three definitions, so each carries a planted BAD and GOOD pair (`a3_payload_any_spelling_*`,
+`a3_family_lead_homing_*`, `a3_payload_annotated_param_*`; the family pair has a redundant-override NULL) and
+a red-team attempt (16, 17, 18). Only those new cases entered `expected.json`: no recorded verdict moved, no weight
+perturbation moves one, and the corpus vectors re-measured for `untyped_payload_keys` and `family_orphan_overrides`
+are byte-identical (`calibrate.py --measure-corpus --only-metric untyped_payload_keys,family_orphan_overrides`).
+`ARCHSCORE_ABLATE=C14`, `C1b` or `C6b` reopens its own attempt (it reads IMPROVES) and leaves the other two closed.
+The cases need the pin to hold no instance, so `controls.py`'s `on` names the case an arm is applied on top of.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 
