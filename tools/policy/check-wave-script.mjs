@@ -471,6 +471,39 @@ await block('group 11', async () => {
   t('the root-cause seat returns beside the fix, and the group stays unmerged',
     out.results[0].merged === false && out.results[0].rootCause?.state === 'the process did not exist', J(out.results[0]?.rootCause))
 })
+await block('group 11b -- the root-cause class, split by whether a cheaper detector existed', async () => {
+  // #2225 (D13-s2-01). One word carried 37 of the window's 124 blocks, so a D13
+  // round could not price it: a red a cheaper detector could have shown before
+  // the handoff is a process yield, one whose cheapest detector is the gate
+  // itself costs a review round for a missing "none exists" line. Each arm is
+  // its own class, routed as itself and keyed as its own histogram row, and
+  // each still blocks and dispatches the root-cause seat: the gate is not
+  // loosened, only measured.
+  const { statsHistogram, blockClasses } = await import(pathToFileURL(path.join(here, 'policy_lint.mjs')).href)
+  for (const word of ['root-cause-detectable', 'root-cause-unrecorded']) {
+    const line = `Fix review: blocked ${'a'.repeat(40)} ${word}: typing went red, unanswered`
+    const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK, agentImpl: REVIEW(line) })
+    const r = out.results[0]
+    t(`a ${word} verdict routes as itself, blocks, and dispatches the root-cause seat rather than a repair`,
+      r.merged === false && r.class === word && calls.some((c) => c.startsWith('root-cause')) && !calls.some((c) => c.startsWith('repair')),
+      J({ class: r.class, calls }))
+    const key = [...statsHistogram([{ pr: 7003 }], new Map([[7003, { body: '', comments: [{ body: line }] }]]),
+      ['merge', 'blocked', ...(blockClasses() ?? [])]).verdicts.keys()].join('+')
+    // Keyed raw is not enough: the histogram keys an UNTAUGHT word raw too, so
+    // the row agrees with the wave's route only once the vocabulary teaches it.
+    t(`the stats histogram keys ${word} as its own row, the same class the wave routes`, key === word && key === r.class, `key=${key} route=${r.class}`)
+  }
+  // The split measures nothing unless the reviewer is told which word means
+  // which: the prompt is that definition for a web wave, so each word is pinned
+  // to its own definition (a swap of the two fails both).
+  let prompt = ''
+  await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: async (p, o) => { if (o.label.startsWith('review')) prompt = p; return REVIEW(`Fix review: merge ${'a'.repeat(40)}`)(p, o) } })
+  t('the reviewer prompt defines root-cause-detectable as a red a cheaper detector could have shown before the handoff',
+    /use root-cause-detectable if a detector cheaper than that check could have shown the red before the handoff/.test(prompt), 'definition missing or moved')
+  t('the reviewer prompt defines root-cause-unrecorded as a red whose cheapest detector is the check that went red',
+    /root-cause-unrecorded if the cheapest detector is the check that went red/.test(prompt), 'definition missing or moved')
+})
 await block('group 12', async () => {
   const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
     agentImpl: REVIEW('Fix review: nonsense', 'merge') })
