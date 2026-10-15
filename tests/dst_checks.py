@@ -1708,10 +1708,10 @@ for _label, _l, _n in (
     R.check(f"{_label}: a meter event a true hour on is not throttled", not _guard.throttled(_n), "")
 
 _arb_held = _arbiter.ArbiterState()
-_real_setpoint_check = _arbiter.setpoint_check
-_arbiter.setpoint_check = SimpleNamespace(create_issue=lambda *a, **k: None)
+_real_issues = _arbiter.issues
+_arbiter.issues = SimpleNamespace(create_issue=lambda *a, **k: None)
 _arbiter._not_held(SimpleNamespace(hass=None), _arb_held, "mode", "x", _FOLD_LAST)
-_arbiter.setpoint_check = _real_setpoint_check
+_arbiter.issues = _real_issues
 _retry_min = (_arb_held.retry["mode"].astimezone(UTC) - _FOLD_LAST_S).total_seconds() / 60.0
 R.check(
     "a pump write retry set on the fold night waits a true 5 minutes",
