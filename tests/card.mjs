@@ -189,14 +189,17 @@ function check(name, cond, detail) {
 }
 
 // --- A browser's navigation surface, complete and inert (R10-DEEPLINK) -----
-// The rig gives the card no history, open or location. A browser always has
+// The rig gives the card no history, open, location or window dispatchEvent. A browser always has
 // them, so a handler that calls one must not crash an unrelated scenario that
 // presses it before the link census (at the end of this file) can see it.
 {
   const history = { pushState() {}, replaceState() {} };
   const open = () => null;
   const location = { href: "/", assign() {}, replace() {} };
-  for (const g of [ctx, ctx.window]) Object.assign(g, { history, open, location });
+  // dispatchEvent too: Home Assistant's own navigate pairs a history write
+  // with a `location-changed` dispatch on the window.
+  const dispatchEvent = () => true;
+  for (const g of [ctx, ctx.window]) Object.assign(g, { history, open, location, dispatchEvent });
 }
 
 // --- The link census's static arm, first (R10-DEEPLINK) --------------------
