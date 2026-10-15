@@ -1,0 +1,64 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..f4785b83c 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9582,13 +9582,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         )
+         migrated = self._away_state.migrated_helpers
+         if active != self._away_state.override_active or ret != parsed:
+-            self._away_state.override_active = active
+-            self._away_state.override_return_iso = (
+-                ret.isoformat() if ret else None
+-            )
++            self._away_state = replace(self._away_state, override_active=active,
++                                       override_return_iso=ret.isoformat() if ret else None)
+             self._spawn(away_mode.persist_override(self, self._away_state))
+         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
+-        self._away_state = away_mode.resolve(
++        self._away_state = replace(away_mode.resolve(
+             config,
+             now=now,
+             presence_raw=presence_raw,
+@@ -9602,8 +9600,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             outdoor_temp=ctx._current_state.outdoor_temperature,
+             override_active=active,
+             override_return_time=ret,
+-        )
+-        self._away_state.migrated_helpers = migrated
++        ), migrated_helpers=migrated)
+         return self._away_state
+     async def async_set_away(
+         self,
+@@ -9612,23 +9609,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         *, refresh: bool = True,
+     ) -> None:
+         """Persist the Plan-page override. The only writer of that store."""
+-        if active is False:
+-            self._away_state.override_active = False
+-            self._away_state.override_return_iso = None
+-        else:
+-            if active is True:
+-                self._away_state.override_active = True
+-            if return_time is not away_mode.OMIT:
+-                parsed = away_mode._parse_return_time(return_time)
+-                self._away_state.override_return_iso = (
+-                    parsed.isoformat() if parsed else None
+-                )
+-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+-        on, ret = away_mode.expire_override(
+-            self._away_state.override_active, parsed, dt_util.now()
+-        )
+-        self._away_state.override_active = on
+-        self._away_state.override_return_iso = ret.isoformat() if ret else None
++        # Resolved on locals, published whole: a spawned persist keeps its snapshot.
++        on = active if active is not None else self._away_state.override_active
++        iso = None if active is False else self._away_state.override_return_iso
++        if active is not False and return_time is not away_mode.OMIT:
++            parsed = away_mode._parse_return_time(return_time)
++            iso = parsed.isoformat() if parsed else None
++        on, ret = away_mode.expire_override(on, away_mode._parse_return_time(iso), dt_util.now())
++        self._away_state = replace(self._away_state, override_active=on,
++                                   override_return_iso=ret.isoformat() if ret else None)
+         await away_mode.persist_override(self, self._away_state)
+         if refresh:
+             await self.async_request_refresh()

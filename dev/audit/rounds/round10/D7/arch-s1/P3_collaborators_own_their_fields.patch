@@ -1,0 +1,109 @@
+diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_components/heatpump_optimizer/accuracy.py
+index a32863acf..842dbc298 100644
+--- a/custom_components/heatpump_optimizer/accuracy.py
++++ b/custom_components/heatpump_optimizer/accuracy.py
+@@ -290,6 +290,12 @@ class AccuracyTracker:
+             # that missed its measurement window is unverifiable.
+         self.lead_pending = keep
+ 
++    def void_pending(self) -> None:
++        """Drop every unmatured prediction: the plan that made them stopped
++        being what runs, so scoring them would charge the model with errors
++        it never made."""
++        self.lead_pending.clear()
++
+     def has_lead_history(self) -> bool:
+         """Whether any lead bucket has actually scored a pair.
+ 
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..bbbf9c5b1 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5818,8 +5818,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # (T5 #16) are void: scoring them against a room now driven by
+             # fixed-rule comfort/boost/off would charge the model with
+             # errors it never made. The tank's promises are void likewise.
+-            self._accuracy.lead_pending.clear()
+-            self._dhw_accuracy.lead_pending.clear()
++            self._accuracy.void_pending()
++            self._dhw_accuracy.void_pending()
+         _LOGGER.info("Operation mode set to: %s", mode)
+         await self._async_save_accuracy()
+         if refresh:
+@@ -6488,14 +6488,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                         _forecast_in_model_units(
+                             self.hass.states.get(weather_entity), forecast_data))
+ 
+-                    # Extract solar radiation forecast if present in weather data
+-                    self._solar_radiation_forecast = []
+-                    for fc in self._weather_forecast:
+-                        # A non-numeric irradiance is refused by _as_float, not thrown (R5-D1-07).
+-                        sr = fc.get("solar_irradiance") or fc.get(
+-                            "native_solar_irradiance", 0.0
+-                        )
+-                        self._solar_radiation_forecast.append(_as_float(sr, 0.0))
++                    # The solar forecast, if present; a non-numeric irradiance is
++                    # refused by _as_float, not thrown (R5-D1-07).
++                    self._solar_radiation_forecast = [_as_float(
++                        fc.get("solar_irradiance") or fc.get("native_solar_irradiance", 0.0), 0.0
++                    ) for fc in self._weather_forecast]
+ 
+                     self._weather_fetch_recovered()
+                     _LOGGER.debug(
+@@ -9956,8 +9953,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # duration, so the plan's promises are fiction while it runs —
+             # and any already on file were made by a plan the experiment
+             # is about to override.
+-            self._accuracy.lead_pending.clear()
+-            self._dhw_accuracy.lead_pending.clear()
++            self._accuracy.void_pending()
++            self._dhw_accuracy.void_pending()
+             return
+         dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0
+         # Filed first, so a plan with no room trajectory to promise about
+diff --git a/custom_components/heatpump_optimizer/flow_lift.py b/custom_components/heatpump_optimizer/flow_lift.py
+index 8d6fe2582..55c0ed6ee 100644
+--- a/custom_components/heatpump_optimizer/flow_lift.py
++++ b/custom_components/heatpump_optimizer/flow_lift.py
+@@ -148,13 +148,17 @@ class FlowCurveBias:
+     #: is a property of the SUPPLY side against the supply curve.
+     last_return_c: float | None = None
+     #: This cycle's thermal output in kW read off the flow meter, or
+-    #: ``None`` (#2016). Set by ``flow_meter.observe_water``; not persisted.
++    #: ``None`` (#2016). Set by ``observe_temps``; not persisted.
+     heat_output_kw: float | None = None
+ 
+     def observe_temps(
+-        self, supply: float | None, return_temp: float | None
++        self,
++        supply: float | None,
++        return_temp: float | None,
++        heat_output_kw: float | None = None,
+     ) -> None:
+-        """Record this cycle's two readings, or clear them.
++        """Record this cycle's readings, or clear them: the two water
++        temperatures and the flow meter's thermal output.
+ 
+         Called every cycle, with ``None`` for a slot that was unconfigured,
+         unavailable or stale. Clearing rather than keeping is the whole point:
+@@ -172,6 +176,7 @@ class FlowCurveBias:
+             if return_temp is not None and np.isfinite(return_temp)
+             else None
+         )
++        self.heat_output_kw = heat_output_kw
+ 
+     def observe(self, measured_supply: float, curve_supply: float) -> None:
+         """Fold one (measured, curve) pair into the bias."""
+diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
+index dc1117ffa..4473986bf 100644
+--- a/custom_components/heatpump_optimizer/flow_meter.py
++++ b/custom_components/heatpump_optimizer/flow_meter.py
+@@ -67,5 +67,6 @@ def read_heat_output_kw(
+ def observe_water(bias: Any, reader: Any, config: Any) -> None:
+     """Fold this cycle's supply, return and flow into the flow-bias holder."""
+     temps = read_water_temps(reader)
+-    bias.observe_temps(*temps)
+-    bias.heat_output_kw = read_heat_output_kw(reader, config, temps)
++    bias.observe_temps(
++        *temps, heat_output_kw=read_heat_output_kw(reader, config, temps)
++    )
