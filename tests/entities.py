@@ -3862,6 +3862,10 @@ _P2_CENSUSES = {
     "written_slot_domain_routed": (
         "tests/features.py",
         "every slot accepting a commandable domain is a driven writer or a named"),
+    # D10-s1-51 (#2238): which entries a service call acts on is
+    # _loaded_entries's, consulted by every action before it can return.
+    "service_entries_resolved_first": (
+        "tests/features.py", "every action resolves its config entries before it returns"),
 }
 
 
@@ -28688,25 +28692,25 @@ _STATS_REWORK = json.loads(subprocess.run(
      "return { prs: d.records.map((r) => ({ pr: r.pr })),"
      "fetched: new Map(d.records.map((r) => "
      "[r.pr, { body: '', comments: r.comments || [] }])) }; };"
-     "const cell = (fx, key) => {"
-     "const c = m.statsHistogram(fx.prs, fx.fetched, "
-     "['blocked', 'merge']).verdicts.get(key);"
-     "return c ? { prs: c.prs.size, entries: c.entries } : null; };"
+     "const hist = (fx) => m.statsHistogram(fx.prs, fx.fetched, "
+     "['blocked', 'merge']);"
+     "const pick = (c) => c ? { prs: c.prs.size, entries: c.entries } : null;"
+     "const cell = (fx, key) => pick(hist(fx).verdicts.get(key));"
+     "const rework = (fx) => pick((hist(fx).rework || new Map()).get(m.REWORK_KEY));"
      "const sha = (c) => c.repeat(40);"
      "const synth = (bodies) => ({ prs: [{ pr: 1 }], fetched: new Map([[1,"
      "{ body: '', comments: bodies.map((b) => ({ body: b })) }]]) });"
+     "const B = 'dev/audit/rounds/round6/D13/fixtures/window_base.json';"
      "console.log(JSON.stringify({"
      "key: m.REWORK_CLASS,"
-     "base: cell(load('dev/audit/rounds/round6/D13/fixtures/window_base.json'), "
-     "'head-moved'),"
-     "reshaped: cell(load('dev/audit/rounds/round6/D13/fixtures/reshaped.json'), "
-     "'head-moved'),"
-     "mergeBase: cell(load('dev/audit/rounds/round6/D13/fixtures/window_base.json'), "
-     "'merge'),"
-     "sameHead: cell(synth(['Fix review: merge ' + sha('a'),"
-     "'Fix review: merge ' + sha('a')]), 'head-moved'),"
-     "noFirstHead: cell(synth(['Fix review: merge',"
-     "'Fix review: merge ' + sha('b')]), 'head-moved')"
+     "base: rework(load(B)),"
+     "reshaped: rework(load('dev/audit/rounds/round6/D13/fixtures/reshaped.json')),"
+     "mergeBase: cell(load(B), 'merge'),"
+     "verdictBase: cell(load(B), 'head-moved'),"
+     "sameHead: rework(synth(['Fix review: merge ' + sha('a'),"
+     "'Fix review: merge ' + sha('a')])),"
+     "noFirstHead: rework(synth(['Fix review: merge',"
+     "'Fix review: merge ' + sha('b')]))"
      "})); })"],
     capture_output=True, text=True).stdout or "{}")
 
@@ -28724,11 +28728,12 @@ R.check(
     "drift signal the block-class extraction check exists for, one row along",
 )
 R.check(
-    "the stats histogram keys a rework round on a moved head as `head-moved`, "
-    "the class the wave defines for it and the passing verdict hides (#1405)",
+    "the stats histogram counts a rework round on a moved head on its own "
+    "rework row, keyed on the class the wave defines for it and the passing "
+    "verdict hides (#1405; #2221)",
     _rework_cell("base").get("prs") == 7
     and _rework_cell("base").get("entries") == 9,
-    f"head-moved cell={_rework_cell('base')!r} -- 11 of the window's 74 "
+    f"rework cell={_rework_cell('base')!r} -- 11 of the window's 74 "
     "parseable verdicts are a second-or-later verdict, and 9 of them follow a "
     "`merge` verdict at another head (the other two are a repair after a block "
     "and a repeat of the previous head, #1549); until the histogram counted "
@@ -28739,15 +28744,17 @@ R.check(
     "(null control; the finder's own perturbation)",
     _rework_cell("reshaped").get("prs") == 6
     and _rework_cell("reshaped").get("entries") == 8,
-    f"head-moved cell={_rework_cell('reshaped')!r} -- the finder's `reshaped` "
+    f"rework cell={_rework_cell('reshaped')!r} -- the finder's `reshaped` "
     "fixture takes one rework verdict outside the grammar, so the same walk "
     "must report 8 rounds over 6 merges, not the base's 9 over 7",
 )
 R.check(
-    "and the passing row is left exactly as it was, so the rework key adds a "
-    "figure rather than moving one (#1405)",
+    "and the passing row is left exactly as it was, and the verdict row the "
+    "wave's `head-moved` word keys holds no rework round, so the rework row adds "
+    "a figure rather than moving one (#1405; #2221)",
     _rework_cell("mergeBase").get("prs") == 63
-    and _rework_cell("mergeBase").get("entries") == 73,
+    and _rework_cell("mergeBase").get("entries") == 73
+    and _STATS_REWORK.get("verdictBase", "absent") is None,
     f"merge cell={_rework_cell('mergeBase')!r} -- the round is counted BESIDE "
     "the row the verdict already landed in, never instead of it: a rekey would "
     "have emptied 9 entries out of this cell and moved a published figure, and "
@@ -28787,10 +28794,14 @@ _STATS_ROUNDS = json.loads(subprocess.run(
      "const fetched = new Map(w.map((v, i) => [String(i + 1), { body: '',"
      "comments: v.map((body) => ({ body })) }]));"
      "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
-     "const c = h.verdicts.get(m.REWORK_CLASS);"
+     "const c = (h.rework || new Map()).get(m.REWORK_KEY);"
+     "const v = h.verdicts.get(m.REWORK_CLASS);"
+     "let total = 0; for (const x of h.verdicts.values()) total += x.entries;"
      "const r = h.rounds || {};"
      "const n = (k) => (r[k] ? r[k].entries : null);"
      "return { cell: c ? [c.prs.size, c.entries] : null,"
+     "vcell: v ? [v.prs.size, v.entries] : null, total,"
+     "same: Boolean(c) && c === r.reverify,"
      "reverify: n('reverify'), repair: n('repair'), repeat: n('repeat'),"
      "line: m.statsRoundsLine ? m.statsRoundsLine(h) : '' }; };"
      "console.log(JSON.stringify({ base: run(B('a', 'claims')),"
@@ -28803,13 +28814,37 @@ def _rounds(arm):
 
 
 R.check(
-    "the head-moved row counts a re-verification of a head that moved after a "
+    "the rework row counts a re-verification of a head that moved after a "
     "`merge` verdict, once per round, and not a repair or a repeat (#1549)",
     _rounds("base").get("cell") == [3, 3],
-    f"head-moved cell={_rounds('base').get('cell')!r}, want [3, 3] (PRs 2, 4 "
+    f"rework cell={_rounds('base').get('cell')!r}, want [3, 3] (PRs 2, 4 "
     "and 5, one round each) -- keyed against the FIRST verdict's head it also "
     "counts #3's repair after a block, #4's repeat of the previous head, and "
     "#5's reviewer-written `head-moved` a second time: [4, 6]",
+)
+# THE VERDICT TABLE COUNTS VERDICTS, AND THE REWORK ROW IS ITS OWN (#2221,
+# D13-s2-02). The rework arm bumped `head-moved` in the VERDICT map, beside the
+# class word a reviewer writes, so one row held two definitions: over
+# v6.7.16..17f1c55fad1b it read 133 entries against 4 blocked verdicts carrying
+# that word. The verdict map is a partition of the parsable verdicts now -- its
+# entries sum to their count -- and the rework row is the STATS ROUNDS
+# re-verification part itself, one object, so the two can never disagree.
+R.check(
+    "the verdict table's `head-moved` row holds only the verdicts whose class "
+    "word a reviewer wrote, and its rows partition the parsable verdicts "
+    "(#2221)",
+    _rounds("base").get("vcell") == [1, 1]
+    and _rounds("base").get("total") == 10,
+    f"verdict head-moved cell={_rounds('base').get('vcell')!r}, want [1, 1] "
+    f"(#5's reviewer-written word); verdict entries={_rounds('base').get('total')!r}, "
+    "want 10, the parsable verdicts of the five merges -- the rework bump in "
+    "the same map reads [3, 3] and 12",
+)
+R.check(
+    "and the rework row is the rounds line's re-verification part, one object "
+    "rather than a second count of it (#2221)",
+    _rounds("base").get("same") is True and _rounds("flipped").get("same") is True,
+    f"base={_rounds('base')!r}",
 )
 R.check(
     "and every round after a merge's first is split by the verdict before it: "
@@ -28824,7 +28859,8 @@ R.check(
     "(null control: #3's block rewritten as a merge)",
     [_rounds("flipped").get(k) for k in ("reverify", "repair", "repeat")]
     == [4, 0, 1]
-    and _rounds("flipped").get("cell") == [4, 4],
+    and _rounds("flipped").get("cell") == [4, 4]
+    and _rounds("flipped").get("vcell") == [1, 1],
     f"flipped={_rounds('flipped')!r} -- a `merge` before #3's second round "
     "makes that round a re-verification of a moved head, so it must leave the "
     "repair part and enter the head-moved row",
@@ -28848,6 +28884,84 @@ R.check(
     "first-verdict yield 5/5" in (_rounds("flipped").get("line") or "")
     and "one-round yield 1/5" in (_rounds("flipped").get("line") or ""),
     f"flipped line={(_rounds('flipped').get('line') or '')[:400]!r}",
+)
+# THE COVERAGE GAP, SPLIT BY CLASS (#2220, D13-s1-01). The coverage line named
+# the merges carrying no parsable verdict as one capped list, so a reader could
+# not tell the record-autofix merges `delivery-status-tracking.md` exempts from
+# review from a `fix` merged with no verdict: over 1913f0dd7..17f1c55fad1b, 22
+# of 185 carried none, 17 of them `record`/`docs` and 2 `fix`. The split is by
+# the title's conventional type, read from the pull request `fetchWindow`
+# already fetches. Driven on the production symbols over six merges: two
+# `record`, two `fix`, one untyped, one never fetched; the perturbation retitles
+# #3 `record`, and the null control gives every fetched merge a verdict.
+_STATS_CLASS = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     _PL_IMPORT + ".then((m) => {" +
+     "const V = { body: 'Fix review: merge ' + 'a'.repeat(40) };"
+     "const run = (titles, every) => {"
+     "const prs = [1, 2, 3, 4, 5, 6].map((pr) => ({ pr: String(pr) }));"
+     "const fetched = new Map(titles.map((t, i) => [String(i + 1), { body: '',"
+     "title: t, comments: every || i % 2 ? [V] : [] }]));"
+     "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
+     "return m.statsCoverageClassLine ? m.statsCoverageClassLine(h.coverage) : ''; };"
+     "const T = ['record: delivery rows', 'record: delivery rows', 'fix(x): y',"
+     "'fix: z', 'Merge stuff'];"
+     "console.log(JSON.stringify({ base: run(T),"
+     "moved: run([T[0], T[1], 'record: z', T[3], T[4]]),"
+     "full: run(T, true) })); })"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "the stats mode splits the merges carrying no parsable verdict by the "
+    "title's type, so an exempt record merge and an unreviewed fix are two "
+    "rows (#2220)",
+    all(seg in (_STATS_CLASS.get("base") or "") for seg in (
+        "record 1 of 2 (#1)", "fix 1 of 2 (#3)", "(untyped) 1 of 1 (#5)",
+        "(unfetched) 1 of 1 (#6)")),
+    f"class line={(_STATS_CLASS.get('base') or '')[:400]!r}",
+)
+R.check(
+    "and the split tracks the titles rather than a constant (perturbation: #3 "
+    "retitled `record`; null control: every fetched merge carries a verdict)",
+    "record 2 of 3 (#1 #3)" in (_STATS_CLASS.get("moved") or "")
+    and "fix 0 of 1" in (_STATS_CLASS.get("moved") or "")
+    and "record 0 of 2" in (_STATS_CLASS.get("full") or "")
+    and "fix 0 of 2" in (_STATS_CLASS.get("full") or "")
+    and "(unfetched) 1 of 1 (#6)" in (_STATS_CLASS.get("full") or ""),
+    f"moved={(_STATS_CLASS.get('moved') or '')[:300]!r}; "
+    f"full={(_STATS_CLASS.get('full') or '')[:300]!r}",
+)
+# ONE CONTRACT, ONE FRICTION KEY, WHICHEVER PATH NAMES IT (#2221, D13-s2-51).
+# `frictionKey` looked its id up in an index built from the corpus's canonical
+# spellings without canonicalising the id, so a seat naming a moved policy file
+# at the path it lives at now -- `dev/governance/roles/fixer.md` -- got a key of
+# its own beside the canonical one: 34 of 34 moved corpus files split at
+# 17f1c55fad1b. Enumerated over the live corpus, through the production
+# `--corpus-filter` and `--normalize-friction-keys` modes, with
+# tests/layout.py's `canon` (the twin `counts.mjs:canon` agrees with): each
+# moved file and its canonical spelling must reach one key, and that key is
+# the canonical path. The corpus must hold a moved file, or the check is empty.
+_FK_PL = "tools/policy/policy_lint.mjs"
+_FK_CORPUS = subprocess.run(
+    ["node", _FK_PL, "--corpus-filter"], input="\n".join(_TWP_TRACKED) + "\n",
+    capture_output=True, text=True).stdout.split()
+_FK_MOVED = [(f, _layout_canon(f)) for f in _FK_CORPUS if _layout_canon(f) != f]
+_FK_IDS = sorted({x for pair in _FK_MOVED for x in pair} | {"not-a-policy-file.md"})
+_FK_KEY = dict(line.split("\t", 1) for line in subprocess.run(
+    ["node", _FK_PL, "--normalize-friction-keys"], input="\n".join(_FK_IDS) + "\n",
+    capture_output=True, text=True).stdout.splitlines() if "\t" in line)
+_FK_SPLIT = [f for f, c in _FK_MOVED if _FK_KEY.get(f) != _FK_KEY.get(c) or _FK_KEY.get(c) != c]
+R.check(
+    "a moved policy file named at its live path and at its canonical spelling "
+    "reaches one friction key, the canonical path (#2221)",
+    len(_FK_MOVED) > 0 and _FK_SPLIT == [],
+    f"moved corpus files={len(_FK_MOVED)}; split={_FK_SPLIT[:5]} "
+    f"({len(_FK_SPLIT)}) -- e.g. "
+    + "; ".join(f"{f} -> {_FK_KEY.get(f)!r}" for f in _FK_SPLIT[:3]),
+)
+R.check(
+    "and an id naming no policy file keeps its own spelling (null control)",
+    _FK_KEY.get("not-a-policy-file.md") == "not-a-policy-file.md",
+    f"key={_FK_KEY.get('not-a-policy-file.md')!r}",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
