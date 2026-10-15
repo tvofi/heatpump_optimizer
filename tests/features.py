@@ -63326,4 +63326,57 @@ R.check(
 )
 
 
+# An unconfigured set-point slot is ``None`` (or empty), and Home Assistant's
+# StateMachine.get does ``self._states_data.get(entity_id) or
+# self._states_data.get(entity_id.lower())`` (2026.9.3), so it RAISES on None
+# where FakeStates' dict lookup returns None. This stub keeps that one upstream
+# behaviour, faithfully and locally, rather than changing FakeHass for every
+# test. The owner's guard returns no reading for a missing id before any
+# lookup; without it, setpoint_check.evaluate on an install with no DHW
+# entity raises inside _dhw and skips the space and quiet checks after it.
+class _DfStrictStates:
+    def __init__(self, mapping):
+        self._states_data = dict(mapping)
+
+    def get(self, entity_id):
+        return self._states_data.get(entity_id) or self._states_data.get(entity_id.lower())
+
+
+def _df_strict_hass(mapping):
+    hass = FakeHass({})
+    hass.states = _DfStrictStates(mapping)
+    return hass
+
+
+from heatpump_optimizer import inputs as _df_inputs  # noqa: E402
+from heatpump_optimizer import setpoint_check as _df_sc  # noqa: E402
+
+def _df_or_raised(fn, *args):
+    try:
+        return fn(*args)
+    except Exception as err:  # noqa: BLE001 - the raise is the reading
+        return f"raised {type(err).__name__}"
+
+
+_df_missing = {
+    repr(eid): (_df_or_raised(_df_inputs.read_setpoint, _df_strict_hass({}), eid),
+                _df_or_raised(_df_inputs.setpoint_and_unit, _df_strict_hass({}), eid))
+    for eid in (None, "")
+}
+_df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
+_df_sc.evaluate(_DfNS(
+    hass=_df_space_hass,
+    effective_config={"space_setpoint_entity": "number.space"},
+    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+                         dhw_legionella_temp=60.0),
+))
+R.check(
+    "a set-point slot with no entity id reads nothing, before any state lookup, "
+    "so the consistency check still reaches the space notice",
+    _df_missing == {"None": (None, None), "''": (None, None)}
+    and _df_sc.ISSUE_SPACE in str(getattr(_df_space_hass, "issues", [])),
+    f"{_df_missing} issues={getattr(_df_space_hass, 'issues', [])!r}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
