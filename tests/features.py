@@ -33567,6 +33567,71 @@ _et_check(
     "no_loaded_config_entry",
 )
 
+# D10-s1-51 (#2238, class P2): _loaded_entries decides which entries a call
+# acts on, and every action must consult it before it returns.
+# apply_schedule's "nothing to apply" return came first, so an empty call
+# naming no config entry, or made with none loaded, succeeded where every
+# sibling refused. "Resolved before any return" has no AST shape, so this
+# census holds it (_P2_CENSUSES in tests/entities.py): every registered
+# action, through the registry and its schema, with the smallest payload the
+# schema accepts, in both refusing states. Its preconditions: it drives the
+# whole catalog, each action's payload reaches the handler without an
+# entry_id, and the only refusal it accepts from a schema is of entry_id
+# itself (five actions act on every loaded entry and take none).
+import voluptuous as _ger_vol  # noqa: E402
+
+#: The fields an action's schema requires; any other's smallest payload is {}.
+_GER_REQUIRED = {
+    "set_mode": {"mode": "auto"}, "set_away": {"active": True},
+    "debug_collect": {"action": "status"},
+    "assign_entity": {"key": "outdoor_temp_entity", "entity_id": ""},
+    "apply_topology": {"layout": "no_valve"},
+}
+_ger_actions = sorted(_et_idle.services.async_services()[_DOMAIN])
+_ger_bad, _ger_unreached = [], []
+for _ger_name in _ger_actions:
+    _ger_base = _GER_REQUIRED.get(_ger_name, {})
+    for _ger_payload, _ger_key in (
+        (_ger_base, "no_loaded_config_entry"),
+        ({**_ger_base, "entry_id": "ghost"}, "config_entry_not_found"),
+    ):
+        try:
+            _ger_err = _et_call(_et_idle, _ger_name, _ger_payload)
+        except _ger_vol.Invalid as _ger_inv:
+            if "entry_id" not in _ger_payload or {
+                tuple(_e.path) for _e in getattr(_ger_inv, "errors", [_ger_inv])
+            } != {("entry_id",)}:
+                _ger_unreached.append(f"{_ger_name}: {_ger_inv}")
+            continue
+        if _ger_err is None or _et_why(_ger_err, _ger_key):
+            _ger_bad.append(f"{_ger_name}{sorted(_ger_payload)}: "
+                            f"{_et_why(_ger_err, _ger_key) if _ger_err else 'returned'}")
+R.check(
+    "every action resolves its config entries before it returns: an unknown "
+    "entry_id, or none loaded, is refused by all of them (D10-s1-51)",
+    set(_ger_actions) == _lc_catalog and set(_GER_REQUIRED) <= set(_ger_actions)
+    and not _ger_unreached and not _ger_bad,
+    f"silent or wrong: {_ger_bad}; census unreached: {_ger_unreached}",
+)
+# Its null control: a known, loaded entry still takes apply_schedule -- an
+# empty call answers "nothing to apply" and a valid field reaches its options.
+_ger_hass = FakeHass()
+_seed_prices(_ger_hass)
+_ger_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _ger_hass, _ger_entry))
+_ger_id = {"entry_id": _ger_entry.entry_id}
+_ger_empty = _asyncio.run(_ger_hass.services.async_call(_DOMAIN, "apply_schedule", _ger_id))
+_ger_set = _asyncio.run(_ger_hass.services.async_call(
+    _DOMAIN, "apply_schedule", {**_ger_id, "dhw_windows": "06:00-07:00"}))
+R.check(
+    "apply_schedule on a known, loaded entry still answers an empty call and "
+    "applies a valid one (the D10-s1-51 census's null control)",
+    _ger_empty == {"updated": {}, "reason": "nothing to apply"}
+    and _ger_set == {"updated": {_ger_entry.entry_id: {"dhw_windows": "06:00-07:00"}}}
+    and _ger_entry.options.get("dhw_windows") == "06:00-07:00",
+    f"empty: {_ger_empty!r}; set: {_ger_set!r}",
+)
+
 # A loaded entry, so the handlers that resolve targets get a coordinator.
 _et_hass = FakeHass()
 _seed_prices(_et_hass)  # #924
