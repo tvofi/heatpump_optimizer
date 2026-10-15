@@ -291,7 +291,7 @@ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
 // reason, never repaired.
 // The ledger's ids (dev/audit/config/bugclasses.json) spelled out: agreement.mjs's
 // finding-class-id pair refuses this list the moment it parts from the ledger.
-const CLASS_GUESS = /^((I1|I2|I3|I4|I5|N-approval-rebuy|N-confounded-learner|N-finally-return|N-future-clamp|N-future-instant|N-gate-yield|N-log-flood|N-move-stale-path|N-name-sort|N-no-expiry|N-orphaned-handoff|N-period-rollover|N-postreview-merge-red|N-reap-lock|N-registry-leak|N-restart|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|R9-ROW-STALE|new))$/
+const CLASS_GUESS = /^((I1|I2|I3|I4|I5|N-approval-rebuy|N-confounded-learner|N-finally-return|N-future-clamp|N-future-instant|N-gate-yield|N-leaf-imports-solver|N-log-flood|N-move-stale-path|N-name-sort|N-no-expiry|N-order-coupling|N-orphaned-handoff|N-period-rollover|N-postreview-merge-red|N-reap-lock|N-registry-leak|N-restart|N-restore-race|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|R9-ROW-STALE|new))$/
 const rejected = []
 const accepted = []
 for (const id of REPORTED) {
