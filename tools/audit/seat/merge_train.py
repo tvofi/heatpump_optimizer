@@ -311,6 +311,9 @@ class Stop(Exception):
 # never re-derives the fix from raw git output. The class goes in brackets
 # right after the step (`TRAIN STOPPED #7 recarry [HOLDER]: ...`), so a line
 # greps by class and the old `TRAIN STOPPED <step>:` prefix is unchanged.
+# GitHub's refusals that mean the base moved under the merge (the REST 405
+# "Base branch was modified", the GraphQL "is not up to date" family).
+BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
 BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: no pull_request run can fire
 STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
@@ -427,6 +430,7 @@ class Train:
         self.main_moved_tries, self.bot_prs = main_moved_tries, bot_prs
         self.pre_flight, self.free_holders = pre_flight, free_holders
         self.skipped: list[dict] = []
+        self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
@@ -972,6 +976,8 @@ class Train:
                 # wants it reset to origin's state before the merge.
                 if not self.ok("git", "worktree", "add", "-q", "-B", br, str(wt), f"origin/{br}"):
                     self.free_holder(pr, wt, br)
+                if not item.get("worktree"):
+                    self.made_wts.append(wt)
             body = self.state / f"rb{pr}.md"
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
             # The recarry itself takes 5-15 min inside app_push's prepr and logs
@@ -1091,7 +1097,18 @@ class Train:
                 return
             if not self.contains_main(h):
                 raise MainMoved("merge", "origin/main moved before the merge; run the train again")
-        self.land(item["pr"], h, item, files, guard)
+        try:
+            self.land(item["pr"], h, item, files, guard)
+        except MainMoved:
+            raise
+        except Stop as s:
+            # Serial only (a batch's proved heads never contain main): every
+            # attempt refused AND main has moved past the head -- the #2290
+            # shape, recarried up front onto a main the batch's own merges
+            # then moved -- is answered by a recarry, not a stop.
+            if s.step == "merge" and s.why.startswith("not merged after") and not self.contains_main(h):
+                raise MainMoved("merge", s.why + "; origin/main has moved past the head") from None
+            raise
 
     def land(self, pr: int, h: str, item: dict, files: list[str], guard) -> str:
         """Approve, preflight and merge <pr> at <h>, `guard()` raising Stop before
@@ -1108,17 +1125,26 @@ class Train:
         pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
-        for _ in range(self.merge_tries):
+        said = "(no output)"
+        for k in range(1, self.merge_tries + 1):
             self.sleep(30)
             guard()
-            self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge", "--match-head-commit", h])
+            code, said = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
+                                   "--match-head-commit", h])
+            said = " ".join(said.split())[-240:] or "(no output)"
             st = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "state,mergeCommit",
                           "--jq", '"\\(.state) \\(.mergeCommit.oid)"')
             if st.startswith("MERGED"):
                 self.log(f"#{pr} {st}")
                 break
+            # Every refusal is logged with GitHub's own words (train-b5, #2290:
+            # eight silent attempts, "not merged" and no reason). One that says
+            # the base moved is a MainMoved -- the recovery's to answer.
+            self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
+            if BASE_MOVED.search(said):
+                raise MainMoved("merge", f"GitHub refused the merge because the base moved: {said}")
         else:
-            raise Stop("merge", f"not merged after {self.merge_tries} attempts")
+            raise Stop("merge", f"not merged after {self.merge_tries} attempts; the last refusal: {said}")
         owner, name = self.repo.split("/")
         q = ('query={repository(owner:"%s",name:"%s"){pullRequest(number:%d){closingIssuesReferences(first:10)'
              "{nodes{number state}}}}}" % (owner, name, pr))
@@ -1127,7 +1153,26 @@ class Train:
             self.run(["bash", tool("worktree_gc"), self.repo])
         return st.split()[-1]
 
+    def release_worktrees(self) -> None:
+        """Before the run's closing line (and again, a no-op, in `train`/`batch`'s
+        finally), remove the recarry worktrees THIS run created under
+        its state dir, so the next run's pre-flight does not find the train's
+        own worktree holding a branch (train-b5, #2290: PARKed by
+        ~/hpo-orch/train-b5/wt/2290). Never forced: one with changes stays,
+        logged NOT released; a queue entry's own `worktree` is never touched."""
+        for wt in self.made_wts:
+            code, o = self.run(["git", "worktree", "remove", str(wt)])
+            self.log(f"released {wt}" if code == 0 else
+                     f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
+        self.made_wts = []
+
     def train(self, queue: list[dict]) -> int:
+        try:
+            return self._train(queue)
+        finally:
+            self.release_worktrees()
+
+    def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
@@ -1135,8 +1180,10 @@ class Train:
             try:
                 self.one(item)
             except Stop as s:
+                self.release_worktrees()  # before the closing line, which stays last
                 self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {classified(s)}")
                 return 1
+        self.release_worktrees()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1398,6 +1445,12 @@ class Train:
         self.log(f"SKIP REPORT: {len(self.skipped)} skipped of {total}")
 
     def batch(self, queue: list[dict], tag: str) -> int:
+        try:
+            return self._batch(queue, tag)
+        finally:
+            self.release_worktrees()
+
+    def _batch(self, queue: list[dict], tag: str) -> int:
         # The banner is the FIRST output, before any blocking call: a
         # daemonized launch is attributable from the log's first line even if
         # everything after it hangs (tvofi, 2026-10-14, tag traintest).
@@ -1535,10 +1588,12 @@ class Train:
                         self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step,
                                   f"#{a['pr']} {s.why}", s.cls)
         except Stop as s:
+            self.release_worktrees()  # before the closing lines, which stay last
             self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(len(queue))
             return 1
+        self.release_worktrees()
         if self.branches:  # the proofs are spent; their shas are in the log above
             code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
             names = ", ".join(self.branches)
@@ -1583,6 +1638,8 @@ def _self_test() -> int:
             if argv[:3] == ["gh", "pr", "merge"] and argv[3] == "9":
                 world.setdefault("bot_merged", []).append(9)
                 return 0, ""
+            if argv[:3] == ["gh", "pr", "merge"] and world.get("merge_outs"):
+                return world["merge_outs"].pop(0)
             if argv[:3] == ["gh", "pr", "view"] and "state,headRefOid" in a:  # pre-flight's read
                 return 0, json.dumps({"state": "OPEN", "headRefOid": world["heads"][0],
                                       "headRefName": "fix/x"})
@@ -2201,6 +2258,42 @@ def _self_test() -> int:
     check("the merge is retried until GitHub reports MERGED", rc == 0 and sum(c[:3] == ["gh", "pr", "merge"] for c in calls) == 3)
     rc, lines, calls = go({"merge": ["OPEN None"] * 3})
     check("a merge GitHub never takes stops it", rc == 1 and "merge:" in lines[-1])
+    # train-b5, #2290: eight silent refusals. Each is now logged in GitHub's
+    # words, the stop names the last, and a base-moved refusal is recovered.
+    REF = (1, "X Pull request tvofi/r#7 is not mergeable: the merge commit cannot be cleanly created.")
+    rc, lines, calls = go({"merge": ["OPEN None"] * 3, "merge_outs": [REF] * 3})
+    check("every refused merge attempt is logged with GitHub's own words, and the stop names the last",
+          rc == 1 and sum(ln.startswith("#7 merge attempt ") and "cannot be cleanly created" in ln
+                          for ln in lines) == 3
+          and "the last refusal: X Pull request" in lines[-1])
+    MOVED = (1, "GraphQL: Base branch was modified. Review and try the merge again. (mergePullRequest)")
+    rc, lines, calls = go({"merge": ["OPEN None", "MERGED " + "e" * 40], "merge_outs": [MOVED],
+                           "contains": [True, True, True, False, True], "heads": [H0, H0, H0, H1]},
+                          main_moved_tries=1)
+    check("a refusal saying the base moved is a MainMoved: recarried, CI again, merged at the new head",
+          rc == 0 and remerges(calls) == 1 and [c[-1] for c in calls if c[:3] == ["gh", "pr", "merge"]] == [H0, H1]
+          and any("[MAIN-MOVED] merge: GitHub refused the merge because the base moved" in ln for ln in lines))
+    rc, lines, calls = go({"merge": ["OPEN None"] * 3 + ["MERGED " + "e" * 40], "merge_outs": [REF] * 3,
+                           "contains": [True, True, True, True, True, False, False, True],
+                           "heads": [H0, H0, H0, H1]}, main_moved_tries=1)
+    check("every attempt refused while main moved past the head (the #2290 shape) is recarried, not stopped",
+          rc == 0 and remerges(calls) == 1 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+          and any("[MAIN-MOVED] merge: not merged after 3 attempts" in ln and "moved past the head" in ln
+                  for ln in lines))
+    rc, lines, calls = go({"merge": ["OPEN None"] * 3, "merge_outs": [REF] * 3}, main_moved_tries=1)
+    check("... while the same refusals on a head that still contains main stop as before (null control)",
+          rc == 1 and remerges(calls) == 0 and "not merged after 3 attempts" in lines[-1])
+    # The train releases the recarry worktrees it made (train-b5 left wt/2290
+    # holding the branch, and the next pre-flight PARKed the entry on it).
+    own = {k: v for k, v in item.items() if k != "worktree"}
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[dict(own)])
+    removed = [c for c in calls if c[:3] == ["git", "worktree", "remove"]]
+    check("a recarry worktree the train made under its state dir is removed at the run's end, never forced",
+          rc == 0 and len(removed) == 1 and removed[0][3].endswith("/wt/7") and "--force" not in removed[0]
+          and any(ln.startswith("released ") for ln in lines))
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
+    check("... and a queue entry's own worktree is never touched (null control)",
+          rc == 0 and not any(c[:3] == ["git", "worktree", "remove"] for c in calls))
     rc, lines, calls = go({}, q=[dict(item), dict(item, pr=8)])
     check("the queue runs in order", rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7", "8"])
     rc, lines, calls = go({"runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]},
@@ -2458,6 +2551,8 @@ def _batch_self_test(check) -> None:
             w["skip_json"] = (json.loads((Path(d) / "state" / "skipped.json").read_text())
                               if (Path(d) / "state" / "skipped.json").is_file() else None)
             w["tree_ok"] = [ln for ln in lines if "tree == proof" in ln]
+            w["wt_left"] = [ln for ln in g(w["L"], "worktree", "list", "--porcelain")[1].splitlines()
+                            if ln.startswith("worktree ") and "/state/wt/" in ln]
             w["main_tree"] = g(w["R"], "rev-parse", f"{base}^{{tree}}")[1]
             w["led"] = g(w["R"], "show", f"{base}:led.json")[1]
             w["proof_trees"] = [g(w["L"], "rev-parse", f"{sha}^{{tree}}")[1] for _, sha in w["pushed"]]
@@ -2669,6 +2764,9 @@ def _batch_self_test(check) -> None:
           "before the first merge, and the entries still land in queue order",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and len(recarries) == 2
           and merges and max(recarries) < min(merges))
+    check("the recarry worktrees the batch made in the real clone are gone when it ends "
+          "(the next run's pre-flight finds no train worktree holding a branch)",
+          w["rc"] == 0 and w["wt_left"] == [] and sum(ln.startswith("released ") for ln in w["lines"]) == 2)
     check("--overlap: each up-front recarry announces itself before it runs, so the "
           "5-15 min of app_push prepr per entry is visible mid-flight",
           all(any(ln == f"#{p} overlap: recarry start" for ln in w["lines"]) for p in (1, 2)))
