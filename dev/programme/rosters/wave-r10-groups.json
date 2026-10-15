@@ -2388,7 +2388,8 @@
    "lane": "IN",
    "kind": "docs",
    "issues": [
-    2222
+    2222,
+    2298
    ],
    "fixes": [],
    "findings": [
@@ -2408,7 +2409,8 @@
     "docs/dashboard-card.md",
     "custom_components/heatpump_optimizer/__init__.py",
     "tests/structure.py",
-    "tests/stress.py"
+    "tests/stress.py",
+    "docs/index.html"
    ],
    "hot_files": [],
    "fixerModel": "sonnet",
@@ -2441,7 +2443,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Docs and comments drifted against the code: five UI labels in README.md, docs/configuration.md and docs/setup.md (D5-s1-01); the console-banner sample in docs/dashboard-card.md (D5-s2-01); four service count statements in custom_components/heatpump_optimizer/__init__.py (D5-s3-51); a comment in tests/structure.py naming a retired key, and a comment in tests/stress.py stating a scenario count the live set no longer has (D11-s1-51). Derive each count from the tree; do not carry one.\n\nForward-carried (finding-propagation.md): (1) The D7.md and D9.md lines of #2222 are policy and land in R10-BRIEFS-FOLD; the coordinator comment (D5-s3-01) lands in R10-CURRENCY; the hot_water_pumps label in R10-UX-SETUP. This group closes #2222 only if it merges last of those four; the orchestrator checks.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: tests/stress.py (comment only). Models: fixer sonnet, reviewer sonnet. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+   "brief": "Docs and comments drifted against the code: five UI labels in README.md, docs/configuration.md and docs/setup.md (D5-s1-01); the console-banner sample in docs/dashboard-card.md (D5-s2-01); four service count statements in custom_components/heatpump_optimizer/__init__.py (D5-s3-51); a comment in tests/structure.py naming a retired key, and a comment in tests/stress.py stating a scenario count the live set no longer has (D11-s1-51). Derive each count from the tree; do not carry one.\n\nForward-carried (finding-propagation.md): (1) The D7.md and D9.md lines of #2222 are policy and land in R10-BRIEFS-FOLD; the coordinator comment (D5-s3-01) lands in R10-CURRENCY; the hot_water_pumps label in R10-UX-SETUP. This group closes #2222 only if it merges last of those four; the orchestrator checks.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: tests/stress.py (comment only). Models: fixer sonnet, reviewer sonnet. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nD6-s9-01 (#2298): docs/index.html declares plan-why-light.png height 616, while the file is 792. Correct it and add a declared-vs-actual image-dimension check to tests/doc_claims.py over every tracked page, failing first. Finder harness (handoff/audit-r10-d6-web at 39909e462): dev/audit/rounds/round10/D6/web/web_claims.py (img_dim_mismatch 1 -> 0)."
   },
   {
    "group": "R10-TICK-ORCH",
@@ -2578,7 +2580,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
+   ],
    "architect_note": null,
    "resume": {
     "stage": "not-started",
@@ -2588,7 +2592,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "(f) The merge train's approval carry returned no carry for #2209 at its recarried head (owner approval at the first head citing the mandate, delta main-only); #2209 was merged by hand. Trace `_carry_owner_approval` in tools/audit/seat/merge_train.py and add a self-test for the case.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+   "brief": "(f) The merge train's approval carry returned no carry for #2209 at its recarried head (owner approval at the first head citing the mandate, delta main-only); #2209 was merged by hand. Trace `_carry_owner_approval` in tools/audit/seat/merge_train.py and add a self-test for the case.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
   },
   {
    "group": "R10-PREPR-CAP",
@@ -2743,7 +2747,9 @@
    "carry": [
     "Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose.",
     "If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).",
-    "From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed."
+    "From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed.",
+    "From #2275: web-fix-wave.js now teaches two block classes, root-cause-detectable and root-cause-unrecorded (both block and route to the root-cause seat). dev/governance/roles/fix-review.md step 11 must teach the same two words, because hand-run reviews read the contract, not the web-wave prompt. The next D13 bucketing (blocks_friction) and the D14 enumerator must place both words. fix-review.md is policy at zero headroom: pay for it within the cap.",
+    "From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them."
    ],
    "architect_note": null,
    "resume": {
@@ -2754,7 +2760,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "The D7 M7/M8 policy fold (tvofi, 2026-10-14) plus every brief edit the round owes, in one policy pull request. M7: arch-score opportunities, all counters on, a behaviour gate, an architectural argument, \"review trigger, never a target\", with the 150 % bar as the guideline. M8: a duplicated-shape census, enumerate implementations by seam rule, an agreement test, one owner. Write both from what the judges confirmed and voided; re-cut D7's three seats in dev/audit/config/scopes.json and rotation.json across M1-M8; update tools/policy/check-wave-script.mjs and tools/audit/check_scopes.py as needed. Owed edits: D1 step 3 checks the published and booked value, not only the plan; D2 step 5 tests learners under error in the other covariate; confirm under D2 that the 35 evidence-only stale-path seams are by design; the D5 and D12 briefs get the display-basis question (the published heat loss is the (U+L)s basis, 189.9 W/K, not the effective UA, 244.0 at ratio 1.6); the D7 brief gets the coordinator context write-once residual (L4); and the stale D7.md and D9.md lines of #2222 (D11-s1-51).\n\nAdded by the coordinator, 2026-10-15: (a) D5.md and D12.md carry D2-s3-73's published heat-loss basis: `heat_loss_kw_per_c` is on the (U+L) basis and reads 22 % below the effective UA at r=1.6, so the display-basis question names which basis a published heat-loss figure is on. (b) D7.md carries that CoordinatorContext is documented write-once but is replaced in `async_update_thermal_params`.\n\nForward-carried (finding-propagation.md): (1) Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose. (2) If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: dimension briefs. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nCountermeasure M4 is adopted under mandate 6175172275 (the recommended option): dev/governance/rules/ci-autofix.md, dev/governance/roles/fixer.md steps 5 and 18, and CLAUDE.md's ci-autofix index line must state the pre-PR sequence: predicted reds are repaired before handoff, and the bot's wait applies only once a PR exists.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed."
+   "brief": "The D7 M7/M8 policy fold (tvofi, 2026-10-14) plus every brief edit the round owes, in one policy pull request. M7: arch-score opportunities, all counters on, a behaviour gate, an architectural argument, \"review trigger, never a target\", with the 150 % bar as the guideline. M8: a duplicated-shape census, enumerate implementations by seam rule, an agreement test, one owner. Write both from what the judges confirmed and voided; re-cut D7's three seats in dev/audit/config/scopes.json and rotation.json across M1-M8; update tools/policy/check-wave-script.mjs and tools/audit/check_scopes.py as needed. Owed edits: D1 step 3 checks the published and booked value, not only the plan; D2 step 5 tests learners under error in the other covariate; confirm under D2 that the 35 evidence-only stale-path seams are by design; the D5 and D12 briefs get the display-basis question (the published heat loss is the (U+L)s basis, 189.9 W/K, not the effective UA, 244.0 at ratio 1.6); the D7 brief gets the coordinator context write-once residual (L4); and the stale D7.md and D9.md lines of #2222 (D11-s1-51).\n\nAdded by the coordinator, 2026-10-15: (a) D5.md and D12.md carry D2-s3-73's published heat-loss basis: `heat_loss_kw_per_c` is on the (U+L) basis and reads 22 % below the effective UA at r=1.6, so the display-basis question names which basis a published heat-loss figure is on. (b) D7.md carries that CoordinatorContext is documented write-once but is replaced in `async_update_thermal_params`.\n\nForward-carried (finding-propagation.md): (1) Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose. (2) If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: dimension briefs. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nCountermeasure M4 is adopted under mandate 6175172275 (the recommended option): dev/governance/rules/ci-autofix.md, dev/governance/roles/fixer.md steps 5 and 18, and CLAUDE.md's ci-autofix index line must state the pre-PR sequence: predicted reds are repaired before handoff, and the bot's wait applies only once a PR exists.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed.\n\nForward-carried precondition (finding-propagation.md): From #2275: web-fix-wave.js now teaches two block classes, root-cause-detectable and root-cause-unrecorded (both block and route to the root-cause seat). dev/governance/roles/fix-review.md step 11 must teach the same two words, because hand-run reviews read the contract, not the web-wave prompt. The next D13 bucketing (blocks_friction) and the D14 enumerator must place both words. fix-review.md is policy at zero headroom: pay for it within the cap.\n\nForward-carried (finding-propagation.md): From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them."
   },
   {
    "group": "R10-REPLAY-LOOPNORM",
@@ -2946,7 +2952,8 @@
    "rca": [],
    "after": [
     "R10-REPLAY-LANE",
-    "R10-TICK-ORCH"
+    "R10-TICK-ORCH",
+    "R10-TRAIN-HOLD"
    ],
    "carry": [
     "A blanket per-PR lane is refused permanently; do not offer it as an option."
@@ -2961,6 +2968,57 @@
     "note": null
    },
    "brief": "Owner (tvofi, 2026-10-15) on a per-PR timed replay: \"Hard no, only when relevant.\" Run the timed replay lane on a pull request only when its diff reaches the replay cost files (`COST_FILES`, the optimizer, tests/replay.py), selected by the closure mechanism. Nightly stays the full run.\n\nForward-carried (finding-propagation.md): (1) A blanket per-PR lane is refused permanently; do not offer it as an option.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: .github/workflows/. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+  },
+  {
+   "group": "R10-TRAIN-HOLD",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    2302
+   ],
+   "fixes": [
+    2302
+   ],
+   "findings": [
+    "R10-TICK hold"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    ".github/workflows/tests.yml",
+    "tools/audit/seat/merge_train.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "code-owned: .github/workflows/ (workflow change, approved under mandate 6175172275)",
+   "rca": [],
+   "after": [
+    "R10-TICK-TRAIN",
+    "R10-TICK-ORCH"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-train-hold",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+   },
+   "brief": "The record beat in .github/workflows/tests.yml auto-merges record PRs on its own schedule, so a record PR can land while a merge train waits on CI and move main under it (observed 2026-10-15: #2291, #2295 and #2299 each merged mid-train, stopping or re-carrying #2284 and #2290). CI cannot see the train's local pidfile. While a train is live, tools/audit/seat/merge_train.py publishes a hold ref and deletes it at its closing line; the record beat's automerge step skips while that ref exists and is younger than a bound, so a stale hold expires and a crashed train cannot block records forever. Failing tests first on both halves. record_row.py --automerge-check stays identical. Issue #2302 (filed under mandate 6175172275) holds the owner request and the proposal. The workflow file is code-owned, so the PR needs tvofi's approving review, given under the mandate.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: workflow change, approved under mandate 6175172275. Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   }
  ]
 }
