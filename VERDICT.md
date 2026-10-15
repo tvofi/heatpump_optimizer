@@ -1,31 +1,20 @@
-Fix review: blocked 6285ed67cee097c853f18112420db23440076f54 mutation-vacuous: the reviewer-prompt sentence that defines root-cause-detectable against root-cause-unrecorded is pinned by no check; deleting it or swapping the two definitions leaves check-wave-script 184 passed, 0 failed
-bus-nonce: 3d2ad5c9791bab16d485b40409799443
+Fix review: merge 5f47b7911e138ec564b53774f9f8e1fea4519b5d
+bus-nonce: 8b042abb6975b177eaabfcf6c24090f3
 
-Round 1. Measured at head `6285ed67cee097c853f18112420db23440076f54` from a detached worktree; merge base `cfe24f8ef`. `dev/governance/roles/` diff merge-base...origin/main: empty.
+Round 2: the resolution delta from my blocked verdict at 6285ed67c (comment 6195054813). It contains the repair d5998794b, two automatic merges of main (0bc62f48e, 5f47b7911) and the body fix for the orchestrator.md line. Measured from a detached worktree at 5f47b7911e138ec564b53774f9f8e1fea4519b5d.
 
-RESULT mutation_named_M1_delete_vocabulary_line failed=4 (180 passed) -- matches the body
-RESULT mutation_named_M2_revert_ROOT_CAUSE_CLASSES failed=2 (182 passed) -- matches the body
-RESULT mutation_reviewer_M3_drop_only_root-cause-unrecorded_from_ROOT_CAUSE_CLASSES failed=1 (183 passed)
-RESULT mutation_reviewer_M4_reviewer_prompt_reverted_to_base_wording failed=0 (184 passed) -- SURVIVES
-RESULT mutation_reviewer_M5_swap_detectable_and_unrecorded_definitions_in_prompt failed=0 (184 passed) -- SURVIVES
-RESULT head_unmutated passed=184 failed=0
+RESULT head_unmutated passed=186 failed=0
+RESULT mutation_M4_reviewer_prompt_reverted_to_base_wording failed=2 (184 passed) -- killed by the two new group-11b assertions; survived in round 1
+RESULT mutation_M5_detectable_and_unrecorded_definitions_swapped failed=2 (184 passed) -- killed; survived in round 1
+RESULT mutation_M1_vocabulary_line_deleted failed=4 (182 passed)
+RESULT mutation_M2_ROOT_CAUSE_CLASSES_reverted failed=2 (184 passed)
+RESULT merges: merge-tree of each merge's parents equals the merge's tree (no hand resolution); three-dot diff vs origin/main = web-fix-wave.js, check-wave-script.mjs, dev/programme/delivery/2275.md
+RESULT enumerate.mjs head, window.json sha1 8c4de8e2: seams=13 instances=1 engineering_max=23, root-cause-unanswered=37 -- flat, as at the base
+RESULT blocks_friction.mjs head, window.json: blocked_verdicts=124, block_class[root-cause-unanswered]=37, blocked_outside_grammar=0 -- flat
+RESULT planted companion (sha1 907f6b3b0638, my own): head root-cause-detectable=1, root-cause-unrecorded=1, untaught:root-cause-invented=1 (base: all three untaught)
+RESULT gate: both words in ROOT_CAUSE_CLASSES; each blocks and dispatches the root-cause seat, never a repair
+RESULT forward-carry: on origin/main via #2287 (9b1320d37), R10-BRIEFS-FOLD's brief text carries the GATE-YIELD item as a "Forward-carried precondition" with its control (blocks_friction.mjs files the words under orchestration until placed); its files list names dev/governance/roles/fix-review.md and both D13/D14 harness files
+RESULT CI at 5f47b7911e138ec564b53774f9f8e1fea4519b5d: 30 success, 15 skipped, 0 failure, 0 cancelled (check-runs API); pr-contract green
+RESULT VERSION / manifest / notes heading: untouched
 
-Why this blocks. The routing is pinned (M1-M3), but the split's only purpose is the measurement, and the measurement is made by a reviewer choosing a word. The one place that tells the reviewer which word means what is the prompt sentence in `reviewerPrompt` ("use root-cause-detectable if a detector cheaper than that check ... root-cause-unrecorded if the cheapest detector is the check that went red"). M5 swaps the two definitions: every verdict written afterwards would file process yields as unrecorded and vice versa, a D13 round would price the inverse, and the suite stays green. `fix-review.md` step 11 does not yet teach the words (carried, below), so for web waves this sentence is the whole definition. The same script already pins prompt text by regex (the judge, sweep, writer and verifier prompts), so the fix is one assertion in group 11b that the reviewer prompt pairs each word with its definition, killing M4 and M5.
-
-Finder's harnesses, window.json sha1 8c4de8e205f9 (185 PRs, api_failures 0), at both ends:
-RESULT enumerate.mjs base: seams=13 instances=1 engineering_max=23; root-cause-unanswered count=37
-RESULT enumerate.mjs head: seams=13 instances=1 engineering_max=23; root-cause-unanswered count=37 -- flat, as designed
-RESULT blocks_friction.mjs base/head: blocked_verdicts=124, block_class[root-cause-unanswered]=37, blocked_outside_grammar=0 -- flat
-Companion, my own planted window (window.json plus three blocked verdicts: root-cause-detectable, root-cause-unrecorded, and a control word root-cause-invented; sha1 907f6b3b0638), built by me, not the fixer's window_planted.json:
-RESULT enumerate.mjs base: untaught:root-cause-detectable=1, untaught:root-cause-unrecorded=1, untaught:root-cause-invented=1, seams=16
-RESULT enumerate.mjs head: root-cause-detectable=1, root-cause-unrecorded=1, untaught:root-cause-invented=1, seams=16
-RESULT blocks_friction.mjs head: block_class[root-cause-detectable]=1, block_class[root-cause-unrecorded]=1, block_class[untaught:root-cause-invented]=1, block_bucket[orchestration] 49->52 at both ends (the new words land in orchestration until placed, as the body says)
-Null control: the invented word stays untaught at the head, so the vocabulary opened by exactly two words.
-
-Gate not loosened: both new words are in ROOT_CAUSE_CLASSES; group 11b and my M3 show each arm blocks (merged=false) and dispatches the root-cause seat, never a repair.
-
-Class rule (step 6): `git grep -n root-cause-unanswered -- .claude tools tests dev/governance` at the head returns 7 files; all 7 are dispositioned in the body.
-
-Forward-carry (step 10): the body sends fix-review.md step 11 and the D13 M3 / D14 ENG placement to R10-BRIEFS-FOLD. That carry is written only at 239bef9c9 / 318a034e4 (the orchestrator's roster-land clone, visible as a wip-sync ref). It is not on origin/main, not on origin/handoff/audit-r10-roster (db71fe47a, whose BRIEFS-FOLD carry has no GATE-YIELD item), and no roster pull request is open. Not yet in the tree; this alone would hold a merge verdict until the roster lands. Also: BRIEFS-FOLD's files list names neither fix-review.md nor the D13/D14 harness files the carry asks it to change; the body's orchestrator.md disposition says "Carried below" but the carry names only fix-review.md.
-
-Red checks (step 11): head's runs all concluded, none red; the previous head 78a29367f has cancelled (superseded) runs only. VERSION, manifest, notes heading untouched. merge-tree against origin/main b22db919d: clean. Code-owned .claude/workflows/web-fix-wave.js: approval goes through the train under mandate 6175172275.
+Code-owned: .claude/workflows/web-fix-wave.js -- the merge train approves it under mandate 6175172275.
