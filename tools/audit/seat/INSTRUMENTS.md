@@ -166,7 +166,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   base merge: #2209). `--bot-prs` merges the open record/autofix pull request
   in the train's own sequence behind record_row.py's identical guard;
   `--pre-flight` runs `queue_pre_flight.py` first and PARKs a failing entry;
-  `--free-holders` detaches a clean, pushed holder worktree.
+  `--free-holders` detaches a clean, pushed holder worktree. Every refused
+  merge attempt is logged in GitHub's words; the recarry worktrees a run made
+  are removed before its closing line.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:

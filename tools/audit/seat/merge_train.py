@@ -65,8 +65,11 @@ later pull request would be graded against a `main` the refused one never joined
                  (missing evidence included), or when a `*_budgets.json` changed
                  (a raise is the owner's, 0013), it stops;
   7. ready, preflight of the title (`REFUSE` stops), merge with
-     `--match-head-commit` (retried; `main` re-checked before each attempt),
-     the closing-issue read-back, and `worktree_gc.sh`.
+     `--match-head-commit` (retried; `main` re-checked before each attempt;
+     every refusal logged in GitHub's words, a base-moved one -- or, serially,
+     every attempt refused with main moved past the head -- recovered as a
+     moved main), the closing-issue read-back, and `worktree_gc.sh`. The
+     recarry worktrees a run made are removed before its closing line.
 
 It prints one line per step and ends `TRAIN DONE` or `TRAIN STOPPED #<pr> <step>:
 <reason>` (exit 1). Every GitHub write is the orchestrator's: run this only
