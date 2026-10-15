@@ -1,0 +1,28 @@
+== base2 payload_census_coverage.py --perturb
+== base2 payload_any_spellings.py
+RESULT untyped_with_float=0 count
+RESULT untyped_with_Any=6 count
+RESULT untyped_with_object=6 count
+RESULT untyped_with_NotRequired_Any=6 count
+RESULT untyped_with_Any_or_None=0 count
+RESULT untyped_with_Optional_Any=0 count
+RESULT untyped_with_string_Any=0 count
+RESULT untyped_with_alias_Any=0 count
+RESULT ablated_C1_untyped_with_Any=0 count
+== base2 family_pair_homing.py
+RESULT honest_family_orphan_overrides=0 count
+RESULT game_family_orphan_overrides=0 count
+== head2 payload_census_coverage.py --perturb
+== head2 payload_any_spellings.py
+RESULT untyped_with_float=0 count
+RESULT untyped_with_Any=6 count
+RESULT untyped_with_object=6 count
+RESULT untyped_with_NotRequired_Any=6 count
+RESULT untyped_with_Any_or_None=6 count
+RESULT untyped_with_Optional_Any=6 count
+RESULT untyped_with_string_Any=6 count
+RESULT untyped_with_alias_Any=6 count
+RESULT ablated_C1_untyped_with_Any=0 count
+== head2 family_pair_homing.py
+RESULT honest_family_orphan_overrides=0 count
+RESULT game_family_orphan_overrides=2 count
