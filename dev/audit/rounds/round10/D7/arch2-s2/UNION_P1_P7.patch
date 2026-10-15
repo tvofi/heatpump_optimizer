@@ -1,5 +1,5 @@
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index 862ef309c..96271be10 100644
+index 862ef309c..0f25e366a 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
 @@ -16,7 +16,6 @@ import bisect
@@ -132,26 +132,26 @@ index 862ef309c..96271be10 100644
      # write now has its one owner here, and what a collaborator reads it
      # receives as an explicit input or a published view.
  
-+    def _fixed_mode_action(self) -> CurrentAction | None:
-+        """Comfort, boost or off's fixed-rule action, priced; None in a solved mode.
++    def _fixed_mode_action(self) -> CurrentAction:
++        """Comfort, boost or off's fixed-rule action, priced.
 +
 +        Built whole before it is adopted: ``boost.adopt_plan`` keeps the dict
 +        as the plan base the overlay copies, so a field written onto the live
 +        action afterwards landed on that base too, through the alias.
 +        """
-+        ctx, top = _ctx_of(self), self._ecl110_displace_max
-+        # Dict literals with a literal "mode": tests/entities.py reads the
-+        # action sensor's produced states off its producers' source.
-+        row: dict[str, Any] | None = {
++        ctx = _ctx_of(self)
++        # Literal dicts: tests/entities.py reads the action sensor's produced
++        # modes, and the D6 claims harness the commanded displace, off source.
++        row: dict[str, Any] = {
 +            MODE_COMFORT: {"mode": "comfort", "power_normalized": 0.7, "heat_pump_on": True,
-+                           "setpoint": ctx._opt_config.target_temp, "displace_value": min(4.0, top)},
++                           "setpoint": ctx._opt_config.target_temp,
++                           "displace_value": min(4.0, self._ecl110_displace_max)},
 +            MODE_BOOST: {"mode": "boost", "power_normalized": 1.0, "heat_pump_on": True,
-+                         "setpoint": ctx._opt_config.max_temp, "displace_value": top},
++                         "setpoint": ctx._opt_config.max_temp,
++                         "displace_value": self._ecl110_displace_max},
 +            MODE_OFF: {"mode": "off", "power_normalized": 0.0, "heat_pump_on": False,
 +                       "setpoint": ctx._opt_config.min_temp, "displace_value": self._ecl110_displace_min},
-+        }.get(self._mode)
-+        if row is None:
-+            return None
++        }[self._mode]
 +        p_max = self._thermal_model.params.max_electrical_power
 +        return cast(CurrentAction, {**row, "power": p_max * row["power_normalized"],
 +                                    "price": self._get_current_price()})
@@ -218,8 +218,8 @@ index 862ef309c..96271be10 100644
 -                })
 -            if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
 -                self._current_action["price"] = self._get_current_price()
-+            elif (fixed := self._fixed_mode_action()) is not None:
-+                boost.adopt_plan(self, fixed)
++            elif self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
++                boost.adopt_plan(self, self._fixed_mode_action())
  
              # #237: everything below writes to the world, and a plan cut
              # before a reload must not land on the instance that replaced us.
@@ -1098,6 +1098,30 @@ index 241e69bd4..9a41c4c16 100644
      return out
  
  
+diff --git a/dev/audit/rounds/round3/D2/dst_window_factors.py b/dev/audit/rounds/round3/D2/dst_window_factors.py
+index 73909f20a..66f00a978 100644
+--- a/dev/audit/rounds/round3/D2/dst_window_factors.py
++++ b/dev/audit/rounds/round3/D2/dst_window_factors.py
+@@ -67,7 +67,7 @@ from heatpump_optimizer.optimizer import (
+     OptimizationConfig,
+     _utc_step_starts,
+ )
+-from heatpump_optimizer.tariff import CapacityTariff, peak_cost, window_factors
++from heatpump_optimizer.tariff import CapacityTariff, PeakBilling, peak_cost, window_factors
+ from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
+ 
+ d2lib.repo_root_ok()
+@@ -182,8 +182,8 @@ def main() -> int:
+         else:
+             power = np.zeros(n_h)
+             power[12] = 9.0
+-        wrong = peak_cost(power, base, 0.0, 20.0, 60, 1.0, 3, 0, pf)
+-        right = peak_cost(power, base, 0.0, 20.0, 60, 1.0, 3, 0, truth)
++        wrong = peak_cost(power, base, PeakBilling(0.0, 20.0, 60, 1.0, 3, 0, pf))
++        right = peak_cost(power, base, PeakBilling(0.0, 20.0, 60, 1.0, 3, 0, truth))
+         d2lib.result(
+             f"peak_cost_{label}",
+             f"as_planned={wrong:.4f} at_true_instants={right:.4f} "
 diff --git a/tests/arch_score_head.py b/tests/arch_score_head.py
 index 2a9bf0d0d..676ed7fa7 100644
 --- a/tests/arch_score_head.py
@@ -1120,8 +1144,31 @@ index 2a9bf0d0d..676ed7fa7 100644
      "thermal_model.ThermalModel._simulate_step_single":
          "the per-step hot path takes scalars; a frozen per-step record "
          "allocated one object per simulated step, and the sysid rollout was "
+diff --git a/tests/entities.py b/tests/entities.py
+index a951a3fb4..7701638db 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -23494,15 +23494,15 @@ R.check(
+ )
+ 
+ # HEAT_PUMP_ACTION_STATES is the one option list with no production constant
+-# behind it -- the four producers write their mode as a string literal -- so
++# behind it -- the five producers write their mode as a string literal -- so
+ # comparing _attr_options to it would be a check supplying the value it then
+ # asserts. Derive the set from the producing SOURCE instead. Rule: inside the
+-# four named producers, every ``mode = "<literal>"`` assignment and every
++# five named producers, every ``mode = "<literal>"`` assignment and every
+ # ``"mode": "<literal>"`` dict entry. A fifth producer, or a new branch in
+ # these four, lands here as an option the list does not cover.
+ _ACTION_PRODUCERS = {
+     "optimizer.py": {"get_current_action", "_idle_action"},
+-    "coordinator.py": {"_async_update_data", "_run_system_identification"},
++    "coordinator.py": {"_async_update_data", "_fixed_mode_action", "_run_system_identification"},
+ }
+ _emitted_modes = set()
+ for _fname, _names in _ACTION_PRODUCERS.items():
 diff --git a/tests/features.py b/tests/features.py
-index 64f66afb2..422fae106 100644
+index 64f66afb2..fbc017b9a 100644
 --- a/tests/features.py
 +++ b/tests/features.py
 @@ -74,6 +74,7 @@ from heatpump_optimizer.sysid import (
@@ -1714,7 +1761,20 @@ index 64f66afb2..422fae106 100644
      "card would outlive the user's decision to stop paying for it",
  )
  
-@@ -57702,16 +57703,16 @@ for _f25_w, _f25_dt, _f25_offs in (
+@@ -57654,8 +57655,10 @@ for _f25_tag, _f25_batch in (
+         )
+         _f25_growth[(_f25_tag, _f25_b)] = _f22_calls(
+             _f25_partial(
+-                _f25_pcb, _f25_mat, _f25_base, 3.0, 20.0, 60, 0.25, 3, 3,
+-                window_days=_f25_labels, distinct_days=True,
++                _f25_pcb, _f25_mat, _f25_base, PeakBilling(
++                    3.0, 20.0, 60, 0.25, 3, 3,
++                    window_days=_f25_labels, distinct_days=True,
++                ),
+             )
+         )[0]
+ _f25_growth_pairs = {
+@@ -57702,16 +57705,16 @@ for _f25_w, _f25_dt, _f25_offs in (
                      for _f25_order in ("C", "F"):
                          _f25_mat = np.asarray(_f25_rows, order=_f25_order)
                          _f25_got = _f25_pcb(
@@ -1735,7 +1795,7 @@ index 64f66afb2..422fae106 100644
                              )
                              if (np.float64(_f25_got[_f25_r]).tobytes()
                                      != np.float64(_f25_one).tobytes()):
-@@ -57741,13 +57742,13 @@ for _f25_w_n in (8, 12, 48, 96, 129, 192):
+@@ -57741,13 +57744,13 @@ for _f25_w_n in (8, 12, 48, 96, 129, 192):
          _f25_nw, 60, datetime(2026, 1, 14, 12, 0, tzinfo=timezone.utc)
      )
      _f25_got = _f25_pcb(
