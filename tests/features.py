@@ -52710,7 +52710,7 @@ def _pa_failing_delete_issue(hass, domain, issue_id):
 _pa.ir.async_delete_issue = _pa_failing_delete_issue
 _pa_clear_ok = True
 try:
-    _pa._clear(_PaCoord(_PA_TUYA), _pa.ISSUE_IGNORED)
+    _pa.issues.clear_issue(_PaCoord(_PA_TUYA).hass, _pa.ISSUE_IGNORED)
 except Exception:  # noqa: BLE001 - the check is that nothing escapes
     _pa_clear_ok = False
 _pa.ir.async_delete_issue = _pa_orig_delete_issue
