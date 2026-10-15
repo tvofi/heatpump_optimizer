@@ -3923,6 +3923,22 @@
       "doc": [
         "dev/audit/rca/R9-RCA-ROW-STALE.md (landed by #2193)"
       ]
+    },
+    "R10-RCA-2205": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2205: the replay lane's cpu-doubled arm spun _async_update_data alone (1.895-2.087x of what cpu_ratio times), so a 0.656x cheaper cycle (#2142 and the merges after it) put the arm across the 3.576 cap and nightly went red with no production regression",
+      "trigger": "assigned by the orchestrator: nightly-status red on main (2026-10-14, run 38530020347)",
+      "date": "2026-10-15",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) the band check and doubled arm were obeyed; the premise that a clean reading in band implies a red arm needs an exact doubling and the arm never was one",
+      "countermeasure": "none separate (recorded refusal): the fix's exact arm plus short_doubling is the class-eliminating change; a per-PR timed replay (~10 runner-min per release cycle) is refused against P~0 after the fix",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-2205.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-2205.md"
+      ]
     }
   }
 }
