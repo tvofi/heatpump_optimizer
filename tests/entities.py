@@ -29317,9 +29317,15 @@ def _sp_faults(path, src=None):
 
 
 # policyFiles() spells a moved policy file by its pre-move name (canon); the
-# text is read where the file now lives.
+# text is read where the file now lives. It is read from the INDEX, as
+# tests/layout.py reads prose: policy text is on tests/closure.py's INERT list,
+# and a read through the worktree would record it into this script's closure,
+# the INERT-and-recorded pair `merge` refuses (#357). A seat checking an
+# unstaged policy edit stages it first.
 _SP_POLICY = sorted({_layout_locate(f) for f in _SP_POLICY})
-_SP_CITED = _sp_cited((f, Path(f).read_text()) for f in _SP_POLICY if Path(f).is_file())
+_SP_CITED = _sp_cited(
+    (f, subprocess.run(["git", "show", f":{f}"], capture_output=True, text=True).stdout)
+    for f in _SP_POLICY)
 _SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
 for _sp_p, _sp_f in _SP_FAULTS.items():
     print(f"  cited  {_sp_p} by {', '.join(sorted(set(_SP_CITED[_sp_p])))}: "
