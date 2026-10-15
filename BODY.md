@@ -29,6 +29,8 @@ Alternatives considered:
 
 ## Head
 
+`0266dab15927b7084089790daf63ce7d71f26884` adds one commit to the previous head, containing only this PR's own row (`record: #2285's delivery row, written before review`). The measured code head is below.
+
 `0a68026dad1572cc825acbe6a716f204237ea1fe`
 
 This head merges the pull request's head a590f11ee into the handoff branch, on top of one test commit, e921e8e7c, which kills the one mutant mutation-pins left alive. Against a590f11ee its only change is `tests/features.py`, +53 lines (`git diff --stat a590f11ee HEAD`).
@@ -156,6 +158,7 @@ Harness sha1s: `surface_units.py` d741b52a (`dev/audit/rounds/round10/D12/s3/` a
 
 - `mutation`: red at the first PR head, e4b4c6fed. At 720d3636b the bot pinned 21 and left one survivor, `inputs.py:391 GUARD_OFF`. A check now kills it (M5 under Mutation proof), so the bot pins it at this head; there is no triage.
   The original red: It is the unpinned-sites refusal for the 22 sites the diff adds, each listed under `## Unpinned sites`. mutation-autofix repairs it with its `ci: pin killed mutants` commit (`ci-autofix.md`), and naming it here is the answer `ci-autofix.md` asks for. Any survivor the bot reports comes back to this seat for a written triage. The cheaper detector already ran: `prepr.sh` step 6d listed the same 22 sites before the push.
+- `pr-contract`: red at the bot's pin head 720d3636b, because the body at that point did not yet name `mutation` under `## Red checks`. The body now names it, so the red is answered. No cheaper detector exists beyond `prepr.sh`'s own ancestry-reds arm, which is what refused the row push.
 - `closures` / `fast` (predicted, never red): the first prepr, at 55fd737d9, predicted 3 reds for the new `issues.py` (UNDER-SCOPED, UNCLASSIFIED, INERT READS), and `open_pr.sh` refused that handoff. This head's closure commit repairs them, as described under Figures, and `prepr.sh`'s CI PREDICT arm caught them before any PR existed. The process cause is R10-HANDOFF-PREPR-BOUNCE's.
 
 ## Forward-carry
