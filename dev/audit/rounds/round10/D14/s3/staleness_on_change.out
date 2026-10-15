@@ -1,0 +1,25 @@
+# polling day: cycles=48 stale={}
+RESULT polling_stale_cycles=0 count
+# heat_pump_mode_entity (select.heat_pump_operating_mode) limit=60.0 min, on-change rows=1: stale={'heat_pump_mode_entity': 47}
+RESULT heat_pump_mode_entity_stale_cycles=47 count
+RESULT heat_pump_mode_entity_newly_unavailable_entity_cycles=0 count
+# heat_pump_power_entity (sensor.heat_pump_power) limit=30.0 min, on-change rows=5: stale={'heat_pump_power_entity': 39}
+RESULT heat_pump_power_entity_stale_cycles=39 count
+RESULT heat_pump_power_entity_newly_unavailable_entity_cycles=78 count
+#   unavailable only on the on-change day: sensor.heat_pump_optimizer_compressor_starts x39
+#   unavailable only on the on-change day: sensor.heat_pump_optimizer_measured_power x39
+# dhw_temp_entity (sensor.hot_water_tank_temperature) limit=360.0 min, on-change rows=105: stale={}
+RESULT dhw_temp_entity_stale_cycles=0 count
+RESULT dhw_temp_entity_newly_unavailable_entity_cycles=0 count
+# indoor_temp_entity (sensor.living_room_temperature) limit=360.0 min, on-change rows=113: stale={}
+RESULT indoor_temp_entity_stale_cycles=0 count
+RESULT indoor_temp_entity_newly_unavailable_entity_cycles=0 count
+# outdoor_temp_entity (sensor.outdoor_temperature) limit=180.0 min, on-change rows=101: stale={}
+RESULT outdoor_temp_entity_stale_cycles=0 count
+RESULT outdoor_temp_entity_newly_unavailable_entity_cycles=0 count
+RESULT seams=2 count  # ['heat_pump_mode_entity', 'heat_pump_power_entity']
+RESULT perturb_unbounded_heat_pump_mode_entity_stale_cycles=0 count
+RESULT perturb_unbounded_heat_pump_power_entity_stale_cycles=0 count
+RESULT thread_factor=1.000
+RESULT load1=58.80
+RESULT swapins=0

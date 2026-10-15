@@ -1,0 +1,416 @@
+{
+ "class": "N-shared-config",
+ "instances": 5,
+ "barriered": true,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/shared_config_seams.py",
+ "enumerator_controls": {
+  "positive": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/shared_config_seams.py -> POSITIVE lines all found=1 (5 of 5 findings)",
+  "null": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/shared_config_seams.py --null -> seams_total=0",
+  "perturbation": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/shared_config_seams.py --perturb A|B|C|D -> family_<X>=1, seams_total=1 each"
+ },
+ "seams_total": 81,
+ "judged_sites": 35,
+ "disposition_counts": {
+  "instance_beyond_finding": 5,
+  "guarded": 38,
+  "not_applicable": 3
+ },
+ "baseline_sha": "9355f107d",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_run_optimization",
+   "line": 5720,
+   "family": "A",
+   "seam": "async_run_optimization awaits _await_optimize then adopts",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s1/m4_mode_midsolve.py (torn_midsolve_total>0)",
+   "beyond_finding": false,
+   "finding": "D1-s1-02"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 5997,
+   "family": "B",
+   "seam": "_current_state.room_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 5999,
+   "family": "B",
+   "seam": "_current_state.upper_floor_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6004,
+   "family": "B",
+   "seam": "_current_state.outdoor_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6011,
+   "family": "B",
+   "seam": "_current_state.outdoor_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6017,
+   "family": "B",
+   "seam": "_current_state.floor_return_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6040,
+   "family": "B",
+   "seam": "_current_state.lower_floor_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6042,
+   "family": "B",
+   "seam": "_current_state.lower_floor_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6074,
+   "family": "B",
+   "seam": "_current_state.solar_radiation",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6081,
+   "family": "B",
+   "seam": "_current_state.solar_radiation",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6090,
+   "family": "B",
+   "seam": "_current_state.dhw_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6096,
+   "family": "B",
+   "seam": "_current_state.dhw_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6101,
+   "family": "B",
+   "seam": "_current_state.buffer_tank_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6125,
+   "family": "B",
+   "seam": "_current_state.wood_tank_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6129,
+   "family": "B",
+   "seam": "_current_state.wood_tank_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6206,
+   "family": "B",
+   "seam": "_current_state.dhw_hours_since_legionella",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6255,
+   "family": "B",
+   "seam": "_current_state.slab_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6258,
+   "family": "B",
+   "seam": "_current_state.slab_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6263,
+   "family": "B",
+   "seam": "_current_state.lower_floor_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel.update_ecl110_displace_state",
+   "line": 2331,
+   "family": "B",
+   "seam": "_current_state.ecl110_displace_command",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel.update_ecl110_displace_state",
+   "line": 2332,
+   "family": "B",
+   "seam": "_current_state.ecl110_effective_displace",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel.update_slab_from_return_temp",
+   "line": 3904,
+   "family": "B",
+   "seam": "_current_state.slab_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel.update_slab_from_return_temp",
+   "line": 3905,
+   "family": "B",
+   "seam": "_current_state.floor_return_temperature",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch (site gone under P1)",
+   "beyond_finding": false,
+   "finding": "D7-s1-51"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_mode",
+   "line": 5821,
+   "family": "C",
+   "seam": "_accuracy.lead_pending .clear",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P3_collaborators_own_their_fields.patch (site gone under P3)",
+   "beyond_finding": false,
+   "finding": "D7-s1-53"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_mode",
+   "line": 5822,
+   "family": "C",
+   "seam": "_dhw_accuracy.lead_pending .clear",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P3_collaborators_own_their_fields.patch (site gone under P3)",
+   "beyond_finding": false,
+   "finding": "D7-s1-53"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+   "line": 6498,
+   "family": "C",
+   "seam": "_solar_radiation_forecast .append",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P3_collaborators_own_their_fields.patch (site gone under P3)",
+   "beyond_finding": false,
+   "finding": "D7-s1-53"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_away",
+   "line": 9616,
+   "family": "C",
+   "seam": "_away_state .override_active",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P2_away_override_published_whole.patch (site gone under P2)",
+   "beyond_finding": false,
+   "finding": "D7-s1-52"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_away",
+   "line": 9617,
+   "family": "C",
+   "seam": "_away_state .override_return_iso",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P2_away_override_published_whole.patch (site gone under P2)",
+   "beyond_finding": false,
+   "finding": "D7-s1-52"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_away",
+   "line": 9620,
+   "family": "C",
+   "seam": "_away_state .override_active",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P2_away_override_published_whole.patch (site gone under P2)",
+   "beyond_finding": false,
+   "finding": "D7-s1-52"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_away",
+   "line": 9623,
+   "family": "C",
+   "seam": "_away_state .override_return_iso",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P2_away_override_published_whole.patch (site gone under P2)",
+   "beyond_finding": false,
+   "finding": "D7-s1-52"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_away",
+   "line": 9630,
+   "family": "C",
+   "seam": "_away_state .override_active",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P2_away_override_published_whole.patch (site gone under P2)",
+   "beyond_finding": false,
+   "finding": "D7-s1-52"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_set_away",
+   "line": 9631,
+   "family": "C",
+   "seam": "_away_state .override_return_iso",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P2_away_override_published_whole.patch (site gone under P2)",
+   "beyond_finding": false,
+   "finding": "D7-s1-52"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_meter.py",
+   "symbol": "observe_water",
+   "line": 71,
+   "family": "C",
+   "seam": "_flow_bias .heat_output_kw",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P3_collaborators_own_their_fields.patch (site gone under P3)",
+   "beyond_finding": false,
+   "finding": "D7-s1-53"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_wrapped",
+   "line": 327,
+   "family": "D",
+   "seam": "_release_duty_floor setattr planned_draw_runs",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py (leaked_reads>0, null 0)",
+   "beyond_finding": false,
+   "finding": "D7-s3-54"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "step_duty",
+   "line": 353,
+   "family": "D",
+   "seam": "step_duty setattr planned_draw_runs",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py (leaked_reads>0, null 0)",
+   "beyond_finding": false,
+   "finding": "D7-s3-54"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6053,
+   "family": "B",
+   "seam": "_thermal_params.mixing_valve_target",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/shared_config_seams.py --root <tree with D7 arch-s1 ALL_P1_P2_P3.patch applied> | grep -cE '_thermal_params\\.(mixing_valve_target|ambient_humidity)' (property 0; observed 2: P1 publishes ThermalState whole and leaves these per-cycle sensor values written into the live _thermal_params between the same awaits)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._update_current_state",
+   "line": 6178,
+   "family": "B",
+   "seam": "_thermal_params.ambient_humidity",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/shared_config_seams.py --root <tree with D7 arch-s1 ALL_P1_P2_P3.patch applied> | grep -cE '_thermal_params\\.(mixing_valve_target|ambient_humidity)' (property 0; observed 2: P1 publishes ThermalState whole and leaves these per-cycle sensor values written into the live _thermal_params between the same awaits)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "symbol": "apply_override_payload",
+   "line": 349,
+   "family": "C",
+   "seam": "_away_state .override_active",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/probe_away_restore.py (lost_midload=1, lost_null=0; --perturb -> 0)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "symbol": "apply_override_payload",
+   "line": 351,
+   "family": "C",
+   "seam": "_away_state .override_return_iso",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/probe_away_restore.py (lost_midload=1, lost_null=0; --perturb -> 0)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "symbol": "apply_override_payload",
+   "line": 352,
+   "family": "C",
+   "seam": "_away_state .migrated_helpers",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-shared-config/probe_away_restore.py (lost_midload=1, lost_null=0; --perturb -> 0)",
+   "beyond_finding": true
+  }
+ ]
+}

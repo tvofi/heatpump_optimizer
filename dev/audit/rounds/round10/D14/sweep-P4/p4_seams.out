@@ -1,0 +1,17 @@
+STOP dhw_planner.py:_plan_dhw_min_cost line 1491 linprog ftol=-
+STOP optimizer.py:_scoped_minimize line 375 minimize ftol=-
+STOP optimizer.py:_scoped_minimize line 377 minimize ftol=-
+STOP optimizer.py:_lbfgsb_restart line 678 _scoped_minimize ftol=1e-06
+STOP optimizer.py:_multi_start_minimize line 827 _scoped_minimize ftol=1e-06
+SEED optimizer.py:_solve_space line 3721
+SEED optimizer.py:_solve_space line 3723
+SEED optimizer.py:_solve_space line 3726
+SEED optimizer.py:_solve_space line 3731
+SEED optimizer.py:_solve_space line 3732
+SEED optimizer.py:_optimize_space_only line 4279
+SEED optimizer.py:_optimize_space_only line 4293
+STOP optimizer.py:_optimize_space_only.move_starts line 4320 _scoped_minimize ftol=1e-06
+SEED optimizer.py:_optimize_space_only line 4333
+RESULT seams=14 stop=6 seed=8
+RESULT positive_control={'D0-s2-01 main': True, 'D0-s2-01 restart': True, 'D0-s1-01 seeds': True}
+RESULT perturbed_stop=7 (base 6, delta 1)

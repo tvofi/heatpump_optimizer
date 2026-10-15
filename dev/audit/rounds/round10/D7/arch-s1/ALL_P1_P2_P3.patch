@@ -1,0 +1,429 @@
+diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_components/heatpump_optimizer/accuracy.py
+index a32863acf..842dbc298 100644
+--- a/custom_components/heatpump_optimizer/accuracy.py
++++ b/custom_components/heatpump_optimizer/accuracy.py
+@@ -290,6 +290,12 @@ class AccuracyTracker:
+             # that missed its measurement window is unverifiable.
+         self.lead_pending = keep
+ 
++    def void_pending(self) -> None:
++        """Drop every unmatured prediction: the plan that made them stopped
++        being what runs, so scoring them would charge the model with errors
++        it never made."""
++        self.lead_pending.clear()
++
+     def has_lead_history(self) -> bool:
+         """Whether any lead bucket has actually scored a pair.
+ 
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..d30ecf420 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -3601,7 +3601,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             curve_driven = bool(action.get("heat_pump_on")) or (
+                 abs(_as_float(action.get("displace_value"), 0.0)) > 0.01
+             )
+-            state = ctx._current_state
++            state = _ctx_of(self)._current_state  # after the await above
+             zones = [state.room_temperature]
+             if params.two_zone_enabled:
+                 zones += [
+@@ -5818,8 +5818,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # (T5 #16) are void: scoring them against a room now driven by
+             # fixed-rule comfort/boost/off would charge the model with
+             # errors it never made. The tank's promises are void likewise.
+-            self._accuracy.lead_pending.clear()
+-            self._dhw_accuracy.lead_pending.clear()
++            self._accuracy.void_pending()
++            self._dhw_accuracy.void_pending()
+         _LOGGER.info("Operation mode set to: %s", mode)
+         await self._async_save_accuracy()
+         if refresh:
+@@ -5991,35 +5991,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             scale=ctx._config.staleness_max_age_scale,
+         )
+         self.currency = _feed_currency(self.hass, ctx._config) or self.currency
++        # Read onto a copy, published whole before the first reader below.
++        state = replace(ctx._current_state)
+         # Indoor temperature
+         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
+         if indoor.ok:
+-            ctx._current_state.room_temperature = indoor.value
++            state.room_temperature = indoor.value
+             # For two-zone: indoor sensor is typically upper floor
+-            ctx._current_state.upper_floor_temperature = indoor.value
++            state.upper_floor_temperature = indoor.value
+ 
+         # Outdoor temperature
+         outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
+         if outdoor.ok:
+-            ctx._current_state.outdoor_temperature = outdoor.value
++            state.outdoor_temperature = outdoor.value
+         elif (forecast_outdoor := forecast_outdoor_now(
+                 self._weather_forecast, dt_util.now())) is not None:
+             # D2-s1-51: this write feeds every reader of the outdoor
+             # state; firing only under ``if outdoor.ok`` left them all on
+             # the 5.0 default beside a plan solved on the forecast (#282).
+             # None (no forecast) keeps the default: the honest horizon.
+-            ctx._current_state.outdoor_temperature = forecast_outdoor
++            state.outdoor_temperature = forecast_outdoor
+ 
+         # Floor heating return temperature sensor
+         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
+         if floor_return.ok:
+             self._floor_return_temp = floor_return.value
+-            ctx._current_state.floor_return_temperature = self._floor_return_temp
+-            # Update slab temperature estimate from return temp
+-            if (floor_temp := self._floor_return_temp) is not None:
+-                self._thermal_model.update_slab_from_return_temp(
+-                    ctx._current_state, floor_temp
+-                )
++            # The slab estimate advances from the reading and records it.
++            self._thermal_model.update_slab_from_return_temp(state, self._floor_return_temp)
+ 
+         # The lower zone's room temperature, best source first. A real
+         # thermometer is the only source that carries information about the
+@@ -6037,11 +6035,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # says so rather than letting a wrong number pass for a measurement.
+         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
+         if lower_floor.ok:
+-            ctx._current_state.lower_floor_temperature = lower_floor.value
++            state.lower_floor_temperature = lower_floor.value
+         elif floor_return.ok:
+-            ctx._current_state.lower_floor_temperature = (
+-                ctx._current_state.room_temperature
+-            )
++            state.lower_floor_temperature = state.room_temperature
+         self._audit_lower_floor_sensor()
+         self._audit_comfort_band()
+ 
+@@ -6071,14 +6067,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         solar_from_sensor = False
+         if solar.ok and (solar_value := solar.value) is not None:
+             self._solar_radiation = solar_value
+-            ctx._current_state.solar_radiation = solar_value
++            state.solar_radiation = solar_value
+             solar_from_sensor = True
+ 
+         if not solar_from_sensor and self._open_meteo is not None:
+             observed = self._open_meteo.current_irradiance(dt_util.utcnow())
+             if observed is not None:
+                 self._solar_radiation = observed
+-                ctx._current_state.solar_radiation = observed
++                state.solar_radiation = observed
+ 
+         # DHW temperature sensor. Without an ok reading the tank is seeded
+         # from the previous plan's own trajectory (open-loop propagation,
+@@ -6087,18 +6083,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
+         if dhw.ok:
+             self._dhw_temperature = dhw.value
+-            ctx._current_state.dhw_temperature = self._dhw_temperature
++            state.dhw_temperature = self._dhw_temperature
+         elif (
+             seed := _open_loop_plan_value(
+                 self._optimization_result, "dhw_temp_trajectory", dt_util.now()
+             )
+         ) is not None:
+-            ctx._current_state.dhw_temperature = seed
++            state.dhw_temperature = seed
+ 
+         # Buffer tank temperature sensor (optional; enables cooling learning)
+         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
+         if buffer_reading.ok:
+-            ctx._current_state.buffer_tank_temperature = buffer_reading.value
++            state.buffer_tank_temperature = buffer_reading.value
+ 
+         # Wood tank temperature (issue #40): re-read from the physical tank
+         # each cycle through the same stale-aware reader — the model never
+@@ -6112,7 +6108,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 wood_top.value if wood_top.ok else None,
+                 wood_bottom.value if wood_bottom.ok else None,
+             )
+-            had = ctx._current_state.wood_tank_temperature is not None
++            had = state.wood_tank_temperature is not None
+             if wood_mean is None and had:
+                 _LOGGER.warning(
+                     "Wood tank probe stale or missing; falling back to the "
+@@ -6122,11 +6118,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 _LOGGER.info(
+                     "Two-tank model active: wood tank at %.1f °C", wood_mean
+                 )
+-            ctx._current_state.wood_tank_temperature = wood_mean
+-        elif ctx._current_state.wood_tank_temperature is not None:
++            state.wood_tank_temperature = wood_mean
++        elif state.wood_tank_temperature is not None:
+             # Reconfigured away mid-session: drop the state so nothing
+             # simulates a tank the parameters no longer model.
+-            ctx._current_state.wood_tank_temperature = None
++            state.wood_tank_temperature = None
++        self._ctx = replace(_ctx_of(self), _current_state=state)
+ 
+         # The pump's own supply and return water (#1067; the reader's rules
+         # are in ``flow_meter.observe_water``). Written every cycle
+@@ -6203,9 +6200,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         )
+         self._legionella.check_ceiling()
+ 
+-        ctx._current_state.dhw_hours_since_legionella = (
+-            self._legionella.hours_since()
+-        )
++        self._ctx = replace(_ctx_of(self), _current_state=replace(
++            _ctx_of(self)._current_state, dhw_hours_since_legionella=self._legionella.hours_since()))
+ 
+         if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
+             await self._async_learn_buffer_cooling(buffer_value)
+@@ -6227,16 +6223,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
+             await self._async_save_thermal_learning()
+ 
++        state = replace(_ctx_of(self)._current_state)
+         # Update ECL110 effective displace state (PID/PI lag approximation)
+         if "displace_value" in self._current_action:
+             displace_cmd = float(self._current_action.get("displace_value", 0.0))
+-            dt_h = ctx._opt_config.dt_hours
+-            self._thermal_model.update_ecl110_displace_state(
+-                ctx._current_state,
+-                displace_cmd,
+-                dt_h,
+-            )
+-            self._ecl110_current_displace = ctx._current_state.ecl110_displace_command
++            dt_h = _ctx_of(self)._opt_config.dt_hours
++            self._thermal_model.update_ecl110_displace_state(state, displace_cmd, dt_h)
++            self._ecl110_current_displace = state.ecl110_displace_command
+ 
+         # Last resort: seed the slab, and the lower zone if nothing better
+         # has been read, from the room temperature. Both guards are on the
+@@ -6252,17 +6245,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                     dt_util.now(),
+                 )
+             ) is not None:
+-                ctx._current_state.slab_temperature = seed
++                state.slab_temperature = seed
+                 self._slab_temp_initialized = True
+             elif not hasattr(self, "_slab_temp_initialized"):
+-                ctx._current_state.slab_temperature = (
+-                    ctx._current_state.room_temperature + 1.0
+-                )
++                state.slab_temperature = state.room_temperature + 1.0
+                 self._slab_temp_initialized = True
+             if not lower_floor.ok:
+-                ctx._current_state.lower_floor_temperature = (
+-                    ctx._current_state.room_temperature
+-                )
++                state.lower_floor_temperature = state.room_temperature
++        self._ctx = replace(_ctx_of(self), _current_state=state)
+         self._refresh_model_corrections()
+ 
+     def _refresh_model_corrections(self) -> None:
+@@ -6488,14 +6478,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                         _forecast_in_model_units(
+                             self.hass.states.get(weather_entity), forecast_data))
+ 
+-                    # Extract solar radiation forecast if present in weather data
+-                    self._solar_radiation_forecast = []
+-                    for fc in self._weather_forecast:
+-                        # A non-numeric irradiance is refused by _as_float, not thrown (R5-D1-07).
+-                        sr = fc.get("solar_irradiance") or fc.get(
+-                            "native_solar_irradiance", 0.0
+-                        )
+-                        self._solar_radiation_forecast.append(_as_float(sr, 0.0))
++                    # The solar forecast, if present; a non-numeric irradiance is
++                    # refused by _as_float, not thrown (R5-D1-07).
++                    self._solar_radiation_forecast = [_as_float(
++                        fc.get("solar_irradiance") or fc.get("native_solar_irradiance", 0.0), 0.0
++                    ) for fc in self._weather_forecast]
+ 
+                     self._weather_fetch_recovered()
+                     _LOGGER.debug(
+@@ -9582,13 +9569,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         )
+         migrated = self._away_state.migrated_helpers
+         if active != self._away_state.override_active or ret != parsed:
+-            self._away_state.override_active = active
+-            self._away_state.override_return_iso = (
+-                ret.isoformat() if ret else None
+-            )
++            self._away_state = replace(self._away_state, override_active=active,
++                                       override_return_iso=ret.isoformat() if ret else None)
+             self._spawn(away_mode.persist_override(self, self._away_state))
+         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
+-        self._away_state = away_mode.resolve(
++        self._away_state = replace(away_mode.resolve(
+             config,
+             now=now,
+             presence_raw=presence_raw,
+@@ -9602,8 +9587,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             outdoor_temp=ctx._current_state.outdoor_temperature,
+             override_active=active,
+             override_return_time=ret,
+-        )
+-        self._away_state.migrated_helpers = migrated
++        ), migrated_helpers=migrated)
+         return self._away_state
+     async def async_set_away(
+         self,
+@@ -9612,23 +9596,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         *, refresh: bool = True,
+     ) -> None:
+         """Persist the Plan-page override. The only writer of that store."""
+-        if active is False:
+-            self._away_state.override_active = False
+-            self._away_state.override_return_iso = None
+-        else:
+-            if active is True:
+-                self._away_state.override_active = True
+-            if return_time is not away_mode.OMIT:
+-                parsed = away_mode._parse_return_time(return_time)
+-                self._away_state.override_return_iso = (
+-                    parsed.isoformat() if parsed else None
+-                )
+-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+-        on, ret = away_mode.expire_override(
+-            self._away_state.override_active, parsed, dt_util.now()
+-        )
+-        self._away_state.override_active = on
+-        self._away_state.override_return_iso = ret.isoformat() if ret else None
++        # Resolved on locals, published whole: a spawned persist keeps its snapshot.
++        on = active if active is not None else self._away_state.override_active
++        iso = None if active is False else self._away_state.override_return_iso
++        if active is not False and return_time is not away_mode.OMIT:
++            parsed = away_mode._parse_return_time(return_time)
++            iso = parsed.isoformat() if parsed else None
++        on, ret = away_mode.expire_override(on, away_mode._parse_return_time(iso), dt_util.now())
++        self._away_state = replace(self._away_state, override_active=on,
++                                   override_return_iso=ret.isoformat() if ret else None)
+         await away_mode.persist_override(self, self._away_state)
+         if refresh:
+             await self.async_request_refresh()
+@@ -9956,8 +9932,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # duration, so the plan's promises are fiction while it runs —
+             # and any already on file were made by a plan the experiment
+             # is about to override.
+-            self._accuracy.lead_pending.clear()
+-            self._dhw_accuracy.lead_pending.clear()
++            self._accuracy.void_pending()
++            self._dhw_accuracy.void_pending()
+             return
+         dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0
+         # Filed first, so a plan with no room trajectory to promise about
+diff --git a/custom_components/heatpump_optimizer/flow_lift.py b/custom_components/heatpump_optimizer/flow_lift.py
+index 8d6fe2582..55c0ed6ee 100644
+--- a/custom_components/heatpump_optimizer/flow_lift.py
++++ b/custom_components/heatpump_optimizer/flow_lift.py
+@@ -148,13 +148,17 @@ class FlowCurveBias:
+     #: is a property of the SUPPLY side against the supply curve.
+     last_return_c: float | None = None
+     #: This cycle's thermal output in kW read off the flow meter, or
+-    #: ``None`` (#2016). Set by ``flow_meter.observe_water``; not persisted.
++    #: ``None`` (#2016). Set by ``observe_temps``; not persisted.
+     heat_output_kw: float | None = None
+ 
+     def observe_temps(
+-        self, supply: float | None, return_temp: float | None
++        self,
++        supply: float | None,
++        return_temp: float | None,
++        heat_output_kw: float | None = None,
+     ) -> None:
+-        """Record this cycle's two readings, or clear them.
++        """Record this cycle's readings, or clear them: the two water
++        temperatures and the flow meter's thermal output.
+ 
+         Called every cycle, with ``None`` for a slot that was unconfigured,
+         unavailable or stale. Clearing rather than keeping is the whole point:
+@@ -172,6 +176,7 @@ class FlowCurveBias:
+             if return_temp is not None and np.isfinite(return_temp)
+             else None
+         )
++        self.heat_output_kw = heat_output_kw
+ 
+     def observe(self, measured_supply: float, curve_supply: float) -> None:
+         """Fold one (measured, curve) pair into the bias."""
+diff --git a/custom_components/heatpump_optimizer/flow_meter.py b/custom_components/heatpump_optimizer/flow_meter.py
+index dc1117ffa..4473986bf 100644
+--- a/custom_components/heatpump_optimizer/flow_meter.py
++++ b/custom_components/heatpump_optimizer/flow_meter.py
+@@ -67,5 +67,6 @@ def read_heat_output_kw(
+ def observe_water(bias: Any, reader: Any, config: Any) -> None:
+     """Fold this cycle's supply, return and flow into the flow-bias holder."""
+     temps = read_water_temps(reader)
+-    bias.observe_temps(*temps)
+-    bias.heat_output_kw = read_heat_output_kw(reader, config, temps)
++    bias.observe_temps(
++        *temps, heat_output_kw=read_heat_output_kw(reader, config, temps)
++    )
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index bad273fd8..f5d0e4aac 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -3882,7 +3882,7 @@ class ThermalModel:
+         return draw_kw
+ 
+     def update_slab_from_return_temp(
+-        self, state: ThermalState, return_temp: float
++        self, state: ThermalState, return_temp: float | None
+     ) -> ThermalState:
+         """Update slab temperature estimate from actual floor return sensor.
+ 
+diff --git a/tests/arch_score_head.py b/tests/arch_score_head.py
+index 2a9bf0d0d..f1fed5bd4 100644
+--- a/tests/arch_score_head.py
++++ b/tests/arch_score_head.py
+@@ -42,20 +42,11 @@ R = Results("architecture score on today's tree (R9-EG-A1)")
+ #: pre-solve step, which the solve-only roots did not reach.
+ _C = "coordinator:HeatPumpOptimizerCoordinator."
+ CYCLE_HUB_WRITERS = {
++    # The live thermal state has no row: it is replaced whole through the
++    # context (a rebind, not a site) and never written in place.
+     _C + "_update_current_state": (
+-        {"_current_state." + f for f in (
+-            "buffer_tank_temperature", "dhw_hours_since_legionella", "dhw_temperature",
+-            "floor_return_temperature", "lower_floor_temperature", "outdoor_temperature",
+-            "room_temperature", "slab_temperature", "solar_radiation",
+-            "upper_floor_temperature", "wood_tank_temperature")}
+-        | {"_thermal_params.ambient_humidity", "_thermal_params.mixing_valve_target"},
+-        "this cycle's sensor readings into the live state"),
+-    "thermal_model:ThermalModel.update_slab_from_return_temp": (
+-        {"_current_state.floor_return_temperature", "_current_state.slab_temperature"},
+-        "the slab estimate advanced from this cycle's return reading"),
+-    "thermal_model:ThermalModel.update_ecl110_displace_state": (
+-        {"_current_state.ecl110_displace_command", "_current_state.ecl110_effective_displace"},
+-        "the ECL110 displacement state from this cycle's command"),
++        {"_thermal_params.ambient_humidity", "_thermal_params.mixing_valve_target"},
++        "this cycle's sensor readings into the live parameters"),
+     _C + "_refresh_model_corrections": (
+         {"_thermal_params." + f for f in (
+             "dhw_inlet_current", "flow_curve_bias", "flow_curve_indoor_target",
+diff --git a/tests/boost_drift_replay.py b/tests/boost_drift_replay.py
+index 036a11912..371790222 100644
+--- a/tests/boost_drift_replay.py
++++ b/tests/boost_drift_replay.py
+@@ -266,7 +266,7 @@ def cycle(st: dict, i: int, surface: str) -> None:
+     p, t_out, solar, wind, rain = day_arrays(day_index)
+     p2, t_out2, solar2, wind2, rain2 = day_arrays(day_index + 1)
+     result = st["optimizer"].optimize(inputs=solve_inputs(
+-        initial_state=ctx._current_state,
++        initial_state=getattr(coord, "_ctx", coord)._current_state,
+         prices=np.concatenate([p, p2])[step_idx:],
+         outdoor_temps=np.concatenate([t_out, t_out2])[step_idx:],
+         wind_speeds=np.concatenate([wind, wind2])[step_idx:],
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 31b3310f7..233fd9051 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -9,11 +9,11 @@
+  "functions_cc_over_15": 31,
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+- "max_cc": 45,
+- "max_class_loc": 8705,
++ "max_cc": 44,
++ "max_class_loc": 8681,
+  "max_method_loc": 373,
+  "methods_over_150": 17,
+  "methods_over_200": 9,
+- "recorded_at": "8b495603a136c9bebf9bbb682976889dfa90ce9a",
++ "recorded_at": "554e2ecfa7ad5b1660a1256ebf6cf6ac3810d9ef",
+  "seam_cut_total": 752
+ }

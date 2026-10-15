@@ -1,0 +1,661 @@
+{
+ "M01": {
+  "mutant": {
+   "id": "M01",
+   "file": "custom_components/heatpump_optimizer/payload.py",
+   "line": 46,
+   "op": "negate-guard",
+   "old": "if TYPE_CHECKING:",
+   "new": "if not (TYPE_CHECKING):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 539.8,
+    "tail": "held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)\nclosures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py\nclosures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "backtest.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "edge.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "guard_pins.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "optimality.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "stress.py",
+   "structure.py",
+   "typing_ruler.py",
+   "validate.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M02": {
+  "mutant": {
+   "id": "M02",
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "line": 76,
+   "op": "negate-guard",
+   "old": "if not self.snapshots:",
+   "new": "if not (not self.snapshots):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 554.3,
+    "tail": "held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)\nclosures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py\nclosures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M04": {
+  "mutant": {
+   "id": "M04",
+   "file": "custom_components/heatpump_optimizer/accuracy.py",
+   "line": 369,
+   "op": "boundary >->>=",
+   "old": "usable = pred > 0.05",
+   "new": "usable = pred >= 0.05"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 0,
+    "wall": 440.1,
+    "tail": ""
+   },
+   "features.py": {
+    "rc": 0,
+    "wall": 588.3,
+    "tail": ""
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "backtest.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "edge.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "guard_pins.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "optimality.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "stress.py",
+   "structure.py",
+   "typing_ruler.py",
+   "validate.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": null
+ },
+ "M05": {
+  "mutant": {
+   "id": "M05",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "line": 1510,
+   "op": "negate-guard",
+   "old": "if not self.coordinator.data:",
+   "new": "if not (not self.coordinator.data):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 106.2,
+    "tail": "ation is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTraceback (most recent call last):\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2-lane2/tests/entities.py\", line 23370, in <module>\n    and _dhw_plan_count.extra_state_attributes[\"slot_count\"] == 2,\n        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\nKeyError: 'slot_count'\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "config_flow_steps.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M07": {
+  "mutant": {
+   "id": "M07",
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "line": 220,
+   "op": "boundary <-><=",
+   "old": "if entry.version < CONFIG_ENTRY_VERSION:",
+   "new": "if entry.version <= CONFIG_ENTRY_VERSION:"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 0,
+    "wall": 410.1,
+    "tail": ""
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "backtest.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "edge.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "guard_pins.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "optimality.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "stress.py",
+   "structure.py",
+   "typing_ruler.py",
+   "validate.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": null
+ },
+ "M10": {
+  "mutant": {
+   "id": "M10",
+   "file": "custom_components/heatpump_optimizer/ledger.py",
+   "line": 394,
+   "op": "negate-guard",
+   "old": "if mean is not None:",
+   "new": "if not (mean is not None):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 402.1,
+    "tail": "held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)\nclosures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py\nclosures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "guard_pins.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M12": {
+  "mutant": {
+   "id": "M12",
+   "file": "custom_components/heatpump_optimizer/climate.py",
+   "line": 279,
+   "op": "negate-guard",
+   "old": "if \"upper_setpoint\" in action:",
+   "new": "if not (\"upper_setpoint\" in action):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 21.1,
+    "tail": "atchpad/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/entity.py\", line 151, in scrubbed\n    return _finite(_fget(self))\n                   ~~~~~^^^^^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/climate.py\", line 280, in extra_state_attributes\n    attrs[\"upper_floor_setpoint\"] = action[\"upper_setpoint\"]\n                                    ~~~~~~^^^^^^^^^^^^^^^^^^\nKeyError: 'upper_setpoint'\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "config_flow_steps.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "structure.py",
+   "typing_ruler.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M14": {
+  "mutant": {
+   "id": "M14",
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "line": 143,
+   "op": "negate-guard",
+   "old": "if not healthy:",
+   "new": "if not (not healthy):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 0,
+    "wall": 311.8,
+    "tail": ""
+   },
+   "features.py": {
+    "rc": 1,
+    "wall": 563.1,
+    "tail": " bounded to 2026-06-01 12:00:00\nheatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\n/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice\n  return _methods._mean(a, axis=axis, dtype=dtype,\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": "features.py"
+ },
+ "M17": {
+  "mutant": {
+   "id": "M17",
+   "file": "custom_components/heatpump_optimizer/switch.py",
+   "line": 102,
+   "op": "negate-guard",
+   "old": "if self.coordinator.mode != MODE_OFF:",
+   "new": "if not (self.coordinator.mode != MODE_OFF):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 365.5,
+    "tail": "held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)\nclosures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py\nclosures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "config_flow_steps.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "structure.py",
+   "typing_ruler.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M21": {
+  "mutant": {
+   "id": "M21",
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "line": 206,
+   "op": "boundary >->>=",
+   "old": "if not math.isfinite(bias) or abs(bias) > BIAS_BAND_C:",
+   "new": "if not math.isfinite(bias) or abs(bias) >= BIAS_BAND_C:"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 311.0,
+    "tail": "held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)\nclosures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py\nclosures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M24": {
+  "mutant": {
+   "id": "M24",
+   "file": "custom_components/heatpump_optimizer/climate.py",
+   "line": 144,
+   "op": "negate-guard",
+   "old": "if isinstance(indoor, (int, float)) and not isinstance(indoor, bool):",
+   "new": "if not (isinstance(indoor, (int, float)) and not isinstance(indoor, bool)):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 273.6,
+    "tail": "held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)\nclosures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py\nclosures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "config_flow_steps.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "structure.py",
+   "typing_ruler.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M26": {
+  "mutant": {
+   "id": "M26",
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "line": 239,
+   "op": "negate-guard",
+   "old": "if dropped:",
+   "new": "if not (dropped):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 0,
+    "wall": 251.6,
+    "tail": ""
+   },
+   "features.py": {
+    "rc": 0,
+    "wall": 774.2,
+    "tail": ""
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": null
+ },
+ "M28": {
+  "mutant": {
+   "id": "M28",
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "line": 517,
+   "op": "negate-guard",
+   "old": "if target_entry is not None:",
+   "new": "if not (target_entry is not None):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 19.9,
+    "tail": "ptimizer/services.py\", line 556, in _loaded_coordinators\n    for entry in _loaded_entries(hass, target_entry)\n                 ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/services.py\", line 520, in _loaded_entries\n    raise ServiceValidationError(\n    ...<5 lines>...\n    )\nhomeassistant.exceptions.ServiceValidationError: No Heat Pump Optimizer config entry has the id None\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "config_flow_steps.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "structure.py",
+   "typing_ruler.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M30": {
+  "mutant": {
+   "id": "M30",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "line": 426,
+   "op": "negate-guard",
+   "old": "if key == TOPOLOGY_TWO_TANK_4WAY:",
+   "new": "if not (key == TOPOLOGY_TWO_TANK_4WAY):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 0,
+    "wall": 408.8,
+    "tail": ""
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "backtest.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "edge.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "frontend.py",
+   "golden.py",
+   "guard_pins.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "open_meteo.py",
+   "optimality.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "stress.py",
+   "structure.py",
+   "typing_ruler.py",
+   "validate.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": null
+ },
+ "M32": {
+  "mutant": {
+   "id": "M32",
+   "file": "custom_components/heatpump_optimizer/ledger.py",
+   "line": 385,
+   "op": "boundary <=-><",
+   "old": "and abs(reason_sek - raw_spot[\"sek\"]) <= 0.05",
+   "new": "and abs(reason_sek - raw_spot[\"sek\"]) < 0.05"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 1,
+    "wall": 378.9,
+    "tail": "held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)\nclosures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py\nclosures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected\n"
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "guard_pins.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": "entities.py"
+ },
+ "M35": {
+  "mutant": {
+   "id": "M35",
+   "file": "custom_components/heatpump_optimizer/ledger.py",
+   "line": 306,
+   "op": "negate-guard",
+   "old": "if dropped:",
+   "new": "if not (dropped):"
+  },
+  "ran": {
+   "entities.py": {
+    "rc": 0,
+    "wall": 353.0,
+    "tail": ""
+   }
+  },
+  "closure": [
+   "arch_score_head.py",
+   "block_duty.py",
+   "boost_drift_replay.py",
+   "card.mjs",
+   "card_drift.mjs",
+   "config_flow_steps.py",
+   "debug_collect.py",
+   "deployment_shape.py",
+   "doc_claims.py",
+   "entities.py",
+   "env_drift.py",
+   "features.py",
+   "finite_boundary.py",
+   "golden.py",
+   "guard_pins.py",
+   "harness_headers.py",
+   "manual_plan.py",
+   "plan_view.py",
+   "solar_alignment.py",
+   "structure.py",
+   "typing_ruler.py",
+   "wood_advisor.py"
+  ],
+  "killed_by": null
+ }
+}

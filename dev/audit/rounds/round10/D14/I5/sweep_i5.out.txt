@@ -1,0 +1,62 @@
+STALE F1 README.md:356 | HIT README.md:356 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F1 docs/configuration.md:23 | HIT docs/configuration.md:23 rule=A doc='Heat Pump Optimizer' ui='Heat Pump Cost Optimizer'
+STALE F1 docs/configuration.md:43 | HIT docs/configuration.md:43 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F1 docs/configuration.md:164 | HIT docs/configuration.md:164 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F1 docs/setup.md:70 | HIT docs/setup.md:70 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F2 docs/dashboard-card.md:banner | doc_banner=v6.6.8 card_after_stamp=v7.0.0
+STALE F3 custom_components/heatpump_optimizer/coordinator.py:1976 | MISSING  custom_components/heatpump_optimizer/coordinator.py:1976 `money_currency`
+STALE F4 custom_components/heatpump_optimizer/__init__.py:80+ | custom_components/heatpump_optimizer/__init__.py:80+ states 'twelve services' -> 12 vs registered 13: STALE
+STALE F4 custom_components/heatpump_optimizer/__init__.py:263+ | custom_components/heatpump_optimizer/__init__.py:263+ states 'twelve services' -> 12 vs registered 13: STALE
+STALE F4 custom_components/heatpump_optimizer/__init__.py:363+ | custom_components/heatpump_optimizer/__init__.py:363+ states 'twelve handlers' -> 12 vs registered 13: STALE
+STALE F4 custom_components/heatpump_optimizer/__init__.py:363+ | custom_components/heatpump_optimizer/__init__.py:363+ states 'eleven ``hass.services.async_register`` calls' -> 11 vs registered 13: STALE
+STALE F5 dev/governance/dimensions/D7.md:13 | count dev/governance/dimensions/D7.md:13 states 24, derived 16, stale=true, checkCounts_flagged=false
+STALE F5 dev/governance/dimensions/D7.md:17 | key dev/governance/dimensions/D7.md:17 names cut_* as a live metric; in budgets: false
+STALE F5 dev/governance/dimensions/D7.md:18 | key dev/governance/dimensions/D7.md:18 names cross_seam_edges as a live metric; in budgets: false
+STALE F5 tests/structure.py:369 | key tests/structure.py:369 names cross_seam_edges as a live metric; in budgets: false
+SEAM  W1 README.md:112 | v5.0.0 hist=True
+SEAM  W1 README.md:388 | v6.6.5 hist=True
+SEAM  W1 README.md:469 | v5.0.0 hist=True
+SEAM  W1 README.md:557 | v5.0.0 hist=True
+SEAM  W1 README.md:948 | v4.1.0 hist=True
+SEAM  W1 docs/configuration.md:101 | v4.1.0 hist=True
+SEAM  W1 docs/dashboard-card.md:271 | v4.1.0 hist=True
+SEAM  W1 docs/dashboard-card.md:464 | v6.2.5 hist=True
+STALE W1 docs/dashboard-card.md:828 | v6.6.8 hist=False
+SEAM  W1 docs/dashboard-card.md:910 | v4.1.0 hist=True
+SEAM  W1 docs/dashboard-card.md:944 | v4.2.0 hist=True
+SEAM  W1 docs/ecl110.md:92 | v4.1.0 hist=True
+SEAM  W1 docs/how-it-works.md:145 | v3.9.0 hist=True
+SEAM  W1 docs/how-it-works.md:157 | v3.9.0 hist=True
+SEAM  W1 docs/how-it-works.md:362 | v5.1.7 hist=True
+SEAM  W1 docs/how-it-works.md:965 | v5.3.0 hist=True
+SEAM  W1 docs/how-it-works.md:1049 | v5.3.0 hist=True
+SEAM  W1 docs/how-it-works.md:1069 | v5.3.0 hist=True
+SEAM  W1 docs/how-it-works.md:1239 | v5.1.7 hist=True
+SEAM  W1 docs/setup.md:5 | v6.6.5 hist=True
+SEAM  W1 docs/setup.md:140 | v6.6.5 hist=True
+STALE W2 dev/governance/dimensions/D7.md:18 | cross_seam_edges
+SEAM  W2 tests/structure.py:143 | cross_seam_edges
+SEAM  W2 tests/structure.py:228 | cross_seam_edges
+SEAM  W2 tests/structure.py:365 | cross_seam_fraction
+STALE W2 tests/structure.py:369 | cross_seam_edges
+STALE W2 tests/structure.py:1960 | cut_views
+STALE W3 dev/governance/dimensions/D9.md:15 | 51 scenarios live=54 hist=False
+SEAM  W3 dev/governance/roles/fixer.md:194 | 51 stress scenarios live=54 hist=True
+SEAM  W3 tests/stress.py:219 | 51 scenarios live=54 hist=True
+SEAM  W3 tests/stress.py:3041 | fifty-one scenarios live=54 hist=True
+SEAM  W3 tests/stress.py:3407 | Fifty-one scenarios live=54 hist=True
+STALE W3 tests/stress.py:4602 | fifty-one scenarios live=54 hist=False
+SEAM  W3 tests/stress.py:4879 | fifty-one scenarios live=54 hist=True
+SEAM  W3 tests/stress.py:5245 | fifty-one scenarios live=54 hist=True
+SEAM  W4 dashboard-card.md:537: | REFUSED   dashboard-card.md:537: '24 months' has no disposition
+SEAM  W4 dashboard-card.md:678: | REFUSED   dashboard-card.md:678: '30 samples' has no disposition
+RESULT stale_F1=5 count
+RESULT stale_F2=1 count
+RESULT stale_F3=1 count
+RESULT stale_F4=4 count
+RESULT stale_F5=4 count
+RESULT stale_W1=1 count
+RESULT stale_W2=3 count
+RESULT stale_W3=2 count
+RESULT seams_wide=35 seams_census_refused=2 count
+RESULT stale_total=21 count

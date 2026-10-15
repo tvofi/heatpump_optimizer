@@ -1,0 +1,329 @@
+{
+  "box": "B8",
+  "missing": [],
+  "reports": {
+    "D13-s1": {
+      "dimension": "D13",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D13/s1/REPORT.md",
+      "exposure": "GitHub REST API for window 1913f0dd7..origin/main: /commits/<sha>/pulls per first-parent commit, /pulls/<n>, /issues/<n>/comments, /pulls/<n>/reviews for 185 PRs (753 requests), plus production policy_lint.mjs --stats over the same window. Verdict content used as population only.",
+      "coverage": [
+        {
+          "step": "D13.M1",
+          "depth": "deep",
+          "evidence": "yield.mjs: window 185 (set diff vs mergedPRsFromWindow 0, api_failures 0); 163 verdict-carrying merges; first-verdict yield 100/163=0.613; rounds mean 2.663, max 14 (#2066); 0 outside grammar; 0 review-endpoint verdicts; fetchWindow pagination drops 0 verdicts"
+        },
+        {
+          "step": "D13.M2",
+          "depth": "deep",
+          "evidence": "yield.mjs COVER rows: 22/185 merges carry no verdict: record-chore 17/47, fix-feature 2/88, other 3/50, all hpo-author[bot]; no exempting rule found in dev/governance or CLAUDE.md"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D13-s1-01",
+          "scope": "D13-s1",
+          "step": "D13.M2",
+          "title": "22 of 185 merges carry no review verdict, 17 of them record PRs no rule exempts; --stats cannot split by class",
+          "severity": "medium",
+          "claim": "In 1913f0dd7..17f1c55fad1b, 22 of 185 first-parent merged PRs carry no parsable Fix review verdict on either endpoint (17 record/docs of 47, fix #2203 and #2173, closure/test/policy #2196 #2179 #2005), no rule in the tree exempts them, and policy_lint.mjs --stats reports them only as one capped list of 10 numbers with no class split.",
+          "evidence": {
+            "command": "GITHUB_TOKEN=$(gh auth token) node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7",
+            "harness_path": "dev/audit/rounds/round10/D13/s1/yield.mjs",
+            "value": 22,
+            "unit": "merges without a parsable verdict",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 Darwin 25.6.0, box B8",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, load1 15.18; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 15.18,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "tools/policy/policy_lint.mjs:statsHistogram (coverage.noVerdict), with waveVerdictRe and mergedPRsFromWindow",
+          "perturbation": {
+            "change": "--reshape-one: rewrite #2191's single verdict to 'Fix review: PASS -- merge <sha>' in the in-memory fixture",
+            "expected_direction": "no_verdict 22 -> 23, coverage 163 -> 162 (executed)"
+          },
+          "metric_definition": "Count of window merges (API-mode enumeration) whose issue comments and reviews hold no trimmed-first-line match of web-fix-wave.js VERDICT_RE, split by title prefix and author.",
+          "phenomenon_property": "Merges reach main without a review verdict in classes no cited rule exempts, and the shipped stats reader cannot report coverage per class.",
+          "seam_rule": "node dev/audit/rounds/round10/D13/s1/yield.mjs --since <ref> | grep ^COVER",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "tools/policy/policy_lint.mjs",
+            ".claude/workflows/web-fix-wave.js"
+          ],
+          "proposed_fix_scope": "Either a cited rule exempting record PRs (and a per-class coverage row in statsCoverageLine), or a verdict required before merge for record/fix PRs; owner decision."
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Production enumerator agrees with an independent API enumeration as a set",
+          "command": "node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7",
+          "value": "window 185, set diff 0, api_failures 0"
+        },
+        {
+          "claim": "Production --stats yield matches independent computation",
+          "command": "node tools/policy/policy_lint.mjs --stats --since 1913f0dd7",
+          "value": "163/185 coverage, first-verdict yield 100/163=0.613 in both"
+        },
+        {
+          "claim": "fetchWindow's single page of 100 comments/reviews loses no verdicts in this window",
+          "command": "node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7",
+          "value": "truncation_verdicts_dropped=0, truncated_prs=0"
+        },
+        {
+          "claim": "No verdict falls outside the grammar; none posted as reviews",
+          "command": "node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7",
+          "value": "outside_grammar=0; 434 issue comment, 0 review"
+        },
+        {
+          "claim": "Rounds per merge",
+          "command": "node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7",
+          "value": "mean 2.663, max 14 (#2066)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D13/s1/yield.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tools/policy/policy_lint.mjs",
+          "symbol": "statsHistogram",
+          "what": "Verdict histogram keys untaught class words raw (21 rows such as body-stale, defect, record-stale) while web-fix-wave.js parseVerdict routes them to 'other': two readers deliver different classes for one verdict (D13.M3 cell)."
+        }
+      ]
+    },
+    "D13-s2": {
+      "dimension": "D13",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D13/s2/REPORT.md",
+      "exposure": "Read-only GitHub API for tvofi/heatpump_optimizer: /commits/<sha>/pulls for the 185 first-parent merges in v6.7.16..17f1c55fad1b, and /pulls/<n>, /issues/<n>/comments and /pulls/<n>/reviews for those 185 PRs. Verdict and friction text was used only as the population being counted. Raw payload: /private/tmp/claude-501/d13s2/window.json",
+      "coverage": [
+        {
+          "step": "D13.M3",
+          "depth": "deep",
+          "evidence": "blocks_friction.mjs over 185 merges (api_failures=0): 124 blocked verdicts classified with production waveVerdictRe/blockClasses; per-class, per-bucket and untaught rows; compared with statsHistogram rows; verdict perturbation moved 124->123"
+        },
+        {
+          "step": "D13.M6",
+          "depth": "deep",
+          "evidence": "89 friction entries keyed by statsHistogram/frictionKey and checked against the brief's path rule over policy_budgets.json files: 68 one-file (0.764), 0 ambiguous, 21 none; README perturbation moves 1 entry to ambiguous, unbacktick moves nothing"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D13-s2-01",
+          "scope": "D13-s2",
+          "step": "D13.M3",
+          "title": "root-cause-unanswered is 30% of all blocks and exceeds every engineering block class",
+          "severity": "high",
+          "claim": "In the window v6.7.16..17f1c55fad1b, 37 of 124 blocked fix-review verdicts are root-cause-unanswered, a class whose fix the prompt calls sound, while the largest engineering class (harness) has 23.",
+          "evidence": {
+            "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
+            "harness_path": "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
+            "value": 37,
+            "unit": "blocked verdicts (of 124)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B8 macOS (darwin 25.6)",
+            "cpu_or_wall": "count",
+            "contention_note": "counts; contention-immune",
+            "tolerance": "exact",
+            "load1": 0,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "tools/policy/policy_lint.mjs:waveVerdictRe (web-fix-wave.js VERDICT_RE), statsHistogram",
+          "perturbation": {
+            "change": "--perturb=verdict re-shapes one blocked verdict out of the grammar (abbreviated SHA)",
+            "expected_direction": "root-cause-unanswered 37->36, blocked 124->123, outside_grammar 0->1 (observed)"
+          },
+          "metric_definition": "Count of first-line 'Fix review: blocked <40hex> root-cause-unanswered:' verdicts across issue comments and reviews of the window's merged PRs, compared with the per-class counts of the engineering classes",
+          "phenomenon_property": "Review rounds are spent on a missing root-cause answer in the body rather than on defects in the fix",
+          "seam_rule": "node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <window.json> | grep block_class",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            ".claude/workflows/web-fix-wave.js",
+            "tools/policy/policy_lint.mjs"
+          ],
+          "proposed_fix_scope": "Make the root-cause answer a check the PR author runs before review (pr-contract refuses a red-check head whose body omits the detector), so the reviewer never needs a round for it"
+        },
+        {
+          "id": "D13-s2-02",
+          "scope": "D13-s2",
+          "step": "D13.M3",
+          "title": "--stats verdict table mixes 129 rework bumps into the head-moved block-class row",
+          "severity": "medium",
+          "claim": "statsHistogram's head-moved row reports 133 entries over 71 PRs while only 4 blocked verdicts carry head-moved, so the table cannot give the block-class count the D13 brief asks for.",
+          "evidence": {
+            "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
+            "harness_path": "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
+            "value": "133 vs 4",
+            "unit": "entries in PROD head-moved row vs blocked head-moved verdicts",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B8 macOS (darwin 25.6)",
+            "cpu_or_wall": "count",
+            "contention_note": "counts; contention-immune",
+            "tolerance": "exact",
+            "load1": 0,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "tools/policy/policy_lint.mjs:statsHistogram",
+          "perturbation": {
+            "change": "delete the reverify `bump(verdicts, REWORK_CLASS, pr)` in statsHistogram",
+            "expected_direction": "PROD head-moved row drops from 133 to 4 entries"
+          },
+          "metric_definition": "entries in statsHistogram().verdicts.get('head-moved') compared with the blocked verdicts whose VERDICT_RE class arm is head-moved",
+          "phenomenon_property": "One histogram holds two populations: reviewer-written block classes and derived rework rounds",
+          "seam_rule": "grep -n 'bump(verdicts' tools/policy/policy_lint.mjs",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "tools/policy/policy_lint.mjs"
+          ],
+          "proposed_fix_scope": "Key rework bumps in their own histogram or row (e.g. rework:head-moved) so block-class rows count only blocked verdicts"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Production verdict rows for taught classes and for 'other' match independent per-verdict parsing; there are no unclassified Fix review lines",
+          "command": "node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <window.json>",
+          "value": "root-cause-unanswered 37, harness 23, conflict 9, other 15 in both; prod_unclassified=0"
+        },
+        {
+          "claim": "No friction key is ambiguous across --budgets paths; the share naming one file is 0.764",
+          "command": "node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <window.json>",
+          "value": "89 entries: one_file 68, ambiguous 0, none 21"
+        },
+        {
+          "claim": "Friction perturbations behave as the brief says",
+          "command": "blocks_friction.mjs --perturb=budgets-readme / --perturb=unbacktick",
+          "value": "README spelling: one_file 68->67, ambiguous 0->1; unbackticked: no change"
+        },
+        {
+          "claim": "Window enumeration is complete",
+          "command": "python3 dev/audit/rounds/round10/D13/s2/fetch_window.py v6.7.16 17f1c55fad1b <out>",
+          "value": "merges=185 prs=185 api_failures=0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D13/s2/fetch_window.py",
+        "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": ".claude/workflows/web-fix-wave.js",
+          "symbol": "VERDICT_CLASSES",
+          "what": "21 of 124 blocked verdicts use 20 class words the grammar does not teach (body-stale, defect, re-cut and others), plus 15 bare 'other'; parseVerdict routes them all to 'other', so wave routing loses the reviewer's class in 29% of blocks (a D11 mechanism question)"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tools/policy/policy_lint.mjs",
+          "symbol": "frictionKey",
+          "what": "Fixer friction is split across 3 keys (tools/audit/briefs/fixer.md 16, 'fixer' 1, 'dev/governance/roles/fixer.md' 1): the real in-tree path of a role contract does not resolve to its canonical budgets key"
+        }
+      ]
+    },
+    "D13-s3": {
+      "dimension": "D13",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D13/s3/REPORT.md",
+      "exposure": "gh api (tvofi): repos/tvofi/heatpump_optimizer/commits/<sha>/pulls and commits/<sha>/check-runs (paginated) for 98 first-parent merge commits in v6.7.17..17f1c55fad1b and their PR heads; git first-parent history. No comments, reviews or bodies read. Responses cached in dev/audit/rounds/round10/D13/s3/cache (43 MB).",
+      "coverage": [
+        {
+          "step": "D13.M4",
+          "depth": "deep",
+          "evidence": "d13_s3.py: per-check-run-name CFR at merge and head keyings, raw and minus dev/governance/config/cfr_exclusions.json, revert rule; merges=98 api_failures=0; cfr_merge_raw=0.592 excluded=0.561, head 0.276/0.276; base instrument dora_keys.py driven: dora_keys_loads=0"
+        },
+        {
+          "step": "D13.M5",
+          "depth": "deep",
+          "evidence": "d13_s3.py: GOV re-derived from governance.yml, pr-contract.yml, pr-contract-rerun.yml, budget-raise-gate*.yml + briefs equals governance_cost.GOV (both diffs []); gov median 466 s/merge, gate median 4114, share 0.070"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D13.M4",
+          "what": "deployment frequency, lead time and time-to-restore not computed by the round-10 harness (CFR only)"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D13-s3-01",
+          "scope": "D13-s3",
+          "step": "D13.M4",
+          "title": "DORA base instrument dora_keys.py cannot run at baseline: d11lib import and exclusion-list path left behind by the R9 move",
+          "severity": "medium",
+          "claim": "dev/audit/rounds/round4/D11/dora_keys.py imports d11lib from its own directory, but d11lib.py remains in tools/audit/round4/D11/ (ModuleNotFoundError); with the import fixed, its CFR_EXCLUSIONS names .claude/workflows/cfr_exclusions.json, which does not exist (registered artifact is dev/governance/config/cfr_exclusions.json), so load_exclusions raises FileNotFoundError. The instrument the D13 brief names as the M4 base cannot compute its metric.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
+            "harness_path": "dev/audit/rounds/round10/D13/s3/d13_s3.py",
+            "value": 0,
+            "unit": "dora_keys_loads (1=imports and loads exclusions)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B8 macOS (any; deterministic)",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, contention-immune",
+            "tolerance": "exact",
+            "load1": 21.14,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "dev/audit/rounds/round4/D11/dora_keys.py:load_exclusions (and its module import of d11lib)",
+          "perturbation": {
+            "change": "D13S3_FIX_IMPORT=1 D13S3_DORA_EXCL=dev/governance/config/cfr_exclusions.json (import path fixed, CFR_EXCLUSIONS patched to the registered artifact)",
+            "expected_direction": "dora_keys_loads 0 -> 1 (observed: 1, loads ['record']); FIX_IMPORT alone stays 0 with FileNotFoundError"
+          },
+          "metric_definition": "1 if dora_keys imports and load_exclusions(root) returns the excluded_jobs map at this tree, else 0",
+          "phenomenon_property": "An audit instrument's path-bound references (module import, data artifact path) must resolve at the tree it lives in",
+          "seam_rule": "git grep -n \"cfr_exclusions\\|import d11lib\" dev/audit/rounds/round4/D11",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "dev/audit/rounds/round4/D11/dora_keys.py",
+            "tools/audit/round4/D11/d11lib.py"
+          ],
+          "proposed_fix_scope": "Point dora_keys.py's CFR_EXCLUSIONS at dev/governance/config/cfr_exclusions.json and make d11lib importable from its location (move both D11 helpers together or add the path)",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "governance_cost.py GOV set matches the jobs re-derived from the governance workflow files at baseline",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
+          "value": "gov_derived_minus_carried=[] gov_carried_minus_derived=[]"
+        },
+        {
+          "claim": "No merge in window fails by the revert rule",
+          "command": "same",
+          "value": "revert_rule_merges=0"
+        },
+        {
+          "claim": "CI seconds per merge: governance is a small share of the gate",
+          "command": "same",
+          "value": "gov median 466 mean 491 s/merge; gate median 4114 mean 6473; governance_share=0.070 (0.064 with pr-contract dropped)"
+        },
+        {
+          "claim": "CFR by keying over 98 merges",
+          "command": "same",
+          "value": "cfr_merge_raw=0.592 cfr_merge_excluded=0.561 cfr_head_raw=0.276 cfr_head_excluded=0.276; EXCLUDE_EXTRA=ci-ratchet -> 0.418"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D13/s3/d13_s3.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "dev/governance/config/cfr_exclusions.json",
+          "symbol": "excluded_jobs.record / not_excluded",
+          "what": "record's stated reason ('failure at EVERY merge') no longer holds (44/98 merges); ci-ratchet (40/98) and record-autofix (30/98) fail only at the merge surface (0 at heads) and are neither excluded nor recorded in not_excluded; owner judgement needed"
+        }
+      ]
+    }
+  }
+}

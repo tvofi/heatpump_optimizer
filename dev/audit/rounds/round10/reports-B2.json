@@ -1,0 +1,479 @@
+{
+  "box": "B2",
+  "missing": [],
+  "reports": {
+    "D0-s2": {
+      "dimension": "D0",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D0/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D0.M4",
+          "depth": "deep",
+          "evidence": "grid_race.py: 4 winter prices + flat x winter_cold/winter_mild x single/two-zone x DHW on/off, 41 captured _multi_start_minimize calls raced on the production objective; ftol_race.py on two-zone+DHW cells. Valve storage, wood, horizons 6/48 h not run."
+        },
+        {
+          "step": "D0.M5",
+          "depth": "deep",
+          "evidence": "flat arm in grid_race.out (mean 0.063 %, 0 of 8 cells >0.5 %) and ftol_race.out (flat polish gap mean 0.079 %, max 0.157 %)"
+        },
+        {
+          "step": "D0.M6",
+          "depth": "spot",
+          "evidence": "step-0 |dkW| per call in grid_race.out (31/41 <0.1 kW); mpc_mask.py 1-day closed loop: --arm ftol on 4 cells (mixed sign -1.26..+1.50 %), --arm chal on 2 cells"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D0.M4",
+          "what": "valve storage, wood, horizon 6/48 h and coordinator captures not run in the winter cells (box load 40-94)"
+        },
+        {
+          "step": "D0.M6",
+          "what": "augmented-challenger closed loop cut after 2 of 7 cells; realised objective (not only energy cost) not scored; multi-day loop not run"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D0-s2-01",
+          "scope": "D0-s2",
+          "step": "D0.M4",
+          "title": "L-BFGS-B ftol=1e-6 stop leaves up to 1.2 % objective on two-zone+DHW winter solves",
+          "severity": "low",
+          "claim": "From the shipped x of the two-zone+DHW space solve, an ftol-1e-12 L-BFGS-B polish lowers the captured production objective by a winter mean 0.20 % (max 1.23 %, winter_moderate/winter_cold) against 0.079 % at flat prices, and that gap falls to 0.009 % when production's ftol is set to 1e-10.",
+          "mechanism": "_multi_start_minimize main run and _lbfgsb_restart both pass ftol 1e-6 to _scoped_minimize; the relative stop ends descent at nit 47-135 while further descent of 0.1-1.3 objective units remains; maxiter is not binding (maxiter 50 and 1000 give identical plans).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py",
+            "harness_path": "dev/audit/rounds/round10/D0/s2/ftol_race.py",
+            "value": 0.2025,
+            "unit": "pct (winter mean polish gap, n=8, range 0..1.2344, drop-max mean 0.0551; flat mean 0.0787)",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "macOS arm64 box B2",
+            "cpu_or_wall": "ratio",
+            "contention_note": "fan-out, two other compute seats; objective ratio is contention-immune",
+            "tolerance": "+-0.3 pp (BLAS)",
+            "load1": 45.78,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize (captured) and :_scoped_minimize (ftol perturbation)",
+          "perturbation": {
+            "change": "--ftol 1e-10 (overrides ftol in every production _scoped_minimize call)",
+            "expected_direction": "down: winter mean polish gap 0.20 % -> 0.009 % measured; shipped objective lower in 7/8 winter cells (mean -0.40 %)"
+          },
+          "metric_definition": "(J(prod.x) - J(L-BFGS-B ftol 1e-12 polish from prod.x)) / |J(prod.x)| on the captured production objective, per two-zone+DHW 24 h cell",
+          "phenomenon_property": "every production L-BFGS-B call stops on ftol 1e-6 before local convergence of the objective",
+          "seam_rule": "grep -n '\"ftol\": 1e-6' custom_components/heatpump_optimizer/optimizer.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "proposed_fix_scope": "tighten ftol (or add a gtol/pgtol-based stop) for space solves, priced against nfev (~2x) and checked under the MPC loop: mpc_mask.py --arm ftol showed realised energy -1.26 % on winter_narrow/cold but +0.80/+1.50 % on moderate/typical cold and +0.65 % at flat, so the one-shot gap is not consistently realised",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Single-zone DHW-off winter_cold: no challenger beats production on any winter price",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/grid_race.py",
+          "value": "gap 0.0000 % on winter_typical/extreme/narrow/moderate"
+        },
+        {
+          "claim": "Grid aggregate augmented-challenger gap is small and close to the flat null",
+          "command": "same as above",
+          "value": "winter means 0.060-0.175 %, flat 0.063 %; drop-max means 0.014-0.055 % vs flat 0.007 %; cells >0.5 %: 2/33 winter, 0/8 flat"
+        },
+        {
+          "claim": "Iteration budget is not binding",
+          "command": "grid_race.py --maxiter 50 / --maxiter 1000 --prices winter_narrow,winter_typical --weather winter_cold --tz 1 --dhw 1",
+          "value": "identical J0 135.0449 and 86.1065 at both budgets"
+        },
+        {
+          "claim": "Augmented-challenger gap not realised in closed loop",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/mpc_mask.py",
+          "value": "winter_typical/cold/tz1/dhw1 challenger +0.31 % energy; winter_typical/mild/tz1/dhw0 -3.8 % energy but below-17 degree-steps 0.55 -> 1.06"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D0/s2/grid_race.py",
+        "dev/audit/rounds/round10/D0/s2/ftol_race.py",
+        "dev/audit/rounds/round10/D0/s2/mpc_mask.py"
+      ],
+      "leads": []
+    },
+    "D3-s2": {
+      "dimension": "D3",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D3/s2/REPORT.md (NOT written: the harness's Write tool refused report .md files for subagents; the report content is in this JSON)",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "depth": "deep",
+          "evidence": "mutants.py list: AST candidates over all 18 cell files (negated if-guards, boundary shifts, min<->max); seed 10, 36 mutants, <=4 per module, consequence WEIGHTS recorded in the harness; RESULT sampled=36"
+        },
+        {
+          "step": "D3.M2",
+          "depth": "deep",
+          "evidence": "mutants.py run in an isolated worktree (plus a second worktree lane): each mutant's measured closure from tests/closures.json, run fast-first with stop at first kill: guard_pins, block_duty, debug_collect, wood_advisor, solar_alignment, manual_plan, config_flow_steps, plan_view, validate, then entities.py, then features.py for whatever survived. 32/36 killed (8 by the cheap scripts, 22 by entities, 2 by features). Baseline controls: features.py passes at baseline (4107 checks) and so does every cheap script. golden.py strict was dropped as a killer because it reports 55/56 scenarios CHANGED at baseline on this box. env_drift --all was not run on each mutant."
+        },
+        {
+          "step": "D3.M3",
+          "depth": "deep",
+          "evidence": "prescreened list in results.json/results-lane2.json; 4 survivors: M26 snapshots.py:239, M35 ledger.py:306, M04 accuracy.py:369, M07 __init__.py:220; the quiet-window full drift gate is still owed on them"
+        },
+        {
+          "step": "D3.M4",
+          "depth": "deep",
+          "evidence": "For each survivor, the line and the check that should have failed: M26/M35 need a features check asserting a 'Quarantined 1' WARNING on a malformed load and none on a clean load (next to the existing quarantine check at features.py:14943). M04 (pred==0.05 boundary) and M07 (a no-op async_update_entry at the current version) are near-equivalent. equiv_probe.py shows killed mutants M30 and M14 are not equivalent: they differ on 3/32 cells and 1/2 traces, and the identity null control gives 0/0."
+        },
+        {
+          "step": "D3.M5",
+          "depth": "spot",
+          "evidence": "Provisional median walls from this run, load1 21-139: entities 341s with 22 kills out of 28 mutants seen; features 591s, 2/6; validate 65s, 0/6; config_flow_steps 52s, 2/30; wood_advisor, solar_alignment and plan_view each under 3s with 0 kills over 16-23 mutants. The recorded closure seconds a cell file forces range from 1237s to 5734s, and the larger closures include boost_drift_replay (3379s) and stress.py. Over-approximation and duplicate coverage were not measured."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D3.M2",
+          "what": "env_drift.py --all <baseline> (it refuses ref==HEAD, so it needs a temp commit) and finite_boundary.py/optimality.py were not run on the 4 survivors M26, M35, M04, M07; the quiet-window GATE_SCOPE=full GOLDEN_MODE=drift run should cover them"
+        },
+        {
+          "step": "D3.M5",
+          "what": "No quiet-box gate table: per-script CPU vs closures.json seconds, assertions per solve, duplicate kills (the screen stopped at first kill), and whether the 5734s closures (boost_drift_replay, stress) over-approximate for cell files were all left unmeasured"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D3-s2-01",
+          "scope": "D3-s2",
+          "step": "D3.M3",
+          "title": "Store-loader quarantine WARNING (ledger, snapshot ring) is pinned by no test; negating its guard survives the closure",
+          "severity": "low",
+          "claim": "Negating `if dropped:` in MonthlyLedger.from_dict (M35) or SnapshotRing.from_dict (M26) makes the loader silent when it really drops a record and logs 'Quarantined 0' on every clean load, yet every closure script run (cheap set, entities.py, features.py) still passes.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
+            "harness_path": "dev/audit/rounds/round10/D3/s2/quarantine_warn.py",
+            "value": "loaders_correct=2 of 2 at baseline, 0 of 2 mutated; tests_naming_warning=0; gate scripts failing under M26/M35 = 0",
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "tvofi macOS arm64 8-core, shared box B2",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, several other seats running env_drift/features; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 41.74,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.ledger:MonthlyLedger.from_dict, custom_components.heatpump_optimizer.snapshots:SnapshotRing.from_dict",
+          "perturbation": {
+            "change": "--mutate: replace `if dropped:` with `if not (dropped):` in both from_dict (in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": "loaders_correct 2 -> 0"
+          },
+          "metric_definition": "Count of store loaders whose 'Quarantined N' WARNING fires exactly once on a load with one malformed record and not on a clean load",
+          "phenomenon_property": "Every on-load quarantine of persisted records must emit its WARNING exactly when records are dropped, and that emission must be asserted by the gate",
+          "seam_rule": "grep -n -A1 '_LOGGER.warning($' custom_components/heatpump_optimizer/*.py | grep Quarantined",
+          "null_control": {
+            "command": "quarantine_warn.py without --mutate",
+            "value": "loaders_correct=2 of 2",
+            "note": "the metric moves only under the guard negation"
+          },
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/ledger.py",
+            "custom_components/heatpump_optimizer/snapshots.py",
+            "tests/features.py"
+          ],
+          "proposed_fix_scope": "tests/features.py: next to the ledger quarantine check (~14943) and the snapshot ring checks, capture the module logger and assert one 'Quarantined 1' WARNING on a malformed load and none on a clean load, for both loaders",
+          "provisional": true
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "30 of 32 negated-guard/boundary mutants (excluding near-equivalent M04 and M07) in the D3-s2 cells are killed by their measured closure",
+          "command": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D3/s2/mutants.py run (results.json, results-lane2.json)",
+          "value": "killed 32/36: 8 by the cheap scripts, 22 by entities.py, 2 by features.py"
+        },
+        {
+          "claim": "M30 (const.topology_layout_valid two_tank_4way branch negated) and M14 (SnapshotRing.observe_bias `if not healthy` negated) are not equivalent mutants, and features.py kills both",
+          "command": "dev/audit/rounds/round10/D3/s2/equiv_probe.py [--identity]",
+          "value": "M30 differs 3/32 cells, M14 1/2 traces; identity control 0/0; features.py rc=1 on both and 4107/4107 passing at baseline"
+        },
+        {
+          "claim": "M04 accuracy.py:369 `pred > 0.05`->`>=` survives but is near-equivalent (differs only at pred==0.05)",
+          "command": "mutants.py run M04 --scripts entities.py,features.py",
+          "value": "entities rc 0, features rc 0; not reported as a finding"
+        },
+        {
+          "claim": "M07 __init__.py:220 `<`->`<=` survives but is behaviourally a no-op re-stamp of the same version",
+          "command": "mutants.py run M07 --scripts entities.py,features.py",
+          "value": "entities rc 0, features rc 0; not reported as a finding"
+        },
+        {
+          "claim": "golden.py in strict mode cannot serve as a mutation killer on this box",
+          "command": "GOLDEN_MODE=strict PYTHONPATH=tests/hastub python tests/golden.py",
+          "value": "55 of 56 GOLDEN SCENARIOS CHANGED at baseline"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D3/s2/mutants.py",
+        "dev/audit/rounds/round10/D3/s2/equiv_probe.py",
+        "dev/audit/rounds/round10/D3/s2/quarantine_warn.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tests/run.sh",
+          "symbol": "GOLDEN_MODE header comment",
+          "what": "The run.sh header says strict is the default GOLDEN_MODE, but golden.py prints 'GOLDEN_MODE=drift (unset, defaulting to drift)' and runs env_drift --all origin/main when the variable is unset"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tests/golden/",
+          "symbol": "golden.py check_all (strict)",
+          "what": "Strict mode reports 55/56 scenarios CHANGED at baseline on macOS arm64, with structural diffs such as 'components: length 4 -> 3', not only float drift. Either strict mode is dead locally or the fixtures are stale."
+        }
+      ]
+    },
+    "D9-s2": {
+      "dimension": "D9",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D9/s2/REPORT.md",
+      "exposure": "none",
+      "coverage": [
+        {
+          "step": "D9.M1",
+          "depth": "deep",
+          "evidence": "payload.py (coord_all_features, 61 entities, recorded 3476 B/cycle vs 84458 unrecorded; guard perturbation -> 87934) and retained.py (96 cycles, 748 B/cycle slope, _accuracy 762 B/cycle, bounded by deque maxlen=672 and lead_pending cap 512)"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D9.M1",
+          "what": "ru_maxrss subprocess measurement not taken; a >672-cycle run to observe the _accuracy plateau directly not run (~3 h at load1 40-80)"
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "Recorder exclusion set keeps the published payload out of the database: recorded attribute bytes are 3.95% of the total",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s2/payload.py",
+          "value": "recorded_bytes_per_cycle=3476, unrecorded=84458, data_dict_bytes=81227, per-day upper 166848; --drop-unrecorded-guard -> 87934"
+        },
+        {
+          "claim": "Coordinator retained state grows ~750 B/cycle but every growing collection is capped (accuracy samples maxlen 672, lead_pending 512, promises 2 days): bounded, ~0.5 MB plateau extrapolated",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s2/retained.py --cycles 96",
+          "value": "coord_deep_bytes_end=622885, slope 748.1 B/cycle, top _accuracy 762 B/cycle, tracemalloc slope 981 B/cycle"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D9/s2/payload.py",
+        "dev/audit/rounds/round10/D9/s2/retained.py"
+      ],
+      "leads": []
+    },
+    "D5-s2": {
+      "dimension": "D5",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D5/s2/REPORT.md",
+      "exposure": "Read README.md and docs/*.md in full (the brief requires it). The docs cite version history (v3.9.0 to v6.6.5) that cannot be checked here because RELEASE_NOTES history is out of reach. One link points at dev/archive/backlog.md, which the finder wall removed.",
+      "coverage": [
+        {
+          "step": "D5.M2",
+          "depth": "deep",
+          "evidence": "links.py: 111 internal links and anchors checked, 1 broken (an export artefact); paragraph-hash duplication between README and docs: 0; version-string grep turned up one stale banner (D5-s2-01)"
+        },
+        {
+          "step": "D5.M3",
+          "depth": "spot",
+          "evidence": "Backticked identifiers checked against custom_components: 6 literal misses, 0 real. The automations.md event table matches notifier.py:EVENT_DATA. The shortwave_radiation claim matches open_meteo.py:_VARIABLE"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M3",
+          "what": "Mechanism paragraphs in how-it-works.md and configuration.md were not traced one by one against the code paths"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D5-s2-01",
+          "scope": "D5-s2",
+          "step": "D5.M2",
+          "title": "Console-banner version sample in dashboard-card.md is stale (v6.6.8 vs 7.0.0)",
+          "severity": "low",
+          "claim": "docs/dashboard-card.md tells the reader to compare the card's console banner with the installed version and shows the banner as v6.6.8. It says the release step keeps the two in step, but tools/release/stamp.py rewrites only CARD_VERSION in the card, which is now 7.0.0. The doc sample is never re-stamped and drifts with every release.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py",
+            "harness_path": "dev/audit/rounds/round10/D5/s2/card_banner.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "17f1c55fad1b",
+            "machine": "B2 macOS",
+            "cpu_or_wall": "n/a (count)",
+            "contention_note": "count, contention-immune",
+            "tolerance": "0",
+            "load1": 25.37,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "tools/release/stamp.py:rewrite_card_version",
+          "perturbation": {
+            "change": "--perturb: stamp the doc banner's version instead of VERSION",
+            "expected_direction": "banner_mismatch 1 -> 0"
+          },
+          "metric_definition": "1 if the version in the doc's banner code block differs from the CARD_VERSION that stamp.rewrite_card_version writes for VERSION, else 0",
+          "phenomenon_property": "A literal release version in a user doc that the stamp step does not rewrite goes stale on every release",
+          "seam_rule": "grep -nE 'v[0-9]+\\.[0-9]+\\.[0-9]+' README.md docs/*.md, keeping the hits that present a current version rather than a historical one",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "docs/dashboard-card.md",
+            "tools/release/stamp.py"
+          ],
+          "proposed_fix_scope": "Replace the literal with a placeholder (vX.Y.Z), or have stamp.py rewrite the banner sample"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Internal links and anchors in README.md and docs/*.md resolve",
+          "command": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s2/links.py",
+          "value": "111 links, 1 broken (../dev/archive/backlog.md, removed by the finder wall; harness gap, not a defect)"
+        },
+        {
+          "claim": "No paragraph is duplicated between README and docs",
+          "command": "inline paragraph-hash script (normalised, >=80 chars)",
+          "value": "0"
+        },
+        {
+          "claim": "Event names and data in automations.md exist in notifier.py",
+          "command": "grep EVENT_ custom_components/heatpump_optimizer/notifier.py",
+          "value": "5/5 events, data tuples match"
+        },
+        {
+          "claim": "how-it-works says shortwave_radiation is requested",
+          "command": "grep _VARIABLE custom_components/heatpump_optimizer/open_meteo.py",
+          "value": "_VARIABLE = shortwave_radiation"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D5/s2/links.py",
+        "dev/audit/rounds/round10/D5/s2/card_banner.py"
+      ],
+      "leads": []
+    },
+    "D6-s2": {
+      "dimension": "D6",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D6/s2/REPORT.md",
+      "exposure": "docs/architecture.md, docs/automations.md, docs/configuration.md, docs/dashboard-card.md, docs/ecl110.md, docs/how-it-works.md, docs/setup.md (read by harnesses; configuration.md and how-it-works.md opened by hand)",
+      "coverage": [
+        {
+          "step": "D6.M1",
+          "depth": "spot",
+          "evidence": "Structured claim shapes extracted mechanically: 85 setting-default rows, 91 ranges, 16 entity ids, 3 service names and 74 relative links across docs/*.md. Prose behaviour and performance claims were not extracted."
+        },
+        {
+          "step": "D6.M2",
+          "depth": "spot",
+          "evidence": "config_defaults.py checks defaults and ranges against config_flow._field_marker and the NumberSelector config (78/78 and 91/91 true). docs_refs.py checks entity ids against the ids async_setup_entry produces through tests/entities.py:collect, plus services.yaml and link targets (16/16, 3/3, 73/74). Both harnesses move under their perturbations."
+        },
+        {
+          "step": "D6.M3",
+          "depth": "spot",
+          "evidence": "The claims table in REPORT.md is aggregated from the RESULT lines of both harnesses."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D6.M1",
+          "what": "Prose claims (behaviour, units, performance, version) in how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md and automations.md were not extracted."
+        },
+        {
+          "step": "D6.M2",
+          "what": "Behavioural claims were not checked against golden scenarios, and external links got no HEAD requests."
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "docs/configuration.md numeric defaults match the option-flow registry",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/config_defaults.py",
+          "value": "default_true=78 default_false=0 unverifiable=7; --perturb gives default_false=1"
+        },
+        {
+          "claim": "docs/configuration.md ranges match the NumberSelector min/max",
+          "command": "same harness",
+          "value": "range_true=91 range_false=0"
+        },
+        {
+          "claim": "Compressor rated starts default of '100 000' looked false; this was a harness gap (thin-space thousands separator), not a defect",
+          "command": "same harness",
+          "value": "code default 100000 equals doc after the parser fix"
+        },
+        {
+          "claim": "Entity ids and service names cited in docs exist",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/docs_refs.py",
+          "value": "entity_true=16 entity_false=0 (--perturb gives 16 false); service_true=3 service_false=0"
+        },
+        {
+          "claim": "Relative links in docs resolve; the one dead link, how-it-works.md:1331 to ../dev/archive/backlog.md, is an artefact of the finder-wall export",
+          "command": "same harness",
+          "value": "link_true=73 link_false=1 (export artefact)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D6/s2/config_defaults.py",
+        "dev/audit/rounds/round10/D6/s2/docs_refs.py"
+      ],
+      "leads": []
+    },
+    "D10-s2": {
+      "dimension": "D10",
+      "baseline_sha": "17f1c55fad1b",
+      "report_path": "dev/audit/rounds/round10/D10/s2/REPORT.md",
+      "exposure": "Integration code, strings.json, translations, icons.json, quality_scale.yaml only; no docs/, no GitHub, no network fetch of the HA checklist.",
+      "coverage": [
+        {
+          "step": "D10.M1",
+          "depth": "spot",
+          "evidence": "gold_rules.py executed: exception/issue keys 0 missing of 24/18 in all 3 catalogues; entity translation parity 0 mismatches on 6 platforms; icon orphans 0; DeviceInfo sites 1; TO_REDACT present; reconfigure step present. Docs-only gold rules not measured."
+        },
+        {
+          "step": "D10.M2",
+          "depth": "spot",
+          "evidence": "Gold tier table and draft quality_scale.yaml gold section in REPORT.md; no row contradicted; no todo needs HA newer than 2025.2.0."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D10.M1",
+          "what": "7 docs-* gold rules and entity-category/device-class/disabled-by-default not separately counted; HA rule pages not fetched."
+        }
+      ],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "Every literal exception and repair-issue translation_key exists in strings.json, en.json and sv.json",
+          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s2/gold_rules.py",
+          "value": "exc_keys_missing_*=0 (24 keys), issue_keys_missing_*=0 (18 keys)"
+        },
+        {
+          "claim": "Entity translation keys identical across strings/en/sv and icons.json has no orphan keys",
+          "command": "same",
+          "value": "entity_*_mismatch=0, icon_orphans=0 on 6 platforms"
+        },
+        {
+          "claim": "devices, diagnostics redaction, reconfiguration-flow present",
+          "command": "same",
+          "value": "device_info_sites=1, diagnostics_to_redact_present=1, reconfigure_step_present=1"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round10/D10/s2/gold_rules.py"
+      ],
+      "leads": []
+    }
+  }
+}
