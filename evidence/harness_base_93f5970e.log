@@ -1,0 +1,12 @@
+tree /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/revtickroster-base at 93f5970e90d088c52eda63638b997b8de96a9927
+wire_r10:
+  R10-TICK-ORCH at handoff/audit-r10-roster: rc 2 touched - :: roster_edit: REFUSED: no roster group 'R10-TICK-ORCH' (known: 170 groups)
+RESULT wire_r10_rc=2
+RESULT wire_r10_touched_r10_file=0
+null_r9_main:
+  R9-F1.1 at main: rc 0 touched ['dev/programme/rosters/wave-r9-groups.json'] :: ready: probe-r9 at dcfa8652db44e60308acb60d4cbb0eb1d8b787bb (no --push)
+RESULT null_r9_main_rc=0
+tick_plan: rc 0; 
+RESULT tick_plan_r9_lines=13
+RESULT tick_plan_r10_lines=0
+RESULT daemonize_dashdash_rc=2
