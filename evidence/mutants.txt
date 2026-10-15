@@ -1,0 +1,17 @@
+RESULT mutant M1-del-unread KILLED rc=1 fails=1 | FAIL decide: a pin-chain read that failed is left alone too (fail closed)  [merge]
+RESULT mutant M2-del-running KILLED rc=1 fails=2 | FAIL decide: a mergeable-by-driver head whose pin chain still runs is left alone  [merge]
+RESULT mutant M3-no-second-decide KILLED rc=1 fails=1 | FAIL the same head with its pin chain running is not merged (plan_one asks the chain)  [merge]
+RESULT mutant M4-except-failopen KILLED rc=1 fails=1 | FAIL an unreadable pin chain is None, never an empty (green) list  []
+RESULT mutant M5-read-completed-runs KILLED rc=1 fails=1 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M6-count-completed-jobs KILLED rc=1 fails=1 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M7-regex-no-autofix KILLED rc=1 fails=1 | FAIL a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)  []
+RESULT mutant M8-regex-no-bare-mutation KILLED rc=1 fails=1 | FAIL a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)  []
+RESULT mutant M9-regex-no-pin-plan SURVIVED rc=0 fails=0 
+RESULT mutant M10-regex-unanchored-end KILLED rc=1 fails=1 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M11-run-unwired SURVIVED rc=0 fails=0 
+RESULT mutant M12-pins-first KILLED rc=1 fails=1 | FAIL decide: the earlier refusals still decide first (a clean head is skip-not-dirty, pins or not)  []
+RESULT mutant M13-regex-no-matrix-suffix KILLED rc=1 fails=1 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M14-headsha-dropped KILLED rc=1 fails=1 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M15-skip-queued-runs KILLED rc=1 fails=1 | FAIL a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)  []
+RESULT mutant M16-catch-typeerror-dropped SURVIVED rc=0 fails=0 
+RESULT mutant M17-read-pins-always KILLED rc=1 fails=0 AssertionError: the pin chain was read for a head that does not merge anyway
