@@ -33,6 +33,11 @@ IT PUSHES ONLY WHEN ALL OF THESE HOLD, and says which one failed otherwise:
     chain is left alone too. Deferral, not a carry of the pin result to the
     merged head: a kill is measured on the whole tree, main's half included,
     and the pins it writes are line-anchored -- main's commits can move both.
+    Residual: GitHub lists a job only once its `needs` are met, so for the
+    seconds between one stage concluding and the next being created no chain
+    job is listed, and a push then still cancels the chain. A deferred head
+    merges on the next push to `main` (or a dispatch) after the chain ends --
+    in a quiet period it stays DIRTY until then.
 
 WHAT RUNS. Only `main`'s copies: the merge is `git merge-tree` in a checkout of
 `main`, so the drivers it calls and the .gitattributes it reads are `main`'s,
@@ -147,7 +152,14 @@ def pins_running(repo_slug: str, head: str, api=None) -> "list[str] | None":
     any read fails -- an unread chain is not a settled one."""
     api = api or gh_json
     try:
-        runs = api(f"repos/{repo_slug}/actions/runs?head_sha={head}&per_page=100")["workflow_runs"]
+        runs: list = []
+        for page in range(1, 11):  # every page: a head re-run often enough hides the Tests run past 100
+            chunk = api(f"repos/{repo_slug}/actions/runs?head_sha={head}&per_page=100&page={page}")["workflow_runs"]
+            runs += chunk
+            if len(chunk) < 100:
+                break
+        else:
+            return None  # more than ten pages: not read whole, so not settled
         out = []
         for run_ in runs:
             if run_.get("status") == "completed":
@@ -161,9 +173,10 @@ def pins_running(repo_slug: str, head: str, api=None) -> "list[str] | None":
 
 
 def plan_one(repo: str, head: str, main: str, *, mergeable, same_repo: bool,
-             pins=lambda: []) -> tuple[str, str]:
+             pins=lambda: None) -> tuple[str, str]:
     """(status, merge tree) for one head against `main`, in a checkout of `main`.
-    `pins()` is read only when every other condition says merge."""
+    `pins()` is read only when every other condition says merge; a caller that
+    passes none has not read the chain, which fails closed (skip-pins-unread)."""
     drivers = driver_paths(repo, main)
     contains = git(repo, "merge-base", "--is-ancestor", main, head, check=False).returncode == 0
     rc0, _, c0, _ = merge_tree(repo, head, main, text_only=sorted(set(drivers.values())))
@@ -193,15 +206,33 @@ def gh_json(path: str):
     return json.loads(r.stdout)
 
 
-def mergeable_of(repo_slug: str, n: int, tries: int = 6, wait: float = 10.0):
+def mergeable_of(repo_slug: str, n: int, tries: int = 6, wait: float = 10.0, api=None):
     """GitHub computes `mergeable` lazily after a push to the base: None until it has."""
     for i in range(tries):
-        pr = gh_json(f"repos/{repo_slug}/pulls/{n}")
+        pr = (api or gh_json)(f"repos/{repo_slug}/pulls/{n}")
         if pr.get("mergeable") is not None:
             return pr
         if i + 1 < tries:
             time.sleep(wait)
     return pr
+
+
+def plan_pr(repo_slug: str, p: dict, main: str, repo: str = ".", api=None,
+            fetch: bool = True) -> tuple[str, str, str]:
+    """(status, merge tree, head) for one open pull request `p` of the list:
+    its mergeable state, its head fetched, `plan_one` with the head's pin
+    chain read through `api` -- the one production caller of both."""
+    n = p["number"]
+    same = (p["head"].get("repo") or {}).get("full_name") == repo_slug
+    if not same:
+        return "skip-fork", "", p["head"]["sha"]
+    pr = mergeable_of(repo_slug, n, api=api)
+    head = pr["head"]["sha"]
+    if fetch:
+        git(repo, "fetch", "-q", "--no-tags", "origin", f"+refs/pull/{n}/head:refs/merge-main/{n}")
+    status, tree = plan_one(repo, head, main, mergeable=pr.get("mergeable"), same_repo=True,
+                            pins=lambda: pins_running(repo_slug, head, api=api))
+    return status, tree, head
 
 
 def run(repo_slug: str, main: str, *, dry_run: bool, pushed_file: str | None,
@@ -216,13 +247,7 @@ def run(repo_slug: str, main: str, *, dry_run: bool, pushed_file: str | None,
             print(f"MERGE-MAIN: #{n} skip-branch-name")
             continue
         try:
-            pr = mergeable_of(repo_slug, n) if same else p
-            head = pr["head"]["sha"]
-            if same:
-                git(repo, "fetch", "-q", "--no-tags", "origin", f"+refs/pull/{n}/head:refs/merge-main/{n}")
-            status, tree = plan_one(repo, head, main, mergeable=pr.get("mergeable"),
-                                    same_repo=same,
-                                    pins=lambda: pins_running(repo_slug, head)) if same else ("skip-fork", "")
+            status, tree, head = plan_pr(repo_slug, p, main, repo)
         except (RuntimeError, KeyError) as why:
             print(f"MERGE-MAIN: #{n} skip-error {why}")
             continue
@@ -316,6 +341,28 @@ def self_test() -> int:
     check("a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)",
           pins_running("o/r", "a" * 40, api=api(W2)) == ["mutation", "mutation-autofix"])
 
+    W3 = {"runs": [{"id": 5, "status": "in_progress"}],
+          "jobs": {5: [{"name": "mutation", "status": "completed"},
+                       {"name": "mutation-pin-plan", "status": "in_progress"}]}}
+    check("while mutation-pin-plan runs it is the ONLY chain job listed (GitHub lists a job once its "
+          "needs are met), and it holds the head",
+          pins_running("o/r", "a" * 40, api=api(W3)) == ["mutation-pin-plan"])
+    check("a malformed runs page (no list) is unread, not settled",
+          pins_running("o/r", "a" * 40, api=lambda path: {"workflow_runs": None}) is None)
+    # THE NAMES THE STUB CANNOT SEE: PIN_CHAIN keys on tests.yml's job ids
+    # (no job-level `name:` override), so a rename there must redden here.
+    import re as _re
+    wf = (ROOT / ".github/workflows/tests.yml").read_text()
+    ids = _re.findall(r"(?m)^  ([A-Za-z0-9_-]+):\n", wf)
+    chain = {j for j in ids if PIN_CHAIN.match(j)}
+    def block(j):  # the job's own lines: from its id to the next top-level key
+        m = _re.search(rf"(?m)^  {_re.escape(j)}:\n((?:(?:    [^\n]*)?\n)*)", wf)
+        return m.group(1) if m else ""
+    renamed = [j for j in chain if _re.search(r"(?m)^    name:", block(j))]
+    check("PIN_CHAIN matches exactly tests.yml's four pin-chain jobs, none renamed by a `name:`",
+          chain == {"mutation", "mutation-pin-plan", "mutation-pins", "mutation-autofix"} and not renamed,
+          f"{sorted(chain)} renamed={renamed}")
+
     def broken(path):
         raise RuntimeError("gh api: HTTP 502")
     check("an unreadable pin chain is None, never an empty (green) list",
@@ -345,9 +392,38 @@ def self_test() -> int:
         g("checkout", "-q", "main")
         Path(r, "led.json").write_text("a\nc\nz\n"); g("commit", "-qam", "m1")
         m1 = g("rev-parse", "HEAD").stdout.strip()
-        status, tree = plan_one(r, fix, m1, mergeable=False, same_repo=True)
+        status, tree = plan_one(r, fix, m1, mergeable=False, same_repo=True, pins=lambda: [])
         check("a ledger-only conflict the driver resolves is planned for a merge",
               status == "merge", status)
+        status, _ = plan_one(r, fix, m1, mergeable=False, same_repo=True)
+        check("plan_one with no pin read passed fails CLOSED (skip-pins-unread), never as settled",
+              status == "skip-pins-unread", status)
+        # THE PRODUCTION WIRE (review of #2297, M11): plan_pr is run()'s one
+        # per-PR step; its pin read goes through the same api as its PR read.
+        def bot_api(jobs, runs_pages=None):
+            def get(path):
+                if path.endswith("/pulls/7"):
+                    return {"number": 7, "mergeable": False, "head": {"sha": fix}}
+                if "/actions/runs?" in path:
+                    pg = int(path.rsplit("page=", 1)[1])
+                    pages = runs_pages or [[{"id": 5, "status": "in_progress"}]]
+                    return {"workflow_runs": pages[pg - 1] if pg <= len(pages) else []}
+                return {"jobs": jobs}
+            return get
+        listed = {"number": 7, "head": {"sha": fix, "ref": "fix", "repo": {"full_name": "o/r"}}}
+        got = plan_pr("o/r", listed, m1, r, api=bot_api([{"name": "mutation-pins (3)", "status": "in_progress"}]),
+                      fetch=False)
+        check("plan_pr (run()'s per-PR step) reads the head's pin chain: a running shard is skip-pins-running",
+              got[0] == "skip-pins-running mutation-pins (3)", repr(got[0]))
+        got = plan_pr("o/r", listed, m1, r, api=bot_api([{"name": "mutation-pins (3)", "status": "completed"}]),
+                      fetch=False)
+        check("... and the same head with its chain settled merges (null control)", got[0] == "merge", repr(got[0]))
+        hundred = [{"id": 900 + i, "status": "completed"} for i in range(100)]
+        got = plan_pr("o/r", listed, m1, r, fetch=False,
+                      api=bot_api([{"name": "mutation-autofix", "status": "queued"}],
+                                  runs_pages=[hundred, [{"id": 5, "status": "in_progress"}]]))
+        check("the runs read pages past the first 100 runs (the Tests run on page 2 still holds the head)",
+              got[0] == "skip-pins-running mutation-autofix", repr(got[0]))
         status, _ = plan_one(r, fix, m1, mergeable=False, same_repo=True,
                              pins=lambda: ["mutation-pins (1)"])
         check("the same head with its pin chain running is not merged (plan_one asks the chain)",
