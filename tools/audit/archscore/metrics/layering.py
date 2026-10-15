@@ -10,7 +10,8 @@ An import under ``if TYPE_CHECKING:`` is no edge: nothing runs it.
                    (``store`` reached the optimizer, and with it scipy, through ``quiet_windows``' import of
                    ``optimizer._utc_step_starts``) or a pure model module dragging in Home Assistant is a
                    module the boundary binds although it never names it; one that imports the boundary
-                   itself is bound too, so adding the import to escape the reach moves nothing (attempt 23).
+                   itself is bound too, so adding the import to escape the reach moves nothing (counter
+                   C19, attempt 23).
   private_cross_module   distinct private names (one leading underscore) of one package module named by
                    another: ``from .m import _x``, ``m._x`` through a module binding, and
                    ``getattr(m, "_x")`` (counter C18: the attribute spellings are the same reach as the
@@ -35,6 +36,8 @@ LAYERS = ("homeassistant", "scipy")
 ALL_SCOPES = True
 #: Counter C18: a private name read through a module binding is a crossing. ``vector.py`` switches it off.
 PRIVATE_ATTRS = True
+#: Counter C19: a module importing the boundary itself is bound by it. ``vector.py`` switches it off.
+COUNT_OWNERS = True
 
 
 def _private(name: str) -> bool:
@@ -126,7 +129,7 @@ def measure(root: Path) -> dict:
                            and any(layer in ext[n] for n in closure(edges, m))) for layer in LAYERS}
     return {
         "metric": "layering",
-        "layer_bound": sum(len(owners[x]) + len(reach[x]) for x in LAYERS),
+        "layer_bound": sum(len(owners[x]) * COUNT_OWNERS + len(reach[x]) for x in LAYERS),
         "private_cross_module": len(crossings),
         "details": {
             "owners": owners,
