@@ -11227,10 +11227,14 @@ check("without an indoor reading the corner now label is absent",
       }
     }
   };
+  // An anchor's link, however it was set: parsed from markup, assigned to
+  // `.href`, or written with setAttribute (the stub stores all three on the
+  // node; getAttribute is read too, so a stub that separates them stays seen).
   const anchors = (c) => {
     const out = [];
     const walk = (n) => {
-      if (typeof n.href === "string") out.push(n.href);
+      const href = (typeof n.getAttribute === "function" && n.getAttribute("href")) || n.href;
+      if (typeof href === "string" && href) out.push(href);
       (n.children || []).forEach(walk);
     };
     walk(c.shadowRoot);
@@ -11260,7 +11264,9 @@ check("without an indoor reading the corner now label is absent",
           stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
       } catch (_err) { /* a press that throws emits no link; not this test's concern */ }
       const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
-      for (const path of [...pushed, ...events]) {
+      // Anchors present after the press, so a link written at click time is
+      // seen as well as one written at render.
+      for (const path of [...pushed, ...events, ...anchors(c)]) {
         (seen[key] ||= new Set()).add(path);
         if (!excused(key, path)) wrong.push(`${key} -> ${path}`);
       }
@@ -11314,10 +11320,14 @@ check("without an indoor reading the corner now label is absent",
     && viaMouse.setup.pickerFocus === false && viaMouse.setup.pickerViaKeyboard === false,
     `keys ${viaKeys.setup.pickerFocus}/${viaKeys.setup.pickerViaKeyboard} mouse ${viaMouse.setup.pickerFocus}/${viaMouse.setup.pickerViaKeyboard}`);
   const pushSites = (cardSrc.match(/\.pushState\(/g) || []).length;
-  // The static half, for a link on a row the fixture does not render: no
-  // other navigation primitive, no entity-dialog event, and no href= built
-  // anywhere but from haLink on the same line.
-  const hrefSites = srcLines.filter((l) => /\bhref\s*=/.test(l) && !/\bhaLink\(/.test(l));
+  // The static half, for a link on a row the fixture does not render, or one
+  // the stub DOM cannot model (it resolves no compound selector such as
+  // "a.zz", so a setAttribute on one never runs in Node): no other navigation
+  // primitive, no entity-dialog event, and no href -- in markup, through
+  // setAttribute or by property -- built anywhere but from haLink on the same
+  // line.
+  const hrefSites = srcLines.filter((l) =>
+    /\bhref\s*=|setAttribute\(\s*["']href|\.href\s*=(?!=)/.test(l) && !/\bhaLink\(/.test(l));
   check("navigateTo is the card's only way out: no other history write, navigation, entity-dialog event or href",
     pushSites === 1 && !/window\.open\(|location\.(href|assign|replace)\b|hass-more-info|hass-action/.test(cardSrc)
       && hrefSites.length === 0,
