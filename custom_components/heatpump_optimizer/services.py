@@ -931,7 +931,10 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
     user restarting anything.
     """
     data = dict(call.data)
-    target_entry = data.pop("entry_id", None)
+    # Resolved before anything can return, as every sibling action does: an
+    # empty call naming no config entry, or made with none loaded, is
+    # refused rather than answered "nothing to apply" (D10-s1-51).
+    targets = _loaded_entries(hass, data.pop("entry_id", None))
 
     updates: dict[str, Any] = {}
     for key in (
@@ -978,8 +981,6 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
 
     if not updates:
         return {"updated": {}, "reason": "nothing to apply"}
-
-    targets = _loaded_entries(hass, target_entry)
 
     # The comfort band's cross-field rules, the same ones the config flow
     # runs. This service writes `comfort_temp_day` and the day window
