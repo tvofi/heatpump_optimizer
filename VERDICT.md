@@ -1,0 +1,5 @@
+Fix review: merge 2298eb7350eadedd8db609124e4ad8134a121981
+
+bus-nonce: 8fe6d506cf1ec62e2fa784dd2f2d7706
+
+Reviewed from a detached worktree at 2298eb7350eadedd8db609124e4ad8134a121981. Evidence under evidence/: brief_lint on the roster prints TOTAL: 0 error(s); no group lacks an issue and no pending token remains; no pair of groups sharing a non-universal file is unordered through the transitive after-edges (including R10-REPLAY-SCOPED after R10-TICK-ORCH for tests.yml, R10-TARIFF second on the coordinator chain, and dhw_schedule.py held by R10-ARCH-SHAPES alone); every open [R10-] issue belongs to a group; the three #2251 carry files are deleted and folded into R10-PARAMS-OWNER, R10-ARCH-SHAPES and R10-SENSOR-PAYLOAD; the coordinator's carries (GATE-YIELD, DEEPLINK, TARIFF, TICK-ORCH, TICK-DRIVERS, M4) are present; git merge-tree against current main exits 0. Not verified: harnesses and branches the carries cite (r10_weekday_range_twins.py, handoff/r10-* refs) are not in this tree, so their figures are the coordinator's, not re-derived here.
