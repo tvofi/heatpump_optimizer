@@ -11148,9 +11148,12 @@ check("without an indoor reading the corner now label is absent",
 // constructs (Home Assistant's own way for a card to open an entity dialog).
 // Each must be a path `haLink` builds for this entry; an event never is, so
 // an entity dialog goes through `haLink("entity")`'s URL instead.
-// A link not yet converted is listed in LINK_PENDING under the roster group
-// that converts it; that group deletes its rows, and a row no press still
-// produces is refused as stale, so the list can only shrink.
+// A link not yet converted is listed in PENDING under the roster group that
+// converts it, with the one path it is known to emit: the row excuses that
+// path and nothing else, so a pending button that starts emitting some other
+// link (an event, a different path) still fails. That group deletes its rows,
+// and a row no press still produces is refused as stale, so the list can only
+// shrink.
 //
 // The census asserts its own precondition: every source line that calls
 // `navigateTo` (outside `openHaLink`) or `openHaLink` must have been reached
@@ -11159,11 +11162,13 @@ check("without an indoor reading the corner now label is absent",
 // passing unenumerated -- extend the fixture until it is reached.
 {
   const ENTRY = "01JDEEPLINKENTRY";
+  const BARE = "/config/integrations/integration/heatpump_optimizer";
   const PENDING = {
-    "advisor:settings": "R10-ADVISOR",
-    "health:settings": "R10-UX-HEALTH",
-    "health:diagnostics": "R10-UX-HEALTH",
+    "advisor:settings": { group: "R10-ADVISOR", path: BARE },
+    "health:settings": { group: "R10-UX-HEALTH", path: BARE },
+    "health:diagnostics": { group: "R10-UX-HEALTH", path: BARE },
   };
+  const excused = (key, path) => built.has(path) || (key in PENDING && PENDING[key].path === path);
   const haLink = fn("haLink");
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
   const states = () => {
@@ -11242,7 +11247,7 @@ check("without an indoor reading the corner now label is absent",
     for (const href of anchors(shown)) {
       const key = `${page}:a`;
       (seen[key] ||= new Set()).add(href);
-      if (!built.has(href) && !(key in PENDING)) wrong.push(`${key} -> ${href}`);
+      if (!excused(key, href)) wrong.push(`${key} -> ${href}`);
     }
     for (let i = 0; i < n; i++) {
       const c = open(page);
@@ -11257,7 +11262,7 @@ check("without an indoor reading the corner now label is absent",
       const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
       for (const path of [...pushed, ...events]) {
         (seen[key] ||= new Set()).add(path);
-        if (!built.has(path) && !(key in PENDING)) wrong.push(`${key} -> ${path}`);
+        if (!excused(key, path)) wrong.push(`${key} -> ${path}`);
       }
     }
   }
@@ -11291,7 +11296,7 @@ check("without an indoor reading the corner now label is absent",
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
   check("every link a button emits is one haLink builds for this entry",
     wrong.length === 0, wrong.join("; "));
-  const stale = Object.keys(PENDING).filter((k) => !seen[k] || [...seen[k]].every((p) => built.has(p)));
+  const stale = Object.keys(PENDING).filter((k) => !seen[k] || !seen[k].has(PENDING[k].path));
   check("every LINK_PENDING row still names a button that emits an unconverted link",
     stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
   // ARCH2-s5 C2: the in-card deep link into a Setup slot opens that slot's
