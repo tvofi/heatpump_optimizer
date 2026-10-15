@@ -97,7 +97,8 @@
       5,
       6,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D1-01",
@@ -132,7 +133,9 @@
       "R9 D1-s5-03",
       "R9 D1-s5-04",
       "R9 D1-s5-52",
-      "R9 D14-s1-01"
+      "R9 D14-s1-01",
+      "R10 D1-s3-02",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._current_spot_price"
     ],
     "per_round": {
       "R1": 4,
@@ -142,9 +145,10 @@
       "R5": 4,
       "R6": 2,
       "R8": 2,
-      "R9": 16
+      "R9": 16,
+      "R10": 2
     },
-    "total": 33,
+    "total": 35,
     "max_per_round": 16,
     "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py -- Arm 1 derives the boundary set from the tree; Arm 4 (round 9, F1.6) seeds every store through its real saver at an aware clock with a configured zone, substitutes every leaf, container and int-like dict key by kind (non-finite, wrong-type, magnitude, naive-twin), and scans everything the coordinator owns after the real loaders and consumers for a raise, a non-finite, a naive instant, an absurd magnitude or a number turned text",
     "detector_idea": "Enumerate every Store/async_load and every float field its from_dict reads; fuzz each with nan/inf/malformed strings across the whole store roster",
@@ -183,7 +187,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D10-03",
@@ -251,7 +256,36 @@
       "R9 D8-s2-02",
       "R9 D8-s2-03",
       "R9 D8-s3-03",
-      "R9 D8-s3-61"
+      "R9 D8-s3-61",
+      "R10 D10-s1-51",
+      "R10 D2-s2-01",
+      "R10 D7-s2-01",
+      "R10 D7-s2-51",
+      "R10 D7-s2-52",
+      "R10 D7-s2-53",
+      "R10 D7-s2-54",
+      "R10 D7-s2-55",
+      "R10 D7-s2-56",
+      "R10 D7-s2-57",
+      "R10 D7-s2-59",
+      "R10 D8-s1-01",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::classify_space_steps.threshold",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::classify_dhw_steps.threshold",
+      "R10 sw:custom_components/heatpump_optimizer/freq_control.py::FrequencyMap.recommend",
+      "R10 sw:custom_components/heatpump_optimizer/freq_control.py::FrequencyMap.evidence_exhausted",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_async_learn_buffer_cooling.heating",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_observe_frequency.watch_active",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_accumulate_energy|_maybe_run_fuse_advisor|_settle_interval_diag",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_async_learn_house_heat_loss|_async_learn_lower_floor_loss",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_file_lead_predictions|_predicted_next_room_temp",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_fold_internal_gains|_fold_solar_aperture",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::_buffer_charge_ceiling|hold_demand_kw",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::_grid_report|tariff._peak_excess",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::_peak_day_kwargs|_peak_window_factors",
+      "R10 sw:custom_components/heatpump_optimizer/sensor.py::extra_state_attributes:2000|extra_state_attributes:2469",
+      "R10 sw:custom_components/heatpump_optimizer/tariff.py::_close_window|from_dict",
+      "R10 sw:custom_components/heatpump_optimizer/tariff.py::_window_means_batch|metering_windows",
+      "R10 sw:custom_components/heatpump_optimizer/tariff.py::plan_window_days|window_factors"
     ],
     "per_round": {
       "R1": 9,
@@ -262,10 +296,11 @@
       "R6": 2,
       "R7": 4,
       "R8": 7,
-      "R9": 27
+      "R9": 27,
+      "R10": 29
     },
-    "total": 66,
-    "max_per_round": 27,
+    "total": 95,
+    "max_per_round": 29,
     "detector": "PYTHONPATH=tests/hastub python3 tests/entities.py -- section 'P2: one fact, one owner': a registry keyed per fact on an AST shape (a decision-context read of a proxy key the canonical predicate's own body reads, a node pattern, a literal service domain, a bare call of a fenced cycle step on the cycle path, a literal running threshold on a power), its owner functions and reasoned dispositions; any other hit fails, as do OWNER-MISSING, DEAD-RULE, STALE-DISPOSITION and CENSUS-MISSING, with a planted sibling per fact",
     "detector_idea": "AST: callers of each named gate predicate against the structurally sibling functions that should share it",
     "barrier": "The P2 owners registry in tests/entities.py on the PR gate (round 9, F1.11; prototype handoff/r9-rca-p2@3938c8ea): eight facts (two_zone_enabled, wood_furnace_on, dhw_enabled, state_age, on_threshold_kw, entity_write_domain, fenced_cycle_step, plan_running_rule) each decided only by its owner, shown failing at baseline 1936d5ca on the round-9 instances, passing on the fixed tree and firing on a planted sibling per fact. Facts with no syntactic shape rest on censuses that assert their own reach, named in _P2_CENSUSES (the #1747 DHW-block census, the #1526 routing census). Covers the registered facts only: a new fact is a new entry, and stored-instant parses outside drift.stored_instant are measured and not registered (F1.11's body).",
@@ -309,7 +344,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R2 D0-03",
@@ -335,7 +371,13 @@
       "R9 D2-s1-01",
       "R9 D2-s2-02",
       "R9 D2-s2-81",
-      "R9 D2-s3-02"
+      "R9 D2-s3-02",
+      "R10 D12-s2-71",
+      "R10 D2-s1-71",
+      "R10 D2-s3-73",
+      "R10 D7-s2-58",
+      "R10 sw:custom_components/heatpump_optimizer/store.py::DOMAINS.thermal_learning[cop_scale]",
+      "R10 sw:custom_components/heatpump_optimizer/store.py::DOMAINS.thermal_learning[solar_aperture/scale]"
     ],
     "per_round": {
       "R2": 4,
@@ -344,9 +386,10 @@
       "R6": 4,
       "R7": 2,
       "R8": 1,
-      "R9": 6
+      "R9": 6,
+      "R10": 6
     },
-    "total": 24,
+    "total": 30,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/features.py -- block R9-P3, arm (a): every max(E, c>0) on a ThermalParameters quantity, keyed on E resolved through single-assignment locals to attribute leaves with commutative operands sorted, must sit in one function with one constant and never beside a raw divisor of E; zero groups, no allow-list, a fixture probe of its own keying, and optimizer._power_fraction's band branch pinned as the named exception",
     "detector_idea": "Every max(<capacity>, <constant>) cross-referenced against unclamped reads of the same variable",
@@ -388,7 +431,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D0-01",
@@ -408,7 +452,10 @@
       "R6 D0-02",
       "R7 D0-01",
       "R8 D0-s1-01",
-      "R9 D0-s2-02"
+      "R9 D0-s2-02",
+      "R10 D0-s1-01",
+      "R10 D0-s2-01",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::_solve_space"
     ],
     "per_round": {
       "R1": 2,
@@ -419,9 +466,10 @@
       "R6": 2,
       "R7": 1,
       "R8": 1,
-      "R9": 1
+      "R9": 1,
+      "R10": 3
     },
-    "total": 18,
+    "total": 21,
     "max_per_round": 4,
     "detector": "PYTHONPATH=tests/hastub python3 tests/optimality.py (the solve certificate, #1409)",
     "detector_idea": "Per fixture cell, production multi-start against a dense seed grid on the identical objective",
@@ -453,7 +501,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D2-01",
@@ -478,7 +527,8 @@
       "R9 D2-s4-02",
       "R9 D2-s4-81",
       "R9 D7-s2-01",
-      "R9 P5-rca1"
+      "R9 P5-rca1",
+      "R10 D2-s3-72"
     ],
     "per_round": {
       "R1": 2,
@@ -489,9 +539,10 @@
       "R6": 1,
       "R7": 1,
       "R8": 1,
-      "R9": 6
+      "R9": 6,
+      "R10": 1
     },
-    "total": 23,
+    "total": 24,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, R9-P5 block: every house_* keyword of SystemIdentification.step is fitted or names the sysid width the adoption interval prices it with, and every told-quantity night on the three presets, single- and two-zone, adopts within the bar of the plant's heat loss or is refused",
     "detector_idea": "Synthetic-bias sweep: the gate decision must be monotone in the true injected bias",
@@ -527,7 +578,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D1-04",
@@ -551,7 +603,10 @@
       "R9 D1-s2-04",
       "R9 D12-s1-01",
       "R9 D14-s1-02",
-      "R9 D2-s1-51"
+      "R9 D2-s1-51",
+      "R10 D7-s2-60",
+      "R10 sw:custom_components/heatpump_optimizer/sensor.py::ObservedCOPSensor.native_value",
+      "R10 sw:custom_components/heatpump_optimizer/sensor.py::MonthlyPeakSensor.native_value"
     ],
     "per_round": {
       "R1": 4,
@@ -562,9 +617,10 @@
       "R6": 1,
       "R7": 2,
       "R8": 1,
-      "R9": 4
+      "R9": 4,
+      "R10": 3
     },
-    "total": 22,
+    "total": 25,
     "max_per_round": 5,
     "detector": "PYTHONPATH=tests/hastub python3 tests/entities.py -- section 'P6: every read has a producer': seven arms (K payload keys, B built entity ids, G getattr/hasattr probes, E flow error codes, P offered modes, F pre-fill preview fields, S solve seeds), each taking its universe from production, asserting it non-empty, with a planted defect per arm",
     "detector_idea": "Static cross-reference of coordinator.data/hass.data reads against the keys _build_data_dict writes",
@@ -639,7 +695,8 @@
       5,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D4-04",
@@ -649,7 +706,11 @@
       "R7 D4-03",
       "R8 D2-s2-02",
       "R9 D12-s3-81",
-      "R9 D14-s2-02"
+      "R9 D14-s2-02",
+      "R10 D12-s3-01",
+      "R10 D14-s3-01",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._command_valve_target_(climate_set_temperature_arm)",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._command_valve_target_(number_set_value_arm)"
     ],
     "per_round": {
       "R1": 1,
@@ -657,10 +718,11 @@
       "R5": 1,
       "R7": 1,
       "R8": 1,
-      "R9": 2
+      "R9": 2,
+      "R10": 4
     },
-    "total": 8,
-    "max_per_round": 2,
+    "total": 12,
+    "max_per_round": 4,
     "detector": null,
     "detector_idea": "The published money unit is the price feed's currency: replay with a EUR/kWh feed on a SEK instance and count published money units in the instance currency (11/11 at 3490cb16; 0 when fixed). currency.py already is the one shared resolver, and it canonicalises the instance label, not the feed: forcing every surface through it (#1657's proposal) would lock the defect in (RCA-BULK-1)",
     "barrier": null,
@@ -673,7 +735,7 @@
       "R9-F1.8"
     ],
     "trigger": {
-      "per_round": false,
+      "per_round": true,
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
@@ -777,7 +839,8 @@
       3,
       5,
       6,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D9-02",
@@ -786,7 +849,9 @@
       "R5 D9-06",
       "R6 D9-01",
       "R9 D9-s1-03",
-      "R9 D9-s2-01"
+      "R9 D9-s2-01",
+      "R10 D14-s1-01",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_replay_interval"
     ],
     "per_round": {
       "R1": 1,
@@ -794,9 +859,10 @@
       "R3": 1,
       "R5": 1,
       "R6": 1,
-      "R9": 2
+      "R9": 2,
+      "R10": 2
     },
-    "total": 7,
+    "total": 9,
     "max_per_round": 2,
     "detector": null,
     "detector_idea": "Count model-kernel calls outside the process worker over a replayed day: 2304 on the loop at 3490cb16 (topology.py _advisor_replay), 0 with the advisor removed, 3926 on an executor thread when the worker is forced to fail (RCA-BULK-1 p10_loop_kernels.py); extend the kernel list to sysid",
@@ -839,7 +905,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D10-04",
@@ -923,7 +990,21 @@
       "R9 D7-s1-02",
       "R9 D9-s2-02",
       "R9 D9-s2-03",
-      "R9 D9-s2-71"
+      "R9 D9-s2-71",
+      "R10 D3-s1-01",
+      "R10 D3-s1-02",
+      "R10 D3-s2-01",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_apply_result_payload",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._plan_slots.close",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._build_plan_views.reason_at",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._capacity_caps",
+      "R10 sw:custom_components/heatpump_optimizer/dhw_planner.py::_dhw_windows_at",
+      "R10 sw:custom_components/heatpump_optimizer/narrative.py::group_by_reason",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::classify_space_steps",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::classify_dhw_steps",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::HeatPumpOptimizer._safety_release_steps",
+      "R10 sw:custom_components/heatpump_optimizer/optimizer.py::HeatPumpOptimizer._compute_baseline_power",
+      "R10 sw:custom_components/heatpump_optimizer/pump_arbiter.py::step_duty"
     ],
     "per_round": {
       "R1": 11,
@@ -934,9 +1015,10 @@
       "R6": 6,
       "R7": 2,
       "R8": 5,
-      "R9": 14
+      "R9": 14,
+      "R10": 14
     },
-    "total": 82,
+    "total": 96,
     "max_per_round": 18,
     "detector": "python3 tests/mutation_table.py --scope changed --base origin/main (the mutation job): the ratchet pre-pass refuses before any mutant is driven",
     "detector_idea": "Count a kill only on at least one failing assertion; re-run previously surviving mutants",
@@ -1031,7 +1113,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D10-09",
@@ -1071,7 +1154,9 @@
       "R9 D11-s1-04",
       "R9 D11-s2-01",
       "R9 D11-s2-02",
-      "R9 D13-s1-03"
+      "R9 D13-s1-03",
+      "R10 D11-s1-01",
+      "R10 D13-s1-01"
     ],
     "per_round": {
       "R1": 1,
@@ -1082,9 +1167,10 @@
       "R6": 2,
       "R7": 3,
       "R8": 6,
-      "R9": 7
+      "R9": 7,
+      "R10": 2
     },
-    "total": 38,
+    "total": 40,
     "max_per_round": 8,
     "detector": "node .claude/workflows/field_coverage.mjs",
     "detector_idea": "The ruleset-reading code against the live ruleset; every required-context job checks out the PR head",
@@ -1117,7 +1203,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R2 D4-11",
@@ -1145,7 +1232,9 @@
       "R9 D11-s1-71",
       "R9 D11-s1-72",
       "R9 D13-s1-01",
-      "R9 D14-s2-03"
+      "R9 D14-s2-03",
+      "R10 D13-s2-02",
+      "R10 D13-s2-51"
     ],
     "per_round": {
       "R2": 1,
@@ -1154,9 +1243,10 @@
       "R6": 3,
       "R7": 8,
       "R8": 1,
-      "R9": 4
+      "R9": 4,
+      "R10": 2
     },
-    "total": 26,
+    "total": 28,
     "max_per_round": 8,
     "detector": "node .claude/workflows/agreement.mjs (the wave-script job in governance.yml; --self-test in instrument-self-tests): the agreement lane, and grammar discovery",
     "detector_idea": "Per reader pair, generated boundary cases asserting both readers give the same verdict",
@@ -1184,7 +1274,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D10-05",
@@ -1279,7 +1370,14 @@
       "R9 D6-s2-03",
       "R9 D6-s2-04",
       "R9 D6-s2-05",
-      "R9 D8-s3-02"
+      "R9 D8-s3-02",
+      "R10 D11-s1-51",
+      "R10 D5-s1-01",
+      "R10 D5-s2-01",
+      "R10 D5-s3-01",
+      "R10 D5-s3-51",
+      "R10 sw:dev/governance/dimensions/D9.md::line_15_'record_all_51_scenarios'_(live_stress_set_54)",
+      "R10 sw:tests/stress.py::line_4602_comment_'the_merge_base_solves_the_same_fifty-one_scenarios'_(live_54)"
     ],
     "per_round": {
       "R1": 9,
@@ -1290,9 +1388,10 @@
       "R6": 5,
       "R7": 3,
       "R8": 6,
-      "R9": 25
+      "R9": 25,
+      "R10": 7
     },
-    "total": 93,
+    "total": 100,
     "max_per_round": 25,
     "detector": "PYTHONPATH=tests/hastub python3 tests/doc_claims.py -- every arm derives its fact set by executing production code and its claim set from the whole reader corpus (README.md, the user docs, the blueprints), opens with a named anchor check, and carries a null control: the I5 barrier's arms (round 9, F10.4) price entity prose against the constructed entity set (counts, per-platform totals, enum state lists, the disabled-by-default census), backticked private names in the card, units in the translation catalogs, options-field labels and their pages against en.json, every stated multi-start count against optimizer._multi_start_minimize, and qs_py_typed_files against the shipped package; F8.3's service-fields arm prices every service paragraph against its registered schema; and R9-RO-PC1's prose-count census reads eleven count SHAPES -- the module total, the module-level importer count and the HA-free count, the option-page count in its four phrasings, the editable-page count, a named service's field count, the service count and the service-definition count -- across the whole corpus, each against the tree's own measurement, in tools/audit/prose_counts_census.py's seam enumeration",
     "detector_idea": "The claims table, link-graph walker and backticked-symbol resolver run per docs-touching PR",
@@ -1551,7 +1650,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D7-06",
@@ -1563,7 +1663,12 @@
       "R9 D7-s1-01",
       "R9 D7-s3-01",
       "R9 D7-s3-02",
-      "R9 D7-s3-72"
+      "R9 D7-s3-72",
+      "R10 D7-s1-01",
+      "R10 D7-s3-01",
+      "R10 D7-s3-02",
+      "R10 D7-s3-51",
+      "R10 D7-s3-52"
     ],
     "per_round": {
       "R1": 1,
@@ -1571,10 +1676,11 @@
       "R6": 1,
       "R7": 1,
       "R8": 2,
-      "R9": 4
+      "R9": 4,
+      "R10": 5
     },
-    "total": 10,
-    "max_per_round": 4,
+    "total": 15,
+    "max_per_round": 5,
     "detector": "PYTHONPATH=tests/hastub python3 tests/structure.py -- dead_methods by receiver and reachability over methods and properties, with the name-kept members printed as the shape it cannot measure; the coordinator found by role, so a coordinator.py helper handed it is a seam unit and a reach from another module is coordinator_private_reach; the self-check plants one example per past shape (#1686, #1738)",
     "detector_idea": "Liveness by reachability from production roots (tests are not roots), with a self-check planting one example per past shape and a printed count of shapes the metric cannot measure (RCA-BULK-2)",
     "barrier": "tests/structure.py on the PR gate (F10.4): every row only moves down, and the counting-rule self-check fails the run if a rule regresses. Not reached: a member kept alive only by an untyped load of a name another class defines (printed, unmeasured), and a body moved into a helper still lowers max_class_loc",
@@ -1608,7 +1714,8 @@
       3,
       4,
       5,
-      9
+      9,
+      10
     ],
     "instances": [
       "R1 D8-03",
@@ -1618,7 +1725,9 @@
       "R5 D8-01",
       "R5 D8-02",
       "R5 D8-02@eaa2a06",
-      "R9 D8-s3-01"
+      "R9 D8-s3-01",
+      "R10 D7-s3-53",
+      "R10 sw:tests/entities.py::#1760_family_block_(_fam_token/_FAM_OVERRIDES,_'every_declared_family_sorts_as_one_contiguous_run')"
     ],
     "per_round": {
       "R1": 1,
@@ -1626,9 +1735,10 @@
       "R3": 1,
       "R4": 1,
       "R5": 3,
-      "R9": 1
+      "R9": 1,
+      "R10": 2
     },
-    "total": 8,
+    "total": 10,
     "max_per_round": 3,
     "detector": null,
     "detector_idea": "S6 entity-family-name-sort-split enumerate.sh: per family, sort by name (en, sv) and entity_id and count unexplained splits",
@@ -1658,21 +1768,30 @@
     "rounds": [
       2,
       8,
-      9
+      9,
+      10
     ],
     "instances": [
       "R2 D1-05",
       "R8 D1-s1-01",
       "R8 D1-s1-02",
-      "R9 D1-s3-04"
+      "R9 D1-s3-04",
+      "R10 D1-s1-02",
+      "R10 D7-s1-51",
+      "R10 D7-s1-52",
+      "R10 D7-s1-53",
+      "R10 D7-s3-54",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._update_current_state",
+      "R10 sw:custom_components/heatpump_optimizer/away.py::apply_override_payload"
     ],
     "per_round": {
       "R2": 1,
       "R8": 2,
-      "R9": 1
+      "R9": 1,
+      "R10": 7
     },
-    "total": 4,
-    "max_per_round": 2,
+    "total": 11,
+    "max_per_round": 7,
     "detector": "PYTHONPATH=tests/hastub python3 tests/arch_score_head.py -- hub_solve_writes (tools/audit/archscore/metrics/hub_solve_writes.py) enumerates every write into _opt_config, _thermal_params or _current_state reachable from async_run_optimization and async_simulate through calls, aliases and parameters, in any module",
     "detector_idea": "alt/evidence/m1_hub_writes.py: solve-path hub write sites must be 0 once the per-solve record lands (26 sites / 23 fields at c54b20d2); extend to _current_action and the what-if cache (#1752, #1753)",
     "barrier": "R9-EG-B1 (#1736): each solve plans from one SolveRecord of private hub copies built on the loop. Three checks, each refusing exactly what it can see. tests/arch_score_head.py refuses any WRITE into a hub reachable from the scheduled cycle or a solve (_async_update_data, async_run_optimization, async_simulate; R9-EG-A4 widened the roots past the solve) outside CYCLE_HUB_WRITERS (each producer with the fields it writes and its event), with planted writes at the top of the solve and in the pre-solve step as controls. tests/features.py (#1736 block) walks the record's and the what-if base's object identity against the three hubs and refuses any shared MUTABLE object, nested containers included (kills the deep-copy-removal mutant, #240). tests/entities.py refuses only a hub spelled as a hub attribute (ctx._opt_config, self._current_state, ...) as an argument to the hand-offs P12 enumerates plus _await_optimize and _await_off_loop -- an alias, a lambda capture or a wrapped copy passes it, which is the gap the identity walk covers.",
@@ -1701,7 +1820,7 @@
       "R9-EG-B1"
     ],
     "trigger": {
-      "per_round": false,
+      "per_round": true,
       "cross_round": true,
       "barriered_any": true,
       "class_rca_on_record": true
@@ -1839,16 +1958,24 @@
     "kind": "production",
     "mechanism": "A staleness limit is shorter than a report-on-change source's legitimate quiet interval, so a valid unchanged reading is declared stale or unavailable",
     "rounds": [
-      9
+      9,
+      10
     ],
     "instances": [
-      "R9 D1-s5-51"
+      "R9 D1-s5-51",
+      "R10 D14-s3-02",
+      "R10 sw:custom_components/heatpump_optimizer/const.py::INPUT_MAX_AGE_MINUTES[CONF_ENERGY_ENTITY]",
+      "R10 sw:custom_components/heatpump_optimizer/const.py::INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]",
+      "R10 sw:custom_components/heatpump_optimizer/const.py::INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY]",
+      "R10 sw:custom_components/heatpump_optimizer/const.py::INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY]",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HUMIDITY_MAX_AGE_MINUTES"
     ],
     "per_round": {
-      "R9": 1
+      "R9": 1,
+      "R10": 6
     },
-    "total": 1,
-    "max_per_round": 1,
+    "total": 7,
+    "max_per_round": 6,
     "detector": null,
     "detector_idea": "S6 staleness-limit-shorter-than-quiet-interval enumerate.sh: silence cells beyond each INPUT_MAX_AGE limit",
     "barrier": null,
@@ -1861,8 +1988,8 @@
     "rca": [],
     "rca_planned": [],
     "trigger": {
-      "per_round": false,
-      "cross_round": false,
+      "per_round": true,
+      "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": false
     }
@@ -1870,11 +1997,18 @@
   "N-silent-zero": {
     "kind": "instrument",
     "mechanism": "A derivation's failure path returns the same empty value as its success path, so a count over a set never enumerated reads as a clean zero",
-    "rounds": [],
-    "instances": [],
-    "per_round": {},
-    "total": 0,
-    "max_per_round": 0,
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D1-s3-01",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._fetch_weather_forecast"
+    ],
+    "per_round": {
+      "R10": 2
+    },
+    "total": 2,
+    "max_per_round": 2,
     "detector": "node .claude/workflows/field_coverage.mjs --only census (policy-docs in governance.yml; its --self-test drives each verdict)",
     "detector_idea": "Register count-printing instruments (structure.py dead_*, stress sampling, policy_lint --stats) in field_coverage.mjs's perturb-to-red registry; merge_shape_guard for the merge-subject derivation",
     "barrier": "The census arm of field_coverage.mjs (round 9, F11.4; decided under the programme mandate, D8): each registered count-printing instrument runs on a temporary copy of the tree, as it is and with one planted member of what it counts, and its printed count must rise by exactly one; a count that does not move is BLIND and an unreadable count line is REFUSED, so a failure path that prints the same zero as success cannot pass. Registered: structure.py dead_methods and dead_top_level_symbols. The merge-subject derivation's silent zero is agreement.mjs's merge-shape guard (a live merge commit every reader answers null for is refused). Not registered, so not reached: policy_lint --stats (needs the live API), stress sampling, and any census nobody lists",
@@ -1899,7 +2033,7 @@
     "trigger": {
       "per_round": false,
       "cross_round": false,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -3939,6 +4073,292 @@
       "doc": [
         "dev/audit/rca/R10-RCA-2205.md"
       ]
+    }
+  },
+  "N-registry-leak": {
+    "kind": "production",
+    "mechanism": "A module-level registry keyed by a coordinator gains an entry at setup that unload never removes, so every torn-down coordinator stays reachable",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D1-s1-01"
+    ],
+    "per_round": {
+      "R10": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-shared-config",
+    "mechanism_difference": "a lifetime leak across reloads, not a concurrent read or write during a solve",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-future-clamp": {
+    "kind": "production",
+    "mechanism": "A legitimately future instant in a persisted store is treated as a clock-ahead stamp and rewritten to now on load",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D1-s2-01"
+    ],
+    "per_round": {
+      "R10": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-future-instant",
+    "mechanism_difference": "it distrusts a valid future stamp instead of trusting an invalid one",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-no-expiry": {
+    "kind": "production",
+    "mechanism": "A last-known value is published and booked as current with no age bound once its source stops updating",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D1-s2-02",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::forecast_outdoor_now",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_open_loop_plan_value"
+    ],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-staleness",
+    "mechanism_difference": "there is no staleness limit at all, rather than one shorter than the source quiet interval",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-log-flood": {
+    "kind": "instrument",
+    "mechanism": "A persisting condition is logged at WARNING on every cycle instead of once per transition",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D1-s2-03",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._fetch_solar_forecast",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._solar_location",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._price_series",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator.async_run_optimization",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._tariff_months",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._tariff_hours"
+    ],
+    "per_round": {
+      "R10": 7
+    },
+    "total": 7,
+    "max_per_round": 7,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-silent-zero",
+    "mechanism_difference": "it over-reports a condition rather than hiding one",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-gate-yield": {
+    "kind": "instrument",
+    "mechanism": "A governance gate accounts for a larger share of blocked verdicts than any engineering defect class, so review rounds are spent on record omissions",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D13-s2-01"
+    ],
+    "per_round": {
+      "R10": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I3",
+    "mechanism_difference": "the check is not skipped or bypassed; it fires correctly and its cost dominates review yield",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-move-stale-path": {
+    "kind": "instrument",
+    "mechanism": "A file move leaves an executable consumer importing or resolving the old path, so the instrument fails or splits keys after the move",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D13-s3-01",
+      "R10 sw:dev/audit/rounds/round4/D11/mechanism_inventory.py::import_d11lib_(line_39)",
+      "R10 sw:dev/audit/rounds/round4/D11/merge_census.py::import_d11lib_(line_58)",
+      "R10 sw:dev/audit/rounds/round4/D11/ruleset_probe.py::import_d11lib_(line_42)",
+      "R10 sw:dev/audit/rounds/round4/D11/standards_scorecard.py::import_d11lib_(line_47)",
+      "R10 sw:dev/audit/rounds/round4/D11/untrusted_text.py::import_d11lib_(line_57)",
+      "R10 sw:dev/audit/rounds/round4/D11/verdict_sample.py::import_d11lib_(line_47)",
+      "R10 sw:dev/audit/rounds/round9/D11/s2/owner_review.py::import_budget_raise_gate_(line_24)",
+      "R10 sw:dev/audit/rounds/round3/D11/approval_gate.py::path_literal_.claude/workflows/policy_lint.mjs_(line_132)",
+      "R10 sw:dev/audit/rounds/round3/D11/approval_gate.py::path_literal_.claude/workflows/policy_lint.mjs_(line_150)",
+      "R10 sw:dev/audit/rounds/round3/D11/conformance.py::path_literal_.claude/workflows/policy_lint.mjs_(line_247)",
+      "R10 sw:dev/audit/rounds/round3/D11/mechanisms.py::path_literal_.claude/workflows/policy_lint.mjs_(line_71)",
+      "R10 sw:dev/audit/rounds/round3/D11/standards.py::path_literal_.claude/workflows/policy_lint.mjs_(line_231)",
+      "R10 sw:dev/audit/rounds/round4/D11/d11_own_D11-03.py::path_literal_.claude/workflows/policy_lint.mjs_(line_81)",
+      "R10 sw:dev/audit/rounds/round4/D11/d11_own_D11-04.py::path_literal_docs/plan-2026-09-open-issues.md_(line_114)",
+      "R10 sw:dev/audit/rounds/round4/D11/d11_own_D11-06.py::path_literal_.claude/workflows/policy_lint.mjs_(line_63)",
+      "R10 sw:dev/audit/rounds/round4/D11/d11_own_D11-06.py::path_literal_.claude/workflows/policy_lint.mjs_(line_72)",
+      "R10 sw:dev/audit/rounds/round4/D11/d11_own_D11-06.py::path_literal_.claude/workflows/policy_lint.mjs_(line_103)",
+      "R10 sw:dev/audit/rounds/round4/D11/mechanism_inventory.py::path_literal_.claude/workflows/gh_comment.py_(line_105)",
+      "R10 sw:dev/audit/rounds/round4/D11/mechanism_inventory.py::path_literal_tools/audit/prepr.sh_(line_106)",
+      "R10 sw:dev/audit/rounds/round4/D11/mechanism_inventory.py::path_literal_tools/audit/push.sh_(line_107)",
+      "R10 sw:dev/audit/rounds/round4/D11/mechanism_inventory.py::path_literal_.claude/workflows/policy_lint.mjs_(line_67)",
+      "R10 sw:dev/audit/rounds/round5/D11/seat-b/corpus_churn.py::path_literal_.claude/workflows/policy_budgets.json_(line_68)",
+      "R10 sw:dev/audit/rounds/round5/D11/seat-b/corpus_churn.py::path_literal_.claude/workflows/policy_lint.mjs_(line_100)",
+      "R10 sw:dev/audit/rounds/round5/D11/seat-b/corpus_churn.py::path_literal_.claude/workflows/policy_lint.mjs_(line_133)",
+      "R10 sw:dev/audit/rounds/round5/D13/seat-a/block_fold.mjs::path_literal_.claude/workflows/policy_lint.mjs_(line_67)",
+      "R10 sw:dev/audit/rounds/round5/D13/seat-a/friction_keys.mjs::path_literal_.claude/workflows/policy_budgets.json_(line_83)",
+      "R10 sw:dev/audit/rounds/round7-fix/governance/report_step_driver.py::path_literal_.claude/workflows/policy_lint.mjs_(line_123)",
+      "R10 sw:dev/audit/rounds/round8/evidence/D11/s2_owner_closure.py::path_literal_.claude/workflows/policy_lint.mjs_(line_166)",
+      "R10 sw:dev/audit/rounds/round8/evidence/D11/v1_owner_flip.py::path_literal_.claude/workflows/policy_lint.mjs_(line_112)",
+      "R10 sw:dev/audit/rounds/round8/evidence/D11/v1_owner_flip.py::path_literal_.claude/workflows/policy_lint.mjs_(line_142)",
+      "R10 sw:dev/audit/rounds/round8/evidence/D11/v1_owner_flip.py::path_literal_.claude/workflows/policy_lint.mjs_(line_146)",
+      "R10 sw:dev/audit/rounds/round9/D14/s2/i4_roster.py::path_literal_tools/audit/bugclasses.json_(line_134)",
+      "R10 sw:dev/audit/rounds/round9/D14/s2/i4_roster.py::path_literal_tools/audit/finding.schema.json_(line_136)",
+      "R10 sw:dev/audit/rounds/round9/D14/s2/i4_roster.py::path_literal_tools/audit/scopes.json_(line_140)",
+      "R10 sw:dev/audit/rounds/round9/D4/s2/step_grid.py::path_literal_tools/audit/round9/D4/s2/step_grid.mjs_(line_147)"
+    ],
+    "per_round": {
+      "R10": 36
+    },
+    "total": 36,
+    "max_per_round": 36,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "I5",
+    "mechanism_difference": "the stale reference is executable and breaks a tool, not prose drifting from code",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-period-rollover": {
+    "kind": "production",
+    "mechanism": "A period reset runs before the open window is closed, so the final window of each period never enters the period aggregate",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D2-s3-01"
+    ],
+    "per_round": {
+      "R10": 1
+    },
+    "total": 1,
+    "max_per_round": 1,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P7",
+    "mechanism_difference": "the loss comes from reset ordering at a period boundary, not from naive DST arithmetic",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-confounded-learner": {
+    "kind": "production",
+    "mechanism": "An online estimator absorbs the error of an unmodelled or mis-modelled covariate into the parameter it learns",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 D2-s3-71",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_async_learn_lower_floor_loss",
+      "R10 sw:custom_components/heatpump_optimizer/accuracy.py::heat_loss_refit",
+      "R10 sw:custom_components/heatpump_optimizer/coordinator.py::_fold_internal_gains"
+    ],
+    "per_round": {
+      "R10": 4
+    },
+    "total": 4,
+    "max_per_round": 4,
+    "detector": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "P5",
+    "mechanism_difference": "no gate is involved: the estimate itself is biased by a correlated regressor",
+    "minted": "R10",
+    "aliases": [],
+    "rca": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": false
     }
   }
 }
