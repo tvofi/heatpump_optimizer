@@ -37,7 +37,17 @@ mut R7 '        self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge"
 mut R8 '        if not (self.pre_flight and self.real):
             return list(queue)' '        if not (self.pre_flight):
             return list(queue)'
-mut R9 '        return 1 if self.skipped else 0' '        return 0'
+# R9 as planted hit the first of two identical returns; each is named by its context.
+mut R9 '        self.release_worktrees()
+        self.log("TRAIN DONE")
+        return 1 if self.skipped else 0' '        self.release_worktrees()
+        self.log("TRAIN DONE")
+        return 0'
+mut R9b '            self.skip_report(len(queue))
+        self.log("TRAIN DONE")
+        return 1 if self.skipped else 0' '            self.skip_report(len(queue))
+        self.log("TRAIN DONE")
+        return 0'
 mut R10 '        if why is None and self.ok("git", "-C", holder, "checkout"' '        if self.free_holders and holder and self.ok("git", "-C", holder, "checkout"'
 mut R11 '        chain = [c for c in item.get("carried_chain") or [item.get("carried_from")] if is_sha(c or "") and c != h]' '        chain = [c for c in [item.get("carried_from")] if is_sha(c or "") and c != h]'
 mut R12 '            if [f for f in out.split() if f in files]:
