@@ -1,0 +1,4 @@
+2026-10-15T00:01:55.1340910Z   48 cycles over 81 entities in 11.5 s; cost {'cpu_ratio': 1.3908, 'peak_kib': 1914.7, 'loop_cpu_ratio': 0.2693, 'timed': 23, 'traced': 24, 'ref_ms': 52.700686999999746}
+2026-10-15T00:01:55.1345910Z   cpu doubled: cost {'cpu_ratio': 2.8099, 'peak_kib': 1915.8, 'loop_cpu_ratio': 1.6791, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 52.70396399999999}
+2026-10-15T00:01:55.1349529Z   memory doubled: cost {'cpu_ratio': 1.3735, 'peak_kib': 3831.1, 'loop_cpu_ratio': 0.2623, 'timed': 23, 'traced': 24, 'ref_ms': 52.62478600000087}
+2026-10-15T00:01:55.1351421Z   loop doubled: cost {'cpu_ratio': 1.6223, 'peak_kib': 1920.6, 'loop_cpu_ratio': 0.5207, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 53.14662000000014}

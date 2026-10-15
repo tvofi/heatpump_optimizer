@@ -1,0 +1,110 @@
+
+=== Replay: recorded days through the real coordinator ===
+  ok   at least one fixture
+
+-- controls: each invariant fires on bad data and not on good
+  ok   control:finite
+  ok   control:unit
+  ok   control:no_default
+  ok   control:agreement:attribute
+  ok   control:agreement:plan
+  ok   control:agreement:power
+  ok   control:agreement:climate
+  ok   control:not_frozen
+  ok   control:cycle_cost:cpu
+  ok   control:cycle_cost:memory
+  ok   control:cycle_cost:loose_budget
+  ok   control:cycle_cost:unrecorded
+  ok   control:cycle_cost:loop_thread
+  ok   control:cycle_cost:short_doubling
+  ok   control:cycle_cost:unmetered_doubling
+  ok   control:cycle_cost:coverage
+
+-- sanitising: the export's rules and nightly_ha's A10 rule
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  ok   sanitised:synthetic-dhw-only.json
+  ok   a10_location:synthetic-dhw-only.json
+  ok   control:sanitiser_refuses
+  ok   control:sanitise_clears
+  ok   leak_probe:capital_Latitude:export_drops
+  ok   leak_probe:capital_Latitude:check_refuses
+  ok   leak_probe:lat_lon_short:export_drops
+  ok   leak_probe:lat_lon_short:check_refuses
+  ok   leak_probe:coord_list:export_drops
+  ok   leak_probe:coord_list:check_refuses
+  ok   leak_probe:coord_string:export_drops
+  ok   leak_probe:coord_string:check_refuses
+  ok   leak_probe:basic_auth_url:export_drops
+  ok   leak_probe:basic_auth_url:check_refuses
+  ok   leak_probe:apikey_query:export_drops
+  ok   leak_probe:apikey_query:check_refuses
+  ok   leak_probe:pin_code:export_drops
+  ok   leak_probe:pin_code:check_refuses
+  ok   leak_probe:psk:export_drops
+  ok   leak_probe:psk:check_refuses
+  ok   leak_probe:email:export_drops
+  ok   leak_probe:email:check_refuses
+  ok   leak_probe:serial_mac:export_drops
+  ok   leak_probe:serial_mac:check_refuses
+  ok   leak_probe:entry_address:export_drops
+  ok   leak_probe:entry_address:check_refuses
+  ok   leak_probe:entry_url_in_allowed_key:export_drops
+  ok   leak_probe:entry_url_in_allowed_key:check_refuses
+  ok   leak_probe:state_address:export_drops
+  ok   leak_probe:state_address:check_refuses
+  ok   leak_probe:n1_options_dict:export_drops
+  ok   leak_probe:n1_options_dict:check_refuses
+  ok   leak_probe:n2_currency_name:export_drops
+  ok   leak_probe:n2_currency_name:check_refuses
+  ok   leak_probe:n3_options_address:export_drops
+  ok   leak_probe:n3_options_address:check_refuses
+  ok   leak_probe:n4_token_in_series:export_drops
+  ok   leak_probe:n4_token_in_series:check_refuses
+  ok   leak_probe:state_n10_host_path:export_drops
+  ok   leak_probe:state_n10_host_path:check_refuses
+  ok   leak_probe:n11_host_path_unit:export_drops
+  ok   leak_probe:n11_host_path_unit:check_refuses
+  ok   leak_probe:entry_n13_text_in_entity_key:export_drops
+  ok   leak_probe:entry_n13_text_in_entity_key:check_refuses
+  ok   leak_probe:n14_mac_no_colons:export_drops
+  ok   leak_probe:n14_mac_no_colons:check_refuses
+  ok   tibber_price:one_home_picked
+  ok   tibber_price:none_refused
+  ok   tibber_price:two_homes_refused
+  ok   tibber_price:flag_overrides_two
+  ok   tibber_price:flag_overrides_one
+  ok   tibber_price:entry_names_one
+  ok   tibber_price:disabled_skipped
+  ok   tibber_price:unrecorded_skipped
+  ok   tibber_price:unavailable_skipped
+  ok   tibber_price:entity_source_untouched
+  ok   the synthetic fixture is what synthesize.py + export.py write
+
+-- replay synthetic-dhw-only.json
+  ok   synthetic-dhw-only.json: the replay ran to the end
+  48 cycles over 81 entities in 10.8 s; cost {'cpu_ratio': 1.991, 'peak_kib': 1914.6, 'loop_cpu_ratio': 0.3212, 'timed': 23, 'traced': 24, 'ref_ms': 30.81500000000048}
+  record: synthetic-dhw-only.json cpu_ratio=2.816 peak_kib=2708 loop_cpu_ratio=0.4542
+  ok   synthetic-dhw-only.json: at least one cycle and one entity
+  ok   synthetic-dhw-only.json: finite
+  ok   synthetic-dhw-only.json: unit
+  ok   synthetic-dhw-only.json: no_default
+  ok   synthetic-dhw-only.json: agreement
+  ok   synthetic-dhw-only.json: cycle
+  ok   synthetic-dhw-only.json: not_frozen
+  ok   synthetic-dhw-only.json: cycle_cost
+  ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
+  cpu doubled: cost {'cpu_ratio': 4.0418, 'peak_kib': 1914.6, 'loop_cpu_ratio': 2.3544, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 32.97099999999986}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
+  ok   synthetic-dhw-only.json: the cpu arm doubles the whole span cpu_ratio times
+  ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
+  memory doubled: cost {'cpu_ratio': 1.93, 'peak_kib': 3830.2, 'loop_cpu_ratio': 0.3115, 'timed': 23, 'traced': 24, 'ref_ms': 33.60099999999999}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
+  ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
+  loop doubled: cost {'cpu_ratio': 2.3184, 'peak_kib': 1915.3, 'loop_cpu_ratio': 0.6394, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 32.436000000000575}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
+  ok   synthetic-dhw-only.json: the loop arm doubles the whole span loop_cpu_ratio times
+
+replay lane wall time 61.1 s
+
+ALL 91 replay checks PASSED
+rc 0
