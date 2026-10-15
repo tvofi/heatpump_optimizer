@@ -1,5 +1,7 @@
 R10-DEEPLINK: one card helper builds every Home Assistant deep link, and one test enumerates every link-emitting button.
 
+Closes #2253.
+
 Part of #2238.
 
 The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup "Configure" and Health "Show" each built their own link and each landed on the integration's front page. This adds the shared builder and the enumeration test only. Per the group's architect note, the three call sites stay unconverted and go to R10-ADVISOR, R10-UX-SETUP and R10-UX-HEALTH, which run `after` this group.
