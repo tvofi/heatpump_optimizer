@@ -180,6 +180,13 @@ class PeakTracker:
     #: field -- and is never merged with another, which bills it exactly as
     #: the per-window tracker did until the month rolls over.
     peak_days: list[str] = field(default_factory=list)
+    #: The month the last rollover closed, and its billed-equivalent peaks
+    #: descending, its final window included (#2230). The settlement that
+    #: books the closed month runs after the rollover that wiped ``peaks``,
+    #: so the closed month's statement is kept -- and persisted, so a
+    #: restart between the two does not lose it -- until the next rollover.
+    closed_month: str = ""
+    closed_peaks: list[float] = field(default_factory=list)
     #: The measured whole-house readings behind ``peaks``, newest last, one
     #: per CYCLE and bounded at `accuracy.HISTORY_LENGTH` like the pump's own
     #: window -- the payload's ``house_power_series`` (#1460). A live
@@ -232,8 +239,14 @@ class PeakTracker:
             del self.house_samples[:-HISTORY_LENGTH]
         month = when.strftime("%Y-%m")
         if month != self.month:
-            # A new month starts with a clean slate; last month's peaks are
-            # already billed and constrain nothing.
+            # The window open at the change belongs to the month ending: it
+            # closes into that month's peaks before the reset (#2230), and
+            # those peaks are kept as the closed month's statement. The new
+            # month starts with a clean slate; last month's peaks constrain
+            # nothing in it.
+            self._close_window(tariff)
+            if self.month:
+                self.closed_month, self.closed_peaks = self.month, self.peaks
             self.month = month
             self.peaks = []
             self.peak_days = []
@@ -323,11 +336,20 @@ class PeakTracker:
 
     def billed_peak_kw(self, tariff: CapacityTariff) -> float:
         """The peak level the bill is currently based on, in kW."""
-        if not self.peaks:
-            return 0.0
-        n = max(1, tariff.peaks_averaged)
-        top = self.peaks[:n]
-        return float(sum(top) / len(top))
+        return _billed_peak_kw(self.peaks, tariff)
+
+    def billing_statements(self, tariff: CapacityTariff) -> list[tuple[str, float]]:
+        """(month, billed peak kW) for the closed month, if any, then this one.
+
+        What a settlement books (#2230): the closed month's final figure,
+        last window included, and the open month's running one.
+        """
+        statements = [(self.month, self.billed_peak_kw(tariff))]
+        if self.closed_month:
+            statements.insert(
+                0, (self.closed_month, _billed_peak_kw(self.closed_peaks, tariff))
+            )
+        return statements
 
     def threshold_kw(self, tariff: CapacityTariff) -> float:
         """Above what level a new hour would raise the bill, in kW.
@@ -371,6 +393,8 @@ class PeakTracker:
             "month": self.month,
             "peaks": [round(p, 3) for p in self.peaks],
             "peak_days": list(self.peak_days),
+            "closed_month": self.closed_month,
+            "closed_peaks": [round(p, 3) for p in self.closed_peaks],
             "window_key": self._window_key,
             "window_sum": self._window_sum,
             "window_samples": self._window_samples,
@@ -388,6 +412,10 @@ class PeakTracker:
         ranked = _stored_peaks(data.get("peaks"), data.get("peak_days"))
         tracker.peaks = [kw for kw, _ in ranked]
         tracker.peak_days = [day for _, day in ranked]
+        tracker.closed_month = str(data.get("closed_month", ""))
+        tracker.closed_peaks = [
+            kw for kw, _ in _stored_peaks(data.get("closed_peaks"), None)
+        ]
         tracker._window_key = str(data.get("window_key", ""))
         try:
             tracker._window_sum = float(data.get("window_sum", 0.0))
@@ -461,6 +489,14 @@ def _one_per_day(ranked: list[tuple[float, str]]) -> list[tuple[float, str]]:
         elif day not in best or kw > best[day][0]:
             best[day] = (kw, day)
     return undated + list(best.values())
+
+
+def _billed_peak_kw(peaks: list[float], tariff: CapacityTariff) -> float:
+    """The mean of the top ``peaks_averaged`` of descending ``peaks``, in kW."""
+    if not peaks:
+        return 0.0
+    top = peaks[: max(1, tariff.peaks_averaged)]
+    return float(sum(top) / len(top))
 
 
 def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
