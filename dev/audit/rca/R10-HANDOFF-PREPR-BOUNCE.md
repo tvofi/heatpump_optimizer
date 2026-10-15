@@ -58,8 +58,8 @@ r10_tick_which_roster harness (inert read)`). That one handoff, of the four that
 carried the line and did not bounce.
 
 The UNDER-SCOPED arm (FAHRENHEIT's new module read by 19 scripts) is different: the
-bot does repair it after a PR exists (23 `ci: re-record closures` commits since
-2026-09-25, 4 of them since R9-CI-1 merged), so there waiting is right for the
+bot does repair it after a PR exists (24 `ci: re-record closures` commits on `main` since
+2026-09-25, 5 of them on or after 2026-10-12, when R9-CI-1 merged), so there waiting is right for the
 *closure* and wrong only because `prepr` refuses before any PR exists. A pre-PR
 repair means 19 `--single` recordings (the script's own header prices the full run
 at "~25 minutes"; one script took 500 s here), unmeasured in total.
@@ -84,7 +84,7 @@ The carry's history, because it is the stretch of the process that failed:
    reading script, so a warning there still lets the red reach main" (review-2061
    VERDICT3). Correct, and it makes `ci-autofix.md`'s "CI autofixes ... INERT READS"
    untrue for that diff class.
-3. `dd415b926` carried the item to "R9-RO-9b" (`tests/closures`-side: "warn only when CI
+3. `dd415b926` carried the item to "R9-RO-9b" ("warn only when CI
    re-records the reading script"), as `dev/programme/carries/carry-1922.json`, whose
    own `_comment` says "Carry to R9-RO-9 (#1922)".
 4. Destination check at `78324e4a1`: `wave-r9-groups.json` has no group `R9-RO-9b`; its
@@ -120,7 +120,8 @@ Evidence, quoted:
   appear to have read as already satisfied by "autofix will repair". Adding "NOT left
   to the autofix bot" to the brief (done at 16:47) tells them harder and offers a
   remedy that, for INERT READS, does nothing (section 1). TARIFF's body was pushed at
-  17:15, after the amendment, and refused on INERT READS only.
+  17:15, after the amendment, and refused on INERT READS only (whether that fixer
+  received the amendment is not known).
 - Not (a): the detector exists and detected. This is the system working as designed
   on the detection side. Nothing is missing there.
 - Not (d): no precondition moved after the documents were written. `ci_predict.py`
@@ -158,8 +159,9 @@ topics, the `hpo-orphans` copies excluded) whose three-dot diff adds a file unde
 | new harness, with the hand-edited line | 1 | tick-roster |
 | new production module (UNCLASSIFIED / UNDER-SCOPED predicted) | 1 | fahrenheit |
 
-So at least 3 of 15 handoffs (20 %) carry a certain refusal, and 3 of the 4 `open_pr`
-runs that have finished or run far enough to predict are in it. Null control: the
+So at least 3 of 15 handoffs (20 %) carry a certain refusal. Of today's five
+`open_pr` runs, one passed (gate-yield), one refused on body lint (deeplink), two
+refused on this class (fahrenheit, tariff) and one is predicted to (i1). Null control: the
 same loop over the 11 other topics returns `newHarness=0 newProdModule=0`.
 Round 9 recorded three earlier instances in one commit message (#2025, #2054, #2056).
 That is six in two rounds, so the recurring-error clause is met on its own terms,
@@ -271,8 +273,8 @@ does not go green silently, as `predict_line` returns rc 3 for exactly that case
    script, so a warning there still lets the red reach main."
 3. `ci_predict.py`, the refusal line: "repair before the handoff; who repairs which is
    ci-autofix.md's" against `ci-autofix.md`, which has no clause that says who repairs
-   anything before a handoff. `grep -n 'predict\|prepr' dev/governance/rules/ci-autofix.md`
-   returns nothing.
+   anything before a handoff. `grep -c -i 'predict\|prepr' dev/governance/rules/ci-autofix.md`
+   prints 0.
 4. `open_pr.sh` sets `PREPR_SKIP_CLOSURES=1`, whose message reads "closures-autofix is
    the only check left", while step 6d of the same run refuses the same two arms.
 5. `fixer.md` step 5, "leaving the rest to CI" and "Running locally does not discharge
