@@ -29,16 +29,17 @@ Alternatives considered:
 
 ## Head
 
-`3c459205a5bdd560bd2ab8f08f7db2ceb6e4e8fe`
+`0a68026dad1572cc825acbe6a716f204237ea1fe`
 
-The branch was cut from `origin/main` 5603ee319 (#2245's merge) and has `origin/main` 93f5970e9 merged in (`f843df284`). It carries five commits of its own:
-- the fix;
-- `record: max_class_loc 8705 -> 8690`;
-- the merge;
-- the round-4 D6 module-count update;
-- the closure repair.
+This head merges the pull request's head a590f11ee into the handoff branch, on top of one test commit, e921e8e7c, which kills the one mutant mutation-pins left alive. Against a590f11ee its only change is `tests/features.py`, +53 lines (`git diff --stat a590f11ee HEAD`).
 
-Between 5603ee319 and 93f5970e9, main touched no file under `custom_components/`, no `tests/*.py`, no `tests/structure_budgets.json` and nothing under `tests/mutation_ledger/`. The only change in that set was `tests/closures.json`, which `git diff --stat 5603ee319 93f5970e9 -- custom_components tests/*.py tests/structure_budgets.json tests/mutation_ledger` confirms. So the mutation proof and every harness figure below, all taken against 5603ee319, still describe this head's code.
+The pull request's head a590f11ee carries:
+- the code head 3c459205a;
+- main merged in;
+- the bot's `ci: pin killed mutants` (720d3636b, 21 of the 22 sites);
+- the delivery row.
+
+Main touched no file this fix touches. Every harness figure below, taken against 5603ee319, still describes this code, as the closure note under Figures records.
 
 ## Mutation proof
 
@@ -47,6 +48,11 @@ Each mutant was applied to the committed fix and restored with `git checkout --`
 - M2, `write_setpoint_c` writes `value_c` unconverted: 3 of 4 failed (D12-s3-01 with 6 of 12 cells misdelivered, no-target, and L1).
 - M3, `_command_valve_target` calls the raw `inputs.write_setpoint`, which is P2's wiring: 1 of 4 failed (L1).
 - M4, `_RANGE_KEYS` emptied: 1 of 4 failed (L2).
+- M5, `setpoint_and_unit`'s `if not entity_id:` → `if False:` (GUARD_OFF, inputs.py:391). mutation-pins found this one alive at 720d3636b, because FakeStates returns None for `get(None)`.
+
+  Home Assistant's `StateMachine.get` (2026.9.3, read from the real-HA venv) does `self._states_data.get(entity_id) or self._states_data.get(entity_id.lower())`, so it raises on None. On an install with no DHW entity, `setpoint_check.evaluate` would then raise inside `_dhw` and skip the space and quiet checks.
+
+  The new check, `a set-point slot with no entity id reads nothing, before any state lookup, so the consistency check still reaches the space notice`, drives `read_setpoint`, `setpoint_and_unit` and `evaluate` against a local states stub that keeps that one upstream behaviour. FakeHass is unchanged for every other test, per fixer.md step 13. Under the mutant the block reads `1 of 5 FEATURES BLOCK FAILED`, with `{'None': ('raised AttributeError', 'raised AttributeError'), ...} issues=[]`. At the head it reads `ALL 5 FEATURES BLOCK PASSED`.
 
 Dropped pins: 11 `killed_by` entries whose `old` lines this diff moves or rewrites. `tests/mutation_table.py` listed each as "disposition names no site the inventory generates":
 - 6 in `pump_arbiter.py`: `_bounded`, `_flow_target`, `_observed`, `_space_target`, and two in `desired`.
@@ -148,7 +154,8 @@ Harness sha1s: `surface_units.py` d741b52a (`dev/audit/rounds/round10/D12/s3/` a
 
 ## Red checks
 
-- `mutation`: red at the first PR head, e4b4c6fed. It is the unpinned-sites refusal for the 22 sites the diff adds, each listed under `## Unpinned sites`. mutation-autofix repairs it with its `ci: pin killed mutants` commit (`ci-autofix.md`), and naming it here is the answer `ci-autofix.md` asks for. Any survivor the bot reports comes back to this seat for a written triage. The cheaper detector already ran: `prepr.sh` step 6d listed the same 22 sites before the push.
+- `mutation`: red at the first PR head, e4b4c6fed. At 720d3636b the bot pinned 21 and left one survivor, `inputs.py:391 GUARD_OFF`. A check now kills it (M5 under Mutation proof), so the bot pins it at this head; there is no triage.
+  The original red: It is the unpinned-sites refusal for the 22 sites the diff adds, each listed under `## Unpinned sites`. mutation-autofix repairs it with its `ci: pin killed mutants` commit (`ci-autofix.md`), and naming it here is the answer `ci-autofix.md` asks for. Any survivor the bot reports comes back to this seat for a written triage. The cheaper detector already ran: `prepr.sh` step 6d listed the same 22 sites before the push.
 - `closures` / `fast` (predicted, never red): the first prepr, at 55fd737d9, predicted 3 reds for the new `issues.py` (UNDER-SCOPED, UNCLASSIFIED, INERT READS), and `open_pr.sh` refused that handoff. This head's closure commit repairs them, as described under Figures, and `prepr.sh`'s CI PREDICT arm caught them before any PR existed. The process cause is R10-HANDOFF-PREPR-BOUNCE's.
 
 ## Forward-carry
