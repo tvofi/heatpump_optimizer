@@ -1,0 +1,7 @@
+head b7a0eb305f44a16e3bbbf5961275e8bcd2520781 (code head 2e7840f75d148779437f7bd540c1011a5b7a489b)
+reviewer measurements at code head 2e7840f75 (PR head b7a0eb305 adds only dev/programme/delivery/2290.md)
+finder bogus_entry_actions.py: base services.py silent=['apply_schedule'] actions_silent=1 raised=7; head silent=[] 0 raised=8; --perturb 0 at both
+census (reviewer runner census_run.py, own instrument): head 5 ok; base services.py -> FAIL silent ['apply_schedule[]: returned', "apply_schedule['entry_id']: returned"]
+planted service 'ping' (+services.yaml) returning before resolution -> FAIL silent ['ping[]: returned', "ping['entry_id']: returned"]
+null: valid entry apply_schedule empty+dhw_windows ok at head
+structure.py PASSED; archscore dS +0.0000 NULL; tmp_paths 0 refused; entities.py ALL 2318 PASSED
