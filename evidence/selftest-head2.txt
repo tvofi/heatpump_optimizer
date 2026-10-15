@@ -7,7 +7,23 @@
   ok   decide: a conflict on a file no driver owns is not pushed (skip-other-conflict a.py)
   ok   decide: a driver that refused is not pushed (skip-driver-refused led.json)
   ok   decide: a driver that left a conflict is not pushed (skip-driver-refused led.json)
+  ok   decide: a mergeable-by-driver head whose pin chain still runs is left alone
+  ok   decide: a pin-chain read that failed is left alone too (fail closed)
+  ok   decide: a settled pin chain still merges (null control)
+  ok   decide: the earlier refusals still decide first (a clean head is skip-not-dirty, pins or not)
+  ok   pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a completed run's jobs are not read)
+  ok   a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)
+  ok   while mutation-pin-plan runs it is the ONLY chain job listed (GitHub lists a job once its needs are met), and it holds the head
+  ok   a malformed runs page (no list) is unread, not settled
+  ok   PIN_CHAIN matches exactly tests.yml's four pin-chain jobs, none renamed by a `name:`
+  ok   an unreadable pin chain is None, never an empty (green) list
   ok   a ledger-only conflict the driver resolves is planned for a merge
+  ok   plan_one with no pin read passed fails CLOSED (skip-pins-unread), never as settled
+  ok   plan_pr (run()'s per-PR step) reads the head's pin chain: a running shard is skip-pins-running
+  ok   ... and the same head with its chain settled merges (null control)
+  ok   the runs read pages past the first 100 runs (the Tests run on page 2 still holds the head)
+  ok   the same head with its pin chain running is not merged (plan_one asks the chain)
+  ok   the chain is read only for a head every other condition would merge (no API call otherwise)
   ok   the commit is a merge of main into the head, first parent the head
   ok   its whole message is the subject pr-contract accepts
   ok   its tree holds both sides' ledger lines and the branch's own file
@@ -22,4 +38,4 @@
   ok   branch '$(id)' is skipped
   ok   branch '-x' is skipped
   ok   branch 'a b' is skipped
-merge_main_bot self-test: 24 checks, 0 failed
+merge_main_bot self-test: 40 checks, 0 failed

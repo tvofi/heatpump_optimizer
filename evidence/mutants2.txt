@@ -1,0 +1,22 @@
+RESULT mutant M1-del-unread KILLED rc=1 fails=2 | FAIL decide: a pin-chain read that failed is left alone too (fail closed)  [merge]
+RESULT mutant M2-del-running KILLED rc=1 fails=4 | FAIL decide: a mergeable-by-driver head whose pin chain still runs is left alone  [merge]
+RESULT mutant M3-no-second-decide KILLED rc=1 fails=4 | FAIL plan_one with no pin read passed fails CLOSED (skip-pins-unread), never as settled  [merge]
+RESULT mutant M4-except-failopen KILLED rc=1 fails=2 | FAIL a malformed runs page (no list) is unread, not settled  []
+RESULT mutant M5-read-completed-runs KILLED rc=1 fails=2 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M6-count-completed-jobs KILLED rc=1 fails=3 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M7-regex-no-autofix KILLED rc=1 fails=3 | FAIL a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)  []
+RESULT mutant M8-regex-no-bare-mutation KILLED rc=1 fails=2 | FAIL a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)  []
+RESULT mutant M9-regex-no-pin-plan KILLED rc=1 fails=2 | FAIL while mutation-pin-plan runs it is the ONLY chain job listed (GitHub lists a job once its needs are met),
+RESULT mutant M10-regex-unanchored-end KILLED rc=1 fails=2 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M11-run-unwired SURVIVED rc=0 fails=0 
+RESULT mutant M11b-planpr-unwired KILLED rc=1 fails=3 | FAIL plan_pr (run()'s per-PR step) reads the head's pin chain: a running shard is skip-pins-running  ['skip-pi
+RESULT mutant M11c-planpr-default-api KILLED rc=1 fails=3 | FAIL plan_pr (run()'s per-PR step) reads the head's pin chain: a running shard is skip-pins-running  ['skip-pi
+RESULT mutant M11d-default-failopen KILLED rc=1 fails=1 | FAIL plan_one with no pin read passed fails CLOSED (skip-pins-unread), never as settled  [merge]
+RESULT mutant M18-no-pagination KILLED rc=1 fails=1 | FAIL the runs read pages past the first 100 runs (the Tests run on page 2 still holds the head)  ['merge']
+RESULT mutant M19-pagination-overflow-failopen SURVIVED rc=0 fails=0 
+RESULT mutant M12-pins-first KILLED rc=1 fails=1 | FAIL decide: the earlier refusals still decide first (a clean head is skip-not-dirty, pins or not)  []
+RESULT mutant M13-regex-no-matrix-suffix KILLED rc=1 fails=2 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M14-headsha-dropped KILLED rc=1 fails=1 | FAIL pins_running names the pin-chain jobs of a run still in progress at the head, and no other job (a complet
+RESULT mutant M15-skip-queued-runs KILLED rc=1 fails=1 | FAIL a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)  []
+RESULT mutant M16-catch-typeerror-dropped KILLED rc=1 fails=0 TypeError: 'NoneType' object is not iterable
+RESULT mutant M17-read-pins-always KILLED rc=1 fails=0 AssertionError: the pin chain was read for a head that does not merge anyway
