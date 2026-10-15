@@ -11249,7 +11249,7 @@ check("without an indoor reading the corner now label is absent",
   const helperAt = srcLines.findIndex((l) => /^async function openHaLink\(/.test(l));
   const helperEnd = srcLines.findIndex((l, i) => i > helperAt && l === "}");
   const sites = srcLines.map((l, i) => [l, i + 1])
-    .filter(([l, i]) => /\b(navigateTo|openHaLink)\(/.test(l) && !/^(async )?function /.test(l)
+    .filter(([l, i]) => /\b(navigateTo|openHaLink)\(/.test(l.replace(/^(async )?function (navigateTo|openHaLink)\(/, ""))
       && !(i - 1 > helperAt && i - 1 < helperEnd && /navigateTo\(/.test(l)))
     .map(([, i]) => i);
   const unreached = sites.filter((i) => !hits.has(i));
@@ -11261,6 +11261,20 @@ check("without an indoor reading the corner now label is absent",
   const stale = Object.keys(PENDING).filter((k) => !seen[k] || [...seen[k]].every((p) => built.has(p)));
   check("every LINK_PENDING row still names a button that emits an unconverted link",
     stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
+  // ARCH2-s5 C2: the in-card deep link into a Setup slot opens that slot's
+  // picker, and hands focus into it only when the press came from the keyboard
+  // (a click with detail 0), so a mouse user is never left with a stuck ring.
+  const openSetupSlot = fn("openSetupSlot");
+  const viaKeys = open("advisor");
+  openSetupSlot(viaKeys, "heat_pump_power_entity", { detail: 0 });
+  const viaMouse = open("advisor");
+  openSetupSlot(viaMouse, "heat_pump_power_entity", { detail: 1 });
+  check("openSetupSlot opens the slot's picker, focused only from the keyboard",
+    viaKeys.dialog.page === "setup" && viaKeys.setup.pickerKey === "heat_pump_power_entity"
+    && viaKeys.setup.pickerFocus === true && viaKeys.setup.pickerViaKeyboard === true
+    && viaMouse.setup.pickerKey === "heat_pump_power_entity"
+    && viaMouse.setup.pickerFocus === false && viaMouse.setup.pickerViaKeyboard === false,
+    `keys ${viaKeys.setup.pickerFocus}/${viaKeys.setup.pickerViaKeyboard} mouse ${viaMouse.setup.pickerFocus}/${viaMouse.setup.pickerViaKeyboard}`);
   const pushSites = (cardSrc.match(/\.pushState\(/g) || []).length;
   check("navigateTo is the card's only history write, so the census's sink sees every link",
     pushSites === 1 && !/window\.open\(|location\.(href|assign|replace)\b/.test(cardSrc), `pushState sites ${pushSites}`);
