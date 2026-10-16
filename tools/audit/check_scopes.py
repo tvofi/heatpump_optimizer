@@ -102,7 +102,7 @@ def main():
             break
     sys.path.insert(0, str(_repo / "tests"))
     from layout import locate as _locate_scopes
-    ap.add_argument("--scopes", default=str(_repo / _locate_scopes("tools/audit/scopes.json", root=_repo)))
+    ap.add_argument("--scopes", default=str(_repo / _locate_scopes("dev/audit/config/scopes.json", root=_repo)))
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--seat", help="print the cells this seat (D<k>-s<n>) owns and exit")
     a = ap.parse_args()
@@ -131,12 +131,18 @@ def main():
     seats = sum(len(d["seats"]) for k, d in scopes.items() if not k.startswith("_"))
     print(f"ref={subprocess.check_output(['git','-C',a.repo,'rev-parse',a.ref],text=True).strip()} seats={seats}")
     if a.self_test:
-        bad = copy.deepcopy(scopes)
-        bad["D1"]["seats"]["s2"].append(copy.deepcopy(bad["D1"]["seats"]["s1"][0]))
-        bad["D2"]["seats"]["s4"] = [{"files": ["**"], "steps": []}]
-        res = check(bad, tree, loc)
-        print("SELF-TEST", "passed (perturbed scopes refused)" if not res else "FAILED (perturbed scopes accepted)")
-        sys.exit(0 if not res else 1)
+        # Two perturbations, each checked alone so neither masks the other: a
+        # block owned twice (D1's first seat's block copied into its second) and
+        # cells owned by nobody (D2's last seat emptied). Seat keys are read off
+        # the file, never named, so a re-cut cannot turn either into a no-op.
+        twice = copy.deepcopy(scopes)
+        s1, s2 = list(twice["D1"]["seats"])[:2]
+        twice["D1"]["seats"][s2].append(copy.deepcopy(twice["D1"]["seats"][s1][0]))
+        none = copy.deepcopy(scopes)
+        none["D2"]["seats"][list(none["D2"]["seats"])[-1]] = [{"files": ["**"], "steps": []}]
+        res = [check(bad, tree, loc) for bad in (twice, none)]
+        print("SELF-TEST", "passed (both perturbed scopes refused)" if not any(res) else f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]})")
+        sys.exit(0 if not any(res) else 1)
     sys.exit(0 if check(scopes, tree, loc) else 1)
 
 main()
