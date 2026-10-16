@@ -52,8 +52,8 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
 | C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
 | C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
-| C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10) | 21 |
-| C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)` | 22 |
+| C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import (27) and as a constant-name `import_module` (26), each of them runtime code | 21, 24, 25, 26, 27 |
+| C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27) and through a constant-name `import_module` (26) | 22, 26, 27 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
@@ -124,6 +124,28 @@ module extracted from the glue is glue, and no recorded corpus verdict moves (`c
 after `--measure-corpus --only-metric layering`). `56cb0027` (GOOD, already WORSENS on `duplication_copies`)
 also rises on `layer_violations`: its unit read made `price_model`, a pure module, reach Home Assistant through
 `inputs`.
+
+Round-1 review (`#2320`) found the rule's residual was wider than the sentence claimed, and the four seams it
+named are closed here, each with its attempt: the `else` of `if TYPE_CHECKING:` (24), which runs; `if not
+TYPE_CHECKING:` (25), true away from a type checker; a constant-name `importlib.import_module` (26), relative and
+anchored on `__package__` too; and the absolute self-import `from <pkg>.m import _x` (27). All four read IMPROVES
+against the round-1 instrument and NULL against this one, so the property is the census's, not the plant's. The
+guard itself is now read as the whole of a positive `if TYPE_CHECKING:` `body`, no more: `_type_checking_guard`
+in `metrics/common.py` takes the bare sentinel, and a `TYPE_CHECKING` the module rebinds is not typing's, so the
+branch runs and its imports count. `a3_layer_violations_null` carries an annotation-only `if TYPE_CHECKING:`
+import of the optimizer on `drift.py` so the exclusion is measured in both directions: with the exclusion read it
+is NULL, with it ignored the pure module gains the solver and the case reads WORSENS.
+
+What it does not see, and no rule here closes:
+
+- a private crossing spelled outside C18's three: `getattr(_o, "_utc" + "_step_starts")`, `vars(_o)["_utc_step_starts"]`,
+  and `_m = _o; _m._utc_step_starts`. Each reads the same private of the same module and drops the crossing.
+- a dynamic import whose name is computed, `exec`, and an import bound by a rebind rather than an import statement.
+- C19's tripwire keys on "never read", and one bare read satisfies it: an unread `import scipy` plus `assert scipy`
+  climbs a layer and leaves `unused_boundary_imports` unmoved.
+- `a3_private_cross_module_fix` is a pure rename of a private to a public name. Declaring a private public is a
+  real change to an API and the metric is right to credit it, but it is this metric's cheapest move, and a D7
+  brief quoting the counter should say so rather than read it as a decoupling.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 

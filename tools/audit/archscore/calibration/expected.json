@@ -1091,5 +1091,29 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "WORSENS"
+ },
+ "rt_24_layer_guarded_else": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_25_layer_negated_guard": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_26_layer_import_module": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_27_layer_absolute_self_import": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  }
 }
