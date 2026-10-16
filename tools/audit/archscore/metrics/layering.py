@@ -181,10 +181,9 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
                         crossings.add(f"{m} -> {target}.{name}" if name else f"{m} -> {target}")
 
         for n in C.walk(mod.tree):
-            if live is not None and id(n) not in live:
-                continue
+            runs_late = live is not None and id(n) not in live  # C17 off: a function's imports are no edge
             if isinstance(n, (ast.Import, ast.ImportFrom)):
-                if id(n) in pkg.type_checking_imports:
+                if id(n) in pkg.type_checking_imports or runs_late:
                     continue
                 if isinstance(n, ast.ImportFrom) and n.level:
                     link(_targets(pkg, m, _relative_src(m, n.level, n.module), [a.name for a in n.names]))
@@ -201,7 +200,8 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
                             link([(src, "")] if src in pkg.mods else [])
                         else:
                             ext[m].add(a.name.split(".")[0])
-            elif isinstance(n, ast.Call) and RUNTIME_SPELLINGS and (t := _import_module_target(m, n)) is not None:
+            elif isinstance(n, ast.Call) and RUNTIME_SPELLINGS and not runs_late \
+                    and (t := _import_module_target(m, n)) is not None:
                 link([(t, "")] if t in pkg.mods else [])
             if not PRIVATE_ATTRS:
                 continue
