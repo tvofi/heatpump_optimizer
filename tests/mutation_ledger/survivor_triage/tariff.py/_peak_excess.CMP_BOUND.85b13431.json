@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_peak_excess CMP_BOUND 85b13431",
+  "old": "    if bill.price_per_kw <= 0 or not np.isfinite(bill.threshold_kw):",
+  "reason": "R10-TARIFF (#2282): The nothing-chargeable guard, its text changed only by R10-TARIFF's PeakBilling record (unpinned at base 5603ee319 as `if price_per_kw <= 0 or not np.isfinite(threshold_kw):`, tariff.py:810). `<= 0` -> `< 0` differs only at a price of exactly 0, where the guard-off path computes the excess and _peak_charge returns `0.0 * top_sum` = 0.0, the answer the guard's None gives. Equivalent. Survival measured by CI's mutation-pins run 38796525102 at f09549085: no driver killed it.",
+  "verdict": "equivalent"
+}
