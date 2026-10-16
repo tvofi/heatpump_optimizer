@@ -1,0 +1,6 @@
+78 passed, 3 failed
+  ok   A QUERY THAT FAILED IS unknown, NOT none -- the shape the fix review blocked on
+  ok   and a failing status outranks even a well-formed listing (rc is read first)
+  ok   a query that failed while a pull request exists does NOT select push-then-create
+  ok   and the refusal keeps its message and names the stage that failed
+  ok   and names the failed read, not a difference (the read's status is read)

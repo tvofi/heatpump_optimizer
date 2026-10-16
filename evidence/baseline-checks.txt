@@ -1,10 +1,11 @@
-rc=0 5s python3 -I tools/audit/seat/ref_privacy.py --self-test :: ref_privacy self-test: 45 checks, 0 failed
-rc=0 0s python3 -I tools/audit/seat/ref_privacy.py --check :: ref_privacy --check at HEAD: 16 file(s) with a push site, 9 guarded, 0 refused
-rc=0 22s python3 tools/audit/seat/state_docs.py --self-test :: state_docs self-test: all checks passed
-rc=0 31s python3 tools/audit/seat/roster_edit.py --self-test :: roster_edit self-test: 47 checks, 0 failed
-rc=0 47s bash tools/pr/app_push.sh --self-test :: app_push self-test: 127 checks, 0 failed
-rc=0 8s bash tools/pr/push.sh --self-test :: 77 passed, 0 failed
-rc=0 44s bash tools/audit/seat/bus.sh --self-test :: bus self-test: 63 checks, 0 failed
-rc=0 0s python3 -I tools/audit/seat/prune_refs.py --self-test :: SELF-TEST PASS (24 checks)
-rc=0 3s python3 tools/release/stamp.py --self-test :: RESULT stamp_self_test=pass
-rc=0 0s python3 -I tools/audit/seat/tmp_paths.py --self-test :: tmp_paths self-test: 50 checks, 0 failed
+rc=0 python3 -I tools/audit/seat/ref_privacy.py --self-test :: ref_privacy self-test: 47 checks, 0 failed
+rc=0 python3 -I tools/audit/seat/ref_privacy.py --check :: ref_privacy --check at HEAD: 17 file(s) with a push site, 9 guarded, 0 refused
+rc=0 python3 tools/audit/seat/state_docs.py --self-test :: state_docs self-test: all checks passed
+rc=0 python3 tools/audit/seat/roster_edit.py --self-test :: roster_edit self-test: 47 checks, 0 failed
+rc=0 bash tools/pr/app_push.sh --self-test :: app_push self-test: 127 checks, 0 failed
+rc=0 bash tools/pr/push.sh --self-test :: 81 passed, 0 failed
+rc=0 bash tools/audit/seat/bus.sh --self-test :: bus self-test: 63 checks, 0 failed
+rc=0 python3 -I tools/audit/seat/prune_refs.py --self-test :: SELF-TEST PASS (24 checks)
+rc=0 python3 tools/release/stamp.py --self-test :: RESULT stamp_self_test=pass
+rc=0 python3 -I tools/audit/seat/tmp_paths.py --self-test :: tmp_paths self-test: 50 checks, 0 failed
+rc=0 python3 -I tools/audit/seat/tmp_paths.py --check :: tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since dec1a2645534

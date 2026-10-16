@@ -21,7 +21,7 @@
   ok   a git identity at a private-use domain is refused (round 2)
   ok   and one at this host's own name, short or full
   ok   a noreply address passes, even naming the account (the null control)
-  ok   the host identity reads a home, and judges no public account
+  ok   the host identity reads a home and a hostname, and judges no public account
   ok   --commits judges the local commit only, not the one origin holds
   ok   the guard CLI refuses an unpushed commit naming the scratch path, exit 3
   ok   and passes the same branch one commit earlier (the null control)
@@ -39,8 +39,10 @@
   ok   git spelled through a variable is a site, and $GIT_DIR is not (round 2)
   ok   a gh api ref write is a site: -f, -F, -X PATCH, a createRef mutation (round 2)
   ok   and a gh api ref read or DELETE is not (the null control)
+  ok   a release that makes a tag is a site: gh release create, gh api .../releases with a field (round 3)
+  ok   and a release read is not (the null control)
   ok   an unregistered pusher is refused
   ok   a stale entry is refused
   ok   guarded files that call the guard pass (the null control)
   ok   a guarded entry that calls no guard is refused
-ref_privacy self-test: 45 checks, 0 failed
+ref_privacy self-test: 47 checks, 0 failed

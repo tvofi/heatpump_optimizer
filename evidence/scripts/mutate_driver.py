@@ -27,7 +27,7 @@ M = [
  ("M8 roster_edit guard neutered", [("tools/audit/seat/roster_edit.py",'        if why:\n            raise Refuse(f"{why} would publish this host (#2310); nothing written")','        if False:\n            raise Refuse(f"{why} would publish this host (#2310); nothing written")')], ["RE_ST","RP_CK"]),
  ("M9 app_push guard deleted", [("tools/pr/app_push.sh",'  python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$br" --commits "$head" -C "$wt" \\\n    || die "the branch or a commit it publishes would publish this host (#2310); NOTHING was minted or pushed"\n',"")], ["AP_ST","RP_CK"]),
  ("M10 bus guard deleted", [("tools/audit/seat/bus.sh",'  python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard --ref "$fam/$pr" --message "$msg" \\\n    || { printf \'bus: REFUSE: %s/%s would publish this host (#2310)\\n\' "$fam" "$pr" >&2; return 1; }\n',"")], ["BUS_ST","RP_CK"]),
- ("M11 push.sh guard deleted", [("tools/pr/push.sh",'  python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$BR" --commits HEAD \\\n    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310)"; exit 5; }\n',"")], ["PS_ST","RP_CK"]),
+ ("M11 push.sh guard deleted", [("tools/pr/push.sh",'  python3 -I "$RP_GUARD" guard --ref "$BR" --commits HEAD \\\n    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310)"; exit 5; }\n',"")], ["PS_ST","RP_CK"]),
  ("M12 stamp guard deleted", [("tools/release/stamp.py",'    why = title_refusal(args.title)\n    if why:\n        raise Refuse("title", why + " would publish this host; nothing was written")\n',"")], ["RP_CK","STAMP_ST","STAMP_TITLE"]),
  ("M13 wt_sync orchestrator-scratch guard deleted", [(WT,'python3 -I "$RP" guard --ref wip-sync/orchestrator-scratch --message "$msg" || exit 3\n',"")], ["RP_ST","RP_CK"]),
  ("M14 bus guard bypassed by name (true ||)", [("tools/audit/seat/bus.sh",'  python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard','  true || python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard')], ["BUS_ST","RP_CK"]),
@@ -55,8 +55,12 @@ M = [
  ("N6 of_host reads no hostname", [(RPF,'uid, {socket.gethostname()})','uid, set())')], ["RP_ST"]),
  ("N7 guard CLI drops the emails", [(RPF,'        why = refusal(ref, messages, None, emails)','        why = refusal(ref, messages)')], ["RP_ST"]),
  ("N8 createRef/updateRef arm dropped", [(RPF,'    r"|\\bgh\\b[^\\n]*?\\bapi\\b[^\\n]*\\b(?:createRef|updateRef)\\b"\n','')], ["RP_ST"]),
- ("N9 grep prefilter loses git/refs", [(RPF,'r"\\bpush\\b|git/(refs|tags)|createRef|updateRef"','r"\\bpush\\b"')], ["RP_ST","RP_CK"]),
+ ("N9 grep prefilter loses git/refs", [(RPF,'|git/(refs|tags)|createRef','|createRef')], ["RP_ST","RP_CK"]),
  ("N10 tmp_paths home-abs off the shared grammar", [("tools/audit/seat/tmp_paths.py",'re.compile(ref_privacy.HOME_DIR + "/")','re.compile(r"/Users/[\\w.-]+/")')], ["TP_ST"]),
+ ("N11 gh release create arm dropped", [(RPF,'    r"|\\bgh\\s+release\\s+create\\b"\n','')], ["RP_ST","RP_CK"]),
+ ("N12 releases-API arm dropped", [(RPF,'    r"|\\bgh\\b[^\\n]*?\\bapi\\b(?=[^\\n]*/releases\\b)(?=[^\\n]*" + _GH_WRITE + r")"\n','')], ["RP_ST"]),
+ ("N13 push.sh guard bypassed by name (true ||)", [("tools/pr/push.sh",'  python3 -I "$RP_GUARD" guard','  true || python3 -I "$RP_GUARD" guard')], ["PS_ST","RP_CK"]),
+ ("N14 grep prefilter loses release create", [(RPF,'|release +create|/releases"','"')], ["RP_ST","RP_CK"]),
 ]
 def sh(cmd): return subprocess.run(cmd, cwd=MUT, capture_output=True, text=True)
 for name, edits, checks in M:

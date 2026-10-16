@@ -1,0 +1,2 @@
+origin refs: 2334; refused under host identity: 0; wip-sync refs: 42; by first slug word: {'ext': 42}
+wip-sync tips fetched: 43; tips whose name, message or identity the guard refuses: 0
