@@ -267,7 +267,8 @@ INERT = (
     # docs/, .claude/rules/ and tools/audit/briefs/. They are prose. The
     # living handover is the hole is_handover cuts, under dev/programme/ as
     # well as under docs/ so a second copy put back in the old place is
-    # unclassified rather than inert.
+    # unclassified rather than inert. `_is_citation_source` below reads the
+    # roles and dimensions contracts and a carry's JSON back out of the prefix.
     "dev/governance/",
     "dev/programme/",
     # tests/README.md was here until #938: entities.py now reads the
@@ -326,19 +327,22 @@ INERT = (
     "tools/coverage/",
     "tools/devices/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
-    # under tests/ reads them. Same reason `.claude/` is here.
+    # under tests/ reads them. Same reason `.claude/` is here -- save the
+    # policy files `_is_citation_source` below reads back out of it.
     ".cursor/",
     # Orientation for a session that starts cold. Claude Code loads a root
     # CLAUDE.md automatically, which is the whole reason it cannot live under
-    # docs/ with the rest of the prose. Nothing under tests/ reads it -- unlike
-    # README.md and RELEASE_NOTES.md above, which entities.py checks against the
-    # code and which are therefore dependencies rather than inert.
+    # docs/ with the rest of the prose. Nothing under tests/ reads it for its
+    # own checks -- unlike README.md and RELEASE_NOTES.md above, which
+    # entities.py checks against the code. It is a citation SOURCE, though, so
+    # `_is_citation_source` below takes it back off this list for the #2227 arm.
     "CLAUDE.md",
     # The harness-neutral twin of the entry above: ZCode and Codex auto-load a
     # root AGENTS.md instead of CLAUDE.md. It defers to CLAUDE.md and states no
-    # policy of its own, and nothing under tests/ reads it either. It is still
+    # policy of its own, and no check reads it either -- except as a citation
+    # source, on the entry above's terms. It is still
     # measured policy -- POLICY_GLOBS matches it and policy_budgets.json caps
-    # it -- only this gate has no dependency on it.
+    # it -- only this gate has no dependency on it beyond that.
     "AGENTS.md",
     "DISCLAIMER.md",
     # The quality-scale register (#229) sat here from #229 to #951: no gate
@@ -351,7 +355,9 @@ INERT = (
     # still skips it for custom repos; that is about the external checker,
     # not this gate.
     # The pull-request template. GitHub renders it into a new body; no gate
-    # script reads it. It is NOT under `.github/workflows/`, so the GATE_FILES
+    # script reads it as a body, though `_is_citation_source` below reads it as
+    # a citation source for the #2227 arm. It is NOT under
+    # `.github/workflows/`, so the GATE_FILES
     # prefix above does not cover it, and an unclassified file forces the whole
     # suite -- which is how a template edit would otherwise cost a full run.
     # Its headings ARE checked, by policy_lint's pr-body class against the

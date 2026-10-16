@@ -29736,18 +29736,25 @@ R.check(
 # That is the late-gate shape #518 (the handover) and #533 (the nightly lane)
 # each closed by reading the file here, and this is the same move for the
 # sources this arm reads (#2312, F2). The gate's own `select` decides, so this
-# pins the mechanism rather than a copy of the closure table.
+# pins the mechanism rather than a copy of the closure table: a source that is
+# still INERT is the #357 contradiction the worktree read would create, and one
+# that selects no script (or the whole suite) is the skip that hid the finding.
 _sp_sources = [*_SP_CARRIES, *_SP_POLICY]
-_sp_unselected = sorted(f for f in _sp_sources
-                        if "tests/entities.py" not in _closure.select([f])["run"])
+_sp_inert = sorted(f for f in _sp_sources if _closure.is_inert(f))
+_sp_select = {f: _closure.select([f]) for f in _sp_sources}
+_sp_unselected = sorted(
+    f for f, r in _sp_select.items()
+    if "tests/entities.py" not in r["run"] or r["mode"] != "scoped")
 R.check(
     "every carry and every policy file this arm reads for citations selects "
     "this script, so a broken citation added to one is refused on the pull "
     "request and not on the next merge to main (#2312, F2)",
-    len(_SP_CARRIES) >= 1 and len(_SP_POLICY) >= 20 and not _sp_unselected,
+    len(_SP_CARRIES) >= 1 and len(_SP_POLICY) >= 20
+    and not _sp_inert and not _sp_unselected,
     f"citation sources left INERT (an edit to one selects no script, so the arm "
-    f"never runs on the PR that adds the broken citation): {_sp_unselected[:8]}"
-    f"{' ...' if len(_sp_unselected) > 8 else ''} of {len(_sp_sources)}",
+    f"never runs on the PR that adds the broken citation): {_sp_inert[:6]}"
+    f"{' ...' if len(_sp_inert) > 6 else ''}; selecting no script or the whole "
+    f"suite: {_sp_unselected[:6]} of {len(_sp_sources)}",
 )
 
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
