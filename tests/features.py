@@ -63523,6 +63523,11 @@ R.check(
 for _ec_fn in list(_ec_wired.entry._on_unload):
     _ec_fn()
 R.check(
+    "arming twice registers one unload hook, not one per cycle",
+    len(_ec_wired.entry._on_unload) == 1,
+    f"{len(_ec_wired.entry._on_unload)}",
+)
+R.check(
     "unloading the entry drops the listener",
     _ec.state_for(_ec_wired).unsub is None,
 )
