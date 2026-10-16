@@ -15207,14 +15207,22 @@ R.check(
 
 
 def _gl_auto_lease() -> tuple[bool, str]:
-    """run.sh leases a FULL or stress run itself; a second one waits."""
+    """run.sh leases a FULL or stress run itself; a second one waits.
+
+    The classifier is driven at all three answers: the exclusive lease for the
+    machine-measuring scripts, a slot for the multi-minute CPU ones, none for
+    the seconds side (R10-PREPR-CAP, #2267).
+    """
     import threading
     with _tempfile.TemporaryDirectory() as td:
         d, seen = Path(td) / "lock", Path(td) / "seen"
         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+        seconds = Path(td) / "c.run"
         scoped.write_text("tests/entities.py\n")
         stress.write_text("tests/entities.py\ntests/stress.py\n")
-        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
+        seconds.write_text("tests/structure.py\n")
+        need = [_gate_lock.needs_lease(s)
+                for s in ("", str(stress), str(scoped), str(seconds))]
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         child = ("import os, sys; from pathlib import Path; "
                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
@@ -15232,10 +15240,41 @@ def _gl_auto_lease() -> tuple[bool, str]:
         finally:
             _gate_lock.WAIT_POLL_SECS = poll
         text = seen.read_text() if seen.exists() else ""
-        ok = (need == [True, True, False] and waited and out == [3]
+        ok = (need == ["lease", "lease", "slot", "none"] and waited and out == [3]
               and "label=auto" in text and text.endswith("auto")
               and _gate_lock.read_owner(d) is None)
         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+
+
+def _gl_slot_count() -> tuple[bool, str]:
+    """The pool's capacity is the cap unless the OWNER raises it (#2267).
+
+    The predicate is the CLAMP, not the number: an override below the cap is
+    honoured and one above it is refused without the owner's mark, so a seat
+    cannot widen the box's concurrency by exporting one variable. The owner arm
+    is the null control -- the same `8` is honoured once the mark is present.
+    """
+    import os as _os
+    saved = {k: _os.environ.get(k)
+             for k in (_gate_lock.SLOTS_ENV, _gate_lock.SLOTS_OWNER_ENV)}
+    try:
+        got = []
+        for value, owner in ((None, None), ("3", None), ("8", None),
+                             ("8", "1"), ("junk", None), ("0", None)):
+            for key, val in ((_gate_lock.SLOTS_ENV, value),
+                             (_gate_lock.SLOTS_OWNER_ENV, owner)):
+                _os.environ.pop(key, None)
+                if val is not None:
+                    _os.environ[key] = val
+            got.append(_gate_lock.heavy_slots())
+        want = [_gate_lock.HEAVY_SLOTS, 3, _gate_lock.HEAVY_SLOTS, 8,
+                _gate_lock.HEAVY_SLOTS, _gate_lock.HEAVY_SLOTS]
+        return got == want, f"heavy_slots over (unset,3,8,8+owner,junk,0)={got}"
+    finally:
+        for key, val in saved.items():
+            _os.environ.pop(key, None)
+            if val is not None:
+                _os.environ[key] = val
 
 
 def _gl_lease_hardening() -> tuple[bool, str]:
@@ -15354,11 +15393,19 @@ def _gl_lease_hardening() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_auto_lease()
 _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
+_gl_line = 'answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)'
 R.check(
-    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
-    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
-    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
+    "run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits",
+    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2
+    and _run_sh.count('slot-auto-lease --label "run.sh-$$"') == 1,
+    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none', "
+    "and give a 'slot' answer the pool rather than the exclusive lease",
+)
+_gl_count_ok, _gl_count_detail = _gl_slot_count()
+R.check(
+    "the heavy-slot capacity is the cap unless the owner raises it (#2267)",
+    _gl_count_ok,
+    _gl_count_detail,
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)

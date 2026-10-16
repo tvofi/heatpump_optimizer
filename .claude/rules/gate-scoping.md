@@ -13,17 +13,18 @@ against your merge base:
 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
 ```
 
-**A shallow clone or a stale cached `origin/main` is the environment, not the
-tree.** `tests/entities.py`'s history checks go red on a shallow clone; `git
-fetch --unshallow origin main` clears it (#1693, #1704), and a long-lived
-checkout's cached ref can sit behind the tip: fetch first (#1699).
+**A shallow clone or a stale cached `origin/main` is the environment, not the tree.** `tests/entities.py`'s history
+checks go red on a shallow clone; `git fetch --unshallow origin main` clears it, and a cached ref can sit behind the tip (#1693, #1699, #1704).
 
-`/tmp/hpo-gate.lock` serialises `tests/stress.py`, which measures the machine
-while it solves; `run.sh` and `mutation_table.py` take it per `stress.py` run alone,
-so every other script runs unleased. It is first come, first served, and a ticket
-whose process died or expired is skipped. A seat that waited one lease period
-may leave `stress.py` to CI and name it unrun in the body. Hold it by hand only
-to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
+`/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
+which a script takes: `lease`, exclusive, for the scripts that measure the machine
+(`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
+of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
+`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
+slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
+or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
+to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
+§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
 
 ```
 python3 tests/gate_lock.py take --label <your-label>
@@ -31,10 +32,8 @@ python3 tests/gate_lock.py renew --label <your-label>   # between commands
 python3 tests/gate_lock.py release --label <your-label>
 ```
 
-The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75
-while another label waits: finish the current `stress.py` run, release, and take
-again behind it; `run.sh` under your `HPO_GATE_LOCK_LABEL` does this itself, and
-fails at once on a label you did not take; an expired or abandoned hold is free.
+The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75 while another
+label waits: finish the run, release, and take again behind it; `run.sh` under `HPO_GATE_LOCK_LABEL` renews itself.
 
 **The mypy census runs here too, when you have the pins.** `HPO_TYPING_PYTHON`
 points the ruler at an interpreter carrying them; unset it prints the install

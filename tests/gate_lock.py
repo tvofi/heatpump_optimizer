@@ -24,18 +24,21 @@ process is gone or whose ticket expired is skipped and removed. ``renew``
 refuses (``RENEW_REFUSED_RC``) while another label's ticket waits: the holder
 finishes its current run, releases, and takes again behind the waiter.
 
-That single lease serialises the one command that must run alone. Commands that
-may share the box up to a cap take instead from the heavy-slot POOL
-(``take_slot``/``release_slot``, ``HEAVY_SLOTS`` slots under the `slots`
-subdirectory; #2267). The pool reuses the same owner file, expiry, ticket
-queue and steal rules over a fixed set of slot files, and is what makes the
-orchestrator's four-prepr cap mechanical instead of advisory.
+That single lease serialises the commands that must run ALONE -- those that
+measure the machine, so their numbers are comparable only with nothing else
+running: ``stress.py`` and ``harness_headers.py``. Commands that are
+multi-minute CPU-bound but do not measure take instead from the heavy-slot
+POOL (``take_slot``/``release_slot``, ``heavy_slots()`` slots under the `slots`
+subdirectory; #2267), which is what makes nudge.md's four-prepr cap mechanical
+instead of advisory. ``needs_lease`` classifies a scope into the three answers
+``run.sh`` dispatches on: ``lease``, ``slot`` or ``none``.
 """
 from __future__ import annotations
 
 import argparse
 import contextlib
 import fcntl
+import json
 import os
 import signal
 import subprocess
@@ -73,6 +76,19 @@ TICKET_PREFIX = "ticket-"
 HEAVY_SLOTS = 4
 SLOT_PREFIX = "slot-"
 POOL_DIRNAME = "slots"
+# The slot-count override, and the owner's mark that lets it rise above the cap.
+SLOTS_ENV = "HPO_HEAVY_SLOTS"
+SLOTS_OWNER_ENV = "HPO_HEAVY_SLOTS_OWNER"
+# The label a slot holder exports so its nested heavy steps join that slot
+# instead of taking a second (prepr.sh's step 1b sets it; derive_closures.sh
+# and run.sh's lease arm read it).
+SLOT_LABEL_ENV = "HPO_SLOT_LABEL"
+# The recordings (tests/closures.json's `recorded.seconds`) at or above this are
+# the multi-minute CPU side: they join the slots. Below it they are seconds and
+# run unleased. stress.py (760 s) and harness_headers.py (100 s) measure the
+# machine and take the exclusive lease whatever this says.
+SLOT_MIN_SECONDS = 69
+MACHINE_MEASURING = ("tests/stress.py", "tests/harness_headers.py")
 # A waiter rewrites its ticket every poll; one this far past it is dead.
 TICKET_SECONDS = 60
 RENEW_REFUSED_RC = 75
@@ -491,7 +507,7 @@ def take_slot(
     label: str,
     *,
     lock_dir: Path = DEFAULT_LOCK_DIR,
-    slots: int = HEAVY_SLOTS,
+    slots: int | None = None,
     lease_seconds: int = LEASE_SECONDS,
     wait: bool = True,
     owner_pid: int | None = None,
@@ -502,8 +518,11 @@ def take_slot(
     caller queues behind older live tickets and takes the next slot to free, so
     a fifth caller waits rather than loading the box. ``owner_pid`` names a
     process that outlives the commands holding the slot, so a later take steals
-    a slot whose seat has exited (#1143).
+    a slot whose seat has exited (#1143). ``slots`` defaults to `heavy_slots()`,
+    the pool's own capacity.
     """
+    if slots is None:
+        slots = heavy_slots()
     if slots < 1:
         raise ValueError("slots must be at least 1")
     pool = pool_dir(lock_dir)
@@ -546,9 +565,10 @@ def take_slot(
 
 
 def release_slot(
-    label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int = HEAVY_SLOTS
+    label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int | None = None
 ) -> bool:
     """Free the one slot ``label`` holds. False when it held none."""
+    slots = heavy_slots() if slots is None else slots
     pool = pool_dir(lock_dir)
     mine = _slot_of(pool, slots, label)
     if mine is None:
@@ -559,8 +579,9 @@ def release_slot(
 
 
 def slots_status(
-    *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int = HEAVY_SLOTS
+    *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int | None = None
 ) -> dict[str, object]:
+    slots = heavy_slots() if slots is None else slots
     pool = pool_dir(lock_dir)
     holders: list[Owner | None] = []
     for i in range(slots):
@@ -571,6 +592,23 @@ def slots_status(
         "holders": holders,
         "queue": [who for _, who in _queue(pool)] if pool.exists() else [],
     }
+
+
+def slot_auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR,
+                    owner_pid: int | None = None) -> int:
+    """Take one heavy slot for ``argv``, run it with the slot's label exported,
+    and release on any exit -- run.sh's counterpart to ``auto_lease``.
+
+    ``HPO_SLOT_LABEL`` reaches the child, so a heavy step of ``argv`` that is
+    itself leased (a nested run.sh, derive_closures.sh) joins this slot instead
+    of taking a second."""
+    take_slot(label, lock_dir=lock_dir, owner_pid=owner_pid)
+    env = {**os.environ, SLOT_LABEL_ENV: label}
+    try:
+        return run_group(argv, env)
+    finally:
+        with contextlib.suppress(RuntimeError):
+            release_slot(label, lock_dir=lock_dir)
 
 
 def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
@@ -609,14 +647,85 @@ def run_group(argv: list[str], env: dict[str, str] | None = None, fd: int | None
                 continue
 
 
-def needs_lease(scope_run: str) -> bool:
-    """run.sh's derived mode decides, not a seat's prediction of it.
+def _recorded_seconds(script: str) -> float | None:
+    """``tests/closures.json``'s recorded runtime for ``script``, or None.
 
-    ``scope_run`` is run.sh's SCOPE_RUN: empty means MODE: FULL.
+    The classifier below is derived from this, never carried: a script that
+    gets heavier moves itself into the slots the next time the recordings are
+    re-taken. None means the table has no such script, which is a script the
+    tree has not run under instrumentation and so owes no slot.
+    """
+    recorded = Path(__file__).resolve().parent / "closures.json"
+    try:
+        data = json.loads(recorded.read_text())
+        entry = data.get("recorded", {}).get(script)
+    except (OSError, ValueError, AttributeError):
+        return None
+    return entry.get("seconds") if isinstance(entry, dict) else None
+
+
+def needs_lease(scope_run: str) -> str:
+    """``lease``, ``slot`` or ``none`` for the script(s) in run.sh's SCOPE_RUN.
+
+    The rule (gate-scoping.md): a script that MEASURES the machine runs alone,
+    under the exclusive lease; one that is multi-minute CPU-bound joins the
+    four slots; one that takes seconds runs unleased. ``scope_run`` is run.sh's
+    SCOPE_RUN file; empty means MODE: FULL, whose suite carries stress.py, so
+    an empty scope is the exclusive lease.
+
+    Fail closed: a scope this cannot classify -- a recording table it cannot
+    read, or a name it does not know -- is leased rather than left unleased,
+    so the unclassified case costs serialisation and never concurrency.
     """
     if not scope_run:
-        return True
-    return "tests/stress.py" in Path(scope_run).read_text().split()
+        return "lease"
+    try:
+        names = Path(scope_run).read_text().split()
+    except OSError:
+        return "lease"
+    if any(name in MACHINE_MEASURING for name in names):
+        return "lease"
+    table = Path(__file__).resolve().parent / "closures.json"
+    try:
+        json.loads(table.read_text()).get("recorded", {})
+    except (OSError, ValueError):
+        return "lease"
+    if any((s := _recorded_seconds(name)) is not None and s >= SLOT_MIN_SECONDS
+           for name in names):
+        return "slot"
+    return "none"
+
+
+def heavy_slots() -> int:
+    """The pool's capacity: ``HEAVY_SLOTS``, or ``$HPO_HEAVY_SLOTS`` within it.
+
+    Raising the cap ABOVE ``HEAVY_SLOTS`` is the owner's: the override is
+    honoured above the cap only with ``$HPO_HEAVY_SLOTS_OWNER`` set, so no seat
+    raises the box's concurrency by exporting one variable. A value that does
+    not parse, or is below 1, reads as the cap rather than as something else.
+    """
+    raw = os.environ.get(SLOTS_ENV)
+    if not raw:
+        return HEAVY_SLOTS
+    try:
+        count = int(raw)
+    except ValueError:
+        return HEAVY_SLOTS
+    if count < 1:
+        return HEAVY_SLOTS
+    if count > HEAVY_SLOTS and os.environ.get(SLOTS_OWNER_ENV) != "1":
+        return HEAVY_SLOTS
+    return count
+
+
+def holding_slot() -> bool:
+    """Whether ``$HPO_SLOT_LABEL`` says this process is already inside a slot.
+
+    A nested heavy step (derive_closures.sh under a prepr, a multi-minute suite
+    script under run.sh) joins the slot it was given instead of taking a
+    second, so one prepr costs one slot however many heavy steps it spawns.
+    """
+    return bool(os.environ.get(SLOT_LABEL_ENV))
 
 
 @contextlib.contextmanager
@@ -739,6 +848,12 @@ def _cmd_auto_lease(args: argparse.Namespace) -> int:
     return auto_lease(args.label, argv, lock_dir=args.lock_dir)
 
 
+def _cmd_slot_auto_lease(args: argparse.Namespace) -> int:
+    argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+    return slot_auto_lease(args.label, argv, lock_dir=args.lock_dir,
+                           owner_pid=args.owner_pid)
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -784,9 +899,11 @@ def _parser() -> argparse.ArgumentParser:
     wrap_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
     wrap_p.set_defaults(func=_cmd_flock_wrap)
 
-    nl_p = sub.add_parser("needs-lease", help="exit 0 if run.sh's scope needs the lease")
+    nl_p = sub.add_parser(
+        "needs-lease", help="print how run.sh's scope should run: lease|slot|none"
+    )
     nl_p.add_argument("scope_run", help="run.sh's SCOPE_RUN; empty means MODE: FULL")
-    nl_p.set_defaults(func=lambda a: print("lease" if needs_lease(a.scope_run) else "none"))
+    nl_p.set_defaults(func=lambda a: print(needs_lease(a.scope_run)))
 
     auto_p = sub.add_parser("auto-lease", help="take, hold flock for a command, release")
     auto_p.add_argument("--label", required=True)
@@ -797,7 +914,7 @@ def _parser() -> argparse.ArgumentParser:
         "slot-take", help="take one of the heavy slots (#2267)"
     )
     slot_take_p.add_argument("--label", required=True)
-    slot_take_p.add_argument("--slots", type=int, default=HEAVY_SLOTS)
+    slot_take_p.add_argument("--slots", type=int, default=None)
     slot_take_p.add_argument("--lease-seconds", type=int, default=LEASE_SECONDS)
     slot_take_p.add_argument("--no-wait", action="store_true")
     slot_take_p.add_argument("--owner-pid", type=int, default=None)
@@ -805,12 +922,20 @@ def _parser() -> argparse.ArgumentParser:
 
     slot_rel_p = sub.add_parser("slot-release", help="free the slot a label holds")
     slot_rel_p.add_argument("--label", required=True)
-    slot_rel_p.add_argument("--slots", type=int, default=HEAVY_SLOTS)
+    slot_rel_p.add_argument("--slots", type=int, default=None)
     slot_rel_p.set_defaults(func=_cmd_slot_release)
 
     slot_st_p = sub.add_parser("slot-status", help="print the heavy-slot pool state")
-    slot_st_p.add_argument("--slots", type=int, default=HEAVY_SLOTS)
+    slot_st_p.add_argument("--slots", type=int, default=None)
     slot_st_p.set_defaults(func=_cmd_slot_status)
+
+    slot_auto_p = sub.add_parser(
+        "slot-auto-lease", help="take a heavy slot, run a command inside it, release"
+    )
+    slot_auto_p.add_argument("--label", required=True)
+    slot_auto_p.add_argument("--owner-pid", type=int, default=None)
+    slot_auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
+    slot_auto_p.set_defaults(func=_cmd_slot_auto_lease)
 
     return p
 

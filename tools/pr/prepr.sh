@@ -293,9 +293,11 @@ claims_remedy() { # env_drift output file
 # record through `sys.addaudithook`, so any platform is sound for them; a node
 # recording on a machine without strace is not the recording CI compares, and
 # ci-autofix.md forbids it replacing a Linux one, so it is left to CI. A
-# script the gate lease guards (`gate_lock.py needs-lease`: stress.py, which
-# measures the machine) is left to CI too: a push is no place to wait on or
-# break another seat's lease.
+# script the EXCLUSIVE lease guards (`gate_lock.py needs-lease` answers `lease`:
+# stress.py and harness_headers.py, which measure the machine) is left to CI
+# too: a push is no place to take a lease another seat holds. A `slot` answer
+# is NOT deferred -- this run already holds a slot (step 1b), so the recording
+# runs inside it (R10-PREPR-CAP, #2267).
 closure_lane() { # script, strace present (1 or 0)
   local one; one=$(mktemp)
   printf '%s\n' "$1" > "$one"
@@ -1733,6 +1735,7 @@ EOS
   [ "$(closure_lane tests/card_drift.mjs 1)" = record ]; st $? 0 "and is recorded with it (null control)"
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
+  st "$(closure_lane tests/entities.py 1)" record 0 "a `slot` script is recorded here, inside the slot this run holds (#2267)"
 
   # The heavy steps' closure-reachability skips (`heavy_declared`, `heavy_plan`
   # and `heavy_skip` above), over a throwaway clone with one fixture branch per
@@ -2265,6 +2268,8 @@ PY
   st "$(grep -cF 'slot-take --label "$SLOT_LABEL"' <<<"$flow")" 1 "the main flow takes a heavy slot"
   st "$(grep -cF "slot-release --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and frees it on the way out, a mid-run refusal included"
   st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 1 "and the release preserves the run's own exit status"
+  st "$(grep -cF 'export HPO_SLOT_LABEL="$SLOT_LABEL"' <<<"$flow")" 1 "and exports its label, so a nested heavy step joins this slot"
+  st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
   slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
   st "$slot_order" ok "and takes it before the heavy steps begin"
   # The entry wires both before the first fixture is built: driving the two
@@ -2317,32 +2322,37 @@ case $? in
 esac
 
 # --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
-# WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and
-# its `--self-test` in step 3h is a nested chain of subprocesses that runs for
-# minutes. The cap of four the orchestrator holds by hand (nudge.md step 8) was
-# enforced by nothing: on 2026-10-14 ten ran at once and load1 reached 168 on 8
-# cores. `tests/gate_lock.py` already holds the EXCLUSIVE lease for stress.py;
-# its heavy-slot pool is the same lease mechanism over four slots, and this held
-# here for the whole run (released on any exit the shell sees; a SIGKILL leaves
-# the slot, which the next take steals once this process is gone, `--owner-pid`).
-# A fifth prepr waits at the back of the pool's queue, first come first served.
+# WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and its
+# steps -- the `--self-test` in 3h, the mutants drive, the closure recordings --
+# are minutes of CPU each. nudge.md §8's cap of four was advisory: the tick
+# counted and flagged it and nothing blocked a fifth, so on 2026-10-14 ten ran
+# at once and load1 reached 168 on 8 cores. `tests/gate_lock.py`'s pool is that
+# cap made mechanical (four slots, FIFO, expiry and orphan-steal shared with
+# stress.py's exclusive lease), and this takes one for the WHOLE run and exports
+# HPO_SLOT_LABEL so a nested heavy step inherits it and joins this slot rather
+# than taking a second (`gate_lock.py holding_slot`). Released on any exit the
+# shell sees; a SIGKILL leaves the slot, which the next take steals once this
+# process is gone (`--owner-pid`). A fifth prepr waits at the back of the queue.
 # A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
 # unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
-HEAVY_SLOTS=${HPO_PREPR_SLOTS:-4}
 SLOT_LABEL="prepr-$$"
-slot_stderr=$(mktemp)
-if python3 tests/gate_lock.py slot-take --label "$SLOT_LABEL" --slots "$HEAVY_SLOTS" \
-     --owner-pid $$ >"$slot_stderr" 2>&1; then
-  say ok "heavy slot" "$(tail -1 "$slot_stderr")"
-  # Release on the way out, and make the signals bash does not already turn into
-  # an exit do so, so a seat's Ctrl-C frees its slot now rather than at expiry.
-  # `rc=$?` then `exit $rc` keeps the run's own status though the trap runs.
-  trap "rc=\$?; python3 tests/gate_lock.py slot-release --label '$SLOT_LABEL' --slots '$HEAVY_SLOTS' >/dev/null 2>&1; exit \$rc" EXIT
-  trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+if [ -n "${HPO_SLOT_LABEL:-}" ]; then
+  say ok "heavy slot" "joined $HPO_SLOT_LABEL: this run is already inside a slot"
 else
-  say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
+  slot_stderr=$(mktemp)
+  if python3 tests/gate_lock.py slot-take --label "$SLOT_LABEL" --owner-pid $$ >"$slot_stderr" 2>&1; then
+    export HPO_SLOT_LABEL="$SLOT_LABEL"
+    say ok "heavy slot" "$(tail -1 "$slot_stderr")"
+    # Release on the way out, and make the signals bash does not already turn
+    # into an exit do so, so a seat's Ctrl-C frees its slot now, not at expiry.
+    # `rc=$?` then `exit $rc` keeps the run's own status though the trap runs.
+    trap "rc=\$?; python3 tests/gate_lock.py slot-release --label '$SLOT_LABEL' >/dev/null 2>&1; exit \$rc" EXIT
+    trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+  else
+    say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
+  fi
+  rm -f "$slot_stderr"
 fi
-rm -f "$slot_stderr"
 
 # --- 2. the scoped gate's MODE line, printed rather than inferred.
 # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
