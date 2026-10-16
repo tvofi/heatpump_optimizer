@@ -93,17 +93,33 @@ are byte-identical (`calibrate.py --measure-corpus --only-metric untyped_payload
 `ARCHSCORE_ABLATE=C14`, `C1b` or `C6b` reopens its own attempt (it reads IMPROVES) and leaves the other two closed.
 The cases need the pin to hold no instance, so `controls.py`'s `on` names the case an arm is applied on top of.
 
+### What R10-STRUCTURE-BLIND moved (D7-s1-01, D7-s3-01)
+
+`tests/structure.py`'s dead-member census resolves a load's receiver (`ReceiverTypes`), so a member
+whose every load is on a receiver the source types to another class is dead rather than kept by a
+shared name. `dead_members` is the only leaf that moved, on 85 of the 87 stored trees: the committed
+`corpus_vectors.json` is byte for byte what `calibrate.py --measure-corpus --jobs 4` prints, against
+`91700eaa` for the merge base's file. No corpus verdict moved.
+
+One planted verdict did, and it retires a row of the table below. `a3_dead_by_reachability_fix` (GOOD)
+read NULL because the census kept its deleted member alive behind a same-named member of another class
+on an untyped receiver -- the row recorded that as "its documented residual". With the receiver typed it
+reads IMPROVES, which is the fix the case is, and the pre-study's own reading.
+
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 
-Four verdicts moved. Sharing `tests/structure.py`'s definitions changed two, the counters one, and one
-is the correction the pre-study already recorded (section 7).
+Three verdicts moved. Sharing `tests/structure.py`'s definitions changed two; the third is the
+correction the pre-study already recorded (section 7).
 
 | case | label | was | now | why |
 |---|---|---|---|---|
 | `97dc04f2` | NEUTRAL | IMPROVES | WORSENS | compare-and-restore leaves the pattern in place; `reflective_writes` rises (the recorded correction) |
 | `ca937daa` | GOOD | IMPROVES | NULL | the clone census counts copies, not pairs: the pair count fell 116 to 109 while the copies stayed 43 |
-| `a3_dead_by_reachability_fix` | GOOD | IMPROVES | NULL | the dead-member census keeps a member alive when another class defines its name and an untyped receiver reads it (its documented residual) |
 | `a3_private_reach_fix` | GOOD | IMPROVES | NULL | it swaps a private read for the public `mode` passthrough property, which C5 reads as the same reach |
+
+`a3_dead_by_reachability_fix` was a fourth until D7-s3-01 gave the dead-member census a typed receiver;
+it reads the pre-study's IMPROVES again, so it is no longer a difference and the pre-study's own table
+is right about it.
 
 Nothing else moved: the corpus holdout, every other planted case, and weight sensitivity (no weight
 perturbation moves a verdict) read as the pre-study recorded them. Every red-team attempt labelled GAME reads
