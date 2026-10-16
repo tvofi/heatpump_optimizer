@@ -1,0 +1,1 @@
+tmp_paths self-test: 50 checks, 0 failed

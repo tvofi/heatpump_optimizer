@@ -8,9 +8,9 @@ REFUSED  ref tmp-claude-otheruid            scratch-root in the ref name
 REFUSED  ref mixed-case name                account-name in the ref name
 REFUSED  ref name_underscore                account-name in the ref name
 passed   ref name glued                     
-REFUSED  ref URL-escaped                    unpublishable in the ref name
-passed   msg URL-escaped %2F                
-passed   msg URL-escaped %2f                
+REFUSED  ref URL-escaped                    home-directory, account-name, host-path, unpublishable in the ref name
+REFUSED  msg URL-escaped %2F                home-directory, account-name, host-path in the message
+REFUSED  msg URL-escaped %2f                host-path in the message
 REFUSED  msg file:// URL                    host-path in the message
 REFUSED  msg /home/someone                  host-path in the message
 passed   msg /HOME/someone upper            

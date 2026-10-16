@@ -1,5 +1,4 @@
-host: 6134 messages, by class: {'host-path': 3, 'home-directory': 2, 'account-name': 2}
-identity-free: 6134 messages, by class: {'host-path': 3}
-    8df3980899 udge notes on hard-coded /home/claude temp roots, on-disk
-    00d8079cec measured at 931dffe (see <HOME>/wt/reports/ha
-    00953c2835 xy 403s, worktrees under <HOME>/wt/, no   Pla
+host: 6259 messages, by class: {'host-path': 3, 'home-directory': 2, 'account-name': 2}
+identity-free: 6259 messages, by class: {'host-path': 3}
+messages whose verdict URL-decoding changes: 0
+identities (author+committer): {'passed': 12500, 'refused': 18} ; commits with a refused identity: 9 ; commits with noreply author refused: 0
