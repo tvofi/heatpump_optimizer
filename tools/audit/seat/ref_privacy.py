@@ -68,7 +68,9 @@ wrapper, or a Python `git`/`g`/`run`/`sh` call) is followed by the word
 `push`; a continuation line opening `push` with a push option, `origin` or a
 variable; or a `gh api` call that writes a ref -- `git/refs` or `git/tags`
 with a field (`-f`, `-F`, `--field`, `--input`) or a POST/PATCH/PUT method, or
-a `createRef`/`updateRef` mutation -- in `tools/`,
+a `createRef`/`updateRef` mutation; or a release that makes a tag --
+`gh release create`, or `gh api .../releases` with a field or a write
+method -- in `tools/`,
 `.claude/workflows/` and `.github/workflows/`, less round evidence and vendored
 code. Each such file must have an entry in PUSHERS below: `guarded` (the file
 must call this module) or a stated reason it composes nothing a host could leak
@@ -78,7 +80,9 @@ cannot rot into an exemption.
 
 WHAT IT DOES NOT CATCH. A push built across lines whose `push` line opens
 with neither a push option, `origin` nor a variable; a `gh api` ref write
-whose path and field sit on different lines; a push through another wrapper
+whose path and field sit on different lines; a commit written through the
+Contents API (`gh api .../contents/<path>` with a `message` field), whose
+message the guard never sees; a push through another wrapper
 name or a git variable not named GIT; a guarded
 file that gains a second, unguarded push (the registry is keyed on the file:
 review owns the site); file CONTENT a push publishes (the guard reads ref names,
@@ -294,6 +298,9 @@ PUSHERS = {
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
     "tools/audit/seat/r9_rc_bus_fetchhead.sh": ("fixture", "a regression harness: every push goes to a "
                                                 "temp bare repository"),
+    ".github/workflows/release.yml": ("shape-checked", "`gh release create` makes the tag on origin, and the "
+                                      "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
+                                      "so no host text reaches the name (round 3)"),
     "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
     ".claude/workflows/audit-find.js": ("prompt", "an agent prompt naming handoff/audit-r<round>-... "
                                         "refs from round and box numbers"),
@@ -305,6 +312,8 @@ _SITE = re.compile(
     r"(?:\b(?:git|rgit)\b|\$\{?(?i:git)\}?(?![\w]))[^\n]*?(?<![\w.-])push(?![\w-])"
     r"|\bgh\b[^\n]*?\bapi\b(?=[^\n]*git/(?:refs|tags)\b)(?=[^\n]*" + _GH_WRITE + r")"
     r"|\bgh\b[^\n]*?\bapi\b[^\n]*\b(?:createRef|updateRef)\b"
+    r"|\bgh\s+release\s+create\b"
+    r"|\bgh\b[^\n]*?\bapi\b(?=[^\n]*/releases\b)(?=[^\n]*" + _GH_WRITE + r")"
     r"|(?:^|[;&|(]\s*)g\s+push\b"
     r"|^\s*push\s+(?:--(?:force|set-upstream|no-verify|delete|atomic|push-option)|-[fqu]\b|origin\b|\"?\$)"
     r"|\b(?:git|g|run|runner|sh|_git|_rg)\([^)\n]*[\"']push[\"']")
@@ -349,7 +358,7 @@ def registry_refusals(found: dict[str, list[int]], text_of, registry=PUSHERS) ->
 
 
 def grep(ref: str) -> list[tuple[str, int, str]]:
-    out = subprocess.run(["git", "grep", "-n", "-I", "-E", r"\bpush\b|git/(refs|tags)|createRef|updateRef", ref, "--",
+    out = subprocess.run(["git", "grep", "-n", "-I", "-E", r"\bpush\b|git/(refs|tags)|createRef|updateRef|release +create|/releases", ref, "--",
                           "tools", ".claude/workflows", ".github/workflows"],
                          cwd=ROOT, capture_output=True, text=True)
     if out.returncode not in (0, 1):
@@ -462,8 +471,8 @@ def self_test() -> int:
        email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
        and email_leaks("noreply@anthropic.com", fid) == [])
     host = Identity.of_host()
-    ok("the host identity reads a home, and judges no public account",
-       bool(host.homes) and not set(host.names) & PUBLIC_ACCOUNTS)
+    ok("the host identity reads a home and a hostname, and judges no public account",
+       bool(host.homes) and bool(host.hosts) and not set(host.names) & PUBLIC_ACCOUNTS)
 
     # --commits: only the commits no remote-tracking ref holds are judged.
     with tempfile.TemporaryDirectory() as td:
@@ -588,6 +597,10 @@ def self_test() -> int:
              ("tools/x/ghgql.sh", 3, 'gh api graphql -f query="mutation { createRef(input: $i) { ref { name } } }"'),
              ("tools/x/ghread.sh", 3, 'gh api "repos/$r/git/refs/heads/$b" --jq .object.sha'),
              ("tools/x/ghdel.sh", 3, 'gh api -X DELETE "repos/$r/git/refs/heads/$b"'),
+             (".github/workflows/x-rel.yml", 9, '          gh release create "${TAG}" \\'),
+             ("tools/x/relapi.sh", 3, 'gh api "repos/$r/releases" -f tag_name="$t" -f target_commitish="$s"'),
+             ("tools/x/relview.sh", 3, 'gh release view "$t" --json tagName'),
+             ("tools/x/relget.sh", 3, 'gh api "repos/$r/releases/latest" --jq .tag_name'),
              ("tools/policy/vendor/v.js", 1, "git push"),
              (SELF, 1, "git push")]
     found = sites(lines)
@@ -602,7 +615,11 @@ def self_test() -> int:
        {"tools/x/ghsh.sh", "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"} <= set(found))
     ok("and a gh api ref read or DELETE is not (the null control)",
        not {"tools/x/ghread.sh", "tools/x/ghdel.sh"} & set(found))
-    for extra in ("tools/x/cont.sh", "tools/x/gfn.py", "tools/x/var.sh", "tools/x/var2.sh", "tools/x/ghsh.sh",
+    ok("a release that makes a tag is a site: gh release create, gh api .../releases with a field (round 3)",
+       {".github/workflows/x-rel.yml", "tools/x/relapi.sh"} <= set(found))
+    ok("and a release read is not (the null control)",
+       not {"tools/x/relview.sh", "tools/x/relget.sh"} & set(found))
+    for extra in (".github/workflows/x-rel.yml", "tools/x/relapi.sh", "tools/x/cont.sh", "tools/x/gfn.py", "tools/x/var.sh", "tools/x/var2.sh", "tools/x/ghsh.sh",
                   "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"):
         found.pop(extra, None)
     texts = {"tools/x/guarded.sh": 'RP=ref_privacy.py; "$RP" guard --ref "$ref" && git push',
