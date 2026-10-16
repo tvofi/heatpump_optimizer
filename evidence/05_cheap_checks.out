@@ -1,0 +1,18 @@
+=== structure.py ===
+  ok   seam_cut_total 752 <= 752
+
+STRUCTURE RATCHET PASSED
+=== env_drift.py --claims-only origin/main ===
+claims hygiene: origin/main ok
+=== diff name-only vs merge base ===
+dev/audit/harnesses/r10_replay_loopnorm.py
+dev/programme/delivery/2339.md
+tests/closures.json
+tests/replay.py
+=== VERSION/manifest/claims touched? ===
+none
+=== merge-tree vs origin/main ===
+d5ff0af3b18c459a8500430169701692fe627873
+merge-tree rc=0
+=== head check-runs: non-green ===
+(none above = all green)

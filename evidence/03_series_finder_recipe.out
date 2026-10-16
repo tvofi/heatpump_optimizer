@@ -1,0 +1,26 @@
+38866008546 ref_ms=33.5 loop_cpu_ratio=0.3472
+38699166296 ref_ms=54.8 loop_cpu_ratio=0.2452
+38530020347 ref_ms=23.8 loop_cpu_ratio=0.4050
+38376595322 ref_ms=53.3 loop_cpu_ratio=0.2697
+38229000848 ref_ms=53.0 loop_cpu_ratio=0.2660
+38126689594 ref_ms=22.2 loop_cpu_ratio=0.3772
+38038305969 ref_ms=32.4 loop_cpu_ratio=0.3310
+37909555545 ref_ms=53.5 loop_cpu_ratio=0.2742
+37753990323 ref_ms=53.0 loop_cpu_ratio=0.2517
+37595831734 ref_ms=52.7 loop_cpu_ratio=0.2554
+37440269774 ref_ms=52.6 loop_cpu_ratio=0.2457
+37288195257 ref_ms=52.4 loop_cpu_ratio=0.2547
+37189092011 ref_ms=33.4 loop_cpu_ratio=0.3157
+37108891698 ref_ms=53.7 loop_cpu_ratio=0.2441
+36984959667 ref_ms=26.6 loop_cpu_ratio=0.3208
+36839970966 ref_ms=52.8 loop_cpu_ratio=0.2579
+38656447153 ref_ms=52.7 loop_cpu_ratio=0.2693
+37889206903 ref_ms=43.0 loop_cpu_ratio=0.3094
+37768894718 ref_ms=52.3 loop_cpu_ratio=0.2502
+37760373214 ref_ms=53.9 loop_cpu_ratio=0.2491
+RESULT rows=20 api_failures=74 no_slow_lane=0
+RESULT spread min0.2441 max0.4050 factor1.659 corr_ref_ms=-0.945 n=20
+RESULT slow_class n=13 ref_mean=53.12 loop_cpu_mean=13.62 old=0.2441..0.2742
+RESULT fast_class n=7 ref_mean=30.70 loop_cpu_mean=10.39 old=0.3094..0.4050
+
+[exited with code 0]

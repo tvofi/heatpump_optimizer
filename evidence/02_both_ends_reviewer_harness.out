@@ -1,0 +1,11 @@
+run[0] base ref_ms=26.9 old=0.2832 loop_cpu=7.61ms | head ref_ms=26.9 loop_ref_ms=119.9 new=0.0707 loop_cpu=8.48ms
+run[1] base ref_ms=28.3 old=0.3022 loop_cpu=8.54ms | head ref_ms=27.3 loop_ref_ms=125.2 new=0.0619 loop_cpu=7.75ms
+run[2] base ref_ms=23.8 old=0.3101 loop_cpu=7.37ms | head ref_ms=26.5 loop_ref_ms=116.7 new=0.0638 loop_cpu=7.44ms
+run[3] base ref_ms=28.7 old=0.2928 loop_cpu=8.40ms | head ref_ms=28.3 loop_ref_ms=124.7 new=0.0648 loop_cpu=8.08ms
+run[4] base ref_ms=27.9 old=0.2935 loop_cpu=8.20ms | head ref_ms=27.3 loop_ref_ms=124.5 new=0.0642 loop_cpu=8.00ms
+run[5] base ref_ms=26.9 old=0.3112 loop_cpu=8.38ms | head ref_ms=29.1 loop_ref_ms=128.0 new=0.0672 loop_cpu=8.60ms
+RESULT base_old min0.2832 max0.3112 factor1.099 median0.2979 corr_ref=-0.480
+RESULT head_new min0.0619 max0.0707 factor1.142 median0.0645 corr_ref=+0.112
+RESULT base_loop_cpu mean8.08ms head_loop_cpu mean8.06ms
+
+[exited with code 0]
