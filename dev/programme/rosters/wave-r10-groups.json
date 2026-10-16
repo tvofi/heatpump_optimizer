@@ -800,9 +800,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 1 of 5; before you: none; next: R10-UX-SETUP, R10-ADVISOR). Owning seam in this group: the new link helper and its test only. Shape: one pure helper; the three call sites stay for their groups. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2283",
     "branch": "handoff/r10-deeplink",
-    "commit": null,
+    "commit": "07c5c7c3457566e7743efc0608ba0d14b30bfb43",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
