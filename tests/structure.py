@@ -309,6 +309,12 @@ HA_CONVENTION_METHODS = {
     # census now counts properties, so these two must be named).
     "hvac_mode",
     "preset_mode",
+    # Entity.available and ClimateEntity.target_temperature: read off the
+    # instance too. A shared-name load kept them alive by luck until typed
+    # receivers (D7-s3-01) took the luck away, and ec263d82's tree read
+    # every one of them, and what they read, as dead.
+    "available",
+    "target_temperature",
     # Entity properties the platform reads as attributes.
     "native_value",
     "extra_state_attributes",
