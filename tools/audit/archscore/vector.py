@@ -154,6 +154,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         layering.ALL_SCOPES = "C17" not in off
         layering.PRIVATE_ATTRS = "C18" not in off
         layering.UNUSED_IMPORTS = "C19" not in off
+        C.RUNTIME_BRANCHES = layering.RUNTIME_SPELLINGS = "C23" not in off
         jobs = {
             "structure": lambda: structure_rows(flat),
             "hub_solve_writes": lambda: hub_solve_writes.measure(flat)["value"],

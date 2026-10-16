@@ -27,8 +27,9 @@ PINNED = "7952d8f9e4fbe9945bc8742e8dc02be8fbe4582c"
 BASE = "_base"
 # Attempts the counters do not close, expected IMPROVES; a fix flips one and the check asks for the re-record.
 # 04h, 04i and 04j left this set in R9-EG-A2 (C3 joins a clone across any gap). 04zz1 splits a copy across
-# blocks, which no window inside one block can join (ABOUT.md, "Interleaved junk").
-KNOWN_OPEN = {"04zz1_dup_wrapsplit_uncharged"}
+# blocks, which no window inside one block can join (ABOUT.md, "Interleaved junk"). 33 climbs a layer by an import read
+# once for nothing, which C19's unread-import rule does not see (carried to part 5).
+KNOWN_OPEN = {"04zz1_dup_wrapsplit_uncharged", "33_layer_junk_read"}
 
 
 def extract_pin(into: Path) -> Path:

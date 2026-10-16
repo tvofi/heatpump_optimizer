@@ -314,13 +314,33 @@ def plan():
                              "import numpy as np\n\nfrom .optimizer import _utc_step_starts\n"))),
     )
 
+    # 6b' the TYPE_CHECKING exclusion itself (#2320 round 1: no case moved when it was switched off)
+    solver_import = "import numpy as np\n\nfrom .optimizer import HeatPumpOptimizer  # noqa: F401\n"
+    P["layer_type_checking"] = dict(
+        control=("drift.py, a pure module, imports the optimizer at runtime for a type it names",
+                 lambda w: sub(w, "drift.py", "import numpy as np\n", solver_import)),
+        fix=("[on top of control] the import moves under `if TYPE_CHECKING:`; nothing runs it",
+             lambda w: sub(w, "drift.py", solver_import,
+                           "import numpy as np\n\nfrom typing import TYPE_CHECKING  # noqa: E402\n\n"
+                           "if TYPE_CHECKING:\n    from .optimizer import HeatPumpOptimizer  # noqa: F401\n")),
+        on={"fix": "a3_layer_type_checking_control"},
+    )
+
     # 6c private_cross_module (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)
+    def override_return(w):
+        append(w, "away.py", '\n\ndef override_return(state: AwayState) -> datetime | None:\n'
+               '    """When the override says the user returns, in their zone; None without one."""\n'
+               '    return _parse_return_time(state.override_return_iso)\n')
+        sub(w, "datetime.py", "from .away import _parse_return_time\n", "from .away import override_return\n")
+        sub(w, "datetime.py", "        return _parse_return_time(self.coordinator._away_state.override_return_iso)\n",
+            "        return override_return(self.coordinator._away_state)\n")
+
     P["private_cross_module"] = dict(
         control=("drift.py imports freq_control's private _finite",
                  lambda w: sub(w, "drift.py", "import numpy as np\n",
                                "import numpy as np\n\nfrom .freq_control import _finite  # noqa: F401\n")),
-        fix=("away._parse_return_time, which datetime.py imports, is declared public as parse_return_time",
-             lambda w: rename_everywhere(w, "_parse_return_time", "parse_return_time")),
+        fix=("datetime.py stops importing away's private parser: away answers the override's return time itself",
+             override_return),
         null=("datetime.py binds the same private under an alias (`as _parse`)",
               lambda w: (sub(w, "datetime.py", "from .away import _parse_return_time\n",
                              "from .away import _parse_return_time as _parse\n"),

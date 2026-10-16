@@ -157,12 +157,35 @@ def is_property(node: ast.AST) -> bool:
     return bool(names & {"property", "cached_property", "setter", "getter", "deleter"})
 
 
+#: Counter C23: only the branch a type checker alone runs is type-checking-only. ``vector.py`` switches it off.
+RUNTIME_BRANCHES = True
+
+
+def _type_checking_test(test: ast.AST) -> bool | None:
+    """True for ``TYPE_CHECKING`` (``typing.TYPE_CHECKING`` too), False for ``not TYPE_CHECKING``, else None."""
+    if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
+        return False if _type_checking_test(test.operand) else None
+    if (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or \
+            (isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"):
+        return True
+    return None
+
+
 def _in_type_checking(tree: ast.Module) -> set[int]:
-    """ids of Import nodes under ``if TYPE_CHECKING:``."""
+    """ids of Import nodes only a type checker runs: the body of ``if TYPE_CHECKING:`` and the ``else`` of
+    ``if not TYPE_CHECKING:``. The other branch runs at runtime and is an ordinary import (#2320 round 1:
+    an ``else`` of ``if TYPE_CHECKING:`` and an ``if not TYPE_CHECKING:`` body read as no edge)."""
     out: set[int] = set()
     for n in walk(tree):
-        if isinstance(n, ast.If) and ast.unparse(n.test).endswith("TYPE_CHECKING"):
-            for m in walk(n):
+        if not isinstance(n, ast.If):
+            continue
+        if not RUNTIME_BRANCHES:
+            branch = [n] if ast.unparse(n.test).endswith("TYPE_CHECKING") else []
+        else:
+            kind = _type_checking_test(n.test)
+            branch = n.body if kind is True else n.orelse if kind is False else []
+        for s in branch:
+            for m in walk(s):
                 if isinstance(m, (ast.Import, ast.ImportFrom)):
                     out.add(id(m))
     return out
