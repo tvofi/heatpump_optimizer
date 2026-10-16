@@ -225,6 +225,7 @@ const SHARED_GRAMMARS = {
   "[-*]\\s+\\[#(\\d+)\\]\\((?:[^()\\s]*\\/pull\\/)(\\d+)\\)": "identical:the Delivery-status row anchor, policy_lint.mjs and the record-predicate sweep",
   "refuse\\s+since-ref\\b": "identical:the `refuse since-ref` output marker, policy_lint.mjs and its env-matrix",
   "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>": "identical:the setup-page SVG extractor, card.mjs and setup_qa_render.mjs",
+  "[A-Za-z_$][\\w$]*": "identical:the identifier word grammar, two callers a language boundary keeps apart -- tests/card.mjs reads the card's own source for the global names its link census must watch (#2317), tests/doc_claims.py reads the symbols a prose claim names; both are that one word class applied to text, and neither can import the other",
   "\\d+\\.\\d+\\.\\d+": "not-a-concept:the semantic-version shape",
   "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")": "identical:the README flow-diagram step grammar, doc_claims.py and entities.py",
   "\\*\\*(\\d+)\\xb7([^*]+?)\\.?\\*\\*": "identical:the README flow-diagram bold-step grammar, doc_claims.py and entities.py",
