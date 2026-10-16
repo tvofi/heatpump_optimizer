@@ -28,5 +28,5 @@ RESULT cells_share_30pct=6.6578 weighted-log2
 RESULT bar_150pct=9.9867 weighted-log2
 RESULT cells_delta_S=+0.0000 weighted-log2
 RESULT thread_factor=1.000
-RESULT load1=195.00
+RESULT load1=7.44
 RESULT swapins=n/a (static count; no timing RESULT)
