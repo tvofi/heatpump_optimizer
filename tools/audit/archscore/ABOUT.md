@@ -55,6 +55,9 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10) | 21 |
 | C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)` | 22 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
+| C20 a literal spec is normalised: numbers by value, keywords and dict items in order (`metrics/literal_clones.py`) | the copies of a selector re-spelled with float bounds | 24 |
+| C21 a local bound once to a spec reads as it | a selector's bound hoisted into a local | 25 |
+| C22 a card function's own names are numbered by first use (`metrics/card.py`) | the card's copied functions given renamed locals | 26 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -124,6 +127,16 @@ module extracted from the glue is glue, and no recorded corpus verdict moves (`c
 after `--measure-corpus --only-metric layering`). `56cb0027` (GOOD, already WORSENS on `duplication_copies`)
 also rises on `layer_violations`: its unit read made `price_model`, a pure module, reach Home Assistant through
 `inputs`.
+
+### What R10-ARCHSCORE-COVERAGE part 4 moved (the card, and literal specs)
+
+Three score metrics at the floor weight. `literal_clone_copies` (`metrics/literal_clones.py`) counts the copies of
+a declaration spelled as a call or literal more than once -- a selector, a schema, a record -- which sits inside one
+statement and so outside `duplication_copies`' windows: ARCH2-s5's F1 (the setup wizard reading its options-registry
+widgets) reads 188 -> 136 on it. The card (`www/*.js`, read by a tokenizer in `metrics/card.py`, never a parser)
+gets `card_dead_definitions` (D7-s3-02's `textWidth` is today's one) and `card_clone_copies`, a 20-token window
+census; the window was calibrated on ARCH2-s5's four card patches, where 16 tokens read the finite-number owner (a
+dedupe) as one copy more. The shape census of N spellings of one rule is part 5's.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 

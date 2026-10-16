@@ -23,6 +23,8 @@ C15 a call is what its callee returns; readers and rebinds of a hub are the hub 
 C16 a callback handed outside the package is a hub root  ``metrics/hub_solve_writes.event_roots``
 C17 a function-scope import is a layering edge; C18 ``m._x`` crosses like ``from .m import _x``;
 C19 ``unused_boundary_imports``, gate-only: no module climbs a layer by an unread import  ``metrics/layering``
+C20 literal specs normalised; C21 a local bound once to a spec reads as it  ``metrics/literal_clones``
+C22 a card function's own names numbered  ``metrics/card``
 """
 from __future__ import annotations
 
