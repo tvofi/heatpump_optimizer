@@ -426,8 +426,8 @@ def cost_figures(cycle_cpu: list[float], ref_cpu: list[float],
         # by the BLAS solve: a solve reference that moved with the runner and
         # a thread measure that did not is exactly #2270.
         lref = sorted(loop_ref)[len(loop_ref) // 2] if loop_ref else 0.0
-        out["loop_cpu_ratio"] = (round(sum(loop_cpu) / len(loop_cpu) / lref, 4)
-                                 if loop_cpu and lref > 0 else float("nan"))
+        out["loop_cpu_ratio"] = (round(sum(loop_cpu) / len(loop_cpu) / ref, 4)
+                                 if loop_cpu and ref > 0 else float("nan"))
     return out
 
 
