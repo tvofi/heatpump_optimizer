@@ -323,32 +323,20 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
-          INTENDED="$(python3 - <<'PY'
-          import glob, json, re
-          body = open('/tmp/pr-body.md', encoding='utf-8').read()
-          kw = re.compile(
-              r'\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+'
-              r'(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)([0-9]+)',
-              re.I,
-          )
-          closes = {int(m.group(1)) for m in kw.finditer(body)}
-          fixes, issues = set(), set()
-          for path in glob.glob('dev/programme/rosters/wave-r*-groups.json'):
-              roster = json.load(open(path, encoding='utf-8'))
-              for group in roster.get('groups', []):
-                  fixes |= set(group.get('fixes') or [])
-                  issues |= set(group.get('issues') or [])
-          never_closeable = issues - fixes
-          print(' '.join(str(n) for n in sorted(
-              n for n in closes if n not in never_closeable
-          )))
-          PY
-          )"
-          if test -f tools/audit/preflight.sh; then
-            bash tools/audit/preflight.sh $INTENDED < /tmp/pr-body.md
-          else
-            bash tools/pr/preflight.sh $INTENDED < /tmp/pr-body.md
-          fi
+          # jq, NOT python. The derivation must stay on this job's pin
+          # allowlist (`codeowners_gap.py`'s admitted(): no heredoc, no `-c`,
+          # no `-`). A `python3 - <<'PY'` heredoc is not an admitted command, so
+          # it taints the job from its line on and unpins every file after it --
+          # `tools/pr/preflight.sh` just below and `tools/pr/prepr.sh` in the
+          # version-edit step, both of which the restore above puts back from
+          # the base. That unpinning is what `codeowners_gap.py --check` refuses
+          # (#1515; decision 0013), so a rewrite back to python must keep an
+          # admitted command or the pin falls. Same extraction and set
+          # arithmetic as the seat's prepr.sh states: closes = a number after a
+          # closing keyword; never = a roster `issues` number no group names in
+          # `fixes`; intended = closes minus never.
+          INTENDED=$(jq -rs --rawfile body /tmp/pr-body.md '. as $r | [$r[].groups[]? | .fixes[]?] as $fixes | [$r[].groups[]? | .issues[]?] as $issues | [$issues[] | select(. as $n | ($fixes | index($n)) == null)] as $never | [ $body | match("\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s*:?\\s+(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)([0-9]+)"; "gi") | .captures[0].string | tonumber ] as $closes | [$closes[] | select(. as $n | ($never | index($n)) == null)] | unique | sort | map(tostring) | join(" ")' dev/programme/rosters/wave-r*-groups.json)
+          if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh $INTENDED < /tmp/pr-body.md; else bash tools/pr/preflight.sh $INTENDED < /tmp/pr-body.md; fi
 
       # CLAUDE.md rule 4, refused where it binds. `prepr.sh` step 5 held this
       # check and ran only on a seat's own machine; the self-test above drives
