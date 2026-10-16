@@ -1,2 +1,3 @@
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mutant R11 rc=0 merge_train self-test: 171 checks, 0 failed
+RESULT mutant R11 rc=1 merge_train self-test: 180 checks, 1 failed
+  FAIL approval-carry from the MIDDLE of the carry chain: an approval re-anchored to the first recarry's head carries to the second's, its delta read from that middle head

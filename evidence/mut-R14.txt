@@ -1,2 +1,3 @@
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mutant R14 rc=0 merge_train self-test: 171 checks, 0 failed
+RESULT mutant R14 rc=1 merge_train self-test: 180 checks, 1 failed
+  FAIL batch --bot-prs on a batch/ rehearsal looks nothing up and merges no record PR -- a rehearsal writes nothing to main -- while the rehearsal itself still lands

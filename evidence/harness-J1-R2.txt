@@ -1,0 +1,3 @@
+== R2: merge_train self-test: 180 checks, 0 failed
+== J1: merge_train self-test: 180 checks, 1 failed
+       FAIL #2209's shape MUTATION (the gate's own justification): a mandated approval at the head whose body lacks the raise justification's payment line is not the owner's -- it stops exactly as today, as budget-raise-gate would refuse it

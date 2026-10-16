@@ -1,5 +1,6 @@
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mutant R10 rc=1 merge_train self-test: 171 checks, 3 failed
+RESULT mutant R10 rc=1 merge_train self-test: 180 checks, 4 failed
   FAIL --free-holders refuses a holder with uncommitted or untracked (M x.py): today's HOLDER stop, the reason appended, nothing detached
   FAIL --free-holders refuses a holder with uncommitted or untracked (?? note.md): today's HOLDER stop, the reason appended, nothing detached
   FAIL --free-holders refuses a holder with unpushed work (HEAD off origin): today's HOLDER stop, the reason appended, nothing detached
+  FAIL --free-holders refuses a holder whose HEAD and origin/<branch> both fail to read: two equal failures are no sha, and nothing is detached

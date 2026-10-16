@@ -1,30 +1,35 @@
-Fix review: blocked 3c807ab5bb62d2d4da36003d2787437d2b012b4b mutation-vacuous: five reviewer mutants on new safety predicates survive the self-test (R4 post-merge no-recover, R11 carry chain, R14 rehearsal bot merge, R15 first-merge green re-read after re-proof, R16 batch sweep), and the body's claim that the gate's mutation pass covers the rest is false (empty scope)
+Fix review: merge e01e66f0d00bdc2acfcdef725b2d4c53ff0455ac
 
-bus-nonce: 4f2ed1a2605f279013b73976bd8a30cb
-Round: 1. Reviewer: rev-2305, from a detached worktree at 3c807ab5bb62d2d4da36003d2787437d2b012b4b. Contract: dev/governance/roles/fix-review.md; the preamble diff against origin/main is empty.
+bus-nonce: a0685f3c6703caded71d04b97f68f62d
+Round: 2. Reviewer: rev-2305, from a detached worktree at e01e66f0d00bdc2acfcdef725b2d4c53ff0455ac. The fix-review.md preamble diff is empty. I judged the delta from the round-1 head 3c807ab5b. The authored code is a46805de2: four commits. The two merges from main touch none of this PR's files, and merge-tree against origin/main exits 0.
 
-## What holds
-- The self-tests reproduce: merge_train 171/0, queue_pre_flight 32/0, train.sh ok.
-- The (f) trace re-derives: the reviews API reports commit_id 8876da3b for both 5526849236 and 5526967770. `_owner_at_head` makes the fix hold under either reading of how that happened.
-- train.sh: planted mutants T1 (the root reverted to ../..), T2 (skipbad=0 overlap=0 restored), T3 (opts not passed) and T4 (--main-moved-tries without its value) are all killed. The class is closed. I read every dirname/.. and parents[N] root computation in the tree: 9 shell/mjs sites and 10 Python sites. All of them resolve to the root, and train.sh was the only wrong one. The roster carry (o) is satisfied; it uses rev-parse --show-toplevel instead of ../../.., which is sound.
-- My mutants that are killed: R3 (batch bound <=), R5 (_owner_at_head always held), R7 (bot merge without --match-head-commit), R9 (rc ignoring skipped), R10 (free_holder detaching without freeable), R12, R13 (the BASE_MOVED regex) and R17 (the re-proof on the old prev).
-- merge-tree against origin/main exits 0. VERSION, the manifest and the notes heading are untouched. No check on the head is red. The cancelled runs on 8f66cd49e are superseded-head cancellations.
+## Delta judged
+- One production change: `_owner_at_head` now passes `justify=lambda: g.justification(self._body(pr))`, the gate's own `decide` reading, and `_body` fails closed when the body cannot be read. That resolves round 1's note that its reading was looser than the gate's.
+- Everything else is new self-test arms, plus the in-tree harness dev/audit/harnesses/r10_tick_train_mutants.sh, plus its entry in the closures inert reads.
 
-## Why blocked (each survivor applied alone; the self-test reports 171 checks, 0 failed)
-- R14: `sweep_bots`'s `self.real` gate dropped. A rehearsal (--base batch/...) run with --bot-prs then calls `gh pr merge` on the live record PR, which is a write to main from a rehearsal. No arm runs a rehearsal with bot_prs set.
-- R4: `recover = recover and phase != "post-merge"` changed to `recover = True`. The body says "After a post-merge skip the batch does not recover". The only post-merge-skip arm runs with main_moved_tries=0, but the CLI default is 3, so the live path's predicate is unpinned. It is reachable: the next entry's guard sees the tree change, raises MainMoved, and the batch re-proves onto the batch's own unexplained tree.
-- R15: `first` left False after a re-proof. The first merge on the new proof then skips the main_green re-read of the moved main that the code comment promises.
-- R16: the batch's `sweep_bots()` before the base read is removed. M11 pins only the serial sweep, but the body claims both.
-- R11: carried_chain reduced to carried_from only. The fixer's M10 (last only) is killed, but the case where the approval names a middle head is not tested. That case is #2209's re-anchor followed by a second main-moved recarry.
-- The `## Unpinned sites` section says "The gate's own mutation pass and mutation-autofix cover the rest". Job 116686609830's log says "MUTATION TABLE -- scope changed: no production code line added or modified against the base" and then "MUTATION TABLE PASSED (empty scope)". Nothing under tools/ is mutated, so nothing covers the rest.
-- Lower-risk survivors, which the fixer should pin or disposition: R1 (`is_sha(here)` dropped from freeable, so two failed reads compare equal and the holder is detached), R6 (the n=="0" early return dropped) and R8 (the pre-flight's `self.real` gate dropped). R2 is equivalent.
+## My mutants, re-run by my own runner (one detached worktree per mutant), not the fixer's table
+- Baseline: merge_train self-test reports 180 checks, 0 failed.
+- 20 mutants planted, 18 killed. The killed set: R1, R3, R4, R5, R6, R7, R8, R9, R9b, R10, R11, R12, R13, R14, R15, R16, R17 and J1.
+- Every round-1 survivor now fails a named arm:
+  - R14 by the batch/ rehearsal arm, which looks nothing up and merges no record PR.
+  - R4 by the --skip-bad arm run with --main-moved-tries 3.
+  - R15 by the arm that re-reads main green before the first merge on a re-proof.
+  - R16 by the arm where the record PR merges before the base is read, so the proof carries its commit.
+  - R11 by the arm that carries an approval from the middle of the chain.
+  - R1, R6 and R8 each by a named arm.
+- R2 survives and is equivalent: `n == tries` raises before the extra range is reached.
+- J2 is my own extra mutant: the `_body` read failure is not raised. It survives, but the outcome does not change. The error text carries no justification, so the entry still stops; only the stop message differs. It is not blocking.
+- I also drove the in-tree harness for J1 and R2. J1 is killed, R2 survives, and the tree is clean afterwards.
+- train.sh is unchanged since round 1, where T1 to T4 were killed.
 
-## Repair
-Add one killing arm for each of R4, R11, R14, R15 and R16, and pin or disposition R1, R6 and R8. Then correct `## Unpinned sites` to match what is actually covered.
+## Body and record
+- `## Unpinned sites` now matches the mutation lane: the lane's scope is empty for tools/, the pinned sites are named, and R2 is marked equivalent.
+- The forward-carry routes the record-beat yield to #2302 (R10-TRAIN-HOLD). That group is in dev/programme/rosters/wave-r10-groups.json on origin/main and the issue is open.
+- `## Head` says "origin/main is not merged in" in the paragraph about the authored head a46805de2, which is true of that head. Its first paragraph says the PR head merges origin/main 8087e8576. That is readable, not a defect.
 
-## Notes for the orchestrator (not blocking)
-- The CI-side hold that makes record/autofix auto-merge yield while a train is live was declined: it needs tests.yml, outside the group's files. No R10 roster group on origin/main carries it, so it needs a group of its own.
-- The roster has `fixes: []` for R10-TICK-TRAIN, and its brief says to use "Part of" for the rest. The body says "Closes #2266", which matches this dispatch but not the roster record.
-- `_owner_at_head` calls `approval()` without the `justify` that the gate's own `decide` passes, so its reading is looser than "budget_raise_gate's own reading". budget-raise-gate is a required check (ruleset 23698884), so this cannot merge past the gate. I record it as wording only.
+## Checks
+- All 17 required checks concluded success at e01e66f0d00bdc2acfcdef725b2d4c53ff0455ac.
+- No check is red on any commit in 957633266..e01e66f0d.
+- There is no budget, claim, golden or VERSION movement in the three-dot diff.
 
-Evidence: /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2305/ev (RESULTS.txt, mut-R*.txt/.log, train-mutants.txt, mutants.py, run_mut.sh, mutation-job.log)
+Evidence: the pub2 directory under the rev-2305 scratch dir (RESULTS.txt, mut-*.txt, baseline.txt, check-runs.txt, harness-J1-R2.txt, mutants.py, run_mut2.sh, train-mutants.txt)

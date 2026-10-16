@@ -18,3 +18,8 @@ M = [
  ("R16", "merge_train.py", "            self.sweep_bots()  # before the base is read", "            pass  # before the base is read"),
  ("R17", "merge_train.py", "                        prev = self.git(\"rev-parse\", f\"origin/{self.base}\")\n                        rest", "                        rest"),
 ]
+M += [
+ ("R9b", "merge_train.py", "            self.skip_report(len(queue))\n        self.log(\"TRAIN DONE\")\n        return 1 if self.skipped else 0", "            self.skip_report(len(queue))\n        self.log(\"TRAIN DONE\")\n        return 0"),
+ ("J1", "merge_train.py", ",\n                                 justify=lambda: g.justification(self._body(pr)))", ")"),
+ ("J2", "merge_train.py", "        if code:\n            raise Stop(\"approve\", \"the body could not be read for the raise justification: \"", "        if False:\n            raise Stop(\"approve\", \"the body could not be read for the raise justification: \""),
+]
