@@ -30,6 +30,12 @@ Every arm drives the production ``tests/structure.py:measure`` of ``--structure`
   second         1201 lines of called, CC-1 code in ``HeatPumpOptimizer``,
                  the second-largest class: D7-s1-01's arm
                  (``second_keys_moved``, the keys that rose).
+  separation     ``HA_ENTITY_METHODS``' key, member by member (``fixer.md``
+                 step 14): which such members the entity rule covers
+                 (``entity_members_keyed``) and which share the name on a class
+                 HA never instantiates (``same_name_not_keyed``, printed). A
+                 key of the name alone reads the two the same, and the entry
+                 would then silence the second set for good.
 
 Command:
   PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_structure_blind.py \
@@ -48,12 +54,15 @@ Expected, fix-head structure.py on the merge base's package (--package-ref MB):
   RESULT six_name_kept=2 count
   RESULT six_deleted=0 count
   RESULT six_measured_dead_with_a_typed_cusum_reset=3 count
+  RESULT entity_members_keyed=21 count
+  RESULT same_name_not_keyed=2 count
 On the fix head's own tree the four it measures dead are deleted: six_measured_dead=0,
 six_name_kept=2, six_deleted=4. The merge base's structure.py on the merge base's
 package (``--structure`` a base copy, no class_excess_loc row):
 move_class_excess_delta and merge_class_excess_delta print ``absent``,
 second_keys_moved=0, six_measured_dead=0, six_name_kept=6 -- the base prices
 neither the second class nor a merge apart from a move, and measures none of the six.
+The base has no ``HA_ENTITY_METHODS``: separation prints ``absent`` for both.
 Perturbation: in ``class_excess`` drop ``loc += helper_loc`` -> the move arm
 reads -12, a move priced as a gain again.
 """
@@ -248,3 +257,37 @@ print(f"RESULT six_name_kept={k} count")
 print(f"RESULT six_deleted={g} count")
 fed = measure({"drift.py": source(PKG / "drift.py") + "\n\nCusum(threshold=1.0, drift=0.0).reset()\n"})
 print(f"RESULT six_measured_dead_with_a_typed_cusum_reset={six(fed)[0]} count")
+
+
+def separation() -> tuple[str, str, list[str]]:
+    """``HA_ENTITY_METHODS`` keyed with the class, against keyed on the name.
+
+    Returns (members the entity rule covers, the two counts as text, and the
+    members that share a name in the set on a class HA never instantiates --
+    the sites a name-only entry would have silenced).
+    """
+    if not hasattr(S, "HA_ENTITY_METHODS"):
+        return "absent", "absent", []
+    trees = [(p, ast.parse(source(p), filename=str(p))) for p in ref_paths()]
+    pkg = S.Package(trees)
+    keyed, only_name = 0, []
+    for (mod, cls), node in sorted(pkg.classes.items()):
+        for item in node.body:
+            if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                    or item.name not in S.HA_ENTITY_METHODS:
+                continue
+            fam = pkg.family((mod, cls))
+            entity = any(b.endswith(S.HA_ENTITY_BASE_SUFFIX)
+                         for owner in fam for b in pkg.external_bases(owner))
+            if entity:
+                keyed += 1
+            else:
+                only_name.append(f"{mod}.{cls}.{item.name}")
+    return str(keyed), str(len(only_name)), only_name
+
+
+keyed, not_keyed, sites = separation()
+print(f"RESULT entity_members_keyed={keyed} count")
+print(f"RESULT same_name_not_keyed={not_keyed} count")
+for site in sites:
+    print(f"  not keyed (a name-only entry would silence it): {site}")
