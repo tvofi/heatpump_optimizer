@@ -3260,6 +3260,7 @@
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
    "dev/audit/harnesses/r10_registry_leak.py",
+   "dev/audit/harnesses/r10_replay_loopnorm.py",
    "dev/audit/harnesses/r10_stats_window.mjs",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",
    "dev/audit/harnesses/r10_tick_which_roster.py",
