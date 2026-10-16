@@ -1,0 +1,20 @@
+CLASS PROBE - reviewer's own enumeration rule, disclosed as mine (fix-review.md step 9)
+head 5c35cd9ba6c6915a28ec982648389bd53d742b32
+pristine preflight.sh from the head: md5 bf6c362d0216b763d6ce025f729588ed  (git show 5c35cd9ba:tools/pr/preflight.sh)
+
+rule: one closing keyword followed by MORE THAN ONE issue reference; compare the arm-1b separator set
+covered by arm 1b: whitespace, comma, 'and'   |  probe = does a SECOND, UNINTENDED ref pass silently?
+
+BODY                                     INTENDED       RC    NOTE
+Closes #2231 #9998.                      2231           1     refused by arm 1b
+Closes #2231, #9998.                     2231           1     refused by arm 1b
+Closes #2231 and #9998.                  2231           1     refused by arm 1b
+Closes #2231/#9998.                      2231           0     SEAM: second ref passes silently
+Closes #2231 / #9998.                    2231           0     SEAM: second ref passes silently
+Closes #2231 & #9998.                    2231           0     SEAM: second ref passes silently
+Closes #2231 +#9998.                     2231           0     SEAM: second ref passes silently
+Closes #2231 (#9998).                    2231           0     SEAM: second ref passes silently
+Closes #2231; #9998.                     2231           0     SEAM: second ref passes silently
+Closes #2231 then #9998.                 2231           0     SEAM: second ref passes silently
+Closes #2231 twice #9998.                2231           0     SEAM: second ref passes silently
+Closes #2231<newline>#9998               2231           0     SEAM: newline-split second ref passes silently

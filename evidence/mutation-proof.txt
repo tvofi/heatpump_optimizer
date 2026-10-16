@@ -1,0 +1,40 @@
+MUTATION PROOF - reviewer's re-run. head 5c35cd9ba6c6915a28ec982648389bd53d742b32
+instrument: PYTHONPATH=tests/hastub python3 tests/entities.py (2333 checks) in a detached worktree at the head
+
+BASELINE (unmutated head): 46 '  FAIL ' lines, ALL of them embedded negative-control output
+  of sub-harnesses (the baseline's own summary line): python3 tests/entities.py  150.55s user 133.31s system 112% cpu 4:11.43 total
+  control for 'all of them': every mutation below prints the SAME 46 lines plus exactly one more.
+
+MUTATION MA: delete the 'if [ -n "$multi" ]' block in tools/pr/preflight.sh
+  summary: 1 of 2333 ENTITY CHECKS FAILED
+  FAIL sets vs baseline (first field only):
+    46a47
+    >   FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  
+  named pins:
+      FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [`Closes #A #B` closes #A and silently not #B -- GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own. The grep in check 1 keeps only the first, so this is its own arm; each separator shape (space, comma, 'and') is pinned.]
+      ok   and two keywords pass, so it is not simply always-red
+      ok   the preflight step derives and passes the intended list and its refusal gates
+      ok   and the same step re-adding the swallow is not (null control)
+
+MUTATION MB: re-add ' || true' to the preflight step in .github/workflows/pr-contract.yml
+  summary: 1 of 2333 ENTITY CHECKS FAILED
+  FAIL sets vs baseline (first field only):
+    46a47
+    >   FAIL the preflight step derives and passes the intended list and its refusal gates  
+  named pins:
+      ok   one closing keyword naming several issues refuses, since GitHub closes only the first
+      ok   and two keywords pass, so it is not simply always-red
+      FAIL the preflight step derives and passes the intended list and its refusal gates  [step found=True, derives=True, passed=True, swallow_gone=False; with no list and `|| true`, every closing keyword is refused and the refusal is discarded -- the arm bound nowhere]
+      ok   and the same step re-adding the swallow is not (null control)
+
+MUTATION MC: drop the passed $INTENDED argument from the preflight step (INTENDED= kept)
+  summary: 1 of 2333 ENTITY CHECKS FAILED
+  FAIL sets vs baseline (first field only):
+    46a47
+    >   FAIL the preflight step derives and passes the intended list and its refusal gates  
+  named pins:
+      ok   one closing keyword naming several issues refuses, since GitHub closes only the first
+      ok   and two keywords pass, so it is not simply always-red
+      FAIL the preflight step derives and passes the intended list and its refusal gates  [step found=True, derives=True, passed=False, swallow_gone=True; with no list and `|| true`, every closing keyword is refused and the refusal is discarded -- the arm bound nowhere]
+      ok   and the same step re-adding the swallow is not (null control)
+
