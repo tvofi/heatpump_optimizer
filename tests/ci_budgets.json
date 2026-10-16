@@ -10,7 +10,7 @@
  "archscore.family_splits": 0,
  "archscore.hub_solve_writes": 41,
  "archscore.import_cycle_modules": 0,
- "archscore.layer_violations": 21,
+ "archscore.layer_violations": 22,
  "archscore.params_over_10": 12,
  "archscore.private_cross_module": 19,
  "archscore.public_unused": 1,
@@ -20,8 +20,8 @@
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 3): archscore.layer_violations 21, archscore.private_cross_module 19 and archscore.unused_boundary_imports 1, the three keys the new layering metric adds to the score vector, recorded at the values ci_ratchet.archscore_metrics() derives at 9de7d7306 (a derived key with no row is refused as growth). No existing row moves. Previous re-record: archscore.hub_solve_writes 38 -> 41 (part 2, mandate 6175172275).",
- "recorded_at": "9de7d7306817fc509e266c918eb4321e207bc16e",
+ "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 3): archscore.layer_violations 22, archscore.private_cross_module 19 and archscore.unused_boundary_imports 1, the three keys the new layering metric adds to the score vector, recorded at the values ci_ratchet.archscore_metrics() derives at 17f97394e (origin/main 12cf1764d merged; R10-FAHRENHEIT's setpoint_check, now importing neither boundary yet reaching both, moved it 21 -> 22 on main) (a derived key with no row is refused as growth). No existing row moves. Previous re-record: archscore.hub_solve_writes 38 -> 41 (part 2, mandate 6175172275).",
+ "recorded_at": "17f97394e69583400ee17ec411b465ffd6e877ec",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 68
 }
