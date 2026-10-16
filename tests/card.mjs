@@ -11210,11 +11210,13 @@ check("without an indoor reading the corner now label is absent",
 // link must be a path haLink builds for this entry; each recorded read or
 // event outside the known set is refused. No press may throw.
 //
-// Residual, stated: a click handler keyed on something other than an act, on
-// a row this fixture does not render, rests on the static token arm at the top
-// of this file; and the hass object is not watched, because Home Assistant's
-// own hass carries no navigation primitive (its router reads history and the
-// location-changed event, both in the sink).
+// Residual, stated: two kinds of code run on nothing here and rest on the
+// static token arm at the top of this file -- a click handler keyed on
+// something other than an act, on a row this fixture does not render, and a
+// write through a selector the stub DOM cannot resolve (a tag.class pair).
+// The hass object is not watched: Home Assistant's own hass carries no
+// navigation primitive (its router reads history and the location-changed
+// event, both in the sink).
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
