@@ -654,33 +654,33 @@ def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, An
         for row in price_info.get(period) or []:
             if not isinstance(row, dict):
                 continue
-            # R5-D1-06 (#1297): the entity path's own validator (#1090's
-            # drop-whole shape). A total that is not a finite float — a
-            # numeric string, null, a nested object, NaN — otherwise
-            # landed raw in `_prices`, crashing `_dhw_plan_fields`'
-            # np.mean and leaking through the uncovered `_current_spot_
-            # price` fallback. One rule for both ingress paths.
-            total = _raw_value(row)
-            if total is None:
+            # R5-D1-06 (#1297) and R10 D1-s3-02 (#2236): the entity path's
+            # own validators (#1090's drop-whole shape). A total that is not
+            # a finite float, or a start that is not a timestamp, drops the
+            # row: a startless row was placed by list position, 95 of 96
+            # quarters in the wrong slot. One rule for both ingress paths.
+            total, start = _raw_value(row), _raw_start(row)
+            if total is None or start is None:
                 continue
             prices.append(
-                {
-                    "total": total,
-                    "starts_at": row.get("startsAt") or row.get("starts_at") or "",
-                    "level": row.get("level", "NORMAL"),
-                }
+                {"total": total, "starts_at": start, "level": row.get("level", "NORMAL")}
             )
-    return prices
+    # R10 D1-s3-01 (#2233): no usable row is a failed fetch, never an empty
+    # success -- an HTTP 200 with empty days used to replace a good series.
+    return prices or "Tibber returned no usable price rows"
 
 
 def _raw_start(item: dict[str, Any]) -> str | None:
+    """A row's start as ISO text, or None when it is absent or no timestamp."""
     start = item.get("start") or item.get("starts_at") or item.get("startsAt")
     if start is None:
         return None
-    if hasattr(start, "isoformat"):
-        return str(start.isoformat())
-    text = str(start).strip()
-    return text or None
+    text = str(start.isoformat()) if hasattr(start, "isoformat") else str(start).strip()
+    try:
+        datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return text
 
 
 def _raw_value(item: dict[str, Any]) -> float | None:

@@ -46788,21 +46788,20 @@ _g8_attrs_empty = _g8_pm.prices_from_entity_attributes({})
 _g8_attrs_norows = _g8_pm.prices_from_entity_attributes({"raw_today": []})
 R.check(
     "a half-formed price series yields the rows it can and an error when it cannot",
-    [r["total"] for r in _g8_attrs_ok] == [1.0, 2.0]
+    [r["total"] for r in _g8_attrs_ok] == [1.0]
     and [r["starts_at"] for r in _g8_attrs_ok]
-    == ["2026-01-15T18:00:00+00:00", "bad"]
+    == ["2026-01-15T18:00:00+00:00"]
     and isinstance(_g8_attrs_none, str)
     and isinstance(_g8_attrs_empty, str)
     and isinstance(_g8_attrs_norows, str),
     f"four rows in, {len(_g8_attrs_ok)} out -> {_g8_attrs_ok!r}; None -> "
     f"{_g8_attrs_none!r}; empty -> {_g8_attrs_empty!r}; a present but empty "
-    f"series -> {_g8_attrs_norows!r}. Two survive, not one: the non-dict row "
-    "and the one whose VALUE will not float are dropped here, but an "
-    "unparseable START is not -- `_raw_start` NORMALISES a timestamp and does "
-    "not validate it, and the rejection happens one stage later where the "
-    "rows are bucketed by day. Worth pinning as the division of labour it is, "
-    "because a reader of this function alone would expect both to be checked "
-    "in the same place. And the distinction that IS load-bearing here: rows "
+    f"series -> {_g8_attrs_norows!r}. One survives: the non-dict row, the "
+    "one whose VALUE will not float and the one whose START is no timestamp "
+    "are all dropped here -- `_raw_start` validates since R10 #2236, because "
+    "the later stage that used to reject a bad start (the day bucketing) is "
+    "not the only reader, and the coordinator's price lookup placed "
+    "startless rows by position. And the distinction that IS load-bearing here: rows "
     "the parser dropped leave a shorter plan, while no rows at all is a "
     "failed fetch the coordinator must report rather than plan around",
 )
@@ -46906,8 +46905,9 @@ R.check(
 # `_raw_value`, so a row no parser would admit reads as a float or as 0
 # (no price known), never as a crash or a string. Driven directly on a
 # coordinator because production ingress (both parsers, above) can no
-# longer deliver such a row; starts_at far in the future keeps the read
-# on the fallback branch deterministically.
+# longer deliver such a row. R10 #2229: the clock is pinned inside the row's
+# hour, because a row that does not cover now is no current price at all,
+# and a row with no usable total is no row (None, not 0.0).
 from harness import FakeEntry as _G8NFEntry
 
 _g8_nf_spot_coord = Coord(
@@ -46922,13 +46922,17 @@ _g8_nf_spot_none = Coord(
 _g8_nf_spot_none._prices = [
     {"total": None, "starts_at": "2099-01-01T00:00:00+00:00"},
 ]
+from homeassistant.util import dt as _g8_nf_dt
+
+_g8_nf_dt.freeze(datetime(2099, 1, 1, 0, 30, tzinfo=UTC))
 _g8_nf_spot_value = _g8_nf_spot_coord._current_spot_price()
 _g8_nf_spot_null = _g8_nf_spot_none._current_spot_price()
+_g8_nf_dt.freeze(None)
 R.check(
-    "the spot-price fallback never returns a raw total: a floatable one "
-    "coerces, an unfloatable one reads 0",
+    "the spot price never returns a raw total: a floatable one coerces, an "
+    "unfloatable one is no price (None, never 0.0)",
     isinstance(_g8_nf_spot_value, float) and _g8_nf_spot_value == 0.55
-    and isinstance(_g8_nf_spot_null, float) and _g8_nf_spot_null == 0.0,
+    and _g8_nf_spot_null is None,
     f"string total -> {_g8_nf_spot_value!r}, null total -> "
     f"{_g8_nf_spot_null!r}",
 )
@@ -63920,6 +63924,362 @@ R.check(
     _df_missing == {"None": (None, None), "''": (None, None)}
     and _df_sc.ISSUE_SPACE in str(getattr(_df_space_hass, "issues", [])),
     f"{_df_missing} issues={getattr(_df_space_hass, 'issues', [])!r}",
+)
+
+
+# ---------------------------------------------------------------------------
+# R10-FEEDS: the price and weather ingest seam (#2229 N-no-expiry, #2233
+# N-silent-zero, #2226 N-log-flood, #2236 P1 D1-s3-02). Each arm drives the
+# production symbol; its null control is the covered / healthy input.
+# ---------------------------------------------------------------------------
+import asyncio as _fd_asyncio  # noqa: E402
+import logging as _fd_logging  # noqa: E402
+from types import SimpleNamespace as _FdNS  # noqa: E402
+
+from harness import FakeEntry as _FdEntry  # noqa: E402
+from homeassistant.helpers.update_coordinator import UpdateFailed as _FdUpdateFailed  # noqa: E402
+from homeassistant.util import dt as _fd_dt  # noqa: E402
+from heatpump_optimizer import coordinator as _fd_cm  # noqa: E402
+from heatpump_optimizer import price_model as _fd_pm  # noqa: E402
+
+_FD_T0 = datetime(2026, 1, 15, 10, 0, tzinfo=timezone.utc)
+_FD_CFG = {"tibber_token": "x", "price_source": "tibber", "weather_entity": "weather.home",
+           "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor"}
+
+
+def _fd_coord():
+    return Coord(FakeHass(), _FdEntry(data=dict(_FD_CFG)))
+
+
+class _FdLog(_fd_logging.Handler):
+    """Every record the coordinator module logs, as (level, message)."""
+
+    def __init__(self):
+        super().__init__(_fd_logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        self.rows.append((record.levelname, record.getMessage()))
+
+    def count(self, level, needle):
+        return sum(1 for lv, msg in self.rows if lv == level and needle in msg)
+
+
+def _fd_logged(fn):
+    log = _FdLog()
+    logger = _fd_logging.getLogger(_fd_cm.__name__)
+    old = logger.level
+    logger.addHandler(log)
+    logger.setLevel(_fd_logging.DEBUG)
+    try:
+        fn()
+    finally:
+        logger.removeHandler(log)
+        logger.setLevel(old)
+    return log
+
+
+# -- N-no-expiry (#2229): the covering rule has an end --------------------
+_fd_starts = [_FD_T0 + timedelta(hours=k) for k in range(4)]
+_fd_cov = {
+    "before": _fd_cm._covering_index(_fd_starts, _FD_T0 - timedelta(minutes=1), timedelta(hours=1)),
+    "first": _fd_cm._covering_index(_fd_starts, _FD_T0, timedelta(hours=1)),
+    "inner": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=90), timedelta(hours=1)),
+    "last": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=239), timedelta(hours=1)),
+    "end": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=4), timedelta(hours=1)),
+    "past": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=50), timedelta(hours=1)),
+    "lone_in": _fd_cm._covering_index([0.0], 899.0, 900.0),
+    "lone_out": _fd_cm._covering_index([0.0], 900.0, 900.0),
+    "quarter_last": _fd_cm._covering_index([0.0, 900.0], 1799.0, 3600.0),
+    "quarter_out": _fd_cm._covering_index([0.0, 900.0], 1800.0, 3600.0),
+}
+R.check(
+    "#2229: an entry covers [start, next start); the last one its predecessor's span, "
+    "a lone one the given span -- and nothing covers before the first or past the end",
+    _fd_cov == {"before": None, "first": 0, "inner": 1, "last": 3, "end": None,
+                "past": None, "lone_in": 0, "lone_out": None,
+                "quarter_last": 1, "quarter_out": None},
+    repr(_fd_cov),
+)
+
+_fd_spot = _fd_coord()
+_fd_spot._prices = [{"total": round(1.0 + 0.1 * k, 2), "starts_at": (_FD_T0 + timedelta(hours=k)).isoformat(),
+                     "level": "NORMAL"} for k in range(-2, 4)]
+_fd_spot_read = {}
+for _fd_h in (0.5, 3.5, 4.0, 5.0, 50.0):
+    _fd_dt.freeze(_FD_T0 + timedelta(hours=_fd_h))
+    _fd_spot_read[_fd_h] = (_fd_spot._current_spot_price(), _fd_spot._get_current_price(),
+                            _fd_spot._grid_view()["current_price"])
+_fd_dt.freeze(None)
+R.check(
+    "#2229: a price list that stopped updating publishes no current price past its "
+    "last entry's hour; a covered hour (the null control) still reads its entry",
+    _fd_spot_read[0.5] == (1.0, 1.0, 1.0) and _fd_spot_read[3.5] == (1.3, 1.3, 1.3)
+    and all(v == (None, None, None) for h, v in _fd_spot_read.items() if h >= 4.0),
+    repr(_fd_spot_read),
+)
+_fd_dt.freeze(_FD_T0)
+_fd_none = _fd_coord()
+_fd_future = _fd_coord()
+_fd_future._prices = [{"total": 0.55, "starts_at": "2099-01-01T00:00:00+00:00"}]
+R.check(
+    "#2229: no prices, or none started yet, is no current price -- never 0.0, the "
+    "cheapest price there is, and never the head of a list that covers a later hour",
+    _fd_none._current_spot_price() is None and _fd_future._current_spot_price() is None,
+    f"{_fd_none._current_spot_price()!r} {_fd_future._current_spot_price()!r}",
+)
+_fd_dt.freeze(None)
+
+_fd_fc = [{"datetime": (_FD_T0 + timedelta(hours=k)).isoformat(), "temperature": -3.0 + k}
+          for k in range(4)]
+_fd_plan = _FdNS(timestamps=[_FD_T0 + timedelta(minutes=15 * k) for k in range(12)],
+                 dhw_temp_trajectory=[50.0 - 0.5 * k for k in range(12)])
+_fd_series = {
+    "fc_before": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 - timedelta(minutes=30)),
+    "fc_cover": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 + timedelta(minutes=90)),
+    "fc_last": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 + timedelta(minutes=230)),
+    "fc_past": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 + timedelta(hours=50)),
+    "plan_cover": _fd_cm._open_loop_plan_value(_fd_plan, "dhw_temp_trajectory", _FD_T0 + timedelta(minutes=20)),
+    "plan_last": _fd_cm._open_loop_plan_value(_fd_plan, "dhw_temp_trajectory", _FD_T0 + timedelta(minutes=179)),
+    "plan_past": _fd_cm._open_loop_plan_value(_fd_plan, "dhw_temp_trajectory", _FD_T0 + timedelta(hours=50)),
+}
+R.check(
+    "#2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series "
+    "(the sweep's two siblings); inside it they read the covering entry",
+    _fd_series == {"fc_before": -3.0, "fc_cover": -2.0, "fc_last": 0.0, "fc_past": None,
+                   "plan_cover": 49.5, "plan_last": 44.5, "plan_past": None},
+    repr(_fd_series),
+)
+
+# -- N-silent-zero (#2233) and P1 D1-s3-02 (#2236): ingress refuses, never empties --
+_fd_mid = datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc)
+_fd_good = [{"total": 1.0 + i / 100, "startsAt": (_fd_mid + timedelta(minutes=15 * i)).isoformat(),
+             "level": "NORMAL"} for i in range(96)]
+
+
+def _fd_body(today, tomorrow=()):
+    return {"data": {"viewer": {"homes": [{"currentSubscription": {"priceInfo": {
+        "current": None, "today": list(today), "tomorrow": list(tomorrow)}}}]}}}
+
+
+_fd_parse = {
+    "empty": _fd_pm.prices_from_tibber_payload(_fd_body([])),
+    "startless": _fd_pm.prices_from_tibber_payload(
+        _fd_body([{"total": 1.0, "level": "NORMAL"}] * 4)),
+    "bad_start": _fd_pm.prices_from_tibber_payload(
+        _fd_body([{"total": 1.0, "startsAt": "noon"}, _fd_good[0]])),
+    "good": _fd_pm.prices_from_tibber_payload(_fd_body(_fd_good)),
+}
+R.check(
+    "#2233/#2236: a Tibber body with no usable row is a failure reason, a row with no "
+    "parseable start is dropped, and a good body (null control) keeps all 96 rows",
+    isinstance(_fd_parse["empty"], str) and isinstance(_fd_parse["startless"], str)
+    and [r["starts_at"] for r in _fd_parse["bad_start"]] == [_fd_good[0]["startsAt"]]
+    and len(_fd_parse["good"]) == 96,
+    repr({k: v if isinstance(v, str) else len(v) for k, v in _fd_parse.items()}),
+)
+R.check(
+    "#2236: one start rule for both ingress paths -- the entity path drops an "
+    "unparseable start too",
+    _fd_pm._raw_start({"start": "bad"}) is None
+    and _fd_pm._raw_start({"start": "2026-01-15T18:00:00+00:00"}) == "2026-01-15T18:00:00+00:00",
+    repr(_fd_pm._raw_start({"start": "bad"})),
+)
+
+
+class _FdResp:
+    status = 200
+
+    def __init__(self, body):
+        self._b = body
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def json(self):
+        return self._b
+
+
+class _FdSess:
+    def __init__(self, body):
+        self.body = body
+
+    def post(self, *a, **k):
+        return _FdResp(self.body)
+
+
+async def _fd_fetch(coord, body):
+    _fd_cm.async_get_clientsession = lambda hass: _FdSess(body)
+    try:
+        await coord._fetch_tibber_prices()
+        return "ok"
+    except _FdUpdateFailed:
+        return "failed"
+
+
+_fd_session_getter = _fd_cm.async_get_clientsession
+_fd_tib = _fd_coord()
+_fd_tib_run = [_fd_asyncio.run(_fd_fetch(_fd_tib, _fd_body(_fd_good))), len(_fd_tib._prices)]
+_fd_tib_run += [_fd_asyncio.run(_fd_fetch(_fd_tib, _fd_body([]))), len(_fd_tib._prices),
+                _fd_tib._tibber_outage_cycles]
+_fd_cm.async_get_clientsession = _fd_session_getter
+R.check(
+    "#2233: an HTTP 200 with empty days fails the fetch and keeps the 96 held rows; "
+    "the good fetch before it (null control) succeeds",
+    _fd_tib_run == ["ok", 96, "failed", 96, 1],
+    repr(_fd_tib_run),
+)
+
+
+class _FdWeather:
+    def __init__(self):
+        self.rows = []
+
+    async def async_call(self, *a, **k):
+        return {"weather.home": {"forecast": self.rows}}
+
+
+_fd_wx = _fd_coord()
+_fd_wx.hass.services = _fd_wx_svc = _FdWeather()
+_fd_wx_svc.rows = [{"datetime": (_FD_T0 + timedelta(hours=h)).isoformat(), "temperature": 3.0}
+                   for h in range(48)]
+_fd_asyncio.run(_fd_wx._fetch_weather_forecast())
+_fd_wx_good = (len(_fd_wx._weather_forecast), _fd_wx._weather_stale_since)
+_fd_wx_svc.rows = ["x"] * 48
+_fd_asyncio.run(_fd_wx._fetch_weather_forecast())
+R.check(
+    "#2233: a forecast whose rows all fail plausibility is a failed fetch: the held "
+    "48 rows stay and are marked stale; the good fetch (null control) is not stale",
+    _fd_wx_good == (48, None) and len(_fd_wx._weather_forecast) == 48
+    and _fd_wx._weather_stale_since is not None and _fd_wx._weather_outage_cycles == 1,
+    f"good={_fd_wx_good} after={len(_fd_wx._weather_forecast)} "
+    f"stale={_fd_wx._weather_stale_since} outage={_fd_wx._weather_outage_cycles}",
+)
+
+# -- N-log-flood (#2226): a held condition logs its transitions only ---------
+_fd_latch_owner = _fd_coord()
+
+
+def _fd_latch_run():
+    for active in (True, True, True, True, False, False, True):
+        _fd_cm._log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
+    _fd_cm._log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
+
+
+_fd_latch = _fd_logged(_fd_latch_run)
+R.check(
+    "#2226: a held condition warns when it starts, DEBUGs while it holds, INFOs once "
+    "when it clears, and warns again on recurrence or a changed text",
+    _fd_latch.count("WARNING", "Probe held") == 2
+    and _fd_latch.count("DEBUG", "Probe held") == 3
+    and _fd_latch.count("INFO", "Resolved: probe condition") == 1
+    and _fd_latch.count("WARNING", "Probe changed") == 1,
+    repr(_fd_latch.rows),
+)
+
+_fd_flood = _fd_coord()
+_fd_flood._prices = []
+_fd_flood._weather_forecast = []
+
+
+def _fd_flood_run():
+    for _ in range(4):
+        _fd_flood._price_series(96, _FD_T0, 0)
+        _fd_flood._weather_series(96, _FD_T0, 0)
+        _fd_cm._peak_tariff_months("Smarch-fd")
+        _fd_cm._peak_tariff_hours("25:99-fd")
+
+
+_fd_flood_log = _fd_logged(_fd_flood_run)
+_fd_flood_counts = {
+    needle: _fd_flood_log.count("WARNING", needle)
+    for needle in ("No electricity price data", "No weather forecast available",
+                   "Invalid peak tariff months", "Invalid peak tariff hours")
+}
+R.check(
+    "#2226: four cycles of no prices, no forecast and malformed peak-tariff options "
+    "log each WARNING once (it was 4, and 16 for a tariff option)",
+    set(_fd_flood_counts.values()) == {1},
+    repr(_fd_flood_counts),
+)
+
+# -- the consumers of an unknown price (#2229's distinct failure value) ------
+_fd_acc = _fd_coord()
+_fd_acc_before = dict(_fd_acc._energy_totals)
+_fd_acc._accumulate_energy(
+    AccuracySample(when=_FD_T0, predicted_power_kw=2.0, actual_power_kw=2.0),
+    0.5, {"when": _FD_T0, "price": None, "spot_price": None,
+          "space_power": 2.0, "dhw_power": 0.0})
+_fd_acc_spot = _fd_acc._ledger._month("2026-01")["meta"].get("spot_price")
+R.check(
+    "#2229: an interval no price covered books its energy, no cost and no spot sample "
+    "-- not a zero-priced kWh and not a 0.0 dragging the month's mean spot",
+    _fd_acc._energy_totals["total_energy_kwh"] - _fd_acc_before["total_energy_kwh"] == 1.0
+    and _fd_acc._energy_totals["space_cost"] == _fd_acc_before["space_cost"]
+    and _fd_acc_spot is None,
+    f"totals={_fd_acc._energy_totals} spot_meta={_fd_acc_spot}",
+)
+_fd_acc_priced = _fd_coord()
+_fd_acc_priced._accumulate_energy(
+    AccuracySample(when=_FD_T0, predicted_power_kw=2.0, actual_power_kw=2.0),
+    0.5, {"when": _FD_T0, "price": 2.0, "spot_price": 1.5,
+          "space_power": 2.0, "dhw_power": 0.0})
+R.check(
+    "#2229 null control: a priced interval still books its cost and spot sample",
+    _fd_acc_priced._energy_totals["space_cost"] == 2.0
+    and _fd_acc_priced._ledger._month("2026-01")["meta"]["spot_price"]["count"] == 1,
+    repr(_fd_acc_priced._energy_totals),
+)
+
+_fd_ac = _fd_coord()
+_fd_ac._measured_power = 1.0
+_fd_ac._pending_prediction = {"when": _FD_T0, "power": 2.0, "price": None,
+                              "predicted_temp": None, "outdoor": None}
+_fd_dt.freeze(_FD_T0 + timedelta(minutes=30))
+_fd_ac._record_accuracy()
+_fd_ac_priced = _fd_coord()
+_fd_ac_priced._measured_power = 1.0
+_fd_ac_priced._pending_prediction = {"when": _FD_T0, "power": 2.0, "price": 2.0,
+                                     "predicted_temp": None, "outdoor": None}
+_fd_ac_priced._record_accuracy()
+_fd_dt.freeze(None)
+_fd_ac_last = _fd_ac._accuracy.samples[-1] if _fd_ac._accuracy.samples else None
+_fd_acp_last = _fd_ac_priced._accuracy.samples[-1] if _fd_ac_priced._accuracy.samples else None
+R.check(
+    "#2229: an accuracy sample with no price records no cost comparison (None, which "
+    "the tracker's pairing skips), not a 0.0 cost; a priced one (null control) does",
+    _fd_ac_last is not None and _fd_ac_last.predicted_cost is None
+    and _fd_ac_last.actual_cost is None
+    and _fd_acp_last is not None and _fd_acp_last.predicted_cost == 2.0
+    and _fd_acp_last.actual_cost == 1.0,
+    f"{_fd_ac_last!r} / {_fd_acp_last!r}",
+)
+
+_fd_sysid = SystemIdentification(SysIdConfig())
+_fd_sysid_night = datetime(2026, 1, 15, 2, 0, tzinfo=timezone.utc)
+_fd_sysid_ok = _fd_sysid.conditions_met(_fd_sysid_night, 0.0, None, np.array([1.0, 2.0]), 0)
+R.check(
+    "#2229: an unknown current price never starts a system-identification experiment",
+    _fd_sysid_ok[0] is False and "price" in _fd_sysid_ok[1],
+    repr(_fd_sysid_ok),
+)
+
+_fd_ov = _fd_coord()
+with_config(_fd_ov, {"comfort_learning_enabled": True})
+_fd_ov._prices = [{"total": 1.0, "starts_at": "2099-01-01T00:00:00+00:00"}]
+_fd_ov_seen = []
+_fd_ov._comfort_learner = _FdNS(record_override=_fd_ov_seen.append,
+                                configured_weight=1.0, effective_weight=1.0)
+_fd_dt.freeze(_FD_T0)
+_fd_ov.record_setpoint_override(22.0)
+_fd_dt.freeze(None)
+R.check(
+    "#2229: an override with no current price is recorded at a neutral relative price",
+    len(_fd_ov_seen) == 1 and getattr(_fd_ov_seen[0], "relative_price", None) == 1.0,
+    repr(_fd_ov_seen),
 )
 
 
