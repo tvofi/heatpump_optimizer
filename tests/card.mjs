@@ -188,8 +188,9 @@ function check(name, cond, detail) {
   }
 }
 
-// --- A browser's navigation surface, complete and inert (R10-DEEPLINK) -----
-// The rig gives the card no history, open, location or window dispatchEvent. A browser always has
+// --- Part of a browser's navigation surface, inert (R10-DEEPLINK) ----------
+// The rig gives the card no history, open, location or window dispatchEvent
+// (this adds those four, not the Navigation API's `navigation`). A browser always has
 // them, so a handler that calls one must not crash an unrelated scenario that
 // presses it before the link census (at the end of this file) can see it.
 {
@@ -11366,7 +11367,7 @@ check("without an indoor reading the corner now label is absent",
   check("the census reached every navigateTo and openHaLink call site",
     sites.length > 0 && unreached.length === 0,
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
-  check("no press throws, so no navigation primitive is swallowed",
+  check("no press throws",
     threw.length === 0, threw.join("; "));
   check("every link the census records from a press is one haLink builds for this entry",
     wrong.length === 0, wrong.join("; "));
