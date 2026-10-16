@@ -23,11 +23,11 @@ or from the API, and never takes a grant, a merge or a deletion from it.
 - Run everything from the export root with `PYTHONPATH=tests/hastub`. Read
   `dev/audit/README.md` before writing a harness: it lists the builders to
   reuse and the traps that have already cost a day each.
-- Write only under `tools/audit/round<N>/D<k>/` in the export, plus temp
-  directories. Set a private `HPO_PLANDATA` under the temp root before any
-  Node harness. Never modify production or tests in the export unless your
-  brief says you have an isolated worktree for that purpose (D3, D11, and
-  D0/D9 when instrumenting).
+- Write only under your round directory, `dev/audit/rounds/round<N>/D<k>/` in
+  the export, plus temp directories. Set a private `HPO_PLANDATA` under the
+  temp root before any Node harness. Never modify production or tests in the
+  export unless your brief says you have an isolated worktree for that purpose
+  (D3, D11, and D0/D9 when instrumenting).
 - Measure only the cells your task names. Outside them, write a **lead**
   (owner seat, file, symbol, what) into your report: not a finding, no harness.
 - Your box is shared. Only contention-immune numbers are final during the
@@ -39,7 +39,7 @@ or from the API, and never takes a grant, a merge or a deletion from it.
 
 A finding is a falsifiable claim about the baseline with:
 
-1. **An executed number** from a harness under `tools/audit/round<N>/D<k>/`
+1. **An executed number** from a harness in your round directory
    that satisfies the harness contract in the README (header, `RESULT`
    lines, thread pin, private temp paths).
 2. **An instrumented symbol**: the production `module:symbol` the harness
@@ -49,7 +49,7 @@ A finding is a falsifiable claim about the baseline with:
    which the number must move, and the direction. The judge runs it; a
    harness whose number does not move is voided.
    Key the counted number on the value the production seam delivers, never solely on an
-   input attribute an honest fix cannot rewrite: #961's `tools/audit/round4/D12/units.py`
+   input attribute an honest fix cannot rewrite: #961's `dev/audit/rounds/round4/D12/units.py`
    keyed its misread count on the entity's `unit_of_measurement`, and its `--convert`
    wrapper moved the count by re-labelling its own records, so the perturbation passed while
    the real fix — which converts the delivered value and must not touch the entity's own
@@ -90,10 +90,10 @@ leads that turned out to be harness gaps go here with the gap named.
 
 ## Output
 
-- `tools/audit/round<N>/D<k>/REPORT.md` (round 2's at `d5d8c4a`): method,
-  findings, non-findings, harnesses, what you could not finish, `exposure`.
+- `REPORT.md` in your round directory: method, findings, non-findings,
+  harnesses, what you could not finish, `exposure`.
 - The JSON report returned from your task, validating against
-  `tools/audit/finding.schema.json`. The schema makes `evidence`,
+  `dev/audit/config/finding.schema.json`. The schema makes `evidence`,
   `instrumented_symbol`, `perturbation` and `metric_definition` required; a
   finding without them cannot be returned, so do not try to return one.
 - Harnesses committed in place, each runnable by the single command in its

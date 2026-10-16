@@ -11,22 +11,21 @@ Almost nothing here is read by the gate. `tests/closure.py`'s `INERT` tuple and
 its `INERT_EXCEPT` record which paths under `tools/` that covers and which it
 does not, including the one file here a test executes. Do not restate them.
 
-`CLAUDE.md` tables every brief under `briefs/` and says which one binds which
-seat; this file does not repeat that list. The rest of the layout:
+`CLAUDE.md` tables every brief under `dev/governance/` and says which one binds
+which seat; this file does not repeat that list. The rest of the layout:
 
 ```
 dev/audit/README.md           this file: the harness contract, and the instruments kept live
-tools/audit/
-  finding.schema.json       what a finder must return; a finding without evidence cannot be returned
-  briefs/                   every contract and dimension brief, tabled in CLAUDE.md; COMMON.md first
-  preflight.sh              executed by tests/entities.py, so it is not INERT
-  seat/                     the stateless seat instruments; each carries --self-test
-tools/release/stamp.py      the only way a version is assigned
+dev/audit/config/             finding.schema.json (a finding without evidence cannot be returned), scopes, ledgers
+dev/audit/rounds/round<N>/    a round's reports, harnesses and verdicts
+tools/audit/seat/             the stateless seat instruments; each carries --self-test
+tools/pr/preflight.sh         executed by tests/entities.py, so it is not INERT
+tools/release/stamp.py        the only way a version is assigned
 ```
 
 ## The harness contract
 
-A harness is a standalone script under `tools/audit/round<N>/D<k>/`, Python or
+A harness is a standalone script under `dev/audit/rounds/round<N>/D<k>/`, Python or
 Node, that produces the number a finding rests on. The judge re-runs it
 without reading the finding, so it has to carry everything:
 
