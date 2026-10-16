@@ -1,0 +1,18 @@
+RESULT spelling 28_import_abs_alias verdict=NULL dS=+0.0000 moved={}
+RESULT spelling 29_import_abs_plain verdict=NULL dS=+0.0000 moved={}
+RESULT spelling 30_from_abs_module_alias verdict=NULL dS=+0.0000 moved={}
+RESULT spelling 31_import_module_kw verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S1_import_abs_pkg_then_dotted verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S2_from_abs_module_plain verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S3_getattr_alias verdict=WORSENS dS=+0.0000 moved={'reflective_writes': '16->17'}
+RESULT spelling S4_import_parent_ns verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling S5_from_parent_ns verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling S6_relative_module_alias verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S7_import_module_const_anchor verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S8_module_const_name verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling S9_dunder_abs verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S10_dunder_dict_alias verdict=IMPROVES dS=+0.1699 moved={'private_cross_module': '8->7'}
+RESULT spelling S11_from_importlib_alias verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S12_alias_then_attr verdict=IMPROVES dS=+0.1699 moved={'private_cross_module': '8->7'}
+RESULT spelling S13_import_module_plain_rel verdict=NULL dS=+0.0000 moved={}
+RESULT spelling S14_from_dot_optimizer_f verdict=NULL dS=+0.0000 moved={}

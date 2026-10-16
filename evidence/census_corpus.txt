@@ -1,0 +1,13 @@
+corpus trees censused: 87
+RESULT absolute_self_import=0 count
+RESULT absolute_self_import_dotted=0 count
+RESULT constant_dynamic_import=30 count
+RESULT guard_not_body=58 count
+RESULT guard_not_body_imports=0 count
+RESULT dynamic_names=['threadpoolctl'] set
+RESULT planted_absolute_self_import=2 count
+RESULT planted_absolute_self_import_dotted=1 count
+RESULT planted_constant_dynamic_import=3 count
+RESULT planted_guard_not_body=4 count
+RESULT planted_guard_not_body_imports=2 count
+PRECONDITION ok: a census that matched no spelling is refused, not reported as a zero (every spelling fired on the planted tree)

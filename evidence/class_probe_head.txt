@@ -1,0 +1,5 @@
+RESULT spelling T1_import_pkg_alias_then_subattr verdict=NULL dS=+0.0000 moved={}
+RESULT spelling T2_from_parent_child_alias verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling T3_import_parent_plain verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling T4_relative_module_noalias verdict=NULL dS=+0.0000 moved={}
+RESULT spelling T5_getattr_parent_chain verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}

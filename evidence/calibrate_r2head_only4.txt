@@ -1,0 +1,5 @@
+case                                         set      label    verdict   adm         dS  rises / top terms
+rt_28_layer_import_abs_alias                 redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_29_layer_import_abs_plain                 redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_30_layer_from_abs_module                  redteam  GAME     IMPROVES  y       0.1699  private_cross_module+0.170
+rt_31_layer_import_module_kw                 redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
