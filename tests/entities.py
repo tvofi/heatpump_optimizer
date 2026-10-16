@@ -3847,6 +3847,37 @@ def _p2_registry(sources):
                      "DHW-active step counts for the log and the out-of-window "
                      "figure: the DHW circuit's activity",
              }),
+        # D7-s3-8x-tariff (R10-TARIFF): whether windows tie at the peak --
+        # the plateau rule -- is read against _PEAK_TIE_BAND by the solver's
+        # top-k alone; a day's peak is that rule at k = 1, not a copy. The
+        # scalar and batch twins are both owners: the batch must equal the
+        # scalar bit for bit (fixer.md step 15), and the scalar keeps its own
+        # bisection for the per-day cost (ARCH2-s3 patch 01b).
+        dict(fact="peak_tie_rule", finding="D7-s3-8x-tariff",
+             match=_p2_match_node(
+                 (ast.Name,), r"^_PEAK_TIE_BAND$",
+                 lambda n: n.id == "_PEAK_TIE_BAND" and isinstance(n.ctx, ast.Load)),
+             owners=["tariff.py::_plateau_aware_topk_sum",
+                     "tariff.py::_plateau_aware_topk_sum_batch"], dispositions={}),
+        # D7-s2-59 (R10-TARIFF): a range over a named cycle (months, weekdays)
+        # wraps where its end precedes its start; _parse_cyclic_range owns it.
+        dict(fact="cyclic_range_wrap", finding="D7-s2-59",
+             match=_p2_match_node(
+                 (ast.BinOp,), r"% (7|12|size)$",
+                 lambda n: isinstance(n.op, ast.Mod) and (
+                     getattr(n.right, "value", None) in (7, 12)
+                     or getattr(n.right, "id", None) == "size")),
+             owners=["grid_fee.py::_parse_cyclic_range"],
+             dispositions={
+                 "dhw_schedule.py::_parse_day_selector":
+                     "distinct finding (#2238 / R10-ARCH-SHAPES): the hot-water weekday "
+                     "selector spells the same wrap in its own tokens; "
+                     "dev/audit/harnesses/r10_weekday_range_twins.py reads 0 of "
+                     "49 pairs disagreeing",
+                 "dhw_schedule.py::_format_day_selector":
+                     "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
+                     "selector's renderer walks the wrap back to a range",
+             }),
     ]
 
 
@@ -3979,6 +4010,12 @@ _P2_PLANTS["on_threshold_kw"] = (
     "\n\ndef _p2_plant(p):\n    return max(0.1, p.min_electrical_power * 0.5)\n"
 )
 _P2_PLANTS["plan_running_rule"] = "\n\ndef _p2_plant(p):\n    return p > 0.1\n"
+_P2_PLANTS["peak_tie_rule"] = (
+    "\n\ndef _p2_plant(x, peak):\n    return x >= peak - _PEAK_TIE_BAND\n"
+)
+_P2_PLANTS["cyclic_range_wrap"] = (
+    "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
     "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
