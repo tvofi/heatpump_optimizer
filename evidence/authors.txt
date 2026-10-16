@@ -1,0 +1,2 @@
+origin/main: 6134 commits; author/committer lines by leak class: {'account-name': 2}; '.local' host emails: 9
+--glob=refs/wip/*: 6276 commits; author/committer lines by leak class: {'account-name': 2}; '.local' host emails: 9

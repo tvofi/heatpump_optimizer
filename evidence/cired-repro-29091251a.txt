@@ -1,0 +1,3 @@
+  FAIL the worktree whose unpushed commit names its path is refused, not pushed: 2 ref(s); 
+ref_privacy self-test: 33 checks, 1 failed
+ref_privacy self-test: 33 checks, 0 failed
