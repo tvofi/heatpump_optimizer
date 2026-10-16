@@ -3242,6 +3242,7 @@
   ],
   "tests/harness_headers.py": [
    "LICENSE",
+   "dev/audit/harnesses/archscore_layering_seam_census.py",
    "dev/audit/harnesses/boost_replay_fork_parity.py",
    "dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py",
    "dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py",
