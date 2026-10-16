@@ -1,2 +1,3 @@
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mutant R1 rc=0 merge_train self-test: 171 checks, 0 failed
+RESULT mutant R1 rc=1 merge_train self-test: 180 checks, 1 failed
+  FAIL --free-holders refuses a holder whose HEAD and origin/<branch> both fail to read: two equal failures are no sha, and nothing is detached

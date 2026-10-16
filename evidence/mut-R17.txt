@@ -1,3 +1,4 @@
  1 file changed, 1 deletion(-)
-RESULT mutant R17 rc=1 merge_train self-test: 171 checks, 1 failed
+RESULT mutant R17 rc=1 merge_train self-test: 180 checks, 2 failed
   FAIL --main-moved-tries: a foreign merge before the second merge re-proves the rest on the new main (a fresh proof branch), and they merge on THAT proof's trees
+  FAIL --main-moved-tries: the FIRST merge on the re-proof re-reads the moved main green -- a red foreign tip stops it right before #2, nothing landing on a red main
