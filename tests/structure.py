@@ -3128,10 +3128,10 @@ def class_self_check() -> tuple[tuple[str, bool], ...]:
     copied = inline + method.replace("def moved(", "def moved_copy(")
     helped = _filler(coord, 160, "    def tick(self):\n        return _moved(self)\n") \
         + "def _moved(self):\n" + MOVED_BODY
-    second, grown = _filler("Second", 200), _filler("Second", 225)
+    big, second, grown = _filler(coord, 300), _filler("Second", 200), _filler("Second", 225)
     return (
         ("a class below the largest is priced when it grows",
-         excess(coordinator=inline, other=grown) - excess(coordinator=inline, other=second) == 50),
+         excess(coordinator=big, other=grown) - excess(coordinator=big, other=second) == 50),
         ("a method moved verbatim into a coordinator.py helper moves no class row",
          excess(coordinator=helped) == excess(coordinator=inline) > 0),
         ("a merged copy is priced: its lines leave the row",
