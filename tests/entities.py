@@ -36018,4 +36018,204 @@ R.check(
     str(_egb3_standalone),
 )
 
+# ---------------------------------------------------------------------------
+# R10 class barriers, the two RCAs' countermeasures (dev/audit/rca/
+# R10-N-no-expiry.md, R10-N-log-flood.md). Both read every module of the
+# package by AST and refuse a site that is neither routed through the class's
+# helper nor on a reasoned allow-list. Each allow-list is keyed (module,
+# function) -> EXACT count, so a second site added inside a listed function
+# still fails; a site that went away fails too, until its entry is deleted.
+# ---------------------------------------------------------------------------
+from collections import Counter  # noqa: E402
+
+_r10_pkg = Path("custom_components/heatpump_optimizer")
+_r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
+
+
+def _r10_functions(source):
+    """(function, its nodes minus nested functions') for every def in source."""
+    tree = ast.parse(source)
+    for fn in ast.walk(tree):
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            nested = {id(n) for f in ast.walk(fn)
+                      if f is not fn and isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))
+                      for n in ast.walk(f)}
+            yield fn, [n for n in ast.walk(fn) if id(n) not in nested]
+
+
+def _r10_covering_lookups(sources):
+    """N-no-expiry seams: each ``bisect_right(...) - 1`` -- "the entry covering
+    now" with no end of its own -- counted per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        for fn, nodes in _r10_functions(source):
+            for n in nodes:
+                if (isinstance(n, ast.BinOp) and isinstance(n.op, ast.Sub)
+                        and isinstance(n.left, ast.Call)
+                        and "bisect_right" in ast.unparse(n.left.func)
+                        and isinstance(n.right, ast.Constant) and n.right.value == 1):
+                    found[(name, fn.name)] += 1
+    return found
+
+
+#: Every covering lookup that is not ``coordinator._covering_index``'s, and why
+#: it may hold its last entry open (the R10 sweep's dispositions).
+_R10_COVERING_ALLOWED = {
+    ("coordinator.py", "_covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
+    ("coordinator.py", "_weather_series"): (1, "builds the future horizon; padding past the last "
+                                               "entry is documented extrapolation, never published as current"),
+    ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
+    ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
+    ("pump_arbiter.py", "step_duty"): (1, "returns None past the plan's last step"),
+    ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
+}
+
+
+def _r10_covering_verdict(found):
+    allowed = {k: v[0] for k, v in _R10_COVERING_ALLOWED.items()}
+    return {k: (found.get(k, 0), allowed.get(k, 0))
+            for k in set(found) | set(allowed) if found.get(k, 0) != allowed.get(k, 0)}
+
+
+_r10_cov_found = _r10_covering_lookups(_r10_sources)
+_r10_cov_planted = _r10_covering_lookups({
+    "planted.py": "from bisect import bisect_right\n"
+                  "def current(s, now):\n    return s[bisect_right(s, now) - 1]\n",
+    "pump_arbiter.py": _r10_sources["pump_arbiter.py"]
+    + "\ndef _share(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
+})
+R.check(
+    "R10 N-no-expiry barrier: every 'entry covering now' lookup goes through "
+    "_covering_index or is on the reasoned list with its exact count",
+    not _r10_covering_verdict(_r10_cov_found)
+    and sum(_r10_cov_found.values()) >= 6 and len(_r10_sources) >= 70
+    # null control and perturbation: a planted unbounded lookup, and a second
+    # lookup inside an allow-listed function, are each refused
+    and ("planted.py", "current") in _r10_covering_verdict(_r10_cov_planted)
+    and ("pump_arbiter.py", "_share") in _r10_covering_verdict(_r10_cov_planted),
+    f"mismatch {_r10_covering_verdict(_r10_cov_found)}; read {sum(_r10_cov_found.values())} "
+    f"lookups in {len(_r10_sources)} modules",
+)
+
+_R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notified|seen)", re.I)
+
+
+def _r10_unlatched_logs(sources):
+    """N-log-flood seams: each ``_LOGGER.warning``/``.error`` with no latch in
+    an enclosing ``if`` (a latch-named test, or a ``not in`` against a set the
+    function ``.add``s to; the R10 sweep's static rule), per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        tree = ast.parse(source)
+
+        def walk(node, chain, fn):
+            for child in ast.iter_child_nodes(node):
+                inner = child if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn
+                if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
+                        and child.func.attr in ("warning", "error")
+                        and ast.unparse(child.func.value) == "_LOGGER"):
+                    latched = False
+                    for test in chain:
+                        text = ast.unparse(test.test)
+                        if _R10_LATCH_WORD.search(text) or (
+                                isinstance(test.test, ast.Compare)
+                                and any(isinstance(o, ast.NotIn) for o in test.test.ops)
+                                and f"{ast.unparse(test.test.comparators[0])}.add(" in ast.unparse(fn)):
+                            latched = True
+                    if not latched:
+                        found[(name, fn.name if fn else "<module>")] += 1
+                walk(child, chain + [child] if isinstance(child, ast.If) else chain, inner)
+
+        walk(tree, [], None)
+    return found
+
+
+#: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
+#: disposition (dev/audit/rounds/round10/sweep-N-log-flood.md) less the
+#: instances this barrier's PR routed through ``coordinator._log_held``.
+_R10_LOG_ALLOWED_BY_REASON = {
+    "the latch itself, or latched by a guard the static rule cannot read "
+    "(an outage counter, a transition notice, a once-per-attempt spacing, "
+    "an lru_cache parsing an option once per distinct text)": {
+        ("coordinator.py", "_log_held"): 1, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
+        ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
+        ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
+        ("coordinator.py", "_peak_tariff_months"): 1, ("coordinator.py", "_peak_tariff_hours"): 1,
+        ("open_meteo.py", "async_refresh"): 1, ("legionella.py", "check_mode_block"): 1,
+        ("legionella.py", "async_track_cycle"): 5, ("pump_arbiter.py", "_not_held"): 1,
+        ("curve_learning.py", "record_miss"): 1,
+    },
+    "once per event by the function's own state (a refit, an issue raised, a "
+    "rollback per alarm, a malformed month closed so it is not retried)": {
+        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 1,
+        ("coordinator.py", "_raise_cop_issue"): 1,
+        ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+    },
+    "not reached per cycle: load, restore, migration, setup, frontend "
+    "registration, a service call or shutdown": {
+        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
+        ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
+        ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,
+        ("snapshots.py", "best_restore"): 1, ("store.py", "_bound_instants"): 1,
+        ("store.py", "_surface_version"): 1, ("tariff.py", "from_dict"): 1,
+        ("thermal_model.py", "from_config"): 1, ("grid_fee.py", "from_config"): 1,
+        ("grid_fee.py", "apply_catalog"): 2, ("frontend.py", "_register_lovelace_resource"): 2,
+        ("frontend.py", "_register_static_path"): 2, ("dhw_schedule.py", "parse_day_overrides"): 1,
+        ("coordinator.py", "_async_load_manual_plan"): 1,
+        ("coordinator.py", "_async_load_thermal_learning"): 1,
+        ("coordinator.py", "_async_setup_peak_guard"): 1,
+        ("coordinator.py", "async_restore_learned_snapshot"): 1,
+        ("coordinator.py", "async_update_thermal_params"): 1, ("coordinator.py", "async_simulate"): 1,
+        ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+    },
+    "one record per failed call, an event and not a held condition (the "
+    "sweep's actuation handlers, and an unexpected exception per failed update)": {
+        ("climate.py", "_async_publish_displace_from_current_action"): 1,
+        ("coordinator.py", "_publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
+        ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
+        ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
+        ("pump_arbiter.py", "switch_supply"): 1,
+    },
+    "OWED, a distinct finding: unlatched and reached every cycle or solve "
+    "under a condition that can persist; a runtime probe is owed (the R10 "
+    "sweep's static-only five, and the solver's per-failed-solve reports)": {
+        ("coordinator.py", "_apply_action"): 1, ("coordinator.py", "_command_valve_target"): 3,
+        ("coordinator.py", "_note_solve_failure"): 1, ("pump_arbiter.py", "_space_target"): 1,
+        ("inputs.py", "_age_gate"): 1, ("optimizer.py", "optimize"): 1,
+        ("optimizer.py", "_solve_space"): 1, ("optimizer.py", "_optimize_space_only"): 1,
+    },
+}
+_R10_LOG_ALLOWED = {k: n for group in _R10_LOG_ALLOWED_BY_REASON.values() for k, n in group.items()}
+
+
+def _r10_log_verdict(found):
+    return {k: (found.get(k, 0), _R10_LOG_ALLOWED.get(k, 0))
+            for k in set(found) | set(_R10_LOG_ALLOWED)
+            if found.get(k, 0) != _R10_LOG_ALLOWED.get(k, 0)}
+
+
+_r10_log_found = _r10_unlatched_logs(_r10_sources)
+_r10_log_planted = _r10_unlatched_logs({
+    "planted.py": "def poll(self):\n    if not self._x:\n        _LOGGER.warning('none')\n"
+                  "def latched(self):\n    if not self._warned:\n        _LOGGER.warning('once')\n",
+    "inputs.py": _r10_sources["inputs.py"]
+    + "\ndef _age_gate(x):\n    _LOGGER.warning('a')\n    _LOGGER.warning('b')\n",
+})
+R.check(
+    "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
+    "with its exact count -- a persisting condition goes through _log_held",
+    not _r10_log_verdict(_r10_log_found)
+    and sum(_r10_log_found.values()) >= 70
+    # null control: a latched warning is not a site; perturbation: an unlatched
+    # one, and a second site inside a listed function, are each refused
+    and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
+    and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
+    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
+    f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
