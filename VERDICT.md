@@ -1,21 +1,35 @@
-Fix review: blocked 8fef39fc30e2e7700c6eac7303fa7c36d68c4673 harness: class-open #2220 arm B (yield.mjs, D13-s1-01) is neither in the diff nor dispositioned in a body that writes Closes #2220
+Fix review: merge 8fef39fc30e2e7700c6eac7303fa7c36d68c4673
+
 bus-nonce: 2df24c8b56858a17e40131e8e62ec585
 
-Round 1. Reviewer seat rev-2323 (fix-review.md, fresh origin/main; preamble diff over dev/governance/roles/ empty). Measured head 8fef39fc30e2 (code head e8adc1b560222), merge base 7215e39df7a1. Head re-read before posting: unchanged.
+Round 2. Reviewer seat rev-2323 (fix-review.md). Round 1 returned `blocked <8fef39fc30e2> harness: class-open #2220 arm B`. The brief's job now is narrow and body-only: confirm the live body clears that block, and that nothing else moved. It does, and nothing else moved.
 
-## The block, and what clears it (body-only; no code change)
+## The round-1 block, and its clearance
 
-Issue #2220 is the I3 class issue. Its own Enumerator section names two arms: arm A, `D14/I3/hook_shape_seams.py`, which is this PR's, and arm B, `D13/s1/yield.mjs`, which is D13-s1-01. This body names only arm A, but it writes `Closes #2220`. Step 6 says a seam the rule returns that is neither in the diff nor dispositioned in the body blocks.
+Round 1 blocked because the body wrote `Closes #2220` while naming only arm A, and #2220's own Enumerator names two arms (arm A, `D14/I3/hook_shape_seams.py`, this PR's; arm B, `D13/s1/yield.mjs`).
 
-Arm B is in fact closed by #2294, which has merged. #2294's body says so ("Part of #2220 ... D11-s1-01 belongs to R10-PRE-EDIT-HOOK"). The body here has to say it too. The roster also conflicts: `wave-r10-groups.json` gives R10-PRE-EDIT-HOOK `fixes: []`. Its brief's closing rule asks for `Part of #2220`, not `Closes`. #2294's group listed `fixes: [2220]` and yet wrote Part of, so neither PR, as drafted to its roster entry, closes the issue.
+The live body now writes **`Part of #2220.`** and carries no closing keyword anywhere. evidence/body-keywords.txt is a case-insensitive `clos|fixe|resolv|part of` over the whole live body; its only matches are `Part of #2220.`, the word `Fixed` in the null-control prose, and the arm-B line. No `Closes`, no `Fixes`, no `Resolves`.
 
-Two fixes would clear this:
-- (a) Keep `Closes #2220` and add one line: arm B / D13-s1-01 is closed by #2294 (merged), and arm A is closed here. The orchestrator then sets this group's `fixes` to [2220].
-- (b) Write `Part of #2220` per the roster, and the orchestrator closes #2220 by hand after the merge.
+Arm B is dispositioned in the body:
+- `- arm B of #2220 (yield.mjs, D13-s1-01) was addressed by #2294 (merged); this PR is arm A`
 
-The orchestrator chooses between them.
+I re-derived that disposition rather than taking it from the body:
+- #2294 is `MERGED`, mergedAt 2026-10-15T21:48:12Z (evidence/pr2294-state.json).
+- #2294's own body says so at line 64: "#2220's I3 enumerator arm B is `yield.mjs`, replaced as above. Its arm A (`hook_shape_seams.py`) belongs to R10-PRE-EDIT-HOOK", and at line 15 writes `Part of #2220` (evidence/pr2294-armB.txt).
 
-## RESULT lines (my runs; finder's harnesses from handoff/audit-r10-register at d23205d13)
+So both arms are accounted for, the roster's `fixes: []` for R10-PRE-EDIT-HOOK agrees with a body that closes nothing, and the orchestrator closes #2220 by hand after the merge. That is the reviewer's option (b), the one the orchestrator chose. The hand-close is the orchestrator's, not a defect in this work.
+
+## Nothing else moved (the body-only claim is true)
+
+- **Head re-read before posting: `8fef39fc30e2e7700c6eac7303fa7c36d68c4673`** (step 12), and it is still the remote tip of `fix/r10-pre-edit-hook` (evidence/remote-ref.txt). The code head under it is `e8adc1b560222cf605a0f664d61c2c0297cdbfe2` (evidence/head-commits.txt) — the same pair round 1 measured.
+- **The diff is the same two files as round 1**: `.claude/hooks/pre-edit.sh` (+20/-2) and `dev/programme/delivery/2323.md` (+1), nothing else (evidence/diff-stat.txt). A head SHA commits the whole tree, so an unchanged SHA is an unchanged tree.
+- **Step 13, re-taken now** (main may have moved since round 1): `git merge-tree --write-tree origin/main 8fef39fc30e2e7700c6eac7303fa7c36d68c4673` exits 0 with no conflicting path (evidence/merge-tree.txt).
+- **Step 11**: every check-run at the head has concluded; none is red (evidence/check-runs.txt). `pr-contract` re-ran at 13:53:40Z, after the re-body, and concluded `success` at 13:54:01Z — so the trigger has no case here, and the body was in fact checked against the contract.
+- **Step 7**: the head SHA the body names is the head I measured.
+
+## RESULT lines — the round-1 measurements stand
+
+I did not re-run the heavy harnesses, because the tree is byte-identical at both ends and a re-run would measure the same bytes. Round 1's lines, carried verbatim (evidence/round1-verdict.txt):
 
 Base 7215e39df7a1:
 - RESULT d11s1 escaped_heading_writes=1 control_refused=1; --perturb escaped=0
@@ -29,61 +43,11 @@ Head 8fef39fc30e2:
 - RESULT sweep seams=16 escapes=0
 - RESULT self-test 21 passed, 0 failed
 
-The finders' --perturb and --clean anchors do not exist at the head, because the fix rewrote the line they anchor on. So I re-derived the body's perturbed arms with my own perturbations, on copies of the head hook driven through the finder's sweep:
-- clean: 0 escapes
-- drop new_string from the tuple: 1 (Edit)
-- drop the edits read: 1 (MultiEdit)
-- both: 2
+Likewise round 1's mutation proof (four mutants red as claimed; two survived, neither blocking, with M4's mixed-list case recorded as the one that would pin the filter), its attacks, its null controls and its escapes are unchanged by a body edit. The body's figures are unchanged and still re-derive to round 1's numbers (self-test 21/0, escapes 1 to 0, sweep 16 seams); no figure moved, so step 14 has nothing to judge.
 
-All four match the body, and the group's carry: the clean arm reads 0 and the perturbed arm 2.
+## Standing gates
 
-## Mutation proof (on the predicate, not the tail; the self-test is the closure)
+- **Owner gate:** `.claude/hooks/` is code-owned, so tvofi's approving review is still required; this verdict is not it.
+- **Forward-carry:** none owed beyond the group carry, which round 1 confirmed met; the body's `## Forward-carry` still reads none.
 
-The body's claims, re-derived:
-- `isinstance(edits, list)` changed to False: 2 red.
-- The edits line replaced by `pass`: 2 red.
-- Join on a space: 1 red.
-- `"## "` changed to `"### "`: 3 red.
-
-Mine:
-- `list` changed to `tuple`: 2 red.
-- `old_string` read instead of `new_string`: 2 red.
-- Only `edits[:1]` read: 1 red.
-- Top-level fields dropped: 1 red.
-
-Two mutants survived. Neither blocks:
-- **M6:** the guard changed to `if edits:` survives. It is equivalent: a string or dict iterates to no dict entries, and an int crashes. Every one of those allows.
-- **M4:** dropping the `isinstance(e, dict)` filter survives. The case "non-object edits entries fail OPEN" pins the outcome, but not the filter, because a crash also allows. M4 is observable only on a mixed list such as `[7, {heading}]`: the head refuses that and M4 allows it. That is a schema-invalid MultiEdit. Adding a refuse case for that mixed list would pin the filter.
-
-## Attacks (attacks.txt; base and head side by side)
-
-- **CRLF and CR-only line endings**, in Write, Edit and in MultiEdit's edit 2: all refused at the head. The base let the MultiEdit cases through.
-- **Heading position:** an indented heading, a heading in the middle of a new_string, a heading in edit 3 of 3, and a heading after an edit with no trailing newline are all refused at the head.
-- **Mixed shapes:** MultiEdit plus a top-level new_string is refused.
-- **NotebookEdit:** a `notebook_path` on RELEASE_NOTES.md with `new_source` is refused at both ends.
-- **Null controls:** body-only edits and `###` sub-headings are allowed, and so is anything on main.
-- **The census's field class** (Edit new_string, Write content, MultiEdit edits[].new_string, NotebookEdit new_source) gives 16 of 16 seams refused or NA at the head. It has no other text field in the matcher's tools.
-
-Escapes at both base and head, the same for Edit as for MultiEdit:
-- A heading split across two edits (`##` plus ` v9.9.9`).
-- An Edit that inserts `##` before text already in the file.
-- `##<TAB>v9.9.9`.
-
-The predicate inspects the inserted text, not the resulting file, by design ("reads what is being written"). These escapes are not the MultiEdit seam, they are not in the census's class, and the stamp refuses at release. Observation only.
-
-## Is failing open here an escape?
-
-No:
-- A non-list `edits`, or non-dict entries, is not a MultiEdit the tool could apply.
-- Well-formed dict entries are still read when garbage sits beside them (A15, refused).
-- The header's stated policy is to fail open, and the backstop still runs: `tools/release/stamp.py` rules 3 and 4, also listed in round-10's sweep-I3.md.
-
-## Other contract steps
-
-- **Required checks:** every check-run at the head has concluded (`commits/<sha>/check-runs` API). None is red, so step 11 has no trigger.
-- **merge-tree** against origin/main: exit 0.
-- **Version files:** VERSION, the manifest and the notes heading are untouched. The diff is `.claude/hooks/pre-edit.sh` plus the PR's own delivery row.
-- **Forward-carry:** none owed beyond the group carry, which is met.
-- **Owner gate:** `.claude/hooks/` is code-owned, so tvofi's review is still required.
-
-Evidence: HEAD.txt, harness_raw.txt, mutants.txt, attacks.txt, body_rederive.txt, the scripts, and the finder harness sources. Paths are scrubbed.
+Evidence: HEAD.txt, body-round2.txt, body-keywords.txt, check-runs.txt, diff-stat.txt, head-commits.txt, merge-tree.txt, pr-state.json, pr2294-state.json, pr2294-armB.txt, remote-ref.txt, round1-verdict.txt. Paths are scrubbed.

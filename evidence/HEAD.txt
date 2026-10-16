@@ -1,4 +1,4 @@
-measured head: 8fef39fc30e2e7700c6eac7303fa7c36d68c4673 (authored code head e8adc1b560222cf605a0f664d61c2c0297cdbfe2)
-base (merge base with origin/main): 7215e39df7a122a319be0f6ab2d3e49853325b21
-finder harnesses: refs handoff/audit-r10-register at d23205d1347059686b0ac13554c14391c60d591b (local tracking ref; the remote branch no longer exists)
-interpreter: seat venv-ci python 3.14.7 via tools/audit/seat/seat_venv.sh shims
+head 8fef39fc30e2e7700c6eac7303fa7c36d68c4673
+code head e8adc1b560222cf605a0f664d61c2c0297cdbfe2
+merge base 7215e39df7a1
+round 2 (body-only re-review); head byte-identical to round 1

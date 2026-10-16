@@ -1,0 +1,3 @@
+3:Part of #2220.
+21:Unmodified tree: `python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py` reads escaped_heading_writes=1 with control_refused=1; the sweep `dev/audit/rounds/round10/D14/I3/hook_shape_seams.py` reads seams=16 escapes=1. Fixed head: 0 and 16/0. The sweep's perturbed arm, measured on the fixed head: dropping new_string from the tuple gives escapes=1, dropping the edits read gives escapes=1, both give escapes=2 (clean arm 0). The self-test's null controls (a MultiEdit body line, malformed edits, non-object entries) stay allowed.
+28:- arm B of #2220 (yield.mjs, D13-s1-01) was addressed by #2294 (merged); this PR is arm A
