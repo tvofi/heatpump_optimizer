@@ -1,0 +1,2 @@
+head c777f855b9d87f8218ed3650aead1e92537f51e1  base dec1a264553463414d170a2a14dc53008b31e5b6
+merge-tree exit 0; stderr: LEDGER-MERGE: resolved tests/closures.json
