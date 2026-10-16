@@ -54,14 +54,17 @@ Expected, fix-head structure.py on the merge base's package (--package-ref MB):
   RESULT six_name_kept=2 count
   RESULT six_deleted=0 count
   RESULT six_measured_dead_with_a_typed_cusum_reset=3 count
+  RESULT name_kept=39 count
+  RESULT dead_methods=4 count
   RESULT entity_members_keyed=21 count
   RESULT same_name_not_keyed=2 count
 On the fix head's own tree the four it measures dead are deleted: six_measured_dead=0,
 six_name_kept=2, six_deleted=4. The merge base's structure.py on the merge base's
 package (``--structure`` a base copy, no class_excess_loc row):
 move_class_excess_delta and merge_class_excess_delta print ``absent``,
-second_keys_moved=0, six_measured_dead=0, six_name_kept=6 -- the base prices
-neither the second class nor a merge apart from a move, and measures none of the six.
+second_keys_moved=0, six_measured_dead=0, six_name_kept=6 -- and name_kept=153,
+dead_methods=0: the base prices neither the second class nor a merge apart from a
+move, and measures none of the six.
 The base has no ``HA_ENTITY_METHODS``: separation prints ``absent`` for both.
 Perturbation: in ``class_excess`` drop ``loc += helper_loc`` -> the move arm
 reads -12, a move priced as a gain again.
@@ -238,6 +241,8 @@ print(f"RESULT merge_class_excess_delta={delta(copied, base, 'class_excess_loc')
 rose = sorted(k for k in base if k != "_tables" and second.get(k, base[k]) > base[k])
 print(f"second-class keys that rose: {rose}")
 print(f"RESULT second_keys_moved={len(rose)} count")
+print(f"RESULT name_kept={len(base['_tables']['name_kept'])} count")
+print(f"RESULT dead_methods={len(base['_tables']['dead_methods'])} count")
 
 
 def six(metrics: dict) -> tuple[int, int, int]:
