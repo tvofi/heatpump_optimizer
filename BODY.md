@@ -31,6 +31,12 @@ Alternatives considered:
 
 ## Head
 
+`f687e6175e44dd21c691e04b43ed0e5fdd51602d` merges main `25afc1c` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`16806d6be5f03fd3bb1f4e5e334353dfda7ac9b5` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2311.md`. The authored code head is `1348109737a306eabcccf088af7e35d4c10c8c45`.
+
+`ab10e156042e10d777b739068aa02c4eb24e4bf8` merges origin/main `c42d7cea6` into the authored code head `1348109737a306eabcccf088af7e35d4c10c8c45` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `1348109737a306eabcccf088af7e35d4c10c8c45` (part 1 `87d54712c` and origin/main `98fe51b42` merged in; measured `2026-10-15T22:23Z`)
 
 ## Mutation proof
@@ -79,6 +85,13 @@ Payments considered, and why each lost:
 2. Count event roots in a separate metric. `ci_ratchet` derives every vector key and refuses a key with no row as growth, so this needs a new row at 3 anyway, and it splits one question (which live hub writes the runtime reaches) across two censuses.
 3. Allow-list the three sites. `fixer.md` step 14 refuses it: the key would blind the census at the sites it exists to watch.
 
+Payments tried: each of the three below was considered and measured or reasoned; none lands this change soundly inside this group.
+- (1) Retire the three writes in production: R10-ARCH-LIVESTATE's files (`coordinator.py`), carried there to lower this row by 3.
+- (2) A separate event-root metric: still a new budget row at 3, and one census split in two.
+- (3) An allow-list of the three sites: refused by `fixer.md` step 14, because it blinds the census where it watches.
+
+Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --diff 25afc1c77 f687e617`, run with `f687e617`'s own instrument, against the head's merge base with origin/main)
+
 `Architecture score: dS +0.0000 NULL` (`python3 tools/audit/archscore/score.py --diff origin/main`): the package is unchanged and the gate measures both sides with one instrument. The instrument before and after on today's tree (`census_probe.py --tree main`'s base line, or `metrics/hub_solve_writes.measure`): `hub_solve_writes` 38 -> 41, with every other vector key unchanged.
 
 ## Unpinned sites
@@ -105,3 +118,5 @@ n/a: no package file changes; the instrument change takes effect after merge (`A
 none
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+
