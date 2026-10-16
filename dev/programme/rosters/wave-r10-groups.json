@@ -1299,7 +1299,7 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-pump-model",
     "commit": null,
     "last_step": null,
