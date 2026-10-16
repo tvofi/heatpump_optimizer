@@ -6683,10 +6683,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         location = self._solar_location()
-        if _log_held(self, "solar_coordinate", location is None,
-                     "Open-Meteo solar is selected but no coordinate is available; "
-                     "set one in the integration options or configure the Home "
-                     "Assistant home location"):
+        _log_held(self, "solar_coordinate", location is None,
+                  "Open-Meteo solar is selected but no coordinate is available; "
+                  "set one in the integration options or configure the Home "
+                  "Assistant home location")
+        if location is None:
             self._open_meteo = None
             return
 
