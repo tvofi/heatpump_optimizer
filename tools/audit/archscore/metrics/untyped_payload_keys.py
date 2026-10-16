@@ -30,6 +30,7 @@ keys produced but read by no surface module.
 from __future__ import annotations
 
 import ast
+import copy
 import time
 from pathlib import Path
 
@@ -38,19 +39,123 @@ from . import common as C
 SURFACE_MODULES = ("sensor", "binary_sensor", "climate", "switch", "entity", "button", "datetime", "diagnostics")
 
 
+#: Counter C1b: an untyped key spelled other than a bare ``Any`` is untyped. ``vector.py`` switches it off.
+ANY_SPELLINGS = True
+#: Counter C14: a parameter annotated with a package class holds an instance of it. ``vector.py`` switches it off.
+FOLLOW_ANNOTATED = True
+_TYPE_ALIAS = getattr(ast, "TypeAlias", ())
+
+
+def _parsed(ann: ast.AST) -> ast.AST:
+    """A string annotation as the expression it spells; any other node as it is."""
+    if isinstance(ann, ast.Constant) and isinstance(ann.value, str):
+        try:
+            return ast.parse(ann.value, mode="eval").body
+        except SyntaxError:
+            return ann
+    return ann
+
+
+#: Wrappers that state no type of their own: the annotation is the first argument.
+_QUALIFIERS = ("Required", "NotRequired", "ReadOnly")
+_WRAPPERS = (*_QUALIFIERS, "Annotated")
+
+
+def annotation_members(ann: ast.AST, spellings: bool = True) -> list[ast.AST]:
+    """The types an annotation admits, each wrapper and union taken apart: ``Required`` /
+    ``NotRequired`` / ``ReadOnly`` / ``Annotated[X, ..]`` are ``X``; ``Optional[X]`` is ``X`` and
+    ``None``; ``Union[..]`` and ``a | b`` are their members, in any order; a string annotation is the
+    expression it spells. The one reader of an annotation's spelling, shared by ``is_any`` (C1b) and
+    ``Flow.seed`` (C14), so the two cannot disagree on what a spelling is (#2293's review).
+    ``spellings=False`` is C1 alone: only the TypedDict qualifiers are taken apart."""
+    if spellings:
+        ann = _parsed(ann)
+        if isinstance(ann, ast.BinOp) and isinstance(ann.op, ast.BitOr):
+            return annotation_members(ann.left) + annotation_members(ann.right)
+    if isinstance(ann, ast.Subscript):
+        head = ast.unparse(ann.value).split(".")[-1]
+        elts = ann.slice.elts if isinstance(ann.slice, ast.Tuple) else [ann.slice]
+        if head in _QUALIFIERS or (spellings and head in _WRAPPERS):
+            return annotation_members(elts[0], spellings)
+        if spellings and head == "Optional":
+            return annotation_members(elts[0]) + [ast.Constant(value=None)]
+        if spellings and head == "Union":
+            return [m for e in elts for m in annotation_members(e)]
+    return [ann]
+
+
 def is_any(ann: ast.AST) -> bool:
-    """``Any`` or ``object`` (also under Required / NotRequired / ReadOnly) states no type.
+    """An annotation that states no type: ``Any`` or ``object``, under Required / NotRequired / ReadOnly.
 
     A key declared this way is not a contract: a ``total=False`` TypedDict of every
     key as ``Any`` read 164 -> 0 with no consumer checked (red-team attempt 01).
+    C1b: nor is one that only spells it differently (ARCH-s3, round 10; attempt 17): a string
+    annotation, ``Optional`` or ``Annotated`` around one, and a union with one member (``Any | None``,
+    ``Union[float, Any]``), because a union with ``Any`` accepts every value. A package alias of one is
+    resolved by the caller (``resolve_aliases``), which knows the package.
     """
-    text = ast.unparse(ann)
-    while text.split("[", 1)[0].split(".")[-1] in ("Required", "NotRequired", "ReadOnly") and text.endswith("]"):
-        text = text.split("[", 1)[1][:-1]
-    return text.split(".")[-1] in ("Any", "object")
+    return any(ast.unparse(m).split(".")[-1] in ("Any", "object")
+               for m in annotation_members(ann, ANY_SPELLINGS))
+
+
+def _alias_bindings(tree: ast.Module):
+    """``(name, value)`` for every module-level binding that can be a type alias."""
+    for s in tree.body:
+        if isinstance(s, ast.Assign) and len(s.targets) == 1 and isinstance(s.targets[0], ast.Name):
+            yield s.targets[0].id, s.value
+        elif isinstance(s, ast.AnnAssign) and isinstance(s.target, ast.Name) and s.value is not None:
+            yield s.target.id, s.value
+        elif isinstance(s, _TYPE_ALIAS):
+            yield s.name.id, s.value
+
+
+def resolve_aliases(pkg: C.Pkg, mod: str, ann: ast.AST, aliases: set[tuple[str, str]]) -> ast.AST:
+    """``ann`` (in module ``mod``) with every name bound to an untyped alias in ``aliases`` spelled ``Any``."""
+    if not aliases:
+        return ann
+
+    def alias(e: ast.AST) -> bool:
+        if isinstance(e, ast.Name) and (mod, e.id) in aliases:
+            return True
+        r = pkg.resolve_expr_static(mod, e)
+        return bool(r and r[0] == "var" and r[1] in aliases)
+
+    class Spell(ast.NodeTransformer):
+        def visit_Name(self, n):
+            return ast.Name(id="Any", ctx=ast.Load()) if alias(n) else n
+
+        def visit_Attribute(self, n):
+            return ast.Name(id="Any", ctx=ast.Load()) if alias(n) else self.generic_visit(n)
+
+        def visit_Constant(self, n):  # a string annotation, parsed and spelled in turn
+            p = _parsed(n)
+            return n if p is n else self.visit(p)
+
+        def visit_JoinedStr(self, n):  # an f-string's parts are not annotations
+            return n
+
+    return Spell().visit(_parsed(copy.deepcopy(ann)))
+
+
+def any_aliases(pkg: C.Pkg) -> set[tuple[str, str]]:
+    """(module, name) of every module-level alias of an untyped annotation, an alias of one included."""
+    found: set[tuple[str, str]] = set()
+    if not ANY_SPELLINGS:
+        return found
+    while True:
+        new = {(m.name, name) for m in pkg.mods.values() for name, val in _alias_bindings(m.tree)
+               if is_any(resolve_aliases(pkg, m.name, val, found))}
+        if new <= found:
+            return found
+        found |= new
 
 
 def typed_dicts(pkg: C.Pkg) -> dict[tuple[str, str], set[str]]:
+    aliases = any_aliases(pkg)
+
+    def typed(mod: str, ann: ast.AST) -> bool:
+        return not is_any(resolve_aliases(pkg, mod, ann, aliases))
+
     out: dict[tuple[str, str], set[str]] = {}
     todo = list(pkg.classes.values())
     for _ in range(4):
@@ -59,7 +164,7 @@ def typed_dicts(pkg: C.Pkg) -> dict[tuple[str, str], set[str]]:
                 continue
             if any(b.split(".")[-1] == "TypedDict" for b in c.ext_bases) or any(b in out for b in c.base_keys):
                 keys = {s.target.id for s in c.node.body if isinstance(s, ast.AnnAssign)
-                        and isinstance(s.target, ast.Name) and not is_any(s.annotation)}
+                        and isinstance(s.target, ast.Name) and typed(c.key[0], s.annotation)}
                 for b in c.base_keys:
                     keys |= out.get(b, set())
                 out[c.key] = keys
@@ -70,7 +175,7 @@ def typed_dicts(pkg: C.Pkg) -> dict[tuple[str, str], set[str]]:
                     and isinstance(s.value.args[1], ast.Dict) and isinstance(s.targets[0], ast.Name):
                 out[(m.name, s.targets[0].id)] = {
                     k.value for k, v in zip(s.value.args[1].keys, s.value.args[1].values)
-                    if isinstance(k, ast.Constant) and not is_any(v)}
+                    if isinstance(k, ast.Constant) and typed(m.name, v)}
     return out
 
 
@@ -83,8 +188,25 @@ class Flow:
 
     def env(self, fn: C.Fn) -> dict:
         if fn.qual not in self.envs:
-            self.envs[fn.qual] = self.eng._local_env(fn.node, self.eng.seed_env(fn), fn.cls, fn.mod)
+            self.envs[fn.qual] = self.eng._local_env(fn.node, self.seed(fn), fn.cls, fn.mod)
         return self.envs[fn.qual]
+
+    def seed(self, fn: C.Fn) -> dict:
+        """The engine's seed, and C14: a parameter annotated with a package class (``X``, or ``X`` and
+        ``None`` in any spelling ``annotation_members`` takes apart) holds an instance of it, the role
+        a method's own ``self`` has,
+        so ``state.as_dict()`` on ``state: away_mode.AwayState`` reaches the method whose dict is
+        published (ARCH-s3, round 10: ten away keys were invisible; attempt 16)."""
+        env = self.eng.seed_env(fn)
+        a = fn.node.args
+        for p in (a.posonlyargs + a.args + a.kwonlyargs) if FOLLOW_ANNOTATED else ():
+            if p.annotation is None or p.arg in env:
+                continue
+            types = [m for m in annotation_members(p.annotation) if ast.unparse(m) != "None"]
+            r = self.pkg.resolve_expr_static(fn.mod, types[0]) if len(types) == 1 else None
+            if r and r[0] == "class" and r[1] not in self.td:
+                env[p.arg] = frozenset({("self", r[1])})
+        return env
 
     def contract(self, fn: C.Fn, ann: ast.AST | None) -> set[str]:
         if ann is None:
