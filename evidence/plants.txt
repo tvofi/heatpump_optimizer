@@ -1,0 +1,4 @@
+RESULT plant='N0 none' hub_solve_writes=41 c16_off=38
+RESULT plant='A junk no-op callback registered with HA' hub_solve_writes=41 c16_off=38
+RESULT plant='B setup-time writer referenced by a logger call (not a callback)' hub_solve_writes=48 c16_off=38
+RESULT plant='C HA callback wrapped in a package identity helper' hub_solve_writes=40 c16_off=38

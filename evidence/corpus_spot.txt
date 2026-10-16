@@ -1,0 +1,4 @@
+{3: 74, 0: 2, 2: 11}
+RESULT corpus 296e2734 stored_delta=0 stored_head=3 remeasured=3
+RESULT corpus 364d9b41 stored_delta=2 stored_head=43 remeasured=43
+RESULT corpus 0011bc73 stored_delta=3 stored_head=75 remeasured=75

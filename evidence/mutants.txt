@@ -1,0 +1,29 @@
+== M0
+
+=== architecture score calibration (R9-EG-A1) ===
+RESULT hub_spellings ok=8 fail=0
+== M1-call-roles
+
+=== architecture score calibration (R9-EG-A1) ===
+RESULT hub_spellings ok=5 fail=3
+   FAIL hub census: a zero-argument reader method reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
+   FAIL hub census: a package function's returned value reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
+   FAIL hub census: a zero-argument lambda reader handed to a constructor reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
+== M2-readers
+
+=== architecture score calibration (R9-EG-A1) ===
+RESULT hub_spellings ok=7 fail=1
+   FAIL hub census: a zero-argument lambda reader handed to a constructor reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
+== M3-rebinds
+
+=== architecture score calibration (R9-EG-A1) ===
+RESULT hub_spellings ok=6 fail=2
+   FAIL hub census: a rebind onto a collaborator's attribute reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
+   FAIL hub census: a rebind through a local the hub is rebound to reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
+== M4-event-roots
+
+=== architecture score calibration (R9-EG-A1) ===
+RESULT hub_spellings ok=7 fail=1
+   FAIL hub census: an event callback handed to Home Assistant reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
+  FAIL every listed producer is still reached, so the table holds no stale row  [stale: [('coordinator:HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message', '_current_state.ecl110_displace_command'), ('coordinator:HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message', '_current_state.ecl110_effective_displace'), ('coordinator:HeatPumpOptimizerCoordinator._on_power_event', '_current_state.peak_guard_active')]]
+1 of 16 ARCHITECTURE SCORE HEAD CHECKS FAILED
