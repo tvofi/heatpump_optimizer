@@ -1721,7 +1721,8 @@
    "carry": [
     "A finite absurd reading (100 kW) still yields 6.0 after patch 03; a RANGE BOUND closes it, not only a finiteness check (CATCHUP-JUDGE.md at 33ffa7aa9). The finder's sign-blind perturbation is void; use the verifier's non-finite refusal arm.",
     "Patch 06 changes the pump arbiter's coercion answers (bool and string policy); state it in the pull request. Bool policy: True is not a number.",
-    "Mutation-ledger re-key and a quiet-window stress re-take are owed."
+    "Mutation-ledger re-key and a quiet-window stress re-take are owed.",
+    "From R10-TARIFF (#2282, finding-propagation.md): dhw_schedule.py spells the weekday cyclic-range wrap a second time, in _parse_day_selector and _format_day_selector, beside grid_fee.py's cyclic-range owner (D7-s2-59), which parse_day_range and parse_month_range now use. Today 0 of 49 ordered day pairs disagree. The control is the weekday range twins harness under dev/audit/harnesses (r10_weekday_range_twins.py), which exists once #2282 lands: --perturb reads 49 and --identity reads 0. This group routes _parse_day_selector's range through the owner, has _format_day_selector share it where a sound shape exists, and removes the two dhw_schedule dispositions from tests/entities.py's P2 fact for the cyclic-range wrap. Re-measure with the census at the merge base."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 22 of 25; before you: R10-CONFIG-NOTICES, R10-PARAMS-OWNER; next: R10-LEARNER-ETA, R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1732,7 +1733,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Bug first: D7-s2-61 (P1, weakened low; D7-s3-81 merged into it): a power entity reading inf lifts the quiet-window cap to the 6.0 kW nameplate. ARCH2-s3 patch 03 (a state power-kW reader in custom_components/heatpump_optimizer/inputs.py) at 1d1974df4 is its fix prototype. Then the duplicated-shape owners from ARCH-s2 at 01d9d0be2: patch 05, the hour-clock owners 5 to 2 (D7-s2-57); patch 06, the finite-float owner 9 to 4 (D7-s2-58, #2239).\n\nForward-carried (finding-propagation.md): (1) A finite absurd reading (100 kW) still yields 6.0 after patch 03; a RANGE BOUND closes it, not only a finiteness check (CATCHUP-JUDGE.md at 33ffa7aa9). The finder's sign-blind perturbation is void; use the verifier's non-finite refusal arm. (2) Patch 06 changes the pump arbiter's coercion answers (bool and string policy); state it in the pull request. Bool policy: True is not a number. (3) Mutation-ledger re-key and a quiet-window stress re-take are owed.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 21 of 24; before you: R10-CONFIG-NOTICES, R10-PARAMS-OWNER; next: R10-LEARNER-ETA, R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nFolded from the retired carry for #2236 (round-10 catch-up record):\n- A finiteness check alone does not close D7-s2-61: after the verifier's patch 03 a finite absurd power reading still reaches the cap as p_max. The fix needs a range bound on the power parser, not only a non-finite refusal. Harness: dev/audit/rounds/round10/catchup/arch-s2/probe_coercion_reach.py. Control: Catch-up judge on origin/main d749c986d: four power-state-to-kW parsers, three disagreeing states; inf and 1e400 give the silent 6.0 kW cap (p_max), the same as a finite 100 kW. The verifier's patch 03 reconciles 1e400 (3 -> 2 disagreeing states) and the in-memory non-finite refusal moves 1e400 to the 'unknown' fraction cap (4.2); null control 'unknown' -> 4.2. After patch 03 a finite absurd reading (100 kW) still gives 6.0. Re-measure: At your merge base run dev/audit/rounds/round10/catchup/arch-s2/probe_coercion_reach.py, then feed a finite out-of-range power reading through your fix: the cap must not equal p_max for it.\n\nFrom R10-TARIFF (handoff/r10-tariff at 793116abd): dhw_schedule._parse_day_selector and _format_day_selector re-spell the weekday cyclic-range wrap beside grid_fee._parse_cyclic_range (P2 twin, #2238 comment). Use dev/audit/harnesses/r10_weekday_range_twins.py (pairs=49, null 0, perturb 49), and remove the two cyclic_range_wrap dispositions in tests/entities.py."
+   "brief": "Bug first: D7-s2-61 (P1, weakened low; D7-s3-81 merged into it): a power entity reading inf lifts the quiet-window cap to the 6.0 kW nameplate. ARCH2-s3 patch 03 (a state power-kW reader in custom_components/heatpump_optimizer/inputs.py) at 1d1974df4 is its fix prototype. Then the duplicated-shape owners from ARCH-s2 at 01d9d0be2: patch 05, the hour-clock owners 5 to 2 (D7-s2-57); patch 06, the finite-float owner 9 to 4 (D7-s2-58, #2239).\n\nForward-carried (finding-propagation.md): (1) A finite absurd reading (100 kW) still yields 6.0 after patch 03; a RANGE BOUND closes it, not only a finiteness check (CATCHUP-JUDGE.md at 33ffa7aa9). The finder's sign-blind perturbation is void; use the verifier's non-finite refusal arm. (2) Patch 06 changes the pump arbiter's coercion answers (bool and string policy); state it in the pull request. Bool policy: True is not a number. (3) Mutation-ledger re-key and a quiet-window stress re-take are owed.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 21 of 24; before you: R10-CONFIG-NOTICES, R10-PARAMS-OWNER; next: R10-LEARNER-ETA, R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nFolded from the retired carry for #2236 (round-10 catch-up record):\n- A finiteness check alone does not close D7-s2-61: after the verifier's patch 03 a finite absurd power reading still reaches the cap as p_max. The fix needs a range bound on the power parser, not only a non-finite refusal. Harness: dev/audit/rounds/round10/catchup/arch-s2/probe_coercion_reach.py. Control: Catch-up judge on origin/main d749c986d: four power-state-to-kW parsers, three disagreeing states; inf and 1e400 give the silent 6.0 kW cap (p_max), the same as a finite 100 kW. The verifier's patch 03 reconciles 1e400 (3 -> 2 disagreeing states) and the in-memory non-finite refusal moves 1e400 to the 'unknown' fraction cap (4.2); null control 'unknown' -> 4.2. After patch 03 a finite absurd reading (100 kW) still gives 6.0. Re-measure: At your merge base run dev/audit/rounds/round10/catchup/arch-s2/probe_coercion_reach.py, then feed a finite out-of-range power reading through your fix: the cap must not equal p_max for it.\n\nFrom R10-TARIFF (handoff/r10-tariff at 793116abd): dhw_schedule._parse_day_selector and _format_day_selector re-spell the weekday cyclic-range wrap beside grid_fee._parse_cyclic_range (P2 twin, #2238 comment). Use dev/audit/harnesses/r10_weekday_range_twins.py (pairs=49, null 0, perturb 49), and remove the two cyclic_range_wrap dispositions in tests/entities.py.\n\nForward-carried precondition (finding-propagation.md): From R10-TARIFF (#2282, finding-propagation.md): dhw_schedule.py spells the weekday cyclic-range wrap a second time, in _parse_day_selector and _format_day_selector, beside grid_fee.py's cyclic-range owner (D7-s2-59), which parse_day_range and parse_month_range now use. Today 0 of 49 ordered day pairs disagree. The control is the weekday range twins harness under dev/audit/harnesses (r10_weekday_range_twins.py), which exists once #2282 lands: --perturb reads 49 and --identity reads 0. This group routes _parse_day_selector's range through the owner, has _format_day_selector share it where a sound shape exists, and removes the two dhw_schedule dispositions from tests/entities.py's P2 fact for the cyclic-range wrap. Re-measure with the census at the merge base."
   },
   {
    "group": "R10-LEARNER-ETA",
@@ -2005,7 +2006,8 @@
    ],
    "carry": [
     "Use the arch2-s5 overlay of patch 08 if it applies cleaner after R10-HEAT-METER's options step.",
-    "Mutation-ledger re-key owed."
+    "Mutation-ledger re-key owed.",
+    "From R10-ARCHSCORE-COVERAGE part 3 (counter C19, finding-propagation.md): custom_components/heatpump_optimizer/config_flow.py imports device_registry as dr and never reads dr (grep -n '\\bdr\\b' shows only the import line). The new tripwire archscore.unused_boundary_imports in tests/ci_budgets.json reads 1 for it. This group removes the import and lowers that row 1 -> 0 in the same pull request, re-recording it and recorded_at with the reason in the commit message."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 3 of 3; before you: R10-RATIO-ANCHOR, R10-HEAT-METER; next: none). Owning seam in this group: the options page builder. Shape: one page template driven by the field registry. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -2016,7 +2018,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Bug first: D7-s2-56 (the catch-up judge re-classed it a bug): a cleared entity slot re-renders as the stored entity on a rejected options form (9 of 9 slots; 0 patched; null 0). Then ARCH-s2 patch 04 (the suggested-optional helper) and patch 08 (the options page template) at 01d9d0be2, and ARCH2-s5 F1 (wizard selectors taken from `_OPTION_FIELDS`, 44 specs) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Use the arch2-s5 overlay of patch 08 if it applies cleaner after R10-HEAT-METER's options step. (2) Mutation-ledger re-key owed.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 3 of 3; before you: R10-RATIO-ANCHOR, R10-HEAT-METER; next: none). Owning seam in this group: the options page builder. Shape: one page template driven by the field registry. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+   "brief": "Bug first: D7-s2-56 (the catch-up judge re-classed it a bug): a cleared entity slot re-renders as the stored entity on a rejected options form (9 of 9 slots; 0 patched; null 0). Then ARCH-s2 patch 04 (the suggested-optional helper) and patch 08 (the options page template) at 01d9d0be2, and ARCH2-s5 F1 (wizard selectors taken from `_OPTION_FIELDS`, 44 specs) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Use the arch2-s5 overlay of patch 08 if it applies cleaner after R10-HEAT-METER's options step. (2) Mutation-ledger re-key owed.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 3 of 3; before you: R10-RATIO-ANCHOR, R10-HEAT-METER; next: none). Owning seam in this group: the options page builder. Shape: one page template driven by the field registry. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): From R10-ARCHSCORE-COVERAGE part 3 (counter C19, finding-propagation.md): custom_components/heatpump_optimizer/config_flow.py imports device_registry as dr and never reads dr (grep -n '\\bdr\\b' shows only the import line). The new tripwire archscore.unused_boundary_imports in tests/ci_budgets.json reads 1 for it. This group removes the import and lowers that row 1 -> 0 in the same pull request, re-recording it and recorded_at with the reason in the commit message."
   },
   {
    "group": "R10-SOLVER",
@@ -2956,7 +2958,8 @@
    "after": [
     "R10-REPLAY-LANE",
     "R10-TICK-ORCH",
-    "R10-TRAIN-HOLD"
+    "R10-TRAIN-HOLD",
+    "R10-REF-PRIVACY"
    ],
    "carry": [
     "A blanket per-PR lane is refused permanently; do not offer it as an option."
@@ -3072,6 +3075,117 @@
     "note": null
    },
    "brief": "Class N-move-stale-path (#2227), the sibling seams that the pull request for the stale-path arm in tests/layout.py (PR #2289) left open, verified independently by two fix reviewers of that PR with planted cases and filed as #2312 so #2289 can close the class's first seams with these as named destinations. F1: the stale-path arm misses 8 of 13 path shapes: aliases, a pathlib slash join, an f-string prefix, a dict lookup, tuple assignment and annotated assignment; the reviewers' round-1 plant list is the control. F2: a newly broken citation is caught only on the full run on the main branch, not on the pull request that introduces it. F4: dev/programme/carries/carry-201.json has from, control and brief fields that still spell 30 moved paths in prose (for example the policy lint script is named under the old workflows directory instead of tools/policy); the reference arm in tests/layout.py only reports these until R9-RO-9. Fix: extend the arm to the 8 shapes with a plant per shape, make the citation check run on the pull request, and correct the 30 prose spellings. Name no planned symbol in backticks.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+  },
+  {
+   "group": "R10-REF-PRIVACY",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    2310
+   ],
+   "fixes": [
+    2310
+   ],
+   "findings": [
+    "#2310"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tools/audit/seat/ref_privacy.py",
+    "tools/audit/seat/wt_sync.sh",
+    "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/pr/app_push.sh",
+    "tools/pr/push.sh",
+    "tools/release/stamp.py",
+    ".github/workflows/governance.yml",
+    "tests/closure.py",
+    "tests/closures.json"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "code-owned: governance.yml, closure.py and stamp.py, approved under mandate 6175172275",
+   "rca": [],
+   "after": [
+    "R10-TICK-ORCH",
+    "R10-TICK-DRIVERS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ref-privacy",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+   },
+   "brief": "Owner-reported (tvofi, 2026-10-16, issue #2310): tools/audit/seat/wt_sync.sh builds the remote sync ref name from the worktree's absolute path, stripping only the home-directory prefix. A worktree outside the home directory, such as a session scratch directory under the system temp root, keeps the home directory name in the slug, so the remote ref name and its snapshot commit message published the local account name. Measured 2026-10-16: 70 remote sync refs matched the account name; all were re-created with commit messages carrying no path and the originals deleted, so the remote now returns 0 matching refs. The sync loop is stopped until the fix lands. Owed: (1) the slug never derives from an absolute path: name it from the worktree's position under the known roots, or a stable hash, never a host path. (2) A refusal before every push an instrument makes under tools/ whose ref name or commit message contains the home directory, the account name or an absolute host path, with a self-test arm that plants one. (3) Enumerate every instrument that computes a ref name or commit message from a path, as a command, and disposition each. The shared tests/closure.py, governance.yml and stamp.py are code-owned, so the pull request needs tvofi's approving review, given under the mandate. This group runs after R10-TICK-ORCH and R10-TICK-DRIVERS, with which it shares files, and R10-REPLAY-SCOPED now runs after it.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: governance.yml, closure.py and stamp.py, approved under mandate 6175172275. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
+  },
+  {
+   "group": "R10-DEEPLINK-CENSUS",
+   "lane": "IN",
+   "kind": "defect",
+   "issues": [
+    2317
+   ],
+   "fixes": [
+    2317
+   ],
+   "findings": [
+    "#2317"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tests/card.mjs",
+    "tools/audit/seat/r10_deeplink_mutants.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-DEEPLINK"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-deeplink-census",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+   },
+   "brief": "Split from the R10-DEEPLINK pull request (#2283) after its round-4 review (verdict on head 1826c67c3), as issue #2317: the deep-link builder and its own checks are sound, but the navigation census in tests/card.mjs does not hold every link the card can emit. The reviewer's planted cases each read rc=0 fails=0 at that head. K5: a bare open call (and the global-object and call-form spellings) on a row the census never renders; the token arm needs a dotted open. K1: the Navigation API navigate call is neither instrumented nor a token. K2: a form action with a submit button on a rendered page; the census reads only href. K3t: an Event, not a CustomEvent, built with a run-time more-info event name; the census hooks only CustomEvent. Proposed shape (the reviewer's): allow a known set rather than deny spellings. Render a fixture covering every row so nothing rests on the token arm alone, extend the reach check to every data-act handler, record any navigation-name read outside the known set per press, and read action and formaction beside href. Control: the reviewer's planted cases, each red at the fix. Touch the card script only where a fixture needs it, and then only after the orchestrator adds an after-edge, since the card script is a hot file.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
   }
  ]
 }
