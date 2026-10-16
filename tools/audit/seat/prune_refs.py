@@ -80,6 +80,10 @@ import json
 import re
 import subprocess
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ref_privacy  # noqa: E402  an archive tag never names this host (#2310)
 
 SELF = "tools/audit/seat/prune_refs.py"
 ARCHIVE_PREFIX = "archive/"
@@ -265,6 +269,12 @@ def plan(refs: dict, prs: dict, main_reachable: set, *, archive_scope: str,
         if archive_scope == "none":
             continue
         if archive_scope == "all" or sha not in main_reachable:
+            # A tag is permanent: one naming this host is refused, plan and all,
+            # before anything is written (#2310). The name is not echoed.
+            why = ref_privacy.refusal(archive_tag(name))
+            if why:
+                raise ValueError(f"refusing to archive the tip {sha[:12]}: {why} would publish this host "
+                                 f"(#2310); rename or remove that branch by hand")
             tags.append(("tag", archive_tag(name), sha))
         deletes.append(("delete", name, sha))
     # THE ORDER IS THE SAFETY: every tag before every delete, so a deletion
@@ -433,6 +443,20 @@ def self_test() -> int:
     finally:
         globals()["classify"] = saved
     _check("refuses a plan that would act on main", raised, results)
+
+    # refusal arm (#2310): an archive tag naming a host path refuses the plan
+    leaky = "wip-sync/Users-" + "exampleuser-x"
+    raised = ""
+    try:
+        plan({leaky: orphan_sha}, {}, reachable, archive_scope="all",
+             keep_residue=False, verdicts_drained=True)
+    except ValueError as e:
+        raised = str(e)
+    _check("refuses an archive tag naming a host path, without echoing it",
+           "#2310" in raised and leaky not in raised, results)
+    _check("and plans the same tip under a clean name (the null control)",
+           plan({"wip-sync/ext-x-0123abcd": orphan_sha}, {}, reachable, archive_scope="all",
+                keep_residue=False, verdicts_drained=True)["tags"] == 1, results)
 
     passed = sum(1 for _t, ok in results if ok)
     for tag, ok in results:

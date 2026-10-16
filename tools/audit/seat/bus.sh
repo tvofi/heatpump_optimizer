@@ -255,6 +255,8 @@ append_commit() { # family pr tree message -> pushes one commit on <family>/<pr>
   fi
   # shellcheck disable=SC2086 # $parent is empty or exactly "-p <sha>"
   c=$(git commit-tree "$tree" $parent -m "$msg") || { printf 'bus: REFUSE: commit-tree failed\n' >&2; return 1; }
+  python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard --ref "$fam/$pr" --message "$msg" \
+    || { printf 'bus: REFUSE: %s/%s would publish this host (#2310)\n' "$fam" "$pr" >&2; return 1; }
   git push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
   printf '%s/%s %s\n' "$fam" "$pr" "$c"
 }
@@ -1015,6 +1017,20 @@ B
   out=$(run orphans --min-age-h 0); rc=$?
   echo "$out" | grep -q "^orphans: 0 stranded" && [ $rc = 0 ]
   expect "green: with the pull requests pushed nothing is stranded and the run is 0" $?
+
+  # #2310: a blocked verdict (the grammar that carries free text) whose first line names a host path is refused by
+  # append_commit's guard, and review/7 does not move; the same verdict with a
+  # clean tail is its null control and proposes.
+  r7=$(tip review/7)
+  NL=$(run dispatch 7 "$h1" cmsg_L | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: blocked %s harness: /%s/exampleuser/x\n\nbus-nonce: %s\n' "$h1" Users "$NL" > "$W/merge-leak.md"
+  out=$(seat push-verdict 7 "$W/merge-leak.md" "$W/ev1" 2>&1); rc=$?
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "would publish this host (#2310)"
+  expect "push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)" $?
+  printf 'Fix review: blocked %s harness: the planted host path removed\n\nbus-nonce: %s\n' "$h1" "$NL" > "$W/merge-clean.md"
+  out=$(seat push-verdict 7 "$W/merge-clean.md" "$W/ev1" 2>&1); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "and proposes the same verdict with a clean first line (the null control)" $?
 
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
