@@ -72,7 +72,22 @@ import subprocess  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[3]
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 MOVE_LOC = 12
 PAD_METHODS, PAD_LINES = 10, 120   # 1201 lines with the call, each under 150
 COORD = "HeatPumpOptimizerCoordinator"
