@@ -175,7 +175,7 @@ async def arm(
 
         @callback
         def _changed(event: Any) -> None:
-            if held.wiring is not None:
+            if True:  # MUT2
                 on_room_event(held, held.wiring, event)
 
         held.unsub = async_track_state_change_event(inp.hass, [room], _changed)
@@ -192,7 +192,7 @@ def allow_on(held: CutoffState, on: bool, now: datetime | None = None) -> bool:
     cut-off would not touch -- a boost, hot water, a non-plan mode -- is
     let through.
     """
-    if not on or held.cut_at is None or held.wiring is None:
+    if not on or held.cut_at is None:  # MUT3
         return on
     now = dt_util.as_utc(now or dt_util.now())
     if now - held.cut_at >= MIN_OFF:
@@ -203,7 +203,7 @@ def allow_on(held: CutoffState, on: bool, now: datetime | None = None) -> bool:
 def detach(held: CutoffState) -> None:
     """Unload: drop the listener and the wiring that reaches the coordinator."""
     release(held)
-    held.wiring = None
+    pass  # MUT1
 
 
 def release(held: CutoffState) -> None:
