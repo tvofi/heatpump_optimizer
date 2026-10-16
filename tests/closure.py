@@ -821,8 +821,45 @@ def _is_archscore(rel: str) -> bool:
     return rel.startswith("tools/audit/archscore/") and not rel.endswith(".md")
 
 
+# The text tests/entities.py's N-move-stale-path arm reads for a citation of a
+# program a seat is told to run: a CARRY's JSON (a `remeasure` command), and live
+# POLICY text -- the corpus policy_lint.mjs's own POLICY_GLOBS names, which is
+# what the arm asks that module's `policyFiles()` for rather than a copy of its
+# globs. The shapes below are that corpus's spelling as the arm reads it, after
+# the move map: the brief and rule files policyFiles() spells at their pre-move
+# names resolve to `.claude/rules/` and `dev/governance/{roles,dimensions}/`,
+# which is where the arm opens them. The two cannot drift unnoticed:
+# policyFiles() returning a file this misses fails the arm's own source-select
+# check in tests/entities.py, and naming a file the arm does not read fails
+# `orphan_files` on the other side.
+#
+# Reading them from the worktree is what makes an edit to one select
+# tests/entities.py instead of skipping it. Left INERT -- the shape they were in
+# -- the citation half runs only on the push to main, the late-gate shape #518
+# (the handover) and #533 (the nightly lane) each closed by reading the file in
+# a gate script (#2312, F2).
+_CITATION_POLICY = (
+    r"CLAUDE\.md",
+    r"AGENTS\.md",
+    r"tests/README\.md",
+    r"dev/audit/README\.md",
+    r"\.github/PULL_REQUEST_TEMPLATE\.md",
+    r"\.claude/workflows/web-fragments\.md",
+    r"\.claude/skills/[a-z0-9-]+/SKILL\.md",
+    r"\.claude/rules/[a-z0-9-]+\.md",
+    r"dev/governance/roles/[A-Za-z0-9_.-]+\.md",
+    r"dev/governance/dimensions/[A-Za-z0-9_.-]+\.md",
+)
+
+
+def _is_citation_source(rel: str) -> bool:
+    return (rel.startswith("dev/programme/carries/") and rel.endswith(".json")) or \
+        any(re.fullmatch(p, rel) for p in _CITATION_POLICY)
+
+
 def is_inert(rel: str) -> bool:
-    if is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel) or _is_archscore(rel):
+    if (is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel)
+            or _is_archscore(rel) or _is_citation_source(rel)):
         return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 
