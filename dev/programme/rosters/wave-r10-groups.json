@@ -1527,9 +1527,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: part 1 merged #2293; p2 #2311 in review; p3 in progress",
     "branch": "handoff/r10-archscore-coverage",
-    "commit": null,
+    "commit": "acfeaf8b4eba86d458a706cb3f5165635a1945bf",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
