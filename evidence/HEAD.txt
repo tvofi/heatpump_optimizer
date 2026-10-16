@@ -1,0 +1,6 @@
+Reviewed head measured by rev-2329 (fix-review seat, PR #2329 tvofi/heatpump_optimizer):
+  head   c777f855b9d87f8218ed3650aead1e92537f51e1   (branch fix/r10-registry-leak)
+  base   dec1a264553463414d170a2a14dc53008b31e5b6   (git merge-base origin/main HEAD)
+bus-nonce: d8023917c443c8a931bbfce4a8140e4a
+  (dispatch record: "2329 c777f855b9d87f8218ed3650aead1e92537f51e1 rev-2329 d8023917c443c8a931bbfce4a8140e4a")
+Head re-read at post time: unchanged.

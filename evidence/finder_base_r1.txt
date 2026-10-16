@@ -1,0 +1,3 @@
+RESULT rounds=1 count
+RESULT torn_alive=1 count
+RESULT registry_early_cutoff_torn_keys=1 count

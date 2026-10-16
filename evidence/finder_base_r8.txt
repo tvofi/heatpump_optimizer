@@ -1,0 +1,3 @@
+RESULT rounds=8 count
+RESULT torn_alive=8 count
+RESULT registry_early_cutoff_torn_keys=8 count
