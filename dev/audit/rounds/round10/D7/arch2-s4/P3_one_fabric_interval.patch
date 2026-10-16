@@ -1,0 +1,367 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..b3adc0f36 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -844,6 +844,23 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
+     return heat_kw
+ 
+ 
++@dataclass(frozen=True)
++class FabricInterval:
++    """One elapsed interval, as both fabric learners replay it.
++
++    Closed once per cycle by ``_close_fabric_interval``, which is also the one
++    place the baseline advances: the house scale and the lower floor's ratio
++    read the same start state, start time, length and power, so neither can
++    see the other's baseline move and their call order cannot silence one.
++    """
++
++    state: ThermalState
++    start: datetime
++    end: datetime
++    dt_h: float
++    power: float
++
++
+ def _replay_interval(
+     coord: Any,
+     previous_state: Any,
+@@ -4948,7 +4965,43 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         )
+         await self._async_save_thermal_learning()
+ 
+-    async def _async_learn_house_heat_loss(self) -> None:
++    def _close_fabric_interval(self) -> FabricInterval | None:
++        """Close the elapsed interval for the fabric learners and advance the baseline.
++
++        The one place the baseline moves, before either learner reads it, so
++        neither compares the current state against itself whatever order they
++        run in. ``None`` -- no sample this cycle for either -- without a
++        baseline, without a trustworthy power, or outside the interval bounds.
++
++        The action that governed the elapsed interval is the one in
++        ``_current_action`` *right now*: the learners run before this cycle's
++        optimization replaces it, so it still holds what the pump was told at
++        the previous cycle -- exactly the interval being replayed. The old
++        snapshot taken a cycle earlier was one action further back, and under
++        bang-bang price scheduling that off-by-one injected a spurious residual
++        an order of magnitude above the learning signal. Measured where a meter
++        exists (v4.0.5): replaying the *commanded* power attributed every
++        delivery shortfall to the heat loss coefficient; a configured meter
++        that is stale or contaminated leaves nothing trustworthy to replay,
++        and a wrong power replayed corrupts a persisted parameter.
++        """
++        ctx = getattr(self, "_ctx", self)
++        now = dt_util.now()
++        previous_state = self._last_house_sample
++        previous_time = self._last_house_sample_time
++        power = self._interval_space_power()
++        # Snapshot for the next interval before any early return, so a rejected
++        # sample does not poison the following one with a stale baseline.
++        self._last_house_sample = replace(ctx._current_state)
++        self._last_house_sample_time = now
++        if previous_state is None or previous_time is None or power is None:
++            return None
++        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
++        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
++            return None
++        return FabricInterval(previous_state, previous_time, now, dt_h, power)
++
++    async def _async_learn_house_heat_loss(self, interval: FabricInterval | None) -> None:
+         """Correct the house heat loss coefficient from prediction error.
+ 
+         Rather than trying to isolate a coasting period — a heated house rarely
+@@ -4968,26 +5021,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         cannot be identified separately.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        now = dt_util.now()
+         observed = ctx._current_state.room_temperature
+-        previous_state = self._last_house_sample
+-        previous_time = self._last_house_sample_time
+-        # The action that governed the elapsed interval is the one in
+-        # ``_current_action`` *right now*: the learners run before this cycle's
+-        # optimization replaces it, so it still holds what the pump was told at
+-        # the previous cycle — exactly the interval being replayed. The old
+-        # snapshot taken a cycle earlier was one action further back, and under
+-        # bang-bang price scheduling that off-by-one injected a spurious
+-        # residual an order of magnitude above the learning signal.
+-        # Measured where a meter exists (v4.0.5): replaying the *commanded*
+-        # power attributed every delivery shortfall to the heat loss
+-        # coefficient. ``None`` = no trustworthy figure this interval.
+-        previous_power = self._interval_space_power()
+-
+-        # Snapshot for the next interval before any early return, so a rejected
+-        # sample does not poison the following one with a stale baseline.
+-        self._last_house_sample = replace(ctx._current_state)
+-        self._last_house_sample_time = now
+ 
+         frozen = self._learning_frozen(
+             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
+@@ -5002,20 +5036,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             self._learner_freeze_reason = frozen
+             return
+ 
+-        if previous_state is None or previous_time is None or observed is None:
+-            return
+-        # A configured meter that is stale or contaminated this interval:
+-        # nothing trustworthy to replay, so no sample — a skipped interval
+-        # loses convergence; a wrong power replayed corrupts a persisted
+-        # parameter.
+-        if previous_power is None:
+-            return
+-
+-        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
+-        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS:
+-            return
+-        if dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
++        if interval is None or observed is None:
+             return
++        previous_state, previous_time = interval.state, interval.start
++        dt_h, now = interval.dt_h, interval.end
+ 
+         outdoor = previous_state.outdoor_temperature
+         # Same zone as the residual, or the Newton step is taken about a
+@@ -5030,7 +5054,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             return
+ 
+         predicted_state = _replay_interval(
+-            self, previous_state, previous_power, outdoor, previous_time,
++            self, previous_state, interval.power, outdoor, previous_time,
+             dt_h, "House heat loss",
+         )
+         if predicted_state is None:
+@@ -5121,7 +5145,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         )
+         if self._house_heat_loss_samples % 10 == 0:
+             await self._async_save_thermal_learning()
+-    async def _async_learn_lower_floor_loss(self) -> None:
++    async def _async_learn_lower_floor_loss(self, interval: FabricInterval | None) -> None:
+         """Redistribute the heat loss between the two zones (item 31).
+ 
+         Only reachable with a real lower-floor sensor. Without one the lower zone
+@@ -5140,14 +5164,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         ``-(T_lower - T_out)·Δt / C_lower``.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        now = dt_util.now()
+         params = ctx._thermal_params
+-        previous_state = self._last_house_sample
+-        previous_time = self._last_house_sample_time
+-        # See the house learner: the current action is the one that governed
+-        # the elapsed interval, and the measured figure wins over the
+-        # commanded one wherever a meter exists (v4.0.5).
+-        previous_power = self._interval_space_power()
+         observed = ctx._current_state.lower_floor_temperature
+ 
+         if not params.two_zone_enabled:
+@@ -5167,16 +5184,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             self._learner_freeze_reason = frozen
+             return
+ 
+-        if previous_state is None or previous_time is None or observed is None:
+-            return
+-        # Same skip as the house learner: a stale or contaminated meter
+-        # leaves nothing trustworthy to replay.
+-        if previous_power is None:
+-            return
+-
+-        dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
+-        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
++        if interval is None or observed is None:
+             return
++        previous_state, previous_time, dt_h = interval.state, interval.start, interval.dt_h
+ 
+         outdoor = previous_state.outdoor_temperature
+         delta_t = previous_state.lower_floor_temperature - outdoor
+@@ -5185,7 +5195,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+         # Same physics as the solve when #53 is on; inert when off.
+         predicted_state = _replay_interval(
+-            self, previous_state, previous_power, outdoor, previous_time,
++            self, previous_state, interval.power, outdoor, previous_time,
+             dt_h, "Lower floor loss",
+         )
+         if predicted_state is None:
+@@ -6211,13 +6221,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             await self._async_learn_buffer_cooling(buffer_value)
+ 
+         # Refine the building fabric model from how the last interval actually
+-        # went. Runs last so it sees the fully populated state.
+-        # Order matters, and not obviously. `_async_learn_house_heat_loss`
+-        # overwrites `_last_house_sample` with the *current* state near its top,
+-        # so anything reading that baseline has to run first or it silently
+-        # compares the current state against itself and learns nothing.
+-        await self._async_learn_lower_floor_loss()
+-        await self._async_learn_house_heat_loss()
++        # went. Runs last so it sees the fully populated state. The interval is
++        # closed once, before either learner: both replay the same window, so
++        # their order decides only which fit sees the other's update first.
++        interval = self._close_fabric_interval()
++        await self._async_learn_lower_floor_loss(interval)
++        await self._async_learn_house_heat_loss(interval)
+ 
+         # Observed COP, which is only possible with a measured power entity.
+         # Persisted on the same every-10-samples cadence as the house learner;
+diff --git a/dev/audit/harnesses/scale_writer_seams.py b/dev/audit/harnesses/scale_writer_seams.py
+index 2e0e9f835..07e41fc8f 100644
+--- a/dev/audit/harnesses/scale_writer_seams.py
++++ b/dev/audit/harnesses/scale_writer_seams.py
+@@ -187,7 +187,7 @@ async def learner(admitted: bool, *, observed: float) -> float:
+         return replace(coord._last_house_sample, room_temperature=21.0)
+ 
+     coord._thermal_model.simulate_step = simulate  # type: ignore[method-assign]
+-    await coord._async_learn_house_heat_loss()
++    await coord._async_learn_house_heat_loss(coord._close_fabric_interval())
+     return float(coord._house_heat_loss_scale)
+ 
+ 
+diff --git a/tests/boost_drift_replay.py b/tests/boost_drift_replay.py
+index 036a11912..1cede7aec 100644
+--- a/tests/boost_drift_replay.py
++++ b/tests/boost_drift_replay.py
+@@ -733,7 +733,7 @@ def check_vent_feed() -> None:
+     fed0 = coord._vent_cusum.last_fed
+     stat0 = coord._vent_cusum.stat
+     scale0 = coord._house_heat_loss_scale
+-    asyncio.run(coord._async_learn_house_heat_loss())
++    asyncio.run(coord._async_learn_house_heat_loss(coord._close_fabric_interval()))
+     R.check(
+         "vent tripped + overlay live: the learner reports the ventilation "
+         "reason and stays folded (no scale move)",
+diff --git a/tests/dst_checks.py b/tests/dst_checks.py
+index 7c15d45c1..29227ee00 100644
+--- a/tests/dst_checks.py
++++ b/tests/dst_checks.py
+@@ -2119,7 +2119,8 @@ def _house_dt(prev, now, lower):
+     c._thermal_model.simulate_step = _sim
+     dt_util.freeze(now)
+     asyncio.run(
+-        c._async_learn_lower_floor_loss() if lower else c._async_learn_house_heat_loss()
++        c._async_learn_lower_floor_loss(c._close_fabric_interval()) if lower
++        else c._async_learn_house_heat_loss(c._close_fabric_interval())
+     )
+     dt_util.freeze(None)
+     return seen
+diff --git a/tests/entities.py b/tests/entities.py
+index a951a3fb4..36fca2b4b 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -4213,7 +4213,7 @@ if _EntryConfig is not None:
+         c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
+                                        lower_floor_temperature=19.9)
+         c._current_action = {"power": 2.0}
+-        asyncio.run(c._async_learn_lower_floor_loss())
++        asyncio.run(c._async_learn_lower_floor_loss(c._close_fabric_interval()))
+         return c._lower_floor_loss_samples
+ 
+     def _ec_widening(tripped):
+diff --git a/tests/features.py b/tests/features.py
+index 64f66afb2..c8b4fe697 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -11645,7 +11645,7 @@ def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0):
+     coord._last_house_sample_time = now - _timedelta(hours=hours)
+     coord._current_state = replace(base, lower_floor_temperature=observed_lower)
+     coord._current_action = {"power": power}
+-    _asyncio.run(coord._async_learn_lower_floor_loss())
++    _asyncio.run(coord._async_learn_lower_floor_loss(coord._close_fabric_interval()))
+     return coord._lower_floor_loss_ratio, coord._lower_floor_loss_samples
+ 
+ 
+@@ -11772,12 +11772,29 @@ R.check(
+ # The two learners share one baseline snapshot, and the house one overwrites it
+ # near its top. If the order were reversed the split learner would compare the
+ # current state against itself and silently never learn.
+-_src = inspect.getsource(_Coord)
++def _fabric_reversed(observed_lower):
++    """One interval through both learners, the house one FIRST."""
++    coord = _two_zone_learner(lower_entity="sensor.lower")
++    base = ThermalState(
++        room_temperature=21.0, upper_floor_temperature=21.0,
++        lower_floor_temperature=20.0, slab_temperature=27.0,
++        outdoor_temperature=-5.0,
++    )
++    coord._last_house_sample = base
++    coord._last_house_sample_time = _lz_dt.now() - _timedelta(hours=0.5)
++    coord._current_state = replace(base, lower_floor_temperature=observed_lower)
++    coord._current_action = {"power": 2.0}
++    interval = coord._close_fabric_interval()
++    _asyncio.run(coord._async_learn_house_heat_loss(interval))
++    _asyncio.run(coord._async_learn_lower_floor_loss(interval))
++    return coord._lower_floor_loss_samples
++
++
+ R.check(
+-    "the split learner runs before the one that consumes the baseline",
+-    _src.index("await self._async_learn_lower_floor_loss()")
+-    < _src.index("await self._async_learn_house_heat_loss()"),
+-    "reversing these makes the split learner a no-op",
++    "the fabric interval is closed once, so the house learner first does not "
++    "silence the split learner",
++    _fabric_reversed(19.9) == 1,
++    "the split learner compared the current state against itself",
+ )
+ 
+ 
+@@ -16821,7 +16838,7 @@ def _feed_residual(c, residual, n, start):
+     try:
+         for i in range(n + 1):
+             _dt_mod.now = lambda i=i: start + timedelta(minutes=30 * i)
+-            _asyncio.run(c._async_learn_house_heat_loss())
++            _asyncio.run(c._async_learn_house_heat_loss(c._close_fabric_interval()))
+     finally:
+         _dt_mod.now = real_now
+ 
+@@ -18772,7 +18789,7 @@ R.check(
+     "the learners that replay with them",
+     "params.solar_aperture_scale =" in _run_src2
+     and "params.internal_gains_profile =" in _run_src2
+-    and 0 < _upd_src2.find("_async_learn_house_heat_loss()")
++    and 0 < _upd_src2.find("_async_learn_house_heat_loss(")
+     < _upd_src2.find("self._refresh_model_corrections()"),
+     "the replay closes its loop through these params — a scale that "
+     "never lands there is learned but never applied OR re-centred",
+@@ -40363,7 +40380,7 @@ def _t2_drive(coord, method):
+     """Run one learner and capture anything that escapes it."""
+     coord._t2_escaped = None
+     try:
+-        _asyncio.run(getattr(coord, method)())
++        _asyncio.run(getattr(coord, method)(coord._close_fabric_interval()))
+     except Exception as err:  # noqa: BLE001
+         coord._t2_escaped = err
+     return coord
+@@ -40641,7 +40658,7 @@ _t2_lf_ten = _t2_house(two_zone=True, lower=19.9)
+ for _t2_lf_i in range(10):
+     _t2_lf_ten._last_house_sample = replace(_T2_HOUSE_STATE)
+     _t2_lf_ten._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+-    _asyncio.run(_t2_lf_ten._async_learn_lower_floor_loss())
++    _asyncio.run(_t2_lf_ten._async_learn_lower_floor_loss(_t2_lf_ten._close_fabric_interval()))
+ R.check(
+     "ten accepted lower floor samples reach the store exactly once",
+     _t2_lf_ten._lower_floor_loss_samples == 10
+diff --git a/tests/rolling.py b/tests/rolling.py
+index 104c7068d..32021ebd0 100644
+--- a/tests/rolling.py
++++ b/tests/rolling.py
+@@ -231,7 +231,7 @@ def run_rolling(
+                     "precipitation": float(rain[step]),
+                 }
+             ]
+-            asyncio.run(learner._async_learn_house_heat_loss())
++            asyncio.run(learner._async_learn_house_heat_loss(learner._close_fabric_interval()))
+             history["heat_loss_scale"].append(learner._house_heat_loss_scale)
+             history["heat_loss_samples"].append(learner._house_heat_loss_samples)
+ 
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index fac22da5d..224ddf7ad 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -17,6 +17,7 @@
+   "_async_handle_ecl110_state_message": "core",
+   "_async_learn_buffer_cooling": "learning",
+   "_async_learn_house_heat_loss": "learning",
++  "_close_fabric_interval": "learning",
+   "_async_learn_lower_floor_loss": "learning",
+   "_async_learn_price_shape": "learning",
+   "_async_load_accuracy": "core",
