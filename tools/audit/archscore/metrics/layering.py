@@ -25,10 +25,14 @@ checker, and a ``TYPE_CHECKING`` the module rebinds itself is not typing's --
                      nothing (attempt 23).
 
 The reach is the reach whatever syntax spells it, so the graph follows every spelling of an import that
-runs: ``from <pkg>.m import _x``, the absolute self-import, is the edge ``from .m import _x`` is (attempt
-27); a constant-name ``import_module("...")``, relative and anchored on ``__package__`` too, is that
-module's edge, and the private read off the call is that crossing (attempt 26). A name COMPUTED at runtime
-is the one form no static read follows; the package's is ``__init__``'s platform loader.
+runs: ``from <pkg>.m import _x``, the absolute self-import, is the edge ``from .m import _x`` is
+(attempt 27); so is the plain dotted ``import <pkg>.m``, whose statement binds the whole path with an
+``as`` and only its root without one, and ``from <pkg> import m as _o``, whose module binding a private
+read off ``_o`` crosses through like any other (attempts 28-30); a constant-name ``import_module``,
+relative and anchored on ``__package__`` too, is that module's edge whether the name is passed
+positionally or as the ``name`` keyword, and the private read off the call is that crossing (attempts
+26, 31). A name COMPUTED at runtime is the one form no static read follows; the package's is
+``__init__``'s platform loader.
 
 LAYERS is a design choice, stated: Home Assistant is the integration's glue edge (model, optimizer and
 learner modules take no ``homeassistant`` import, fixer.md step 17), and scipy is the solver's dependency.
@@ -80,10 +84,11 @@ def _module_level(tree: ast.Module) -> set[int]:
     return out
 
 
-def _targets(pkg: C.Pkg, mod: str, node: ast.ImportFrom) -> list[tuple[str, str]]:
-    """(target module, imported name) for each name of a from-import; the name is ``""`` when the name
-    is itself a module. An absolute import of this package resolves as the relative one does -- the
-    prefix is stripped -- so ``from <pkg>.optimizer import _x`` reaches ``optimizer`` (attempt 27)."""
+def _from_names(pkg: C.Pkg, mod: str, node: ast.ImportFrom) -> list[tuple[str, str, str]]:
+    """(bound name, target module, imported name) for each name of a from-import; the imported name is
+    ``""`` when the name is itself a module. An absolute import of this package resolves as the relative
+    one does -- the prefix is stripped -- so ``from <pkg>.optimizer import _x`` reaches ``optimizer``
+    (attempt 27) and ``from <pkg> import optimizer as _o`` binds it (attempt 30)."""
     if node.level:
         base = mod.split(".")[:-1]
         base = base[:len(base) - node.level + 1]
@@ -96,9 +101,9 @@ def _targets(pkg: C.Pkg, mod: str, node: ast.ImportFrom) -> list[tuple[str, str]
     for a in node.names:
         full = f"{src}.{a.name}" if src else a.name
         if full in pkg.mods:
-            out.append((full, ""))
+            out.append((a.asname or a.name, full, ""))
         elif (src or "__init__") in pkg.mods:
-            out.append((src or "__init__", a.name))
+            out.append((a.asname or a.name, src or "__init__", a.name))
     return out
 
 
@@ -112,6 +117,62 @@ def _roots(node: ast.Import | ast.ImportFrom) -> set[str]:
     return {node.module.split(".")[0]}
 
 
+def _abs_module(key: str) -> str:
+    """The absolute dotted path of a package module key; ``__init__`` is the package itself."""
+    return SELF if key == "__init__" else f"{SELF}.{key}"
+
+
+def _name_bindings(pkg: C.Pkg, mod: C.Mod, live: set[int] | None) -> dict[str, str]:
+    """Local name -> the absolute dotted path of the module it binds, for every import this module runs
+    that spells a module of this package: the relative ``from . import m``, the absolute ``from <pkg>
+    import m as x`` -- which ``Pkg.imports`` files as an external name, so no ``modalias`` held it
+    (attempt 30) -- and the plain dotted ``import <pkg>.m``, whose statement binds the whole path with
+    an ``as`` and only its root without one (attempts 28, 29)."""
+    out: dict[str, str] = {}
+    for n in C.walk(mod.tree):
+        if not isinstance(n, (ast.Import, ast.ImportFrom)):
+            continue
+        if id(n) in pkg.type_checking_imports or (live is not None and id(n) not in live):
+            continue
+        if isinstance(n, ast.Import):
+            for a in n.names:
+                if _self_module(a.name) is not None:
+                    out[a.asname or a.name.split(".")[0]] = a.name if a.asname else a.name.split(".")[0]
+        else:
+            for bound, target, name in _from_names(pkg, mod.name, n):
+                if not name:
+                    out[bound] = _abs_module(target)
+    return out
+
+
+def _bound_module(modbind: dict[str, str], m: str, name: str) -> str | None:
+    """The package module the local ``name`` binds, or None: a name no import of this module binds, the
+    root of a plain dotted import (which is the top package, not a module of ours), or ``m`` itself."""
+    base = modbind.get(name)
+    rel = _self_module(base) if base is not None else None
+    target = (rel or "__init__") if rel is not None else None
+    return None if target is None or target == m else target
+
+
+def _module_attr(modbind: dict[str, str], m: str, node: ast.Attribute) -> str | None:
+    """The ``module.name`` a private attribute read crosses by, when the dotted path it spells resolves
+    to a module of this package through a name this module's own imports bound -- ``_o._x`` off ``import
+    <pkg>.m as _o``, and the full dotted read off ``import <pkg>.m``, which binds only its root
+    (attempts 28-30) -- or None."""
+    attrs: list[str] = []
+    e: ast.AST = node
+    while isinstance(e, ast.Attribute):
+        attrs.append(e.attr)
+        e = e.value
+    if not isinstance(e, ast.Name) or not attrs:
+        return None
+    attrs.reverse()
+    base = modbind.get(e.id)
+    rel = _self_module(".".join([base, *attrs[:-1]])) if base is not None else None
+    target = (rel or "__init__") if rel is not None else None
+    return f"{target}.{attrs[-1]}" if target is not None and target != m else None
+
+
 def _package_of(mod: str) -> str:
     """``__package__`` for a package module: the module's parent, the package itself at the top."""
     parent = mod.rpartition(".")[0]
@@ -122,7 +183,8 @@ def _dynamic_name(mod: C.Mod, node: ast.Call) -> str | None:
     """The absolute dotted module a constant-name ``import_module``/``__import__`` call imports, or
     None where the call is not one of those, takes its name from a computation, or is relative with no
     static anchor -- ``import_module`` requires that argument, and without it the call loads nothing
-    (attempt 26)."""
+    (attempt 26). ``import_module``'s first parameter is named ``name`` and its relative anchor
+    ``package``, so each is read as a keyword as well as positionally (attempt 31)."""
     f = node.func
     if isinstance(f, ast.Name):
         imp = mod.imports.get(f.id)
@@ -134,9 +196,10 @@ def _dynamic_name(mod: C.Mod, node: ast.Call) -> str | None:
         named = f.value.id == "importlib" or bool(imp and imp[0] == "ext" and imp[1] == "importlib")
     else:
         named = False
-    if not named or not node.args:
+    if not named:
         return None
-    first = node.args[0]
+    first = node.args[0] if node.args else \
+        next((k.value for k in node.keywords if k.arg == "name"), None)
     if not (isinstance(first, ast.Constant) and isinstance(first.value, str)):
         return None
     name = first.value
@@ -181,7 +244,7 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
 
     for m, mod in pkg.mods.items():
         live = None if ALL_SCOPES else _module_level(mod.tree)
-        modalias = {k: v[1] for k, v in mod.imports.items() if v[0] == "mod" and v[1] != m}
+        modalias = _name_bindings(pkg, mod, live)
         # id of each constant-name dynamic import's call -> the module it names. The walk reaches a call
         # before the attribute read off it, so the private arm resolves from this table, not from order.
         dynamic = {}
@@ -193,8 +256,12 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
                 if id(n) in pkg.type_checking_imports or (live is not None and id(n) not in live):
                     continue
                 if isinstance(n, ast.ImportFrom):
-                    for target, name in _targets(pkg, m, n):
+                    for _bound, target, name in _from_names(pkg, m, n):
                         cross(m, target, name)
+                else:
+                    for a in n.names:
+                        if (rel := _self_module(a.name)) is not None:
+                            cross(m, rel or "__init__", "")
                 ext[m] |= _roots(n)
             elif isinstance(n, ast.Call) and id(n) in dynamic:
                 target = _dynamic_target(pkg, dynamic[id(n)])
@@ -206,15 +273,16 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
                     and isinstance(n.value, ast.Call) and id(n.value) in dynamic \
                     and (t := _dynamic_target(pkg, dynamic[id(n.value)])) is not None:
                 cross(m, t, n.attr)
-            elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) \
-                    and n.value.id in modalias and _private(n.attr):
-                crossings.add(f"{m} -> {modalias[n.value.id]}.{n.attr}")
+            elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and _private(n.attr) \
+                    and (attr := _module_attr(modalias, m, n)) is not None:
+                crossings.add(f"{m} -> {attr}")
             elif PRIVATE_ATTRS and isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
                     and n.func.id in ("getattr", "hasattr", "setattr") and len(n.args) >= 2 \
-                    and isinstance(n.args[0], ast.Name) and n.args[0].id in modalias \
+                    and isinstance(n.args[0], ast.Name) \
                     and isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str) \
-                    and _private(n.args[1].value):
-                crossings.add(f"{m} -> {modalias[n.args[0].id]}.{n.args[1].value}")
+                    and _private(n.args[1].value) \
+                    and (t := _bound_module(modalias, m, n.args[0].id)) is not None:
+                crossings.add(f"{m} -> {t}.{n.args[1].value}")
     return edges, ext, crossings
 
 
