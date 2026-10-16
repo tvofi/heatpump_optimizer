@@ -82,6 +82,7 @@ from .thermal_model import (
 )
 from .tariff import (
     CapacityTariff,
+    PeakBilling,
     metering_windows,
     peak_cost,
     peak_cost_batch,
@@ -2824,9 +2825,7 @@ class HeatPumpOptimizer:
         cfg = self.config
         p_max = self.model.params.max_electrical_power
         baseline = cfg.baseline_load_array(n_steps)
-        offset_steps = self._window_offset_steps(start_time, dt)
-        factors = self._peak_window_factors(n_steps, dt, start_time, offset_steps)
-        day_kwargs = self._peak_day_kwargs(n_steps, dt, start_time, offset_steps)
+        bill = self._peak_billing(n_steps, dt, start_time)
 
         def cycling(power: np.ndarray) -> float:
             return cycling_penalty(power, cfg.cycling_cost, p_max)
@@ -2834,39 +2833,45 @@ class HeatPumpOptimizer:
         def cycling_batch(power_matrix: np.ndarray) -> np.ndarray:
             return cycling_penalty_batch(power_matrix, cfg.cycling_cost, p_max)
 
-        # The argument list the capacity term prices a plan on, shared by
-        # the scalar closure and its batch twin so the two can never
-        # disagree about the tariff they are pricing. The term the SOLVER
-        # minimizes is the smooth surrogate (#232/#1210): on a plateau of
-        # more than peak_count tied windows a hard top-k has no
+        # One billing record for the scalar closure and its batch twin, so
+        # the two can never disagree about the tariff they are pricing. The
+        # term the SOLVER minimizes is the smooth surrogate (#232/#1210): on
+        # a plateau of more than peak_count tied windows a hard top-k has no
         # finite-difference gradient in any direction the bounds allow, so
-        # the solver would be blind on exactly the bang-bang plan the
-        # tariff exists to discourage. peak_cost_smooth's value is a
-        # bounded under-approximation there; every billed or published
-        # figure goes through the exact peak_cost instead (see
-        # _grid_report and OptimizationResult.peak_cost).
-        peak_args = (
-            baseline,
-            cfg.peak_threshold_kw,
-            cfg.peak_price_per_kw,
-            cfg.peak_window_minutes,
-            dt,
-            cfg.peak_count,
-            offset_steps,
-        )
-
+        # the solver would be blind on exactly the bang-bang plan the tariff
+        # exists to discourage. peak_cost_smooth's value is a bounded
+        # under-approximation there; every billed or published figure goes
+        # through the exact peak_cost instead (see _grid_report and
+        # OptimizationResult.peak_cost).
         def capacity(total_power: np.ndarray) -> float:
-            return peak_cost_smooth(
-                total_power, *peak_args, window_factors=factors, **day_kwargs
-            )
+            return peak_cost_smooth(total_power, baseline, bill)
 
         def capacity_batch(total_power_matrix: np.ndarray) -> np.ndarray:
-            return peak_cost_batch(
-                total_power_matrix, *peak_args, window_factors=factors,
-                **day_kwargs,
-            )
+            return peak_cost_batch(total_power_matrix, baseline, bill)
 
         return cycling, capacity, baseline, cycling_batch, capacity_batch
+
+    def _peak_billing(
+        self, n_steps: int, dt: float, start_time: datetime | None
+    ) -> PeakBilling:
+        """The capacity tariff a plan of ``n_steps`` from ``start_time`` is billed under.
+
+        Built once per use from the config, the window offset, the #13
+        billing factors and the #1512 day rule, so every charge priced off it
+        reads one tariff.
+        """
+        cfg = self.config
+        offset = self._window_offset_steps(start_time, dt)
+        return PeakBilling(
+            threshold_kw=cfg.peak_threshold_kw,
+            price_per_kw=cfg.peak_price_per_kw,
+            window_minutes=cfg.peak_window_minutes,
+            dt_hours=dt,
+            peaks_averaged=cfg.peak_count,
+            offset_steps=offset,
+            window_factors=self._peak_window_factors(n_steps, dt, start_time, offset),
+            **self._peak_day_kwargs(n_steps, dt, start_time, offset),
+        )
 
     def _peak_window_factors(
         self,
@@ -4413,15 +4418,13 @@ class HeatPumpOptimizer:
         start_time: datetime | None = None,
     ) -> dict[str, Any]:
         """Peak and cycling figures for the solved plan."""
-        cfg = self.config
-        offset_steps = self._window_offset_steps(start_time, dt)
-        n = len(np.asarray(total_power))
-        factors = self._peak_window_factors(n, dt, start_time, offset_steps)
+        bill = self._peak_billing(len(np.asarray(total_power)), dt, start_time)
+        offset_steps, factors = bill.offset_steps, bill.window_factors
         if factors is None:
             peak_kw = realised_peak(
                 total_power,
                 baseline_load,
-                cfg.peak_window_minutes,
+                bill.window_minutes,
                 dt,
                 offset_steps,
             )
@@ -4435,7 +4438,7 @@ class HeatPumpOptimizer:
                 baseline_load, dtype=float
             )
             windows = metering_windows(
-                house, cfg.peak_window_minutes, dt, offset_steps
+                house, bill.window_minutes, dt, offset_steps
             )
             f = factors[: windows.size]
             if f.size < windows.size:
@@ -4443,24 +4446,7 @@ class HeatPumpOptimizer:
             peak_kw = float(np.max(windows * f)) if windows.size else 0.0
         return {
             "peak_kw": round(peak_kw, 3),
-            "peak_cost": round(
-                peak_cost(
-                    total_power,
-                    baseline_load,
-                    cfg.peak_threshold_kw,
-                    cfg.peak_price_per_kw,
-                    cfg.peak_window_minutes,
-                    dt,
-                    cfg.peak_count,
-                    offset_steps,
-                    window_factors=self._peak_window_factors(
-                        len(np.asarray(total_power)), dt, start_time,
-                        offset_steps,
-                    ),
-                    **self._peak_day_kwargs(n, dt, start_time, offset_steps),
-                ),
-                3,
-            ),
+            "peak_cost": round(peak_cost(total_power, baseline_load, bill), 3),
             "starts": count_compressor_starts(total_power),
         }
 

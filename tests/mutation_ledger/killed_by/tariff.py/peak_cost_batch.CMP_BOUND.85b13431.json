@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:peak_cost_batch CMP_BOUND 85b13431",
+  "killed_by": "tests/stress.py",
+  "old": "    if bill.price_per_kw <= 0 or not np.isfinite(bill.threshold_kw):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8747bbfc4d4628fa8419634792229fd15dcc21e2: CMP_BOUND (`if bill.price_per_kw < 0 or not np.isfinite(bill.threshold_kw):`) took tests/stress.py from rc=0 failed=0 to rc=1 failed=1."
+}

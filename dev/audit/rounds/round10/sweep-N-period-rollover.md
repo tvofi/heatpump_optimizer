@@ -39,7 +39,7 @@ A seam is **unsafe** when the branch resets `self.` accumulator state (`[]`, `{}
 Keyed-dict period accumulators that the AST pattern cannot see. I checked these by reading the code, not by running anything:
 - `wear.py StartCounter`: increments `months[strftime("%Y-%m")]` and keeps no open window. Not applicable.
 - `accuracy.py` promises: stored per day and pruned to the newest `PROMISE_DAYS`, with no reset. Not applicable.
-- `ledger.roll_receipts` / `coordinator._roll_month`: freezes every ledger month `< current`, working from the ledger itself. Guarded against loss at rollover. Its capacity line reads `PeakTracker`, so it inherits D2-s3-01's lost window, but it is not a second seam: the D2-s3-01 fix closes it.
+- `ledger.roll_receipts` / `coordinator._roll_month`: freezes every ledger month `< current`, working from the ledger itself. Guarded against loss at rollover. Its capacity line reads `PeakTracker`, so it inherits D2-s3-01's lost window. Corrected by R10-TARIFF (#2230): the one-line fix shape (close before the reset) does **not** close it. The closed window is wiped by the same reset, and the month's last booking was made at the settlement before, so `dev/audit/harnesses/r10_month_last_window_billed.py` reads `billed_spike_reached=0 of 24` under that shape as at the baseline. The fix keeps the closed month's peaks on the tracker (`PeakTracker.billing_statements`) and `_roll_month` books them before the freeze: 24 of 24.
 
 **Count:** 1 instance, which is the judged site itself, and 0 instances beyond the finding. Of the other seams, 2 are guarded and 2 are not applicable.
 
