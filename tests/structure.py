@@ -124,7 +124,9 @@ Metrics (definitions, one line each; the code is the authority):
                               that reaches none. Live is REACHABILITY: a load
                               counts from module-level code, a module-level
                               function, a dunder, a Home Assistant convention
-                              member (``HA_CONVENTION_METHODS``) or a live
+                              member (``HA_CONVENTION_METHODS``, and
+                              ``HA_ENTITY_METHODS`` where the class is one
+                              HA instantiates) or a live
                               member, so a member reached only from its own
                               body, or from dead members, is dead. The live
                               members an untyped load of a name two classes
@@ -309,12 +311,6 @@ HA_CONVENTION_METHODS = {
     # census now counts properties, so these two must be named).
     "hvac_mode",
     "preset_mode",
-    # Entity.available and ClimateEntity.target_temperature: read off the
-    # instance too. A shared-name load kept them alive by luck until typed
-    # receivers (D7-s3-01) took the luck away, and ec263d82's tree read
-    # every one of them, and what they read, as dead.
-    "available",
-    "target_temperature",
     # Entity properties the platform reads as attributes.
     "native_value",
     "extra_state_attributes",
@@ -333,6 +329,27 @@ def is_ha_convention_method(name: str) -> bool:
         name in HA_CONVENTION_METHODS
         or name.startswith(HA_CONVENTION_METHOD_PREFIXES)
     )
+
+
+# HA-read members of an ENTITY, keyed on (name, the class is one HA
+# instantiates) -- not on the name alone (#1395's D7-s3-02 named ``available``
+# among the HA-read properties; D7-s3-01's typed receivers took away the
+# shared-name load that had kept them alive by luck, and ec263d82's tree read
+# every one of them, and what they read, as dead).
+#
+# THE KEY, because a one-field key blinds. ``HA_CONVENTION_METHODS`` is keyed
+# on the member name and silences every class's member of that name; an
+# ``available`` the ast cannot attach to an entity -- ``OpenMeteoSolar``'s, a
+# plain class's -- is not a convention, and an entry that covered it would hide
+# that member's death for good. So this set is matched with the class: a
+# member is a root here only when its class's family derives from an external
+# base HA names ``*Entity`` (Entity, SensorEntity, BinarySensorEntity,
+# ButtonEntity, ClimateEntity, SwitchEntity ...), which is also what carries
+# the entity mixins in ``entity.py``, whose own bases are in-package. The
+# suffix is HA's own naming convention rather than a list that goes stale on
+# the next platform. ``entity_self_check`` pins both halves of the separation.
+HA_ENTITY_METHODS = frozenset({"available", "target_temperature"})
+HA_ENTITY_BASE_SUFFIX = "Entity"
 
 
 def is_property_getter(node: ast.AST) -> bool:
@@ -2112,10 +2129,25 @@ def dead_members(pkg: Package, types: ReceiverTypes | None = None
     def unique(key: tuple[str, str, str]) -> bool:
         return len(by_name[key[2]]) == 1 and not fields[key[2]] - {(key[0], key[1])}
 
+    def ha_entity_member(key: tuple[str, str, str]) -> bool:
+        """Whether ``key`` is one HA reads off an entity it instantiates.
+
+        The key is the member's name WITH its class's family deriving from an
+        external ``*Entity`` base -- never the name alone, which would silence
+        a same-named member of a class HA never instantiates (D7-s3-02 named
+        ``available`` among the HA-read properties; ``HA_ENTITY_METHODS``
+        carries it with the class, ``HA_CONVENTION_METHODS`` without).
+        """
+        return key[2] in HA_ENTITY_METHODS and any(
+            base.endswith(HA_ENTITY_BASE_SUFFIX)
+            for owner in pkg.family((key[0], key[1]))
+            for base in pkg.external_bases(owner))
+
     def is_root_member(key: tuple[str, str, str]) -> bool:
         name = key[2]
         return (name.startswith("__") and name.endswith("__")) \
-            or name in HA_CONVENTION_NAMES or is_ha_convention_method(name)
+            or name in HA_CONVENTION_NAMES or is_ha_convention_method(name) \
+            or ha_entity_member(key)
 
     # (from-member or None for a root place, reached members, typed?)
     edges: list[tuple[tuple[str, str, str] | None, set[tuple[str, str, str]], bool]] = []
@@ -3218,6 +3250,36 @@ def class_self_check() -> tuple[tuple[str, bool], ...]:
     )
 
 
+# ``HA_ENTITY_METHODS``' two halves, side by side: the same member name on the
+# class HA instantiates and on one it does not. A key of the name alone reads
+# both the same -- the entry would then silence a same-named member of a class
+# HA never looks at, which is the blinding `fixer.md` step 14 refuses -- so the
+# census must keep the second one and report it dead.
+ENTITY_SELF_CHECK_SOURCE = (
+    "class PowerSensor(SensorEntity):\n"
+    "    def available(self):\n        return True\n"
+    "class Gauge:\n"
+    "    def available(self):\n        return True\n"
+)
+
+
+def entity_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin the key of the HA-read entity exemption (D7-s3-01; step 14)."""
+    pkg = Package([(PACKAGE_DIR / "entitycheck.py",
+                    ast.parse(ENTITY_SELF_CHECK_SOURCE))])
+    dead, _kept = dead_members(pkg)
+    dead_pairs = {(cls, name) for _rel, cls, name, _line in dead}
+    return (
+        ("an HA-read member of an entity class is a root, not dead",
+         ("PowerSensor", "available") not in dead_pairs),
+        ("the same name on a class HA never instantiates is measured dead",
+         ("Gauge", "available") in dead_pairs),
+        ("no entity-read name is exempt as a bare name",
+         not is_ha_convention_method("available")
+         and not is_ha_convention_method("target_temperature")),
+    )
+
+
 def typed_self_check() -> tuple[tuple[str, bool], ...]:
     """Pin ReceiverTypes on D7-s3-01's shapes."""
     def census(source: str) -> tuple[set, set, list]:
@@ -3360,6 +3422,7 @@ def self_check() -> int:
         *role_self_check(),
         *typed_self_check(),
         *class_self_check(),
+        *entity_self_check(),
     )
     failures = [message for message, ok in rules if not ok]
     print("########## counting-rule self-check ##########")
