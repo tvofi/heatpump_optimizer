@@ -71,15 +71,14 @@ column is the committed rule harness run against the mutated tree.
   red a check about scope, and narrowing the scope cannot red the multi-issue
   check. Each pin moves for its own line.
 
-
-
 ## Null control
 
-- Arm 1b is not always-red: `Closes #A. Closes #B.`, the other two-keyword
-  bodies and the eight further shapes the rule calls clean all exit 0, and the
-  eleven `NOT_OWNED` rows are printed with rc 0 each
-  (`refused_but_not_seam=0` at this head -- no shape is refused that the rule
-  does not call a seam).
+- Arm 1b is not always-red. Sixteen of the 102 shapes are ones the rule does NOT
+  call seams -- the eleven `NOT_OWNED` rows, plus five generated ones (a `!`, a
+  `?` and a `..` used as separators, `i.e.`, and the blank-line layout) -- and
+  every one of them exits 0, printed with its own rc
+  (`refused_but_not_seam=0` at this head: no shape is refused that the rule does
+  not call a seam).
 - The corpus does not discriminate arm 1b: it refuses 0 of the 200 merged
   bodies at BOTH ends. So the seam matrix is the discriminating instrument and
   the corpus is a false-positive floor, not evidence of a fix. Stated because a
