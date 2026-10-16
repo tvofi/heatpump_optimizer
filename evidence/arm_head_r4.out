@@ -9,7 +9,4 @@
   cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
 PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
 PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
-CITED {'dev/audit/rounds/round4/D11/dora_keys.py': 3, 'dev/audit/rounds/round4/D12/units.py': 1, 'dev/audit/rounds/round5/D11/seat-b/corpus_churn.py': 1, 'dev/audit/rounds/round5/D13/seat-a/dora_cfr.py': 2, 'dev/audit/rounds/round6/D11/fix/codeowners_gap.py': 1}
-STALE []
-NPOL 41 NCARRY 8
 ARM PASS [True, True]

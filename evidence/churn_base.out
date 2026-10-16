@@ -1,14 +1,14 @@
 # baseline d4c94f9a4e96ec930e11a63b8f8ab3e4b5985892
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2289-r3/base/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 188, in <module>
+  File "<worktree:base>/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 188, in <module>
     main()
     ~~~~^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2289-r3/base/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 164, in main
+  File "<worktree:base>/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 164, in main
     added, deleted, per_file = churn("2026-08-21")
                                ~~~~~^^^^^^^^^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2289-r3/base/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 73, in churn
+  File "<worktree:base>/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 73, in churn
     files = corpus_files()
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2289-r3/base/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 68, in corpus_files
+  File "<worktree:base>/dev/audit/rounds/round5/D11/seat-b/corpus_churn.py", line 68, in corpus_files
     with open(os.path.join(ROOT, ".claude/workflows/policy_budgets.json")) as f:
          ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/rev-2289-r3/base/.claude/workflows/policy_budgets.json'
+FileNotFoundError: [Errno 2] No such file or directory: '<worktree:base>/.claude/workflows/policy_budgets.json'
