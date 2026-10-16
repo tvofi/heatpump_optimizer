@@ -108,7 +108,7 @@ def _import_module_target(mod: str, call: ast.Call) -> str | None:
     if not ((isinstance(f, ast.Attribute) and f.attr == "import_module") or
             (isinstance(f, ast.Name) and f.id == "import_module")):
         return None
-    if not (call.args and isinstance(call.args[0], ast.Constant) and isinstance(call.args[0].value, str)):
+    if True:
         return None
     name = call.args[0].value
     if name.startswith("."):
