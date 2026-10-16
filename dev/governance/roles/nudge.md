@@ -6,7 +6,7 @@ Run the numbered steps every turn, in order. Do not stop the turn on a log line,
 
 A live timer may add three things, and only for that session: a dated owner mandate, seat identifiers that must not be resumed, and one pull request held open. Re-measure those. They are not copied here, because a date and a seat id in this file outlive the session that measured them.
 
-This programme keeps seat worktrees under `/Users/timmalmstrom/hpo-seats`. A reader on another machine substitutes the root its own dispatch names. The same substitution applies to the state mirror and the sync scratch named below.
+This programme keeps seat worktrees under `~/hpo-seats`. A reader on another machine substitutes the root its own dispatch names. The same substitution applies to the state mirror and the sync scratch named below.
 
 ## Who writes, and what stays shut
 
@@ -86,7 +86,7 @@ Zero check runs is stalled zero-runs. Run `tools/pr/approve_held_runs.sh` after 
 
 ## 12. After each merge
 
-Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `tools/pr/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
+Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `tools/pr/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `~/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
 
 ## 13. Stamps
 
@@ -106,10 +106,10 @@ Load the roster through `tools/audit/seat/roster_lib.py` at the ref `tools/audit
 
 ## 17. State
 
-When the roster or the open pull-request set changed, run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. That regenerates the plan table, the resume, and the next-session prompt on the plan ref that script writes. It is not `dev/programme/HANDOVER.md`. Fetch `origin/main` at the start of the turn and measure how many commits `HEAD` lacks. An ancestor checkout is not current.
+When the roster or the open pull-request set changed, run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `~/hpo-orch/state`. That regenerates the plan table, the resume, and the next-session prompt on the plan ref that script writes. It is not `dev/programme/HANDOVER.md`. Fetch `origin/main` at the start of the turn and measure how many commits `HEAD` lacks. An ancestor checkout is not current.
 
 ## 18. After the merge, and the instruments
 
-After each merge, read which issues the merge commit closed. Reopen one the message did not name as intended. A carry is `tools/pr/app_approve.sh` when its carry predicate holds. Only `tools/audit/seat/merge_train.py batch` skips the CI wait after `main` moves. Never clear a live gate lease. `tools/pr/preflight.sh` reads the body on stdin. A filename argument reads nothing and prints clean. Run each instrument from its path in the tree, never from a scratch copy. If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` and the scratch at `/Users/timmalmstrom/hpo-orch`. Do not start a second.
+After each merge, read which issues the merge commit closed. Reopen one the message did not name as intended. A carry is `tools/pr/app_approve.sh` when its carry predicate holds. Only `tools/audit/seat/merge_train.py batch` skips the CI wait after `main` moves. Never clear a live gate lease. `tools/pr/preflight.sh` reads the body on stdin. A filename argument reads nothing and prints clean. Run each instrument from its path in the tree, never from a scratch copy. If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` and the scratch at `~/hpo-orch`. Do not start a second.
 
 A background update that has exited 0 since the last turn is that notification: dispatch the reviewer for its printed HEAD before ending. A required check that failed since the last turn is the same kind of notification: return that pull request to its fixer before ending.

@@ -261,7 +261,7 @@
           "severity": "medium",
           "claim": "dev/audit/rounds/round4/D11/dora_keys.py imports d11lib from its own directory, but d11lib.py remains in tools/audit/round4/D11/ (ModuleNotFoundError); with the import fixed, its CFR_EXCLUSIONS names .claude/workflows/cfr_exclusions.json, which does not exist (registered artifact is dev/governance/config/cfr_exclusions.json), so load_exclusions raises FileNotFoundError. The instrument the D13 brief names as the M4 base cannot compute its metric.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
             "harness_path": "dev/audit/rounds/round10/D13/s3/d13_s3.py",
             "value": 0,
             "unit": "dora_keys_loads (1=imports and loads exclusions)",
@@ -294,7 +294,7 @@
       "non_findings": [
         {
           "claim": "governance_cost.py GOV set matches the jobs re-derived from the governance workflow files at baseline",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
           "value": "gov_derived_minus_carried=[] gov_carried_minus_derived=[]"
         },
         {

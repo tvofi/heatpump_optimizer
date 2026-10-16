@@ -244,7 +244,7 @@ the rest.
   its metric drops are real.
 - **Lane serialization**: the F1 lane owns `coordinator.py` outright and is
   11 PRs deep; at this writing **F1.1–F1.3 are merged, F1.4 is in flight**
-  (active worktree `/Users/timmalmstrom/fix-r9-f1-coordinator-4`, PR dirs in
+  (active worktree `~/fix-r9-f1-coordinator-4`, PR dirs in
   `r9scratch/f1-4*`), and **F1.5–F1.11 (7 PRs) are not started**, each
   `After:`-chained on the previous because each edits coordinator.py.
   F10.4 borrows coordinator.py from F1; F3.1 borrows it for two store

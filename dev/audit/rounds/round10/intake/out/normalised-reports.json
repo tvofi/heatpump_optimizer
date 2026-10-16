@@ -40,7 +40,7 @@
         "severity": "low",
         "claim": "On the 80-cell grid (8 price x 5 weather x single/two-zone, DHW off, 24 h), production's _multi_start_minimize result is above the best feasible challenger on its own captured objective by more than 1e-3 relative in 26 cells and by more than 1e-2 in 2 cells (max 5.06e-2). Most of this is reached by C1, the same minimizer with structured seeds added.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
           "harness_path": "dev/audit/rounds/round10/D0/s1/race.py",
           "value": 26,
           "unit": "cells with gap_rel > 1e-3 (of 80)",
@@ -314,7 +314,7 @@
         "severity": "medium",
         "claim": "_optimize_space_only.move_starts runs L-BFGS-B with a callable jac that evaluates float(objective(x)) as f0 plus a scalar fun. Each gradient costs 96 batch rows + 2 scalar horizons = 288 SSE, against 97 for the fused value-and-gradient the main loop uses. Across a 6-cell two-zone no-DHW grid, fusing removes 13.5-31.1% of total solve SSE, or 13.5-29.2% after dropping the largest cell. The flat-price cell removes 29.2%, so the cost does not depend on prices. The iterate path is unchanged: main gradient counts are identical in both arms.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py --scenarios tz:winter_typical:winter_cold,tz:winter_extreme:winter_cold,tz:shoulder:shoulder,tz:winter_typical:winter_mild,tz:summer_typical:summer_cool,tz:flat:winter_cold [--perturb fuse]",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py --scenarios tz:winter_typical:winter_cold,tz:winter_extreme:winter_cold,tz:shoulder:shoulder,tz:winter_typical:winter_mild,tz:summer_typical:summer_cool,tz:flat:winter_cold [--perturb fuse]",
           "harness_path": "dev/audit/rounds/round10/D9/s1/sse_grad.py",
           "value": "cont sse_per_grad 192 in the jac + 96 in cont_fun per grad (288 total); with fuse 97. winter_two_zone_no_dhw total SSE 62121 -> 53717",
           "unit": "simulate-step-equivalents per gradient",
@@ -352,7 +352,7 @@
         "severity": "low",
         "claim": "On the #511 in-process fallback, the solve runs on an executor thread. During a two-zone solve the event-loop heartbeat's max gap is 87-124 ms and the starvation share is 0.70-0.89. The idle null control in the same session shows 14-21 ms and 0.08-0.17. Removing _gil_yield barely changes the gap, while a real 0.1 ms sleep cuts it to about 30 ms. So the per-evaluation sleep(0) does not act as a GIL handoff.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/gil.py --scenarios idle,winter_single_dhw,winter_two_zone_dhw,shoulder_two_zone [--perturb realsleep|noyield]",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/gil.py --scenarios idle,winter_single_dhw,winter_two_zone_dhw,shoulder_two_zone [--perturb realsleep|noyield]",
           "harness_path": "dev/audit/rounds/round10/D9/s1/gil.py",
           "value": "max gap winter_two_zone_dhw 123.9 ms, shoulder_two_zone 86.6 ms (idle 14.1); realsleep: 29.4 / 32.1 ms",
           "unit": "ms",
@@ -386,17 +386,17 @@
     "non_findings": [
       {
         "claim": "The main multi-start gradient costs exactly 97 SSE per gradient with no scalar steps and no scipy approx_derivative fallback. This holds on the default two-zone DHW, single-zone, fuse_guard (capped/zero-range bounds) and tariff scenarios.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py",
         "value": "main.sse_per_grad=97.00 and scalar_per_grad=0.00 on all 7 scenarios"
       },
       {
         "claim": "A plain cycle runs only the main solve: 2 _multi_start_minimize entries with DHW (space solve plus the _co_optimize re-solve) and 1 space-only. No shadow, what-if or diagnose solve ran in these configs.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
         "value": "solves[optimize_in_process<-async_run_optimization]=2 (dhw, all_features) / 1 (space_only) per cycle"
       },
       {
         "claim": "Loop-thread work per cycle, excluding offloaded jobs, is small (provisional).",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
         "value": "7.6-12.1 ms thread CPU = 0.16-0.25 reference_solve after the first cycle (53.9 ms warm-up)"
       }
     ],
@@ -441,7 +441,7 @@
         "severity": "low",
         "claim": "Five places in the docs name a UI label that is not shown verbatim. docs/configuration.md:23 says 'Add integration \u2192 Heat Pump Optimizer', but the picker shows the manifest name 'Heat Pump Cost Optimizer', which contradicts README.md:281 and docs/setup.md:48. README.md:356, docs/configuration.md:43, :164 and docs/setup.md:70 name the menu button 'Enter thermal values directly (expert)', but strings.json config.step.building.menu_options.thermal is 'Enter thermal values directly'.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
           "harness_path": "dev/audit/rounds/round10/D5/s1/ui_labels.py",
           "value": 5,
           "unit": "count",
@@ -532,7 +532,7 @@
     "non_findings": [
       {
         "claim": "The README's entity counts hold: 81 total, 62 sensors, 6 binary sensors and 5 buttons.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s1/claims.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s1/claims.py",
         "value": "entities_total=81, sensors_total=62. With --perturb the counts fall to 80 and 61."
       },
       {
@@ -588,7 +588,7 @@
     "non_findings": [
       {
         "claim": "All 20 Bronze rules and the 8 measured Silver rules hold at baseline. The two coverage rows (config-flow-test-coverage, test-coverage) are measured by coverage_modules.py.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/rules.py [--perturb]",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/rules.py [--perturb]",
         "value": "rules_todo=0 at baseline; 3 under --perturb (unique_id nulled on one sensor, switch PARALLEL_UPDATES deleted, _loaded_coordinators returns [])"
       },
       {
@@ -618,7 +618,7 @@
       },
       {
         "claim": "strict-typing: mypy --strict is clean against real Home Assistant. The 416 stub-arm errors (no-untyped-call 201, attr-defined 137, misc 36, ...) are stub-shape artefacts, a harness gap in tests/hastub and not an integration defect.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]",
         "value": "mypy_real_errors=0 over 76 files (1 under --perturb); stub arm 416"
       }
     ],
@@ -684,7 +684,7 @@
         "claim": "From the shipped x of the two-zone+DHW space solve, an ftol-1e-12 L-BFGS-B polish lowers the captured production objective by a winter mean 0.20 % (max 1.23 %, winter_moderate/winter_cold) against 0.079 % at flat prices, and that gap falls to 0.009 % when production's ftol is set to 1e-10.",
         "mechanism": "_multi_start_minimize main run and _lbfgsb_restart both pass ftol 1e-6 to _scoped_minimize; the relative stop ends descent at nit 47-135 while further descent of 0.1-1.3 objective units remains; maxiter is not binding (maxiter 50 and 1000 give identical plans).",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py",
           "harness_path": "dev/audit/rounds/round10/D0/s2/ftol_race.py",
           "value": 0.2025,
           "unit": "pct (winter mean polish gap, n=8, range 0..1.2344, drop-max mean 0.0551; flat mean 0.0787)",
@@ -717,7 +717,7 @@
     "non_findings": [
       {
         "claim": "Single-zone DHW-off winter_cold: no challenger beats production on any winter price",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/grid_race.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/grid_race.py",
         "value": "gap 0.0000 % on winter_typical/extreme/narrow/moderate"
       },
       {
@@ -732,7 +732,7 @@
       },
       {
         "claim": "Augmented-challenger gap not realised in closed loop",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/mpc_mask.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/mpc_mask.py",
         "value": "winter_typical/cold/tz1/dhw1 challenger +0.31 % energy; winter_typical/mild/tz1/dhw0 -3.8 % energy but below-17 degree-steps 0.55 -> 1.06"
       }
     ],
@@ -794,7 +794,7 @@
         "severity": "low",
         "claim": "Negating `if dropped:` in MonthlyLedger.from_dict (M35) or SnapshotRing.from_dict (M26) makes the loader silent when it really drops a record and logs 'Quarantined 0' on every clean load, yet every closure script run (cheap set, entities.py, features.py) still passes.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
           "harness_path": "dev/audit/rounds/round10/D3/s2/quarantine_warn.py",
           "value": "loaders_correct=2 of 2 at baseline, 0 of 2 mutated; tests_naming_warning=0; gate scripts failing under M26/M35 = 0",
           "unit": "count",
@@ -900,12 +900,12 @@
     "non_findings": [
       {
         "claim": "Recorder exclusion set keeps the published payload out of the database: recorded attribute bytes are 3.95% of the total",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s2/payload.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s2/payload.py",
         "value": "recorded_bytes_per_cycle=3476, unrecorded=84458, data_dict_bytes=81227, per-day upper 166848; --drop-unrecorded-guard -> 87934"
       },
       {
         "claim": "Coordinator retained state grows ~750 B/cycle but every growing collection is capped (accuracy samples maxlen 672, lead_pending 512, promises 2 days): bounded, ~0.5 MB plateau extrapolated",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s2/retained.py --cycles 96",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s2/retained.py --cycles 96",
         "value": "coord_deep_bytes_end=622885, slope 748.1 B/cycle, top _accuracy 762 B/cycle, tracemalloc slope 981 B/cycle"
       }
     ],
@@ -947,7 +947,7 @@
         "severity": "low",
         "claim": "docs/dashboard-card.md tells the reader to compare the card's console banner with the installed version and shows the banner as v6.6.8. It says the release step keeps the two in step, but tools/release/stamp.py rewrites only CARD_VERSION in the card, which is now 7.0.0. The doc sample is never re-stamped and drifts with every release.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py",
           "harness_path": "dev/audit/rounds/round10/D5/s2/card_banner.py",
           "value": 1,
           "unit": "count",
@@ -1042,7 +1042,7 @@
     "non_findings": [
       {
         "claim": "docs/configuration.md numeric defaults match the option-flow registry",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/config_defaults.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/config_defaults.py",
         "value": "default_true=78 default_false=0 unverifiable=7; --perturb gives default_false=1"
       },
       {
@@ -1057,7 +1057,7 @@
       },
       {
         "claim": "Entity ids and service names cited in docs exist",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/docs_refs.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/docs_refs.py",
         "value": "entity_true=16 entity_false=0 (--perturb gives 16 false); service_true=3 service_false=0"
       },
       {
@@ -1099,7 +1099,7 @@
     "non_findings": [
       {
         "claim": "Every literal exception and repair-issue translation_key exists in strings.json, en.json and sv.json",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s2/gold_rules.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s2/gold_rules.py",
         "value": "exc_keys_missing_*=0 (24 keys), issue_keys_missing_*=0 (18 keys)"
       },
       {
@@ -1315,7 +1315,7 @@
         "severity": "medium",
         "claim": "A synthetic exact 2x CPU regression of HeatPumpOptimizer.optimize that lies outside the simulate_step/simulate_trajectory_batch/simulate_dhw_step seams trips none of the gate's verdicts (work_over_verdict on both count channels, kernel_cost_over_verdict, scenario_verdict, global ratio) on any of 5 sweep scenarios, because the only solve-wide CPU check uses SCENARIO_BUDGET_FACTOR=3.0 > DETECTION_TARGET=2.0.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
           "harness_path": "dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
           "value": "flagged_solve_arm=0 of 5 (solve CPU x2.015 median, range 1.89-2.21; counts 1.000x; kernel 0.91-1.09x)",
           "unit": "scenarios flagged",
@@ -1597,7 +1597,7 @@
     "non_findings": [
       {
         "claim": "Per-step energy conservation holds in every topology, including the buffer and wood refused-heat ledgers. The harness moves to 3.65e-3 kWh under the tank_ambient_shift perturbation.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D2/s1/m1_thermal.py",
+        "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D2/s1/m1_thermal.py",
         "value": "energy_resid_max=1.563e-13 kWh (n=3600)"
       },
       {
@@ -2030,7 +2030,7 @@
         "claim": "An HTTP-200 Tibber response whose today and tomorrow lists are empty makes _fetch_tibber_prices replace a good 96-row _prices with 0 rows. It returns success with no UpdateFailed and clears the outage latch.",
         "mechanism": "prices_from_tibber_payload returns [] (a list, not a failure reason). pull_prices treats that as 'ok', and _fetch_tibber_prices assigns it to _prices and calls _tibber_fetch_recovered. The entity path (prices_from_entity_attributes) refuses the same no-rows case.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+          "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
           "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
           "value": 1,
           "unit": "count (empty_ok_wipes)",
@@ -2068,7 +2068,7 @@
         "claim": "A Tibber response of 96 quarter-hour rows that lack startsAt is admitted whole with starts_at=''. _known_prices_for then falls back to positional hourly placement, so 95 of 96 horizon steps get the price of the wrong quarter.",
         "mechanism": "prices_from_tibber_payload defaults a missing start to '' instead of dropping the row; the entity path's _raw_start drops it. When no entry has a parseable timestamp, _known_prices_for repeats each entry 4 times from the first step.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+          "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
           "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
           "value": 95,
           "unit": "count (misplaced_steps of 96; startless_rows=96)",
@@ -2101,17 +2101,17 @@
     "non_findings": [
       {
         "claim": "open_meteo._parse_block neither raises nor emits a non-finite value on hostile blocks. The harness moves: removing the isfinite drop gives 39 non-finite values.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py [--perturb]",
+        "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py [--perturb]",
         "value": "raises_om=0 nonfinite_om=0 (perturbed 39) over 400 inputs"
       },
       {
         "claim": "coordinator._plausible_forecast_rows neither raises nor emits a non-finite value on hostile forecast rows",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
+        "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
         "value": "raises_fc=0 nonfinite_fc=0 over 400 inputs"
       },
       {
         "claim": "prices_from_tibber_payload never emits a non-finite total. The shapes it raises on (data null, a non-dict home) are contained by _fetch_tibber_prices' generic except, which turns them into UpdateFailed with a single ERROR line through the outage latch.",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
+        "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
         "value": "raises_tb=207/400 (all contained), nonfinite_tb=0"
       }
     ],
@@ -2354,22 +2354,22 @@
     "non_findings": [
       {
         "claim": "Every cell of the DHW x zones x wood x PV x valve(none/smart_read) grid passes the M4 bar: setup completes, the plan publishes with status optimal, no entity raises, and no absent plant is invented",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --verbose",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --verbose",
         "value": "cells_total=32 cells_failing=0 (cycle 0, entity 0, invented 0)"
       },
       {
         "claim": "Omitting any one of 24 optional entity slots from the fully mapped plant leaves it usable",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --sweep --verbose",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --sweep --verbose",
         "value": "cells_total=25 cells_failing=0 present_plant_entities_available=297"
       },
       {
         "claim": "The invent detector is live: removing the DHW gate entity.has_hot_water makes the no-DHW cell fail",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb has_hot_water",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb has_hot_water",
         "value": "cells_invented 0 -> 1 (sensor.dhw_schedule, sensor.dhw_heating_plan available)"
       },
       {
         "claim": "The coordinator data dict carries ThermalState defaults (dhw_temperature=55.0, buffer_tank_temperature=40.0) on a no-DHW, no-buffer plant, but no entity publishes them. This is a harness gap: the --perturb reading_ok arm does not move, because DHWEntityMixin gates the entity as well",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb reading_ok",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb reading_ok",
         "value": "cells_invented=0 under perturbation (double-gated)"
       }
     ],
@@ -2416,7 +2416,7 @@
         "claim": "coordinator:_observe_frequency calls FrequencyMap.observe on 8 of 8 intervals where PumpSignals.defrosting is True, while _learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY) refuses the same interval for the COP learner on the same meter.",
         "mechanism": "_freq_fold_blocked refuses only cooling, distorted draw and ':'-shaped freeze reasons, so 'defrosting', 'pump_offline' and 'pump_fault' pass through to the kW-per-Hz map.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
           "harness_path": "dev/audit/rounds/round10/D7/s2/learner_gates.py",
           "value": 8,
           "unit": "FrequencyMap.observe calls over 8 defrost intervals",
@@ -2713,17 +2713,17 @@
     "non_findings": [
       {
         "claim": "No declared family is split in the en or sv display-name sort of the constructed entity set, in any of 5 coordinator scenarios",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
         "value": "split_en=0 split_sv=0 (positive control --control: 5/5)"
       },
       {
         "claim": "Same holds over the enabled-by-default subset",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py --enabled",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py --enabled",
         "value": "split_en=0 split_sv=0; 53-61 entities per cell"
       },
       {
         "claim": "Every constructed entity has en and sv names; no duplicate en display names",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
         "value": "untranslated=0 dup_name_en=0"
       },
       {
@@ -2733,7 +2733,7 @@
       },
       {
         "claim": "lifetime family is split in sensor entity_id sort, but by declared design (const.py override comment: ids untouched)",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
         "value": "id_split=5 (one per cell, all lifetime)"
       },
       {
@@ -2872,7 +2872,7 @@
         "severity": "high",
         "claim": "pump_arbiter._write converts with temperature_from_c(value, state_unit(state)); a climate state has no unit_of_measurement so the conversion is identity and climate.set_temperature receives the degC number, interpreted by HA in the instance unit (degF). Space 21 degC is delivered as 21 degF (-6.1 degC), DHW 50 degC as 50 degF (10 degC). The read path setpoint_check._setpoint_and_unit already falls back to hass.config.units.temperature_unit; the write path does not.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
           "harness_path": "dev/audit/rounds/round10/D12/s3/surface_units.py",
           "value": 2,
           "unit": "cells of 6 (degF arm); null degC arm 0 of 6",
@@ -2944,17 +2944,17 @@
     "non_findings": [
       {
         "claim": "Every entity id the card addresses (literal, DEFAULTS, statEntity/statNumber/derive suffixes, HEADLINE/ADVISOR/HEALTH tables) resolves to a constructed entity on the ordinary install",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
         "value": "card_missing=0 of card_ids=27"
       },
       {
         "claim": "Card dependencies disabled by default are exactly the three input-gated optional readouts (dhw_temperature, lower_floor_temperature, valve_target_recommendation), each unavailable without its input; harness live under ConfiguredInputMixin default forced True",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py [--perturb]",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py [--perturb]",
         "value": "card_disabled=3 (perturbed: 2)"
       },
       {
         "claim": "No enabled entity is unread by both card and README, except the climate entity, which has no translation name (harness gap; README mentions the thermostat 8 times)",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
         "value": "enabled_unnamed_by_card_or_readme=1"
       }
     ],
@@ -3045,7 +3045,7 @@
         "severity": "low",
         "claim": "The pre-edit hook checks only top-level new_string/content/new_source, so a MultiEdit whose edits[*].new_string adds a '## ' heading to RELEASE_NOTES.md on a non-main branch exits 0. The same text through Edit exits 2.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
           "harness_path": "dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
           "value": 1,
           "unit": "count",
@@ -3084,7 +3084,7 @@
       },
       {
         "claim": "The Edit-shaped heading write is refused end to end (control)",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
         "value": "control_refused=1"
       }
     ],
@@ -3256,7 +3256,7 @@
         "severity": "high",
         "claim": "With a EUR/kWh price feed on a SEK instance, coordinator.currency (all sensor units) is EUR but _narrative_view renders every cost line in SEK via resolve_currency(hass): 3/3 lines mislabelled; 0 under SEK-feed null control; 0 when resolve_currency is patched to the feed code.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py",
           "harness_path": "dev/audit/rounds/round10/D14/s2/p8_money_units.py",
           "value": 3,
           "unit": "count",
@@ -3547,7 +3547,7 @@
         "severity": "low",
         "claim": "The PreToolUse matcher includes MultiEdit, but the hook's program reads only top-level new_string, content and new_source. A MultiEdit whose edits[].new_string adds a '## v' heading to RELEASE_NOTES.md on a branch is allowed.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
           "harness_path": "dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
           "value": "refused_heading_payloads=2 (of 3); multiedit_refused=0; null_refused=0",
           "unit": "count",
@@ -3864,7 +3864,7 @@
         "severity": "medium",
         "claim": "dev/audit/rounds/round4/D11/dora_keys.py imports d11lib from its own directory, but d11lib.py remains in tools/audit/round4/D11/ (ModuleNotFoundError); with the import fixed, its CFR_EXCLUSIONS names .claude/workflows/cfr_exclusions.json, which does not exist (registered artifact is dev/governance/config/cfr_exclusions.json), so load_exclusions raises FileNotFoundError. The instrument the D13 brief names as the M4 base cannot compute its metric.",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
           "harness_path": "dev/audit/rounds/round10/D13/s3/d13_s3.py",
           "value": 0,
           "unit": "dora_keys_loads (1=imports and loads exclusions)",
@@ -3900,7 +3900,7 @@
     "non_findings": [
       {
         "claim": "governance_cost.py GOV set matches the jobs re-derived from the governance workflow files at baseline",
-        "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
+        "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
         "value": "gov_derived_minus_carried=[] gov_carried_minus_derived=[]"
       },
       {
@@ -4308,7 +4308,7 @@
         "severity": "medium",
         "claim": "ingest compares the store-window bias to the last N cycle rows' accuracy_sample, but every row repeats the latest sample (192 tail rows = 78 distinct samples), so delta=0.115 C and bias-rederived fails; matched by sample t the delta is 0.000",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
           "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
           "value": "bias_delta_tail=0.115; bias_delta_by_t=0.0; ingest_fails_unwrapped=1",
           "unit": "celsius / count",
@@ -4348,7 +4348,7 @@
         "severity": "low",
         "claim": "stage 2 runs export.violations over bundle['replay'] or {} and passes on the empty dict; the live bundle's replay is null",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
           "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
           "value": "replay_clean_passed_on_absent_replay=1",
           "unit": "bool",
@@ -4387,7 +4387,7 @@
         "severity": "low",
         "claim": "the Download diagnostics file nests hpo-debug/1 under data.debug; ingest reads the top level, so schema/manifest/rows/stores/bias fail",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
           "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
           "value": "ingest_fails_wrapped=6",
           "unit": "count",
@@ -4426,7 +4426,7 @@
         "severity": "low",
         "claim": "export._walk reports 'a credential-named key carries a value' for diagnostics.tibber_reauth_started=False, since False is not in (None,'',[],{})",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
           "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
           "value": "bundle_credential_key_violations=1",
           "unit": "count",
@@ -4465,7 +4465,7 @@
         "severity": "medium",
         "claim": "25 stored leaves in the real stores have no declaration in store.DOMAINS (pump_arbiter _SLOTS writes 'silent'; snapshot learners carry peak_tracker); synthetic bundle shows 0",
         "evidence": {
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
           "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
           "value": "store_off_domain_fields=25",
           "unit": "count",

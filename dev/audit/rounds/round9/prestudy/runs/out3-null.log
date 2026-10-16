@@ -36,4 +36,4 @@ day    bias     mae    n      hh    cop alarmed days
 non-boost errors:      n=767 mean=-0.022
 alarmed=False rolled_back=False hh_final=1.0722 cop_final=1.0000
 accuracy_drift issues raised: []
-written: /Users/timmalmstrom/hpo-seats/r9-diag-1/out3/null-no-boost.json
+written: ~/hpo-seats/r9-diag-1/out3/null-no-boost.json

@@ -8,7 +8,7 @@ Count key: the value the production seam delivers (coordinator._async_update_dat
 payload, each entity's available/native_value), never a config attribute.
 
 Command (repo root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
       dev/audit/rounds/round10/D12/s2/cells.py [--omit KEY] [--only CELLREGEX] [--sweep] [--perturb has_hot_water|reading_ok]
 Expected: see REPORT.md (exact, counts). Baseline 17f1c55fad1b, machine B5 (macOS arm64).
 Instrumented: heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data

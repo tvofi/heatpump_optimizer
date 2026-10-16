@@ -1,7 +1,7 @@
 ==========================================================================
 DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
   key       281cf2586fcd2780faf2a249cf7641f4c4f1446a2793dff007949dd6f30c9540
-  entry     /Users/timmalmstrom/.cache/heatpump_optimizer/drift-baseline/281cf2586fcd2780faf2a249cf7641f4c4f1446a2793dff007949dd6f30c9540.json
+  entry     ~/.cache/heatpump_optimizer/drift-baseline/281cf2586fcd2780faf2a249cf7641f4c4f1446a2793dff007949dd6f30c9540.json
   ref       origin/main -> 7fd718225a32274e2b992be996a713c38423ed0b
   tree      a018d41bdeef9f1c19acfa191936fd5f81a11f60
   mode      all

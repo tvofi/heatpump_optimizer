@@ -24,7 +24,7 @@
       "non_findings": [
         {
           "claim": "Per-step energy conservation holds in every topology, including the buffer and wood refused-heat ledgers. The harness moves to 3.65e-3 kWh under the tank_ambient_shift perturbation.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D2/s1/m1_thermal.py",
+          "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D2/s1/m1_thermal.py",
           "value": "energy_resid_max=1.563e-13 kWh (n=3600)"
         },
         {
@@ -454,7 +454,7 @@
           "claim": "An HTTP-200 Tibber response whose today and tomorrow lists are empty makes _fetch_tibber_prices replace a good 96-row _prices with 0 rows. It returns success with no UpdateFailed and clears the outage latch.",
           "mechanism": "prices_from_tibber_payload returns [] (a list, not a failure reason). pull_prices treats that as 'ok', and _fetch_tibber_prices assigns it to _prices and calls _tibber_fetch_recovered. The entity path (prices_from_entity_attributes) refuses the same no-rows case.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+            "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
             "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
             "value": 1,
             "unit": "count (empty_ok_wipes)",
@@ -492,7 +492,7 @@
           "claim": "A Tibber response of 96 quarter-hour rows that lack startsAt is admitted whole with starts_at=''. _known_prices_for then falls back to positional hourly placement, so 95 of 96 horizon steps get the price of the wrong quarter.",
           "mechanism": "prices_from_tibber_payload defaults a missing start to '' instead of dropping the row; the entity path's _raw_start drops it. When no entry has a parseable timestamp, _known_prices_for repeats each entry 4 times from the first step.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+            "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
             "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
             "value": 95,
             "unit": "count (misplaced_steps of 96; startless_rows=96)",
@@ -525,17 +525,17 @@
       "non_findings": [
         {
           "claim": "open_meteo._parse_block neither raises nor emits a non-finite value on hostile blocks. The harness moves: removing the isfinite drop gives 39 non-finite values.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py [--perturb]",
+          "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py [--perturb]",
           "value": "raises_om=0 nonfinite_om=0 (perturbed 39) over 400 inputs"
         },
         {
           "claim": "coordinator._plausible_forecast_rows neither raises nor emits a non-finite value on hostile forecast rows",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
+          "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
           "value": "raises_fc=0 nonfinite_fc=0 over 400 inputs"
         },
         {
           "claim": "prices_from_tibber_payload never emits a non-finite total. The shapes it raises on (data null, a non-dict home) are contained by _fetch_tibber_prices' generic except, which turns them into UpdateFailed with a single ERROR line through the outage latch.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
+          "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py",
           "value": "raises_tb=207/400 (all contained), nonfinite_tb=0"
         }
       ],
