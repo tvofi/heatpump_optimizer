@@ -1,0 +1,394 @@
+diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_components/heatpump_optimizer/accuracy.py
+index a32863acf..ae3ee87fb 100644
+--- a/custom_components/heatpump_optimizer/accuracy.py
++++ b/custom_components/heatpump_optimizer/accuracy.py
+@@ -24,7 +24,7 @@ from __future__ import annotations
+ import logging
+ from collections import deque
+ from dataclasses import dataclass, field
+-from datetime import datetime, timedelta, timezone
++from datetime import datetime, timedelta
+ from typing import Any, Deque, Iterable, Sequence
+ 
+ import numpy as np
+@@ -35,6 +35,7 @@ from .const import COP_TRACKING_ERROR_GATE, HOUSE_HEAT_LOSS_SCALE_MAX, HOUSE_HEA
+ from .draw_range import DrawRange, follows_ask
+ from .drift import stored_instant
+ from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
++from .drift import utc_shift as utc_shift  # re-export: drift owns the UTC clock, the horizon walk included
+ from .payload import Accuracy
+ 
+ _LOGGER = logging.getLogger(__name__)
+@@ -130,19 +131,6 @@ class AccuracySample:
+         )
+ 
+ 
+-def utc_shift(when: datetime, delta: timedelta) -> datetime:
+-    """``when + delta`` as real elapsed time, returned in ``when``'s zone.
+-
+-    ``+`` on a zoned stamp adds wall clock: across the autumn fold a 2 h lead
+-    lands 3 h later. Adding in UTC and converting back keeps the label a real
+-    instant (the same walk ``_utc_step_starts`` makes); a naive stamp keeps
+-    the plain addition.
+-    """
+-    if when.tzinfo is None:
+-        return when + delta
+-    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
+-
+-
+ #: Lead-time buckets, hours (T5 #16). The margin a plan needs against its
+ #: own uncertainty grows with how far ahead the promise was made; these
+ #: are the distances at which that growth is measured.
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..16fea6496 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -268,7 +268,7 @@ from .legionella import LegionellaGuard
+ from .disinfection import DisinfectionSwitch
+ from .curve_learning import CurveLearner
+ from .currency import declared_currency, resolve_currency
+-from .drift import Cusum, stored_instant
++from .drift import Cusum, stored_instant, utc_step_starts
+ from .ledger import (
+     MonthlyLedger,
+     freeze_month_report,
+@@ -331,7 +331,6 @@ from .optimizer import (
+     OptimizationResult,
+     SolveInputs,
+     SolveLimits,
+-    _utc_step_starts,
+     optimize_in_process,
+     slab_settlement_cap,
+ )
+@@ -505,7 +504,7 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float |
+ FORECAST_STEP_MINUTES = 15
+ 
+ 
+-#: One forecast step, as the clock ``optimizer._utc_step_starts`` walks.
++#: One forecast step, as the clock ``drift.utc_step_starts`` walks.
+ FORECAST_STEP = timedelta(minutes=FORECAST_STEP_MINUTES)
+ 
+ 
+@@ -6656,7 +6655,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             )
+             return None
+ 
+-        step_starts = _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
++        step_starts = utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+ 
+         # Align by each entry's own timestamp, not by its position. Position
+         # assumed the first entry is *today's* midnight, which breaks two real
+@@ -6758,7 +6757,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # The rows are already in m/s (`_forecast_in_model_units`, #1513):
+         # guessing from the magnitude misreads a moderate 20 km/h breeze as
+         # a 20 m/s storm and doubles the predicted heat loss.
+-        step_starts = _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
++        step_starts = utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+ 
+         parsed: list[
+             tuple[datetime | None, tuple[float, float, float, float, float]]
+@@ -6844,7 +6843,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         aligned: list[float] = []
+         missing = 0
+         for i, step_start in enumerate(
+-            _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
++            utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+         ):
+             value = self._open_meteo.irradiance_for(step_start, step)
+             if value is None:
+@@ -6920,7 +6919,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if self._open_meteo is not None and self._open_meteo.available:
+             step = timedelta(minutes=FORECAST_STEP_MINUTES)
+             for i, step_start in enumerate(
+-                _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
++                utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+             ):
+                 rh = self._open_meteo.humidity_for(step_start, step)
+                 if rh is not None:
+@@ -8098,7 +8097,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     def _horizon_step_starts(self, solve_now: datetime, n_steps: int) -> list[datetime]:
+         """The instant each solved step begins, matching the optimizer's own."""
+-        return _utc_step_starts(
++        return utc_step_starts(
+             solve_now,
+             n_steps,
+             timedelta(hours=getattr(self, "_ctx", self)._opt_config.dt_hours),
+diff --git a/custom_components/heatpump_optimizer/drift.py b/custom_components/heatpump_optimizer/drift.py
+index 7fb9385cc..15417817d 100644
+--- a/custom_components/heatpump_optimizer/drift.py
++++ b/custom_components/heatpump_optimizer/drift.py
+@@ -17,7 +17,7 @@ pattern: evidence strings, explicit release, nothing actuates from here.
+ from __future__ import annotations
+ 
+ from dataclasses import dataclass, field
+-from datetime import datetime, timezone, tzinfo
++from datetime import datetime, timedelta, timezone, tzinfo
+ from typing import Any
+ 
+ import numpy as np
+@@ -47,6 +47,34 @@ def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
+     return (_as_utc(newer) - _as_utc(older)).total_seconds()
+ 
+ 
++def utc_shift(when: datetime, delta: timedelta) -> datetime:
++    """``when + delta`` as real elapsed time, returned in ``when``'s zone.
++
++    ``+`` on a zoned stamp adds wall clock: across the autumn fold a 2 h lead
++    lands 3 h later. Adding in UTC and converting back keeps the label a real
++    instant; a naive stamp keeps the plain addition.
++    """
++    if when.tzinfo is None:
++        return when + delta
++    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
++
++
++def utc_step_starts(
++    start: datetime, n: int, step: timedelta, offset: int = 0
++) -> list[datetime]:
++    """The start of steps ``offset`` .. ``offset + n - 1``, walked in UTC.
++
++    The one horizon clock: the optimizer's horizon, the coordinator's
++    forecast and price grids, and the silent-mode schedule all read it
++    (#1741), so no two of them can label one step differently. Adding a
++    wall-clock step invents the spring DST gap and stretches the autumn
++    overlap into a 75-minute step; each step is ``utc_shift`` from ``start``,
++    so every label is a real instant in ``start``'s zone. A naive ``start``
++    keeps the wall-clock walk, so unzoned fixtures stay byte-identical.
++    """
++    return [utc_shift(start, step * (offset + i)) for i in range(n)]
++
++
+ def stored_instant(
+     raw: Any, naive_zone: tzinfo | None = timezone.utc
+ ) -> datetime | None:
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index c2489960a..92bbb209d 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -45,7 +45,7 @@ import logging
+ import math
+ import time as _time_mod
+ from dataclasses import dataclass, field
+-from datetime import date, datetime, timedelta, timezone
++from datetime import date, datetime, timedelta
+ from collections.abc import Mapping
+ from typing import Any, Callable, Iterable
+ 
+@@ -61,6 +61,7 @@ from .const import (
+ )
+ from .batchmath import row_sums
+ from .dhw_planner import DhwPlanner
++from .drift import utc_step_starts
+ from .entry_config import EntryConfig
+ from .manual_plan import _pin_is_free
+ from .payload import CurrentAction
+@@ -245,26 +246,6 @@ def _dhw_resolved_publish(params: ThermalParameters) -> dict[str, Any]:
+     }
+ 
+ 
+-def _utc_step_starts(
+-    start: datetime, n: int, step: timedelta, offset: int = 0
+-) -> list[datetime]:
+-    """The start of steps ``offset`` .. ``offset + n - 1``, walked in UTC.
+-
+-    The one horizon clock: the optimizer's horizon, the coordinator's
+-    forecast and price grids, and the silent-mode schedule all read it
+-    (#1741), so no two of them can label one step differently. Adding a
+-    wall-clock step invents the spring DST gap and stretches the autumn
+-    overlap into a 75-minute step; walking the count in UTC keeps every label
+-    a real instant, converted back to ``start``'s zone. A naive ``start``
+-    keeps the wall-clock walk, so unzoned fixtures stay byte-identical.
+-    """
+-    tz = start.tzinfo
+-    if tz is None:
+-        return [start + step * (offset + i) for i in range(n)]
+-    base = start.astimezone(timezone.utc)
+-    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
+-
+-
+ def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
+     if baseline_power is None:
+         return []
+@@ -1812,7 +1793,7 @@ class _Horizon:
+ 
+     @property
+     def timestamps(self) -> list[datetime]:
+-        return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
++        return utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
+ 
+ 
+ 
+@@ -2881,7 +2862,7 @@ class HeatPumpOptimizer:
+         tracker uses. That alone never settled which *instant* each window is
+         sampled at, which is where they actually diverged (#777); the agreement
+         rests on ``window_factors`` walking the windows in UTC, the same rule
+-        ``_utc_step_starts`` applies to the step grid this power array is
++        ``drift.utc_step_starts`` applies to the step grid this power array is
+         indexed on.
+         """
+         cfg = self.config
+@@ -3149,7 +3130,7 @@ class HeatPumpOptimizer:
+         # Hour of day at each step. Computed once: the comfort target, both
+         # temperature bounds and the DHW draw pattern all key off it, and it
+         # was previously rebuilt from scratch for each of the four.
+-        step_datetimes = _utc_step_starts(start_time, n_steps, timedelta(hours=dt))
++        step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
+         step_hours = np.array([
+             d.hour + d.minute / 60.0 for d in step_datetimes
+         ])
+diff --git a/custom_components/heatpump_optimizer/quiet_windows.py b/custom_components/heatpump_optimizer/quiet_windows.py
+index 1ed0aadde..b333d91b9 100644
+--- a/custom_components/heatpump_optimizer/quiet_windows.py
++++ b/custom_components/heatpump_optimizer/quiet_windows.py
+@@ -25,7 +25,7 @@ Two option keys, one spec per action, both in the unchanged
+   zero and is NOT floored: the plan pre-heats before it and the soft comfort
+   penalty prices any shortfall through the published breach figures.
+ * **The solver's clock.** Steps are walked in UTC through the optimizer's
+-  ``_utc_step_starts`` and read in the step's own zone, so a window binds
++  ``drift.utc_step_starts`` and read in the step's own zone, so a window binds
+   the real hours on a DST night.
+ * **Enforced only where enforceable.** Nothing while the optimizer is off
+   (D2: switching it off inside a window undoes nothing). A silent row needs
+@@ -82,7 +82,7 @@ from .dhw_schedule import (
+ )
+ from .inputs import normalize_power_kw
+ from .modbus_prefill import night_mode_write_ids, package_prefix
+-from .optimizer import _utc_step_starts
++from .drift import utc_step_starts
+ 
+ #: The per-step action codes, as one int8 array element per step.
+ ACTION_NONE: Final = 0
+@@ -138,7 +138,7 @@ def step_actions(
+     (s_win, s_weekly), (o_win, o_weekly) = parsed
+     out = np.full(n_steps, ACTION_NONE, dtype=np.int8)
+     for i, step in enumerate(
+-        _utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))
++        utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))
+     ):
+         hour = step.hour + step.minute / 60.0
+         day = step.weekday()
+diff --git a/custom_components/heatpump_optimizer/silent_mode.py b/custom_components/heatpump_optimizer/silent_mode.py
+index b30c7f24b..b645198f1 100644
+--- a/custom_components/heatpump_optimizer/silent_mode.py
++++ b/custom_components/heatpump_optimizer/silent_mode.py
+@@ -26,7 +26,7 @@ Three properties are the contract, and ``tests/features.py`` pins each:
+   nameplate, the capacity envelope's floor, so a derate can trim the plan but
+   never starve the house on the cold night it matters most.
+ * **The solver's clock.** Steps are walked in UTC and read in the start's own
+-  zone, through the optimizer's ``_utc_step_starts``, so a window caps the real
++  zone, through ``drift.utc_step_starts``, so a window caps the real
+   hours on a DST night and lines up with the step hours the solve itself uses.
+ 
+ Kept free of Home Assistant imports so it can be unit-tested directly, like
+@@ -52,7 +52,7 @@ from .dhw_schedule import (
+     windows_for_day,
+ )
+ from .entry_config import EntryConfig
+-from .optimizer import _utc_step_starts
++from .drift import utc_step_starts
+ 
+ 
+ def caps(
+@@ -77,7 +77,7 @@ def caps(
+         return None
+     cap = max(float(fraction), CAPACITY_FLOOR_FRACTION) * float(p_max)
+     out = np.full(n_steps, float(p_max), dtype=float)
+-    for i, step in enumerate(_utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))):
++    for i, step in enumerate(utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))):
+         day = windows_for_day(weekly, step.weekday(), windows)
+         if hour_in_windows(step.hour + step.minute / 60.0, day):
+             out[i] = cap
+diff --git a/custom_components/heatpump_optimizer/tariff.py b/custom_components/heatpump_optimizer/tariff.py
+index 241e69bd4..4439c3d6a 100644
+--- a/custom_components/heatpump_optimizer/tariff.py
++++ b/custom_components/heatpump_optimizer/tariff.py
+@@ -571,7 +571,7 @@ def window_factors(
+         return None
+     window = max(1, int(tariff.window_minutes))
+     slot0 = _window_slot(start_time, window)
+-    # Walk the windows in UTC and convert back — ``optimizer._utc_step_starts``'
++    # Walk the windows in UTC and convert back — ``drift.utc_step_starts``'
+     # rule, and for its reason (#243, #777). ``timedelta`` on an aware datetime
+     # is wall-clock arithmetic: across the autumn fold it emits the repeated
+     # hour once and across the spring gap the hour that never happens, so every
+diff --git a/dev/audit/rounds/round3/D2/dst_window_factors.py b/dev/audit/rounds/round3/D2/dst_window_factors.py
+index 73909f20a..db32892bd 100644
+--- a/dev/audit/rounds/round3/D2/dst_window_factors.py
++++ b/dev/audit/rounds/round3/D2/dst_window_factors.py
+@@ -65,8 +65,8 @@ import numpy as np
+ from heatpump_optimizer.optimizer import (
+     HeatPumpOptimizer,
+     OptimizationConfig,
+-    _utc_step_starts,
+ )
++from heatpump_optimizer.drift import utc_step_starts as _utc_step_starts
+ from heatpump_optimizer.tariff import CapacityTariff, peak_cost, window_factors
+ from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
+ 
+diff --git a/dev/audit/rounds/round3/D2/window_size_sweep.py b/dev/audit/rounds/round3/D2/window_size_sweep.py
+index 8dfe1a9d6..70597ff9f 100644
+--- a/dev/audit/rounds/round3/D2/window_size_sweep.py
++++ b/dev/audit/rounds/round3/D2/window_size_sweep.py
+@@ -76,7 +76,7 @@ from zoneinfo import ZoneInfo
+ 
+ import d2lib  # noqa: F401  -- thread pin + sys.path, must be first
+ 
+-from heatpump_optimizer.optimizer import _utc_step_starts
++from heatpump_optimizer.drift import utc_step_starts as _utc_step_starts
+ from heatpump_optimizer.tariff import (
+     CapacityTariff,
+     PeakTracker,
+diff --git a/tests/dst_checks.py b/tests/dst_checks.py
+index 7c15d45c1..b7fd28589 100644
+--- a/tests/dst_checks.py
++++ b/tests/dst_checks.py
+@@ -33,7 +33,7 @@ from heatpump_optimizer.coordinator import (
+     FORECAST_STEP_MINUTES,
+     HeatPumpOptimizerCoordinator,
+     _solve_anchor,
+-    _utc_step_starts,
++    utc_step_starts as _utc_step_starts,
+ )
+ from heatpump_optimizer.manual_plan import ManualOverride, PIN_OFF, PIN_ON
+ from heatpump_optimizer.disinfection import DisinfectionSwitch
+@@ -46,7 +46,7 @@ from heatpump_optimizer.optimizer import (
+     HeatPumpOptimizer,
+     OptimizationConfig,
+     _Horizon,
+-    _utc_step_starts as _opt_utc_step_starts,
++    utc_step_starts as _opt_utc_step_starts,
+ )
+ from heatpump_optimizer.thermal_model import (
+     ThermalModel,
+@@ -428,7 +428,7 @@ R.check(
+ )
+ # #1741: one clock. The coordinator's bridge to the optimizer's horizon
+ # (_horizon_step_starts) and _Horizon.timestamps both call the one
+-# optimizer._utc_step_starts with the configured step, so they agree on both
++# drift.utc_step_starts with the configured step, so they agree on both
+ # transition days by construction, not because the config surface only offers
+ # whole-minute steps. A 7.5-minute step is the control the old two-clock pair
+ # failed: its minute-rounding bridge walked 8-minute steps.
+diff --git a/tests/features.py b/tests/features.py
+index 64f66afb2..7ceeecd59 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -14721,7 +14721,7 @@ R.check(
+     f"15={_w15} 60={_w60}",
+ )
+ 
+-from heatpump_optimizer.optimizer import _utc_step_starts as _usteps
++from heatpump_optimizer.drift import utc_step_starts as _usteps
+ from zoneinfo import ZoneInfo as _ClkZone
+ 
+ _clk_tz = _ClkZone("Europe/Stockholm")
+@@ -56959,7 +56959,7 @@ for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in
+     )
+ 
+ # The one clock keeps a naive start naive: the wall-clock walk, no zone added.
+-from heatpump_optimizer.optimizer import _utc_step_starts as _r9p3_clock  # noqa: E402
++from heatpump_optimizer.drift import utc_step_starts as _r9p3_clock  # noqa: E402
+ 
+ _r9p3_naive = datetime(2026, 3, 29, 1, 0)
+ _r9p3_steps = _r9p3_clock(_r9p3_naive, 4, timedelta(minutes=30), 2)
