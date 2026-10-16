@@ -64341,4 +64341,77 @@ R.check(
 )
 
 
+# ===========================================================================
+# #2239 — the house the detector prices is the house the dynamics simulate
+# ===========================================================================
+# R10 D2-s1-71: `_space_demand_kw` summed the two zones' CONFIGURED losses, so
+# once the learner had moved the lower-floor ratio off 1 the external-heat
+# detector's standing loss read below the whole-house demand the model rolls.
+# The oracle is the production symbol `hold_demand_kw` (`_hold_kw` above): its
+# docstring owns the same quantity -- the tank sits upstream of the mixing
+# valve feeding both zones, so it is whole-house -- and it already carried the
+# learned ratio, so driven with the same params, the same state and no gains or
+# solar the two must agree exactly. Ratio 1.0 is the null arm: there the
+# configured total and the learned one are the same number, and the two agreed
+# before the fix too.
+_rsd_rows = []
+for _rsd_zone in (False, True):
+    for _rsd_ratio in (1.0, 1.922):
+        _rsd_p = _dc_replace(
+            ThermalParameters.from_config(
+                _grad_house(two_zone=_rsd_zone, dhw=False)
+            ),
+            wind_sensitivity=0.0,
+            internal_gains=0.0,
+            house_heat_loss_scale=1.567,
+            lower_floor_loss_ratio=_rsd_ratio,
+        )
+        _rsd_state = ThermalState(room_temperature=21.0, outdoor_temperature=-5.0)
+        _rsd_rows.append((
+            _rsd_zone,
+            _rsd_ratio,
+            Coord._space_demand_kw(
+                _NS(_thermal_params=_rsd_p, _current_state=_rsd_state)
+            ),
+            _hold_kw(_rsd_p, 21.0, -5.0),
+        ))
+R.check(
+    "#2239: the external-heat detector's space demand is the whole-house demand "
+    "the tank's drain law prices, on the learned lower-floor ratio; the "
+    "single-zone and ratio-1.0 arms are the controls",
+    all(abs(_g - _w) < 1e-12 for _, _, _g, _w in _rsd_rows),
+    f"got {[(z, r, round(g, 6), round(w, 6)) for z, r, g, w in _rsd_rows]}",
+)
+
+# The refuted D-2's residual (catch-up judge, 2026-10-15): the number
+# `SysIdResult.as_dict()` publishes as `heat_loss_kw_per_c` is the identified UA
+# on the configured zone total the learned scale multiplies -- the base
+# `sysid._candidate_model` divides into that scale, and `adoption_decision`
+# divides by -- NOT the model's effective UA, which also carries the learned
+# lower-floor split. That basis is what the field's own doc now names. Prose
+# cannot be pinned by a check; the arithmetic it states can, so this fails on
+# the day the two bases are unified, which is the day the label must move with
+# them.
+_ua_basis = []
+for _ua_r in (1.0, 1.6):
+    _ua_p = _dc_replace(
+        ThermalParameters.from_config(_grad_house(two_zone=True, dhw=False)),
+        lower_floor_loss_ratio=_ua_r,
+        house_heat_loss_scale=1.0,
+    )
+    _ua_basis.append((
+        _ua_r,
+        _r9f41_sysid._zone_heat_loss(_ua_p) * _ua_p.house_heat_loss_scale,
+        _s5_effective(_ua_p, _ua_p.house_heat_loss_scale),
+    ))
+R.check(
+    "#2239 (D-2 residual): the fit's published UA is on the configured "
+    "zone-total basis and reads below the model's effective UA once the learned "
+    "lower-floor split leaves 1; ratio 1.0 is the null arm",
+    abs(_ua_basis[0][1] - _ua_basis[0][2]) <= 1e-4
+    and _ua_basis[1][1] < _ua_basis[1][2],
+    f"{[(r, round(b, 6), round(e, 6)) for r, b, e in _ua_basis]}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
