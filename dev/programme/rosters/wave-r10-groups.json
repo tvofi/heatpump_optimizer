@@ -2796,7 +2796,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-replay-loopnorm",
     "commit": null,
     "last_step": null,
