@@ -1018,6 +1018,20 @@ B
   echo "$out" | grep -q "^orphans: 0 stranded" && [ $rc = 0 ]
   expect "green: with the pull requests pushed nothing is stranded and the run is 0" $?
 
+  # #2310: a blocked verdict (the grammar that carries free text) whose first line names a host path is refused by
+  # append_commit's guard, and review/7 does not move; the same verdict with a
+  # clean tail is its null control and proposes.
+  r7=$(tip review/7)
+  NL=$(run dispatch 7 "$h1" cmsg_L | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: blocked %s harness: /%s/exampleuser/x\n\nbus-nonce: %s\n' "$h1" Users "$NL" > "$W/merge-leak.md"
+  out=$(seat push-verdict 7 "$W/merge-leak.md" "$W/ev1" 2>&1); rc=$?
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "would publish this host (#2310)"
+  expect "push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)" $?
+  printf 'Fix review: blocked %s harness: the planted host path removed\n\nbus-nonce: %s\n' "$h1" "$NL" > "$W/merge-clean.md"
+  out=$(seat push-verdict 7 "$W/merge-clean.md" "$W/ev1" 2>&1); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "and proposes the same verdict with a clean first line (the null control)" $?
+
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]

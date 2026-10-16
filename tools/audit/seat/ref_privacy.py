@@ -28,12 +28,14 @@ result is checked like a ref name below; a candidate that leaks falls back to
 GUARD. `refusal(ref, messages)` returns why a push would publish the host, or
 None. Every instrument that composes a ref name or a commit message from a value
 it does not fix itself calls it before `git push`; the `guard` subcommand is the
-shell callers' form, and `--commits <rev>` adds the message of every commit
-under <rev> that no remote-tracking ref already holds -- the ones the push
-publishes for the first time. A refusal names its class and where, never the
-matched text. The classes, judged against the host's own identity
-(`Identity.of_host`: $HOME, its resolved path, the passwd home; $USER, $LOGNAME,
-the passwd name, the home's basename; the uid):
+shell callers' form, and `--commits <rev>` adds the message, and the author
+and committer email, of every commit under <rev> that no remote-tracking ref
+already holds -- the ones the push publishes for the first time. A refusal
+names its class and where, never the matched text. Text is judged as written
+and URL-decoded once (`%2FUsers%2F<name>`). The classes, judged against the
+host's own identity (`Identity.of_host`: $HOME, its resolved path, the passwd
+home; $USER, $LOGNAME, the passwd name, the home's basename; the uid; the
+hostname):
   home-directory  a home directory, verbatim (case-folded: macOS paths are);
   account-name    an account name as a whole word -- bounded by characters
                   outside [A-Za-z0-9], so `-Users-<name>-` counts;
@@ -43,17 +45,30 @@ the passwd name, the home's basename; the uid):
   host-path       `/Users/<x>` or `/home/<x>`, a macOS per-user temp
                   (`/var/folders/`), or the dash-mangled `Users-<x>` form;
   unpublishable   (ref names and slugs only) a character outside
-                  [A-Za-z0-9._/-].
+                  [A-Za-z0-9._/-];
+  host-email      (author and committer emails only) a private-use domain
+                  (`.local`, `.lan`, `.internal`, ...) or this host's own
+                  name -- git's default identity is <user>@<hostname>. A
+                  public domain passes, so a noreply address does.
 The accounts `root`, `runner` and `user`, and names under three characters, are
-not judged: the first three are the fixed accounts of the CI runner and the
-cloud seat image (tmp_paths.py's `cloud` rule), public by construction, and a
-shorter name would refuse ordinary words.
+not judged: the first three are the fixed accounts of a container, the CI
+runner and the cloud seat image, public by construction, and a shorter name
+would refuse ordinary words.
+
+THE HOST-PATH GRAMMAR is this module's: `HOME_DIR`, `PUBLIC_ACCOUNTS`,
+`CLOUD_ROOTS`. tmp_paths.py imports them. The two apply one grammar to two
+questions: here, whether a name PUBLISHES a host (a public account's home does
+not); there, whether a tracked script DEPENDS on one machine (any home does,
+bar the cloud image's two fixed roots).
 
 CHECK. `--check` is the class rule as a standing registry (fixer.md step 8).
 It enumerates every tracked file, at <ref> through `git grep`, holding a push
-site -- a non-comment line on which `git` (or a `g`/`rgit` wrapper, or a Python
-`git`/`g`/`run`/`sh` call) is followed by the word `push`, or a continuation
-line opening `push` with a push option, `origin` or a variable -- in `tools/`,
+site -- a non-comment line on which `git` (or `$GIT`/`${GIT}`, a `g`/`rgit`
+wrapper, or a Python `git`/`g`/`run`/`sh` call) is followed by the word
+`push`; a continuation line opening `push` with a push option, `origin` or a
+variable; or a `gh api` call that writes a ref -- `git/refs` or `git/tags`
+with a field (`-f`, `-F`, `--field`, `--input`) or a POST/PATCH/PUT method, or
+a `createRef`/`updateRef` mutation -- in `tools/`,
 `.claude/workflows/` and `.github/workflows/`, less round evidence and vendored
 code. Each such file must have an entry in PUSHERS below: `guarded` (the file
 must call this module) or a stated reason it composes nothing a host could leak
@@ -62,11 +77,14 @@ module, and an entry whose file has no site are each refused, so the registry
 cannot rot into an exemption.
 
 WHAT IT DOES NOT CATCH. A push built across lines whose `push` line opens
-with neither a push option, `origin` nor a variable; a push through another wrapper name; a guarded
+with neither a push option, `origin` nor a variable; a `gh api` ref write
+whose path and field sit on different lines; a push through another wrapper
+name or a git variable not named GIT; a guarded
 file that gains a second, unguarded push (the registry is keyed on the file:
-review owns the site); file CONTENT a push publishes (the guard reads ref names
-and messages only); and another machine's account name, unless it sits in a
-`/Users/`, `/home/` or `Users-` shape.
+review owns the site); file CONTENT a push publishes (the guard reads ref names,
+messages and commit identities only); text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
+and another machine's account name, unless it sits in a `/Users/`, `/home/` or
+`Users-` shape.
 """
 
 from __future__ import annotations
@@ -81,14 +99,33 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SELF = "tools/audit/seat/ref_privacy.py"
+#: The fixed accounts of a container (root), the CI runner (runner) and the
+#: cloud seat image (user, cloud-setup.sh): public by construction.
 PUBLIC_ACCOUNTS = frozenset({"root", "runner", "user"})
 MIN_NAME = 3
 HASH_HEX = 8
 
+#: THE HOST-PATH GRAMMAR, owned here; tools/audit/seat/tmp_paths.py imports it.
+#: HOME_DIR is one account's home directory, `/Users/<name>` or `/home/<name>`
+#: (the name is HOME_NAME's characters); tmp_paths.py refuses every one a
+#: tracked script depends on, public accounts included, bar the cloud roots.
+HOME_NAME = r"[\w.-]+"
+HOME_DIR = r"/(?:Users|home)/" + HOME_NAME
+#: The cloud seat image's fixed roots under its public account (cloud-setup.sh):
+#: the one home a tracked script may name (tmp_paths.py's `cloud` rule).
+CLOUD_ACCOUNT = "user"
+CLOUD_ROOTS = r"/home/" + CLOUD_ACCOUNT + r"/(?:heatpump_optimizer\b|wt/)"
+#: A public account's name as a whole path segment.
+_PUBLIC = r"(?:" + "|".join(sorted(PUBLIC_ACCOUNTS)) + r")"
+#: What this guard refuses: a home directory that is not a public account's,
+#: a macOS per-user temp, or the dash-mangled `Users-<name>` form.
 _HOST_PATH = re.compile(
-    r"/(?:Users|home)/(?!(?:root|runner|user)(?:/|$|[^A-Za-z0-9._-]))[A-Za-z0-9._-]"
+    r"/(?:Users|home)/(?!" + _PUBLIC + r"(?:/|$|[^\w.-]))[\w.-]"
     r"|/var/folders/"
-    r"|(?<![A-Za-z0-9])Users-(?!(?:root|runner|user)(?:-|$|[^A-Za-z0-9._]))[A-Za-z0-9._]")
+    r"|(?<![A-Za-z0-9])Users-(?!" + _PUBLIC + r"(?:-|$|[^\w.]))[\w.]")
+#: Private-use email domains: a git identity under one names a machine
+#: (git's own default is <user>@<hostname>, often `.local`).
+PRIVATE_EMAIL_SUFFIXES = (".local", ".localdomain", ".lan", ".internal", ".localhost", ".home.arpa")
 _SCRATCH_ROOT = re.compile(r"tmp[/-]+claude-\d+(?![0-9])")
 _REF_CHARS = re.compile(r"^[A-Za-z0-9._/-]+$")
 _SLUG_UNSAFE = re.compile(r"[^A-Za-z0-9_]+")
@@ -99,6 +136,7 @@ class Identity:
     homes: tuple[str, ...]
     names: tuple[str, ...]
     uid: int | None
+    hosts: tuple[str, ...] = ()
 
     @staticmethod
     def of_host() -> "Identity":
@@ -119,18 +157,43 @@ class Identity:
             except (ImportError, KeyError):
                 pass
         names.update(os.path.basename(h.rstrip("/")) for h in homes)
-        return Identity.made(homes, names, uid)
+        import socket
+        return Identity.made(homes, names, uid, {socket.gethostname()})
 
     @staticmethod
-    def made(homes, names, uid) -> "Identity":
+    def made(homes, names, uid, hosts=()) -> "Identity":
         hs = tuple(sorted({h.rstrip("/") for h in homes if h and h.rstrip("/")}))
         ns = tuple(sorted({n.casefold() for n in names
                            if len(n) >= MIN_NAME and n.casefold() not in PUBLIC_ACCOUNTS}))
-        return Identity(hs, ns, uid)
+        hn = {h.casefold().rstrip(".") for h in hosts if h}
+        hn |= {h.split(".", 1)[0] for h in hn}
+        return Identity(hs, ns, uid, tuple(sorted(h for h in hn if h and h != "localhost")))
 
 
 def leaks(text: str, ident: Identity) -> list[str]:
-    """The leak classes `text` carries, in a fixed order, each once."""
+    """The leak classes `text` or its URL-decoded form carries, in a fixed order, each once."""
+    from urllib.parse import unquote
+    decoded = unquote(text)
+    if decoded == text:
+        return _leaks(text, ident)
+    both = set(_leaks(text, ident)) | set(_leaks(decoded, ident))
+    return [c for c in CLASSES if c in both]
+
+
+CLASSES = ("home-directory", "account-name", "uid", "scratch-root", "host-path")
+
+
+def email_leaks(email: str, ident: Identity) -> list[str]:
+    """`host-email` when a git identity's domain names a machine: a private-use
+    suffix, or this host's own name. A public domain (a noreply address) passes."""
+    domain = email.rsplit("@", 1)[-1].casefold().rstrip(".>")
+    if (domain == "localhost" or domain.endswith(PRIVATE_EMAIL_SUFFIXES)
+            or domain in ident.hosts or domain.split(".", 1)[0] in ident.hosts):
+        return ["host-email"]
+    return []
+
+
+def _leaks(text: str, ident: Identity) -> list[str]:
     folded, found = text.casefold(), []
     if any(h.casefold() in folded for h in ident.homes):
         found.append("home-directory")
@@ -145,8 +208,8 @@ def leaks(text: str, ident: Identity) -> list[str]:
     return found
 
 
-def refusal(ref: str, messages=(), ident: Identity | None = None) -> str | None:
-    """Why pushing `ref` with these commit messages would publish the host, or None."""
+def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> str | None:
+    """Why pushing `ref` with these commit messages and identities would publish the host, or None."""
     ident = ident or Identity.of_host()
     why = leaks(ref, ident)
     if not _REF_CHARS.match(ref):
@@ -155,6 +218,10 @@ def refusal(ref: str, messages=(), ident: Identity | None = None) -> str | None:
         return f"{', '.join(why)} in the ref name"
     for where, msg in messages:
         why = leaks(msg, ident)
+        if why:
+            return f"{', '.join(why)} in {where}"
+    for where, email in emails:
+        why = email_leaks(email, ident)
         if why:
             return f"{', '.join(why)} in {where}"
     return None
@@ -182,19 +249,21 @@ def slug(path: str, roots=(), ident: Identity | None = None) -> str:
     return cand
 
 
-def commit_messages(rev: str, cwd: str | None = None) -> list[tuple[str, str]]:
-    """(where, message) for every commit under `rev` no remote-tracking ref holds."""
-    out = subprocess.run(["git", "log", "--format=%H%x1f%B%x1e", rev, "--not", "--remotes"],
+def published(rev: str, cwd: str | None = None) -> tuple[list, list]:
+    """(messages, emails), each a list of (where, text), for every commit under
+    `rev` that no remote-tracking ref holds: what the push publishes first."""
+    out = subprocess.run(["git", "log", "--format=%H%x1f%ae%x1f%ce%x1f%B%x1e", rev, "--not", "--remotes"],
                          cwd=cwd, capture_output=True, text=True)
     if out.returncode != 0:
         raise RuntimeError(f"git log {rev} --not --remotes exited {out.returncode}")
-    pairs = []
+    messages, emails = [], []
     for rec in out.stdout.split("\x1e"):
         rec = rec.strip("\n")
         if rec:
-            sha, _, msg = rec.partition("\x1f")
-            pairs.append((f"the message of {sha[:12]}", msg))
-    return pairs
+            sha, ae, ce, msg = rec.split("\x1f", 3)
+            messages.append((f"the message of {sha[:12]}", msg))
+            emails += [(f"the author email of {sha[:12]}", ae), (f"the committer email of {sha[:12]}", ce)]
+    return messages, emails
 
 
 # ---------------------------------------------------------------------------
@@ -214,6 +283,8 @@ PUSHERS = {
                              "the push publishes; its self-test pushes go to a temp bare repository"),
     "tools/pr/push.sh": (GUARDED, "the retired author path (decision 0011) still pushes a branch"),
     "tools/release/stamp.py": (GUARDED, "the stamp commit's message carries the --title argument"),
+    "tools/audit/seat/prune_refs.py": (GUARDED, "writes archive/<branch> tags through gh api git/refs: "
+                                       "a permanent name from a branch it does not fix (round 2)"),
     "tools/pr/merge_main_bot.py": ("republishes", "pushes a merge onto a pull request's own branch, "
                                    "a name the remote already holds, under the constant SUBJECT"),
     "tools/audit/seat/merge_train.py": ("republishes", "deletes merged branches the remote already "
@@ -228,8 +299,12 @@ PUSHERS = {
                                         "refs from round and box numbers"),
 }
 
+_GH_WRITE = (r"(?:(?<![\w-])-[fF](?![\w-])|--(?:raw-)?field\b|--input\b"
+             r"|(?:-X|--method)[\"',\s=]*(?:POST|PATCH|PUT)\b)")
 _SITE = re.compile(
-    r"\b(?:git|rgit)\b.*?(?<![\w.-])push(?![\w-])"
+    r"(?:\b(?:git|rgit)\b|\$\{?(?i:git)\}?(?![\w]))[^\n]*?(?<![\w.-])push(?![\w-])"
+    r"|\bgh\b[^\n]*?\bapi\b(?=[^\n]*git/(?:refs|tags)\b)(?=[^\n]*" + _GH_WRITE + r")"
+    r"|\bgh\b[^\n]*?\bapi\b[^\n]*\b(?:createRef|updateRef)\b"
     r"|(?:^|[;&|(]\s*)g\s+push\b"
     r"|^\s*push\s+(?:--(?:force|set-upstream|no-verify|delete|atomic|push-option)|-[fqu]\b|origin\b|\"?\$)"
     r"|\b(?:git|g|run|runner|sh|_git|_rg)\([^)\n]*[\"']push[\"']")
@@ -274,7 +349,7 @@ def registry_refusals(found: dict[str, list[int]], text_of, registry=PUSHERS) ->
 
 
 def grep(ref: str) -> list[tuple[str, int, str]]:
-    out = subprocess.run(["git", "grep", "-n", "-I", "-E", r"\bpush\b", ref, "--",
+    out = subprocess.run(["git", "grep", "-n", "-I", "-E", r"\bpush\b|git/(refs|tags)|createRef|updateRef", ref, "--",
                           "tools", ".claude/workflows", ".github/workflows"],
                          cwd=ROOT, capture_output=True, text=True)
     if out.returncode not in (0, 1):
@@ -329,7 +404,7 @@ def self_test() -> int:
 
     fake_name = "exampleuser"
     fake_home = under("Users", fake_name)
-    fid = Identity.made({fake_home}, {fake_name}, 4242)
+    fid = Identity.made({fake_home}, {fake_name}, 4242, {"example-mbp.local"})
     scratch = under("private", "tmp", "claude-4242", f"-Users-{fake_name}-proj--wt-x", "0a1b", "scratchpad", "fix-1")
 
     # The defect's own instance: the old rule, `${w#$HOME/}` with non-alnum
@@ -373,6 +448,19 @@ def self_test() -> int:
     ok("another host's home is refused", leaks("see " + under("home", "someone", "x"), fid) == ["host-path"])
     ok("a per-user macOS temp is refused", leaks(under("private", "var", "folders", "ab", "T"), fid) == ["host-path"])
     ok("an unpublishable ref character is refused", refusal("wip-sync/a b", (), fid) == "unpublishable in the ref name")
+    esc = "see %2FUsers%2F" + fake_name + "%2Fproj"
+    ok("a URL-escaped home path is refused, judged decoded (round 2)",
+       leaks(esc, fid) == ["home-directory", "account-name", "host-path"], str(leaks(esc, fid)))
+    ok("and an escape that decodes to nothing private passes (the null control)",
+       leaks("100%25 done, see %2Fsrv%2Fbuild", fid) == [])
+    ok("a git identity at a private-use domain is refused (round 2)",
+       email_leaks("t@" + fake_name + "s-mbp.local", fid) == ["host-email"]
+       and email_leaks("t@seat.lan", fid) == ["host-email"])
+    ok("and one at this host's own name, short or full",
+       email_leaks("t@example-mbp", fid) == ["host-email"] and email_leaks("t@EXAMPLE-MBP.local", fid) == ["host-email"])
+    ok("a noreply address passes, even naming the account (the null control)",
+       email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
+       and email_leaks("noreply@anthropic.com", fid) == [])
     host = Identity.of_host()
     ok("the host identity reads a home, and judges no public account",
        bool(host.homes) and not set(host.names) & PUBLIC_ACCOUNTS)
@@ -391,7 +479,7 @@ def self_test() -> int:
         g("push", "-q", "origin", "main")
         g("fetch", "-q", "origin")
         g("commit", "-q", "--allow-empty", "-m", "clean local commit")
-        msgs = [m for _, m in commit_messages("HEAD", seat)]
+        msgs = [m for _, m in published("HEAD", seat)[0]]
         ok("--commits judges the local commit only, not the one origin holds", msgs == ["clean local commit"], str(msgs))
         g("commit", "-q", "--allow-empty", "-m", "notes in " + scratch)
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
@@ -406,6 +494,18 @@ def self_test() -> int:
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                             "--commits", "no-such-rev", "-C", seat], env=env, capture_output=True, text=True)
         ok("an unreadable range refuses (fail closed), exit 2", r.returncode == 2, r.stderr.strip())
+        # round 2: the identity a published commit carries is judged too
+        g("reset", "-q", "--hard", "HEAD~1")
+        r = subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "clean"], cwd=seat, capture_output=True,
+                           env={**env, "GIT_AUTHOR_EMAIL": "t@" + fake_name + "s-mbp.local"})
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("the guard CLI refuses an unpushed commit whose author email names a machine, exit 3",
+           r.returncode == 3 and "host-email in the author email of" in r.stderr, r.stderr.strip())
+        g("commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author")
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("and passes it re-authored to the fixture identity (the null control)", r.returncode == 0, r.stderr.strip())
 
     # wt_sync.sh end to end: a worktree under a planted scratch path, pushed to
     # a temp bare origin under a planted HOME and USER.
@@ -478,13 +578,33 @@ def self_test() -> int:
              ("tools/x/doc.py", 9, "push --json ...`). The window is still open"),
              ("tools/x/js.mjs", 2, "out.push(git)"),
              ("tools/x/py.py", 5, '    run(["git", "push", "-q", "origin", branch])'),
+             ("tools/x/gfn.py", 7, '    code, o = g(wt, "push", "-q", "origin", f"HEAD:refs/heads/{br}")'),
+             ("tools/x/var.sh", 2, '"$GIT" -C "$w" push -q origin "$ref"'),
+             ("tools/x/var2.sh", 2, '${GIT} push origin x'),
+             ("tools/x/gitdir.sh", 2, 'cd "$GIT_DIR" && echo push done'),
+             ("tools/x/ghsh.sh", 3, 'gh api "repos/$r/git/refs" -f ref="refs/tags/$t" -f sha="$s"'),
+             ("tools/x/ghpy.py", 3, '["gh", "api", f"repos/{repo}/git/refs", "-f", f"ref={ref}",'),
+             ("tools/x/ghpatch.sh", 3, 'gh api -X PATCH "repos/$r/git/refs/heads/$b" -F force=true'),
+             ("tools/x/ghgql.sh", 3, 'gh api graphql -f query="mutation { createRef(input: $i) { ref { name } } }"'),
+             ("tools/x/ghread.sh", 3, 'gh api "repos/$r/git/refs/heads/$b" --jq .object.sha'),
+             ("tools/x/ghdel.sh", 3, 'gh api -X DELETE "repos/$r/git/refs/heads/$b"'),
              ("tools/policy/vendor/v.js", 1, "git push"),
              (SELF, 1, "git push")]
     found = sites(lines)
     ok("the site rule finds shell and Python pushes, not comments, .push( or excluded paths",
-       sorted(found) == ["tools/x/cont.sh", "tools/x/guarded.sh", "tools/x/new.sh", "tools/x/py.py"],
+       {"tools/x/cont.sh", "tools/x/guarded.sh", "tools/x/new.sh", "tools/x/py.py"} <= set(found),
        str(sorted(found)))
-    found.pop("tools/x/cont.sh")
+    ok("a Python wrapper call with no `git` word is a site (the g(...) arm alone: merge_train.py's shape)",
+       "tools/x/gfn.py" in found)
+    ok("git spelled through a variable is a site, and $GIT_DIR is not (round 2)",
+       {"tools/x/var.sh", "tools/x/var2.sh"} <= set(found) and "tools/x/gitdir.sh" not in found)
+    ok("a gh api ref write is a site: -f, -F, -X PATCH, a createRef mutation (round 2)",
+       {"tools/x/ghsh.sh", "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"} <= set(found))
+    ok("and a gh api ref read or DELETE is not (the null control)",
+       not {"tools/x/ghread.sh", "tools/x/ghdel.sh"} & set(found))
+    for extra in ("tools/x/cont.sh", "tools/x/gfn.py", "tools/x/var.sh", "tools/x/var2.sh", "tools/x/ghsh.sh",
+                  "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"):
+        found.pop(extra, None)
     texts = {"tools/x/guarded.sh": 'RP=ref_privacy.py; "$RP" guard --ref "$ref" && git push',
              "tools/x/py.py": "import ref_privacy\nref_privacy.refusal(ref)\n",
              "tools/x/new.sh": ""}
@@ -519,7 +639,7 @@ def main(argv: list[str]) -> int:
         print(slug(argv[1], roots))
         return 0
     if argv[:1] == ["guard"]:
-        ref, messages, rev, cwd, rest = None, [], None, None, argv[1:]
+        ref, messages, emails, rev, cwd, rest = None, [], [], None, None, argv[1:]
         while rest:
             flag = rest[0]
             if flag not in ("--ref", "--message", "--commits", "-C") or len(rest) < 2:
@@ -539,12 +659,13 @@ def main(argv: list[str]) -> int:
             return 2
         try:
             if rev is not None:
-                messages += commit_messages(rev, cwd)
+                ms, emails = published(rev, cwd)
+                messages += ms
         except RuntimeError as e:
             print(f"ref_privacy: REFUSE: could not read the commits the push publishes ({e}); nothing pushed",
                   file=sys.stderr)
             return 2
-        why = refusal(ref, messages)
+        why = refusal(ref, messages, None, emails)
         if why:
             print(f"ref_privacy: REFUSE: {why} would publish this host; nothing pushed", file=sys.stderr)
             return 3

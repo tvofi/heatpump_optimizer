@@ -235,6 +235,13 @@ def key_ssh_command(key: str, known_hosts: str) -> str:
             f"-o StrictHostKeyChecking=yes -o ConnectTimeout={SSH_CONNECT_TIMEOUT_S}")
 
 
+def title_refusal(title: str) -> str | None:
+    """Why the stamp commit's subject, which carries the title, would publish this host (#2310)."""
+    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
+    import ref_privacy
+    return ref_privacy.refusal("main", (("the title", title),))
+
+
 def push_via(refspec: str, key: str | None = None, known_hosts: str | None = None,
              runner=None, environ=None) -> str:
     """Push one refspec: to origin with no key, exactly as before; over the key
@@ -965,6 +972,11 @@ def self_test() -> int:
     check("push: the key is checked before rule 1, and a problem refuses",
           "problem = push_key_problem(args.push_key, args.known_hosts)" in _pre
           and "if problem:" in _pre and 'raise Refuse("push-key"' in _pre)
+    check("title: a title naming a host path is refused (#2310)",
+          (title_refusal("x " + "/".join(("", "Users", "exampleuser", "y"))) or "").startswith("host-path"))
+    check("title: an ordinary title passes (the null control)", title_refusal("ordinary title") is None)
+    check("title: main refuses through title_refusal before rule 1",
+          "    why = title_refusal(args.title)\n    if why:\n        raise Refuse(\"title\"" in _pre)
     check("push: an empty --push-key is checked, not skipped as falsy",
           "    if args.push_key is not None:\n        problem = push_key_problem" in _pre)
     check("push: main refreshes origin after a key push",
@@ -1832,10 +1844,7 @@ def main() -> int:
         return self_test()
     if not args.bump or not args.title:
         ap.error("--bump and --title are required (or --self-test)")
-    # The title is the stamp commit's subject: one naming this host is refused (#2310).
-    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
-    import ref_privacy
-    why = ref_privacy.refusal("main", (("the title", args.title),))
+    why = title_refusal(args.title)
     if why:
         raise Refuse("title", why + " would publish this host; nothing was written")
     if args.push_key is not None and not args.push:
