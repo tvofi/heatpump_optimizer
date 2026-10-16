@@ -10,7 +10,9 @@ module the metrics cannot parse. This is that check, and it is the only part tha
   * a tree compared with itself reads NULL, and the report names no metric;
   * the coordinator class the metrics key on is the one ``tests/structure.py`` keys on;
   * nothing the scheduled cycle or the what-if reaches writes the coordinator's three hubs,
-    except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included.
+    except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included;
+  * the payload census reaches the away view, which today's tree publishes through an annotated
+    parameter (counter C14, D7-s3-51).
 
     PYTHONPATH=tests/hastub python3 tests/arch_score_head.py
 """
@@ -28,7 +30,7 @@ sys.path.insert(0, str(ROOT / "tools" / "audit"))
 from harness import Results  # noqa: E402
 
 from archscore import counters, score, vector  # noqa: E402
-from archscore.metrics import common, footprint, hub_solve_writes  # noqa: E402
+from archscore.metrics import common, footprint, hub_solve_writes, untyped_payload_keys  # noqa: E402
 
 R = Results("architecture score on today's tree (R9-EG-A1)")
 
@@ -110,17 +112,6 @@ PARAMS_OVER_10_LEFT = {
     "optimizer.HeatPumpOptimizer._build_result":
         "keyword-only already, and every optional is one published result "
         "field; the OptimizationResult it assembles IS the record",
-    "tariff._peak_charge":
-        "the capacity-charge scaffolding's shared core; the tariff-record "
-        "family (peak_cost, peak_cost_smooth, peak_cost_batch, this) is the "
-        "next family owed, outside this group's line cap",
-    "tariff.peak_cost":
-        "the published capacity charge; the tariff-record family is the next "
-        "family owed, outside this group's line cap",
-    "tariff.peak_cost_batch":
-        "the batch twin; same family, same disposition",
-    "tariff.peak_cost_smooth":
-        "the solver's smooth surrogate; same family, same disposition",
     "thermal_model.ThermalModel._simulate_step_single":
         "the per-step hot path takes scalars; a frozen per-step record "
         "allocated one object per simulated step, and the sysid rollout was "
@@ -235,6 +226,15 @@ def main() -> int:
                 f"planted={planted}; unlisted {sorted(seen - LISTED)}")
     R.check("every listed producer is still reached, so the table holds no stale row",
             LISTED <= writers, f"stale: {sorted(LISTED - writers)}")
+    common.reset_caches()
+    pkg = common.load(str(ROOT))
+    flow = untyped_payload_keys.Flow(pkg, common.engine(pkg))
+    produced = flow.returned_keys(f"{common.COORD_MODULE}:{common.COORD_CLASS}._async_update_data")[0]
+    away = flow.returned_keys("away:AwayState.as_dict")[0] if "away:AwayState.as_dict" in pkg.funcs else {}
+    R.check("the payload census sees every key AwayState.as_dict publishes (C14: `_fold_away(state: AwayState)`)",
+            bool(away) and set(away) <= set(produced),
+            f"unseen {sorted(set(away) - set(produced))} of {len(away)}: the census lost a published dict, "
+            "or the away view left the payload (then drop this check)")
     sites = param_sites(ROOT)
     R.check("the head census does not out-count the score's own guard (C4 can only add copies)",
             len(sites) <= here["params_over_10"],

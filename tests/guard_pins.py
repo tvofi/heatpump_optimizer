@@ -623,7 +623,7 @@ def _service_dispatch_pins() -> dict[str, bool]:
     """R9-SW-2: kill ``pump_arbiter._service``'s sites ``--pin-killed`` timed out.
 
     Each slot's one write through ``_write``: the mode an option select, the
-    silent switch turn_on/turn_off, a set-point ``_write_setpoint``'s
+    silent switch turn_on/turn_off, a set-point ``inputs.write_setpoint_c``'s
     set_value. ``tests/features.py`` holds the behaviour; this is the cheap
     driver the pin lane can finish.
     """

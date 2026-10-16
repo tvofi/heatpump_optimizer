@@ -67,7 +67,7 @@ from heatpump_optimizer.optimizer import (
     OptimizationConfig,
     _utc_step_starts,
 )
-from heatpump_optimizer.tariff import CapacityTariff, peak_cost, window_factors
+from heatpump_optimizer.tariff import CapacityTariff, PeakBilling, peak_cost, window_factors
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
 
 d2lib.repo_root_ok()
@@ -182,8 +182,8 @@ def main() -> int:
         else:
             power = np.zeros(n_h)
             power[12] = 9.0
-        wrong = peak_cost(power, base, 0.0, 20.0, 60, 1.0, 3, 0, pf)
-        right = peak_cost(power, base, 0.0, 20.0, 60, 1.0, 3, 0, truth)
+        wrong = peak_cost(power, base, PeakBilling(0.0, 20.0, 60, 1.0, 3, 0, pf))
+        right = peak_cost(power, base, PeakBilling(0.0, 20.0, 60, 1.0, 3, 0, truth))
         d2lib.result(
             f"peak_cost_{label}",
             f"as_planned={wrong:.4f} at_true_instants={right:.4f} "
