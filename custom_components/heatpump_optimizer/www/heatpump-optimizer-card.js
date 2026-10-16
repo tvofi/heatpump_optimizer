@@ -3732,8 +3732,13 @@ function setupSvgHtml(topo, ctx) {
         ))}" x="${b.x + 4}" y="${r2(y - rowH + 5 - (foldH - foldBase) / 2)}"
         width="${colW - 8}" height="${r2(foldH)}" rx="3"></rect>`);
       y += rowH * lines.length;
+      // A place this card has no options page for (a place the backend added
+      // ahead of it) names the place instead of the page: a button that
+      // cannot say which step it opens says what it is for, rather than
+      // "undefined".
       const page = SETUP_CONFIGURE_PAGE[b.place];
-      const aria = L("setup.configure_page", { page: L(page) });
+      const aria = L("setup.configure_page",
+        { page: page ? L(page) : placeLabel(b.place) });
       rows.push(chip(b.x + SETUP_PAD, y - rowH + 3, "setup.configure",
         `data-configure="${esc(b.place || "")}"`, aria));
       y += rowH;
