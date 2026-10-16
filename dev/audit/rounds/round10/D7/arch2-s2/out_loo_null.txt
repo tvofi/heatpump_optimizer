@@ -1,0 +1,9 @@
+LOO drop P1_config_notices_owned: main RESULT delta_S=+2.9772 weighted-log2 | s1 RESULT delta_S=+5.4645 weighted-log2
+LOO drop P2_fixed_action_priced_whole: main RESULT delta_S=+2.5868 weighted-log2 | s1 RESULT delta_S=+4.4745 weighted-log2
+LOO drop P3_store_owns_its_digest: main RESULT delta_S=+2.5862 weighted-log2 | s1 RESULT delta_S=+4.4740 weighted-log2
+LOO drop P4_event_readings_published_whole: main RESULT delta_S=+3.0368 weighted-log2 | s1 RESULT delta_S=+5.5242 weighted-log2
+LOO drop P5_peak_billing_record: main RESULT delta_S=+2.5075 weighted-log2 | s1 RESULT delta_S=+4.9948 weighted-log2
+LOO drop P6_price_tile_rotation_owned: main RESULT delta_S=+2.1482 weighted-log2 | s1 RESULT delta_S=+3.5356 weighted-log2
+LOO drop P7_price_learner_owns_its_days: main RESULT delta_S=+2.1118 weighted-log2 | s1 RESULT delta_S=+3.4992 weighted-log2
+NULL union+N0: RESULT delta_S=+3.0380 weighted-log2
+ALLDONE

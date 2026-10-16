@@ -1,0 +1,712 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..8869404cb 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1901,6 +1901,18 @@ def _with_quiet_keys(config: EntryConfig, params: Mapping[str, Any]) -> EntryCon
+     return EntryConfig.from_mapping(folded)
+ 
+ 
++def _publish_params(coord: Any, **changes: Any) -> None:
++    """The one writer of the thermal parameters: a new snapshot, never an edit.
++
++    The hub facade rebinds the context, so a holder of the old snapshot -- a
++    solve's record, a learner mid-await -- keeps a consistent one. The live
++    model is the owner's one subscriber; a learner reads through a reader.
++    """
++    params = replace(coord._thermal_params, **changes)
++    coord._thermal_params = params
++    coord._thermal_model.params = params
++
++
+ def _hub(name: str) -> property:
+     """Facade for a write-once hub. Tests that ``object.__new__`` a
+     coordinator and duck-typed harnesses without ``_ctx`` still resolve."""
+@@ -2748,13 +2760,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+     # -- construction, one concern at a time ---------------------------------
+ 
+     def _init_model(self, config: EntryConfig) -> tuple[ThermalParameters, OptimizationConfig]:
+-        """The thermal model, the optimizer, and the configuration between."""
++        """The live thermal model and the configuration; each solve builds its own optimizer."""
+         thermal_params = ThermalParameters.from_config(config)
+         self._thermal_model = ThermalModel(thermal_params)
+-
+-        opt_config = OptimizationConfig.from_mapping(config)
+-        self._optimizer = HeatPumpOptimizer(self._thermal_model, opt_config)
+-        return thermal_params, opt_config
++        return thermal_params, OptimizationConfig.from_mapping(config)
+ 
+     def _init_runtime_state(
+         self,
+@@ -2832,13 +2841,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # DHW state
+         self._dhw_temperature: float | None = None
+         # W5-G9: the usage profile, day-type profiles, draw statistics and
+-        # cooling rate live in their own subsystem. It learns into the shared
+-        # ThermalParameters and observes three coordinator facts through
+-        # callables; it never holds the coordinator.
++        # cooling rate live in their own subsystem. It reads the published
++        # ThermalParameters, proposes its fields through the one publisher and
++        # observes three coordinator facts through callables; it never holds
++        # the coordinator.
+         self._dhw_learner = DhwProfileLearner(
+             hass,
+             entry.entry_id,
+-            ctx._thermal_params,
++            lambda: _ctx_of(self)._thermal_params,
++            publish=functools.partial(_publish_params, self),
+             frozen=self._learning_frozen,
+             heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
+             # The live detector, never a solve's copy of it: no solve runs
+@@ -2846,13 +2857,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             external_heat_active=lambda: bool(self._external_heat_active),
+         )
+         # #193's W5-G10: the disinfection cycle, its ceilings and its three
+-        # repair notices are their own subsystem. It reads the shared
+-        # parameters and configuration, observes the planned action through a
+-        # callable, and never holds the coordinator.
++        # repair notices are their own subsystem. It reads the published
++        # parameters and the configuration, observes the planned action through
++        # a callable, and never holds the coordinator.
+         self._legionella = LegionellaGuard(
+             hass,
+             entry.entry_id,
+-            ctx._thermal_params,
++            lambda: _ctx_of(self)._thermal_params,
+             ctx._config,
+             action=lambda: {} if self._mode == MODE_OFF else planned(),  # off writes nothing
+             disinfect=_disinfection_switch(hass, ctx._config),
+@@ -3062,7 +3073,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+         # --- Defrost derate (item 14) --------------------------------------
+         self._defrost = DefrostDerate()
+-        ctx._thermal_params.defrost_derate = self._defrost
++        _publish_params(self, defrost_derate=self._defrost)
+ 
+         # Defrost on-time for the interval being measured (v5.3.0). Fed by
+         # the per-cycle read AND by a state listener, because the two see
+@@ -4322,7 +4333,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+     def _apply_cop_scale(self, scale: float) -> None:
+         """Clamp the learned COP correction and push it to the model."""
+         self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))
+-        getattr(self, "_ctx", self)._thermal_params.cop_scale = self._cop_scale
++        _publish_params(self, cop_scale=self._cop_scale)
+ 
+     def _max_pump_rise(self, tank: str) -> float | None:
+         """Fastest the heat pump alone could warm a tank, °C/h.
+@@ -4745,19 +4756,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         """Clamp a buffer cooling rate to a plausible range and push it out."""
+         low, high = self._buffer_cooling_bounds()
+         self._buffer_cooling_rate = float(np.clip(rate, low, high))
+-        getattr(self, "_ctx", self)._thermal_params.buffer_cooling_rate = self._buffer_cooling_rate
++        _publish_params(self, buffer_cooling_rate=self._buffer_cooling_rate)
+ 
+     @_refuses_non_finite
+     def _apply_house_heat_loss_scale(self, scale: float) -> None:
+         """Clamp the house heat loss correction and push it to the model."""
+         self._house_heat_loss_scale = float(np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX))
+-        getattr(self, "_ctx", self)._thermal_params.house_heat_loss_scale = self._house_heat_loss_scale
++        _publish_params(self, house_heat_loss_scale=self._house_heat_loss_scale)
+ 
+     @_refuses_non_finite
+     def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
+         """Clamp the learned zone split and push it to the model."""
+         self._lower_floor_loss_ratio = float(np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX))
+-        getattr(self, "_ctx", self)._thermal_params.lower_floor_loss_ratio = self._lower_floor_loss_ratio
++        _publish_params(self, lower_floor_loss_ratio=self._lower_floor_loss_ratio)
+ 
+     def _house_heat_loss_anchor(self) -> float:
+         """The total base UA the learned scale currently multiplies.
+@@ -5825,9 +5836,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if refresh:
+             await self.async_request_refresh()
+ 
+-    # Service parameter name -> thermal parameter attribute. Plain assignments
+-    # only; anything with a side effect is handled explicitly below.
++    # Service parameter name -> thermal parameter attribute, each assigned in the
++    # call's one snapshot; a consequence beyond the assignment is handled below.
+     _THERMAL_PARAM_FIELDS = {
++        "house_heat_loss_coefficient": "heat_loss_coefficient",
+         "house_thermal_mass": "room_thermal_mass",
+         "slab_thermal_mass": "slab_thermal_mass",
+         "slab_heat_transfer": "slab_heat_transfer",
+@@ -5854,14 +5866,41 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         carry a consequence — a correction to invalidate, a mirror, a parse.
+         """
+         ctx = getattr(self, "_ctx", self)
++        changes: dict[str, Any] = {}
+         for name, attribute in self._THERMAL_PARAM_FIELDS.items():
+             if name in params:
+-                setattr(ctx._thermal_params, attribute, params[name])
++                changes[attribute] = params[name]
++        # The displace limits are mirrored for the MQTT publisher, which
++        # clamps against them without going through the model.
++        for name, attribute in (
++            ("ecl110_displace_min", "_ecl110_displace_min"),
++            ("ecl110_displace_max", "_ecl110_displace_max"),
++        ):
++            if name in params:
++                changes[name] = params[name]
++                setattr(self, attribute, params[name])
++        if CONF_DHW_SCHEDULE_ENABLED in params:
++            changes["dhw_schedule_enabled"] = bool(params[CONF_DHW_SCHEDULE_ENABLED])
++        if CONF_DHW_WINDOWS in params:
++            try:
++                # One parse gives both views (#3), which can never disagree.
++                changes["dhw_windows"] = parse_windows(params[CONF_DHW_WINDOWS])
++                changes["dhw_weekly_windows"] = parse_weekly_windows(params[CONF_DHW_WINDOWS])
++            except DHWWindowError as err:
++                _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
++        for key, attribute, convert in (
++            (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
++            (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
++            (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
++            (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
++        ):
++            if key in params:
++                changes[attribute] = convert(params[key])
++        # One snapshot, before any await: ``replace`` runs ``__post_init__``,
++        # so the divisor floor holds from birth and no reader sees half a call.
++        _publish_params(self, **changes)
+ 
+         if "house_heat_loss_coefficient" in params:
+-            ctx._thermal_params.heat_loss_coefficient = params[
+-                "house_heat_loss_coefficient"
+-            ]
+             # A new nameplate invalidates the learned correction: start
+             # over from "trust the configuration". The save below records
+             # the anchor just applied, so the restart pairs this reset with
+@@ -5884,54 +5923,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 float(params[CONF_DHW_COOLING_RATE])
+             )
+ 
+-        # The displace limits are mirrored for the MQTT publisher, which
+-        # clamps against them without going through the model.
+-        for name, attribute in (
+-            ("ecl110_displace_min", "_ecl110_displace_min"),
+-            ("ecl110_displace_max", "_ecl110_displace_max"),
+-        ):
+-            if name in params:
+-                setattr(ctx._thermal_params, name, params[name])
+-                setattr(self, attribute, params[name])
+-
+-        if CONF_DHW_SCHEDULE_ENABLED in params:
+-            ctx._thermal_params.dhw_schedule_enabled = bool(
+-                params[CONF_DHW_SCHEDULE_ENABLED]
+-            )
+         self._ctx = replace(_ctx_of(self), _config=_with_quiet_keys(ctx._config, params))  # #1910
+-        if CONF_DHW_WINDOWS in params:
+-            try:
+-                ctx._thermal_params.dhw_windows = parse_windows(
+-                    params[CONF_DHW_WINDOWS]
+-                )
+-                # One parse gives both views (#3), which can never disagree.
+-                ctx._thermal_params.dhw_weekly_windows = parse_weekly_windows(
+-                    params[CONF_DHW_WINDOWS]
+-                )
+-            except DHWWindowError as err:
+-                _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
+-        for key, attribute, convert in (
+-            (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
+-            (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
+-            (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
+-            (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
+-        ):
+-            if key in params:
+-                setattr(ctx._thermal_params, attribute, convert(params[key]))
+-
+-        # Attribute writes bypass __post_init__; the divisor floor is
+-        # re-enforced here — the one chokepoint for service writes.
+-        ctx._thermal_params.clamp()
+ 
+         # D1-s2-53: entry options persist the call; the write reloads the entry.
+         self.hass.config_entries.async_update_entry(
+             self.entry, options={**self.entry.options, **params})
+ 
+-        # The model and optimizer hold the parameters by reference at
+-        # construction, so both are rebuilt rather than mutated in place.
+-        self._thermal_model = ThermalModel(ctx._thermal_params)
+-        self._optimizer = HeatPumpOptimizer(self._thermal_model, ctx._opt_config)
+-
+         _LOGGER.info("Thermal parameters updated, re-running optimization")
+         await self.async_request_refresh()
+     async def async_shutdown(self) -> None:
+@@ -6050,7 +6047,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # — and so whether surplus heat can reach the tank at all.
+         valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
+         if valve_target.ok and (valve_value := valve_target.value) is not None:
+-            ctx._thermal_params.mixing_valve_target = float(valve_value)
++            _publish_params(self, mixing_valve_target=float(valve_value))
+ 
+         # Measured electrical draw. Optional, and everything downstream has to
+         # degrade cleanly without it, because most installs will not have one.
+@@ -6175,7 +6172,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+         # The defrost derate's humidity bucket is resolved from this, so it has
+         # to be current before anything calls compute_cop.
+-        ctx._thermal_params.ambient_humidity = self._current_humidity()
++        _publish_params(self, ambient_humidity=self._current_humidity())
+ 
+         # Detect external heat before the learners run: while one is active,
+         # every thermal observation is contaminated, and they must know.
+@@ -6272,13 +6269,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         scale they just learned. A solve takes its own copy into its record
+         and writes none of them here.
+         """
+-        fresh = self._model_corrections(dt_util.now())
+-        params = getattr(self, "_ctx", self)._thermal_params
+-        params.solar_aperture_scale = fresh["solar_aperture_scale"]
+-        params.internal_gains_profile = fresh["internal_gains_profile"]
+-        params.dhw_inlet_current = fresh["dhw_inlet_current"]
+-        params.flow_curve_bias = fresh["flow_curve_bias"]
+-        params.flow_curve_indoor_target = fresh["flow_curve_indoor_target"]
++        _publish_params(self, **self._model_corrections(dt_util.now()))
+ 
+     def _learning_frozen(self, *keys: str) -> str | None:
+         """Why learning should be skipped this interval, or ``None``.
+@@ -7943,7 +7934,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # Additive keys: an older store has none; an older build ignores extras.
+         self._dhw_accuracy = AccuracyTracker.from_dict(stored.get("dhw_accuracy"))
+         self._defrost = DefrostDerate.from_dict(stored.get("defrost"))
+-        ctx._thermal_params.defrost_derate = self._defrost
++        _publish_params(self, defrost_derate=self._defrost)
+         self._peak_tracker = PeakTracker.from_dict(stored.get("peaks"))
+         stored_mode = stored.get("mode")
+         if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:
+@@ -9257,7 +9248,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     def _apply_learner_payloads(self, learners: dict[str, Any]) -> None:
+         """Restore learners from a snapshot, via the loaders' own parsing."""
+-        ctx = getattr(self, "_ctx", self)
+         if not isinstance(learners, dict):  # persisted state: absent, not a raise
+             return
+         thermal = learners.get("thermal_learning")
+@@ -9330,10 +9320,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         defrost = learners.get("defrost")
+         if isinstance(defrost, dict):
+             self._defrost = DefrostDerate.from_dict(defrost)
+-            # Rebind, exactly as the load path does: the thermal model
++            # Publish, exactly as the load path does: the thermal model
+             # consumes the derate through this reference, and without it
+             # the restored object trains while an orphan keeps serving.
+-            ctx._thermal_params.defrost_derate = self._defrost
++            _publish_params(self, defrost_derate=self._defrost)
+         # The peak tracker is deliberately NOT restored: the month's
+         # realised peaks are billed facts — the DSO already metered them —
+         # not learned state. Restoring a week-old peak list lowered
+diff --git a/custom_components/heatpump_optimizer/dhw_learning.py b/custom_components/heatpump_optimizer/dhw_learning.py
+index 8d845ea60..9ec9e491d 100644
+--- a/custom_components/heatpump_optimizer/dhw_learning.py
++++ b/custom_components/heatpump_optimizer/dhw_learning.py
+@@ -82,13 +82,15 @@ class DhwProfileLearner:
+         self,
+         hass: HomeAssistant,
+         entry_id: str,
+-        params: ThermalParameters,
++        params: Callable[[], ThermalParameters],
+         *,
++        publish: Callable[..., None],
+         frozen: Callable[[str], str | None],
+         heating_active: Callable[[], bool],
+         external_heat_active: Callable[[], bool],
+     ) -> None:
+         self._params = params
++        self._publish = publish
+         self._frozen = frozen
+         self._heating_active = heating_active
+         self._external_heat_active = external_heat_active
+@@ -98,12 +100,12 @@ class DhwProfileLearner:
+         # has hours below the intensity floor, and a raw seed was what the
+         # first restart reshaped (#1747's carry).
+         self.hourly_profile: list[float] = self.normalize_profile(
+-            params.dhw_hourly_draw_pattern
++            params().dhw_hourly_draw_pattern
+         )
+         # Self-learned standby cooling of the tank, in °C/h at the reference
+         # condition (45 °C tank, 20 °C ambient). Seeded from the configured
+         # default until enough quiet decay has been observed.
+-        self.cooling_rate: float = float(params.dhw_cooling_rate)
++        self.cooling_rate: float = float(params().dhw_cooling_rate)
+         self.cooling_samples: int = 0
+         self.heating_since_sample: bool = False
+         self.profile_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+@@ -153,7 +155,7 @@ class DhwProfileLearner:
+         except (TypeError, ValueError, OverflowError):
+             usable = False
+         lo, hi = DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY
+-        raw = np.clip(np.asarray(profile if usable else self._params.dhw_hourly_draw_pattern, dtype=float), lo, hi)
++        raw = np.clip(np.asarray(profile if usable else self._params().dhw_hourly_draw_pattern, dtype=float), lo, hi)
+         avg = float(np.mean(raw))
+         out = raw if abs(avg - 1.0) <= 1e-12 else np.clip(raw / avg, lo, hi)
+         if abs(float(np.mean(out)) - 1.0) > 1e-12:
+@@ -177,9 +179,7 @@ class DhwProfileLearner:
+         profile = stored.get("hourly_profile")
+         if isinstance(profile, list) and len(profile) == 24:
+             self.hourly_profile = self.normalize_profile(profile)
+-            self._params.dhw_hourly_draw_pattern = (
+-                self.hourly_profile.copy()
+-            )
++            self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
+             _LOGGER.info("Loaded learned DHW usage profile from storage")
+ 
+         # #18: day-type profiles are additive keys. A pooled-only store —
+@@ -222,7 +222,7 @@ class DhwProfileLearner:
+         self.cooling_rate = float(
+             np.clip(rate, DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX)
+         )
+-        self._params.dhw_cooling_rate = self.cooling_rate
++        self._publish(dhw_cooling_rate=self.cooling_rate)
+ 
+     async def async_set_cooling_rate(self, rate: float) -> None:
+         """An explicit value replaces the learned one and resets the sample
+@@ -254,9 +254,7 @@ class DhwProfileLearner:
+         hourly = profile.get("hourly_profile")
+         if isinstance(hourly, list) and len(hourly) == 24:
+             self.hourly_profile = self.normalize_profile(hourly)
+-            self._params.dhw_hourly_draw_pattern = (
+-                self.hourly_profile.copy()
+-            )
++            self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
+         # The day-type profiles restore alongside the pooled one, or a
+         # rollback would blend a rolled-back pool with un-rolled-back
+         # day shapes — half of one week, half of another.
+@@ -407,7 +405,7 @@ class DhwProfileLearner:
+         """
+         if self._external_heat_active():
+             return
+-        params = self._params
++        params = self._params()
+         if not params.dhw_enabled:
+             return
+         standby_rate = (
+@@ -524,7 +522,7 @@ class DhwProfileLearner:
+             + DHW_PROFILE_EWMA_ALPHA * draw_intensity
+         )
+         self.hourly_profile = self.normalize_profile(profile)
+-        self._params.dhw_hourly_draw_pattern = self.hourly_profile.copy()
++        self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
+ 
+         # #18: the same observation also teaches this day type's own
+         # profile. Both are normalised independently, so each day type
+diff --git a/custom_components/heatpump_optimizer/legionella.py b/custom_components/heatpump_optimizer/legionella.py
+index 2f48e8505..a1ea071fd 100644
+--- a/custom_components/heatpump_optimizer/legionella.py
++++ b/custom_components/heatpump_optimizer/legionella.py
+@@ -51,7 +51,7 @@ class LegionellaGuard:
+         self,
+         hass: HomeAssistant,
+         entry_id: str,
+-        params: ThermalParameters,
++        params: Callable[[], ThermalParameters],
+         config: dict[str, Any],
+         *,
+         action: Callable[[], CurrentAction],
+@@ -188,7 +188,7 @@ class LegionellaGuard:
+         nothing. With the flag off the historical instant-credit rule is
+         untouched.
+         """
+-        target = float(self._params.dhw_legionella_temp)
++        target = float(self._params().dhw_legionella_temp)
+         now = dt_util.now()
+ 
+         if EntryConfig.from_mapping(self._config).dhw_free_disinfection_enabled:
+@@ -266,7 +266,7 @@ class LegionellaGuard:
+         neither credited nor recorded, with the countdown pinned at its
+         overdue value for ever.
+         """
+-        params = self._params
++        params = self._params()
+         if not params.dhw_legionella_enabled:
+             self.boost_active = False
+             self.boost_peak = None
+@@ -490,7 +490,7 @@ class LegionellaGuard:
+         as the two config-flow pages; the flow's own validator warns at save
+         time, but a service call never touches a form.
+         """
+-        params = self._params
++        params = self._params()
+         legionella = float(params.dhw_legionella_temp)
+         setpoint = float(params.dhw_setpoint)
+         # The stock pair says nothing. `dhw_enabled=True` alone gives 55/60,
+@@ -629,7 +629,7 @@ class LegionellaGuard:
+ 
+     def due_in_hours(self) -> float | None:
+         """Hours left before the next anti-legionella cycle is required."""
+-        params = self._params
++        params = self._params()
+         if not params.dhw_legionella_enabled:
+             return None
+         since = self.hours_since()
+@@ -653,7 +653,7 @@ class LegionellaGuard:
+         anywhere else. Putting hot water back into the plan would promise
+         water the hardware refuses to heat.
+         """
+-        params = self._params
++        params = self._params()
+         due = self.due_in_hours()
+         overdue_days: int | None = None
+         if (
+diff --git a/tests/arch_score_head.py b/tests/arch_score_head.py
+index 2a9bf0d0d..a6b4dd140 100644
+--- a/tests/arch_score_head.py
++++ b/tests/arch_score_head.py
+@@ -47,8 +47,7 @@ CYCLE_HUB_WRITERS = {
+             "buffer_tank_temperature", "dhw_hours_since_legionella", "dhw_temperature",
+             "floor_return_temperature", "lower_floor_temperature", "outdoor_temperature",
+             "room_temperature", "slab_temperature", "solar_radiation",
+-            "upper_floor_temperature", "wood_tank_temperature")}
+-        | {"_thermal_params.ambient_humidity", "_thermal_params.mixing_valve_target"},
++            "upper_floor_temperature", "wood_tank_temperature")},
+         "this cycle's sensor readings into the live state"),
+     "thermal_model:ThermalModel.update_slab_from_return_temp": (
+         {"_current_state.floor_return_temperature", "_current_state.slab_temperature"},
+@@ -56,37 +55,16 @@ CYCLE_HUB_WRITERS = {
+     "thermal_model:ThermalModel.update_ecl110_displace_state": (
+         {"_current_state.ecl110_displace_command", "_current_state.ecl110_effective_displace"},
+         "the ECL110 displacement state from this cycle's command"),
+-    _C + "_refresh_model_corrections": (
+-        {"_thermal_params." + f for f in (
+-            "dhw_inlet_current", "flow_curve_bias", "flow_curve_indoor_target",
+-            "internal_gains_profile", "solar_aperture_scale")},
+-        "the cycle's corrections carried on the live model after the learners (#1736)"),
+     _C + "_apply_comfort_weight": (
+         {"_opt_config.comfort_weight"},
+         "the quiet-period learner in the solve's tail moved the learned weight"),
+-    _C + "_apply_house_heat_loss_scale": (
+-        {"_thermal_params.house_heat_loss_scale"},
+-        "a finished system identification adopts its fitted scale"),
+-    _C + "_apply_cop_scale": ({"_thermal_params.cop_scale"}, "the COP learner adopts its scale"),
+-    _C + "_apply_lower_floor_loss_ratio": (
+-        {"_thermal_params.lower_floor_loss_ratio"}, "the zone learner adopts its ratio"),
+-    _C + "_apply_buffer_cooling_rate": (
+-        {"_thermal_params.buffer_cooling_rate"}, "the buffer learner adopts its rate"),
+-    _C + "_apply_learner_payloads": (
+-        {"_thermal_params.defrost_derate"}, "a restored learner payload is adopted"),
+-    "dhw_learning:DhwProfileLearner.apply_cooling_rate": (
+-        {"_thermal_params.dhw_cooling_rate"}, "the DHW learner adopts its cooling rate"),
+-    "dhw_learning:DhwProfileLearner.apply_payload": (
+-        {"_thermal_params.dhw_hourly_draw_pattern"}, "a restored DHW profile is adopted"),
+-    "dhw_learning:DhwProfileLearner.async_learn_usage": (
+-        {"_thermal_params.dhw_hourly_draw_pattern"}, "the DHW learner adopts a learned draw profile"),
+ }
+ LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
+ #: The planted writes the controls add: one as async_run_optimization's first
+ #: statement, one as the pre-solve step's last (#1887's round-1 probe).
+ _PLANT_AT = '        ctx = getattr(self, "_ctx", self)\n        _LOGGER.info("Running heat pump optimization'
+ _PLANT = '        ctx._opt_config.peak_count = 3\n'
+-_PRESOLVE_AT = '        params.flow_curve_indoor_target = fresh["flow_curve_indoor_target"]\n'
++_PRESOLVE_AT = '        _publish_params(self, **self._model_corrections(dt_util.now()))\n'
+ _PRESOLVE = '        getattr(self, "_ctx", self)._opt_config.peak_count = 3\n'
+ 
+ #: #1776: the fragment-chain guard. ``params_over_10`` is a count, so a split
+diff --git a/tests/dst_checks.py b/tests/dst_checks.py
+index 7c15d45c1..5aa16a292 100644
+--- a/tests/dst_checks.py
++++ b/tests/dst_checks.py
+@@ -822,7 +822,7 @@ R.check(
+ _lg = LegionellaGuard(
+     FakeHass(),
+     "dst",
+-    ThermalParameters.from_config({}),
++    lambda _p=ThermalParameters.from_config({}): _p,
+     {},
+     action=lambda: {},
+     disinfect=DisinfectionSwitch({}, None, None),
+@@ -1936,7 +1936,7 @@ def _leg_guard(cfg=None, action=None):
+     return LegionellaGuard(
+         FakeHass(),
+         "dst",
+-        ThermalParameters.from_config({}),
++        lambda _p=ThermalParameters.from_config({}): _p,
+         cfg or {},
+         action=lambda: action or {},
+         disinfect=_NO_SWITCH,
+diff --git a/tests/features.py b/tests/features.py
+index 64f66afb2..d6c9e09e8 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -885,7 +885,7 @@ R.check(
+ # does not become the next interval's baseline. The in-window sample beside
+ # it is the null control: learning proceeds exactly as before.
+ _np_dhw = DhwProfileLearner(
+-    FakeHass(), "np", ThermalParameters(),
++    FakeHass(), "np", lambda _p=ThermalParameters(): _p, publish=lambda **_: None,
+     frozen=lambda *a: None, heating_active=lambda: False,
+     external_heat_active=lambda: False,
+ )
+@@ -7840,7 +7840,8 @@ class _DhwUsage(DhwProfileLearner):
+         super().__init__(
+             FakeHass(),
+             "dhw-usage",
+-            ThermalParameters(),
++            lambda _p=ThermalParameters(): _p,
++            publish=lambda **_: None,
+             frozen=lambda *_: None,
+             heating_active=lambda: False,
+             external_heat_active=lambda: False,
+@@ -7951,6 +7952,7 @@ class _LearnPersist:
+     def __init__(self, store) -> None:
+         self._thermal_learning_store = store
+         self._thermal_params = ThermalParameters()
++        self._thermal_model = ThermalModel(self._thermal_params)
+         self._buffer_cooling_rate = 6.0
+         self._buffer_cooling_samples = 3
+         self._house_heat_loss_scale = 1.1
+@@ -8475,7 +8477,7 @@ _nf_learner = _DhwUsage()
+ # A real learner's fresh seed: the shipped pattern through its projection
+ # (_DhwUsage overwrites its own seed with a flat profile).
+ _nf_default = DhwProfileLearner(
+-    FakeHass(), "nf", ThermalParameters(),
++    FakeHass(), "nf", lambda _p=ThermalParameters(): _p, publish=lambda **_: None,
+     frozen=lambda *a: None, heating_active=lambda: False,
+     external_heat_active=lambda: False,
+ ).hourly_profile
+@@ -11870,10 +11872,9 @@ R.check("a renamed parameter is applied", params.dhw_min_temp == 48.0)
+ R.check("COP nominal is applied", params.cop_nominal == 4.2)
+ R.check("a two-zone parameter is applied", params.radiator_power_fraction == 0.55)
+ R.check(
+-    "the model is rebuilt against the new parameters",
+-    param_coord._thermal_model.params is params
+-    and param_coord._optimizer.model is param_coord._thermal_model,
+-    "the model holds the parameters by reference at construction",
++    "the live model reads the snapshot the call published",
++    param_coord._thermal_model.params is params,
++    "the owner re-points its one subscriber at every publication",
+ )
+ 
+ # The special cases exist because each has a consequence beyond itself.
+@@ -11894,7 +11895,8 @@ asyncio.run(
+ R.check(
+     "the displace limit is mirrored where the publisher clamps against it",
+     param_coord._ecl110_displace_max == 14.0
+-    and params.ecl110_displace_max == 14.0,
++    and param_coord._thermal_params.ecl110_displace_max == 14.0
++    and param_coord._thermal_model.params.ecl110_displace_max == 14.0,
+ )
+ 
+ asyncio.run(
+@@ -18770,8 +18772,9 @@ _upd_src2 = inspect.getsource(_Coord._update_current_state)
+ R.check(
+     "the apply path writes both learned scales onto the shared params, after "
+     "the learners that replay with them",
+-    "params.solar_aperture_scale =" in _run_src2
+-    and "params.internal_gains_profile =" in _run_src2
++    "_publish_params(self, **self._model_corrections(" in _run_src2
++    and {"solar_aperture_scale", "internal_gains_profile"}
++    <= set(_Coord._model_corrections(_t2_coord(), datetime(2026, 1, 15, 12, 0, tzinfo=UTC)))
+     and 0 < _upd_src2.find("_async_learn_house_heat_loss()")
+     < _upd_src2.find("self._refresh_model_corrections()"),
+     "the replay closes its loop through these params — a scale that "
+@@ -46887,7 +46890,7 @@ class _G8TwoStore:
+ 
+ def _g8_learner(**kw):
+     return _G8Learner2(
+-        FakeHass({}), "g8", _G8Params(),
++        FakeHass({}), "g8", lambda _p=_G8Params(): _p, publish=lambda **_: None,
+         frozen=kw.get("frozen", lambda _name: None),
+         heating_active=kw.get("heating_active", lambda: False),
+         external_heat_active=kw.get("external_heat_active", lambda: False),
+@@ -47096,7 +47099,7 @@ def _g8_guard(config=None, **params_kw):
+     for k, v in params_kw.items():
+         setattr(params, k, v)
+     hass, config = FakeHass({}), dict(config or {})
+-    return _G8Guard(hass, "g8", params, config, action=lambda: {},
++    return _G8Guard(hass, "g8", lambda: params, config, action=lambda: {},
+                     disinfect=_G8Switch(config, hass.services.async_call,
+                                         lambda e: getattr(hass.states.get(e), "state", None)),
+                     dhw_blocked=lambda: False)
+diff --git a/tests/guard_pins.py b/tests/guard_pins.py
+index 94d4c57b2..cc03d50ec 100644
+--- a/tests/guard_pins.py
++++ b/tests/guard_pins.py
+@@ -43,7 +43,8 @@ class _Learner(DhwProfileLearner):
+         super().__init__(
+             FakeHass(),
+             "guard-pins",
+-            ThermalParameters(),
++            lambda _p=ThermalParameters(): _p,
++            publish=lambda **_: None,
+             frozen=lambda *_: None,
+             heating_active=lambda: False,
+             external_heat_active=lambda: False,
+@@ -189,7 +190,8 @@ def _draw_folded_only_without_external_heat() -> bool:
+         learner = DhwProfileLearner(
+             FakeHass(),
+             "guard-pins-draws",
+-            params,
++            lambda params=params: params,
++            publish=lambda **_: None,
+             frozen=lambda *_: None,
+             heating_active=lambda: False,
+             external_heat_active=lambda external=external: external,
+@@ -224,7 +226,7 @@ def _ceiling_notice_is_deduplicated() -> bool:
+     guard = LegionellaGuard(
+         FakeHass(),
+         "guard-pins-ceiling",
+-        params,
++        lambda: params,
+         {},
+         action=lambda: {},
+         disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+@@ -253,7 +255,7 @@ def _write_failed_notice_is_memoised() -> bool:
+     guard = LegionellaGuard(
+         FakeHass(),
+         "guard-pins-write-failed",
+-        ThermalParameters(),
++        lambda _p=ThermalParameters(): _p,
+         {},
+         action=lambda: {},
+         disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+diff --git a/tests/replay.py b/tests/replay.py
+index 2a6587a1f..fd25fea91 100644
+--- a/tests/replay.py
++++ b/tests/replay.py
+@@ -1080,7 +1080,10 @@ def plan_draws(coord, data: dict, t: datetime) -> bool | None:
+     step = _plan_step(data, t)
+     if step is None:
+         return None
+-    return bool(coord._optimizer._power_to_heat_pump_schedule([step[0]], [step[1]])[0])
++    from heatpump_optimizer.optimizer import HeatPumpOptimizer
++
++    optimizer = HeatPumpOptimizer(coord._thermal_model, coord._opt_config)
++    return bool(optimizer._power_to_heat_pump_schedule([step[0]], [step[1]])[0])
+ 
+ 
+ def plan_draw_kw(data: dict, t: datetime) -> float | None:
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index fac22da5d..04af8e7b2 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -225,6 +225,7 @@
+   "coordinator._interval_measured_heat_kw": "learning",
+   "coordinator._note_solve_failure": "core",
+   "coordinator._power_windows": "views",
++  "coordinator._publish_params": "core",
+   "coordinator._replay_interval": "learning",
+   "coordinator._republish_handover_ages": "core",
+   "coordinator._settle_interval_diag": "core",
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 31b3310f7..a78f0c592 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,7 +1,7 @@
+ {
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 151,
+- "coordinator_multiassigned_attrs": 118,
++ "coordinator_multiassigned_attrs": 116,
+  "coordinator_private_reach": 0,
+  "dead_methods": 0,
+  "dead_top_level_symbols": 1,
+@@ -10,10 +10,10 @@
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+  "max_cc": 45,
+- "max_class_loc": 8705,
++ "max_class_loc": 8683,
+  "max_method_loc": 373,
+  "methods_over_150": 17,
+  "methods_over_200": 9,
+- "recorded_at": "8b495603a136c9bebf9bbb682976889dfa90ce9a",
++ "recorded_at": "9061fbd3d710d5894b7083d8a58b8203f9e7aa97",
+  "seam_cut_total": 752
+ }

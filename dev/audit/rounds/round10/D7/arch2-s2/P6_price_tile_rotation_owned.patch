@@ -1,0 +1,212 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..cb38231ec 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1826,6 +1826,41 @@ class CoordinatorContext:
+     _opt_config: OptimizationConfig
+ 
+ 
++class PriceTileRotation:
++    """#39's what-if tiles and the rotation that refreshes them, one per solve.
++
++    ``take`` hands out the next spec and moves the rotation on whatever the
++    solve then does: a consistently failing spec must not block the others,
++    so it is retried on the next pass, not at once. ``settle`` files an
++    answer (an errored one files nothing); ``retire`` drops every tile when
++    the gate closes, because stale what-if money left published would
++    outlive the user's decision to stop paying for it.
++    """
++
++    def __init__(self) -> None:
++        self.tiles: dict[str, PriceTile] = {}
++        self.cursor = 0
++
++    def take(self, specs: list[tuple[str, dict[str, Any]]]) -> tuple[str, dict[str, Any]]:
++        spec = specs[self.cursor % len(specs)]
++        self.cursor += 1
++        return spec
++
++    def settle(self, name: str, overrides: dict[str, Any], answer: Mapping[str, Any],
++               now: datetime) -> None:
++        if answer.get("error"):
++            return
++        self.tiles[name] = {
++            "overrides": overrides,
++            "monthly_cost_delta": answer.get("monthly_cost_delta"),
++            "min_room_temperature": answer.get("min_room_temperature"),
++            "computed_at": now.isoformat(timespec="seconds"),
++        }
++
++    def retire(self) -> None:
++        self.tiles.clear()
++
++
+ @dataclass(frozen=True)
+ class CoordinatorDiagnostics:
+     """The collaborator view ``diagnostics.py`` publishes about this instance.
+@@ -2984,8 +3019,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         self._score_day: dict[str, Any] = {}
+         self._operation_score: float | None = None
+         # #39: the price tiles, refreshed one per scheduled solve.
+-        self._price_tiles: dict[str, PriceTile] = {}
+-        self._price_tile_cursor = 0
++        self._price_tiles = PriceTileRotation()
+         # #52: the last settled interval's (planned, realised, actual)
+         # triple, and the latest attribution run over one. In memory only:
+         # a diagnosis is about the interval that just happened.
+@@ -10550,30 +10584,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if not getattr(self, "_ctx", self)._config.price_tiles_enabled:
+             # Gate off means gone: stale what-if money left published
+             # would outlive the user's decision to stop paying for it.
+-            if self._price_tiles:
+-                self._price_tiles.clear()
++            self._price_tiles.retire()
+             return
+-        specs = self._price_tile_specs(record)
+-        name, overrides = specs[self._price_tile_cursor % len(specs)]
++        name, overrides = self._price_tiles.take(self._price_tile_specs(record))
+         try:
+             answer = await self.async_simulate(
+                 dict(overrides), limited=False, base=record
+             )
+         except Exception as err:  # noqa: BLE001 - tiles are decoration
+             _LOGGER.debug("Price tile %s failed: %s", name, err)
+-            # A consistently failing spec must not block the other tiles:
+-            # move on and retry it on the rotation's next pass.
+-            self._price_tile_cursor += 1
+-            return
+-        self._price_tile_cursor += 1
+-        if answer.get("error"):
+             return
+-        self._price_tiles[name] = {
+-            "overrides": overrides,
+-            "monthly_cost_delta": answer.get("monthly_cost_delta"),
+-            "min_room_temperature": answer.get("min_room_temperature"),
+-            "computed_at": dt_util.now().isoformat(timespec="seconds"),
+-        }
++        self._price_tiles.settle(name, overrides, answer, dt_util.now())
+ 
+     def _insight_view(self) -> Insight:
+         """Everything T6 publishes, in one additive block."""
+@@ -10591,7 +10612,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             "monthly_report": (
+                 reports[max(reports)] if reports else None
+             ),
+-            "price_tiles": dict(self._price_tiles),
++            "price_tiles": dict(self._price_tiles.tiles),
+             "last_diagnosis": self._last_diagnosis,
+         }
+ 
+diff --git a/tests/features.py b/tests/features.py
+index 64f66afb2..fa83afa1d 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -20152,16 +20152,16 @@ _ctile.async_simulate = _fake_sim
+ _asyncio.run(_ctile._maybe_refresh_price_tile(_solve_record_now(_ctile)))
+ R.check(
+     "with the flag off no tile ever computes, whatever solves happen",
+-    not _ctile._price_tiles,
++    not _ctile._price_tiles.tiles,
+ )
+ _ctile2 = _t2_coord(price_tiles_enabled=True)
+ _ctile2.async_simulate = _fake_sim
+ _asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
+ R.check(
+     "one solve refreshes exactly one tile, in rotation",
+-    list(_ctile2._price_tiles) == ["target_minus_1"]
+-    and _ctile2._price_tiles["target_minus_1"]["monthly_cost_delta"] == -42.0
+-    and _ctile2._price_tile_cursor == 1,
++    list(_ctile2._price_tiles.tiles) == ["target_minus_1"]
++    and _ctile2._price_tiles.tiles["target_minus_1"]["monthly_cost_delta"] == -42.0
++    and _ctile2._price_tiles.cursor == 1,
+ )
+ 
+ 
+@@ -20184,7 +20184,7 @@ R.check(
+     "#1753: the tile solves through the user-limit-free path, so its turn "
+     "is always spent",
+     _ctile2_limited_seen.get("limited") is False
+-    and _ctile2._price_tile_cursor == 2,
++    and _ctile2._price_tiles.cursor == 2,
+     str(_ctile2_limited_seen),
+ )
+ R.check(
+@@ -20380,7 +20380,7 @@ R.check(
+     _ctile3_route.get("limited") is False
+     and _ctile3._simulation_cache is _marker3
+     and _ctile3._last_simulation == _stamp3
+-    and _ctile3._price_tiles,
++    and _ctile3._price_tiles.tiles,
+     f"route={_ctile3_route}",
+ )
+ 
+@@ -20407,16 +20407,16 @@ _ctile4.async_simulate = _fake_sim_err
+ _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
+ R.check(
+     "an erroring tile spec advances the rotation instead of stalling it",
+-    _ctile4._price_tile_cursor == 1 and not _ctile4._price_tiles,
++    _ctile4._price_tiles.cursor == 1 and not _ctile4._price_tiles.tiles,
+ )
+ 
+ # Turning the flag off retires the published tiles too.
+ _ctile5 = _t2_coord()
+-_ctile5._price_tiles["stale"] = {"monthly_cost_delta": 1.0}
++_ctile5._price_tiles.tiles["stale"] = {"monthly_cost_delta": 1.0}
+ _asyncio.run(_ctile5._maybe_refresh_price_tile(_solve_record_now(_ctile5)))
+ R.check(
+     "gate off means gone: no stale what-if money outlives the flag",
+-    not _ctile5._price_tiles,
++    not _ctile5._price_tiles.tiles,
+ )
+ 
+ # A pre-T6 month has no partition to break: its receipt says None, never
+@@ -41675,11 +41675,11 @@ def _t3_tile(answer, **config):
+ _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
+ R.check(
+     "a spec that raises advances the cursor, so it cannot block the other tiles",
+-    _t3_tile_boom._price_tile_cursor == 1
+-    and dict(_t3_tile_boom._price_tiles) == {}
++    _t3_tile_boom._price_tiles.cursor == 1
++    and dict(_t3_tile_boom._price_tiles.tiles) == {}
+     and _t3_tile_boom._t3_escaped is None,
+-    f"cursor {_t3_tile_boom._price_tile_cursor} tiles "
+-    f"{dict(_t3_tile_boom._price_tiles)!r} -- leaving the cursor put would "
++    f"cursor {_t3_tile_boom._price_tiles.cursor} tiles "
++    f"{dict(_t3_tile_boom._price_tiles.tiles)!r} -- leaving the cursor put would "
+     "retry the same failing spec every solve and the other two would never "
+     "be computed again",
+ )
+@@ -41692,22 +41692,22 @@ _t3_tile_good = _t3_tile(
+ )
+ R.check(
+     "an errored answer advances the cursor but publishes nothing; a good one publishes",
+-    _t3_tile_error._price_tile_cursor == 1
+-    and dict(_t3_tile_error._price_tiles) == {}
+-    and _t3_tile_good._price_tile_cursor == 1
+-    and sorted(_t3_tile_good._price_tiles) == ["target_minus_1"],
+-    f"errored -> cursor {_t3_tile_error._price_tile_cursor}, tiles "
+-    f"{sorted(_t3_tile_error._price_tiles)!r}; good -> cursor "
+-    f"{_t3_tile_good._price_tile_cursor}, tiles "
+-    f"{sorted(_t3_tile_good._price_tiles)!r}",
++    _t3_tile_error._price_tiles.cursor == 1
++    and dict(_t3_tile_error._price_tiles.tiles) == {}
++    and _t3_tile_good._price_tiles.cursor == 1
++    and sorted(_t3_tile_good._price_tiles.tiles) == ["target_minus_1"],
++    f"errored -> cursor {_t3_tile_error._price_tiles.cursor}, tiles "
++    f"{sorted(_t3_tile_error._price_tiles.tiles)!r}; good -> cursor "
++    f"{_t3_tile_good._price_tiles.cursor}, tiles "
++    f"{sorted(_t3_tile_good._price_tiles.tiles)!r}",
+ )
+ _t3_tile_off = _t3_coord(price_tiles_enabled=False)
+-_t3_tile_off._price_tiles["target_minus_1"] = {"monthly_cost_delta": 1.0}
++_t3_tile_off._price_tiles.tiles["target_minus_1"] = {"monthly_cost_delta": 1.0}
+ _t3_drive(_t3_tile_off, "_maybe_refresh_price_tile", _solve_record_now(_t3_tile_off))
+ R.check(
+     "turning the tiles off clears what was published, rather than freezing it",
+-    dict(_t3_tile_off._price_tiles) == {},
+-    f"{dict(_t3_tile_off._price_tiles)!r} -- stale what-if money left on the "
++    dict(_t3_tile_off._price_tiles.tiles) == {},
++    f"{dict(_t3_tile_off._price_tiles.tiles)!r} -- stale what-if money left on the "
+     "card would outlive the user's decision to stop paying for it",
+ )
+ 

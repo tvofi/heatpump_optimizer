@@ -1,0 +1,3 @@
+RESULT cases=256 count
+RESULT values_compared=1536 count
+RESULT mismatches=0 count
