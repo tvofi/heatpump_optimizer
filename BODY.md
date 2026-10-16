@@ -24,9 +24,22 @@ only keep by name stay on the record.
 
 ## Head
 
-`540ede178c846c7270465161d967bf5b7e2182e3` on `handoff/r10-structure-blind`, measured with
-`origin/main` at `e8718ec3b52e24531236c30e508a4d1b3cf086ed`, which is also `git merge-base origin/main HEAD`.
-`date -u` at the run: 2026-10-16T16:27Z.
+`b3090df34b2e8236b52ecdc57d001556762a9eaa` on `handoff/r10-structure-blind`, measured with
+`origin/main` at `81ae048e8bbdf2335fe2016e987ec2739481f293`, which is also `git merge-base origin/main HEAD`.
+`date -u` at the run: 2026-10-16T18:04Z.
+
+**This head is a merge.** It is the authored head `540ede178c846c7270465161d967bf5b7e2182e3`
+plus one merge of `origin/main` at `81ae048e8bbdf2335fe2016e987ec2739481f293` (the orchestrator's
+`open_pr.sh` found a conflict on open). One file conflicted, `tools/audit/archscore/ABOUT.md`:
+both sides add a section above the pre-study difference table, so the resolution is their union --
+R10-ARCHSCORE-COVERAGE part 2's hub-census section, then this one -- with this paper's sentence
+narrowed from "the only leaf that moved" to "the leaf this change moves" because C16's
+`hub_solve_writes` re-measure is merged already and is no longer this branch's to claim. The merge
+was made on this machine, where the `claimnotes` driver is configured; both claim files are
+byte-identical to the merge base's and were not conflicted. Two files the merge auto-resolved carry
+measurements from both sides, so both were re-derived rather than trusted: the corpus re-measure
+below reads the merged tree's file back byte for byte, and `tests/arch_score.py` passes on the
+merged `expected.json`, in which this change's one moved verdict survives (main had it NULL).
 
 ## Mutation proof
 
@@ -95,7 +108,7 @@ not on a probe kept beside it.
 
 ## Figures
 
-Every line below was re-taken at `540ede178c846c7270465161d967bf5b7e2182e3`; a figure
+Every line below was re-taken at `b3090df34b2e8236b52ecdc57d001556762a9eaa`; a figure
 that is a function of `origin/main`'s tip is dated above. The prose figures --
 1201 lines added per arm (`class_growth.py`'s `RESULT lines_added_per_arm`), 16 budget
 keys (`python3 -c "import json;print(len(json.load(open('tests/structure_budgets.json')))-1)"`),
@@ -194,10 +207,12 @@ every tree the corpus stores: none -- the corpus re-measure after it is byte-ide
 
 **The corpus**, `PYTHONPATH=tests/hastub python3 tools/audit/archscore/calibrate.py --measure-corpus --jobs 4`:
 the committed `tools/audit/archscore/calibration/corpus_vectors.json` is its
-output, `sha1sum` `51ad156c162979f5304bc85f56e43aa42cbf87f9`; the merge base's file
-is `91700eaaee729d8d93f8b4a9338496696af5e8b7`, and `diff` between them names one key,
-`dead_members`, on 85 of the 87 stored trees. `tests/arch_score.py` passes on it,
-`ALL 64 ARCHITECTURE SCORE CHECKS PASSED`.
+output, `sha1sum` `85d62c4e23c2f201d5bdf8ac081e6ab619ef1f14` -- and `git status` is clean
+afterwards, so the file the `ABOUT.md` merge produced by hand is what the generator prints on
+this tree. The merge base's file is `d15148f80221ab333ce48ded8509959d84b76629`, and `diff`
+between the two names one key, `dead_members`, on 85 of the 87 stored trees -- C16's
+`hub_solve_writes` re-measure is inside the merge base, not in this delta. `tests/arch_score.py`
+passes on it, `ALL 72 ARCHITECTURE SCORE CHECKS PASSED`.
 
 ## Architecture score
 
