@@ -5893,6 +5893,30 @@ const slotHit = (card, key) => {
   check("and neighbouring rows do not touch, so neither do their rings",
     touching.length === 0, touching.join(", "));
 
+  // A block that is OPEN draws its own count line and its chip AND the rows
+  // it stands for, so its box is three rows taller than the folded one. When
+  // the fold was first written the height was computed for the FOLDED state
+  // whatever the block's state was, and the last caption fell outside the
+  // card -- the P9 grid's clipping check found it on the cell that opens a
+  // block. Opening one is what reaches the branch.
+  {
+    const c = mkSetup();
+    c.setup.unsetOpen.add("wood_tank_top_entity");
+    c._render();
+    const opened = collect(c.shadowRoot).join("\n");
+    const g = opened.split("<g>")
+      .find((x) => x.includes("Wood furnace tank")) || "";
+    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
+      .exec(g);
+    const bottom = m ? Number(m[2]) + Number(m[4]) : 0;
+    const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));
+    check("a block that is open sizes its box for the rows it now draws",
+      !!m && /setup-slot empty/.test(g) && ys.length > 0 &&
+      Math.max(...ys) + 3 <= bottom,
+      m ? `${ys.length} baselines, last ${Math.max(...ys)} vs card bottom ${bottom}`
+        : "no card drawn");
+  }
+
   // (4) The outdoor node keeps no special treatment. An earlier ruling left
   //     its open composition -- no walls, a tray baseline, a cloud -- as
   //     shipped; the owner's 2026-10-14 acceptance supersedes it by name
