@@ -1,0 +1,2 @@
+e8adc1b560222cf605a0f664d61c2c0297cdbfe2	fix(pre-edit): read MultiEdit's edits[*].new_string in the RELEASE_NOTES heading rule
+8fef39fc30e2e7700c6eac7303fa7c36d68c4673	record: the delivery row for #2323

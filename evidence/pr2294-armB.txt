@@ -1,0 +1,2 @@
+15:Part of #2220. That issue's other finding, D11-s1-01, belongs to roster group R10-PRE-EDIT-HOOK.
+64:  - #2220's I3 enumerator arm B is `yield.mjs`, replaced as above. Its arm A (`hook_shape_seams.py`) belongs to R10-PRE-EDIT-HOOK.
