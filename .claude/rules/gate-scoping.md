@@ -19,12 +19,13 @@ checks go red on a shallow clone; `git fetch --unshallow origin main` clears it,
 `/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
 which a script takes: `lease`, exclusive, for the scripts that measure the machine
 (`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
-of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
-`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
-slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
-or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
-to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
-§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
+of four, for the multi-minute CPU scripts -- a `closures.json` recording at or above
+`SLOT_MIN_SECONDS`, and an UNRECORDED script, never timed; `none` only where the
+recording says seconds. The pool is `$HPO_HEAVY_SLOTS` slots, and
+`$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead or expired
+ticket is skipped. A seat that waited one lease period may leave `stress.py` to CI and
+name it unrun. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
+with `tests/gate_lock.py`, never `mkdir`:
 
 ```
 python3 tests/gate_lock.py take --label <your-label>
