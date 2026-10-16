@@ -50,6 +50,8 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C12 a `cast(T, x)` is its `x`: the payload census follows it and it types nothing, the footprint does not read it as delegation | the payload builder's return behind a cast (#1852 round-1 review) | 15 |
 | C13 the scheduled cycle is a hub root (`hub_solve_writes.ROOTS`) | a hub write moved out of the solve into a pre-solve step (#1887 round-1 review) | 14 |
 | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
+| C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
+| C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -97,14 +99,24 @@ The cases need the pin to hold no instance, so `controls.py`'s `on` names the ca
 
 `tests/structure.py`'s dead-member census resolves a load's receiver (`ReceiverTypes`), so a member
 whose every load is on a receiver the source types to another class is dead rather than kept by a
-shared name. `dead_members` is the only leaf that moved, on 85 of the 87 stored trees: the committed
-`corpus_vectors.json` is byte for byte what `calibrate.py --measure-corpus --jobs 4` prints, against
-`91700eaa` for the merge base's file. No corpus verdict moved.
+shared name. `dead_members` is the leaf this change moves, on 85 of the 87 stored trees
+(`calibrate.py --measure-corpus --jobs 4`; the section above records the leaf R10-ARCHSCORE-COVERAGE
+part 2 moves, and the two are the corpus's whole delta). No corpus verdict moved.
 
 One planted verdict did, and it retires a row of the table below. `a3_dead_by_reachability_fix` (GOOD)
 read NULL because the census kept its deleted member alive behind a same-named member of another class
 on an untyped receiver -- the row recorded that as "its documented residual". With the receiver typed it
 reads IMPROVES, which is the fix the case is, and the pre-study's own reading.
+
+### What R10-ARCHSCORE-COVERAGE part 2 moved (the hub census: C15, C16)
+
+C16 makes every stored corpus vector's `hub_solve_writes` count the event callbacks' writes: +3 on 74 corpus trees,
++2 on 11 and +0 on 2 (`calibrate.py --measure-corpus --only-metric hub_solve_writes,shared_inplace_writes,footprint`;
+`shared_inplace_writes` and `coord_footprint` re-measured byte-identical). Today's tree reads 38 -> 41, the three
+event writes `tests/arch_score_head.py` now lists as producers. C15 moves no corpus or today's value: main spells
+every hub handle as a path. It closes the spellings the next refactor would use (attempt 19), and ARCH2-s1's
+`census_probe.py --tree proto` reads all three of its blind spellings as seen. Each counter carries a planted BAD and
+GOOD pair (`a3_hub_reader_*`, `a3_hub_event_write_*`) and an attempt; `ARCHSCORE_ABLATE=C15` or `C16` reopens its own.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 

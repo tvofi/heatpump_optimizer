@@ -19,6 +19,8 @@ C6  ``family_orphan_overrides``                          here; gate-only. C6b: a
 C7  ``unread_private_globals``                           here; gate-only
 C11 literal keys read from a function's own ``**kw`` are parameters  ``metrics/footprint.params_over_10``
 C14 a parameter annotated with a package class holds an instance of it  ``metrics/untyped_payload_keys.Flow.seed``
+C15 a call is what its callee returns; readers and rebinds of a hub are the hub  ``metrics/common.Engine``
+C16 a callback handed outside the package is a hub root  ``metrics/hub_solve_writes.event_roots``
 """
 from __future__ import annotations
 

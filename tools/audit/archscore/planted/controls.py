@@ -100,6 +100,36 @@ def plan():
                                         cls="HeatPumpOptimizerCoordinator"))),
     )
 
+    # 1b a hub read through a zero-argument reader (counter C15, D7-s1-83)
+    def reader(w):
+        sub(w, "coordinator.py", "            ctx._thermal_params,\n            frozen=self._learning_frozen,\n",
+            "            lambda: ctx._thermal_params,\n            frozen=self._learning_frozen,\n")
+        p = _p(w, "dhw_learning.py")
+        s2, n = re.subn(r"\bself\._params\b(?! = params)", "self._params()", p.read_text())
+        assert n >= 6, n
+        p.write_text(s2)
+
+    probe = "        self._params().dhw_setpoint = self._params().dhw_setpoint\n"
+    rate = "        self._params().dhw_cooling_rate = self.cooling_rate\n"
+    P["hub_reader"] = dict(
+        control=("the DHW learner holds the hub as `lambda: ctx._thermal_params` and writes one more field through it",
+                 lambda w: (reader(w), sub(w, "dhw_learning.py", rate, rate + probe))),
+        fix=("[on top of control] the extra write through the reader goes",
+             lambda w: sub(w, "dhw_learning.py", rate + probe, rate)),
+        on={"fix": "a3_hub_reader_control"},
+    )
+
+    # 1c a hub write in an event callback (counter C16, ARCH2-s2 P4)
+    ecl = "            self._ecl110_current_displace = displace\n"
+    ecl_hub = "            ctx._current_state.ecl110_last_displace = displace\n"
+    P["hub_event_write"] = dict(
+        control=("the ECL110 state message writes the live state instead of the coordinator's own slot",
+                 lambda w: sub(w, "coordinator.py", ecl, ecl_hub)),
+        fix=("[on top of control] the event's live-state write goes",
+             lambda w: sub(w, "coordinator.py", ecl_hub, "")),
+        on={"fix": "a3_hub_event_write_control"},
+    )
+
     # 2 shared_inplace_writes
     P["shared_inplace_writes"] = dict(
         control=("re-plant #1752: boost.apply overlays the LIVE _current_action instead of a copy",
