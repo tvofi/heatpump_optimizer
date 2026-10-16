@@ -326,19 +326,25 @@ COST_DETECTION = 2.0
 #: under every doubled arm's figure.
 #: ``loop_cpu_ratio`` (R9 D9-s2-02): the cycle's LOOP-THREAD CPU alone --
 #: its thread CPU less its executor jobs, plus the entity reads -- over the
-#: same reference, recorded and banded exactly as ``cpu_ratio``. The
-#: whole-cycle ratio cannot see a 2x of it: the loop is about a tenth of the
-#: cycle, so doubling it moves ``cpu_ratio`` far inside its sqrt(2) band.
-#: Entry allowed by tvofi (card B1). Recorded at the CENTRE of its measured
-#: spread, not at sqrt(2) x the largest run: the figure is noisy (1.30x)
-#: inside a band only 2x wide, and the nightly runner reads the cycle lower
-#: than cloud boxes (cpu_ratio 2.18 there, 2.36-2.98 here), so a cap at the
-#: top leaves its floor within 10 % of a clean run. Six clean runs on cloud
-#: boxes, 0.2642-0.3433 (0.3401, 0.3310, 0.3178, 0.2825 at the fixer's
-#: b4a0f75e and 0.2642 threads-pinned, 0.3433 unpinned at the review's);
-#: sqrt(2) x their geometric midpoint 0.3012 is 0.426. Both edges then sit
-#: 24 % inside the band (floor 0.213), and every doubled loop arm, 0.581-
-#: 0.682 with its cpu_ratio 2.82-3.24 under 3.576, is over the cap by 36 %.
+#: PURE-PYTHON reference (``reference_loop``), recorded and banded exactly as
+#: ``cpu_ratio``. The whole-cycle ratio cannot see a 2x of it: the loop is
+#: about a tenth of the cycle, so doubling it moves ``cpu_ratio`` far inside
+#: its sqrt(2) band. Entry allowed by tvofi (card B1). The ruler was changed
+#: from the BLAS solve to a pure-Python workload (#2270, owner decision
+#: 2026-10-15): the numerator is interpreter-bound and the solve is
+#: BLAS-bound, so the figure tracked the runner CLASS, not the code --
+#: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs. The series
+#: splits by ref_ms: ~22-34 (fast) read 0.316-0.405, ~52-55 (slow) read
+#: 0.244-0.274, 1.66x overall; the class shift is the interpreter speed
+#: (loop_cpu 10.0 -> 13.5 ms, 1.35x) over the BLAS speed (ref_ms 28.6 ->
+#: 53.2 ms, 1.86x). Normalising by a workload of the loop's own kind, on its
+#: own clock, cancels the interpreter factor, so the figure is the loop's
+#: work over the reference's and does not move with the runner. Recorded at
+#: the CENTRE of its measured spread: twelve clean runs read 0.0618-0.0903
+#: (median 0.0786) at load average 15-29; sqrt(2) x 0.0786 is 0.111, both
+#: edges inside (0.0555, 0.111], and a doubled loop arm ~0.156 is over the
+#: cap. Re-centre at the next timed week, once the series carries the new
+#: figure across runners.
 #: ``cpu_ratio`` re-recorded down the same way (#2205): #2142's solve memo
 #: cut the cycle to 0.656x (R10-RCA-2205's interleaved medians), so all 36
 #: timed slow lanes before it, 1.915-2.824, project to 1.256-1.853; the two
@@ -347,23 +353,81 @@ COST_DETECTION = 2.0
 #: Re-centre at the next timed week, not on one run.
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"cpu_ratio": 2.173, "peak_kib": 2686.0,
-                                "loop_cpu_ratio": 0.426},
+                                "loop_cpu_ratio": 0.111},
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
 COST_REF_EVERY = 8
 
+#: The loop figure's ruler: a fixed, pure-Python workload, the interpreter-
+#: bound twin of ``stress.reference_solve``. The numerator is the cycle's
+#: THREAD CPU -- interpreter work -- while ``reference_solve`` is BLAS-bound;
+#: dividing one by the other made ``loop_cpu_ratio`` track the runner class,
+#: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs (R10-RCA-2205):
+#: a runner whose BLAS outruns its interpreter read the loop low, and the
+#: spread was 0.2441-0.405 (1.66x), the runner, not the code. Normalising by
+#: work on the SAME clock and of the SAME kind cancels the interpreter speed,
+#: so the ratio is the loop's work over this reference's, invariant across
+#: runners. Fixed iterations, no numpy, no data dependence, so every call
+#: costs the same and no integration change can move it -- the property that
+#: makes ``reference_solve`` the right ruler for the solve, for the loop.
+#: SIZED to a couple of hundred ms, as ``reference_solve`` is: 1e6 steps read
+#: 154 ms idle and 170-195 ms at load average 15-29, so its own variation
+#: sits under the loop's rather than deciding the ratio.
+_LOOP_REF_STEPS = 1_000_000
+#: Lookup keys, read through a dict, so the mix carries CPython's dict load
+#: beside the arithmetic -- the interpreter work a coordinator cycle is
+#: mostly made of, not a bare arithmetic loop a runner's FPU could speed up.
+_LOOP_REF_KEYS = ("x", "y", "z")
+
+
+def _loop_reference_work() -> float:
+    """A fixed pure-Python computation; the value is discarded.
+
+    Its arithmetic is nobody's business but this file's: it must never be
+    "improved", or the ruler moves and every historical ratio stops meaning
+    anything (``reference_solve``'s own rule).
+    """
+    d = {"x": 1.5, "y": 2.5, "z": 0.75}
+    kx, ky, kz = _LOOP_REF_KEYS
+    acc = 0.0
+    tail = [0.0, 0.0, 0.0, 0.0]
+    for i in range(_LOOP_REF_STEPS):
+        v = d[kx] * i + d[ky] - d[kz]
+        if i & 1:
+            acc += v * 0.5
+        else:
+            acc -= v * 0.25
+        tail[i & 3] = acc
+    return acc + sum(tail)
+
+
+def reference_loop() -> float:
+    """One pure-Python reference: this thread's CPU ms, the loop's own clock.
+
+    ``own_loop`` is ``time.thread_time()``, so the ruler is timed on the same
+    clock: a runner that runs bytecode slowly reads both high, and the ratio
+    is the loop's work over this workload's, not the runner's speed.
+    """
+    began = time.thread_time()
+    _loop_reference_work()
+    return (time.thread_time() - began) * 1000.0
+
 
 def cost_figures(cycle_cpu: list[float], ref_cpu: list[float],
-                 peaks: list[int], loop_cpu: list[float] | None = None
-                 ) -> dict[str, float]:
+                 peaks: list[int], loop_cpu: list[float] | None = None,
+                 loop_ref: list[float] | None = None) -> dict[str, float]:
     ref = sorted(ref_cpu)[len(ref_cpu) // 2] if ref_cpu else 0.0
     out = {"cpu_ratio": round(sum(cycle_cpu) / len(cycle_cpu) / ref, 4)
            if cycle_cpu and ref > 0 else float("nan"),
            "peak_kib": round(max(peaks) / 1024.0, 1) if peaks else float("nan")}
     if loop_cpu is not None:
-        out["loop_cpu_ratio"] = (round(sum(loop_cpu) / len(loop_cpu) / ref, 4)
-                                 if loop_cpu and ref > 0 else float("nan"))
+        # The loop figure is normalised by ``loop_ref`` (pure Python), never
+        # by the BLAS solve: a solve reference that moved with the runner and
+        # a thread measure that did not is exactly #2270.
+        lref = sorted(loop_ref)[len(loop_ref) // 2] if loop_ref else 0.0
+        out["loop_cpu_ratio"] = (round(sum(loop_cpu) / len(loop_cpu) / lref, 4)
+                                 if loop_cpu and lref > 0 else float("nan"))
     return out
 
 
@@ -460,12 +524,34 @@ def controls() -> list[tuple[str, bool, str]]:
     pair("cycle_cost:unrecorded", cost_offenders(clean, {"cpu_ratio": 0.0, "peak_kib": 0.0}),
          cost_offenders(clean, budget))
     # The loop-thread figure (D9-s2-02): a doubled loop inside an unchanged
-    # cycle is over its own budget, where the whole-cycle figure is not.
-    lclean = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4])
+    # cycle is over its own budget, where the whole-cycle figure is not. Its
+    # ruler is the pure-Python reference, so it shares no clock with the solve.
+    lref = [3.0, 3.1, 3.2]
+    lclean = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4], lref)
     lbudget = {k: math.sqrt(COST_DETECTION) * v for k, v in lclean.items()}
-    lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8])
+    lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8], lref)
     pair("cycle_cost:loop_thread", cost_offenders(lhot, lbudget),
          cost_offenders(lclean, lbudget))
+    # The loop figure is normalised by the pure-Python reference, not the BLAS
+    # solve (#2270): moving the solve reference must not move it, and moving
+    # the loop reference must. Red before the normaliser changed (the ratio
+    # followed the solve), green after.
+    la = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4], lref)
+    solve_moved = la["loop_cpu_ratio"] != cost_figures(
+        [20.0, 22.0], [r * 3 for r in ref], [4096], [2.0, 2.4], lref)["loop_cpu_ratio"]
+    lref_moved = la["loop_cpu_ratio"] != cost_figures(
+        [20.0, 22.0], ref, [4096], [2.0, 2.4], [r * 2 for r in lref])["loop_cpu_ratio"]
+    res.append(("control:cycle_cost:loop_normaliser",
+                not solve_moved and lref_moved,
+                f"ratio {la['loop_cpu_ratio']}: solve x3 moved={solve_moved}, "
+                f"loop_ref x2 moved={lref_moved}"))
+    # The sibling figure and the reason the two rulers differ: the whole-cycle
+    # figure IS normalised by the solve (the cycle is solve-dominated), so it
+    # moves with the solve reference where the loop figure does not.
+    cpu_solve_moved = clean["cpu_ratio"] != cost_figures(
+        [20.0, 22.0], [r * 3 for r in ref], [4096])["cpu_ratio"]
+    res.append(("control:cycle_cost:cpu_normaliser", cpu_solve_moved,
+                f"cpu_ratio {clean['cpu_ratio']}: solve x3 moved={cpu_solve_moved}"))
     pair("cycle_cost:short_doubling", short_doubling(0.93), short_doubling(1.0001))
     pair("cycle_cost:unmetered_doubling", short_doubling(float("nan")), short_doubling(1.0))
     pkg = "/x/custom_components/heatpump_optimizer/"
@@ -958,6 +1044,8 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     started = time.monotonic()
     reference_solve()  # scipy's first-call costs, thrown away as stress.py does
     ref_cpu = [reference_solve()[1] for _ in range(3)]
+    reference_loop()  # the loop ruler warms the adaptive interpreter the same way
+    loop_ref_cpu = [reference_loop() for _ in range(3)]
     cycle_cpu: list[float] = []
     loop_cpu: list[float] = []
     injected: list[tuple[float, float]] = []
@@ -1024,6 +1112,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             sys.setprofile(None)
         if cycles % COST_REF_EVERY == COST_REF_EVERY - 1:
             ref_cpu.append(reference_solve()[1])
+            loop_ref_cpu.append(reference_loop())
         results["finite"] += inv_finite(records)
         results["unit"] += inv_unit(records, table)
         results["no_default"] += inv_no_default(records, defaults, readings)
@@ -1042,8 +1131,9 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         t += step
     dt_util.freeze(None)
     ref_cpu += [reference_solve()[1] for _ in range(3)]
+    loop_ref_cpu += [reference_loop() for _ in range(3)]
     results["not_frozen"] = frozen_offenders(pub_series, inp_series)
-    figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu)
+    figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu, loop_ref_cpu)
     clean = sum(c for _, c in injected)
     share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}
              if inject in ("cpu", "loop") and clean > 0 else {})
@@ -1051,7 +1141,8 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         figures, COST_BUDGETS.get(path.name))
     return {"fixture": path.name, "cycles": cycles, "entities": len(entities),
             "cost": {**figures, **share, "timed": len(cycle_cpu), "traced": len(peaks),
-                     "ref_ms": sorted(ref_cpu)[len(ref_cpu) // 2]},
+                     "ref_ms": sorted(ref_cpu)[len(ref_cpu) // 2],
+                     "loop_ref_ms": sorted(loop_ref_cpu)[len(loop_ref_cpu) // 2]},
             "seconds": round(time.monotonic() - started, 1),
             "results": {k: v[:12] + ([f"... {len(v) - 12} more"] if len(v) > 12 else [])
                         for k, v in results.items()},

@@ -11,7 +11,7 @@
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 45,
- "max_class_loc": 8688,
+ "max_class_loc": 8635,
  "max_method_loc": 373,
  "methods_over_150": 17,
  "methods_over_200": 9,
