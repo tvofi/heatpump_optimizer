@@ -21,17 +21,55 @@ Engine._derive_aliases). Rebinding the hub itself (``ctx._opt_config =
 replace(..)``) is NOT a site: that is the copy-on-write the CoordinatorContext
 facade exists for.
 
+C16 (round 10, ARCH2-s2 P4's instrument half): a coordinator method the package hands to code
+outside it -- a Home Assistant event, MQTT or timer subscription -- is called back at runtime with
+the live hubs, so it is a root too (``event_roots``); before, an in-place hub write in the ECL110
+state message or the peak-guard meter event was counted by no score metric. A callback handed to
+a package function is reached from wherever that function is, so it is not a root of its own.
+
 Headline: distinct write sites (file:line, hub, field). Details: distinct
 fields, per-root split, sites inside a ``finally``-reached restore helper.
 """
 from __future__ import annotations
 
+import ast
 import time
 from pathlib import Path
 
 from . import common as C
 
 ROOTS = ("_async_update_data", "async_run_optimization", "async_simulate")
+#: Counter C16: the event callbacks are roots. ``vector.py`` switches it off.
+EVENT_ROOTS = True
+
+
+def event_roots(pkg: C.Pkg) -> list[str]:
+    """Coordinator methods referenced, not called, as an argument of a call that does not resolve to a
+    package function: what the package hands to Home Assistant to call back."""
+    if not EVENT_ROOTS or pkg.coord_key not in pkg.classes:
+        return []
+    methods = pkg.classes[pkg.coord_key].methods
+    out: set[str] = set()
+    for fn in pkg.funcs.values():
+        if fn.cls != pkg.coord_key:
+            continue
+        for n in C.walk(fn.node):
+            if not isinstance(n, ast.Call):
+                continue
+            callee = pkg.resolve_expr_static(fn.mod, n.func)
+            if callee and callee[0] in ("func", "class"):
+                continue
+            for a in [*n.args, *(k.value for k in n.keywords)]:
+                if isinstance(a, ast.Attribute) and isinstance(a.value, ast.Name) and a.value.id == fn.params[0] \
+                        and a.attr in methods and fn.kind == "method":
+                    out.add(methods[a.attr])
+    return sorted(out)
+
+
+def roots(pkg: C.Pkg) -> list[str]:
+    """Every root qual: the cycle and the solves, then the event callbacks."""
+    fixed = [f"{C.COORD_MODULE}:{C.COORD_CLASS}.{r}" for r in ROOTS]
+    return [q for q in dict.fromkeys(fixed + event_roots(pkg)) if q in pkg.funcs]
 
 
 def _sites(eng: C.Engine, root_qual: str) -> set[tuple]:
@@ -54,12 +92,9 @@ def measure(root: Path) -> dict:
     eng = C.engine(pkg)
     per_root = {}
     allsites: set[tuple] = set()
-    for r in ROOTS:
-        q = f"{C.COORD_MODULE}:{C.COORD_CLASS}.{r}"
-        if q not in pkg.funcs:
-            continue
+    for q in roots(pkg):
         s = _sites(eng, q)
-        per_root[r] = len({x[:4] for x in s})
+        per_root[q.rsplit(".", 1)[-1]] = len({x[:4] for x in s})
         allsites |= s
     sites = sorted({x[:4] for x in allsites})
     fields = sorted({(h, f) for _, _, h, f in sites})

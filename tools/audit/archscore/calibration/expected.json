@@ -432,6 +432,30 @@
   "set": "planted",
   "verdict": "NULL"
  },
+ "a3_hub_event_write_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_hub_event_write_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_hub_reader_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_hub_reader_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
  "a3_hub_solve_writes_control": {
   "admissible": false,
   "label": "BAD",
@@ -1001,5 +1025,17 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "WORSENS"
+ },
+ "rt_19_hub_reader_lambda": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_20_hub_write_event": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  }
 }

@@ -402,6 +402,10 @@ def is_coord_annotation(ann: ast.AST | None) -> bool:
 
 
 _ENGINES: dict[tuple, "Engine"] = {}
+#: Counter C15: a call evaluates to what its callee returns, and a hub handed to a collaborator as a
+#: zero-argument reader, or rebound onto one of its attributes, is the hub there. ``vector.py``
+#: switches it off.
+FOLLOW_RETURNS = True
 
 
 def engine(pkg: Pkg, seed_params: bool = True) -> "Engine":
@@ -421,7 +425,13 @@ class Engine:
         self.coord_attr_types = pkg.attr_types(pkg.coord_key) if pkg.coord_key in pkg.classes else {}
         self.alias: dict = {}
         self.slots: dict = {}
+        self.readers: dict[tuple[str, str], tuple[str, ...]] = {}
+        self._returns_memo: dict = {}
+        self._returns_stack: set = set()
         self.alias = self._derive_aliases()
+        if FOLLOW_RETURNS:
+            for k, v in self._derive_rebinds().items():
+                self.alias.setdefault(k, v)
         self.slots = self._derive_coord_slots()
 
     # -- derived tables ----------------------------------------------------
@@ -429,7 +439,9 @@ class Engine:
         """(coordinator attr A, field F) -> canonical path, when the
         coordinator constructs ``self.A = K(..., <coord path>, ...)`` and
         ``K.__init__`` stores that parameter as ``self.F`` (so
-        ``self._thermal_model.params`` IS ``_thermal_params``)."""
+        ``self._thermal_model.params`` IS ``_thermal_params``). C15: when that argument is a
+        zero-argument reader of a coordinator path (``lambda: ctx._thermal_params``, or a method
+        reference returning one), ``self.F()`` is that path: ``self.readers``."""
         pkg = self.pkg
         out: dict[tuple[str, str], tuple[str, ...]] = {}
         if pkg.coord_key not in pkg.classes:
@@ -469,7 +481,115 @@ class Engine:
                     for role in self.ev(argexpr, env, COORD_MODULE, pkg.coord_key, bare=True):
                         if role[0] == "obj":
                             out.setdefault((t.attr, stores[p]), role[1])
+                    for role in self._reader_roles(argexpr, env) if FOLLOW_RETURNS else ():
+                        if role[0] == "obj":
+                            self.readers.setdefault((t.attr, stores[p]), role[1])
         return out
+
+    def _reader_roles(self, e: ast.AST, env: dict) -> frozenset:
+        """What calling ``e`` with no argument returns, for a zero-argument lambda or a reference to a
+        coordinator method taking only ``self``; empty for anything else."""
+        if isinstance(e, ast.Lambda) and not (e.args.args or e.args.posonlyargs or e.args.kwonlyargs):
+            return self.ev(e.body, env, COORD_MODULE, self.pkg.coord_key, bare=True)
+        if isinstance(e, ast.Attribute):
+            out = set()
+            for r in self.ev(e.value, env, COORD_MODULE, self.pkg.coord_key, bare=True):
+                key = self._role_class(r)
+                q = self.pkg.member(key, e.attr) if key in self.pkg.classes else None
+                if q and self.pkg.funcs[q].kind == "method" and len(self.pkg.funcs[q].params) == 1:
+                    out |= self._returns(q, frozenset({r}), ())
+            return frozenset(out)
+        return EMPTY
+
+    def _derive_rebinds(self) -> dict[tuple[str, str], tuple[str, ...]]:
+        """C15: (coordinator attr A, field F) -> hub, where some function rebinds ``<coord>.A.F`` to the
+        hub, directly (``ctx._thermal_model.params = ctx._thermal_params``) or through a local it also
+        rebinds the hub to (``params = replace(..); ctx._thermal_params = params;
+        ctx._thermal_model.params = params``): from then on the field IS the hub object."""
+        out: dict[tuple[str, str], tuple[str, ...]] = {}
+        for fn in self.pkg.funcs.values():
+            env = self._local_env(fn.node, self.seed_env(fn), fn.cls, fn.mod, bare=True)
+            stores: list[tuple[ast.Attribute, ast.AST]] = [
+                (n.targets[0], n.value) for n in walk(fn.node)
+                if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Attribute)]
+            hub_of: dict[str, str] = {}
+            for t, v in stores:
+                if isinstance(v, ast.Name) and t.attr in HUBS and COORD in self.ev(t.value, env, fn.mod, fn.cls, True):
+                    hub_of[v.id] = t.attr
+            for t, v in stores:
+                hubs = {r[1][0] for r in self.ev(v, env, fn.mod, fn.cls, True)
+                        if r[0] == "obj" and len(r[1]) == 1 and r[1][0] in HUBS}
+                if isinstance(v, ast.Name) and v.id in hub_of:
+                    hubs.add(hub_of[v.id])
+                for base in self.ev(t.value, env, fn.mod, fn.cls, True):
+                    if base[0] == "obj" and len(base[1]) == 1 and base[1][0] not in HUBS:
+                        for h in sorted(hubs):
+                            out.setdefault((base[1][0], t.attr), (h,))
+        return out
+
+    def _role_class(self, r: tuple) -> tuple[str, str] | None:
+        return self.pkg.coord_key if r == COORD else r[2] if r[0] == "obj" else r[1] if r[0] == "self" else None
+
+    def _returns(self, q: str, selfroles: frozenset | None, argroles: tuple) -> frozenset:
+        """C15: the roles ``q`` returns, its parameters bound to ``selfroles`` and ``argroles``
+        (positional, after ``self``). Memoised; a recursive call reads empty."""
+        key = (q, selfroles, argroles)
+        if key in self._returns_memo:
+            return self._returns_memo[key]
+        if key in self._returns_stack or len(self._returns_stack) > 6:
+            return EMPTY
+        self._returns_stack.add(key)
+        fn = self.pkg.funcs[q]
+        env = self.seed_env(fn)
+        params = fn.params
+        if selfroles and fn.kind == "method" and params:
+            env[params[0]] = selfroles
+            params = params[1:]
+        elif fn.kind in ("method", "classmethod") and params:
+            params = params[1:]
+        for p, r in zip(params, argroles):
+            if r:
+                env[p] = env.get(p, EMPTY) | r
+        full = self._local_env(fn.node, env, fn.cls, fn.mod, bare=True)
+        out: set = set()
+        todo = list(ast.iter_child_nodes(fn.node))
+        while todo:
+            n = todo.pop()
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                continue
+            if isinstance(n, ast.Return) and n.value is not None:
+                out |= self.ev(n.value, full, fn.mod, fn.cls, True)
+            todo.extend(ast.iter_child_nodes(n))
+        self._returns_stack.discard(key)
+        res = frozenset(out)
+        self._returns_memo[key] = res
+        return res
+
+    def _call_roles(self, e: ast.Call, env: dict, mod: str, cls, bare: bool) -> frozenset:
+        """C15: a call is what its callee returns: a stored zero-argument reader (``self._params()``),
+        a method of a class a role names, or a package function."""
+        pkg, f, out = self.pkg, e.func, set()
+        if any(isinstance(a, ast.Starred) for a in e.args):
+            return EMPTY
+        args = tuple(self.ev(a, env, mod, cls, bare) for a in e.args)
+        if isinstance(f, ast.Attribute):
+            for r in self.ev(f, env, mod, cls, bare):
+                if r[0] == "obj" and r[1] in self.readers:
+                    path = self.readers[r[1]]
+                    out.add(("obj", path, self.coord_attr_types.get(path[0]) if len(path) == 1 else None))
+            for r in self.ev(f.value, env, mod, cls, bare):
+                key = self._role_class(r)
+                q = pkg.member(key, f.attr) if key in pkg.classes else None
+                if q and pkg.funcs[q].kind == "method":
+                    out |= self._returns(q, frozenset({r}), args)
+            st = pkg.resolve_expr_static(mod, f)
+            if st and st[0] == "func":
+                out |= self._returns(st[1], None, args)
+        elif isinstance(f, ast.Name):
+            r = pkg.resolve_name(mod, f.id)
+            if r and r[0] == "func":
+                out |= self._returns(r[1], None, args)
+        return frozenset(out)
 
     def _derive_coord_slots(self) -> dict[tuple[str, str], set[str]]:
         """Per non-coordinator class: the ``self.X`` attributes that hold the
@@ -562,7 +682,7 @@ class Engine:
             r = self.pkg.resolve_expr_static(mod, f)
             if r and r[0] == "class" and r[1] == self.pkg.coord_key:
                 return frozenset({COORD})
-            return EMPTY
+            return self._call_roles(e, env, mod, cls, bare) if FOLLOW_RETURNS else EMPTY
         if isinstance(e, ast.Subscript):
             out = set()
             for r in self.ev(e.value, env, mod, cls, bare):
