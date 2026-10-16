@@ -2142,7 +2142,9 @@
    "issues": [
     2220
    ],
-   "fixes": [],
+   "fixes": [
+    2220
+   ],
    "findings": [
     "D11-s1-01 (D11-s3-01 merged)"
    ],
