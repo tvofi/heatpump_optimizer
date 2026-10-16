@@ -1,0 +1,11 @@
+CHECK ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
+CHECK ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through _log_held
+
+arm failures: 0
+
+N-no-expiry: allowed 6 keys sum 6; found 6 keys sum 6
+  verdict {}
+  modules read 77; floor sum>=6: True, floor len(sources)>=70: True
+N-log-flood: allowed 63 keys sum 74; found 63 keys sum 74
+  verdict {}
+  floor sum>=70: True (margin 4)

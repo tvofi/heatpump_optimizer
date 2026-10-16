@@ -1,0 +1,23 @@
+### automatic-merge identity
+08f9aa73620f48e6026f388e12227a0d8cf681a5
+new head tree: 08f9aa73620f48e6026f388e12227a0d8cf681a5
+
+### the delta the merge brings (main's changes)
+ .claude/hooks/pre-edit.sh                          |  20 ++-
+ .../heatpump_optimizer/early_cutoff.py             |  15 +-
+ dev/audit/harnesses/r10_registry_leak.py           | 183 +++++++++++++++++++++
+ dev/programme/delivery/2323.md                     |   1 +
+ dev/programme/delivery/2329.md                     |   1 +
+ dev/programme/delivery/2334.md                     |   2 +-
+ dev/programme/delivery/2335.md                     |   1 +
+ tests/closures.json                                |   1 +
+ tests/features.py                                  |  33 ++++
+ .../early_cutoff.py/arm.GUARD_OFF.d460246f.json    |   6 +
+ 10 files changed, 258 insertions(+), 5 deletions(-)
+
+### main's delta inside custom_components/ (production files it reaches)
+custom_components/heatpump_optimizer/early_cutoff.py
+
+### the authored diff over production + the PR's own test files, both bases (identical => the measured content is unchanged)
+81ae048e8...c99d73f3 : 57aafb48e9e333bc12bfcb8d12f552bad1b885a8
+8f174c4ce...a0c4431df : 57aafb48e9e333bc12bfcb8d12f552bad1b885a8

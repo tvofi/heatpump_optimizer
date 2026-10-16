@@ -1,0 +1,51 @@
+ .../heatpump_optimizer/coordinator.py              | 302 ++++++++-------
+ custom_components/heatpump_optimizer/payload.py    |   4 +-
+ .../heatpump_optimizer/price_model.py              |  44 ++-
+ custom_components/heatpump_optimizer/sysid.py      |   6 +-
+ dev/programme/delivery/2336.md                     |   1 +
+ tests/entities.py                                  | 200 ++++++++++
+ tests/features.py                                  | 419 ++++++++++++++++++++-
+ ...ator._accumulate_energy.GUARD_OFF.72a88321.json |   6 +
+ ...or._current_spot_price.RETURN_DEL.c4b645b9.json |   6 +
+ ...tor._fold_score_sample.CLAMP_DROP.08ddb89f.json |   6 +
+ ...tor._fold_score_sample.CLAMP_DROP.d537da65.json |   6 -
+ ...ator._fold_score_sample.GUARD_OFF.05bb5b4f.json |   6 +
+ ...tor._get_current_price.RETURN_DEL.a77cdb84.json |   6 +
+ ...nator._known_prices_for.GUARD_OFF.53191ccb.json |   6 +
+ ...nator._known_prices_for.GUARD_OFF.62fa25e3.json |   6 -
+ ...ator._known_prices_for.RETURN_DEL.33997920.json |   6 -
+ ...ordinator._record_accuracy.BOOLOP.d837eb3b.json |   6 +
+ ...rdinator._tariff_hours.RETURN_DEL.af10f4de.json |   6 +
+ ...dinator._tariff_months.RETURN_DEL.44fd15ab.json |   6 +
+ ...r.record_setpoint_override.BOOLOP.1b2d9dbb.json |   6 +
+ .../_covering_index.CMP_BOUND.77d24bf8.json        |   6 +
+ .../_covering_index.CMP_BOUND.9473dbd6.json        |   6 +
+ .../_covering_index.CMP_BOUND.9689ca65.json        |   6 +
+ .../_covering_index.CMP_BOUND.c5024eaf.json        |   6 +
+ .../_covering_index.GUARD_OFF.9473dbd6.json        |   6 +
+ ...on => _covering_index.RETURN_DEL.c5024eaf.json} |   6 +-
+ .../_log_held.GUARD_OFF.70f837e7.json              |   6 +
+ .../_log_held.GUARD_OFF.83745963.json              |   6 +
+ ...25e3.json => _log_held.GUARD_OFF.da0bf41e.json} |   6 +-
+ .../_log_held.RETURN_DEL.80a0007e.json             |   6 +
+ .../_log_held.RETURN_DEL.96c9f042.json             |   6 +
+ .../_open_loop_plan_value.RETURN_DEL.376959e4.json |   6 +
+ .../_peak_tariff_hours.RETURN_DEL.ed9e9309~2.json  |   6 +
+ .../_peak_tariff_months.GUARD_OFF.0907c89f.json    |   6 +
+ .../_peak_tariff_months.RETURN_DEL.0f8a8032.json   |   6 +
+ .../_peak_tariff_months.RETURN_DEL.c60c1319.json   |   6 +
+ ...> forecast_outdoor_now.GUARD_OFF.d71aac2a.json} |   6 +-
+ .../_raw_start.RETURN_DEL.25b21b2f.json            |   6 +
+ ...ces_from_tibber_payload.GUARD_OFF.49401843.json |   6 +
+ ...ces_from_tibber_payload.GUARD_OFF.5b089cda.json |   6 -
+ ...ces_from_tibber_payload.GUARD_OFF.dcdefa49.json |   6 +
+ ...es_from_tibber_payload.RETURN_DEL.37dd65b3.json |   6 +
+ ...fication.conditions_met.GUARD_OFF.99eecfc1.json |   6 +
+ ...dinator._fold_score_sample.BOOLOP.05bb5b4f.json |   6 +
+ ...ecord_setpoint_override.CMP_BOUND.1b2d9dbb.json |   6 +
+ .../_peak_tariff_hours.GUARD_OFF.fb12652e.json     |   6 +
+ .../forecast_outdoor_now.CMP_BOUND.a439030d.json   |   6 +
+ tests/seam_map.json                                |   1 +
+ tests/solar_alignment.py                           |   8 +-
+ tests/structure_budgets.json                       |   4 +-
+ 50 files changed, 1016 insertions(+), 213 deletions(-)
