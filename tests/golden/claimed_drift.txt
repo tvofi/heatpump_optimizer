@@ -59,101 +59,76 @@
 # v7.0.0: Round-9 closure. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+# R10-PUMP-MODEL (D2-s2-01, #2238): the hot-water tank pays the flow lift at its
+# own water temperature on both plants, where a direct plant used to apply a
+# linear 0.008/K penalty instead. Direction, measured base 92accb2cf vs this
+# head in one environment: the tank's modelled COP falls (0.62x the space curve
+# at a 55 C tank and 8 C outdoor, against the penalty's 0.84x), so the plan is
+# re-solved and the always-hot baseline's DHW costs more -- baseline_cost is up
+# on every claimed fixture below, and the other plan keys move either way. 41 of
+# the 56 scenarios move; winter_single_no_dhw is byte-identical, which is the
+# null (its scenario has no hot water). Twelve of the claimed fixtures carry a
+# may-drift entry, whose judged keys (baseline_cost here, on all twelve) a
+# may-drift entry cannot excuse and a name cannot be both, so those entries are
+# suspended above for this release: capacity_tariff_15min, cycling_cost,
+# direct_flow_carnot, everything_on, flat_prices, fuse_guard, narrow_band,
+# precip_snow, shoulder, shoulder_two_zone, tariff_plus_two_zone and
+# winter_two_zone_dhw. This is the R8-P3 wood_coil precedent; their removal
+# conditions are unmet, so a later branch restores each entry as the wood_coil
+# one was restored.
+away_setback # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 50.155768 -> 51.797405; deferred_energy_cost 1.492585 -> 1.297536
+building_preset # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.842141 -> 125.483777; deferred_energy_cost 28.62115 -> 28.819256
+capacity_curve # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 32.817854 -> 33.104715
+capacity_tariff # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 30.681632 -> 29.30125
+capacity_tariff_15min # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+confidence_margins # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 16.149201 -> 16.258696
+cool_rainy_summer # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 3.513962 -> 4.12063; deferred_energy_cost 0.035951 -> 0.000656
+coord_all_features # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- data.dhw_advisor.candidates[0].cost_per_day 2.67 -> 3.29; data.dhw_advisor.candidates[1].cost_per_day 2.74 -> 3.45
+coord_dhw # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- data.dhw_advisor.candidates[0].cost_per_day 2.67 -> 3.29; data.dhw_advisor.candidates[1].cost_per_day 2.74 -> 3.45
+cop_scale_learned # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 100.251187 -> 101.513984; deferred_energy_cost 16.172249 -> 16.342178
+cycling_cost # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+dhw_cold_tank # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 32.08751 -> 32.083973
+dhw_large_tank # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 136.48992 -> 139.783022; dhw_heating_cost 8.233727 -> 9.3045
+dhw_learned_windows # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.834869 -> 29.925931
+dhw_schedule_off # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.989068 -> 30.091503
+direct_flow_carnot # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 116.240501 -> 117.882137
+everything_on # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 134.118165 -> 135.545675
+external_heat_active # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; dhw_heating_cost 6.864087 -> 7.521596
+extreme_prices # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 239.789388 -> 243.018299; deferred_energy_cost 30.8964 -> 31.122128
+flat_prices # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 100.179654 -> 101.52933
+fuse_guard # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+horizon_48h # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 242.069921 -> 245.353193; deferred_energy_cost 31.924586 -> 31.755896
+horizon_6h # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 15.160267 -> 15.348647
+legionella_due # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 30.209408 -> 30.423282
+legionella_due_low_setpoint # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 121.938733 -> 123.308002; deferred_energy_cost 30.208934 -> 30.423282
+legionella_off # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.603364 -> 29.810224
+mild_windy_rain # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 63.353425 -> 65.438656; deferred_energy_cost 3.806831 -> 3.758381
+narrow_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+negative_prices # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 0.953394 -> 1.289213; dhw_heating_cost 0.83344 -> 0.901441
+peak_masked # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.621284 -> 29.809915
+precip_snow # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 62.224736 -> 64.309967
+price_risk # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 134.421609 -> 136.320995; deferred_energy_cost 37.413187 -> 37.591889
+shoulder # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 13.841099 -> 14.824404
+shoulder_two_zone # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 18.999666 -> 20.517828
+start_above_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 108.75679 -> 110.398426; deferred_energy_cost 24.228479 -> 24.324916
+start_below_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 179.479166 -> 181.120802; deferred_energy_cost 30.422246 -> 30.393166
+summer_dhw_only # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 0.647761 -> 0.875925; dhw_heating_cost 0.66832 -> 0.833493
+tariff_plus_two_zone # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 150.332611 -> 151.974248
+wide_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.621284 -> 29.809915
+winter_single_dhw # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.621284 -> 29.809915
+winter_two_zone_dhw # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 150.332611 -> 151.974248
+#
+#
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
-# (option (a)): the move's margin is inside the noise band (objective rel
-# -1.2171e-03, deterministic on one box), so which runner sees it move is the
-# BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
-# price_known/baseline_cost) still fail. Remove when drift lanes are pinned
-# or the polish improvement scale leaves 5e-5-2e-2.
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
 # runner-conditional for the same reason; judged keys still fail. Remove when
 # drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
-# may-drift: shoulder_two_zone -- #1208 polish-every-candidate, third name
-# sanctioned by the owner's in-session (i) ruling on the options recorded in
-# #1208 comment fd13246: 452 leaves moved on the first #1282 runner only
-# (byte-identical on the dev box), the one printed money leaf at 2.19e-2
-# relative -- at/just over the band's 2e-2 top edge -- and the branch side
-# matches the committed recording, i.e. the move is toward the canonical
-# value, not away; judged keys still fail. Remove when drift lanes are
-# pinned or the polish improvement scale leaves 5e-5-2e-2.
-# may-drift: capacity_tariff_15min -- #1207 keep-gate (2e-2 -> 2e-5), owner
-# directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
-# the noise band (objective rel -1.7601e-04, deterministic on one box), so
-# which runner sees it move is the BLAS's property, not the diff's; judged
-# keys (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove
-# when drift lanes are pinned or the polish improvement scale leaves
-# 5e-5-2e-2.
-# may-drift: cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
-# #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
-# band (objective rel -1.7666e-04, deterministic on one box),
-# runner-conditional for the same reason; judged keys still fail. Remove
-# when drift lanes are pinned or the polish improvement scale leaves
-# 5e-5-2e-2.
-# may-drift: everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
-# directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
-# the noise band (objective rel -5.2974e-03, deterministic on one box),
-# runner-conditional for the same reason; judged keys still fail. Remove
-# when drift lanes are pinned or the polish improvement scale leaves
-# 5e-5-2e-2.
-# may-drift: narrow_band -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
-# #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
-# band (objective rel -7.8934e-04, deterministic on one box),
-# runner-conditional for the same reason; judged keys still fail. Remove
-# when drift lanes are pinned or the polish improvement scale leaves
-# 5e-5-2e-2.
-# may-drift: shoulder -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
-# #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
-# band (objective rel -7.2897e-04, deterministic on one box),
-# runner-conditional for the same reason; judged keys still fail. Remove
-# when drift lanes are pinned or the polish improvement scale leaves
-# 5e-5-2e-2.
-# may-drift: winter_two_zone_dhw -- #1207 keep-gate (2e-2 -> 2e-5), owner
-# directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
-# the noise band (objective rel -5.0494e-05, 1.01x over its floor -- the
-# same adoption margin the parked #1272 rounds measured on this fixture,
-# deterministic on one box), runner-conditional for the same reason; judged
-# keys still fail. Remove when drift lanes are pinned or the polish
-# improvement scale leaves 5e-5-2e-2.
-# (valve_storage_smart_write, the seventh measured #1207 mover at objective
-# rel -2.2972e-03, is one of the five SENSITIVE fixtures above; its
-# machine-sensitive entry is the one that carries it, so no second line
-# exists here.)
-# may-drift: direct_flow_carnot -- #1207 keep-gate (2e-2 -> 2e-5), widened
-# to the runner's union by the owner's ruling (i) on the options recorded
-# in #1207 comment 1ec15c8 (2026-09-20): 425 leaves moved on the CI
-# x86_64/py3.14 runner only (leaf counts from the runner's own drift log
-# as recorded on that comment; byte-identical on the dev box), so which
-# runner sees it move is the BLAS's property, not the diff's; judged keys
-# (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove when
-# drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
-# may-drift: fuse_guard -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
-# runner's union by the owner's ruling (i) on the options recorded in
-# #1207 comment 1ec15c8 (2026-09-20): 418 leaves moved on the CI
-# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
-# on the dev box), runner-conditional for the same reason; judged keys
-# still fail. Remove when drift lanes are pinned or the polish improvement
-# scale leaves 5e-5-2e-2.
-# may-drift: precip_snow -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
-# runner's union by the owner's ruling (i) on the options recorded in
-# #1207 comment 1ec15c8 (2026-09-20): 396 leaves moved on the CI
-# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
-# on the dev box), runner-conditional for the same reason; judged keys
-# still fail. Remove when drift lanes are pinned or the polish improvement
-# scale leaves 5e-5-2e-2.
-# may-drift: tariff_plus_two_zone -- #1207 keep-gate (2e-2 -> 2e-5),
-# widened to the runner's union by the owner's ruling (i) on the options
-# recorded in #1207 comment 1ec15c8 (2026-09-20): 751 leaves moved on the
-# CI x86_64/py3.14 runner only (as recorded on that comment;
-# byte-identical on the dev box), runner-conditional for the same reason;
-# judged keys still fail. Remove when drift lanes are pinned or the polish
-# improvement scale leaves 5e-5-2e-2.
 # may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
