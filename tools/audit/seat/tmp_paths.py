@@ -16,8 +16,9 @@ graded without a checkout: `.github/workflows/*.yml`, `dev/governance/decisions/
 (and `docs/decisions/*.md`, their home before the lift),
 `.claude/settings.json` (its hooks run commands), and every `.sh .py .mjs .js
 .cjs` under `tools/`, `tests/` and `.claude/` plus the seat shims, except the
-write-once round evidence under `tools/audit/round*/`, `tools/audit/handoff/`
-and `tools/audit/w5-*/`, which records where things were. Policy prose (briefs,
+write-once round evidence under `dev/audit/rounds/` and `dev/audit/waves/`, and
+under their homes before the move (the pattern in `scope` below), which records
+where things were. Policy prose (briefs,
 rules, skills) is not scanned: it names paths to explain them. The mutation
 ledger's JSON (`tests/mutation_ledger/`) is scanned too, but only the lines
 added since the merge base with origin/main (the first parent on main), and
