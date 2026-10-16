@@ -160,7 +160,7 @@ async def arm(
     if held.wiring is None:
         # Once per record, listener or not: the wiring below reaches the
         # coordinator and has to be dropped with the entry.
-        on_unload(lambda: detach(held))
+        on_unload(lambda: release(held))
     held.wiring = CutoffInputs(inputs, boosts, opt_config)
     inp = inputs()
     cfg = EntryConfig.from_mapping(inp.config)
