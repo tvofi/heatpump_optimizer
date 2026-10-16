@@ -16,12 +16,23 @@ Plants:
   N1-N5,   the round-3 review's mut3.py, verbatim: replaceState, open and
   H1-H10   location navigations, in and out of try; href in eight spellings,
            on a selector the stub resolves (".zz") and one it cannot ("a.zz").
+  K*       the round-4 review's mut4.py plants, verbatim (#2317): a bare,
+           bracketed and .call open() on the unrendered feedback row, the
+           Navigation API, a form action, an Event-built more-info.
+  C1-C9    one plant per census arm #2317 added, each written to dodge the
+           static token arm: an act no row renders (reach), document /
+           element / event / window escapes (reads), formaction and an
+           unquoted action (links), a run-time hass-action (events), and an
+           open() in the slot menu (the menu presses).
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
+    python3 tools/audit/seat/r10_deeplink_mutants.py --ablate [ablation ...]
 
-Run from the worktree root after `PYTHONPATH=tests/hastub python3
-tests/plan_view.py` (card.mjs reads its payload). Null control: run with no
-plant applied (`--null`), which must print rc=0 fails=0.
+`--ablate` deletes one census arm in tests/card.mjs and applies the plant
+that arm alone refuses; each must print rc=0 fails=0, so the arm is the one
+holding the plant. Run from the worktree root after `PYTHONPATH=tests/hastub
+python3 tests/plan_view.py` (card.mjs reads its payload). Null control: run
+with no plant applied (`--null`), which must print rc=0 fails=0.
 """
 import subprocess
 import sys
@@ -36,6 +47,9 @@ DISMISS = "        dismissFeedback();\n        host._render();\n        return;"
 STOP = "      stop(ev);\n      const act = btn.dataset.act;"
 EVENT = 'host.dispatchEvent(new CustomEvent(%s, { detail: { entityId: "sensor.x" }, bubbles: true, composed: true }));'
 RUNTIME_MORE_INFO = '["hass", "more", "info"].join("-")'
+OPEN = '["op", "en"].join("")'
+DISMISS_BRANCH = '      } else if (act === "dismiss_feedback") {'
+MENU_ADD = '      if (act === "add") {'
 
 
 def after_nav(stmt):
@@ -90,6 +104,38 @@ PLANTS = {
     "H8_innerHTML_anchor_single_quote": card(LOOP, "  { const d = root.querySelector('.setup-result'); if (d) d.innerHTML = \"<a href='%s'>x</a>\"; }\n" % P + LOOP),
     "H9_innerHTML_template": card(LOOP, '  { const u = "%s"; const d = root.querySelector(".adv-act"); if (d) d.insertAdjacentHTML("afterend", `<a href=${u}>x</a>`); }\n' % P + LOOP),
     "H10_setAttribute_literal_rendered": attach(".zz", 'a.setAttribute("href", "%s");' % P),
+    # Round 4 (review, mut4.py verbatim; #2317).
+    "K1_navigation_api_in_try": after_nav('try { globalThis.navigation.navigate("/config/entities"); } catch (_e) {}'),
+    "K2_form_action_rendered": card(DIAG, '<form action="/config/entities"><button type="submit">go</button></form>' + DIAG),
+    "K3t_Event_runtime_more_info_rendered_in_try": after_nav(
+        'try { host.dispatchEvent(Object.assign(new Event(%s, { bubbles: true, composed: true }), '
+        '{ detail: { entityId: "sensor.x" } })); } catch (_e) {}' % RUNTIME_MORE_INFO),
+    "K5_bare_open_on_dismiss": card(DISMISS, '        open("/config/entities", "_self");\n' + DISMISS),
+    "K5b_bracket_open_on_dismiss": card(DISMISS, '        globalThis["open"]("/config/entities", "_self");\n' + DISMISS),
+    "K5c_open_call_on_dismiss": card(DISMISS, '        globalThis.open.call(globalThis, "/config/entities", "_self");\n' + DISMISS),
+    # #2317's census arms, one plant each, none carrying a static token.
+    "C1_act_no_row_renders": card(DISMISS_BRANCH, '      } else if (act === "zz_out") {\n        open("/config/entities", "_self");\n        return;\n' + DISMISS_BRANCH),
+    "C2_document_location_in_try": after_nav('try { document[["loc", "ation"].join("")].assign("/config/entities"); } catch (_e) {}'),
+    "C3_element_ownerDocument_in_try": after_nav('try { btn.ownerDocument.defaultView[%s]("/config/entities"); } catch (_e) {}' % OPEN),
+    "C4_event_view_in_try": after_nav('try { ev.view[%s]("/config/entities"); } catch (_e) {}' % OPEN),
+    "C5_window_top_in_try": after_nav('try { window.top[%s]("/config/entities"); } catch (_e) {}' % OPEN),
+    "C6_formaction_rendered": card(DIAG, '<button type="submit" formaction="/config/entities">go</button>' + DIAG),
+    "C7_unquoted_action_rendered": card(DIAG, '<form action=/config/entities><button>go</button></form>' + DIAG),
+    "C8_runtime_hass_action": after_nav('host.dispatchEvent(new CustomEvent(["hass", "action"].join("-"), { detail: { action: "tap" } }));'),
+    "C9_open_in_slot_menu": card(MENU_ADD, MENU_ADD + ' open("/config/entities", "_self");'),
+}
+
+# Each census arm deleted, beside the plant it alone refuses (expected rc=0).
+ABLATIONS = {
+    "A1_reads_not_judged": ([(TEST, "    for (const r of reads) wrong.add(`${key} -> reads ${r}`);\n", "")],
+                            "K1_navigation_api_in_try"),
+    "A2_links_href_only": ([(TEST, 'const LINK = /\\b(href|action|formaction)\\s*=', 'const LINK = /\\b(href)\\s*='),
+                            (TEST, 'for (const a of ["href", "action", "formaction"]) {', 'for (const a of ["href"]) {')],
+                           "K2_form_action_rendered"),
+    "A3_events_not_recorded": ([(TEST, "    if (!EVENTS.has(type)) left.push(", "    if (false) left.push(")],
+                               "C8_runtime_hass_action"),
+    "A4_act_reach_off": ([(TEST, "acts.length > 0 && unpressed.length === 0,", "acts.length > 0,")],
+                         "C1_act_no_row_renders"),
 }
 
 
@@ -125,6 +171,13 @@ def main():
     args = sys.argv[1:]
     if args == ["--null"]:
         run("NULL_no_plant", [])
+        return
+    if args[:1] == ["--ablate"]:
+        for name in args[1:] or list(ABLATIONS):
+            arm, plant = ABLATIONS[name]
+            run(f"{name}+{plant}", arm + PLANTS[plant])
+        left = subprocess.run(["git", "status", "--short", "--", CARD, TEST], capture_output=True, text=True).stdout
+        print("restored" if not left.strip() else "NOT RESTORED:\n" + left)
         return
     for name in args or list(PLANTS):
         run(name, PLANTS[name])

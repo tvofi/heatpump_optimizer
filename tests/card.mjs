@@ -108,6 +108,49 @@ const mkStates = (spaceId, dhwId, withMarker) => ({
 const DEFAULT_SPACE = "sensor.heat_pump_optimizer_plan_space_heating";
 const DEFAULT_DHW = "sensor.heat_pump_optimizer_plan_dhw_heating";
 
+// The advisor inbox's fixture: every default-on advisor publishing a row with
+// a button, and (restartStates) the drift alarm's two restart points. Shared
+// by the inbox scenario and the link census, which must render every row.
+const ADVISOR_PFX = "sensor.heat_pump_optimizer";
+function inboxStates() {
+  const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  s[DEFAULT_SPACE].attributes.setup_topology = {
+    two_zone: true, dhw: true, valve_mode: "manual",
+    buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+    wood: { present: false, volume_l: 500 }, edges: [],
+    slots: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      place: "lower_zone", entity: null, domains: ["sensor"] }],
+  };
+  s[`${ADVISOR_PFX}_sensor_gap_advisor`] = { state: "40", last_updated: "t1", attributes: {
+    top_slot: "lower_floor_temp_entity",
+    gaps: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      empty: true, sek_per_month: 40 }] } };
+  // The real sweep is 48..60 step 2 and the default setpoint, 55, is off it.
+  s[`${ADVISOR_PFX}_dhw_setpoint_advisor`] = { state: "48", last_updated: "t1", attributes: {
+    current_setpoint: 55, recommended_setpoint: 48, covers_heaviest_window: true,
+    candidates: [[48, 9.0], [50, 9.4], [52, 9.9], [54, 10.5], [56, 11.2], [58, 12.0],
+      [60, 12.9]].map(([setpoint, cost_per_day]) =>
+      ({ setpoint, cost_per_day, meets_heaviest_window: true })) } };
+  s[`${ADVISOR_PFX}_optimization_score`] = { state: "80", last_updated: "t1", attributes: {
+    price_tiles: {
+      target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
+      target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 },
+      power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10 } } } };
+  s[`${ADVISOR_PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
+    reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
+  return s;
+}
+
+function restartStates(patch = {}) {
+  const s = inboxStates();
+  s[`${ADVISOR_PFX}_model_restart_advisor`] = { state: "1.138", last_updated: "t1", attributes: {
+    drift_alarm: true, current_scale: 0.673,
+    refit: { scale: 1.138, band_percent: 10, pairs: 180, settled_days: 3.25,
+      required_days: 3, settled_since: "2026-03-07T04:30:00+00:00" },
+    restore: { taken_at: "2026-03-01T03:00:00+00:00", scale: 1.0 }, ...patch } };
+  return s;
+}
+
 function collect(n, out=[]) { if(n._html) out.push(n._html); n.children.forEach(c=>collect(c,out)); return out; }
 
 // R9-UI-4: what each drawn mark's vertical extent is, against the panel it
@@ -209,9 +252,9 @@ function check(name, cond, detail) {
 // in any quoting or key form, location, pushState, replaceState, .open( (the
 // dialog's own `this.dialog.open()` excepted), hass-more-info or hass-action.
 // It runs here, before any card renders, so a plant that crashes a later
-// scenario is still refused by name. It matches spellings, not behaviour:
-// a token split across a string concatenation ("hr" + "ef"), a bare open(
-// with no dot, and the other known gaps listed at the census pass it.
+// scenario is still refused by name. It matches spellings, not behaviour (a
+// token split across a concatenation, "hr" + "ef", passes it); the census at
+// the end of this file judges behaviour, and is the complete check.
 {
   const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
@@ -3181,34 +3224,6 @@ check("the hand-scheduled reason has a label",
 // read: tests/entities.py refuses a card read of one.
 {
   const PFX = "sensor.heat_pump_optimizer";
-  const inboxStates = () => {
-    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
-    s[DEFAULT_SPACE].attributes.setup_topology = {
-      two_zone: true, dhw: true, valve_mode: "manual",
-      buffer: { volume_l: 750, is_store: true, max_temp: 70 },
-      wood: { present: false, volume_l: 500 }, edges: [],
-      slots: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
-        place: "lower_zone", entity: null, domains: ["sensor"] }],
-    };
-    s[`${PFX}_sensor_gap_advisor`] = { state: "40", last_updated: "t1", attributes: {
-      top_slot: "lower_floor_temp_entity",
-      gaps: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
-        empty: true, sek_per_month: 40 }] } };
-    // The real sweep is 48..60 step 2 and the default setpoint, 55, is off it.
-    s[`${PFX}_dhw_setpoint_advisor`] = { state: "48", last_updated: "t1", attributes: {
-      current_setpoint: 55, recommended_setpoint: 48, covers_heaviest_window: true,
-      candidates: [[48, 9.0], [50, 9.4], [52, 9.9], [54, 10.5], [56, 11.2], [58, 12.0],
-        [60, 12.9]].map(([setpoint, cost_per_day]) =>
-        ({ setpoint, cost_per_day, meets_heaviest_window: true })) } };
-    s[`${PFX}_optimization_score`] = { state: "80", last_updated: "t1", attributes: {
-      price_tiles: {
-        target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
-        target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 },
-        power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10 } } } };
-    s[`${PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
-      reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
-    return s;
-  };
   const mkInbox = (states, lang) => {
     const calls = [];
     const c = new Card();
@@ -3417,15 +3432,6 @@ check("the hand-scheduled reason has a label",
 
   // R9-DIAG-2S (#1936): the drift alarm's two restart points, each advice
   // until its button is pressed.
-  const restartStates = (patch = {}) => {
-    const s = inboxStates();
-    s[`${PFX}_model_restart_advisor`] = { state: "1.138", last_updated: "t1", attributes: {
-      drift_alarm: true, current_scale: 0.673,
-      refit: { scale: 1.138, band_percent: 10, pairs: 180, settled_days: 3.25,
-        required_days: 3, settled_since: "2026-03-07T04:30:00+00:00" },
-      restore: { taken_at: "2026-03-01T03:00:00+00:00", scale: 1.0 }, ...patch } };
-    return s;
-  };
   const rs = mkInbox(restartStates());
   const rsPage = rs.html().slice(rs.html().indexOf('advisor-page"'));
   check("a drift alarm offers the refit with its band, and the restore point",
@@ -11177,36 +11183,42 @@ check("without an indoor reading the corner now label is absent",
 // The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup
 // "Configure" and Health "Show" each built their own Home Assistant link and
 // each landed on the integration's front page. `haLink` is now the one
-// builder. This census checks the links it can observe against it, in two
-// arms; it is NOT a proof that every link the card can emit goes through
-// haLink -- that complete census is #2317 (roster group R10-DEEPLINK-CENSUS).
+// builder, and this census checks every way out of the card against it. It
+// allows a known set rather than denying spellings (#2317, the shape the
+// #2283 round-4 review proposed), so a spelling no check names is refused by
+// what it reaches, not by how it is written:
 //
-// Dynamic: render every dialog page and press every element there with a
-// click listener of its own, one fresh card per press, with these primitives
-// instrumented so that using one is recorded, never thrown: history.pushState
-// / replaceState, open, the location setter and its href / assign / replace,
-// a CustomEvent named hass-more-info or hass-action, and any anchor href on
-// the page after the press. Each recorded link must be a path haLink builds
-// for this entry. No press may throw.
+//   reach   the fixture renders every row with a button: each act the card's
+//           source names (`act === "x"`, `act: "x"`, `data-act="x"`) must be
+//           pressed on some page, and every navigateTo or openHaLink call site
+//           hit by a press. No row rests on the static arm alone.
+//   sink    every primitive the rig provides that can leave the page is
+//           replaced for the census's duration and records its use: history
+//           pushState / replaceState, open, the location setter and its href /
+//           assign / replace, and every event dispatched on an element, the
+//           window or the global object, whatever built it, outside EVENTS.
+//   reads   the global object, window, document, every element and the
+//           press's event are watched: a read of a name the rig does not
+//           provide is recorded unless KNOWN_READS lists it. The census cannot
+//           observe what the rig does not provide (the Navigation API, `Event`,
+//           an element's `ownerDocument`), so the card may not reach for it.
+//   links   every href, action and formaction on the page after a render or a
+//           press, set as an attribute or written in markup in any quoting.
 //
-// Static: the token check at the top of this file, for rows the fixture does
-// not render or selectors the stub DOM cannot resolve.
+// One fresh card per press, every page, every element with a click listener,
+// and the plan page's slot menu, which a context menu opens. Each recorded
+// link must be a path haLink builds for this entry; each recorded read or
+// event outside the known set is refused. No press may throw.
 //
-// Known gaps, each passing both arms (the #2283 round-4 review's plants):
-//   K5   a bare open(...) with no dot (or globalThis["open"], .open.call) on
-//        a row this fixture does not render;
-//   K1   the Navigation API, navigation.navigate(...);
-//   K2   a <form action=...> submitted from a rendered page (only href is read);
-//   K3t  a plain Event (not CustomEvent) whose hass-more-info name is built at
-//        run time;
-// and the static arm's own residual, a token split across a concatenation
-// ("hr" + "ef"), which the dynamic arm sees only on a rendered row and, for
-// an event name, only through CustomEvent.
+// Residual, stated: a click handler keyed on something other than an act, on
+// a row this fixture does not render, rests on the static token arm at the top
+// of this file; and the hass object is not watched, because Home Assistant's
+// own hass carries no navigation primitive (its router reads history and the
+// location-changed event, both in the sink).
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
-// no press still produces is refused as stale. The census asserts its own
-// reach: every source line calling navigateTo or openHaLink is hit by a press.
+// no press still produces is refused as stale.
 {
   const ENTRY = "01JDEEPLINKENTRY";
   const BARE = "/config/integrations/integration/heatpump_optimizer";
@@ -11215,10 +11227,22 @@ check("without an indoor reading the corner now label is absent",
     "health:settings": { group: "R10-UX-HEALTH", path: BARE },
     "health:diagnostics": { group: "R10-UX-HEALTH", path: BARE },
   };
+  // HA's router re-reads the location on this event; the write before it is
+  // what the sink judges.
+  const EVENTS = new Set(["location-changed"]);
+  // Names the card reads that the rig does not provide, each feature-tested
+  // by the card and none a way out: the <dialog>'s own open flag and
+  // showModal, a shadow root's getSelection, an event's defaultPrevented.
+  const KNOWN_READS = new Set(["element.open", "element.showModal", "element.getSelection",
+    "event.defaultPrevented"]);
   const haLink = fn("haLink");
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
+  // Every advisor row with a button, the drift alarm's two restart points,
+  // the feedback recommendation, and the health checklist's unassigned power.
   const states = () => {
-    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    const s = restartStates();
+    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =
+      [{ class: "power", key: "heat_pump_power_entity" }];
     s[BIN] = { state: "off", last_updated: "t1", attributes: { problems: [], input_ages_minutes: {} } };
     return s;
   };
@@ -11231,6 +11255,9 @@ check("without an indoor reading the corner now label is absent",
     throw new Error(`not found: ${JSON.stringify(msg)}`);
   };
   const open = (page) => {
+    // A dismissal persists in localStorage and would hide the feedback row
+    // from every later card.
+    for (const k of Object.keys(store)) if (/dismiss/.test(k)) delete store[k];
     const c = new Card();
     c.setConfig({ type: "custom:heatpump-optimizer-card" });
     c.hass = { states: states(), callService: async () => {}, callWS };
@@ -11240,20 +11267,51 @@ check("without an indoor reading the corner now label is absent",
     return c;
   };
   const pressables = (c) => {
-    const body = c.shadowRoot.querySelector(".dlg-body");
     const out = [];
     const walk = (n) => {
-      if (n !== body && n._listeners && (n._listeners.click || []).length) out.push(n);
+      if (n !== c.shadowRoot && n._listeners && (n._listeners.click || []).length) out.push(n);
       (n.children || []).forEach(walk);
     };
-    if (body) walk(body);
+    walk(c.shadowRoot);
     return out;
   };
-  const anchors = (c) => {
+  // The slot menu, on a slot (remove) or on a free stretch (add), and its one
+  // button: the menu's own listener reads the act off the event's target.
+  const slotMenu = (onSlot) => {
+    const c = open("plan");
+    const svgs = chartSvgs(c.shadowRoot);
+    const svg = svgs[svgs.length - 1];
+    const slot = svg && svg.querySelector(".slot-hit");
+    if (!slot) return null;
+    const channel = slot.dataset.channel;
+    const runs = c.manual.draft()[channel] || [];
+    const [lo, hi] = c.manual.bounds();
+    let at = null;
+    if (onSlot) {
+      const run = runs[Number(slot.dataset.index)];
+      at = run && (run.start + run.end) / 2;
+    } else {
+      for (let t = lo + HOUR; t < hi - HOUR && at === null; t += 15 * 60000) {
+        if (!runs.some((r) => t >= r.start - HOUR && t < r.end + HOUR)) at = t;
+      }
+    }
+    if (at === null || at === undefined) return null;
+    c.lanes.openMenu(channel, at, 120, 300, svg);
+    const menu = c.shadowRoot.querySelector(".slot-menu");
+    const btn = menu && menu.querySelector("button");
+    return btn ? { c, el: menu, target: btn } : null;
+  };
+  const LINK = /\b(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi;
+  const links = (c) => {
     const out = [];
     const walk = (n) => {
-      const href = (typeof n.getAttribute === "function" && n.getAttribute("href")) || n.href;
-      if (typeof href === "string" && href) out.push(href);
+      for (const a of ["href", "action", "formaction"]) {
+        const v = (typeof n.getAttribute === "function" && n.getAttribute(a)) || n[a];
+        if (typeof v === "string" && v) out.push([a, v]);
+      }
+      for (const m of String(n._html || "").matchAll(LINK)) {
+        out.push([m[1].toLowerCase(), m[2] ?? m[3] ?? m[4]]);
+      }
       (n.children || []).forEach(walk);
     };
     walk(c.shadowRoot);
@@ -11264,9 +11322,13 @@ check("without an indoor reading the corner now label is absent",
   const excused = (key, via, path) => built.has(path)
     || (via === "push" && key in PENDING && PENDING[key].path === path);
 
-  // The sink: every primitive the static arm names, instrumented for the
-  // census's duration on both the global and `window`, recording into `left`.
+  // The sink, recording into `left`.
   let left = [];
+  const dispatched = (ev) => {
+    const type = ev && ev.type;
+    if (!EVENTS.has(type)) left.push(["event", `${type}:${JSON.stringify((ev && ev.detail) || {})}`]);
+    return true;
+  };
   const sink = {
     history: {
       pushState: (_s, _t, p) => { left.push(["push", String(p)]); },
@@ -11279,23 +11341,46 @@ check("without an indoor reading the corner now label is absent",
       assign: (v) => { left.push(["location", String(v)]); },
       replace: (v) => { left.push(["location", String(v)]); },
     },
+    dispatchEvent: dispatched,
   };
+  // The watch, recording into `reads` while `watching`: a proxy one step up
+  // each watched object's prototype chain sees exactly the names neither the
+  // object nor its own chain provides. The global object falls back to the
+  // context's own built-ins (Math, Promise, ...), which are not the rig's. A
+  // read counts when the card's code made it -- the first non-native frame
+  // past the trap is the card's script -- not the stub's selector matching.
+  let reads = [];
+  let watching = false;
+  const builtins = new Map(vm.runInContext("Object.getOwnPropertyNames(this)", ctx)
+    .filter((k) => !Object.prototype.hasOwnProperty.call(ctx, k))
+    .map((k) => [k, vm.runInContext(k, ctx)]));
+  const watcher = (where, proto, fallback) => new Proxy(proto, {
+    get(t, k, r) {
+      if (typeof k === "string" && !Reflect.has(t, k)) {
+        if (fallback && fallback.has(k)) return fallback.get(k);
+        const by = new Error().stack.split("\n").slice(2).find((l) => !/\((<anonymous>|native)\)$/.test(l));
+        if (watching && /evalmachine/.test(by || "") && !KNOWN_READS.has(`${where}.${k}`)) {
+          reads.push(`${where}.${k}`);
+        }
+      }
+      return Reflect.get(t, k, r);
+    },
+  });
+  const watched = [[ctx, "global", builtins], [ctx.window, "window"], [document, "document"],
+    [Node.prototype, "element"]];
+  const protos = watched.map(([o]) => Object.getPrototypeOf(o));
   const saved = { history: ctx.history, open: ctx.open, wHistory: ctx.window.history, wOpen: ctx.window.open,
     location: ctx.location, wLocation: ctx.window.location,
-    CustomEvent: ctx.CustomEvent, navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
+    dispatch: ctx.dispatchEvent, wDispatch: ctx.window.dispatchEvent, nodeDispatch: Node.prototype.dispatchEvent,
+    navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
   const locDesc = { get: () => sink.location, set: (v) => { left.push(["location", String(v)]); }, configurable: true };
   ctx.history = sink.history; ctx.window.history = sink.history;
   ctx.open = sink.open; ctx.window.open = sink.open;
+  ctx.dispatchEvent = sink.dispatchEvent; ctx.window.dispatchEvent = sink.dispatchEvent;
+  Node.prototype.dispatchEvent = function (ev) { dispatched(ev); return saved.nodeDispatch.call(this, ev); };
   Object.defineProperty(ctx, "location", locDesc);
   Object.defineProperty(ctx.window, "location", locDesc);
-  ctx.CustomEvent = class extends saved.CustomEvent {
-    constructor(type, o) {
-      super(type, o);
-      if (type === "hass-more-info" || type === "hass-action") {
-        left.push(["event", `${type}:${JSON.stringify((o && o.detail) || {})}`]);
-      }
-    }
-  };
+  watched.forEach(([o, where, fallback], i) => Object.setPrototypeOf(o, watcher(where, protos[i], fallback)));
   // Which source line each navigateTo / openHaLink call came from.
   const callerLine = () => {
     const m = /evalmachine[^:]*:(\d+):\d+/.exec((new Error().stack || "").split("\n")[3] || "");
@@ -11306,37 +11391,55 @@ check("without an indoor reading the corner now label is absent",
   ctx.openHaLink = (...a) => { hits.add(callerLine()); return saved.openHaLink(...a); };
 
   const seen = {};
-  const wrong = [];
+  const pressed = new Set();
+  const wrong = new Set();
   const threw = [];
   const census = [];
+  const judge = (key, c) => {
+    watching = false;
+    for (const [via, path] of [...left, ...links(c)]) {
+      (seen[key] ||= new Set()).add(`${via} ${path}`);
+      if (!excused(key, via, path)) wrong.add(`${key} -> ${via} ${path}`);
+    }
+    for (const r of reads) wrong.add(`${key} -> reads ${r}`);
+  };
+  const press = async (key, c, el, target) => {
+    left = []; reads = []; watching = true;
+    const ev = Object.setPrototypeOf({ stopPropagation() {}, preventDefault() {}, detail: 1,
+      target, currentTarget: el }, watcher("event", Object.prototype));
+    try {
+      await Promise.all((el._listeners.click || []).map((f) => f(ev)));
+    } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
+    judge(key, c);
+  };
   for (const page of ["plan", "setup", "savings", "advisor", "health"]) {
-    left = [];
+    left = []; reads = []; watching = true;
     const shown = open(page);
+    judge(`${page}:render`, shown);
     const n = pressables(shown).length;
     census.push(`${page}=${n}`);
-    for (const [via, path] of [...left, ...anchors(shown).map((h) => ["href", h])]) {
-      if (!excused(`${page}:render`, via, path)) wrong.push(`${page}:render -> ${via} ${path}`);
-    }
     for (let i = 0; i < n; i++) {
       const c = open(page);
       const el = pressables(c)[i];
-      const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
-      left = [];
-      try {
-        await Promise.all((el._listeners.click || []).map((f) => f({
-          stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
-      } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
-      for (const [via, path] of [...left, ...anchors(c).map((h) => ["href", h])]) {
-        (seen[key] ||= new Set()).add(`${via} ${path}`);
-        if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
-      }
+      const act = el.dataset && el.dataset.act;
+      if (act) pressed.add(act);
+      await press(`${page}:${act || el.className || el.tagName}`, c, el, el);
     }
   }
+  for (const onSlot of [true, false]) {
+    const m = slotMenu(onSlot);
+    if (!m) continue;
+    pressed.add(m.target.dataset.act);
+    await press(`plan:${m.target.dataset.act}`, m.c, m.el, m.target);
+  }
+  watching = false;
+  watched.forEach(([o], i) => Object.setPrototypeOf(o, protos[i]));
   ctx.history = saved.history; ctx.window.history = saved.wHistory;
   ctx.open = saved.open; ctx.window.open = saved.wOpen;
+  ctx.dispatchEvent = saved.dispatch; ctx.window.dispatchEvent = saved.wDispatch;
+  Node.prototype.dispatchEvent = saved.nodeDispatch;
   delete ctx.location; delete ctx.window.location;
   ctx.location = saved.location; ctx.window.location = saved.wLocation;
-  ctx.CustomEvent = saved.CustomEvent;
   ctx.navigateTo = saved.navigateTo; ctx.openHaLink = saved.openHaLink;
 
   check("haLink builds the three deep links Home Assistant routes",
@@ -11367,10 +11470,16 @@ check("without an indoor reading the corner now label is absent",
   check("the census reached every navigateTo and openHaLink call site",
     sites.length > 0 && unreached.length === 0,
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
+  const ACT = /\bact === "([a-z_]+)"|\bact: "([a-z_]+)"|data-act="([a-z_]+)"/g;
+  const acts = [...new Set([...cardSrc.matchAll(ACT)].map((m) => m[1] || m[2] || m[3]))];
+  const unpressed = acts.filter((a) => !pressed.has(a));
+  check("the census pressed every act the card's source names",
+    acts.length > 0 && unpressed.length === 0,
+    `acts ${acts.join(",")}; unpressed ${unpressed.join(",")}`);
   check("no press throws",
     threw.length === 0, threw.join("; "));
-  check("every link the census records from a press is one haLink builds for this entry",
-    wrong.length === 0, wrong.join("; "));
+  check("every link, read and event the census records is one haLink builds or the known set allows",
+    wrong.size === 0, [...wrong].join("; "));
   const stale = Object.keys(PENDING).filter((k) => !seen[k] || !seen[k].has(`push ${PENDING[k].path}`));
   check("every PENDING row still names a button that makes its unconverted navigation",
     stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
