@@ -431,9 +431,13 @@ def self_test() -> int:
         wt = os.path.join(td, "claude-4242", f"-Users-{fake_name}-repo--wt", "sess", "scratchpad", "fix-9")
         g("worktree", "add", "-q", "-b", "fix-9", wt)
         Path(wt, "dirty").write_text("x\n")
-        wt2 = os.path.join(td, "elsewhere", "fix-10")
+        # The plant leaks by construction on every host: it names the planted
+        # home, never the temp root, which is a host path on macOS
+        # (/var/folders) and none on Linux (/tmp) -- the #2316 CI red.
+        wt2 = os.path.join(home, "elsewhere", "fix-10")
         g("worktree", "add", "-q", "-b", "fix-10", wt2)
-        g("commit", "-q", "--allow-empty", "-m", "notes from " + wt2, cwd=wt2)
+        planted_msg = "notes from " + wt2
+        g("commit", "-q", "--allow-empty", "-m", planted_msg, cwd=wt2)
         r = subprocess.run(["bash", str(ROOT / "tools/audit/seat/wt_sync.sh")], cwd=main, env=env,
                            capture_output=True, text=True)
         refs = subprocess.run(["git", "--git-dir", bare, "for-each-ref", "refs/heads/wip-sync",
@@ -446,6 +450,9 @@ def self_test() -> int:
         bad = [(ref, refusal(ref.removeprefix("refs/heads/"), (("the message", msg),), wid)) for ref, msg in pairs]
         ok("no wip-sync ref name or message it pushed leaks the planted host",
            all(b is None for _, b in bad), "; ".join(f"{b}" for _, b in bad if b))
+        ok("the planted message is itself a leak under the planted identity (the plant's precondition)",
+           (refusal("fix-10", (("the message", planted_msg),), wid) or "").startswith("home-directory"),
+           str(refusal("fix-10", (("the message", planted_msg),), wid)))
         ok("the worktree whose unpushed commit names its path is refused, not pushed",
            len(pairs) == 1 and "REFUSE" in r.stderr, f"{len(pairs)} ref(s); err={r.stderr[-300:]!r}")
 
