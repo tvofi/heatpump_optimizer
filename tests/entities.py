@@ -15457,9 +15457,14 @@ def _gl_lease_class_sweep() -> tuple[bool, str]:
                                      or seconds >= _gate_lock.SLOT_MIN_SECONDS):
                 unleased.append(script)
     ok = len(dispatched) >= floor and not unleased
-    return ok, (f"dispatched={len(dispatched)} (floor {floor}) "
-                f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
-                f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
+    detail = (f"dispatched={len(dispatched)} (floor {floor}) "
+              f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
+              f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
+    # Printed on a PASS as well as carried into the failure: the census's own
+    # shape is the evidence a body cites, and a row that prints only when it
+    # fails shows the reader nothing about the class it just cleared.
+    print(f"lease class: {detail}")
+    return ok, detail
 
 
 _gl_sweep_ok, _gl_sweep_detail = _gl_lease_class_sweep()
