@@ -1,0 +1,5 @@
+RESULT mutant=T1b_census_only_throw_on_press rc=1 fails=1
+    FAIL  no press throws
+      advisor:settings: census-only boom; advisor:settings: census-only boom; advisor:settings: census-only boom; advisor:settings: census-only boom; health:diagnostics: census-only boom; health:settings: c
+RESULT mutant=K1_navigation_api_in_try rc=0 fails=0
+RESULT mutant=NULL_no_plant rc=0 fails=0
