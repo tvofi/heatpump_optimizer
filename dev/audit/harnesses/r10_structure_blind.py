@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+"""The structural ratchet's class row: a move against a merge (R10-STRUCTURE-BLIND).
+
+Written by the R10-STRUCTURE-BLIND fixer (#2235, findings D7-s1-01 and
+D7-s3-01; the forward-carried control from the fix review of #2285).
+Every arm drives the production ``tests/structure.py:measure`` of ``--structure``
+(default ``tests/structure.py``) over an in-memory copy of the tree:
+``module_trees`` is swapped and nothing on disk changes.
+
+  null           the unchanged tree, measured twice: every key equal
+                 (``null_keys_moved``).
+  move           the planted move: the first coordinator method of exactly
+                 ``MOVE_LOC`` lines that only ``self.<name>(`` calls reach is
+                 cut out of the class verbatim into a module-level
+                 ``_r10moved(self, ...)`` helper in coordinator.py, its call
+                 sites rewritten to ``_r10moved(self, ...)``. Nothing is
+                 improved, so a class row must not fall
+                 (``move_class_excess_delta``; ``move_max_class_loc_delta`` is
+                 the same move read by the largest-class row).
+  merge          the same method duplicated in the class as ``_r10copy``
+                 (called beside it) is the base; merging the copy back away is
+                 a de-duplication, which a class row must price
+                 (``merge_class_excess_delta``).
+  six            D7-s3-01's six members: how many the census measures dead
+                 (``six_measured_dead``) and how many it can only keep by name
+                 (``six_name_kept``); the perturbation feeds one load the
+                 source types to ``Cusum`` and the count must fall by one
+                 (``six_measured_dead_with_a_typed_cusum_reset``).
+  second         1201 lines of called, CC-1 code in ``HeatPumpOptimizer``,
+                 the second-largest class: D7-s1-01's arm
+                 (``second_keys_moved``, the keys that rose).
+
+Command:
+  PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_structure_blind.py [--structure PATH]
+
+Expected at the fix head:
+  RESULT null_keys_moved=0 count
+  RESULT move_class_excess_delta=0 lines
+  RESULT move_max_class_loc_delta=-12 lines
+  RESULT merge_class_excess_delta=-12 lines
+  RESULT second_keys_moved=1 count
+  RESULT six_measured_dead=4 count
+  RESULT six_name_kept=2 count
+  RESULT six_measured_dead_with_a_typed_cusum_reset=3 count
+At the merge base (``--structure`` a base copy, which has no class_excess_loc
+row): move_class_excess_delta and merge_class_excess_delta print ``absent``,
+second_keys_moved=0 -- the base prices neither the second class nor a merge
+apart from a move -- and six_measured_dead=0 with six_name_kept=6.
+Perturbation: in ``class_excess`` drop ``loc += helper_loc`` -> the move arm
+reads -12, a move priced as a gain again.
+"""
+from __future__ import annotations
+
+import os
+
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+
+import ast  # noqa: E402
+import importlib.util  # noqa: E402
+import re  # noqa: E402
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[3]
+MOVE_LOC = 12
+PAD_METHODS, PAD_LINES = 10, 120   # 1201 lines with the call, each under 150
+COORD = "HeatPumpOptimizerCoordinator"
+# D7-s3-01's six: dead in production, kept alive by a shared name.
+SIX = [("drift.py", "Cusum", "reset"), ("inputs.py", "InputReader", "value"),
+       ("inputs.py", "InputReader", "text"), ("inputs.py", "InputReader", "flag"),
+       ("boost.py", "BoostState", "as_dict"),
+       ("coordinator.py", "HeatPumpOptimizerCoordinator", "dhw_temperature")]
+
+args = sys.argv[1:]
+spath = Path(args[args.index("--structure") + 1]) if "--structure" in args \
+    else ROOT / "tests" / "structure.py"
+sys.path.insert(0, str(ROOT / "tests"))
+spec = importlib.util.spec_from_file_location("structure_under_test", spath)
+S = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(S)
+S.REPO_ROOT = ROOT
+S.PACKAGE_DIR = ROOT / "custom_components" / "heatpump_optimizer"
+S.BUDGET_FILE = ROOT / "tests" / "structure_budgets.json"
+S.SEAM_MAP_FILE = ROOT / "tests" / "seam_map.json"
+PKG = S.PACKAGE_DIR
+
+
+def pick(src: str, others: str) -> ast.FunctionDef:
+    """The method the planted move cuts: MOVE_LOC lines, plain, reached by self.<name>( only."""
+    tree = ast.parse(src)
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == COORD)
+    for item in cls.body:
+        if not isinstance(item, ast.FunctionDef) or item.decorator_list \
+                or S.span_loc(item) != MOVE_LOC or item.name.startswith("__") \
+                or "super()" in ast.get_source_segment(src, item):
+            continue
+        name = item.name
+        calls = len(re.findall(rf"\bself\.{name}\(", src))
+        loads = len(re.findall(rf"\.{name}\b", src))
+        if calls and calls == loads and not re.search(rf"\b{name}\b", others):
+            return item
+    raise SystemExit("no movable method of %d lines" % MOVE_LOC)
+
+
+def move(src: str, item: ast.FunctionDef, keep_method: bool, helper: bool) -> str:
+    lines = src.splitlines()
+    body = lines[item.lineno - 1:item.end_lineno]
+    indent = len(body[0]) - len(body[0].lstrip())
+    out = lines[:item.lineno - 1] + lines[item.end_lineno:] if not keep_method else lines[:]
+    if helper:
+        dedented = [ln[indent:] if ln.strip() else ln for ln in body]
+        dedented[0] = dedented[0].replace(f"def {item.name}(", "def _r10moved(", 1)
+        text = "\n".join(out) + "\n\n\n" + "\n".join(dedented) + "\n"
+        return text.replace(f"self.{item.name}(", "_r10moved(self, ").replace(
+            "_r10moved(self, )", "_r10moved(self)")
+    copy = list(body)
+    copy[0] = copy[0].replace(f"def {item.name}(", "def _r10copy(", 1)
+    end = next(n for n in ast.parse(src).body
+               if isinstance(n, ast.ClassDef) and n.name == COORD).end_lineno
+    out = lines[:end] + copy + lines[end:]
+    text = "\n".join(out) + "\n"
+    return re.sub(rf"(self\.{item.name}\(([^()]*)\))", r"(\1, self._r10copy(\2))", text, count=1)
+
+
+def pad(src: str) -> str:
+    """D7-s1-01's pad: PAD_METHODS chained methods of PAD_LINES, called from __init__."""
+    tree = ast.parse(src)
+    cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == "HeatPumpOptimizer")
+    init = next(m for m in cls.body if isinstance(m, ast.FunctionDef) and m.name == "__init__")
+    lines = src.splitlines()
+    ind, mind = " " * init.body[-1].col_offset, " " * init.col_offset
+    block = []
+    for m in range(PAD_METHODS):
+        block += [f"{mind}def _r10pad{m}(self):", f"{ind}acc = {m}.5"]
+        block += [f"{ind}acc = acc * {m * 1000 + k + 2} + {k * 7 + 3}" for k in range(PAD_LINES - 3)]
+        block.append(f"{ind}return (acc, {f'self._r10pad{m + 1}()' if m + 1 < PAD_METHODS else 'None'})")
+    out = lines[:init.end_lineno] + [f"{ind}self._r10pad0()"] + \
+        lines[init.end_lineno:cls.end_lineno] + block + lines[cls.end_lineno:]
+    return "\n".join(out) + "\n"
+
+
+def measure(edits: dict[str, str], add: tuple[str, ...] = (), drop: tuple[str, ...] = ()) -> dict:
+    orig, orig_seams = S.module_trees, S.load_seam_map
+
+    def trees():
+        return [(p, ast.parse(edits[p.name], filename=str(p)) if p.name in edits else t)
+                for p, t in orig()]
+
+    def seams():
+        m = {k: v for k, v in orig_seams().items() if k not in drop}
+        m.update({k: m.get("__init__", next(iter(m.values()))) for k in add})
+        return m
+
+    S.module_trees, S.load_seam_map = trees, seams
+    try:
+        result = S.measure()
+        result["metrics"]["_tables"] = result["tables"]
+        return result["metrics"]
+    finally:
+        S.module_trees, S.load_seam_map = orig, orig_seams
+
+
+def delta(a: dict, b: dict, key: str) -> str:
+    return str(b[key] - a[key]) if key in a and key in b else "absent"
+
+
+coord_src = (PKG / "coordinator.py").read_text()
+others = "\n".join(p.read_text() for p in sorted(PKG.rglob("*.py")) if p.name != "coordinator.py")
+item = pick(coord_src, others)
+print(f"moved method: {COORD}.{item.name} ({S.span_loc(item)} lines)")
+
+base = measure({})
+again = measure({})
+moved = measure({"coordinator.py": move(coord_src, item, keep_method=False, helper=True)},
+                add=("coordinator._r10moved",), drop=(item.name,))
+copied = measure({"coordinator.py": move(coord_src, item, keep_method=True, helper=False)},
+                 add=("_r10copy",))
+second = measure({"optimizer.py": pad((PKG / "optimizer.py").read_text())})
+
+print(f"RESULT null_keys_moved={sum(1 for k in base if k != '_tables' and again.get(k) != base[k])} count")
+print(f"RESULT move_class_excess_delta={delta(base, moved, 'class_excess_loc')} lines")
+print(f"RESULT move_max_class_loc_delta={delta(base, moved, 'max_class_loc')} lines")
+print(f"RESULT merge_class_excess_delta={delta(copied, base, 'class_excess_loc')} lines")
+rose = sorted(k for k in base if k != "_tables" and second.get(k, base[k]) > base[k])
+print(f"second-class keys that rose: {rose}")
+print(f"RESULT second_keys_moved={len(rose)} count")
+
+
+def six(metrics: dict) -> tuple[int, int]:
+    t = metrics["_tables"]
+    dead = {(Path(rel).name, cls, name) for rel, cls, name, _line in t["dead_methods"]}
+    kept = {(Path(rel).name, cls, name) for rel, cls, name in t["name_kept"]}
+    return sum(1 for m in SIX if m in dead), sum(1 for m in SIX if m in kept)
+
+
+d, k = six(base)
+print(f"RESULT six_measured_dead={d} count")
+print(f"RESULT six_name_kept={k} count")
+fed = measure({"drift.py": (PKG / "drift.py").read_text() + "\n\nCusum(threshold=1.0, drift=0.0).reset()\n"})
+print(f"RESULT six_measured_dead_with_a_typed_cusum_reset={six(fed)[0]} count")
