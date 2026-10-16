@@ -2,6 +2,7 @@
 """Name a local path for publication, and refuse a push that would publish the host.
 
     python3 -I tools/audit/seat/ref_privacy.py slug <path> [--root NAME=DIR]...
+    python3 -I tools/audit/seat/ref_privacy.py path <path>      (~/-relative for a posted text)
     python3 -I tools/audit/seat/ref_privacy.py guard --ref <ref> [--message <text>]...
                                                      [--commits <rev> [-C <dir>]]
     python3 -I tools/audit/seat/ref_privacy.py --check [--ref <commit>]
@@ -229,6 +230,29 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> 
         if why:
             return f"{', '.join(why)} in {where}"
     return None
+
+
+#: The classes a comment body is judged on: this host's own identity, and any
+#: session temp root. A comment may quote another home (a planted fixture's
+#: `/Users/exampleuser`), so the generic host-path class is a ref-name rule only.
+BODY_CLASSES = ("home-directory", "account-name", "uid", "scratch-root")
+
+
+def body_refusal(text: str, ident: Identity | None = None) -> str | None:
+    """Why posting this comment or review body would publish this host, or None."""
+    why = [c for c in leaks(text, ident or Identity.of_host()) if c in BODY_CLASSES]
+    return f"{', '.join(why)} in the body" if why else None
+
+
+def home_relative(path: str, home: str | None = None) -> str:
+    """A local path as a posted text names it: `~/<rest>` under the home
+    directory (as written or resolved), else unchanged. A reader resolves `~`
+    against its own $HOME (app_approve.sh's evidence gate)."""
+    home = os.environ.get("HOME", "") if home is None else home
+    for h in dict.fromkeys((home.rstrip("/"), os.path.realpath(home).rstrip("/") if home else "")):
+        if h and (path == h or path.startswith(h + "/")):
+            return "~" + path[len(h):]
+    return path
 
 
 def slug(path: str, roots=(), ident: Identity | None = None) -> str:
@@ -470,6 +494,15 @@ def self_test() -> int:
     ok("a noreply address passes, even naming the account (the null control)",
        email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
        and email_leaks("noreply@anthropic.com", fid) == [])
+    bodyleak = "evidence: " + fake_home + "/.zcode/bus/verdicts/7/abc/evidence"
+    ok("a comment body naming this host's home is refused (the bus evidence line)",
+       (body_refusal(bodyleak, fid) or "").startswith("home-directory, account-name"), str(body_refusal(bodyleak, fid)))
+    ok("and the same line home-relative passes, as does a quoted other home (the null control)",
+       body_refusal("evidence: ~/.zcode/bus/verdicts/7/abc/evidence", fid) is None
+       and body_refusal("planted " + under("Users", "someone", "y"), fid) is None)
+    ok("home_relative: under the home is ~/<rest>; outside it, or a sibling sharing its prefix, unchanged",
+       home_relative(fake_home + "/.zcode/bus/x", fake_home) == "~/.zcode/bus/x"
+       and home_relative("/srv/x", fake_home) == "/srv/x" and home_relative(fake_home + "s/x", fake_home) == fake_home + "s/x")
     host = Identity.of_host()
     ok("the host identity reads a home and a hostname, and judges no public account",
        bool(host.homes) and bool(host.hosts) and not set(host.names) & PUBLIC_ACCOUNTS)
@@ -645,6 +678,9 @@ def main(argv: list[str]) -> int:
     if argv[:1] == ["--check"]:
         ref = argv[argv.index("--ref") + 1] if "--ref" in argv else "HEAD"
         return check(ref)
+    if argv[:1] == ["path"] and len(argv) == 2:
+        print(home_relative(argv[1]))
+        return 0
     if argv[:1] == ["slug"] and len(argv) >= 2:
         roots, rest = [], argv[2:]
         while rest[:1] == ["--root"] and len(rest) >= 2 and "=" in rest[1]:
