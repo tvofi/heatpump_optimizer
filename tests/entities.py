@@ -29563,6 +29563,12 @@ def _sp_literals(src, opened=True):
             and n.body and isinstance(n.body[0], ast.Expr)
             and isinstance(n.body[0].value, ast.Constant)}
     binds = _sp_bindings(tree)
+    # The literal parts of an f-string, so a leading slash is stripped only for
+    # `f"{root}/<path>"` and never for a plain absolute string (which the token
+    # regex below would refuse anyway, but `/dev/null` inside a quoted literal
+    # must not become the repository's `dev/null`).
+    fstr = {id(c) for j in ast.walk(tree) if isinstance(j, ast.JoinedStr)
+            for c in j.values if isinstance(c, ast.Constant)}
     via, opens = {}, set()
     for n in ast.walk(tree):
         if not isinstance(n, ast.Call):
@@ -29587,7 +29593,7 @@ def _sp_literals(src, opened=True):
         # `f"{os.getcwd()}/<path>"` leaves the literal part with a leading slash,
         # which is the repository's own root once the interpolated prefix is the
         # cwd -- the one f-string shape the round-1 review planted.
-        v = n.value[1:] if n.value.startswith("/") else n.value
+        v = n.value[1:] if id(n) in fstr and n.value.startswith("/") else n.value
         if re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v) and v.split("/")[0] in _SP_TOPS:
             out.append((n.lineno, v, via.get(id(n), lambda x: x)(v)))
     return out
