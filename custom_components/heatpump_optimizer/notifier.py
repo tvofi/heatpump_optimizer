@@ -23,7 +23,7 @@ floor-return sensor that has given no usable value for
 ``FLOOR_RETURN_SILENT_MINUTES``. Without it the slab is advanced open-loop
 from the plan's own trajectory, which a live install ran on unannounced.
 :func:`floor_return_silence` is the pure finding; :class:`FloorReturnWatch`
-holds its clock and writes it through ``setpoint_check.set_issue``.
+holds its clock and writes it through ``issues.set_issue``.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
 from .payload import InputProblem, Payload
-from .setpoint_check import set_issue
+from .issues import set_issue
 from .store import QuarantiningStore
 
 _LOGGER = logging.getLogger(__name__)
