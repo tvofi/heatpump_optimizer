@@ -1,0 +1,35 @@
+  ok   the old wt_sync slug of a scratch path is refused
+  ok   slug() of that path is ext-<leaf>-<hash>
+  ok   and passes the guard (the null control)
+  ok   slug() is stable for one path
+  ok   and distinct for two paths sharing a leaf
+  ok   a leaf carrying the account name falls back to ext-<hash>
+  ok   a leaf named after the temp root falls back too
+  ok   a path under a named root is <name>-<rest>
+  ok   --root naming the home directory still yields no leak
+  ok   a planted leaking ref name is refused
+  ok   a planted leaking message is refused, and named as the message
+  ok   the clean name and message pass (the null control)
+  ok   the account name is judged as a word, not a substring
+  ok   the uid is judged in the temp root's shape only
+  ok   a public runner path passes
+  ok   another host's home is refused
+  ok   a per-user macOS temp is refused
+  ok   an unpublishable ref character is refused
+  ok   the host identity reads a home, and judges no public account
+  ok   --commits judges the local commit only, not the one origin holds
+  ok   the guard CLI refuses an unpushed commit naming the scratch path, exit 3
+  ok   and passes the same branch one commit earlier (the null control)
+  ok   an unreadable range refuses (fail closed), exit 2
+  ok   wt_sync pushed a snapshot of the dirty scratch worktree
+  ok   no wip-sync ref name or message it pushed leaks the planted host
+  ok   the planted message is itself a leak under the planted identity (the plant's precondition)
+  ok   the worktree whose unpushed commit names its path is refused, not pushed
+  ok   body_push refuses a topic naming a host path, and pushes nothing
+  ok   and pushes a clean topic (the null control)
+  ok   the site rule finds shell and Python pushes, not comments, .push( or excluded paths
+  ok   an unregistered pusher is refused
+  ok   a stale entry is refused
+  ok   guarded files that call the guard pass (the null control)
+  ok   a guarded entry that calls no guard is refused
+ref_privacy self-test: 34 checks, 0 failed

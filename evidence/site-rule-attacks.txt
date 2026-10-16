@@ -1,0 +1,14 @@
+MISSED  "$GIT" push -q origin "$c:refs/heads/x/$s"
+MISSED  $GIT push origin HEAD:refs/heads/x
+found   "${git[@]}" push origin x
+found   GIT_DIR=x command git push origin x
+found   subprocess.run(cmd + ["push", "origin", ref])
+found   subprocess.run(base + ["push"])
+found   spawnSync("git", ["push", "origin", ref])
+found   execSync(`git push origin ${ref}`)
+MISSED  gh api repos/$R/git/refs -f ref=refs/heads/$slug -f sha=$c
+MISSED  gh api -X PATCH repos/$R/git/refs/heads/$slug -f sha=$c
+MISSED  subprocess.run(["gh","api",f"repos/{r}/git/refs","-f",f"ref={ref}"])
+MISSED  git send-pack origin "$c:refs/heads/$s"
+found   xargs git push origin
+MISSED  hub push origin x

@@ -1,0 +1,2 @@
+local refs/remotes/origin/*: 2194; whose name the guard refuses under the host identity: 0
+origin refs (ls-remote, peeled lines dropped): 2339; refused under host identity: 0

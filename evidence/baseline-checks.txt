@@ -1,0 +1,9 @@
+rc=0 python3 -I tools/audit/seat/ref_privacy.py --self-test :: ref_privacy self-test: 34 checks, 0 failed
+rc=0 python3 -I tools/audit/seat/ref_privacy.py --check :: ref_privacy --check at HEAD: 15 file(s) with a push site, 8 guarded, 0 refused
+rc=0 python3 tools/audit/seat/state_docs.py --self-test :: state_docs self-test: all checks passed
+rc=0 python3 tools/audit/seat/roster_edit.py --self-test :: roster_edit self-test: 47 checks, 0 failed
+rc=0 bash tools/pr/app_push.sh --self-test :: app_push self-test: 127 checks, 0 failed
+rc=0 bash tools/pr/push.sh --self-test :: 77 passed, 0 failed
+rc=0 bash tools/audit/seat/bus.sh --self-test :: bus self-test: 61 checks, 0 failed
+stamp leaky title: rc=2 stamp refused (rule title): host-path in the title would publish this host; nothing was written
+stamp ordinary title: stamp refused (rule 1): HEAD 9d7beec is not origin/main 25afc1c; stamps go on main only

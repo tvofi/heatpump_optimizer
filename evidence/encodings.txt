@@ -1,0 +1,29 @@
+REFUSED  slug Users-x                       account-name, host-path in the ref name
+REFUSED  slug users-x lowercase             account-name in the ref name
+REFUSED  slug other host Users-             host-path in the ref name
+passed   slug other host users- lc          
+REFUSED  ref claude-uid no tmp              uid in the ref name
+passed   ref other uid no tmp               
+REFUSED  ref tmp-claude-otheruid            scratch-root in the ref name
+REFUSED  ref mixed-case name                account-name in the ref name
+REFUSED  ref name_underscore                account-name in the ref name
+passed   ref name glued                     
+REFUSED  ref URL-escaped                    unpublishable in the ref name
+passed   msg URL-escaped %2F                
+passed   msg URL-escaped %2f                
+REFUSED  msg file:// URL                    host-path in the message
+REFUSED  msg /home/someone                  host-path in the message
+passed   msg /HOME/someone upper            
+passed   msg /USERS/someone upper           
+passed   msg other-host bare name           
+REFUSED  msg ~exampleuser                   account-name in the message
+REFUSED  msg email local-part               account-name in the message
+passed   msg backslash windows              
+REFUSED  msg /home/claude cloud             host-path in the message
+REFUSED  msg /private/var/folders           host-path in the message
+passed   msg /var/folders bare              
+passed   msg json-escaped slash             
+passed   msg tilde-expansion $HOME literal  
+passed   null: /home/runner                 
+passed   null: Users guide                  
+passed   null: PR #4242                     
