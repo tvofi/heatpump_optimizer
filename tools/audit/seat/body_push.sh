@@ -34,5 +34,7 @@ TREE=$(git mktree < "${TMPDIR:-/tmp}/body_push.$$")
 rm -f "${TMPDIR:-/tmp}/body_push.$$"
 # shellcheck disable=SC2086 # $P is empty or exactly "-p <sha>"
 C=$(git commit-tree "$TREE" $P -m "body: $TOPIC")
+# The topic names the ref and the message: refuse one that names this host (#2310).
+python3 -I "$(dirname "$0")/ref_privacy.py" guard --ref "$REF" --message "body: $TOPIC"
 git push -q origin "$C:refs/heads/$REF"
 echo "$REF $C"
