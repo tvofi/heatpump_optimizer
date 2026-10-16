@@ -1,0 +1,131 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..2fa80946e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -16,7 +16,6 @@ import bisect
+ import contextvars
+ import copy
+ import functools
+-import hashlib
+ import inspect
+ import json
+ import logging
+@@ -3054,11 +3053,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
+             lead=timedelta(hours=max(LEAD_BUCKETS)),
+         )
+-        # Serialized form of the last payload each store accepted, keyed by
+-        # store name. An every-cycle save that rewrites unchanged content is
+-        # pure disk wear; a digest recorded only after a successful save means
+-        # a failed write is retried on the next cycle rather than skipped.
+-        self._store_digests: dict[str, str] = {}
+ 
+         # --- Defrost derate (item 14) --------------------------------------
+         self._defrost = DefrostDerate()
+@@ -7953,29 +7947,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             ctx._config.comfort_weight,
+         )
+         self._apply_comfort_weight()
+-    async def _async_save_if_changed(
+-        self, name: str, store: QuarantiningStore[dict[str, Any]], payload: dict[str, Any]
+-    ) -> None:
+-        """Write ``payload`` unless the store already holds exactly it.
+-
+-        Both callers run every cycle and most change nothing: a rewrite is
+-        disk wear. The digest is remembered only after the store accepted
+-        the payload, so a failed save is retried, not skipped as written.
+-        """
+-        digest = hashlib.sha256(
+-            json.dumps(payload, sort_keys=True, default=str).encode()
+-        ).hexdigest()
+-        if self._store_digests.get(name) == digest:
+-            return
+-        await store.async_save(payload)
+-        self._store_digests[name] = digest
+-
+     async def _async_save_accuracy(self) -> None:
+         try:
+             await self._accuracy_store.async_wait_for_read()  # D1-s2-52
+-            await self._async_save_if_changed(
+-                "accuracy",
+-                self._accuracy_store,
++            await self._accuracy_store.async_save_if_changed(
+                 {
+                     "accuracy": self._accuracy.as_dict(),
+                     # v5.2.0: the tank's lead record, alongside the room's
+@@ -8018,9 +7993,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+     async def _async_save_energy_totals(self) -> None:
+         try:
+             await self._energy_store.async_wait_for_read()  # D1-s2-52
+-            await self._async_save_if_changed(
+-                "energy_totals",
+-                self._energy_store,
++            await self._energy_store.async_save_if_changed(
+                 {
+                     **self._energy_totals,
+                     # The accumulators' stated period ("since"): written once
+diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
+index bda33bee5..a83233f77 100644
+--- a/custom_components/heatpump_optimizer/store.py
++++ b/custom_components/heatpump_optimizer/store.py
+@@ -26,6 +26,8 @@ constructions outside it) and drives a non-finite leaf through each boundary.
+ from __future__ import annotations
+ 
+ import asyncio
++import hashlib
++import json
+ import logging
+ import math
+ from collections.abc import Mapping, Sequence
+@@ -581,6 +583,9 @@ class QuarantiningStore(Store[_StorePayload]):
+     #: The read in flight, kept until the next one, and the tasks reading.
+     _reading: asyncio.Future[None] | None = None
+     _readers: frozenset[asyncio.Task[Any] | None] = frozenset()
++    #: Digest of the payload the last ``async_save_if_changed`` saw accepted;
++    #: ``None`` once anything else wrote the store, or before any write.
++    _digest: str | None = None
+ 
+     def __init__(
+         self,
+@@ -686,6 +691,7 @@ class QuarantiningStore(Store[_StorePayload]):
+         on itself (#1740) -- or on a second load, which Home Assistant parks
+         on the first (#1869).
+         """
++        self._digest = None
+         if asyncio.current_task() not in self._readers:
+             await self.async_wait_for_read()
+         if self._store_key in _NEWER_ON_DISK:  # kept for the release that wrote it
+@@ -693,6 +699,21 @@ class QuarantiningStore(Store[_StorePayload]):
+             return
+         await super().async_save(data)
+ 
++    async def async_save_if_changed(self, data: Any) -> None:
++        """``async_save``, unless this store last accepted exactly ``data``.
++
++        For a writer that runs every cycle and mostly changes nothing: a
++        rewrite is disk wear. The digest is the store's own, so it describes
++        what this store holds and no other writer can go round it -- a plain
++        ``async_save`` forgets it -- and it is recorded only after the save
++        returned, so a failed write is retried, not skipped as written.
++        """
++        digest = hashlib.sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
++        if digest == self._digest:
++            return
++        await self.async_save(data)
++        self._digest = digest
++
+     async def async_wait_for_read(self) -> None:
+         """Return once the read in flight, if any, has landed.
+ 
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index fac22da5d..49460ff4d 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -29,7 +29,6 @@
+   "_async_peak_guard_transition": "grid",
+   "_async_save_accuracy": "core",
+   "_async_save_energy_totals": "core",
+-  "_async_save_if_changed": "core",
+   "_async_save_ledger": "grid",
+   "_async_save_manual_plan": "core",
+   "_async_save_price_model": "fetch",

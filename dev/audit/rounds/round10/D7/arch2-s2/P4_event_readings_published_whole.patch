@@ -1,0 +1,62 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..94400d3bc 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -3237,18 +3237,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+     @callback
+     def _async_handle_ecl110_state_message(self, msg: Any) -> None:
+         """Store an ECL110 state payload; a malformed or non-finite one is logged and dropped whole."""
+-        ctx = getattr(self, "_ctx", self)
+         try:
+             window = self._ecl110_displace_min, self._ecl110_displace_max
+             displace, effective = _parse_ecl110_state(msg.payload, window)
+         except (TypeError, ValueError, OverflowError, RecursionError) as err:
+             _LOGGER.debug("Ignoring malformed ECL110 state payload: %s", err)
+             return
+-        if effective is not None:
+-            ctx._current_state.ecl110_effective_displace = effective
+         if displace is not None:
+             self._ecl110_current_displace = displace
+-            ctx._current_state.ecl110_displace_command = displace
++        self._publish_live_state(**{k: v for k, v in (
++            ("ecl110_effective_displace", effective), ("ecl110_displace_command", displace)) if v is not None})
++    def _publish_live_state(self, **changes: Any) -> None:
++        """Replace the live thermal state whole with an event's reading: whoever holds the old record keeps it."""
++        ctx = _ctx_of(self)
++        self._ctx = replace(ctx, _current_state=replace(ctx._current_state, **changes))
++
+     @property
+     def device_info(self) -> DeviceInfo:
+         """Device registry entry shared by every platform of this entry.
+@@ -8475,16 +8478,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             key=lambda pair: pair[0] - pair[1],
+             default=(projection, float("inf")),
+         )
+-        changed = self._peak_guard.update(
+-            now,
+-            key,
+-            proj_eff,
+-            threshold,
+-            margin,
+-            floor_hold=self._guard_floor_hold(),
+-        )
++        changed = self._peak_guard.update(now, key, proj_eff, threshold, margin,
++                                          floor_hold=self._guard_floor_hold())
+         if changed:
+-            ctx._current_state.peak_guard_active = self._peak_guard.suppressing
++            self._publish_live_state(peak_guard_active=self._peak_guard.suppressing)
+             self._spawn(self._async_peak_guard_transition())
+     def _guard_floor_hold(self) -> bool:
+         """Whether a hard floor outranks suppression right now.
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index fac22da5d..54b7bcee1 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -156,6 +156,7 @@
+   "_price_prior": "fetch",
+   "_price_series": "fetch",
+   "_price_tile_specs": "fetch",
++  "_publish_live_state": "core",
+   "_pv_config": "core",
+   "_pv_export_price": "fetch",
+   "_pv_forecast": "core",

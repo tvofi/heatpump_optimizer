@@ -1,0 +1,1 @@
+RESULT event_hub_inplace_writes=0 count

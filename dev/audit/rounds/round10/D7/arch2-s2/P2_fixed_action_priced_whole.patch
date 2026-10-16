@@ -1,0 +1,108 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..451fef21c 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -3169,6 +3169,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+     # write now has its one owner here, and what a collaborator reads it
+     # receives as an explicit input or a published view.
+ 
++    def _fixed_mode_action(self) -> CurrentAction:
++        """Comfort, boost or off's fixed-rule action, priced.
++
++        Built whole before it is adopted: ``boost.adopt_plan`` keeps the dict
++        as the plan base the overlay copies, so a field written onto the live
++        action afterwards landed on that base too, through the alias.
++        """
++        ctx = _ctx_of(self)
++        # Literal dicts: tests/entities.py reads the action sensor's produced
++        # modes, and the D6 claims harness the commanded displace, off source.
++        row: dict[str, Any] = {
++            MODE_COMFORT: {"mode": "comfort", "power_normalized": 0.7, "heat_pump_on": True,
++                           "setpoint": ctx._opt_config.target_temp,
++                           "displace_value": min(4.0, self._ecl110_displace_max)},
++            MODE_BOOST: {"mode": "boost", "power_normalized": 1.0, "heat_pump_on": True,
++                         "setpoint": ctx._opt_config.max_temp,
++                         "displace_value": self._ecl110_displace_max},
++            MODE_OFF: {"mode": "off", "power_normalized": 0.0, "heat_pump_on": False,
++                       "setpoint": ctx._opt_config.min_temp, "displace_value": self._ecl110_displace_min},
++        }[self._mode]
++        p_max = self._thermal_model.params.max_electrical_power
++        return cast(CurrentAction, {**row, "power": p_max * row["power_normalized"],
++                                    "price": self._get_current_price()})
++
+     def adopt_action(self, action: CurrentAction) -> None:
+         """Take ``action`` as the running action.
+ 
+@@ -5341,35 +5365,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # Run optimization if in auto mode
+             if self._mode in (MODE_AUTO, MODE_ECONOMY):
+                 await self.async_run_optimization()
+-            elif self._mode == MODE_COMFORT:
+-                boost.adopt_plan(self, {
+-                    "power": self._thermal_model.params.max_electrical_power * 0.7,
+-                    "setpoint": ctx._opt_config.target_temp,
+-                    "mode": "comfort",
+-                    "power_normalized": 0.7,
+-                    "heat_pump_on": True,
+-                    "displace_value": min(4.0, self._ecl110_displace_max),
+-                })
+-            elif self._mode == MODE_BOOST:
+-                boost.adopt_plan(self, {
+-                    "power": self._thermal_model.params.max_electrical_power,
+-                    "setpoint": ctx._opt_config.max_temp,
+-                    "mode": "boost",
+-                    "power_normalized": 1.0,
+-                    "heat_pump_on": True,
+-                    "displace_value": self._ecl110_displace_max,
+-                })
+-            elif self._mode == MODE_OFF:
+-                boost.adopt_plan(self, {
+-                    "power": 0.0,
+-                    "setpoint": ctx._opt_config.min_temp,
+-                    "mode": "off",
+-                    "power_normalized": 0.0,
+-                    "heat_pump_on": False,
+-                    "displace_value": self._ecl110_displace_min,
+-                })
+-            if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
+-                self._current_action["price"] = self._get_current_price()
++            elif self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
++                boost.adopt_plan(self, self._fixed_mode_action())
+ 
+             # #237: everything below writes to the world, and a plan cut
+             # before a reload must not land on the instance that replaced us.
+diff --git a/tests/entities.py b/tests/entities.py
+index a951a3fb4..7701638db 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -23494,15 +23494,15 @@ R.check(
+ )
+ 
+ # HEAT_PUMP_ACTION_STATES is the one option list with no production constant
+-# behind it -- the four producers write their mode as a string literal -- so
++# behind it -- the five producers write their mode as a string literal -- so
+ # comparing _attr_options to it would be a check supplying the value it then
+ # asserts. Derive the set from the producing SOURCE instead. Rule: inside the
+-# four named producers, every ``mode = "<literal>"`` assignment and every
++# five named producers, every ``mode = "<literal>"`` assignment and every
+ # ``"mode": "<literal>"`` dict entry. A fifth producer, or a new branch in
+ # these four, lands here as an option the list does not cover.
+ _ACTION_PRODUCERS = {
+     "optimizer.py": {"get_current_action", "_idle_action"},
+-    "coordinator.py": {"_async_update_data", "_run_system_identification"},
++    "coordinator.py": {"_async_update_data", "_fixed_mode_action", "_run_system_identification"},
+ }
+ _emitted_modes = set()
+ for _fname, _names in _ACTION_PRODUCERS.items():
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index fac22da5d..030738377 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -91,6 +91,7 @@
+   "_fetch_weather_forecast": "fetch",
+   "_file_dhw_lead_predictions": "dhw",
+   "_file_lead_predictions": "core",
++  "_fixed_mode_action": "core",
+   "_floor_widening": "core",
+   "_fold_capacity_envelope": "core",
+   "_fold_internal_gains": "core",

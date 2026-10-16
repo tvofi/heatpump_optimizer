@@ -1,0 +1,57 @@
+diff -ru a/custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/coordinator.py
+--- a/custom_components/heatpump_optimizer/coordinator.py	2026-10-15 08:49:19
++++ b/custom_components/heatpump_optimizer/coordinator.py	2026-10-15 08:49:19
+@@ -1824,7 +1824,7 @@
+     _opt_config: OptimizationConfig
+ 
+ 
+-class PriceTileRotation:
++class PriceTiles:
+     """#39's what-if tiles and the rotation that refreshes them, one per solve.
+ 
+     ``take`` hands out the next spec and moves the rotation on whatever the
+@@ -2982,7 +2982,7 @@
+         # The standing configuration warnings (fee magnitude and sign, the
+         # modelled lower zone, a contradictory band): raised once per
+         # offending value, cleared unconditionally (setpoint_check.ConfigNotices).
+-        self._config_notices = setpoint_check.ConfigNotices()
++        self._standing_notices = setpoint_check.ConfigNotices()
+         self._ledger = MonthlyLedger()
+         self._ledger_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+             hass,
+@@ -3004,7 +3004,7 @@
+         self._score_day: dict[str, Any] = {}
+         self._operation_score: float | None = None
+         # #39: the price tiles, refreshed one per scheduled solve.
+-        self._price_tiles = PriceTileRotation()
++        self._price_tiles = PriceTiles()
+         # #52: the last settled interval's (planned, realised, actual)
+         # triple, and the latest attribution run over one. In memory only:
+         # a diagnosis is about the interval that just happened.
+@@ -7079,7 +7079,7 @@
+         """
+         worst, source = grid_fee_max_abs_component(schedule, entity_value)
+         currency = self.currency
+-        notices = self._config_notices
++        notices = self._standing_notices
+         notices.report(self.hass, "grid_fee_magnitude", worst if worst > fee_bound(currency) else None, {
+             "rate": f"{worst:.2f}", "source": source, "currency": currency})
+         lowest, sign_source = grid_fee_min_component(schedule, entity_value)
+@@ -7105,7 +7105,7 @@
+             ctx._thermal_params.two_zone_enabled
+             and not ctx._config.lower_floor_temp_entity
+         )
+-        self._config_notices.report(self.hass, "lower_floor_modelled", True if wanted else None)
++        self._standing_notices.report(self.hass, "lower_floor_modelled", True if wanted else None)
+     def _audit_comfort_band(self) -> None:
+         """Say so when the STORED comfort band contradicts itself.
+ 
+@@ -7124,7 +7124,7 @@
+         """
+         found = comfort_band.violations({}, getattr(self, "_ctx", self)._config)
+         problem = comfort_band.describe(found) if found else None
+-        self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
++        self._standing_notices.report(self.hass, "comfort_band_contradiction", problem,
+                                     {"problem": problem} if problem else None)
+ 
+     def _current_grid_fee(self, when: datetime) -> float:
