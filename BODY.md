@@ -28,7 +28,14 @@ The changes:
 
 ## Head
 
-974af2ca3bf35ff7516bce6d8ed5f658e6bf3a2b (merge base 12cf1764df8b715c53e8f19bba9a0b896ba84ad0). Every figure below was re-taken at this head.
+411cbe61bac4404327edab085383ec5dae34b226 (merge base 25afc1c771f9f0a3e60115e3c59326e22461a723).
+
+- The mutation proof and the null control were taken at 974af2ca3.
+- Since then, 411cbe61b changes the wording only:
+  - the check `no press throws` is renamed from a name that over-claimed;
+  - the inert-surface comment now names the four primitives it adds and the Navigation API it omits;
+  - the delivery row carries the PR's retitle.
+- No check's logic changed. The scoped gate and the structure ratchet were re-taken at 411cbe61b.
 
 ## Mutation proof
 
@@ -46,9 +53,9 @@ The changes:
 
 ## Figures
 
-- **Scoped gate:** `GATE_SCOPE=auto bash tests/run.sh` gives MODE: SCOPED (`tests/closure.py select --diff 12cf1764d`). Result: `12 TEST SCRIPT(S) PASSED; 23 SCOPED OUT AND NOT RUN`, rc 0. card_drift.mjs ran in that set and printed `card_drift: identical in all 40 states`.
-- **`python3 tests/structure.py`:** STRUCTURE RATCHET PASSED.
-- **`python3 -I tools/audit/seat/tmp_paths.py --check`:** 0 refused.
+- **Scoped gate:** `GATE_SCOPE=auto bash tests/run.sh` at 411cbe61b gives MODE: SCOPED (`tests/closure.py select --diff 25afc1c77`). Result: `12 TEST SCRIPT(S) PASSED; 23 SCOPED OUT AND NOT RUN`, rc 0. card_drift.mjs ran in that set and printed `card_drift: identical in all 40 states`.
+- **`python3 tests/structure.py`** at 411cbe61b: STRUCTURE RATCHET PASSED.
+- **`python3 -I tools/audit/seat/tmp_paths.py --check`** at 974af2ca3: 0 refused.
 
 ## Red checks
 
