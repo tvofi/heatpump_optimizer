@@ -2,7 +2,7 @@
 """The judge's scripted re-runs: every finding's harness, perturbation and null
 control, serially, under the gate lease, one table row per finding.
 
-`tools/audit/briefs/judge.md` makes a scripted re-run of the headers' commands
+`dev/governance/roles/judge.md` makes a scripted re-run of the headers' commands
 the judge's own measurement, and keeps the verdicts the judge's. So this script
 measures and never decides: a row says what ran, what it printed and whether
 the perturbation moved the number in the stated direction; `void` is the one
@@ -32,7 +32,7 @@ Direction is the finding's `perturbation.expected_direction`: `up`, `down`,
 (relative), `±N` / `+-N` (absolute); anything else is `by-hand`.
 
 `load1` and `thread_factor` are what the harness printed on its main run
-(the harness contract in `tools/audit/README.md` requires both); a harness that
+(the harness contract in `dev/audit/README.md` requires both); a harness that
 printed no `load1` gets the batch's own 1-minute load, flagged, and one that
 printed no `thread_factor` is flagged, as is a factor over 1.05 (re-take).
 
