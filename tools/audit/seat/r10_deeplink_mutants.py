@@ -24,6 +24,7 @@ Plants:
            element / event / window escapes (reads), formaction and an
            unquoted action (links), a run-time hass-action (events), and an
            open() in the slot menu (the menu presses).
+  T1c,T2c  a press that throws, or rejects, only inside the census.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
     python3 tools/audit/seat/r10_deeplink_mutants.py --ablate [ablation ...]
@@ -123,6 +124,12 @@ PLANTS = {
     "C7_unquoted_action_rendered": card(DIAG, '<form action=/config/entities><button>go</button></form>' + DIAG),
     "C8_runtime_hass_action": after_nav('host.dispatchEvent(new CustomEvent(["hass", "action"].join("-"), { detail: { action: "tap" } }));'),
     "C9_open_in_slot_menu": card(MENU_ADD, MENU_ADD + ' open("/config/entities", "_self");'),
+    # A press that throws only inside the census. mut4.py's T1b/T2b keyed on
+    # the census's CustomEvent subclass, which #2317 removed; the census's
+    # open takes one parameter, the rig's inert open none.
+    "T1c_census_only_throw_on_press": after_nav('if (globalThis.open.length === 1) throw new Error("census-only boom");'),
+    "T2c_census_only_async_reject_on_press": after_nav(
+        'if (globalThis.open.length === 1) await Promise.reject(new Error("census-only reject"));'),
 }
 
 # Each census arm deleted, beside the plant it alone refuses (expected rc=0).
