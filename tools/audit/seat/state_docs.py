@@ -63,6 +63,7 @@ SELF = "tools/audit/seat/state_docs.py"
 SEAT = Path(__file__).resolve().parent
 sys.path.insert(0, str(SEAT))
 import roster_lib  # noqa: E402  which roster, hence which round
+import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 #: The beat's default watched ref and sleep. The tip a pass reads is a full
 #: ref name, so a short name that happens to be a prefix matches nothing.
 WATCH_REF = "refs/heads/main"
@@ -436,6 +437,9 @@ def main(argv=None) -> int:
         message = a.message or (
             "state: " + ", ".join(Path(p).name for p in sorted(staged))
             + " regenerated (state_docs.py)")
+        why = ref_privacy.refusal(state_ref, (("the message", message),))
+        if why:
+            raise Refuse(f"{why} would publish this host (#2310); nothing committed")
         cargs = ["git", "commit-tree", tree]
         if prev:
             cargs += ["-p", prev]
@@ -571,6 +575,10 @@ def self_test() -> int:
         roster["groups"][0]["resume"]["stage"] = "done"
         roster_path.write_text(json.dumps(roster, indent=1) + "\n",
                                encoding="utf-8")
+        # a message naming a host path refuses (#2310); the push below is its null
+        rc = main(common + ["--push", "--message", "state: from /Users/" + "exampleuser/x"])
+        ok("a message naming a host path refuses and pushes nothing",
+           rc != 0 and tip_at_origin() == tip, rc)
         rc = main(common + ["--push"])
         ok("changed roster pushes", rc == 0 and tip_at_origin() != tip, rc)
         ok("plan table reflects the roster",
