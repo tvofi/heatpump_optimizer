@@ -1,5 +1,5 @@
 {
- "_rule": "Round-9 finder scopes. A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. check_scopes.py enforces both and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
+ "_rule": "Finder scopes: three seats per dimension from round 10 (tvofi 2026-10-14), each a theme of its dimension's brief. A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly for those steps). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. check_scopes.py enforces both and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
  "_pkg": "custom_components/heatpump_optimizer",
  "D0": {
   "mode": "cells",
@@ -38,14 +38,7 @@
      "steps": [
       "M1",
       "M2",
-      "M3",
-      "M4"
-     ],
-     "axis": [
-      "winter_typical",
-      "winter_extreme",
-      "winter_narrow",
-      "winter_moderate"
+      "M3"
      ]
     }
    ],
@@ -55,16 +48,15 @@
       "**"
      ],
      "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4"
+      "M4",
+      "M5",
+      "M6"
      ],
      "axis": [
-      "summer_typical",
-      "summer_negative",
-      "shoulder",
-      "flat"
+      "winter_typical",
+      "winter_extreme",
+      "winter_narrow",
+      "winter_moderate"
      ]
     }
    ],
@@ -74,8 +66,22 @@
       "**"
      ],
      "steps": [
+      "M4",
       "M5",
-      "M6",
+      "M6"
+     ],
+     "axis": [
+      "summer_typical",
+      "summer_negative",
+      "shoulder",
+      "flat"
+     ]
+    },
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
       "M7"
      ]
     }
@@ -98,75 +104,35 @@
   "seats": {
    "s1": [
     {
+     "files": [
+      "**"
+     ],
      "steps": [
       "M1",
-      "M2",
-      "M3",
-      "M4",
-      "M5",
-      "M6"
-     ],
-     "files": [
-      "custom_components/heatpump_optimizer/{store,ledger,snapshots,dhw_learning,comfort_learning,curve_learning,sysid,accuracy,drift,wear,diagnostics}.py"
+      "M4"
      ]
     }
    ],
    "s2": [
     {
-     "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4",
-      "M5",
-      "M6"
-     ],
      "files": [
-      "custom_components/heatpump_optimizer/{__init__,coordinator,services,repairs,frontend,narrative,diagnosis,comfort_band,const}.py"
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3"
      ]
     }
    ],
    "s3": [
     {
-     "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4",
-      "M5",
-      "M6"
-     ],
      "files": [
-      "custom_components/heatpump_optimizer/{pump_arbiter,pump_mode,pump_schedule,pump_signals,freq_control,mixing_valve,boost,silent_mode,power_guard,setpoint_check,legionella,disinfection,dhw_schedule,dhw_draws,away,presets,manual_plan,climate,switch,button,binary_sensor,sensor,entity}.py"
-     ]
-    }
-   ],
-   "s4": [
-    {
+      "**"
+     ],
      "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4",
       "M5",
       "M6"
-     ],
-     "files": [
-      "custom_components/heatpump_optimizer/{optimizer,thermal_model,defrost,flow_lift,process_worker}.py"
      ]
-    }
-   ],
-   "s5": [
-    {
-     "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4",
-      "M5",
-      "M6"
-     ],
-     "files": "rest"
     }
    ]
   }
@@ -200,8 +166,7 @@
       "**"
      ],
      "steps": [
-      "M2",
-      "M3"
+      "M2"
      ]
     }
    ],
@@ -211,16 +176,8 @@
       "**"
      ],
      "steps": [
-      "M4"
-     ]
-    }
-   ],
-   "s4": [
-    {
-     "files": [
-      "**"
-     ],
-     "steps": [
+      "M3",
+      "M4",
       "M5"
      ]
     }
@@ -230,7 +187,8 @@
  "D3": {
   "mode": "cells",
   "universe": [
-   "custom_components/heatpump_optimizer/*.py"
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
   ],
   "steps": [
    "M1",
@@ -242,42 +200,42 @@
   "seats": {
    "s1": [
     {
+     "files": [
+      "custom_components/heatpump_optimizer/{coordinator,optimizer,thermal_model,sysid,defrost,flow_lift,process_worker,batchmath,price_model,tariff,grid_fee,dhw_planner}.py"
+     ],
      "steps": [
       "M1",
       "M2",
       "M3",
       "M4",
       "M5"
-     ],
-     "files": [
-      "custom_components/heatpump_optimizer/coordinator.py"
      ]
     }
    ],
    "s2": [
     {
+     "files": [
+      "custom_components/heatpump_optimizer/{sensor,binary_sensor,climate,switch,button,entity,store,ledger,snapshots,payload,inputs,topology,entry_config,diagnostics,accuracy,services,const,__init__}.py"
+     ],
      "steps": [
       "M1",
       "M2",
       "M3",
       "M4",
       "M5"
-     ],
-     "files": [
-      "custom_components/heatpump_optimizer/{optimizer,thermal_model,sysid,defrost,flow_lift,price_model,tariff,grid_fee}.py"
      ]
     }
    ],
    "s3": [
     {
+     "files": "rest",
      "steps": [
       "M1",
       "M2",
       "M3",
       "M4",
       "M5"
-     ],
-     "files": "rest"
+     ]
     }
    ]
   }
@@ -299,34 +257,41 @@
   "seats": {
    "s1": [
     {
-     "steps": [
-      "M1",
-      "M2",
-      "M3"
-     ],
      "files": [
-      "custom_components/heatpump_optimizer/www/**"
+      "**"
+     ],
+     "steps": [
+      "M1"
      ]
     }
    ],
    "s2": [
     {
-     "steps": [
-      "M1",
-      "M2",
-      "M3"
+     "files": [
+      "**"
      ],
-     "files": "rest"
+     "steps": [
+      "M2"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
     }
    ]
   }
  },
  "D5": {
-  "mode": "files",
+  "mode": "cells",
   "universe": [
    "README.md",
    "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
-   "docs/setup/**",
    "custom_components/heatpump_optimizer/*.py",
    "custom_components/heatpump_optimizer/www/*.js"
   ],
@@ -339,23 +304,48 @@
   "seats": {
    "s1": [
     {
-     "steps": [
-      "M1",
-      "M2",
-      "M3"
-     ],
      "files": [
       "README.md",
       "docs/**"
+     ],
+     "steps": [
+      "M1"
      ]
     }
    ],
    "s2": [
     {
+     "files": [
+      "README.md",
+      "docs/**"
+     ],
+     "steps": [
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/*.py",
+      "custom_components/heatpump_optimizer/www/*.js"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    },
+    {
+     "files": [
+      "README.md",
+      "docs/**"
+     ],
      "steps": [
       "M4"
-     ],
-     "files": "rest"
+     ]
     }
    ]
   }
@@ -364,8 +354,11 @@
   "mode": "files",
   "universe": [
    "README.md",
+   "DISCLAIMER.md",
    "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
-   "docs/setup/**"
+   "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "hacs.json"
   ],
   "steps": [
    "M1",
@@ -375,24 +368,37 @@
   "seats": {
    "s1": [
     {
+     "files": [
+      "README.md",
+      "DISCLAIMER.md"
+     ],
      "steps": [
       "M1",
       "M2",
       "M3"
-     ],
-     "files": [
-      "README.md"
      ]
     }
    ],
    "s2": [
     {
+     "files": [
+      "docs/**"
+     ],
      "steps": [
       "M1",
       "M2",
       "M3"
-     ],
-     "files": "rest"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": "rest",
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
     }
    ]
   }
@@ -461,33 +467,33 @@
   "seats": {
    "s1": [
     {
+     "files": [
+      "**"
+     ],
      "steps": [
       "M1",
       "M2"
-     ],
-     "files": [
-      "custom_components/heatpump_optimizer/{sensor,binary_sensor}.py"
      ]
     }
    ],
    "s2": [
     {
-     "steps": [
-      "M1",
-      "M2"
+     "files": [
+      "**"
      ],
-     "files": "rest"
+     "steps": [
+      "M3"
+     ]
     }
    ],
    "s3": [
     {
-     "steps": [
-      "M3",
-      "M4",
-      "M5"
-     ],
      "files": [
       "**"
+     ],
+     "steps": [
+      "M4",
+      "M5"
      ]
     }
    ]
@@ -506,29 +512,53 @@
   "seats": {
    "s1": [
     {
+     "files": [
+      "**"
+     ],
      "steps": [
       "M1"
      ],
-     "files": [
-      "custom_components/heatpump_optimizer/{optimizer,thermal_model,sysid,process_worker,defrost,flow_lift}.py"
+     "axis": [
+      "sse_per_gradient",
+      "solves_per_cycle",
+      "gil_hold",
+      "loop_thread_work"
      ]
     }
    ],
    "s2": [
     {
+     "files": [
+      "**"
+     ],
      "steps": [
       "M1"
      ],
-     "files": "rest"
-    },
-    {
-     "steps": [
-      "M2"
-     ],
-     "files": [
-      "**"
+     "axis": [
+      "retained_bytes",
+      "payload_bytes"
      ]
     }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2"
+     ]
+    }
+   ]
+  },
+  "axis": {
+   "metric": [
+    "sse_per_gradient",
+    "solves_per_cycle",
+    "gil_hold",
+    "loop_thread_work",
+    "retained_bytes",
+    "payload_bytes"
    ]
   }
  },
@@ -564,6 +594,14 @@
       "bronze",
       "silver"
      ]
+    },
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
     }
    ],
    "s2": [
@@ -576,16 +614,21 @@
       "M2"
      ],
      "axis": [
-      "gold",
-      "platinum"
+      "gold"
      ]
-    },
+    }
+   ],
+   "s3": [
     {
      "files": [
       "**"
      ],
      "steps": [
-      "M3"
+      "M1",
+      "M2"
+     ],
+     "axis": [
+      "platinum"
      ]
     }
    ]
@@ -599,9 +642,9 @@
    ".cursor/**",
    "tools/**",
    "dev/audit/**",
-   "docs/decisions/**",
    "CLAUDE.md",
-   "AGENTS.md"
+   "AGENTS.md",
+   "dev/governance/**"
   ],
   "steps": [
    "M1",
@@ -612,30 +655,33 @@
   "seats": {
    "s1": [
     {
-     "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4"
-     ],
      "files": [
-      ".github/**",
-      "tools/**",
-      "dev/audit/**",
-      ".claude/hooks/**",
-      ".claude/workflows/**"
+      "**"
+     ],
+     "steps": [
+      "M1"
      ]
     }
    ],
    "s2": [
     {
-     "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4"
+     "files": [
+      "**"
      ],
-     "files": "rest"
+     "steps": [
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4"
+     ]
     }
    ]
   }
@@ -661,7 +707,7 @@
      ],
      "steps": [
       "M1",
-      "M2"
+      "M6"
      ]
     }
    ],
@@ -671,7 +717,8 @@
       "**"
      ],
      "steps": [
-      "M3"
+      "M2",
+      "M4"
      ]
     }
    ],
@@ -681,9 +728,8 @@
       "**"
      ],
      "steps": [
-      "M4",
-      "M5",
-      "M6"
+      "M3",
+      "M5"
      ]
     }
    ]
@@ -708,11 +754,29 @@
      ],
      "steps": [
       "M1",
-      "M2",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
       "M3",
-      "M4",
-      "M5",
       "M6"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4",
+      "M5"
      ]
     }
    ]
@@ -729,22 +793,12 @@
    "M5"
   ],
   "axis": {
-   "class": [
-    "P1",
-    "P2",
-    "P3",
-    "P4",
-    "P5",
-    "P6",
-    "P7",
-    "P8",
-    "P9",
-    "P10",
-    "I1",
-    "I2",
-    "I3",
-    "I4",
-    "I5"
+   "class_status": [
+    "open",
+    "prototype-only",
+    "detector",
+    "barriered",
+    "nightly-replay"
    ]
   },
   "seats": {
@@ -754,15 +808,13 @@
       "**"
      ],
      "steps": [
-      "M1",
       "M2",
       "M3",
-      "M4",
-      "M5"
+      "M4"
      ],
      "axis": [
-      "P1",
-      "P6"
+      "open",
+      "prototype-only"
      ]
     }
    ],
@@ -773,15 +825,27 @@
      ],
      "steps": [
       "M1",
-      "M2",
-      "M3",
-      "M4",
       "M5"
      ],
      "axis": [
-      "P2",
-      "P8",
-      "I4"
+      "open",
+      "prototype-only",
+      "detector",
+      "barriered"
+     ]
+    },
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3",
+      "M4"
+     ],
+     "axis": [
+      "detector",
+      "barriered"
      ]
     }
    ],
@@ -798,48 +862,7 @@
       "M5"
      ],
      "axis": [
-      "P3",
-      "P4",
-      "P5"
-     ]
-    }
-   ],
-   "s4": [
-    {
-     "files": [
-      "**"
-     ],
-     "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4",
-      "M5"
-     ],
-     "axis": [
-      "P7",
-      "P9",
-      "P10"
-     ]
-    }
-   ],
-   "s5": [
-    {
-     "files": [
-      "**"
-     ],
-     "steps": [
-      "M1",
-      "M2",
-      "M3",
-      "M4",
-      "M5"
-     ],
-     "axis": [
-      "I1",
-      "I2",
-      "I3",
-      "I5"
+      "nightly-replay"
      ]
     }
    ]
