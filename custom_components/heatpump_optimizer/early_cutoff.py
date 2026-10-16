@@ -203,7 +203,6 @@ def allow_on(held: CutoffState, on: bool, now: datetime | None = None) -> bool:
 def detach(held: CutoffState) -> None:
     """Unload: drop the listener and the wiring that reaches the coordinator."""
     release(held)
-    held.wiring = None
 
 
 def release(held: CutoffState) -> None:
