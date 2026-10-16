@@ -1247,9 +1247,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done: merged #2329",
     "branch": "handoff/r10-registry-leak",
-    "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
+    "commit": "81ae048e8bbdf2335fe2016e987ec2739481f293",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
