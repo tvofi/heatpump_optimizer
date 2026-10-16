@@ -1,67 +1,55 @@
-Fix review: blocked 1826c67c37a1332a36fb284eecfad248e07a1ee3 harness: class-open bare open() on an unrendered row, navigation.navigate, form action and an Event-built hass-more-info pass the census
+Fix review: blocked ef47407a05560b49cc33cbdc44ea08ace7ad0a9e harness: over-claim the check "no press throws, so no navigation primitive is swallowed" stays green under the listed gap K1, and the title still claims "a census of every link button"
 
-bus-nonce: 0065e4a25f536290e796c54ddc54e1bc
+bus-nonce: edcb3b8ba7aa1847303002e97eb77e34
 
-This is round 4, the re-cut round. I reviewed from a detached worktree at 1826c67c37a1332a36fb284eecfad248e07a1ee3 and re-read that head before posting. The roles diff against origin/main is empty, so this contract is current.
+This review covers the split delta only. I reviewed from a detached worktree at ef47407a05560b49cc33cbdc44ea08ace7ad0a9e and re-read that head before posting. The roles diff against origin/main is empty.
 
-The card blob is cb4035b6. It is byte-identical to 0b4d46abd and to the round-3 head. `tests/card.mjs` is b9f842a5. The new driver is `tools/audit/seat/r10_deeplink_mutants.py`.
+**The authored delta** is 974af2ca3. It touches `tests/card.mjs` only (27 lines added, 14 removed), in comments and two check names. 0316e7d23 has 974af2ca3's tree, and ef47407a0 merges origin/main 25afc1c77. The card blob is still cb4035b6.
 
-## Is the defect in the fix itself?
+**The defect is wording only.** The fix is not at fault, and neither is the narrowed claim's substance. Three edits close it, listed at the end.
 
-**No.** The card change is sound at this head:
-- `haLink`, `openHaLink` and the C2 fold (`openSetupSlot`, `openPicker`) are pinned by their direct checks. M1, M2, R4 and M5 are red on those checks.
-- The finder's harnesses agree at both ends.
+## Is the narrowed claim true? Yes
 
-**The defect is in the census's completeness claim.** The title says "one census holds every link the card emits". The body says "Every navigation primitive is instrumented", and it names a single residual, a name split across a string concatenation, that "the census's dynamic arm sees on a rendered row". At this head, four spellings with **no string concatenation** pass every check. A fifth falsifies the residual as stated.
+- **Every listed gap is real at this head.** My `mut4.py` plants were re-run at ef47407a0:
+  - RESULT `K5_bare_open_on_dismiss` rc=0 fails=0
+  - RESULT `K5b_bracket_open_on_dismiss` rc=0 fails=0
+  - RESULT `K5c_open_call_on_dismiss` rc=0 fails=0
+  - RESULT `K1_navigation_api_in_try` rc=0 fails=0
+  - RESULT `K2_form_action_rendered` rc=0 fails=0
+  - RESULT `K3t_Event_runtime_more_info_rendered_in_try` rc=0 fails=0
+- **What it does claim still holds:**
+  - RESULT `K5r_bare_open_rendered` rc=1 fails=1, on the renamed `every link the census records from a press is one haLink builds for this entry`.
+  - RESULT `T1b_census_only_throw_on_press` rc=1 fails=1, on `no press throws ...`.
+- **The fixer's driver, all 32 plants:** each gives rc=1 on a FAIL line (18 with fails=1, 12 with fails=2, one with 3, one with 5). None shows only a crash tail. `--null` gives rc=0 fails=0, and the tree was restored.
+- **The census header is accurate:**
+  - it says the census is "NOT a proof that every link the card can emit goes through haLink";
+  - it limits the event hook to "a CustomEvent named ...";
+  - it lists K5, K1, K2 and K3t, plus the split-token residual with its `CustomEvent` exception.
+  - The static block's comment now says "It matches spellings, not behaviour" and names bare `open(`.
+- **The two renamed checks are accurate:**
+  - `the census reached every navigateTo and openHaLink call site` is what it measures.
+  - `every link the census records from a press ...` is narrower than its scope, because it also checks render-time links. That is harmless.
 
-A split is possible: land the builder, its direct checks and the census under a narrowed claim that lists these as residuals, or close the census class in its own PR.
+## Still over-claiming (blocking)
 
-## Blocking: class-open
+1. **The check name `no press throws, so no navigation primitive is swallowed`.** It passes under K1, a gap the PR lists itself: the card's own `try` swallows `navigation.navigate`, and the check stays green. What it measures is "no press throws". Rename it to that, or to "no press throws an exception the census can see".
+2. **The comment header `A browser's navigation surface, complete and inert`.** The surface has no `navigation` (K1), so "complete" is false. Drop "complete", or say "the primitives the census instruments".
+3. **The PR title, `... with a census of every link button`.** The body was narrowed and the title was not. The delivery row `dev/programme/delivery/2283.md` repeats that title, so the orchestrator's row needs the same edit.
 
-Each of the following was planted by my own driver, `mut4.py`, which reuses the fixer's `run()`. Each passes with `rc=0 fails=0`.
+## Is "Part of #2253" right? Yes, for this PR
 
-- **`K5_bare_open_on_dismiss`**: `open("/config/entities", "_self");`, placed before `dismissFeedback();`.
-  - The token arm matches `\.open\s*\(`, which needs a dot, and a bare global `open(` is the commonest spelling.
-  - The census fixture does not render the feedback row, so the dynamic arm never presses the button. This is N5's row, one spelling over.
-  - `K5b globalThis["open"](...)` and `K5c globalThis.open.call(globalThis, ...)` pass the same way.
-  - The control `K5r` puts a bare `open(` on a rendered row, and it is red on `every link a button emits ...`. So the hole is the token arm, which is the only guard on unrendered rows.
-- **`K1_navigation_api_in_try`**: `try { globalThis.navigation.navigate("/config/entities"); } catch (_e) {}` after the pending settings push, on a rendered and pressed row.
-  - The Navigation API is not instrumented, and `navigation` is not a token.
-  - This is round 3's N1t shape with another primitive.
-  - Without the `try` (`K1c`), it is "killed" only by crashing an earlier scenario (rc=1 with no FAIL line), which is the accident the inert surface was added to remove for the listed primitives.
-- **`K2_form_action_rendered`**: `<form action="/config/entities"><button type="submit">go</button></form>` on the rendered health page.
-  - This navigates with no script at all.
-  - `anchors()` reads only `href`, a submit button has no own listener, and `action`/`formaction` are not tokens.
-- **`K3t_Event_runtime_more_info_rendered_in_try`**: Home Assistant's own `fireEvent` shape, `new Event(name)` plus `detail`, with the name built as `["hass","more","info"].join("-")`, on a rendered pressed row.
-  - The dynamic arm hooks only `CustomEvent` construction, and the rig has no `Event`.
-  - So the stated residual ("the dynamic arm sees it on a rendered row") is false for events.
-  - The literal spelling (`K3c`) is red on the token arm.
+The PR delivers only the builder: the three call sites go to later groups and the enumeration to #2317, so a closing keyword would be wrong.
 
-**A sound re-cut would allow, not deny.** Every round has closed the spellings the last reviewer planted, and a denylist of names cannot be complete. Three changes would make it allow-based:
-- Make the dynamic arm cover every row by rendering a fixture that includes the feedback row. Extend the reach check from the `navigateTo`/`openHaLink` lines to every `data-act` handler, so an unrendered row is a red reach check, not a token-arm job.
-- Run each press with a global that records any read of a name outside a known set (`navigation`, `open`, `location` and so on), so an uninstrumented primitive is refused rather than swallowed.
-- Have `anchors()` also read `action` and `formaction`.
+**#2253 is already CLOSED.** tvofi closed it at 2026-10-15T16:38:30Z through 2344ea939, a commit on main whose subject reads `... DEEPLINK fixes #2253`, which is a closing keyword in prose. The body's sentence "#2253 stays open here" is right about this PR, but the issue is not open. Reopening it is the orchestrator's job and does not block this PR.
 
-## The four questions in the brief
+## Forward-carry: on main
 
-- **The fixer's driver**: `--null` gives `RESULT mutant=NULL_no_plant rc=0 fails=0`. All 32 plants give rc=1 with at least one FAIL line (18 with fails=1, 12 with fails=2, one with 3, one with 5). None of them shows only a crash tail, and the tree was restored.
-- **The split-string residual**: on rendered rows the dynamic arm does catch `setAttribute(["hr","ef"].join(""))` (R7c, R7d) and a `CustomEvent` with a runtime name (R6b, R6c). It does not catch an `Event`-built one (K3t). The residual is acceptable only once stated with that exception, and with K5, K1 and K2 alongside it.
-- **The `this.dialog.open()` exemption hides nothing**: it strips that exact no-argument call on `ExpandedDialog`, and the rest of the line is still scanned. `K6` puts `this.dialog.open(); globalThis.open("/config/entities");` on one line, and it is red on both arms. A no-argument `open()` names no link.
-- **The inert surface does not mask a census-reached row**: the census replaces `history`, `open` and `location` on both `ctx` and `ctx.window` for its own run (`K5r` is red). On rows the census does not render, though, it removes the crash that used to flag N2 and N5. Those rows now rest on the token arm alone, and that arm misses K5.
-- **A press that throws is refused**: `T1b` (a synchronous throw only inside the census) and `T2b` (an async rejection) are each red on `no press throws, so no navigation primitive is swallowed`, with fails=1. My first marker, `CustomEvent.name` (T1 and T2), was wrong: the rig's class is anonymous, so those two crashed scenario 1. They are recorded, not counted.
+R10-DEEPLINK-CENSUS is now on origin/main at 13f5f1e8b, through #2315. The group has `issues`/`fixes` [2317], `after` ["R10-DEEPLINK"], and the files `tests/card.mjs` and `tools/audit/seat/r10_deeplink_mutants.py`. Its brief opens with the split from this PR's round-4 review. #2317 is open and carries K1, K2, K3t and K5, with the proposed shape and its control.
 
-## Verified
+## Other checks
 
-- **The finder's harnesses** (my own run): `card_shapes.mjs` (sha1 677b7542, from 3930b421a) and `v2_card_lines.mjs` (sha1 b3a1890e, at the head), run on the 5603ee319 card and the head card:
-  - RESULT `picker_open` 3 -> 1
-  - RESULT `picker_lines` 5 -> 3, `total` 36 -> 34
-- **The card test**: `node tests/card.mjs` prints ALL CARD CHECKS PASSED at the head, after `plan_view.py`.
-- **The release files are untouched**: `VERSION`, `manifest.json`, `RELEASE_NOTES.md`, `tests/golden`, the structure budgets and `closures.json`, checked three-dot against merge base 8087e8576.
-- **The head merges cleanly**: `git merge-tree --write-tree origin/main` exits 0.
-- **CI**: all 45 check-runs at the head have concluded, 30 success and 15 skipped. The range's intermediate commits carry no runs. The body's `Red checks: none` holds.
-- **The forward-carry** is 9b1320d37 on origin/main, as round 3 confirmed. It is unchanged.
-- **The body's head** names 1826c67c3 as a merge of the code head 56789d0ab and origin/main 8087e8576, which matches `git log`.
+- **Release files** are untouched against merge base 25afc1c77, and `git merge-tree --write-tree origin/main HEAD` exits 0.
+- **The body's figures** say "re-taken at this head", but they were taken at the code head 974af2ca3. ef47407a0 adds only main's changes to it, so the figures still hold for this card and test.
+- **CI**: all 45 check-runs at ef47407a0 have concluded, 30 success and 15 skipped, none red. The body's `Red checks: none` holds.
 
-My instrument is my own, `mut4.py`, not the finder's. It is disclosed here.
-
-Evidence (relative to the scratchpad, under `rev-2283-r4/evidence`): `mut4.py`, `mut4_out.txt`, `fixer_driver_out.txt`, `finder_harness.txt`, `card_head.txt`, `check_runs.txt`, `HEAD_MEASURED`.
+The instrument `mut4.py` is my own. Evidence (relative to the scratchpad, under `rev-2283-r5/evidence`): `mut4.py`, `mut4_r5.txt`, `fixer_driver_r5.txt`, `check_runs.txt`, `HEAD_MEASURED`.
