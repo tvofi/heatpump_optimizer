@@ -1,0 +1,27 @@
+########## M_A_revert_to_base  rc=1  FAIL/SUMMARY lines=3
+    ok   a pump command that FAILED is not remembered as done
+    FAIL unloading the entry frees the coordinator the cut-off record was keyed by  [False False]
+    1 of 4138 FEATURE CHECKS FAILED
+    restored clean
+########## M_B_guard_if_false  rc=1  FAIL/SUMMARY lines=5
+    ok   a pump command that FAILED is not remembered as done
+    FAIL arming twice registers one unload hook, not one per cycle  [0]
+    FAIL unloading the entry drops the listener
+    FAIL unloading the entry frees the coordinator the cut-off record was keyed by  [False False]
+    3 of 4138 FEATURE CHECKS FAILED
+    restored clean
+########## M_C_guard_if_true  rc=1  FAIL/SUMMARY lines=3
+    ok   a pump command that FAILED is not remembered as done
+    FAIL arming twice registers one unload hook, not one per cycle  [2]
+    1 of 4138 FEATURE CHECKS FAILED
+    restored clean
+########## M_D_drop_wiring_none_assign  rc=1  FAIL/SUMMARY lines=3
+    ok   a pump command that FAILED is not remembered as done
+    FAIL unloading the entry frees the coordinator the cut-off record was keyed by  [False False]
+    1 of 4138 FEATURE CHECKS FAILED
+    restored clean
+########## M_E_hook_in_listener_branch  rc=1  FAIL/SUMMARY lines=3
+    ok   a pump command that FAILED is not remembered as done
+    FAIL unloading the entry frees the coordinator the cut-off record was keyed by  [False False]
+    1 of 4138 FEATURE CHECKS FAILED
+    restored clean

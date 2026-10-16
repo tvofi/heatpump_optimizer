@@ -1,0 +1,7 @@
+RESULT rounds=5 count
+RESULT torn_alive=0 count
+RESULT registry_early_cutoff_torn_keys=0 count
+RESULT registry_boost_states_torn_keys=0 count
+RESULT registry_boost_plan_bases_torn_keys=0 count
+RESULT registry_pump_arbiter_torn_keys=0 count
+RESULT registry_debugger_torn_keys=0 count

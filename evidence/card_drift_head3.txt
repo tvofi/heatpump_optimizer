@@ -1,0 +1,6 @@
+  identical  history_deep_panned
+  identical  history_no_power
+  identical  history_unavailable
+  identical  history_pending
+
+card_drift: identical in all 40 states

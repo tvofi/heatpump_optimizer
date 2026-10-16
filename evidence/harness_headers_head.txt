@@ -1,0 +1,5 @@
+  ok   an idle child past the wall cap reports 124
+  ok   a bounded child runs with every BLAS pool pinned to one thread
+  ok   the executed harnesses leave their committed output byte-identical
+
+ALL 109 HARNESS HEADER CHECKS PASSED

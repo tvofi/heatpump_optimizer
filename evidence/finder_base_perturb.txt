@@ -1,0 +1,12 @@
+RESULT rounds=5 count
+RESULT early_cutoff_arm_calls=5 count
+RESULT torn_alive=0 count
+RESULT registry_early_cutoff_torn_keys=0 count
+RESULT registry_boost_states_torn_keys=0 count
+RESULT registry_boost_plan_bases_torn_keys=0 count
+RESULT registry_pump_arbiter_torn_keys=0 count
+RESULT registry_debugger_torn_keys=0 count
+RESULT deliberate_thread_cpu=0.972 s
+RESULT thread_factor=1.052
+RESULT load1=2.02
+RESULT swapins=0

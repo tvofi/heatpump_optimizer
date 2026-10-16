@@ -1,0 +1,19 @@
+SEAM boost.py:210 _STATES = WeakKeyDictionary()
+SEAM boost.py:217 _PLAN_BASES = WeakKeyDictionary()
+SEAM const.py:281 INPUT_MAX_AGE_MINUTES = {CONF_INDOOR_TEMP_ENTITY: QUIET_STORE_MA
+SEAM coordinator.py:539 _FENCED_CAUSES = set()
+SEAM coordinator.py:1247 _WORKER_FALLBACK_CAUSES = {}
+SEAM debugger.py:77 _COLLECTORS = WeakKeyDictionary()
+SEAM early_cutoff.py:134 _STATES = WeakKeyDictionary()
+SEAM pump_arbiter.py:262 _STATES = WeakKeyDictionary()
+SEAM store.py:76 _NEWER_ON_DISK = set()
+RESULT torn_alive=3 count
+RESULT boost._STATES_held=3 pins_key=0 count
+RESULT boost._PLAN_BASES_held=3 pins_key=0 count
+RESULT const.INPUT_MAX_AGE_MINUTES_held=0 pins_key=0 count
+RESULT coordinator._FENCED_CAUSES_held=0 pins_key=0 count
+RESULT coordinator._WORKER_FALLBACK_CAUSES_held=0 pins_key=0 count
+RESULT debugger._COLLECTORS_held=0 pins_key=0 count
+RESULT early_cutoff._STATES_held=3 pins_key=3 count
+RESULT pump_arbiter._STATES_held=3 pins_key=0 count
+RESULT store._NEWER_ON_DISK_held=0 pins_key=0 count

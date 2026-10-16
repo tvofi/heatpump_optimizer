@@ -1,0 +1,10 @@
+RESULT torn_alive=3 count
+RESULT boost._STATES_held=3 pins_key=0 count
+RESULT boost._PLAN_BASES_held=3 pins_key=3 count
+RESULT const.INPUT_MAX_AGE_MINUTES_held=0 pins_key=0 count
+RESULT coordinator._FENCED_CAUSES_held=0 pins_key=0 count
+RESULT coordinator._WORKER_FALLBACK_CAUSES_held=0 pins_key=0 count
+RESULT debugger._COLLECTORS_held=0 pins_key=0 count
+RESULT early_cutoff._STATES_held=3 pins_key=0 count
+RESULT pump_arbiter._STATES_held=3 pins_key=0 count
+RESULT store._NEWER_ON_DISK_held=0 pins_key=0 count
