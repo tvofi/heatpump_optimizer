@@ -25,13 +25,19 @@ checker, and a ``TYPE_CHECKING`` the module rebinds itself is not typing's --
                      nothing (attempt 23).
 
 The reach is the reach whatever syntax spells it, so the graph follows every spelling of an import that
-runs: ``from <pkg>.m import _x``, the absolute self-import, is the edge ``from .m import _x`` is
-(attempt 27); so is the plain dotted ``import <pkg>.m``, whose statement binds the whole path with an
-``as`` and only its root without one, and ``from <pkg> import m as _o``, whose module binding a private
-read off ``_o`` crosses through like any other (attempts 28-30); a constant-name ``import_module``,
-relative and anchored on ``__package__`` too, is that module's edge whether the name is passed
-positionally or as the ``name`` keyword, and the private read off the call is that crossing (attempts
-26, 31). A name COMPUTED at runtime is the one form no static read follows; the package's is
+runs, and every read that reaches a module through one: ``from <pkg>.m import _x``, the absolute
+self-import, is the edge ``from .m import _x`` is (attempt 27); so is the plain dotted ``import <pkg>.m``,
+whose statement binds the whole path with an ``as`` and only its root without one, and ``from <pkg>
+import m as _o``, whose module binding a private read off ``_o`` crosses through like any other
+(attempts 28-30); a constant-name ``import_module``, relative and anchored on ``__package__`` too, is
+that module's edge whether the name is passed positionally, as the ``name`` keyword, or held by a
+module-level string constant, and the private read off the call is that crossing (attempts 26, 31, 37).
+The name's relation to this package is one predicate at a dot boundary: a DESCENDANT of it
+(``<pkg>.m``) loads a module of ours, and a strict PREFIX of it -- ``custom_components``, the namespace
+the package is nested in -- reaches one where the read dots back down into it, so ``import
+custom_components as _cc`` with ``_cc.<pkg>.optimizer._x`` is the edge and the crossing the relative
+spelling is (attempts 32-35); a read through an attribute chain, and through ``getattr``, names the
+same module (attempt 36). A name COMPUTED at runtime is the one form no static read follows; the package's is
 ``__init__``'s platform loader.
 
 LAYERS is a design choice, stated: Home Assistant is the integration's glue edge (model, optimizer and
@@ -62,12 +68,31 @@ def _private(name: str) -> bool:
     return name.startswith("_") and not name.startswith("__")
 
 
-def _self_module(dotted: str) -> str | None:
-    """``dotted`` as a package-relative module name, ``""`` for the package itself, None when it names
-    something this package does not own."""
-    if dotted == SELF:
+def _relative(path: str) -> str | None:
+    """``path`` as a package-relative module name: ``""`` for the package itself, the tail for a module
+    below it, None for anything else. A strict PREFIX of the package -- ``custom_components``, the
+    namespace the package is nested in -- names no module of ours on its own (attempt 32)."""
+    if path == SELF:
         return ""
-    return dotted[len(SELF) + 1:] if dotted.startswith(SELF + ".") else None
+    return path[len(SELF) + 1:] if path.startswith(SELF + ".") else None
+
+
+def _namespaced(path: str) -> bool:
+    """Is ``path`` in this package's namespace: the package, a module below it, or a strict PREFIX of it.
+    Ancestor and descendant are one predicate, derived from SELF at a dot boundary, because an import
+    naming either can reach this package: the descendant loads a module of ours, the ancestor reaches
+    one where a read dots down into it (attempts 28, 32-35)."""
+    return path == SELF or path.startswith(SELF + ".") or SELF.startswith(path + ".")
+
+
+def _pkg_module(pkg: C.Pkg, path: str) -> str | None:
+    """The module of this package an absolute dotted path names -- ``__init__`` for the package itself,
+    None for a path this package has no module at."""
+    rel = _relative(path)
+    if rel is None:
+        return None
+    key = rel or "__init__"
+    return key if key in pkg.mods else None
 
 
 def _module_level(tree: ast.Module) -> set[int]:
@@ -85,25 +110,27 @@ def _module_level(tree: ast.Module) -> set[int]:
 
 
 def _from_names(pkg: C.Pkg, mod: str, node: ast.ImportFrom) -> list[tuple[str, str, str]]:
-    """(bound name, target module, imported name) for each name of a from-import; the imported name is
-    ``""`` when the name is itself a module. An absolute import of this package resolves as the relative
-    one does -- the prefix is stripped -- so ``from <pkg>.optimizer import _x`` reaches ``optimizer``
-    (attempt 27) and ``from <pkg> import optimizer as _o`` binds it (attempt 30)."""
+    """(bound name, absolute dotted path, imported name) for each name of a from-import; the imported
+    name is ``""`` when the name is itself a module of this package. A relative import resolves to the
+    path the absolute one names, and a source anywhere in this package's namespace -- the package, one
+    of its modules, or the namespace it is nested in -- resolves the same way, so ``from <pkg>.optimizer
+    import _x``, ``from <pkg> import optimizer as _o`` and ``from <ns> import <pkg>`` all reach what the
+    relative spelling reaches (attempts 27, 30, 33, 34)."""
     if node.level:
         base = mod.split(".")[:-1]
         base = base[:len(base) - node.level + 1]
         src = ".".join(base + ([node.module] if node.module else []))
+        path = f"{SELF}.{src}" if src else SELF
+    elif node.module and _namespaced(node.module):
+        path = node.module
     else:
-        src = _self_module(node.module) if node.module else None
-        if src is None:
-            return []
+        return []
     out = []
     for a in node.names:
-        full = f"{src}.{a.name}" if src else a.name
-        if full in pkg.mods:
-            out.append((a.asname or a.name, full, ""))
-        elif (src or "__init__") in pkg.mods:
-            out.append((a.asname or a.name, src or "__init__", a.name))
+        if _pkg_module(pkg, f"{path}.{a.name}") is not None:
+            out.append((a.asname or a.name, f"{path}.{a.name}", ""))
+        elif _pkg_module(pkg, path) is not None:
+            out.append((a.asname or a.name, path, a.name))
     return out
 
 
@@ -111,23 +138,19 @@ def _roots(node: ast.Import | ast.ImportFrom) -> set[str]:
     """The external root packages an import names: a name of this package is no external root, however
     it is spelled (attempt 27)."""
     if isinstance(node, ast.Import):
-        return {a.name.split(".")[0] for a in node.names if _self_module(a.name) is None}
-    if node.level or not node.module or _self_module(node.module) is not None:
+        return {a.name.split(".")[0] for a in node.names if _relative(a.name) is None}
+    if node.level or not node.module or _relative(node.module) is not None:
         return set()
     return {node.module.split(".")[0]}
 
 
-def _abs_module(key: str) -> str:
-    """The absolute dotted path of a package module key; ``__init__`` is the package itself."""
-    return SELF if key == "__init__" else f"{SELF}.{key}"
-
-
 def _name_bindings(pkg: C.Pkg, mod: C.Mod, live: set[int] | None) -> dict[str, str]:
     """Local name -> the absolute dotted path of the module it binds, for every import this module runs
-    that spells a module of this package: the relative ``from . import m``, the absolute ``from <pkg>
-    import m as x`` -- which ``Pkg.imports`` files as an external name, so no ``modalias`` held it
-    (attempt 30) -- and the plain dotted ``import <pkg>.m``, whose statement binds the whole path with
-    an ``as`` and only its root without one (attempts 28, 29)."""
+    that names something in this package's namespace: the relative ``from . import m``, the absolute
+    ``from <pkg> import m as x`` -- which ``Pkg.imports`` files as an external name, so no ``modalias``
+    held it (attempt 30) -- the plain dotted ``import <pkg>.m``, whose statement binds the whole path
+    with an ``as`` and only its root without one (attempts 28, 29), and the same spelt from the
+    namespace the package is nested in, ``import custom_components as _cc`` (attempts 32, 35)."""
     out: dict[str, str] = {}
     for n in C.walk(mod.tree):
         if not isinstance(n, (ast.Import, ast.ImportFrom)):
@@ -136,41 +159,41 @@ def _name_bindings(pkg: C.Pkg, mod: C.Mod, live: set[int] | None) -> dict[str, s
             continue
         if isinstance(n, ast.Import):
             for a in n.names:
-                if _self_module(a.name) is not None:
+                if _namespaced(a.name):
+                    # ``import a.b.c`` binds only ``a``; ``import a.b.c as x`` binds the whole path.
                     out[a.asname or a.name.split(".")[0]] = a.name if a.asname else a.name.split(".")[0]
         else:
-            for bound, target, name in _from_names(pkg, mod.name, n):
+            for bound, path, name in _from_names(pkg, mod.name, n):
                 if not name:
-                    out[bound] = _abs_module(target)
+                    out[bound] = path
     return out
 
 
-def _bound_module(modbind: dict[str, str], m: str, name: str) -> str | None:
-    """The package module the local ``name`` binds, or None: a name no import of this module binds, the
-    root of a plain dotted import (which is the top package, not a module of ours), or ``m`` itself."""
-    base = modbind.get(name)
-    rel = _self_module(base) if base is not None else None
-    target = (rel or "__init__") if rel is not None else None
+def _dotted_path(modbind: dict[str, str], node: ast.AST) -> str | None:
+    """The dotted path an expression spells when every step of it is statically readable: a name an
+    import of this module bound, an attribute of one, and a ``getattr``/``hasattr``/``setattr`` whose
+    name is a constant string. None where a step is computed (attempt 36)."""
+    if isinstance(node, ast.Name):
+        return modbind.get(node.id)
+    if isinstance(node, ast.Attribute):
+        base = _dotted_path(modbind, node.value)
+        return f"{base}.{node.attr}" if base is not None else None
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+            and node.func.id in ("getattr", "hasattr", "setattr") and len(node.args) >= 2 \
+            and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str):
+        base = _dotted_path(modbind, node.args[0])
+        return f"{base}.{node.args[1].value}" if base is not None else None
+    return None
+
+
+def _reached(pkg: C.Pkg, modbind: dict[str, str], m: str, node: ast.AST) -> str | None:
+    """The module of this package an expression reaches, or None. The dotted path it spells resolves
+    through the binding an import of this module made: a descendant of the package directly, and an
+    ancestor where the read dots down into it (attempts 28-36). Never ``m`` itself, which is no
+    crossing."""
+    path = _dotted_path(modbind, node)
+    target = _pkg_module(pkg, path) if path is not None else None
     return None if target is None or target == m else target
-
-
-def _module_attr(modbind: dict[str, str], m: str, node: ast.Attribute) -> str | None:
-    """The ``module.name`` a private attribute read crosses by, when the dotted path it spells resolves
-    to a module of this package through a name this module's own imports bound -- ``_o._x`` off ``import
-    <pkg>.m as _o``, and the full dotted read off ``import <pkg>.m``, which binds only its root
-    (attempts 28-30) -- or None."""
-    attrs: list[str] = []
-    e: ast.AST = node
-    while isinstance(e, ast.Attribute):
-        attrs.append(e.attr)
-        e = e.value
-    if not isinstance(e, ast.Name) or not attrs:
-        return None
-    attrs.reverse()
-    base = modbind.get(e.id)
-    rel = _self_module(".".join([base, *attrs[:-1]])) if base is not None else None
-    target = (rel or "__init__") if rel is not None else None
-    return f"{target}.{attrs[-1]}" if target is not None and target != m else None
 
 
 def _package_of(mod: str) -> str:
@@ -179,12 +202,27 @@ def _package_of(mod: str) -> str:
     return f"{SELF}.{parent}" if parent else SELF
 
 
+def _module_const(mod: C.Mod, node: ast.AST) -> ast.Constant | None:
+    """The string constant a module-level name holds, or None: ``_MOD = ".optimizer"`` is statically
+    readable, so an ``import_module`` naming it is the constant-name call it spells. A name rebound, a
+    name that is not a module-level assignment, and one holding anything but a string are all None
+    (attempt 37)."""
+    name = node.id if isinstance(node, ast.Name) else None
+    assign = mod.tops.get(name) if name is not None else None
+    if isinstance(assign, ast.Assign) and len(assign.targets) == 1 \
+            and isinstance(assign.targets[0], ast.Name) \
+            and isinstance(assign.value, ast.Constant) and isinstance(assign.value.value, str):
+        return assign.value
+    return None
+
+
 def _dynamic_name(mod: C.Mod, node: ast.Call) -> str | None:
     """The absolute dotted module a constant-name ``import_module``/``__import__`` call imports, or
     None where the call is not one of those, takes its name from a computation, or is relative with no
     static anchor -- ``import_module`` requires that argument, and without it the call loads nothing
     (attempt 26). ``import_module``'s first parameter is named ``name`` and its relative anchor
-    ``package``, so each is read as a keyword as well as positionally (attempt 31)."""
+    ``package``, so each is read as a keyword as well as positionally (attempt 31), and a name held by
+    a module-level string constant is the constant it holds (attempt 37)."""
     f = node.func
     if isinstance(f, ast.Name):
         imp = mod.imports.get(f.id)
@@ -200,6 +238,8 @@ def _dynamic_name(mod: C.Mod, node: ast.Call) -> str | None:
         return None
     first = node.args[0] if node.args else \
         next((k.value for k in node.keywords if k.arg == "name"), None)
+    if isinstance(first, ast.Name) and (const := _module_const(mod, first)) is not None:
+        first = const
     if not (isinstance(first, ast.Constant) and isinstance(first.value, str)):
         return None
     name = first.value
@@ -217,15 +257,6 @@ def _dynamic_name(mod: C.Mod, node: ast.Call) -> str | None:
     parts = base.split(".")
     parts = parts[:len(parts) - (len(name) - len(rest)) + 1]
     return ".".join(parts + ([rest] if rest else []))
-
-
-def _dynamic_target(pkg: C.Pkg, name: str) -> str | None:
-    """The package module a resolved dynamic import reaches, or None for a name outside the package."""
-    rel = _self_module(name)
-    if rel is None:
-        return None
-    target = rel or "__init__"
-    return target if target in pkg.mods else None
 
 
 def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str]]:
@@ -256,33 +287,33 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
                 if id(n) in pkg.type_checking_imports or (live is not None and id(n) not in live):
                     continue
                 if isinstance(n, ast.ImportFrom):
-                    for _bound, target, name in _from_names(pkg, m, n):
-                        cross(m, target, name)
+                    for _bound, path, name in _from_names(pkg, m, n):
+                        if (target := _pkg_module(pkg, path)) is not None:
+                            cross(m, target, name)
                 else:
                     for a in n.names:
-                        if (rel := _self_module(a.name)) is not None:
-                            cross(m, rel or "__init__", "")
+                        if (target := _pkg_module(pkg, a.name)) is not None:
+                            cross(m, target, "")
                 ext[m] |= _roots(n)
             elif isinstance(n, ast.Call) and id(n) in dynamic:
-                target = _dynamic_target(pkg, dynamic[id(n)])
+                target = _pkg_module(pkg, dynamic[id(n)])
                 if target is not None:
                     cross(m, target, "")
                 else:
                     ext[m].add(dynamic[id(n)].split(".")[0])
             elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and _private(n.attr) \
                     and isinstance(n.value, ast.Call) and id(n.value) in dynamic \
-                    and (t := _dynamic_target(pkg, dynamic[id(n.value)])) is not None:
+                    and (t := _pkg_module(pkg, dynamic[id(n.value)])) is not None:
                 cross(m, t, n.attr)
             elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and _private(n.attr) \
-                    and (attr := _module_attr(modalias, m, n)) is not None:
-                crossings.add(f"{m} -> {attr}")
+                    and (t := _reached(pkg, modalias, m, n.value)) is not None:
+                cross(m, t, n.attr)
             elif PRIVATE_ATTRS and isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
                     and n.func.id in ("getattr", "hasattr", "setattr") and len(n.args) >= 2 \
-                    and isinstance(n.args[0], ast.Name) \
                     and isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str) \
                     and _private(n.args[1].value) \
-                    and (t := _bound_module(modalias, m, n.args[0].id)) is not None:
-                crossings.add(f"{m} -> {t}.{n.args[1].value}")
+                    and (t := _reached(pkg, modalias, m, n.args[0])) is not None:
+                cross(m, t, n.args[1].value)
     return edges, ext, crossings
 
 
