@@ -1,5 +1,0 @@
-TOTAL: 0 error(s) across 1 file(s)
-head 2a7883798c15b603043e18f3871f0dd775445436
- dev/programme/delivery/2330.md             | 1 +
- dev/programme/rosters/wave-r10-groups.json | 4 +++-
- 2 files changed, 4 insertions(+), 1 deletion(-)
