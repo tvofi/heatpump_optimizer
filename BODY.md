@@ -63,6 +63,10 @@ One non-vacuity number is deliberately translated, and the choice is recorded he
 
 ## Head
 
+`a0c4431df91e75b3c7ed4976586c0da86e292214` adds the four `survivor_triage` rows for this diff's surviving mutants and this pull request's own delivery row `dev/programme/delivery/2336.md`, on top of the mutation-autofix head `fba6de8de2712ed6bb771f15a5574d3eb92c5f51`, which pinned 30 of the 34 sites the `mutation` lane refused. No production or test code changes.
+
+`8921b4825d260ff46a4d87779eeaf7784642f264` merges origin/main `8f174c4ce` into the authored code head `b0542727974af8992f1fcbd9355b7af536d45907` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `b0542727974af8992f1fcbd9355b7af536d45907`. This is `313fa04c5fe6f6a652122b828e2beacf6f5da324` with origin/main `e8718ec3b52e` merged. **Every figure below was re-taken at this head**: the finder harnesses at both ends, the class enumerators, the mutation proof, the gate scope, `tests/structure.py`, the architecture score and `tmp_paths`. The merge changed nothing the measurements read: three-dot `git diff --stat 7215e39df7a1..e8718ec3b -- custom_components` is one file, `www/heatpump-optimizer-card.js`; main added no change to the round-10 harnesses, to `tests/features.py`, `tests/entities.py` or `tests/solar_alignment.py`, and the mutation ledger it grew shares no pin with the seven this diff removes.
 
 ## Mutation proof
@@ -121,6 +125,8 @@ Class enumerators (fixer.md step 8). Each names a rule, and every seam it return
   - `pump_arbiter._planned_room`: guarded, per the sweep.
 
   All six are the `tests/entities.py` N-no-expiry allow-list, with exact counts.
+
+- `python3 dev/audit/rounds/round10/D14/sweep_n_no_expiry.py --perturb` (6cd8af3def97): **this arm no longer runs at the head, and this diff is why.** Its perturbation is a one-line cut of `_known_prices_for`'s own text, `            if step_start >= end:` then `                break`, removed by `str.replace` under `assert cut != body, "perturbation anchor missing"`. That end rule is exactly what this pull request moved into `_covering_index`, so the anchor is gone at the head while it stands at the merge base: `grep -n "step_start >= end" custom_components/heatpump_optimizer/coordinator.py` prints `6726` at `8f174c4ce` (and the same line at `e8718ec3b`) and nothing at `a0c4431df`. Measured at both ends, the arm run from a `git archive` export of each ref: at the base it prints `SEAM coordinator.py:_known_prices_for(perturbed):22 _known_prices_for UNBOUNDED` with `RESULT seams=1` and `RESULT unbounded=1` -- the 0 -> 1 perturbation the arm exists to show -- and at `a0c4431df` it prints `AssertionError: perturbation anchor missing`, so it does not perturb at the head at all. Its sibling still applies: `--null` prints `RESULT seams=1` and `RESULT unbounded=0` at the head. The arm is NOT re-anchored here: `dev/audit/rounds/round10/D14/` sits outside this group's architect note, whose owning seam is the price and weather ingest methods, so re-pointing the cut at `_covering_index` is the orchestrator's file-scope decision rather than a fixer's. The claim the arm carried is not lost at the head -- `tests/entities.py`'s N-no-expiry arm pins the helper's own end bound at an exact count, and its planted-lookup perturbation is what drives it.
 - `python3 dev/audit/rounds/round10/D14/sweep-N-silent-zero/enumerate.py` (6f71fb362e25): `unguarded` 2 -> 1.
   - The `_fetch_weather_forecast` seam is GUARDED.
   - `_fetch_tibber_prices :: self._prices = payload` stays syntactically unguarded. Its guard is upstream: `pull_prices` returns `ok` with rows only, except for the pinned no-subscription `[]` named above. `tibber_ingress.py` reads `empty_ok_wipes=0`.
@@ -164,7 +170,76 @@ No budget is raised. `seam_cut_total` was at zero headroom, and the first placem
 
 ## Red checks
 
-none yet. The PR is not open; CI has not run at this head.
+Two at this head, both answered here (fixer.md's last section,
+`defect-root-cause.md`'s second trigger). Neither needs a code change.
+
+**`mutation` -- failure.** The refusal, from the job at `8921b4825`:
+
+    MUTATION TABLE REFUSED -- 4405 unpinned site(s) against 4398 at the
+    ratchet base 0570b86e, 34 of them added by this diff.
+
+Answered rather than disputed. The ratchet is the exact count of candidate
+sites carrying no disposition, derived at both ends and committed nowhere
+(`tests/mutation_budgets.json`'s own comment), so a diff that adds predicates
+is *expected* to add unpinned sites until a driver has killed each one. The 34
+are this seam's own new predicates, by the operator the inventory generates:
+13 `GUARD_OFF` (the five latches, the `is None` guards, the subscription /
+total / start refusals), 10 `RETURN_DEL` (the covering helper's two returns,
+the two `None` returns the getters gained, the four parser returns), 7
+`CMP_BOUND` (the covering rule's bounds, one line holding two), 3 `BOOLOP` and
+1 `CLAMP_DROP`. Every one is named with its disposition under `## Unpinned
+sites`, which is why that section carries 33 keys for 34 sites
+(`coordinator.py:547 CMP_BOUND*2`). That section is the answer to "which
+sites"; this is the answer to "what makes the red expected".
+
+The cheaper detector, and its standing cost. `python3 tools/pr/ci_predict.py
+--base origin/main` names the same 33 keys / 34 sites in **17.2 s wall, 10.3 s
+user** at this head (`time`, measured), and `prepr.sh` runs it -- at this head
+it printed `WARN unpinned sites 33 site(s) the diff adds with no pin`. Both are
+a WARNING, not a refusal: nothing before CI refuses an added unpinned site, so
+there is no cheaper *refusing* detector and the finding is that none exists.
+What a seat pays for not reading the warning is one CI round, measured at this
+head: `mutation` 26 s, `mutation-pin-plan` 14 s, then `mutation-pins (1-7)` in
+parallel from 15:01:12Z and `mutation-autofix` behind them under a 10-minute
+timeout. The repair is `python3 tests/mutation_table.py --pin-killed --base
+origin/main`, which drives every candidate site the diff added and records each
+kill under `killed_by`, shardable with `--shard K/N` (CI runs 7).
+
+Disposition: `mutation-autofix` pins the killed mutants as `ci: pin killed
+mutants` (`ci-autofix.md`), so nothing is hand-edited in this branch. State
+read at 2026-10-16 15:13 UTC: `mutation-pin-plan` **success**, `mutation-pins
+(1-7)` **in progress** since 15:01:12Z, `mutation-ledger` and
+`mutation-ledger-push` **skipped**, `mutation-autofix` **not started** -- **the
+bot commit is awaited, not landed**, and the branch tip is still `8921b4825`.
+Per `ci-autofix.md` the summary line decides: a red `mutation-autofix` means no
+commit comes and the pinning is mine to run; green means `changed`.
+
+Outcome, 2026-10-16 16:5x UTC. The bot landed: `mutation-autofix` went green and
+pushed `fba6de8de2712ed6bb771f15a5574d3eb92c5f51` (`ci: pin killed mutants`),
+pinning 30 of the 34. The 4 it left — `_peak_tariff_hours` `GUARD_OFF fb12652e`,
+`forecast_outdoor_now` `CMP_BOUND a439030d`, `_fold_score_sample` `BOOLOP
+05bb5b4f` and `record_setpoint_override` `CMP_BOUND 1b2d9dbb` — are survivors no
+driver separates, so by `ci-autofix.md` they owe a `survivor_triage` record and
+not a pin; `a0c4431df` is that edit. Three are argued *equivalent* (the tariff
+guard's two arms both return `()`, because `parse_windows("")` is `[]`; the
+`now <`/`now <=` pair differ only at the instant `now == starts[0]`, where
+`_covering_index` returns 0, the other branch's value; and the `and`/`or` pair
+agree over the domain `pending["spot_price"]` can hold, a finite float or
+`None`); one is recorded as a *gap* (`mean_price == 1e-6` exactly is reachable
+and untested). Re-run at `a0c4431df`:
+`python3 tests/mutation_table.py --pin-killed --base origin/main` prints
+`PIN KILLED -- 0 new unpinned site(s)` -- 4368 unpinned of 6133 candidate
+sites, 4398 at the ratchet base -- so the refusal's own arm is clear and
+`mutation` is expected green at this head.
+
+**`pr-contract` -- failure, 2026-10-16 17:17 UTC, answered.** "`## Head` does
+not name a0c4431, which is the head this ran on." Correct and expected: the
+ledger commit above moved the head after the previous body named `8921b4825`.
+This edit names it (`## Head` above), which is the whole repair.
+
+**`pr-contract` -- failure.** "check `mutation` is red and `## Red checks` does
+not name it." Named and answered above; this edit is the answer, and it is the
+only change -- the code head is untouched at `8921b4825`.
 
 ## Unpinned sites
 
@@ -228,3 +303,6 @@ The D1 brief edit (step 3 reads the published and booked value) stays with R10-B
 ## Friction
 
 none
+
+
+
