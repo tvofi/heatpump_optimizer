@@ -1346,7 +1346,10 @@ class ReceiverTypes:
     class family, ``x.a = v`` and ``setattr(x, "a", v)`` anywhere whose
     receiver types into the family. One untyped store, or a store on an
     untyped receiver, leaves the attribute untyped; a local is typed only when
-    every binding of its name in the unit is.
+    every binding of its name in the unit is, and an unannotated parameter
+    only when every call reaching its function is placed and passes a typed
+    argument (archscore's B3b: an extraction into unannotated parameters would
+    otherwise hide a dead member behind them).
 
     Two choices are stated rather than measured. Annotations are trusted, as
     a type checker trusts them; and a store through a COMPUTED name
@@ -1435,6 +1438,27 @@ class ReceiverTypes:
                     held.update(t.id for t in (item.targets if isinstance(item, ast.Assign)
                                                else [item.target]) if isinstance(t, ast.Name))
         self.sole = {name: d[0] for name, d in defs.items() if len(d) == 1 and name not in held}
+        # Every call the AST places, by callee; a callee whose name is loaded
+        # anywhere but as one of those calls escapes, and its parameters stay
+        # as their annotations say.
+        self.callers: dict[int, list[tuple[int, str, ast.Call, int]]] = defaultdict(list)
+        loads: Counter = Counter()
+        for fid, (mod, cls, fn) in pkg.units.items():
+            params = fn_params(fn)
+            sn = params[0] if cls is not None and params and not _is_static(fn) else None
+            for n in _walk_unit(fn):
+                if isinstance(n, ast.Call):
+                    hit = pkg.callee(mod, cls, sn, n)
+                    if hit is not None and id(hit[0]) in pkg.units:
+                        self.callers[id(hit[0])].append((fid, mod, n, hit[1]))
+        for mod, (_rel, tree) in pkg.mods.items():
+            for n in ast.walk(tree):
+                if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+                    loads[n.id] += 1
+                elif isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load):
+                    loads[n.attr] += 1
+        self.closed = {callee for callee, sites in self.callers.items()
+                       if loads[pkg.units[callee][2].name] == len(sites)}
 
     # -- classes and annotations ------------------------------------------
 
@@ -1579,6 +1603,9 @@ class ReceiverTypes:
                 for i, p in enumerate(params):
                     if n is fn and i == 0 and cls is not None and not _is_static(fn):
                         out[p.arg].append(("cls" if _is_classmethod(fn) else "self", None))
+                    elif n is fn and p.annotation is None and fid in self.closed \
+                            and not _is_static(fn) and not _is_classmethod(fn):
+                        out[p.arg].append(("param", (i, p.arg)))
                     elif isinstance(n, ast.Lambda) or p.annotation is None:
                         out[p.arg].append(("?", None))
                     else:
@@ -1653,6 +1680,8 @@ class ReceiverTypes:
                 parts.append(self.expr(node, fid, mod))
             elif kind == "unpack":
                 parts.append(self.unpacked(*node, fid, mod))
+            elif kind == "param":
+                parts.append(self.argument(fid, *node))
             else:
                 parts.append(None)
             if parts[-1] is None:
@@ -1746,6 +1775,37 @@ class ReceiverTypes:
                 return None
             out.append((hit[0][0], hit[1], k))
         return out
+
+    def argument(self, fid: int, index: int, name: str) -> frozenset | None:
+        """An unannotated parameter: what every call the AST places passes it.
+
+        Only for a callee nothing reaches but those calls (``closed``), so no
+        caller is unseen; a missing argument takes the default, and a starred
+        one, or a call that passes nothing a default does not cover, is untyped.
+        """
+        fn = self.pkg.units[fid][2]
+        a = fn.args  # type: ignore[attr-defined]
+        positional = a.posonlyargs + a.args
+        defaults = dict(zip([p.arg for p in positional][len(positional) - len(a.defaults):],
+                            a.defaults))
+        defaults.update({p.arg: d for p, d in zip(a.kwonlyargs, a.kw_defaults) if d is not None})
+        parts: list[frozenset | None] = []
+        for cfid, cmod, call, skip in self.callers.get(fid, ()):
+            if any(isinstance(x, ast.Starred) for x in call.args) \
+                    or any(k.arg is None for k in call.keywords):
+                return None
+            pos = index - skip
+            given = call.args[pos] if 0 <= pos < len(call.args) and index < len(positional) else \
+                next((k.value for k in call.keywords if k.arg == name), None)
+            if given is not None:
+                parts.append(self.expr(given, cfid, cmod))
+            elif name in defaults:
+                parts.append(self.expr(defaults[name], None, self.pkg.units[fid][0]))
+            else:
+                return None
+            if parts[-1] is None:
+                return None
+        return self._union(parts) if parts else None
 
     def unpacked(self, call: ast.Call, index: int, arity: int, fid: int, mod: str
                  ) -> frozenset | None:
@@ -3064,8 +3124,11 @@ FIELD_SELF_CHECK_SOURCE = (
 
 # D7-s3-01's six, in miniature: a member whose every load is on a receiver
 # the source types to ANOTHER class -- by constructor, return annotation,
-# tuple unpacking or class object -- is dead, not name-kept; a Protocol
-# receiver and an attribute some untyped receiver stores stay untyped.
+# tuple unpacking, class object or the arguments of every call -- is dead, not
+# name-kept; a Protocol receiver, an attribute some untyped receiver stores and
+# the parameter of a function that escapes as a value stay untyped (the last
+# is archscore's B3b: an extraction into unannotated parameters must not hide
+# a dead member).
 TYPED_SELF_CHECK_SOURCE = (
     "from typing import Protocol\n"
     "import numpy as np\n"
@@ -3075,6 +3138,10 @@ TYPED_SELF_CHECK_SOURCE = (
     "    def size(self):\n        return 2\n"
     "class Maker:\n"
     "    def zeros(self) -> Shape:\n        return Shape()\n"
+    "class Gauge:\n"
+    "    def level(self):\n        return 1\n"
+    "class Tank:\n"
+    "    level: float = 0.0\n"
     "class Cusum:\n"
     "    def reset(self):\n        return 0\n"
     "class Comfort:\n"
@@ -3099,11 +3166,14 @@ TYPED_SELF_CHECK_SOURCE = (
     "        got = reader.read('k')\n"
     "        first, _n = reader.pair()\n"
     "        return (self._comfort.reset() + self._watch.reset() + got.value\n"
-    "                + first.value + held.flag())\n"
+    "                + first.value + held.flag() + self._part(Tank()))\n"
+    "    def _part(self, piece):\n"
+    "        return piece.level\n"
     "def run():\n"
     "    return Owner('n').tick(Reader(), None) + np.zeros(3).size\n"
 )
-TYPED_SELF_CHECK_POISON = "def poke(thing, other):\n    thing._comfort = other\n"
+TYPED_SELF_CHECK_POISON = ("def poke(thing, other):\n    thing._comfort = other\n"
+                           "def leak(thing):\n    return thing._part\n")
 
 
 def _filler(name: str, methods: int, tail: str = "") -> str:
@@ -3161,6 +3231,10 @@ def typed_self_check() -> tuple[tuple[str, bool], ...]:
          ("Reader", "flag") in kept and ("Reader", "flag") not in dead),
         ("an attribute an untyped receiver stores is untyped",
          ("Cusum", "reset") not in poisoned),
+        ("a parameter only placed calls pass takes their arguments' class",
+         ("Gauge", "level") in dead),
+        ("a function whose name escapes a call keeps its parameters untyped",
+         ("Gauge", "level") not in poisoned),
         ("a store through a computed name is listed, not typed", len(computed) == 1),
         ("a module's call is never a package method of the same name",
          ("Other", "size") not in dead and ("Other", "size") in kept),
