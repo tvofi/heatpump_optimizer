@@ -1,0 +1,183 @@
+"""literal_clones: one declaration spelled twice -- a selector, a schema, a record -- inside literals and calls
+(R10-ARCHSCORE-COVERAGE item 3; ARCH2-s5, round 10).
+
+The clone census (``duplication_copies``) joins functions that share a window of statements, so a spec that
+is one expression -- ``_number(15, 28, 0.5, "°C", slider=True)`` as a dict value of a wizard page and again as
+an argument of its options-registry row -- sits inside one statement and is invisible to it: the wizard's 44
+selectors that rebuild their registry row's read NULL.
+
+A SPEC is a call, dict, list, tuple or set expression of at least MIN_NODES nodes (expression contexts not
+counted) that computes nothing at runtime: every name in it is bound at module level (a constant, an imported
+module, a class, a function) or is a builtin, and it holds no lambda, comprehension, ``await``, walrus or star.
+An annotation, an ``except`` type and the subscript of a generic (``dict[str, Any]``) are type expressions,
+not specs, and are skipped. A clone class is the specs equal after normalisation; it counts its MAXIMAL
+members, an occurrence whose enclosing spec is itself a clone being counted once, as the enclosing one.
+
+Normalisation, so that re-spelling one value is not a fix (counter C20): a number is its float value (``15``
+and ``15.0``), keyword arguments are in name order, and a dict's items in key order. A local bound once, in
+the same function, to a spec-shaped value reads as that value (counter C21), so hoisting a literal into a
+local does not hide its copy.
+
+Headline ``literal_clone_copies``: the members of every clone class.
+"""
+from __future__ import annotations
+
+import ast
+import builtins
+import copy
+import time
+from collections import defaultdict
+from pathlib import Path
+
+from . import common as C
+
+MIN_NODES = 6
+_KINDS = (ast.Call, ast.Dict, ast.List, ast.Tuple, ast.Set)
+_NOT_A_SPEC = (ast.Lambda, ast.comprehension, ast.NamedExpr, ast.Starred, ast.Await, ast.Yield, ast.YieldFrom)
+_GENERICS = frozenset({"dict", "list", "tuple", "set", "frozenset", "type", "Callable", "Mapping", "Sequence",
+                       "Iterable", "Iterator", "MutableMapping", "Optional", "Union", "Final", "ClassVar",
+                       "Literal", "Annotated"})
+_BUILTINS = frozenset(dir(builtins))
+#: Counter C20: numbers, keywords and dict items normalised. ``vector.py`` switches it off.
+NORMALISE = True
+#: Counter C21: a local bound once to a spec reads as it. ``vector.py`` switches it off.
+INLINE_LOCALS = True
+
+
+def _module_names(tree: ast.Module) -> set[str]:
+    names = set()
+    for s in tree.body:
+        if isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(s.name)
+        elif isinstance(s, (ast.Import, ast.ImportFrom)):
+            names |= {(a.asname or a.name).split(".")[0] for a in s.names}
+        else:
+            for t in getattr(s, "targets", [getattr(s, "target", None)]):
+                if isinstance(t, ast.Name):
+                    names.add(t.id)
+    return names
+
+
+def _type_nodes(tree: ast.Module) -> set[int]:
+    """ids of every node inside an annotation, an ``except`` type or a generic's subscript."""
+    roots: list[ast.AST] = []
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            a = n.args
+            roots += [n.returns] + [x.annotation for x in [*a.posonlyargs, *a.args, *a.kwonlyargs, a.vararg, a.kwarg]
+                                    if x is not None]
+        elif isinstance(n, ast.AnnAssign):
+            roots.append(n.annotation)
+        elif isinstance(n, ast.ExceptHandler):
+            roots.append(n.type)
+        elif isinstance(n, ast.Subscript) and ast.unparse(n.value).split(".")[-1] in _GENERICS:
+            roots.append(n.slice)
+    # expression contexts are shared singletons (one ``Load`` for the whole tree), so they are never marked
+    return {id(y) for r in roots if r is not None for y in ast.walk(r) if not isinstance(y, ast.expr_context)}
+
+
+class _Normalise(ast.NodeTransformer):
+    def visit_Constant(self, n):
+        if NORMALISE and isinstance(n.value, (int, float)) and not isinstance(n.value, bool):
+            return ast.Constant(value=float(n.value))
+        return n
+
+    def visit_Call(self, n):
+        self.generic_visit(n)
+        if NORMALISE:
+            n.keywords = sorted(n.keywords, key=lambda k: k.arg or "")
+        return n
+
+    def visit_Dict(self, n):
+        self.generic_visit(n)
+        if NORMALISE and all(k is not None for k in n.keys):
+            pairs = sorted(zip(n.keys, n.values), key=lambda kv: ast.dump(kv[0]))
+            n.keys, n.values = [k for k, _ in pairs], [v for _, v in pairs]
+        return n
+
+
+def _local_specs(fn: ast.AST, is_spec) -> dict[str, ast.AST]:
+    """C21: locals of ``fn`` bound exactly once, to a spec-shaped value."""
+    bound: dict[str, list[ast.AST]] = defaultdict(list)
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Assign):
+            for t in n.targets:
+                if isinstance(t, ast.Name):
+                    bound[t.id].append(n.value)
+        elif isinstance(n, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)) and isinstance(n.target, ast.Name):
+            bound[n.target.id].append(n.value if not isinstance(n, ast.AugAssign) else None)
+        elif isinstance(n, (ast.For, ast.AsyncFor, ast.With, ast.AsyncWith)):
+            for t in ast.walk(n.target if isinstance(n, (ast.For, ast.AsyncFor)) else ast.Tuple(
+                    elts=[i.optional_vars for i in n.items if i.optional_vars is not None])):
+                if isinstance(t, ast.Name):
+                    bound[t.id].append(None)
+    return {k: v[0] for k, v in bound.items() if len(v) == 1 and v[0] is not None and is_spec(v[0], {})}
+
+
+def specs(root: Path) -> dict[str, list[tuple[str, int]]]:
+    """normalised spec -> its maximal occurrences (``module``, line), for every spec seen twice or more."""
+    pkg = C.load(str(root))
+    occ: dict[str, list[tuple[str, int, int]]] = defaultdict(list)
+    parent: dict[int, str] = {}
+    for m, mod in pkg.mods.items():
+        known = _module_names(mod.tree) | _BUILTINS
+        skip = _type_nodes(mod.tree)
+
+        def is_spec(e: ast.AST, locals_: dict[str, ast.AST]) -> bool:
+            for y in ast.walk(e):
+                if isinstance(y, _NOT_A_SPEC) or id(y) in skip:
+                    return False
+                if isinstance(y, ast.Name) and y.id not in known and y.id not in locals_:
+                    return False
+            return True
+
+        scopes = [(n, _local_specs(n, is_spec) if INLINE_LOCALS else {}) for n in ast.walk(mod.tree)
+                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        local_of: dict[int, dict[str, ast.AST]] = {}
+        for fn, loc in scopes:
+            for y in ast.walk(fn):
+                local_of[id(y)] = loc  # innermost wins: functions nested later overwrite
+        for x in ast.walk(mod.tree):
+            if not isinstance(x, _KINDS) or id(x) in skip:
+                continue
+            loc = local_of.get(id(x), {})
+            if not is_spec(x, loc) or sum(1 for y in ast.walk(x) if not isinstance(y, ast.expr_context)) < MIN_NODES:
+                continue
+            form = copy.deepcopy(x)
+            if loc:
+                form = _Inline(loc).visit(form)
+            key = ast.dump(_Normalise().visit(form))
+            occ[key].append((m, x.lineno, id(x)))
+            for y in ast.iter_child_nodes(x):
+                parent[id(y)] = key
+    dup = {k for k, v in occ.items() if len(v) > 1}
+    out: dict[str, list[tuple[str, int]]] = {}
+    for k in dup:
+        members = [(m, line) for m, line, i in occ[k] if parent.get(i) not in dup]
+        if len(members) > 1:
+            out[k] = sorted(members)
+    return out
+
+
+class _Inline(ast.NodeTransformer):
+    def __init__(self, loc: dict[str, ast.AST]):
+        self.loc = loc
+
+    def visit_Name(self, n):
+        return copy.deepcopy(self.loc[n.id]) if n.id in self.loc else n
+
+
+def measure(root: Path) -> dict:
+    t0 = time.perf_counter()
+    found = specs(root)
+    per_module: dict[str, int] = defaultdict(int)
+    for members in found.values():
+        for m, _line in members:
+            per_module[m] += 1
+    return {
+        "metric": "literal_clones",
+        "value": sum(len(v) for v in found.values()),
+        "details": {"classes": len(found), "per_module": dict(sorted(per_module.items(), key=lambda kv: -kv[1])),
+                    "largest": sorted(([f"{m}:{line}" for m, line in v] for v in found.values()), key=len)[-5:]},
+        "runtime_s": round(time.perf_counter() - t0, 3),
+    }

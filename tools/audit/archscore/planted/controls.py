@@ -79,6 +79,23 @@ def json_name(wt, old, new, lang="en"):
     p.write_text(s.replace(anchor, f'"name": "{new}"'))
 
 
+def _rename_param(wt, rel, func, old, new):
+    """Rename one JavaScript function's parameter through that function's body (its own name)."""
+    p = _p(wt, rel)
+    s = p.read_text()
+    a = s.index(f"\nfunction {func}(") + 1
+    depth, i = 0, s.index("{", a)
+    while True:
+        depth += s[i] == "{"
+        depth -= s[i] == "}"
+        i += 1
+        if depth == 0:
+            break
+    body, n = re.subn(rf"(?<![\w$.]){re.escape(old)}(?![\w$])", new, s[a:i])
+    assert n > 1, n
+    p.write_text(s[:a] + body + s[i:])
+
+
 # ---------------------------------------------------------------- the plan
 def plan():
     P = {}
@@ -325,6 +342,72 @@ def plan():
               lambda w: (sub(w, "datetime.py", "from .away import _parse_return_time\n",
                              "from .away import _parse_return_time as _parse\n"),
                          sub(w, "datetime.py", "        return _parse_return_time(", "        return _parse("))),
+    )
+
+    # 6d literal_clone_copies: one declaration spelled twice inside literals and calls (item 3, ARCH2-s5)
+    hour = "_number(1, 24, 1, slider=True)"
+
+    def hour_constant(w):
+        p = _p(w, "config_flow.py")
+        s2 = p.read_text()
+        n = s2.count(hour)
+        assert n >= 3, n
+        s2 = s2.replace(hour, "_LAST_HOUR_WIDGET")
+        anchor = "_OPTION_FIELDS: Final[tuple[_F, ...]] = ("
+        assert s2.count(anchor) == 1
+        p.write_text(s2.replace(anchor, f"_LAST_HOUR_WIDGET: Final = {hour}\n\n\n" + anchor))
+
+    P["literal_clone_copies"] = dict(
+        control=("config_flow gains one more spelling of the registry's last-hour selector, as a module constant's value",
+                 lambda w: append(w, "config_flow.py", f"\n\n_PROBE_SPEC = {{\"widget\": {hour}}}\n")),
+        fix=("every spelling of the last-hour selector reads one module constant",
+             hour_constant),
+        null=("one spelling re-written with float bounds and a keyword first (the same declaration)",
+              lambda w: sub(w, "config_flow.py",
+                            '    _F("comfort", CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR, _number(1, 24, 1, slider=True),',
+                            '    _F("comfort", CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR, _number(1.0, 24.0, 1, slider=True),')),
+    )
+
+    # 6e card_dead_definitions and card_clone_copies (item 2, ARCH2-s5, D7-s3-02)
+    card = "www/heatpump-optimizer-card.js"
+    tail = "console.info(\n  `%c ${CARD_TAG} %c v${CARD_VERSION} `,\n"
+
+    def copy_card_fn(w, name="fmtExpiry"):
+        p = _p(w, card)
+        s2 = p.read_text()
+        a = s2.index(f"\nfunction {name}(") + 1
+        depth, i = 0, s2.index("{", a)
+        while True:
+            depth += s2[i] == "{"
+            depth -= s2[i] == "}"
+            i += 1
+            if depth == 0:
+                break
+        body = s2[a:i].replace(f"function {name}(", f"function {name}Copy(", 1)
+        assert s2.count(tail) == 1
+        p.write_text(s2.replace(tail, body + "\nvoid " + name + "Copy;\n\n" + tail))
+
+    def drop_card_copy(w):
+        p = _p(w, card)
+        s2 = p.read_text()
+        p.write_text(s2[:s2.index("\nfunction fmtExpiryCopy(") + 1] + s2[s2.index(tail):])
+
+    P["card_dead_definitions"] = dict(
+        control=("the card gains a top-level function nothing calls",
+                 lambda w: sub(w, card, tail, "function probeUnused(a) {\n  return a + 1;\n}\n\n" + tail)),
+        fix=("[on top of control] the unused function goes",
+             lambda w: sub(w, card, "function probeUnused(a) {\n  return a + 1;\n}\n\n" + tail, tail)),
+        null=("a used card function renamed at every use",
+              lambda w: (lambda p: p.write_text(re.sub(r"(?<![\w$])fmtExpiry(?![\w$])", "formatExpiry", p.read_text())))(_p(w, card))),
+        on={"fix": "a3_card_dead_definitions_control"},
+    )
+    P["card_clone_copies"] = dict(
+        control=("the card's fmtExpiry is copied under a new name, the copy referenced once",
+                 copy_card_fn),
+        fix=("[on top of control] the copy goes", drop_card_copy),
+        null=("fmtExpiry's parameter renamed (its own name; the census numbers it)",
+              lambda w: _rename_param(w, card, "fmtExpiry", "when", "moment")),
+        on={"fix": "a3_card_clone_copies_control"},
     )
 
     # 7 public_surface
