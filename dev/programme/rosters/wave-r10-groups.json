@@ -264,7 +264,8 @@
    ],
    "carry": [
     "Null control: delivery 1.0 reads 0 trips before and after; the fix must keep a real open-window signature tripping (plant one).",
-    "R10-NIGHT-FOLDS (G-ID-1) runs after this group and is re-measured on the owner's bundle once both land; the deferred joint estimator (G-ID-5) is decided only after that re-measurement."
+    "R10-NIGHT-FOLDS (G-ID-1) runs after this group and is re-measured on the owner's bundle once both land; the deferred joint estimator (G-ID-5) is decided only after that re-measurement.",
+    "From R10-FEEDS (#2336): any new warning/error log site or a bisect-right-minus-one lookup in the package must route through the transition-latch and covering-slot helpers that fix introduces, or be added to the matching list in `tests/entities.py` with its reason \u2014 the barrier's arms there refuse a new unbounded lookup or an unlatched warning."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 5 of 25; before you: R10-FEEDS, R10-RATIO-SITES; next: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR). Owning seam in this group: `_vent_cusum` and `_learning_frozen`. Shape: a detector input independent of the replay residual. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
