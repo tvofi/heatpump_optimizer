@@ -1,0 +1,1062 @@
+diff --git a/.claude/rules/gate-scoping.md b/.claude/rules/gate-scoping.md
+index 526d1e694..aaf284717 100644
+--- a/.claude/rules/gate-scoping.md
++++ b/.claude/rules/gate-scoping.md
+@@ -13,17 +13,18 @@ against your merge base:
+ GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+ ```
+ 
+-**A shallow clone or a stale cached `origin/main` is the environment, not the
+-tree.** `tests/entities.py`'s history checks go red on a shallow clone; `git
+-fetch --unshallow origin main` clears it (#1693, #1704), and a long-lived
+-checkout's cached ref can sit behind the tip: fetch first (#1699).
+-
+-`/tmp/hpo-gate.lock` serialises `tests/stress.py`, which measures the machine
+-while it solves; `run.sh` and `mutation_table.py` take it per `stress.py` run alone,
+-so every other script runs unleased. It is first come, first served, and a ticket
+-whose process died or expired is skipped. A seat that waited one lease period
+-may leave `stress.py` to CI and name it unrun in the body. Hold it by hand only
+-to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
++**A shallow clone or a stale cached `origin/main` is the environment, not the tree.** `tests/entities.py`'s history
++checks go red on a shallow clone; `git fetch --unshallow origin main` clears it, and a cached ref can sit behind the tip (#1693, #1699, #1704).
++
++`/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
++which a script takes: `lease`, exclusive, for the scripts that measure the machine
++(`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
++of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
++`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
++slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
++or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
++to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
++§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
+ 
+ ```
+ python3 tests/gate_lock.py take --label <your-label>
+@@ -31,10 +32,8 @@ python3 tests/gate_lock.py renew --label <your-label>   # between commands
+ python3 tests/gate_lock.py release --label <your-label>
+ ```
+ 
+-The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75
+-while another label waits: finish the current `stress.py` run, release, and take
+-again behind it; `run.sh` under your `HPO_GATE_LOCK_LABEL` does this itself, and
+-fails at once on a label you did not take; an expired or abandoned hold is free.
++The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75 while another
++label waits: finish the run, release, and take again behind it; `run.sh` under `HPO_GATE_LOCK_LABEL` renews itself.
+ 
+ **The mypy census runs here too, when you have the pins.** `HPO_TYPING_PYTHON`
+ points the ruler at an interpreter carrying them; unset it prints the install
+diff --git a/.cursor/rules/gate-scoping.mdc b/.cursor/rules/gate-scoping.mdc
+index 655f7d814..39eeec2c2 100644
+--- a/.cursor/rules/gate-scoping.mdc
++++ b/.cursor/rules/gate-scoping.mdc
+@@ -12,17 +12,18 @@ against your merge base:
+ GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+ ```
+ 
+-**A shallow clone or a stale cached `origin/main` is the environment, not the
+-tree.** `tests/entities.py`'s history checks go red on a shallow clone; `git
+-fetch --unshallow origin main` clears it (#1693, #1704), and a long-lived
+-checkout's cached ref can sit behind the tip: fetch first (#1699).
+-
+-`/tmp/hpo-gate.lock` serialises `tests/stress.py`, which measures the machine
+-while it solves; `run.sh` and `mutation_table.py` take it per `stress.py` run alone,
+-so every other script runs unleased. It is first come, first served, and a ticket
+-whose process died or expired is skipped. A seat that waited one lease period
+-may leave `stress.py` to CI and name it unrun in the body. Hold it by hand only
+-to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
++**A shallow clone or a stale cached `origin/main` is the environment, not the tree.** `tests/entities.py`'s history
++checks go red on a shallow clone; `git fetch --unshallow origin main` clears it, and a cached ref can sit behind the tip (#1693, #1699, #1704).
++
++`/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
++which a script takes: `lease`, exclusive, for the scripts that measure the machine
++(`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
++of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
++`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
++slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
++or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
++to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
++§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
+ 
+ ```
+ python3 tests/gate_lock.py take --label <your-label>
+@@ -30,10 +31,8 @@ python3 tests/gate_lock.py renew --label <your-label>   # between commands
+ python3 tests/gate_lock.py release --label <your-label>
+ ```
+ 
+-The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75
+-while another label waits: finish the current `stress.py` run, release, and take
+-again behind it; `run.sh` under your `HPO_GATE_LOCK_LABEL` does this itself, and
+-fails at once on a label you did not take; an expired or abandoned hold is free.
++The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75 while another
++label waits: finish the run, release, and take again behind it; `run.sh` under `HPO_GATE_LOCK_LABEL` renews itself.
+ 
+ **The mypy census runs here too, when you have the pins.** `HPO_TYPING_PYTHON`
+ points the ruler at an interpreter carrying them; unset it prints the install
+diff --git a/dev/governance/roles/nudge.md b/dev/governance/roles/nudge.md
+index ffce0ef5d..117c2eaa0 100644
+--- a/dev/governance/roles/nudge.md
++++ b/dev/governance/roles/nudge.md
+@@ -70,7 +70,7 @@ Before loading a train, direct-merge what step 3 leaves off the train and what i
+ 
+ ## 8. Prepr slots
+ 
+-This machine runs up to four `prepr.sh` at a time. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, and `tools/pr/app_push.sh` each count as one. Do not start a fifth. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry. Do not start the train when four preprs are already running.
++Up to four `prepr.sh` run at a time, and the lease enforces it: `prepr.sh` takes one of `tests/gate_lock.py`'s four heavy slots for its run and a fifth queues behind it. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, `tools/pr/app_push.sh` and a `tests/derive_closures.sh` run each count as one. Do not start a fifth. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry. Do not start the train when four preprs are already running.
+ 
+ ## 9. Conflicting or DIRTY
+ 
+diff --git a/dev/governance/rules/gate-scoping.md b/dev/governance/rules/gate-scoping.md
+index 526d1e694..aaf284717 100644
+--- a/dev/governance/rules/gate-scoping.md
++++ b/dev/governance/rules/gate-scoping.md
+@@ -13,17 +13,18 @@ against your merge base:
+ GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+ ```
+ 
+-**A shallow clone or a stale cached `origin/main` is the environment, not the
+-tree.** `tests/entities.py`'s history checks go red on a shallow clone; `git
+-fetch --unshallow origin main` clears it (#1693, #1704), and a long-lived
+-checkout's cached ref can sit behind the tip: fetch first (#1699).
+-
+-`/tmp/hpo-gate.lock` serialises `tests/stress.py`, which measures the machine
+-while it solves; `run.sh` and `mutation_table.py` take it per `stress.py` run alone,
+-so every other script runs unleased. It is first come, first served, and a ticket
+-whose process died or expired is skipped. A seat that waited one lease period
+-may leave `stress.py` to CI and name it unrun in the body. Hold it by hand only
+-to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
++**A shallow clone or a stale cached `origin/main` is the environment, not the tree.** `tests/entities.py`'s history
++checks go red on a shallow clone; `git fetch --unshallow origin main` clears it, and a cached ref can sit behind the tip (#1693, #1699, #1704).
++
++`/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
++which a script takes: `lease`, exclusive, for the scripts that measure the machine
++(`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
++of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
++`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
++slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
++or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
++to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
++§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
+ 
+ ```
+ python3 tests/gate_lock.py take --label <your-label>
+@@ -31,10 +32,8 @@ python3 tests/gate_lock.py renew --label <your-label>   # between commands
+ python3 tests/gate_lock.py release --label <your-label>
+ ```
+ 
+-The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75
+-while another label waits: finish the current `stress.py` run, release, and take
+-again behind it; `run.sh` under your `HPO_GATE_LOCK_LABEL` does this itself, and
+-fails at once on a label you did not take; an expired or abandoned hold is free.
++The owner file carries your label and a 30-minute `expires_at` lease. `renew` exits 75 while another
++label waits: finish the run, release, and take again behind it; `run.sh` under `HPO_GATE_LOCK_LABEL` renews itself.
+ 
+ **The mypy census runs here too, when you have the pins.** `HPO_TYPING_PYTHON`
+ points the ruler at an interpreter carrying them; unset it prints the install
+diff --git a/dev/programme/delivery/2341.md b/dev/programme/delivery/2341.md
+new file mode 100644
+index 000000000..ef5e9cfdc
+--- /dev/null
++++ b/dev/programme/delivery/2341.md
+@@ -0,0 +1 @@
++- [#2341](https://github.com/tvofi/heatpump_optimizer/pull/2341) — **open**, R10-PREPR-CAP: a 4-slot lease pool in gate_lock.py replaces the manual four-prepr cap (R10-PREPR-CAP)
+diff --git a/tests/derive_closures.sh b/tests/derive_closures.sh
+index 20d4e4f72..e362831a9 100755
+--- a/tests/derive_closures.sh
++++ b/tests/derive_closures.sh
+@@ -107,12 +107,37 @@ if [ -z "$SINGLE" ] && [ -z "$SCRIPTS_FROM" ]; then
+     rm -rf "$FULL_DIR"; exit 2; }
+   SCRIPTS_FROM="$FULL_DIR/scripts.txt"
+ fi
++OUTDIR_MADE=0
+ if [ -z "$OUTDIR" ]; then
+   OUTDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-closure-XXXXXX")
+-  trap 'rm -rf "$OUTDIR"' EXIT
++  OUTDIR_MADE=1
+ fi
+ mkdir -p "$OUTDIR"
+ 
++# --- the heavy-slot lease (R10-PREPR-CAP, #2267). ---------------------------
++# A derive is minutes of CPU at four lanes, so it is the minutes side of
++# gate-scoping.md's rule and joins the four slots -- but only STANDALONE: two
++# seats each taking a slot and then four lanes inside it would stack to eight,
++# which is the load this pool exists to bound. A derive a prepr already holds a
++# slot for ($HPO_SLOT_LABEL, exported by prepr.sh step 1b) records inside that
++# slot and takes nothing. Released on any exit the shell sees; the orphan-steal
++# in gate_lock.py covers a SIGKILL once this process is gone (`--owner-pid`).
++DERIVE_SLOT=""
++if [ -n "${HPO_SLOT_LABEL:-}" ]; then
++  echo "  heavy slot: joined $HPO_SLOT_LABEL (already inside a slot)"
++elif MSG=$($PYTHON tests/gate_lock.py slot-take --label "derive-$$" --owner-pid $$ 2>&1); then
++  DERIVE_SLOT="derive-$$"
++  export HPO_SLOT_LABEL="$DERIVE_SLOT"
++  echo "  heavy slot: $(printf '%s' "$MSG" | tail -1)"
++else
++  echo "  heavy slot: WARN $MSG -- running with the cap unenforced" >&2
++fi
++derive_cleanup() {
++  [ "$OUTDIR_MADE" = 0 ] || rm -rf "$OUTDIR"
++  [ -z "$DERIVE_SLOT" ] || $PYTHON tests/gate_lock.py slot-release --label "$DERIVE_SLOT" >/dev/null 2>&1 || true
++}
++trap derive_cleanup EXIT
++
+ rec() {
+   local script="$1"; shift
+   # C1 (round-9 heavy-script consolidation): a script the closures job
+diff --git a/tests/entities.py b/tests/entities.py
+index ab73fd476..bab74355f 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -15207,14 +15207,22 @@ R.check(
+ 
+ 
+ def _gl_auto_lease() -> tuple[bool, str]:
+-    """run.sh leases a FULL or stress run itself; a second one waits."""
++    """run.sh leases a FULL or stress run itself; a second one waits.
++
++    The classifier is driven at all three answers: the exclusive lease for the
++    machine-measuring scripts, a slot for the multi-minute CPU ones, none for
++    the seconds side (R10-PREPR-CAP, #2267).
++    """
+     import threading
+     with _tempfile.TemporaryDirectory() as td:
+         d, seen = Path(td) / "lock", Path(td) / "seen"
+         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
++        seconds = Path(td) / "c.run"
+         scoped.write_text("tests/entities.py\n")
+         stress.write_text("tests/entities.py\ntests/stress.py\n")
+-        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
++        seconds.write_text("tests/structure.py\n")
++        need = [_gate_lock.needs_lease(s)
++                for s in ("", str(stress), str(scoped), str(seconds))]
+         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+         child = ("import os, sys; from pathlib import Path; "
+                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
+@@ -15232,12 +15240,43 @@ def _gl_auto_lease() -> tuple[bool, str]:
+         finally:
+             _gate_lock.WAIT_POLL_SECS = poll
+         text = seen.read_text() if seen.exists() else ""
+-        ok = (need == [True, True, False] and waited and out == [3]
++        ok = (need == ["lease", "lease", "slot", "none"] and waited and out == [3]
+               and "label=auto" in text and text.endswith("auto")
+               and _gate_lock.read_owner(d) is None)
+         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+ 
+ 
++def _gl_slot_count() -> tuple[bool, str]:
++    """The pool's capacity is the cap unless the OWNER raises it (#2267).
++
++    The predicate is the CLAMP, not the number: an override below the cap is
++    honoured and one above it is refused without the owner's mark, so a seat
++    cannot widen the box's concurrency by exporting one variable. The owner arm
++    is the null control -- the same `8` is honoured once the mark is present.
++    """
++    import os as _os
++    saved = {k: _os.environ.get(k)
++             for k in (_gate_lock.SLOTS_ENV, _gate_lock.SLOTS_OWNER_ENV)}
++    try:
++        got = []
++        for value, owner in ((None, None), ("3", None), ("8", None),
++                             ("8", "1"), ("junk", None), ("0", None)):
++            for key, val in ((_gate_lock.SLOTS_ENV, value),
++                             (_gate_lock.SLOTS_OWNER_ENV, owner)):
++                _os.environ.pop(key, None)
++                if val is not None:
++                    _os.environ[key] = val
++            got.append(_gate_lock.heavy_slots())
++        want = [_gate_lock.HEAVY_SLOTS, 3, _gate_lock.HEAVY_SLOTS, 8,
++                _gate_lock.HEAVY_SLOTS, _gate_lock.HEAVY_SLOTS]
++        return got == want, f"heavy_slots over (unset,3,8,8+owner,junk,0)={got}"
++    finally:
++        for key, val in saved.items():
++            _os.environ.pop(key, None)
++            if val is not None:
++                _os.environ[key] = val
++
++
+ def _gl_lease_hardening() -> tuple[bool, str]:
+     """#1089 review prep: one winner per race, a SIGKILLed holder is stolen at
+     once, and a signalled lease takes the gate's whole process group down."""
+@@ -15354,11 +15393,19 @@ def _gl_lease_hardening() -> tuple[bool, str]:
+ 
+ _gl_ok, _gl_detail = _gl_auto_lease()
+ _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
+-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
++_gl_line = 'answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)'
+ R.check(
+-    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
+-    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
+-    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
++    "run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits",
++    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2
++    and _run_sh.count('slot-auto-lease --label "run.sh-$$"') == 1,
++    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none', "
++    "and give a 'slot' answer the pool rather than the exclusive lease",
++)
++_gl_count_ok, _gl_count_detail = _gl_slot_count()
++R.check(
++    "the heavy-slot capacity is the cap unless the owner raises it (#2267)",
++    _gl_count_ok,
++    _gl_count_detail,
+ )
+ for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
+     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
+@@ -15370,6 +15417,81 @@ R.check(
+ )
+ 
+ 
++def _gl_heavy_slots() -> tuple[bool, str]:
++    """R10-PREPR-CAP (#2267): the heavy-slot pool admits exactly `slots`.
++
++    The predicate is the CAP, not the number four: a pool that admitted any
++    number would pass a check that only took four, so the capacity arm takes
++    the fifth and requires it to block, and the null control runs the same code
++    at `slots=1`, where the second take must block. The reuse arm frees one
++    holder and requires the next take to land on a slot inside the pool, so a
++    pool that grew a new slot on every take is caught beside one that never
++    released.
++    """
++    with _tempfile.TemporaryDirectory() as td:
++        d = Path(td) / "slots"
++        held = [_gate_lock.take_slot(f"h{i}", lock_dir=d, slots=4, wait=False)[0]
++                for i in range(4)]
++        try:
++            _gate_lock.take_slot("fifth", lock_dir=d, slots=4, wait=False)
++            admitted = True
++        except BlockingIOError:
++            admitted = False
++        _gate_lock.release_slot("h0", lock_dir=d, slots=4)
++        idx, _owner = _gate_lock.take_slot("next", lock_dir=d, slots=4, wait=False)
++        reused = idx in range(4) and _gate_lock.release_slot("next", lock_dir=d, slots=4)
++        # Null control: the same calls with a one-slot pool refuse the second.
++        d1 = Path(td) / "one"
++        _gate_lock.take_slot("a", lock_dir=d1, slots=1, wait=False)
++        try:
++            _gate_lock.take_slot("b", lock_dir=d1, slots=1, wait=False)
++            single_admitted = True
++        except BlockingIOError:
++            single_admitted = False
++        ok = not admitted and reused and not single_admitted and held == [0, 1, 2, 3]
++        return ok, (f"fifth_admitted={admitted} reused_slot={idx} reused={reused} "
++                    f"single_pool_admitted_second={single_admitted} held={held}")
++
++
++def _gl_heavy_slot_reclaim() -> tuple[bool, str]:
++    """A slot whose lease expired, or whose named owner process is gone, is
++    reclaimed instead of wedging the pool; a live one is not (the control)."""
++    with _tempfile.TemporaryDirectory() as td:
++        d = Path(td) / "slots"
++        dead = _subprocess.Popen([sys.executable, "-c", "pass"])
++        dead.wait(timeout=5)
++        _gate_lock.take_slot("orphan", lock_dir=d, slots=1, lease_seconds=1800,
++                             wait=False, owner_pid=dead.pid)
++        try:
++            stolen = _gate_lock.take_slot("heir", lock_dir=d, slots=1, wait=False)[0] == 0
++        except BlockingIOError:
++            stolen = False
++        # Null control: the same shape with a LIVE owner pid is not stolen.
++        d2 = Path(td) / "live"
++        _gate_lock.take_slot("seat", lock_dir=d2, slots=1, lease_seconds=1800,
++                             wait=False, owner_pid=_os.getpid())
++        try:
++            _gate_lock.take_slot("other", lock_dir=d2, slots=1, wait=False)
++            live_admitted = True
++        except BlockingIOError:
++            live_admitted = False
++        return stolen and not live_admitted, f"stolen={stolen} live_admitted={live_admitted}"
++
++
++_gl_slots_ok, _gl_slots_detail = _gl_heavy_slots()
++R.check(
++    "the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second",
++    _gl_slots_ok,
++    _gl_slots_detail,
++)
++_gl_rec_ok, _gl_rec_detail = _gl_heavy_slot_reclaim()
++R.check(
++    "a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)",
++    _gl_rec_ok,
++    _gl_rec_detail,
++)
++
++
+ def _gl_stub_tree(td: Path) -> Path:
+     """A tree whose tests/stress.py and tests/other.py only drop a marker, with
+     the real gate_lock.py beside them: what runs under the lease is observable."""
+@@ -32339,6 +32461,46 @@ R.check(
+     f"rc={_cim_res.returncode}",
+ )
+ 
++
++def _derive_join_arm() -> tuple[bool, str]:
++    """derive_closures.sh takes a slot STANDALONE and joins one it is in
++    (#2267). The predicate is the env var, so it is driven both ways: with
++    `$HPO_SLOT_LABEL` set -- what prepr.sh step 1b exports -- the stub `PYTHON`
++    it hands every child sees no `slot-take`, and without it, it does (the null
++    control). A join arm that always took a slot, or one that never did, fails
++    one of the two arms.
++    """
++    taken: dict[str, bool] = {}
++    with _tempfile.TemporaryDirectory() as td:
++        for label, slot in (("inside", "parent-1"), ("outside", "")):
++            d = Path(td) / label
++            d.mkdir()
++            stub = d / "py"
++            stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$ARGVLOG"\n')
++            stub.chmod(0o755)
++            log = d / "argv.log"
++            log.write_text("")
++            env = {**_os.environ, "PYTHON": str(stub), "ARGVLOG": str(log),
++                   "HPO_CI_METRICS": ""}
++            env.pop("HPO_SLOT_LABEL", None)
++            if slot:
++                env["HPO_SLOT_LABEL"] = slot
++            _subprocess.run(
++                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
++                 "--record-only", "--out-dir", str(d / "rec")],
++                env=env, capture_output=True, text=True, timeout=180)
++            taken[label] = "slot-take" in log.read_text()
++    return (not taken["inside"] and taken["outside"],
++            f"inside_takes={taken['inside']} outside_takes={taken['outside']}")
++
++
++_derive_join_ok, _derive_join_detail = _derive_join_arm()
++R.check(
++    "derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)",
++    _derive_join_ok,
++    _derive_join_detail,
++)
++
+ # The composed-closure allow-list (round-9 C1): every entry a real selectable
+ # script, off the never-compose list closure.py enumerates -- the class's seam
+ # rule, not an instance check.
+diff --git a/tests/gate_lock.py b/tests/gate_lock.py
+index 6a033a67a..8a4ef125f 100644
+--- a/tests/gate_lock.py
++++ b/tests/gate_lock.py
+@@ -23,12 +23,22 @@ The lease is first come, first served. A waiter holds a ticket
+ process is gone or whose ticket expired is skipped and removed. ``renew``
+ refuses (``RENEW_REFUSED_RC``) while another label's ticket waits: the holder
+ finishes its current run, releases, and takes again behind the waiter.
++
++That single lease serialises the commands that must run ALONE -- those that
++measure the machine, so their numbers are comparable only with nothing else
++running: ``stress.py`` and ``harness_headers.py``. Commands that are
++multi-minute CPU-bound but do not measure take instead from the heavy-slot
++POOL (``take_slot``/``release_slot``, ``heavy_slots()`` slots under the `slots`
++subdirectory; #2267), which is what makes nudge.md's four-prepr cap mechanical
++instead of advisory. ``needs_lease`` classifies a scope into the three answers
++``run.sh`` dispatches on: ``lease``, ``slot`` or ``none``.
+ """
+ from __future__ import annotations
+ 
+ import argparse
+ import contextlib
+ import fcntl
++import json
+ import os
+ import signal
+ import subprocess
+@@ -47,6 +57,38 @@ FLOCK_NAME = "flock"
+ HOLDING_NAME = "holding"
+ WAIT_POLL_SECS = 5
+ TICKET_PREFIX = "ticket-"
++# --- the heavy-slot pool (R10-PREPR-CAP, #2267) ------------------------------
++# The single lease above serialises one exclusive holder (stress.py). Proving a
++# branch is *runnable* is throughput-bound instead: several commands that each
++# load the box may share it up to a cap, and until now the cap was the
++# orchestrator's, held by hand (nudge.md step 8) and enforced by nothing. A pool
++# of HEAVY_SLOTS slots, taken by `take_slot`, is that cap made mechanical.
++#
++# THE POOL IS ITS OWN LOCK DIR, `lock_dir/<POOL_DIRNAME>`, for two reasons. Its
++# reclaim tests read `flock_available` and `_abandoned_hold` on the directory
++# they reclaim in, and a pool sharing the single lease's directory would read
++# that lease's flock -- a stress run holding it would freeze every dead slot
++# until expiry. And a shared directory would put the pool's waiters and the
++# lease's waiters in one FIFO, so the oldest waiter for either resource would
++# hold the head. Its own directory (and its own `ticket-` queue) keeps the two
++# resources independent, and its files are a plain second naming of the same
++# Owner/ticket/expiry primitives the single lease uses.
++HEAVY_SLOTS = 4
++SLOT_PREFIX = "slot-"
++POOL_DIRNAME = "slots"
++# The slot-count override, and the owner's mark that lets it rise above the cap.
++SLOTS_ENV = "HPO_HEAVY_SLOTS"
++SLOTS_OWNER_ENV = "HPO_HEAVY_SLOTS_OWNER"
++# The label a slot holder exports so its nested heavy steps join that slot
++# instead of taking a second (prepr.sh's step 1b sets it; derive_closures.sh
++# and run.sh's lease arm read it).
++SLOT_LABEL_ENV = "HPO_SLOT_LABEL"
++# The recordings (tests/closures.json's `recorded.seconds`) at or above this are
++# the multi-minute CPU side: they join the slots. Below it they are seconds and
++# run unleased. stress.py (760 s) and harness_headers.py (100 s) measure the
++# machine and take the exclusive lease whatever this says.
++SLOT_MIN_SECONDS = 69
++MACHINE_MEASURING = ("tests/stress.py", "tests/harness_headers.py")
+ # A waiter rewrites its ticket every poll; one this far past it is dead.
+ TICKET_SECONDS = 60
+ RENEW_REFUSED_RC = 75
+@@ -121,8 +163,7 @@ def parse_owner(text: str) -> Owner:
+     )
+ 
+ 
+-def read_owner(lock_dir: Path) -> Owner | None:
+-    owner_path = lock_dir / OWNER_NAME
++def _read_at(owner_path: Path) -> Owner | None:
+     if not owner_path.is_file():
+         return None
+     try:
+@@ -131,6 +172,10 @@ def read_owner(lock_dir: Path) -> Owner | None:
+         return None
+ 
+ 
++def read_owner(lock_dir: Path) -> Owner | None:
++    return _read_at(lock_dir / OWNER_NAME)
++
++
+ def _new_owner(label: str, lease_seconds: int, pid: int | None = None) -> Owner:
+     now = datetime.now(UTC)
+     return Owner(
+@@ -226,10 +271,12 @@ def _orphaned(lock_dir: Path, owner: Owner) -> bool:
+     return flock_available(lock_dir)
+ 
+ 
+-def _steal(lock_dir: Path, seen: Owner) -> None:
++def _steal(owner_path: Path, seen: Owner) -> None:
+     """Remove a dead owner by rename, so one of two stealers wins and a fresh
+-    owner written in between is put back rather than deleted."""
+-    owner_path = lock_dir / OWNER_NAME
++    owner written in between is put back rather than deleted. Takes the owner
++    file, not the lock dir, so the single lease's ``owner`` and a pooled
++    ``slot-<i>`` file are stolen by the same code (#2267)."""
++    lock_dir = owner_path.parent
+     grave = lock_dir / f"stale-{os.getpid()}-{time.monotonic_ns()}"
+     try:
+         os.rename(owner_path, grave)
+@@ -328,7 +375,7 @@ def take(
+                 return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds,
+                              owner_pid=owner_pid)
+             elif owner.expired or _abandoned_hold(lock_dir) or _orphaned(lock_dir, owner):
+-                _steal(lock_dir, owner)
++                _steal(lock_dir / OWNER_NAME, owner)
+                 continue
+             else:
+                 held = f"{owner.label} until {owner.expires_at}"
+@@ -399,6 +446,171 @@ def status(lock_dir: Path = DEFAULT_LOCK_DIR) -> dict[str, object]:
+     }
+ 
+ 
++# --- the heavy-slot pool (#2267) --------------------------------------------
++# The same Owner/ticket/expiry/steal primitives as the single lease above, over
++# a fixed set of POOL slots instead of one owner file. `take_slot` returns the
++# slot index it claimed so a caller can name the slot it holds; `release_slot`
++# frees the slot a label holds, whichever index that is.
++
++
++def pool_dir(lock_dir: Path = DEFAULT_LOCK_DIR) -> Path:
++    """Where the pool's slot files and queue live (see POOL_DIRNAME)."""
++    return lock_dir / POOL_DIRNAME
++
++
++def _slot_path(pool: Path, index: int) -> Path:
++    return pool / f"{SLOT_PREFIX}{index:03d}"
++
++
++def _slot_of(pool: Path, slots: int, label: str) -> tuple[int, Owner] | None:
++    """The slot ``label`` already holds, so a re-take is idempotent."""
++    for i in range(slots):
++        owner = _read_at(_slot_path(pool, i))
++        if owner is not None and owner.label == label:
++            return i, owner
++    return None
++
++
++def _free_slot(pool: Path, slots: int) -> int | None:
++    """The first slot that may be claimed, stealing an expired or orphaned one.
++
++    A missing file is free; an unreadable one is a broken holder, not a live
++    one, and is replaced. A dead named pid is stolen at once (#1143's rule for
++    the single lease), and the pool directory's own flock -- never held, since
++    only the single lease takes flock -- makes ``_orphaned``'s gate honest.
++    """
++    for i in range(slots):
++        path = _slot_path(pool, i)
++        owner = _read_at(path)
++        if owner is None:
++            if not path.is_file():
++                return i
++            path.unlink(missing_ok=True)  # unparseable: no live holder to lose
++            return i
++        if owner.expired or _orphaned(pool, owner):
++            _steal(path, owner)
++            return i
++    return None
++
++
++def _held_slots(pool: Path, slots: int) -> str:
++    """A one-line description of the holders, for the waiting message."""
++    who = []
++    for i in range(slots):
++        owner = _read_at(_slot_path(pool, i))
++        if owner is not None:
++            who.append(f"{i}:{owner.label} until {owner.expires_at}")
++    return "; ".join(who) or "none"
++
++
++def take_slot(
++    label: str,
++    *,
++    lock_dir: Path = DEFAULT_LOCK_DIR,
++    slots: int | None = None,
++    lease_seconds: int = LEASE_SECONDS,
++    wait: bool = True,
++    owner_pid: int | None = None,
++) -> tuple[int, Owner]:
++    """Claim one of ``slots`` heavy slots for ``label``; return (index, owner).
++
++    First come, first served like the single lease: while every slot is held a
++    caller queues behind older live tickets and takes the next slot to free, so
++    a fifth caller waits rather than loading the box. ``owner_pid`` names a
++    process that outlives the commands holding the slot, so a later take steals
++    a slot whose seat has exited (#1143). ``slots`` defaults to `heavy_slots()`,
++    the pool's own capacity.
++    """
++    if slots is None:
++        slots = heavy_slots()
++    if slots < 1:
++        raise ValueError("slots must be at least 1")
++    pool = pool_dir(lock_dir)
++    said, ticket = False, None
++    try:
++        while True:
++            _ensure_lock_dir(pool)
++            mine = _slot_of(pool, slots, label)
++            if mine is not None:
++                index, owner = mine
++                fresh = Owner(
++                    label=label,
++                    taken_at=owner.taken_at,
++                    expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
++                    pid=owner_pid if owner_pid is not None else owner.pid,
++                )
++                fresh.write(_slot_path(pool, index))
++                return index, fresh
++            free = _free_slot(pool, slots)
++            if free is not None:
++                queue = _queue(pool)
++                if not queue or queue[0][0] == ticket:
++                    fresh = _new_owner(label, lease_seconds, owner_pid)
++                    if fresh.create(_slot_path(pool, free)):
++                        return free, fresh
++                    continue  # another caller won the O_EXCL create; try again
++                held = f"{queue[0][1]}, queued first"
++            else:
++                held = _held_slots(pool, slots)
++            if not wait:
++                raise BlockingIOError(f"all {slots} heavy slots held: {held}")
++            ticket = _enqueue(pool, label, ticket)
++            if not said:
++                print(f"gate_lock: waiting for a heavy slot ({held})", file=sys.stderr)
++                said = True
++            time.sleep(WAIT_POLL_SECS)
++    finally:
++        if ticket is not None:
++            ticket.unlink(missing_ok=True)
++
++
++def release_slot(
++    label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int | None = None
++) -> bool:
++    """Free the one slot ``label`` holds. False when it held none."""
++    slots = heavy_slots() if slots is None else slots
++    pool = pool_dir(lock_dir)
++    mine = _slot_of(pool, slots, label)
++    if mine is None:
++        return False
++    index, _owner = mine
++    _slot_path(pool, index).unlink(missing_ok=True)  # the queue stays
++    return True
++
++
++def slots_status(
++    *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int | None = None
++) -> dict[str, object]:
++    slots = heavy_slots() if slots is None else slots
++    pool = pool_dir(lock_dir)
++    holders: list[Owner | None] = []
++    for i in range(slots):
++        holders.append(_read_at(_slot_path(pool, i)))
++    return {
++        "pool_dir": str(pool),
++        "slots": slots,
++        "holders": holders,
++        "queue": [who for _, who in _queue(pool)] if pool.exists() else [],
++    }
++
++
++def slot_auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR,
++                    owner_pid: int | None = None) -> int:
++    """Take one heavy slot for ``argv``, run it with the slot's label exported,
++    and release on any exit -- run.sh's counterpart to ``auto_lease``.
++
++    ``HPO_SLOT_LABEL`` reaches the child, so a heavy step of ``argv`` that is
++    itself leased (a nested run.sh, derive_closures.sh) joins this slot instead
++    of taking a second."""
++    take_slot(label, lock_dir=lock_dir, owner_pid=owner_pid)
++    env = {**os.environ, SLOT_LABEL_ENV: label}
++    try:
++        return run_group(argv, env)
++    finally:
++        with contextlib.suppress(RuntimeError):
++            release_slot(label, lock_dir=lock_dir)
++
++
+ def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
+     """Renew the lease, hold flock for ``argv``, release flock on exit.
+ 
+@@ -435,14 +647,85 @@ def run_group(argv: list[str], env: dict[str, str] | None = None, fd: int | None
+                 continue
+ 
+ 
+-def needs_lease(scope_run: str) -> bool:
+-    """run.sh's derived mode decides, not a seat's prediction of it.
++def _recorded_seconds(script: str) -> float | None:
++    """``tests/closures.json``'s recorded runtime for ``script``, or None.
+ 
+-    ``scope_run`` is run.sh's SCOPE_RUN: empty means MODE: FULL.
++    The classifier below is derived from this, never carried: a script that
++    gets heavier moves itself into the slots the next time the recordings are
++    re-taken. None means the table has no such script, which is a script the
++    tree has not run under instrumentation and so owes no slot.
++    """
++    recorded = Path(__file__).resolve().parent / "closures.json"
++    try:
++        data = json.loads(recorded.read_text())
++        entry = data.get("recorded", {}).get(script)
++    except (OSError, ValueError, AttributeError):
++        return None
++    return entry.get("seconds") if isinstance(entry, dict) else None
++
++
++def needs_lease(scope_run: str) -> str:
++    """``lease``, ``slot`` or ``none`` for the script(s) in run.sh's SCOPE_RUN.
++
++    The rule (gate-scoping.md): a script that MEASURES the machine runs alone,
++    under the exclusive lease; one that is multi-minute CPU-bound joins the
++    four slots; one that takes seconds runs unleased. ``scope_run`` is run.sh's
++    SCOPE_RUN file; empty means MODE: FULL, whose suite carries stress.py, so
++    an empty scope is the exclusive lease.
++
++    Fail closed: a scope this cannot classify -- a recording table it cannot
++    read, or a name it does not know -- is leased rather than left unleased,
++    so the unclassified case costs serialisation and never concurrency.
+     """
+     if not scope_run:
+-        return True
+-    return "tests/stress.py" in Path(scope_run).read_text().split()
++        return "lease"
++    try:
++        names = Path(scope_run).read_text().split()
++    except OSError:
++        return "lease"
++    if any(name in MACHINE_MEASURING for name in names):
++        return "lease"
++    table = Path(__file__).resolve().parent / "closures.json"
++    try:
++        json.loads(table.read_text()).get("recorded", {})
++    except (OSError, ValueError):
++        return "lease"
++    if any((s := _recorded_seconds(name)) is not None and s >= SLOT_MIN_SECONDS
++           for name in names):
++        return "slot"
++    return "none"
++
++
++def heavy_slots() -> int:
++    """The pool's capacity: ``HEAVY_SLOTS``, or ``$HPO_HEAVY_SLOTS`` within it.
++
++    Raising the cap ABOVE ``HEAVY_SLOTS`` is the owner's: the override is
++    honoured above the cap only with ``$HPO_HEAVY_SLOTS_OWNER`` set, so no seat
++    raises the box's concurrency by exporting one variable. A value that does
++    not parse, or is below 1, reads as the cap rather than as something else.
++    """
++    raw = os.environ.get(SLOTS_ENV)
++    if not raw:
++        return HEAVY_SLOTS
++    try:
++        count = int(raw)
++    except ValueError:
++        return HEAVY_SLOTS
++    if count < 1:
++        return HEAVY_SLOTS
++    if count > HEAVY_SLOTS and os.environ.get(SLOTS_OWNER_ENV) != "1":
++        return HEAVY_SLOTS
++    return count
++
++
++def holding_slot() -> bool:
++    """Whether ``$HPO_SLOT_LABEL`` says this process is already inside a slot.
++
++    A nested heavy step (derive_closures.sh under a prepr, a multi-minute suite
++    script under run.sh) joins the slot it was given instead of taking a
++    second, so one prepr costs one slot however many heavy steps it spawns.
++    """
++    return bool(os.environ.get(SLOT_LABEL_ENV))
+ 
+ 
+ @contextlib.contextmanager
+@@ -515,6 +798,43 @@ def _cmd_status(args: argparse.Namespace) -> int:
+     return 0
+ 
+ 
++def _cmd_slot_take(args: argparse.Namespace) -> int:
++    index, owner = take_slot(
++        args.label,
++        lock_dir=args.lock_dir,
++        slots=args.slots,
++        lease_seconds=args.lease_seconds,
++        wait=not args.no_wait,
++        owner_pid=args.owner_pid,
++    )
++    print(
++        f"taken slot={index} label={owner.label} expires_at={owner.expires_at.isoformat()}",
++        file=sys.stderr,
++    )
++    return 0
++
++
++def _cmd_slot_release(args: argparse.Namespace) -> int:
++    if release_slot(args.label, lock_dir=args.lock_dir, slots=args.slots):
++        print("released", file=sys.stderr)
++        return 0
++    print("no slot", file=sys.stderr)
++    return 0
++
++
++def _cmd_slot_status(args: argparse.Namespace) -> int:
++    info = slots_status(lock_dir=args.lock_dir, slots=args.slots)
++    held = [
++        f"{i}:{o.label}({'expired' if o.expired else 'live'})"
++        for i, o in enumerate(info["holders"]) if o is not None
++    ]
++    print(
++        f"{info['pool_dir']}: {len(held)}/{info['slots']} slots held "
++        f"[{', '.join(held) or '-'}] queue={','.join(info['queue']) or '-'}"
++    )
++    return 0
++
++
+ def _cmd_flock_wrap(args: argparse.Namespace) -> int:
+     try:
+         return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
+@@ -528,6 +848,12 @@ def _cmd_auto_lease(args: argparse.Namespace) -> int:
+     return auto_lease(args.label, argv, lock_dir=args.lock_dir)
+ 
+ 
++def _cmd_slot_auto_lease(args: argparse.Namespace) -> int:
++    argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
++    return slot_auto_lease(args.label, argv, lock_dir=args.lock_dir,
++                           owner_pid=args.owner_pid)
++
++
+ def _parser() -> argparse.ArgumentParser:
+     p = argparse.ArgumentParser(description=__doc__)
+     p.add_argument(
+@@ -573,15 +899,44 @@ def _parser() -> argparse.ArgumentParser:
+     wrap_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
+     wrap_p.set_defaults(func=_cmd_flock_wrap)
+ 
+-    nl_p = sub.add_parser("needs-lease", help="exit 0 if run.sh's scope needs the lease")
++    nl_p = sub.add_parser(
++        "needs-lease", help="print how run.sh's scope should run: lease|slot|none"
++    )
+     nl_p.add_argument("scope_run", help="run.sh's SCOPE_RUN; empty means MODE: FULL")
+-    nl_p.set_defaults(func=lambda a: print("lease" if needs_lease(a.scope_run) else "none"))
++    nl_p.set_defaults(func=lambda a: print(needs_lease(a.scope_run)))
+ 
+     auto_p = sub.add_parser("auto-lease", help="take, hold flock for a command, release")
+     auto_p.add_argument("--label", required=True)
+     auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
+     auto_p.set_defaults(func=_cmd_auto_lease)
+ 
++    slot_take_p = sub.add_parser(
++        "slot-take", help="take one of the heavy slots (#2267)"
++    )
++    slot_take_p.add_argument("--label", required=True)
++    slot_take_p.add_argument("--slots", type=int, default=None)
++    slot_take_p.add_argument("--lease-seconds", type=int, default=LEASE_SECONDS)
++    slot_take_p.add_argument("--no-wait", action="store_true")
++    slot_take_p.add_argument("--owner-pid", type=int, default=None)
++    slot_take_p.set_defaults(func=_cmd_slot_take)
++
++    slot_rel_p = sub.add_parser("slot-release", help="free the slot a label holds")
++    slot_rel_p.add_argument("--label", required=True)
++    slot_rel_p.add_argument("--slots", type=int, default=None)
++    slot_rel_p.set_defaults(func=_cmd_slot_release)
++
++    slot_st_p = sub.add_parser("slot-status", help="print the heavy-slot pool state")
++    slot_st_p.add_argument("--slots", type=int, default=None)
++    slot_st_p.set_defaults(func=_cmd_slot_status)
++
++    slot_auto_p = sub.add_parser(
++        "slot-auto-lease", help="take a heavy slot, run a command inside it, release"
++    )
++    slot_auto_p.add_argument("--label", required=True)
++    slot_auto_p.add_argument("--owner-pid", type=int, default=None)
++    slot_auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
++    slot_auto_p.set_defaults(func=_cmd_slot_auto_lease)
++
+     return p
+ 
+ 
+diff --git a/tests/run.sh b/tests/run.sh
+index 7813f2d99..ebccae739 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -298,27 +298,42 @@ run() {
+   run_always "$@"
+ }
+ 
+-# The gate lease guards only the scripts `gate_lock.py needs-lease` names
+-# (stress.py, which measures the machine): taken for that one run, queueing
+-# first come first served, and released right after it, so every other script
+-# runs unleased. Fail closed: anything but an explicit "none" (a crash
+-# included) leases. A seat's own HPO_GATE_LOCK_LABEL is renewed instead,
+-# re-queued when another label waits, and refused at once when the seat never
+-# took it (flock-wrap would otherwise leave it held); auto-lease and flock-wrap both hold
+-# flock for the run, so a crash releases at once (#404).
++# The lease `gate_lock.py needs-lease` names decides each run: `lease` for the
++# scripts that MEASURE the machine (stress.py, harness_headers.py), taken alone
++# and released right after the run; `slot` for the multi-minute CPU scripts
++# (>= SLOT_MIN_SECONDS in closures.json's recordings), which join the pool of
++# four so several can share the box; `none` for the seconds side, which runs
++# unleased. Fail closed: anything but those two words leases, a crash included.
++# A seat's own HPO_GATE_LOCK_LABEL is renewed instead, re-queued when another
++# label waits, and refused at once when the seat never took it (flock-wrap would
++# otherwise leave it held); auto-lease and flock-wrap both hold flock for the
++# run, so a crash releases at once (#404). A `slot` run already inside a slot
++# ($HPO_SLOT_LABEL, exported by prepr.sh step 1b or a slot-auto-lease above it)
++# joins that slot and takes nothing, so one seat's heavy tree is one slot.
+ leased() {
+-  local s one
++  local s one answer
+   s=$(scope_script "$@")
+   one="$WORKDIR/lease.$LANE.$step"
+   printf '%s\n' "$s" > "$one"
+-  if [ -z "$s" ] || [ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then
+-    "$@"
+-  elif [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
+-    "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
+-  else
+-    echo "  LEASE: $s runs under the gate lease as run.sh-$$"
+-    "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
+-  fi
++  answer=none
++  [ -z "$s" ] || answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)
++  case "$answer" in
++    none) "$@" ;;
++    slot)
++      if [ -n "${HPO_SLOT_LABEL:-}" ]; then
++        "$@"
++      else
++        echo "  SLOT: $s joins a heavy slot as run.sh-$$"
++        "$PYTHON" tests/gate_lock.py slot-auto-lease --label "run.sh-$$" --owner-pid $$ -- "$@"
++      fi ;;
++    *)
++      if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
++        "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
++      else
++        echo "  LEASE: $s runs under the gate lease as run.sh-$$"
++        "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
++      fi ;;
++  esac
+ }
+ 
+ # Same as run, but GATE_SCOPE cannot skip it. Inherited claims and the
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 39c23658e..8341256e8 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -293,9 +293,11 @@ claims_remedy() { # env_drift output file
+ # record through `sys.addaudithook`, so any platform is sound for them; a node
+ # recording on a machine without strace is not the recording CI compares, and
+ # ci-autofix.md forbids it replacing a Linux one, so it is left to CI. A
+-# script the gate lease guards (`gate_lock.py needs-lease`: stress.py, which
+-# measures the machine) is left to CI too: a push is no place to wait on or
+-# break another seat's lease.
++# script the EXCLUSIVE lease guards (`gate_lock.py needs-lease` answers `lease`:
++# stress.py and harness_headers.py, which measure the machine) is left to CI
++# too: a push is no place to take a lease another seat holds. A `slot` answer
++# is NOT deferred -- this run already holds a slot (step 1b), so the recording
++# runs inside it (R10-PREPR-CAP, #2267).
+ closure_lane() { # script, strace present (1 or 0)
+   local one; one=$(mktemp)
+   printf '%s\n' "$1" > "$one"
+@@ -1733,6 +1735,7 @@ EOS
+   [ "$(closure_lane tests/card_drift.mjs 1)" = record ]; st $? 0 "and is recorded with it (null control)"
+   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
+   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
++  st "$(closure_lane tests/entities.py 1)" record 0 "a `slot` script is recorded here, inside the slot this run holds (#2267)"
+ 
+   # The heavy steps' closure-reachability skips (`heavy_declared`, `heavy_plan`
+   # and `heavy_skip` above), over a throwaway clone with one fixture branch per
+@@ -2255,6 +2258,20 @@ PY
+   # (5) The hooks step names the hook that failed, not only the count.
+   case "$flow" in *'step "hooks" $? "$(grep -E '"'"'^  (SELF-TEST FAILED|MISSING'*) r=0 ;; *) r=1 ;; esac
+   st "$r" 0 "the hooks step prints the failing hook's row, not only the count"
++  # (6) The main flow takes a heavy slot before the heavy steps, and frees it on
++  # any exit a refusal also runs (R10-PREPR-CAP, #2267). The pool's own capacity
++  # is `take_slot`'s and is driven in tests/entities.py; these rows pin the
++  # WIRING the finding is about -- that a run takes one at all, where, and that
++  # the release rides an EXIT trap rather than a last line a mid-run refusal skips.
++  # A herestring, not `printf | grep -q`: an early-exit grep reading a pipe is
++  # the drained-scripts defect the row above this block refuses (row 4).
++  st "$(grep -cF 'slot-take --label "$SLOT_LABEL"' <<<"$flow")" 1 "the main flow takes a heavy slot"
++  st "$(grep -cF "slot-release --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and frees it on the way out, a mid-run refusal included"
++  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 1 "and the release preserves the run's own exit status"
++  st "$(grep -cF 'export HPO_SLOT_LABEL="$SLOT_LABEL"' <<<"$flow")" 1 "and exports its label, so a nested heavy step joins this slot"
++  st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
++  slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
++  st "$slot_order" ok "and takes it before the heavy steps begin"
+   # The entry wires both before the first fixture is built: driving the two
+   # helpers pins nothing if the self-test stops calling them (#1591's shape).
+   entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
+@@ -2304,6 +2321,39 @@ case $? in
+   *) step "transport" 1 "$BASE..HEAD could not be read, so nothing was compared" ;;
+ esac
+ 
++# --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
++# WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and its
++# steps -- the `--self-test` in 3h, the mutants drive, the closure recordings --
++# are minutes of CPU each. nudge.md §8's cap of four was advisory: the tick
++# counted and flagged it and nothing blocked a fifth, so on 2026-10-14 ten ran
++# at once and load1 reached 168 on 8 cores. `tests/gate_lock.py`'s pool is that
++# cap made mechanical (four slots, FIFO, expiry and orphan-steal shared with
++# stress.py's exclusive lease), and this takes one for the WHOLE run and exports
++# HPO_SLOT_LABEL so a nested heavy step inherits it and joins this slot rather
++# than taking a second (`gate_lock.py holding_slot`). Released on any exit the
++# shell sees; a SIGKILL leaves the slot, which the next take steals once this
++# process is gone (`--owner-pid`). A fifth prepr waits at the back of the queue.
++# A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
++# unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
++SLOT_LABEL="prepr-$$"
++if [ -n "${HPO_SLOT_LABEL:-}" ]; then
++  say ok "heavy slot" "joined $HPO_SLOT_LABEL: this run is already inside a slot"
++else
++  slot_stderr=$(mktemp)
++  if python3 tests/gate_lock.py slot-take --label "$SLOT_LABEL" --owner-pid $$ >"$slot_stderr" 2>&1; then
++    export HPO_SLOT_LABEL="$SLOT_LABEL"
++    say ok "heavy slot" "$(tail -1 "$slot_stderr")"
++    # Release on the way out, and make the signals bash does not already turn
++    # into an exit do so, so a seat's Ctrl-C frees its slot now, not at expiry.
++    # `rc=$?` then `exit $rc` keeps the run's own status though the trap runs.
++    trap "rc=\$?; python3 tests/gate_lock.py slot-release --label '$SLOT_LABEL' >/dev/null 2>&1; exit \$rc" EXIT
++    trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
++  else
++    say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
++  fi
++  rm -f "$slot_stderr"
++fi
++
+ # --- 2. the scoped gate's MODE line, printed rather than inferred.
+ # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
+ # print zero and mean opposite things. Printing it is the whole step; a seat

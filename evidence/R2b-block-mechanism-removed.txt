@@ -1,0 +1,3 @@
+RESULT BLOCK while-pool-full waited_line=False reached_step2=True after=75.0s
+RESULT BLOCK after_release reached_step2=True
+RESULT BLOCK tail=  ok       gate mode              MODE: FULL

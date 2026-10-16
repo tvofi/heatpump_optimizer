@@ -1,0 +1,3 @@
+  FAIL run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits  [need=['lease', 'lease', 'slot', 'none'] waited=True rc=[3] released=True; run.sh must lease every run_always script but an explicit 'none', and give a 'slot' answer the pool rather than the exclusive lease]
+  FAIL derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)  [inside_takes=True outside_takes=True]
+2 of 2333 ENTITY CHECKS FAILED

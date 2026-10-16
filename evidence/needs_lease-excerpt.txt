@@ -1,0 +1,27 @@
+--- tests/gate_lock.py needs_lease docstring (head) ---
+def needs_lease(scope_run: str) -> str:
+    """``lease``, ``slot`` or ``none`` for the script(s) in run.sh's SCOPE_RUN.
+
+--- its code ---
+    so the unclassified case costs serialisation and never concurrency.
+    """
+    if not scope_run:
+        return "lease"
+    try:
+        names = Path(scope_run).read_text().split()
+    except OSError:
+        return "lease"
+    if any(name in MACHINE_MEASURING for name in names):
+        return "lease"
+    table = Path(__file__).resolve().parent / "closures.json"
+    try:
+        json.loads(table.read_text()).get("recorded", {})
+    except (OSError, ValueError):
+        return "lease"
+    if any((s := _recorded_seconds(name)) is not None and s >= SLOT_MIN_SECONDS
+           for name in names):
+        return "slot"
+    return "none"
+
+
+def heavy_slots() -> int:

@@ -1,0 +1,2 @@
+  FAIL a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)  [stolen=False live_admitted=False]
+1 of 2333 ENTITY CHECKS FAILED

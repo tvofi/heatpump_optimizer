@@ -1,0 +1,13 @@
+RESULT needs-lease empty scope file (MODE: FULL)                           -> none
+RESULT needs-lease tests/stress.py                                         -> lease
+RESULT needs-lease tests/harness_headers.py                                -> lease
+RESULT needs-lease tests/entities.py                                       -> slot
+RESULT needs-lease tests/features.py                                       -> slot
+RESULT needs-lease tests/backtest.py                                       -> slot
+RESULT needs-lease tests/structure.py                                      -> none
+RESULT needs-lease tests/closure.py (run.sh:480, unrecorded)               -> none
+RESULT needs-lease tests/rolling.py (run.sh:619, unrecorded, ~15 min)      -> none
+RESULT needs-lease tests/setup_qa_render.mjs (run.sh:633, unrecorded)      -> none
+RESULT needs-lease tests/nope_not_recorded.py (unknown)                    -> none
+RESULT needs-lease tests/entities.py + tests/rolling.py                    -> slot
+RESULT needs-lease 'empty PATH (not file)'                                -> lease
