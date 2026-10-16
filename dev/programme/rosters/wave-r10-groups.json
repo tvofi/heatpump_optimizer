@@ -2166,9 +2166,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-review: #2323",
     "branch": "handoff/r10-pre-edit-hook",
-    "commit": null,
+    "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
