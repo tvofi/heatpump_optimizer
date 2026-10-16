@@ -1,0 +1,3 @@
+total 45 {'skipped': 15, 'success': 30}
+04fcb74f2 total 45 {'cancelled': 8, 'success': 24, 'skipped': 12, 'neutral': 1}
+failures: []

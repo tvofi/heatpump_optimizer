@@ -1,0 +1,42 @@
+===== M0 null run (unmodified head)
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  PASS the cited-program arm follows a path literal through every open shape the round-1 review p
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM PASS [True, True, True, True]
+  rc=0
+===== M1 _sp_reach no longer follows a bound name
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  FAIL the cited-program arm: a cited harness that runs passes, a planted opened stale path and a :: units.py faults []; codeowners_gap holds 4 stale literal(s), opens-faults []
+  FAIL the cited-program arm follows a path literal through every open shape the round-1 review p :: shapes that still escape ['annotated assign', 'dict value then subscript', 'pathlib / via a name then read_text', 'tuple-unpack assign', 'two-hop alias', 'two-hop alias via join']; no longer read as opens ['one-hop name']
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, False, False, True]
+  rc=0
+===== M2 the _SP_READS branch deleted
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  FAIL the cited-program arm follows a path literal through every open shape the round-1 review p :: shapes that still escape ['pathlib / then read_text', 'pathlib / via a name then read_text']; no longer read as opens []
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, True, False, True]
+  rc=0
+===== M3 f-string leading-slash strip removed
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  FAIL the cited-program arm follows a path literal through every open shape the round-1 review p :: shapes that still escape ['f-string root prefix']; no longer read as opens []
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, True, False, True]
+  rc=0
+===== M4a _is_citation_source off the is_inert override
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  PASS the cited-program arm follows a path literal through every open shape the round-1 review p
+  FAIL every carry and every policy file this arm reads for citations selects this script, so a b :: citation sources left INERT (an edit to one selects no script, so the arm never runs on the PR that adds the broken citation): ['.claude/rules/brief-citations.md', '.claude/rules/ci-autofix.md', '.claude/rules/claim-files.md', '.claude/rules/comment-readback.md', '.claude/rules/defect-root-cause.md', '.claude/rules/delivery-status-tracking.md'] ...; selecting no script or the whole suite: [] of 49
+  ARM FAIL [True, True, True, False]
+  rc=0
+===== M4b closures.json reverted to the merge base
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  PASS the cited-program arm follows a path literal through every open shape the round-1 review p
+  FAIL every carry and every policy file this arm reads for citations selects this script, so a b :: citation sources left INERT (an edit to one selects no script, so the arm never runs on the PR that adds the broken citation): []; selecting no script or the whole suite: ['.claude/rules/brief-citations.md', '.claude/rules/ci-autofix.md', '.claude/rules/claim-files.md', '.claude/rules/comment-readback.md', '.claude/rules/defect-root-cause.md', '.claude/rules/delivery-status-tracking.md'] of 49
+  ARM FAIL [True, True, True, False]
+  rc=0

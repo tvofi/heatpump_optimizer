@@ -1,0 +1,36 @@
+### HEAD root=/private/tmp/rev-2344 head=ae5ed33ac8cfd8fbc62ed131ca28946c8858e5dc
+--- bare (no ARM_EXTRA): the arm's own checks ---
+  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
+PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+PASS the cited-program arm follows a path literal through every open shape the round-1 review p
+PASS every carry and every policy file this arm reads for citations selects this script, so a b
+ARM PASS [True, True, True, True]
+--- with the round-1 plants.py as ARM_EXTRA ---
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
+PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+PASS the cited-program arm follows a path literal through every open shape the round-1 review p
+PASS every carry and every policy file this arm reads for citations selects this script, so a b
+old = .claude/workflows/agreement.mjs
+REFUSED control one-hop name (body's shape)
+REFUSED two-hop alias
+REFUSED two-hop alias via join
+REFUSED pathlib / in open
+REFUSED pathlib / then read_text
+REFUSED pathlib / via name then read_text
+REFUSED f-string root prefix
+REFUSED f-string bare
+REFUSED dict value then subscript
+REFUSED tuple-unpack assign
+REFUSED annotated assign
+REFUSED str concat
+REFUSED read via json.loads(Path.read_text)
+ARM PASS [True, True, True, True]

@@ -1,0 +1,49 @@
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
+PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+READS   one-hop name
+ESCAPES two-hop alias
+ESCAPES two-hop alias via join
+READS   pathlib / in open
+ESCAPES pathlib / then read_text
+ESCAPES pathlib / via name then read_text
+ESCAPES f-string root prefix
+READS   f-string bare
+ESCAPES dict value then subscript
+ESCAPES tuple-unpack assign
+ESCAPES annotated assign
+READS   str concat
+READS   read via json.loads(Path.read_text)
+ESCAPES three-hop alias
+READS   chained assign
+ESCAPES walrus bind
+ESCAPES for-target bind
+ESCAPES func-param default
+ESCAPES list index
+ESCAPES tuple index
+ESCAPES dict key by name
+ESCAPES attr bind (ns)
+ESCAPES augassign
+READS   percent-format
+ESCAPES pathlib joinpath
+READS   conditional expr
+READS   os.path.join first arg
+ESCAPES Path receiver .open()
+ESCAPES named receiver .open()
+ESCAPES named receiver .read_bytes()
+ESCAPES receiver .open() in with
+ESCAPES star-unpack
+READS   global-in-func
+ESCAPES nested f-string attr
+NULL held-literal (must be READS=False): False
+ESCAPE_COUNT 24 OF 34
+ESCAPES ['two-hop alias', 'two-hop alias via join', 'pathlib / then read_text', 'pathlib / via name then read_text', 'f-string root prefix', 'dict value then subscript', 'tuple-unpack assign', 'annotated assign', 'three-hop alias', 'walrus bind', 'for-target bind', 'func-param default', 'list index', 'tuple index', 'dict key by name', 'attr bind (ns)', 'augassign', 'pathlib joinpath', 'Path receiver .open()', 'named receiver .open()', 'named receiver .read_bytes()', 'receiver .open() in with', 'star-unpack', 'nested f-string attr']
+ARM PASS [True, True]
