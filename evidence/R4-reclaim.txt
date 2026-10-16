@@ -1,2 +1,0 @@
-RESULT RECLAIM dead-owner slot stolen by next take: rc=0 (0=stolen)
-RESULT RECLAIM live-owner slot refused to next take: rc=1 (non-zero=refused)

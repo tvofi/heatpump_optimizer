@@ -2,4 +2,4 @@ RESULT CAPACITY slots=4 n=5: acquired=4 refused=1
 RESULT CAPACITY null control slots=6 n=5: acquired=5 refused=0
 RESULT CAPACITY null control slots=1 n=2: acquired=1 refused=1
 RESULT QUEUE waiting=True rc=0 queued_line=True
-RESULT QUEUE status=/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpo3n9omhs/l4/slots: 4/4 slots held [0:hold3(live), 1:hold2(live), 2:hold0(live), 3:hold1(live)] queue=fifth
+RESULT QUEUE status=/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpraklpu0a/l4/slots: 4/4 slots held [0:hold0(live), 1:hold1(live), 2:hold3(live), 3:hold2(live)] queue=fifth

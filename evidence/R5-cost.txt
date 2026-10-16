@@ -1,5 +1,0 @@
-RESULT COST argv=tools/pr/prepr.sh --self-test rc=0 wall=79.7s peak_pg_procs=11 samples=356
-RESULT COST argv=tools/pr/prepr.sh --self-test rc=0 wall=88.8s peak_pg_procs=11 samples=392
-RESULT COST argv=tools/pr/prepr.sh --self-test rc=2 wall=103.7s peak_pg_procs=10 samples=453
-RESULT COST argv=tools/pr/prepr.sh /Users/timmalmstrom/.local/state/hpo/rev-2341-9512e2/no-such-body.md rc=1 wall=326.0s peak_pg_procs=68 samples=1378
-RESULT COST argv=tools/pr/prepr.sh /tmp/rev-null-body.md rc=2 wall=0.2s peak_pg_procs=2 samples=1

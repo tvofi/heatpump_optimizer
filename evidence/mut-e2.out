@@ -15,20 +15,20 @@ Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit,
 Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
 Config entry version 8 is newer than the supported version 7; downgrade is not supported
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/mut-e2/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/m2-e2/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-16 20:01:33.308364+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:01:33.914993+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:01:33.914993+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:01:33.914993+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:01:35.661779+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-16 22:08:48.663581+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-16 22:08:49.347669+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-16 22:08:49.347669+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-16 22:08:49.347669+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-16 22:08:50.904482+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:01:36.379458+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by seat until 2026-10-16 20:01:50.409452+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-16 22:08:51.630971+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-16 22:09:07.117047+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
 closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
@@ -1417,8 +1417,10 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   a live agent between commands keeps the lock
   ok   a crashed hold lets take('successor') steal
   ok   a lease whose named owner process is gone is stolen (#1143)
-  FAIL run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits  [need=['lease', 'lease', 'slot', 'none'] waited=True rc=[3] released=True; run.sh must lease every run_always script but an explicit 'none', and give a 'slot' answer the pool rather than the exclusive lease]
+  FAIL run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits  [need=['lease', 'lease', 'slot', 'none', 'slot'] waited=True rc=[3] released=True; run.sh must lease every run_always script but an explicit 'none', and give a 'slot' answer the pool rather than the exclusive lease]
   ok   the heavy-slot capacity is the cap unless the owner raises it (#2267)
+lease class: dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=10 none=24 unleased_but_heavy=[]
+  ok   every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)
   ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
   ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
   ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
@@ -1438,8 +1440,8 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   the widening rule itself leaves the card out
   ok   while still widening to the rest of the integration
   ok   the widening rule leaves the quality-scale register out too
-  baseline worktree add failed on baseline-22888-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
-  baseline worktree add failed on baseline-22888-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-22939-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-22939-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
   ok   a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
   ok   a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
   ok   concurrent gate instances name distinct baseline worktrees (#2119)
@@ -1561,7 +1563,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
-  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'debug_collect__dup', 'diagnose_interval__dup']; missing=[]]
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'set_mode__dup', 'simulate_plan__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 13; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1690,7 +1692,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpmmur8u7g/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpyz2pj7s4/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1711,7 +1713,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-tzy3qra7/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-zgtxix8v/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1894,7 +1896,7 @@ Accuracy store: ignoring non-list 'samples' field (str); the other learned field
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs 3db152de5432bd9746069a210ff2cc0092cd6ca9
+  DRIFT wood_coil: 1 leaves moved vs 1049da0dd0dbbc2a9b6d25e708e9102dc694c156
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2511,6 +2513,8 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   replay control:cycle_cost:loose_budget
   ok   replay control:cycle_cost:unrecorded
   ok   replay control:cycle_cost:loop_thread
+  ok   replay control:cycle_cost:loop_normaliser
+  ok   replay control:cycle_cost:cpu_normaliser
   ok   replay control:cycle_cost:short_doubling
   ok   replay control:cycle_cost:unmetered_doubling
   ok   replay control:cycle_cost:coverage
@@ -2624,4 +2628,4 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
   ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
 
-2 of 2333 ENTITY CHECKS FAILED
+2 of 2336 ENTITY CHECKS FAILED

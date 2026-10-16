@@ -1,0 +1,4 @@
+  FAIL run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits  [need=['lease', 'lease', 'slot', 'none', 'none'] waited=True rc=[3] released=True; run.sh must lease every run_always script but an explicit 'none', and give a 'slot' answer the pool rather than the exclusive lease]
+  FAIL every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)  [dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=7 none=27 unleased_but_heavy=['tests/closure.py', 'tests/rolling.py', 'tests/setup_qa_render.mjs']]
+lease class: dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=7 none=27 unleased_but_heavy=['tests/closure.py', 'tests/rolling.py', 'tests/setup_qa_render.mjs']
+2 of 2336 ENTITY CHECKS FAILED

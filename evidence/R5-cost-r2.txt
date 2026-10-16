@@ -1,0 +1,2 @@
+RESULT COST argv=tools/pr/prepr.sh --self-test rc=2 wall=273.2s peak_pg_procs=11 samples=1116
+RESULT COST argv=tools/pr/prepr.sh --self-test rc=0 wall=169.2s peak_pg_procs=11 samples=692

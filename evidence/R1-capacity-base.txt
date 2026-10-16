@@ -1,5 +1,0 @@
-RESULT CAPACITY slots=4 n=5: acquired=0 refused=5
-RESULT CAPACITY null control slots=6 n=5: acquired=0 refused=5
-RESULT CAPACITY null control slots=1 n=2: acquired=0 refused=2
-RESULT QUEUE waiting=False rc=2 queued_line=False
-RESULT QUEUE status=
