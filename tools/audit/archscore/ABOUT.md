@@ -52,8 +52,8 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
 | C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
 | C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
-| C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import (27) and as a constant-name `import_module` (26), each of them runtime code | 21, 24, 25, 26, 27 |
-| C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27) and through a constant-name `import_module` (26) | 22, 26, 27 |
+| C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import on the `from` form (27), on the plain dotted `import` with an alias (28) and with the full dotted read (29), through an absolute from-import's module binding (30), and as a constant-name `import_module` (26) or its `name`-keyword form (31), each of them runtime code | 21, 24, 25, 26, 27, 28, 29, 30, 31 |
+| C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), and through a constant-name `import_module` (26) or its `name`-keyword form (31) | 22, 26, 27, 28, 29, 30, 31 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
@@ -136,11 +136,29 @@ branch runs and its imports count. `a3_layer_violations_null` carries an annotat
 import of the optimizer on `drift.py` so the exclusion is measured in both directions: with the exclusion read it
 is NULL, with it ignored the pure module gains the solver and the case reads WORSENS.
 
+Round-2 review (`#2320`) found that four seams are one class, not four: the rule's own document follows an
+absolute self-import, a module binding and a constant-name dynamic import, and the round-2 repair handled one
+spelling of each -- `from <pkg>.m import _x`, a relative module binding, a positional `import_module`. The three
+further spellings are closed here, an attempt each, each reading IMPROVES against the round-2 head and NULL
+against this one: `import <pkg>.m as _o` and the full dotted read off `import <pkg>.m`, whose statement the
+graph reached for no edge and whose binding no `modalias` held (28, 29); the module binding an absolute
+from-import `from <pkg> import optimizer as _o` makes, which `Pkg.imports` files as an external name (30); and
+`import_module(name=".optimizer", package=__package__)`, the same call with its first parameter passed by its
+own name (31). `graph` now builds every module binding from the statements it runs -- relative, absolute
+from-import, plain dotted -- and resolves a private read through the dotted path that binding roots, so the
+spelling is not enumerated anywhere. The census in the same pull request counted both absolute self-import forms
+under one counter and planted only the `from` one, so a corpus tree carrying the dotted spelling would have read
+as covered; the counters are now per form and the planted precondition tree carries each.
+
 What it does not see, and no rule here closes:
 
-- a private crossing spelled outside C18's three: `getattr(_o, "_utc" + "_step_starts")`, `vars(_o)["_utc_step_starts"]`,
+- a private crossing spelled outside the ones C18 counts: `getattr(_o, "_utc" + "_step_starts")`, `vars(_o)["_utc_step_starts"]`,
   and `_m = _o; _m._utc_step_starts`. Each reads the same private of the same module and drops the crossing.
 - a dynamic import whose name is computed, `exec`, and an import bound by a rebind rather than an import statement.
+- `__import__(".optimizer", fromlist=[...], level=1)` -- the same constant name in the builtin's own spelling. It is
+  refused as an attempt rather than left open: the round-2 review executed it against a stand-in package and it
+  raises `KeyError: "'__name__' not in globals"` in CPython 3.14.7, so it is not code a seat can ship, and the
+  resolver reads no anchor it states. `importlib.import_module`, positional or by keyword, is the spelling that runs.
 - C19's tripwire keys on "never read", and one bare read satisfies it: an unread `import scipy` plus `assert scipy`
   climbs a layer and leaves `unused_boundary_imports` unmoved.
 - `a3_private_cross_module_fix` is a pure rename of a private to a public name. Declaring a private public is a
