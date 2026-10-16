@@ -2320,9 +2320,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2289",
     "branch": "handoff/r10-stale-paths",
-    "commit": null,
+    "commit": "7215e39df7a122a319be0f6ab2d3e49853325b21",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
