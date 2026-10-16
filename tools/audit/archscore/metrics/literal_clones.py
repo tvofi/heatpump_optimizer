@@ -10,7 +10,7 @@ A SPEC is a call, dict, list, tuple or set expression of at least MIN_NODES node
 counted) that computes nothing at runtime: every name in it is bound at module level (a constant, an imported
 module, a class, a function) or is a builtin, and it holds no lambda, comprehension, ``await``, walrus or star.
 An annotation, an ``except`` type and the subscript of a generic (``dict[str, Any]``) are type expressions,
-not specs, and are skipped. A clone class is the specs equal after normalisation; it counts its MAXIMAL
+and a decorator configures the definition it decorates; none is a spec, and each is skipped. A clone class is the specs equal after normalisation; it counts its MAXIMAL
 members, an occurrence whose enclosing spec is itself a clone being counted once, as the enclosing one.
 
 Normalisation, so that re-spelling one value is not a fix (counter C20): a number is its float value (``15``
@@ -59,9 +59,12 @@ def _module_names(tree: ast.Module) -> set[str]:
 
 
 def _type_nodes(tree: ast.Module) -> set[int]:
-    """ids of every node inside an annotation, an ``except`` type or a generic's subscript."""
+    """ids of every node inside an annotation, an ``except`` type, a generic's subscript or a decorator (a
+    decorator configures the one definition it decorates: two classes each ``@dataclass(frozen=True)`` share an
+    idiom, not a declaration)."""
     roots: list[ast.AST] = []
     for n in ast.walk(tree):
+        roots += getattr(n, "decorator_list", [])
         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
             a = n.args
             roots += [n.returns] + [x.annotation for x in [*a.posonlyargs, *a.args, *a.kwonlyargs, a.vararg, a.kwarg]
