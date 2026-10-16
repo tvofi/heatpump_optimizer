@@ -208,8 +208,9 @@ function check(name, cond, detail) {
 // in any quoting or key form, location, pushState, replaceState, .open( (the
 // dialog's own `this.dialog.open()` excepted), hass-more-info or hass-action.
 // It runs here, before any card renders, so a plant that crashes a later
-// scenario is still refused by name. Its residual is a name split across a
-// string concatenation, which the census's dynamic arm sees on a rendered row.
+// scenario is still refused by name. It matches spellings, not behaviour:
+// a token split across a string concatenation ("hr" + "ef"), a bare open(
+// with no dot, and the other known gaps listed at the census pass it.
 {
   const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
@@ -11175,19 +11176,31 @@ check("without an indoor reading the corner now label is absent",
 // The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup
 // "Configure" and Health "Show" each built their own Home Assistant link and
 // each landed on the integration's front page. `haLink` is now the one
-// builder, and this test holds every link the card emits to it, in two arms.
+// builder. This census checks the links it can observe against it, in two
+// arms; it is NOT a proof that every link the card can emit goes through
+// haLink -- that complete census is #2317 (roster group R10-DEEPLINK-CENSUS).
 //
 // Dynamic: render every dialog page and press every element there with a
-// click listener of its own, one fresh card per press, with every navigation
-// primitive instrumented so that using one is recorded, never thrown:
-// history.pushState / replaceState, open, the location setter and its
-// href / assign / replace, a hass-more-info or hass-action event, and any
-// anchor href on the page after the press. Each recorded link must be a path
-// haLink builds for this entry. No press may throw: a primitive this test
-// does not model would otherwise be swallowed as "emitted nothing".
+// click listener of its own, one fresh card per press, with these primitives
+// instrumented so that using one is recorded, never thrown: history.pushState
+// / replaceState, open, the location setter and its href / assign / replace,
+// a CustomEvent named hass-more-info or hass-action, and any anchor href on
+// the page after the press. Each recorded link must be a path haLink builds
+// for this entry. No press may throw.
 //
-// Static: for a row the fixture does not render, or a selector the stub DOM
-// cannot resolve, the token check at the top of this file.
+// Static: the token check at the top of this file, for rows the fixture does
+// not render or selectors the stub DOM cannot resolve.
+//
+// Known gaps, each passing both arms (the #2283 round-4 review's plants):
+//   K5   a bare open(...) with no dot (or globalThis["open"], .open.call) on
+//        a row this fixture does not render;
+//   K1   the Navigation API, navigation.navigate(...);
+//   K2   a <form action=...> submitted from a rendered page (only href is read);
+//   K3t  a plain Event (not CustomEvent) whose hass-more-info name is built at
+//        run time;
+// and the static arm's own residual, a token split across a concatenation
+// ("hr" + "ef"), which the dynamic arm sees only on a rendered row and, for
+// an event name, only through CustomEvent.
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
@@ -11350,12 +11363,12 @@ check("without an indoor reading the corner now label is absent",
       && !(i > openAt && i < openEnd && /navigateTo\(/.test(l)))
     .map(([, i]) => i + 1);
   const unreached = sites.filter((i) => !hits.has(i));
-  check("the census reached every line that emits a Home Assistant link",
+  check("the census reached every navigateTo and openHaLink call site",
     sites.length > 0 && unreached.length === 0,
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
   check("no press throws, so no navigation primitive is swallowed",
     threw.length === 0, threw.join("; "));
-  check("every link a button emits is one haLink builds for this entry",
+  check("every link the census records from a press is one haLink builds for this entry",
     wrong.length === 0, wrong.join("; "));
   const stale = Object.keys(PENDING).filter((k) => !seen[k] || !seen[k].has(`push ${PENDING[k].path}`));
   check("every PENDING row still names a button that makes its unconverted navigation",
