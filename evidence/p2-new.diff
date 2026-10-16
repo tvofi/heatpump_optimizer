@@ -1,0 +1,1422 @@
+diff --git a/dev/programme/delivery/2311.md b/dev/programme/delivery/2311.md
+new file mode 100644
+index 000000000..5192ed9ce
+--- /dev/null
++++ b/dev/programme/delivery/2311.md
+@@ -0,0 +1 @@
++- [#2311](https://github.com/tvofi/heatpump_optimizer/pull/2311) — **open**, R10-ARCHSCORE-COVERAGE p2: hub census follows readers, rebinds and event callbacks (R10-ARCHSCORE-COVERAGE)
+diff --git a/tests/arch_score.py b/tests/arch_score.py
+index 62a64def1..5850ec434 100644
+--- a/tests/arch_score.py
++++ b/tests/arch_score.py
+@@ -18,7 +18,9 @@ metric change silently moves a verdict or re-opens a game:
+     A weight change is a policy change, so it is a change to this file as well, which is code-owned;
+   * the check can fail: the same comparison on a vector with one metric nudged does not read as before;
+   * the required check's rule (archscore/gate.py, R9-EG-A4): an admissible change passes, a rise passes
+-    only explained under ``## Architecture score``, one line per metric.
++    only explained under ``## Architecture score``, one line per metric;
++  * the hub census reads each spelling C15 and C16 name on a synthetic package, and none of them with the
++    counters off.
+ 
+ The corpus and the planted verdicts are what the pre-study recorded (PRE-STUDY section 6 on
+ handoff/audit-r9-alt), re-measured with the metrics tests/structure.py now defines; the changes that made
+@@ -166,6 +168,106 @@ def base_runs_the_gate() -> None:
+             re.search(r"^SAW PLANT$", out, re.M) is not None, out[-300:])
+ 
+ 
++#: A synthetic package for the hub census's spellings (C15, C16; D7-s1-83 and ARCH2-s2 P4). Each plant goes
++#: into the scheduled cycle, and the census must read exactly ``want`` more sites than the bare package.
++_HUB_PKG = """from homeassistant.helpers.event import async_track_state_change_event
++
++
++class Params:
++    x = 0
++
++
++class Model:
++    def __init__(self, p):
++        self.p = p
++
++    def bump(self):
++        self.p.x = 1
++
++
++class Learner:
++    def __init__(self, read):
++        self._read = read
++
++    def go(self):
++        self._read().x = 1
++
++
++def _ctx_of(c):
++    return getattr(c, "_ctx", c)
++
++
++class HeatPumpOptimizerCoordinator:
++    def __init__(self):
++        self._thermal_params = Params()
++        self._opt_config = Params()
++        self._current_state = Params()
++        self._model = Model(None)
++        self._learner = Learner(lambda: self._thermal_params)
++        async_track_state_change_event(None, [], self._on_event)
++        _register(self._on_package_callback)
++
++    def _live(self):
++        return self._thermal_params
++
++    def _other(self):
++        return self._model
++
++    def _on_event(self, event):
++        pass
++
++    def _on_package_callback(self, event):
++        pass
++
++    async def _async_update_data(self):
++        pass
++        return {}
++
++
++def _register(cb):
++    return cb
++"""
++_HUB_PLANTS = {  # name -> (where, the plant, sites it adds)
++    "a rebind onto a collaborator's attribute": ("cycle", "self._model.p = self._thermal_params\n        self._model.bump()", 1),
++    "a rebind through a local the hub is rebound to":
++        ("cycle", "fresh = Params()\n        self._thermal_params = fresh\n        self._model.p = fresh\n        self._model.bump()", 1),
++    "a zero-argument reader method": ("cycle", "self._live().x = 1", 1),
++    "a package function's returned value": ("cycle", "_ctx_of(self)._thermal_params.x = 1", 1),
++    "a zero-argument lambda reader handed to a constructor": ("cycle", "self._learner.go()", 1),
++    "an event callback handed to Home Assistant": ("event", "self._thermal_params.x = 1", 1),
++    "null: a reader returning a collaborator, not a hub": ("cycle", "self._other().z = 1", 0),
++    "null: a callback handed to a package function": ("package", "self._thermal_params.x = 1", 0),
++}
++
++
++def hub_spellings() -> None:
++    """C15 and C16 on a package that holds one spelling each; with the counter off each reads 0."""
++    from archscore.metrics import common, hub_solve_writes as H
++
++    def sites(body: str, where: str) -> int:
++        with tempfile.TemporaryDirectory(prefix="archscore-hub-") as tmp:
++            pkg = Path(tmp) / "custom_components" / "heatpump_optimizer"
++            pkg.mkdir(parents=True)
++            anchor = {"cycle": "    async def _async_update_data(self):\n        pass\n",
++                      "event": "    def _on_event(self, event):\n        pass\n",
++                      "package": "    def _on_package_callback(self, event):\n        pass\n"}[where]
++            (pkg / "coordinator.py").write_text(_HUB_PKG.replace(anchor, anchor.replace("pass", body) if body else anchor))
++            common.reset_caches()
++            common.load.cache_clear()
++            return H.measure(Path(tmp))["value"]
++
++    base = sites("", "cycle")
++    for name, (where, body, want) in _HUB_PLANTS.items():
++        got = sites(body, where) - base
++        common.FOLLOW_RETURNS, H.EVENT_ROOTS = False, False
++        try:
++            off = sites(body, where) - sites("", "cycle")
++        finally:
++            common.FOLLOW_RETURNS, H.EVENT_ROOTS = True, True
++        R.check(f"hub census: {name} reads {want} site(s), and 0 with C15 and C16 off",
++                got == want and off == 0, f"got {got} (C15/C16 off: {off}), base {base}")
++
++
+ def smoke() -> None:
+     """Every planted case's script applies to the pin: the anchors still hold and every file the full
+     run reads is read, at the cost of the scripts alone. The helpers the scripts import are read and
+@@ -209,6 +311,7 @@ def main() -> int:
+     for name, ok in gate.self_test():
+         R.check(f"arch-score gate: {name}", ok)
+     base_runs_the_gate()
++    hub_spellings()
+ 
+     jobs = min(4, os.cpu_count() or 1)
+     collected = calibrate.collect(stored, jobs)
+diff --git a/tests/arch_score_head.py b/tests/arch_score_head.py
+index bb26dd85a..d54e55403 100644
+--- a/tests/arch_score_head.py
++++ b/tests/arch_score_head.py
+@@ -9,8 +9,8 @@ module the metrics cannot parse. This is that check, and it is the only part tha
+   * every score metric and every tripwire is a number on this tree;
+   * a tree compared with itself reads NULL, and the report names no metric;
+   * the coordinator class the metrics key on is the one ``tests/structure.py`` keys on;
+-  * nothing the scheduled cycle or the what-if reaches writes the coordinator's three hubs,
+-    except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included;
++  * nothing the scheduled cycle, the what-if or an event callback reaches writes the coordinator's
++    three hubs, except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included;
+   * the payload census reaches the away view, which today's tree publishes through an annotated
+     parameter (counter C14, D7-s3-51).
+ 
+@@ -82,6 +82,13 @@ CYCLE_HUB_WRITERS = {
+         {"_thermal_params.dhw_hourly_draw_pattern"}, "a restored DHW profile is adopted"),
+     "dhw_learning:DhwProfileLearner.async_learn_usage": (
+         {"_thermal_params.dhw_hourly_draw_pattern"}, "the DHW learner adopts a learned draw profile"),
++    # Event callbacks (counter C16, ARCH2-s2 P4's instrument half): Home Assistant calls them back
++    # with the live hubs, so a write there is a reading at the event that changed it.
++    _C + "_async_handle_ecl110_state_message": (
++        {"_current_state.ecl110_effective_displace", "_current_state.ecl110_displace_command"},
++        "the ECL110 MQTT state message stores the controller's displacement"),
++    _C + "_on_power_event": (
++        {"_current_state.peak_guard_active"}, "the meter event flips the peak guard on a crossing"),
+ }
+ LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
+ #: The planted writes the controls add: one as async_run_optimization's first
+@@ -179,10 +186,8 @@ def hub_writers(root: Path) -> set[tuple[str, str]]:
+         pkg = common.load(str(flat))
+         eng = common.engine(pkg)
+         out: set[tuple[str, str]] = set()
+-        for r in hub_solve_writes.ROOTS:
+-            q = f"{common.COORD_MODULE}:{common.COORD_CLASS}.{r}"
+-            if q in pkg.funcs:
+-                out |= {(x[4], f"{x[2]}.{x[3]}") for x in hub_solve_writes._sites(eng, q)}
++        for q in hub_solve_writes.roots(pkg):
++            out |= {(x[4], f"{x[2]}.{x[3]}") for x in hub_solve_writes._sites(eng, q)}
+         return out
+ 
+ 
+diff --git a/tests/ci_budgets.json b/tests/ci_budgets.json
+index 6e1e6592d..1672e660f 100644
+--- a/tests/ci_budgets.json
++++ b/tests/ci_budgets.json
+@@ -8,7 +8,7 @@
+  "archscore.duplication_copies": 68,
+  "archscore.family_orphan_overrides": 0,
+  "archscore.family_splits": 0,
+- "archscore.hub_solve_writes": 38,
++ "archscore.hub_solve_writes": 41,
+  "archscore.import_cycle_modules": 0,
+  "archscore.params_over_10": 12,
+  "archscore.public_unused": 1,
+@@ -17,8 +17,8 @@
+  "archscore.unread_private_globals": 0,
+  "archscore.untyped_payload_keys": 0,
+  "critical_path_minutes": 54.825,
+- "reason": "Deliberate re-record of the two script_runs rows only: the ci-ratchet grade on push run 38465320087 (job 115542644363, 2026-10-13 21:17Z, tree 664a4c05e) printed GREW script_runs_full_case_pr 68 (budget 63) and GREW script_runs_per_push 68 (budget 63); critical_path_minutes settled back under budget (45.03 vs 54.825) and stays untouched. The growth is the designed cost of the lane machinery, not a gather bug -- the morning's gather fix (.workflow_run.id // .run_id) is already in. Verified history from the push runs: script_runs_per_push was 96-vs-53 at 12:30Z (pre-#2160 baseline), 66-vs-63 by 16:57Z (the #2165/#2166/#2167-era closures FULL arm), 68 now (#2173's GATE_FILE diff forces the full recording set on pushes, +5 rows); script_runs_full_case_pr 35 at 16:57Z, 68 now (the window's most expensive full-case PR run is #2173's own FULL-mode lane set). script_runs_per_push 68 reproduced locally by grading this table against run 38465320087's own ci-metrics artifacts; full_case_pr cited from the CI log (the artifact window has moved since 21:17Z). archscore rows unchanged (the coord_footprint 2592 re-record at 4787610ad). The ci-ratchet job never passes --record by design, so this is the deliberate follow-up re-record that job's red names.",
+- "recorded_at": "664a4c05e3ead3100e252d3f2f2a0b4cdd230e00",
++ "reason": "Deliberate re-record of archscore.hub_solve_writes 38 -> 41 only (R10-ARCHSCORE-COVERAGE part 2, counter C16): the census now roots at the coordinator's event callbacks, so it counts three in-place hub writes the package already makes -- _async_handle_ecl110_state_message's ecl110_effective_displace and ecl110_displace_command, and _on_power_event's peak_guard_active (ARCH2-s2's event_hub_writes.py names the same three). No package code changed. Derived with ci_ratchet.archscore_metrics() at 880373298; every other archscore row at or under its budget there. The payment, retiring the three writes (ARCH2-s2 P4, 3 -> 0), is R10-ARCH-LIVESTATE's, carried into its roster brief to lower this row by 3 in the same PR. Approved under mandate 6175172275; precedent 4d6d329e5.",
++ "recorded_at": "880373298f0ac449df088c61772d2db9704da31c",
+  "script_runs_full_case_pr": 68,
+  "script_runs_per_push": 68
+ }
+diff --git a/tests/closures.json b/tests/closures.json
+index cda25f792..d83402cb2 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -116,6 +116,8 @@
+    "tools/audit/archscore/planted/redteam/16c_payload_annotated_param_helper.py",
+    "tools/audit/archscore/planted/redteam/17_typeddict_any_spellings.py",
+    "tools/audit/archscore/planted/redteam/18_family_invented_pair.py",
++   "tools/audit/archscore/planted/redteam/19_hub_reader_lambda.py",
++   "tools/audit/archscore/planted/redteam/20_hub_write_event.py",
+    "tools/audit/archscore/planted/redteam/rt_lib.py",
+    "tools/audit/archscore/score.py",
+    "tools/audit/archscore/vector.py",
+diff --git a/tools/audit/archscore/ABOUT.md b/tools/audit/archscore/ABOUT.md
+index e649fa88c..fe0801970 100644
+--- a/tools/audit/archscore/ABOUT.md
++++ b/tools/audit/archscore/ABOUT.md
+@@ -50,6 +50,8 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
+ | C12 a `cast(T, x)` is its `x`: the payload census follows it and it types nothing, the footprint does not read it as delegation | the payload builder's return behind a cast (#1852 round-1 review) | 15 |
+ | C13 the scheduled cycle is a hub root (`hub_solve_writes.ROOTS`) | a hub write moved out of the solve into a pre-solve step (#1887 round-1 review) | 14 |
+ | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
++| C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
++| C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
+ 
+ Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
+ and a score is only meaningful for a change whose suite stays green and whose check count does not
+@@ -93,6 +95,16 @@ are byte-identical (`calibrate.py --measure-corpus --only-metric untyped_payload
+ `ARCHSCORE_ABLATE=C14`, `C1b` or `C6b` reopens its own attempt (it reads IMPROVES) and leaves the other two closed.
+ The cases need the pin to hold no instance, so `controls.py`'s `on` names the case an arm is applied on top of.
+ 
++### What R10-ARCHSCORE-COVERAGE part 2 moved (the hub census: C15, C16)
++
++C16 makes every stored corpus vector's `hub_solve_writes` count the event callbacks' writes: +3 on 74 corpus trees,
+++2 on 11 and +0 on 2 (`calibrate.py --measure-corpus --only-metric hub_solve_writes,shared_inplace_writes,footprint`;
++`shared_inplace_writes` and `coord_footprint` re-measured byte-identical). Today's tree reads 38 -> 41, the three
++event writes `tests/arch_score_head.py` now lists as producers. C15 moves no corpus or today's value: main spells
++every hub handle as a path. It closes the spellings the next refactor would use (attempt 19), and ARCH2-s1's
++`census_probe.py --tree proto` reads all three of its blind spellings as seen. Each counter carries a planted BAD and
++GOOD pair (`a3_hub_reader_*`, `a3_hub_event_write_*`) and an attempt; `ARCHSCORE_ABLATE=C15` or `C16` reopens its own.
++
+ ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
+ 
+ Four verdicts moved. Sharing `tests/structure.py`'s definitions changed two, the counters one, and one
+diff --git a/tools/audit/archscore/calibration/corpus_vectors.json b/tools/audit/archscore/calibration/corpus_vectors.json
+index a98701db3..2ced5028d 100644
+--- a/tools/audit/archscore/calibration/corpus_vectors.json
++++ b/tools/audit/archscore/calibration/corpus_vectors.json
+@@ -9,7 +9,7 @@
+ "duplication_copies": 84,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -28,7 +28,7 @@
+ "duplication_copies": 72,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -47,7 +47,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 67,
++"hub_solve_writes": 70,
+ "import_cycle_modules": 0,
+ "params_over_10": 22,
+ "public_unused": 7,
+@@ -66,7 +66,7 @@
+ "duplication_copies": 77,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -85,7 +85,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -104,7 +104,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -123,7 +123,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -142,7 +142,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -161,7 +161,7 @@
+ "duplication_copies": 77,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 20,
+ "public_unused": 7,
+@@ -180,7 +180,7 @@
+ "duplication_copies": 80,
+ "family_orphan_overrides": 0,
+ "family_splits": 16,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -199,7 +199,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -239,7 +239,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -258,7 +258,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 12,
+ "public_unused": 7,
+@@ -279,7 +279,7 @@
+ "duplication_copies": 50,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 9,
+ "public_unused": 15,
+@@ -298,7 +298,7 @@
+ "duplication_copies": 58,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 14,
+ "public_unused": 7,
+@@ -317,7 +317,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 67,
++"hub_solve_writes": 70,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -338,7 +338,7 @@
+ "duplication_copies": 46,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 9,
+ "public_unused": 14,
+@@ -357,7 +357,7 @@
+ "duplication_copies": 81,
+ "family_orphan_overrides": 0,
+ "family_splits": 8,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -378,7 +378,7 @@
+ "duplication_copies": 27,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 41,
++"hub_solve_writes": 43,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 95,
+@@ -397,7 +397,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -416,7 +416,7 @@
+ "duplication_copies": 87,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -435,7 +435,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 28,
+ "public_unused": 5,
+@@ -475,7 +475,7 @@
+ "duplication_copies": 88,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 68,
++"hub_solve_writes": 71,
+ "import_cycle_modules": 0,
+ "params_over_10": 26,
+ "public_unused": 5,
+@@ -494,7 +494,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -513,7 +513,7 @@
+ "duplication_copies": 58,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 14,
+ "public_unused": 7,
+@@ -532,7 +532,7 @@
+ "duplication_copies": 61,
+ "family_orphan_overrides": 0,
+ "family_splits": 4,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 12,
+ "public_unused": 15,
+@@ -553,7 +553,7 @@
+ "duplication_copies": 27,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 44,
++"hub_solve_writes": 46,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 99,
+@@ -572,7 +572,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 14,
+ "public_unused": 7,
+@@ -591,7 +591,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 14,
+ "public_unused": 7,
+@@ -610,7 +610,7 @@
+ "duplication_copies": 78,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -631,7 +631,7 @@
+ "duplication_copies": 50,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 10,
+ "public_unused": 14,
+@@ -650,7 +650,7 @@
+ "duplication_copies": 87,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 71,
++"hub_solve_writes": 74,
+ "import_cycle_modules": 0,
+ "params_over_10": 28,
+ "public_unused": 5,
+@@ -669,7 +669,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -688,7 +688,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -707,7 +707,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -726,7 +726,7 @@
+ "duplication_copies": 87,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 71,
++"hub_solve_writes": 74,
+ "import_cycle_modules": 0,
+ "params_over_10": 28,
+ "public_unused": 5,
+@@ -745,7 +745,7 @@
+ "duplication_copies": 77,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 20,
+ "public_unused": 7,
+@@ -764,7 +764,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -783,7 +783,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -802,7 +802,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 28,
+ "public_unused": 5,
+@@ -823,7 +823,7 @@
+ "duplication_copies": 28,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 39,
++"hub_solve_writes": 41,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 98,
+@@ -842,7 +842,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -861,7 +861,7 @@
+ "duplication_copies": 78,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -880,7 +880,7 @@
+ "duplication_copies": 77,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -899,7 +899,7 @@
+ "duplication_copies": 89,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 68,
++"hub_solve_writes": 71,
+ "import_cycle_modules": 0,
+ "params_over_10": 26,
+ "public_unused": 5,
+@@ -918,7 +918,7 @@
+ "duplication_copies": 80,
+ "family_orphan_overrides": 0,
+ "family_splits": 16,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -937,7 +937,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -956,7 +956,7 @@
+ "duplication_copies": 81,
+ "family_orphan_overrides": 0,
+ "family_splits": 8,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -975,7 +975,7 @@
+ "duplication_copies": 79,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -996,7 +996,7 @@
+ "duplication_copies": 21,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 14,
++"hub_solve_writes": 16,
+ "import_cycle_modules": 0,
+ "params_over_10": 2,
+ "public_unused": 38,
+@@ -1017,7 +1017,7 @@
+ "duplication_copies": 50,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 10,
+ "public_unused": 14,
+@@ -1036,7 +1036,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1055,7 +1055,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 67,
++"hub_solve_writes": 70,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -1074,7 +1074,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -1095,7 +1095,7 @@
+ "duplication_copies": 27,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 41,
++"hub_solve_writes": 43,
+ "import_cycle_modules": 0,
+ "params_over_10": 4,
+ "public_unused": 95,
+@@ -1116,7 +1116,7 @@
+ "duplication_copies": 50,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 10,
+ "public_unused": 14,
+@@ -1137,7 +1137,7 @@
+ "duplication_copies": 42,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 66,
++"hub_solve_writes": 69,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 15,
+@@ -1156,7 +1156,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1175,7 +1175,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 12,
+ "public_unused": 7,
+@@ -1194,7 +1194,7 @@
+ "duplication_copies": 77,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -1213,7 +1213,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 16,
+ "public_unused": 7,
+@@ -1234,7 +1234,7 @@
+ "duplication_copies": 35,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 58,
++"hub_solve_writes": 60,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 14,
+@@ -1253,7 +1253,7 @@
+ "duplication_copies": 61,
+ "family_orphan_overrides": 0,
+ "family_splits": 6,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 12,
+ "public_unused": 15,
+@@ -1272,7 +1272,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1293,7 +1293,7 @@
+ "duplication_copies": 21,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 13,
++"hub_solve_writes": 15,
+ "import_cycle_modules": 0,
+ "params_over_10": 2,
+ "public_unused": 38,
+@@ -1312,7 +1312,7 @@
+ "duplication_copies": 77,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -1331,7 +1331,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1352,7 +1352,7 @@
+ "duplication_copies": 26,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 47,
++"hub_solve_writes": 49,
+ "import_cycle_modules": 0,
+ "params_over_10": 4,
+ "public_unused": 13,
+@@ -1371,7 +1371,7 @@
+ "duplication_copies": 87,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 71,
++"hub_solve_writes": 74,
+ "import_cycle_modules": 0,
+ "params_over_10": 28,
+ "public_unused": 5,
+@@ -1390,7 +1390,7 @@
+ "duplication_copies": 85,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 21,
+ "public_unused": 7,
+@@ -1411,7 +1411,7 @@
+ "duplication_copies": 27,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 49,
++"hub_solve_writes": 51,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 12,
+@@ -1430,7 +1430,7 @@
+ "duplication_copies": 50,
+ "family_orphan_overrides": 0,
+ "family_splits": 4,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 10,
+ "public_unused": 14,
+@@ -1449,7 +1449,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 12,
+ "public_unused": 7,
+@@ -1468,7 +1468,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1487,7 +1487,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 14,
+ "public_unused": 7,
+@@ -1508,7 +1508,7 @@
+ "duplication_copies": 27,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 47,
++"hub_solve_writes": 49,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 12,
+@@ -1527,7 +1527,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1546,7 +1546,7 @@
+ "duplication_copies": 89,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 68,
++"hub_solve_writes": 71,
+ "import_cycle_modules": 0,
+ "params_over_10": 26,
+ "public_unused": 5,
+@@ -1565,7 +1565,7 @@
+ "duplication_copies": 60,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 69,
++"hub_solve_writes": 72,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1584,7 +1584,7 @@
+ "duplication_copies": 87,
+ "family_orphan_overrides": 0,
+ "family_splits": 5,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 28,
+ "public_unused": 5,
+@@ -1605,7 +1605,7 @@
+ "duplication_copies": 27,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 21,
++"hub_solve_writes": 23,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 109,
+@@ -1624,7 +1624,7 @@
+ "duplication_copies": 59,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 72,
++"hub_solve_writes": 75,
+ "import_cycle_modules": 0,
+ "params_over_10": 17,
+ "public_unused": 7,
+@@ -1643,7 +1643,7 @@
+ "duplication_copies": 78,
+ "family_orphan_overrides": 0,
+ "family_splits": 7,
+-"hub_solve_writes": 70,
++"hub_solve_writes": 73,
+ "import_cycle_modules": 0,
+ "params_over_10": 19,
+ "public_unused": 7,
+@@ -1664,7 +1664,7 @@
+ "duplication_copies": 39,
+ "family_orphan_overrides": null,
+ "family_splits": null,
+-"hub_solve_writes": 60,
++"hub_solve_writes": 63,
+ "import_cycle_modules": 0,
+ "params_over_10": 5,
+ "public_unused": 14,
+@@ -1683,7 +1683,7 @@
+ "duplication_copies": 89,
+ "family_orphan_overrides": 0,
+ "family_splits": 3,
+-"hub_solve_writes": 68,
++"hub_solve_writes": 71,
+ "import_cycle_modules": 0,
+ "params_over_10": 26,
+ "public_unused": 5,
+diff --git a/tools/audit/archscore/calibration/expected.json b/tools/audit/archscore/calibration/expected.json
+index 9b6768be8..8d01f4efc 100644
+--- a/tools/audit/archscore/calibration/expected.json
++++ b/tools/audit/archscore/calibration/expected.json
+@@ -432,6 +432,30 @@
+   "set": "planted",
+   "verdict": "NULL"
+  },
++ "a3_hub_event_write_control": {
++  "admissible": false,
++  "label": "BAD",
++  "set": "planted",
++  "verdict": "WORSENS"
++ },
++ "a3_hub_event_write_fix": {
++  "admissible": true,
++  "label": "GOOD",
++  "set": "planted",
++  "verdict": "IMPROVES"
++ },
++ "a3_hub_reader_control": {
++  "admissible": false,
++  "label": "BAD",
++  "set": "planted",
++  "verdict": "WORSENS"
++ },
++ "a3_hub_reader_fix": {
++  "admissible": true,
++  "label": "GOOD",
++  "set": "planted",
++  "verdict": "IMPROVES"
++ },
+  "a3_hub_solve_writes_control": {
+   "admissible": false,
+   "label": "BAD",
+@@ -1001,5 +1025,17 @@
+   "label": "GAME",
+   "set": "redteam",
+   "verdict": "WORSENS"
++ },
++ "rt_19_hub_reader_lambda": {
++  "admissible": true,
++  "label": "GAME",
++  "set": "redteam",
++  "verdict": "NULL"
++ },
++ "rt_20_hub_write_event": {
++  "admissible": true,
++  "label": "GAME",
++  "set": "redteam",
++  "verdict": "NULL"
+  }
+ }
+diff --git a/tools/audit/archscore/counters.py b/tools/audit/archscore/counters.py
+index f03770314..c5780d833 100644
+--- a/tools/audit/archscore/counters.py
++++ b/tools/audit/archscore/counters.py
+@@ -19,6 +19,8 @@ C6  ``family_orphan_overrides``                          here; gate-only. C6b: a
+ C7  ``unread_private_globals``                           here; gate-only
+ C11 literal keys read from a function's own ``**kw`` are parameters  ``metrics/footprint.params_over_10``
+ C14 a parameter annotated with a package class holds an instance of it  ``metrics/untyped_payload_keys.Flow.seed``
++C15 a call is what its callee returns; readers and rebinds of a hub are the hub  ``metrics/common.Engine``
++C16 a callback handed outside the package is a hub root  ``metrics/hub_solve_writes.event_roots``
+ """
+ from __future__ import annotations
+ 
+diff --git a/tools/audit/archscore/metrics/common.py b/tools/audit/archscore/metrics/common.py
+index ea7d68097..5644e2f97 100644
+--- a/tools/audit/archscore/metrics/common.py
++++ b/tools/audit/archscore/metrics/common.py
+@@ -402,6 +402,10 @@ def is_coord_annotation(ann: ast.AST | None) -> bool:
+ 
+ 
+ _ENGINES: dict[tuple, "Engine"] = {}
++#: Counter C15: a call evaluates to what its callee returns, and a hub handed to a collaborator as a
++#: zero-argument reader, or rebound onto one of its attributes, is the hub there. ``vector.py``
++#: switches it off.
++FOLLOW_RETURNS = True
+ 
+ 
+ def engine(pkg: Pkg, seed_params: bool = True) -> "Engine":
+@@ -421,7 +425,13 @@ class Engine:
+         self.coord_attr_types = pkg.attr_types(pkg.coord_key) if pkg.coord_key in pkg.classes else {}
+         self.alias: dict = {}
+         self.slots: dict = {}
++        self.readers: dict[tuple[str, str], tuple[str, ...]] = {}
++        self._returns_memo: dict = {}
++        self._returns_stack: set = set()
+         self.alias = self._derive_aliases()
++        if FOLLOW_RETURNS:
++            for k, v in self._derive_rebinds().items():
++                self.alias.setdefault(k, v)
+         self.slots = self._derive_coord_slots()
+ 
+     # -- derived tables ----------------------------------------------------
+@@ -429,7 +439,9 @@ class Engine:
+         """(coordinator attr A, field F) -> canonical path, when the
+         coordinator constructs ``self.A = K(..., <coord path>, ...)`` and
+         ``K.__init__`` stores that parameter as ``self.F`` (so
+-        ``self._thermal_model.params`` IS ``_thermal_params``)."""
++        ``self._thermal_model.params`` IS ``_thermal_params``). C15: when that argument is a
++        zero-argument reader of a coordinator path (``lambda: ctx._thermal_params``, or a method
++        reference returning one), ``self.F()`` is that path: ``self.readers``."""
+         pkg = self.pkg
+         out: dict[tuple[str, str], tuple[str, ...]] = {}
+         if pkg.coord_key not in pkg.classes:
+@@ -469,8 +481,116 @@ class Engine:
+                     for role in self.ev(argexpr, env, COORD_MODULE, pkg.coord_key, bare=True):
+                         if role[0] == "obj":
+                             out.setdefault((t.attr, stores[p]), role[1])
++                    for role in self._reader_roles(argexpr, env) if FOLLOW_RETURNS else ():
++                        if role[0] == "obj":
++                            self.readers.setdefault((t.attr, stores[p]), role[1])
++        return out
++
++    def _reader_roles(self, e: ast.AST, env: dict) -> frozenset:
++        """What calling ``e`` with no argument returns, for a zero-argument lambda or a reference to a
++        coordinator method taking only ``self``; empty for anything else."""
++        if isinstance(e, ast.Lambda) and not (e.args.args or e.args.posonlyargs or e.args.kwonlyargs):
++            return self.ev(e.body, env, COORD_MODULE, self.pkg.coord_key, bare=True)
++        if isinstance(e, ast.Attribute):
++            out = set()
++            for r in self.ev(e.value, env, COORD_MODULE, self.pkg.coord_key, bare=True):
++                key = self._role_class(r)
++                q = self.pkg.member(key, e.attr) if key in self.pkg.classes else None
++                if q and self.pkg.funcs[q].kind == "method" and len(self.pkg.funcs[q].params) == 1:
++                    out |= self._returns(q, frozenset({r}), ())
++            return frozenset(out)
++        return EMPTY
++
++    def _derive_rebinds(self) -> dict[tuple[str, str], tuple[str, ...]]:
++        """C15: (coordinator attr A, field F) -> hub, where some function rebinds ``<coord>.A.F`` to the
++        hub, directly (``ctx._thermal_model.params = ctx._thermal_params``) or through a local it also
++        rebinds the hub to (``params = replace(..); ctx._thermal_params = params;
++        ctx._thermal_model.params = params``): from then on the field IS the hub object."""
++        out: dict[tuple[str, str], tuple[str, ...]] = {}
++        for fn in self.pkg.funcs.values():
++            env = self._local_env(fn.node, self.seed_env(fn), fn.cls, fn.mod, bare=True)
++            stores: list[tuple[ast.Attribute, ast.AST]] = [
++                (n.targets[0], n.value) for n in walk(fn.node)
++                if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Attribute)]
++            hub_of: dict[str, str] = {}
++            for t, v in stores:
++                if isinstance(v, ast.Name) and t.attr in HUBS and COORD in self.ev(t.value, env, fn.mod, fn.cls, True):
++                    hub_of[v.id] = t.attr
++            for t, v in stores:
++                hubs = {r[1][0] for r in self.ev(v, env, fn.mod, fn.cls, True)
++                        if r[0] == "obj" and len(r[1]) == 1 and r[1][0] in HUBS}
++                if isinstance(v, ast.Name) and v.id in hub_of:
++                    hubs.add(hub_of[v.id])
++                for base in self.ev(t.value, env, fn.mod, fn.cls, True):
++                    if base[0] == "obj" and len(base[1]) == 1 and base[1][0] not in HUBS:
++                        for h in sorted(hubs):
++                            out.setdefault((base[1][0], t.attr), (h,))
+         return out
+ 
++    def _role_class(self, r: tuple) -> tuple[str, str] | None:
++        return self.pkg.coord_key if r == COORD else r[2] if r[0] == "obj" else r[1] if r[0] == "self" else None
++
++    def _returns(self, q: str, selfroles: frozenset | None, argroles: tuple) -> frozenset:
++        """C15: the roles ``q`` returns, its parameters bound to ``selfroles`` and ``argroles``
++        (positional, after ``self``). Memoised; a recursive call reads empty."""
++        key = (q, selfroles, argroles)
++        if key in self._returns_memo:
++            return self._returns_memo[key]
++        if key in self._returns_stack or len(self._returns_stack) > 6:
++            return EMPTY
++        self._returns_stack.add(key)
++        fn = self.pkg.funcs[q]
++        env = self.seed_env(fn)
++        params = fn.params
++        if selfroles and fn.kind == "method" and params:
++            env[params[0]] = selfroles
++            params = params[1:]
++        elif fn.kind in ("method", "classmethod") and params:
++            params = params[1:]
++        for p, r in zip(params, argroles):
++            if r:
++                env[p] = env.get(p, EMPTY) | r
++        full = self._local_env(fn.node, env, fn.cls, fn.mod, bare=True)
++        out: set = set()
++        todo = list(ast.iter_child_nodes(fn.node))
++        while todo:
++            n = todo.pop()
++            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
++                continue
++            if isinstance(n, ast.Return) and n.value is not None:
++                out |= self.ev(n.value, full, fn.mod, fn.cls, True)
++            todo.extend(ast.iter_child_nodes(n))
++        self._returns_stack.discard(key)
++        res = frozenset(out)
++        self._returns_memo[key] = res
++        return res
++
++    def _call_roles(self, e: ast.Call, env: dict, mod: str, cls, bare: bool) -> frozenset:
++        """C15: a call is what its callee returns: a stored zero-argument reader (``self._params()``),
++        a method of a class a role names, or a package function."""
++        pkg, f, out = self.pkg, e.func, set()
++        if any(isinstance(a, ast.Starred) for a in e.args):
++            return EMPTY
++        args = tuple(self.ev(a, env, mod, cls, bare) for a in e.args)
++        if isinstance(f, ast.Attribute):
++            for r in self.ev(f, env, mod, cls, bare):
++                if r[0] == "obj" and r[1] in self.readers:
++                    path = self.readers[r[1]]
++                    out.add(("obj", path, self.coord_attr_types.get(path[0]) if len(path) == 1 else None))
++            for r in self.ev(f.value, env, mod, cls, bare):
++                key = self._role_class(r)
++                q = pkg.member(key, f.attr) if key in pkg.classes else None
++                if q and pkg.funcs[q].kind == "method":
++                    out |= self._returns(q, frozenset({r}), args)
++            st = pkg.resolve_expr_static(mod, f)
++            if st and st[0] == "func":
++                out |= self._returns(st[1], None, args)
++        elif isinstance(f, ast.Name):
++            r = pkg.resolve_name(mod, f.id)
++            if r and r[0] == "func":
++                out |= self._returns(r[1], None, args)
++        return frozenset(out)
++
+     def _derive_coord_slots(self) -> dict[tuple[str, str], set[str]]:
+         """Per non-coordinator class: the ``self.X`` attributes that hold the
+         coordinator. ``coordinator`` for CoordinatorEntity subclasses (HA sets
+@@ -562,7 +682,7 @@ class Engine:
+             r = self.pkg.resolve_expr_static(mod, f)
+             if r and r[0] == "class" and r[1] == self.pkg.coord_key:
+                 return frozenset({COORD})
+-            return EMPTY
++            return self._call_roles(e, env, mod, cls, bare) if FOLLOW_RETURNS else EMPTY
+         if isinstance(e, ast.Subscript):
+             out = set()
+             for r in self.ev(e.value, env, mod, cls, bare):
+diff --git a/tools/audit/archscore/metrics/hub_solve_writes.py b/tools/audit/archscore/metrics/hub_solve_writes.py
+index a08ceb636..511ec927b 100644
+--- a/tools/audit/archscore/metrics/hub_solve_writes.py
++++ b/tools/audit/archscore/metrics/hub_solve_writes.py
+@@ -21,17 +21,55 @@ Engine._derive_aliases). Rebinding the hub itself (``ctx._opt_config =
+ replace(..)``) is NOT a site: that is the copy-on-write the CoordinatorContext
+ facade exists for.
+ 
++C16 (round 10, ARCH2-s2 P4's instrument half): a coordinator method the package hands to code
++outside it -- a Home Assistant event, MQTT or timer subscription -- is called back at runtime with
++the live hubs, so it is a root too (``event_roots``); before, an in-place hub write in the ECL110
++state message or the peak-guard meter event was counted by no score metric. A callback handed to
++a package function is reached from wherever that function is, so it is not a root of its own.
++
+ Headline: distinct write sites (file:line, hub, field). Details: distinct
+ fields, per-root split, sites inside a ``finally``-reached restore helper.
+ """
+ from __future__ import annotations
+ 
++import ast
+ import time
+ from pathlib import Path
+ 
+ from . import common as C
+ 
+ ROOTS = ("_async_update_data", "async_run_optimization", "async_simulate")
++#: Counter C16: the event callbacks are roots. ``vector.py`` switches it off.
++EVENT_ROOTS = True
++
++
++def event_roots(pkg: C.Pkg) -> list[str]:
++    """Coordinator methods referenced, not called, as an argument of a call that does not resolve to a
++    package function: what the package hands to Home Assistant to call back."""
++    if not EVENT_ROOTS or pkg.coord_key not in pkg.classes:
++        return []
++    methods = pkg.classes[pkg.coord_key].methods
++    out: set[str] = set()
++    for fn in pkg.funcs.values():
++        if fn.cls != pkg.coord_key:
++            continue
++        for n in C.walk(fn.node):
++            if not isinstance(n, ast.Call):
++                continue
++            callee = pkg.resolve_expr_static(fn.mod, n.func)
++            if callee and callee[0] in ("func", "class"):
++                continue
++            for a in [*n.args, *(k.value for k in n.keywords)]:
++                if isinstance(a, ast.Attribute) and isinstance(a.value, ast.Name) and a.value.id == fn.params[0] \
++                        and a.attr in methods and fn.kind == "method":
++                    out.add(methods[a.attr])
++    return sorted(out)
++
++
++def roots(pkg: C.Pkg) -> list[str]:
++    """Every root qual: the cycle and the solves, then the event callbacks."""
++    fixed = [f"{C.COORD_MODULE}:{C.COORD_CLASS}.{r}" for r in ROOTS]
++    return [q for q in dict.fromkeys(fixed + event_roots(pkg)) if q in pkg.funcs]
+ 
+ 
+ def _sites(eng: C.Engine, root_qual: str) -> set[tuple]:
+@@ -54,12 +92,9 @@ def measure(root: Path) -> dict:
+     eng = C.engine(pkg)
+     per_root = {}
+     allsites: set[tuple] = set()
+-    for r in ROOTS:
+-        q = f"{C.COORD_MODULE}:{C.COORD_CLASS}.{r}"
+-        if q not in pkg.funcs:
+-            continue
++    for q in roots(pkg):
+         s = _sites(eng, q)
+-        per_root[r] = len({x[:4] for x in s})
++        per_root[q.rsplit(".", 1)[-1]] = len({x[:4] for x in s})
+         allsites |= s
+     sites = sorted({x[:4] for x in allsites})
+     fields = sorted({(h, f) for _, _, h, f in sites})
+diff --git a/tools/audit/archscore/planted/controls.py b/tools/audit/archscore/planted/controls.py
+index c6f0f0a44..25cf506ad 100644
+--- a/tools/audit/archscore/planted/controls.py
++++ b/tools/audit/archscore/planted/controls.py
+@@ -100,6 +100,36 @@ def plan():
+                                         cls="HeatPumpOptimizerCoordinator"))),
+     )
+ 
++    # 1b a hub read through a zero-argument reader (counter C15, D7-s1-83)
++    def reader(w):
++        sub(w, "coordinator.py", "            ctx._thermal_params,\n            frozen=self._learning_frozen,\n",
++            "            lambda: ctx._thermal_params,\n            frozen=self._learning_frozen,\n")
++        p = _p(w, "dhw_learning.py")
++        s2, n = re.subn(r"\bself\._params\b(?! = params)", "self._params()", p.read_text())
++        assert n >= 6, n
++        p.write_text(s2)
++
++    probe = "        self._params().dhw_setpoint = self._params().dhw_setpoint\n"
++    rate = "        self._params().dhw_cooling_rate = self.cooling_rate\n"
++    P["hub_reader"] = dict(
++        control=("the DHW learner holds the hub as `lambda: ctx._thermal_params` and writes one more field through it",
++                 lambda w: (reader(w), sub(w, "dhw_learning.py", rate, rate + probe))),
++        fix=("[on top of control] the extra write through the reader goes",
++             lambda w: sub(w, "dhw_learning.py", rate + probe, rate)),
++        on={"fix": "a3_hub_reader_control"},
++    )
++
++    # 1c a hub write in an event callback (counter C16, ARCH2-s2 P4)
++    ecl = "            self._ecl110_current_displace = displace\n"
++    ecl_hub = "            ctx._current_state.ecl110_last_displace = displace\n"
++    P["hub_event_write"] = dict(
++        control=("the ECL110 state message writes the live state instead of the coordinator's own slot",
++                 lambda w: sub(w, "coordinator.py", ecl, ecl_hub)),
++        fix=("[on top of control] the event's live-state write goes",
++             lambda w: sub(w, "coordinator.py", ecl_hub, "")),
++        on={"fix": "a3_hub_event_write_control"},
++    )
++
+     # 2 shared_inplace_writes
+     P["shared_inplace_writes"] = dict(
+         control=("re-plant #1752: boost.apply overlays the LIVE _current_action instead of a copy",
+diff --git a/tools/audit/archscore/planted/redteam/19_hub_reader_lambda.py b/tools/audit/archscore/planted/redteam/19_hub_reader_lambda.py
+new file mode 100644
+index 000000000..d6e9b50f0
+--- /dev/null
++++ b/tools/audit/archscore/planted/redteam/19_hub_reader_lambda.py
+@@ -0,0 +1,18 @@
++"""Game hub_solve_writes by handing a collaborator the hub as a zero-argument reader: the DHW learner gets
++``lambda: ctx._thermal_params`` instead of the hub, and each ``self._params.X`` becomes ``self._params().X``. The
++same live object is written in place by the same methods; the role engine read a constructor argument only when it
++was a path, and a call as nothing, so every learner write vanished (D7-s1-83: ARCH2-s1's P1 prototype hid three
++spellings this way). Counter C15."""
++import re, sys
++from rt_lib import pkg
++root = sys.argv[1]
++c = pkg(root) / "coordinator.py"
++src = c.read_text()
++arg = "            ctx._thermal_params,\n            frozen=self._learning_frozen,\n"
++assert src.count(arg) == 1
++c.write_text(src.replace(arg, "            lambda: ctx._thermal_params,\n            frozen=self._learning_frozen,\n"))
++d = pkg(root) / "dhw_learning.py"
++src, n = re.subn(r"\bself\._params\b(?! = params)", "self._params()", d.read_text())
++assert n >= 6, n
++d.write_text(src)
++print("reader spellings", n)
+diff --git a/tools/audit/archscore/planted/redteam/20_hub_write_event.py b/tools/audit/archscore/planted/redteam/20_hub_write_event.py
+new file mode 100644
+index 000000000..8eadbeef9
+--- /dev/null
++++ b/tools/audit/archscore/planted/redteam/20_hub_write_event.py
+@@ -0,0 +1,16 @@
++"""Game hub_solve_writes by moving a solve-scoped hub write into an event callback: the solve's
++``ctx._opt_config.peak_offpeak_factor = tariff.offpeak_factor`` moves into ``_on_power_event``, which Home Assistant
++calls back with the same live config. The write is the same; the census rooted only at the cycle and the solves, so
++the site read as removed (ARCH2-s2 P4: an event callback's hub writes were counted by no score metric). Counter C16."""
++import sys
++from rt_lib import pkg
++root = sys.argv[1]
++p = pkg(root) / "coordinator.py"
++src = p.read_text()
++cut = "            ctx._opt_config.peak_offpeak_factor = tariff.offpeak_factor\n"
++at = "        if self._peak_guard.throttled(now):\n            return\n"
++assert src.count(cut) == 1 and src.count(at) == 1
++src = src.replace(cut, "")
++src = src.replace(at, at + "        ctx._opt_config.peak_offpeak_factor = self._capacity_tariff().offpeak_factor\n")
++p.write_text(src)
++print("solve write moved into the meter event")
+diff --git a/tools/audit/archscore/vector.py b/tools/audit/archscore/vector.py
+index 58ce8c9b9..97b362d58 100644
+--- a/tools/audit/archscore/vector.py
++++ b/tools/audit/archscore/vector.py
+@@ -145,6 +145,8 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
+         untyped_payload_keys.ANY_SPELLINGS = "C1b" not in off
+         untyped_payload_keys.FOLLOW_ANNOTATED = "C14" not in off
+         footprint.READ_KW_KEYS = "C11" not in off
++        C.FOLLOW_RETURNS = "C15" not in off
++        hub_solve_writes.EVENT_ROOTS = "C16" not in off
+         jobs = {
+             "structure": lambda: structure_rows(flat),
+             "hub_solve_writes": lambda: hub_solve_writes.measure(flat)["value"],

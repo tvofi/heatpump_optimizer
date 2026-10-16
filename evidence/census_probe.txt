@@ -1,0 +1,22 @@
+== base proto
+RESULT tree=proto base hub_solve_writes=23 count
+RESULT tree=proto control_hub_direct hub_solve_writes=24 count seen=True
+RESULT tree=proto via_live_model hub_solve_writes=23 count seen=False
+RESULT tree=proto via_guard_reader hub_solve_writes=23 count seen=False
+RESULT tree=proto via_learner_reader hub_solve_writes=23 count seen=False
+RESULT tree=proto via_local_alias hub_solve_writes=24 count seen=True
+== base main
+RESULT tree=main base hub_solve_writes=38 count
+RESULT tree=main control_hub_direct hub_solve_writes=39 count seen=True
+RESULT tree=main via_live_model hub_solve_writes=39 count seen=True
+RESULT tree=main via_guard_reader hub_solve_writes=39 count seen=True
+RESULT tree=main via_learner_reader hub_solve_writes=39 count seen=True
+RESULT tree=main via_local_alias hub_solve_writes=39 count seen=True
+== wt proto
+RESULT tree=proto base hub_solve_writes=26 count
+RESULT tree=proto control_hub_direct hub_solve_writes=27 count seen=True
+RESULT tree=proto via_live_model hub_solve_writes=27 count seen=True
+RESULT tree=proto via_guard_reader hub_solve_writes=27 count seen=True
+RESULT tree=proto via_learner_reader hub_solve_writes=27 count seen=True
+RESULT tree=proto via_local_alias hub_solve_writes=27 count seen=True
+== wt main

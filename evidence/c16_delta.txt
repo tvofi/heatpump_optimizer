@@ -1,0 +1,16 @@
+event_roots: ['_async_handle_ecl110_state_message', '_maybe_refresh_price_tile', '_maybe_run_fuse_advisor', '_on_defrost_event', '_on_power_event', '_release_registrations']
+RESULT sites on 41 off 38
+DELTA ('coordinator.py', 3249, '_current_state', 'ecl110_effective_displace')
+DELTA ('coordinator.py', 3252, '_current_state', 'ecl110_displace_command')
+DELTA ('coordinator.py', 8473, '_current_state', 'peak_guard_active')
+removed []
+RESULT hub_solve_writes 41 ablate=none
+{}
+RESULT hub_solve_writes 38 ablate=C16
+{}
+RESULT hub_solve_writes 41 ablate=C15
+{}
+RESULT hub_solve_writes 38 ablate=C15,C16
+{}
+base RESULT hub_solve_writes 38 ablate=none
+base {}

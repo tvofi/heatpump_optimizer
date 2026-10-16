@@ -1,0 +1,12 @@
+== base event_hub_writes
+  coordinator.py:3249 _current_state.ecl110_effective_displace
+  coordinator.py:3252 _current_state.ecl110_displace_command
+  coordinator.py:8473 _current_state.peak_guard_active
+RESULT event_hub_inplace_writes=3 count
+RESULT event_hub_inplace_writes=0 count
+== wt event_hub_writes
+  coordinator.py:3249 _current_state.ecl110_effective_displace
+  coordinator.py:3252 _current_state.ecl110_displace_command
+  coordinator.py:8473 _current_state.peak_guard_active
+RESULT event_hub_inplace_writes=3 count
+RESULT event_hub_inplace_writes=0 count
