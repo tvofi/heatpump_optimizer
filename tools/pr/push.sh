@@ -264,6 +264,18 @@ set_pr_body() { # pr number, body file -> 0 set and read back, 1 write failed, 2
   return 0
 }
 
+# The push, a function so the self-test drives it for real (#2310): a branch,
+# or a commit message the push publishes for the first time, naming this host
+# is refused and nothing is pushed. The guard's path is resolved here, before
+# any cd, so a call from another directory finds it.
+RP_GUARD="$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py"
+push_branch() {
+  python3 -I "$RP_GUARD" guard --ref "$BR" --commits HEAD \
+    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310)"; exit 5; }
+  git push --set-upstream origin "$BR" || { say REFUSE "push" "git push failed"; exit 5; }
+  say ok "push" "origin/$BR at $(git rev-parse --short HEAD)"
+}
+
 # The body-then-push arm, a function so the self-test can drive its ORDER with a
 # stubbed client and a stubbed push: the body is set and read back first, and a
 # body that did not land pushes nothing.
@@ -570,6 +582,21 @@ STUB
   body_reads_back "a
 
 " "a";                              st $? 1 "and so are two trailing newlines"
+  # #2310: the real push_branch, in a throwaway repository with a bare origin.
+  # A commit whose message names a host path is refused and pushes nothing; the
+  # same branch re-committed with a clean message is its null control.
+  P="$W/pushrepo"; mkdir -p "$P/o.git" "$P/w"
+  pb_run() { ( . tests/throwaway_git.sh && throwaway_git_env && cd "$P/w" && BR=fix/pb \
+      && say() { printf '%s\n' "$*" >> "$P/said"; } && push_branch ) >/dev/null 2>&1; }
+  ( . tests/throwaway_git.sh && throwaway_git_env && cd "$P/o.git" && throwaway_git_init . -q --bare -b main \
+    && cd "$P/w" && throwaway_git_init . -q -b fix/pb && git remote add origin "$P/o.git" \
+    && git commit -q --allow-empty -m "notes in /$(printf Users)/exampleuser/x" ) >/dev/null 2>&1
+  pb_run; st $? 5 "push_branch refuses a commit message naming a host path (#2310)"
+  st "$(git --git-dir "$P/o.git" for-each-ref refs/heads/fix/pb | wc -l | tr -d ' ')" 0 "and pushes nothing"
+  ( . tests/throwaway_git.sh && throwaway_git_env && cd "$P/w" \
+    && git commit -q --amend --allow-empty -m "notes, the host path removed" ) >/dev/null 2>&1
+  pb_run; st $? 0 "and pushes the same branch with a clean message (the null control)"
+  st "$(git --git-dir "$P/o.git" for-each-ref refs/heads/fix/pb | wc -l | tr -d ' ')" 1 "which lands on origin"
   rm -rf "$W"
 
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
@@ -678,14 +705,6 @@ if [ "$ARM" = "refuse" ]; then
 fi
 if [ "$PR" = "none" ]; then say arm "$ARM" "no pull request is open on $BR"
 else say arm "$ARM" "#$PR on branch $BR"; fi
-
-push_branch() {
-  # A branch or commit message naming this host is refused (#2310).
-  python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$BR" --commits HEAD \
-    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310)"; exit 5; }
-  git push --set-upstream origin "$BR" || { say REFUSE "push" "git push failed"; exit 5; }
-  say ok "push" "origin/$BR at $(git rev-parse --short HEAD)"
-}
 
 if [ "$NO_PR" = "1" ]; then
   # The escape exists so an interim push does not need a pull request to exist
