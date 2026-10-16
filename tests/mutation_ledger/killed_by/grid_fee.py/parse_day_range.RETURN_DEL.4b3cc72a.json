@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:parse_day_range RETURN_DEL 4b3cc72a",
+  "killed_by": "tests/features.py",
+  "old": "    return _parse_cyclic_range(token, _DAYS, 0, 7, \"weekday\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8747bbfc4d4628fa8419634792229fd15dcc21e2: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

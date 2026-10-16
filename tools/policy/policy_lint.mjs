@@ -7027,6 +7027,10 @@ export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, fr
 // per-file comparison on a perturbed file rather than a temp copy of this module.
 export { checkBudgets, sizes, policyBudgets, CHECKS }
 
+// For tests/entities.py's cited-program arm (#2227): which policy text names a
+// program to run is POLICY_GLOBS's question, so the arm asks this module.
+export { policyFiles }
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()
 }
