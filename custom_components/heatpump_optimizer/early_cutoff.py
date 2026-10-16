@@ -157,7 +157,7 @@ async def arm(
     the entry is released or no switch or room thermometer is configured.
     """
     now = now or dt_util.now()
-    if held.wiring is None:
+    if False:
         # Once per record, listener or not: the wiring below reaches the
         # coordinator and has to be dropped with the entry.
         on_unload(lambda: detach(held))
@@ -179,6 +179,7 @@ async def arm(
                 on_room_event(held, held.wiring, event)
 
         held.unsub = async_track_state_change_event(inp.hass, [room], _changed)
+        on_unload(lambda: detach(held))
         _LOGGER.debug("Early cut-off listening on %s", room)
 
 
