@@ -30,7 +30,6 @@ optimizer's optional threadpool limiter.
 from __future__ import annotations
 
 import ast
-import re
 import time
 from pathlib import Path
 
@@ -128,7 +127,7 @@ def closure(edges: dict[str, set[str]], m: str) -> set[str]:
 
 def unused_boundary_imports(pkg: C.Pkg) -> list[str]:
     """``module: name`` for each name a boundary import binds that the module never reads (a loaded name,
-    or a word of a string annotation)."""
+    or a name a string annotation's expression spells)."""
     out = []
     for m, mod in pkg.mods.items():
         bound: dict[str, str] = {}
@@ -143,9 +142,12 @@ def unused_boundary_imports(pkg: C.Pkg) -> list[str]:
         if not bound:
             continue
         read = {n.id for n in C.walk(mod.tree) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
-        for n in C.walk(mod.tree):
+        for n in C.walk(mod.tree):  # a string annotation reads the names its expression spells
             if isinstance(n, ast.Constant) and isinstance(n.value, str) and len(n.value) < 200:
-                read |= set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", n.value))
+                try:
+                    read |= {x.id for x in ast.walk(ast.parse(n.value, mode="eval")) if isinstance(x, ast.Name)}
+                except SyntaxError:
+                    pass
         out += [f"{m}: {name}" for name in sorted(bound) if name not in read]
     return out
 
