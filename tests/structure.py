@@ -1992,8 +1992,8 @@ def coordinator_writers(roles: CoordinatorRoles) -> dict[str, set[str]]:
     return writers
 
 
-def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]],
-                                        list[tuple[str, str, str]], list[tuple[str, int]]]:
+def dead_members(pkg: Package, types: ReceiverTypes | None = None
+                 ) -> tuple[list[tuple[str, str, str, int]], list[tuple[str, str, str]]]:
     """``(dead, name-kept)``: class-body functions no live code reaches (#1395, D7-s3-02).
 
     A member is a method or a property -- a property is a member like any
@@ -2094,7 +2094,7 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]],
             inner = id(child) if id(child) in pkg.units else fid
             visit(child, mod, cls, unit, self_name, inner)
 
-    types = ReceiverTypes(pkg)
+    types = types or ReceiverTypes(pkg)
     for mod, (_rel, tree) in pkg.mods.items():
         visit(tree, mod, None, None, None, None)
 
@@ -2115,7 +2115,7 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]],
     dead = sorted((members[k][0], k[1], k[2], members[k][1]) for k in members if k not in live)
     name_kept = sorted((members[k][0], k[1], k[2]) for k in live
                        if k not in typed_live and not is_root_member(k))
-    return dead, name_kept, types.computed
+    return dead, name_kept
 
 
 def class_excess(trees: list[tuple[Path, ast.Module]],
@@ -2221,7 +2221,8 @@ def measure() -> dict:
                     if is_dead_symbol((rel, name), bound, dynamic_exempt)]
 
     # -- dead members (#1395, D7-s3-02) ------------------------------------
-    dead_methods, name_kept, computed = dead_members(pkg)
+    types = ReceiverTypes(pkg)
+    dead_methods, name_kept = dead_members(pkg, types)
 
     # -- the coordinator, by role (#1686, #1738) ---------------------------
     roles = CoordinatorRoles(pkg)
@@ -2278,7 +2279,7 @@ def measure() -> dict:
         "dead_symbols": dead_symbols,
         "dead_methods": dead_methods,
         "name_kept": name_kept,
-        "computed_stores": computed,
+        "computed_stores": types.computed,
         "dynamic_exempt": sorted(dynamic_exempt),
         "dynamic_problems": dynamic_problems,
         "clones": clones,
@@ -3144,9 +3145,10 @@ def class_self_check() -> tuple[tuple[str, bool], ...]:
 def typed_self_check() -> tuple[tuple[str, bool], ...]:
     """Pin ReceiverTypes on D7-s3-01's shapes."""
     def census(source: str) -> tuple[set, set, list]:
-        dead, kept, computed = dead_members(
-            Package([(PACKAGE_DIR / "typed.py", ast.parse(source))]))
-        return ({(c, n) for _r, c, n, _l in dead}, {(c, n) for _r, c, n in kept}, computed)
+        pkg = Package([(PACKAGE_DIR / "typed.py", ast.parse(source))])
+        types = ReceiverTypes(pkg)
+        dead, kept = dead_members(pkg, types)
+        return ({(c, n) for _r, c, n, _l in dead}, {(c, n) for _r, c, n in kept}, types.computed)
 
     dead, kept, computed = census(TYPED_SELF_CHECK_SOURCE)
     poisoned, _k, _c = census(TYPED_SELF_CHECK_SOURCE + TYPED_SELF_CHECK_POISON)
@@ -3169,7 +3171,7 @@ def role_self_check() -> tuple[tuple[str, bool], ...]:
     """Pin the member census, the role engine and the #1738 rows on our own trees."""
     trees = [(PACKAGE_DIR / m, ast.parse(src)) for m, src in ROLE_SELF_CHECK_SOURCES.items()]
     pkg = Package(trees)
-    dead, name_kept, _computed = dead_members(pkg)
+    dead, name_kept = dead_members(pkg)
     dead_names = {(cls, name) for _rel, cls, name, _line in dead}
     coord = COORDINATOR_CLASS_NAME
     roles = CoordinatorRoles(pkg)
@@ -3201,7 +3203,7 @@ def role_self_check() -> tuple[tuple[str, bool], ...]:
         return sum(len(g) - 1 for g in duplicate_clones(
             [(PACKAGE_DIR / f"m{i}.py", ast.parse(s)) for i, s in enumerate(srcs)]))
 
-    field_dead, field_kept, _c = dead_members(
+    field_dead, field_kept = dead_members(
         Package([(PACKAGE_DIR / "fields.py", ast.parse(FIELD_SELF_CHECK_SOURCE))]))
 
     def cycles(b_source: str) -> list[list[str]]:

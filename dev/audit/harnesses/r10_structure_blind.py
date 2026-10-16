@@ -22,8 +22,9 @@ Every arm drives the production ``tests/structure.py:measure`` of ``--structure`
                  a de-duplication, which a class row must price
                  (``merge_class_excess_delta``).
   six            D7-s3-01's six members: how many the census measures dead
-                 (``six_measured_dead``) and how many it can only keep by name
-                 (``six_name_kept``); the perturbation feeds one load the
+                 (``six_measured_dead``), how many it can only keep by name
+                 (``six_name_kept``), how many the source no longer defines
+                 (``six_deleted``); the perturbation feeds one load the
                  source types to ``Cusum`` and the count must fall by one
                  (``six_measured_dead_with_a_typed_cusum_reset``).
   second         1201 lines of called, CC-1 code in ``HeatPumpOptimizer``,
@@ -31,9 +32,13 @@ Every arm drives the production ``tests/structure.py:measure`` of ``--structure`
                  (``second_keys_moved``, the keys that rose).
 
 Command:
-  PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_structure_blind.py [--structure PATH]
+  PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_structure_blind.py \
+      [--structure PATH] [--package-ref REF]
+``--package-ref`` measures the integration as committed at REF instead of the
+working tree: the census arm is read on the merge base's package, where the
+four members this fix deletes still stand.
 
-Expected at the fix head:
+Expected, fix-head structure.py on the merge base's package (--package-ref MB):
   RESULT null_keys_moved=0 count
   RESULT move_class_excess_delta=0 lines
   RESULT move_max_class_loc_delta=-12 lines
@@ -41,11 +46,14 @@ Expected at the fix head:
   RESULT second_keys_moved=1 count
   RESULT six_measured_dead=4 count
   RESULT six_name_kept=2 count
+  RESULT six_deleted=0 count
   RESULT six_measured_dead_with_a_typed_cusum_reset=3 count
-At the merge base (``--structure`` a base copy, which has no class_excess_loc
-row): move_class_excess_delta and merge_class_excess_delta print ``absent``,
-second_keys_moved=0 -- the base prices neither the second class nor a merge
-apart from a move -- and six_measured_dead=0 with six_name_kept=6.
+On the fix head's own tree the four it measures dead are deleted: six_measured_dead=0,
+six_name_kept=2, six_deleted=4. The merge base's structure.py on the merge base's
+package (``--structure`` a base copy, no class_excess_loc row):
+move_class_excess_delta and merge_class_excess_delta print ``absent``,
+second_keys_moved=0, six_measured_dead=0, six_name_kept=6 -- the base prices
+neither the second class nor a merge apart from a move, and measures none of the six.
 Perturbation: in ``class_excess`` drop ``loc += helper_loc`` -> the move arm
 reads -12, a move priced as a gain again.
 """
@@ -60,6 +68,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
 import ast  # noqa: E402
 import importlib.util  # noqa: E402
 import re  # noqa: E402
+import subprocess  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
@@ -76,6 +85,7 @@ SIX = [("drift.py", "Cusum", "reset"), ("inputs.py", "InputReader", "value"),
 args = sys.argv[1:]
 spath = Path(args[args.index("--structure") + 1]) if "--structure" in args \
     else ROOT / "tests" / "structure.py"
+REF = args[args.index("--package-ref") + 1] if "--package-ref" in args else None
 sys.path.insert(0, str(ROOT / "tests"))
 spec = importlib.util.spec_from_file_location("structure_under_test", spath)
 S = importlib.util.module_from_spec(spec)
@@ -85,6 +95,24 @@ S.PACKAGE_DIR = ROOT / "custom_components" / "heatpump_optimizer"
 S.BUDGET_FILE = ROOT / "tests" / "structure_budgets.json"
 S.SEAM_MAP_FILE = ROOT / "tests" / "seam_map.json"
 PKG = S.PACKAGE_DIR
+
+
+def source(path: Path) -> str:
+    """A package module's text: the working tree's, or ``--package-ref``'s."""
+    if REF is None:
+        return path.read_text()
+    rel = path.relative_to(ROOT).as_posix()
+    return subprocess.run(["git", "-C", str(ROOT), "show", f"{REF}:{rel}"],
+                          capture_output=True, text=True, check=True).stdout
+
+
+def ref_paths() -> list[Path]:
+    if REF is None:
+        return sorted(PKG.rglob("*.py"))
+    rel = PKG.relative_to(ROOT).as_posix()
+    out = subprocess.run(["git", "-C", str(ROOT), "ls-tree", "-r", "--name-only", REF, rel],
+                         capture_output=True, text=True, check=True).stdout.split()
+    return sorted(ROOT / p for p in out if p.endswith(".py"))
 
 
 def pick(src: str, others: str) -> ast.FunctionDef:
@@ -145,8 +173,8 @@ def measure(edits: dict[str, str], add: tuple[str, ...] = (), drop: tuple[str, .
     orig, orig_seams = S.module_trees, S.load_seam_map
 
     def trees():
-        return [(p, ast.parse(edits[p.name], filename=str(p)) if p.name in edits else t)
-                for p, t in orig()]
+        return [(p, ast.parse(edits[p.name] if p.name in edits else source(p), filename=str(p)))
+                for p in ref_paths()]
 
     def seams():
         m = {k: v for k, v in orig_seams().items() if k not in drop}
@@ -166,8 +194,8 @@ def delta(a: dict, b: dict, key: str) -> str:
     return str(b[key] - a[key]) if key in a and key in b else "absent"
 
 
-coord_src = (PKG / "coordinator.py").read_text()
-others = "\n".join(p.read_text() for p in sorted(PKG.rglob("*.py")) if p.name != "coordinator.py")
+coord_src = source(PKG / "coordinator.py")
+others = "\n".join(source(p) for p in ref_paths() if p.name != "coordinator.py")
 item = pick(coord_src, others)
 print(f"moved method: {COORD}.{item.name} ({S.span_loc(item)} lines)")
 
@@ -177,7 +205,7 @@ moved = measure({"coordinator.py": move(coord_src, item, keep_method=False, help
                 add=("coordinator._r10moved",), drop=(item.name,))
 copied = measure({"coordinator.py": move(coord_src, item, keep_method=True, helper=False)},
                  add=("_r10copy",))
-second = measure({"optimizer.py": pad((PKG / "optimizer.py").read_text())})
+second = measure({"optimizer.py": pad(source(PKG / "optimizer.py"))})
 
 print(f"RESULT null_keys_moved={sum(1 for k in base if k != '_tables' and again.get(k) != base[k])} count")
 print(f"RESULT move_class_excess_delta={delta(base, moved, 'class_excess_loc')} lines")
@@ -188,15 +216,20 @@ print(f"second-class keys that rose: {rose}")
 print(f"RESULT second_keys_moved={len(rose)} count")
 
 
-def six(metrics: dict) -> tuple[int, int]:
+def six(metrics: dict) -> tuple[int, int, int]:
+    """(measured dead, kept by name, gone from the source) of D7-s3-01's six."""
     t = metrics["_tables"]
     dead = {(Path(rel).name, cls, name) for rel, cls, name, _line in t["dead_methods"]}
     kept = {(Path(rel).name, cls, name) for rel, cls, name in t["name_kept"]}
-    return sum(1 for m in SIX if m in dead), sum(1 for m in SIX if m in kept)
+    gone = sum(1 for f, c, m in SIX
+               if not re.search(rf"\n    (async )?def {m}\(", source(PKG / f).split(f"class {c}", 1)[1]
+                                .split("\nclass ", 1)[0]))
+    return sum(1 for m in SIX if m in dead), sum(1 for m in SIX if m in kept), gone
 
 
-d, k = six(base)
+d, k, g = six(base)
 print(f"RESULT six_measured_dead={d} count")
 print(f"RESULT six_name_kept={k} count")
-fed = measure({"drift.py": (PKG / "drift.py").read_text() + "\n\nCusum(threshold=1.0, drift=0.0).reset()\n"})
+print(f"RESULT six_deleted={g} count")
+fed = measure({"drift.py": source(PKG / "drift.py") + "\n\nCusum(threshold=1.0, drift=0.0).reset()\n"})
 print(f"RESULT six_measured_dead_with_a_typed_cusum_reset={six(fed)[0]} count")
