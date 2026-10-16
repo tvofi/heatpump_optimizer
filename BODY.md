@@ -38,7 +38,7 @@ custom_components/heatpump_optimizer/early_cutoff.py:160 GUARD_OFF (`if held.wir
 
 ## Red checks
 
-none
+`mutation` was red on head d19dd839: the diff added one unpinned site, `custom_components/heatpump_optimizer/early_cutoff.py:160` GUARD_OFF (`if held.wiring is None:`), which `prepr.sh` had also predicted. The cheaper detector is `prepr.sh`'s mutation prediction (standing cost: one prepr run, already paid); the body then owed the site a line under `## Unpinned sites`, and it names it. Answered by the `mutation-autofix` bot commit c723bd9d ("ci: pin killed mutants"), which recorded `tests/mutation_ledger/killed_by/early_cutoff.py/arm.GUARD_OFF.d460246f.json`: the `if False:` mutant takes `tests/features.py` from rc=0 to rc=1. The PR head c723bd9d carries that file (read back from the head). The pin is in addition to my `if True:` mutant, killed by "arming twice registers one unload hook, not one per cycle".
 
 ## Forward-carry
 
