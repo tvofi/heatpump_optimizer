@@ -32461,6 +32461,46 @@ R.check(
     f"rc={_cim_res.returncode}",
 )
 
+
+def _derive_join_arm() -> tuple[bool, str]:
+    """derive_closures.sh takes a slot STANDALONE and joins one it is in
+    (#2267). The predicate is the env var, so it is driven both ways: with
+    `$HPO_SLOT_LABEL` set -- what prepr.sh step 1b exports -- the stub `PYTHON`
+    it hands every child sees no `slot-take`, and without it, it does (the null
+    control). A join arm that always took a slot, or one that never did, fails
+    one of the two arms.
+    """
+    taken: dict[str, bool] = {}
+    with _tempfile.TemporaryDirectory() as td:
+        for label, slot in (("inside", "parent-1"), ("outside", "")):
+            d = Path(td) / label
+            d.mkdir()
+            stub = d / "py"
+            stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$ARGVLOG"\n')
+            stub.chmod(0o755)
+            log = d / "argv.log"
+            log.write_text("")
+            env = {**_os.environ, "PYTHON": str(stub), "ARGVLOG": str(log),
+                   "HPO_CI_METRICS": ""}
+            env.pop("HPO_SLOT_LABEL", None)
+            if slot:
+                env["HPO_SLOT_LABEL"] = slot
+            _subprocess.run(
+                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
+                 "--record-only", "--out-dir", str(d / "rec")],
+                env=env, capture_output=True, text=True, timeout=180)
+            taken[label] = "slot-take" in log.read_text()
+    return (not taken["inside"] and taken["outside"],
+            f"inside_takes={taken['inside']} outside_takes={taken['outside']}")
+
+
+_derive_join_ok, _derive_join_detail = _derive_join_arm()
+R.check(
+    "derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)",
+    _derive_join_ok,
+    _derive_join_detail,
+)
+
 # The composed-closure allow-list (round-9 C1): every entry a real selectable
 # script, off the never-compose list closure.py enumerates -- the class's seam
 # rule, not an instance check.
