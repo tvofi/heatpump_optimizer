@@ -74,6 +74,7 @@ from pathlib import Path
 SELF = "tools/audit/seat/roster_edit.py"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
+import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
 SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 # Historical path first, then the moved one: the same preference as
@@ -367,6 +368,10 @@ def main(argv=None) -> int:
         fetch_origin(a.checkout)
         ref, branch = roster_target(a.checkout, a.roster_ref, a.branch,
                                     a.roster_path)
+        msg = a.message or f"roster_edit {a.op} {a.group} ({SELF})"
+        why = ref_privacy.refusal(branch, (("the message", msg),))
+        if why:
+            raise Refuse(f"{why} would publish this host (#2310); nothing written")
         prepare_worktree(a.checkout, ref, branch, a.worktree)
         try:
             rel = roster_lib.roster_path(str(a.worktree), None, a.roster_path)
@@ -396,7 +401,6 @@ def main(argv=None) -> int:
             print(f"no change: {a.op} {a.group} wrote the roster's own "
                   "bytes (byte-identical); nothing to commit or push")
             return 0
-        msg = a.message or f"roster_edit {a.op} {a.group} ({SELF})"
         run(["git", "-C", str(a.worktree), "commit", "-q", "-am", msg])
         head = run(["git", "-C", str(a.worktree), "rev-parse", "HEAD"]).strip()
         ok, detail = lint_gate(a.checkout, a.lint_cwd, path)
@@ -705,6 +709,13 @@ def _self_test() -> int:
     check("lint gate refuses a bad brief", rc == 3, rc)
     after = run(["git", "-C", str(origin), "rev-parse", "refs/heads/edit-1"]).strip()
     check("refused push moved nothing", before == after)
+
+    # a branch name naming a host path refuses before anything is committed (#2310)
+    leaky = "edit/Users-" + "exampleuser-x"
+    rc = edit("set-stage", "R9-A", "review", push=True, branch=leaky)
+    check("a branch naming a host path refuses", rc == 2, rc)
+    check("and pushes nothing", not run(["git", "-C", str(origin), "for-each-ref",
+                                         f"refs/heads/{leaky}"]).strip())
 
     # the stale-worktree trap: a lint checkout main has moved past is refused
     # even when the roster itself is fine.

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/button.py:ForceOptimizationButton.available RETURN_DEL ef813f53",
+  "killed_by": "tests/entities.py",
+  "old": "        return bool(super().available and not self.coordinator.optimization_running)",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=3."
+}
