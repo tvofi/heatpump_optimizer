@@ -8733,6 +8733,50 @@ function navigateTo(path) {
   } catch (_err) { /* no router: the row stays advice */ }
 }
 
+/** The one builder of a deep link into Home Assistant's own UI, for every
+ * button that sends the user there (R10-DEEPLINK). Pure: a kind and ids in, a
+ * path out, `null` for a kind it does not know or an entity link with no
+ * entity. The routes are the ones Home Assistant's frontend reads
+ * (home-assistant-frontend 20260826.7):
+ *   "options"   the integration page with this entry highlighted and scrolled
+ *               to (`#config_entry=`, ha-config-integration-page); its
+ *               Configure button opens the options flow. The frontend has no
+ *               route INTO an options-flow step -- the flow dialog opens only
+ *               from that button -- so this is as deep as a link reaches.
+ *   "entities"  the entity table filtered to this entry (`?config_entry=`,
+ *               ha-config-entities). A URL filter clears the state filter,
+ *               so disabled entities are listed too.
+ *   "entity"    that table with one entity's settings dialog open over it
+ *               (`more-info-entity-id`/`more-info-view`, home-assistant.ts),
+ *               where a disabled entity is enabled.
+ * With no entry id (the registry lookup failed) each falls back to the whole
+ * integration (`?domain=`), never to a guessed entry. */
+function haLink(kind, entryId, entityId) {
+  const q = (k, v) => `${k}=${encodeURIComponent(v)}`;
+  const table = `/config/entities?${entryId ? q("config_entry", entryId) : q("domain", "heatpump_optimizer")}`;
+  if (kind === "options") return entryId ? `${SETTINGS_PATH}#${q("config_entry", entryId)}` : SETTINGS_PATH;
+  if (kind === "entities") return table;
+  if (kind === "entity" && entityId) {
+    return `${table}&${q("more-info-entity-id", entityId)}&${q("more-info-view", "settings")}`;
+  }
+  return null;
+}
+
+/** Follow `haLink(kind, <this card's entry>, entityId)`. The entry id is not
+ * in `hass` (the entities carry no device, and `hass.entities` no entry), so
+ * it is asked of the entity registry for the card's own plan sensor; a failed
+ * lookup leaves it null and `haLink` links the whole integration. */
+async function openHaLink(host, kind, entityId) {
+  let entryId = null;
+  try {
+    const reg = await host.hass.callWS({ type: "config/entity_registry/get",
+      entity_id: host.plan.resolveEntity("space") });
+    entryId = (reg && reg.config_entry_id) || null;
+  } catch (_err) { /* no registry answer: link the integration */ }
+  const path = haLink(kind, entryId, entityId);
+  if (path) navigateTo(path);
+}
+
 // ---- The Health page (R9-UX-3) ---------------------------------------------
 //
 // Reads the Input Problem binary sensor (the failing inputs and every input's
@@ -9186,20 +9230,24 @@ function attachAdvisorPage(host, root) {
       stop(ev);
       const key = row.dataset.key;
       if (!key) return;
-      // Keyboard activation (Enter/Space on a button) fires click with
-      // detail 0; those users need focus handed into the picker the way
-      // the setup page's own keyboard path does, or the rebuild drops
-      // them at the top of the dialog.
-      const viaKeyboard = !(ev && ev.detail > 0);
-      host.setup.closePicker();
-      host.setup.pickerKey = key;
-      host.setup.pickerFocus = viaKeyboard;
-      host.setup.pickerViaKeyboard = viaKeyboard;
-      host.dialog.page = "setup";
-      host.dialog.scroll = 0;
-      host._render();
+      openSetupSlot(host, key, ev);
     });
   }
+}
+
+/** The deep link into the Setup tab: that slot's assign picker, open. The
+ * one owner of "take me to this sensor", for every tab that offers it (the
+ * advisor ranking, the inbox's Assign, the Health checklist's Assign); the
+ * picker's own state belongs to `SetupPage.openPicker`.
+ *
+ * Keyboard activation (Enter/Space on a button) fires click with detail 0;
+ * those users need focus handed into the picker the way the setup page's own
+ * keyboard path does, or the rebuild drops them at the top of the dialog. */
+function openSetupSlot(host, key, ev) {
+  host.setup.openPicker(key, !(ev && ev.detail > 0));
+  host.dialog.page = "setup";
+  host.dialog.scroll = 0;
+  host._render();
 }
 
 /** The inbox's actions, each through a lane the card already owns: the
@@ -9215,12 +9263,8 @@ function attachAdvisorInbox(host, root) {
       stop(ev);
       const act = btn.dataset.act;
       if (act === "assign") {
-        const viaKeyboard = !(ev && ev.detail > 0);
-        host.setup.closePicker();
-        host.setup.pickerKey = btn.dataset.key;
-        host.setup.pickerFocus = viaKeyboard;
-        host.setup.pickerViaKeyboard = viaKeyboard;
-        host.dialog.page = "setup";
+        openSetupSlot(host, btn.dataset.key, ev);
+        return;
       } else if (act === "apply_dhw") {
         const to = Number(btn.dataset.target);
         if (!Number.isFinite(to)) return;
@@ -11901,6 +11945,24 @@ class SetupPage {
       shown: shown.length };
   }
 
+  /** Open the picker for one slot: the only writer of a visit's opening
+   * state, for a click on the diagram and for every deep link
+   * (`openSetupSlot`) alike. The caller renders. */
+  openPicker(key, viaKeyboard) {
+    // A fresh visit: no filter, no half-made choice, no armed clear left
+    // over from the row before this one.
+    this.closePicker();
+    this.pickerKey = key;
+    // Opened from the keyboard, focus must land in the picker: the hit
+    // target that had it is rebuilt by the render that follows, so without
+    // this the keyboard user is dropped back at the top of the dialog.
+    this.pickerFocus = !!viaKeyboard;
+    // ...and remembered for the way back out. Handing focus to a row a
+    // MOUSE user is no longer looking at is what left a focus ring stuck
+    // on the sensor field after Cancel (v5.1.4).
+    this.pickerViaKeyboard = !!viaKeyboard;
+  }
+
   /** Close the picker, dropping everything that belonged to that visit. */
   closePicker() {
     this.pickerKey = null;
@@ -12072,18 +12134,7 @@ class SetupPage {
       // drag, not a request to assign a sensor. Opening the picker over the
       // diagram being edited would put a dialog on top of the drag.
       if (layoutEditing()) return;
-      // A fresh visit: no filter, no half-made choice, no armed clear left
-      // over from the row before this one.
-      this.closePicker();
-      this.pickerKey = key;
-      // Opened from the keyboard, focus must land in the picker: the hit
-      // target that had it is rebuilt by the render below, so without this
-      // the keyboard user is dropped back at the top of the dialog.
-      this.pickerFocus = !!viaKeyboard;
-      // ...and remembered for the way back out. Handing focus to a row a
-      // MOUSE user is no longer looking at is what left a focus ring stuck
-      // on the sensor field after Cancel (v5.1.4).
-      this.pickerViaKeyboard = !!viaKeyboard;
+      this.openPicker(key, viaKeyboard);
       this.host.render();
     };
     // Any pointer gesture that is not on a row takes focus off whichever row
