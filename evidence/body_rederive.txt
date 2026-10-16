@@ -1,0 +1,6 @@
+BODY M4 heading '## '->'### ': 18 passed, 3 failed
+BODY M1 isinstance(edits, list)->False: 19 passed, 2 failed
+SWEEP@head clean: RESULT seams=16 escapes=0
+SWEEP@head drop_new_string: SEAM .claude/hooks/pre-edit.sh RELEASE_NOTES.md Edit ESCAPE | RESULT seams=16 escapes=1
+SWEEP@head drop_edits_read: SEAM .claude/hooks/pre-edit.sh RELEASE_NOTES.md MultiEdit ESCAPE | RESULT seams=16 escapes=1
+SWEEP@head both: SEAM .claude/hooks/pre-edit.sh RELEASE_NOTES.md Edit ESCAPE | SEAM .claude/hooks/pre-edit.sh RELEASE_NOTES.md MultiEdit ESCAPE | RESULT seams=16 escapes=2

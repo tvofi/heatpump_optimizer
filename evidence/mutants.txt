@@ -1,0 +1,32 @@
+M1 drop edits read: rc=2 13 passed, 8 failed -> KILLED
+      FAIL VERSION on a branch is refused (got allow, wanted refuse)
+      FAIL the manifest on a branch is refused (got allow, wanted refuse)
+      FAIL a generated Cursor rule is refused (got allow, wanted refuse)
+      FAIL and on main too -- generation is not branch-dependent (got allow, wanted refuse)
+      FAIL a new RELEASE_NOTES heading on a branch is refused (got allow, wanted refuse)
+      FAIL a MultiEdit that writes a new RELEASE_NOTES heading is refused (got allow, wanted refuse)
+      FAIL a heading in a LATER edit is refused (one value per line, not one joined line) (got allow, wanted refuse)
+      FAIL END TO END: a generated Cursor rule exits 2 (rc 0, wanted 2)
+M2 join space: rc=2 20 passed, 1 failed -> KILLED
+      FAIL a heading in a LATER edit is refused (one value per line, not one joined line) (got allow, wanted refuse)
+M3 list->tuple guard: rc=2 19 passed, 2 failed -> KILLED
+      FAIL a MultiEdit that writes a new RELEASE_NOTES heading is refused (got allow, wanted refuse)
+      FAIL a heading in a LATER edit is refused (one value per line, not one joined line) (got allow, wanted refuse)
+M4 drop dict guard: rc=0 21 passed, 0 failed -> SURVIVED
+M5 old_string read: rc=2 19 passed, 2 failed -> KILLED
+      FAIL a MultiEdit that writes a new RELEASE_NOTES heading is refused (got allow, wanted refuse)
+      FAIL a heading in a LATER edit is refused (one value per line, not one joined line) (got allow, wanted refuse)
+M6 guard -> truthy: rc=0 21 passed, 0 failed -> SURVIVED
+M7 read only edits[0]: rc=2 20 passed, 1 failed -> KILLED
+      FAIL a heading in a LATER edit is refused (one value per line, not one joined line) (got allow, wanted refuse)
+M8 drop top-level fields: rc=2 20 passed, 1 failed -> KILLED
+      FAIL a new RELEASE_NOTES heading on a branch is refused (got allow, wanted refuse)
+.claude/hooks/pre-edit.sh -> refuseRELEASE_NOTES.md's version heading is written by tools/release/stamp.py after the merge, and this branch is 'feature'. CLAUDE.md rule 4. Body lines under an existing heading are fine; a new `## ` heading is not.
+Traceback (most recent call last):
+  File "<stdin>", line 40, in <module>
+AttributeError: 'int' object has no attribute 'get'
+<scratch>/mut/M4.sh -> allow
+M1b edits read -> pass (clean replacement of the edits line; M1 above deleted it and made the block a SyntaxError): rc=2 19 passed, 2 failed -> KILLED
+      FAIL a MultiEdit that writes a new RELEASE_NOTES heading is refused
+      FAIL a heading in a LATER edit is refused (one value per line, not one joined line)
+M4 discriminator (edits=[7, {heading}]): head refuses; M4 crashes (AttributeError) and allows -> M4 is observable only on a schema-invalid mixed list
