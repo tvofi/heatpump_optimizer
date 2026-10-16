@@ -2,7 +2,7 @@
 """The next-session prompt, generated from the resume doc and the roster.
 
     python3 tools/audit/seat/handover_prompt.py [--repo OWNER/REPO] \
-        [--roster-ref GITREF | --roster-file PATH] [--resume FILE] \
+        [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH] [--resume FILE] \
         [--out PATH]
     python3 tools/audit/seat/handover_prompt.py --self-test \
         [--roster-file R] [--resume S]
@@ -66,7 +66,7 @@ def _ready_from_doc(text: str) -> list:
 
 
 def render(roster: dict, source: str, resume_path: str, resume_text: str,
-           date: str) -> str:
+           date: str, roster_rel: str) -> str:
     repo = roster.get("repo") or "<repo>"
     session = roster.get("session") or "<session>"
     L = [f"# Next-session prompt ({source})",
@@ -80,7 +80,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
          "## Load the state", "",
          "```bash",
          "git fetch origin",
-         f"git show {source}:{roster_lib.ROSTER_PATH}   # the roster",
+         f"git show {source}:{roster_rel}   # the roster",
          "```"]
     inflight = in_flight(roster)
     if inflight:
@@ -140,20 +140,27 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", default="tvofi/heatpump_optimizer")
     src = p.add_mutually_exclusive_group()
-    src.add_argument("--roster-ref", default="handoff/audit-r9-fixplan")
+    src.add_argument("--roster-ref", default=roster_lib.DEFAULT_ROSTER_REF)
     src.add_argument("--roster-file")
+    p.add_argument("--roster-path",
+                   help="the roster at --roster-ref (default: the newest "
+                        "dev/programme/rosters/wave-r<N>-groups.json there)")
     p.add_argument("--resume")
     p.add_argument("--out")
     p.add_argument("--self-test", action="store_true")
     a = p.parse_args(argv)
     if a.self_test:
         return _self_test()
-    roster = (roster_lib.load_roster_file(a.roster_file) if a.roster_file
-              else roster_lib.show_roster(a.repo, a.roster_ref))
+    if a.roster_file:
+        roster = roster_lib.load_roster_file(a.roster_file)
+        rel = roster_lib.newest_roster([a.roster_file]) or a.roster_file
+    else:
+        rel = roster_lib.roster_path(".", a.roster_ref, a.roster_path)
+        roster = roster_lib.show_roster(".", a.roster_ref, rel)
     source = a.roster_file or a.roster_ref
     rtext = Path(a.resume).read_text(encoding="utf-8") if a.resume else ""
     today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
-    text = render(roster, source, a.resume, rtext, today)
+    text = render(roster, source, a.resume, rtext, today, rel)
     if a.out:
         Path(a.out).write_text(text, encoding="utf-8")
         print(f"wrote {a.out}")
@@ -191,11 +198,13 @@ def _self_test() -> int:
     resume = ("# Resume (fixture)\n\n## Ready next\n\n"
               "- R9-C (wave 1, 0 satisfied edge(s))\n\n## Traps\n\nnone\n")
 
-    text = render(roster, "fixture", "handoff/x/RESUME.md", resume, "2026-10-04")
+    R10 = f"{roster_lib.ROSTERS_DIR}/wave-r10-groups.json"
+    text = render(roster, "fixture", "handoff/x/RESUME.md", resume, "2026-10-04",
+                  R10)
     check("rules-first pointer", "Read first" in text and "CLAUDE.md" in text
           and "tvofi" in text)
     check("state load commands", "git fetch origin" in text
-          and f"git show fixture:{roster_lib.ROSTER_PATH}" in text)
+          and f"git show fixture:{R10}" in text)
     # in-flight: B (in-review) generates a pickup command; not-started C and
     # done A do not.
     check("in-flight pickup command", "git fetch origin handoff/r9-b" in text
@@ -205,7 +214,7 @@ def _self_test() -> int:
     # ready-next taken from the resume doc when given.
     check("ready from resume doc", "Ready next" in text
           and "R9-C" in text[text.find("Ready next"):])
-    doc_free = render(roster, "fixture", "", "", "2026-10-04")
+    doc_free = render(roster, "fixture", "", "", "2026-10-04", R10)
     check("ready recomputed without doc",
           "- R9-C" in doc_free or "R9-C" in doc_free)
     # identity generated from the roster.
@@ -229,7 +238,7 @@ def _self_test() -> int:
 
     # empty roster: no in-flight block, ready-next says none.
     empty = render({"groups": [], "repo": "r"}, "fixture", "", "",
-                   "2026-10-04")
+                   "2026-10-04", R10)
     check("empty roster renders", "Ready next" in empty
           and "none" in empty and "Worktrees in flight" not in empty)
 

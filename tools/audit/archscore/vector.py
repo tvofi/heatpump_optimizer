@@ -142,7 +142,11 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         off = ablated()
         out["_inlined_bases"] = K.flatten(root, flat, inline="C4" not in off)
         untyped_payload_keys.is_any = (lambda ann: False) if "C1" in off else _IS_ANY
+        untyped_payload_keys.ANY_SPELLINGS = "C1b" not in off
+        untyped_payload_keys.FOLLOW_ANNOTATED = "C14" not in off
         footprint.READ_KW_KEYS = "C11" not in off
+        C.FOLLOW_RETURNS = "C15" not in off
+        hub_solve_writes.EVENT_ROOTS = "C16" not in off
         jobs = {
             "structure": lambda: structure_rows(flat),
             "hub_solve_writes": lambda: hub_solve_writes.measure(flat)["value"],
@@ -156,7 +160,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         tripwires = {
             "reflective_writes": lambda: K.reflective_writes(ts),
             "computed_attr_access": lambda: K.computed_attr_access(ts),
-            "family_orphan_overrides": lambda: K.family_orphan_overrides(flat),
+            "family_orphan_overrides": lambda: K.family_orphan_overrides(flat, lead="C6b" not in off),
             "unread_private_globals": lambda: K.unread_private_globals(ts),
         }
         for name, fn in {**jobs, **tripwires}.items():

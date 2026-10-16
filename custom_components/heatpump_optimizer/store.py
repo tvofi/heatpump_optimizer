@@ -49,7 +49,7 @@ from .ledger import BILLED_LINES
 from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
-from .setpoint_check import create_issue
+from .issues import create_issue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -347,6 +347,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"defrost/{k}/#/#": _COUNT for k in ("counts", "duty_counts", "duty_events")},
         "peaks/month": Domain("month", null=True), "peaks/peaks/#": _Z,
         "peaks/peak_days/#": _DAY0, "peaks/window_key": Domain("text", null=True),
+        "peaks/closed_month": Domain("month", null=True), "peaks/closed_peaks/#": _Z,
         "peaks/window_sum": _Z, "peaks/window_wsum": _Z, "peaks/window_weight": _Z,
         "peaks/window_samples": _COUNT, "peaks/window_factor": Domain("real", 0.0, 1.0),
         "comfort/configured_weight": Domain("real", COMFORT_WEIGHT_MIN, COMFORT_WEIGHT_MAX, unread=(

@@ -9,8 +9,10 @@ module the metrics cannot parse. This is that check, and it is the only part tha
   * every score metric and every tripwire is a number on this tree;
   * a tree compared with itself reads NULL, and the report names no metric;
   * the coordinator class the metrics key on is the one ``tests/structure.py`` keys on;
-  * nothing the scheduled cycle or the what-if reaches writes the coordinator's three hubs,
-    except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included.
+  * nothing the scheduled cycle, the what-if or an event callback reaches writes the coordinator's
+    three hubs, except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included;
+  * the payload census reaches the away view, which today's tree publishes through an annotated
+    parameter (counter C14, D7-s3-51).
 
     PYTHONPATH=tests/hastub python3 tests/arch_score_head.py
 """
@@ -28,7 +30,7 @@ sys.path.insert(0, str(ROOT / "tools" / "audit"))
 from harness import Results  # noqa: E402
 
 from archscore import counters, score, vector  # noqa: E402
-from archscore.metrics import common, footprint, hub_solve_writes  # noqa: E402
+from archscore.metrics import common, footprint, hub_solve_writes, untyped_payload_keys  # noqa: E402
 
 R = Results("architecture score on today's tree (R9-EG-A1)")
 
@@ -80,6 +82,13 @@ CYCLE_HUB_WRITERS = {
         {"_thermal_params.dhw_hourly_draw_pattern"}, "a restored DHW profile is adopted"),
     "dhw_learning:DhwProfileLearner.async_learn_usage": (
         {"_thermal_params.dhw_hourly_draw_pattern"}, "the DHW learner adopts a learned draw profile"),
+    # Event callbacks (counter C16, ARCH2-s2 P4's instrument half): Home Assistant calls them back
+    # with the live hubs, so a write there is a reading at the event that changed it.
+    _C + "_async_handle_ecl110_state_message": (
+        {"_current_state.ecl110_effective_displace", "_current_state.ecl110_displace_command"},
+        "the ECL110 MQTT state message stores the controller's displacement"),
+    _C + "_on_power_event": (
+        {"_current_state.peak_guard_active"}, "the meter event flips the peak guard on a crossing"),
 }
 LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
 #: The planted writes the controls add: one as async_run_optimization's first
@@ -110,17 +119,6 @@ PARAMS_OVER_10_LEFT = {
     "optimizer.HeatPumpOptimizer._build_result":
         "keyword-only already, and every optional is one published result "
         "field; the OptimizationResult it assembles IS the record",
-    "tariff._peak_charge":
-        "the capacity-charge scaffolding's shared core; the tariff-record "
-        "family (peak_cost, peak_cost_smooth, peak_cost_batch, this) is the "
-        "next family owed, outside this group's line cap",
-    "tariff.peak_cost":
-        "the published capacity charge; the tariff-record family is the next "
-        "family owed, outside this group's line cap",
-    "tariff.peak_cost_batch":
-        "the batch twin; same family, same disposition",
-    "tariff.peak_cost_smooth":
-        "the solver's smooth surrogate; same family, same disposition",
     "thermal_model.ThermalModel._simulate_step_single":
         "the per-step hot path takes scalars; a frozen per-step record "
         "allocated one object per simulated step, and the sysid rollout was "
@@ -177,10 +175,8 @@ def hub_writers(root: Path) -> set[tuple[str, str]]:
         pkg = common.load(str(flat))
         eng = common.engine(pkg)
         out: set[tuple[str, str]] = set()
-        for r in hub_solve_writes.ROOTS:
-            q = f"{common.COORD_MODULE}:{common.COORD_CLASS}.{r}"
-            if q in pkg.funcs:
-                out |= {(x[4], f"{x[2]}.{x[3]}") for x in hub_solve_writes._sites(eng, q)}
+        for q in hub_solve_writes.roots(pkg):
+            out |= {(x[4], f"{x[2]}.{x[3]}") for x in hub_solve_writes._sites(eng, q)}
         return out
 
 
@@ -235,6 +231,15 @@ def main() -> int:
                 f"planted={planted}; unlisted {sorted(seen - LISTED)}")
     R.check("every listed producer is still reached, so the table holds no stale row",
             LISTED <= writers, f"stale: {sorted(LISTED - writers)}")
+    common.reset_caches()
+    pkg = common.load(str(ROOT))
+    flow = untyped_payload_keys.Flow(pkg, common.engine(pkg))
+    produced = flow.returned_keys(f"{common.COORD_MODULE}:{common.COORD_CLASS}._async_update_data")[0]
+    away = flow.returned_keys("away:AwayState.as_dict")[0] if "away:AwayState.as_dict" in pkg.funcs else {}
+    R.check("the payload census sees every key AwayState.as_dict publishes (C14: `_fold_away(state: AwayState)`)",
+            bool(away) and set(away) <= set(produced),
+            f"unseen {sorted(set(away) - set(produced))} of {len(away)}: the census lost a published dict, "
+            "or the away view left the payload (then drop this check)")
     sites = param_sites(ROOT)
     R.check("the head census does not out-count the score's own guard (C4 can only add copies)",
             len(sites) <= here["params_over_10"],
