@@ -29402,6 +29402,230 @@ R.check(
     "merged pull request's comments",
 )
 
+# --- N-move-stale-path (#2227): a program live text tells a seat to run still runs
+#
+# tests/layout.py's `reference` arm skips the `historical` prefixes (tvofi's D2:
+# evidence keeps the paths true when it was written), and brief_lint resolves
+# that a cited path EXISTS. Neither runs what is cited. When live text names a
+# program under a historical prefix as an instrument to run, a file move on
+# either side of that line breaks it in silence: D13.md's
+# `dev/audit/rounds/round4/D11/dora_keys.py` imported a `d11lib` the move left
+# under tools/, and opened `cfr_exclusions.json` at its pre-move home
+# (dev/audit/rca/R10-N-move-stale-path.md, countermeasure form (ii)). The pin
+# above loads the same file in THIS process, where governance_cost.py already
+# put d11lib on sys.path -- so it passed while the instrument could not start.
+#
+# THE SOURCES. Every executable a POLICY file cites (policy_lint.mjs's own
+# `policyFiles()`, never a copy of its globs), and every program a CARRY's
+# `remeasure` names (any executable path token in it, whatever verb or bracket
+# surrounds it -- "run the D13 instrument (<path>)" is a command too): a carry is
+# the brief of a stage with no roster group, and carry-201 told seats to run
+# `corpus_churn.py` at a path two moves old. A citation is followed through the
+# move map (`locate`), and kept when it lands under a layout.json `historical`
+# prefix, the half no other check runs. Both sources are read from the INDEX, as
+# tests/layout.py reads prose: they are on tests/closure.py's INERT list, and a
+# worktree read would record them into this script's closure, the
+# INERT-and-recorded pair `merge` refuses (#357).
+#
+# THE PROBE. A cited `.py` is loaded in a fresh interpreter the way a seat runs
+# it (cwd the root, its directory first on sys.path, PYTHONPATH=tests/hastub,
+# nothing this process imported), and every repository path it OPENS must
+# resolve: a path literal that is an argument of open/Path/join/a subprocess
+# call/an existence test -- directly, or through a name assigned that literal
+# -- read through `locate`/`canon` where it is that call's argument. Keyed on
+# the open, not on every literal: codeowners_gap.py, which a carry names and
+# CI runs, holds retired paths as classifier test inputs it never opens. A cited
+# executable of another kind is refused: an unprobed instrument must not read
+# as a running one.
+_SP_POLICY = subprocess.run(
+    ["node", "--input-type=module", "-e",
+     _PL_IMPORT + ".then((m) => console.log(m.policyFiles().join('\\n')))"],
+    capture_output=True, text=True).stdout.split()
+_SP_LAYOUT = json.loads(Path("tests/layout.json").read_text())
+_SP_HIST = [h for h in _SP_LAYOUT["historical"] if h.endswith("/")]
+_SP_EXE = r"((?:[\w.-]+/)+[\w.-]+\.(?:py|mjs|js|sh))(?![\w.])"
+_SP_CITE = re.compile(r"(?<![\w./-])" + _SP_EXE)
+_SP_TOPS = {Path(p).parts[0] for p in subprocess.run(
+    ["git", "ls-files"], capture_output=True, text=True).stdout.split()}
+_SP_OPENS = {"open", "Path", "join", "run", "check_output", "check_call", "call",
+             "Popen", "exists", "is_file", "isfile", "isdir", "locate", "canon"}
+_SP_LOAD = (
+    "import importlib.util as u, os, sys\n"
+    "f = sys.argv[1]; sys.path.insert(0, os.path.dirname(os.path.abspath(f)))\n"
+    "s = u.spec_from_file_location('hpo_cited_instrument', f)\n"
+    "s.loader.exec_module(u.module_from_spec(s))\n")
+
+
+def _sp_index(path):
+    return subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True).stdout
+
+
+def _sp_cited(texts):
+    """{historical executable: [citing file, ...]}, each citation via the move map."""
+    out = {}
+    for f, text in texts:
+        for m in _SP_CITE.finditer(text):
+            p = _layout_locate(m.group(1))
+            if any(p.startswith(h) for h in _SP_HIST):
+                out.setdefault(p, []).append(f)
+    return out
+
+
+def _sp_moved_spellings(texts):
+    """(citing file, spelling, where it lives) for every executable path token
+    spelled at a path the move map retired -- under a historical prefix or not:
+    a seat pastes the spelling, and a shell does not follow the move map."""
+    out = []
+    for f, text in texts:
+        for m in _SP_CITE.finditer(text):
+            w = m.group(1)
+            p = _layout_locate(w)
+            if p != w and not Path(w).is_file() and Path(p).is_file():
+                out.append((f, w, p))
+    return out
+
+
+def _sp_remeasures(node):
+    """Every `remeasure` string in a carry's JSON."""
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k == "remeasure" and isinstance(v, str):
+                yield v
+            else:
+                yield from _sp_remeasures(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _sp_remeasures(v)
+
+
+def _sp_literals(src, opened=True):
+    """(line, literal, resolved) per repository path the module opens (every
+    path literal it holds, with opened=False)."""
+    tree = ast.parse(src)
+    docs = {id(n.body[0].value) for n in ast.walk(tree)
+            if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+            and n.body and isinstance(n.body[0], ast.Expr)
+            and isinstance(n.body[0].value, ast.Constant)}
+    named = {}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Assign) and isinstance(n.value, (ast.Constant, ast.Call)):
+            for t in n.targets:
+                if isinstance(t, ast.Name):
+                    named.setdefault(t.id, []).append(n.value)
+    via, opens = {}, set()
+    for n in ast.walk(tree):
+        if not isinstance(n, ast.Call):
+            continue
+        name = getattr(n.func, "id", None) or getattr(n.func, "attr", None)
+        if name in ("locate", "canon") and n.args and isinstance(n.args[0], ast.Constant):
+            via[id(n.args[0])] = _layout_locate if name == "locate" else _layout_canon
+        if name in _SP_OPENS:
+            for arg in [*n.args, *(k.value for k in n.keywords)]:
+                for m in ast.walk(arg):
+                    for c in [m, *(named.get(m.id, ()) if isinstance(m, ast.Name) else ())]:
+                        for cc in ast.walk(c):
+                            if isinstance(cc, ast.Constant):
+                                opens.add(id(cc))
+    out = []
+    for n in ast.walk(tree):
+        if (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
+                and (not opened or id(n) in opens)
+                and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", n.value)
+                and n.value.split("/")[0] in _SP_TOPS):
+            out.append((n.lineno, n.value, via.get(id(n), lambda v: v)(n.value)))
+    return out
+
+
+def _sp_faults(path, src=None):
+    """Why the cited program `path` does not run here; [] when it does."""
+    if not Path(path).is_file():
+        return [f"{path}: cited, and no such file"]
+    if not path.endswith(".py"):
+        return [f"{path}: a cited executable this arm cannot load"]
+    faults = []
+    proc = subprocess.run([sys.executable, "-c", _SP_LOAD, path], capture_output=True, text=True,
+                          env={**os.environ, "PYTHONPATH": "tests/hastub"})
+    if proc.returncode:
+        faults.append(f"{path}: does not load -- {(proc.stderr.strip().splitlines() or ['?'])[-1]}")
+    for line, lit, got in _sp_literals(Path(path).read_text() if src is None else src):
+        if not Path(got.rstrip("/")).exists():
+            faults.append(f"{path}:{line} opens {lit!r}, which resolves to nothing")
+    return faults
+
+
+# policyFiles() spells a moved policy file by its pre-move name (canon); the
+# text is read where the file now lives.
+_SP_POLICY = sorted({_layout_locate(f) for f in _SP_POLICY})
+_SP_CARRIES = sorted(f for f in subprocess.run(
+    ["git", "ls-files", "dev/programme/carries/"], capture_output=True, text=True).stdout.split()
+    if re.fullmatch(r"dev/programme/carries/carry-\d+\.json", f))
+_SP_CITED = _sp_cited((f, _sp_index(f)) for f in _SP_POLICY)
+# A carry COMMAND is pasted as written, so its spelling must name the file too:
+# carry-201 told a seat to run corpus_churn.py at its pre-move path, which
+# the move map follows and a shell does not (ENOENT). Policy prose citing a
+# retired path is tests/layout.py's `reference` arm; a command is this arm's.
+_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_index(f) or "{}"))))
+                  for f in _SP_CARRIES]
+_SP_STALE_RUN = _sp_moved_spellings(_SP_REMEASURES)
+for _sp_p, _sp_by in _sp_cited(_SP_REMEASURES).items():
+    _SP_CITED.setdefault(_sp_p, []).extend(_sp_by)
+_SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
+for _sp_p, _sp_f in _SP_FAULTS.items():
+    print(f"  cited  {_sp_p} by {', '.join(sorted(set(_SP_CITED[_sp_p])))}: "
+          f"{'runs' if not _sp_f else '; '.join(_sp_f)}")
+R.check(
+    "every program live policy or a carry's remeasure tells a seat to run, under a "
+    "historical prefix, loads and resolves the paths it opens (#2227)",
+    len(_SP_POLICY) >= 20 and len(_SP_CARRIES) >= 1
+    and sum(any(c in _SP_CARRIES for c in v) for v in _SP_CITED.values()) >= 1
+    and len(_SP_CITED) >= 3 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN,
+    f"policy files {len(_SP_POLICY)}, carries {len(_SP_CARRIES)}, cited {len(_SP_CITED)} "
+    f"(floors: an arm that finds nothing is not a pass); "
+    f"faults {[f for v in _SP_FAULTS.values() for f in v]}; commands naming no file "
+    f"{[f'{c}: {w} (now {p})' for c, w, p in _SP_STALE_RUN]}",
+)
+_sp_unit = "dev/audit/rounds/round4/D12/units.py"
+_sp_cog = "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
+# The planted stale literal is a file the move map retired, read from the
+# manifest rather than spelled here: a retired path written into a live file is
+# what tests/layout.py's guard refuses.
+_sp_old = next(r["old"] for r in _SP_LAYOUT["retired"]
+               if r["new"] and not r["old"].endswith("/") and Path(r["new"]).is_file())
+_sp_unit_src = Path(_sp_unit).read_text()
+
+
+def _sp_check_stale(new):
+    """A command spelled at the pre-move path of `new` is reported stale; the
+    same command at `new` is not."""
+    old = _layout_canon(new)
+    return (old != new
+            and _sp_moved_spellings([("c.json", f"python3 {old}")]) == [("c.json", old, new)]
+            and _sp_moved_spellings([("c.json", f"run the D12 instrument ({old}) with its "
+                                                "fixtures")]) == [("c.json", old, new)]
+            and _sp_moved_spellings([("c.json", f"python3 {new}")]) == [])
+_sp_cog_held = [x for x in _sp_literals(Path(_sp_cog).read_text(), opened=False)
+                if not Path(x[2].rstrip("/")).exists()]
+R.check(
+    "the cited-program arm: a cited harness that runs passes, a planted opened stale "
+    "path and a planted unloadable citation are refused, a stale path a program only "
+    "holds is not (null controls, perturbation)",
+    _sp_unit in _SP_CITED and not _sp_faults(_sp_unit)
+    and _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = open({_sp_old!r})\n")
+    and _sp_faults(_sp_unit, _sp_unit_src + f"\n_P = {_sp_old!r}\n_X = os.path.join('.', _P)\n")
+    and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = open(locate({_sp_old!r}))\n")
+    and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = ({_sp_old!r},)\n")
+    and _sp_cog in _SP_CITED and len(_sp_cog_held) > 0 and not _sp_faults(_sp_cog)
+    and _sp_faults("dev/audit/rounds/round4/D11/no_such_harness.py")
+    and _sp_cited([("x.md", "run `dev/audit/rounds/round4/D11/dora_keys.py` and "
+                            "`tests/golden/config_flow.json`")])
+    == {"dev/audit/rounds/round4/D11/dora_keys.py": ["x.md"]}
+    and _sp_cited([("c.json", "run the D12 instrument (dev/audit/rounds/round4/D12/units.py)")])
+    == {_sp_unit: ["c.json"]}
+    and _sp_check_stale(_sp_unit),
+    f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
+    f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
+)
+
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
 #
 # The refusing step carried `continue-on-error: true`, which is exactly what

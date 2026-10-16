@@ -707,6 +707,12 @@ INERT_EXCEPT = (
     "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
     "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
     "dev/audit/rounds/round5/D13/seat-a/fixtures/window_merges.json",
+    # #2227: tests/entities.py's cited-program arm loads every program live
+    # policy or a carry's `remeasure` tells a seat to run under a historical
+    # prefix, and reads its source for the paths it opens -- the
+    # web-fix-wave.js route. carry-201 commands this one; the other cited
+    # programs are already excepted above. An edit to it selects entities.py.
+    "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
     # R9-FR-10: tests/entities.py loads record_row.py and roster_lib.py by
     # importlib (the record-autofix generator and the branch-to-group lookup)
     # and drives figure_lint.mjs through node, so each is a dependency of a
