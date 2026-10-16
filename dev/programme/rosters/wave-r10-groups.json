@@ -3083,7 +3083,7 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-stale-paths-2",
     "commit": null,
     "last_step": null,
