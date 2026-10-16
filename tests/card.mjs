@@ -5779,6 +5779,24 @@ const slotHit = (card, key) => {
     perBox.length === boxes.length && heightWrong.length === 0,
     `${perBox.length} boxes; ` + perBox.map((b) =>
       `${b.x},${b.y} h=${b.h} rows=${b.rows}`).join("; "));
+  // ...and nothing is drawn past the bottom of its own card. A box's height
+  // follows what it draws, so a row the height pass forgets -- the folded
+  // block's own count line, when it wraps to two -- leaves the last caption
+  // hanging outside the card (R10-UX-SETUP, found by the P9 grid's clipping
+  // check at a narrow width).
+  const overBottom = [];
+  for (const g of page.split('<rect class="setup-box"').slice(1)) {
+    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/.exec(g);
+    if (!m) continue;
+    const bottom = Number(m[2]) + Number(m[4]);
+    const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));
+    const low = Math.max(...ys);
+    if (low + 3 > bottom) {
+      overBottom.push(`${m[1]},${m[2]}: last baseline ${low} vs card bottom ${bottom}`);
+    }
+  }
+  check("every row is drawn inside the card that sizes itself around it",
+    overBottom.length === 0, overBottom.join("; "));
   check("the carrier rects are still written at the column abscissae",
     /<rect class="setup-box" x="16" y="16" width="200"/.test(page),
     (/<rect class="setup-box"[^>]*>/.exec(page) || [])[0]);

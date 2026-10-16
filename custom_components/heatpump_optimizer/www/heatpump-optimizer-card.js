@@ -2139,10 +2139,6 @@ const SETUP_ROW_LINES = 2;
 // The card's corner radius, in viewBox units: `--hpo-radius-m` (12 px) at the
 // scale this diagram is authored at, so a card is as round as a tile.
 const SETUP_CARD_R = 10;
-// A folded "N optional inputs not set" block: its text line, then its
-// Configure chip on a line of its own, so the chip never competes with the
-// count for the row's width.
-const SETUP_FOLD_LINES = 2;
 // One precision per unit on the diagram (R10-UX-SETUP). Home Assistant
 // formats every entity at the precision that entity sets for itself, so the
 // same diagram carried "19.30 °C" beside "20.8 °C": two spellings of one unit
@@ -3368,11 +3364,21 @@ function setupSvgHtml(topo, ctx) {
     b.unsetRows = unsetRows;
     // Open when ANY of the box's unset slots was asked for by name.
     b.open = unsetRows.some((r) => openKeys.has(r.slot.key));
-    b.folded = b.unsetRows.length > 0 && !b.open;
+    // The folded block is ALWAYS drawn when there are unset slots -- its own
+    // count line and its Configure chip are what opens and closes the rows --
+    // so its rows are counted once here, wrapped once, and drawn from the
+    // same lines. Counting them anywhere else is how a box loses its last
+    // caption off the bottom of the drawing.
+    b.foldLines = unsetRows.length
+      ? wrapText(L(
+          unsetRows.length === 1 ? "setup.unset_count_one" : "setup.unset_count",
+          { n: unsetRows.length }
+        ), inner, inner, 2, 12)
+      : null;
     const lines = (rows) => rows.reduce((n, r) => n + r.fit.lines.length, 0);
     b.h = 24 + pad + rowH * (
       lines(liveRows) + lines(b.open ? unsetRows : []) + b.extra.length +
-      (b.folded ? SETUP_FOLD_LINES : 0)
+      (b.foldLines ? b.foldLines.length + 1 : 0)
     );
   }
 
@@ -3703,9 +3709,7 @@ function setupSvgHtml(topo, ctx) {
     // them.
     if (b.unsetRows.length) {
       const n = b.unsetRows.length;
-      const count = L(n === 1 ? "setup.unset_count_one" : "setup.unset_count",
-        { n });
-      const lines = wrapText(count, inner, inner, 2, 12);
+      const lines = b.foldLines;
       rows.push(`<text class="setup-slot folded" x="${b.x + SETUP_PAD}" y="${y}">` +
         lines.map((t, i) =>
           `<tspan x="${b.x + SETUP_PAD}" y="${y + i * rowH}">${esc(t)}</tspan>`
@@ -4491,6 +4495,17 @@ function cardStyleBlock(darkMode) {
          rect's edge, which is the "wobbly double border" the owner's
          screenshot names -- and opaque, so a pipe routed behind a card is
          covered by it instead of crossing the text inside it. */
+      /* Everything inside a card takes its ink from the SAME darkMode switch
+         as the card's own surface: one pair, one switch, which is the rule
+         the tiles follow. A card that took its text from the theme's
+         variables would paint the theme's dark secondary grey on its own
+         light literal whenever Home Assistant reports darkMode false for a
+         theme that is dark -- measured at 2.63:1 on the HA dark arm before
+         this rule existed (R10-UX-SETUP). */
+      .setup-svg > g {
+        --hpo-text: var(--hpo-ink, #212121);
+        --hpo-text-2: var(--hpo-ink-2, #727272);
+      }
       .setup-box {
         fill: var(--hpo-surface-2, #f7f9fb);
         stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
