@@ -4,13 +4,13 @@ Closes #2220.
 
 ## Head
 
-e8adc1b560222cf605a0f664d61c2c0297cdbfe2
+6d0df376aca755d3c6fd2a67be4d9623f92c555f
 
 ## Mutation proof
 
 Each mutation is of the predicate or the join, not the tail, and each turns a case in `bash .claude/hooks/pre-edit.sh --self-test` red:
 - edits branch disabled (`isinstance(edits, list)` to `False`): 2 red (MultiEdit heading, later-edit heading).
-- dict entries not read: the same 2 red.
+- dict entries not read: 2 red, and 1 red on the mixed-list case [7, heading].
 - join with a space instead of a newline: 1 red (heading in a later edit).
 - heading predicate `"## "` to `"### "`: 3 red.
 
@@ -20,9 +20,10 @@ Unmodified tree: `python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py`
 
 ## Figures
 
-- self-test 21 passed, 0 failed (was 16): `bash .claude/hooks/pre-edit.sh --self-test`
+- self-test 22 passed, 0 failed (was 16): `bash .claude/hooks/pre-edit.sh --self-test`
 - hook wired and self-testing: `node tools/policy/policy_lint.mjs --hooks`
 - escapes 1 to 0: `python3 dev/audit/rounds/round10/D14/I3/hook_shape_seams.py` (from handoff/audit-r10-register)
+- arm B of #2220 (yield.mjs, D13-s1-01) was closed by #2294, merged as 98fe51b42; this change is arm A, the hook
 
 ## Red checks
 
