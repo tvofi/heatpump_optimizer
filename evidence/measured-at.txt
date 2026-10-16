@@ -1,5 +1,7 @@
-PR 2336 (R10-FEEDS), head measured = a0c4431df91e75b3c7ed4976586c0da86e292214
-merge base used for every three-dot diff = 8f174c4ce696d087ac5e83aa24f527281b971798
-(origin/main at measure time 81ae048e8bbdf2335fe2016e987ec2739481f293)
-base worktree for the both-ends runs = 8f174c4ce (same commit)
-reviewer: fix-review seat, bus-nonce d452d47f143d63d5746d0454cb2e5fa0
+PR 2336 (R10-FEEDS) — fix-review.md step 12 carry, round 3.
+new head measured = c99d73f3b39220dc09441b430ea2d85bd48e653e
+previous head (rounds 1-2) = a0c4431df91e75b3c7ed4976586c0da86e292214
+parents = a0c4431df91e75b3c7ed4976586c0da86e292214, 81ae048e8bbdf2335fe2016e987ec2739481f293
+clean automatic merge: c99d73f3 tree 08f9aa73620f48e6026f388e12227a0d8cf681a5 == git merge-tree --write-tree a0c4431df 81ae048e8, rc 0, no conflicts, no resolution
+authored diff over production + the PR's test files is byte-identical across the merge (57aafb48e9e333bc12bfcb8d12f552bad1b885a8)
+reviewer: fix-review seat, bus-nonce d452d47f143d63d5746d0454cb2e5fa0 (unchanged)

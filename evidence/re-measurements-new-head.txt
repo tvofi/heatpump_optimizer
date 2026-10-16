@@ -1,0 +1,82 @@
+### enumerators at c99d73f3
+-- dev/audit/rounds/round10/D14/sweep_n_no_expiry.py
+SEAM custom_components/heatpump_optimizer/coordinator.py:546 _covering_index UNBOUNDED
+SEAM custom_components/heatpump_optimizer/coordinator.py:6873 _weather_series UNBOUNDED
+SEAM custom_components/heatpump_optimizer/early_cutoff.py:260 _planned_room UNBOUNDED
+SEAM custom_components/heatpump_optimizer/pump_arbiter.py:347 step_duty bounded
+SEAM custom_components/heatpump_optimizer/pump_arbiter.py:412 _planned_room UNBOUNDED
+SEAM custom_components/heatpump_optimizer/pump_arbiter.py:985 _share bounded
+RESULT seams=6 count
+RESULT unbounded=4 count
+-- dev/audit/rounds/round10/D14/sweep-N-silent-zero/enumerate.py
+RESULT seams=4 count
+RESULT unguarded=1 count
+-- dev/audit/rounds/round10/D14/sweep-P1/p1_ts_seams.py
+SEAM custom_components/heatpump_optimizer/accuracy.py::from_dict -
+SEAM custom_components/heatpump_optimizer/away.py::_holiday_span ADMIT 
+SEAM custom_components/heatpump_optimizer/binary_sensor.py::_plan_outdoor_now -
+SEAM custom_components/heatpump_optimizer/coordinator.py::_current_humidity -
+SEAM custom_components/heatpump_optimizer/coordinator.py::_known_prices_for -
+SEAM custom_components/heatpump_optimizer/coordinator.py::_weather_series POSITIONAL
+SEAM custom_components/heatpump_optimizer/coordinator.py::forecast_outdoor_now POSITIONAL
+SEAM custom_components/heatpump_optimizer/debugger.py::_repair -
+-- log_flood/enumerate.py
+sites=80 latched=6 seams=74
+
+### finder harnesses at c99d73f3
+-- dev/audit/rounds/round10/D1/s2/stale_price.py
+RESULT uncovered_cycles=4 count
+RESULT uncovered_current_price_published=0 count
+RESULT uncovered_price_booked=0 count
+RESULT control_covered_published=2 count
+RESULT thread_factor=1.188
+RESULT load1=60.43
+RESULT swapins=0
+-- dev/audit/rounds/round10/D1/s3/tibber_ingress.py
+RESULT empty_ok_wipes=0 count
+RESULT startless_rows=0 count
+RESULT misplaced_steps=0 count
+RESULT thread_factor=1.000
+RESULT load1=60.43
+RESULT swapins=0
+-- dev/audit/rounds/round10/D1/s2/weather_warn.py
+RESULT no_entity.warnings_4_cycles=1 count
+RESULT no_entity.cycles_failed=0 count
+RESULT empty_forecast.warnings_4_cycles=1 count
+RESULT empty_forecast.cycles_failed=0 count
+RESULT control_48_rows.warnings_4_cycles=0 count
+RESULT control_48_rows.cycles_failed=0 count
+RESULT thread_factor=1.204
+RESULT load1=60.82
+RESULT swapins=0
+-- dev/audit/rounds/round10/D14/sweep-N-silent-zero/weather_probe.py
+RESULT empty_ok_wipes=0 count
+-- dev/audit/rounds/round10/D14/sweep-P1/probe_spot_head.py
+RESULT spot_wrong=0 count
+-- dev/audit/rounds/round10/D14/log_flood/probe.py
+RESULT control.floods=0 count
+RESULT no_weather_entity.floods=0 count
+RESULT weather_fetch_fails.floods=0 count
+RESULT open_meteo_no_coord.floods=0 count
+RESULT open_meteo_bad_coord.floods=0 count
+RESULT no_prices.floods=0 count
+RESULT bad_peak_months.floods=0 count
+RESULT bad_peak_hours.floods=0 count
+-- probe_n_no_expiry.py
+PROBE forecast_outdoor_now past_end=None pass
+PROBE _open_loop_plan_value past_end=None pass
+CONTROL covered forecast=-2.0 plan=49.5
+RESULT probe_failures=0 count
+
+### structure / archscore at c99d73f3
+
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0158 IMPROVES
+  coord_footprint 2575 -> 2547  +0.0158
+
+### ledger and claims at c99d73f3
+RESULT candidate sites = 6134
+RESULT unpinned       = 4368
+RESULT completeness(head ledger)          = 0
+RESULT completeness(base ledger 81ae048e8) = 7
+claims hygiene: 81ae048e8bbdf2335fe2016e987ec2739481f293 ok

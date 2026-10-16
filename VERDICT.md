@@ -1,68 +1,65 @@
-Fix review: merge a0c4431df91e75b3c7ed4976586c0da86e292214
+Fix review: merge c99d73f3b39220dc09441b430ea2d85bd48e653e
 
-bus-nonce: d452d47f143d63d5746d0454cb2e5fa0
-head-measured: a0c4431df91e75b3c7ed4976586c0da86e292214 (re-read at post time: `refs/pull/2336/head` and `refs/heads/fix/r10-feeds` both still this sha; the body edit moved no commit)
-round: 2 (the first round returned `blocked ... harness:`; this verdict replaces it)
-previous verdict: `review/2336` 819504e2b51437160b1536a7e5f151ee4c8a2f46 -- `blocked a0c4431df harness` on the enumerator's dead perturb arm
+bus-nonce: 60658fe67249521e7fc283f382670ec5
+bus-nonce-note: the dispatch this carry started under, `d452d47f143d63d5746d0454cb2e5fa0`, was minted at `a0c4431df`; `push-verdict` refuses a nonce whose record names a different head than the verdict does, which is the cross-head guard working, so a fresh dispatch was minted at `c99d73f3` naming the same reviewer token (`rev-2336`) before this verdict was pushed.
+head-measured: c99d73f3b39220dc09441b430ea2d85bd48e653e (re-read at post time: `refs/pull/2336/head` and `refs/heads/fix/r10-feeds` both this sha)
+carried-from: `a0c4431df91e75b3c7ed4976586c0da86e292214` (`review/2336` `aa45c3af5`, round 2). This is `fix-review.md` step 12: my `merge` verdict carried to the head the merge train produced.
+round: 3
 
-## The block is cleared
+## What moved, and that it is a carry rather than a re-cut
 
-The block was: `dev/audit/rounds/round10/D14/sweep_n_no_expiry.py --perturb` no longer runs at this head because this diff removed its anchor line, and the body did not say so (`fix-review.md` step 2 / `fixer.md` step 3's "say so"). The new body (`handoff-body/r10-feeds` `c35ffce9ac118e86bb848d6a691761c1c131852a`, re-posted to the live PR, identical to it bar a trailing newline) discloses it. I re-derived every figure of the disclosure rather than taking it:
+`c99d73f3` is the merge train's clean automatic merge of my measured head into `origin/main`. Two parents, `a0c4431df91e75b3c7ed4976586c0da86e292214` and `81ae048e8bbdf2335fe2016e987ec2739481f293`, and its tree is **identical** to the tree `git merge-tree --write-tree a0c4431df 81ae048e8` writes:
 
-    anchor `grep -n "step_start >= end" custom_components/heatpump_optimizer/coordinator.py`
-      8f174c4ce  :6726            if step_start >= end:
-      e8718ec3b  :6726            if step_start >= end:
-      a0c4431df  ABSENT
+    merge-tree tree  08f9aa73620f48e6026f388e12227a0d8cf681a5   (rc 0, no conflicting path, no driver verdict line)
+    c99d73f3 tree    08f9aa73620f48e6026f388e12227a0d8cf681a5
 
-    arm at the base (git archive of 8f174c4ce), --perturb
-      SEAM coordinator.py:_known_prices_for(perturbed):22 _known_prices_for UNBOUNDED
-      RESULT seams=1 / RESULT unbounded=1        <- the 0 -> 1 perturbation the arm exists to show
-    arm at the head, --null (its sibling, still applies)
-      RESULT seams=1 / RESULT unbounded=0
-    arm at the head, --perturb                  AssertionError: perturbation anchor missing
+so there is no hand resolution and nothing authored to judge in the merge itself. `origin/main` is still `81ae048e8`, so the merge base of this head and main is exactly the ref the round-2 review compared against.
 
-The class rule the disclosure names, run by this seat over the head and the merge base (`git show`, no worktree), reproduces its count and its membership exactly:
+The resolution delta is main's own change, ten paths: `early_cutoff.py` (13 insertions, 2 deletions), `tests/features.py` (+33), `tests/closures.json` (+1), one `early_cutoff.py` ledger pin, a new `dev/audit/harnesses/r10_registry_leak.py`, `.claude/hooks/pre-edit.sh`, and four delivery rows. Inside `custom_components/` it reaches **only** `early_cutoff.py` — none of the four production files this pull request authors. And the authored diff over production plus the pull request's own test files is byte-for-byte the one round 1 and 2 measured:
 
-    RESULT multi-line-literal anchors handed to replace/find/index/split = 22 count
-    RESULT alive in the head package       = 19 count
-    RESULT dead at head, dead at base too  = 2 count
-    RESULT dead at head, ALIVE at base     = 1 count
-      KILLED BY THIS DIFF: dev/audit/rounds/round10/D14/sweep_n_no_expiry.py:69 .replace() '            if step_start >= end:\n                break\n'
-      dead at both ends:   dev/audit/rounds/round10/D14/sweep-I1/enumerate_i1.py:108 .replace() '    if xs:\n'
-      dead at both ends:   dev/audit/rounds/round10/intake/intake.py:398 .find() '\n## '
+    git diff 81ae048e8...c99d73f3 -- custom_components/ tests/entities.py tests/solar_alignment.py tests/seam_map.json tests/structure_budgets.json | git hash-object --stdin
+      57aafb48e9e333bc12bfcb8d12f552bad1b885a8
+    git diff 8f174c4ce...a0c4431df -- (the same paths)  | git hash-object --stdin
+      57aafb48e9e333bc12bfcb8d12f552bad1b885a8
 
-So the class the arm belongs to has one member, it is this one, the two other dead literals are dead at the base as well (not this diff's) and neither is production text. The disclosure states the arm is deliberately **not** re-anchored because `dev/audit/rounds/round10/D14/` is outside this group's architect note, and names the claim it carried as still pinned by `tests/entities.py`'s N-no-expiry arm at an exact count with its own planted-lookup perturbation — which the first round verified discriminating. That is `fixer.md` step 3's obligation discharged: the arm that cannot run is named, measured at both ends, and its replacement named. The file-scope decision the disclosure defers is the orchestrator's, and this verdict does not require it.
+`tests/features.py`'s only change is main's three early-cutoff checks at `63539`; the R10-FEEDS block at `63944` is untouched. The body's `## Head` still names `a0c4431df`, the pre-merge head, which is the carry rather than a stale figure.
 
-## Nothing else moved
+## Re-measured at the new head (nothing regressed; the numbers below are this head's)
 
-The change is body-only: the code head is the same sha, so the tree is identical and every measurement of round 1 stands unchanged. A line-for-line diff of the body I reviewed against the live one is the two disclosure paragraphs and blank lines, nothing else — no figure, heading or claim altered. Re-checked at the head: `## Head` still names `a0c4431df`. A new `pr-contract` run started `18:33:48Z`, eight seconds after the body edit `18:33:40Z`, and concluded **success** at `18:34:12Z`, so step 11's gate is satisfied for the body as it now stands; the last check to conclude red on this head is still the `pr-contract` of `17:17:33Z`, eleven minutes before it.
+Everything the delta could reach was re-taken rather than assumed:
 
-## Carried forward from round 1 (all re-stated here; the evidence is under `evidence/`)
+    barrier arms            N-no-expiry allowed 6 keys / 6 sites, found 6/6, verdict {}; modules read 77
+                            N-log-flood allowed 63 keys / 74 sites, found 63/74, verdict {}
+                            both CHECK ok -- main's early_cutoff change moved its seam line 249 -> 260,
+                            and the arms key on (module, function) so the exact counts are unmoved
+    PR 16-check block       R10-FEEDS BLOCK: 16 ok, 0 failed
+    mutants re-run          M1 -> 13 ok 3 FAIL (covering arm, stale price list, forecast/plan siblings)
+                            M4 -> 14 ok 2 FAIL (latch transitions, four-cycle flood)
+    finder harnesses        stale_price uncovered 0/0, control_covered_published 2
+                            tibber_ingress empty_ok_wipes 0, startless_rows 0, misplaced_steps 0
+                            weather_warn no_entity 1, control_48_rows 0
+                            probe_n_no_expiry probe_failures 0, CONTROL covered forecast=-2.0 plan=49.5
+                            weather_probe empty_ok_wipes 0 | probe_spot_head spot_wrong 0
+                            log_flood/probe control.floods 0 and all seven arms 0
+    enumerators             sweep_n_no_expiry seams 6 / unbounded 4 | sweep-N-silent-zero unguarded 1
+                            p1_ts_seams seams_flagged 3 | log_flood sites=80 latched=6 seams=74
+    instruments             STRUCTURE RATCHET PASSED
+                            Architecture score dS +0.0158 IMPROVES, coord_footprint 2575 -> 2547
+    ledger / claims         completeness(head ledger) 0 | completeness(base ledger 81ae048e8) 7
+                            claims hygiene: 81ae048e8... ok
+                            git merge-tree --write-tree origin/main c99d73f3 -> rc 0, no conflicting path
 
-    finder harnesses, byte-identical at base, head and d23205d13, run at each end
-      stale_price        uncovered_current_price_published 4 -> 0, uncovered_price_booked 4 -> 0, control_covered_published 2 -> 2
-      tibber_ingress     empty_ok_wipes 1 -> 0, startless_rows 96 -> 0, misplaced_steps 95 -> 0
-      weather_warn       no_entity 4 -> 1, empty_forecast 4 -> 1, control_48_rows 0 -> 0
-      probe_n_no_expiry  probe_failures 2 -> 0, CONTROL covered forecast=-2.0 plan=49.5 at both ends
-      weather_probe      empty_ok_wipes 1 -> 0
-      probe_spot_head    spot_wrong 1 -> 0
-      log_flood/probe    all 7 arms 1,1,1,2,2,1,1 -> 0, control.floods 0 -> 0
-    mutation proof, all 12 named mutants killed by the checks the body names (M7/M8/M9 die as TypeErrors)
-      M1 _covering_index end bound -> `return i` also drives the finder's harnesses: stale_price 0 -> 4 published, probe_n_no_expiry 0 -> 2
-    class enumerators, at both ends
-      sweep_n_no_expiry seams 9 -> 6, unbounded 6 -> 4 | sweep-N-silent-zero unguarded 2 -> 1
-      p1_ts_seams seams_flagged 6 -> 3 | log_flood sites=85 latched=6 seams=79 -> sites=80 latched=6 seams=74
-    barriers: allow-lists are the enumerators' own output (6 keys/6 sites and 63 keys/74 sites, zero set and count difference
-      either way); red on the base package and green at the head; planted controls discriminate; ALL 2331 ENTITY CHECKS PASSED
-    figures re-derived: 6133 candidate sites, 4368 unpinned, ledger completeness 7 -> 0, 39 loggers, 85/80 warn-error
-      sites, searchsorted 2, bisect_left 0; STRUCTURE RATCHET PASSED with max_class_loc 8688 -> 8635 (down, re-recorded);
-      archscore dS +0.0158 IMPROVES, coord_footprint 2575 -> 2547
-    gate: ALL 4151 FEATURE CHECKS PASSED at the head, 632 s; claims hygiene ok; env_drift --all -> NO UNCLAIMED DRIFT: 56,
-      NO STALE FIXTURE: 56, rc 0; VERSION 7.0.0, manifest and notes heading untouched; merge-tree rc 0, no conflicts
-    red checks answered: mutation and pr-contract, both named in the body; the head's green mutation is not vacuous
-      (7 mutants over 4 files, baselines rc=0, NULL_COMMENT survived, PIN RE-VERIFICATION 7 reproduced, MUTATION TABLE PASSED)
-    forward-carry: the D1 step-3 edit is in R10-BRIEFS-FOLD's brief in dev/programme/rosters/wave-r10-groups.json, pending
-      as the group's brief expects; both RCAs' countermeasures are built here
-    head unchanged: refs/pull/2336/head and refs/heads/fix/r10-feeds both a0c4431df at post time
+**CI is green at this head, and it is cited rather than re-run**: 45 check-runs, **zero failures** — `mutation`, `pr-contract` (twice, the later `18:41:32Z`), `closures`, `arch-score`, `typing`, `env-matrix`, `delivery-status`, `nightly-status`, `budget-raise-gate`, `instrument-self-tests`, `policy-docs`, `briefs`, `closure-scope`, `wave-script`, `fast (3.14)`, `CodeQL` and the three `Analyze` jobs all `success`; the rest `skipped`. That is the gate's own run of `tests/entities.py`, `tests/features.py`, `env_drift.py --all` and `structure.py` at `c99d73f3`. Its `pr-contract` prints `PR-BODY: 0 error(s)` and `record red-history 12 commit(s) between origin/main and this head, every failure conclusion across them: mutation` — the range's red is checked, not skipped, and the body answers it (round 1 verified that answer).
 
-One figure disagrees with a second source and it is not the body's: the head's mutation-lane artifact prints `6134 candidate sites` where `inventory()` in this tree and the body both give 6133. Out of this PR's diff.
+## Two numbers main moved, neither the body's error
+
+- `tests/mutation_table.py`'s `inventory()` at this head reads **6134** candidate sites where the body and the round-1 review both read 6133 at `a0c4431df`. The extra site is main's `if held.wiring is None:` in `early_cutoff.py` — a new GUARD_OFF candidate, pinned by main's own ledger row. The claim the figure supports is unmoved: `unpinned_sites(load_budgets(), inventory())` is still **4368**, `completeness_problems(load_budgets(), inventory())` is still **0**, and the base-side counterfactual is still exactly **7**. (This also means the one-site disagreement I reported in round 1 against the lane's printed total has the same explanation.)
+- `early_cutoff._planned_room`'s seam moved from `early_cutoff.py:249` to `:260`. The N-no-expiry allow-list is keyed by (module, function) with an exact count, so the barrier is unmoved — which the arm's own run above confirms.
+
+## Not in this pull request's diff, noted once (not a block)
+
+`pr-contract`'s advisory pre-flight step calls `preflight.sh` with no intended-issue list, so it prints `REFUSE 'Closes #2229/#2233/#2226 ... not in the intended list'` for every closing keyword. The step ends `|| true`, the job is green, and neither `governance.yml` nor `preflight.sh` is in this pull request's diff — it is main's, and the body's three `Closes #N` are one per line, the shape that closes all three.
+
+## Standing from rounds 1-2 (unchanged, and re-stated so this verdict carries them)
+
+The `harness` block of round 1 remains cleared: the new body discloses `sweep_n_no_expiry.py --perturb`'s dead anchor, and I re-derived its class rule (22 multi-line-literal anchors, 19 alive at the head, 2 dead at both ends, exactly 1 dead-at-head-alive-at-base — that one). The mutation proof, the five class enumerators, the two barriers with their discriminating planted controls, the ledger counterfactual, `VERSION`/manifest/notes untouched, and the forward-carry into `R10-BRIEFS-FOLD` all stand as verified in rounds 1-2; the head they were taken at is an ancestor of this one and the authored diff is byte-identical.
