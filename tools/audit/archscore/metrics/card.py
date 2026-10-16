@@ -72,8 +72,16 @@ def tokenize(src: str) -> list[str]:
             elif ch == "$" and src.startswith("${", i):
                 depth, j = 1, i + 2
                 inner_start = j
-                while j < n and depth:  # the expression's extent, braces and nested literals respected
+                while j < n and depth:  # the expression's extent: braces, comments and nested literals respected
                     c = src[j]
+                    if src.startswith("/*", j):
+                        k = src.find("*/", j + 2)
+                        j = n if k < 0 else k + 2
+                        continue
+                    if src.startswith("//", j):
+                        k = src.find("\n", j)
+                        j = n if k < 0 else k
+                        continue
                     if c in "\"'":
                         j = _skip_string(src, j)
                         continue
