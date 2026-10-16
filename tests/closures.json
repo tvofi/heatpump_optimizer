@@ -238,6 +238,7 @@
    "tools/audit/archscore/metrics/family_splits.py",
    "tools/audit/archscore/metrics/footprint.py",
    "tools/audit/archscore/metrics/hub_solve_writes.py",
+   "tools/audit/archscore/metrics/layering.py",
    "tools/audit/archscore/metrics/public_surface.py",
    "tools/audit/archscore/metrics/shared_inplace_writes.py",
    "tools/audit/archscore/metrics/untyped_payload_keys.py",
@@ -1393,6 +1394,7 @@
    "tools/audit/archscore/metrics/family_splits.py",
    "tools/audit/archscore/metrics/footprint.py",
    "tools/audit/archscore/metrics/hub_solve_writes.py",
+   "tools/audit/archscore/metrics/layering.py",
    "tools/audit/archscore/metrics/public_surface.py",
    "tools/audit/archscore/metrics/shared_inplace_writes.py",
    "tools/audit/archscore/metrics/untyped_payload_keys.py",
@@ -4045,7 +4047,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 259.6
+   "seconds": 574.2
   },
   "tests/env_drift.py": {
    "rc": 0,
