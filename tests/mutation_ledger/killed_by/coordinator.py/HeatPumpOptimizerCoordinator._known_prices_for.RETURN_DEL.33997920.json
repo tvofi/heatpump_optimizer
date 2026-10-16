@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._known_prices_for RETURN_DEL 33997920",
-  "killed_by": "tests/solar_alignment.py",
-  "old": "            return known[: len(step_starts)]",
-  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=2."
-}

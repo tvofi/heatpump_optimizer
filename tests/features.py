@@ -39549,9 +39549,17 @@ R.check(
 # threshold, so the evidence accumulates and the weight does not move yet.
 _t1_ov_on = _t1_coord(comfort_learning_enabled=True)
 _t1_ov_on._current_action = {"setpoint": 21.0}
-_t1_ov_on._prices = [{"total": 1.0}, {"total": 3.0}]
+# R10 #2229: the rows carry their hours and the clock sits in the first --
+# a row that covers no hour is no current price (the relative goes neutral).
+from homeassistant.util import dt as _t1_ov_dt
+
+_t1_ov_t = datetime(2026, 1, 15, 10, 30, tzinfo=timezone.utc)
+_t1_ov_on._prices = [{"total": 1.0, "starts_at": "2026-01-15T10:00:00+00:00"},
+                     {"total": 3.0, "starts_at": "2026-01-15T11:00:00+00:00"}]
 _t1_ov_on_weight = _t1_ov_on._comfort_learner.learned_weight
+_t1_ov_dt.freeze(_t1_ov_t)
 _t1_ov_on.record_setpoint_override(23.0)
+_t1_ov_dt.freeze(None)
 R.check(
     "a cheap-hour override is recorded at half weight and banked, not spent",
     _t1_ov_on._comfort_learner.overrides == 1
@@ -41322,8 +41330,9 @@ R.check(
 _t3_kp_pos = _t3_coord()
 _t3_kp_pos._prices = [{"total": 1.0}, {"total": 2.0}]
 R.check(
-    "untimestamped prices take the same hourly positional assumption",
-    _t3_kp_pos._known_prices_for(_T3_STEPS) == [1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0],
+    "untimestamped prices cover nothing: no row is placed by its position "
+    "(R10 #2236 -- 95 of 96 startless quarters landed in the wrong slot)",
+    _t3_kp_pos._known_prices_for(_T3_STEPS) == [],
     f"{_t3_kp_pos._known_prices_for(_T3_STEPS)!r}",
 )
 _t3_kp_late = _t3_coord()
@@ -54475,6 +54484,10 @@ def _p5_night(how):
                               ("outdoor_temp_entity", "sensor.outdoor", 2.0)):
             health.record(_P5Reading(key=key, entity_id=ent, value=val))
         c._input_health = health
+        # R10 #2229: a published price must cover the night -- an unknown
+        # price never starts an experiment -- so hourly rows span it.
+        c._prices = [{"total": 1.0, "starts_at": (_P5_T0 + timedelta(hours=h)).isoformat()}
+                     for h in range(-12, 13)]
         c._sysid.config.enabled = True
         c._sysid.config.min_days_between_runs = 0.0
         c._sysid.arm(_P5_T0, plant=c._thermal_params)

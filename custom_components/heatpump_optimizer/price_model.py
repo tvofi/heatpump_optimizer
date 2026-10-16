@@ -648,7 +648,12 @@ def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, An
     homes = data.get("data", {}).get("viewer", {}).get("homes", [])
     if not homes:
         return "No homes found in Tibber data"
-    price_info = (homes[0].get("currentSubscription") or {}).get("priceInfo") or {}
+    subscription = homes[0].get("currentSubscription")
+    if not subscription:
+        # The API answered and the account holds no contract: a successful
+        # fetch of nothing, not an API error (pinned in tests/features.py).
+        return []
+    price_info = subscription.get("priceInfo") or {}
     prices: list[dict[str, Any]] = []
     for period in ("today", "tomorrow"):
         for row in price_info.get(period) or []:
@@ -665,8 +670,9 @@ def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, An
             prices.append(
                 {"total": total, "starts_at": start, "level": row.get("level", "NORMAL")}
             )
-    # R10 D1-s3-01 (#2233): no usable row is a failed fetch, never an empty
-    # success -- an HTTP 200 with empty days used to replace a good series.
+    # R10 D1-s3-01 (#2233): a subscription with no usable row is a failed
+    # fetch, never an empty success -- an HTTP 200 with empty days used to
+    # replace a good series.
     return prices or "Tibber returned no usable price rows"
 
 
