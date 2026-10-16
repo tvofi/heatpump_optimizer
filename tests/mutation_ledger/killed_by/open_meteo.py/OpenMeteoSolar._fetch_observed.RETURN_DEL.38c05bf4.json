@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:OpenMeteoSolar._fetch_observed RETURN_DEL 38c05bf4",
+  "killed_by": "tests/open_meteo.py",
+  "old": "        return _parse_block(data.get(\"hourly\") or {}, _VARIABLE)",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: RETURN_DEL (`pass`) took tests/open_meteo.py from rc=0 failed=0 to rc=1 failed=1."
+}

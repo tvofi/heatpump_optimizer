@@ -738,6 +738,9 @@ INERT_EXCEPT = (
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/handover_prompt.py",
+    # #2310: state_docs.py imports ref_privacy.py, the push guard its push
+    # path calls, so entities.py's load of the beat reads it the same way.
+    "tools/audit/seat/ref_privacy.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the

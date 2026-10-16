@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:arm GUARD_OFF d460246f",
+  "killed_by": "tests/features.py",
+  "old": "    if held.wiring is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against dec1a264553463414d170a2a14dc53008b31e5b6: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
