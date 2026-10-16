@@ -18,14 +18,14 @@ Closes #2312.
 
 ## Head
 
-`d48519cd02aba76c58eabbb8161f5a5886e65ca5`. Its merge base with `origin/main` is `92accb2cff702c910d33ee1a276d38f5b482061c`. Every figure below was taken at this head.
+`04fcb74f2205d55ffb6a05214b567779d39d36dc`. Its merge base with `origin/main` is `92accb2cff702c910d33ee1a276d38f5b482061c`. Every figure below was taken at this head.
 
 ## Mutation proof
 
-Each mutation deletes one line of the fix and was restored with `cp` from a preserved copy. The arm block alone is driven by the fix review's own `arm.py` (`dev/audit/...` round-1 evidence) with `ARM_EXTRA` unset.
+Each mutation deletes one line of the fix and was restored with `cp` from a preserved copy. The arm block alone is driven by the fix review's own round-1 `arm.py` with `ARM_EXTRA` unset.
 - M1, `_sp_reach` no longer follows a bound name (`stack.extend(binds.get(n.id, ()))` deleted): FAIL the round-1-shapes check *and* the pre-existing cited-program check.
 - M2, the `_SP_READS` branch deleted: FAIL the round-1-shapes check.
-- M3, the leading-slash strip (`v = n.value[1:] if n.value.startswith("/") else n.value` -> `v = n.value`) removed: FAIL the round-1-shapes check.
+- M3, the leading-slash strip (`v = n.value[1:] if id(n) in fstr and n.value.startswith("/") else n.value` -> `v = n.value`) removed: FAIL the round-1-shapes check.
 - M4a, `_is_citation_source` taken back off the `is_inert` override: FAIL the sources-select check (49 files back on `INERT`).
 - M4b, `tests/closures.json` reverted to the merge base (the 49 sources not recorded): FAIL the sources-select check (a source then selects the whole suite, not this script).
 - M0, the unmodified tree (the null run): all four arm checks PASS.
@@ -52,7 +52,7 @@ Each mutation deletes one line of the fix and was restored with `cp` from a pres
 
 ## Red checks
 
-none. Every check-run at the reviewed head is green; the diff never turned one red.
+none: no check-run has gone red on any commit of this branch. Four commits were made locally and none was pushed for CI before this handoff, so there is no red for the root-cause trigger to name.
 
 ## Forward-carry
 
@@ -60,4 +60,4 @@ The residual at this head is the 3 reference-arm lines of `dev/programme/carries
 
 ## Friction
 
-unclear: `dev/governance/roles/fixer.md`: step 3 asks for the finding's harness "before and after" but a reviewer's harness lives only in their verdict evidence (round-1 `arm.py`/`plants.py` here), not in `dev/audit/harnesses/`; step 18 says a harness a later seat must rerun lands in the tree, which is not what the fix review's own driver does.
+- fixer.md: unclear: step 3 requires re-executing "the finding's harness" before and after, but a fix review's harness lives only in its verdict evidence (round 1's arm.py and plants.py here), while step 18 says a harness a later seat must rerun lands in dev/audit/harnesses/ — no rule says whether a reviewer's one-shot driver belongs in the tree.
