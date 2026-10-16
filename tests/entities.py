@@ -15209,20 +15209,24 @@ R.check(
 def _gl_auto_lease() -> tuple[bool, str]:
     """run.sh leases a FULL or stress run itself; a second one waits.
 
-    The classifier is driven at all three answers: the exclusive lease for the
-    machine-measuring scripts, a slot for the multi-minute CPU ones, none for
-    the seconds side (R10-PREPR-CAP, #2267).
+    The classifier is driven at all three answers, and at the fail-closed arm
+    the block on #2341 found open: the exclusive lease for the machine-measuring
+    scripts, a slot for the multi-minute CPU ones, a slot for a name the
+    recordings do NOT carry (`tests/rolling.py`, gated behind `SLOW=1` and so
+    never timed), and none only for a recorded seconds-side script
+    (R10-PREPR-CAP, #2267).
     """
     import threading
     with _tempfile.TemporaryDirectory() as td:
         d, seen = Path(td) / "lock", Path(td) / "seen"
         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
-        seconds = Path(td) / "c.run"
+        seconds, rolling = Path(td) / "c.run", Path(td) / "d.run"
         scoped.write_text("tests/entities.py\n")
         stress.write_text("tests/entities.py\ntests/stress.py\n")
         seconds.write_text("tests/structure.py\n")
+        rolling.write_text("tests/rolling.py\n")
         need = [_gate_lock.needs_lease(s)
-                for s in ("", str(stress), str(scoped), str(seconds))]
+                for s in ("", str(stress), str(scoped), str(seconds), str(rolling))]
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         child = ("import os, sys; from pathlib import Path; "
                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
@@ -15240,7 +15244,8 @@ def _gl_auto_lease() -> tuple[bool, str]:
         finally:
             _gate_lock.WAIT_POLL_SECS = poll
         text = seen.read_text() if seen.exists() else ""
-        ok = (need == ["lease", "lease", "slot", "none"] and waited and out == [3]
+        ok = (need == ["lease", "lease", "slot", "none", "slot"] and waited
+              and out == [3]
               and "label=auto" in text and text.endswith("auto")
               and _gate_lock.read_owner(d) is None)
         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
@@ -15406,6 +15411,67 @@ R.check(
     "the heavy-slot capacity is the cap unless the owner raises it (#2267)",
     _gl_count_ok,
     _gl_count_detail,
+)
+
+
+def _gl_lease_class_sweep() -> tuple[bool, str]:
+    """Every script run.sh dispatches through `leased` is classified.
+
+    THE CLASS, and its seams. Both `run` and `run_always` dispatch through
+    `leased`, so the class is the scripts `tests/run.sh` names in those calls,
+    and the property is that none of them is left UNLEASED unless the
+    recordings say it takes seconds. #2341's review found `tests/rolling.py`
+    open: gated behind `SLOW=1`, never timed, so `needs_lease` answered `none`
+    for a script whose own comment calls it "about a quarter of an hour".
+    An untimed name's weight is unknown, and the conservative answer for the
+    unknown is the pool -- bounded -- never `none`, which leaves it unbounded
+    beside three others.
+
+    The rule is read from the two files that own it: the dispatch sites in
+    run.sh and `needs_lease` itself. A script added to either reaches this
+    census with no edit here. The census asserts its OWN preconditions, because
+    a sweep over an empty set passes silently: it refuses when the parse finds
+    fewer than a floor of dispatched scripts (a regex that stopped matching
+    reads as a closed class), and it names every seam it leaves unleased.
+    """
+    run_lines = Path("tests/run.sh").read_text().splitlines()
+    dispatched: list[str] = []
+    for line in run_lines:
+        match = _re.match(r"\s*(?:run|run_always)\s+(?:\"\$PYTHON\"|node)?\s*"
+                          r"(tests/[A-Za-z0-9_]+\.(?:py|mjs))", line)
+        if match and match.group(1) not in dispatched:
+            dispatched.append(match.group(1))
+    floor = 30
+    by_answer: dict[str, list[str]] = {"lease": [], "slot": [], "none": []}
+    unleased: list[str] = []
+    with _tempfile.NamedTemporaryFile("w+", suffix=".run") as handle:
+        for script in dispatched:
+            handle.seek(0)
+            handle.truncate()
+            handle.write(script + "\n")
+            handle.flush()
+            answer = _gate_lock.needs_lease(handle.name)
+            seconds = _gate_lock._recorded_seconds(script)
+            by_answer.setdefault(answer, []).append(script)
+            if answer == "none" and (seconds is None
+                                     or seconds >= _gate_lock.SLOT_MIN_SECONDS):
+                unleased.append(script)
+    ok = len(dispatched) >= floor and not unleased
+    detail = (f"dispatched={len(dispatched)} (floor {floor}) "
+              f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
+              f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
+    # Printed on a PASS as well as carried into the failure: the census's own
+    # shape is the evidence a body cites, and a row that prints only when it
+    # fails shows the reader nothing about the class it just cleared.
+    print(f"lease class: {detail}")
+    return ok, detail
+
+
+_gl_sweep_ok, _gl_sweep_detail = _gl_lease_class_sweep()
+R.check(
+    "every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)",
+    _gl_sweep_ok,
+    _gl_sweep_detail,
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)

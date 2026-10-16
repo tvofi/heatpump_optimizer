@@ -652,8 +652,8 @@ def _recorded_seconds(script: str) -> float | None:
 
     The classifier below is derived from this, never carried: a script that
     gets heavier moves itself into the slots the next time the recordings are
-    re-taken. None means the table has no such script, which is a script the
-    tree has not run under instrumentation and so owes no slot.
+    re-taken. None means the table has no such script -- a script nothing has
+    timed, which `needs_lease` sends to the slots rather than unleased.
     """
     recorded = Path(__file__).resolve().parent / "closures.json"
     try:
@@ -673,9 +673,15 @@ def needs_lease(scope_run: str) -> str:
     SCOPE_RUN file; empty means MODE: FULL, whose suite carries stress.py, so
     an empty scope is the exclusive lease.
 
-    Fail closed: a scope this cannot classify -- a recording table it cannot
-    read, or a name it does not know -- is leased rather than left unleased,
-    so the unclassified case costs serialisation and never concurrency.
+    Two fail-closed arms, deliberately different. A scope that names a
+    MACHINE_MEASURING script is leased whatever the recordings say. And a name
+    the recordings do NOT carry -- `tests/rolling.py` is the one run.sh
+    dispatches, gated behind `SLOW=1` so nothing ever timed it -- JOINS THE
+    SLOTS: an untimed script's weight is unknown, and the conservative answer
+    for an unknown is the pool, which bounds it, never `none`, which leaves it
+    unbounded beside three other scripts. Only a table that cannot be read at
+    all -- a corrupted tree, where no name at all can be classified -- takes
+    the exclusive lease.
     """
     if not scope_run:
         return "lease"
@@ -690,9 +696,10 @@ def needs_lease(scope_run: str) -> str:
         json.loads(table.read_text()).get("recorded", {})
     except (OSError, ValueError):
         return "lease"
-    if any((s := _recorded_seconds(name)) is not None and s >= SLOT_MIN_SECONDS
-           for name in names):
-        return "slot"
+    for name in names:
+        seconds = _recorded_seconds(name)
+        if seconds is None or seconds >= SLOT_MIN_SECONDS:
+            return "slot"
     return "none"
 
 
