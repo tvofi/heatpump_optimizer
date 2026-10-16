@@ -209,7 +209,8 @@
    "carry": [
     "D-2 (D2-s3-73) is REFUTED by the catch-up judge: the finder's oracle feeds `adoption_decision` a basis the production fit never returns. Do not fix `_zone_heat_loss` or `adoption_decision` here. The orchestrator removes D2-s3-73 from #2239's body.",
     "Null control: ratio 1.0 drives the error to 0.0000 (`--ratio 1.0` on the reseed harness).",
-    "This group precedes R10-SCORES, the identifiability groups (R10-VENT-DETECTOR, R10-NIGHT-FOLDS, R10-LEARNER-ETA, R10-COP-GATE) and R10-TRUST-RELATIVE, which read the same inputs."
+    "This group precedes R10-SCORES, the identifiability groups (R10-VENT-DETECTOR, R10-NIGHT-FOLDS, R10-LEARNER-ETA, R10-COP-GATE) and R10-TRUST-RELATIVE, which read the same inputs.",
+    "From R10-FEEDS (#2336): any new warning/error log site or a bisect-right-minus-one lookup in the package must route through the transition-latch and covering-slot helpers that fix introduces, or be added to the matching list in `tests/entities.py` with its reason \u2014 the barrier's arms there refuse a new unbounded lookup or an unlatched warning."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 25; before you: R10-TARIFF, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
