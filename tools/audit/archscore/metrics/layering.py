@@ -6,7 +6,9 @@ the GLUE layer (it imports Home Assistant). A module's layer is the highest boun
 An import may go down or across, never up: glue may use the solver and pure code, the solver may use pure
 code. Over the package's import graph -- a relative import at ANY scope is an edge, a function's
 ``from .optimizer import f`` included, because a lazy import is the same coupling paid later (counter
-C17); an import under ``if TYPE_CHECKING:`` is no edge, nothing runs it --
+C17); an import the runtime never runs is no edge. That is the whole of a positive ``if TYPE_CHECKING:``
+``body``, and no more: the section's ``else`` runs, ``not TYPE_CHECKING`` is true away from a type
+checker, and a ``TYPE_CHECKING`` the module rebinds itself is not typing's --
 
   layer_violations   (module, layer) pairs where a module reaches, through other package modules, a layer
                      above its own: a pure module that cannot load without scipy (``quiet_windows`` and
@@ -15,17 +17,22 @@ C17); an import under ``if TYPE_CHECKING:`` is no edge, nothing runs it --
                      pure module of the solver counts while it still reaches the glue. A decomposition does
                      not move it: a module extracted from the glue that imports Home Assistant is glue.
   private_cross_module   distinct private names (one leading underscore) of one package module named by
-                     another: ``from .m import _x``, ``m._x`` through a module binding, and
-                     ``getattr(m, "_x")`` (counter C18: the attribute spellings are the same reach).
+                     another: ``from .m import _x``, ``m._x`` through a module binding,
+                     ``getattr(m, "_x")``, and ``_x`` read off a resolved ``import_module`` call (counter
+                     C18: the attribute spellings are the same reach).
   unused_boundary_imports  (gate-only, counter C19) imports of a boundary whose names the module never reads:
                      a module would otherwise climb a layer, and leave its violation, by an import that does
                      nothing (attempt 23).
 
+The reach is the reach whatever syntax spells it, so the graph follows every spelling of an import that
+runs: ``from <pkg>.m import _x``, the absolute self-import, is the edge ``from .m import _x`` is (attempt
+27); a constant-name ``import_module("...")``, relative and anchored on ``__package__`` too, is that
+module's edge, and the private read off the call is that crossing (attempt 26). A name COMPUTED at runtime
+is the one form no static read follows; the package's is ``__init__``'s platform loader.
+
 LAYERS is a design choice, stated: Home Assistant is the integration's glue edge (model, optimizer and
 learner modules take no ``homeassistant`` import, fixer.md step 17), and scipy is the solver's dependency.
-numpy is used by nearly every module and is no boundary. A dynamic import (``importlib.import_module``
-with a computed name) is invisible; the package's two are ``__init__``'s platform loader and the
-optimizer's optional threadpool limiter.
+numpy is used by nearly every module and is no boundary.
 """
 from __future__ import annotations
 
@@ -37,6 +44,8 @@ from . import common as C
 
 #: boundary -> layer rank; a module's rank is the highest it imports, 0 for a pure module.
 LAYERS = {"scipy": 1, "homeassistant": 2}
+#: the package's own absolute dotted prefix: an import naming it is a package edge, not an external root.
+SELF = C.PKG_REL.replace("/", ".")
 #: Counter C17: a function-scope import is an edge. ``vector.py`` switches it off.
 ALL_SCOPES = True
 #: Counter C18: a private name read through a module binding is a crossing. ``vector.py`` switches it off.
@@ -47,6 +56,14 @@ UNUSED_IMPORTS = True
 
 def _private(name: str) -> bool:
     return name.startswith("_") and not name.startswith("__")
+
+
+def _self_module(dotted: str) -> str | None:
+    """``dotted`` as a package-relative module name, ``""`` for the package itself, None when it names
+    something this package does not own."""
+    if dotted == SELF:
+        return ""
+    return dotted[len(SELF) + 1:] if dotted.startswith(SELF + ".") else None
 
 
 def _module_level(tree: ast.Module) -> set[int]:
@@ -63,12 +80,18 @@ def _module_level(tree: ast.Module) -> set[int]:
     return out
 
 
-def _relative_targets(pkg: C.Pkg, mod: str, node: ast.ImportFrom) -> list[tuple[str, str]]:
-    """(target module, imported name) for each name of a relative import; the name is ``""`` when the
-    name is itself a module."""
-    base = mod.split(".")[:-1]
-    base = base[:len(base) - node.level + 1]
-    src = ".".join(base + ([node.module] if node.module else []))
+def _targets(pkg: C.Pkg, mod: str, node: ast.ImportFrom) -> list[tuple[str, str]]:
+    """(target module, imported name) for each name of a from-import; the name is ``""`` when the name
+    is itself a module. An absolute import of this package resolves as the relative one does -- the
+    prefix is stripped -- so ``from <pkg>.optimizer import _x`` reaches ``optimizer`` (attempt 27)."""
+    if node.level:
+        base = mod.split(".")[:-1]
+        base = base[:len(base) - node.level + 1]
+        src = ".".join(base + ([node.module] if node.module else []))
+    else:
+        src = _self_module(node.module) if node.module else None
+        if src is None:
+            return []
     out = []
     for a in node.names:
         full = f"{src}.{a.name}" if src else a.name
@@ -79,29 +102,110 @@ def _relative_targets(pkg: C.Pkg, mod: str, node: ast.ImportFrom) -> list[tuple[
     return out
 
 
+def _roots(node: ast.Import | ast.ImportFrom) -> set[str]:
+    """The external root packages an import names: a name of this package is no external root, however
+    it is spelled (attempt 27)."""
+    if isinstance(node, ast.Import):
+        return {a.name.split(".")[0] for a in node.names if _self_module(a.name) is None}
+    if node.level or not node.module or _self_module(node.module) is not None:
+        return set()
+    return {node.module.split(".")[0]}
+
+
+def _package_of(mod: str) -> str:
+    """``__package__`` for a package module: the module's parent, the package itself at the top."""
+    parent = mod.rpartition(".")[0]
+    return f"{SELF}.{parent}" if parent else SELF
+
+
+def _dynamic_name(mod: C.Mod, node: ast.Call) -> str | None:
+    """The absolute dotted module a constant-name ``import_module``/``__import__`` call imports, or
+    None where the call is not one of those, takes its name from a computation, or is relative with no
+    static anchor -- ``import_module`` requires that argument, and without it the call loads nothing
+    (attempt 26)."""
+    f = node.func
+    if isinstance(f, ast.Name):
+        imp = mod.imports.get(f.id)
+        named = f.id == "__import__" or bool(
+            imp and imp[0] == "ext" and imp[1] in ("importlib.import_module", "__import__"))
+    elif isinstance(f, ast.Attribute) and f.attr in ("import_module", "__import__") \
+            and isinstance(f.value, ast.Name):
+        imp = mod.imports.get(f.value.id)
+        named = f.value.id == "importlib" or bool(imp and imp[0] == "ext" and imp[1] == "importlib")
+    else:
+        named = False
+    if not named or not node.args:
+        return None
+    first = node.args[0]
+    if not (isinstance(first, ast.Constant) and isinstance(first.value, str)):
+        return None
+    name = first.value
+    if not name.startswith("."):
+        return name
+    anchor = node.args[1] if len(node.args) > 1 else \
+        next((k.value for k in node.keywords if k.arg == "package"), None)
+    if isinstance(anchor, ast.Constant) and isinstance(anchor.value, str):
+        base = anchor.value
+    elif isinstance(anchor, ast.Name) and anchor.id == "__package__":
+        base = _package_of(mod.name)
+    else:
+        return None
+    rest = name.lstrip(".")
+    parts = base.split(".")
+    parts = parts[:len(parts) - (len(name) - len(rest)) + 1]
+    return ".".join(parts + ([rest] if rest else []))
+
+
+def _dynamic_target(pkg: C.Pkg, name: str) -> str | None:
+    """The package module a resolved dynamic import reaches, or None for a name outside the package."""
+    rel = _self_module(name)
+    if rel is None:
+        return None
+    target = rel or "__init__"
+    return target if target in pkg.mods else None
+
+
 def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str]]:
     """(package edges, external roots imported, distinct private crossings ``"m -> n._x"``): a
     name read three times from one module is one crossing, the unit of coupling."""
     edges: dict[str, set[str]] = {m: set() for m in pkg.mods}
     ext: dict[str, set[str]] = {m: set() for m in pkg.mods}
     crossings: set[str] = set()
+
+    def cross(m: str, target: str, name: str) -> None:
+        if target == m:
+            return
+        edges[m].add(target)
+        if _private(name or target.rsplit(".", 1)[-1]):
+            crossings.add(f"{m} -> {target}.{name}" if name else f"{m} -> {target}")
+
     for m, mod in pkg.mods.items():
         live = None if ALL_SCOPES else _module_level(mod.tree)
         modalias = {k: v[1] for k, v in mod.imports.items() if v[0] == "mod" and v[1] != m}
+        # id of each constant-name dynamic import's call -> the module it names. The walk reaches a call
+        # before the attribute read off it, so the private arm resolves from this table, not from order.
+        dynamic = {}
+        for n in C.walk(mod.tree):
+            if isinstance(n, ast.Call) and (name := _dynamic_name(mod, n)) is not None:
+                dynamic[id(n)] = name
         for n in C.walk(mod.tree):
             if isinstance(n, (ast.Import, ast.ImportFrom)):
                 if id(n) in pkg.type_checking_imports or (live is not None and id(n) not in live):
                     continue
-                if isinstance(n, ast.ImportFrom) and n.level:
-                    for target, name in _relative_targets(pkg, m, n):
-                        if target != m:
-                            edges[m].add(target)
-                            if _private(name or target.rsplit(".", 1)[-1]):
-                                crossings.add(f"{m} -> {target}.{name}" if name else f"{m} -> {target}")
-                elif isinstance(n, ast.ImportFrom) and n.module:
-                    ext[m].add(n.module.split(".")[0])
-                elif isinstance(n, ast.Import):
-                    ext[m] |= {a.name.split(".")[0] for a in n.names}
+                if isinstance(n, ast.ImportFrom):
+                    for target, name in _targets(pkg, m, n):
+                        cross(m, target, name)
+                ext[m] |= _roots(n)
+            elif isinstance(n, ast.Call) and id(n) in dynamic:
+                target = _dynamic_target(pkg, dynamic[id(n)])
+                if target is not None:
+                    cross(m, target, "")
+                else:
+                    ext[m].add(dynamic[id(n)].split(".")[0])
+            elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and _private(n.attr) \
+                    and isinstance(n.value, ast.Call) and id(n.value) in dynamic \
+                    and (t := _dynamic_target(pkg, dynamic[id(n.value)])) is not None:
+                cross(m, t, n.attr)
             elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) \
                     and n.value.id in modalias and _private(n.attr):
                 crossings.add(f"{m} -> {modalias[n.value.id]}.{n.attr}")
@@ -158,7 +262,7 @@ def measure(root: Path) -> dict:
     edges, ext, crossings = graph(pkg)
     rank = {m: max([LAYERS[x] for x in ext[m] if x in LAYERS], default=0) for m in pkg.mods}
     violations = sorted(f"{m} ({rank[m]} -> {r})" for m in pkg.mods
-                        for r in {rank[n] for n in closure(edges, m)} if r > rank[m])
+                        for r in {rank[n] for n in closure(edges, m)} if r > 2)
     unused = unused_boundary_imports(pkg) if UNUSED_IMPORTS else []
     return {
         "metric": "layering",
