@@ -3878,6 +3878,61 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
+        # D2-s2-01 (R10-PUMP-MODEL): which law a price is taken from is decided
+        # once per plant, by the valve flag, in compute_cop. The flag is a
+        # SPACE-circuit fact -- it says whether a passed flow temperature is
+        # the supply the machine runs at -- and the hot-water tank forked it a
+        # second time, pricing one lift two ways (up to 1.4346 at outdoor 7 /
+        # tank 65). _batch_cop is an owner rather than a copy: its two branches
+        # ARE compute_cop's two, vectorized, and the pair must agree bit for
+        # bit (fixer.md step 15). The D14 P2 sweep counts this family as
+        # cop_law_fork: 3 seams at the finding's baseline, 2 here.
+        dict(fact="cop_law_fork", finding="D2-s2-01",
+             match=_p2_match_node(
+                 (ast.If, ast.IfExp), r"cop_flow_carnot",
+                 lambda n: "cop_flow_carnot" in ast.unparse(n.test)),
+             owners=["thermal_model.py::ThermalModel.compute_cop",
+                     "thermal_model.py::ThermalModel._batch_cop"],
+             dispositions={}),
+        # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold):
+        # which wall-clock step an instant falls in. The pump's step start is
+        # _step_start's alone -- the ledger row, the silent-window lookup and
+        # the step index all read it -- and _observe spelled the same
+        # arithmetic inline. The other two hits are different anchors, not
+        # copies: each is driven against the owner on the same probes by
+        # dev/audit/harnesses/r10_slot_floor_twins.py, whose own precondition
+        # is that the driven set is the enumerated one.
+        dict(fact="slot_floor_rule", finding="D7-s3-8x-slotfloor",
+             match=_p2_match_node(
+                 (ast.BinOp,), r"\.minute",
+                 lambda n: isinstance(n.op, (ast.FloorDiv, ast.Mod))
+                 and ".minute" in ast.unparse(n)),
+             owners=["pump_arbiter.py::_step_start"],
+             dispositions={
+                 "coordinator.py::_solve_anchor":
+                     "the FORECAST GRID's anchor, not the plan step's: it "
+                     "floors by FORECAST_STEP_MINUTES because the arrays it "
+                     "labels are built there, and its docstring says it must "
+                     "follow the arrays rather than time_step_minutes; "
+                     "r10_slot_floor_twins.py reads 0 of 10 probes disagreeing",
+                 "tariff.py::_window_slot":
+                     "the METERING window, a different rule: anchored at local "
+                     "midnight so a 90/120-minute DSO window advances the hour, "
+                     "with ``fold`` restored so the autumn hour's two passes "
+                     "keep two keys. Same reading only for windows that divide "
+                     "the hour -- the twins harness's --perturb (the fold "
+                     "dropped) reads 2 of 10 probes apart, and both are the "
+                     "autumn folds",
+                 "optimizer.py::HeatPumpOptimizer._window_offset_steps":
+                     "the metering window's PHASE, not its start: steps from "
+                     "now to the DSO's next boundary, the same modulo asked for "
+                     "a distance where tariff._window_slot's anchor is the "
+                     "instant itself",
+                 "price_model.py::PriceShapeModel.quarter_factor":
+                     "an index INTO a learned quarter-hour profile, not a "
+                     "floored instant: it returns a slot number between 0 and "
+                     "QUARTERS_PER_HOUR, and no datetime at all",
+             }),
     ]
 
 
@@ -4015,6 +4070,14 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
+_P2_PLANTS["cop_law_fork"] = (
+    "\n\ndef _p2_plant(p):\n    if p.cop_flow_carnot:\n        return 1\n    return 0\n"
+)
+_P2_PLANTS["slot_floor_rule"] = (
+    "\n\ndef _p2_plant(now):\n"
+    "    return now.replace(minute=now.minute - now.minute % 15,"
+    " second=0, microsecond=0)\n"
 )
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
