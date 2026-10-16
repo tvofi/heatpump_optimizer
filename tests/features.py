@@ -63523,8 +63523,41 @@ R.check(
 for _ec_fn in list(_ec_wired.entry._on_unload):
     _ec_fn()
 R.check(
+    "arming twice registers one unload hook, not one per cycle",
+    len(_ec_wired.entry._on_unload) == 1,
+    f"{len(_ec_wired.entry._on_unload)}",
+)
+R.check(
     "unloading the entry drops the listener",
     _ec.state_for(_ec_wired).unsub is None,
+)
+
+
+# A weak-keyed registry whose value reaches its key never lets go (D1-s1-01):
+# the record's wiring is the coordinator's bound ``arbiter_inputs``. Unload must
+# free the coordinator, with a listener or without one.
+def _ec_freed(switch, unload):
+    import gc
+    import weakref
+    coord = _EcCoord(switch=switch)
+    coord.arm()
+    if unload:
+        for fn in list(coord.entry._on_unload):
+            fn()
+    ref = weakref.ref(coord)
+    del coord
+    gc.collect()
+    return ref() is None
+
+
+R.check(
+    "unloading the entry frees the coordinator the cut-off record was keyed by",
+    _ec_freed("switch.hp", True) and _ec_freed(None, True),
+    f"{_ec_freed('switch.hp', True)} {_ec_freed(None, True)}",
+)
+R.check(
+    "control: an entry never unloaded still pins its coordinator, so the check can fail",
+    not _ec_freed("switch.hp", False),
 )
 
 # The learners: a cut interval is one _learning_frozen reason, held for the

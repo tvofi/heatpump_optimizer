@@ -7,6 +7,9 @@ set -uo pipefail
 #   run from any checkout of the repo; loop it detached, e.g. every 15 min.
 # A session crash loses only what no ref holds: this pushes, without touching
 # the worktree or its index, one snapshot commit per such worktree.
+# A ref name and message never carry a host path (#2310): the slug is
+# ref_privacy.py's, and its guard refuses a push that would publish the host.
+RP="$(cd "$(dirname "$0")" && pwd)/ref_privacy.py"
 R=$(git rev-parse --path-format=absolute --git-common-dir)/..; R=$(cd "$R" && pwd)
 S=""; [ "${1:-}" = "--scratch" ] && S=$(cd "$2" && pwd)
 snap() { # $1 worktree dir (git), $2 slug, [$3 alt work-tree]
@@ -15,7 +18,9 @@ snap() { # $1 worktree dir (git), $2 slug, [$3 alt work-tree]
   GIT_INDEX_FILE=$idx git -C "$w" read-tree HEAD
   GIT_INDEX_FILE=$idx git -C "$w" --work-tree="$wt" add -A . 2>/dev/null
   local tree; tree=$(GIT_INDEX_FILE=$idx git -C "$w" write-tree); rm -f "$idx"
-  local c; c=$(git -C "$w" commit-tree "$tree" -p "$head" -m "wip-sync $slug $(date -u +%FT%TZ)") || return
+  local msg; msg="wip-sync $slug $(date -u +%FT%TZ)"
+  local c; c=$(git -C "$w" commit-tree "$tree" -p "$head" -m "$msg") || return
+  python3 -I "$RP" guard --ref "wip-sync/$slug" --message "$msg" --commits "$head" -C "$w" || return
   git -C "$w" push -q --no-verify -f origin "$c:refs/heads/wip-sync/$slug" && echo "synced $slug ${c:0:8}"
 }
 git -C $R fetch -q origin
@@ -24,7 +29,7 @@ git -C $R worktree list --porcelain | awk '/^worktree /{print substr($0,10)}' | 
   dirty=$(git -C "$w" status --porcelain | wc -l | tr -d ' ')
   onremote=$(git -C "$w" branch -r --contains HEAD 2>/dev/null | head -1)
   [ "$dirty" = 0 ] && [ -n "$onremote" ] && continue
-  slug=$(echo "${w#$HOME/}" | sed 's#^/##; s#[^A-Za-z0-9._-]#-#g')
+  slug=$(python3 -I "$RP" slug "$w" --root repo="$R") || continue
   snap "$w" "$slug"
 done
 [ -n "$S" ] || exit 0
@@ -33,5 +38,6 @@ idx=$(mktemp); GIT_INDEX_FILE=$idx git -C $R read-tree --empty
 (cd "$S" && find . -type f -size -2M -not -path '*/wt*' -not -path './wtstamp/*' -not -path '*/.git/*' -print0) | \
  while IFS= read -r -d '' f; do h=$(git -C $R hash-object -w "$S/$f"); printf '100644 %s\t%s\n' "$h" "orch/${f#./}"; done | GIT_INDEX_FILE=$idx git -C $R update-index --index-info
 t=$(GIT_INDEX_FILE=$idx git -C $R write-tree); rm -f $idx
-c=$(git -C $R commit-tree "$t" -m "wip-sync orchestrator scratch $(date -u +%FT%TZ)")
+msg="wip-sync orchestrator scratch $(date -u +%FT%TZ)"; c=$(git -C $R commit-tree "$t" -m "$msg")
+python3 -I "$RP" guard --ref wip-sync/orchestrator-scratch --message "$msg" || exit 3
 git -C $R push -q --no-verify -f origin "$c:refs/heads/wip-sync/orchestrator-scratch" && echo "synced orch scratch ${c:0:8}"
