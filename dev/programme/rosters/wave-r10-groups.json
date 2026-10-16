@@ -1531,7 +1531,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: part 1 merged #2293; p2 #2311 in review; p3 in progress",
+    "stage": "in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r2; p4/p5 not started",
     "branch": "handoff/r10-archscore-coverage",
     "commit": "acfeaf8b4eba86d458a706cb3f5165635a1945bf",
     "last_step": null,
