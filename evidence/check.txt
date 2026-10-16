@@ -1,1 +1,1 @@
-ref_privacy --check at HEAD: 16 file(s) with a push site, 9 guarded, 0 refused
+ref_privacy --check at HEAD: 17 file(s) with a push site, 9 guarded, 0 refused

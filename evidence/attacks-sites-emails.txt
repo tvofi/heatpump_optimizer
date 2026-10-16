@@ -10,8 +10,8 @@ found   gh api --method=POST repos/$R/git/refs --input body.json
 found   subprocess.run(["gh","api",f"repos/{r}/git/refs","-f",f"ref={ref}"])
 MISSED  gh api repos/$R/git/refs \
 MISSED  gh api graphql -F query=@create_ref.graphql
-MISSED  gh api repos/$R/releases -f tag_name=$t -f target_commitish=$c
-MISSED  gh release create "$tag" --target "$sha"
+found   gh api repos/$R/releases -f tag_name=$t -f target_commitish=$c
+found   gh release create "$tag" --target "$sha"
 MISSED  gh api repos/$R/contents/notes/$slug.md -X PUT -f message="$m" -f content=$b
 MISSED  git send-pack origin "$c:refs/heads/$s"
 MISSED  gh api -X DELETE repos/$R/git/refs/heads/$b
