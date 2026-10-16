@@ -28,13 +28,15 @@ The guard is wired before the push in all eight pushers that compose a ref or me
 
 ## Head
 
-29091251ace6d1c18f343cd02e315e6c029a5c44. Merge base: 8087e8576d99c2e1e74cb85e4c4206861d610ccf.
+ad400657b07b5f9a506800e821d39107cee4a573. Merge base: 8087e8576d99c2e1e74cb85e4c4206861d610ccf.
 
 - 20b642bb3 is the fix.
 - 6e951709d merges origin/main. Of the files this PR touches, main changed only `tests/closures.json`, merged as a set by the ledger driver. `git diff --quiet 20b642bb3 HEAD -- <every other file this PR touches>` exits 0 at 6e951709d, so the mutation proof, which ran on 20b642bb3's tree, describes that head's code. 29091251a then changes only `scope()` in `ref_privacy.py`, which no mutant touches.
 - The merge also brought main's rewrite of `tools/pr/merge_main_bot.py`, a registered pusher that this PR does not touch. Its push still carries the constant `SUBJECT` (`ci: merge main`) onto the PR's own branch, so its `republishes` disposition holds.
 - 29091251a makes `--check`'s file scope `tmp_paths.py`'s `scope()` (narrowed to the three pushing trees), which removes a workflow-path grammar written twice that the agreement lane refused (`AGREEMENT ok` after). `--check` returns the same 15 files, and the self-test still passes.
-- Every check below was re-run at 6e951709d after that merge, and `--self-test`, `--check`, `tmp_paths.py --check` and the agreement lane again at 29091251a.
+- 1e522a71b is the orchestrator's merge of origin/main into 29091251a: delivery rows and the roster only.
+- ad400657b fixes the CI red below. It changes only the wt_sync arm of `ref_privacy.py --self-test`: the planted worktree, and one new precondition check.
+- Every check below was re-run at 6e951709d after that merge. `--self-test`, `--check`, `tmp_paths.py --check` and the agreement lane were re-run at 29091251a, and `--self-test` again at ad400657b.
 
 ## Mutation proof
 
@@ -69,7 +71,7 @@ A scratch probe (`mutate.py`, one-off, not in the tree) committed each mutant, r
 
 Run at 6e951709d, and the `ref_privacy.py`, `tmp_paths.py` and agreement lines again at 29091251a, with the seat venv's python3:
 
-- `python3 -I tools/audit/seat/ref_privacy.py --self-test`: `ref_privacy self-test: 33 checks, 0 failed`. It drives `slug()`, `refusal()`, the `guard` CLI over a throwaway repository, `wt_sync.sh` end to end under a planted `HOME`/`USER` and temp root, `body_push.sh`, and the registry over planted lines.
+- `python3 -I tools/audit/seat/ref_privacy.py --self-test`: at ad400657b, `ref_privacy self-test: 34 checks, 0 failed` under each of three shapes: macOS `TMPDIR`; `TMPDIR=/tmp`; and `TMPDIR=/tmp HOME=/home/runner USER=runner LOGNAME=runner`. It drives `slug()`, `refusal()`, the `guard` CLI over a throwaway repository, `wt_sync.sh` end to end under a planted `HOME`/`USER` and temp root, `body_push.sh`, and the registry over planted lines.
 - `python3 -I tools/audit/seat/ref_privacy.py --check`: `15 file(s) with a push site, 8 guarded, 0 refused`. **This is the class rule (fixer.md step 8)**, and every seam it returns is dispositioned below:
   - **guarded:**
     - `tools/audit/seat/wt_sync.sh`
@@ -119,7 +121,11 @@ Run at 6e951709d, and the `ref_privacy.py`, `tmp_paths.py` and agreement lines a
 
 ## Red checks
 
-none
+- **`instrument-self-tests` on #2316 at 1e522a71b.** The log printed `ref_privacy self-test: 33 checks, 1 failed`, with `FAIL the worktree whose unpushed commit names its path is refused, not pushed: 2 ref(s)`.
+  - **Cause.** The planted commit message named a worktree under the temp root, so it was a leak only where that root is a host path. On macOS `TMPDIR` is a per-user `/var/folders/...`, which is the `host-path` class. On the Linux runner it is `/tmp/...`, which is no class. So wt_sync's guard rightly passed it, and the assertion was wrong, not the guard.
+  - **Fix (ad400657b).** The worktree now lives under the planted home, so the message carries `/Users/exampleuser` and the planted home directory on every host. A new check, `the planted message is itself a leak under the planted identity (the plant's precondition)`, asserts that the plant leaks before the push is judged, so the arm cannot pass vacuously on any host. The arm is not weakened: with `wt_sync.sh`'s guard line deleted (`grep -vF`), it is red under both temp shapes, `2 ref(s)`.
+  - **Cheaper detector.** Run the self-test locally under a Linux-shaped environment: `TMPDIR=/tmp HOME=/home/runner USER=runner LOGNAME=runner <venv python3> -I tools/audit/seat/ref_privacy.py --self-test`. `TMPDIR=/tmp` alone reproduces this red on the Mac at 29091251a (`33 checks, 1 failed`), and its absence would have caught it before the handoff. Its standing cost is one more self-test run, 1.9 s wall here. The venv interpreter is called directly because the seat shim resolves its venv under `$HOME`.
+  - **Countermeasure, not built.** The countermeasure is for a planted value to leak by construction and to carry a precondition check, which this arm now does. A second local run under the Linux shape is a seat habit rather than a check, and CI already runs the Linux shape on every PR. So the residual cost of this class is one CI round-trip, and no gate is added for it.
 
 ## Forward-carry
 
