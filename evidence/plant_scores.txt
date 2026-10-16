@@ -1,0 +1,5 @@
+RESULT plant=p1_tc_else dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
+RESULT plant=p2_not_tc dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
+RESULT plant=p3_import_module_const dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
+RESULT plant=p4_absolute dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
+RESULT plant=p5_junk_read_scipy dS=+0.0641 verdict=IMPROVES moved={'layer_violations': '22->21'}

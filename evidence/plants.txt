@@ -1,0 +1,12 @@
+RESULT p0_none layer_violations=22 private_cross_module=17 unused_boundary_imports=1
+RESULT p1_tc_else layer_violations=21 private_cross_module=16 unused_boundary_imports=1
+RESULT p2_not_tc layer_violations=21 private_cross_module=16 unused_boundary_imports=1
+RESULT p3_import_module_const layer_violations=21 private_cross_module=16 unused_boundary_imports=1
+RESULT p4_absolute layer_violations=21 private_cross_module=16 unused_boundary_imports=1
+RESULT p5_junk_read_scipy layer_violations=21 private_cross_module=17 unused_boundary_imports=1
+RESULT p5b_unread_scipy layer_violations=21 private_cross_module=17 unused_boundary_imports=2
+RESULT p6_getattr_concat layer_violations=22 private_cross_module=16 unused_boundary_imports=1
+RESULT p7_vars layer_violations=22 private_cross_module=16 unused_boundary_imports=1
+RESULT p8_rebind layer_violations=22 private_cross_module=16 unused_boundary_imports=1
+RESULT p9_lazy_control layer_violations=22 private_cross_module=17 unused_boundary_imports=1
+RESULT p10_tc_only_control layer_violations=21 private_cross_module=16 unused_boundary_imports=1
