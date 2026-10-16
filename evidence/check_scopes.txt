@@ -1,0 +1,8 @@
+ref=1755a8a7df54093861beba00610825dd0e9f46ae seats=48
+ok D6 mode=files seats=3 universe=18 [s1:5f/0loc, s2:7f/0loc, s3:6f/0loc]
+rc=0
+M1+M2+M3	-	DISCLAIMER.md
+M1+M2+M3	-	README.md
+M1+M2+M3	-	docs/index.html
+M1+M2+M3	-	docs/site/docs.css
+M1+M2+M3	-	tools/site/build_docs.mjs

@@ -1,11 +1,12 @@
-== null control: overlap
-ref=69f04ec613a14a4f50cb55b10820e411716ac993 seats=48
-FAIL D6 mode=files seats=3 universe=17 [s1:4f/0loc, s2:9f/0loc, s3:6f/0loc]
+-- null control 1
+FAIL D6 mode=files seats=3 universe=18 [s1:5f/0loc, s2:9f/0loc, s3:6f/0loc]
    owned twice ('docs/index.html',) by ['s1', 's2']
    owned twice ('docs/site/docs.css',) by ['s1', 's2']
+ok D7 mode=cells seats=3 universe=77 [s1:77f/61597loc, s2:77f/61597loc, s3:77f/61597loc]
 rc=1
-== null control: gap
-ref=69f04ec613a14a4f50cb55b10820e411716ac993 seats=48
-FAIL D6 mode=files seats=3 universe=17 [s1:3f/0loc, s2:7f/0loc, s3:6f/0loc]
-   unowned ('docs/site/docs.css',)
+-- null control 2
+FAIL D6 mode=files seats=3 universe=18 [s1:4f/0loc, s2:7f/0loc, s3:6f/0loc]
+   unowned ('tools/site/build_docs.mjs',)
+ok D7 mode=cells seats=3 universe=77 [s1:77f/61597loc, s2:77f/61597loc, s3:77f/61597loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4610loc, s2:6f/4610loc, s3:6f/4610loc]
 rc=1

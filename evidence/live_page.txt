@@ -1,4 +1,0 @@
-live page fetched 2026-10-16T02:45:59Z from https://tvofi.github.io/heatpump_optimizer/ (HTTP 200)
-live == 69f04ec613a14a4f50cb55b10820e411716ac993:docs/index.html (cmp)
-live == origin/main 2e452a182e2ca85f22a8a695a46b265f23080dee:docs/index.html (cmp)
-pages.yml: deploys on a pushed v* tag (lines 6-8), stages docs/index.html docs/site/* and renders sub-pages from the tag markdown via tools/site/build_docs.mjs

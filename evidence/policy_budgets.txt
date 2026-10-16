@@ -37,12 +37,12 @@ tools/audit/briefs/verifier.md                    39   39      609   612
 dev/governance/dimensions/D15.md                  37   37      690   690 
 .claude/rules/delivery-status-tracking.md         35   35      766   766 
 tools/audit/briefs/D14.md                         32   32      428   428 
-tools/audit/briefs/D6.md                          32   35      388   388 
+tools/audit/briefs/D6.md                          31   35      375   388 
 tools/audit/briefs/judge.md                       30   30      469   469 
 AGENTS.md                                         12   13      166   183 
 
 always-loaded: ~3410 tokens, cap 3349 +band 500 = 3849
-corpus:        ~61082 tokens, cap 61026 +band 500 = 61526
+corpus:        ~61069 tokens, cap 61026 +band 500 = 61526
 role fixer     ~6044 tokens, cap 5852 +band 500 = 6352
 role record    ~7227 tokens, cap 7405 +band 500 = 7905
 role policy    ~9812 tokens, cap 9958 +band 500 = 10458
