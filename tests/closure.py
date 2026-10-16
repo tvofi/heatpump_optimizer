@@ -707,6 +707,12 @@ INERT_EXCEPT = (
     "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
     "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
     "dev/audit/rounds/round5/D13/seat-a/fixtures/window_merges.json",
+    # #2227: tests/entities.py's cited-program arm loads every program live
+    # policy or a carry's `remeasure` tells a seat to run under a historical
+    # prefix, and reads its source for the paths it opens -- the
+    # web-fix-wave.js route. carry-201 commands this one; the other cited
+    # programs are already excepted above. An edit to it selects entities.py.
+    "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
     # R9-FR-10: tests/entities.py loads record_row.py and roster_lib.py by
     # importlib (the record-autofix generator and the branch-to-group lookup)
     # and drives figure_lint.mjs through node, so each is a dependency of a
@@ -732,6 +738,9 @@ INERT_EXCEPT = (
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/handover_prompt.py",
+    # #2310: state_docs.py imports ref_privacy.py, the push guard its push
+    # path calls, so entities.py's load of the beat reads it the same way.
+    "tools/audit/seat/ref_privacy.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the

@@ -157,7 +157,18 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   GITHUB_TOKEN bot push (author `github-actions[bot]`) stop the train — such
   a head has no `pull_request` run, the required contexts never report at it,
   and the required follow-up is an App push (step 1's recarry once main
-  moves; batch never recarries, so it refuses at admission).
+  moves; batch routes such a head serial, `bot-head`, where that recarry runs
+  after the batch's own merges). A foreign merge moving main under a settled
+  head is recovered up to `--main-moved-tries` (default 3; 0 is the old stop):
+  serially by a recarry and a fresh CI wait, in a batch by re-proving the rest
+  on the new main. An owner approval GitHub already holds at the live head is
+  the owner's, with nothing re-posted (GitHub re-anchors one across a clean
+  base merge: #2209). `--bot-prs` merges the open record/autofix pull request
+  in the train's own sequence behind record_row.py's identical guard;
+  `--pre-flight` runs `queue_pre_flight.py` first and PARKs a failing entry;
+  `--free-holders` detaches a clean, pushed holder worktree. Every refused
+  merge attempt is logged in GitHub's words; the recarry worktrees a run made
+  are removed before its closing line.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
@@ -249,6 +260,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   refusal parks the entry here instead of stopping a live queue mid-run.
   Refusal: exit 1 unless every entry passed; the checks are the train's own
   methods (`bot_tip`, `policy_gate`, `app_approve.sh --carry`), never new ones.
+  `merge_train.py --pre-flight` runs it inside the train, passing the two
+  shapes the train now cures itself: a bot tip, and under `--free-holders` a
+  holder `Train.freeable` clears.
 - `record_row.py` — the record-autofix generator: enumerates merged PRs from
   the REST API, plans the delivery rows the tree still lacks, applies them
   behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
@@ -261,6 +275,16 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   older than the row directory's move. Refusal: any file but a new one-line
   row at its canonical path that the API's facts re-generate, or an author
   other than the hpo-author App.
+- `ref_privacy.py` — the one owner of what a push may say about the host
+  (#2310): `slug <path>` names a local path for a ref (`<root>-<rest>` under
+  a named root, else `ext-<leaf>-<hash>`); `guard --ref R [--message M]
+  [--commits REV -C DIR]` refuses a ref name or commit message carrying the
+  home directory, an account name, the uid, a session temp root or a host
+  path (exit 3, the class named, the text not echoed); `--check` refuses a
+  tracked file with a push site its `PUSHERS` registry does not name, and a
+  `guarded` entry that calls no guard. When: before every push an instrument
+  composes; a new pusher registers in `PUSHERS` in the same diff. Refusal: a
+  push that would publish the host never runs.
 - `remerge_main.sh` — merges origin/main into an open PR (claimnotes merge
   driver), drops inherited claims, pushes as the App with `app_push.sh
   --recarry`, which prefixes ## Head with what happened and skips prepr only
@@ -313,14 +337,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   unbuffered (`-u`, so a detached caller's log shows stops and SKIP/OVERLAP
   lines in real time), a pidfile refusing a second live train on the same
   state dir, log and exit code under the state dir (`train.log`, `rc`), and
-  `--skip-bad`/`--overlap` passed straight through. Foreground: the caller
+  `--skip-bad`/`--overlap`/`--approval-carry`/`--bot-prs`/`--pre-flight`/
+  `--free-holders`/`--main-moved-tries N` passed straight through, each only
+  when given (a `0` default once passed `--skip-bad --overlap` on every
+  launch), and the child run from the repository root when `--checkout` is
+  absent (it once resolved to `tools/`). Foreground: the caller
   detaches and owns the schedule. When: every merge queue — the per-session
   scratch drivers this replaces duplicated the invocation, and one session's
   copy ran prepr under the wrong interpreter and refused a clean branch.
   Refusal: a live pidfile (take over only by removing it after checking the
   pid is dead). `--self-test` drives the five refusals and the child argv
   shape offline (missing required arg, live pidfile, unknown argument, the
-  `--ignore-red` argv shape, the absent-venv refusal).
+  `--ignore-red` argv shape, the absent-venv refusal), the child's cwd on a
+  launch without `--checkout`, and a bare launch's argv carrying no flag.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at
@@ -365,9 +394,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   silently.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
-  `origin/wip-sync/<slug>`, plus the orchestrator scratch. When: loop it
+  `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is
+  `ref_privacy.py slug`'s, never a host path (#2310). When: loop it
   detached so a crashed seat is recoverable from its branch. Refusal: it
-  never touches the worktree or its index — a snapshot, not a save.
+  never touches the worktree or its index — a snapshot, not a save; a
+  worktree whose snapshot would name the host is skipped with the guard's
+  reason.
 - `shims/seat-python`, `shims/seat-python3` — the seat interpreter: execs the
   venv-ci `seat_venv.sh` builds, under `$HPO_STATE_DIR` first and the default
   state root `~/.local/state/hpo` second, and refuses naming that build command

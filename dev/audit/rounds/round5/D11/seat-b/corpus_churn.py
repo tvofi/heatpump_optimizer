@@ -56,6 +56,12 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
     os.environ.setdefault(_v, "1")
 
 ROOT = str(repo_root(__file__))
+# WHERE A MOVED FILE LIVES IS THE MOVE MAP'S ANSWER (#2227). carry-201 tells a
+# seat to run this at its merge base; the policy budgets and policy_lint.mjs it
+# opens left .claude/workflows/, so each is read through tests/layout.py's
+# `locate` -- the old path while it is there, else where layout.json moved it.
+sys.path.append(os.path.join(ROOT, "tests"))
+from layout import locate  # noqa: E402
 
 
 def git(*args):
@@ -65,7 +71,7 @@ def git(*args):
 
 def corpus_files():
     import json
-    with open(os.path.join(ROOT, ".claude/workflows/policy_budgets.json")) as f:
+    with open(os.path.join(ROOT, locate(".claude/workflows/policy_budgets.json"))) as f:
         return list(json.load(f)["files"].keys())
 
 
@@ -97,7 +103,7 @@ def rowless():
     merges = git("log", "--merges", "--format=%H %s", "--since=2026-09-06")
     # Hook the production constants: the disposition surfaces are read out of
     # policy_lint.mjs itself (DISPOSITION_FILES / ROW_DIR), never carried.
-    lint_src = open(os.path.join(ROOT, ".claude/workflows/policy_lint.mjs")).read()
+    lint_src = open(os.path.join(ROOT, locate(".claude/workflows/policy_lint.mjs"))).read()
     disp_files = re.search(r"const DISPOSITION_FILES = \[(.*?)\]", lint_src).group(1)
     disp_files = re.findall(r"'([^']+)'", disp_files)
     row_dir = re.search(r"const ROW_DIR = '([^']+)'", lint_src).group(1)
@@ -130,7 +136,7 @@ def tag_windows():
     <last v* tag>..origin/main. Each stamp therefore closes the window over
     whatever rowless merges sit inside it. Per v* tag: merges inside the
     window it closed, and how many of those have no disposition surface."""
-    lint_src = open(os.path.join(ROOT, ".claude/workflows/policy_lint.mjs")).read()
+    lint_src = open(os.path.join(ROOT, locate(".claude/workflows/policy_lint.mjs"))).read()
     disp_files = re.findall(r"'([^']+)'", re.search(
         r"const DISPOSITION_FILES = \[(.*?)\]", lint_src).group(1))
     row_dir = re.search(r"const ROW_DIR = '([^']+)'", lint_src).group(1)
