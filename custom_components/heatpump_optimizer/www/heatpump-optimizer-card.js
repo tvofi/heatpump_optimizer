@@ -4552,10 +4552,6 @@ function cardStyleBlock(darkMode) {
         font-size: 11px; fill: var(--hpo-accent, #026aa8);
         pointer-events: none;
       }
-      /* The folded block's own target, which opens this box's unset rows:
-         no hover wash of its own, so the folded line and the chip beside it
-         read as two controls rather than one big one. */
-      .setup-fold-hit:hover { fill: transparent; }
       .setup-hint {
         color: var(--hpo-text-2, #727272);
         font-size: 0.85em; padding: 0.5em 0.25em;
@@ -4572,6 +4568,14 @@ function cardStyleBlock(darkMode) {
          the fill leaves the ring alone. */
       .setup-hit:hover {
         fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.12;
+      }
+      /* The folded block's own target says so differently: it is a
+         disclosure, not a slot, and a wash the width of the row would read
+         as the same control the chip beside it is. It carries no wash at
+         all. Declared after .setup-hit:hover, which has the same
+         specificity. */
+      .setup-fold-hit:hover {
+        fill: transparent; fill-opacity: 0;
       }
 
       /* The layout editor (v3.16.0, issue #40) */

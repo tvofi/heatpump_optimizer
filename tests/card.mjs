@@ -2577,6 +2577,33 @@ check("the hand-scheduled reason has a label",
     JSON.stringify(tankCalls));
   check("live values are read straight from hass states",
     /21\.3 °C/.test(setupPage) && /47\.5 °C/.test(setupPage));
+  // R10-UX-SETUP: one precision per unit. Home Assistant formats every entity
+  // at the precision that entity sets for itself, so the owner's screenshot
+  // read "19.30 °C" beside "20.8 °C" on one diagram. The control is the unit
+  // the rule does not name: it must come through exactly as Home Assistant
+  // spelled it.
+  {
+    const prec = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    prec[DEFAULT_SPACE].attributes.setup_topology = topo;
+    prec["sensor.livingroom"] = { state: "19.30",
+      attributes: { unit_of_measurement: "°C" } };
+    prec["sensor.tank"] = { state: "20.8",
+      attributes: { unit_of_measurement: "°C" } };
+    prec["sensor.outside"] = { state: "3.14159",
+      attributes: { unit_of_measurement: "ppm" } };
+    const p = build(prec);
+    p._onCardClick({});
+    p.dialog.page = "setup";
+    p._render();
+    const dump = collect(p.shadowRoot).join("\n");
+    check("two temperatures on one drawing are spelled to one precision",
+      /19\.3 °C/.test(dump) && /20\.8 °C/.test(dump) &&
+      !/19\.30/.test(dump),
+      "19.30 °C beside 20.8 °C is two spellings of one unit");
+    check("a unit the rule does not name is left as Home Assistant spelled it",
+      /3\.14159 ppm/.test(dump),
+      "a precision invented for a unit nobody named is a wrong number");
+  }
   check("an unavailable sensor says so instead of a stale number",
     /unavailable/.test(setupPage));
   // R10-UX-SETUP: a label that does not fit its line WRAPS, and an unset
@@ -2914,6 +2941,41 @@ check("the hand-scheduled reason has a label",
   // The hidden page must be genuinely unrendered, not display:none --
   // getBoundingClientRect on a hidden chart returns zeroes and
   // _timeAtClientX would compute garbage drag times rather than fail.
+  // ARCH2-s5 C1 (the text-width owner): the chart's label-width rule lives in
+  // `textWidth`, and nowhere spells it inline. The census is the finder's own
+  // rule (card_shapes.mjs's `char_width_inline`), run here so the tree holds
+  // it: a label's LENGTH times the average character width, outside the one
+  // function that owns that estimate.
+  {
+    const at = cardSrc.indexOf("function textWidth");
+    // The owner's own body is the one legitimate spelling; a comment that
+    // names the rule is not ink. Everything else is a second copy of an
+    // estimate that has to stay in step with the first.
+    const owner = cardSrc.slice(at, cardSrc.indexOf("\n}", at) + 2);
+    const inline = cardSrc.replace(owner, "").split("\n")
+      .map((line, i) => [i + 1, line])
+      .filter(([, line]) =>
+        /(?:\.length|widest)\s*\*\s*CHAR_WIDTH_EM/.test(line) &&
+        !/^\s*(\*|\/\/)/.test(line));
+    check("the chart's label-width rule is spelled in exactly one place",
+      at > 0 && inline.length === 0,
+      at < 0 ? "textWidth is gone" :
+        `inline at ${inline.map(([n]) => n).join(", ")}`);
+    // ARCH2-s5 C4's two shapes, by the same rule: the no-plan empty state and
+    // the finite-number test each have one owner, and neither is re-spelled
+    // inline anywhere else in the card.
+    const plans = cardSrc.split("\n")
+      .filter((l) => /L\("errors\.no_plan_data"\)/.test(l));
+    check("the no-plan empty state is built in exactly one place",
+      plans.length === 1, `${plans.length} place(s) build it`);
+    const finite = cardSrc.split("\n")
+      .filter((l) => /typeof n === "number" && Number\.isFinite\(n\)/.test(l)
+        && !/^\s*(const finiteNum|\*|\/\/)/.test(l));
+    check("the finite-number test is spelled in exactly one place",
+      /const finiteNum = /.test(cardSrc) && finite.length === 0,
+      `${finite.length} inline spelling(s)`);
+  }
+
   check("the plan chart is genuinely unrendered on the setup page",
     !/chartwrap big/.test(setupPage) && !/class="whatif"/.test(setupPage));
 
