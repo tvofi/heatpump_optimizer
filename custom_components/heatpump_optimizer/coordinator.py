@@ -10346,10 +10346,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             book.update(
                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
             )
-        book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
-        book["sek"] = _as_float(book.get("sek"), 0.0) + (
-            sek if np.isfinite(sek) else 0.0
-        )
+        if spot_known and np.isfinite(sek):  # #2229: an unpriced kWh pays nothing
+            book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
+            book["sek"] = _as_float(book.get("sek"), 0.0) + sek
         if spot_known and np.isfinite(spot) and elapsed_hours > 0:
             book["spot_sum"] = (
                 _as_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours

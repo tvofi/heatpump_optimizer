@@ -64282,5 +64282,17 @@ R.check(
     repr(_fd_ov_seen),
 )
 
+_fd_score = _fd_coord()
+_fd_score._fold_score_sample(_FD_T0, 1.0, float("nan"), float("nan"), 0.25, False)
+_fd_score_unpriced = dict(_fd_score._score_day)
+_fd_score._fold_score_sample(_FD_T0, 1.0, 1.5, 1.5, 0.25, True)
+R.check(
+    "#2229: the operation score's day book takes an unpriced interval's kWh nowhere -- "
+    "counted at 0 SEK it lowered the day's mean paid price; a priced one (null control) books",
+    _fd_score_unpriced.get("kwh") == 0.0 and _fd_score_unpriced.get("sek") == 0.0
+    and _fd_score._score_day.get("kwh") == 1.0 and _fd_score._score_day.get("sek") == 1.5,
+    f"unpriced={_fd_score_unpriced} priced={_fd_score._score_day}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
