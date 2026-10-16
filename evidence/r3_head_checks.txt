@@ -1,0 +1,48 @@
+2026-10-16T05:56:16Z	skipped	delivery-status-publish
+2026-10-16T05:56:16Z	skipped	mutation-ledger
+2026-10-16T05:56:16Z	skipped	mutation-ledger-push
+2026-10-16T05:56:16Z	skipped	mutation-nightly
+2026-10-16T05:56:16Z	skipped	recheck-gate
+2026-10-16T05:56:16Z	skipped	record
+2026-10-16T05:56:16Z	skipped	record-autofix
+2026-10-16T05:56:16Z	skipped	slow
+2026-10-16T05:56:18Z	success	Analyze (actions)
+2026-10-16T05:56:18Z	success	Analyze (javascript-typescript)
+2026-10-16T05:56:18Z	success	briefs
+2026-10-16T05:56:18Z	success	budget-raise-gate
+2026-10-16T05:56:18Z	success	budget-raise-gate
+2026-10-16T05:56:18Z	success	closure-scope
+2026-10-16T05:56:18Z	success	delivery-status
+2026-10-16T05:56:18Z	success	env-matrix
+2026-10-16T05:56:18Z	success	hassfest
+2026-10-16T05:56:18Z	success	instrument-self-tests
+2026-10-16T05:56:18Z	success	mutation
+2026-10-16T05:56:18Z	success	nightly-status
+2026-10-16T05:56:18Z	success	pr-contract
+2026-10-16T05:56:18Z	success	validate-hacs
+2026-10-16T05:56:19Z	success	Analyze (python)
+2026-10-16T05:56:19Z	success	arch-score
+2026-10-16T05:56:19Z	success	arch-score
+2026-10-16T05:56:19Z	success	policy-docs
+2026-10-16T05:56:19Z	success	typing
+2026-10-16T05:56:19Z	success	wave-script
+2026-10-16T05:56:33Z	skipped	nightly-ha
+2026-10-16T05:56:35Z	success	browser
+2026-10-16T05:56:35Z	success	coverage
+2026-10-16T05:56:36Z	success	fast (3.14)
+2026-10-16T05:56:44Z	success	pr-contract
+2026-10-16T05:57:04Z	success	CodeQL
+2026-10-16T06:14:44Z	skipped	claims-autofix
+2026-10-16T06:15:26Z	success	closures
+2026-10-16T06:15:26Z	success	coverage-ratchet
+2026-10-16T06:15:26Z	success	graders-head-copy
+2026-10-16T06:15:26Z	success	lane-proofs
+2026-10-16T06:27:47Z	skipped	mutation-autofix
+2026-10-16T06:27:47Z	skipped	mutation-pin-plan
+2026-10-16T06:27:47Z	skipped	mutation-pins
+2026-10-16T06:28:54Z	skipped	ci-ratchet
+2026-10-16T06:28:54Z	skipped	closures-autofix
+2026-10-16T06:28:57Z	success	composed-proof
+2026-10-16T15:07:01Z	success	arch-score
+2026-10-16T15:07:01Z	success	budget-raise-gate
+2026-10-16T15:07:02Z	success	pr-contract

@@ -1,0 +1,6 @@
+pr-contract	Check the body against the contract	2026-10-16T15:07:21.3096469Z   record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: mutation
+pr-contract	Check the body against the contract	2026-10-16T15:07:21.3098094Z PR-BODY: 0 error(s) in /tmp/pr-body.md
+pr-contract	Every figure's command resolves at this head	2026-10-16T15:07:21.3666354Z   ok         PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/N-registry-leak/registry_leak.py --rounds 3
+pr-contract	Every figure's command resolves at this head	2026-10-16T15:07:21.3667755Z FIGURES: 8 resolved, 0 not verified, 0 refused
+pr-contract	Pre-flight the body for unmeasured claims	2026-10-16T15:07:21.3926039Z   REFUSE   'Closes #2231' closes #2231; not in the intended list
+pr-contract	Refuse a version, manifest-version or notes-heading edit	2026-10-16T15:07:23.2753062Z no version edit: origin/main...c777f855b9d87f8218ed3650aead1e92537f51e1 moves none of VERSION, the manifest version or a notes heading
