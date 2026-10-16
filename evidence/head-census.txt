@@ -1,0 +1,2 @@
+lease class: dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=10 none=24 unleased_but_heavy=[]
+ALL 2336 ENTITY CHECKS PASSED

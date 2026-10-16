@@ -1,0 +1,3 @@
+  FAIL a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)  [stolen=False live_admitted=False]
+lease class: dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=10 none=24 unleased_but_heavy=[]
+1 of 2336 ENTITY CHECKS FAILED

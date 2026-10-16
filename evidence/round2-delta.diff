@@ -1,0 +1,625 @@
+diff --git a/.claude/rules/gate-scoping.md b/.claude/rules/gate-scoping.md
+index aaf284717..65e6eb35c 100644
+--- a/.claude/rules/gate-scoping.md
++++ b/.claude/rules/gate-scoping.md
+@@ -19,12 +19,13 @@ checks go red on a shallow clone; `git fetch --unshallow origin main` clears it,
+ `/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
+ which a script takes: `lease`, exclusive, for the scripts that measure the machine
+ (`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
+-of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
+-`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
+-slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
+-or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
+-to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
+-§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
++of four, for the multi-minute CPU scripts -- a `closures.json` recording at or above
++`SLOT_MIN_SECONDS`, and an UNRECORDED script, never timed; `none` only where the
++recording says seconds. The pool is `$HPO_HEAVY_SLOTS` slots, and
++`$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead or expired
++ticket is skipped. A seat that waited one lease period may leave `stress.py` to CI and
++name it unrun. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
++with `tests/gate_lock.py`, never `mkdir`:
+ 
+ ```
+ python3 tests/gate_lock.py take --label <your-label>
+diff --git a/.cursor/rules/gate-scoping.mdc b/.cursor/rules/gate-scoping.mdc
+index 39eeec2c2..2a6ce80da 100644
+--- a/.cursor/rules/gate-scoping.mdc
++++ b/.cursor/rules/gate-scoping.mdc
+@@ -18,12 +18,13 @@ checks go red on a shallow clone; `git fetch --unshallow origin main` clears it,
+ `/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
+ which a script takes: `lease`, exclusive, for the scripts that measure the machine
+ (`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
+-of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
+-`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
+-slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
+-or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
+-to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
+-§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
++of four, for the multi-minute CPU scripts -- a `closures.json` recording at or above
++`SLOT_MIN_SECONDS`, and an UNRECORDED script, never timed; `none` only where the
++recording says seconds. The pool is `$HPO_HEAVY_SLOTS` slots, and
++`$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead or expired
++ticket is skipped. A seat that waited one lease period may leave `stress.py` to CI and
++name it unrun. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
++with `tests/gate_lock.py`, never `mkdir`:
+ 
+ ```
+ python3 tests/gate_lock.py take --label <your-label>
+diff --git a/dev/audit/harnesses/r10_replay_loopnorm.py b/dev/audit/harnesses/r10_replay_loopnorm.py
+new file mode 100644
+index 000000000..e082f1d1a
+--- /dev/null
++++ b/dev/audit/harnesses/r10_replay_loopnorm.py
+@@ -0,0 +1,162 @@
++#!/usr/bin/env python3
++"""The replay loop figure's ruler: the BLAS solve against a pure-Python one (#2270).
++
++``loop_cpu_ratio`` was the coordinator cycle's loop-thread CPU over
++``tests/stress.py``'s ``reference_solve``, a BLAS-bound solve. The measure is
++interpreter-bound, so over the nightly series the figure tracked the runner
++CLASS, not the code: ``corr(loop_cpu_ratio, ref_ms) = -0.94``, and it read
++0.244-0.405 (1.66x). #2270's fix normalises it by a fixed pure-Python workload
++(``tests/replay.py``'s ``reference_loop``) instead. This harness reports both
++halves of the evidence:
++
++  --series   fetch the tests.yml slow lane's clean cost lines from GitHub and
++             print the old figure's spread, its correlation with ``ref_ms``,
++             and the slow/fast class split, with the interpreter and BLAS
++             class factors. This re-derives the finding's baseline.
++  (default)  run ``tests/replay.py --one`` N times on THIS box and print, per
++             run, the loop CPU, both references and the old and new figures.
++
++The old figure moves with the runner (--series shows the class factor it
++imposed); the new figure should not (the local runs show its spread on one
++box). Run from a worktree root:
++
++    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_replay_loopnorm.py [N]
++    python3 dev/audit/harnesses/r10_replay_loopnorm.py --series
++"""
++from __future__ import annotations
++
++import json
++import re
++import statistics
++import subprocess
++import sys
++from pathlib import Path
++
++
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(__file__)
++FIXTURE = ROOT / "tests" / "replay" / "synthetic-dhw-only.json"
++MARK = "<<<replay-json>>>"
++REPO = "tvofi/heatpump_optimizer"
++COST_RE = re.compile(r"cost (\{.*\})")
++
++
++# --- the nightly series (the finding's baseline) ----------------------------
++
++def _gh(*args: str) -> str:
++    return subprocess.run(["gh", *args], capture_output=True, text=True,
++                          check=True).stdout
++
++
++def nightly_rows() -> list[tuple[str, float, float]]:
++    """(run id, ref_ms, clean loop_cpu_ratio) per timed tests.yml slow lane."""
++    rows, fails, no_job = [], 0, 0
++    for ev in ("schedule", "workflow_dispatch"):
++        ids = _gh("run", "list", "--repo", REPO, "--workflow", "tests.yml",
++                  "--event", ev, "--limit", "60", "--json", "databaseId,createdAt",
++                  "--jq", '.[]|select(.createdAt>="2026-10-01")|.databaseId').split()
++        for run in ids:
++            try:
++                job = _gh("api", f"repos/{REPO}/actions/runs/{run}/jobs?per_page=100",
++                          "-q", '.jobs[]|select(.name=="slow")|.id').strip()
++                if not job:      # a run with no slow lane: not a read failure
++                    no_job += 1
++                    continue
++                log = _gh("api", "--allow-escape-sequences",
++                          f"repos/{REPO}/actions/jobs/{job}/logs")
++            except subprocess.CalledProcessError:
++                fails += 1
++                continue
++            line = next((ln for ln in log.splitlines()
++                         if "'cpu_ratio'" in ln and "doubled" not in ln), None)
++            m = COST_RE.search(line) if line else None
++            if not m:
++                continue
++            c = json.loads(m.group(1).replace("'", '"'))
++            rows.append((run, c["ref_ms"], c["loop_cpu_ratio"]))
++    print(f"RESULT series_rows={len(rows)} api_failures={fails} no_slow_lane={no_job}")
++    return rows
++
++
++def series_report() -> int:
++    rows = nightly_rows()
++    if len(rows) < 4:
++        print("RESULT series spread=too-few-rows")
++        return 1
++    ref = [r for _, r, _ in rows]
++    old = [o for _, _, o in rows]
++    n = len(rows)
++    mr, mo = statistics.mean(ref), statistics.mean(old)
++    cov = sum((r - mr) * (o - mo) for r, o in zip(ref, old)) / n
++    corr = cov / (statistics.pstdev(ref) * statistics.pstdev(old))
++    print(f"RESULT old_spread=min{min(old):.4f}_max{max(old):.4f}_factor{max(old)/min(old):.3f}"
++          f" corr_ref_ms={corr:.3f}")
++    slow = [(r, o) for r, o in zip(ref, old) if r > 45]
++    fast = [(r, o) for r, o in zip(ref, old) if r <= 45]
++
++    def cls(rows_):
++        rs = [r for r, _ in rows_]
++        lc = [o * r for r, o in rows_]     # loop_cpu ms = old ratio x ref_ms
++        return len(rows_), statistics.mean(rs), statistics.mean(lc), min(o for _, o in rows_), max(o for _, o in rows_)
++
++    a, b = cls(slow), cls(fast)
++    print(f"RESULT slow_class n={a[0]} ref_mean={a[1]:.2f} loop_cpu_mean={a[2]:.2f} "
++          f"old={a[3]:.4f}..{a[4]:.4f}")
++    print(f"RESULT fast_class n={b[0]} ref_mean={b[1]:.2f} loop_cpu_mean={b[2]:.2f} "
++          f"old={b[3]:.4f}..{b[4]:.4f}")
++    print(f"RESULT class_factors blas={a[1]/b[1]:.3f}x interpreter={a[2]/b[2]:.3f}x "
++          f"old_figure_shift={(a[2]/a[1])/(b[2]/b[1]):.3f}x")
++    return 0
++
++
++# --- the local measurement (the new figure) ---------------------------------
++
++def run(arm: str | None) -> dict:
++    cmd = [sys.executable, str(ROOT / "tests" / "replay.py"), "--one", str(FIXTURE)]
++    if arm:
++        cmd += ["--inject-cost", arm]
++    proc = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
++    line = next((ln for ln in proc.stdout.splitlines() if ln.startswith(MARK)), None)
++    if line is None:
++        raise SystemExit(f"arm {arm}: rc={proc.returncode}: {proc.stderr[-800:]}")
++    return json.loads(line[len(MARK):])["cost"]
++
++
++def local_report(n: int) -> int:
++    old, new = [], []
++    for i in range(n):
++        c = run(None)
++        loop_cpu = c["loop_cpu_ratio"] * c["loop_ref_ms"]     # ms, either ruler
++        o = loop_cpu / c["ref_ms"]
++        old.append(o)
++        new.append(c["loop_cpu_ratio"])
++        print(f"run[{i}] loop_cpu={loop_cpu:.2f}ms ref_ms={c['ref_ms']:.1f} "
++              f"loop_ref_ms={c['loop_ref_ms']:.1f} old={o:.4f} new={c['loop_cpu_ratio']:.4f}")
++    print(f"RESULT local new=min{min(new):.4f}_max{max(new):.4f}_factor{max(new)/min(new):.3f} "
++          f"median{statistics.median(new):.4f}")
++    print(f"RESULT local old=min{min(old):.4f}_max{max(old):.4f}_factor{max(old)/min(old):.3f} "
++          f"median{statistics.median(old):.4f}")
++    return 0
++
++
++def main() -> int:
++    if "--series" in sys.argv:
++        return series_report()
++    n = int(sys.argv[1]) if len(sys.argv) > 1 else 3
++    return local_report(n)
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/dev/governance/rules/gate-scoping.md b/dev/governance/rules/gate-scoping.md
+index aaf284717..65e6eb35c 100644
+--- a/dev/governance/rules/gate-scoping.md
++++ b/dev/governance/rules/gate-scoping.md
+@@ -19,12 +19,13 @@ checks go red on a shallow clone; `git fetch --unshallow origin main` clears it,
+ `/tmp/hpo-gate.lock` holds two leases, and `tests/gate_lock.py needs-lease` answers
+ which a script takes: `lease`, exclusive, for the scripts that measure the machine
+ (`tests/stress.py`, `tests/harness_headers.py`), comparable only alone; `slot`, a pool
+-of four, for the multi-minute CPU scripts (a `closures.json` recording at or above
+-`SLOT_MIN_SECONDS`); `none`, for the seconds side. The pool is `$HPO_HEAVY_SLOTS`
+-slots, and `$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead
+-or expired ticket is skipped. A seat that waited one lease period may leave `stress.py`
+-to CI and name it unrun in the body. That lease, not the tick's count, is nudge.md
+-§8's cap; hold it by hand only to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
++of four, for the multi-minute CPU scripts -- a `closures.json` recording at or above
++`SLOT_MIN_SECONDS`, and an UNRECORDED script, never timed; `none` only where the
++recording says seconds. The pool is `$HPO_HEAVY_SLOTS` slots, and
++`$HPO_SLOT_LABEL` joins one it is inside. First come, first served; a dead or expired
++ticket is skipped. A seat that waited one lease period may leave `stress.py` to CI and
++name it unrun. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
++with `tests/gate_lock.py`, never `mkdir`:
+ 
+ ```
+ python3 tests/gate_lock.py take --label <your-label>
+diff --git a/dev/programme/delivery/2339.md b/dev/programme/delivery/2339.md
+new file mode 100644
+index 000000000..f0cb9c9e0
+--- /dev/null
++++ b/dev/programme/delivery/2339.md
+@@ -0,0 +1 @@
++- [#2339](https://github.com/tvofi/heatpump_optimizer/pull/2339) — **open**, R10-REPLAY-LOOPNORM: normalise the replay loop figure by a pure-Python reference (R10-REPLAY-LOOPNORM)
+diff --git a/tests/closures.json b/tests/closures.json
+index a77e8c7cf..9d28fbad9 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3260,6 +3260,7 @@
+    "dev/audit/harnesses/r10_i1_sweep_guards.py",
+    "dev/audit/harnesses/r10_month_last_window_billed.py",
+    "dev/audit/harnesses/r10_registry_leak.py",
++   "dev/audit/harnesses/r10_replay_loopnorm.py",
+    "dev/audit/harnesses/r10_stats_window.mjs",
+    "dev/audit/harnesses/r10_tick_train_mutants.sh",
+    "dev/audit/harnesses/r10_tick_which_roster.py",
+diff --git a/tests/entities.py b/tests/entities.py
+index bab74355f..62b789d11 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -15209,20 +15209,24 @@ R.check(
+ def _gl_auto_lease() -> tuple[bool, str]:
+     """run.sh leases a FULL or stress run itself; a second one waits.
+ 
+-    The classifier is driven at all three answers: the exclusive lease for the
+-    machine-measuring scripts, a slot for the multi-minute CPU ones, none for
+-    the seconds side (R10-PREPR-CAP, #2267).
++    The classifier is driven at all three answers, and at the fail-closed arm
++    the block on #2341 found open: the exclusive lease for the machine-measuring
++    scripts, a slot for the multi-minute CPU ones, a slot for a name the
++    recordings do NOT carry (`tests/rolling.py`, gated behind `SLOW=1` and so
++    never timed), and none only for a recorded seconds-side script
++    (R10-PREPR-CAP, #2267).
+     """
+     import threading
+     with _tempfile.TemporaryDirectory() as td:
+         d, seen = Path(td) / "lock", Path(td) / "seen"
+         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+-        seconds = Path(td) / "c.run"
++        seconds, rolling = Path(td) / "c.run", Path(td) / "d.run"
+         scoped.write_text("tests/entities.py\n")
+         stress.write_text("tests/entities.py\ntests/stress.py\n")
+         seconds.write_text("tests/structure.py\n")
++        rolling.write_text("tests/rolling.py\n")
+         need = [_gate_lock.needs_lease(s)
+-                for s in ("", str(stress), str(scoped), str(seconds))]
++                for s in ("", str(stress), str(scoped), str(seconds), str(rolling))]
+         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+         child = ("import os, sys; from pathlib import Path; "
+                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
+@@ -15240,7 +15244,8 @@ def _gl_auto_lease() -> tuple[bool, str]:
+         finally:
+             _gate_lock.WAIT_POLL_SECS = poll
+         text = seen.read_text() if seen.exists() else ""
+-        ok = (need == ["lease", "lease", "slot", "none"] and waited and out == [3]
++        ok = (need == ["lease", "lease", "slot", "none", "slot"] and waited
++              and out == [3]
+               and "label=auto" in text and text.endswith("auto")
+               and _gate_lock.read_owner(d) is None)
+         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+@@ -15407,6 +15412,67 @@ R.check(
+     _gl_count_ok,
+     _gl_count_detail,
+ )
++
++
++def _gl_lease_class_sweep() -> tuple[bool, str]:
++    """Every script run.sh dispatches through `leased` is classified.
++
++    THE CLASS, and its seams. Both `run` and `run_always` dispatch through
++    `leased`, so the class is the scripts `tests/run.sh` names in those calls,
++    and the property is that none of them is left UNLEASED unless the
++    recordings say it takes seconds. #2341's review found `tests/rolling.py`
++    open: gated behind `SLOW=1`, never timed, so `needs_lease` answered `none`
++    for a script whose own comment calls it "about a quarter of an hour".
++    An untimed name's weight is unknown, and the conservative answer for the
++    unknown is the pool -- bounded -- never `none`, which leaves it unbounded
++    beside three others.
++
++    The rule is read from the two files that own it: the dispatch sites in
++    run.sh and `needs_lease` itself. A script added to either reaches this
++    census with no edit here. The census asserts its OWN preconditions, because
++    a sweep over an empty set passes silently: it refuses when the parse finds
++    fewer than a floor of dispatched scripts (a regex that stopped matching
++    reads as a closed class), and it names every seam it leaves unleased.
++    """
++    run_lines = Path("tests/run.sh").read_text().splitlines()
++    dispatched: list[str] = []
++    for line in run_lines:
++        match = _re.match(r"\s*(?:run|run_always)\s+(?:\"\$PYTHON\"|node)?\s*"
++                          r"(tests/[A-Za-z0-9_]+\.(?:py|mjs))", line)
++        if match and match.group(1) not in dispatched:
++            dispatched.append(match.group(1))
++    floor = 30
++    by_answer: dict[str, list[str]] = {"lease": [], "slot": [], "none": []}
++    unleased: list[str] = []
++    with _tempfile.NamedTemporaryFile("w+", suffix=".run") as handle:
++        for script in dispatched:
++            handle.seek(0)
++            handle.truncate()
++            handle.write(script + "\n")
++            handle.flush()
++            answer = _gate_lock.needs_lease(handle.name)
++            seconds = _gate_lock._recorded_seconds(script)
++            by_answer.setdefault(answer, []).append(script)
++            if answer == "none" and (seconds is None
++                                     or seconds >= _gate_lock.SLOT_MIN_SECONDS):
++                unleased.append(script)
++    ok = len(dispatched) >= floor and not unleased
++    detail = (f"dispatched={len(dispatched)} (floor {floor}) "
++              f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
++              f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
++    # Printed on a PASS as well as carried into the failure: the census's own
++    # shape is the evidence a body cites, and a row that prints only when it
++    # fails shows the reader nothing about the class it just cleared.
++    print(f"lease class: {detail}")
++    return ok, detail
++
++
++_gl_sweep_ok, _gl_sweep_detail = _gl_lease_class_sweep()
++R.check(
++    "every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)",
++    _gl_sweep_ok,
++    _gl_sweep_detail,
++)
+ for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
+     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
+ _gl_ok, _gl_detail = _gl_lease_hardening()
+diff --git a/tests/gate_lock.py b/tests/gate_lock.py
+index 8a4ef125f..cbaea353a 100644
+--- a/tests/gate_lock.py
++++ b/tests/gate_lock.py
+@@ -652,8 +652,8 @@ def _recorded_seconds(script: str) -> float | None:
+ 
+     The classifier below is derived from this, never carried: a script that
+     gets heavier moves itself into the slots the next time the recordings are
+-    re-taken. None means the table has no such script, which is a script the
+-    tree has not run under instrumentation and so owes no slot.
++    re-taken. None means the table has no such script -- a script nothing has
++    timed, which `needs_lease` sends to the slots rather than unleased.
+     """
+     recorded = Path(__file__).resolve().parent / "closures.json"
+     try:
+@@ -673,9 +673,15 @@ def needs_lease(scope_run: str) -> str:
+     SCOPE_RUN file; empty means MODE: FULL, whose suite carries stress.py, so
+     an empty scope is the exclusive lease.
+ 
+-    Fail closed: a scope this cannot classify -- a recording table it cannot
+-    read, or a name it does not know -- is leased rather than left unleased,
+-    so the unclassified case costs serialisation and never concurrency.
++    Two fail-closed arms, deliberately different. A scope that names a
++    MACHINE_MEASURING script is leased whatever the recordings say. And a name
++    the recordings do NOT carry -- `tests/rolling.py` is the one run.sh
++    dispatches, gated behind `SLOW=1` so nothing ever timed it -- JOINS THE
++    SLOTS: an untimed script's weight is unknown, and the conservative answer
++    for an unknown is the pool, which bounds it, never `none`, which leaves it
++    unbounded beside three other scripts. Only a table that cannot be read at
++    all -- a corrupted tree, where no name at all can be classified -- takes
++    the exclusive lease.
+     """
+     if not scope_run:
+         return "lease"
+@@ -690,9 +696,10 @@ def needs_lease(scope_run: str) -> str:
+         json.loads(table.read_text()).get("recorded", {})
+     except (OSError, ValueError):
+         return "lease"
+-    if any((s := _recorded_seconds(name)) is not None and s >= SLOT_MIN_SECONDS
+-           for name in names):
+-        return "slot"
++    for name in names:
++        seconds = _recorded_seconds(name)
++        if seconds is None or seconds >= SLOT_MIN_SECONDS:
++            return "slot"
+     return "none"
+ 
+ 
+diff --git a/tests/replay.py b/tests/replay.py
+index 2a6587a1f..993cb0822 100644
+--- a/tests/replay.py
++++ b/tests/replay.py
+@@ -326,19 +326,25 @@ COST_DETECTION = 2.0
+ #: under every doubled arm's figure.
+ #: ``loop_cpu_ratio`` (R9 D9-s2-02): the cycle's LOOP-THREAD CPU alone --
+ #: its thread CPU less its executor jobs, plus the entity reads -- over the
+-#: same reference, recorded and banded exactly as ``cpu_ratio``. The
+-#: whole-cycle ratio cannot see a 2x of it: the loop is about a tenth of the
+-#: cycle, so doubling it moves ``cpu_ratio`` far inside its sqrt(2) band.
+-#: Entry allowed by tvofi (card B1). Recorded at the CENTRE of its measured
+-#: spread, not at sqrt(2) x the largest run: the figure is noisy (1.30x)
+-#: inside a band only 2x wide, and the nightly runner reads the cycle lower
+-#: than cloud boxes (cpu_ratio 2.18 there, 2.36-2.98 here), so a cap at the
+-#: top leaves its floor within 10 % of a clean run. Six clean runs on cloud
+-#: boxes, 0.2642-0.3433 (0.3401, 0.3310, 0.3178, 0.2825 at the fixer's
+-#: b4a0f75e and 0.2642 threads-pinned, 0.3433 unpinned at the review's);
+-#: sqrt(2) x their geometric midpoint 0.3012 is 0.426. Both edges then sit
+-#: 24 % inside the band (floor 0.213), and every doubled loop arm, 0.581-
+-#: 0.682 with its cpu_ratio 2.82-3.24 under 3.576, is over the cap by 36 %.
++#: PURE-PYTHON reference (``reference_loop``), recorded and banded exactly as
++#: ``cpu_ratio``. The whole-cycle ratio cannot see a 2x of it: the loop is
++#: about a tenth of the cycle, so doubling it moves ``cpu_ratio`` far inside
++#: its sqrt(2) band. Entry allowed by tvofi (card B1). The ruler was changed
++#: from the BLAS solve to a pure-Python workload (#2270, owner decision
++#: 2026-10-15): the numerator is interpreter-bound and the solve is
++#: BLAS-bound, so the figure tracked the runner CLASS, not the code --
++#: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs. The series
++#: splits by ref_ms: ~22-34 (fast) read 0.316-0.405, ~52-55 (slow) read
++#: 0.244-0.274, 1.66x overall; the class shift is the interpreter speed
++#: (loop_cpu 10.0 -> 13.5 ms, 1.35x) over the BLAS speed (ref_ms 28.6 ->
++#: 53.2 ms, 1.86x). Normalising by a workload of the loop's own kind, on its
++#: own clock, cancels the interpreter factor, so the figure is the loop's
++#: work over the reference's and does not move with the runner. Recorded at
++#: the CENTRE of its measured spread: twelve clean runs read 0.0618-0.0903
++#: (median 0.0786) at load average 15-29; sqrt(2) x 0.0786 is 0.111, both
++#: edges inside (0.0555, 0.111], and a doubled loop arm ~0.156 is over the
++#: cap. Re-centre at the next timed week, once the series carries the new
++#: figure across runners.
+ #: ``cpu_ratio`` re-recorded down the same way (#2205): #2142's solve memo
+ #: cut the cycle to 0.656x (R10-RCA-2205's interleaved medians), so all 36
+ #: timed slow lanes before it, 1.915-2.824, project to 1.256-1.853; the two
+@@ -347,23 +353,81 @@ COST_DETECTION = 2.0
+ #: Re-centre at the next timed week, not on one run.
+ COST_BUDGETS: dict[str, dict[str, float]] = {
+     "synthetic-dhw-only.json": {"cpu_ratio": 2.173, "peak_kib": 2686.0,
+-                                "loop_cpu_ratio": 0.426},
++                                "loop_cpu_ratio": 0.111},
+ }
+ #: A reference solve after every this many cycles, beside the ones before
+ #: and after the day, so the unit tracks the runner through the replay.
+ COST_REF_EVERY = 8
+ 
++#: The loop figure's ruler: a fixed, pure-Python workload, the interpreter-
++#: bound twin of ``stress.reference_solve``. The numerator is the cycle's
++#: THREAD CPU -- interpreter work -- while ``reference_solve`` is BLAS-bound;
++#: dividing one by the other made ``loop_cpu_ratio`` track the runner class,
++#: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs (R10-RCA-2205):
++#: a runner whose BLAS outruns its interpreter read the loop low, and the
++#: spread was 0.2441-0.405 (1.66x), the runner, not the code. Normalising by
++#: work on the SAME clock and of the SAME kind cancels the interpreter speed,
++#: so the ratio is the loop's work over this reference's, invariant across
++#: runners. Fixed iterations, no numpy, no data dependence, so every call
++#: costs the same and no integration change can move it -- the property that
++#: makes ``reference_solve`` the right ruler for the solve, for the loop.
++#: SIZED to a couple of hundred ms, as ``reference_solve`` is: 1e6 steps read
++#: 154 ms idle and 170-195 ms at load average 15-29, so its own variation
++#: sits under the loop's rather than deciding the ratio.
++_LOOP_REF_STEPS = 1_000_000
++#: Lookup keys, read through a dict, so the mix carries CPython's dict load
++#: beside the arithmetic -- the interpreter work a coordinator cycle is
++#: mostly made of, not a bare arithmetic loop a runner's FPU could speed up.
++_LOOP_REF_KEYS = ("x", "y", "z")
++
++
++def _loop_reference_work() -> float:
++    """A fixed pure-Python computation; the value is discarded.
++
++    Its arithmetic is nobody's business but this file's: it must never be
++    "improved", or the ruler moves and every historical ratio stops meaning
++    anything (``reference_solve``'s own rule).
++    """
++    d = {"x": 1.5, "y": 2.5, "z": 0.75}
++    kx, ky, kz = _LOOP_REF_KEYS
++    acc = 0.0
++    tail = [0.0, 0.0, 0.0, 0.0]
++    for i in range(_LOOP_REF_STEPS):
++        v = d[kx] * i + d[ky] - d[kz]
++        if i & 1:
++            acc += v * 0.5
++        else:
++            acc -= v * 0.25
++        tail[i & 3] = acc
++    return acc + sum(tail)
++
++
++def reference_loop() -> float:
++    """One pure-Python reference: this thread's CPU ms, the loop's own clock.
++
++    ``own_loop`` is ``time.thread_time()``, so the ruler is timed on the same
++    clock: a runner that runs bytecode slowly reads both high, and the ratio
++    is the loop's work over this workload's, not the runner's speed.
++    """
++    began = time.thread_time()
++    _loop_reference_work()
++    return (time.thread_time() - began) * 1000.0
++
+ 
+ def cost_figures(cycle_cpu: list[float], ref_cpu: list[float],
+-                 peaks: list[int], loop_cpu: list[float] | None = None
+-                 ) -> dict[str, float]:
++                 peaks: list[int], loop_cpu: list[float] | None = None,
++                 loop_ref: list[float] | None = None) -> dict[str, float]:
+     ref = sorted(ref_cpu)[len(ref_cpu) // 2] if ref_cpu else 0.0
+     out = {"cpu_ratio": round(sum(cycle_cpu) / len(cycle_cpu) / ref, 4)
+            if cycle_cpu and ref > 0 else float("nan"),
+            "peak_kib": round(max(peaks) / 1024.0, 1) if peaks else float("nan")}
+     if loop_cpu is not None:
+-        out["loop_cpu_ratio"] = (round(sum(loop_cpu) / len(loop_cpu) / ref, 4)
+-                                 if loop_cpu and ref > 0 else float("nan"))
++        # The loop figure is normalised by ``loop_ref`` (pure Python), never
++        # by the BLAS solve: a solve reference that moved with the runner and
++        # a thread measure that did not is exactly #2270.
++        lref = sorted(loop_ref)[len(loop_ref) // 2] if loop_ref else 0.0
++        out["loop_cpu_ratio"] = (round(sum(loop_cpu) / len(loop_cpu) / lref, 4)
++                                 if loop_cpu and lref > 0 else float("nan"))
+     return out
+ 
+ 
+@@ -460,12 +524,34 @@ def controls() -> list[tuple[str, bool, str]]:
+     pair("cycle_cost:unrecorded", cost_offenders(clean, {"cpu_ratio": 0.0, "peak_kib": 0.0}),
+          cost_offenders(clean, budget))
+     # The loop-thread figure (D9-s2-02): a doubled loop inside an unchanged
+-    # cycle is over its own budget, where the whole-cycle figure is not.
+-    lclean = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4])
++    # cycle is over its own budget, where the whole-cycle figure is not. Its
++    # ruler is the pure-Python reference, so it shares no clock with the solve.
++    lref = [3.0, 3.1, 3.2]
++    lclean = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4], lref)
+     lbudget = {k: math.sqrt(COST_DETECTION) * v for k, v in lclean.items()}
+-    lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8])
++    lhot = cost_figures([22.0, 24.4], ref, [4096], [4.0, 4.8], lref)
+     pair("cycle_cost:loop_thread", cost_offenders(lhot, lbudget),
+          cost_offenders(lclean, lbudget))
++    # The loop figure is normalised by the pure-Python reference, not the BLAS
++    # solve (#2270): moving the solve reference must not move it, and moving
++    # the loop reference must. Red before the normaliser changed (the ratio
++    # followed the solve), green after.
++    la = cost_figures([20.0, 22.0], ref, [4096], [2.0, 2.4], lref)
++    solve_moved = la["loop_cpu_ratio"] != cost_figures(
++        [20.0, 22.0], [r * 3 for r in ref], [4096], [2.0, 2.4], lref)["loop_cpu_ratio"]
++    lref_moved = la["loop_cpu_ratio"] != cost_figures(
++        [20.0, 22.0], ref, [4096], [2.0, 2.4], [r * 2 for r in lref])["loop_cpu_ratio"]
++    res.append(("control:cycle_cost:loop_normaliser",
++                not solve_moved and lref_moved,
++                f"ratio {la['loop_cpu_ratio']}: solve x3 moved={solve_moved}, "
++                f"loop_ref x2 moved={lref_moved}"))
++    # The sibling figure and the reason the two rulers differ: the whole-cycle
++    # figure IS normalised by the solve (the cycle is solve-dominated), so it
++    # moves with the solve reference where the loop figure does not.
++    cpu_solve_moved = clean["cpu_ratio"] != cost_figures(
++        [20.0, 22.0], [r * 3 for r in ref], [4096])["cpu_ratio"]
++    res.append(("control:cycle_cost:cpu_normaliser", cpu_solve_moved,
++                f"cpu_ratio {clean['cpu_ratio']}: solve x3 moved={cpu_solve_moved}"))
+     pair("cycle_cost:short_doubling", short_doubling(0.93), short_doubling(1.0001))
+     pair("cycle_cost:unmetered_doubling", short_doubling(float("nan")), short_doubling(1.0))
+     pkg = "/x/custom_components/heatpump_optimizer/"
+@@ -958,6 +1044,8 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
+     started = time.monotonic()
+     reference_solve()  # scipy's first-call costs, thrown away as stress.py does
+     ref_cpu = [reference_solve()[1] for _ in range(3)]
++    reference_loop()  # the loop ruler warms the adaptive interpreter the same way
++    loop_ref_cpu = [reference_loop() for _ in range(3)]
+     cycle_cpu: list[float] = []
+     loop_cpu: list[float] = []
+     injected: list[tuple[float, float]] = []
+@@ -1024,6 +1112,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
+             sys.setprofile(None)
+         if cycles % COST_REF_EVERY == COST_REF_EVERY - 1:
+             ref_cpu.append(reference_solve()[1])
++            loop_ref_cpu.append(reference_loop())
+         results["finite"] += inv_finite(records)
+         results["unit"] += inv_unit(records, table)
+         results["no_default"] += inv_no_default(records, defaults, readings)
+@@ -1042,8 +1131,9 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
+         t += step
+     dt_util.freeze(None)
+     ref_cpu += [reference_solve()[1] for _ in range(3)]
++    loop_ref_cpu += [reference_loop() for _ in range(3)]
+     results["not_frozen"] = frozen_offenders(pub_series, inp_series)
+-    figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu)
++    figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu, loop_ref_cpu)
+     clean = sum(c for _, c in injected)
+     share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}
+              if inject in ("cpu", "loop") and clean > 0 else {})
+@@ -1051,7 +1141,8 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
+         figures, COST_BUDGETS.get(path.name))
+     return {"fixture": path.name, "cycles": cycles, "entities": len(entities),
+             "cost": {**figures, **share, "timed": len(cycle_cpu), "traced": len(peaks),
+-                     "ref_ms": sorted(ref_cpu)[len(ref_cpu) // 2]},
++                     "ref_ms": sorted(ref_cpu)[len(ref_cpu) // 2],
++                     "loop_ref_ms": sorted(loop_ref_cpu)[len(loop_ref_cpu) // 2]},
+             "seconds": round(time.monotonic() - started, 1),
+             "results": {k: v[:12] + ([f"... {len(v) - 12} more"] if len(v) > 12 else [])
+                         for k, v in results.items()},

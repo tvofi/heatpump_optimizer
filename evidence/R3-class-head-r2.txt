@@ -1,0 +1,7 @@
+RESULT ENUM my rule dispatched=36; census rule dispatched=36; same set=True
+RESULT ENUM dispatched by my rule but not the census's: []
+RESULT ENUM answers: Counter({'none': 24, 'slot': 10, 'lease': 2})
+RESULT ENUM tests/rolling.py               recorded=False -> slot
+RESULT ENUM tests/closure.py               recorded=False -> slot
+RESULT ENUM tests/setup_qa_render.mjs      recorded=False -> slot
+RESULT ENUM unleased_but_heavy=[]

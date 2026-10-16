@@ -1,0 +1,41 @@
+--- needs_lease (new head) ---
+def needs_lease(scope_run: str) -> str:
+    """``lease``, ``slot`` or ``none`` for the script(s) in run.sh's SCOPE_RUN.
+
+    The rule (gate-scoping.md): a script that MEASURES the machine runs alone,
+    under the exclusive lease; one that is multi-minute CPU-bound joins the
+    four slots; one that takes seconds runs unleased. ``scope_run`` is run.sh's
+    SCOPE_RUN file; empty means MODE: FULL, whose suite carries stress.py, so
+    an empty scope is the exclusive lease.
+
+    Two fail-closed arms, deliberately different. A scope that names a
+    MACHINE_MEASURING script is leased whatever the recordings say. And a name
+    the recordings do NOT carry -- `tests/rolling.py` is the one run.sh
+    dispatches, gated behind `SLOW=1` so nothing ever timed it -- JOINS THE
+    SLOTS: an untimed script's weight is unknown, and the conservative answer
+    for an unknown is the pool, which bounds it, never `none`, which leaves it
+    unbounded beside three other scripts. Only a table that cannot be read at
+    all -- a corrupted tree, where no name at all can be classified -- takes
+    the exclusive lease.
+    """
+    if not scope_run:
+        return "lease"
+    try:
+        names = Path(scope_run).read_text().split()
+    except OSError:
+        return "lease"
+    if any(name in MACHINE_MEASURING for name in names):
+        return "lease"
+    table = Path(__file__).resolve().parent / "closures.json"
+    try:
+        json.loads(table.read_text()).get("recorded", {})
+    except (OSError, ValueError):
+        return "lease"
+    for name in names:
+        seconds = _recorded_seconds(name)
+        if seconds is None or seconds >= SLOT_MIN_SECONDS:
+            return "slot"
+    return "none"
+
+
+def heavy_slots() -> int:

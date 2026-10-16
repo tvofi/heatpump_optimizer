@@ -1,0 +1,4 @@
+  FAIL run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits  [need=['lease', 'lease', 'slot', 'none', 'slot'] waited=True rc=[3] released=True; run.sh must lease every run_always script but an explicit 'none', and give a 'slot' answer the pool rather than the exclusive lease]
+  FAIL derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)  [inside_takes=True outside_takes=True]
+lease class: dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=10 none=24 unleased_but_heavy=[]
+2 of 2336 ENTITY CHECKS FAILED
