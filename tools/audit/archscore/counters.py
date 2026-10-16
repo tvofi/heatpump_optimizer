@@ -4,7 +4,8 @@ The red team (``planted/redteam/``) raised the score with 13 of 16 moves that le
 architecture no better, from +0.5 to +160. A counter is a change to a metric's definition,
 or a gate-only tripwire, so that the move reads as nothing or as inadmissible.
 
-C1  an ``Any`` / ``object`` key is untyped              ``metrics/untyped_payload_keys.is_any``
+C1  an ``Any`` / ``object`` key is untyped              ``metrics/untyped_payload_keys.is_any``; C1b
+    any other spelling of one (a union member, ``Optional``, ``Annotated``, a string, an alias)
 C2  ``reflective_writes``, C2b ``computed_attr_access``  here; gate-only, weight 0. A write spelled
     reflectively is a write; the role engine does not yet read one as a write, so these
     only stop the count falling by re-spelling. They retire when it does.
@@ -13,9 +14,11 @@ C3  a clone window is any two statements of a block in order  ``gapped_clones``;
 C4  the coordinator is its whole package class hierarchy  ``flatten``
 C5  a passthrough property is a reach                    ``passthrough_properties``; applied to the
     shared reach census by ``vector.py``
-C6  ``family_orphan_overrides``                          here; gate-only
+C6  ``family_orphan_overrides``                          here; gate-only. C6b: an override's target
+    is the first word of the entity's English name
 C7  ``unread_private_globals``                           here; gate-only
 C11 literal keys read from a function's own ``**kw`` are parameters  ``metrics/footprint.params_over_10``
+C14 a parameter annotated with a package class holds an instance of it  ``metrics/untyped_payload_keys.Flow.seed``
 """
 from __future__ import annotations
 
@@ -203,16 +206,25 @@ def passthrough_properties(coord: ast.ClassDef) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------- C6
-def family_orphan_overrides(root: Path) -> int:
+def family_orphan_overrides(root: Path, lead: bool = True) -> int:
     """``ENTITY_FAMILY_OVERRIDES`` entries whose target family has fewer than two members, or whose
     target is the key itself: a declaration that removes a member from its family and homes it
-    nowhere (attempt 07 'cured' family_splits 3 -> 0 with one-member families)."""
+    nowhere (attempt 07 'cured' family_splits 3 -> 0 with one-member families).
+
+    C6b (``lead``): nor does one home it whose target is not the family the user reads, the first
+    word of the entity's English name -- two unrelated entities that sort adjacently, declared one
+    invented family, passed the size test (ARCH-s3, round 10: ``family_pair_homing.py``; attempt 18).
+    An override naming the family the key's own first token already names moves nothing and is not
+    counted."""
     rows = F.load_rows(root)
     ov = F.overrides(root)
     fams: dict[str, set] = {}
-    for _p, key, *_ in rows:
+    word: dict[str, str] = {}
+    for _p, key, en, _sv in rows:
         fams.setdefault(ov.get(key, key.split("_")[0]), set()).add(key)
-    return sum(1 for k, v in ov.items() if v == k or len(fams.get(v, ())) < 2)
+        word[key] = re.sub(r"\W", "", en.split()[0]).casefold() if en.split() else ""
+    return sum(1 for k, v in ov.items() if v == k or len(fams.get(v, ())) < 2
+               or (lead and v != k.split("_")[0] and word.get(k) != v))
 
 
 # ---------------------------------------------------------------- C7
