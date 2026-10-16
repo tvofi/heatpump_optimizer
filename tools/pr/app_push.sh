@@ -537,9 +537,9 @@ case "$*" in
     if [ -f "$STUB/tip-moved" ]; then printf '%s\n' "$OTHER_SHA_STUB"; else cat "$STUB/../head.sha"; fi ;;
   *"status --porcelain") [ -f "$STUB/dirty" ] && printf ' M tools/audit/x.sh'; true ;;
   *"log -1 --format=%s") printf 'fix: the stub subject' ;;
-  *"--not --remotes")  # ref_privacy.py's read of the commits the push publishes
-    if [ -f "$STUB/leaky-log" ]; then printf 'a\037fix: notes in /%s/exampleuser/x\036' Users
-    else printf 'a\037fix: the stub subject\036'; fi ;;
+  *"--not --remotes")  # ref_privacy.py's read of the commits the push publishes: sha, emails, message
+    if [ -f "$STUB/leaky-log" ]; then printf 'a\037t@t\037t@t\037fix: notes in /%s/exampleuser/x\036' Users
+    else printf 'a\037t@t\037t@t\037fix: the stub subject\036'; fi ;;
   *"push https://github.com/"*)
     if [ -f "$STUB/push-fails" ]; then echo "error: stub push refused" >&2; exit 1; fi
     for a in "$@"; do
