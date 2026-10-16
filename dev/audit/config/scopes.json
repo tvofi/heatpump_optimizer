@@ -357,6 +357,7 @@
    "DISCLAIMER.md",
    "docs/index.html",
    "docs/site/*.css",
+   "tools/site/build_docs.mjs",
    "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
    "custom_components/heatpump_optimizer/translations/*.json",
@@ -374,7 +375,8 @@
       "README.md",
       "DISCLAIMER.md",
       "docs/index.html",
-      "docs/site/*.css"
+      "docs/site/*.css",
+      "tools/site/build_docs.mjs"
      ],
      "steps": [
       "M1",
