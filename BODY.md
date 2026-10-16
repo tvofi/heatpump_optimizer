@@ -193,4 +193,5 @@ two copies disagree, the newer is right and the other is the bug).
 
 ## Friction
 
-- `finding-propagation.md: unclear: this group's brief carries R10-TICK (o), a fix to tools/audit/seat/train.sh, while the group's own file list is tests/card.mjs and tools/audit/seat/r10_deeplink_mutants.py; read as a precondition on the handoff machinery, which does not use train.sh, so that file is untouched here.
+- `finding-propagation.md: stale: this group's brief carries R10-TICK (o) -- "`train.sh` line 182 sets the checkout with dirname of `$0` followed by `../..`" -- but at 92accb2cf `tools/audit/seat/train.sh:233` derives it with `git -C "$(dirname "$0")" rev-parse --show-toplevel`, and #2305 (R10-TICK-TRAIN) is merged; nothing on this branch reads train.sh, so the item is left alone.
+- `finding-propagation.md: unclear: the same carry lands in this group's brief, whose `files` list is tests/card.mjs and tools/audit/seat/r10_deeplink_mutants.py, rather than in the group that owns train.sh.
