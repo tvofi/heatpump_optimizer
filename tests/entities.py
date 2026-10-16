@@ -29740,8 +29740,9 @@ R.check(
 # still INERT is the #357 contradiction the worktree read would create, and one
 # that selects no script (or the whole suite) is the skip that hid the finding.
 _sp_sources = [*_SP_CARRIES, *_SP_POLICY]
-_sp_inert = sorted(f for f in _sp_sources if _closure.is_inert(f))
-_sp_select = {f: _closure.select([f]) for f in _sp_sources}
+import closure as _sp_closure  # the arm block runs standalone under its driver (fix-review)
+_sp_inert = sorted(f for f in _sp_sources if _sp_closure.is_inert(f))
+_sp_select = {f: _sp_closure.select([f]) for f in _sp_sources}
 _sp_unselected = sorted(
     f for f, r in _sp_select.items()
     if "tests/entities.py" not in r["run"] or r["mode"] != "scoped")
