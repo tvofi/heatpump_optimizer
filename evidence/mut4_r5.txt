@@ -1,0 +1,12 @@
+RESULT mutant=K5_bare_open_on_dismiss rc=0 fails=0
+RESULT mutant=K5b_bracket_open_on_dismiss rc=0 fails=0
+RESULT mutant=K5c_open_call_on_dismiss rc=0 fails=0
+RESULT mutant=K1_navigation_api_in_try rc=0 fails=0
+RESULT mutant=K2_form_action_rendered rc=0 fails=0
+RESULT mutant=K3t_Event_runtime_more_info_rendered_in_try rc=0 fails=0
+RESULT mutant=K5r_bare_open_rendered (control: dynamic) rc=1 fails=1
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      advisor:settings -> open /config/entities; advisor:settings -> open /config/entities; advisor:settings -> open /config/entities; advisor:settings -> open /config/entities; health:diagnostics -> open /
+RESULT mutant=T1b_census_only_throw_on_press rc=1 fails=1
+    FAIL  no press throws, so no navigation primitive is swallowed
+      advisor:settings: census-only boom; advisor:settings: census-only boom; advisor:settings: census-only boom; advisor:settings: census-only boom; health:diagnostics: census-only boom; health:settings: c
