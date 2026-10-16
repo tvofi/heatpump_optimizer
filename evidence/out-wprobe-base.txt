@@ -1,0 +1,2 @@
+# before=48 stale=None; after=0 stale=None
+RESULT empty_ok_wipes=1 count

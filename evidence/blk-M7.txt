@@ -1,0 +1,15 @@
+Tibber returned no usable price rows
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+Traceback (most recent call last):
+  File "/private/tmp/r10feeds-rev-d452d47f/drive_block.py", line 53, in <module>
+    exec(compile(block, "r10-block", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "r10-block", line 348, in <module>
+  File "/private/tmp/r10feeds-rev-d452d47f/mut/custom_components/heatpump_optimizer/coordinator.py", line 10842, in record_setpoint_override
+    relative = spot / mean_price if mean_price > 1e-6 else 1.0
+               ~~~~~^~~~~~~~~~~~
+TypeError: unsupported operand type(s) for /: 'NoneType' and 'float'

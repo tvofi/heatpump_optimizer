@@ -1,0 +1,3 @@
+Tibber returned no usable price rows
+# admitted=0 spot_at_noon=None true=1.48
+RESULT spot_wrong=0 count

@@ -1,0 +1,5 @@
+PR 2336 (R10-FEEDS), head measured = a0c4431df91e75b3c7ed4976586c0da86e292214
+merge base used for every three-dot diff = 8f174c4ce696d087ac5e83aa24f527281b971798
+(origin/main at measure time 81ae048e8bbdf2335fe2016e987ec2739481f293)
+base worktree for the both-ends runs = 8f174c4ce (same commit)
+reviewer: fix-review seat, bus-nonce d452d47f143d63d5746d0454cb2e5fa0

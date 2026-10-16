@@ -1,0 +1,9 @@
+RESULT no_entity.warnings_4_cycles=4 count
+RESULT no_entity.cycles_failed=0 count
+RESULT empty_forecast.warnings_4_cycles=4 count
+RESULT empty_forecast.cycles_failed=0 count
+RESULT control_48_rows.warnings_4_cycles=0 count
+RESULT control_48_rows.cycles_failed=0 count
+RESULT thread_factor=1.129
+RESULT load1=21.79
+RESULT swapins=0

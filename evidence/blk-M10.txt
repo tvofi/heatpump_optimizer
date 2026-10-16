@@ -1,0 +1,9 @@
+Tibber returned no usable price rows
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+FAIL #2226: four cycles of no prices, no forecast and malformed peak-tariff options log each WA
+     {'No electricity price data': 1, 'No weather forecast available': 1, 'Invalid peak tariff months': 4, 'Invalid peak tariff hours': 1}
+R10-FEEDS BLOCK: 15 ok, 1 failed

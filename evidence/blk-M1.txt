@@ -1,0 +1,13 @@
+Tibber returned no usable price rows
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+FAIL #2229: an entry covers [start, next start); the last one its predecessor's span, a lone on
+     {'before': None, 'first': 0, 'inner': 1, 'last': 3, 'end': 3, 'past': 3, 'lone_in': 0, 'lone_out': 0, 'quarter_last': 1, 'quarter_out': 1}
+FAIL #2229: a price list that stopped updating publishes no current price past its last entry's
+     {0.5: (1.0, 1.0, 1.0), 3.5: (1.3, 1.3, 1.3), 4.0: (1.3, 1.3, 1.3), 5.0: (1.3, 1.3, 1.3), 50.0: (1.3, 1.3, 1.3)}
+FAIL #2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series (the
+     {'fc_before': -3.0, 'fc_cover': -2.0, 'fc_last': 0.0, 'fc_past': 0.0, 'plan_cover': 49.5, 'plan_last': 44.5, 'plan_past': 44.5}
+R10-FEEDS BLOCK: 13 ok, 3 failed

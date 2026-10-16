@@ -1,0 +1,18 @@
+RESULT control.floods=0 count
+RESULT no_weather_entity.floods=0 count
+  1x No weather entity configured. Plans continue on 
+  1x No weather forecast available — using current co
+RESULT weather_fetch_fails.floods=0 count
+  1x No forecast data returned for weather.missing. P
+  1x No weather forecast available — using current co
+RESULT open_meteo_no_coord.floods=0 count
+  1x Open-Meteo solar is selected but no coordinate i
+RESULT open_meteo_bad_coord.floods=0 count
+  1x Ignoring malformed solar location {'latitude': '
+  1x Open-Meteo solar is selected but no coordinate i
+RESULT no_prices.floods=0 count
+  1x No electricity price data available; skipping op
+RESULT bad_peak_months.floods=0 count
+  1x Invalid peak tariff months 'Smarch' (Unknown mon
+RESULT bad_peak_hours.floods=0 count
+  1x Invalid peak tariff hours '25:99-xx' (Invalid mi

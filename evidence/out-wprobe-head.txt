@@ -1,0 +1,3 @@
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+# before=48 stale=None; after=48 stale=2026-10-16 18:02:39.824307+00:00
+RESULT empty_ok_wipes=0 count
