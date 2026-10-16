@@ -15370,6 +15370,81 @@ R.check(
 )
 
 
+def _gl_heavy_slots() -> tuple[bool, str]:
+    """R10-PREPR-CAP (#2267): the heavy-slot pool admits exactly `slots`.
+
+    The predicate is the CAP, not the number four: a pool that admitted any
+    number would pass a check that only took four, so the capacity arm takes
+    the fifth and requires it to block, and the null control runs the same code
+    at `slots=1`, where the second take must block. The reuse arm frees one
+    holder and requires the next take to land on a slot inside the pool, so a
+    pool that grew a new slot on every take is caught beside one that never
+    released.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        held = [_gate_lock.take_slot(f"h{i}", lock_dir=d, slots=4, wait=False)[0]
+                for i in range(4)]
+        try:
+            _gate_lock.take_slot("fifth", lock_dir=d, slots=4, wait=False)
+            admitted = True
+        except BlockingIOError:
+            admitted = False
+        _gate_lock.release_slot("h0", lock_dir=d, slots=4)
+        idx, _owner = _gate_lock.take_slot("next", lock_dir=d, slots=4, wait=False)
+        reused = idx in range(4) and _gate_lock.release_slot("next", lock_dir=d, slots=4)
+        # Null control: the same calls with a one-slot pool refuse the second.
+        d1 = Path(td) / "one"
+        _gate_lock.take_slot("a", lock_dir=d1, slots=1, wait=False)
+        try:
+            _gate_lock.take_slot("b", lock_dir=d1, slots=1, wait=False)
+            single_admitted = True
+        except BlockingIOError:
+            single_admitted = False
+        ok = not admitted and reused and not single_admitted and held == [0, 1, 2, 3]
+        return ok, (f"fifth_admitted={admitted} reused_slot={idx} reused={reused} "
+                    f"single_pool_admitted_second={single_admitted} held={held}")
+
+
+def _gl_heavy_slot_reclaim() -> tuple[bool, str]:
+    """A slot whose lease expired, or whose named owner process is gone, is
+    reclaimed instead of wedging the pool; a live one is not (the control)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        dead = _subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait(timeout=5)
+        _gate_lock.take_slot("orphan", lock_dir=d, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=dead.pid)
+        try:
+            stolen = _gate_lock.take_slot("heir", lock_dir=d, slots=1, wait=False)[0] == 0
+        except BlockingIOError:
+            stolen = False
+        # Null control: the same shape with a LIVE owner pid is not stolen.
+        d2 = Path(td) / "live"
+        _gate_lock.take_slot("seat", lock_dir=d2, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=_os.getpid())
+        try:
+            _gate_lock.take_slot("other", lock_dir=d2, slots=1, wait=False)
+            live_admitted = True
+        except BlockingIOError:
+            live_admitted = False
+        return stolen and not live_admitted, f"stolen={stolen} live_admitted={live_admitted}"
+
+
+_gl_slots_ok, _gl_slots_detail = _gl_heavy_slots()
+R.check(
+    "the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second",
+    _gl_slots_ok,
+    _gl_slots_detail,
+)
+_gl_rec_ok, _gl_rec_detail = _gl_heavy_slot_reclaim()
+R.check(
+    "a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)",
+    _gl_rec_ok,
+    _gl_rec_detail,
+)
+
+
 def _gl_stub_tree(td: Path) -> Path:
     """A tree whose tests/stress.py and tests/other.py only drop a marker, with
     the real gate_lock.py beside them: what runs under the lease is observable."""

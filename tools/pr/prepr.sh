@@ -2255,6 +2255,18 @@ PY
   # (5) The hooks step names the hook that failed, not only the count.
   case "$flow" in *'step "hooks" $? "$(grep -E '"'"'^  (SELF-TEST FAILED|MISSING'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "the hooks step prints the failing hook's row, not only the count"
+  # (6) The main flow takes a heavy slot before the heavy steps, and frees it on
+  # any exit a refusal also runs (R10-PREPR-CAP, #2267). The pool's own capacity
+  # is `take_slot`'s and is driven in tests/entities.py; these rows pin the
+  # WIRING the finding is about -- that a run takes one at all, where, and that
+  # the release rides an EXIT trap rather than a last line a mid-run refusal skips.
+  # A herestring, not `printf | grep -q`: an early-exit grep reading a pipe is
+  # the drained-scripts defect the row above this block refuses (row 4).
+  st "$(grep -cF 'slot-take --label "$SLOT_LABEL"' <<<"$flow")" 1 "the main flow takes a heavy slot"
+  st "$(grep -cF "slot-release --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and frees it on the way out, a mid-run refusal included"
+  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 1 "and the release preserves the run's own exit status"
+  slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
+  st "$slot_order" ok "and takes it before the heavy steps begin"
   # The entry wires both before the first fixture is built: driving the two
   # helpers pins nothing if the self-test stops calling them (#1591's shape).
   entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
@@ -2303,6 +2315,34 @@ case $? in
   1) step "transport" 1 "$(echo $TRANSPORT) -- transport is in the code head's ancestry; the body goes on the orphan ref handoff-body/<topic> (fixer.md step 6), and the code head is re-cut without these commits" ;;
   *) step "transport" 1 "$BASE..HEAD could not be read, so nothing was compared" ;;
 esac
+
+# --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
+# WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and
+# its `--self-test` in step 3h is a nested chain of subprocesses that runs for
+# minutes. The cap of four the orchestrator holds by hand (nudge.md step 8) was
+# enforced by nothing: on 2026-10-14 ten ran at once and load1 reached 168 on 8
+# cores. `tests/gate_lock.py` already holds the EXCLUSIVE lease for stress.py;
+# its heavy-slot pool is the same lease mechanism over four slots, and this held
+# here for the whole run (released on any exit the shell sees; a SIGKILL leaves
+# the slot, which the next take steals once this process is gone, `--owner-pid`).
+# A fifth prepr waits at the back of the pool's queue, first come first served.
+# A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
+# unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
+HEAVY_SLOTS=${HPO_PREPR_SLOTS:-4}
+SLOT_LABEL="prepr-$$"
+slot_stderr=$(mktemp)
+if python3 tests/gate_lock.py slot-take --label "$SLOT_LABEL" --slots "$HEAVY_SLOTS" \
+     --owner-pid $$ >"$slot_stderr" 2>&1; then
+  say ok "heavy slot" "$(tail -1 "$slot_stderr")"
+  # Release on the way out, and make the signals bash does not already turn into
+  # an exit do so, so a seat's Ctrl-C frees its slot now rather than at expiry.
+  # `rc=$?` then `exit $rc` keeps the run's own status though the trap runs.
+  trap "rc=\$?; python3 tests/gate_lock.py slot-release --label '$SLOT_LABEL' --slots '$HEAVY_SLOTS' >/dev/null 2>&1; exit \$rc" EXIT
+  trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+else
+  say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
+fi
+rm -f "$slot_stderr"
 
 # --- 2. the scoped gate's MODE line, printed rather than inferred.
 # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
