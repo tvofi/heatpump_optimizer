@@ -1,0 +1,30 @@
+head 1755a8a7df54093861beba00610825dd0e9f46ae
+-- tree + live
+docs/index.html: ids=29 internal_hrefs=14 distinct=10 unresolved=0 []
+https://tvofi.github.io/heatpump_optimizer/: ids=29 internal_hrefs=14 distinct=10 unresolved=0 []
+rc=0
+-- perturbation: id=main renamed
+<scratch>/pert/index.html: ids=29 internal_hrefs=14 distinct=10 unresolved=1 ['main']
+rc=1
+-- empty set (no internal href)
+<scratch>/pert/empty.html: ids=1 internal_hrefs=0 distinct=0 unresolved=0 []
+rc=1
+-- latest v* tag
+tag v7.0.0
+live == v7.0.0:docs/index.html
+-- built sub-pages (build_docs.mjs --out)
+<scratch>/pert/site/architecture.html: ids=11 internal_hrefs=17 distinct=9 unresolved=0 []
+<scratch>/pert/site/automations.html: ids=9 internal_hrefs=13 distinct=7 unresolved=0 []
+<scratch>/pert/site/configuration.html: ids=39 internal_hrefs=52 distinct=37 unresolved=0 []
+<scratch>/pert/site/dashboard-card.html: ids=37 internal_hrefs=54 distinct=35 unresolved=0 []
+<scratch>/pert/site/disclaimer.html: ids=4 internal_hrefs=3 distinct=2 unresolved=0 []
+<scratch>/pert/site/ecl110.html: ids=9 internal_hrefs=13 distinct=7 unresolved=0 []
+<scratch>/pert/site/how-it-works.html: ids=46 internal_hrefs=58 distinct=44 unresolved=0 []
+<scratch>/pert/site/readme.html: ids=42 internal_hrefs=68 distinct=40 unresolved=0 []
+<scratch>/pert/site/setup.html: ids=16 internal_hrefs=35 distinct=14 unresolved=0 []
+rc=0
+-- cross-page fragment hrefs (page.html#x), which the harness does not resolve
+       7
+-- live sub-pages
+https://tvofi.github.io/heatpump_optimizer/setup.html: ids=16 internal_hrefs=35 distinct=14 unresolved=0 []
+rc=0
