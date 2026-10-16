@@ -13,7 +13,7 @@
  "archscore.hub_solve_writes": 41,
  "archscore.import_cycle_modules": 0,
  "archscore.layer_violations": 22,
- "archscore.literal_clone_copies": 188,
+ "archscore.literal_clone_copies": 184,
  "archscore.params_over_10": 12,
  "archscore.private_cross_module": 17,
  "archscore.public_unused": 1,
@@ -23,8 +23,8 @@
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 4): archscore.literal_clone_copies 188, archscore.card_dead_definitions 1 and archscore.card_clone_copies 108, the three keys the literal-clone and card metrics add to the score vector, recorded at the values ci_ratchet.archscore_metrics() derives at 4ccb3da9a; a derived key with no row is refused as growth. No existing row moves. Previous: part 3's new rows (layer_violations 22, private_cross_module 17, unused_boundary_imports 1) and part 2's hub_solve_writes 38 -> 41 (mandate 6175172275).",
- "recorded_at": "4ccb3da9acf54d072635d67cdb36af58fc140da4",
+ "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 4): archscore.literal_clone_copies 184, archscore.card_dead_definitions 1 and archscore.card_clone_copies 108, the three keys the literal-clone and card metrics add to the score vector, recorded at the values ci_ratchet.archscore_metrics() derives at 4ccb3da9a; a derived key with no row is refused as growth. No existing row moves. Previous: part 3's new rows (layer_violations 22, private_cross_module 17, unused_boundary_imports 1) and part 2's hub_solve_writes 38 -> 41 (mandate 6175172275).",
+ "recorded_at": "9d94f8fe763ebba005b37c00148f4367879907c8",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 68
 }
