@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.billed_peak_kw CLAMP_DROP d6978abf",
-  "killed_by": "tests/features.py",
-  "old": "        n = max(1, tariff.peaks_averaged)",
-  "reason": "Recorded by `mutation_table.py --drain` against 7311cc51318f72dc03409ed793b8e4c6772815e8: CLAMP_DROP (`n = (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
-}

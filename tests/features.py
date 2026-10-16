@@ -74,6 +74,7 @@ from heatpump_optimizer.sysid import (
 )
 from heatpump_optimizer.tariff import (
     CapacityTariff,
+    PeakBilling,
     PeakTracker,
     _smooth_topk_sum,
     peak_cost,
@@ -3608,8 +3609,8 @@ R.check("a new month resets the peaks", tracker.month == "2026-04")
 R.check(
     "staying under the threshold costs nothing",
     peak_cost(
-        np.full(8, 2.0), np.full(8, 1.0), 5.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25,
+        np.full(8, 2.0), np.full(8, 1.0), PeakBilling(5.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25),
     ) == 0.0,
 )
 
@@ -3622,7 +3623,7 @@ R.check(
 # this originally did, under-states a plan with several high hours -- the very
 # plan a capacity tariff exists to discourage.
 hourly = np.array([8.0, 7.9, 7.8, 5.5, 5.1] + [3.0] * 19)
-charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False)
+charged = peak_cost(hourly, np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False))
 top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
     "the peak charge equals the bill it models",
@@ -3631,8 +3632,8 @@ R.check(
 )
 R.check(
     "several high hours cost more than one",
-    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False)
-    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False),
+    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False))
+    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False)),
 )
 
 # The solver reaches this through numerical gradients, so a term that is flat
@@ -3643,13 +3644,13 @@ R.check(
 # probe breaks the tie in its own favour) but not at bound-pinned plateaus,
 # which is #232's blindness and the surrogate's reason to exist.
 flat = np.full(96, 3.0)
-base_cost = peak_cost_smooth(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3, distinct_days=False)
+base_cost = peak_cost_smooth(flat, np.full(96, 1.5), PeakBilling(3.0, 20.0, 60, 0.25, 3, distinct_days=False))
 gradients = []
 for index in (5, 50, 90, 95):
     probe = flat.copy()
     probe[index] += 1e-4
     gradients.append(
-        (peak_cost_smooth(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3, distinct_days=False)
+        (peak_cost_smooth(probe, np.full(96, 1.5), PeakBilling(3.0, 20.0, 60, 0.25, 3, distinct_days=False))
          - base_cost) / 1e-4
     )
 R.check(
@@ -3666,7 +3667,7 @@ R.check(
     not np.isfinite(fresh.threshold_kw(tariff))
     and peak_cost(
         np.full(96, 6.0), np.zeros(96),
-        fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3, distinct_days=False
+        PeakBilling(fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3, distinct_days=False)
     )
     == 0.0,
     "otherwise a normal day is charged ~9x its own energy cost",
@@ -3684,12 +3685,12 @@ burst[0] = 8.0
 R.check(
     "a 15-minute burst is averaged over the metering window",
     peak_cost(
-        burst, np.zeros(8), 1.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False
+        burst, np.zeros(8), PeakBilling(1.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False)
     )
     < peak_cost(
-        np.full(8, 8.0), np.zeros(8), 1.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False
+        np.full(8, 8.0), np.zeros(8), PeakBilling(1.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False)
     ),
     "penalising the instantaneous step would give away real savings",
 )
@@ -3702,9 +3703,9 @@ R.check(
     "the charge covers exactly the peaks the bill averages",
     abs(
         peak_cost(
-            _distinct, np.zeros(8), 5.0,
+            _distinct, np.zeros(8), PeakBilling(5.0,
             tariff.marginal_price_per_kw, tariff.window_minutes, 1.0,
-            tariff.peaks_averaged, distinct_days=False
+            tariff.peaks_averaged, distinct_days=False)
         )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
@@ -3775,9 +3776,9 @@ R.check(
 _d201_flat = np.full(96, 12.0)
 R.check(
     "a flat plan is charged its billed top-k, not a multiple of it",
-    abs(peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) - 720.0)
+    abs(peak_cost(_d201_flat, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)) - 720.0)
     < 7.2,
-    f"charged {peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False):.2f}"
+    f"charged {peak_cost(_d201_flat, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)):.2f}"
     " SEK, bill 720.00 (1% of 3 x 12 kW at 20/kW)",
 )
 R.check(
@@ -3787,7 +3788,7 @@ R.check(
 )
 # The same defect at hourly metering: reachable on a 24 h horizon, where
 # the break point is ~10.3 kW (fewer windows, smaller ln((n-k)/k)).
-_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), 0.0, 20.0, 60, 0.25, 3, distinct_days=False)
+_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), PeakBilling(0.0, 20.0, 60, 0.25, 3, distinct_days=False))
 R.check(
     "hourly metering keeps the flat-plateau charge at the bill",
     abs(_d201_hourly - 840.0) < 8.4,
@@ -3798,7 +3799,7 @@ R.check(
 # top-k sum. And a plan with at most k windows at the peak never enters the
 # smooth branch at all, whatever the excess.
 _d201_null_flat = peak_cost(
-    np.full(96, 5.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False
+    np.full(96, 5.0), np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)
 )
 R.check(
     "below the tie-band break point the charge stays exact",
@@ -3809,7 +3810,7 @@ _d201_spiky = np.full(96, 1.0)
 _d201_spiky[:3] = 12.0
 R.check(
     "at most k windows at the peak stay on the exact hard sum",
-    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) == 720.0,
+    peak_cost(_d201_spiky, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)) == 720.0,
     "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
 )
 
@@ -3822,18 +3823,18 @@ R.check(
 # surrogate's whole reason to exist (#232), so the pin reads the surface
 # that owes the property.
 _tied_base = peak_cost_smooth(
-    np.full(24, 7.0), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False
+    np.full(24, 7.0), np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False)
 )
 _tied_fd = [
     (
         peak_cost_smooth(
             np.where(np.arange(24) == i, 7.0001, 7.0),
             np.zeros(24),
-            6.0,
+            PeakBilling(6.0,
             20.0,
             60,
             1.0,
-            3, distinct_days=False
+            3, distinct_days=False)
         )
         - _tied_base
     )
@@ -3869,9 +3870,9 @@ _d1201_exact = 20.0 * 3 * 5.0                # price x k x tie-level excess
 R.check(
     "a mixed plateau is charged the exact billed top-k, not the leaked "
     "soft sum (#1210: no under-charge)",
-    peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False)
+    peak_cost(_d1201_mixed, np.zeros(96), PeakBilling(3.0, 20.0, 15, 0.25, 3, distinct_days=False))
     == _d1201_exact,
-    f"charged {peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False):.6f}"
+    f"charged {peak_cost(_d1201_mixed, np.zeros(96), PeakBilling(3.0, 20.0, 15, 0.25, 3, distinct_days=False)):.6f}"
     f" against the bill {_d1201_exact:.6f} (3 x 5 kW excess at 20/kW)",
 )
 # Null controls: the shapes that were already exact stay exact -- the pure
@@ -3879,13 +3880,13 @@ R.check(
 # branch both before and after).
 R.check(
     "the pure plateau stays at the exact billed top-k",
-    peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False)
+    peak_cost(np.full(96, 12.0), np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False))
     == 720.0,
-    f"charged {peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False):.6f}",
+    f"charged {peak_cost(np.full(96, 12.0), np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)):.6f}",
 )
 R.check(
     "at most k windows at the peak stay on the exact hard sum",
-    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) == 720.0,
+    peak_cost(_d201_spiky, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)) == 720.0,
     "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
 )
 # The solver's surrogate on the same mixed cell: still smooth (that is its
@@ -3893,7 +3894,7 @@ R.check(
 # finding states (weights sum to k, so soft <= hard) -- with the deficit
 # bounded by the measured worst case (-3.45% on the round-5 grid).
 _smooth_mixed = peak_cost_smooth(
-    _d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False
+    _d1201_mixed, np.zeros(96), PeakBilling(3.0, 20.0, 15, 0.25, 3, distinct_days=False)
 )
 R.check(
     "the solver's surrogate stays on the smooth arm and under the exact "
@@ -6790,14 +6791,14 @@ for _off948 in (0, 1, 3):
     for _win948, _dt948 in ((60, 0.25), (15, 0.25), (45, 0.25)):
         for _fac948 in (None, _facs948[: 96 // max(1, _win948 // 15)]):
             _want948 = [
-                peak_cost_smooth(_rows948[_b948], _base948, 3.0, 20.0,
+                peak_cost_smooth(_rows948[_b948], _base948, PeakBilling(3.0, 20.0,
                                  _win948, _dt948, 3, _off948,
-                                 window_factors=_fac948)
+                                 window_factors=_fac948))
                 for _b948 in range(_rows948.shape[0])
             ]
             _got948 = _pcb948(
-                _rows948, _base948, 3.0, 20.0, _win948, _dt948, 3,
-                _off948, window_factors=_fac948,
+                _rows948, _base948, PeakBilling(3.0, 20.0, _win948, _dt948, 3,
+                _off948, window_factors=_fac948),
             )
             for _b948 in range(_rows948.shape[0]):
                 if _got948[_b948] != _want948[_b948]:
@@ -6806,11 +6807,11 @@ for _off948 in (0, 1, 3):
                         f"row={_b948}: {_got948[_b948]!r} != {_want948[_b948]!r}"
                     )
                 if peak_cost_smooth(
-                    _rows948[_b948], _base948, 3.0, 20.0, _win948, _dt948,
-                    3, _off948, window_factors=_fac948,
+                    _rows948[_b948], _base948, PeakBilling(3.0, 20.0, _win948, _dt948,
+                    3, _off948, window_factors=_fac948),
                 ) > peak_cost(
-                    _rows948[_b948], _base948, 3.0, 20.0, _win948, _dt948,
-                    3, _off948, window_factors=_fac948,
+                    _rows948[_b948], _base948, PeakBilling(3.0, 20.0, _win948, _dt948,
+                    3, _off948, window_factors=_fac948),
                 ) * (1.0 + 1e-6):
                     _mismatch948.append(
                         f"off={_off948} win={_win948} row={_b948}"
@@ -6831,7 +6832,7 @@ R.check(
 )
 R.check(
     "a disabled tariff prices a whole batch as zeros, like the scalar guard",
-    bool(np.all(_pcb948(_rows948, _base948, 3.0, 0.0, 60, 0.25) == 0.0)),
+    bool(np.all(_pcb948(_rows948, _base948, PeakBilling(3.0, 0.0, 60, 0.25)) == 0.0)),
     "peak_price_per_kw <= 0 must short-circuit before any window arithmetic",
 )
 _cyc_bad948 = [
@@ -14015,9 +14016,9 @@ _power = np.zeros(96)
 _power[92:96] = 6.0  # a 23:00 burst on a day starting at midnight
 _day_start = datetime(2026, 1, 14, 0, 0)
 _nf = _wfactors(_masked_ct, _day_start, _mwindows(_power, 60, 0.25).size, 0.25)
-_cost_masked = _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3,
-                          window_factors=_nf)
-_cost_flat = _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3)
+_cost_masked = _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3,
+                          window_factors=_nf))
+_cost_flat = _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3))
 R.check(
     "the plan's peak term prices a night burst at the off-peak rate",
     0.0 < _cost_masked < _cost_flat
@@ -14028,10 +14029,10 @@ _ct_free_night = _CT(enabled=True, price_per_kw=30.0, peak_hours=((7.0, 19.0),),
                      offpeak_factor=0.0)
 R.check(
     "free off-peak hours make a night burst cost nothing in capacity",
-    _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3,
+    _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3,
                window_factors=_wfactors(
                    _ct_free_night, _day_start,
-                   _mwindows(_power, 60, 0.25).size, 0.25)) == 0.0,
+                   _mwindows(_power, 60, 0.25).size, 0.25))) == 0.0,
 )
 _pt_round = _PT.from_dict(_pt_night.as_dict())
 R.check(
@@ -14556,10 +14557,10 @@ R.check(
 # windows are one day: billed once, at price/k. Per window it was k times.
 _bo_morning = np.full(96, 1.0)
 _bo_morning[28:40] = 5.0
-_bo_one_day = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0 / 3, 60, 0.25, 3)
-_bo_windows = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0 / 3, 60, 0.25, 3,
-                        distinct_days=False)
-_bo_k1 = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0, 60, 0.25, 1)
+_bo_one_day = peak_cost(_bo_morning, np.full(96, 2.0), PeakBilling(6.0, 49.0 / 3, 60, 0.25, 3))
+_bo_windows = peak_cost(_bo_morning, np.full(96, 2.0), PeakBilling(6.0, 49.0 / 3, 60, 0.25, 3,
+                        distinct_days=False))
+_bo_k1 = peak_cost(_bo_morning, np.full(96, 2.0), PeakBilling(6.0, 49.0, 60, 0.25, 1))
 R.check(
     "one cold morning in a plan is charged once: 49/3 SEK, not 49 "
     "(per-window with distinct days off; k=1 unchanged)",
@@ -14575,8 +14576,8 @@ _bo_flat = np.full(96, 1.0)
 _bo_flat[28:44] = 5.0
 _bo_probe = _bo_flat.copy()
 _bo_probe[28:32] -= 1e-4
-_bo_s0 = peak_cost_smooth(_bo_flat, np.full(96, 2.0), 6.0, 20.0, 60, 0.25, 3)
-_bo_s1 = peak_cost_smooth(_bo_probe, np.full(96, 2.0), 6.0, 20.0, 60, 0.25, 3)
+_bo_s0 = peak_cost_smooth(_bo_flat, np.full(96, 2.0), PeakBilling(6.0, 20.0, 60, 0.25, 3))
+_bo_s1 = peak_cost_smooth(_bo_probe, np.full(96, 2.0), PeakBilling(6.0, 20.0, 60, 0.25, 3))
 R.check(
     "a same-day plateau keeps the solver's gradient: probing one tied "
     "window down lowers peak_cost_smooth",
@@ -14593,7 +14594,7 @@ R.check(
 _bo_nan = np.full(8, 1.0)
 _bo_nan[3] = np.nan
 _bo_nan_charges = [
-    fn(_bo_nan, np.zeros(8), 5.0, 20.0, 60, 0.25, 3, distinct_days=dd)
+    fn(_bo_nan, np.zeros(8), PeakBilling(5.0, 20.0, 60, 0.25, 3, distinct_days=dd))
     for fn in (peak_cost, peak_cost_smooth) for dd in (True, False)
 ]
 R.check(
@@ -14615,12 +14616,12 @@ for _bo_lab in (None, _bo_days(24, 60, datetime(2026, 1, 14, 12, 0, tzinfo=_BO_T
         if _bo_lab is not None and _bo_lab.size != 96 // (_bo_w // 15):
             continue  # labels are per window of one length
         for _bo_dd in (True, False):
-            _bo_got = _bo_pcb(_bo_rows, np.full(96, 2.0), 6.0, 20.0, _bo_w, 0.25, 3,
-                              window_days=_bo_lab, distinct_days=_bo_dd)
+            _bo_got = _bo_pcb(_bo_rows, np.full(96, 2.0), PeakBilling(6.0, 20.0, _bo_w, 0.25, 3,
+                              window_days=_bo_lab, distinct_days=_bo_dd))
             for _bo_r in range(_bo_rows.shape[0]):
-                _bo_one = peak_cost_smooth(_bo_rows[_bo_r], np.full(96, 2.0), 6.0, 20.0,
+                _bo_one = peak_cost_smooth(_bo_rows[_bo_r], np.full(96, 2.0), PeakBilling(6.0, 20.0,
                                            _bo_w, 0.25, 3, window_days=_bo_lab,
-                                           distinct_days=_bo_dd)
+                                           distinct_days=_bo_dd))
                 if _bo_got[_bo_r] != _bo_one:
                     _bo_twin_bad.append(f"w={_bo_w} dd={_bo_dd} row={_bo_r}")
 R.check(
@@ -58138,8 +58139,10 @@ for _f25_tag, _f25_batch in (
         )
         _f25_growth[(_f25_tag, _f25_b)] = _f22_calls(
             _f25_partial(
-                _f25_pcb, _f25_mat, _f25_base, 3.0, 20.0, 60, 0.25, 3, 3,
-                window_days=_f25_labels, distinct_days=True,
+                _f25_pcb, _f25_mat, _f25_base, PeakBilling(
+                    3.0, 20.0, 60, 0.25, 3, 3,
+                    window_days=_f25_labels, distinct_days=True,
+                ),
             )
         )[0]
 _f25_growth_pairs = {
@@ -58186,16 +58189,16 @@ for _f25_w, _f25_dt, _f25_offs in (
                     for _f25_order in ("C", "F"):
                         _f25_mat = np.asarray(_f25_rows, order=_f25_order)
                         _f25_got = _f25_pcb(
-                            _f25_mat, _f25_base, 3.0, 20.0, _f25_w, _f25_dt, 3,
+                            _f25_mat, _f25_base, PeakBilling(3.0, 20.0, _f25_w, _f25_dt, 3,
                             _f25_off, window_factors=_f25_fac,
-                            distinct_days=_f25_dd, window_days=_f25_lab,
+                            distinct_days=_f25_dd, window_days=_f25_lab),
                         )
                         for _f25_r in range(_f25_mat.shape[0]):
                             _f25_one = peak_cost_smooth(
-                                np.array(_f25_mat[_f25_r]), _f25_base, 3.0, 20.0,
+                                np.array(_f25_mat[_f25_r]), _f25_base, PeakBilling(3.0, 20.0,
                                 _f25_w, _f25_dt, 3, _f25_off,
                                 window_factors=_f25_fac, distinct_days=_f25_dd,
-                                window_days=_f25_lab,
+                                window_days=_f25_lab),
                             )
                             if (np.float64(_f25_got[_f25_r]).tobytes()
                                     != np.float64(_f25_one).tobytes()):
@@ -58225,13 +58228,13 @@ for _f25_w_n in (8, 12, 48, 96, 129, 192):
         _f25_nw, 60, datetime(2026, 1, 14, 12, 0, tzinfo=timezone.utc)
     )
     _f25_got = _f25_pcb(
-        _f25_wrows, np.full(_f25_w_n, 1.5), 3.0, 20.0, 60, 0.25, 3, 3,
-        window_days=_f25_lab, distinct_days=True,
+        _f25_wrows, np.full(_f25_w_n, 1.5), PeakBilling(3.0, 20.0, 60, 0.25, 3, 3,
+        window_days=_f25_lab, distinct_days=True),
     )
     for _f25_r in range(7):
         _f25_one = peak_cost_smooth(
-            _f25_wrows[_f25_r], np.full(_f25_w_n, 1.5), 3.0, 20.0, 60, 0.25,
-            3, 3, window_days=_f25_lab, distinct_days=True,
+            _f25_wrows[_f25_r], np.full(_f25_w_n, 1.5), PeakBilling(3.0, 20.0, 60, 0.25,
+            3, 3, window_days=_f25_lab, distinct_days=True),
         )
         if (np.float64(_f25_got[_f25_r]).tobytes()
                 != np.float64(_f25_one).tobytes()):
@@ -61770,6 +61773,66 @@ R.check(
     and _ux6_march.get("total_sek") == 194.5 + 225.0
     and "capacity" in _ux6_march.get("basis", []),
     f"{_ux6_march}",
+)
+# #2230 (R10 D2-s3-01, N-period-rollover): the month's LAST metering window
+# reaches the month's bill. The tracker closes a window only when the next
+# one opens, so the window open at midnight closed into the NEW month and
+# was wiped with it; the settlement before midnight had booked the month
+# without it. Driven through the real settlement order: a cycle settles the
+# interval that started at the previous cycle (_roll_month on pending
+# "when"), then folds its own sample.
+from heatpump_optimizer.tariff import PeakTracker as _r2230_PT  # noqa: E402
+
+
+def _r2230_month(coord, *, spike_windows_back=1, restart_at_rollover=False):
+    tariff = coord._capacity_tariff()
+    window = timedelta(minutes=tariff.window_minutes)
+    end = datetime(2026, 4, 1, tzinfo=UTC)
+    spike = end - spike_windows_back * window
+    t, interval_start = datetime(2026, 3, 31, 12, 0, tzinfo=UTC), None
+    while t < end + timedelta(hours=1):
+        if t.minute % 15 == 0:
+            if interval_start is not None:
+                coord._roll_month(interval_start)
+            interval_start = t
+        coord._peak_tracker.observe(t, 5.0 if spike <= t < spike + window else 1.0, tariff)
+        if restart_at_rollover and t == end:
+            # A restart between the rollover and the settlement that books it.
+            coord._peak_tracker = _r2230_PT.from_dict(coord._peak_tracker.as_dict())
+        t += timedelta(minutes=5)
+    return coord._month_reports.get("2026-03", {}).get("capacity_peak_kw")
+
+
+_r2230_cfg = dict(peak_tariff_enabled=True, peak_tariff_price_per_kw=45.0,
+                  peak_tariff_peaks_averaged=1, peak_tariff_window_minutes=60)
+_r2230_last = _r2230_month(_ux6_coord(**_r2230_cfg))
+_r2230_restart = _r2230_month(_ux6_coord(**_r2230_cfg), restart_at_rollover=True)
+_r2230_null = _r2230_month(_ux6_coord(**_r2230_cfg), spike_windows_back=2)
+R.check(
+    "#2230: a spike in the month's last metering window reaches that month's "
+    "capacity receipt, across a restart between rollover and settlement too",
+    _r2230_last == 5.0 and _r2230_restart == 5.0,
+    f"last window {_r2230_last}, after a restart {_r2230_restart} (want 5.0; "
+    "1.0 is the window lost at the reset)",
+)
+R.check(
+    "#2230 null control: a spike one window earlier was always billed",
+    _r2230_null == 5.0,
+    f"{_r2230_null}",
+)
+# Null control on the tracker itself: closing before the reset changes
+# nothing for a period with no open window -- a tracker loaded with a
+# month's peaks and no window key carries exactly those into the closed
+# month's statement.
+_r2230_tariff = _ux6_coord(**_r2230_cfg)._capacity_tariff()
+_r2230_bare = _r2230_PT.from_dict({"month": "2026-03", "peaks": [4.0, 2.0]})
+_r2230_bare.observe(datetime(2026, 4, 1, 0, 5, tzinfo=UTC), 1.0, _r2230_tariff)
+R.check(
+    "#2230 null control: a rollover with no open window closes the month on "
+    "its recorded peaks unchanged",
+    _r2230_bare.billing_statements(_r2230_tariff)
+    == [("2026-03", 4.0), ("2026-04", 0.0)],
+    f"{_r2230_bare.billing_statements(_r2230_tariff)}",
 )
 _ux6_nocap = _ux6_coord()
 _ux6_nocap._peak_tracker.month = "2026-03"
