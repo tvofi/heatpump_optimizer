@@ -42,11 +42,19 @@ The guard is wired before the push in all eight pushers that compose a ref or me
   - **The site rule's Python-call arm (M29) is kept, not deleted.** It is the only arm that matches `merge_train.py`'s `g(wt, "push", ...)`, which has no `git` word. The review's mutant survived only because the file is registered through its other site. A plant only this arm matches now kills it.
   - **M13 (the orchestrator-scratch guard in `wt_sync.sh`) survives, justified.** That push's ref (`wip-sync/orchestrator-scratch`) and message (`wip-sync orchestrator scratch <date>`) are constants, so no input reaches the guard to be refused. It stays as the file's contract, so a future edit that composes either value is judged.
   - **M16 (`push.sh` without `--commits`) survives, justified.** push.sh is the retired author path (decision 0011). Its commit half is the same CLI that `app_push.sh` drives, which its own arm pins (M25 killed). The branch half is pinned by `--check`.
+**Round 3 (minimal).**
+- **The site rule now also finds a release that makes a tag:** `gh release create`, and `gh api .../releases` with a field or a write method. A release read is not a site.
+- **`.github/workflows/release.yml` is registered `shape-checked`.** Its `gh release create "${TAG}"` makes the tag on origin. The step before it refuses any `TAG` that does not match `^v[0-9]+\.[0-9]+\.[0-9]+$`, so no host text reaches the name.
+- **The docstring lists the Contents API as not caught:** a commit message written through `gh api .../contents/<path>`.
+- **M16 is closed by a test, not by dropping `--commits`.** `push_branch` moves above the self-test, with the guard's path resolved before any `cd`. `push.sh --self-test` drives the real function in a throwaway repository with a bare origin:
+  - a commit message naming a host path is refused (exit 5), and nothing reaches origin;
+  - the same branch re-committed with a clean message pushes (the null control).
+- **N6 is pinned:** the self-test asserts that `Identity.of_host()` reads a hostname.
 - **Out of scope by the owner's ruling:** file contents (the 77 `wip-sync` trees and 125 files on main). The 9 main commits that already carry a host-email identity are published history; the guard judges only what a push publishes for the first time.
 
 ## Head
 
-24bae248548fbce945241cabc85466145df18b11. Merge base: 7215e39df7a122a319be0f6ab2d3e49853325b21.
+2a2dda05196ae9b8d90649c592a7d4dce4611864. Merge base: ef08fb420bdf0ed1bce42b1098d8bce52d6c0761.
 
 The chain, oldest first, with each merge's direction stated by its parents:
 - 20b642bb3 is the fix.
@@ -60,7 +68,10 @@ The chain, oldest first, with each merge's direction stated by its parents:
 - **101a57725 is round 2:** the items above, as one commit on 9d7beec3b.
 - **24bae2485 merges origin/main 7215e39df into 101a57725.** Main touched `tests/closure.py`, `tests/closures.json` (merged as a set by the ledger driver) and `tools/audit/seat/INSTRUMENTS.md`, plus three files outside this diff: `merge_train.py`, `queue_pre_flight.py` and `train.sh`. `merge_train.py` is a registered pusher. Its sites are still the branch delete and the self-test stub, so its `republishes` disposition holds.
 
-Every figure below was taken at 24bae2485 unless it names another SHA.
+- 98ca694d1, the orchestrator's, merges origin/main ef08fb420 into 651ce8c4a. This was the round-2 review head.
+- **2a2dda051 is round 3:** the items above, as one commit on 98ca694d1. Main has moved since. `git merge-tree --write-tree origin/main HEAD` exits 0, and `ref_privacy.py --check --ref <that tree>` reads 17 files, 9 guarded, 0 refused. So the merge, which is the orchestrator's to make, adds no unregistered pusher.
+
+Round-3 figures were taken at 2a2dda051. Round-2 figures name 24bae2485, and round-1 figures name the SHA in their line.
 
 ## Mutation proof
 
@@ -110,6 +121,17 @@ R12 was an explicit fail-closed branch for a malformed `git log` record. It surv
   - M12's guard is now `title_refusal`, covered by R7 and R8, and its M15 is killed.
   - M17's `Users-` arm, restated on the new text, is FAIL `the old wt_sync slug of a scratch path is refused`.
 
+
+**Round 3.** `mutate3.py` (scratch, one-off) commits each mutant, runs its checks and resets. All 5 are red:
+- **R13, `release.yml`'s registry entry dropped:** `--check` REFUSE `.github/workflows/release.yml:144: a push site in a file PUSHERS does not name`.
+- **R14, the `gh release create` arm dropped:**
+  - FAIL `a release that makes a tag is a site: gh release create, gh api .../releases with a field (round 3)`;
+  - `--check` REFUSE `release.yml: registered in PUSHERS but holds no push site`.
+- **R15, push.sh's `--commits` dropped:** `push.sh --self-test` FAIL `push_branch refuses a commit message naming a host path (#2310)` (got 0, wanted 5) and `and pushes nothing`. This is the review's M16, now killed.
+- **R16, push.sh's guard bypassed with `true ||`:** the same two FAILs.
+- **R17, `of_host()` passed no hostname:** FAIL `the host identity reads a home and a hostname, and judges no public account`. This is N6.
+
+**Failing first:** R13 is the round-2 head's registry under the round-3 rule. `--check` refuses `release.yml` as an unregistered pusher.
 ## Null control
 
 - **The clean name and message pass.** `ref_privacy.py --self-test` holds a null arm for every refusal: a clean ref and message, a clean `body_push` topic, the same branch one commit earlier, `/home/runner` and `/home/user`, `exampleusers` as a non-word, and `PR #4242` as a non-uid.
@@ -125,8 +147,8 @@ R12 was an explicit fail-closed branch for a malformed `git log` record. It surv
 
 Run at 24bae2485 with the seat venv's python3, except where a line names another SHA:
 
-- `python3 -I tools/audit/seat/ref_privacy.py --self-test`: `ref_privacy self-test: 45 checks, 0 failed`. At 101a57725 it also read 45 checks, 0 failed under `TMPDIR=/tmp` and under `TMPDIR=/tmp HOME=/home/runner USER=runner LOGNAME=runner`. It drives `slug()`, `refusal()`, the `guard` CLI over a throwaway repository, `wt_sync.sh` end to end under a planted `HOME`/`USER` and temp root, `body_push.sh`, and the registry over planted lines.
-- `python3 -I tools/audit/seat/ref_privacy.py --check`: `16 file(s) with a push site, 9 guarded, 0 refused`. **This is the class rule (fixer.md step 8)**, and every seam it returns is dispositioned below:
+- `python3 -I tools/audit/seat/ref_privacy.py --self-test` at 2a2dda051: `ref_privacy self-test: 47 checks, 0 failed`, the same under `TMPDIR=/tmp HOME=/home/runner USER=runner LOGNAME=runner`. At 101a57725 it read 45 checks, 0 failed under `TMPDIR=/tmp` and under `TMPDIR=/tmp HOME=/home/runner USER=runner LOGNAME=runner`. It drives `slug()`, `refusal()`, the `guard` CLI over a throwaway repository, `wt_sync.sh` end to end under a planted `HOME`/`USER` and temp root, `body_push.sh`, and the registry over planted lines.
+- `python3 -I tools/audit/seat/ref_privacy.py --check` at 2a2dda051: `17 file(s) with a push site, 9 guarded, 0 refused`. **This is the class rule (fixer.md step 8)**, and every seam it returns is dispositioned below:
   - **guarded:**
     - `tools/audit/seat/wt_sync.sh`
     - `tools/audit/seat/body_push.sh`
@@ -145,6 +167,7 @@ Run at 24bae2485 with the seat venv's python3, except where a line names another
     - `tools/pr/app_approve.sh`
     - `tools/audit/seat/r9_rc_bus_fetchhead.sh`
     - `tools/policy/fragments_sync.mjs`: a lint string.
+  - **shape-checked:** `.github/workflows/release.yml` (round 3).
   - **prompt:** `.claude/workflows/audit-find.js`, whose refs come from round and box numbers.
 - `git grep -nE '\$HOME|\$\{HOME|\$USER|\$\{USER|LOGNAME|\$PWD|\$\(pwd\)|&& pwd\)|Path\.home|expanduser|getcwd|getuser|environ[^ ]*(HOME|USER)' -- <the 15 PUSHERS files>` gives the host-derived values inside the pushers. Every hit is dispositioned, and none reaches a ref name or commit message:
   - **Instrument locations:** `$(cd ... && pwd)` resolving a script or worktree directory in `wt_sync.sh`, `bus.sh`, `app_push.sh`, `push.sh`, `app_approve.sh` and `r9_rc_bus_fetchhead.sh`. `wt_sync.sh`'s `R` is the root `slug()` strips, and its `S` feeds file content only.
@@ -162,11 +185,11 @@ Run at 24bae2485 with the seat venv's python3, except where a line names another
   - `python3 tools/audit/seat/roster_edit.py --self-test`: 47 checks, 0 failed;
   - `python3 tools/audit/seat/prune_refs.py --self-test`: `SELF-TEST PASS (24 checks)`;
   - `bash tools/pr/app_push.sh --self-test`: 127 checks, 0 failed;
-  - `bash tools/pr/push.sh --self-test`: 77 passed, 0 failed;
+  - `bash tools/pr/push.sh --self-test` at 2a2dda051: 81 passed, 0 failed;
   - `bash tools/audit/seat/bus.sh --self-test`: 63 checks, 0 failed;
   - `python3 tools/release/stamp.py --self-test`: `RESULT stamp_self_test=pass`.
 - **Scoped gate.** `python3 tests/closure.py select --diff 7215e39df` prints `MODE: FULL`, because `tests/closure.py` changes the gate itself. The scripts this diff reaches were run locally:
-  - `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2329 ENTITY CHECKS PASSED`, rc 0;
+  - `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2329 ENTITY CHECKS PASSED`, rc 0, at 24bae2485 and again at 2a2dda051;
   - `python3 tests/closure.py selftest`: `ALL 115 closure shrink pins PASSED`;
   - `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 169 checks PASSED` (at 6e951709d);
   - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s)`.
