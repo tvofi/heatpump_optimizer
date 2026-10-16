@@ -188,6 +188,43 @@ function check(name, cond, detail) {
   }
 }
 
+// --- Part of a browser's navigation surface, inert (R10-DEEPLINK) ----------
+// The rig gives the card no history, open, location or window dispatchEvent
+// (this adds those four, not the Navigation API's `navigation`). A browser always has
+// them, so a handler that calls one must not crash an unrelated scenario that
+// presses it before the link census (at the end of this file) can see it.
+{
+  const history = { pushState() {}, replaceState() {} };
+  const open = () => null;
+  const location = { href: "/", assign() {}, replace() {} };
+  // dispatchEvent too: Home Assistant's own navigate pairs a history write
+  // with a `location-changed` dispatch on the window.
+  const dispatchEvent = () => true;
+  for (const g of [ctx, ctx.window]) Object.assign(g, { history, open, location, dispatchEvent });
+}
+
+// --- The link census's static arm, first (R10-DEEPLINK) --------------------
+// The card's code, with comments blanked line for line (card_shapes.mjs's
+// stripping), may not name a navigation token outside navigateTo's body: href
+// in any quoting or key form, location, pushState, replaceState, .open( (the
+// dialog's own `this.dialog.open()` excepted), hass-more-info or hass-action.
+// It runs here, before any card renders, so a plant that crashes a later
+// scenario is still refused by name. It matches spellings, not behaviour:
+// a token split across a string concatenation ("hr" + "ef"), a bare open(
+// with no dot, and the other known gaps listed at the census pass it.
+{
+  const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
+  const navAt = code.findIndex((l) => /^function navigateTo\(/.test(l));
+  const navEnd = code.findIndex((l, i) => i > navAt && l === "}");
+  const TOKEN = /href|\blocation\b|pushState|replaceState|\.open\s*\(|hass-more-info|hass-action/i;
+  const tokenLines = code.map((l, i) => [l.replace(/this\.dialog\.open\(\)/g, ""), i])
+    .filter(([l, i]) => !(i > navAt && i < navEnd) && TOKEN.test(l))
+    .map(([l, i]) => `${i + 1}: ${l.trim().slice(0, 60)}`);
+  check("no navigation token in the card's code outside navigateTo",
+    navAt >= 0 && navEnd > navAt && tokenLines.length === 0, tokenLines.join(" | "));
+}
+
 // --- Scenario 1: stock install, real (device-prefixed) entity ids ----------
 const card = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
 const dump = collect(card.shadowRoot).join("\n");
@@ -10973,7 +11010,7 @@ check("without an indoor reading the corner now label is absent",
     /data-act="diagnostics"/.test(page) && /Something looks wrong\?/.test(page));
   const dg = mkHealth(healthStates());
   const hist = [];
-  ctx.history = { pushState: (_a, _b, path) => hist.push(path) };
+  ctx.history = { ...ctx.history, pushState: (_a, _b, path) => hist.push(path) };
   const btn = dg.c.shadowRoot.querySelector('[data-act="diagnostics"]');
   if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
   check("pressing it opens /config/integrations/integration/heatpump_optimizer",
@@ -11133,6 +11170,250 @@ check("without an indoor reading the corner now label is absent",
     o.c._render();
     check(`the ${page_} tab still renders beside Health`, marker.test(o.html()));
   }
+}
+
+// --- Every way out of the card goes through haLink (R10-DEEPLINK) -----------
+//
+// The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup
+// "Configure" and Health "Show" each built their own Home Assistant link and
+// each landed on the integration's front page. `haLink` is now the one
+// builder. This census checks the links it can observe against it, in two
+// arms; it is NOT a proof that every link the card can emit goes through
+// haLink -- that complete census is #2317 (roster group R10-DEEPLINK-CENSUS).
+//
+// Dynamic: render every dialog page and press every element there with a
+// click listener of its own, one fresh card per press, with these primitives
+// instrumented so that using one is recorded, never thrown: history.pushState
+// / replaceState, open, the location setter and its href / assign / replace,
+// a CustomEvent named hass-more-info or hass-action, and any anchor href on
+// the page after the press. Each recorded link must be a path haLink builds
+// for this entry. No press may throw.
+//
+// Static: the token check at the top of this file, for rows the fixture does
+// not render or selectors the stub DOM cannot resolve.
+//
+// Known gaps, each passing both arms (the #2283 round-4 review's plants):
+//   K5   a bare open(...) with no dot (or globalThis["open"], .open.call) on
+//        a row this fixture does not render;
+//   K1   the Navigation API, navigation.navigate(...);
+//   K2   a <form action=...> submitted from a rendered page (only href is read);
+//   K3t  a plain Event (not CustomEvent) whose hass-more-info name is built at
+//        run time;
+// and the static arm's own residual, a token split across a concatenation
+// ("hr" + "ef"), which the dynamic arm sees only on a rendered row and, for
+// an event name, only through CustomEvent.
+//
+// A link not yet converted is a PENDING row under the roster group that
+// converts it, excusing exactly its own navigateTo push to one path; a row
+// no press still produces is refused as stale. The census asserts its own
+// reach: every source line calling navigateTo or openHaLink is hit by a press.
+{
+  const ENTRY = "01JDEEPLINKENTRY";
+  const BARE = "/config/integrations/integration/heatpump_optimizer";
+  const PENDING = {
+    "advisor:settings": { group: "R10-ADVISOR", path: BARE },
+    "health:settings": { group: "R10-UX-HEALTH", path: BARE },
+    "health:diagnostics": { group: "R10-UX-HEALTH", path: BARE },
+  };
+  const haLink = fn("haLink");
+  const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
+  const states = () => {
+    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    s[BIN] = { state: "off", last_updated: "t1", attributes: { problems: [], input_ages_minutes: {} } };
+    return s;
+  };
+  // The registry lookup the card makes for its own config entry; real HA
+  // answers config/entity_registry/get with the entity's config_entry_id.
+  const callWS = async (msg) => {
+    if (msg && msg.type === "config/entity_registry/get" && msg.entity_id in states()) {
+      return { entity_id: msg.entity_id, config_entry_id: ENTRY };
+    }
+    throw new Error(`not found: ${JSON.stringify(msg)}`);
+  };
+  const open = (page) => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: states(), callService: async () => {}, callWS };
+    c._onCardClick({});
+    c.dialog.page = page;
+    c._render();
+    return c;
+  };
+  const pressables = (c) => {
+    const body = c.shadowRoot.querySelector(".dlg-body");
+    const out = [];
+    const walk = (n) => {
+      if (n !== body && n._listeners && (n._listeners.click || []).length) out.push(n);
+      (n.children || []).forEach(walk);
+    };
+    if (body) walk(body);
+    return out;
+  };
+  const anchors = (c) => {
+    const out = [];
+    const walk = (n) => {
+      const href = (typeof n.getAttribute === "function" && n.getAttribute("href")) || n.href;
+      if (typeof href === "string" && href) out.push(href);
+      (n.children || []).forEach(walk);
+    };
+    walk(c.shadowRoot);
+    return out;
+  };
+  const built = new Set([haLink("options", ENTRY), haLink("entities", ENTRY),
+    ...Object.keys(states()).map((id) => haLink("entity", ENTRY, id))]);
+  const excused = (key, via, path) => built.has(path)
+    || (via === "push" && key in PENDING && PENDING[key].path === path);
+
+  // The sink: every primitive the static arm names, instrumented for the
+  // census's duration on both the global and `window`, recording into `left`.
+  let left = [];
+  const sink = {
+    history: {
+      pushState: (_s, _t, p) => { left.push(["push", String(p)]); },
+      replaceState: (_s, _t, p) => { left.push(["replace", String(p)]); },
+    },
+    open: (u) => { left.push(["open", String(u)]); return null; },
+    location: {
+      get href() { return "/"; },
+      set href(v) { left.push(["location", String(v)]); },
+      assign: (v) => { left.push(["location", String(v)]); },
+      replace: (v) => { left.push(["location", String(v)]); },
+    },
+  };
+  const saved = { history: ctx.history, open: ctx.open, wHistory: ctx.window.history, wOpen: ctx.window.open,
+    location: ctx.location, wLocation: ctx.window.location,
+    CustomEvent: ctx.CustomEvent, navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
+  const locDesc = { get: () => sink.location, set: (v) => { left.push(["location", String(v)]); }, configurable: true };
+  ctx.history = sink.history; ctx.window.history = sink.history;
+  ctx.open = sink.open; ctx.window.open = sink.open;
+  Object.defineProperty(ctx, "location", locDesc);
+  Object.defineProperty(ctx.window, "location", locDesc);
+  ctx.CustomEvent = class extends saved.CustomEvent {
+    constructor(type, o) {
+      super(type, o);
+      if (type === "hass-more-info" || type === "hass-action") {
+        left.push(["event", `${type}:${JSON.stringify((o && o.detail) || {})}`]);
+      }
+    }
+  };
+  // Which source line each navigateTo / openHaLink call came from.
+  const callerLine = () => {
+    const m = /evalmachine[^:]*:(\d+):\d+/.exec((new Error().stack || "").split("\n")[3] || "");
+    return m ? Number(m[1]) : -1;
+  };
+  const hits = new Set();
+  ctx.navigateTo = (path) => { hits.add(callerLine()); return saved.navigateTo(path); };
+  ctx.openHaLink = (...a) => { hits.add(callerLine()); return saved.openHaLink(...a); };
+
+  const seen = {};
+  const wrong = [];
+  const threw = [];
+  const census = [];
+  for (const page of ["plan", "setup", "savings", "advisor", "health"]) {
+    left = [];
+    const shown = open(page);
+    const n = pressables(shown).length;
+    census.push(`${page}=${n}`);
+    for (const [via, path] of [...left, ...anchors(shown).map((h) => ["href", h])]) {
+      if (!excused(`${page}:render`, via, path)) wrong.push(`${page}:render -> ${via} ${path}`);
+    }
+    for (let i = 0; i < n; i++) {
+      const c = open(page);
+      const el = pressables(c)[i];
+      const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
+      left = [];
+      try {
+        await Promise.all((el._listeners.click || []).map((f) => f({
+          stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
+      } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
+      for (const [via, path] of [...left, ...anchors(c).map((h) => ["href", h])]) {
+        (seen[key] ||= new Set()).add(`${via} ${path}`);
+        if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
+      }
+    }
+  }
+  ctx.history = saved.history; ctx.window.history = saved.wHistory;
+  ctx.open = saved.open; ctx.window.open = saved.wOpen;
+  delete ctx.location; delete ctx.window.location;
+  ctx.location = saved.location; ctx.window.location = saved.wLocation;
+  ctx.CustomEvent = saved.CustomEvent;
+  ctx.navigateTo = saved.navigateTo; ctx.openHaLink = saved.openHaLink;
+
+  check("haLink builds the three deep links Home Assistant routes",
+    haLink("options", ENTRY) === `${BARE}#config_entry=${ENTRY}`
+    && haLink("entities", ENTRY) === `/config/entities?config_entry=${ENTRY}`
+    && haLink("entity", ENTRY, "sensor.a b") ===
+      `/config/entities?config_entry=${ENTRY}&more-info-entity-id=sensor.a%20b&more-info-view=settings`,
+    [...built].slice(0, 3).join(" | "));
+  check("haLink refuses an unknown kind and an entity link with no entity",
+    haLink("nowhere", ENTRY) === null && haLink("entity", ENTRY) === null);
+  check("haLink without a resolved entry falls back to the domain, never a guessed entry",
+    haLink("options", null) === BARE
+    && haLink("entities", null) === "/config/entities?domain=heatpump_optimizer"
+    && haLink("entity", null, "sensor.x") ===
+      "/config/entities?domain=heatpump_optimizer&more-info-entity-id=sensor.x&more-info-view=settings");
+
+  const srcLines = cardSrc.split("\n");
+  const bodyOf = (re) => {
+    const at = srcLines.findIndex((l) => re.test(l));
+    return [at, srcLines.findIndex((l, i) => i > at && l === "}")];
+  };
+  const [openAt, openEnd] = bodyOf(/^async function openHaLink\(/);
+  const sites = srcLines.map((l, i) => [l, i])
+    .filter(([l, i]) => /\b(navigateTo|openHaLink)\(/.test(l.replace(/^(async )?function (navigateTo|openHaLink)\(/, ""))
+      && !(i > openAt && i < openEnd && /navigateTo\(/.test(l)))
+    .map(([, i]) => i + 1);
+  const unreached = sites.filter((i) => !hits.has(i));
+  check("the census reached every navigateTo and openHaLink call site",
+    sites.length > 0 && unreached.length === 0,
+    `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
+  check("no press throws",
+    threw.length === 0, threw.join("; "));
+  check("every link the census records from a press is one haLink builds for this entry",
+    wrong.length === 0, wrong.join("; "));
+  const stale = Object.keys(PENDING).filter((k) => !seen[k] || !seen[k].has(`push ${PENDING[k].path}`));
+  check("every PENDING row still names a button that makes its unconverted navigation",
+    stale.length === 0, `stale (delete these rows): ${stale.join(", ")}`);
+
+  // ARCH2-s5 C2: the in-card deep link into a Setup slot opens that slot's
+  // picker, and hands focus into it only when the press came from the keyboard
+  // (a click with detail 0), so a mouse user is never left with a stuck ring.
+  const openSetupSlot = fn("openSetupSlot");
+  const viaKeys = open("advisor");
+  openSetupSlot(viaKeys, "heat_pump_power_entity", { detail: 0 });
+  const viaMouse = open("advisor");
+  openSetupSlot(viaMouse, "heat_pump_power_entity", { detail: 1 });
+  check("openSetupSlot opens the slot's picker, focused only from the keyboard",
+    viaKeys.dialog.page === "setup" && viaKeys.setup.pickerKey === "heat_pump_power_entity"
+    && viaKeys.setup.pickerFocus === true && viaKeys.setup.pickerViaKeyboard === true
+    && viaMouse.setup.pickerKey === "heat_pump_power_entity"
+    && viaMouse.setup.pickerFocus === false && viaMouse.setup.pickerViaKeyboard === false,
+    `keys ${viaKeys.setup.pickerFocus}/${viaKeys.setup.pickerViaKeyboard} mouse ${viaMouse.setup.pickerFocus}/${viaMouse.setup.pickerViaKeyboard}`);
+
+  // openHaLink resolves this card's entry through the registry and follows
+  // haLink with it; a failed lookup links the whole integration. Driven
+  // directly, because no button calls it until a later group converts one.
+  const follow = async (ws, kind, entityId) => {
+    const c = open("advisor");
+    c.hass = { ...c.hass, callWS: ws };
+    const pushed = [];
+    ctx.history = { ...saved.history, pushState: (_a, _b, path) => pushed.push(path) };
+    try { await saved.openHaLink(c, kind, entityId); } finally { ctx.history = saved.history; }
+    return pushed;
+  };
+  const asked = [];
+  const okWs = async (msg) => { asked.push(msg); return callWS(msg); };
+  const failWs = async () => { throw new Error("registry unreachable"); };
+  const viaEntry = await follow(okWs, "entities");
+  const viaEntity = await follow(okWs, "entity", BIN);
+  const fallback = await follow(failWs, "options");
+  check("openHaLink asks the registry for its own plan sensor and links this entry",
+    asked.length === 2 && asked.every((m) => m.type === "config/entity_registry/get" && m.entity_id === DEFAULT_SPACE)
+    && viaEntry.length === 1 && viaEntry[0] === haLink("entities", ENTRY)
+    && viaEntity.length === 1 && viaEntity[0] === haLink("entity", ENTRY, BIN),
+    `${JSON.stringify(asked)} -> ${viaEntry} | ${viaEntity}`);
+  check("openHaLink falls back to the whole integration when the registry refuses",
+    fallback.length === 1 && fallback[0] === haLink("options", null), String(fallback));
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
