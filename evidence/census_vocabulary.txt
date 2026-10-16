@@ -1,0 +1,11 @@
+dev/audit/harnesses/archscore_layering_seam_census.py lines 47-50 -- the fixer's own enumerator
+classes BOTH the from-form and the plain import-form as one spelling:
+            if isinstance(n, ast.ImportFrom) and n.module and n.module.startswith(SELF):
+                out["absolute_self_import"] += 1
+            elif isinstance(n, ast.Import) and any(a.name.startswith(SELF) for a in n.names):
+                out["absolute_self_import"] += 1
+
+its docstring (lines 8-10): it counts 'the instances of each spelling the new rule RESOLVES'.
+The body's ## Figures table asserts the same row:  '| import <pkg>.m | closed here (27) |'.
+The planted precondition tree (lines 92-99) plants only the FROM form, so the census cannot see
+that the rule does not resolve the plain form: planted_absolute_self_import=1 (from-form only).

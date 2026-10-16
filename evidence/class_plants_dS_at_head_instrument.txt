@@ -1,0 +1,6 @@
+RESULT plant=c0_none dS=+0.0000 verdict=NULL moved={}
+RESULT plant=c1_import_abs dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
+RESULT plant=c2_import_abs_plain dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
+RESULT plant=c3_from_abs_mod dS=+0.0825 verdict=IMPROVES moved={'private_cross_module': '17->16'}
+RESULT plant=c6_im_name_kw dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
+RESULT plant=c9_dunder_rel_level dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}

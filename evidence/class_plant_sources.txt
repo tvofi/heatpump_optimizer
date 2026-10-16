@@ -1,0 +1,22 @@
+Each plant replaces silent_mode.py's module-level 'from .optimizer import _utc_step_starts'
+with a spelling that binds the same object (see exec_identity.txt).
+
+c1_import_abs:
+  import custom_components.heatpump_optimizer.optimizer as _o
+  _utc_step_starts = _o._utc_step_starts
+
+c2_import_abs_plain:
+  import custom_components.heatpump_optimizer.optimizer
+  _utc_step_starts = custom_components.heatpump_optimizer.optimizer._utc_step_starts
+
+c3_from_abs_mod:
+  from custom_components.heatpump_optimizer import optimizer as _o
+  _utc_step_starts = _o._utc_step_starts
+
+c6_im_name_kw:
+  import importlib
+  _utc_step_starts = importlib.import_module(name=".optimizer", package=__package__)._utc_step_starts
+
+c9_dunder_rel_level (measured IMPROVES but refused: it raises in CPython 3.14):
+  _o = __import__(".optimizer", fromlist=["_utc_step_starts"], level=1)
+  _utc_step_starts = _o._utc_step_starts

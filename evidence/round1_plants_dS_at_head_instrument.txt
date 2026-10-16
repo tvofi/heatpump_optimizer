@@ -1,0 +1,11 @@
+RESULT plant=p1_tc_else dS=+0.0000 verdict=NULL moved={}
+RESULT plant=p2_not_tc dS=+0.0000 verdict=NULL moved={}
+RESULT plant=p3_import_module_const dS=+0.0000 verdict=NULL moved={}
+RESULT plant=p4_absolute dS=+0.0000 verdict=NULL moved={}
+RESULT plant=p5_junk_read_scipy dS=+0.0641 verdict=IMPROVES moved={'layer_violations': '22->21'}
+RESULT plant=p5b_unread_scipy dS=+0.0641 verdict=WORSENS moved={'layer_violations': '22->21', 'unused_boundary_imports': '1->2'}
+RESULT plant=p6_getattr_concat dS=+0.0825 verdict=WORSENS moved={'private_cross_module': '17->16', 'computed_attr_access': '32->33'}
+RESULT plant=p7_vars dS=+0.0825 verdict=IMPROVES moved={'private_cross_module': '17->16'}
+RESULT plant=p8_rebind dS=+0.0825 verdict=IMPROVES moved={'private_cross_module': '17->16'}
+RESULT plant=p9_lazy dS=-0.5850 verdict=WORSENS moved={'dead_members': '1->2'}
+RESULT plant=p10_tc_only dS=+0.1466 verdict=IMPROVES moved={'layer_violations': '22->21', 'private_cross_module': '17->16'}
