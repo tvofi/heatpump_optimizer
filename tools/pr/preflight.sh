@@ -37,6 +37,21 @@ done < <(printf '%s' "$body" \
   | grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]*:?[[:space:]]+((https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)[0-9]+)' \
   | sed -E 's|^([A-Za-z]+).*[/#-]([0-9]+)$|\1 \2|')
 
+# 1b. One keyword, several numbers. GitHub's rule is KEYWORD #N -- the number
+#     sits right after the keyword -- so `Closes #A #B` closes #A and silently
+#     not #B. The grep above keeps only the first number (a keyword and a number
+#     split across `#A #B` is one match, `#B` has no keyword of its own), so the
+#     dropped second is caught here: one keyword followed by two or more
+#     references, separated only by whitespace, a comma or an "and".
+multi=$(printf '%s' "$body" \
+  | grep -ioE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]*:?[[:space:]]+(https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)[0-9]+([[:space:],]+([Aa]nd[[:space:]]+)?(https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)[0-9]+)+' \
+  | head -4)
+if [ -n "$multi" ]; then
+  say REFUSE "one closing keyword, several issues -- GitHub closes only the first; give each its own keyword"
+  printf '%s\n' "$multi" | sed 's/^/             /'
+  rc=1
+fi
+
 # 2. Unqualified quantifiers. Each needs the whole set enumerated, not sampled.
 q=$(printf '%s' "$body" | grep -onE '\b(every|all|each|both|none|never|always|no [a-z]+ (is|are|was|were))\b' | head -8)
 [ -n "$q" ] && { say check "quantifiers -- did you enumerate the SET, or sample it?"; printf '%s\n' "$q" | sed 's/^/             /'; }
