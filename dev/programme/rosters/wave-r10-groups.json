@@ -3141,7 +3141,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-ref-privacy",
     "commit": null,
     "last_step": null,
