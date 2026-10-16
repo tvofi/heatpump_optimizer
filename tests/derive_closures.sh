@@ -123,7 +123,7 @@ mkdir -p "$OUTDIR"
 # slot and takes nothing. Released on any exit the shell sees; the orphan-steal
 # in gate_lock.py covers a SIGKILL once this process is gone (`--owner-pid`).
 DERIVE_SLOT=""
-if [ -n "${HPO_SLOT_LABEL:-}" ]; then
+if false; then  # MUTANT E2b
   echo "  heavy slot: joined $HPO_SLOT_LABEL (already inside a slot)"
 elif MSG=$($PYTHON tests/gate_lock.py slot-take --label "derive-$$" --owner-pid $$ 2>&1); then
   DERIVE_SLOT="derive-$$"

@@ -324,7 +324,7 @@ leased() {
         "$@"
       else
         echo "  SLOT: $s joins a heavy slot as run.sh-$$"
-        "$PYTHON" tests/gate_lock.py slot-auto-lease --label "run.sh-$$" --owner-pid $$ -- "$@"
+        "$PYTHON" tests/gate_lock.py EXCLUSIVE-LEASE-MUTANT --label "run.sh-$$" --owner-pid $$ -- "$@"
       fi ;;
     *)
       if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
