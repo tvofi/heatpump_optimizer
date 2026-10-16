@@ -492,6 +492,18 @@
   "set": "planted",
   "verdict": "NULL"
  },
+ "a3_layer_type_checking_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_layer_type_checking_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
  "a3_layer_violations_control": {
   "admissible": false,
   "label": "BAD",
@@ -1091,5 +1103,47 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "WORSENS"
+ },
+ "rt_27_tc_else_import": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_28_not_tc_import": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_29_importlib_const": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_30_absolute_self_import": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_31_private_module_rebind": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_32_private_vars": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_33_layer_junk_read": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
  }
 }
