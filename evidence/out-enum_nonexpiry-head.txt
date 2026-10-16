@@ -1,0 +1,8 @@
+SEAM custom_components/heatpump_optimizer/coordinator.py:546 _covering_index UNBOUNDED
+SEAM custom_components/heatpump_optimizer/coordinator.py:6873 _weather_series UNBOUNDED
+SEAM custom_components/heatpump_optimizer/early_cutoff.py:249 _planned_room UNBOUNDED
+SEAM custom_components/heatpump_optimizer/pump_arbiter.py:347 step_duty bounded
+SEAM custom_components/heatpump_optimizer/pump_arbiter.py:412 _planned_room UNBOUNDED
+SEAM custom_components/heatpump_optimizer/pump_arbiter.py:985 _share bounded
+RESULT seams=6 count
+RESULT unbounded=4 count

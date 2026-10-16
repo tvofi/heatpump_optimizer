@@ -1,0 +1,15 @@
+No weather entity configured. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  t+0h err=None current_price=1.0 booked=1.0
+  t+2h err=None current_price=1.2 booked=1.2
+  t+5h err=None current_price=1.3 booked=1.3
+  t+8h err=None current_price=1.3 booked=1.3
+  t+30h err=None current_price=1.3 booked=1.3
+  t+50h err=None current_price=1.3 booked=1.3
+RESULT uncovered_cycles=4 count
+RESULT uncovered_current_price_published=4 count
+RESULT uncovered_price_booked=4 count
+RESULT control_covered_published=2 count
+RESULT thread_factor=1.150
+RESULT load1=24.05
+RESULT swapins=0

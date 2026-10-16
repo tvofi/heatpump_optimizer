@@ -1,0 +1,8 @@
+Tibber returned no usable price rows
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+FAIL #2233: a forecast whose rows all fail plausibility is a failed fetch: the held 48 rows sta
+     good=(48, None) after=0 stale=None outage=0
+R10-FEEDS BLOCK: 15 ok, 1 failed

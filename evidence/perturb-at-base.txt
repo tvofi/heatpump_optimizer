@@ -1,0 +1,3 @@
+SEAM coordinator.py:_known_prices_for(perturbed):22 _known_prices_for UNBOUNDED
+RESULT seams=1 count
+RESULT unbounded=1 count

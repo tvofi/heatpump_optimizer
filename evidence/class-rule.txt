@@ -1,0 +1,7 @@
+RESULT multi-line-literal anchors handed to replace/find/index/split = 22 count
+RESULT alive in the head package          = 19 count
+RESULT dead at head, dead at base too     = 2 count
+RESULT dead at head, ALIVE at base        = 1 count
+    KILLED BY THIS DIFF: dev/audit/rounds/round10/D14/sweep_n_no_expiry.py:69 .replace() anchor='            if step_start >= end:\n                break\n'
+    dead at both ends:  dev/audit/rounds/round10/D14/sweep-I1/enumerate_i1.py:108 .replace() anchor='    if xs:\n'
+    dead at both ends:  dev/audit/rounds/round10/intake/intake.py:398 .find() anchor='\n## '

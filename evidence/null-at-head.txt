@@ -1,0 +1,3 @@
+SEAM <clean>:5 lookup bounded
+RESULT seams=1 count
+RESULT unbounded=0 count

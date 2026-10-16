@@ -1,0 +1,2 @@
+# admitted=96 spot_at_noon=1.0 true=1.48
+RESULT spot_wrong=1 count

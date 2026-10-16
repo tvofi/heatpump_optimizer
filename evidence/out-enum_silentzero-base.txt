@@ -1,0 +1,6 @@
+SEAM UNGUARDED custom_components/heatpump_optimizer/coordinator.py:6387 _fetch_tibber_prices :: self._prices = payload
+SEAM UNGUARDED custom_components/heatpump_optimizer/coordinator.py:6488 _fetch_weather_forecast :: self._weather_forecast = _plausible_forecast_rows(_forecast_in_model_units(self.hass.states.get(weather_entity), forecast_data))
+SEAM GUARDED custom_components/heatpump_optimizer/open_meteo.py:356 async_refresh :: self._forecast = forecast
+SEAM GUARDED custom_components/heatpump_optimizer/open_meteo.py:360 async_refresh :: self._observed = observed
+RESULT seams=4 count
+RESULT unguarded=2 count

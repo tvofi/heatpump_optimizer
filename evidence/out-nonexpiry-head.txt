@@ -1,0 +1,4 @@
+PROBE forecast_outdoor_now past_end=None pass
+PROBE _open_loop_plan_value past_end=None pass
+CONTROL covered forecast=-2.0 plan=49.5
+RESULT probe_failures=0 count

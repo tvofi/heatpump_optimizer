@@ -1,0 +1,58 @@
+########## base ##########
+  [rc=0] dev/audit/rounds/round10/D14/sweep_n_no_expiry.py --perturb
+       RESULT seams=1 count
+       RESULT unbounded=1 count
+  [rc=0] dev/audit/rounds/round10/D14/sweep-N-silent-zero/enumerate.py --perturb
+       RESULT seams=4 count
+       RESULT unguarded=3 count
+  [rc=0] dev/audit/rounds/round10/D14/sweep-P1/p1_ts_seams.py --perturb
+       RESULT seams_total=1 count
+       RESULT seams_flagged=1 count
+  [rc=0] dev/audit/rounds/round10/D14/log_flood/enumerate.py --perturb custom_components/heatpump_optimizer
+       sites=85 latched=6 seams=79
+  --- harness perturb modes ---
+  [rc=0] dev/audit/rounds/round10/D14/log_flood/probe.py --perturb
+       RESULT control.floods=0 count
+       RESULT no_weather_entity.floods=2 count
+       RESULT weather_fetch_fails.floods=2 count
+       RESULT open_meteo_no_coord.floods=1 count
+  [rc=0] dev/audit/rounds/round10/D14/sweep-P1/probe_spot_head.py --perturb
+       RESULT spot_wrong=0 count
+  [rc=0] dev/audit/rounds/round10/D14/sweep-N-silent-zero/weather_probe.py --perturb
+       Error fetching weather forecast: empty. Plans continue on the last forecast, marked stale.
+       RESULT empty_ok_wipes=0 count
+  [rc=0] dev/audit/rounds/round10/D1/s3/tibber_ingress.py --perturb
+       RESULT empty_ok_wipes=0 count
+       RESULT startless_rows=0 count
+       RESULT misplaced_steps=0 count
+       RESULT thread_factor=1.000
+########## head ##########
+  [rc=1] dev/audit/rounds/round10/D14/sweep_n_no_expiry.py --perturb
+           assert cut != body, "perturbation anchor missing"
+       AssertionError: perturbation anchor missing
+  [rc=0] dev/audit/rounds/round10/D14/sweep-N-silent-zero/enumerate.py --perturb
+       RESULT seams=4 count
+       RESULT unguarded=2 count
+  [rc=0] dev/audit/rounds/round10/D14/sweep-P1/p1_ts_seams.py --perturb
+       RESULT seams_total=1 count
+       RESULT seams_flagged=1 count
+  [rc=0] dev/audit/rounds/round10/D14/log_flood/enumerate.py --perturb custom_components/heatpump_optimizer
+       sites=80 latched=6 seams=74
+  --- harness perturb modes ---
+  [rc=0] dev/audit/rounds/round10/D14/log_flood/probe.py --perturb
+       RESULT control.floods=0 count
+       RESULT no_weather_entity.floods=1 count
+       RESULT weather_fetch_fails.floods=1 count
+       RESULT open_meteo_no_coord.floods=0 count
+  [rc=0] dev/audit/rounds/round10/D14/sweep-P1/probe_spot_head.py --perturb
+       RESULT spot_wrong=0 count
+  [rc=0] dev/audit/rounds/round10/D14/sweep-N-silent-zero/weather_probe.py --perturb
+       Error fetching weather forecast: empty. Plans continue on the last forecast, marked stale.
+       RESULT empty_ok_wipes=0 count
+  [rc=0] dev/audit/rounds/round10/D1/s3/tibber_ingress.py --perturb
+       RESULT empty_ok_wipes=0 count
+       RESULT startless_rows=0 count
+       RESULT misplaced_steps=0 count
+       RESULT thread_factor=1.000
+
+[exited with code 0]

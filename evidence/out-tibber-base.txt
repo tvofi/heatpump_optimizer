@@ -1,0 +1,8 @@
+# good fetch=ok rows=96; empty fetch=ok rows=0
+RESULT empty_ok_wipes=1 count
+# startless fetch=ok admitted=96 known_steps=96
+RESULT startless_rows=96 count
+RESULT misplaced_steps=95 count
+RESULT thread_factor=1.000
+RESULT load1=25.56
+RESULT swapins=0
