@@ -31,7 +31,9 @@ train's order:
              carries, so FAIL, not PARK);
   bot tip    `Train.bot_tip` -- a GITHUB_TOKEN tip fires no pull_request run, so
              the head settles green and unmergeable; only an App push (the
-             train's recarry) cures it (R9-RC-AUTOFIX-GOVERNANCE);
+             train's recarry) cures it (R9-RC-AUTOFIX-GOVERNANCE). The train's
+             own `--pre-flight` passes it (`bot_cured`): the batch routes it
+             serial, where its recarry once main moved is that push;
   carry      `app_approve.sh --carry <verdict> <head>`, the train's own step 3 /
              batch-admit read: skipped when the head is still the verdict;
   row        the three-dot diff carries `dev/programme/delivery/<pr>.md` (the
@@ -42,6 +44,8 @@ train's order:
   worktree   the branch is not checked out in another worktree of <checkout>,
              which would refuse the train's `git worktree add -B` (recarry);
              the holder's path is reported so the queue entry can be re-pointed;
+             passed under the train's `--free-holders` when `Train.freeable`
+             clears the holder (clean, at origin/<branch>), which it detaches;
   policy     `Train.policy_gate`, the train's step-5 / batch-admission early
              refusal, verbatim;
   budget     a `*_budgets.json` change lands only under the owner's review at
@@ -77,9 +81,15 @@ class PreFlight:
     """One queue read through the train's own admission methods."""
 
     def __init__(self, repo: str, train: "mt.Train | None" = None,
-                 checkout: Path = ROOT) -> None:
+                 checkout: Path = ROOT, bot_cured: bool = False,
+                 free_holders: bool = False) -> None:
         self.repo = repo
         self.checkout = checkout
+        # The train's own pre-flight (`merge_train.py --pre-flight`) passes
+        # what it now cures itself: a bot tip (batch routes it serial, whose
+        # recarry is the App push) and, under its --free-holders, a holder
+        # `Train.freeable` clears. Standalone, both PARK as before.
+        self.bot_cured, self.free_holders = bot_cured, free_holders
         self._tmp = tempfile.TemporaryDirectory()
         self.t = train or mt.Train(repo, Path(self._tmp.name), None, "", (), 1)
 
@@ -112,7 +122,7 @@ class PreFlight:
             bot = self.t.bot_tip(h)  # the batch admits through the same read; a
         except mt.Stop as s:         # batch never recarries, so only an App push cures it
             return "PARK", s.step, s.why
-        if bot:
+        if bot and not self.bot_cured:
             s = self.t.bot_refusal(pr, h, bot)
             return "PARK", s.step, s.why
         if h != v:
@@ -174,7 +184,7 @@ class PreFlight:
                 holder = line[len("worktree "):]
             elif line.startswith("branch refs/heads/") and line[len("branch refs/heads/"):] == branch:
                 held = holder
-        if held is not None:
+        if held is not None and not (self.free_holders and self.t.freeable(held, branch) is None):
             return (f"{branch} is already checked out at {held}; the train's "
                     "`git worktree add -B` would refuse it -- re-point the "
                     "queue entry's worktree")
@@ -282,6 +292,12 @@ def _self_test() -> int:
                 return 0, "\n".join(world.get("files", ["custom_components/x.py", ROW]))
             if argv[:2] == ["git", "show"]:
                 return 0, world.get("row_text", f"- [#7](https://example.test/7) — **open**, t")
+            if "status" in argv and "--porcelain" in argv:  # Train.freeable's reads
+                return 0, world.get("holder_status", "")
+            if argv[:3] == ["git", "-C", "/somewhere/wt"] and "rev-parse" in argv:
+                return 0, "1" * 40
+            if argv[:2] == ["git", "rev-parse"]:
+                return 0, world.get("origin_tip", "1" * 40)
             if "worktree" in argv and "--porcelain" in argv:
                 if world.get("wt_fail"):
                     return 1, "fatal: not a git repository"
@@ -305,11 +321,11 @@ def _self_test() -> int:
     _g, owner_review, mandate, revoke = mt.policy_fixture_builders()
     NOW = datetime.datetime.now(datetime.timezone.utc)
 
-    def go(world: "dict | None" = None, verdict: str = H0) -> "tuple[str, str, str]":
+    def go(world: "dict | None" = None, verdict: str = H0, **opts) -> "tuple[str, str, str]":
         w = dict(world or {})
         with tempfile.TemporaryDirectory() as d:
             pf = PreFlight("o/r", train=mt.Train("o/r", Path(d), None, "", (), 1,
-                                                 run=fake(w)), checkout=Path(d))
+                                                 run=fake(w)), checkout=Path(d), **opts)
             return pf.entry({"pr": 7, "verdict": verdict, "branch": "fix/x"})
 
     check("null control: an open, verdicted, rowed, non-policy entry passes",
@@ -342,6 +358,16 @@ def _self_test() -> int:
     check("a branch held by another worktree PARKs with the holder's path",
           go({"worktrees": f"worktree /somewhere/wt\nHEAD {H1}\nbranch refs/heads/fix/x\n\n"})[:2] == ("PARK", "recarry")
           and "/somewhere/wt" in go({"worktrees": f"worktree /somewhere/wt\nHEAD {H1}\nbranch refs/heads/fix/x\n\n"})[2])
+    BOTW = {"bot_tips": {H0: "ci: pin killed mutants"}}
+    check("the train's own pre-flight (bot_cured) passes a bot tip: the train cures it by its recarry",
+          go(BOTW, bot_cured=True) == ("PASS", "", ""))
+    HELD = {"worktrees": f"worktree /somewhere/wt\nHEAD {'1' * 40}\nbranch refs/heads/fix/x\n\n"}
+    check("under the train's --free-holders a clean holder at origin/<branch> passes (the train detaches it)",
+          go(HELD, free_holders=True) == ("PASS", "", ""))
+    check("... a dirty holder still PARKs under --free-holders",
+          go({**HELD, "holder_status": "?? note.md\n"}, free_holders=True)[:2] == ("PARK", "recarry"))
+    check("... and one whose HEAD is not origin/<branch> still PARKs (unpushed work)",
+          go({**HELD, "origin_tip": "2" * 40}, free_holders=True)[:2] == ("PARK", "recarry"))
     check("a worktree list that cannot be read PARKS, named as unreadable",
           go({"wt_fail": True})[:2] == ("PARK", "recarry"))
     POL = {"files": ["custom_components/x.py", ROW, "dev/governance/roles/fixer.md"]}

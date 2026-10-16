@@ -60,10 +60,10 @@ def cases() -> list[dict]:
             if arm not in arms:
                 continue
             desc, edit = arms[arm]
-            on_control = arm == "fix" and arms.get("fix_on") == "control"
-            apply = (lambda tree, e=edit, c=arms["control"][1]: (c(tree), e(tree))) if on_control else edit
-            out.append({"id": f"a3_{metric}_{arm}", "label": label,
-                        "base": f"a3_{metric}_control" if on_control else BASE,
+            # ``on``: the case this arm is applied on top of and compared against (the pin holds no instance).
+            on = next((c for c in out if c["id"] == arms.get("on", {}).get(arm)), None)
+            apply = (lambda tree, e=edit, b=on["apply"]: (b(tree), e(tree))) if on else edit
+            out.append({"id": f"a3_{metric}_{arm}", "label": label, "base": on["id"] if on else BASE,
                         "desc": f"{metric} {arm}: {desc}", "apply": apply})
     for p in sorted((HERE / "redteam").glob("[0-9]*.py")):
         out.append({"id": f"rt_{p.stem}", "label": "NULL" if p.stem.startswith("00_") else "KNOWN-OPEN" if p.stem in KNOWN_OPEN else "GAME",
