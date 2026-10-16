@@ -12,9 +12,23 @@
 #                                     (the instrumenting finders, D14, and D11 and D13, which
 #                                      audit the process and read `main`'s history and
 #                                      the API, so they need .git)
-# and writes tools/audit/round<round>/BASELINE.md into each with the paths the
+# and writes dev/audit/rounds/round<round>/BASELINE.md into each with the paths the
 # finders need. Idempotent: refuses to overwrite an existing export.
 set -euo pipefail
+# What a finder tree takes from the checkout over the baseline's own copy, so a
+# baseline older than a brief edit still hands every seat the current text: the
+# instruments, the contracts and briefs, the harness contract, the schema, the
+# scopes and the ledgers. audit-find.js's CURRENT is the same list; a seat that
+# edits one edits both. Before R9-RO-5 all of it lived under tools/audit/, and
+# copying that directory alone left every brief at the baseline's version.
+CURRENT_PATHS="tools/audit dev/governance/roles dev/governance/dimensions dev/audit/README.md dev/audit/config"
+copy_current() {
+  local src="$1" dst="$2" p
+  for p in $CURRENT_PATHS; do
+    if [ -d "$src/$p" ]; then mkdir -p "$dst/$p"; cp -R "$src/$p/." "$dst/$p/"
+    elif [ -f "$src/$p" ]; then mkdir -p "$(dirname "$dst/$p")"; cp "$src/$p" "$dst/$p"; fi
+  done
+}
 strip_earlier_rounds() {
   "$PYTHON" - "$1" "$ROUND" <<'PY'
 import json, re, sys
@@ -132,6 +146,24 @@ ENDPY
   echo "RESULT strip_earlier_rounds=ok"
   exit 0
 fi
+if [ "${1:-}" = "--copy-self-test" ]; then
+  # The source's brief must replace the tree's older one, and a file only the
+  # tree has must survive. The control is the pre-R9-RO-5 copy, tools/audit/
+  # alone, which leaves the old brief in place.
+  src=$(mktemp -d); dst=$(mktemp -d); old=$(mktemp -d)
+  for d in "$src" "$dst" "$old"; do mkdir -p "$d/dev/governance/dimensions" "$d/tools/audit"; done
+  printf new > "$src/dev/governance/dimensions/D0.md"
+  printf old > "$dst/dev/governance/dimensions/D0.md"; printf old > "$old/dev/governance/dimensions/D0.md"
+  printf mine > "$dst/tools/audit/local.txt"
+  cp -R "$src/tools/audit/." "$old/tools/audit/"
+  [ "$(cat "$old/dev/governance/dimensions/D0.md")" = old ] || { echo "FAIL the tools/audit-only copy replaced the brief; the control no longer shows the miss"; exit 1; }
+  copy_current "$src" "$dst"
+  [ "$(cat "$dst/dev/governance/dimensions/D0.md")" = new ] || { echo "FAIL copy_current left the baseline's brief"; exit 1; }
+  [ -e "$dst/tools/audit/local.txt" ] || { echo "FAIL copy_current removed a file only the tree had"; exit 1; }
+  rm -rf "$src" "$dst" "$old"
+  echo "RESULT copy_current=ok"
+  exit 0
+fi
 if [ "${1:-}" = "--strip" ]; then
   PYTHON="${PYTHON:-python3}"; ROUND="${3:?round}"
   finder_wall "$(cd "${2:?export dir}" && pwd)"
@@ -170,8 +202,7 @@ git archive "$FULL" | tar -x -C "$EXPORT"
 # audit-find.js both say to keep it. The `finders_can_start` refusal below is the
 # general form of that lesson and fires on any other file a test opens this way.
 finder_wall "$EXPORT"
-mkdir -p "$EXPORT/tools/audit"
-cp -R "$SRC/tools/audit/." "$EXPORT/tools/audit/"     # instruments that stayed
+copy_current "$SRC" "$EXPORT"
 mkdir -p "$EXPORT/dev/audit/rounds"
 if [ -d "$SRC/dev/audit/rounds" ]; then cp -R "$SRC/dev/audit/rounds/." "$EXPORT/dev/audit/rounds/"; fi
 mkdir -p "$EXPORT/dev/audit/rounds/round${ROUND}"
@@ -211,16 +242,16 @@ strip_earlier_rounds "$EXPORT"
 # with R7-INSTR-01 (#1477): the round driver's DIMS/WAVES/ISOLATED stopped at
 # D12, and D13 reads `main`'s history and the API just as D11 does, so it needs
 # a worktree rather than the export. The check in
-# .claude/workflows/check-wave-script.mjs derives both lists and refuses them
+# tools/policy/check-wave-script.mjs derives both lists and refuses them
 # drifting apart again. D14 joined because it mutates production to prove its
-# detectors move and runs them at pre-fix commits (tools/audit/briefs/D14.md).
+# detectors move and runs them at pre-fix commits (dev/governance/dimensions/D14.md).
 ISOLATED_DIMS="D0 D3 D9 D11 D13 D14"
 
 for dim in $ISOLATED_DIMS; do
   wt="$PARENT/audit-r${ROUND}-${dim}"
   [ -e "$wt" ] && { echo "refusing: $wt exists"; exit 2; }
   git worktree add --detach "$wt" "$FULL" >/dev/null
-  mkdir -p "$wt/tools/audit"; cp -R "$SRC/tools/audit/." "$wt/tools/audit/"
+  copy_current "$SRC" "$wt"
   mkdir -p "$wt/dev/audit/rounds"
   if [ -d "$SRC/dev/audit/rounds" ]; then cp -R "$SRC/dev/audit/rounds/." "$wt/dev/audit/rounds/"; fi
   mkdir -p "$wt/dev/audit/rounds/round${ROUND}/${dim}"
@@ -278,7 +309,7 @@ for dir in "$EXPORT" $ISOLATED_DIRS; do
   gate check on that path may read differently here than on CI.
 - temp root: derive every scratch path from \$TMPDIR (mktemp -d, tempfile.mkdtemp),
   pip download -d / install --target included -- never a literal seat path, never
-  the cwd (tools/audit/README.md, the harness contract).
+  the cwd (dev/audit/README.md, the harness contract).
 - node: ${NODE:-not found}
 - chromium: ${CHROMIUM:-not found} (PLAYWRIGHT_BROWSERS_PATH=\$HOME/.cache/pw-browsers)
 - playwright module: the browser lane's own lock, integrity-checked:
