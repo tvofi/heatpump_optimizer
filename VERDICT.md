@@ -1,82 +1,80 @@
-Fix review: blocked 9d7beec3bedb9557c19e42096689e1b137838c68 harness: class-open tools/audit/seat/prune_refs.py writes origin refs through gh api git/refs, which --check cannot see
+Fix review: blocked 98ca694d1bb08532e7a440fd2bfb718a7bdcd1d0 harness: class-open .github/workflows/release.yml creates a tag through gh release create, which the site rule cannot see; push.sh's --commits is unpinned
 
-bus-nonce: b3a3d5fea5bdf883235a751610eaa38f
+bus-nonce: df4f9d2315aa360580590ac8c50e343c
 
-Round 1. Reviewed #2316 (R10-REF-PRIVACY, closes #2310) at head 9d7beec3bedb9557c19e42096689e1b137838c68, in a detached worktree at that SHA. Merge base 25afc1c77. The preamble diff of `dev/governance/roles/` against origin/main is empty. Evidence is in `evidence/`, scrubbed: the host's home path, account name and uid are replaced by placeholders. Every planted identity is synthetic (`exampleuser`, `someone`, uid 4242).
+Round 2. Reviewed #2316 at head 98ca694d1bb08532e7a440fd2bfb718a7bdcd1d0, in a fresh detached worktree at that SHA.
+- The head merges handoff 24bae2485 (round-2 commit 101a57725, then the merge of origin/main 7215e39df) and then origin/main ef08fb420.
+- The preamble diff of `dev/governance/roles/` is empty.
+- I judged the round-2 delta (101a57725) and the main merges' resolution. Three-dot from merge base ef08fb420: the PR's 16 files.
 
-## What holds
+Evidence is in `evidence/`, scrubbed; every planted identity is synthetic. The round-1 driver file is renamed (`scripts/enum_sites.py`), so nothing there shadows the stdlib.
 
-- **The defect's own instance is fixed.** `slug()` cannot return a leaking component. `wt_sync.sh` takes its slug from `slug()` and guards both pushes. The old slug, restored as M1, is refused by the guard and red in the self-test.
-- **The finder's measurement.** `git ls-remote origin`, judged by `refusal()` under the host identity: 2339 refs (peeled lines dropped), 0 refused. The local `refs/remotes/origin/*` holds 2194 refs, 0 refused (`local-tracking.txt`).
-- **The self-test passes in every shape I ran,** 34 checks and 0 failed in each:
-  - the macOS default;
-  - `TMPDIR` under /tmp;
-  - `env -i` with HOME, USER and LOGNAME set Linux-shaped.
+## Round 1's items: closed
 
-  CI's `instrument-self-tests` (job 116747147594, run 38830250935) at this head printed `ref_privacy self-test: 34 checks, 0 failed` and `--check ... 15 file(s) with a push site, 8 guarded, 0 refused`.
-- **The CI-red cause reproduces.** At 29091251a, `TMPDIR=/tmp` gives `33 checks, 1 failed` on the wt_sync arm, and the macOS default gives 33 checks, 0 failed (`cired-repro-29091251a.txt`). The body's `## Red checks` answers it. The other red at 1e522a71b, `pr-contract`, is the body check. The remaining non-green runs at 1e522a71b and 639797353 were `cancelled`, superseded by later pushes.
-- **False positives on main.** `leaks()` over all 6134 commit messages on origin/main (`fp-main.txt`):
-  - Under the host identity: 3 host-path, 2 home-directory, 2 account-name. Two of those messages are real historical leaks of the home path, so they are true positives.
-  - Identity-free: 3 host-path. One is a false positive, a message naming the `/home/claude` temp root. That is 1 in 6134.
+1. **`prune_refs.py` is closed.**
+   - `plan()` refuses an archive tag that would name the host, without echoing it.
+   - It is registered `guarded`.
+   - `--check` now sees `gh api` writes to `git/refs` and `git/tags` (`-f`, `-F`, `--input`, `--method=POST`/`-X PATCH`, `createRef`).
+   - `--check` reads 16 files, 9 guarded, 0 refused.
+   - My mutants N1 (guard neutered) and N2 (guard deleted, import kept) are killed by `prune_refs.py --self-test`. N9 (the grep prefilter loses `git/refs`) is killed by `--check`.
+2. **`$GIT`, `${GIT}`, `${GIT:-git}` and `$git` are now sites.** `"$GIT_CMD"` is not, and the docstring discloses that.
+3. **URL-decoded text is judged.** `%2FUsers%2F<name>` is now refused (`encodings.txt`). Decoding changes the verdict on 0 of the 6259 messages on origin/main. N3 (decoding dropped) is killed.
+4. **The new `host-email` class holds on main's record** (`fp-main.txt`).
+   - 9 commits on origin/main carry a refused identity. They are round 1's 9 `.local` commits.
+   - 0 noreply authors are refused.
+   - Probes (`attacks-sites-emails.txt`): `.local`, `.lan`, `.localdomain`, `.home.arpa`, `localhost`, and the host's own name, short, full and under another suffix, are all refused.
+   - IP-literal domains pass. That is minor: git's default identity uses the hostname, not an address.
+5. **One grammar for the home directory.** `tmp_paths.py` now uses `ref_privacy`'s `HOME_DIR` and `CLOUD_ROOTS`. Its `MACHINE` pattern is equivalent to the old one. N10 (home-abs taken off the shared grammar) is killed by `tmp_paths.py --self-test` (50 checks).
+6. **Round 1's survivors are now killed:**
+   - M10 and M14 (the bus.sh guard deleted, or bypassed with `true ||`), by the new `push-verdict` arm.
+   - M12 and M15 (the stamp guard), by stamp's own self-test.
+   - M29 (the Python-call arm), by its plant.
 
-  The host-path class is not too broad on this record.
-- **Mutation proof.** All 12 of the body's mutants are killed, as the body states. M10 to M12 are killed by `--check` only. I added 18 mutants: 14 killed and 4 survived (`mutants.txt`):
-  - M13: `wt_sync.sh`'s orchestrator-scratch guard deleted. Its ref and message are constants, so the risk is low.
-  - M14: `bus.sh`'s guard bypassed with `true ||`. The body discloses this.
-  - M16: `push.sh`'s `--commits HEAD` dropped. No arm drives push.sh's commit half.
-  - M29: the site rule's Python-call arm dropped. The `git ... push` arm already covers every in-tree hit, so this arm is dead code.
+## Mutants: 40 in all, 37 killed
 
-  M15 (the stamp guard neutered with `if False`) is killed only by my out-of-tree probe, `stamp.py --title '/Users/exampleuser/y' --dry-run`. No in-tree check kills it.
-- **Declined `tmp_paths.py` rule (item 4): agreed on its argument.** The leak was a value computed on one line and pushed from another. A spelling rule could only pin the expression `${w#$HOME/}`. The push-time guard covers every input.
-- **Other contract items:**
-  - VERSION, the manifest, the notes heading and both claim files are untouched.
-  - `git merge-tree --write-tree origin/main HEAD` exits 0.
-  - The `tests/closures.json` entry is earned: entities.py loads `state_docs.py`, which now imports `ref_privacy.py`.
-  - Forward-carry: none is claimed, and none is owed by the items below.
-  - Code-owned paths in the diff: `.github/workflows/governance.yml`, `tests/closure.py`, `tools/release/stamp.py`. They need the owner's review separately.
+I re-ran my own driver at this head (`scripts/mutate_driver.py`, `mutants.txt`): the 30 from round 1 (M12 and M17 restated on the moved lines) and 10 new ones (N1 to N10). Every baseline check is green at this head (`baseline-checks.txt`). Three survive:
+- **M13: the orchestrator-scratch guard in `wt_sync.sh`. Justification accepted.** Its ref and message are constants plus `date`, so no input reaches the guard to be refused.
+- **M16: `push.sh` without `--commits HEAD`. Justification not accepted.** The cited pin is M25, which is `app_push.sh`'s arm. It tests the guard CLI behind app_push, not that push.sh passes `--commits`. And a push.sh push is still a push to this public repository: decision 0011 stops such a PR merging, not the branch being published. The line this PR added is pinned by nothing.
+  **Owed:** a push.sh self-test arm that plants a leaking unpushed commit message and expects exit 5 with no push (app_push's stub shape). Alternatively, drop `--commits` from push.sh and state that the retired path judges the branch only.
+- **N6: `of_host()` reads no hostname. Recorded, not blocking.** Nothing pins that the host's own name is read. On macOS the `.local` suffix arm covers git's default identity anyway. A self-test check that `Identity.of_host().hosts` is non-empty would pin it.
 
-## Why blocked
+## Why still blocked: class-open
 
-The body's lead claim is "a new pusher cannot skip the check". `--check` is the body's class rule. My enumeration of the same class (`enum-raw.txt`, `site-rule-attacks.txt`) finds an in-tree ref writer the rule cannot see:
+`.github/workflows/release.yml:144` runs `gh release create "${TAG}" --target "${GITHUB_SHA}"`. On dispatch, that creates the tag ref on origin through the Releases API.
+- The site rule matches neither `gh release create` nor `gh api .../releases -f tag_name=` (`attacks-sites-emails.txt`, rows "MISSED").
+- The file is in `--check`'s scope (`.github/workflows/`), and it is not in `PUSHERS` or in the body.
+- **The in-tree risk is nil.** release.yml refuses any `TAG` outside `^v[0-9]+\.[0-9]+\.[0-9]+$` (line 98) before creating it, so its disposition is a fixed shape.
+- **The mechanism is the defect.** The body claims "a new pusher cannot skip the check". A new instrument that names a release tag from a path skips it today. This is the same seam as round 1's `gh api git/refs`, through a second API.
 
-1. **class-open: `tools/audit/seat/prune_refs.py`.**
-   - **What it does:** it creates refs on origin with `gh api repos/{repo}/git/refs -f ref=refs/tags/archive/<branch name>`. That composes a published ref name from a value it does not fix itself, which is the body's own criterion for the guard.
-   - **Why it is in this class:** it archives the `wip-sync` family. Origin holds 506 `archive/*` tags, 1 of them `archive/wip-sync*`. Had it run over the 70 leaking refs before the cleanup, it would have republished them as permanent tags.
-   - **Why the registry misses it:** `_SITE` matches no `gh api ... git/refs` write. The file is neither guarded, nor in `PUSHERS`, nor dispositioned in the body.
-   - **Owed:** the site rule learns `gh api` ref writes (POST, or PATCH to `git/refs`). prune_refs.py is then registered, `republishes` at minimum, or guarded. A planted `gh api` ref write in the self-test must be found by the rule.
-2. **The same rule misses `git` spelled through a variable.** `_SITE`'s `\bgit\b` is case-sensitive, so `"$GIT" push ...` and `$GIT push ...` are not sites (`site-rule-attacks.txt`). The brief named this shape, and the docstring's "another wrapper name" does not clearly cover it. No in-tree instance exists today. **Owed:** match the variable form, or narrow the body's claim to what the rule checks.
-3. **A URL-escaped path carrying the host's own account name passes the guard.** For example, `see %2FUsers%2Fexampleuser%2Fproj` under the identity `exampleuser` passes (`encodings.txt`). The escape's trailing `F` is alphanumeric, so the account-name word boundary fails, and the home directory never appears verbatim. **Owed:** judge `urllib.parse.unquote(text)` as well as the raw text, with a self-test arm.
+**Owed:** the site rule sees `gh release create` (or `edit --tag`) and `gh api .../releases` with a field. release.yml is then registered with its shape check as the reason. A self-test plant must be found by the rule. The docstring's "WHAT IT DOES NOT CATCH" also gains the Contents API (`PUT .../contents/...`, which writes a commit with a message), unless the rule matches it. No in-tree file uses that API.
 
-What the guard does refuse among the encodings tried:
-- `Users-x` and lowercase `users-<own name>` in a slug;
-- the mixed-case own name, and `<name>_wt`;
-- `claude-<uid>`, and `tmp-claude-<any uid>`;
-- `~name`, `name@host`, `file:///Users/...` and `/private/var/folders`.
+## Other checks
 
-What still passes, and what I judge acceptable:
-- **Another host's name in lowercase or upper-case path shapes** (`users-someone`, `/USERS/someone`, `/HOME/someone`) and a JSON-escaped `\/Users\/someone`. Under the host's own identity, the account-name class catches each of these.
-- **A bare `claude-<other uid>` with no tmp prefix.** The defect's shape always carried the tmp prefix.
+- **The self-test** reads 45 checks, 0 failed, under each of three shapes: the macOS default, `TMPDIR` under /tmp, and `env -i` with a Linux-shaped HOME and USER.
+- **The pushers' own self-tests at this head:**
+  - state_docs: all passed;
+  - roster_edit: 47, 0 failed;
+  - app_push: 127, 0 failed;
+  - push.sh: 77, 0 failed;
+  - bus: 63, 0 failed;
+  - prune_refs: 24, pass;
+  - stamp: pass;
+  - tmp_paths: 50, 0 failed.
 
-## Observations, not part of the block
-
-These are for the orchestrator to route under `finding-propagation.md`. None of them is filed.
-
-- **Author and committer fields are not judged.** The guard reads ref names and messages only. On origin/main, 9 commits carry `<x>@<hostname>.local` author and committer emails. 2 of them are from 2026-10-11 (476dac6e0, e3511b221) and name the machine's hostname (`authors.txt`). This is outside #2310's stated fields.
-- **File content is not judged, and the docstring says so.** All 77 `wip-sync` refs carry the home path in their tree content, and so does origin/main itself, in 125 files. This is consistent with the cancelled history scrub. I am recording the figure only.
-- **Two grammars for one concept.** `ref_privacy.py`'s `_HOST_PATH` and `tmp_paths.py`'s home-abs class both define what a host path is, with different public-account lists.
-- **The body's `## Head` paragraph reads backwards.** It says 639797353 "merges the authored code head 9d7beec3b". In fact 9d7beec3b is the head: it merges origin/main into 6f1a0f0e9, whose parent is 639797353. The SHA the body names is correct.
+  `tmp_paths.py --check`: 0 refused.
+- **Untouched:** VERSION, the manifest, the notes heading and both claim files. `git merge-tree --write-tree origin/main HEAD` exits 0.
+- **Red checks on the round-2 commits:** 101a57725, 24bae2485 and 651ce8c4a have none. Every check-run at this head concluded with no failure (`check-runs-98ca694d1.tsv`).
+- **Code-owned paths, for the owner's separate gate:** `.github/workflows/governance.yml`, `tests/closure.py`, `tools/release/stamp.py`.
 
 ## RESULT lines
 
 ```
-RESULT head=9d7beec3bedb9557c19e42096689e1b137838c68 preamble_roles_diff=empty
-RESULT selftest mac=34/0fail tmpdir=/tmp:34/0fail linux-shape:34/0fail ci_job=116747147594:34/0fail
-RESULT check 15 files, 8 guarded, 0 refused (local and CI)
-RESULT ls-remote origin refs=2339 refused_host_identity=0
-RESULT fp main_messages=6134 identity_free_host_path=3 (2 true leaks, 1 false positive on /home/claude)
-RESULT mutants body=12/12 killed; reviewer=18, killed=14, survived=4 (M13 M14 M16 M29); M15 killed only by an out-of-tree probe
-RESULT cired_repro 29091251a TMPDIR=/tmp 33/1fail, macOS default 33/0fail
-RESULT class-open prune_refs.py (gh api git/refs); site-rule miss "$GIT" push; guard miss %2F-escaped own account name
-RESULT ci all check-runs at the head concluded: 0 failure; closures, fast (3.14), coverage, mutation, Analyze (python) success (evidence/check-runs-9d7beec3b.tsv)
+RESULT head=98ca694d1bb08532e7a440fd2bfb718a7bdcd1d0 round=2 preamble_roles_diff=empty
+RESULT selftest mac=45/0fail tmpdir=/tmp:45/0fail linux-shape:45/0fail
+RESULT check 16 files, 9 guarded, 0 refused
+RESULT mutants total=40 killed=37 survived=3 (M13 accepted, M16 not accepted, N6 recorded)
+RESULT fp main_messages=6259 decoding_changes=0 commits_with_refused_identity=9 noreply_refused=0
+RESULT encodings %2F-escaped own name now REFUSED; $GIT/${GIT}/$git now sites; gh api git/refs writes now sites
+RESULT class-open .github/workflows/release.yml gh release create (tag writer; shape-checked vN.N.N, undispositioned, rule cannot see it)
 RESULT version/manifest/notes/claims untouched; merge-tree rc=0
 ```

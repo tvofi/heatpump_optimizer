@@ -1,0 +1,33 @@
+== site rule
+found   "$GIT" push -q origin "$c:refs/heads/x/$s"
+found   $GIT push origin HEAD:refs/heads/x
+found   $git push origin x
+MISSED  "$GIT_CMD" push origin x
+found   ${GIT:-git} push origin x
+found   gh api repos/$R/git/refs -f ref=refs/heads/$slug -f sha=$c
+found   gh api -X PATCH repos/$R/git/refs/heads/$slug -f sha=$c
+found   gh api --method=POST repos/$R/git/refs --input body.json
+found   subprocess.run(["gh","api",f"repos/{r}/git/refs","-f",f"ref={ref}"])
+MISSED  gh api repos/$R/git/refs \
+MISSED  gh api graphql -F query=@create_ref.graphql
+MISSED  gh api repos/$R/releases -f tag_name=$t -f target_commitish=$c
+MISSED  gh release create "$tag" --target "$sha"
+MISSED  gh api repos/$R/contents/notes/$slug.md -X PUT -f message="$m" -f content=$b
+MISSED  git send-pack origin "$c:refs/heads/$s"
+MISSED  gh api -X DELETE repos/$R/git/refs/heads/$b
+MISSED  gh api repos/$R/git/refs/heads/$b --jq .object.sha
+== email_leaks (synthetic identity, host example-mbp.local)
+REFUSED  t@example-mbp.local
+REFUSED  t@EXAMPLE-MBP
+REFUSED  t@example-mbp.fritz.box
+passed   t@192.168.1.5
+passed   t@[10.0.0.2]
+REFUSED  t@example-mbp.lan
+passed   exampleuser@gmail.com
+REFUSED  t@seat.home.arpa
+REFUSED  t@box.localdomain
+passed   123+x@users.noreply.github.com
+passed   noreply@anthropic.com
+passed   t@corp.example.com
+REFUSED  t@localhost
+passed   t@(none)

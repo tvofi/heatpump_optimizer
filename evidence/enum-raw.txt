@@ -6,9 +6,9 @@ OUT     dev/audit/harnesses/r10_tick_which_roster.py [90]
 OUT     tests/throwaway_git.py [283]
 IN-REG  tools/audit/seat/body_push.sh [39]
 IN-REG  tools/audit/seat/bus.sh [260, 593, 678, 681, 696, 729]
-IN-REG  tools/audit/seat/merge_train.py [1292, 2026]
+IN-REG  tools/audit/seat/merge_train.py [1611, 2597]
 IN-REG  tools/audit/seat/r9_rc_bus_fetchhead.sh [64, 76, 195, 196, 240, 241]
-OUT     tools/audit/seat/ref_privacy.py [30, 53, 55, 226, 232, 235]
+OUT     tools/audit/seat/ref_privacy.py [30, 65, 297, 305, 310, 479]
 IN-REG  tools/audit/seat/roster_edit.py [414, 795]
 IN-REG  tools/audit/seat/state_docs.py [448, 652, 661]
 IN-REG  tools/audit/seat/wt_sync.sh [24, 43]
@@ -17,7 +17,7 @@ IN-REG  tools/pr/app_approve.sh [577, 697]
 IN-REG  tools/pr/app_push.sh [659, 688, 693, 747, 797, 810]
 IN-REG  tools/pr/merge_main_bot.py [263]
 IN-REG  tools/pr/push.sh [686]
-IN-REG  tools/release/stamp.py [245, 248, 872, 877, 958, 1802]
+IN-REG  tools/release/stamp.py [252, 255, 879, 884, 965, 1814]
 
 == broad rule, files not in PUSHERS:
 .claude/workflows/web-decomp-stage.js
@@ -43,10 +43,10 @@ tests/card_browser.mjs
 tests/ci_ratchet.py
     198 if event == "push"]
 tests/entities.py
-    19070 not _closure.autofix_allowed(**{**_AF_KW, "event_name": "push"}),
-    24478 if "'schedule'" in _h and "'push'" not in _h and "'pull_request'" not in _h
-    26422 "job if on push (R12)": lambda _w, _j, _s: _j.update({"if": _j["if"].replace("pull_request", "push")}),
-    27364 _CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
+    19107 not _closure.autofix_allowed(**{**_AF_KW, "event_name": "push"}),
+    24515 if "'schedule'" in _h and "'push'" not in _h and "'pull_request'" not in _h
+    26459 "job if on push (R12)": lambda _w, _j, _s: _j.update({"if": _j["if"].replace("pull_request", "push")}),
+    27401 _CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
 tests/nightly_status.py
     10 beside that same commit's own `skipped` entry from the push -- and the next
 tests/throwaway_git.py
@@ -55,8 +55,8 @@ tools/audit/merge_throughput.py
     21 push --json ...`). The window is still open, so a figure this script
 tools/audit/seat/ref_privacy.py
     30 it does not fix itself calls it before `git push`; the `guard` subcommand is the
-    53 It enumerates every tracked file, at <ref> through `git grep`, holding a push
-    55 `git`/`g`/`run`/`sh` call) is followed by the word `push`, or a continuation
-    226 "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+    65 It enumerates every tracked file, at <ref> through `git grep`, holding a push
+    297 "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+    305 r"(?:\b(?:git|rgit)\b|\$\{?(?i:git)\}?(?![\w]))[^\n]*?(?<![\w.-])push(?![\w-])"
 tools/pr/contract_rerun.py
     160 stale_contract(T0, [pc(3, event="push")])[:2], ("none", None))
