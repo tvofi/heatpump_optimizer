@@ -1,8 +1,0 @@
-PNG page figures, sha256 comparison (head/base = /private/tmp/r10-review-2346/evidence/figures-*)
-  head-regenerated vs base-regenerated: IDENTICAL for 12 (advisor x2, health x2, plan x2,
-    plan-why x2, savings x2, tile x2); DIFFERS for setup-light.png, setup-dark.png.
-  head-regenerated vs committed head tree: IDENTICAL for setup-light.png, setup-dark.png;
-    the other 12 differ (raster is not bit-stable on this machine -- they differ from the
-    committed ones at the merge base too, so the drift is the raster, not this branch).
-SVG figures (make_card_figures.mjs): chart-anatomy.svg and chart-dashed-lines.svg
-  byte-identical head vs base.

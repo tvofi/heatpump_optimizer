@@ -1,132 +1,108 @@
-Fix review: blocked 82daaab4421a380e3e73c570e58dffe19dc0d588 harness: the card claims a tests/card.mjs pin and a finite census it does not have
+Fix review: blocked 82daaab4421a380e3e73c570e58dffe19dc0d588 harness: class-open finite_inline (nowTemp, refit.scale)
 
-bus-nonce: d3ff91435d44935db71c9e37cf60e410
+bus-nonce: 22ae2ad2ea2c5bac7f924ea56cb3ac39
 
-Round 1 for this PR. Measured at `82daaab4421a380e3e73c570e58dffe19dc0d588`
-(merge base `e3f3b312fff572904f24d78a44a2c4492b1a8ddb`) from a detached worktree at
-the head; the contract in `dev/governance/roles/` is current (empty three-dot against
-`origin/main`). The head matches the SHA the body names.
+Measured head: 82daaab4421a380e3e73c570e58dffe19dc0d588, from a detached worktree
+at /private/tmp/rev-2346/tree. Everything below was re-derived on this machine
+against merge-base e3f3b312fff572904f24d78a44a2c4492b1a8ddb.
 
-## RESULT lines (mine, not the fixer's)
+## What passes (re-derived, not taken from the body)
 
-Finder harnesses run unmodified, sha1 as the body states (`66b390554c0aa54c8960eacb532b04ff827ca8cf`
-`wizard_widgets.py`; `677b75421ca84ac0f404dc90fa0b6a0b72edea0e` `card_shapes.mjs`), at both ends:
+- Mutation proof, run by me in my own worktree (evidence/mutants-run.log):
+  M0 null -> `ALL CARD CHECKS PASSED`; M1 (4 FAIL), M2 (11 FAIL), M8 (1 FAIL),
+  M3 (1), M4 (1), M5 (1), M6 (1), M7 (1) each kill the named check(s). Every
+  mutant is an exact production-line replacement, restored with `git checkout`.
+- Finder's harnesses, at both ends:
+  - card_shapes.mjs (sha1 677b75421c…, out of tree, named) —
+    base `total=31 char_width_inline=2 finite_inline=7 no_plan_state=2 dead=2`;
+    head `total=24 char_width_inline=0 finite_inline=3 no_plan_state=1 dead=0`.
+  - v2_card_lines.mjs (in tree) — base `total=34 isfinite=7 char_width=3
+    no_plan=4`; head `total=27 isfinite=3 char_width=1 no_plan=3`.
+  - wizard_widgets.py (sha1 66b390554c…, out of tree, named) — base
+    `menu_disagree=1 menu_fallbacks=23`; head `menu_disagree=0
+    menu_fallbacks=23`; `golden_equal=1` at both ends. Perturbation
+    `--bump heat_pump_cop_nominal` moves `disagree` 0 -> 2, so the census is
+    live, not vacuous.
+- Claim files against real drift: `node tests/card_drift.mjs <merge-base>` ->
+  `39 state(s) moved and claimed, 1 identical` (evidence/card_drift.log).
+  `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>` ->
+  `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56`; the
+  config_flow leaf is claimed, not may-drift (evidence/envdrift-all.log).
+- `claims-for:` is `7.0.0` in both claim files, equal to VERSION `7.0.0`.
+- VERSION, manifest.json version, and RELEASE_NOTES heading are untouched.
+- Forward-carry is present: `dev/programme/rosters/wave-r10-groups.json`,
+  R10-ARCHSCORE-COVERAGE's `brief`, carries the precondition that the card's
+  dead-definition row and clone census be recorded at a base already carrying
+  these C1/C4 folds, stated as a precondition with its control.
+- Red checks: CI check-runs for the head are green (`browser` success,
+  `env-matrix` success, `mutation` success, `pr-contract` success). The body's
+  two local reds are answered and real: `P9 grid: no two text runs share ink`
+  fails with the same pair (`text "2" x text "3", 2 px`) at the merge base
+  (evidence via /private/tmp/r10-ux-setup/browser-base.log), so it is main's
+  own; `env_drift.py --all` reds are the re-record-then-claim sequence the
+  body describes.
 
-    RESULT menu_fallbacks=23 -> 23
-    RESULT menu_disagree=1 -> 0
-    RESULT golden_equal=1 -> 1
-    RESULT total=31 -> 24; char_width_inline=2 -> 0; finite_inline=7 -> 3
-    RESULT no_plan_state=2 -> 1; dead=2 (top:textWidth top:openHaLink) -> 0
-    RESULT v2_card_lines total=34 -> 27 (isfinite 7->3, char_width 3->1, no_plan 4->3)
+## What blocks
 
-Null control: both censuses run twice on the same file report identical counts.
+`harness: class-open finite_inline` — the enumeration rule the body names
+(card_shapes.mjs `finite_inline`, v2_card_lines.mjs `isfinite_lines`) returns
+two seams at the head that are neither deduped in the diff nor dispositioned
+in the body, and the check that should own them does not see them.
 
-Mutation proof re-run independently with my own replacements
-(`evidence/mutants-review.py`, `.log`, `.json`; closure `node tests/card.mjs`):
+The check in `tests/card.mjs` reads:
 
-    M0 rc=0 fails=0 (null control)
-    M1 fails=4  M2 fails=11  M8 fails=1  M3 fails=1  M4 fails=1  M5 fails=1  M6 fails=1  M7 fails=1
+    const finite = cardSrc.split("\n")
+      .filter((l) => /typeof n === "number" && Number\.isFinite\(n\)/.test(l)
+        && !/^\s*(const finiteNum|\*|\/\/)/.test(l));
+    check("the finite-number test is spelled in exactly one place", …)
 
-Each of the eight named checks from the body's table went red under its mutant, and
-the file was restored from git between runs. `node tests/card.mjs` passes unmutated.
+Its regex matches only the literal parameter name `n`, so it pins the four
+`n`-named receipt spellings the C4 fold did dedupe (money/pct/amount/neg) —
+that part is real and M7 kills it. But the finite-number rule is still spelled
+inline in two more places, with different variable names, which the regex does
+not match:
 
-Drift and claims: `card_drift.mjs origin/main` -> `39 state(s) moved and claimed, 1
-identical` (editor_schema). I re-derived the body's "33 inside the `<style>` block"
-claim under its stated rule (common prefix/suffix of the two dumped `html` strings
-against the block's own offsets): 33 states differ entirely inside `<style>`(61..49863);
-the other six (setup_single_buffer, setup_two_tank, setup_coil, layout_editing_dragged,
-layout_editing_tidy, picker_open_filtered) differ outside. That is the body's split.
-`env_drift.py --all origin/main` -> 56 scenarios, `NO UNCLAIMED DRIFT`, `NO STALE
-FIXTURE`. Both claim files' `claims-for:` is `7.0.0` (= VERSION). VERSION, manifest and
-the RELEASE_NOTES heading are untouched. `tests/structure.py` -> `STRUCTURE RATCHET PASSED`,
-no row moved. `merge-tree --write-tree origin/main <head>` exits 0, no claim-driver
-refusal. CI's head check-runs: no failure anywhere in the range; the eight earlier heads
-have no red gate run and the merge commit's only non-successes are cancellations.
+- `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:7071`
+  `if (typeof nowTemp === "number" && Number.isFinite(nowTemp) && axes.temp)`
+- `…/heatpump-optimizer-card.js:8684`
+  `if (refit && typeof refit.scale === "number" && Number.isFinite(refit.scale))`
 
-Browser lane (my own runs, FULL grid, both ends): head and base each 74 `ok` and the
-same single `FAIL P9 grid: no two text runs share ink -- 20: text "2" x text "3" 2 px of
-shared ink`. Same pair, same 2 px, both ends: main's own, not this PR's. Head measures
-324 cells and 102 colour rules (base 315 and 97); `every card rule that sets a colour is
-rendered in some cell`, `no text is clipped where its ancestor cannot scroll to it`, AA
-contrast, 24 px targets all pass. The Setup page renders at 375/768/1280 in both themes.
-The two committed page figures are byte-identical to a head regeneration; 12 of 14
-figures are byte-identical head vs base, the two Setup ones differ and are committed.
-`make_card_figures.mjs` at both ends: `chart-anatomy.svg` and `chart-dashed-lines.svg`
-byte-identical. Design tokens are shared, not gamed: the card uses `--hpo-surface-2`,
-`--hpo-divider`, `--hpo-ink`/`--hpo-ink-2`, `--hpo-accent`, the same tokens the tiles and
-chips read; the P9 colour-rule delta is the new colour rules being measured, not a literal
-added to pass a check.
+The finder's own metric reports `finite_inline=3` at the head (the two above
+plus the `finiteNum` owner), and the finding's recorded target in
+`dev/audit/rounds/round10/CATCHUP-VERIFY.json` is `C4 … finite 7->3` — three
+places, not "exactly one". The check's comment — "neither is re-spelled inline
+anywhere else in the card" — is therefore false, and a mutation that re-spells
+the rule inline under a non-`n` name would pass the check while its name
+claims it cannot.
 
-Forward-carry: the destination the body names (`wave-r10-groups.json`, group
-R10-ARCHSCORE-COVERAGE's `brief`) does carry the precondition and its control ("measure
-them on a base where the folds have landed, or the recorded dead-definition row counts a
-helper the folds have since used"). Both `archscore.card_dead_definitions` and
-`archscore.card_clone_copies` are absent from `tests/ci_budgets.json` at base and head, so
-the carry, not a re-record here, is correct.
+These two seams are not in the C4 diff (the finder's C4 patch, and this PR,
+leave `nowTemp`/`refit.scale` untouched) and are not dispositioned in the
+body, which reports `finite_inline=3` without saying what the three are or
+why the two remain. Per `fix-review.md` step 6 this is a class-open seam. The
+fix is small: either dedupe both to `finiteNum(…)` and widen the check to the
+finder's pattern (`typeof (\w+(?:\.\w+)?) === "number" && Number\.isFinite\(\1\)`),
+or narrow the check's name/comment to the `n`-named spelling it actually
+enforces. (The fixer's own later, unpushed commit 5295fa06a — "the finite
+census widened, a comment this PR made false" — does the former.)
 
-## Blocking findings
+## Secondary note (not a block on its own)
 
-1. **harness -- a pin the card says it has and does not.**
-   `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:626-629` and
-   `:2434-2437` (both added by this PR) say `tests/card.mjs` pins the four
-   `setup.page_*` names against `translations/en.json` "so the card cannot drift from
-   the flow it points at (the class #2222 is about)". No test in the tree reads the
-   card's `STRINGS` table, the `setup.page_*` keys, or `translations/en.json` from
-   `tests/card.mjs`/`tests/card_rig.mjs`. The values are right at this head (they equal
-   `_OPTION_PAGES` and `en.json`'s `options.step.advanced.menu_options` for
-   entities/entities_pump/building/hot_water_tank), so no wrong copy ships; the defect
-   is the false guarantee, in the PR that closes part of #2222's I5 class. It is the
-   "claim stronger than the check" shape: a later seat will read the comment and trust a
-   control that does not exist. Remedy: add the pin (compare the four `STRINGS` values
-   with the four `translations/en.json` menu labels, keyed by config_flow's page ids) or
-   remove the claim from both comments.
+`d408fa76a` ("a place with no options page names itself, not undefined") adds
+a `page ? L(page) : placeLabel(b.place)` fallback for a place the backend adds
+ahead of the card, but no test topology renders such a place (every place in
+`qaTopologies`/`layoutCatalogTopo` is in `SETUP_CONFIGURE_PAGE`), and no check
+in this head pins the fallback. It is not in the body's mutation table. Worth
+pinning or acknowledging when the finite census is revisited.
 
-2. **harness -- the finite-number census overclaims.**
-   `tests/card.mjs`, added under ARCH2-s5 C4: `check("the finite-number test is spelled
-   in exactly one place", ...)` counts only the literal `typeof n === "number" &&
-   Number.isFinite(n)` spelling. Two inline spellings of the same rule remain at
-   `card.js:7071` (`nowTemp`) and `card.js:8684` (`refit.scale`), and the finder's own
-   census says `finite_inline=3` at this head (the body reports 3, 7 -> 3 by design).
-   The check's name and its comment ("neither is re-spelled inline anywhere else in the
-   card") are stronger than what it measures, so a reader trusts a rule the check does
-   not apply. Remedy: widen the census to the finder's pattern (any identifier) and
-   either fold the two sites or narrow the name/comment to the spelling it does count.
-
-3. **harness -- a comment this PR made false.**
-   `tests/card.mjs:11565-11567`: "Driven directly, because no button calls it until a
-   later group converts one." This PR gives `openHaLink` its first caller
-   (`card.js:12304`, the Configure chip), and the press census presses it. Cheap, but it
-   is the same stale-comment class the PR is closing.
-
-## Body figure to correct
-
-- M2's row says "10 checks"; the fixer's own `mutants.log` prints `fails=11` and lists
-  eleven, and my run prints eleven. Correct the body to 11.
-
-## Non-blocking, checked and holding
-
-- The Setup-tab render seams I enumerated -- `setupSvgHtml`, the `.setup-*`/`.layout-*`
-  stylesheet, `SetupPage`'s render/wireControls, `tankBarHtml`, `LayoutEditor.barHtml`,
-  `pickerHtml`/`setpointHtml` -- are all in the diff or (the picker) already token-styled
-  and outside the owner's acceptance list. No undispositioned UI seam of this class.
-- Every acceptance item is answered: no silhouettes (`.setup-contour`/`.setup-coil`/
-  `NODE_SHAPES` gone, no dangling refs), labels wrap (2 lines, all published labels
-  fit), unset rows fold into one muted line + Configure chip with `openHaLink` and
-  accessible names, pipes stop on the card border and are painted under opaque cards,
-  one precision per unit with an unnamed-unit null control, layout-bar/tank buttons share
-  the chip rule.
-- The mutation table's per-mutant check names match my run exactly except M2's count.
-- `ci_predict.py --base origin/main` -> `no closures or fast red predicted`.
-
-## What I could not re-derive
-
-Nothing material. The 33/6 drift split I derived with the body's own rule rather than a
-finder harness; the escaped-string offsets are in `evidence/card_drift.review.log`.
-The two `--all`/`card_drift` runs are the committed instruments.
-
-Evidence: `evidence/` (`HEAD.txt`, `mutants-review.*`, `card_drift.review.log`,
-`env_drift.review.log`, `browser-{head,base}.log`, `browser-figures{,-base}.log`,
-`figures-compare.txt`, `rederivation.txt`, the regenerated PNG/SVG sets).
-
-Code-owned paths (`tests/card.mjs`, the config_flow fixture): tvofi's approving review is
-owed after this verdict, not this reviewer's.
+RESULT mutation M0 null: 0 FAIL (passes)
+RESULT mutation M1..M8: each killed (4/11/1/1/1/1/1/1 FAIL respectively)
+RESULT card_shapes base total=31 finite_inline=7 char_width_inline=2 no_plan_state=2 dead=2
+RESULT card_shapes head total=24 finite_inline=3 char_width_inline=0 no_plan_state=1 dead=0
+RESULT v2_card_lines base total=34 isfinite=7 char_width=3 no_plan=4
+RESULT v2_card_lines head total=27 isfinite=3 char_width=1 no_plan=3
+RESULT wizard base menu_disagree=1 menu_fallbacks=23 golden_equal=1
+RESULT wizard head menu_disagree=0 menu_fallbacks=23 golden_equal=1
+RESULT wizard perturbation --bump heat_pump_cop_nominal disagree 0 -> 2
+RESULT card_drift 39 state(s) moved and claimed, 1 identical
+RESULT env_drift NO UNCLAIMED DRIFT (56), NO STALE FIXTURE (56)
+RESULT class-open finite_inline: nowTemp (card.js:7071) and refit.scale (card.js:8684) remain inline; check matches only literal `n`

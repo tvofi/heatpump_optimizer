@@ -1,10 +1,10 @@
 M0 rc=0 fails=0 :: null control: no mutation
-M1 rc=1 fails=4 :: fitSlotRow wraps -> ellipsizes the label again
+M1 rc=1 fails=4 :: fitSlotRow wraps -> ellipsizes
     FAIL a slot label is drawn whole, wrapped rather than cut
     FAIL the six cases really are six different slopes
     FAIL and the label is never cut either, at any real length
     FAIL a label that fits is left exactly alone
-M2 rc=1 fails=11 :: the unset slots fold -> become ordinary rows again
+M2 rc=1 fails=11 :: unset slots fold -> ordinary rows
     FAIL a slot label is drawn whole, wrapped rather than cut
     FAIL an unset input folds into its box's one muted line, not a row
     FAIL a stale wood-valve payload re-homes its slot onto the wood tank
@@ -16,15 +16,17 @@ M2 rc=1 fails=11 :: the unset slots fold -> become ordinary rows again
     FAIL every configured slot is matched with its own hit rect
     FAIL a block that is open sizes its box for the rows it now draws
     FAIL the census reached every navigateTo and openHaLink call site
-M8 rc=1 fails=1 :: an OPEN folded block's height counted as the folded one
+M8 rc=1 fails=1 :: open folded block height -> folded height
     FAIL a block that is open sizes its box for the rows it now draws
-M3 rc=1 fails=1 :: the card is painted -> left invisible
+M3 rc=1 fails=1 :: card painted -> invisible
     FAIL the card is painted from the product's surface, border and radius
-M4 rc=1 fails=1 :: one precision per unit -> Home Assistant's own precision
+M4 rc=1 fails=1 :: one precision -> HA precision
     FAIL two temperatures on one drawing are spelled to one precision
-M5 rc=1 fails=1 :: the axis measures its label -> counts its characters (C1)
+M5 rc=1 fails=1 :: axis measures label -> counts chars (C1)
     FAIL the chart's label-width rule is spelled in exactly one place
-M6 rc=1 fails=1 :: noPlanHtml owns the empty state -> a second spelling (C4)
+M6 rc=1 fails=1 :: noPlanHtml owns empty state -> second spelling (C4)
     FAIL the no-plan empty state is built in exactly one place
-M7 rc=1 fails=1 :: finiteNum owns the number test -> a second spelling (C4)
+M7 rc=1 fails=1 :: finiteNum owns number test -> second spelling (C4)
     FAIL the finite-number test is spelled in exactly one place
+N1 rc=0 fails=0 :: Configure chip names a page the flow does not use
+DONE
