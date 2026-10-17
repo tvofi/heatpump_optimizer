@@ -63,7 +63,10 @@ Confirmed (empty diff for VERSION, RELEASE_NOTES.md, manifest.json).
 - 9 harness committed in-tree (not out-of-tree).
 - 10 forward-carry: in the tree at dev/programme/rosters/wave-r10-groups.json
   R10-ARCHSCORE-COVERAGE carry (added on main), carrying the control and the
-  precondition.
+  precondition. This resolves the prior `carry-missing` block (head 264027cc8):
+  the roster's carry is no longer byte-identical to the merge base's; origin/main
+  now holds three items naming #2235/#2340, and the PR does not touch the roster,
+  so the carry survives the merge (merge-tree clean).
 - 11 red checks answered and head green.
 - 13 merge-tree origin/main + head -> exit 0, no conflict.
 - 15 architecture sound: production change is pure dead-code deletion; the added
