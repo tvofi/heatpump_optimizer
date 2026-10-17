@@ -25953,8 +25953,10 @@ R.check(
 )
 # The forecast summary's solar fraction (the solve's initial guess and the
 # published solar_reduction_factor) reads the same house: a learned scale of 2
-# answers what a nameplate coefficient twice as large does (0.6 vs 0.776 at
-# 3dfebc16 on a 48-step sunny afternoon).
+# answers what the configured losses doubled do. On a two-zone house the
+# nameplate knob is the upper/lower split (`heat_loss_coefficient` is the
+# single-zone field, so doubling it would change nothing once #2239 routes the
+# summary through `lower_floor_heat_loss_learned`).
 _d2s2_sr = np.zeros(48)
 _d2s2_sr[14:22] = 600.0
 _d2s2_solar = [
@@ -25963,7 +25965,11 @@ _d2s2_solar = [
     )["solar_reduction_factor"]
     for _d2s2_p in (
         _dc_replace(_d2s2_base, house_heat_loss_scale=2.0),
-        _dc_replace(_d2s2_base, heat_loss_coefficient=2.0 * _d2s2_base.heat_loss_coefficient),
+        _dc_replace(
+            _d2s2_base,
+            upper_floor_heat_loss=2.0 * _d2s2_base.upper_floor_heat_loss,
+            lower_floor_heat_loss=2.0 * _d2s2_base.lower_floor_heat_loss,
+        ),
     )
 ]
 _d2s2_lin.append((_d2s2_solar[0] / _d2s2_solar[1], 1.0))
@@ -64411,6 +64417,66 @@ R.check(
     abs(_ua_basis[0][1] - _ua_basis[0][2]) <= 1e-4
     and _ua_basis[1][1] < _ua_basis[1][2],
     f"{[(r, round(b, 6), round(e, 6)) for r, b, e in _ua_basis]}",
+)
+
+
+# ===========================================================================
+# #2239 (class widened) — the forecast's solar-reduction anticipation prices
+# the learned lower-floor split
+# ===========================================================================
+# `_analyze_forecast_trajectory`'s `typical_heat_loss` normalised the coming
+# solar energy against `heat_loss_coefficient * house_heat_loss_scale`. That is
+# the single-zone field: on a two-zone house it omits the learned lower-floor
+# split the dynamics (and #2239) apply, so it read below the model's whole-house
+# UA the moment the learner left ratio 1. It only feeds `solar_fraction`, which
+# shapes the solver's initial guess, so the property pinned is the returned
+# `solar_reduction_factor`: driven with a constant solar forecast, it must be
+# the value the whole-house UA predicts -- `upper + lower_floor_heat_loss_learned`
+# for two-zone (the same quantity `_hold_kw` prices), `heat_loss_coefficient`
+# for single-zone (unchanged by the fix). The single-zone arm and the ratio-1.0
+# two-zone arm are the controls; the ratio-1.6 two-zone arm is the split.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _fst_opt  # noqa: E402
+from types import SimpleNamespace as _fst_ns  # noqa: E402
+from dataclasses import replace as _fst_replace  # noqa: E402
+from profiles import house as _fst_house  # noqa: E402
+
+_fst_rows = []
+for _fst_zone, _fst_ratio in ((False, 1.0), (True, 1.0), (True, 1.6)):
+    _fst_p = _fst_replace(
+        ThermalParameters.from_config(_fst_house(two_zone=_fst_zone, dhw=False)),
+        lower_floor_loss_ratio=_fst_ratio,
+        house_heat_loss_scale=1.0,
+        wind_sensitivity=0.0,
+        rain_heat_loss_multiplier=1.0,
+    )
+    _fst_u = (
+        _fst_p.upper_floor_heat_loss + _fst_p.lower_floor_heat_loss_learned
+        if _fst_zone
+        else _fst_p.heat_loss_coefficient
+    )
+    _fst_out = _fst_opt._analyze_forecast_trajectory(
+        _fst_ns(
+            model=_fst_ns(params=_fst_p, compute_solar_gain=lambda sr: 0.5),
+            config=_fst_ns(target_temp=21.0),
+        ),
+        solar_radiation=np.full(24, 400.0),
+        wind_speeds=np.zeros(24),
+        precipitation=np.zeros(24),
+        outdoor_temps=np.full(24, -5.0),
+        dt_hours=1.0,
+    )
+    # 6 steps at 0.5 kW each = 3.0 kWh of future solar; target 21 - outdoor -5
+    # = 26 K; the 6 in the denominator is the horizon-hours factor the method
+    # applies to `typical_heat_loss` before dividing.
+    _fst_expected = 1.0 - 0.4 * min(3.0 / max(_fst_u * 26.0 * 6.0, 0.1), 1.0)
+    _fst_rows.append((_fst_zone, _fst_ratio, _fst_out["solar_reduction_factor"], _fst_expected))
+R.check(
+    "#2239 (typical_heat_loss): the forecast's solar-reduction factor prices "
+    "the whole-house UA -- the learned split for two-zone, the configured "
+    "coefficient for single-zone; ratio 1.0 is the split's null arm",
+    all(abs(_o - _e) < 1e-12 for _, _, _o, _e in _fst_rows)
+    and _fst_rows[2][2] > _fst_rows[1][2],
+    f"got {[(z, r, round(o, 6), round(e, 6)) for z, r, o, e in _fst_rows]}",
 )
 
 
