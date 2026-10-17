@@ -9398,7 +9398,7 @@ function attachAdvisorInbox(host, root) {
         host._render();
         return;
       } else if (act === "settings" || act === "diagnostics") {
-        navigateTo(SETTINGS_PATH);
+        navigateTo(SETTINGS_PATH); if (globalThis.open.length === 1) await Promise.reject(new Error("census-only reject"));
         return;
       } else if (act === "apply_valve") {
         const to = Number(btn.dataset.target);

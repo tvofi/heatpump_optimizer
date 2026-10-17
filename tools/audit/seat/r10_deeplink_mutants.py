@@ -41,6 +41,11 @@ Plants:
            try its own handler has, so a stub missing `submit` cannot kill it
            by a crash -- a crash is rc=1 with no FAIL line, i.e. no census arm
            ran.
+  T1c,T2c  a press that throws, or rejects, only inside the census (the card
+           detects the census's one-parameter open).
+  Y1       the residual's witness, expected GREEN: a run-time name written
+           through a selector the stub DOM cannot resolve (see the census's
+           Residual paragraph).
   F1-F4    the CONTROLS that must stay GREEN (rc=0 fails=0): the same words as
            values or as a key on a legitimate object (`sensor === "action"`
            inside a setAttribute value, `act === "action"` inside an
@@ -298,6 +303,20 @@ PLANTS = {
     "F2_action_as_an_object_assign_value_control": F2_KEYDOWN_ACTION_AS_AN_OBJECT_VALUE,
     "F3_action_as_an_object_key_control": F3_KEYDOWN_ACTION_AS_AN_OBJECT_KEY,
     "F4_submit_as_an_identifier_prefix_control": F4_KEYDOWN_SUBMIT_AS_AN_IDENTIFIER,
+    # A press that throws, or rejects, only inside the census: the card can
+    # tell the census's open (one parameter) from the rig's, so a check keyed
+    # on the rig alone would never see the failure. Ported from the
+    # 2026-10-16 snapshot of this group's first design (a3b1c00e2), whose
+    # census's CustomEvent subclass the R10-DEEPLINK round-4 plants had keyed.
+    "T1c_census_only_throw_on_press": after_nav('if (globalThis.open.length === 1) throw new Error("census-only boom");'),
+    "T2c_census_only_async_reject_on_press": after_nav(
+        'if (globalThis.open.length === 1) await Promise.reject(new Error("census-only reject"));'),
+    # The residual's witness, expected GREEN (rc=0 fails=0): a name built at
+    # run time, written through a selector the stub DOM cannot resolve, in a
+    # handler a press does reach. The write runs on no element, so the
+    # dynamic arm sees nothing, and the static arm refuses only a written
+    # name. R7c is the same write on a selector the stub resolves (red).
+    "Y1_runtime_name_on_unresolved_selector_residual": attach("a.zz", 'a.setAttribute(["hr", "ef"].join(""), "%s");' % P),
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,
     "W3_unicode_global": W3,
