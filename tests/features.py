@@ -37216,13 +37216,17 @@ R.check(
     [r["month"] for r in _rows] == ["2026-02"],
     repr([r["month"] for r in _rows]),
 )
+# #2255: the row's actual is the month's bill (the spot line, 2.0), the
+# saving is baseline less actual over the covered interval (1.0), and the
+# baseline is the bill plus that saving. With no coverage meta (a month
+# booked before it existed) the open month falls back to 28 / 10.
 R.check(
-    "open month scales all three SEK columns and leaves pct unchanged",
+    "open month scales the bill and the saving by one factor",
     _rows[0]["estimated"] is True
-    and abs(_rows[0]["baseline_sek"] - 5.6) < 1e-9
-    and abs(_rows[0]["actual_sek"] - 2.8) < 1e-9
+    and abs(_rows[0]["actual_sek"] - 5.6) < 1e-9
     and abs(_rows[0]["savings_sek"] - 2.8) < 1e-9
-    and abs(_rows[0]["savings_pct"] - 50.0) < 1e-9,
+    and abs(_rows[0]["baseline_sek"] - 8.4) < 1e-9
+    and abs(_rows[0]["savings_pct"] - 100.0 / 3.0) < 1e-9,
     repr(_rows[0]),
 )
 _led.add_savings_settlement(
@@ -37236,11 +37240,86 @@ R.check(
 )
 _closed = [r for r in _led.savings_months(_feb10) if r["month"] == "2026-01"][0]
 R.check(
-    "a closed month is unscaled",
+    "a closed month is unscaled; nothing saved reads baseline == actual == bill",
     _closed["estimated"] is False
-    and abs(_closed["baseline_sek"] - 1.0) < 1e-9
-    and abs(_closed["actual_sek"] - 1.0) < 1e-9,
+    and abs(_closed["baseline_sek"] - 20.0) < 1e-9
+    and abs(_closed["actual_sek"] - 20.0) < 1e-9
+    and _closed["savings_sek"] == 0.0
+    and _closed["savings_pct"] == 0.0,
     repr(_closed),
+)
+
+R.section("#2255 — one cost source and a coverage-scaled open month")
+
+from heatpump_optimizer.ledger import freeze_month_report as _sav_freeze
+from heatpump_optimizer.ledger import month_hours as _sav_month_hours
+
+# Item 5: a closed September with every line the receipt adds -- spot,
+# grid fee, capacity, immersion, wear -- and one interval no plan covered.
+# The receipt's headline and the savings row's actual are the same figure.
+_sep = _SavLedger()
+_sep_t = _SavDT(2026, 9, 12, 3, 0)
+for _i, _base_kw in enumerate((2.0, 2.0, None)):
+    _t = _sep_t.replace(hour=3 + _i)
+    _e = 1.5
+    _sep.observe_spot_and_settle_savings(
+        _t, 1.0, {"baseline_kw": _base_kw, "grid_fee": 0.4}, _e, 1.0
+    )
+    _sep.add(_t, "spot", kwh=_e - 0.25, sek=(_e - 0.25) * 1.0)
+    _sep.add(_t, "immersion", kwh=0.25, sek=0.25)
+    _sep.add(_t, "grid_fee", kwh=_e, sek=_e * 0.4)
+_sep.book_capacity("2026-09", 3.0, 2.5)
+_sep.add(_sep_t, "wear", kwh=0.0, sek=1.2)
+_sep_receipt = _sav_freeze(
+    _sep, "2026-09", compressor_starts=1, contract_comparison={}
+)
+_sep_row = _sep.savings_months(_SavDT(2026, 10, 3, 12, 0))[0]
+R.check(
+    "the closed month's actual is the receipt's total, not a second sum",
+    _sep_row["actual_sek"] == _sep_receipt["total_sek"]
+    and abs(_sep_row["actual_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
+    f"row {_sep_row} receipt total {_sep_receipt['total_sek']}",
+)
+R.check(
+    "the saving prices both sides at spot plus the grid fee, covered intervals only",
+    abs(_sep_row["savings_sek"] - 2 * (2.0 - 1.5) * 1.4) < 1e-9
+    and abs(_sep_row["baseline_sek"] - (_sep_row["actual_sek"] + _sep_row["savings_sek"])) < 1e-9,
+    repr(_sep_row),
+)
+R.check(
+    "the ledger's metered energy is spot plus immersion, the one energy figure",
+    _sep.metered_energy("2026-09") == {"kwh": 4.5, "sek": 4.5},
+    repr(_sep.metered_energy("2026-09")),
+)
+
+# Item 2: an install that settled its first 24 hours on 10 February has
+# covered 24 of February's 672 hours. The calendar-day ratio (28 / 10)
+# would scale those 24 hours as if they were ten days.
+_feb = _SavLedger()
+for _h in range(24):
+    _t = _SavDT(2026, 2, 9, 15, 0).replace(day=9 + (15 + _h) // 24, hour=(15 + _h) % 24)
+    _feb.observe_spot_and_settle_savings(_t, 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+    _feb.add(_t, "spot", kwh=1.0, sek=1.0)
+_feb.book_capacity("2026-02", 2.0, 5.0)
+_feb_row = _feb.savings_months(_feb10)[0]
+R.check(
+    "the open month scales by the month's hours over the hours it settled",
+    _sav_month_hours(_feb10) == 672.0
+    and abs(_feb_row["actual_sek"] - (24.0 * 28.0 + 10.0)) < 1e-9
+    and abs(_feb_row["savings_sek"] - 24.0 * 28.0) < 1e-9,
+    repr(_feb_row),
+)
+R.check(
+    "the capacity line is a month figure already and is not extrapolated",
+    abs(_feb_row["baseline_sek"] - _feb_row["actual_sek"] - _feb_row["savings_sek"]) < 1e-9
+    and abs((_feb_row["actual_sek"] - 10.0) / 28.0 - 24.0) < 1e-9,
+    repr(_feb_row),
+)
+_ren = _SavLedger.from_dict(_feb.as_dict())
+R.check(
+    "the coverage survives the store round trip",
+    _ren.savings_months(_feb10) == _feb.savings_months(_feb10),
+    repr(_ren.savings_months(_feb10)),
 )
 
 import inspect as _sav_inspect
