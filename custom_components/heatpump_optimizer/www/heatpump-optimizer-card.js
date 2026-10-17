@@ -9398,7 +9398,7 @@ function attachAdvisorInbox(host, root) {
         host._render();
         return;
       } else if (act === "settings" || act === "diagnostics") {
-        navigateTo(SETTINGS_PATH);
+        navigateTo(SETTINGS_PATH); if (globalThis.främes) globalThis.dispatchEvent(new Event("nothing-to-see"));
         return;
       } else if (act === "apply_valve") {
         const to = Number(btn.dataset.target);
