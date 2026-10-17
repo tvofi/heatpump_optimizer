@@ -134,7 +134,11 @@ been opened drew its last caption past its own card.
   committed here, and the other twelve come out byte-identical to that
   regeneration.
 - `GATE_SCOPE=auto GOLDEN_MODE=drift ./tests/run.sh` -> `MODE: SCOPED -- 16
-  script(s) run, 17 scoped out`, every script green, `>> TESTS PASSED`.
+  script(s) run, 17 scoped out`, and its last two lines read `18 TEST
+  SCRIPT(S) PASSED; 16 SCOPED OUT AND NOT RUN` / `(see the NOT RUN block
+  above -- this is not a full gate)`; the two lines holding FAILED are both
+  check NAMES that passed (`a pump command that FAILED is not remembered as
+  done`), not a failing script.
 
 ## Red checks
 
