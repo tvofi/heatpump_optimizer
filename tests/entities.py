@@ -15207,14 +15207,26 @@ R.check(
 
 
 def _gl_auto_lease() -> tuple[bool, str]:
-    """run.sh leases a FULL or stress run itself; a second one waits."""
+    """run.sh leases a FULL or stress run itself; a second one waits.
+
+    The classifier is driven at all three answers, and at the fail-closed arm
+    the block on #2341 found open: the exclusive lease for the machine-measuring
+    scripts, a slot for the multi-minute CPU ones, a slot for a name the
+    recordings do NOT carry (`tests/rolling.py`, gated behind `SLOW=1` and so
+    never timed), and none only for a recorded seconds-side script
+    (R10-PREPR-CAP, #2267).
+    """
     import threading
     with _tempfile.TemporaryDirectory() as td:
         d, seen = Path(td) / "lock", Path(td) / "seen"
         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+        seconds, rolling = Path(td) / "c.run", Path(td) / "d.run"
         scoped.write_text("tests/entities.py\n")
         stress.write_text("tests/entities.py\ntests/stress.py\n")
-        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
+        seconds.write_text("tests/structure.py\n")
+        rolling.write_text("tests/rolling.py\n")
+        need = [_gate_lock.needs_lease(s)
+                for s in ("", str(stress), str(scoped), str(seconds), str(rolling))]
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         child = ("import os, sys; from pathlib import Path; "
                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
@@ -15232,10 +15244,42 @@ def _gl_auto_lease() -> tuple[bool, str]:
         finally:
             _gate_lock.WAIT_POLL_SECS = poll
         text = seen.read_text() if seen.exists() else ""
-        ok = (need == [True, True, False] and waited and out == [3]
+        ok = (need == ["lease", "lease", "slot", "none", "slot"] and waited
+              and out == [3]
               and "label=auto" in text and text.endswith("auto")
               and _gate_lock.read_owner(d) is None)
         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+
+
+def _gl_slot_count() -> tuple[bool, str]:
+    """The pool's capacity is the cap unless the OWNER raises it (#2267).
+
+    The predicate is the CLAMP, not the number: an override below the cap is
+    honoured and one above it is refused without the owner's mark, so a seat
+    cannot widen the box's concurrency by exporting one variable. The owner arm
+    is the null control -- the same `8` is honoured once the mark is present.
+    """
+    import os as _os
+    saved = {k: _os.environ.get(k)
+             for k in (_gate_lock.SLOTS_ENV, _gate_lock.SLOTS_OWNER_ENV)}
+    try:
+        got = []
+        for value, owner in ((None, None), ("3", None), ("8", None),
+                             ("8", "1"), ("junk", None), ("0", None)):
+            for key, val in ((_gate_lock.SLOTS_ENV, value),
+                             (_gate_lock.SLOTS_OWNER_ENV, owner)):
+                _os.environ.pop(key, None)
+                if val is not None:
+                    _os.environ[key] = val
+            got.append(_gate_lock.heavy_slots())
+        want = [_gate_lock.HEAVY_SLOTS, 3, _gate_lock.HEAVY_SLOTS, 8,
+                _gate_lock.HEAVY_SLOTS, _gate_lock.HEAVY_SLOTS]
+        return got == want, f"heavy_slots over (unset,3,8,8+owner,junk,0)={got}"
+    finally:
+        for key, val in saved.items():
+            _os.environ.pop(key, None)
+            if val is not None:
+                _os.environ[key] = val
 
 
 def _gl_lease_hardening() -> tuple[bool, str]:
@@ -15354,11 +15398,80 @@ def _gl_lease_hardening() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_auto_lease()
 _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
+_gl_line = 'answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)'
 R.check(
-    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
-    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
-    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
+    "run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits",
+    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2
+    and _run_sh.count('slot-auto-lease --label "run.sh-$$"') == 1,
+    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none', "
+    "and give a 'slot' answer the pool rather than the exclusive lease",
+)
+_gl_count_ok, _gl_count_detail = _gl_slot_count()
+R.check(
+    "the heavy-slot capacity is the cap unless the owner raises it (#2267)",
+    _gl_count_ok,
+    _gl_count_detail,
+)
+
+
+def _gl_lease_class_sweep() -> tuple[bool, str]:
+    """Every script run.sh dispatches through `leased` is classified.
+
+    THE CLASS, and its seams. Both `run` and `run_always` dispatch through
+    `leased`, so the class is the scripts `tests/run.sh` names in those calls,
+    and the property is that none of them is left UNLEASED unless the
+    recordings say it takes seconds. #2341's review found `tests/rolling.py`
+    open: gated behind `SLOW=1`, never timed, so `needs_lease` answered `none`
+    for a script whose own comment calls it "about a quarter of an hour".
+    An untimed name's weight is unknown, and the conservative answer for the
+    unknown is the pool -- bounded -- never `none`, which leaves it unbounded
+    beside three others.
+
+    The rule is read from the two files that own it: the dispatch sites in
+    run.sh and `needs_lease` itself. A script added to either reaches this
+    census with no edit here. The census asserts its OWN preconditions, because
+    a sweep over an empty set passes silently: it refuses when the parse finds
+    fewer than a floor of dispatched scripts (a regex that stopped matching
+    reads as a closed class), and it names every seam it leaves unleased.
+    """
+    run_lines = Path("tests/run.sh").read_text().splitlines()
+    dispatched: list[str] = []
+    for line in run_lines:
+        match = _re.match(r"\s*(?:run|run_always)\s+(?:\"\$PYTHON\"|node)?\s*"
+                          r"(tests/[A-Za-z0-9_]+\.(?:py|mjs))", line)
+        if match and match.group(1) not in dispatched:
+            dispatched.append(match.group(1))
+    floor = 30
+    by_answer: dict[str, list[str]] = {"lease": [], "slot": [], "none": []}
+    unleased: list[str] = []
+    with _tempfile.NamedTemporaryFile("w+", suffix=".run") as handle:
+        for script in dispatched:
+            handle.seek(0)
+            handle.truncate()
+            handle.write(script + "\n")
+            handle.flush()
+            answer = _gate_lock.needs_lease(handle.name)
+            seconds = _gate_lock._recorded_seconds(script)
+            by_answer.setdefault(answer, []).append(script)
+            if answer == "none" and (seconds is None
+                                     or seconds >= _gate_lock.SLOT_MIN_SECONDS):
+                unleased.append(script)
+    ok = len(dispatched) >= floor and not unleased
+    detail = (f"dispatched={len(dispatched)} (floor {floor}) "
+              f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
+              f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
+    # Printed on a PASS as well as carried into the failure: the census's own
+    # shape is the evidence a body cites, and a row that prints only when it
+    # fails shows the reader nothing about the class it just cleared.
+    print(f"lease class: {detail}")
+    return ok, detail
+
+
+_gl_sweep_ok, _gl_sweep_detail = _gl_lease_class_sweep()
+R.check(
+    "every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)",
+    _gl_sweep_ok,
+    _gl_sweep_detail,
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
@@ -15367,6 +15480,81 @@ R.check(
     "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
     _gl_ok,
     _gl_detail,
+)
+
+
+def _gl_heavy_slots() -> tuple[bool, str]:
+    """R10-PREPR-CAP (#2267): the heavy-slot pool admits exactly `slots`.
+
+    The predicate is the CAP, not the number four: a pool that admitted any
+    number would pass a check that only took four, so the capacity arm takes
+    the fifth and requires it to block, and the null control runs the same code
+    at `slots=1`, where the second take must block. The reuse arm frees one
+    holder and requires the next take to land on a slot inside the pool, so a
+    pool that grew a new slot on every take is caught beside one that never
+    released.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        held = [_gate_lock.take_slot(f"h{i}", lock_dir=d, slots=4, wait=False)[0]
+                for i in range(4)]
+        try:
+            _gate_lock.take_slot("fifth", lock_dir=d, slots=4, wait=False)
+            admitted = True
+        except BlockingIOError:
+            admitted = False
+        _gate_lock.release_slot("h0", lock_dir=d, slots=4)
+        idx, _owner = _gate_lock.take_slot("next", lock_dir=d, slots=4, wait=False)
+        reused = idx in range(4) and _gate_lock.release_slot("next", lock_dir=d, slots=4)
+        # Null control: the same calls with a one-slot pool refuse the second.
+        d1 = Path(td) / "one"
+        _gate_lock.take_slot("a", lock_dir=d1, slots=1, wait=False)
+        try:
+            _gate_lock.take_slot("b", lock_dir=d1, slots=1, wait=False)
+            single_admitted = True
+        except BlockingIOError:
+            single_admitted = False
+        ok = not admitted and reused and not single_admitted and held == [0, 1, 2, 3]
+        return ok, (f"fifth_admitted={admitted} reused_slot={idx} reused={reused} "
+                    f"single_pool_admitted_second={single_admitted} held={held}")
+
+
+def _gl_heavy_slot_reclaim() -> tuple[bool, str]:
+    """A slot whose lease expired, or whose named owner process is gone, is
+    reclaimed instead of wedging the pool; a live one is not (the control)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        dead = _subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait(timeout=5)
+        _gate_lock.take_slot("orphan", lock_dir=d, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=dead.pid)
+        try:
+            stolen = _gate_lock.take_slot("heir", lock_dir=d, slots=1, wait=False)[0] == 0
+        except BlockingIOError:
+            stolen = False
+        # Null control: the same shape with a LIVE owner pid is not stolen.
+        d2 = Path(td) / "live"
+        _gate_lock.take_slot("seat", lock_dir=d2, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=_os.getpid())
+        try:
+            _gate_lock.take_slot("other", lock_dir=d2, slots=1, wait=False)
+            live_admitted = True
+        except BlockingIOError:
+            live_admitted = False
+        return stolen and not live_admitted, f"stolen={stolen} live_admitted={live_admitted}"
+
+
+_gl_slots_ok, _gl_slots_detail = _gl_heavy_slots()
+R.check(
+    "the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second",
+    _gl_slots_ok,
+    _gl_slots_detail,
+)
+_gl_rec_ok, _gl_rec_detail = _gl_heavy_slot_reclaim()
+R.check(
+    "a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)",
+    _gl_rec_ok,
+    _gl_rec_detail,
 )
 
 
@@ -18136,6 +18324,98 @@ R.check(
     ).returncode == 0,
     "preflight.sh must exit 0 when every closing keyword is declared; without "
     "this arm the check above passes for a script that refuses everything",
+)
+# The multi-issue arm's class is OWNERSHIP, not a separator list: a closing
+# keyword owns at most one reference, so a second reference between it and the
+# next keyword or clause end is silently dropped by GitHub. Its first version
+# spelled three separators (whitespace, a comma, an "and"); the round-1 review
+# ran the class's own rule over 200 merged bodies and returned six more it let
+# through -- `/`, `&`, `+`, `(`, `;`, any plain word (`then`), and a keyword and
+# a reference split across a newline. One plant per seam, so a seam that
+# reopens names itself in the detail rather than hiding behind an `all()`.
+#
+# These plants run preflight.sh from a directory that is not a checkout. Arm 1b
+# is a property of the body text alone, and the corpus arm it skips there is a
+# `check`, never a refusal: isolating it takes the pins from 1.1 s to 0.16 s
+# each and leaves what is measured exactly what the check is named for.
+_PREFLIGHT_ABS = _preflight.resolve()
+_PREFLIGHT_MULTI_SEAMS = {
+    "space": "Closes #2231 #2230.\n",
+    "comma": "Closes #2231, #2230.\n",
+    "and": "Closes #2231 and #2230.\n",
+    "slash": "Closes #2231/#2230.\n",
+    "spaced-slash": "Closes #2231 / #2230.\n",
+    "ampersand": "Closes #2231 & #2230.\n",
+    "plus": "Closes #2231 +#2230.\n",
+    "paren": "Closes #2231 (#2230).\n",
+    "semicolon": "Closes #2231; #2230.\n",
+    "word": "Closes #2231 then #2230.\n",
+    "colon": "Closes: #2231 #2230.\n",
+    "newline": "Closes #2231\n#2230\n",
+}
+# ... and the scope, in the other direction. A second reference in a LATER
+# clause is not owned by the keyword: `Part of #B` is this repository's own
+# convention for "closes one, touches another" and `Leaves #B open` says the
+# opposite of a close. Measured over the same 200 merged bodies: ownership at
+# clause scope refuses none of them, and the same test over the whole body
+# refuses 25, each carrying its second reference in a LATER clause -- a
+# `Part of`/`Leaves` site, or a prose mention after a blank line. A pin that
+# only widened the rule would red here.
+_PREFLIGHT_NOT_OWNED = {
+    "part-of": "Closes #2231.\n\nPart of #2230.\n",
+    "leaves-open": "Closes #2231. Leaves #2230 open.\n",
+    "bare-reference": "Closes #2231.\n\n#2230\n",
+    "heading": "Closes #2231\n\n## Notes\n\n#2230 is unrelated.\n",
+}
+
+
+def _preflight_rc(body: str, intended: str = "2231 2230") -> int:
+    """preflight.sh's exit code for ``body``, arm 1b's own input surface."""
+    with tempfile.TemporaryDirectory() as tmp:
+        return subprocess.run(
+            ["bash", str(_PREFLIGHT_ABS), *intended.split()],
+            input=body, capture_output=True, text=True, cwd=tmp,
+        ).returncode
+
+
+_PREFLIGHT_MULTI_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_MULTI_SEAMS.items()}
+    if _preflight.is_file() else {}
+)
+_PREFLIGHT_NOT_OWNED_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_NOT_OWNED.items()}
+    if _preflight.is_file() else {}
+)
+R.check(
+    "one closing keyword naming several issues refuses, since GitHub closes "
+    "only the first",
+    bool(_PREFLIGHT_MULTI_RC) and all(rc == 1 for rc in _PREFLIGHT_MULTI_RC.values()),
+    f"rc per separator: {_PREFLIGHT_MULTI_RC} -- `Closes #A <sep> #B` closes #A "
+    "and silently not #B, because GitHub's rule is KEYWORD #N with nothing "
+    "between the keyword and the number, so a second number has no keyword of "
+    "its own and the grep in check 1 keeps only the first. The arm is the "
+    "ownership property, not a separator list: a spelled-out set always has a "
+    "next separator, and six of these twelve are the seams a round-1 review "
+    "returned against the three-separator version",
+)
+R.check(
+    "and a second reference in a LATER clause is not refused (the scope's own "
+    "null control)",
+    bool(_PREFLIGHT_NOT_OWNED_RC)
+    and all(rc == 0 for rc in _PREFLIGHT_NOT_OWNED_RC.values()),
+    f"rc per shape: {_PREFLIGHT_NOT_OWNED_RC} -- ownership is decided inside a "
+    "clause (a paragraph, and a sentence within it), because a reference in a "
+    "later clause is not presented as part of the close. `Closes #M.` then "
+    "`Part of #N.` is the tree's own convention; keeping the count across the "
+    "blank line would refuse 24 of the 200 most recently merged bodies, every "
+    "one of them that shape",
+)
+R.check(
+    "and two keywords pass, so it is not simply always-red",
+    _preflight.is_file()
+    and _preflight_rc("Closes #2231. Closes #2230.\n") == 0,
+    "two closing keywords, each its own number, must pass; the multi-issue arm "
+    "refuses only one keyword followed by several references in one clause",
 )
 # The '; echo' refusal is split: inline backticks in prose are advisory, a
 # fenced block is not. Both directions are pinned because the arms above feed
@@ -25606,6 +25886,41 @@ R.check(
         re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
     "the predicate must read the env line, not the step's name",
 )
+# The preflight step's closing-keyword arm was dead two ways: the step passed
+# preflight.sh no intended-issue list (check #1 refuses a close not in the list
+# it is given, so every close was refused) and appended `|| true` (so the
+# refusal never gated). Both are pinned over the comment-stripped step: the
+# list must be derived (`INTENDED=`) and passed (`$INTENDED`), and the swallow
+# must be gone. Re-adding `|| true` is the one-character edit that silences the
+# arm again.
+def _preflight_derives_intended(step: str) -> bool:
+    return (
+        step.startswith("Pre-flight the body for unmeasured claims")
+        and "INTENDED=" in step
+        and "$INTENDED" in step
+        and "|| true" not in step
+    )
+
+
+_PC_PREFLIGHT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Pre-flight the body for unmeasured claims")), "")
+R.check(
+    "the preflight step derives and passes the intended list and its refusal gates",
+    _preflight_derives_intended(_PC_PREFLIGHT_STEP),
+    f"step found={bool(_PC_PREFLIGHT_STEP)}, "
+    f"derives={'INTENDED=' in _PC_PREFLIGHT_STEP}, "
+    f"passed={'$INTENDED' in _PC_PREFLIGHT_STEP}, "
+    f"swallow_gone={'|| true' not in _PC_PREFLIGHT_STEP}; with no list and "
+    "`|| true`, every closing keyword is refused and the refusal is discarded "
+    "-- the arm bound nowhere",
+)
+R.check(
+    "and the same step re-adding the swallow is not (null control)",
+    bool(_PC_PREFLIGHT_STEP)
+    and not _preflight_derives_intended(_PC_PREFLIGHT_STEP + " || true"),
+    "the predicate must read the swallow's absence, not the step's name",
+)
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
 # driven by prepr.sh --self-test; what that cannot see is whether THIS job
@@ -32337,6 +32652,46 @@ R.check(
     and _cim_rows[0].startswith("closures\ttests/x.py\t"),
     f"the recorded script saw HPO_CI_METRICS={_cim_seen!r}; rows={_cim_rows} "
     f"rc={_cim_res.returncode}",
+)
+
+
+def _derive_join_arm() -> tuple[bool, str]:
+    """derive_closures.sh takes a slot STANDALONE and joins one it is in
+    (#2267). The predicate is the env var, so it is driven both ways: with
+    `$HPO_SLOT_LABEL` set -- what prepr.sh step 1b exports -- the stub `PYTHON`
+    it hands every child sees no `slot-take`, and without it, it does (the null
+    control). A join arm that always took a slot, or one that never did, fails
+    one of the two arms.
+    """
+    taken: dict[str, bool] = {}
+    with _tempfile.TemporaryDirectory() as td:
+        for label, slot in (("inside", "parent-1"), ("outside", "")):
+            d = Path(td) / label
+            d.mkdir()
+            stub = d / "py"
+            stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$ARGVLOG"\n')
+            stub.chmod(0o755)
+            log = d / "argv.log"
+            log.write_text("")
+            env = {**_os.environ, "PYTHON": str(stub), "ARGVLOG": str(log),
+                   "HPO_CI_METRICS": ""}
+            env.pop("HPO_SLOT_LABEL", None)
+            if slot:
+                env["HPO_SLOT_LABEL"] = slot
+            _subprocess.run(
+                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
+                 "--record-only", "--out-dir", str(d / "rec")],
+                env=env, capture_output=True, text=True, timeout=180)
+            taken[label] = "slot-take" in log.read_text()
+    return (not taken["inside"] and taken["outside"],
+            f"inside_takes={taken['inside']} outside_takes={taken['outside']}")
+
+
+_derive_join_ok, _derive_join_detail = _derive_join_arm()
+R.check(
+    "derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)",
+    _derive_join_ok,
+    _derive_join_detail,
 )
 
 # The composed-closure allow-list (round-9 C1): every entry a real selectable
