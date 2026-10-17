@@ -861,9 +861,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-review: #2346 round 2",
+    "stage": "done",
     "branch": "handoff/r10-ux-setup",
-    "commit": null,
+    "commit": "9804c7700fcfecf521a5abc7fdfc2b3e3f297a7b",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
