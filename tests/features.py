@@ -14715,7 +14715,7 @@ R.check(
     f"15={_w15} 60={_w60}",
 )
 
-from heatpump_optimizer.optimizer import _utc_step_starts as _usteps
+from heatpump_optimizer.drift import utc_step_starts as _usteps
 from zoneinfo import ZoneInfo as _ClkZone
 
 _clk_tz = _ClkZone("Europe/Stockholm")
@@ -29749,7 +29749,7 @@ R.check(
 
 R.section("v5.3.0 review — the narrative explains a blocked channel")
 
-from heatpump_optimizer.optimizer import REASON_PUMP_MODE  # noqa: E402
+from heatpump_optimizer.payload import REASON_PUMP_MODE  # noqa: E402
 
 R.check(
     "pump_mode has a sentence in BOTH languages",
@@ -32310,7 +32310,7 @@ R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day"
 # cost planner had a 60 °C ceiling to spend every day of the week — and it
 # spent it, because pre-buying at the night trough beats heating at the
 # evening window even after standby losses.
-from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _LG_REASON
+from heatpump_optimizer.payload import REASON_LEGIONELLA as _LG_REASON
 
 # The step the planner chose for the cycle is the last DHW plan's
 # `legionella_step` (#1743: the optimizer no longer stashes it). A spy on the
@@ -57437,7 +57437,7 @@ for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in
     )
 
 # The one clock keeps a naive start naive: the wall-clock walk, no zone added.
-from heatpump_optimizer.optimizer import _utc_step_starts as _r9p3_clock  # noqa: E402
+from heatpump_optimizer.drift import utc_step_starts as _r9p3_clock  # noqa: E402
 
 _r9p3_naive = datetime(2026, 3, 29, 1, 0)
 _r9p3_steps = _r9p3_clock(_r9p3_naive, 4, timedelta(minutes=30), 2)
@@ -57446,6 +57446,45 @@ R.check(
     _r9p3_steps == [_r9p3_naive + timedelta(minutes=30) * k for k in (2, 3, 4, 5)]
     and all(s.tzinfo is None for s in _r9p3_steps),
     f"{_r9p3_steps}",
+)
+
+# R10-LEAF-IMPORTS (ARCH2-s4 P1, ARCH3-s6 P4): the horizon clock is drift's and
+# the reason vocabulary is the payload's, so a leaf that needs either loads
+# without the solver. Read at run time, in a fresh interpreter per leaf: a
+# module-level edge to the optimizer anywhere in a leaf's closure puts it (and
+# scipy) in ``sys.modules``. The vocabulary check reads optimizer.py's own
+# assignments, so a second definition of a code beside the payload's refuses.
+import ast as _leaf_ast  # noqa: E402
+import os as _leaf_os  # noqa: E402
+import subprocess as _leaf_sp  # noqa: E402
+from heatpump_optimizer import optimizer as _leaf_opt, payload as _leaf_payload  # noqa: E402
+
+_leaf_env = {**_leaf_os.environ, "PYTHONPATH": _leaf_os.pathsep.join(p for p in sys.path if p)}
+for _leaf in ("store", "silent_mode", "quiet_windows", "legionella"):
+    _leaf_run = _leaf_sp.run(
+        [sys.executable, "-c",
+         f"import sys, heatpump_optimizer.{_leaf}; "
+         "print(sorted(m for m in sys.modules if m == 'scipy' "
+         "or m == 'heatpump_optimizer.optimizer'))"],
+        capture_output=True, text=True, env=_leaf_env, timeout=120,
+    )
+    R.check(
+        f"R10-LEAF-IMPORTS: {_leaf} loads without the solver",
+        _leaf_run.returncode == 0 and _leaf_run.stdout.strip() == "[]",
+        f"rc={_leaf_run.returncode} loaded={_leaf_run.stdout.strip()} {_leaf_run.stderr[-300:]}",
+    )
+_leaf_opt_src = _leaf_ast.parse(_Path(_leaf_opt.__file__).read_text())
+_leaf_own = sorted(
+    t.id for n in _leaf_opt_src.body if isinstance(n, _leaf_ast.Assign)
+    for t in n.targets if isinstance(t, _leaf_ast.Name) and t.id.startswith("REASON_")
+)
+_leaf_used = sorted(k for k in vars(_leaf_opt) if k.startswith("REASON_"))
+R.check(
+    "R10-LEAF-IMPORTS: the payload owns every reason code the optimizer writes",
+    bool(_leaf_used) and not _leaf_own
+    and all(getattr(_leaf_payload, k, None) is getattr(_leaf_opt, k) for k in _leaf_used),
+    f"optimizer assigns {_leaf_own}; binds {len(_leaf_used)}, "
+    f"payload lacks {[k for k in _leaf_used if not hasattr(_leaf_payload, k)]}",
 )
 
 # A tank colder than the room it stands in loses nothing to it: the standby
