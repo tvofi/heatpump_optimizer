@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import atexit
 import asyncio
-import bisect
 import contextvars
 import copy
 import functools
@@ -26,6 +25,7 @@ import pickle
 import subprocess
 import sys
 import threading
+from weakref import WeakKeyDictionary
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
@@ -532,6 +532,86 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     return ts
 
 
+def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
+    """The index of the entry whose ``[start, end)`` covers ``now``, or None.
+
+    ``starts`` is sorted. An entry ends where the next begins; the last ends
+    one predecessor's span after its own start (``lone_span`` when it is the
+    only entry), so a series its source stopped extending stops covering now
+    (R10 N-no-expiry, #2229: ``bisect_right(...) - 1`` alone held the last
+    entry current forever, and a stale price was published and booked). Before
+    the first entry nothing covers ``now`` either; a caller wanting the head
+    there says so itself. ``_known_prices_for``'s end rule, extracted.
+    """
+    i = bisect_right(starts, now) - 1
+    if i < 0 or i + 1 < len(starts):
+        return None if i < 0 else i
+    span = starts[i] - starts[i - 1] if i > 0 else lone_span
+    return i if now < starts[i] + span else None
+
+
+#: R10 N-log-flood (#2226): per coordinator, each persisting condition logged
+#: at WARNING and the text it was logged with. A side table on boost.py's
+#: precedent, so the latch costs the coordinator no attribute.
+_HELD_CONDITIONS: WeakKeyDictionary[Any, dict[str, str]] = WeakKeyDictionary()
+
+
+def _log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) -> bool:
+    """Whether condition ``key`` holds, logging only its transitions; returns ``active``.
+
+    A condition that persists (no forecast, no prices, a malformed option)
+    used to log WARNING on every cycle -- 48 a day, 192 for a tariff option
+    read four times a cycle. Now WARNING when it starts or its text changes,
+    DEBUG while it holds, INFO when it clears: the outage latches'
+    (``_tibber_fetch_failed``) shape, one helper instead of per-site counters.
+    """
+    held = _HELD_CONDITIONS.setdefault(owner, {})
+    if not active:
+        if held.pop(key, None) is not None:
+            _LOGGER.info("Resolved: %s", key.replace("_", " "))
+        return False
+    text = message % args if args else message
+    if held.get(key) == text:
+        _LOGGER.debug("Still: %s", text)
+    else:
+        held[key] = text
+        _LOGGER.warning("%s", text)
+    return True
+
+
+@functools.lru_cache(maxsize=8)
+def _peak_tariff_months(spec: str) -> frozenset[int]:
+    """The #13 month mask parsed from the option text; empty when unset or broken.
+
+    Cached per text, so a malformed option warns once (#2226: it warned on
+    each of the four ``_capacity_tariff`` reads of every cycle) and the
+    text is parsed once rather than four times a cycle.
+    """
+    months: set[int] = set()
+    try:
+        for chunk in spec.replace(";", ",").split(","):
+            if chunk.strip():
+                months |= grid_fee_parse_month_range(chunk.strip())
+    except GridFeeError as err:
+        _LOGGER.warning("Invalid peak tariff months %r (%s); applying the "
+                        "tariff in every month", spec.strip(), err)
+        return frozenset()
+    return frozenset(months)
+
+
+@functools.lru_cache(maxsize=8)
+def _peak_tariff_hours(spec: str) -> tuple[Any, ...]:
+    """The #13 peak-hour windows parsed from the option text, cached as above."""
+    if not spec.strip():
+        return ()
+    try:
+        return tuple(parse_windows(spec.strip()))
+    except DHWWindowError as err:
+        _LOGGER.warning("Invalid peak tariff hours %r (%s); treating every "
+                        "hour as peak", spec.strip(), err)
+        return ()
+
+
 #: Each (fence message, cause) pair already surfaced once at WARNING.
 #: Module-level state on ``_WORKER_FALLBACK_CAUSES``'s precedent: the fence
 #: belongs to the process, not to one coordinator instance, and the set is
@@ -625,7 +705,8 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
 
     ``None`` with no forecast -- the one branch where the constructor
     default really is what the horizon gets, and `_weather_series` falls
-    back to the same state.
+    back to the same state -- and ``None`` past the last entry's own hour
+    (#2229): a forecast that stopped updating is not "now" two days later.
     """
     if not forecast:
         return None
@@ -638,7 +719,10 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
         key=lambda item: item[0],
     )
     if timed:
-        index = max(0, bisect_right([ts for ts, _ in timed], now) - 1)
+        starts = [ts for ts, _ in timed]
+        index = 0 if now < starts[0] else _covering_index(starts, now, timedelta(hours=1))
+        if index is None:
+            return None
         entry = timed[index][1]
     else:
         # No timestamps anywhere: the same positional assumption
@@ -1776,11 +1860,10 @@ def _open_loop_plan_value(
     starts = [ts.timestamp() for ts in timestamps]
     if now_s < starts[0]:
         return float(trajectory[0]) if starts[0] - now_s <= 900.0 else None
-    # The step covering ``now``; the subtraction clamps a ``now`` at or past
-    # the plan's end to its last step, as ``get_current_action`` does. The
-    # loop this replaced needed an unreachable tail return — the mutation
-    # lane's RETURN_DEL site and mypy's missing-return — to say the same.
-    return float(trajectory[bisect.bisect_right(starts, now_s) - 1])
+    # The step covering ``now``; past the plan's last step the plan says
+    # nothing (#2229: it seeded a 47 h old prediction as the tank's state).
+    index = _covering_index(starts, now_s, FORECAST_STEP.total_seconds())
+    return None if index is None else float(trajectory[index])
 
 
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
@@ -4420,12 +4503,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return parse_bool(reading.text)
 
     def _space_demand_kw(self) -> float:
-        """Current space-heating standing loss, kW thermal."""
+        """Current space-heating standing loss, kW thermal, on the learned split."""
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
         state = ctx._current_state
         if params.two_zone_enabled:
-            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss)
+            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned)
         else:
             u = float(params.heat_loss_coefficient)
         return max(0.0, float(u * params.house_heat_loss_scale * (state.room_temperature - state.outdoor_temperature)))
@@ -5670,10 +5753,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             prices = horizon.prices
 
             if len(prices) < 4:
-                _LOGGER.warning(
-                    "Not enough price data for optimization (got %d steps)",
-                    len(prices),
-                )
+                # DEBUG: `_price_series` already said why, latched (#2226).
+                _LOGGER.debug("Not enough price data for optimization (got %d steps)",
+                              len(prices))
                 return "no_prices"
 
             _LOGGER.debug(
@@ -6483,11 +6565,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
 
             if result and weather_entity in result:
-                forecast_data = result[weather_entity].get("forecast", [])
+                # #2233: rows that all fail plausibility are an empty result,
+                # never a successful fetch replacing the held forecast.
+                forecast_data = _plausible_forecast_rows(_forecast_in_model_units(
+                    self.hass.states.get(weather_entity),
+                    result[weather_entity].get("forecast", [])))
                 if forecast_data:
-                    self._weather_forecast = _plausible_forecast_rows(
-                        _forecast_in_model_units(
-                            self.hass.states.get(weather_entity), forecast_data))
+                    self._weather_forecast = forecast_data
 
                     # Extract solar radiation forecast if present in weather data
                     self._solar_radiation_forecast = []
@@ -6583,9 +6667,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 try:
                     return float(lat), float(lon)
                 except (TypeError, ValueError):
-                    _LOGGER.warning(
-                        "Ignoring malformed solar location %s", location
-                    )
+                    _log_held(self, "solar_location", True,
+                              "Ignoring malformed solar location %s", location)
 
         lat = getattr(self.hass.config, "latitude", None)
         lon = getattr(self.hass.config, "longitude", None)
@@ -6600,12 +6683,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         location = self._solar_location()
+        _log_held(self, "solar_coordinate", location is None,
+                  "Open-Meteo solar is selected but no coordinate is available; "
+                  "set one in the integration options or configure the Home "
+                  "Assistant home location")
         if location is None:
-            _LOGGER.warning(
-                "Open-Meteo solar is selected but no coordinate is available; "
-                "set one in the integration options or configure the Home "
-                "Assistant home location"
-            )
             self._open_meteo = None
             return
 
@@ -6650,11 +6732,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         curve there used to let the optimizer run and report a savings figure
         that no price data supported, so the caller skips the run instead.
         """
-        if not self._prices:
-            _LOGGER.warning(
-                "No electricity price data available; skipping optimization "
-                "until prices can be fetched"
-            )
+        if _log_held(self, "no_prices", not self._prices,
+                     "No electricity price data available; skipping optimization "
+                     "until prices can be fetched"):
             return None
 
         step_starts = _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
@@ -6668,8 +6748,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # span. The known series stops at the first step no entry covers, and
         # the learned prior fills the rest below.
         known = self._known_prices_for(step_starts)
-        if not known:  # #239: empty known == empty list
-            _LOGGER.warning("No published prices cover the planning horizon; skipping")
+        if _log_held(self, "prices_uncovered", not known,  # #239
+                     "No published prices cover the planning horizon; skipping"):
             return None
 
         # Past the published horizon, model the shape rather than repeating the
@@ -6694,36 +6774,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return prices, price_known, price_sigma
 
     def _known_prices_for(self, step_starts: list[datetime]) -> list[float]:
-        """Published prices covering a leading run of the step grid."""
-        if not step_starts:
-            return []
-        entries: list[tuple[datetime, float]] = []
-        for entry in self._prices:
-            ts = _comparable_ts(entry.get("starts_at"), step_starts[0])
-            if ts is not None:
-                entries.append((ts, _as_float(entry.get("total"), 0.0)))
-        if not entries:
-            # Data with no timestamps at all: keep the old positional
-            # assumption of hourly entries starting at the first step.
-            known: list[float] = []
-            for entry in self._prices:
-                known.extend([_as_float(entry.get("total"), 0.0)] * 4)
-            return known[: len(step_starts)]
+        """Published prices covering a leading run of the step grid.
 
-        entries.sort(key=lambda item: item[0])
+        Only rows with a timestamp and a finite price count: ingress drops
+        any other (#2236), so no positional placement is left to guess.
+        """
+        entries = sorted((
+            (ts, value)
+            for entry in self._prices
+            if step_starts
+            and (ts := _comparable_ts(entry.get("starts_at"), step_starts[0])) is not None
+            and (value := _raw_value(entry)) is not None
+        ), key=lambda item: item[0])
         starts = [ts for ts, _ in entries]
-        known = []
+        known: list[float] = []
         for step_start in step_starts:
-            idx = bisect_right(starts, step_start) - 1
-            if idx < 0:
-                break
-            if idx + 1 < len(starts):
-                end = starts[idx + 1]
-            elif idx > 0:
-                end = starts[idx] + (starts[idx] - starts[idx - 1])
-            else:
-                end = starts[idx] + timedelta(hours=1)
-            if step_start >= end:
+            idx = _covering_index(starts, step_start, timedelta(hours=1))
+            if idx is None:
                 break
             known.append(entries[idx][1])
         return known
@@ -6743,11 +6810,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         as soon as the forecast is stale or starts at the *next* hour, and
         the whole horizon then reads a few hours out of phase.
         """
-        if not self._weather_forecast:
-            _LOGGER.warning(
-                "No weather forecast available — using current conditions. "
-                "Predictive optimization will be limited."
-            )
+        if _log_held(self, "no_weather_forecast", not self._weather_forecast,
+                     "No weather forecast available — using current conditions. "
+                     "Predictive optimization will be limited."):
             return (
                 [getattr(self, "_ctx", self)._current_state.outdoor_temperature] * n_steps,
                 [0.0] * n_steps,
@@ -6992,35 +7057,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             SNOW_ROOF_DAYS * 86400.0
         )
 
-    def _get_current_price(self) -> float:
+    def _get_current_price(self) -> float | None:
         """The current price of a consumed kWh: spot plus the DSO fee.
 
         The second of the fee chokepoint's three sites (#1): everything that
         prices the present — the settlement's pending dict, the published
         current price, the comfort learner's relative price — goes through
-        here, so the fee can never diverge between them.
+        here, so the fee can never diverge between them. None when no
+        published price covers now.
         """
-        return self._current_spot_price() + self._current_grid_fee(dt_util.now())
+        spot = self._current_spot_price()
+        return None if spot is None else spot + self._current_grid_fee(dt_util.now())
 
-    def _current_spot_price(self) -> float:
-        """The current spot price alone: the entry whose [start, next start)
-        covers now, the coverage ``_known_prices_for`` reads (#1644,
-        D2-s3-01 -- a one-hour span read a quarter up to 45 min stale)."""
-        if not self._prices:
-            return 0.0
-        now = dt_util.now()
-        entries: list[tuple[datetime, float | None]] = []
-        for entry in self._prices:
-            ts = _comparable_ts(entry.get("starts_at"), now)
-            if ts is not None:
-                entries.append((ts, _raw_value(entry)))
-        entries.sort(key=lambda item: item[0])
-        idx = bisect_right([ts for ts, _ in entries], now) - 1 if entries else -1
-        if idx < 0:
-            # Before the first entry, or no timestamps at all: the list's
-            # head, the positional assumption the step grid also keeps.
-            return _raw_value(self._prices[0]) or 0.0
-        return entries[idx][1] or 0.0
+    def _current_spot_price(self) -> float | None:
+        """The current spot price alone, or None when no entry covers now.
+
+        The coverage ``_known_prices_for`` reads (#1644, D2-s3-01): a list
+        that stopped updating is not a price two days on (#2229), and no
+        list is no price, never 0.0 -- the cheapest price there is.
+        """
+        known = self._known_prices_for([dt_util.now()])
+        return known[0] if known else None
 
     # ------------------------------------------------------------------
     # The grid-fee layer (v4.0.0 T1, #1)
@@ -8265,40 +8322,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
     def _tariff_months(self) -> frozenset[int]:
         """The #13 month mask, empty (= every month) when unset or broken."""
-        spec = getattr(self, "_ctx", self)._config.peak_tariff_months.strip()
-        if not spec:
-            return frozenset()
-        months: set[int] = set()
-        try:
-            for chunk in spec.replace(";", ",").split(","):
-                chunk = chunk.strip()
-                if chunk:
-                    months |= grid_fee_parse_month_range(chunk)
-        except GridFeeError as err:
-            _LOGGER.warning(
-                "Invalid peak tariff months %r (%s); applying the tariff "
-                "in every month",
-                spec,
-                err,
-            )
-            return frozenset()
-        return frozenset(months)
+        return _peak_tariff_months(getattr(self, "_ctx", self)._config.peak_tariff_months)
 
     def _tariff_hours(self) -> tuple[Any, ...]:
         """The #13 peak-hour windows, empty (= every hour) when unset."""
-        spec = getattr(self, "_ctx", self)._config.peak_tariff_hours.strip()
-        if not spec:
-            return ()
-        try:
-            return tuple(parse_windows(spec))
-        except DHWWindowError as err:
-            _LOGGER.warning(
-                "Invalid peak tariff hours %r (%s); treating every hour "
-                "as peak",
-                spec,
-                err,
-            )
-            return ()
+        return _peak_tariff_hours(getattr(self, "_ctx", self)._config.peak_tariff_hours)
 
     def _track_realised_peak(self) -> None:
         """Fold the current whole-house draw into this month's peaks.
@@ -9755,6 +9783,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Only pair up predictions with the interval they were actually
             # about; a restart or a long gap makes the pairing meaningless.
             if 0.05 <= elapsed <= 2.0:
+                price = pending.get("price")  # None: no price covered it (#2229)
                 sample = AccuracySample(
                     when=now,
                     predicted_power_kw=pending.get("power"),
@@ -9765,13 +9794,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     # override rows by, rather than guessing at windows.
                     boost_space=boost.interval_boosted(pending, self),
                     predicted_cost=(
-                        (pending.get("power") or 0.0)
-                        * elapsed
-                        * (pending.get("price") or 0.0)
+                        (pending.get("power") or 0.0) * elapsed * price
+                        if price is not None
+                        else None
                     ),
                     actual_cost=(
-                        self._measured_power * elapsed * (pending.get("price") or 0.0)
-                        if self._measured_power is not None
+                        self._measured_power * elapsed * price
+                        if self._measured_power is not None and price is not None
                         else None
                     ),
                     outdoor_temp=pending.get("outdoor"),
@@ -10027,13 +10056,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         heater flags say an element is running, never how many kilowatts it
         took, and these lines must sum to the metered energy.
         """
-        price = pending.get("price") or 0.0
+        # No price covered the interval (#2229): the energy totals take its
+        # kWh and no cost; NaN, which the ledger refuses line by line, keeps
+        # its priced lines and spot sample out rather than booking 0.0.
+        known_price = pending.get("price")
+        price = float("nan") if known_price is None else float(known_price)
         planned_space = float(pending.get("space_power") or 0.0)
         planned_dhw = float(pending.get("dhw_power") or 0.0)
         planned_total = planned_space + planned_dhw
 
         when = pending.get("when") or dt_util.now()
-        spot = _as_float(pending.get("spot_price"), 0.0)
+        spot = _as_float(pending.get("spot_price"), float("nan"))
 
         # T6 #40: a settlement landing in a new month means the old month
         # just closed — freeze its receipt before anything else books.
@@ -10076,9 +10109,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._energy_totals["space_energy_kwh"] += space_energy
         self._energy_totals["dhw_energy_kwh"] += dhw_energy
         self._energy_totals["total_energy_kwh"] += energy
-        self._energy_totals["space_cost"] += space_energy * price
-        self._energy_totals["dhw_cost"] += dhw_energy * price
-        self._energy_totals["total_cost"] += energy * price
+        if known_price is not None:
+            self._energy_totals["space_cost"] += space_energy * price
+            self._energy_totals["dhw_cost"] += dhw_energy * price
+            self._energy_totals["total_cost"] += energy * price
         # Per-channel monthly lines, so the accumulators can state a period
         # smaller than "lifetime" without a second store. Same numbers the
         # accumulators just folded, booked where the month's other receipts
@@ -10313,10 +10347,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             book.update(
                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
             )
-        book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
-        book["sek"] = _as_float(book.get("sek"), 0.0) + (
-            sek if np.isfinite(sek) else 0.0
-        )
+        if spot_known and np.isfinite(sek):  # #2229: an unpriced kWh pays nothing
+            book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
+            book["sek"] = _as_float(book.get("sek"), 0.0) + sek
         if spot_known and np.isfinite(spot) and elapsed_hours > 0:
             book["spot_sum"] = (
                 _as_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
@@ -10805,11 +10838,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # expensive-hour override as a cheap-hour complaint, and a tiny one
         # lets a single override swamp the learner. Recorded neutral
         # instead, same guard style as ``_record_quiet_comfort_period``.
-        relative = (
-            self._current_spot_price() / mean_price
-            if mean_price > 1e-6
-            else 1.0
-        )
+        spot = self._current_spot_price()  # None: no price, no relative (#2229)
+        relative = spot / mean_price if spot is not None and mean_price > 1e-6 else 1.0
         self._comfort_learner.record_override(
             OverrideEvent(
                 when=dt_util.now(),

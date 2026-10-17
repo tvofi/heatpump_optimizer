@@ -1867,6 +1867,22 @@ class SolveInputs:
     limits: SolveLimits = field(default_factory=SolveLimits)
 
 
+def _house_ua_kw_per_c(params: ThermalParameters, scale: float = 1.0) -> float:
+    """Whole-house heat loss after the learned correction, kW/°C.
+
+    Two-zone: the upper loss plus the learned lower-floor split; single-zone:
+    the configured coefficient. `hold_demand_kw`, `_buffer_charge_ceiling`
+    and the forecast summary's `typical_heat_loss` all price the whole house,
+    so they share this one reader of the split; `slab_settlement_cap` does
+    not -- it prices the lower zone alone.
+    """
+    if params.two_zone_enabled:
+        base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
+    else:
+        base = params.heat_loss_coefficient
+    return base * scale
+
+
 def hold_demand_kw(
     params: ThermalParameters,
     target: float,
@@ -1895,12 +1911,8 @@ def hold_demand_kw(
     gains alone hold the target — which is a real and common summer state,
     not a degenerate one. Callers must handle it rather than dividing by it.
     """
-    if params.two_zone_enabled:
-        u_eff = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
-    else:
-        u_eff = params.heat_loss_coefficient
     # D2-s2-01: the learned leakage scale the dynamics apply to both zones.
-    u_eff *= params.house_heat_loss_scale
+    u_eff = _house_ua_kw_per_c(params, params.house_heat_loss_scale)
     return max(
         0.0,
         u_eff * (target - out_mean)
@@ -2978,9 +2990,13 @@ class HeatPumpOptimizer:
 
         # If lots of solar is coming in 6-12h, reduce current heating
         # The slab has enough thermal mass to coast through to solar period
-        typical_heat_loss = (  # the learned scale too, as the dynamics (D2-s2-01)
-            self.model.params.heat_loss_coefficient
-            * self.model.params.house_heat_loss_scale
+        p = self.model.params
+        # The learned scale and split too (#2239 / D2-s2-01): this prices the
+        # whole house, so it reads the model's effective UA, not the configured
+        # single-zone `heat_loss_coefficient` on its own.
+        u_house = _house_ua_kw_per_c(p, p.house_heat_loss_scale)
+        typical_heat_loss = (
+            u_house
             * (self.config.target_temp - np.mean(outdoor_temps))
         )
         if typical_heat_loss > 0:
@@ -4838,15 +4854,11 @@ class HeatPumpOptimizer:
         if hi <= lo:
             return hi
         target = self.config.target_temp
-        if p.two_zone_enabled:
-            u_house = p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned
-        else:
-            u_house = p.heat_loss_coefficient
         # The learned leakage scale rides along: the dynamics and the battery
         # view both apply it, and a learned-leaky house that omitted it here
         # got an optimistic ceiling — the one direction this bound must not
         # err (v4.0.5 review).
-        u_house *= p.house_heat_loss_scale
+        u_house = _house_ua_kw_per_c(p, p.house_heat_loss_scale)
         # What the valve keeps feeding the house while the tank charges: the
         # standing demand at the comfort target, the same steady-state frame
         # as the settlement caps themselves.
