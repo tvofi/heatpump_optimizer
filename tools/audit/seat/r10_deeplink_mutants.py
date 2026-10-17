@@ -48,7 +48,7 @@ Plants:
            Residual paragraph).
   F1-F4    the CONTROLS that must stay GREEN (rc=0 fails=0): the same words as
            values or as a key on a legitimate object (`sensor === "action"`
-           inside a setAttribute value, `act === "action"` inside an
+           inside a setAttribute value, `key === "action"` inside an
            Object.assign value, `{ action: "off" }`), and an identifier that
            begins with `submit`. They are what shows the new rows key on the
            name position rather than the word.
@@ -178,8 +178,11 @@ V13_KEYDOWN_CREATE_FORM_UPPER = card(
 # plant in this file, and the reason the rows are anchored.
 F1_KEYDOWN_ACTION_AS_A_VALUE = card(
     KEYDOWN, '      try { const d = document.createElement("div"); d.setAttribute("aria-label", sensor === "action" ? "a" : "b"); } catch (_e) {}\n' + KEYDOWN)
+# F2 compares the handler's own `key`, not `act`: `act === "x"` is the act-
+# branch syntax the reach check reads, so a control written on `act` declares
+# an act branch and is red on reach, not on the form rows it controls.
 F2_KEYDOWN_ACTION_AS_AN_OBJECT_VALUE = card(
-    KEYDOWN, '      try { const f = document.createElement("div"); Object.assign(f, { label: act === "action" ? "a" : "b" }); } catch (_e) {}\n' + KEYDOWN)
+    KEYDOWN, '      try { const f = document.createElement("div"); Object.assign(f, { label: key === "action" ? "a" : "b" }); } catch (_e) {}\n' + KEYDOWN)
 F3_KEYDOWN_ACTION_AS_AN_OBJECT_KEY = card(
     KEYDOWN, '      try { const cur = { action: "off" }; } catch (_e) {}\n' + KEYDOWN)
 F4_KEYDOWN_SUBMIT_AS_AN_IDENTIFIER = card(
