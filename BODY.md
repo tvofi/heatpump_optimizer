@@ -53,27 +53,44 @@ own text-width and empty-state owners, and the label is one table entry in
 
 ## Head
 
-`18bd46db7` (measured at this commit; every figure below is from this tree).
+`270f5d05e2841efab0bdf294db73d008439a7808` is the measured code head. It adds
+one commit to `f97973cc760b126f4fc5507f2f9e24034f757c34` — the
+`closures-autofix` bot's `ci: re-record closures` on top of the reviewed
+`400df157` — and that one commit is the one-line census anchor described below.
+`f97973cc` carries the orchestrator's merge of the authored code head
+`18bd46db79da92e046a31d4a8d5c275a0bb64119` and origin/main `81b7aa9ff` into
+this PR's previous head.
 
-This is round 2, clearing the fix-review block `harness: class-open
-finite_inline`. The round-1 authored head `959a011f0` already carried the C4
-fold (the four `n`-named receipt spellings deduped to `finiteNum`), which took
-the finite-number census from 7 to 3. Round 2 dedupes the two remaining inline
-spellings the census used to miss — `nowTemp` at card.js:7071 and a refit's
-`scale` at card.js:8684 — to `finiteNum`, and widens the census check in
-`tests/card.mjs` to the finder's own pattern (the SAME identifier on both sides
-of the `&&`, whatever it is), so the census now counts 1, the `finiteNum` owner
-alone. The round-2 fix is commit `5295fa06a`; `18bd46db7` merges origin/main
-`81b7aa9ff` into it (the merge reconciles nothing by hand — `5295fa06a` is the
-only round-2 production change), so every figure is measured against current
-main, not the round-1 merge base.
+Every figure that reads a base is stamped with it: merge base
+`81b7aa9ff976413ec98592045930647c0e0bac73`; origin/main tip at measurement
+`1138a4ef590639fedfcc7642d0145bc7c6a4e137`, measured 2026-10-17T15:27Z
+(`date -u`). main's five commits past the merge base touch only
+`tools/coverage/` and the RCA/delivery records, and the base ends of the card
+and fixture comparisons were re-run at the merge base anyway.
+
+This is round 3. Round 2 (head `400df157`, fix `5295fa06a`) cleared the round-1
+fix-review block `harness: class-open finite_inline`: the round-1 authored head
+`959a011f0` had already carried the C4 fold (the four `n`-named receipt
+spellings deduped to `finiteNum`), which took the finite-number census from 7
+to 3; round 2 deduped the two remaining inline spellings the census used to
+miss — `nowTemp` at card.js:7071 and a refit's `scale` at card.js:8684 — to
+`finiteNum`, and widened the census check in `tests/card.mjs` to the finder's
+own pattern (the SAME identifier on both sides of the `&&`, whatever it is), so
+the census now counts 1, the `finiteNum` owner alone.
+
+Round 3 takes the round-2 review's step-14 instrument note with its one-line
+anchor: the exclusion in that census was a prefix match (`const finiteNum`), so
+a second owner named `finiteNum2` left `node tests/card.mjs` green while
+`card_shapes.mjs` counted `finite_inline=2`. Commit `270f5d05e` anchors the
+exclusion to `const finiteNum = `; M11 below is the two-armed control — the
+anchored check fails the second owner, and the prefix form passes it.
 
 ## Mutation proof
 
-`python3 /private/tmp/r10-ux-setup/mutants-final.py` (each mutant is an exact
-production-line replacement, restored with `git checkout --` between runs; the
-closure is `node tests/card.mjs`, 11 runs, recorded in
-`/private/tmp/r10-ux-setup/mutants-final.log`):
+`python3 /private/tmp/r10-ux-setup/r3/mutants-r3.py` (measured at
+`270f5d05e`; each mutant is an exact production-line replacement, restored
+with `git checkout --` between runs; the closure is `node tests/card.mjs`, 13
+runs, recorded in `/private/tmp/r10-ux-setup/r3/mutants-r3.log`):
 
 | mutant | production line | checks that went red |
 |---|---|---|
@@ -88,6 +105,8 @@ closure is `node tests/card.mjs`, 11 runs, recorded in
 | M8 | an OPEN folded block's height counted as the folded one | `a block that is open sizes its box for the rows it now draws` |
 | M9 | `nowTemp` re-spelled inline under a non-`n` name (round-2 fix reverted) | `the finite-number test is spelled in exactly one place` |
 | M10 | `refit.scale` re-spelled inline under a non-`n` name (round-2 fix reverted) | `the finite-number test is spelled in exactly one place` |
+| M11a | a second owner `const finiteNum2 = …` added, census exclusion anchored (this head) | `the finite-number test is spelled in exactly one place` |
+| M11b | the same second owner, census exclusion reverted to the prefix form | none — `ALL CARD CHECKS PASSED` (the round-2 gap returns) |
 
 M9 and M10 are the class the round-1 check missed: M7 re-spells the rule under
 the owner's own `n`, which the old `typeof n === …` census already caught, but
@@ -96,6 +115,10 @@ M9 and M10 re-spell it under `nowTemp` and `refit.scale`, which only the widened
 the two kill the check is the proof the class is now closed, not the dedupe
 alone.
 
+M11a and M11b are the step-14 control for the check itself, not a production
+fold: the same card is green under M11b and red under M11a, so the anchor is
+what catches a second owner and the round-2 prefix form is what let it through.
+
 M8 is the bug the P9 grid found at a narrow width before the fix: the height
 pass counted the folded block only while it was folded, so a box that had just
 been opened drew its last caption past its own card.
@@ -103,57 +126,85 @@ been opened drew its last caption past its own card.
 ## Null control
 
 - **The unmutated tree passes**: M0 above, `node tests/card.mjs` ->
-  `ALL CARD CHECKS PASSED`.
+  `ALL CARD CHECKS PASSED` at `270f5d05e`.
 - **The census harness is stable**: the two card censuses run twice on the
   same file report identical counts (the harness documents this as its own
   null control, `dev/audit/rounds/round10/catchup/arch-b/v2_card_lines.mjs`).
 - **The finder's harness reproduces the finding at the baseline**, not only at
-  the head: `wizard_widgets.py` prints `menu_disagree=1` at origin/main and
-  `menu_disagree=0` at this head, with `menu_fallbacks=23` at both ends — the
-  comparison executes either way, and the `--bump heat_pump_cop_nominal`
-  perturbation moves `disagree` 0 -> 2 at both ends, so the census is live, not
-  vacuous.
+  the head: `wizard_widgets.py` prints `menu_disagree=1` at the merge base
+  `81b7aa9ff` and `menu_disagree=0` at this head, with `menu_fallbacks=23` at
+  both ends — the comparison executes either way, and the `--bump
+  heat_pump_cop_nominal` perturbation moves `disagree` 0 -> 2 at both ends, so
+  the census is live, not vacuous.
 - **The finite census reads the class, not the instance**: the widened check
   applies the finder's own pattern, so a re-spelling under ANY identifier
-  (M9/M10) is what it catches, not a search for the two names the block named.
+  (M9/M10) is what it catches, not a search for the two names the block named;
+  and its exclusion is anchored (M11a/M11b), so a second owner under a
+  different name is caught rather than skipped.
 
 ## Figures
 
-- `node tests/card.mjs` -> `ALL CARD CHECKS PASSED` (the closure for the card).
-- `node tests/card_drift.mjs origin/main` -> `39 state(s) moved and claimed, 1
-  identical`; the claims are in `tests/golden/card_claimed_drift.txt`, whose
-  `claims-for:` is the live VERSION.
+- `node tests/card.mjs` (at `270f5d05e`) -> `ALL CARD CHECKS PASSED` (the
+  closure for the card).
+- `node tests/card_drift.mjs 81b7aa9ff976413ec98592045930647c0e0bac73` ->
+  `39 state(s) moved and claimed, 1 identical`; the claims are in
+  `tests/golden/card_claimed_drift.txt`, whose `claims-for:` is the live
+  VERSION.
 - `PYTHONPATH=tests/hastub python3
   /private/tmp/r10-ux-setup/export/dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py`
-  (sha1 `66b390554c0aa54c8960eacb532b04ff827ca8cf`, run from the run-head root) ->
-  `menu_disagree` 1 at origin/main, 0 here; `menu_fallbacks` 23 at both;
-  `golden_equal=1` at both; `--bump heat_pump_cop_nominal` moves `disagree` 0 ->
-  2 at both ends.
+  (sha1 `66b390554c0aa54c8960eacb532b04ff827ca8cf`; the harness derives its
+  repo root from `__file__`, so it was copied byte-identical into each measured
+  tree at that relative path and run from that tree's root; the copy is
+  untracked and is removed before the scoped gate, which therefore sees only
+  the committed diff) -> `menu_disagree` 1 at merge base `81b7aa9ff`, 0 here;
+  `menu_fallbacks` 23 at both; `golden_equal=1` at both; `--bump
+  heat_pump_cop_nominal` moves `disagree` 0 -> 2 at both ends.
 - `node
   /private/tmp/r10-ux-setup/export/dev/audit/rounds/round10/D7/arch2-s5/card_shapes.mjs
-  <card>` (sha1 `677b75421ca84ac0f404dc90fa0b6a0b72edea0e`) -> at origin/main
-  `total=31`, `char_width_inline=2`, `finite_inline=7`, `no_plan_state=2`,
-  `dead=2` (`top:textWidth top:openHaLink`); here `total=22`,
-  `char_width_inline=0`, `finite_inline=1`, `no_plan_state=1`, `dead=0`.
+  <card>` (sha1 `677b75421ca84ac0f404dc90fa0b6a0b72edea0e`) -> at merge base
+  `81b7aa9ff` `total=31`, `char_width_inline=2`, `finite_inline=7`,
+  `no_plan_state=2`, `dead=2` (`top:textWidth top:openHaLink`); at this head
+  `total=22`, `char_width_inline=0`, `finite_inline=1`, `no_plan_state=1`,
+  `dead=0`.
 - `node
   dev/audit/rounds/round10/catchup/arch-b/v2_card_lines.mjs <card>` -> at
-  origin/main `total=34` (`isfinite_lines=7`, `char_width_lines=3`,
+  merge base `81b7aa9ff` `total=34` (`isfinite_lines=7`, `char_width_lines=3`,
   `no_plan_lines=4`); here `total=25` (`1`, `1`, `3`) — the finder's own
   second arm for the same folds.
 - `python3 tests/structure.py` -> `STRUCTURE RATCHET PASSED`, no row moved.
-- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all origin/main` ->
-  `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main` and `NO
-  STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`.
-- `GATE_SCOPE=auto GOLDEN_MODE=drift ./tests/run.sh` -> `MODE: SCOPED -- 16
-  script(s) run, 17 scoped out` (the scoped closure for this diff, unchanged
-  from round 1; the changed files are the same ten).
+- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all
+  81b7aa9ff976413ec98592045930647c0e0bac73` -> `NO UNCLAIMED DRIFT: 56
+  scenario(s) checked against 81b7aa9ff` and `NO STALE FIXTURE: 56 committed
+  fixture(s) still match what this tree computes`.
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=81b7aa9ff976413ec98592045930647c0e0bac73
+  ./tests/run.sh` -> `MODE: SCOPED -- 16 script(s) run, 17 scoped out` (the
+  same selection the round-2 review measured).
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`
+  -> `no closures or fast red predicted against 81b7aa9ff976 (a data-file read
+  is not seen)`.
 
 ## Red checks
 
+`closures` — red at `400df157`, green at `f97973cc`. The red was
+`UNDER-SCOPED`: the new card check reads
+`custom_components/heatpump_optimizer/translations/en.json`, and the recorded
+closure did not list it. The answer is the autofix chain, not a hand re-record
+(`ci-autofix.md`): `closures-autofix` classified the run and pushed the bot
+commit `f97973cc` (`ci: re-record closures`), which adds
+`translations/en.json` to that closure and re-records two `seconds`; the
+`closures` check-run at `f97973cc` is `success`. The cheaper detector for a
+missing closure entry is the `closures` check's own recorded run, which
+enumerates the reads a closure must list; `tests/closure.py select` reads the
+existing closures and cannot see a read one lacks, so there is no cheaper
+detector — the gate that caught it is the one that reaches the fact.
+
+`pr-contract` — red at `f97973cc` (run 39042398374), solely because `## Red
+checks` did not name `closures`; the paragraph above discharges it.
+
 `P9 grid: no two text runs share ink` — `20: text "2" x text "3" 2 px of
 shared ink`. This is main's own, on this machine: the same check fails with
-the SAME pair and the same 2 px at origin/main, measured by running
-`node tests/card_browser.mjs` in a detached worktree at `origin/main`. The
+the SAME pair and the same 2 px at the merge base, measured by running
+`node tests/card_browser.mjs` in a detached worktree at `81b7aa9ff`. The
 cheaper detector is the gate that ran: the pair only exists once Chromium has
 rastered the glyphs, and no earlier and cheaper instrument can see ink. CI is
 authoritative for it; this lane's own header says the raster is not bit-stable
@@ -162,9 +213,9 @@ across Chromium builds.
 `env_drift.py --all` — this script turned the branch's first two local gate
 runs red, both times because of the same one-line label and each time for a
 different reason: first `1 COMMITTED FIXTURE(S) ARE STALE` (the committed
-capture still held the old label), then `1 UNCLAIMED DRIFT(S) vs origin/main`
-(the capture no longer matches main's, which is what the change is FOR). The
-trigger's question is whether a cheaper detector could have caught either
+capture still held the old label), then `1 UNCLAIMED DRIFT(S) vs the merge
+base` (the capture no longer matches main's, which is what the change is FOR).
+The trigger's question is whether a cheaper detector could have caught either
 earlier, and in both cases the cheapest detector that reaches the fact is the
 one that caught it, inside the run that caught it. The re-record-then-claim
 sequence is now clean (`NO UNCLAIMED DRIFT` / `NO STALE FIXTURE` above).
@@ -193,7 +244,9 @@ honest disposition. `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py
 `brief`: the card's dead-definition row and clone census must be recorded at a
 base that already carries these C1/C4 folds, and on this branch both rows were
 absent from `tests/ci_budgets.json`, so the re-record lands with that group.
-The carry names no literal, only the precondition and its control.
+The carry names no literal, only the precondition and its control. The round-2
+review's step-14 instrument note (`finiteNum2`) is closed in this head by the
+anchor and M11a/M11b, so it needs no carry.
 
 ## Friction
 
