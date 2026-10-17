@@ -1,0 +1,13 @@
+# class-open probe: optimizer.py:2982 (typical_heat_loss, _analyze_forecast_trajectory)
+# source at head:
+        # If lots of solar is coming in 6-12h, reduce current heating
+        # The slab has enough thermal mass to coast through to solar period
+        typical_heat_loss = (  # the learned scale too, as the dynamics (D2-s2-01)
+            self.model.params.heat_loss_coefficient
+            * self.model.params.house_heat_loss_scale
+            * (self.config.target_temp - np.mean(outdoor_temps))
+        )
+# preset two-zone house (timber slab, 1980-2005, 150 m2, radiators up, floor down, split 0.65/0.35):
+RESULT ratio=1.0: configured C=0.1200 U+L=0.1200 learned U+L*r=0.1200  seam(2982)/dynamics-1=+0.0000%
+RESULT ratio=1.6: configured C=0.1200 U+L=0.1200 learned U+L*r=0.1452  seam(2982)/dynamics-1=-17.3554%
+RESULT note: ratio 1.0 is the agreement arm; the seam reads low exactly when the split leaves 1

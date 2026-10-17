@@ -1,0 +1,22 @@
+scale=1.567 ratio=1.6 U=0.1 L=0.09
+RESULT model_rollout_48h_max_abs_diff_c=0.000e+00
+RESULT effective_ua_rel_diff=0.000e+00  (A 382.3 W/K, B 382.3 W/K)
+RESULT space_demand_rel_diff=0.0000  (A 9.941 kW, B 9.941 kW, model-consistent 9.941 kW)
+RESULT sysid_prior_ua_rel_diff=0.2842  (A 297.7, B 382.3, model 382.3 W/K)
+RESULT sysid_adopt_effective_rel_err_A=0.2842  (adopted 491.0 W/K for a fit of 382.3; reason adopted)
+RESULT sysid_adopt_effective_rel_err_B=0.0000  (adopted 382.3 W/K; reason adopted)
+RESULT newton_step_ua_ratio_B_over_A_resid0.02=1.0000  (A -0.185 W/K, B -0.185 W/K per sample)
+RESULT newton_step_ua_ratio_B_over_A_resid0.1=1.0000  (A -0.923 W/K, B -0.923 W/K per sample)
+RESULT newton_step_ua_ratio_B_over_A_resid0.3=1.5670  (A -1.000 W/K, B -1.567 W/K per sample)
+RESULT options_reseed_both_zones.house_rel_err=0.0007  (382.6 vs learned 382.3 W/K)
+RESULT options_reseed_both_zones.upper_rel_err=0.2610  (115.8 vs learned 156.7 W/K)
+RESULT options_reseed_both_zones.lower_rel_err=0.1824  (266.8 vs learned 225.6 W/K; scale 0.739 ratio 1.600 samples 310/147)
+RESULT options_reseed_upper_only.house_rel_err=0.0000  (382.3 vs learned 382.3 W/K)
+RESULT options_reseed_upper_only.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
+RESULT options_reseed_upper_only.lower_rel_err=0.0000  (225.6 vs learned 225.6 W/K; scale 1.000 ratio 1.600 samples 310/147)
+RESULT snapshot_restore_after_reseed.house_rel_err=0.0007  (382.6 W/K)
+RESULT snapshot_restore_after_reseed.lower_rel_err=0.1824  (266.8 W/K)
+RESULT options_reseed_single_zone.house_rel_err=0.0000  (scale 1.0000, samples kept 310, phi 0.9981)
+RESULT thread_factor=1.000
+RESULT load1=18.72
+RESULT swapins=n/a(macOS)

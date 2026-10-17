@@ -1,0 +1,6 @@
+# head measured: b8639bc20d5b2310ee25853831d5a4280accf231
+# worktree /private/tmp/rv-2347-r1 (detached at the PR head)
+b8639bc20d5b2310ee25853831d5a4280accf231
+b8639bc20 record: the delivery row for #2347
+96bab6f67 record(r10): re-anchor the envelope-score carry's line after the merge
+f5ed45dd7 Merge remote-tracking branch 'origin/main' into handoff/r10-ratio-sites

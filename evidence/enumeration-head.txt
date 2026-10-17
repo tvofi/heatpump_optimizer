@@ -1,0 +1,21 @@
+# rule 1: grep -rn "lower_floor_heat_loss" custom_components/heatpump_optimizer/*.py at head
+custom_components/heatpump_optimizer/const.py:745:CONF_LOWER_FLOOR_HEAT_LOSS: Final = "lower_floor_heat_loss"  # kW/°C
+custom_components/heatpump_optimizer/coordinator.py:4859:                + p.lower_floor_heat_loss * self._lower_floor_loss_ratio
+custom_components/heatpump_optimizer/coordinator.py:5289:        base_u = params.lower_floor_heat_loss * self._house_heat_loss_scale
+custom_components/heatpump_optimizer/sysid.py:159:    return float(plant.upper_floor_heat_loss + plant.lower_floor_heat_loss)
+custom_components/heatpump_optimizer/sysid.py:1240:        base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+custom_components/heatpump_optimizer/presets.py:264:                "lower_floor_heat_loss": round(loss * lower_ratio, 4),
+custom_components/heatpump_optimizer/thermal_model.py:206:    lower_floor_heat_loss: float = DEFAULT_LOWER_FLOOR_HEAT_LOSS  # kW/°C
+custom_components/heatpump_optimizer/thermal_model.py:555:        return self.lower_floor_heat_loss * self.lower_floor_loss_ratio
+custom_components/heatpump_optimizer/thermal_model.py:901:            "lower_floor_heat_loss": (
+# rule 1 at base e3f3b312f
+custom_components/heatpump_optimizer/coordinator.py:4511:            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss)
+custom_components/heatpump_optimizer/coordinator.py:4859:                + p.lower_floor_heat_loss * self._lower_floor_loss_ratio
+custom_components/heatpump_optimizer/coordinator.py:5289:        base_u = params.lower_floor_heat_loss * self._house_heat_loss_scale
+custom_components/heatpump_optimizer/const.py:745:CONF_LOWER_FLOOR_HEAT_LOSS: Final = "lower_floor_heat_loss"  # kW/°C
+custom_components/heatpump_optimizer/presets.py:264:                "lower_floor_heat_loss": round(loss * lower_ratio, 4),
+custom_components/heatpump_optimizer/sysid.py:159:    return float(plant.upper_floor_heat_loss + plant.lower_floor_heat_loss)
+custom_components/heatpump_optimizer/sysid.py:1233:        base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+custom_components/heatpump_optimizer/thermal_model.py:206:    lower_floor_heat_loss: float = DEFAULT_LOWER_FLOOR_HEAT_LOSS  # kW/°C
+custom_components/heatpump_optimizer/thermal_model.py:555:        return self.lower_floor_heat_loss * self.lower_floor_loss_ratio
+custom_components/heatpump_optimizer/thermal_model.py:901:            "lower_floor_heat_loss": (

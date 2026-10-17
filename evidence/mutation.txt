@@ -1,0 +1,17 @@
+# step 1 mutation proof (reviewer-run, at head b8639bc20d5b2310ee25853831d5a4280accf231)
+## M0: unmutated head, PYTHONPATH=tests/hastub python3 tests/features.py
+ALL 4156 FEATURE CHECKS PASSED
+
+## M1: params.lower_floor_heat_loss_learned -> params.lower_floor_heat_loss in _space_demand_kw
+--- mutation diff:
+-            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned)
++            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss)
+   (python replace under assert count==1 on the two-line anchor; restored with git checkout --)
+## M1 result:
+  FAIL #2239: the external-heat detector's space demand is the whole-house demand the tank's drain law prices, on the learned lower-floor ratio; the single-zone and ratio-1.0 arms are the controls  [got [(False, 1.0, 6.1113, 6.1113), (False, 1.922, 6.1113, 6.1113), (True, 1.0, 7.74098, 7.74098), (True, 1.922, 7.74098, 11.121751)]]
+1 of 4156 FEATURE CHECKS FAILED
+
+## additional M1 check: none but the #2239 check failed (one FAIL line in 4156)
+1
+## after restore (clean, head unchanged):
+b8639bc20d5b2310ee25853831d5a4280accf231

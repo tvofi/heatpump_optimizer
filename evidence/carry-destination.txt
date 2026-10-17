@@ -1,0 +1,25 @@
+# forward-carry destination check
+## in-tree roster at head: does each group with a 'From R10-' carry entry carry it in its brief too?
+RESULT R10-LEAF-IMPORTS: carry_FromR10=1 brief_has_FromR10=True
+RESULT R10-UX-SETUP: carry_FromR10=2 brief_has_FromR10=True
+RESULT R10-ADVISOR: carry_FromR10=1 brief_has_FromR10=True
+RESULT R10-SCORES: carry_FromR10=1 brief_has_FromR10=False
+RESULT R10-LIVESTATE: carry_FromR10=1 brief_has_FromR10=True
+RESULT R10-PARAMS-OWNER: carry_FromR10=1 brief_has_FromR10=True
+RESULT R10-ARCH-SHAPES: carry_FromR10=1 brief_has_FromR10=True
+RESULT R10-UX-HEALTH: carry_FromR10=2 brief_has_FromR10=True
+RESULT R10-CONFIGFLOW-PAGES: carry_FromR10=2 brief_has_FromR10=True
+RESULT R10-SOLVER: carry_FromR10=1 brief_has_FromR10=True
+RESULT R10-BRIEFS-FOLD: carry_FromR10=1 brief_has_FromR10=True
+
+## R10-SCORES brief's Forward-carried paragraph:
+Forward-carried (finding-propagation.md): (1) Suspected causes to measure, not assume: the learned scale drifted about 2.6 times in autumn (the RESEED drift lead), two-zone UA ignored, and an uncalibrated absolute band. (2) R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them. (3) The card rendering of the dash states joins R10-UX-HEALTH.
+
+ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-
+
+## the appended carry entry:
+From R10-RATIO-SITES (#2239), measured rather than suspected: the envelope score's loss term reads `thermal_params.heat_loss_coefficient` (coordinator.py:10403) times the learned `house_heat_loss_scale`. On a preset-configured two-zone house that coefficient is the configured zone total, and the lea ...
+
+## wave runner passes only g.brief to the fixer (web-fix-wave.js):
+307:Read dev/governance/roles/fixer.md and dev/audit/README.md, then every issue's body AND its comments -- the comments carry corrections that override the body, and a fixer who reads only the body will implement the superseded plan. Your brief, which already applies those corrections:
+308-${g.brief}
