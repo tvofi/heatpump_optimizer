@@ -26,7 +26,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    **And open the class: a harness's configurations are its parameters, not its
    population.** Run the enumeration rule the body names and compare its output with
    the diff: a seam it returns that is neither in the diff nor dispositioned in the body
-   is `blocked <sha> harness: class-open <seam>`. A body whose issue states more than one
+   is `blocked <sha> class-open: <seam>`. A body whose issue states more than one
    seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
