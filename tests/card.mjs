@@ -11547,10 +11547,14 @@ check("without an indoor reading the corner now label is absent",
 // each walked through that gap: a bare `open(` on a row nothing rendered, the
 // Navigation API, a form's `action`, and an `Event`-built `hass-more-info`.
 //
-// Residual, stated because it is the one thing neither arm reaches: a surface
-// name BUILT at run time is a dynamic-arm matter, so it is caught on every row
-// this census drives, and only code no press reaches -- a pointer, wheel or
-// keyboard handler, which no click gets to -- can carry one past both arms.
+// Residual, stated because neither arm reaches it: a surface name BUILT at
+// run time is a dynamic-arm matter, so it is caught where a press makes the
+// write happen. Two kinds of code can carry one past both arms: code no press
+// reaches -- a pointer, wheel or keyboard handler, which no click gets to --
+// and a write through a selector the stub DOM (tests/dom_stub.mjs) cannot
+// resolve, a tag.class pair such as `a.zz`, which the press reaches but which
+// runs on no element (the driver's Y1 is that witness, green; R7c is the same
+// write on a selector the stub resolves, red).
 // The static arm still refuses that surface's names wherever they are written,
 // the written form spellings included: `createElement("form")`, an `action`
 // written through setAttribute, Reflect.set or Object.assign, and `.submit` /
