@@ -1,6 +1,0 @@
-# check-runs at head b8639bc20d5b2310ee25853831d5a4280accf231 (gh api commits/<sha>/check-runs)
-runs=45
-conclusion skipped: 15
-conclusion success: 30
-# red conclusions:
-[]

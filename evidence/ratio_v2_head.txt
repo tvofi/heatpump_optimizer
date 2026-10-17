@@ -7,4 +7,4 @@ RESULT D3.r1.600.lower_to_learned_split.lower_rel=+0.1817 upper_rel=-0.2614 tota
 RESULT D3.r1.000.no_nameplate.lower_rel=+0.0000 upper_rel=+0.0000 total_rel=+0.0000 (scale 1.000 ratio 1.000)
 RESULT D3.r1.000.lower_to_learned_split.lower_rel=+0.0000 upper_rel=+0.0000 total_rel=+0.0000 (scale 1.000 ratio 1.000)
 RESULT thread_factor=1.000
-RESULT load1=16.19
+RESULT load1=67.98
