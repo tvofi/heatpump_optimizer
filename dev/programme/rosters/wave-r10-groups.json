@@ -1470,7 +1470,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done (#2290 merged d8c13ac5b)",
+    "stage": "done",
     "branch": "handoff/r10-services-guard",
     "commit": "d8c13ac5bddfafad52ed385fca5a9d170608feba",
     "last_step": null,
