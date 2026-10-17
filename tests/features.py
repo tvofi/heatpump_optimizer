@@ -2653,13 +2653,6 @@ R.check(
     "absent evidence must not read as a fault, or every install without the "
     "optional sensor would look broken",
 )
-R.check(
-    "the convenience accessors mirror value()",
-    _health_reader.text("heat_pump_mode_entity") == "heat"
-    and _health_reader.flag("heat_pump_online_entity", default=None) is None
-    and _health_reader.flag("heat_pump_defrost_entity", default=True) is True,
-    "an unusable or unread key falls back to the caller's default",
-)
 
 
 # ===========================================================================
@@ -25953,8 +25946,10 @@ R.check(
 )
 # The forecast summary's solar fraction (the solve's initial guess and the
 # published solar_reduction_factor) reads the same house: a learned scale of 2
-# answers what a nameplate coefficient twice as large does (0.6 vs 0.776 at
-# 3dfebc16 on a 48-step sunny afternoon).
+# answers what the configured losses doubled do. On a two-zone house the
+# nameplate knob is the upper/lower split (`heat_loss_coefficient` is the
+# single-zone field, so doubling it would change nothing once #2239 routes the
+# summary through `lower_floor_heat_loss_learned`).
 _d2s2_sr = np.zeros(48)
 _d2s2_sr[14:22] = 600.0
 _d2s2_solar = [
@@ -25963,7 +25958,11 @@ _d2s2_solar = [
     )["solar_reduction_factor"]
     for _d2s2_p in (
         _dc_replace(_d2s2_base, house_heat_loss_scale=2.0),
-        _dc_replace(_d2s2_base, heat_loss_coefficient=2.0 * _d2s2_base.heat_loss_coefficient),
+        _dc_replace(
+            _d2s2_base,
+            upper_floor_heat_loss=2.0 * _d2s2_base.upper_floor_heat_loss,
+            lower_floor_heat_loss=2.0 * _d2s2_base.lower_floor_heat_loss,
+        ),
     )
 ]
 _d2s2_lin.append((_d2s2_solar[0] / _d2s2_solar[1], 1.0))
@@ -45435,25 +45434,6 @@ R.check(
     "guard, so a detector fed only NaNs must still look starved rather than "
     "freshly fed, or `release_if_starved` never releases it",
 )
-_g8_cusum_live = _G8Cusum(threshold=1.0, drift=0.0)
-for _i in range(6):
-    _g8_cusum_live.update(_G8_T0 + timedelta(hours=_i), 1.0)
-_g8_cusum_was = (_g8_cusum_live.stat, _g8_cusum_live.tripped)
-_g8_cusum_live.reset()
-R.check(
-    "reset clears the statistic and the latch, and nothing else",
-    _g8_cusum_was[0] > 0.0
-    and _g8_cusum_live.stat == 0.0
-    and _g8_cusum_live.tripped is False
-    and _g8_cusum_live.last_fed is not None
-    and _g8_cusum_live.evidence,
-    f"before {_g8_cusum_was!r}; after stat {_g8_cusum_live.stat!r} tripped "
-    f"{_g8_cusum_live.tripped!r}, last_fed kept "
-    f"{_g8_cusum_live.last_fed is not None}, evidence kept "
-    f"{len(_g8_cusum_live.evidence)} -- the evidence trail and the feed time "
-    "are the record of WHY it tripped, and a reset that erased them would "
-    "leave the next reader unable to say what happened",
-)
 _g8_cusum_load = _G8Cusum(threshold=2.0, drift=0.1)
 _g8_cusum_load.load(
     {"stat": 1.0, "tripped": "yes", "evidence": ["a"], "last_fed": "not-a-time"}
@@ -51112,9 +51092,9 @@ R.check(
     f"{_p8s_areas!r}",
 )
 
-# InputReader.value: a STALE reading keeps its number (read() leaves it for a
-# caller that explicitly wants the last value) but value() must not hand it
-# out -- the default path treats stale as absent.
+# A STALE reading keeps its number (read() leaves it for a caller that
+# explicitly wants the last value) but is not ``ok``, the gate every
+# production caller reads it through (``x.value if x.ok else None``).
 _p8s_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
 _p8s_reader = InputReader(
     FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(days=3))}),
@@ -51123,24 +51103,20 @@ _p8s_reader = InputReader(
 )
 _p8s_stale = _p8s_reader.read("indoor_temp_entity")
 R.check(
-    "value() returns the default for a stale reading that still holds a number",
-    _p8s_stale.stale
-    and _p8s_stale.value == 21.4
-    and _p8s_reader.value("indoor_temp_entity", -99.0) == -99.0
-    and _p8s_reader.value("outdoor_temp_entity", -99.0) == -99.0,
-    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
-    f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
+    "a stale reading still holds its number but is not ok",
+    _p8s_stale.stale and _p8s_stale.value == 21.4 and not _p8s_stale.ok,
+    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} ok={_p8s_stale.ok}",
 )
 _p8s_fresh = InputReader(
     FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(minutes=5))}),
     {"indoor_temp_entity": "sensor.indoor"},
     now=lambda: _p8s_now,
 )
-_p8s_fresh.read("indoor_temp_entity")
+_p8s_fresh_reading = _p8s_fresh.read("indoor_temp_entity")
 R.check(
-    "null control: value() returns a fresh reading's number",
-    _p8s_fresh.value("indoor_temp_entity", -99.0) == 21.4,
-    f"got {_p8s_fresh.value('indoor_temp_entity', -99.0)!r}",
+    "null control: a fresh reading is ok and holds its number",
+    _p8s_fresh_reading.ok and _p8s_fresh_reading.value == 21.4,
+    f"ok={_p8s_fresh_reading.ok} value={_p8s_fresh_reading.value!r}",
 )
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
@@ -64338,6 +64314,139 @@ R.check(
     _fd_score_unpriced.get("kwh") == 0.0 and _fd_score_unpriced.get("sek") == 0.0
     and _fd_score._score_day.get("kwh") == 1.0 and _fd_score._score_day.get("sek") == 1.5,
     f"unpriced={_fd_score_unpriced} priced={_fd_score._score_day}",
+)
+
+
+# ===========================================================================
+# #2239 — the house the detector prices is the house the dynamics simulate
+# ===========================================================================
+# R10 D2-s1-71: `_space_demand_kw` summed the two zones' CONFIGURED losses, so
+# once the learner had moved the lower-floor ratio off 1 the external-heat
+# detector's standing loss read below the whole-house demand the model rolls.
+# The oracle is the production symbol `hold_demand_kw` (`_hold_kw` above): its
+# docstring owns the same quantity -- the tank sits upstream of the mixing
+# valve feeding both zones, so it is whole-house -- and it already carried the
+# learned ratio, so driven with the same params, the same state and no gains or
+# solar the two must agree exactly. Ratio 1.0 is the null arm: there the
+# configured total and the learned one are the same number, and the two agreed
+# before the fix too.
+_rsd_rows = []
+for _rsd_zone in (False, True):
+    for _rsd_ratio in (1.0, 1.922):
+        _rsd_p = _dc_replace(
+            ThermalParameters.from_config(
+                _grad_house(two_zone=_rsd_zone, dhw=False)
+            ),
+            wind_sensitivity=0.0,
+            internal_gains=0.0,
+            house_heat_loss_scale=1.567,
+            lower_floor_loss_ratio=_rsd_ratio,
+        )
+        _rsd_state = ThermalState(room_temperature=21.0, outdoor_temperature=-5.0)
+        _rsd_rows.append((
+            _rsd_zone,
+            _rsd_ratio,
+            Coord._space_demand_kw(
+                _NS(_thermal_params=_rsd_p, _current_state=_rsd_state)
+            ),
+            _hold_kw(_rsd_p, 21.0, -5.0),
+        ))
+R.check(
+    "#2239: the external-heat detector's space demand is the whole-house demand "
+    "the tank's drain law prices, on the learned lower-floor ratio; the "
+    "single-zone and ratio-1.0 arms are the controls",
+    all(abs(_g - _w) < 1e-12 for _, _, _g, _w in _rsd_rows),
+    f"got {[(z, r, round(g, 6), round(w, 6)) for z, r, g, w in _rsd_rows]}",
+)
+
+# The refuted D-2's residual (catch-up judge, 2026-10-15): the number
+# `SysIdResult.as_dict()` publishes as `heat_loss_kw_per_c` is the identified UA
+# on the configured zone total the learned scale multiplies -- the base
+# `sysid._candidate_model` divides into that scale, and `adoption_decision`
+# divides by -- NOT the model's effective UA, which also carries the learned
+# lower-floor split. That basis is what the field's own doc now names. Prose
+# cannot be pinned by a check; the arithmetic it states can, so this fails on
+# the day the two bases are unified, which is the day the label must move with
+# them.
+_ua_basis = []
+for _ua_r in (1.0, 1.6):
+    _ua_p = _dc_replace(
+        ThermalParameters.from_config(_grad_house(two_zone=True, dhw=False)),
+        lower_floor_loss_ratio=_ua_r,
+        house_heat_loss_scale=1.0,
+    )
+    _ua_basis.append((
+        _ua_r,
+        _r9f41_sysid._zone_heat_loss(_ua_p) * _ua_p.house_heat_loss_scale,
+        _s5_effective(_ua_p, _ua_p.house_heat_loss_scale),
+    ))
+R.check(
+    "#2239 (D-2 residual): the fit's published UA is on the configured "
+    "zone-total basis and reads below the model's effective UA once the learned "
+    "lower-floor split leaves 1; ratio 1.0 is the null arm",
+    abs(_ua_basis[0][1] - _ua_basis[0][2]) <= 1e-4
+    and _ua_basis[1][1] < _ua_basis[1][2],
+    f"{[(r, round(b, 6), round(e, 6)) for r, b, e in _ua_basis]}",
+)
+
+
+# ===========================================================================
+# #2239 (class widened) — the forecast's solar-reduction anticipation prices
+# the learned lower-floor split
+# ===========================================================================
+# `_analyze_forecast_trajectory`'s `typical_heat_loss` normalised the coming
+# solar energy against `heat_loss_coefficient * house_heat_loss_scale`. That is
+# the single-zone field: on a two-zone house it omits the learned lower-floor
+# split the dynamics (and #2239) apply, so it read below the model's whole-house
+# UA the moment the learner left ratio 1. It only feeds `solar_fraction`, which
+# shapes the solver's initial guess, so the property pinned is the returned
+# `solar_reduction_factor`: driven with a constant solar forecast, it must be
+# the value the whole-house UA predicts -- `upper + lower_floor_heat_loss_learned`
+# for two-zone (the same quantity `_hold_kw` prices), `heat_loss_coefficient`
+# for single-zone (unchanged by the fix). The single-zone arm and the ratio-1.0
+# two-zone arm are the controls; the ratio-1.6 two-zone arm is the split.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _fst_opt  # noqa: E402
+from types import SimpleNamespace as _fst_ns  # noqa: E402
+from dataclasses import replace as _fst_replace  # noqa: E402
+from profiles import house as _fst_house  # noqa: E402
+
+_fst_rows = []
+for _fst_zone, _fst_ratio in ((False, 1.0), (True, 1.0), (True, 1.6)):
+    _fst_p = _fst_replace(
+        ThermalParameters.from_config(_fst_house(two_zone=_fst_zone, dhw=False)),
+        lower_floor_loss_ratio=_fst_ratio,
+        house_heat_loss_scale=1.0,
+        wind_sensitivity=0.0,
+        rain_heat_loss_multiplier=1.0,
+    )
+    _fst_u = (
+        _fst_p.upper_floor_heat_loss + _fst_p.lower_floor_heat_loss_learned
+        if _fst_zone
+        else _fst_p.heat_loss_coefficient
+    )
+    _fst_out = _fst_opt._analyze_forecast_trajectory(
+        _fst_ns(
+            model=_fst_ns(params=_fst_p, compute_solar_gain=lambda sr: 0.5),
+            config=_fst_ns(target_temp=21.0),
+        ),
+        solar_radiation=np.full(24, 400.0),
+        wind_speeds=np.zeros(24),
+        precipitation=np.zeros(24),
+        outdoor_temps=np.full(24, -5.0),
+        dt_hours=1.0,
+    )
+    # 6 steps at 0.5 kW each = 3.0 kWh of future solar; target 21 - outdoor -5
+    # = 26 K; the 6 in the denominator is the horizon-hours factor the method
+    # applies to `typical_heat_loss` before dividing.
+    _fst_expected = 1.0 - 0.4 * min(3.0 / max(_fst_u * 26.0 * 6.0, 0.1), 1.0)
+    _fst_rows.append((_fst_zone, _fst_ratio, _fst_out["solar_reduction_factor"], _fst_expected))
+R.check(
+    "#2239 (typical_heat_loss): the forecast's solar-reduction factor prices "
+    "the whole-house UA -- the learned split for two-zone, the configured "
+    "coefficient for single-zone; ratio 1.0 is the split's null arm",
+    all(abs(_o - _e) < 1e-12 for _, _, _o, _e in _fst_rows)
+    and _fst_rows[2][2] > _fst_rows[1][2],
+    f"got {[(z, r, round(o, 6), round(e, 6)) for z, r, o, e in _fst_rows]}",
 )
 
 

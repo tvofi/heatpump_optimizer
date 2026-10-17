@@ -19259,7 +19259,7 @@ R.check(
     "dev/audit one level above a recorded directory",
 )
 _A_IR_BOUND = _closure.affected(
-    ["dev/governance/roles/fixer.md", "handoff/r9-x/note.md"])
+    ["dev/governance/decisions/0011-app-authored-identity.md", "handoff/r9-x/note.md"])
 R.check(
     "prose outside every recorded reach still skips (the bound's other edge)",
     _A_IR_BOUND["case"] == "skip",
@@ -29791,10 +29791,12 @@ R.check(
 # the brief of a stage with no roster group, and carry-201 told seats to run
 # `corpus_churn.py` at a path two moves old. A citation is followed through the
 # move map (`locate`), and kept when it lands under a layout.json `historical`
-# prefix, the half no other check runs. Both sources are read from the INDEX, as
-# tests/layout.py reads prose: they are on tests/closure.py's INERT list, and a
-# worktree read would record them into this script's closure, the
-# INERT-and-recorded pair `merge` refuses (#357).
+# prefix, the half no other check runs. Both sources are read from the WORKTREE,
+# which is what keeps an edit to one from skipping this arm: each is off
+# closure.py's INERT list (its `_is_citation_source`), so a worktree read enters
+# this script's measured closure and a pull request that only adds a broken
+# citation selects this script and is refused here rather than one merge later
+# on main (#2312, F2 -- the late-gate shape #518 and #533 closed the same way).
 #
 # THE PROBE. A cited `.py` is loaded in a fresh interpreter the way a seat runs
 # it (cwd the root, its directory first on sys.path, PYTHONPATH=tests/hastub,
@@ -29816,8 +29818,28 @@ _SP_EXE = r"((?:[\w.-]+/)+[\w.-]+\.(?:py|mjs|js|sh))(?![\w.])"
 _SP_CITE = re.compile(r"(?<![\w./-])" + _SP_EXE)
 _SP_TOPS = {Path(p).parts[0] for p in subprocess.run(
     ["git", "ls-files"], capture_output=True, text=True).stdout.split()}
-_SP_OPENS = {"open", "Path", "join", "run", "check_output", "check_call", "call",
+_SP_OPENS = {"open", "Path", "joinpath", "run", "check_output", "check_call", "call",
              "Popen", "exists", "is_file", "isfile", "isdir", "locate", "canon"}
+# The read half of an open: `Path(lit).read_text()` is caught through `Path`,
+# but `(Path('.') / lit).read_text()` and `_P = Path('.') / lit; _P.read_text()`
+# name the path only on the RECEIVER, so each is an open site of its own --
+# as is `.open()` on such a receiver, the same shape one method over.
+_SP_READS = {"read_text", "read_bytes"}
+# `join` is the one name that is BOTH `os.path.join` (a path site) and
+# `str.join` (not one): `"".join(rows)` over a list that HELD a path literal
+# opens nothing, and following it reads codeowners_gap.py's four classifier
+# inputs as faults -- the shape the review's "every constant is an open"
+# ablation fires. A bare `join(...)` is a path site (the module qualified it by
+# import); `x.join(...)` is too only for a path module.
+_SP_JOIN_MODULES = {"posixpath", "ntpath", "pathlib"}
+
+
+def _sp_path_join(func):
+    if isinstance(func, ast.Name):
+        return True
+    return (isinstance(func, ast.Attribute)
+            and ((isinstance(func.value, ast.Attribute) and func.value.attr == "path")
+                 or (isinstance(func.value, ast.Name) and func.value.id in _SP_JOIN_MODULES)))
 _SP_LOAD = (
     "import importlib.util as u, os, sys\n"
     "f = sys.argv[1]; sys.path.insert(0, os.path.dirname(os.path.abspath(f)))\n"
@@ -29825,8 +29847,8 @@ _SP_LOAD = (
     "s.loader.exec_module(u.module_from_spec(s))\n")
 
 
-def _sp_index(path):
-    return subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True).stdout
+def _sp_source(path):
+    return Path(path).read_text()
 
 
 def _sp_cited(texts):
@@ -29867,41 +29889,224 @@ def _sp_remeasures(node):
             yield from _sp_remeasures(v)
 
 
+def _sp_bind_names(node):
+    """Every name a bind target introduces: a plain name, a tuple/list unpack's
+    element names, or the attribute of a `self.x = ...` target."""
+    if isinstance(node, ast.Name):
+        yield node.id
+    elif isinstance(node, ast.Attribute):
+        yield node.attr
+    elif isinstance(node, (ast.Tuple, ast.List)):
+        for e in node.elts:
+            yield from _sp_bind_names(e)
+
+
+_SP_SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
+
+
+_SP_FN_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def _sp_scope_map(tree):
+    """((node, enclosing scope) ..., {scope: parent scope}, {scope: global names},
+    {scope: nonlocal names}); the module object is the root scope. A binding
+    resolves in the scope that READS it, so a name bound in one function is not
+    read as a same-named binding in another -- the leak that turns a classifier
+    input into an open, which is codeowners_gap.py's `line`, `want` and `ok`
+    (#2344 review, round 1). The `global`/`nonlocal` sets are the one name the
+    reader may re-route: a name declared there is bound in the scope the
+    declaration points to, not the scope that textually holds the assignment."""
+    nodes, parent, glbs, nlcls, stack = [], {}, {}, {}, [(tree, tree)]
+    while stack:
+        node, scope = stack.pop()
+        nodes.append((node, scope))
+        inner = node if isinstance(node, _SP_SCOPE_NODES) else scope
+        if inner is not scope:
+            parent[inner] = scope
+        if isinstance(node, ast.Global):
+            glbs.setdefault(scope, set()).update(node.names)
+        elif isinstance(node, ast.Nonlocal):
+            nlcls.setdefault(scope, set()).update(node.names)
+        stack.extend((c, inner) for c in ast.iter_child_nodes(node))
+    return nodes, parent, glbs, nlcls
+
+
+def _sp_args(node):
+    """(arg, default) for every parameter carrying a default."""
+    a = node.args
+    positional = [*a.posonlyargs, *a.args]
+    yield from zip(positional[len(positional) - len(a.defaults):], a.defaults)
+    for arg, default in zip(a.kwonlyargs, a.kw_defaults):
+        if default is not None:
+            yield arg, default
+
+
+def _sp_bindings(nodes, parent, root, glbs, nlcls):
+    """{scope: {name: [value node]}}: every binding the module makes -- a plain
+    or annotated assignment, a tuple/list unpack, a `for` target over a LITERAL
+    collection, `+=` and the other augmented targets, a walrus, a parameter
+    default, and a `with ... as` target. A `for x in <expression>` target is
+    NOT bound: it takes whatever the expression yields, and binding it reads
+    an unrelated loop's classifier inputs as this one's opens. A name the scope
+    declares `global` is bound in the module (the root) and one it declares
+    `nonlocal` in the nearest enclosing function scope, matching Python's own
+    re-routing of those assignments."""
+    scopes = {}
+
+    def eff(scope, nm):
+        if nm in glbs.get(scope, ()):
+            return root
+        if nm in nlcls.get(scope, ()):
+            s = parent.get(scope)
+            while s is not None and not isinstance(s, _SP_FN_SCOPES):
+                s = parent.get(s)
+            return s if s is not None else parent.get(scope)
+        return scope
+
+    def bind(scope, targets, value):
+        for t in targets:
+            if (isinstance(t, (ast.Tuple, ast.List)) and isinstance(value, (ast.Tuple, ast.List))
+                    and len(t.elts) == len(value.elts)):
+                pairs = [(nm, val) for el, val in zip(t.elts, value.elts)
+                         for nm in _sp_bind_names(el)]
+            else:
+                pairs = [(nm, value) for nm in _sp_bind_names(t)]
+            for nm, val in pairs:
+                scopes.setdefault(eff(scope, nm), {}).setdefault(nm, []).append(val)
+
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            bind(scope, node.targets, node.value)
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, ast.AugAssign):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            if isinstance(node.iter, (ast.Tuple, ast.List, ast.Set)):
+                bind(scope, [node.target], node.iter)
+        elif isinstance(node, ast.NamedExpr):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            for arg, default in _sp_args(node):
+                bind(scope, [ast.Name(id=arg.arg)], default)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    bind(scope, [item.optional_vars], item.context_expr)
+    return scopes
+
+
+def _sp_reach(node, scopes, parent, scope):
+    """Every expression node `node` can reach: the name or attribute it is bound
+    to here or in an enclosing scope, a pathlib `/` or a `+` join, an f-string,
+    a dict subscript, a held tuple -- so a literal written several hops from the
+    open, or inside an f-string's literal part, is still the path that open
+    names. `seen` breaks a cycle."""
+    seen, stack, out = set(), [node], []
+    while stack:
+        n = stack.pop()
+        if id(n) in seen:
+            continue
+        seen.add(id(n))
+        out.append(n)
+        key = n.id if isinstance(n, ast.Name) else (n.attr if isinstance(n, ast.Attribute) else None)
+        if key is not None:
+            s = scope
+            while s is not None:
+                if key in scopes.get(s, {}):
+                    stack.extend(scopes[s][key])
+                    break
+                s = parent.get(s)
+        stack.extend(ast.iter_child_nodes(n))
+    return out
+
+
+def _sp_path_literal(v):
+    """True when a string is a repository-path-shaped literal -- the same shape
+    `_sp_literals` collects, so the census below and the reader agree on what
+    counts as a path."""
+    return (isinstance(v, str) and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v)
+            and v.split("/")[0] in _SP_TOPS)
+
+
+def _sp_attr_bound(src):
+    """(line, name) for every path literal a module binds to an ATTRIBUTE: a
+    `obj.attr = <path>` target, or a class-body `Name = <path>` read as
+    `ClassName.Name`. `_sp_reach` resolves a read by the attribute NAME and walks
+    up only enclosing scopes, so a path bound to an attribute in one scope and
+    opened in another is the one shape the resolver cannot follow."""
+    tree = ast.parse(src)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
+    out = []
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and node.value is not None:
+            targets = [node.target]
+        else:
+            continue
+        if not any(isinstance(c, ast.Constant) and _sp_path_literal(c.value)
+                   for c in _sp_reach(node.value, scopes, parent, scope)):
+            continue
+        for t in targets:
+            if isinstance(t, ast.Attribute):
+                out.append((node.lineno, t.attr))
+            elif isinstance(t, ast.Name) and isinstance(scope, ast.ClassDef):
+                out.append((node.lineno, t.id))
+    return out
+
+
 def _sp_literals(src, opened=True):
     """(line, literal, resolved) per repository path the module opens (every
     path literal it holds, with opened=False)."""
     tree = ast.parse(src)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
     docs = {id(n.body[0].value) for n in ast.walk(tree)
             if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
             and n.body and isinstance(n.body[0], ast.Expr)
             and isinstance(n.body[0].value, ast.Constant)}
-    named = {}
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Assign) and isinstance(n.value, (ast.Constant, ast.Call)):
-            for t in n.targets:
-                if isinstance(t, ast.Name):
-                    named.setdefault(t.id, []).append(n.value)
+    # The literal parts of an f-string, so a leading slash is stripped only for
+    # `f"{root}/<path>"` and never for a plain absolute string (which the token
+    # regex below would refuse anyway, but `/dev/null` inside a quoted literal
+    # must not become the repository's `dev/null`).
+    fstr = {id(c) for j in ast.walk(tree) if isinstance(j, ast.JoinedStr)
+            for c in j.values if isinstance(c, ast.Constant)}
     via, opens = {}, set()
-    for n in ast.walk(tree):
+    for n, scope in nodes:
         if not isinstance(n, ast.Call):
             continue
         name = getattr(n.func, "id", None) or getattr(n.func, "attr", None)
         if name in ("locate", "canon") and n.args and isinstance(n.args[0], ast.Constant):
             via[id(n.args[0])] = _layout_locate if name == "locate" else _layout_canon
-        if name in _SP_OPENS:
+        if (name in _SP_OPENS or name in _SP_READS
+                or (name == "join" and _sp_path_join(n.func))):
             for arg in [*n.args, *(k.value for k in n.keywords)]:
-                for m in ast.walk(arg):
-                    for c in [m, *(named.get(m.id, ()) if isinstance(m, ast.Name) else ())]:
-                        for cc in ast.walk(c):
-                            if isinstance(cc, ast.Constant):
-                                opens.add(id(cc))
+                for cc in _sp_reach(arg, scopes, parent, scope):
+                    if isinstance(cc, ast.Constant):
+                        opens.add(id(cc))
+            # A METHOD call names its path on the RECEIVER, not in its
+            # arguments: `(Path('.') / lit).open()`, `_P = Path('.') / lit;
+            # _P.open()`, `Path(lit).read_text()`. The round-1 review planted
+            # the `read_text()` pair; `.open()` is the same structure, and
+            # `Path(lit).open()` is caught by the inner `Path` call only by
+            # accident.
+            if isinstance(n.func, ast.Attribute):
+                for cc in _sp_reach(n.func.value, scopes, parent, scope):
+                    if isinstance(cc, ast.Constant):
+                        opens.add(id(cc))
     out = []
     for n in ast.walk(tree):
-        if (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
-                and (not opened or id(n) in opens)
-                and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", n.value)
-                and n.value.split("/")[0] in _SP_TOPS):
-            out.append((n.lineno, n.value, via.get(id(n), lambda v: v)(n.value)))
+        if not (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
+                and (not opened or id(n) in opens)):
+            continue
+        # `f"{os.getcwd()}/<path>"` leaves the literal part with a leading slash,
+        # which is the repository's own root once the interpolated prefix is the
+        # cwd -- the one f-string shape the round-1 review planted.
+        v = n.value[1:] if id(n) in fstr and n.value.startswith("/") else n.value
+        if _sp_path_literal(v):
+            out.append((n.lineno, v, via.get(id(n), lambda x: x)(v)))
     return out
 
 
@@ -29928,12 +30133,12 @@ _SP_POLICY = sorted({_layout_locate(f) for f in _SP_POLICY})
 _SP_CARRIES = sorted(f for f in subprocess.run(
     ["git", "ls-files", "dev/programme/carries/"], capture_output=True, text=True).stdout.split()
     if re.fullmatch(r"dev/programme/carries/carry-\d+\.json", f))
-_SP_CITED = _sp_cited((f, _sp_index(f)) for f in _SP_POLICY)
+_SP_CITED = _sp_cited((f, _sp_source(f)) for f in _SP_POLICY)
 # A carry COMMAND is pasted as written, so its spelling must name the file too:
 # carry-201 told a seat to run corpus_churn.py at its pre-move path, which
 # the move map follows and a shell does not (ENOENT). Policy prose citing a
 # retired path is tests/layout.py's `reference` arm; a command is this arm's.
-_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_index(f) or "{}"))))
+_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_source(f) or "{}"))))
                   for f in _SP_CARRIES]
 _SP_STALE_RUN = _sp_moved_spellings(_SP_REMEASURES)
 for _sp_p, _sp_by in _sp_cited(_SP_REMEASURES).items():
@@ -29993,6 +30198,143 @@ R.check(
     and _sp_check_stale(_sp_unit),
     f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
     f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
+)
+# F1 (#2312): the open shapes the fix reviews planted, and the binding family
+# beside them -- #2289's round-1 `plants.py` is the control for the first eight,
+# and #2344's round-1 review named the two plainly inside the rule (a `for`
+# target holding the literal, and `.open()` on a `/`-join receiver) plus the
+# forms that ride with them. A literal reached through any of them was held by
+# the module but never counted as an open, so the program it names was never
+# probed. Each planted shape must be read as an open, the five the arm already
+# caught stay caught, and -- the null control the whole arm rests on -- a
+# literal the program only HOLDS is still not an open. Asserted on
+# `_sp_literals`, the shape reader, not on `_sp_faults`: a planted
+# `open(<retired>)` ALSO fails to load, and that failure would hide a shape the
+# reader still misses. Round 3 added the two declarations the reader re-routes
+# (`global` and `nonlocal`) to the plant list; an attribute bound to a path in
+# one scope and opened in another is the one shape it cannot follow and is
+# dispositioned by the census right after this check.
+_sp_probe = "\nimport os\nfrom pathlib import Path\n"
+
+
+def _sp_opens(src, lit):
+    return any(l == lit for _, l, _ in _sp_literals(src))
+
+
+_sp_escapes = {
+    "two-hop alias": f"_A = {_sp_old!r}\n_B = _A\n_X = open(_B)\n",
+    "two-hop alias via join": f"_A = {_sp_old!r}\n_B = _A\n_X = os.path.join('.', _B)\n",
+    "pathlib / then read_text": f"_X = (Path('.') / {_sp_old!r}).read_text()\n",
+    "pathlib / via a name then read_text": f"_P = Path('.') / {_sp_old!r}\n_X = _P.read_text()\n",
+    "pathlib / then open": f"_X = (Path('.') / {_sp_old!r}).open()\n",
+    "pathlib / via a name then open": f"_P = Path('.') / {_sp_old!r}\n_X = _P.open()\n",
+    "f-string root prefix": f"_X = open(f\"{{os.getcwd()}}/{_sp_old}\")\n",
+    "dict value then subscript": f"_C = {{'k': {_sp_old!r}}}\n_X = open(_C['k'])\n",
+    "tuple-unpack assign": f"_A, _B = {_sp_old!r}, 'x'\n_X = open(_A)\n",
+    "annotated assign": f"_A: str = {_sp_old!r}\n_X = open(_A)\n",
+    "for target": f"for _P in ({_sp_old!r},):\n    _X = open(_P)\n",
+    "walrus": f"if (_P := {_sp_old!r}):\n    _X = open(_P)\n",
+    "augmented assign": f"_P = ''\n_P += {_sp_old!r}\n_X = open(_P)\n",
+    "parameter default": f"def _f(_p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "with ... as": f"with Path('.') / {_sp_old!r} as _P:\n    _X = _P.read_text()\n",
+    "self attribute": f"class _C:\n    def m(self):\n        self._P = {_sp_old!r}\n"
+                      f"        _X = open(self._P)\n",
+    "list element then subscript": f"_L = [{_sp_old!r}]\n_X = open(_L[0])\n",
+    "nested dict subscript": f"_C = {{'a': {{'b': {_sp_old!r}}}}}\n_X = open(_C['a']['b'])\n",
+    "for tuple target": f"for _A, _B in (({_sp_old!r}, 'x'),):\n    _X = open(_A)\n",
+    "for over a list": f"for _P in [{_sp_old!r}]:\n    _X = open(_P)\n",
+    "kwonly default": f"def _f(*, _p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "lambda default": f"_f = lambda _p={_sp_old!r}: open(_p)\n",
+    "joinpath then read_text": f"_X = Path('.').joinpath({_sp_old!r}).read_text()\n",
+    "global binding": f"_G = None\ndef _load():\n    global _G\n"
+                      f"    _G = {_sp_old!r}\n_X = open(_G)\n",
+    "nonlocal binding": f"def _outer():\n    _P = ''\n    def _inner():\n"
+                        f"        nonlocal _P\n        _P = {_sp_old!r}\n    _X = open(_P)\n",
+}
+# The null controls beside the plants: a literal the program only HOLDS -- in a
+# tuple, a set, or a comparison -- is read as no open, whatever else it is in.
+_sp_held_shapes = {
+    "held tuple": f"_X = ({_sp_old!r},)\n",
+    "held set": f"_S = {{{_sp_old!r}}}\n",
+    "held comparison": f"_X = ('x' == {_sp_old!r})\n",
+}
+_sp_caught = {
+    "one-hop name": f"_P = {_sp_old!r}\n_X = open(_P)\n",
+    "pathlib / in open": f"_X = open(Path('.') / {_sp_old!r})\n",
+    "f-string bare": f"_X = open(f\"{_sp_old}\")\n",
+    "str concat": f"_X = open('./' + {_sp_old!r})\n",
+    "read via Path.read_text": f"_X = Path({_sp_old!r}).read_text()\n",
+}
+_sp_missed = sorted(k for k, p in _sp_escapes.items()
+                    if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+_sp_regressed = sorted(k for k, p in _sp_caught.items()
+                       if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+_sp_held_open = sorted(k for k, p in _sp_held_shapes.items()
+                       if _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+R.check(
+    "the cited-program arm follows a path literal through every open shape the "
+    "two fix reviews planted and the binding family beside them -- an alias, a "
+    "join, a pathlib / read through .read_text() or .open(), an f-string prefix, "
+    "a dict or list subscript, a tuple unpack, an annotated assignment, a for "
+    "target, a walrus, +=, a parameter or lambda default, a with ... as target, "
+    "a self.x attribute, and a name bound through a global or nonlocal "
+    "declaration -- the shapes it already caught stay caught, and a literal the "
+    "program only HOLDS is still not an open",
+    not _sp_missed and not _sp_regressed and not _sp_held_open,
+    f"shapes that still escape {_sp_missed}; no longer read as opens {_sp_regressed}",
+)
+# The one shape the name-only resolver cannot follow is an attribute bound to a
+# path literal in one scope and opened in another: `self._p` set in `__init__`
+# and opened in a sibling method, or a class-body `P = <path>` opened as `C.P`.
+# `_sp_reach` keys a read by the attribute NAME and walks up only enclosing
+# scopes, so a binding in a sibling scope is invisible; following it precisely
+# needs object identity, which the flat name map M6 removed over-fires on
+# (two `self._p` sites on different objects would read as one). The census below
+# asserts no cited program does either today -- a writer is a new finding, not a
+# silently held path.
+_sp_attr_planted = (
+    _sp_attr_bound("class _C:\n    def __init__(self):\n"
+                   f"        self._p = {_sp_old!r}\n"
+                   "    def m(self):\n        return open(self._p)\n")
+    + _sp_attr_bound(f"class C:\n    P = {_sp_old!r}\n_X = open(C.P)\n"))
+_sp_attr_sites = sorted((_sp_p, _sp_attr_bound(_sp_source(_sp_p)))
+                        for _sp_p in sorted(_SP_CITED) if _sp_p.endswith(".py"))
+R.check(
+    "no cited program binds a path literal to an attribute or a class-body "
+    "name at all -- so the attribute-bound-in-one-scope-opened-in-another shape "
+    "(`self.x` set in one method and opened in another, a class-body name "
+    "opened through its owner) that the name-only resolver cannot follow has 0 "
+    "live sites today, and the census catches each planted variant",
+    not any(s for _, s in _sp_attr_sites) and len(_sp_attr_planted) >= 2,
+    f"attribute-bound path sites {[(p, s) for p, s in _sp_attr_sites if s]}",
+)
+# THE SOURCES MUST SELECT THIS SCRIPT, or the citation half above is a main-only
+# check: policy files and carries are read as TEXT, and if they stay INERT a
+# pull request that only adds a broken citation is SCOPED to zero scripts, so
+# the arm is skipped and `main`'s forced full run catches it one merge later.
+# That is the late-gate shape #518 (the handover) and #533 (the nightly lane)
+# each closed by reading the file here, and this is the same move for the
+# sources this arm reads (#2312, F2). The gate's own `select` decides, so this
+# pins the mechanism rather than a copy of the closure table: a source that is
+# still INERT is the #357 contradiction the worktree read would create, and one
+# that selects no script (or the whole suite) is the skip that hid the finding.
+_sp_sources = [*_SP_CARRIES, *_SP_POLICY]
+import closure as _sp_closure  # the arm block runs standalone under its driver (fix-review)
+_sp_inert = sorted(f for f in _sp_sources if _sp_closure.is_inert(f))
+_sp_select = {f: _sp_closure.select([f]) for f in _sp_sources}
+_sp_unselected = sorted(
+    f for f, r in _sp_select.items()
+    if "tests/entities.py" not in r["run"] or r["mode"] != "scoped")
+R.check(
+    "every carry and every policy file this arm reads for citations selects "
+    "this script, so a broken citation added to one is refused on the pull "
+    "request and not on the next merge to main (#2312, F2)",
+    len(_SP_CARRIES) >= 1 and len(_SP_POLICY) >= 20
+    and not _sp_inert and not _sp_unselected,
+    f"citation sources left INERT (an edit to one selects no script, so the arm "
+    f"never runs on the PR that adds the broken citation): {_sp_inert[:6]}"
+    f"{' ...' if len(_sp_inert) > 6 else ''}; selecting no script or the whole "
+    f"suite: {_sp_unselected[:6]} of {len(_sp_sources)}",
 )
 
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
@@ -30152,7 +30494,7 @@ R.check(
 # pathspec can restore it and this check passes while the corpus is graded by
 # the pull request's copy again. That residual, and the criteria files the pin
 # deliberately leaves to the pull request, are carried to the next D11 round in
-# `.claude/workflows/carry-201.json`.
+# `dev/programme/carries/carry-201.json`.
 _GOV_PD = _workflow_job(Path(_GOV_WF).read_text(), "policy-docs")
 R.check(
     "`policy-docs` restores its graders from the base commit before it grades",
