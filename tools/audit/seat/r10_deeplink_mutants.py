@@ -83,6 +83,12 @@ Z_KEYDOWN = card('      const wantsRemove = key === "Delete" || key === "Backspa
 # The two seams this fix found for itself.
 W1 = after_nav('if (globalThis.frames) globalThis.dispatchEvent(new Event("nothing-to-see"));')
 W2 = after_nav('globalThis[["hist", "ory"].join("")].go(-1);')
+# The scan's grammar, ECMAScript's IdentifierName production: under the ASCII
+# word grammar the source split `främes` at the `ä`, so the name was never
+# watched and the read of the global went unrecorded and unrefused.
+W3 = after_nav('if (globalThis.främes) globalThis.dispatchEvent(new Event("nothing-to-see"));')
+X8 = test(r'  const IDENT = /[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*/gu;',
+          r'  const IDENT = /[A-Za-z_$][\w$]*/g;')
 X1 = test('    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =\n'
           '      [{ class: "power", key: "heat_pump_power_entity" }];\n', "")
 X3 = test('  for (const at of ["href", "action", "formaction"]) {', '  for (const at of ["href"]) {')
@@ -148,6 +154,7 @@ PLANTS = {
     "Z_open_in_undriven_keydown": Z_KEYDOWN,
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,
+    "W3_unicode_global": W3,
     # This fix's own lines, and the plant each one closes.
     "X1_fixture_drops_feedback_row": X1,
     "X1K5b_fixture_line_is_what_closes_K5b": X1 + K5B,
@@ -164,6 +171,8 @@ PLANTS = {
     "X6Z_surface_member_is_what_closes_Z": X6 + Z_KEYDOWN,
     "X7_sink_drops_navigation": X7,
     "X7K1b_surface_member_names_the_primitive_K1b": X7 + K1B,
+    "X8_ascii_grammar": X8,
+    "X8W3_grammar_line_is_what_closes_W3": X8 + W3,
 }
 
 

@@ -11442,8 +11442,13 @@ check("without an indoor reading the corner now label is absent",
   // intrinsics and the rig's stub are all already bound and are not watched.
   // Words that occur only inside strings or markup are watched too: a watcher
   // for a name the card never reads as a global costs nothing and never fires.
-  // The word grammar here is the one tests/doc_claims.py reads symbols out of
-  // prose with, and the copy is registered in tools/policy/agreement.mjs.
+  // The grammar is ECMAScript's IdentifierName production: this scan asks
+  // about identifiers the JS source names, and the language admits non-ASCII
+  // ones (W3). tests/doc_claims.py's `_tokens` is a different reader with a
+  // different question -- ASCII words a document names -- not a copy of this
+  // one, and the two are deliberately not kept identical. The `u` flag is what
+  // makes the property escapes Unicode-aware; without it they are ASCII-only
+  // and an identifier like `frames` spelled with a non-ASCII letter is missed.
   const KEYWORDS = new Set(["arguments", "async", "await", "break", "case", "catch", "class",
     "const", "continue", "debugger", "default", "delete", "do", "else", "export", "extends",
     "false", "finally", "for", "function", "get", "if", "import", "in", "instanceof", "let",
@@ -11478,7 +11483,8 @@ check("without an indoor reading the corner now label is absent",
   // asking the global object itself is the only faithful list.
   const REALM = new Set(vm.runInContext("Object.getOwnPropertyNames(globalThis)", ctx)
     .concat(Object.getOwnPropertyNames(ctx.window)));
-  const watched = [...new Set(code.match(/[A-Za-z_$][\w$]*/g) || [])]
+  const IDENT = /[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*/gu;
+  const watched = [...new Set(code.match(IDENT) || [])]
     .filter((n) => !REALM.has(n) && !KEYWORDS.has(n));
   for (const n of watched) { watch(ctx, n); watch(ctx.window, n); }
 
