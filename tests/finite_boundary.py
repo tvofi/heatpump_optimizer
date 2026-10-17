@@ -592,19 +592,9 @@ def _kinds_arm() -> None:
     )
 
 
-def _publish_arm() -> None:
-    """Every float the coordinator publishes set non-finite; every entity of
-    every registered platform must still publish finite values in process.
-
-    The platform set is ``PLATFORM_LIST``, the list the integration forwards
-    to Home Assistant, so a platform added there is swept without an edit
-    here. ``reading_ok`` flags are all set, so the gated temperatures reach
-    their entities, and the comfort target is poisoned too, because the
-    thermostat's ``target_temperature`` reads it rather than the data dict.
-    """
-    import importlib
-    import heatpump_optimizer as integration
-
+def _publish_setup():
+    """A built coordinator, its healthy payload with every ``reading_ok`` flag
+    set, and its optimizer config: the input both publish sweeps start from."""
     start = _dt.datetime(2026, 1, 15, 0, 0, tzinfo=_dt.timezone.utc)
     coord = _build_coord()
     coord._prices = [
@@ -622,6 +612,23 @@ def _publish_arm() -> None:
     healthy["reading_ok"] = {k: True for k in healthy.get("reading_ok") or {}}
     coord.entry.runtime_data = coord
     opt = getattr(coord, "_ctx", coord)._opt_config
+    return coord, healthy, opt
+
+
+def _publish_arm() -> None:
+    """Every float the coordinator publishes set non-finite; every entity of
+    every registered platform must still publish finite values in process.
+
+    The platform set is ``PLATFORM_LIST``, the list the integration forwards
+    to Home Assistant, so a platform added there is swept without an edit
+    here. ``reading_ok`` flags are all set, so the gated temperatures reach
+    their entities, and the comfort target is poisoned too, because the
+    thermostat's ``target_temperature`` reads it rather than the data dict.
+    """
+    import importlib
+    import heatpump_optimizer as integration
+
+    coord, healthy, opt = _publish_setup()
     target = opt.target_temp
     for platform in integration.PLATFORM_LIST:
         module = importlib.import_module(f"heatpump_optimizer.{platform}")
@@ -670,6 +677,119 @@ def _no_rewrap_check() -> None:
         alias.native_value.fget is parent.native_value.fget,
         "the subclass's native_value was re-wrapped around the parent's wrapper",
     )
+
+
+def _scrub_mro_check() -> None:
+    """The scrub covers the property Home Assistant resolves (D7-s2-51).
+
+    Three placements of the same NaN-returning ``native_value``: on a mixin
+    whose runtime base is ``object`` (the sensor platform's ``_SensorMixinBase``)
+    that a package entity inherits; on an entity subclass defined outside the
+    package (this module -- the case a package-only rule exempted, #2238's
+    catch-up note); and on the entity class itself, the null control the
+    old ``__dict__`` rule already scrubbed. Home Assistant's own default is
+    the fourth arm: inherited, it is left unwrapped."""
+    from homeassistant.components.sensor import SensorEntity
+    from heatpump_optimizer import sensor
+
+    def nan(self):
+        return float("nan")
+
+    mixin = type("_NanMixin", (), {"native_value": property(nan),
+                                   "__module__": sensor.__name__})
+    probes = {
+        "a package mixin with runtime base object": type(
+            "_MixinProbe", (mixin, sensor.HeatPumpOptimizerSensorBase),
+            {"__module__": sensor.__name__}),
+        "an entity subclass defined outside the package": type(
+            "_OutsideProbe", (sensor.HeatPumpOptimizerSensorBase,),
+            {"native_value": property(nan)}),
+        "the entity class itself (null control)": type(
+            "_OwnProbe", (sensor.HeatPumpOptimizerSensorBase,),
+            {"native_value": property(nan), "__module__": sensor.__name__}),
+    }
+    for label, cls in probes.items():
+        value = cls.native_value.fget(object.__new__(cls))
+        R.check(f"a NaN native_value on {label} is published as None",
+                value is None, f"published {value!r}")
+    # The stub's SensorEntity declares no native_value (upstream's is a
+    # cached_property reading _attr_native_value), so the default is modelled
+    # by its owner's module: a property Home Assistant's package owns.
+    ha_default = type("_HaDefault", (), {
+        "native_value": property(nan), "__module__": "homeassistant.components.sensor"})
+    plain = type("_DefaultProbe", (sensor.HeatPumpOptimizerSensorBase, ha_default),
+                 {"__module__": sensor.__name__})
+    R.check(
+        "Home Assistant's own native_value default is not wrapped by the scrub",
+        "native_value" not in vars(plain)
+        and plain.native_value is vars(ha_default)["native_value"],
+        f"vars={sorted(n for n in vars(plain) if not n.startswith('__'))}",
+    )
+
+
+#: A bool is not a number (the round-10 mandate's bool policy) and a numeric
+#: string is text: either at a number state's source must publish None.
+_NOT_NUMBERS = (True, "21.5")
+#: The state properties Home Assistant reads as a number.
+_NUMBER_STATES = ("native_value", "current_temperature", "target_temperature")
+
+
+def _number_state_arm() -> None:
+    """Every entity whose state is a number publishes None, or the number it
+    published before, when every float in the payload is a bool or a numeric
+    string (D7-s2-60, #2242): never the bool, never the text, never the text
+    or the bool read as a number (``True`` as 1, ``'21.5'`` as 21.5), never a
+    raise. "The number it published before" is a state that does not read
+    the substituted leaf -- an integer count, a figure off the model; a
+    healthy value that happens to equal the probe's reading (1.0) is the one
+    coincidence this oracle cannot see.
+
+    The same input drives every sibling: the payload the publish sweep builds,
+    each float leaf replaced, on every entity of every platform. A state that
+    is not a number at the healthy payload is out of scope; the census refuses
+    a universe with no number state, and one in which the substitution never
+    reaches a published state (the arm is not vacuous)."""
+    coord, healthy, _opt = _publish_setup()
+    import importlib
+    import heatpump_optimizer as integration
+
+    def number(value) -> bool:
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+    states = reached = 0
+    bad: list[str] = []
+    for platform in integration.PLATFORM_LIST:
+        module = importlib.import_module(f"heatpump_optimizer.{platform}")
+        entities: list = []
+        coord.data = healthy
+        asyncio.run(module.async_setup_entry(coord.hass, coord.entry, entities.extend))
+        before = {id(e): _published(e) for e in entities}
+        for probe in _NOT_NUMBERS:
+            coord.data = _floats_poisoned(healthy, probe)
+            for ent in entities:
+                after = _published(ent)
+                for name in _NUMBER_STATES:
+                    if not number(before[id(ent)].get(name)):
+                        continue
+                    states += probe is True
+                    got = after.get(name)
+                    if got is None:
+                        reached += 1
+                    elif not number(got) or got != before[id(ent)][name]:
+                        bad.append(f"{type(ent).__name__}.{name}: {probe!r} -> {got!r}")
+    coord.data = healthy
+    R.check(
+        "every number state publishes None, never the bool or the text, from a bool or text payload (#2242)",
+        not bad and states > 0,
+        f"states={states} bad={sorted(bad)}",
+    )
+    R.check(
+        "the bool and text payloads reach a published number state (the arm is not vacuous)",
+        reached > 0,
+        "no number state went to None when every float became a bool or text",
+    )
+    print(f"RESULT number_states={states} count")
+    print(f"RESULT number_state_escapes={len(bad)} count")
 
 
 # ---------------------------------------------------------------------------
@@ -2322,6 +2442,8 @@ def _main() -> int:
     _kinds_arm()
     _publish_arm()
     _no_rewrap_check()
+    _scrub_mro_check()
+    _number_state_arm()
     _i1_pins_arm()
     _version_arm(by_name)
     return R.close("FINITE BOUNDARY CHECKS")
