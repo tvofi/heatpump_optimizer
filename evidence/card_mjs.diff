@@ -1,0 +1,861 @@
+diff --git a/tests/card.mjs b/tests/card.mjs
+index 6f019ad90..6c6d1d4b0 100644
+--- a/tests/card.mjs
++++ b/tests/card.mjs
+@@ -2577,12 +2577,63 @@ check("the hand-scheduled reason has a label",
+     JSON.stringify(tankCalls));
+   check("live values are read straight from hass states",
+     /21\.3 °C/.test(setupPage) && /47\.5 °C/.test(setupPage));
++  // R10-UX-SETUP: one precision per unit. Home Assistant formats every entity
++  // at the precision that entity sets for itself, so the owner's screenshot
++  // read "19.30 °C" beside "20.8 °C" on one diagram. The control is the unit
++  // the rule does not name: it must come through exactly as Home Assistant
++  // spelled it.
++  {
++    const prec = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
++    prec[DEFAULT_SPACE].attributes.setup_topology = topo;
++    prec["sensor.livingroom"] = { state: "19.30",
++      attributes: { unit_of_measurement: "°C" } };
++    prec["sensor.tank"] = { state: "20.8",
++      attributes: { unit_of_measurement: "°C" } };
++    prec["sensor.outside"] = { state: "3.14159",
++      attributes: { unit_of_measurement: "ppm" } };
++    const p = build(prec);
++    p._onCardClick({});
++    p.dialog.page = "setup";
++    p._render();
++    const dump = collect(p.shadowRoot).join("\n");
++    check("two temperatures on one drawing are spelled to one precision",
++      /19\.3 °C/.test(dump) && /20\.8 °C/.test(dump) &&
++      !/19\.30/.test(dump),
++      "19.30 °C beside 20.8 °C is two spellings of one unit");
++    check("a unit the rule does not name is left as Home Assistant spelled it",
++      /3\.14159 ppm/.test(dump),
++      "a precision invented for a unit nobody named is a wrong number");
++  }
+   check("an unavailable sensor says so instead of a stale number",
+     /unavailable/.test(setupPage));
+-  // Labels longer than the row are trimmed with an ellipsis, so match the
+-  // prefix rather than the full name.
+-  check("empty slots are drawn empty, not omitted",
+-    /not configured/.test(setupPage) && /Lower floor te/.test(setupPage));
++  // R10-UX-SETUP: a label that does not fit its line WRAPS, and an unset
++  // input is not a row at all -- the two things the owner's screenshot asked
++  // for by name ("Stove or flu…", "not configured" rows in the weight of a
++  // reading). Measured on the rendered rows: each carries its published label
++  // whole, none carries an ellipsis, at least one is on two lines, and no row
++  // is a value-less "not configured" line.
++  {
++    const rows = [...setupPage.matchAll(
++      /<text class="setup-slot" x="[^"]*" y="[^"]*">([\s\S]*?)<\/text><rect class="setup-hit" data-key="([^"]+)"/g)];
++    const labelOf = (body) => [...body.matchAll(
++      /<tspan(?! class="setup-value")[^>]*>([^<]*)<\/tspan>/g)]
++      .map((t) => t[1]).join(" ");
++    const published = new Map(topo.slots.map((s) => [s.key, s.label]));
++    check("a slot label is drawn whole, wrapped rather than cut",
++      rows.length === 3 && rows.every(([, body, key]) =>
++        labelOf(body) === published.get(key)) &&
++      rows.some(([, body]) =>
++        (body.match(/<tspan(?! class="setup-value")/g) || []).length === 2) &&
++      !/…/.test(setupPage),
++      rows.map(([, body, key]) => `${key}=${JSON.stringify(labelOf(body))}`).join(" | "));
++    check("an unset input folds into its box's one muted line, not a row",
++      !/setup-slot empty/.test(setupPage) &&
++      (setupPage.match(/setup-slot folded/g) || []).length === 3 &&
++      (setupPage.match(/class="setup-chip"/g) || []).length === 3 &&
++      (setupPage.match(/class="setup-chip-hit"/g) || []).length === 3,
++      `${(setupPage.match(/setup-slot folded/g) || []).length} folded blocks `
++      + `and ${(setupPage.match(/class="setup-chip"/g) || []).length} Configure chips`);
++  }
+   // Issue #40: the drawn hydronics must match the model. The model computes
+   // one t_mix and feeds both circuits from it in parallel, so with a valve
+   // BOTH floor boxes hang off the mixing valve; the old drawing ran the
+@@ -2606,38 +2657,30 @@ check("the hand-scheduled reason has a label",
+   check("the heat pump visibly feeds the hot water tank",
+     drawn.includes("heat_pump>dhw_tank"),
+     `edges drawn: ${drawn.join(", ")}`);
+-  // v4.3.0: each place is drawn as the equipment it is. The silhouette rides
+-  // its own contour path so the rect can stay the invisible geometry carrier
+-  // every older assertion (and the drag editor) reads.
+-  check("every place wears its own silhouette",
+-    ["heat_pump", "wood_tank", "buffer_tank", "dhw_tank", "mixing_valve",
+-      "upper_zone", "lower_zone", "outdoor"].every((p) =>
+-      new RegExp(`class="setup-contour kind-${p}"`).test(setupPage)),
+-    "a place without a contour is a box that lost its shape");
+-  check("no box goes without a contour",
+-    (setupPage.match(/class="setup-contour/g) || []).length >=
+-      (su.layoutEditor.boxes || []).length,
+-    `${(setupPage.match(/class="setup-contour/g) || []).length} contours for `
+-    + `${(su.layoutEditor.boxes || []).length} boxes`);
+-  check("the carrier rect is invisible, not gone",
+-    /\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc),
+-    "the rect is geometry for the tests and the editor; the contours are "
+-    + "the paint");
+-  // Outside air is unbounded: its contour is an open tray baseline, no Z,
+-  // while a tank's silhouette closes.
++  // R10-UX-SETUP: every place wears the product's own card. v4.3.0's
++  // per-place silhouettes are gone -- they drew a second outline over the
++  // geometry carrier's edge (the owner's "wobbly double borders") and their
++  // ink crossed the rows painted around it. "Outside air is drawn open,
++  // tanks are drawn closed" went with them: a card is a surface for readings
++  // and makes no claim about what the place contains, so there is nothing
++  // left for the open-tray silhouette to be honest about.
+   {
+-    const outdoorG = setupPage.split("<g>")
+-      .find((g) => g.includes("kind-outdoor")) || "";
+-    const contourD = (seg, place) => {
+-      const m = new RegExp(
+-        `class="setup-contour kind-${place}"\\s+d="([^"]*)"`).exec(seg);
+-      return m ? m[1] : "";
+-    };
+-    check("outside air is drawn open, tanks are drawn closed",
+-      contourD(outdoorG, "outdoor") !== "" &&
+-      !/Z/.test(contourD(outdoorG, "outdoor")) &&
+-      /Z/.test(contourD(setupPage, "wood_tank")),
+-      "walls around the outdoors would claim a container that place is not");
++    const cardR = vm.runInContext("SETUP_CARD_R", ctx);
++    check("each box is one card, with no second silhouette over it",
++      (setupPage.match(/class="setup-box"/g) || []).length ===
++        (su.layoutEditor.boxes || []).length &&
++      !/setup-contour/.test(setupPage) && !/setup-coil/.test(setupPage) &&
++      !/setup-accent hub/.test(setupPage),
++      `${(setupPage.match(/class="setup-box"/g) || []).length} cards for `
++      + `${(su.layoutEditor.boxes || []).length} boxes, `
++      + `${(setupPage.match(/setup-contour/g) || []).length} contours`);
++    check("the card is painted from the product's surface, border and radius",
++      /\.setup-box \{[^}]*fill: var\(--hpo-surface-2/.test(cardSrc) &&
++      /\.setup-box \{[^}]*stroke: var\(--hpo-divider/.test(cardSrc) &&
++      !/\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc) &&
++      new RegExp(`<rect class="setup-box"[^>]*rx="${cardR}"`).test(setupPage),
++      "one rect is both the geometry carrier the editor reads and the paint, "
++      + "which is what makes one border per box possible");
+   }
+   // Endpoint dots and flow chevrons are ornament: none of them may carry
+   // `data-edge`, or every scrape of the drawn topology inflates. Scoped to
+@@ -2654,33 +2697,38 @@ check("the hand-scheduled reason has a label",
+       + `${(svgOnly.match(/<path class="setup-pipe/g) || []).length} pipes `
+       + `for ${topo.edges.length} edges`);
+   }
+-  // Designer QA pass (v4.3.x): the silhouettes keep their ink apart.
++  // Designer QA: the drawing's ink keeps out of its own text.
+   {
+     const svgOnly =
+       (setupPage.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
+-    // The house ridge is a shallow r=30 knuckle. An `A 4 4` arc over the
+-    // 8-unit chord was a full semicircle whose apex sat above the bounding
+-    // box -- a pimple on every roof.
+-    const houseG = svgOnly.split("<g>")
+-      .find((g) => g.includes("kind-upper_zone")) || "";
+-    check("the house ridge arc is shallow and stays inside the box",
+-      /A 30 30 0 0 1/.test(houseG) && !/A 4 4 /.test(houseG),
+-      "chord 8 at r=4 renders a semicircle bulging above the roofline");
+-    // The same-column pipe into the mixing valve drops its flow chevron:
+-    // the apex would land on the valve's bowtie accent and merge ink. Every
+-    // other pipe keeps its chevron, so the count is exactly edges - 1.
+-    const pipeSegs = svgOnly.split('<path class="setup-pipe');
+-    const valveSeg = pipeSegs.find((s) =>
+-      s.includes('data-edge="buffer_tank>mixing_valve"')) || "";
+-    check("the pipe into the mixing valve carries no flow chevron",
+-      valveSeg !== "" && !/class="setup-flow"/.test(valveSeg) &&
+-      (svgOnly.match(/class="setup-flow"/g) || []).length ===
+-        topo.edges.length - 1,
++    // R10-UX-SETUP: a pipe endpoint sits ON a card's border. Every endpoint
++    // used to be pulled inside by a per-place `inset`, so a pipe met the
++    // shape's ink rather than the rectangle; with one flat card the border
++    // IS the ink, and no endpoint may reach past it into a row of text.
++    const boxes = su.layoutEditor.boxes || [];
++    const inside = [];
++    for (const seg of svgOnly.split('<path class="setup-pipe').slice(1)) {
++      const d = (/d="([^"]*)"/.exec(seg) || [, ""])[1];
++      const n = (d.match(/-?[\d.]+/g) || []).map(Number);
++      if (n.length < 4) continue;
++      for (const [x, y] of [[n[0], n[1]], [n[n.length - 2], n[n.length - 1]]]) {
++        const b = boxes.find((c) =>
++          x > c.x + 0.01 && x < c.x + c.w - 0.01 &&
++          y > c.y + 0.01 && y < c.y + c.h - 0.01);
++        if (b) inside.push(`${x},${y} is inside ${b.place}`);
++      }
++    }
++    check("no pipe endpoint lands inside a card",
++      inside.length === 0, inside.join("; "));
++    // Every pipe carries its flow chevron: the valve's bowtie accent, whose
++    // apex used to merge with the chevron on the pipe into it, went with the
++    // silhouette vocabulary.
++    check("every pipe carries its flow chevron",
++      (svgOnly.match(/class="setup-flow"/g) || []).length === topo.edges.length,
+       `${(svgOnly.match(/class="setup-flow"/g) || []).length} chevrons for `
+       + `${topo.edges.length} edges`);
+     // A row-less box (h = 32) draws no header divider -- it would separate
+-    // the title from nothing and graze the valve's bowtie -- while a box
+-    // with rows keeps it.
++    // the title from nothing -- while a box with rows keeps it.
+     const valveBoxG = svgOnly.split("<g>")
+       .find((g) => g.includes("Mixing valve")) || "";
+     const bufBoxG = svgOnly.split("<g>")
+@@ -2718,7 +2766,7 @@ check("the hand-scheduled reason has a label",
+       .find((g) => g.includes("Wood furnace tank")) || "";
+     check("a stale wood-valve payload re-homes its slot onto the wood tank",
+       !/Wood mixing valve/.test(stPage) &&
+-      /data-key="valve_outlet_temp_entity"/.test(woodGroup) &&
++      /data-fold="[^"]*valve_outlet_temp_entity/.test(woodGroup) &&
+       edges(stPage).includes("wood_valve>buffer_tank"),
+       "the removed box must not take the outlet sensor down with it");
+   }
+@@ -2802,9 +2850,10 @@ check("the hand-scheduled reason has a label",
+     // than whether the page mentions it anywhere.
+     const valveGroup = ttPage.split("<g>")
+       .find((g) => g.includes("4-way mixing valve (manual)")) || "";
+-    check("the valve outlet probe is drawn on the one valve that has it",
+-      /data-key="valve_outlet_temp_entity"/.test(valveGroup) &&
+-      /data-key="mixing_valve_target_entity"/.test(valveGroup),
++    check("the valve's two probes are drawn on the one valve that has them",
++      /data-fold="[^"]*valve_outlet_temp_entity/.test(valveGroup) &&
++      /data-fold="[^"]*mixing_valve_target_entity/.test(valveGroup) &&
++      /data-place="mixing_valve"/.test(valveGroup),
+       "the slot moved to the mixing valve place; drawing it anywhere else "
+       + "would put a sensor on a device this system does not have");
+     // The coil is off in this topo, so neither the pipe nor the caption may
+@@ -2851,20 +2900,19 @@ check("the hand-scheduled reason has a label",
+     check("and the hot water box says where its refill water comes from",
+       /refilled through a wood tank coil/.test(dhwGroup),
+       "the caption belongs on the tank being preheated, not loose on the page");
+-    // v4.3.0: the coil is also drawn -- a helix on the wood tank's wall --
+-    // and only when the connection exists. The plain two-tank drawing above
+-    // has no coil, so it must have no helix either.
+-    check("the coil is drawn as a helix on the wood tank",
+-      /class="setup-coil"/.test(coPage) && !/class="setup-coil"/.test(ttPage),
+-      "the helix exists exactly when the wood>DHW connection does");
++    // R10-UX-SETUP: the coil is carried by its own pipe and by the caption
++    // on the tank it preheats. The helix that used to mark the wood tank's
++    // wall went with the silhouette vocabulary, and with it the reason its
++    // pipe left the wall anywhere but the wall's midpoint.
+     {
+       const wb = (co.layoutEditor.boxes || []).find((b) => b.place === "wood_tank");
+       const coilPipe = new RegExp(
+-        `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w + 13} ` +
+-        `${wb.y + 23}`);
+-      check("and the coil pipe departs from the helix, not the box wall",
+-        coilPipe.test(coPage),
+-        "a pipe from the box midpoint would leave the helix as ornament");
++        `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w} ` +
++        `${wb.y + wb.h / 2}`);
++      check("the coil is drawn as its own pipe from the wood tank's wall",
++        coilPipe.test(coPage) && !coilPipe.test(ttPage),
++        "a coil drawn on a layout the model does not run is the failure this "
++        + "whole diagram exists to prevent");
+     }
+   }
+   {
+@@ -2893,6 +2941,41 @@ check("the hand-scheduled reason has a label",
+   // The hidden page must be genuinely unrendered, not display:none --
+   // getBoundingClientRect on a hidden chart returns zeroes and
+   // _timeAtClientX would compute garbage drag times rather than fail.
++  // ARCH2-s5 C1 (the text-width owner): the chart's label-width rule lives in
++  // `textWidth`, and nowhere spells it inline. The census is the finder's own
++  // rule (card_shapes.mjs's `char_width_inline`), run here so the tree holds
++  // it: a label's LENGTH times the average character width, outside the one
++  // function that owns that estimate.
++  {
++    const at = cardSrc.indexOf("function textWidth");
++    // The owner's own body is the one legitimate spelling; a comment that
++    // names the rule is not ink. Everything else is a second copy of an
++    // estimate that has to stay in step with the first.
++    const owner = cardSrc.slice(at, cardSrc.indexOf("\n}", at) + 2);
++    const inline = cardSrc.replace(owner, "").split("\n")
++      .map((line, i) => [i + 1, line])
++      .filter(([, line]) =>
++        /(?:\.length|widest)\s*\*\s*CHAR_WIDTH_EM/.test(line) &&
++        !/^\s*(\*|\/\/)/.test(line));
++    check("the chart's label-width rule is spelled in exactly one place",
++      at > 0 && inline.length === 0,
++      at < 0 ? "textWidth is gone" :
++        `inline at ${inline.map(([n]) => n).join(", ")}`);
++    // ARCH2-s5 C4's two shapes, by the same rule: the no-plan empty state and
++    // the finite-number test each have one owner, and neither is re-spelled
++    // inline anywhere else in the card.
++    const plans = cardSrc.split("\n")
++      .filter((l) => /L\("errors\.no_plan_data"\)/.test(l));
++    check("the no-plan empty state is built in exactly one place",
++      plans.length === 1, `${plans.length} place(s) build it`);
++    const finite = cardSrc.split("\n")
++      .filter((l) => /typeof n === "number" && Number\.isFinite\(n\)/.test(l)
++        && !/^\s*(const finiteNum|\*|\/\/)/.test(l));
++    check("the finite-number test is spelled in exactly one place",
++      /const finiteNum = /.test(cardSrc) && finite.length === 0,
++      `${finite.length} inline spelling(s)`);
++  }
++
+   check("the plan chart is genuinely unrendered on the setup page",
+     !/chartwrap big/.test(setupPage) && !/class="whatif"/.test(setupPage));
+ 
+@@ -2913,11 +2996,14 @@ check("the hand-scheduled reason has a label",
+   su.dialog.page = "setup";
+   su._render();
+   const clickable = collect(su.shadowRoot).join("\n");
+-  check("every slot is a click target, not just the configured ones",
+-    (clickable.match(/class="setup-hit"/g) || []).length === topo.slots.length,
+-    `${(clickable.match(/class="setup-hit"/g) || []).length} hit targets for `
+-    + `${topo.slots.length} slots -- an empty slot is the one you most need `
+-    + `to click`);
++  {
++    const foldKeys = [...clickable.matchAll(/data-fold="([^"]*)"/g)]
++      .reduce((n, m) => n + m[1].split(",").filter(Boolean).length, 0);
++    const rows = (clickable.match(/class="setup-hit" data-key=/g) || []).length;
++    check("every slot is reachable from the diagram: a row, or inside a folded block",
++      rows + foldKeys === topo.slots.length && foldKeys > 0,
++      `${rows} row targets + ${foldKeys} folded keys for ${topo.slots.length} slots`);
++  }
+ 
+   su.setup.pickerKey = "lower_floor_temp_entity";
+   su._render();
+@@ -2930,11 +3016,17 @@ check("the hand-scheduled reason has a label",
+   // picker overlay covers the diagram, so a row left in the Tab order would
+   // send focus down through what it now hides), not a missed keyboard
+   // route -- guarded, not a defect.
+-  check("every setup-hit row loses its tab stop while a picker covers the diagram (#1522, P9-f61b)",
+-    (picking.match(/class="setup-hit"[^>]*tabindex="-1"/g) || []).length ===
+-      topo.slots.length,
+-    `${(picking.match(/class="setup-hit"[^>]*tabindex="-1"/g) || []).length} ` +
+-    `of ${topo.slots.length} rows carry tabindex="-1"`);
++  {
++    const hits = (picking.match(/class="setup-hit[^"]*"/g) || []).length;
++    const chips = (picking.match(/class="setup-chip-hit"/g) || []).length;
++    check("every target on the diagram loses its tab stop while a picker covers it (#1522, P9-f61b)",
++      hits > 0 && chips > 0 &&
++      (picking.match(/class="setup-hit[^"]*"[^>]*tabindex="-1"/g) || []).length === hits &&
++      (picking.match(/class="setup-chip-hit"[^>]*tabindex="-1"/g) || []).length === chips,
++      `${(picking.match(/class="setup-hit[^"]*"[^>]*tabindex="-1"/g) || []).length} `
++      + `of ${hits} targets and ${(picking.match(/class="setup-chip-hit"[^>]*tabindex="-1"/g) || []).length} `
++      + `of ${chips} chips carry tabindex="-1"`);
++  }
+   check("and the picker that took their place is itself keyboard-reachable (P9-f61b)",
+     /class="setup-picker"[^>]*tabindex="0"/.test(picking) ||
+       /<select[^>]*class="[^"]*sp-select/.test(picking),
+@@ -4013,28 +4105,27 @@ check("the hand-scheduled reason has a label",
+   }
+ 
+   {
+-    // v4.3.0: the coil helix follows the drawing while the editor is open.
+-    // The wood>DHW pipe is what claims a coil, so removing it must take the
+-    // helix off the tank live, and re-drawing it must bring it back --
+-    // otherwise the editor shows a heat exchanger the drawing just deleted.
++    // v4.3.0: what the drawing claims about the coil follows the editor
++    // live. The wood>DHW pipe IS the claim, so removing it must take the pipe
++    // off the tank at once, and re-drawing it must bring it back -- otherwise
++    // the editor shows a heat exchanger the drawing just deleted.
+     const c = mkEditor({
+       dhw: true, dhw_wood_coil: true,
+       wood: { present: true, volume_l: 300 },
+       edges: EDGES.valve_upper_direct_slab
+         .concat([["wood_tank", "dhw_tank"]]).map((e) => [e[0], e[1]]),
+     });
+-    check("the coil helix hangs on the wood tank",
+-      /class="setup-coil"/.test(pageHtml(c)),
+-      "the drawn wood>DHW edge is the coil's existence condition");
++    const coilPipe = () => /data-edge="wood_tank>dhw_tank"/.test(pageHtml(c));
++    check("the coil is drawn as the wood tank's own pipe",
++      coilPipe(), "the drawn wood>DHW edge is the coil's existence condition");
+     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+     c.layoutEditor.removeEdge("wood_tank>dhw_tank");
+-    check("removing the wood>DHW pipe removes the helix with it",
+-      !/class="setup-coil"/.test(pageHtml(c)),
++    check("removing the wood>DHW pipe removes it from the drawing at once",
++      !coilPipe() && !edgesOf(c).includes("wood_tank>dhw_tank"),
+       `edges drawn: ${edgesOf(c).join(", ")}`);
+     connect(c, "wood_tank", "dhw_tank");
+-    check("and drawing the pipe again brings the helix back",
+-      /class="setup-coil"/.test(pageHtml(c)) &&
+-      edgesOf(c).includes("wood_tank>dhw_tank"),
++    check("and drawing the pipe again brings it back",
++      coilPipe() && edgesOf(c).includes("wood_tank>dhw_tank"),
+       `edges drawn: ${edgesOf(c).join(", ")}`);
+   }
+ 
+@@ -4492,9 +4583,11 @@ check("the hand-scheduled reason has a label",
+   const page = collect(su.shadowRoot).join("\n");
+   check("an unconfigured solar slot shows the irradiance the plan uses",
+     /120 W\/m² · Open-Meteo/.test(page));
+-  check("only the genuinely absent slot reads as not configured",
+-    (page.match(/not configured/g) || []).length === 1,
+-    "the solar row has a fallback; the outdoor temperature row does not");
++  check("the truly absent slot folds, and the fallback row is still a reading",
++    (page.match(/not configured/g) || []).length === 0 &&
++    /data-key="solar_radiation_entity"/.test(page) &&
++    /data-fold="outdoor_temp_entity"/.test(page),
++    "the solar row has a fallback and is drawn; the outdoor row has none");
+ 
+   // Without any irradiance source the old answer is the right one.
+   const bare = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+@@ -4504,8 +4597,11 @@ check("the hand-scheduled reason has a label",
+   suBare._onCardClick({});
+   suBare.dialog.page = "setup";
+   suBare._render();
+-  check("no source at all still says not configured",
+-    !/W\/m² ·/.test(collect(suBare.shadowRoot).join("\n")));
++  check("with no source at all the solar slot folds too",
++    !/W\/m² ·/.test(collect(suBare.shadowRoot).join("\n")) &&
++    /data-fold="solar_radiation_entity,outdoor_temp_entity"/
++      .test(collect(suBare.shadowRoot).join("\n")),
++    "an absent row folds; it is never drawn as a bold not-configured value");
+ }
+ 
+ // --- Scenario: slot values follow the user's unit system (T3b) -------------
+@@ -5330,50 +5426,47 @@ const setupPage = (over, extraStates) =>
+   collect(mkSetup(over, extraStates).shadowRoot).join("\n");
+ const setupBox = (card, place) =>
+   (card.layoutEditor.boxes || []).find((b) => b.place === place);
++/** The row target for one slot: its own, or -- for a slot with no reading,
++ * which is inside its box's folded block (R10-UX-SETUP) -- the block's own
++ * line is pressed first, so that the row exists to be found. Pressing through
++ * the listener the element records is the same route a reader's click takes. */
++const slotHit = (card, key) => {
++  const find = () => card.shadowRoot.querySelectorAll(".setup-hit")
++    .find((h) => h.dataset.key === key);
++  const direct = find();
++  if (direct) return direct;
++  const fold = card.shadowRoot.querySelectorAll(".setup-fold-hit")
++    .find((f) => (f.dataset.fold || "").split(",").includes(key));
++  if (!fold) return null;
++  (fold._listeners.click || []).forEach((f) =>
++    f({ currentTarget: fold, preventDefault() {}, stopPropagation() {} }));
++  return find();
++};
+ 
+-// --- Scenario: the heat pump lost its louvres (item A, v5.1.4) --------------
+-// Two horizontal strokes used to sit in the cabinet's bottom-left band as
+-// vents. From a step back they read as two stray lines in the corner of a
+-// box rather than as louvres, so they were removed. Everything else the
+-// silhouette is built from -- contour, fan shroud, blades, hub, header
+-// divider -- stays, and this pins that the removal took the ink and nothing
+-// around it.
++// --- Scenario: a card carries no ink but its own outline -------------------
++// v4.3.0's per-place silhouettes -- the heat pump's fan shroud, blades and
++// hub, the louvres that scenario pinned, the house ridge, the wood tank's
++// coil helix, the valve's bowtie -- are gone (R10-UX-SETUP). What the louvre
++// scenario established was that no stroke landed in the cabinet's floor band;
++// the statement the drawing now makes is the stronger one that no stroke
++// lands anywhere on a card but its outline and its header rule.
+ {
+-  const X = 16, Y = 79, W = 200, H = 49;
+-  const acc = vm
+-    .runInContext(`NODE_SHAPES.hp.accents(${X}, ${Y}, ${W}, ${H})`, ctx)
+-    .filter(Boolean);
+-  check("the heat pump draws four accents, not six",
+-    acc.length === 4, `${acc.length} accents: ${JSON.stringify(acc)}`);
+-  const ds = acc.map((a) => a.d || "").join(" ");
+-  check("the fan shroud, its blades, the hub and the divider all survive",
+-    /A 8 8 0 1 1/.test(ds) &&
+-    (ds.match(/A 5 5 0 0 1/g) || []).length === 3 &&
+-    acc.some((a) => (a.cls || "").includes("hub") && a.r === 1.6) &&
+-    acc.some((a) => (a.cls || "").includes("divider")),
+-    ds);
+-  // The louvres lived at y+h-7 and y+h-4.5, i.e. the band within 10 units of
+-  // the cabinet floor. Numeric, not textual: any ink that lands there again
+-  // fails this whether or not it is spelled the way the old pair was. `d`
+-  // is read as "M/L x y" pairs, which is every point the accents place.
+-  const floorBand = [];
+-  for (const a of acc) {
+-    for (const m of String(a.d || "").matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/g)) {
+-      if (Number(m[2]) > Y + H - 10) floorBand.push(m[0]);
+-    }
+-    if (a.cy !== undefined && a.cy > Y + H - 10) floorBand.push(`circle@${a.cy}`);
+-  }
+-  check("nothing is drawn in the cabinet's floor band any more",
+-    floorBand.length === 0,
+-    `ink below y=${Y + H - 10}: ${floorBand.join(", ")}`);
+-  // ...and the same holds once the box is actually drawn: the louvres would
+-  // have rendered as `M 30 121 H 56 M 30 123.5 H 56` on this box.
+   const page = setupPage();
+-  check("the drawn heat pump has no louvre strokes",
+-    !/M 30 121 H 56/.test(page) && !/M 30 123\.5 H 56/.test(page) &&
+-    !/H 56 M 30/.test(page));
+-  check("but it does still have its fan",
+-    /M 190 92 A 8 8 0 1 1 206 92/.test(page));
++  const stray = [];
++  for (const g of page.split("<g>").slice(1)) {
++    if (!/class="setup-box"/.test(g)) continue;
++    const paths = [...g.matchAll(/<path class="([^"]*)"/g)]
++      .map((m) => m[1]).filter((c) => c !== "setup-accent divider");
++    if (paths.length) stray.push(paths.join(","));
++  }
++  check("a card carries its outline and its header rule, and no other ink",
++    stray.length === 0, stray.join("; "));
++  const cardR = vm.runInContext("SETUP_CARD_R", ctx);
++  check("and its outline is one rounded card, at the product's radius",
++    (page.match(/class="setup-box"/g) || []).length > 0 &&
++    (page.match(/class="setup-box"/g) || []).length ===
++      (page.match(new RegExp(`<rect class="setup-box"[^>]*rx="${cardR}"`, "g")) || []).length,
++    `${(page.match(/class="setup-box"/g) || []).length} cards`);
+ }
+ 
+ // --- Scenario: the flow chevrons lie along their pipes (item B, v5.1.4) -----
+@@ -5479,11 +5572,14 @@ const setupBox = (card, place) =>
+   const near = (a, b, eps) => Math.abs(a - b) <= (eps === undefined ? 1e-6 : eps);
+   const byEdge = (list, e) => list.find((p) => p.edge === e);
+ 
+-  // The five orientations, each on a real pipe of a real drawing. Downhill,
+-  // uphill and flat come from the default rig; a near-horizontal pipe is
+-  // made by parking two boxes almost level; the two vertical directions
+-  // need a same-column edge that is not the one into the mixing valve
+-  // (which drops its chevron on purpose -- see (3)).
++  // The five orientations, each on a real pipe of a real drawing. Downhill
++  // and uphill come from the default rig; the flat, near-horizontal and
++  // vertical cases are built, not found. The flat case has to be built
++  // (R10-UX-SETUP): a cross-column pipe is level only when its two boxes have
++  // equal heights AND equal tops, and one box's height now depends on how
++  // many lines its labels wrap to, so no two boxes in any fixture are level
++  // by accident any more. Its positions are solved from the measured heights
++  // -- a levelling picked by hand would go stale the next time a label wraps.
+   const rig = mkSetup();
+   const cross = pipesOf(rig);
+   const upCard = mkSetup({
+@@ -5493,11 +5589,19 @@ const setupBox = (card, place) =>
+   const tiltCard = mkSetup({
+     edges: [["heat_pump", "buffer_tank"]],
+     positions: { heat_pump: [16, 120], buffer_tank: [260, 113] } });
++  const flatCard = (() => {
++    const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
++    const a = setupBox(probe, "heat_pump");
++    const b = setupBox(probe, "buffer_tank");
++    const yB = 100 + a.h / 2 - b.h / 2;
++    return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
++      positions: { heat_pump: [16, 100], buffer_tank: [260, yB] } });
++  })();
+ 
+   const cases = [
+     ["downhill cross-column", byEdge(cross, "mixing_valve>lower_zone")],
+     ["uphill cross-column", byEdge(cross, "wood_tank>buffer_tank")],
+-    ["flat cross-column", byEdge(cross, "mixing_valve>upper_zone")],
++    ["flat cross-column", byEdge(pipesOf(flatCard), "heat_pump>buffer_tank")],
+     ["near-horizontal cross-column",
+       byEdge(pipesOf(tiltCard), "heat_pump>buffer_tank")],
+     ["vertical, water flowing down",
+@@ -5583,10 +5687,13 @@ const setupBox = (card, place) =>
+   check("no sloped pipe carries an axis-aligned chevron any more",
+     axisAligned.length === 0, axisAligned.map((p) => p.edge).join(", "));
+ 
+-  // (3) The two suppressions the fix had to preserve.
++  // (3) What is left of the two suppressions. The valve's bowtie accent --
++  // whose apex the chevron on the pipe into the valve used to merge with --
++  // went with the silhouette vocabulary (R10-UX-SETUP), so a same-column
++  // pipe carries its chevron like every other one.
+   const intoValve = byEdge(cross, "buffer_tank>mixing_valve");
+-  check("a same-column pipe into the mixing valve still keeps its chevron off",
+-    !!intoValve && intoValve.chevron === null &&
++  check("a same-column pipe into the mixing valve carries its chevron too",
++    !!intoValve && !!intoValve.chevron &&
+     intoValve.p0[0] === intoValve.p3[0],
+     intoValve ? JSON.stringify(intoValve.chevron) : "pipe not found");
+   // An invalid pipe is drawn to be rejected, and an arrow on it would
+@@ -5647,11 +5754,13 @@ const setupBox = (card, place) =>
+     `widths ${[...new Set(boxes.map((b) => b.w))]}, ` +
+     `columns ${[...new Set(boxes.map((b) => b.x))].sort((a, c) => a - c)}, ` +
+     `viewBox ${(/viewBox="([^"]*)"/.exec(page) || [])[1]}`);
+-  // b.h = 24 + (rows + caption lines) * 17 + 8, exactly as before: the line
+-  // count drives the height, and neither the padding nor the caption
+-  // wrapping that follows from it may change how many lines there are.
+-  // Counted off the drawing, so a caption that started wrapping differently
+-  // would show up here as a height that no longer matches its own content.
++  // b.h = 24 + 8 + 17 * drawn rows, still: how many ROWS the box holds
++  // drives its height, and the padding and the caption wrapping that follows
++  // from it may not change how many rows there are. A row is one line of a
++  // label (a wrapped label is two), a caption line, or the folded block's
++  // chip line. Counted off the drawing, so a label that started wrapping
++  // differently would show up here as a height that no longer matches its
++  // own content.
+   const topo = setupTopo();
+   const groups = page.split('<rect class="setup-box"').slice(1);
+   const perBox = groups.map((g) => {
+@@ -5660,14 +5769,34 @@ const setupBox = (card, place) =>
+     return {
+       x: m && Number(m[1]), y: m && Number(m[2]),
+       w: m && Number(m[3]), h: m && Number(m[4]),
+-      lines: (g.match(/<text class="setup-slot/g) || []).length,
++      rows: (g.match(/<tspan(?! class="setup-value")/g) || []).length +
++        (g.match(/<text class="setup-slot extra"/g) || []).length +
++        (g.match(/class="setup-chip-hit"/g) || []).length,
+     };
+   });
+-  const heightWrong = perBox.filter((b) => b.h !== 24 + b.lines * 17 + 8);
++  const heightWrong = perBox.filter((b) => b.h !== 24 + b.rows * 17 + 8);
+   check("the row arithmetic that sets each box height is unchanged",
+     perBox.length === boxes.length && heightWrong.length === 0,
+     `${perBox.length} boxes; ` + perBox.map((b) =>
+-      `${b.x},${b.y} h=${b.h} lines=${b.lines}`).join("; "));
++      `${b.x},${b.y} h=${b.h} rows=${b.rows}`).join("; "));
++  // ...and nothing is drawn past the bottom of its own card. A box's height
++  // follows what it draws, so a row the height pass forgets -- the folded
++  // block's own count line, when it wraps to two -- leaves the last caption
++  // hanging outside the card (R10-UX-SETUP, found by the P9 grid's clipping
++  // check at a narrow width).
++  const overBottom = [];
++  for (const g of page.split('<rect class="setup-box"').slice(1)) {
++    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/.exec(g);
++    if (!m) continue;
++    const bottom = Number(m[2]) + Number(m[4]);
++    const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));
++    const low = Math.max(...ys);
++    if (low + 3 > bottom) {
++      overBottom.push(`${m[1]},${m[2]}: last baseline ${low} vs card bottom ${bottom}`);
++    }
++  }
++  check("every row is drawn inside the card that sizes itself around it",
++    overBottom.length === 0, overBottom.join("; "));
+   check("the carrier rects are still written at the column abscissae",
+     /<rect class="setup-box" x="16" y="16" width="200"/.test(page),
+     (/<rect class="setup-box"[^>]*>/.exec(page) || [])[0]);
+@@ -5716,8 +5845,9 @@ const setupBox = (card, place) =>
+   //     stops responding to the pointer is a worse regression than cramped
+   //     text, so this is checked per row rather than in aggregate.
+   const pairs = [...page.matchAll(new RegExp(
+-    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="([\\d.]+)">\\s*' +
+-    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
++    '<text class="setup-slot" x="([\\d.]+)" y="([\\d.]+)">' +
++    '((?:<tspan(?! class="setup-value")[^>]*>[^<]*</tspan>)+)' +
++    '<tspan class="setup-value" x="([\\d.]+)"[^>]*' +
+     'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+     '<rect class="setup-hit" data-key="([^"]+)"[^>]*?' +
+     'x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)"\\s*height="([\\d.]+)"',
+@@ -5726,9 +5856,10 @@ const setupBox = (card, place) =>
+       valueX: Number(m[4]), value: m[5], key: m[6],
+       x: Number(m[7]), y: Number(m[8]), w: Number(m[9]), h: Number(m[10]),
+     }));
+-  check("every slot row is matched with its own hit rect",
+-    pairs.length === topo.slots.length,
+-    `${pairs.length} of ${topo.slots.length}`);
++  const configured = topo.slots.filter((x) => x.entity).length;
++  check("every configured slot is matched with its own hit rect",
++    pairs.length === configured,
++    `${pairs.length} of ${configured} configured slots`);
+   // 12px text: the cap line sits about 8.7 units above the baseline and the
+   // descenders about 2.6 below, so a rect that spans that band covers every
+   // glyph in the row as well as the gap between label and value.
+@@ -5762,19 +5893,41 @@ const setupBox = (card, place) =>
+   check("and neighbouring rows do not touch, so neither do their rings",
+     touching.length === 0, touching.join(", "));
+ 
+-  // (4) The outdoor node is explicitly out of scope: the owner has seen the
+-  //     open composition -- no walls, a tray baseline the rows hang over, a
+-  //     cloud in the header's right corner -- and wants it as shipped. These
+-  //     are the two paths origin/main draws for it at column 0, verbatim.
+-  //     Only the text inside moved, and only by the padding above.
+-  const cloudInk = [...page.matchAll(
+-    /<path class="setup-contour[^"]*"\s+d="([^"]*)"/g)]
+-    .map((m) => m[1].replace(/\s+/g, " ").trim());
+-  check("the outdoor node's tray and cloud are exactly as shipped",
+-    cloudInk.includes("M 18 57 A 6 6 0 0 0 24 63 H 208 A 6 6 0 0 0 214 57") &&
+-    cloudInk.includes("M 170 35 A 5.5 5.5 0 0 1 173 25.5 A 7 7 0 0 1 186 " +
+-      "22.5 A 6 6 0 0 1 197 25 A 6 6 0 0 1 203 35 Z"),
+-    cloudInk.slice(0, 3).join(" | "));
++  // A block that is OPEN draws its own count line and its chip AND the rows
++  // it stands for, so its box is three rows taller than the folded one. When
++  // the fold was first written the height was computed for the FOLDED state
++  // whatever the block's state was, and the last caption fell outside the
++  // card -- the P9 grid's clipping check found it on the cell that opens a
++  // block. Opening one is what reaches the branch.
++  {
++    const c = mkSetup();
++    c.setup.unsetOpen.add("wood_tank_top_entity");
++    c._render();
++    const opened = collect(c.shadowRoot).join("\n");
++    const g = opened.split("<g>")
++      .find((x) => x.includes("Wood furnace tank")) || "";
++    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
++      .exec(g);
++    const bottom = m ? Number(m[2]) + Number(m[4]) : 0;
++    const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));
++    check("a block that is open sizes its box for the rows it now draws",
++      !!m && /setup-slot empty/.test(g) && ys.length > 0 &&
++      Math.max(...ys) + 3 <= bottom,
++      m ? `${ys.length} baselines, last ${Math.max(...ys)} vs card bottom ${bottom}`
++        : "no card drawn");
++  }
++
++  // (4) The outdoor node keeps no special treatment. An earlier ruling left
++  //     its open composition -- no walls, a tray baseline, a cloud -- as
++  //     shipped; the owner's 2026-10-14 acceptance supersedes it by name
++  //     ("the sketchy hand-drawn boxes"), so the box is now the same card as
++  //     every other one. What is pinned here is that it is drawn by the same
++  //     code with the same numbers, not that it is drawn differently.
++  const outdoorCard = /<rect class="setup-box" x="16" y="16" width="200"\s*height="([\d.]+)" rx="([\d.]+)"/.exec(page);
++  check("the outdoor node is the same card as every other box",
++    !!outdoorCard &&
++    Number(outdoorCard[2]) === vm.runInContext("SETUP_CARD_R", ctx),
++    outdoorCard ? `rx=${outdoorCard[2]}` : "no card at column 0 row 0");
+   // ...and it is still an OPEN composition: no header rule, no side walls,
+   // no closing Z on the tray.
+   const outdoorBox = boxes.find((b) => b.place === "outdoor");
+@@ -5831,17 +5984,24 @@ const setupBox = (card, place) =>
+   ];
+   const collisions = [];
+   const cutReadings = [];
++  const dropped = [];
+   const rows = [];
+   for (const [label, alts] of cases) {
+     const f = fit(label, alts);
+-    const lw = w(f.label, false);
++    const lw = w(f.lines[0], false);
+     const vw = w(f.value, true);
+     rows.push(`${JSON.stringify(label)} + ${JSON.stringify(alts[0])} -> ` +
+       `${lw.toFixed(1)}+${vw.toFixed(1)}=${(lw + vw).toFixed(1)}/${INNER}`);
+-    if (lw + vw + GAP > INNER + 1e-9) {
+-      collisions.push(`${label} | ${f.label} + ${f.value} = ` +
++    if (lw + vw + GAP > INNER + 1e-9 ||
++        f.lines.some((l) => w(l, false) > INNER + 1e-9)) {
++      collisions.push(`${label} | ${f.lines[0]} + ${f.value} = ` +
+         `${(lw + vw).toFixed(2)} > ${INNER - GAP}`);
+     }
++    // R10-UX-SETUP: the label WRAPS instead of being cut, so the whole of it
++    // is on the row's own lines.
++    if (f.lines.join(" ") !== label) {
++      dropped.push(`${label} -> ${JSON.stringify(f.lines)}`);
++    }
+     // The reading itself is never cut. Whatever spelling the row settles
+     // on must still open with the same number the longest one did.
+     const num = /^[\d.]+/.exec(alts[0]);
+@@ -5853,21 +6013,25 @@ const setupBox = (card, place) =>
+     collisions.length === 0, collisions.join("; ") || rows.join("\n    "));
+   check("and the reading itself is never what gets cut",
+     cutReadings.length === 0, cutReadings.join("; "));
++  check("and the label is never cut either, at any real length",
++    dropped.length === 0, dropped.join("; "));
+ 
+   // The specific report: the longest fallback the card can write, beside
+   // the label it shares its row with.
+   const worst = fit("Solar radiation",
+     ["1000 W/m² · weather forecast", "1000 W/m²"]);
+-  const worstL = w(worst.label, false);
++  const worstL = w(worst.lines[0], false);
+   const worstV = w(worst.value, true);
+   check("the longest real solar value leaves the label whole and legible",
+-    worst.label === "Solar radiation" && worstL >= MINLABEL &&
++    worst.lines.join(" ") === "Solar radiation" &&
++    worstL >= MINLABEL &&
+     worst.value === "1000 W/m²" && worst.shortened === true &&
+-    worstL + worstV + GAP <= INNER,
+-    `label ${JSON.stringify(worst.label)} (${worstL.toFixed(2)}u, minimum ` +
+-    `${MINLABEL}) + value ${JSON.stringify(worst.value)} ` +
+-    `(${worstV.toFixed(2)}u) = ${(worstL + worstV).toFixed(2)}u of ` +
+-    `${INNER}, ${(INNER - worstL - worstV).toFixed(2)}u to spare`);
++    worstL + worstV + GAP <= INNER &&
++    worst.lines.every((l) => w(l, false) <= INNER),
++    `label ${JSON.stringify(worst.lines)} (${worstL.toFixed(2)}u on line one) ` +
++    `+ value ${JSON.stringify(worst.value)} (${worstV.toFixed(2)}u) = ` +
++    `${(worstL + worstV).toFixed(2)}u of ${INNER}, ` +
++    `${(INNER - worstL - worstV).toFixed(2)}u to spare`);
+   // ...and the tag it dropped is still reachable, so nothing is lost.
+   check("the dropped provenance tag is kept for the tooltip",
+     worst.full === "1000 W/m² · weather forecast", worst.full);
+@@ -5901,11 +6065,11 @@ const setupBox = (card, place) =>
+   // counted.)
+   const roomy = fit("Sun", ["0 W/m² · Open-Meteo", "0 W/m²"]);
+   check("a short label lets the value keep its source tag",
+-    roomy.label === "Sun" && roomy.value === "0 W/m² · Open-Meteo" &&
++    roomy.lines.join(" ") === "Sun" && roomy.value === "0 W/m² · Open-Meteo" &&
+     roomy.shortened === false &&
+-    w(roomy.label, false) + w(roomy.value, true) + GAP <= INNER,
+-    `${JSON.stringify(roomy.label)} + ${JSON.stringify(roomy.value)} = ` +
+-    `${(w(roomy.label, false) + w(roomy.value, true)).toFixed(2)}u`);
++    w(roomy.lines[0], false) + w(roomy.value, true) + GAP <= INNER,
++    `${JSON.stringify(roomy.lines)} + ${JSON.stringify(roomy.value)} = ` +
++    `${(w(roomy.lines[0], false) + w(roomy.value, true)).toFixed(2)}u`);
+   // The invariant behind that: a shorter label never costs the value room.
+   const alts = ["123 W/m² · Open-Meteo", "123 W/m²"];
+   const short = fit("Sun", alts);
+@@ -5917,9 +6081,9 @@ const setupBox = (card, place) =>
+   // An ellipsis is only ever spent when it buys something, and it never
+   // leaves a dangling separator behind it.
+   check("a label that fits is left exactly alone",
+-    fit("Valve target", ["21.3 °C"]).label === "Valve target" &&
+-    !/[\s·-]…$/.test(fit("Lower floor temperature", ["21.3 °C"]).label),
+-    fit("Lower floor temperature", ["21.3 °C"]).label);
++    fit("Valve target", ["21.3 °C"]).lines.join(" ") === "Valve target" &&
++    !/…/.test(fit("Lower floor temperature", ["21.3 °C"]).lines.join(" ")),
++    JSON.stringify(fit("Lower floor temperature", ["21.3 °C"]).lines));
+ 
+   // ...and the whole thing again on the real drawing, which is where the
+   // report came from: a solar slot with no probe, falling back to
+@@ -5939,8 +6103,9 @@ const setupBox = (card, place) =>
+   };
+   const page = setupPage(solarTopo, solarStates);
+   const row = new RegExp(
+-    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="[\\d.]+">\\s*' +
+-    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
++    '<text class="setup-slot" x="([\\d.]+)" y="[\\d.]+">' +
++    '((?:<tspan(?! class="setup-value")[^>]*>[^<]*</tspan>)+)' +
++    '<tspan class="setup-value" x="([\\d.]+)"[^>]*' +
+     'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+     '<rect class="setup-hit" data-key="solar_radiation_entity"[^>]*' +
+     'aria-label="([^"]*)"').exec(page);
+@@ -5948,17 +6113,21 @@ const setupBox = (card, place) =>
+     !!row && /W\/m²/.test(row[4]), row ? row[4] : "no solar row drawn");
+   if (row) {
+     const labelX = Number(row[1]);
++    const lines = [...row[2].matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)]
++      .map((m) => m[1]);
+     const valueEnd = Number(row[3]);
+-    const lw = w(row[2], false);
++    const lw = w(lines[0], false);
+     const vw = w(row[4], true);
+     check("on the page, the solar label ends before its value begins",
+       labelX + lw <= valueEnd - vw,
+-      `label ${JSON.stringify(row[2])} runs x${labelX}..` +
++      `label ${JSON.stringify(lines[0])} runs x${labelX}..` +
+       `${(labelX + lw).toFixed(2)}; value ${JSON.stringify(row[4])} runs ` +
+       `x${(valueEnd - vw).toFixed(2)}..${valueEnd}; ` +
+       `${(valueEnd - vw - labelX - lw).toFixed(2)}u between them`);
+-    check("the label is the whole label, not a truncation",
+-      row[2] === "Solar radiation", row[2]);
++    // R10-UX-SETUP: whole, wrapped if it has to be -- never cut.
++    check("the label is the whole label, wrapped onto its own lines",
++      lines.join(" ") === "Solar radiation" && lines.every((l) => w(l, false) <= 168),
++      JSON.stringify(lines));
+     // Nothing is lost by shortening: the row's accessible name and tooltip
+     // still carry the reading with its provenance.
+     check("and the row still says where the number came from, out loud",
+@@ -5996,8 +6165,7 @@ const setupBox = (card, place) =>
+       selected: options.filter((o) => o.selected) };
+   };
+   const openPicker = (card, key, viaKeyboard) => {
+-    const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+-      .find((h) => h.dataset.key === key);
++    const hit = slotHit(card, key);
+     if (!hit) return null;
+     if (viaKeyboard) {
+       (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
+@@ -7739,10 +7907,9 @@ const setupBox = (card, place) =>
+     /class="setup-hit"/.test(openDump) && /Indoor temperature/.test(openDump),
+     "no clickable slots rendered");
+   check("so an unassigned sensor can be assigned without a plan first",
++    !!slotHit(pre, "lower_floor_temp_entity"),
+     pre.shadowRoot.querySelectorAll(".setup-hit")
+-      .some((h) => h.dataset.key === "lower_floor_temp_entity"),
+-    pre.shadowRoot.querySelectorAll(".setup-hit")
+-      .map((h) => h.dataset.key).join(", "));
++      .map((h) => h.dataset.key || `fold:${h.dataset.fold}`).join(", "));
+   // The Plan tab is still there and still honest about having nothing.
+   const planTab = pre.shadowRoot.querySelectorAll(".dlg-tab")
+     .find((t) => t.dataset.page === "plan");
+@@ -7794,8 +7961,7 @@ const setupBox = (card, place) =>
+       ? { ...s, device_class: "temperature" }
+       : s);
+   const card = mkSetup(topo, bigStates);
+-  const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+-    .find((h) => h.dataset.key === "wood_tank_top_entity");
++  const hit = slotHit(card, "wood_tank_top_entity");
+   (hit._listeners.click || []).forEach((f) =>
+     f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+   const pickerHtml = collect(card.shadowRoot).join("\n");
+@@ -11220,6 +11386,12 @@ check("without an indoor reading the corner now label is absent",
+   const states = () => {
+     const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+     s[BIN] = { state: "off", last_updated: "t1", attributes: { problems: [], input_ages_minutes: {} } };
++    // The Setup page renders its diagram, and with it the Configure controls
++    // that leave the card (R10-UX-SETUP). Without a topology the page is its
++    // "not published" empty state and the census's own reach check fails on
++    // the setup lines -- which is the check doing its job: the fixture has to
++    // render the page a source line calls from.
++    s[DEFAULT_SPACE].attributes.setup_topology = setupTopo();
+     return s;
+   };
+   // The registry lookup the card makes for its own config entry; real HA
