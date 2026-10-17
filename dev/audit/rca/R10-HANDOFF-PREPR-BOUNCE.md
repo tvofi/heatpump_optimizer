@@ -19,7 +19,7 @@ verdict on the final tree is produced inside `open_pr.sh`) with a different caus
 section 5.
 
 A fourth is queued: `open-i1.log` is still running as this is written, and
-`ci_predict.py` in `~/.local/state/hpo/pr/r10-i1/wt` already prints 3 `INERT READS`
+`ci_predict.py` in the r10-i1 worktree already prints 3 `INERT READS`
 lines for its three new harnesses. That is a prediction, not a refusal.
 
 Facts the closures mechanism rests on:
@@ -300,3 +300,24 @@ does not go green silently, as `predict_line` returns rc 3 for exactly that case
   script took 500 s.
 - Whether the hand-edited `inert_reads` line passes CI's `closures` check on a Linux
   recording was not re-run; the precedent commits merged to `main`.
+
+## 9. Disposition (record pull request)
+
+Re-read at the record's merge of `origin/main` `6e5753a4a` (2026-10-17): the
+four in-tree contradictions this record quotes from tool and rule text are still
+present — `ci-autofix.md`'s "**wait**" paragraph and its "the bot merges INERT
+READS from CI recordings too" clause, `ci_predict.py`'s "repair before the
+handoff; who repairs which is ci-autofix.md's", and `prepr.sh`'s
+`PREPR_SKIP_CLOSURES` message "closures-autofix is the only check left".
+
+- **M2 and M3** (no policy) are forward-carried into roster group
+  `R10-TICK-DRIVERS` (`dev/programme/rosters/wave-r10-groups.json`, whose
+  `files` already name `tools/pr/ci_predict.py` and
+  `tools/audit/seat/body_push.sh`): its brief carries both, ending "It must be
+  shown failing on the probe and passing after the hand edit". That group builds them; this record does not.
+- **M4** is policy (`ci-autofix.md`, `fixer.md` steps 5 and 18). It is not in
+  this pull request; it needs an approval under `CLAUDE.md`'s policy rule
+  before any merge that carries it.
+- **Recommendation 4** (the out-of-tree brief line) and **5** (the `R9-RO-9b`
+  carry id) are the orchestrator's and `finding-propagation.md`'s.
+
