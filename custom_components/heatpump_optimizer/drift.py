@@ -16,6 +16,7 @@ pattern: evidence strings, explicit release, nothing actuates from here.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, tzinfo
 from typing import Any
@@ -27,6 +28,9 @@ import numpy as np
 #: release lag grows with how long the condition lasted — an 8-hour open
 #: window would freeze learning for two extra days after it closed.
 STAT_CAP_FACTOR = 1.5
+#: The reference's sample count stops here: past it the running-mean weight
+#: is far below any time constant's, so the count carries no information.
+REFERENCE_N_CAP = 10_000
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -80,7 +84,9 @@ class Cusum:
     ``update`` folds one residual; the statistic accumulates
     ``side·residual − drift`` clipped at zero, trips at ``threshold`` and
     releases when it falls back under ``release`` (default: a quarter of
-    the threshold, so a detector does not chatter at the trip line).
+    the threshold, so a detector does not chatter at the trip line). With
+    ``reference_hours`` set it folds the departure from the signal's own
+    tracked level instead, for a signal whose zero is not its normal.
     """
 
     #: Accumulated evidence at which the detector trips.
@@ -99,13 +105,27 @@ class Cusum:
     #: stops being fed (the signal that drives it vanished) must not stay
     #: latched forever — see ``release_if_starved``.
     last_fed: datetime | None = None
+    #: Per-sample cap on the departure folded, so no single glitch can trip
+    #: the detector alone. None: no cap.
+    clip: float | None = None
+    #: Hours over which the reference level tracks the signal's own
+    #: persistent level. None: the reference is zero, for a signal centred
+    #: by construction. Set, the statistic folds the departure from that
+    #: level: a bias the signal carries for days accumulates nothing, and
+    #: only a change does.
+    reference_hours: float | None = None
+    #: The tracked level (None until the first sample seeds it) and how
+    #: many samples it has seen.
+    reference: float | None = None
+    reference_n: int = 0
 
     def update(self, when: datetime, residual: float) -> bool:
         """Fold one residual in; True when ``tripped`` changed."""
         if not np.isfinite(residual):
             return False
+        departure = self._departure(when, float(residual))
         self.last_fed = when
-        signed = float(residual) * (1 if self.side >= 0 else -1)
+        signed = departure * (1 if self.side >= 0 else -1)
         self.stat = min(
             max(0.0, self.stat + signed - self.drift),
             self.threshold * STAT_CAP_FACTOR,
@@ -126,6 +146,41 @@ class Cusum:
             self._note(when, f"decayed to {self.stat:.2f}; released")
             return True
         return False
+
+    def _departure(self, when: datetime, value: float) -> float:
+        """``value`` less the reference, clipped; the reference then moves.
+
+        The departure is taken against the level BEFORE this sample moves
+        it, so a change shows in full on the sample that carries it. The
+        level is a running mean until that weight falls below the
+        ``reference_hours`` time constant's over the elapsed time, then an
+        exponential average; the first sample seeds it, clipped, and it
+        moves by the clipped departure, so a glitch drags it no further
+        than it may push the statistic.
+        """
+        if self.reference_hours is None:
+            return self._clipped(value)
+        if self.reference is None:
+            self.reference, self.reference_n = self._clipped(value), 1
+            return 0.0
+        departure = self._clipped(value - self.reference)
+        gap_h = (
+            max(0.0, utc_elapsed_seconds(when, self.last_fed) / 3600.0)
+            if self.last_fed is not None
+            else 0.0
+        )
+        self.reference_n = min(self.reference_n + 1, REFERENCE_N_CAP)
+        weight = max(
+            1.0 / self.reference_n,
+            1.0 - math.exp(-gap_h / self.reference_hours),
+        )
+        self.reference += weight * departure
+        return departure
+
+    def _clipped(self, value: float) -> float:
+        if self.clip is None:
+            return value
+        return min(max(value, -self.clip), self.clip)
 
     def release_if_starved(self, now: datetime, max_gap_hours: float) -> bool:
         """Force-release a tripped detector nothing has fed for too long.
@@ -166,6 +221,10 @@ class Cusum:
             "last_fed": (
                 self.last_fed.isoformat() if self.last_fed is not None else None
             ),
+            "reference": (
+                round(self.reference, 4) if self.reference is not None else None
+            ),
+            "reference_n": self.reference_n,
         }
 
     def load(self, data: dict[str, Any] | None) -> None:
@@ -185,3 +244,14 @@ class Cusum:
         raw_fed = data.get("last_fed")
         if isinstance(raw_fed, str):
             self.last_fed = stored_instant(raw_fed)
+        # A missing or corrupt level re-seeds at the next sample: a payload
+        # from before the reference existed loads exactly like a fresh one.
+        ref, n = data.get("reference"), data.get("reference_n")
+        if (
+            isinstance(ref, (int, float)) and not isinstance(ref, bool)
+            and math.isfinite(ref)
+            and isinstance(n, int) and not isinstance(n, bool) and n >= 1
+        ):
+            self.reference, self.reference_n = float(ref), min(n, REFERENCE_N_CAP)
+        else:
+            self.reference, self.reference_n = None, 0

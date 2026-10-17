@@ -10,6 +10,10 @@ Metric (one line each, per scenario):
       frozen "ventilation" (nan: never inside the window);
   release_h   = hours from the window closing to the first interval not
       frozen (nan: still frozen at the end);
+  held_share  = share of the window's intervals from detection to closing
+      that stay frozen (a level that absorbs the window releases early);
+  longest_false_h = the longest unbroken freeze outside any window, hours
+      (a self-latch reads as days);
   ua_bias     = learned effective UA over the last 3 days / true UA - 1.
 
 Command (tree root):
@@ -17,7 +21,7 @@ Command (tree root):
 
 Scenarios: delivery g in {1.0, 0.6, 0.4} (the plant receives g x the commanded
 power the model replays: a meter or COP off by 1/g), UA truth 1.0 or 1.6 x the
-prior, power by a smooth feed-forward + P loop ("pi") or a hysteresis on/off
+prior (or a drop to g on day 4: a fault arriving mid-life), power by a smooth feed-forward + P loop ("pi") or a hysteresis on/off
 thermostat ("onoff", full power in blocks: the hardest shape for a bias that is
 proportional to power), with no window or a planted one (an extra ``vent_w_k``
 W/K on the sensed upper zone, opened on day 10 at 18:00 for ``hours``; the
@@ -69,7 +73,11 @@ WINDOW_DAY, WINDOW_HOUR = 10, 18.0
 #: 100 W/K here, so 300 W/K is a window opened wide for airing and 150 W/K a
 #: tilted one; 100 W/K moves the residual (~0.13 K per 15 min at dT 16 K)
 #: barely past the CUSUM's per-sample drift allowance, below its reach.
-WINDOWS = ((0.0, 0.0), (300.0, 2.0), (300.0, 8.0), (150.0, 4.0), (100.0, 8.0))
+WINDOWS = ((0.0, 0.0), (300.0, 2.0), (300.0, 8.0), (300.0, 12.0), (150.0, 4.0), (100.0, 8.0))
+#: (delivery g, UA truth / prior, day the delivery drops from 1.0 to g or
+#: None for g from the start). The step is a meter or COP fault arriving
+#: mid-life: a persistent bias whose onset looks exactly like a window's.
+SCENARIOS = ((1.0, 1.0, None), (0.6, 1.0, None), (0.4, 1.0, None), (1.0, 1.6, None), (0.4, 1.0, 4))
 
 
 def cfg_base():
@@ -84,7 +92,7 @@ def ua_of(p, c):
     return (p.upper_floor_heat_loss + p.lower_floor_heat_loss * c._lower_floor_loss_ratio) * c._house_heat_loss_scale
 
 
-def run(days, seed, delivery, ua_true, control, vent_w_k, hours):
+def run(days, seed, delivery, ua_true, control, vent_w_k, hours, step_day=None):
     cfg = cfg_base()
     truth = ThermalParameters.from_config(cfg)
     truth.dhw_enabled = False
@@ -138,7 +146,8 @@ def run(days, seed, delivery, ua_true, control, vent_w_k, hours):
         ua.append(ua_of(p, c))
         frozen.append(type(c)._learning_frozen(c, *KEYS) == "ventilation")
         m = vented if w0 <= i < w1 else plant
-        st = m.simulate_step(replace(st, solar_radiation=irr), power * delivery, t_out,
+        g = delivery if step_day is None or i >= step_day * 24 / DT else 1.0
+        st = m.simulate_step(replace(st, solar_radiation=irr), power * g, t_out,
                              solar_radiation=irr, dt_hours=DT, hour_of_day=h)
     dt_util.freeze(None)
     loop.close()
@@ -151,12 +160,19 @@ def run(days, seed, delivery, ua_true, control, vent_w_k, hours):
     onsets = [j for j in range(1, n) if frozen[j] and not frozen[j - 1] and not in_window(j)]
     detect = next((j for j in range(w0 + 1, w1 + 1) if frozen[j]), None) if vent_w_k > 0 else None
     release = next((j for j in range(w1 + 1, n) if not frozen[j]), None) if vent_w_k > 0 else None
+    held = frozen[detect:w1 + 1] if detect is not None else []
+    longest, cur = 0, 0
+    for j, f in enumerate(frozen):
+        cur = cur + 1 if (f and not in_window(j)) else 0
+        longest = max(longest, cur)
     return {
         "false_share": sum(outside) / len(outside),
         "detect_h": (detect - w0) * DT if detect is not None else float("nan"),
         "release_h": (release - w1) * DT if release is not None else float("nan"),
         "ua_bias": float(np.mean(ua[-last:]) / ua_t - 1.0),
         "false_onsets_h": [round(j * DT, 2) for j in onsets],
+        "held_share": (sum(held) / len(held)) if held else float("nan"),
+        "longest_false_h": longest * DT,
     }
 
 
@@ -167,12 +183,14 @@ def main():
     a = ap.parse_args()
     for seed in range(1, a.seeds + 1):
         for control in ("pi", "onoff"):
-            for g, ua_t in ((1.0, 1.0), (0.6, 1.0), (0.4, 1.0), (1.0, 1.6)):
+            for g, ua_t, step in SCENARIOS:
                 for vent, hours in WINDOWS:
-                    r = run(a.days, seed, g, ua_t, control, vent, hours)
-                    tag = f"seed{seed}.{control}.g{g}.ua{ua_t}.vent{vent:.0f}x{hours:.0f}h"
+                    r = run(a.days, seed, g, ua_t, control, vent, hours, step)
+                    st = f".step{step}" if step is not None else ""
+                    tag = f"seed{seed}.{control}.g{g}{st}.ua{ua_t}.vent{vent:.0f}x{hours:.0f}h"
                     print(f"RESULT {tag} false_share={r['false_share']:.3f} detect_h={r['detect_h']:.2f} "
-                          f"release_h={r['release_h']:.2f} ua_bias={r['ua_bias']:+.4f} "
+                          f"held_share={r['held_share']:.2f} release_h={r['release_h']:.2f} "
+                          f"longest_false_h={r['longest_false_h']:.2f} ua_bias={r['ua_bias']:+.4f} "
                           f"false_onsets_h={r['false_onsets_h'][:6]}", flush=True)
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
 
