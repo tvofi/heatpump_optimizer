@@ -15251,14 +15251,26 @@ R.check(
 
 
 def _gl_auto_lease() -> tuple[bool, str]:
-    """run.sh leases a FULL or stress run itself; a second one waits."""
+    """run.sh leases a FULL or stress run itself; a second one waits.
+
+    The classifier is driven at all three answers, and at the fail-closed arm
+    the block on #2341 found open: the exclusive lease for the machine-measuring
+    scripts, a slot for the multi-minute CPU ones, a slot for a name the
+    recordings do NOT carry (`tests/rolling.py`, gated behind `SLOW=1` and so
+    never timed), and none only for a recorded seconds-side script
+    (R10-PREPR-CAP, #2267).
+    """
     import threading
     with _tempfile.TemporaryDirectory() as td:
         d, seen = Path(td) / "lock", Path(td) / "seen"
         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+        seconds, rolling = Path(td) / "c.run", Path(td) / "d.run"
         scoped.write_text("tests/entities.py\n")
         stress.write_text("tests/entities.py\ntests/stress.py\n")
-        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
+        seconds.write_text("tests/structure.py\n")
+        rolling.write_text("tests/rolling.py\n")
+        need = [_gate_lock.needs_lease(s)
+                for s in ("", str(stress), str(scoped), str(seconds), str(rolling))]
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         child = ("import os, sys; from pathlib import Path; "
                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
@@ -15276,10 +15288,42 @@ def _gl_auto_lease() -> tuple[bool, str]:
         finally:
             _gate_lock.WAIT_POLL_SECS = poll
         text = seen.read_text() if seen.exists() else ""
-        ok = (need == [True, True, False] and waited and out == [3]
+        ok = (need == ["lease", "lease", "slot", "none", "slot"] and waited
+              and out == [3]
               and "label=auto" in text and text.endswith("auto")
               and _gate_lock.read_owner(d) is None)
         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+
+
+def _gl_slot_count() -> tuple[bool, str]:
+    """The pool's capacity is the cap unless the OWNER raises it (#2267).
+
+    The predicate is the CLAMP, not the number: an override below the cap is
+    honoured and one above it is refused without the owner's mark, so a seat
+    cannot widen the box's concurrency by exporting one variable. The owner arm
+    is the null control -- the same `8` is honoured once the mark is present.
+    """
+    import os as _os
+    saved = {k: _os.environ.get(k)
+             for k in (_gate_lock.SLOTS_ENV, _gate_lock.SLOTS_OWNER_ENV)}
+    try:
+        got = []
+        for value, owner in ((None, None), ("3", None), ("8", None),
+                             ("8", "1"), ("junk", None), ("0", None)):
+            for key, val in ((_gate_lock.SLOTS_ENV, value),
+                             (_gate_lock.SLOTS_OWNER_ENV, owner)):
+                _os.environ.pop(key, None)
+                if val is not None:
+                    _os.environ[key] = val
+            got.append(_gate_lock.heavy_slots())
+        want = [_gate_lock.HEAVY_SLOTS, 3, _gate_lock.HEAVY_SLOTS, 8,
+                _gate_lock.HEAVY_SLOTS, _gate_lock.HEAVY_SLOTS]
+        return got == want, f"heavy_slots over (unset,3,8,8+owner,junk,0)={got}"
+    finally:
+        for key, val in saved.items():
+            _os.environ.pop(key, None)
+            if val is not None:
+                _os.environ[key] = val
 
 
 def _gl_lease_hardening() -> tuple[bool, str]:
@@ -15398,11 +15442,80 @@ def _gl_lease_hardening() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_auto_lease()
 _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
+_gl_line = 'answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)'
 R.check(
-    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
-    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
-    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
+    "run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits",
+    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2
+    and _run_sh.count('slot-auto-lease --label "run.sh-$$"') == 1,
+    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none', "
+    "and give a 'slot' answer the pool rather than the exclusive lease",
+)
+_gl_count_ok, _gl_count_detail = _gl_slot_count()
+R.check(
+    "the heavy-slot capacity is the cap unless the owner raises it (#2267)",
+    _gl_count_ok,
+    _gl_count_detail,
+)
+
+
+def _gl_lease_class_sweep() -> tuple[bool, str]:
+    """Every script run.sh dispatches through `leased` is classified.
+
+    THE CLASS, and its seams. Both `run` and `run_always` dispatch through
+    `leased`, so the class is the scripts `tests/run.sh` names in those calls,
+    and the property is that none of them is left UNLEASED unless the
+    recordings say it takes seconds. #2341's review found `tests/rolling.py`
+    open: gated behind `SLOW=1`, never timed, so `needs_lease` answered `none`
+    for a script whose own comment calls it "about a quarter of an hour".
+    An untimed name's weight is unknown, and the conservative answer for the
+    unknown is the pool -- bounded -- never `none`, which leaves it unbounded
+    beside three others.
+
+    The rule is read from the two files that own it: the dispatch sites in
+    run.sh and `needs_lease` itself. A script added to either reaches this
+    census with no edit here. The census asserts its OWN preconditions, because
+    a sweep over an empty set passes silently: it refuses when the parse finds
+    fewer than a floor of dispatched scripts (a regex that stopped matching
+    reads as a closed class), and it names every seam it leaves unleased.
+    """
+    run_lines = Path("tests/run.sh").read_text().splitlines()
+    dispatched: list[str] = []
+    for line in run_lines:
+        match = _re.match(r"\s*(?:run|run_always)\s+(?:\"\$PYTHON\"|node)?\s*"
+                          r"(tests/[A-Za-z0-9_]+\.(?:py|mjs))", line)
+        if match and match.group(1) not in dispatched:
+            dispatched.append(match.group(1))
+    floor = 30
+    by_answer: dict[str, list[str]] = {"lease": [], "slot": [], "none": []}
+    unleased: list[str] = []
+    with _tempfile.NamedTemporaryFile("w+", suffix=".run") as handle:
+        for script in dispatched:
+            handle.seek(0)
+            handle.truncate()
+            handle.write(script + "\n")
+            handle.flush()
+            answer = _gate_lock.needs_lease(handle.name)
+            seconds = _gate_lock._recorded_seconds(script)
+            by_answer.setdefault(answer, []).append(script)
+            if answer == "none" and (seconds is None
+                                     or seconds >= _gate_lock.SLOT_MIN_SECONDS):
+                unleased.append(script)
+    ok = len(dispatched) >= floor and not unleased
+    detail = (f"dispatched={len(dispatched)} (floor {floor}) "
+              f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
+              f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
+    # Printed on a PASS as well as carried into the failure: the census's own
+    # shape is the evidence a body cites, and a row that prints only when it
+    # fails shows the reader nothing about the class it just cleared.
+    print(f"lease class: {detail}")
+    return ok, detail
+
+
+_gl_sweep_ok, _gl_sweep_detail = _gl_lease_class_sweep()
+R.check(
+    "every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)",
+    _gl_sweep_ok,
+    _gl_sweep_detail,
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
@@ -15411,6 +15524,81 @@ R.check(
     "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
     _gl_ok,
     _gl_detail,
+)
+
+
+def _gl_heavy_slots() -> tuple[bool, str]:
+    """R10-PREPR-CAP (#2267): the heavy-slot pool admits exactly `slots`.
+
+    The predicate is the CAP, not the number four: a pool that admitted any
+    number would pass a check that only took four, so the capacity arm takes
+    the fifth and requires it to block, and the null control runs the same code
+    at `slots=1`, where the second take must block. The reuse arm frees one
+    holder and requires the next take to land on a slot inside the pool, so a
+    pool that grew a new slot on every take is caught beside one that never
+    released.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        held = [_gate_lock.take_slot(f"h{i}", lock_dir=d, slots=4, wait=False)[0]
+                for i in range(4)]
+        try:
+            _gate_lock.take_slot("fifth", lock_dir=d, slots=4, wait=False)
+            admitted = True
+        except BlockingIOError:
+            admitted = False
+        _gate_lock.release_slot("h0", lock_dir=d, slots=4)
+        idx, _owner = _gate_lock.take_slot("next", lock_dir=d, slots=4, wait=False)
+        reused = idx in range(4) and _gate_lock.release_slot("next", lock_dir=d, slots=4)
+        # Null control: the same calls with a one-slot pool refuse the second.
+        d1 = Path(td) / "one"
+        _gate_lock.take_slot("a", lock_dir=d1, slots=1, wait=False)
+        try:
+            _gate_lock.take_slot("b", lock_dir=d1, slots=1, wait=False)
+            single_admitted = True
+        except BlockingIOError:
+            single_admitted = False
+        ok = not admitted and reused and not single_admitted and held == [0, 1, 2, 3]
+        return ok, (f"fifth_admitted={admitted} reused_slot={idx} reused={reused} "
+                    f"single_pool_admitted_second={single_admitted} held={held}")
+
+
+def _gl_heavy_slot_reclaim() -> tuple[bool, str]:
+    """A slot whose lease expired, or whose named owner process is gone, is
+    reclaimed instead of wedging the pool; a live one is not (the control)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        dead = _subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait(timeout=5)
+        _gate_lock.take_slot("orphan", lock_dir=d, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=dead.pid)
+        try:
+            stolen = _gate_lock.take_slot("heir", lock_dir=d, slots=1, wait=False)[0] == 0
+        except BlockingIOError:
+            stolen = False
+        # Null control: the same shape with a LIVE owner pid is not stolen.
+        d2 = Path(td) / "live"
+        _gate_lock.take_slot("seat", lock_dir=d2, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=_os.getpid())
+        try:
+            _gate_lock.take_slot("other", lock_dir=d2, slots=1, wait=False)
+            live_admitted = True
+        except BlockingIOError:
+            live_admitted = False
+        return stolen and not live_admitted, f"stolen={stolen} live_admitted={live_admitted}"
+
+
+_gl_slots_ok, _gl_slots_detail = _gl_heavy_slots()
+R.check(
+    "the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second",
+    _gl_slots_ok,
+    _gl_slots_detail,
+)
+_gl_rec_ok, _gl_rec_detail = _gl_heavy_slot_reclaim()
+R.check(
+    "a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)",
+    _gl_rec_ok,
+    _gl_rec_detail,
 )
 
 
@@ -32383,6 +32571,46 @@ R.check(
     f"rc={_cim_res.returncode}",
 )
 
+
+def _derive_join_arm() -> tuple[bool, str]:
+    """derive_closures.sh takes a slot STANDALONE and joins one it is in
+    (#2267). The predicate is the env var, so it is driven both ways: with
+    `$HPO_SLOT_LABEL` set -- what prepr.sh step 1b exports -- the stub `PYTHON`
+    it hands every child sees no `slot-take`, and without it, it does (the null
+    control). A join arm that always took a slot, or one that never did, fails
+    one of the two arms.
+    """
+    taken: dict[str, bool] = {}
+    with _tempfile.TemporaryDirectory() as td:
+        for label, slot in (("inside", "parent-1"), ("outside", "")):
+            d = Path(td) / label
+            d.mkdir()
+            stub = d / "py"
+            stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$ARGVLOG"\n')
+            stub.chmod(0o755)
+            log = d / "argv.log"
+            log.write_text("")
+            env = {**_os.environ, "PYTHON": str(stub), "ARGVLOG": str(log),
+                   "HPO_CI_METRICS": ""}
+            env.pop("HPO_SLOT_LABEL", None)
+            if slot:
+                env["HPO_SLOT_LABEL"] = slot
+            _subprocess.run(
+                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
+                 "--record-only", "--out-dir", str(d / "rec")],
+                env=env, capture_output=True, text=True, timeout=180)
+            taken[label] = "slot-take" in log.read_text()
+    return (not taken["inside"] and taken["outside"],
+            f"inside_takes={taken['inside']} outside_takes={taken['outside']}")
+
+
+_derive_join_ok, _derive_join_detail = _derive_join_arm()
+R.check(
+    "derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)",
+    _derive_join_ok,
+    _derive_join_detail,
+)
+
 # The composed-closure allow-list (round-9 C1): every entry a real selectable
 # script, off the never-compose list closure.py enumerates -- the class's seam
 # rule, not an instance check.
@@ -35833,5 +36061,205 @@ R.check(
     _egb3_standalone is True,
     str(_egb3_standalone),
 )
+
+# ---------------------------------------------------------------------------
+# R10 class barriers, the two RCAs' countermeasures (dev/audit/rca/
+# R10-N-no-expiry.md, R10-N-log-flood.md). Both read every module of the
+# package by AST and refuse a site that is neither routed through the class's
+# helper nor on a reasoned allow-list. Each allow-list is keyed (module,
+# function) -> EXACT count, so a second site added inside a listed function
+# still fails; a site that went away fails too, until its entry is deleted.
+# ---------------------------------------------------------------------------
+from collections import Counter  # noqa: E402
+
+_r10_pkg = Path("custom_components/heatpump_optimizer")
+_r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
+
+
+def _r10_functions(source):
+    """(function, its nodes minus nested functions') for every def in source."""
+    tree = ast.parse(source)
+    for fn in ast.walk(tree):
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            nested = {id(n) for f in ast.walk(fn)
+                      if f is not fn and isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))
+                      for n in ast.walk(f)}
+            yield fn, [n for n in ast.walk(fn) if id(n) not in nested]
+
+
+def _r10_covering_lookups(sources):
+    """N-no-expiry seams: each ``bisect_right(...) - 1`` -- "the entry covering
+    now" with no end of its own -- counted per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        for fn, nodes in _r10_functions(source):
+            for n in nodes:
+                if (isinstance(n, ast.BinOp) and isinstance(n.op, ast.Sub)
+                        and isinstance(n.left, ast.Call)
+                        and "bisect_right" in ast.unparse(n.left.func)
+                        and isinstance(n.right, ast.Constant) and n.right.value == 1):
+                    found[(name, fn.name)] += 1
+    return found
+
+
+#: Every covering lookup that is not ``coordinator._covering_index``'s, and why
+#: it may hold its last entry open (the R10 sweep's dispositions).
+_R10_COVERING_ALLOWED = {
+    ("coordinator.py", "_covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
+    ("coordinator.py", "_weather_series"): (1, "builds the future horizon; padding past the last "
+                                               "entry is documented extrapolation, never published as current"),
+    ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
+    ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
+    ("pump_arbiter.py", "step_duty"): (1, "returns None past the plan's last step"),
+    ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
+}
+
+
+def _r10_covering_verdict(found):
+    allowed = {k: v[0] for k, v in _R10_COVERING_ALLOWED.items()}
+    return {k: (found.get(k, 0), allowed.get(k, 0))
+            for k in set(found) | set(allowed) if found.get(k, 0) != allowed.get(k, 0)}
+
+
+_r10_cov_found = _r10_covering_lookups(_r10_sources)
+_r10_cov_planted = _r10_covering_lookups({
+    "planted.py": "from bisect import bisect_right\n"
+                  "def current(s, now):\n    return s[bisect_right(s, now) - 1]\n",
+    "pump_arbiter.py": _r10_sources["pump_arbiter.py"]
+    + "\ndef _share(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
+})
+R.check(
+    "R10 N-no-expiry barrier: every 'entry covering now' lookup goes through "
+    "_covering_index or is on the reasoned list with its exact count",
+    not _r10_covering_verdict(_r10_cov_found)
+    and sum(_r10_cov_found.values()) >= 6 and len(_r10_sources) >= 70
+    # null control and perturbation: a planted unbounded lookup, and a second
+    # lookup inside an allow-listed function, are each refused
+    and ("planted.py", "current") in _r10_covering_verdict(_r10_cov_planted)
+    and ("pump_arbiter.py", "_share") in _r10_covering_verdict(_r10_cov_planted),
+    f"mismatch {_r10_covering_verdict(_r10_cov_found)}; read {sum(_r10_cov_found.values())} "
+    f"lookups in {len(_r10_sources)} modules",
+)
+
+_R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notified|seen)", re.I)
+
+
+def _r10_unlatched_logs(sources):
+    """N-log-flood seams: each ``_LOGGER.warning``/``.error`` with no latch in
+    an enclosing ``if`` (a latch-named test, or a ``not in`` against a set the
+    function ``.add``s to; the R10 sweep's static rule), per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        tree = ast.parse(source)
+
+        def walk(node, chain, fn):
+            for child in ast.iter_child_nodes(node):
+                inner = child if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn
+                if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
+                        and child.func.attr in ("warning", "error")
+                        and ast.unparse(child.func.value) == "_LOGGER"):
+                    latched = False
+                    for test in chain:
+                        text = ast.unparse(test.test)
+                        if _R10_LATCH_WORD.search(text) or (
+                                isinstance(test.test, ast.Compare)
+                                and any(isinstance(o, ast.NotIn) for o in test.test.ops)
+                                and f"{ast.unparse(test.test.comparators[0])}.add(" in ast.unparse(fn)):
+                            latched = True
+                    if not latched:
+                        found[(name, fn.name if fn else "<module>")] += 1
+                walk(child, chain + [child] if isinstance(child, ast.If) else chain, inner)
+
+        walk(tree, [], None)
+    return found
+
+
+#: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
+#: disposition (dev/audit/rounds/round10/sweep-N-log-flood.md) less the
+#: instances this barrier's PR routed through ``coordinator._log_held``.
+_R10_LOG_ALLOWED_BY_REASON = {
+    "the latch itself, or latched by a guard the static rule cannot read "
+    "(an outage counter, a transition notice, a once-per-attempt spacing, "
+    "an lru_cache parsing an option once per distinct text)": {
+        ("coordinator.py", "_log_held"): 1, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
+        ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
+        ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
+        ("coordinator.py", "_peak_tariff_months"): 1, ("coordinator.py", "_peak_tariff_hours"): 1,
+        ("open_meteo.py", "async_refresh"): 1, ("legionella.py", "check_mode_block"): 1,
+        ("legionella.py", "async_track_cycle"): 5, ("pump_arbiter.py", "_not_held"): 1,
+        ("curve_learning.py", "record_miss"): 1,
+    },
+    "once per event by the function's own state (a refit, an issue raised, a "
+    "rollback per alarm, a malformed month closed so it is not retried)": {
+        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 1,
+        ("coordinator.py", "_raise_cop_issue"): 1,
+        ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+    },
+    "not reached per cycle: load, restore, migration, setup, frontend "
+    "registration, a service call or shutdown": {
+        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
+        ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
+        ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,
+        ("snapshots.py", "best_restore"): 1, ("store.py", "_bound_instants"): 1,
+        ("store.py", "_surface_version"): 1, ("tariff.py", "from_dict"): 1,
+        ("thermal_model.py", "from_config"): 1, ("grid_fee.py", "from_config"): 1,
+        ("grid_fee.py", "apply_catalog"): 2, ("frontend.py", "_register_lovelace_resource"): 2,
+        ("frontend.py", "_register_static_path"): 2, ("dhw_schedule.py", "parse_day_overrides"): 1,
+        ("coordinator.py", "_async_load_manual_plan"): 1,
+        ("coordinator.py", "_async_load_thermal_learning"): 1,
+        ("coordinator.py", "_async_setup_peak_guard"): 1,
+        ("coordinator.py", "async_restore_learned_snapshot"): 1,
+        ("coordinator.py", "async_update_thermal_params"): 1, ("coordinator.py", "async_simulate"): 1,
+        ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+    },
+    "one record per failed call, an event and not a held condition (the "
+    "sweep's actuation handlers, and an unexpected exception per failed update)": {
+        ("climate.py", "_async_publish_displace_from_current_action"): 1,
+        ("coordinator.py", "_publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
+        ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
+        ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
+        ("pump_arbiter.py", "switch_supply"): 1,
+    },
+    "OWED, a distinct finding: unlatched and reached every cycle or solve "
+    "under a condition that can persist; a runtime probe is owed (the R10 "
+    "sweep's static-only five, and the solver's per-failed-solve reports)": {
+        ("coordinator.py", "_apply_action"): 1, ("coordinator.py", "_command_valve_target"): 3,
+        ("coordinator.py", "_note_solve_failure"): 1, ("pump_arbiter.py", "_space_target"): 1,
+        ("inputs.py", "_age_gate"): 1, ("optimizer.py", "optimize"): 1,
+        ("optimizer.py", "_solve_space"): 1, ("optimizer.py", "_optimize_space_only"): 1,
+    },
+}
+_R10_LOG_ALLOWED = {k: n for group in _R10_LOG_ALLOWED_BY_REASON.values() for k, n in group.items()}
+
+
+def _r10_log_verdict(found):
+    return {k: (found.get(k, 0), _R10_LOG_ALLOWED.get(k, 0))
+            for k in set(found) | set(_R10_LOG_ALLOWED)
+            if found.get(k, 0) != _R10_LOG_ALLOWED.get(k, 0)}
+
+
+_r10_log_found = _r10_unlatched_logs(_r10_sources)
+_r10_log_planted = _r10_unlatched_logs({
+    "planted.py": "def poll(self):\n    if not self._x:\n        _LOGGER.warning('none')\n"
+                  "def latched(self):\n    if not self._warned:\n        _LOGGER.warning('once')\n",
+    "inputs.py": _r10_sources["inputs.py"]
+    + "\ndef _age_gate(x):\n    _LOGGER.warning('a')\n    _LOGGER.warning('b')\n",
+})
+R.check(
+    "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
+    "with its exact count -- a persisting condition goes through _log_held",
+    not _r10_log_verdict(_r10_log_found)
+    and sum(_r10_log_found.values()) >= 70
+    # null control: a latched warning is not a site; perturbation: an unlatched
+    # one, and a second site inside a listed function, are each refused
+    and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
+    and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
+    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
+    f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))
