@@ -140,7 +140,7 @@ async def direct_arm(name):
         result.timestamps = [now]
         result.optimal_setpoints = [21.0]
         for _ in range(4):
-            pa_mod._space_target(c, inp, result, now, "space")
+            pa_mod._space_target(inp, result, now, "space")
     elif name == "future_stamp":
         for _ in range(4):
             st = dt_util.utcnow() + timedelta(minutes=60)
