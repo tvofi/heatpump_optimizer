@@ -258,8 +258,6 @@ const NAV_SURFACE = [
   // `.requestSubmit(`, and the computed key `["submit"]` are the written forms.
   // A name BUILT at run time (`["sub", "mit"]`) is the residual the census
   // states, not this row's.
-  { what: "a form submitted by name",
-    re: /(?:\.\s*(?:submit|requestSubmit)\b|\[\s*["'`](?:submit|requestSubmit)["'`]\s*\])/ },
   { what: "HA's more-info event", re: /hass-more-info/ },
   { what: "HA's action event", re: /hass-action/ },
 ];
