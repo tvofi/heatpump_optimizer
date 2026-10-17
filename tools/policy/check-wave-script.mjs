@@ -1062,18 +1062,20 @@ await block('the scoped round driver', async () => {
   t('every other finder keeps the earlier-findings wall (null control)', others.length > 0 && others.every((l) => walled(p(l))), others.filter((l) => !walled(p(l))).join(', '))
   // D15's bundle is out of tree, so its path reaches a seat only from args; with
   // none, the seat is told to report every step unfinished. The rest never see it.
-  // Armed once audit-find.js declares BUNDLE_DIMS, as the ROUND_DIR and CURRENT
-  // pins above are: the graders land one merge ahead of the driver.
-  const bundleDims = grab(/const BUNDLE_DIMS = new Set\(\[([^\]]*)\]/)
+  // Keyed on the brief, not on audit-find.js's BUNDLE_DIMS: a driver declaring
+  // no bundle dimension, or the wrong one, is what these pins exist to refuse
+  // (#2268). Which briefs take a bundle is a design choice written here: D15.md's
+  // Inputs name one; no other brief does.
+  const bundleDims = ['D15'].filter((d) => L.briefs.includes(d))
   const armed = bundleDims.length > 0
-  const withBundle = armed ? await drive({ ...base, debug_bundle: '/o/diag.json', debug_export: '/o/export.json' }) : { calls: [] }
+  const withBundle = await drive({ ...base, debug_bundle: '/o/diag.json', debug_export: '/o/export.json' })
   const pb = (l) => withBundle.calls.find((c) => c.label === l)?.prompt ?? ''
   const isBundle = (l) => bundleDims.includes(l.split('-')[0])
   const dB = finders.filter(isBundle)
-  t(`once audit-find.js declares BUNDLE_DIMS, its finders carry the named bundle and export, or are told to report every step unfinished (${armed ? dB.join(', ') : 'not declared'})`,
-    !armed || (dB.length > 0 && dB.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l)))), pb(dB[0] ?? '').slice(0, 200))
-  t(`...and no other finder is handed the bundle (null control${armed ? '' : ': not declared'})`, !armed || finders.filter((l) => !isBundle(l)).every((l) => !pb(l).includes('/o/diag.json')), 'leaked')
-  t(`a relative bundle path is refused before Prepare (${armed ? 'declared' : 'not declared'})`, !armed || /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error), 'accepted')
+  t(`once D15.md exists, its finders carry the named bundle and export, or are told to report every step unfinished (${armed ? dB.join(', ') : 'no D15 brief'})`,
+    !armed || (dB.length > 0 && dB.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l)))), pb(dB[0] ?? '').slice(0, 200) || 'no D15 finder')
+  t('...and no other finder is handed the bundle (null control)', withBundle.error === '' && finders.filter((l) => !isBundle(l)).every((l) => !pb(l).includes('/o/diag.json')), withBundle.error || finders.filter((l) => !isBundle(l) && pb(l).includes('/o/diag.json')).join(', '))
+  t(`a relative bundle path is refused before Prepare (${armed ? 'D15 brief' : 'no D15 brief'})`, !armed || /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error), 'accepted')
   // The schema the finder is held to by the runtime carries what the file does.
   const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
   const fs0 = r9.calls.find((c) => isFinder(c.label))?.schema ?? {}
