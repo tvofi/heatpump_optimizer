@@ -1711,7 +1711,7 @@ def check_card_version_tracks_stamp() -> None:
         f"card now {cur}, share {share}",
     )
     doc = DOCS["dashboard-card.md"]
-    m = re.search(r"heatpump-optimizer-card\s+v(\d+\.\d+\.\d+)", doc)
+    m = re.search(r"heatpump-optimizer-card\s+v(\S+)", doc)
     R.check("the banner section still shows an example version (anchor)", m is not None)
     stale = _CARD_LAGS.findall(doc)
     R.check(
@@ -2772,6 +2772,218 @@ def check_docs_build_controls() -> None:
     R.check("a second run over one root reuses the first result", again is base)
 
 
+# ---------------------------------------------------------------------------
+# Arm I5 -- docs name UI labels, a console banner and service counts the code
+# does not carry (R10-I5-DOCS; D5-s1-01, D5-s2-01, D5-s3-51), and the product
+# page's declared image sizes (#2298)
+# ---------------------------------------------------------------------------
+#
+# Each finding is a doc or comment sentence that was true when written and went
+# stale as the code moved. Each fact is derived from the production artifact:
+# the picker name from manifest.json, the menu buttons from strings.json, the
+# service count from what async_setup's registration path registers on a
+# FakeHass, the PNG size from the file's own header.
+
+_COUNT_WORDS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve "
+    "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+_STATED_COUNT = re.compile(
+    r"\b(\d+|" + "|".join(_COUNT_WORDS) + r")\s+"
+    r"(?:services|handlers|``hass\.services\.async_register``\s+calls)\b",
+    re.IGNORECASE,
+)
+
+
+def ui_label_findings(texts: dict[str, str], picker_name: str, menu_labels: set[str]) -> list[str]:
+    """Doc sentences that tell the reader to pick a label the UI does not show.
+
+    Rule A: ``Add integration -> X`` where X is not the manifest ``name`` (the
+    Add integration picker lists the manifest name). Rule B: a bold or quoted
+    doc label that starts with a menu button's label and adds a parenthetical
+    the button does not carry. Labels under ten characters are not read as
+    prefixes (``Back``, ``Done``): they would match ordinary words.
+    """
+    low = {x.lower(): x for x in menu_labels if len(x) >= 10}
+    out: list[str] = []
+    for name, text in texts.items():
+        for m in re.finditer(r"Add integration\s*\u2192\s*([^*.)]+?)\s*(?:\*\*|\.|\))", text):
+            got = " ".join(m.group(1).split())
+            if got != picker_name:
+                out.append(f"{name}: 'Add integration -> {got}' but the picker shows '{picker_name}'")
+        for i, line in enumerate(text.split("\n"), 1):
+            for m in re.finditer(r'\*\*([^*\n]+)\*\*|"([^"\n<]+)(?:<br/>([^"\n<]+))?"', line):
+                t = " ".join(p for p in m.groups() if p).strip().rstrip(".:")
+                for seg in (x.strip() for x in t.split("\u2192")):
+                    if seg.lower() in low:
+                        continue
+                    for lab_l, lab in low.items():
+                        if seg.lower().startswith(lab_l) and re.fullmatch(r"\s*\([^)]*\)", seg[len(lab):]):
+                            out.append(f"{name}:{i}: '{seg}' but the button reads '{lab}'")
+    return out
+
+
+def check_ui_labels() -> None:
+    R.section("docs name the labels the Add integration picker and menus show (D5-s1-01)")
+    manifest = json.loads((PKG / "manifest.json").read_text())
+    strings = json.loads((PKG / "strings.json").read_text())
+    labels: set[str] = set()
+    for flow in ("config", "options"):
+        for step in strings[flow]["step"].values():
+            labels.update(step.get("menu_options", {}).values())
+    R.check("the picker name and the menu buttons exist (anchor)",
+            bool(manifest.get("name")) and len(labels) > 5, f"{manifest.get('name')!r}, {len(labels)} labels")
+    texts = {"README.md": README, **{f"docs/{k}": v for k, v in DOCS.items()}}
+    bad = ui_label_findings(texts, manifest["name"], labels)
+    R.check("every 'Add integration' name and menu-button label in the docs is what the UI shows",
+            not bad, "; ".join(bad[:5]) + (f" (+{len(bad) - 5})" if len(bad) > 5 else ""))
+    # Null control: a drifted picker name and a suffixed button label must fire.
+    planted = {"x.md": "**Settings -> Add integration \u2192 Heat Pump Optimizer.**\n"
+                       "**Enter thermal values directly (expert)** is for experts\n"}
+    got = ui_label_findings(planted, manifest["name"], labels)
+    R.check("a drifted picker name and a suffixed button label are both refused (null control)",
+            len(got) == 2, repr(got))
+
+
+def banner_findings(doc: str, card_js: str) -> list[str]:
+    """The console-banner sample in dashboard-card.md against what the card prints.
+
+    The card prints ``%c <tag> %c v<CARD_VERSION>`` and ``stamp.py`` rewrites
+    CARD_VERSION on every release without touching the doc, so a literal
+    version in the sample is stale by the next stamp (it read 6.6.8 at 7.0.0).
+    The sample must therefore carry the placeholder ``v<version>``.
+    """
+    out: list[str] = []
+    tag = re.search(r'const CARD_TAG = "([^"]+)"', card_js)
+    prints = re.search(r"`%c \$\{CARD_TAG\} %c v\$\{CARD_VERSION\} `", card_js)
+    if not tag or not prints:
+        return ["the card no longer prints '<tag> v<CARD_VERSION>': re-derive this check"]
+    for m in re.finditer(re.escape(tag.group(1)) + r"[ \t]+v(\S+)", doc):
+        if m.group(1) != "<version>":
+            out.append(f"banner sample shows 'v{m.group(1)}', a literal the next stamp falsifies")
+    return out
+
+
+def check_banner_sample() -> None:
+    R.section("the console-banner sample carries no version a stamp would falsify (D5-s2-01)")
+    card = (PKG / "www" / "heatpump-optimizer-card.js").read_text()
+    doc = DOCS["dashboard-card.md"]
+    R.check("the sample banner is in the doc (anchor)", "heatpump-optimizer-card  v" in doc)
+    bad = banner_findings(doc, card)
+    R.check("the sample shows the placeholder, not a literal version", not bad, repr(bad))
+    mutated = doc.replace("heatpump-optimizer-card  v<version>", "heatpump-optimizer-card  v6.6.8", 1)
+    R.check("a literal version planted in the sample is refused (null control)",
+            mutated != doc and len(banner_findings(mutated, card)) == 1)
+
+
+def stated_service_counts(src: str) -> list[tuple[int, int]]:
+    """(line, number) for every whole-registry count a comment or docstring states.
+
+    Only numbers of ten or more are read as whole-registry counts; smaller ones
+    in these files name subsets ('one of two services that write to the entry').
+    """
+    import io
+    import tokenize
+
+    out = []
+    for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+        if tok.type not in (tokenize.COMMENT, tokenize.STRING):
+            continue
+        for m in _STATED_COUNT.finditer(" ".join(tok.string.split())):
+            n = m.group(1).lower()
+            n = int(n) if n.isdigit() else _COUNT_WORDS[n]
+            if n >= 10:
+                out.append((tok.start[0], n))
+    return out
+
+
+def check_service_count_comments() -> None:
+    R.section("service counts stated in __init__.py and services.py are the registry's (D5-s3-51)")
+    import asyncio
+
+    from harness import FakeHass
+    import heatpump_optimizer as integ
+    from heatpump_optimizer.const import DOMAIN
+
+    hass = FakeHass()
+    asyncio.run(integ._async_register_services(hass))
+    registered = len(hass.services.async_services().get(DOMAIN, {}))
+    R.check("the registration path registers services (anchor)", registered > 0, str(registered))
+    stale = []
+    for name in ("__init__.py", "services.py"):
+        for line, n in stated_service_counts((PKG / name).read_text()):
+            if n != registered:
+                stale.append(f"{name}:{line} states {n}, registered {registered}")
+    R.check("no comment or docstring states a whole-registry count that differs from it", not stale, repr(stale))
+    planted = '"""Registers the twelve services."""\n'
+    R.check("a stated count that differs from the registry is read (null control)",
+            stated_service_counts(planted) == [(1, 12)], repr(stated_service_counts(planted)))
+    R.check("a subset count below ten is not read as the registry (null control)",
+            stated_service_counts('"""one of two services that write"""\n') == [])
+
+
+def png_size(path: pathlib.Path) -> tuple[int, int] | None:
+    """(width, height) from a PNG's IHDR, or None when the file is not a PNG."""
+    import struct
+
+    head = path.read_bytes()[:24]
+    if len(head) < 24 or head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+        return None
+    return struct.unpack(">II", head[16:24])
+
+
+_IMG_TAG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+
+
+def image_dim_findings(root: pathlib.Path, tracked: list[str]) -> tuple[list[str], int]:
+    """Declared width/height vs the PNG header, for every <img> in a tracked page.
+
+    A page is any tracked .html or .md file. ``src`` resolves relative to the
+    page's own directory. An <img> that declares both width and height and
+    names a tracked PNG is compared; the count returned is how many were.
+    """
+    out, compared = [], 0
+    for rel in tracked:
+        if not rel.endswith((".html", ".md")):
+            continue
+        page = root / rel
+        if not page.is_file():
+            continue
+        for tag in _IMG_TAG.findall(page.read_text(errors="replace")):
+            src = re.search(r'\bsrc="([^"#?]+)"', tag)
+            w = re.search(r'\bwidth="(\d+)"', tag)
+            h = re.search(r'\bheight="(\d+)"', tag)
+            if not (src and w and h) or "://" in src.group(1):
+                continue
+            png = (page.parent / src.group(1)).resolve()
+            size = png_size(png) if png.is_file() and png.suffix.lower() == ".png" else None
+            if size is None:
+                continue
+            compared += 1
+            if size != (int(w.group(1)), int(h.group(1))):
+                out.append(f"{rel}: {src.group(1)} declares {w.group(1)}x{h.group(1)}, file is {size[0]}x{size[1]}")
+    return out, compared
+
+
+def check_image_dimensions() -> None:
+    R.section("declared <img> sizes equal the PNG headers on every tracked page (#2298)")
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    bad, compared = image_dim_findings(ROOT, tracked)
+    R.check("at least one sized <img> was compared (anchor)", compared > 0, str(compared))
+    R.check("every declared width and height equals the PNG header", not bad, "; ".join(bad))
+    with tempfile.TemporaryDirectory() as tmp:
+        t = pathlib.Path(tmp)
+        import zlib, struct
+
+        def chunk(kind: bytes, data: bytes) -> bytes:
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+        (t / "a.png").write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 10, 20, 8, 0, 0, 0, 0)))
+        (t / "p.html").write_text('<img src="a.png" width="10" height="20"><img src="a.png" width="10" height="30">')
+        got, n = image_dim_findings(t, ["p.html"])
+        R.check("a wrong declared height is refused and a right one passes (null control)",
+                n == 2 and len(got) == 1 and "10x30" in got[0], repr((n, got)))
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -2802,6 +3014,10 @@ def main() -> int:
     check_unit_typography()
     check_option_labels()
     check_options_page_census()
+    check_ui_labels()
+    check_banner_sample()
+    check_service_count_comments()
+    check_image_dimensions()
     return R.close("checks")
 
 
