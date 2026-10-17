@@ -286,6 +286,54 @@ def plan():
                             "from . import topology\nfrom . import mixing_valve\n")),
     )
 
+    # 6b layer_violations: modules reaching a layer above their own (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)
+    def step_clock(w):
+        src = _p(w, "optimizer.py").read_text()
+        a, b = func_span(src, "_utc_step_starts")
+        body = "".join(src.splitlines(keepends=True)[a - 1:b])
+        (_p(w, "step_clock.py")).write_text(
+            '"""The horizon clock, one owner for the solver and the windows that cap it."""\n'
+            "from __future__ import annotations\n\nfrom datetime import datetime, timedelta, timezone\n\n\n"
+            + body.replace("def _utc_step_starts(", "def utc_step_starts("))
+        lines = src.splitlines(keepends=True)
+        p = _p(w, "optimizer.py")
+        p.write_text("".join(lines[:a - 1]) + "from .step_clock import utc_step_starts as _utc_step_starts  # noqa: E402\n"
+                     + "".join(lines[b:]))
+        sub(w, "silent_mode.py", "from .optimizer import _utc_step_starts\n",
+            "from .step_clock import utc_step_starts as _utc_step_starts\n")
+
+    P["layer_violations"] = dict(
+        control=("drift.py, a pure module, imports the optimizer, so it reaches the solver's layer",
+                 lambda w: sub(w, "drift.py", "import numpy as np\n",
+                               "import numpy as np\n\nfrom .optimizer import HeatPumpOptimizer  # noqa: F401\n")),
+        fix=("the horizon clock moves out of the optimizer into step_clock.py; silent_mode, pure, imports it there",
+             step_clock),
+        null=("silent_mode's optimizer import moves above its const import (same module level, same edge), "
+              "and drift.py gains an annotation-only import of the optimizer under `if TYPE_CHECKING:`, "
+              "which the runtime never runs",
+              lambda w: (sub(w, "silent_mode.py", "from .optimizer import _utc_step_starts\n", ""),
+                         sub(w, "silent_mode.py", "import numpy as np\n",
+                             "import numpy as np\n\nfrom .optimizer import _utc_step_starts\n"),
+                         sub(w, "drift.py", "from typing import Any\n",
+                             "from typing import TYPE_CHECKING, Any\n"),
+                         sub(w, "drift.py", "import numpy as np\n",
+                             "import numpy as np\n\nif TYPE_CHECKING:  # noqa: E402\n"
+                             "    from .optimizer import HeatPumpOptimizer  # noqa: F401\n"))),
+    )
+
+    # 6c private_cross_module (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)
+    P["private_cross_module"] = dict(
+        control=("drift.py imports freq_control's private _finite",
+                 lambda w: sub(w, "drift.py", "import numpy as np\n",
+                               "import numpy as np\n\nfrom .freq_control import _finite  # noqa: F401\n")),
+        fix=("away._parse_return_time, which datetime.py imports, is declared public as parse_return_time",
+             lambda w: rename_everywhere(w, "_parse_return_time", "parse_return_time")),
+        null=("datetime.py binds the same private under an alias (`as _parse`)",
+              lambda w: (sub(w, "datetime.py", "from .away import _parse_return_time\n",
+                             "from .away import _parse_return_time as _parse\n"),
+                         sub(w, "datetime.py", "        return _parse_return_time(", "        return _parse("))),
+    )
+
     # 7 public_surface
     P["public_surface"] = dict(
         control=("a new public helper in tariff.py nothing imports",

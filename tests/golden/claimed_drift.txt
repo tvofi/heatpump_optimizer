@@ -657,14 +657,23 @@
 # No plan, schedule or solver fixture moves.
 # R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below
 # is space_reasons or dhw_reasons. No value leaf moves.
-
-# R10-UX-SETUP (fix/r10-ux-setup, #2222's hot_water_pumps label). ONE leaf of
-# ONE fixture moves, and it is not a plan, a schedule or a solver value:
-#   config_flow._menu.advanced[8][1]: 'Circulation pumps' -> 'Hot water
-#   circulation' -- the options menu's label for the hot_water_pumps page,
-#   corrected in config_flow._OPTION_PAGES to the name the integration's own
-#   translations already carry (en.json, sv.json and strings.json all say
-#   "Hot water circulation"), which is what the menu now renders.
-# Direction: the label only; the step key, the page's fields and every other
-# menu entry are unmoved, and no value leaf moves anywhere.
+#
+# R10-RATIO-SITES (#2239): this branch claims these three and nothing else.
+# `_house_ua_kw_per_c` prices the whole house from the two-zone split (upper
+# 0.10 + lower 0.09 = 0.19) where `typical_heat_loss` read the configured
+# single-zone `heat_loss_coefficient` (0.15), so the forecast summary's
+# typical heat loss rises by 0.19/0.15 and `solar_fraction` falls. Two leaves
+# are deterministic and moved in every environment measured:
+# solar_reduction_factor 0.98877 -> 0.991134 and pre_heat_urgency
+# 0.15754 -> 0.162269, both RISE (less solar share, so less reduction and
+# more urgency). The rest are displace_schedule leaves that move by 0.1;
+# WHICH indices move is the solver basin's property, so it differs by BLAS
+# build: CI (CPython 3.13, numpy 2.4.6) moved [33]; [1],[21]; [21],[41] for
+# the three fixtures, this Darwin seat [33]; [9],[29]; [4],[5],[28],...
+# No price, cost, outdoor, price_known or baseline_cost leaf moves.
 config_flow # R10-UX-SETUP: the hot_water_pumps menu label, 'Circulation pumps' -> 'Hot water circulation', to the name the flow's own translations carry
+valve_storage_flat_prices  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule[33] -18.4 -> -18.3 in CI and here
+valve_storage_low_target  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [1],[21]; Darwin [9],[29])
+valve_storage_small_tank  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [21],[41]; Darwin [4],[5],[28],...)
+
+
