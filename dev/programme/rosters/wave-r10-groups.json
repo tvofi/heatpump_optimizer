@@ -157,7 +157,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 3 of 25; before you: R10-FAHRENHEIT, R10-TARIFF; next: R10-RATIO-SITES, R10-VENT-DETECTOR). Owning seam in this group: the price and weather ingest methods named above. Shape: an age-bounded last-known holder plus a distinct failure value; no new coordinator attributes beyond one holder (coordinator_attrs is at zero headroom). Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-review: #2336 (mutation-autofix awaited; delivery row owed)",
+    "stage": "done: merged #2336",
     "branch": "handoff/r10-feeds",
     "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
@@ -214,7 +214,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 25; before you: R10-TARIFF, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-review: #2347 round 2",
     "branch": "handoff/r10-ratio-sites",
     "commit": null,
     "last_step": null,
@@ -861,7 +861,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "in-review: #2346 round 2",
     "branch": "handoff/r10-ux-setup",
     "commit": null,
     "last_step": null,
@@ -1536,14 +1536,14 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r2; p4/p5 not started",
+    "stage": "in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r4; p4/p5 not started",
     "branch": "handoff/r10-archscore-coverage",
     "commit": "acfeaf8b4eba86d458a706cb3f5165635a1945bf",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Fold the arch seats' leads into the archscore, one group on tools/audit/archscore/. Every new counter gets a calibration case (planted good and planted bad) in calibration/expected.json and a red-team case; tests/structure.py is NOT touched. Items: (1) layering and import closure, the persistence layer's import-time closure and cross-module private imports, plus pure-module purity; (2) card coverage, extend the vector to the card script (duplicated spellings, dead definitions, its own clone census; D7-s3-02 is a dead card function no metric reads); (3) dict-literal clones (the 44 wizard selector specs read NULL); (4) hub alias through readers and rebinds, `_derive_aliases` follows zero-argument readers returning a hub and attribute rebinds (D7-s1-83); (5) ARCH-s3's three holes, patches 01-03 at e0a2e91bd (the census misses the away keys; the any-typed spellings read as typed, 8 spellings; the family counter accepts an invented family, #2228); (6) a shape census, an optional N-implementations-of-one-rule counter, calibrated first and weighted only if calibration shows it is not gameable; (7) event-callback hub writes are invisible (ARCH2-s2 P4's instrument half).\n\nForward-carried (finding-propagation.md): (1) A weight change re-records expected.json and states the reason in the commit message. (2) This group runs BEFORE R10-BRIEFS-FOLD, so the folded D7 brief can cite the new counters, and before R10-PARAMS-OWNER, whose D7-s1-82 credit is re-measured on the extended census.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: archscore weights.json and calibration/expected.json. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+   "brief": "Fold the arch seats' leads into the archscore, one group on tools/audit/archscore/. Every new counter gets a calibration case (planted good and planted bad) in calibration/expected.json and a red-team case; tests/structure.py is NOT touched. Items: (1) layering and import closure, the persistence layer's import-time closure and cross-module private imports, plus pure-module purity; (2) card coverage, extend the vector to the card script (duplicated spellings, dead definitions, its own clone census; D7-s3-02 is a dead card function no metric reads); (3) dict-literal clones (the 44 wizard selector specs read NULL); (4) hub alias through readers and rebinds, `_derive_aliases` follows zero-argument readers returning a hub and attribute rebinds (D7-s1-83); (5) ARCH-s3's three holes, patches 01-03 at e0a2e91bd (the census misses the away keys; the any-typed spellings read as typed, 8 spellings; the family counter accepts an invented family, #2228); (6) a shape census, an optional N-implementations-of-one-rule counter, calibrated first and weighted only if calibration shows it is not gameable; (7) event-callback hub writes are invisible (ARCH2-s2 P4's instrument half).\n\nForward-carried (finding-propagation.md): (1) A weight change re-records expected.json and states the reason in the commit message. (2) This group runs BEFORE R10-BRIEFS-FOLD, so the folded D7 brief can cite the new counters, and before R10-PARAMS-OWNER, whose D7-s1-82 credit is re-measured on the extended census.\n\nForward-carried precondition (finding-propagation.md), from R10-UX-SETUP (fix/r10-ux-setup): record the card's dead-definition row and its clone census at a base that already carries R10-UX-SETUP's ARCH2-s5 C1 and C4 folds. Those folds use the card's text-width helper and give its deep-link helper its first caller, so they move exactly the censuses this group records: measure them on a base where the folds have landed, or the recorded dead-definition row counts a helper the folds have since used. On the R10-UX-SETUP branch both rows were absent from tests/ci_budgets.json, so the re-record lands with this group.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: archscore weights.json and calibration/expected.json. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   },
   {
    "group": "R10-PARAMS-OWNER",
@@ -2388,7 +2388,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-review: PR opening",
+    "stage": "done: merged #2340",
     "branch": "handoff/r10-structure-blind",
     "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
@@ -2653,7 +2653,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done: merged #2341",
     "branch": "handoff/r10-prepr-cap",
     "commit": null,
     "last_step": null,
@@ -3084,7 +3084,7 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done: merged #2344",
     "branch": "handoff/r10-stale-paths-2",
     "commit": null,
     "last_step": null,
@@ -3192,7 +3192,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "in-review: #2345",
     "branch": "handoff/r10-deeplink-census",
     "commit": null,
     "last_step": null,

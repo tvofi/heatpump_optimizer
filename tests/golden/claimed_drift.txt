@@ -671,6 +671,7 @@
 # build: CI (CPython 3.13, numpy 2.4.6) moved [33]; [1],[21]; [21],[41] for
 # the three fixtures, this Darwin seat [33]; [9],[29]; [4],[5],[28],...
 # No price, cost, outdoor, price_known or baseline_cost leaf moves.
+config_flow # R10-UX-SETUP: the hot_water_pumps menu label, 'Circulation pumps' -> 'Hot water circulation', to the name the flow's own translations carry
 valve_storage_flat_prices  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule[33] -18.4 -> -18.3 in CI and here
 valve_storage_low_target  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [1],[21]; Darwin [9],[29])
 valve_storage_small_tank  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [21],[41]; Darwin [4],[5],[28],...)
