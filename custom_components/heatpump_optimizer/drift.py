@@ -16,7 +16,6 @@ pattern: evidence strings, explicit release, nothing actuates from here.
 """
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, tzinfo
 from typing import Any
@@ -172,7 +171,7 @@ class Cusum:
         self.reference_n = min(self.reference_n + 1, REFERENCE_N_CAP)
         weight = max(
             1.0 / self.reference_n,
-            1.0 - math.exp(-gap_h / self.reference_hours),
+            1.0 - float(np.exp(-gap_h / self.reference_hours)),
         )
         self.reference += weight * departure
         return departure
@@ -249,7 +248,7 @@ class Cusum:
         ref, n = data.get("reference"), data.get("reference_n")
         if (
             isinstance(ref, (int, float)) and not isinstance(ref, bool)
-            and math.isfinite(ref)
+            and np.isfinite(ref)
             and isinstance(n, int) and not isinstance(n, bool) and n >= 1
         ):
             self.reference, self.reference_n = float(ref), min(n, REFERENCE_N_CAP)

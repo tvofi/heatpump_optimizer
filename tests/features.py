@@ -58662,6 +58662,65 @@ R.check(
     [(n, a) for n, a, _ in _r9p5_live],
 )
 
+# -- R10-P5 (#2241, D2-s3-72): a learning freeze is not raised by the bias it -----
+# would stop the learners removing. The open-window CUSUM read the heat-loss
+# replay residual against zero, so a model bias tripped it and the freeze
+# self-latched. The barrier the round-10 P5 sweep proposed, as a census: every
+# CUSUM whose trip ``_learning_frozen`` reads is found in the source (the scan
+# refuses if it finds none, or loses the open-window one), must measure from a
+# tracked level, and is driven -- on a live coordinator, its own construction
+# -- with a constant cold bias across the range the heat-loss learner folds (up
+# to its 1.0 K rejection), which must not trip it, and the same bias with a
+# window planted on top, which must.
+import ast as _r10p5_ast  # noqa: E402
+import inspect as _r10p5_inspect  # noqa: E402
+
+from heatpump_optimizer import coordinator as _r10p5_cmod  # noqa: E402
+
+_r10p5_tree = _r10p5_ast.parse(_r10p5_inspect.getsource(_r10p5_cmod))
+_r10p5_gated = {
+    a.value.attr
+    for f in _r10p5_ast.walk(_r10p5_tree)
+    if isinstance(f, _r10p5_ast.FunctionDef) and f.name == "_learning_frozen"
+    for a in _r10p5_ast.walk(f)
+    if isinstance(a, _r10p5_ast.Attribute) and a.attr == "tripped"
+    and isinstance(a.value, _r10p5_ast.Attribute)
+}
+_r10p5_coord = _vent_coord()
+_r10p5_cusums = sorted(
+    n for n in _r10p5_gated if isinstance(getattr(_r10p5_coord, n, None), Cusum)
+)
+R.check(
+    "R10-P5: the census finds every CUSUM a learning freeze reads, the "
+    "open-window one among them",
+    "_vent_cusum" in _r10p5_cusums and _r10p5_cusums == sorted(_r10p5_gated),
+    f"gated {sorted(_r10p5_gated)}, CUSUMs {_r10p5_cusums}",
+)
+_r10p5_biases = (0.1, 0.4, _r10p5_cmod.HOUSE_LOSS_MAX_RESIDUAL)
+_r10p5_rows = []
+for _r10p5_name in _r10p5_cusums:
+    for _r10p5_bias in _r10p5_biases:
+        _r10p5_trips = []
+        for _r10p5_extra in ((), (-0.5,) * 4):
+            _r10p5_det = getattr(_vent_coord(), _r10p5_name)
+            for _i, _r in enumerate([0.0] * 96 + list(_r10p5_extra)):
+                _r10p5_det.update(
+                    _T4 + timedelta(minutes=15 * _i), -_r10p5_bias + _r
+                )
+            _r10p5_trips.append(_r10p5_det.tripped)
+        _r10p5_rows.append((
+            _r10p5_name, _r10p5_bias,
+            getattr(_r10p5_coord, _r10p5_name).reference_hours is not None,
+            *_r10p5_trips,
+        ))
+R.check(
+    "R10-P5: each measures from a tracked level; a steady bias up to the "
+    "learner's rejection never trips it, and a window on top of it does",
+    bool(_r10p5_rows)
+    and all(ref and not bias and window for _, _, ref, bias, window in _r10p5_rows),
+    _r10p5_rows,
+)
+
 # R9-EG-B9 (#1752, #1753): the boost overlay acts on a copy of the plan's
 # own base action, and the price tile and fuse advisor stop borrowing the
 # user what-if's limiter and cache. Probes ported from the #1736 shape
