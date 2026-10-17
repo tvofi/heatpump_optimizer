@@ -48,6 +48,14 @@
    ]
   },
   {
+   "name": "dev",
+   "why": "orientation for a seat: what lives under dev/, the governing documents, and the CI gate's shape",
+   "globs": [
+    "dev/README.md",
+    "dev/CI-GATE.md"
+   ]
+  },
+  {
    "name": "dev/governance",
    "why": "policy that binds every seat: canonical rules (D1), role contracts, dimension briefs, ADRs, policy-lint config",
    "globs": [
