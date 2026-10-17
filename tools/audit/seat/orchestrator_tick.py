@@ -311,6 +311,16 @@ class Tick:
         return {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
 
     @staticmethod
+    def split_absent(absent: list[str], latest: dict) -> "tuple[list[str], list[str]]":
+        """(waiting, absent): a required job with no check run yet is only
+        ABSENT once nothing at the sha is still in flight. While any run has
+        not completed, the job may be gated on its `needs` (closures waits on
+        coverage in the Tests workflow), and "absent" would send a re-dispatch
+        for work that is simply queued behind a sibling."""
+        inflight = any(c.get("status") != "completed" for c in latest.values())
+        return (list(absent), []) if inflight else ([], list(absent))
+
+    @staticmethod
     def judge(runs_by_name: dict) -> tuple[list[str], list[str], list[str]]:
         """(green, running, red): lowercase conclusions, latest-run-wins,
         pending is not a pass (nudge.md step 15)."""
@@ -495,6 +505,11 @@ class Tick:
             elif required is not None:
                 absent = [r for r in required
                           if r not in latest and r not in PR_ONLY]
+                waiting, absent = self.split_absent(absent, latest)
+                if waiting:
+                    self.line(S, f"#{n}: required contexts not started yet "
+                                 f"(WAITING on needs; a run is in flight): "
+                                 f"{', '.join(waiting)}")
                 if absent:
                     self.line(S, f"#{n}: required contexts ABSENT at head: "
                                  f"{', '.join(absent)} (settled? re-dispatch)",
@@ -861,6 +876,11 @@ class Tick:
             green, _, red = self.judge(latest)
             if req is not None:
                 absent = [r for r in req if r not in latest and r not in PR_ONLY]
+                waiting, absent = self.split_absent(absent, latest)
+                if waiting:
+                    self.line(S, f"main {tip[:12]}: required contexts not "
+                                 "started yet (WAITING on needs; a run is in "
+                                 f"flight): {', '.join(waiting)}")
                 if absent:
                     self.line(S, f"main {tip[:12]}: required contexts ABSENT: "
                                  f"{', '.join(absent)}", flag=True)
@@ -1437,7 +1457,7 @@ class Tick:
         if not open_issues:
             return
         rows = set()
-        code, o = self.git(["grep", "-oh", "#[0-9]\+", "origin/main", "--",
+        code, o = self.git(["grep", "-oh", r"#[0-9]\+", "origin/main", "--",
                             ROW_DIR.rstrip("/")])
         if code == 0:
             rows = {int(x) for x in re.findall(r"#(\d+)", o)}
@@ -1907,6 +1927,49 @@ def self_test() -> int:
             ("absent required flagged (14)", any("#14" in x["text"]
                                                  and "ABSENT" in x["text"]
                                                  for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # R10-TICK a: a required job gated on its `needs` has no check run
+        # yet; with a sibling still in flight it is WAITING, not ABSENT.
+        t = tick(prs=[pr_obj(17, H1)],
+                 runs_at={H1: [run_obj("coverage", status="in_progress",
+                                       conclusion=None),
+                               run_obj("tests")]},
+                 required_names=("tests", "closures"))
+        t.checkout = str(version)
+        t.git = git_factory(files="custom_components/x.py")
+        t.prs(["tests", "closures"])
+        a, f = check("PRS needs-gated job", [
+            ("waiting named, unflagged", any(
+                "#17" in x["text"] and "WAITING" in x["text"]
+                and "closures" in x["text"] and not x.get("flag")
+                for x in t.findings + [
+                    {"text": l["text"], "flag": l.get("flag")}
+                    for l in t.sections.get("PRS", [])])),
+            ("not reported ABSENT while a run is in flight", not any(
+                "#17" in x["text"] and "ABSENT" in x["text"]
+                for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        w, ab = Tick.split_absent(["closures"], {"c": {"status": "queued"}})
+        w2, ab2 = Tick.split_absent(["closures"], {"c": {"status": "completed"}})
+        a, f = check("split_absent", [
+            ("in flight -> waiting", (w, ab) == (["closures"], [])),
+            ("settled -> absent (null control)",
+             (w2, ab2) == ([], ["closures"])),
+        ])
+        total, failed = total + a, failed + f
+
+        # R10-TICK c: no invalid-escape SyntaxWarning when this file compiles
+        import warnings
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            compile(Path(__file__).read_text(encoding="utf-8"), __file__, "exec")
+        a, f = check("compile clean", [
+            ("no SyntaxWarning on compile", not any(
+                issubclass(w_.category, (SyntaxWarning, DeprecationWarning))
+                for w_ in caught)),
         ])
         total, failed = total + a, failed + f
 
