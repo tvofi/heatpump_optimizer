@@ -1383,12 +1383,14 @@ class SystemIdentification:
         self,
         now: datetime,
         outdoor_temp: float,
-        price: float,
+        price: float | None,
         price_horizon: np.ndarray,
         learner_samples: int,
     ) -> tuple[bool, str]:
         """Whether an armed experiment may start right now."""
         cfg = self.config
+        if price is None:  # no published price covers now (#2229)
+            return False, "no current electricity price"
         if learner_samples >= cfg.converged_samples:
             return False, "house already converged"
         if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp):
@@ -1602,7 +1604,7 @@ class SystemIdentification:
         now: datetime,
         room_temp: float,
         outdoor_temp: float,
-        price: float,
+        price: float | None,
         price_horizon: np.ndarray,
         learner_samples: int,
         max_power_kw: float,
