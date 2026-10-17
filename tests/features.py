@@ -16799,38 +16799,55 @@ def _vent_coord(**cfg):
 def _feed_residual(c, residual, n, start):
     """Replay exactly ``n`` half-hour intervals of one residual.
 
-    Successive runs must start >2 h after the previous one ended: the
-    learner's max-interval guard then skips call 0, which only re-seeds
-    the baseline, so calls 1..n each feed one residual.
+    ``residual`` is one value for every interval, or a list of ``n``, one
+    per interval. Successive runs must start >2 h after the previous one
+    ended: the learner's max-interval guard then skips call 0, which only
+    re-seeds the baseline, so calls 1..n each feed one residual.
     """
     import homeassistant.util.dt as _dt_mod
 
     observed = c._current_state.room_temperature
+    per = list(residual) if isinstance(residual, list) else [residual] * n
+    assert len(per) == n, (len(per), n)
+    now_r = [0.0]
 
     def _sim(prev, power, outdoor, **kw):
-        return _dc_replace(prev, room_temperature=observed - residual)
+        return _dc_replace(prev, room_temperature=observed - now_r[0])
 
     c._thermal_model.simulate_step = _sim
     real_now = _dt_mod.now
     try:
         for i in range(n + 1):
+            now_r[0] = per[max(i - 1, 0)]
             _dt_mod.now = lambda i=i: start + timedelta(minutes=30 * i)
             _asyncio.run(c._async_learn_house_heat_loss())
     finally:
         _dt_mod.now = real_now
 
 
-_cv = _vent_coord()
-_feed_residual(_cv, -0.4, 3, _T4)
+#: A clean day ahead of a step: the detector folds the departure from the
+#: residual's own level (#2241), so a step reads as a change only once that
+#: level has been seen.
+_CLEAN_DAY = [0.0] * 40
+
+
+_cv3 = _vent_coord()
+_feed_residual(_cv3, _CLEAN_DAY + [-0.4] * 3, 43, _T4)
 R.check(
-    "three cold intervals are not yet a window",
-    not _cv._vent_cusum.tripped,
-    f"stat {_cv._vent_cusum.stat:.2f}",
+    "three cold intervals after a clean day are not yet a window",
+    not _cv3._vent_cusum.tripped,
+    f"stat {_cv3._vent_cusum.stat:.2f}",
 )
-_feed_residual(_cv, -0.4, 1, _T4 + timedelta(hours=4))
+_cv = _vent_coord()
+_feed_residual(_cv, _CLEAN_DAY + [-0.4] * 4, 44, _T4)
 R.check(
     "the fourth trips the detector through the real learner",
-    _cv._vent_cusum.tripped and _cv._vent_cusum.evidence,
+    _cv._vent_cusum.tripped
+    and _cv._vent_cusum.evidence
+    and _cv._vent_cusum.evidence[-1].startswith(
+        (_T4 + timedelta(minutes=30 * 44)).isoformat(timespec="seconds")
+    ),
+    f"evidence {_cv._vent_cusum.evidence}",
 )
 R.check(
     "a tripped detector freezes every learner with reason ventilation",
@@ -16854,7 +16871,7 @@ R.check(
 )
 
 _cw = _vent_coord()
-_feed_residual(_cw, 0.4, 10, _T4)
+_feed_residual(_cw, _CLEAN_DAY + [0.4] * 10, 50, _T4)
 R.check(
     "ten warm intervals never look like a window",
     not _cw._vent_cusum.tripped and _cw._vent_cusum.stat == 0.0,
@@ -16867,16 +16884,77 @@ R.check(
     abs(VENT_CUSUM_CLIP_C - VENT_CUSUM_THRESHOLD_C / 2.0) < 1e-12,
 )
 _cg = _vent_coord()
-_feed_residual(_cg, -10.0, 1, _T4)
+_feed_residual(_cg, _CLEAN_DAY + [-10.0], 41, _T4)
 R.check(
     "one glitched -10 °C reading cannot trip the detector alone",
-    not _cg._vent_cusum.tripped,
+    not _cg._vent_cusum.tripped and _cg._vent_cusum.stat > 0.0,
     f"stat {_cg._vent_cusum.stat:.2f}: clipped to {VENT_CUSUM_CLIP_C}",
 )
-_feed_residual(_cg, -10.0, 2, _T4 + timedelta(hours=4))
+_cg3 = _vent_coord()
+_feed_residual(_cg3, _CLEAN_DAY + [-10.0] * 3, 43, _T4)
 R.check(
     "but a third consecutive one is a window, not a glitch",
-    _cg._vent_cusum.tripped,
+    _cg3._vent_cusum.tripped,
+)
+
+# --- #2241 (D2-s3-72): a persistent model bias is not a window ----------------
+# The detector reads the heat-loss replay residual, so a model the learners
+# have not yet corrected -- a meter or COP off by 2x on an unmetered install
+# replays commanded power, a UA prior far off -- shows as a STEADY cold
+# residual. Referenced at zero, the CUSUM read it as a window that never
+# closed, and the freeze it raised stopped the very learner that would have
+# removed the bias, so it self-latched (98 % of intervals on the catch-up
+# verifier's two-zone house at delivery 0.4). It now folds the departure
+# from the residual's own persistent level: a bias moves both alike.
+_cb = _vent_coord()
+_feed_residual(_cb, -0.4, 40, _T4)
+R.check(
+    "a steady cold residual from the first sample on is a bias, not a window",
+    not _cb._vent_cusum.tripped and _cb._learning_frozen() is None,
+    f"stat {_cb._vent_cusum.stat:.2f}, level {_cb._vent_cusum.reference}",
+)
+_feed_residual(_cb, -1.0, 4, _T4 + timedelta(days=1))
+R.check(
+    "and a window opening on top of that bias still trips",
+    _cb._vent_cusum.tripped and _cb._learning_frozen() == "ventilation",
+    f"stat {_cb._vent_cusum.stat:.2f}, level {_cb._vent_cusum.reference}",
+)
+_cl = _vent_coord()
+_cl._vent_cusum.load(
+    {"stat": 1.8, "tripped": True, "evidence": [], "last_fed": _T4.isoformat()}
+)
+_feed_residual(_cl, -0.4, 40, _T4 + timedelta(hours=3))
+R.check(
+    "a detector latched on a bias releases once the bias is its level",
+    not _cl._vent_cusum.tripped and _cl._learning_frozen() is None,
+    f"stat {_cl._vent_cusum.stat:.2f}: a pre-#2241 payload loads with no "
+    "level, seeds it at the next sample and decays",
+)
+_cg1 = _vent_coord()
+_feed_residual(_cg1, [-10.0] + [0.0] * 6, 7, _T4)
+R.check(
+    "a glitch on the very first sample seeds the level clipped, not raw",
+    abs(_cg1._vent_cusum.reference) < VENT_CUSUM_CLIP_C,
+    f"level {_cg1._vent_cusum.reference}: a raw -10 seed would need "
+    "thousands of samples to climb back, blinding the detector",
+)
+_cr = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr.load(_cb._vent_cusum.as_dict())
+R.check(
+    "the level survives a store round trip",
+    _cr.reference is not None
+    and abs(_cr.reference - _cb._vent_cusum.reference) < 1e-3
+    and _cr.reference_n == _cb._vent_cusum.reference_n,
+)
+_cr.load({"stat": 0.0, "reference": True, "reference_n": 5})
+_cr2 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr2.load({"stat": 0.0, "reference": float("nan"), "reference_n": 5})
+_cr3 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr3.load({"stat": 0.0, "reference": -0.3, "reference_n": 0})
+R.check(
+    "a corrupt level loads as none, to be re-seeded, never as a number",
+    _cr.reference is None and _cr2.reference is None and _cr3.reference is None,
+    "a bool, a NaN and a level with no samples behind it",
 )
 
 # --- #193 S7: one bounded Newton step behind both heat-loss learners ---------
