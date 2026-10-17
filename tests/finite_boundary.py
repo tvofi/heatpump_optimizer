@@ -557,10 +557,10 @@ def _kinds_arm() -> None:
     R.check("each kind's shape and parse conjuncts decide alone", not bad, f"{bad}")
 
     name = next(iter(_store.DOMAINS))
-    got = _store._store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
+    got = _store.store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
     R.check(
         "a store key names its DOMAINS entry, and a foreign key names none",
-        got == name and _store._store_name("no_such_entry_key") is None,
+        got == name and _store.store_name("no_such_entry_key") is None,
         f"{got!r}",
     )
 
@@ -1122,6 +1122,16 @@ LEAD_OPT_OUTS = {
 }
 
 
+def _declared_ahead(key, data) -> dict:
+    """Path -> how far past its store's lead a field's declaration lets it lie
+    (``Domain.ahead_h``), read off the declaration, aliases resolved."""
+    return {
+        path: _dt.timedelta(hours=domain.ahead_h)
+        for path, is_key, domain, _v in _store.stored_fields(_store.store_name(key) or "", data)
+        if not is_key and domain is not None and domain.ahead_h
+    }
+
+
 def _instant_arm(by_name) -> None:
     """No stored instant reaches a loader beyond the clock plus its store's lead.
 
@@ -1129,9 +1139,11 @@ def _instant_arm(by_name) -> None:
     so a store with none is still driven -- written 400 days ahead of the clock
     that reads it back. What ``QuarantiningStore.async_load`` hands the loader
     is recorded, and none of its instants may lie beyond now plus that store's
-    declared lead. A lead of ``None`` is an opt-out, printed. Null controls: an
-    honest payload comes back byte-identical, and so does an instant one minute
-    inside a store's lead, so a lead cannot be dropped to zero unseen.
+    declared lead, or past it by the field's own declared ``ahead_h`` -- in
+    every store holding the field, an embedding one included (D1-s2-01). A
+    lead of ``None`` is an opt-out, printed. Null controls: an honest payload
+    comes back byte-identical, and so does an instant one minute inside a
+    store's lead, or a field's, so a lead cannot be dropped to zero unseen.
     """
     t0 = _dt.datetime(2026, 6, 1, 12, 0, 0)
     seen: list = []
@@ -1152,6 +1164,7 @@ def _instant_arm(by_name) -> None:
         return [r for r in seen if r[0] == key]
 
     escaped, opted_out, rewritten, lead_lost, driven, checked = [], [], [], [], 0, 0
+    ahead_written: list = []
     QuarantiningStore.async_load = _recording
     _dt_util.freeze(t0)
     try:
@@ -1166,9 +1179,10 @@ def _instant_arm(by_name) -> None:
                     opted_out.append(name)
                     continue
                 bound = _utc(t0) + lead
+                ahead = _declared_ahead(key, data)
                 for path, when in _instants(data):
                     checked += 1
-                    if _utc(when) > bound:
+                    if _utc(when) > bound + ahead.get(path, _dt.timedelta(0)):
                         escaped.append(f"{name}:{'/'.join(map(str, path))}")
             honest = _with_instants(healthy, t0 - _dt.timedelta(hours=1))
             for _key, lead, data in _load(name, key, honest):
@@ -1190,8 +1204,15 @@ def _instant_arm(by_name) -> None:
         _far = max(_acc.LEAD_BUCKETS)
         writer._accuracy.note_lead_prediction(t0 + _dt.timedelta(hours=_far), _far, 21.0)
         asyncio.run(writer._async_save_accuracy())
-        written = {n: by_name[n][0] for n in ("boost", "accuracy")}
+        # D1-s2-01: the snapshot ring embeds the accuracy learner, due and all,
+        # through the real writer the heartbeat calls.
+        writer._snapshot_ring.take(
+            t0, writer._learner_snapshot_payloads(), writer._accuracy.summary(), True)
+        asyncio.run(writer._async_save_snapshots())
+        written = {n: by_name[n][0] for n in ("boost", "accuracy", "snapshots")}
         wrote = {n: json.loads(_storage._DISK[k]) for n, k in written.items()}
+        ahead_written = sorted(
+            n for n, doc in wrote.items() if any(_utc(w) > _utc(t0) for _p, w in _instants(doc)))
         for name, key in written.items():
             for _k, _l, kept in _load(name, key, wrote[name]):
                 if json.dumps(kept, sort_keys=True) != json.dumps(wrote[name], sort_keys=True):
@@ -1220,6 +1241,11 @@ def _instant_arm(by_name) -> None:
         f"rewritten={rewritten}",
     )
     R.check(
+        "each writer round trip carries an instant ahead of the clock (not vacuous)",
+        ahead_written == ["accuracy", "boost", "snapshots"],
+        f"ahead_written={ahead_written}",
+    )
+    R.check(
         "an instant inside its store's lead survives the load (a lead is not lost)",
         not lead_lost,
         f"lead_lost={lead_lost}",
@@ -1228,6 +1254,95 @@ def _instant_arm(by_name) -> None:
     print(f"RESULT instant_stores_driven={driven} count")
     print(f"RESULT instant_leaves_checked={checked} count")
     print(f"RESULT instant_lead_opt_outs={sorted(set(opted_out))}")
+
+
+def _store_rules_arm(by_name) -> None:
+    """The rules ``store.py`` owns for every store: the load prelude, the save
+    digest and the report rules (R10-STORE).
+
+    Prelude (D7-s4-81): a document that is valid JSON but not a mapping, under
+    every store's key, through every real loader -- ``LOADERS``, which the
+    reach sweep holds equal to the derived boundary set -- starts afresh and
+    raises nothing. Digest (ARCH2-s2 P3): ``async_save_if_changed`` skips only
+    the exact payload this store last accepted, forgets it on any other write,
+    and retries a failed one. Report rules (ARCH3-s6 P3): ``quarantines`` is
+    the next load's scrub, poisoned keys included; ``off_domain`` reads every
+    field of a foreign key's document as undeclared.
+    """
+    raised = []
+    for name, loader in LOADERS.items():
+        if name not in by_name:
+            continue
+        key = by_name[name][0]
+        for document in ([1], "x", 7):
+            _storage._DISK.clear()
+            _storage._DISK[key] = json.dumps(document)
+            try:
+                asyncio.run(loader(_build_coord()))
+            except Exception as exc:  # noqa: BLE001 - the escape is the finding
+                raised.append(f"{name}<-{document!r}: {type(exc).__name__}")
+    _storage._DISK.clear()
+    R.check(
+        "a store holding JSON that is not a mapping fails no loader (load_mapping, D7-s4-81)",
+        not raised,
+        f"raised={raised[:6]} of {len(raised)}",
+    )
+    print(f"RESULT store_non_mapping_raises={len(raised)} count")
+
+    async def _digest_run() -> list:
+        st = QuarantiningStore(None, 1, f"{const.DOMAIN}_{ENTRY_ID}_digest_probe")
+        key = st._store_key
+        _storage.SAVE_COUNTS.clear()
+        counts = []
+        await st.async_save_if_changed({"a": 1})
+        await st.async_save_if_changed({"a": 1})
+        counts.append(_storage.SAVE_COUNTS.get(key, 0))  # 1: the repeat skipped
+        await st.async_save({"b": 2})
+        await st.async_save_if_changed({"a": 1})
+        counts.append(_storage.SAVE_COUNTS.get(key, 0))  # 3: a plain save forgot it
+        failing = QuarantiningStore(None, 1, f"{const.DOMAIN}_{ENTRY_ID}_digest_fail")
+        disk_save, full = _storage.Store.async_save, [failing._store_key]
+
+        async def _once_full(self, data):
+            if self._key in full:
+                full.remove(self._key)
+                raise OSError("disk full")
+            await disk_save(self, data)
+        _storage.Store.async_save = _once_full
+        try:
+            try:
+                await failing.async_save_if_changed({"c": 3})
+            except OSError:
+                pass
+            await failing.async_save_if_changed({"c": 3})
+        finally:
+            _storage.Store.async_save = disk_save
+        counts.append(_storage.SAVE_COUNTS.get(failing._store_key, 0))  # 1: retried
+        _storage._DISK.clear()
+        _storage.SAVE_COUNTS.clear()
+        return counts
+
+    counts = asyncio.run(_digest_run())
+    R.check(
+        "the save digest skips only the payload its store last accepted, "
+        "forgets it on a plain save and retries a failed one (ARCH2-s2 P3)",
+        counts == [1, 3, 1],
+        f"save counts {counts} (want [1, 3, 1])",
+    )
+
+    acc_key = by_name["accuracy"][0]
+    probes = {
+        "clean": ({"a": [1, "x"]}, False),
+        "non-finite leaf": ({"a": [float("inf")]}, True),
+        "poisoned key": ({"1e300": 1}, True),
+    }
+    wrong = [label for label, (doc, want) in probes.items() if _store.quarantines(doc) is not want]
+    foreign = _store.off_domain("no_such_store_key", {"x": 1, "y": [2]})
+    R.check(
+        "quarantines() is the next load's scrub, keys included; a foreign key declares nothing",
+        not wrong and foreign == ["x", "y/0"] and _store.off_domain(acc_key, {}) == [],
+        f"wrong={wrong} foreign={foreign}",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1272,8 +1387,8 @@ def _a6_enrich(coord, t0) -> None:
         coord._price_model.observe_day(when, [0.5 + 0.1 * ((h * (day + 3)) % 11) for h in range(24)])
         coord._price_model.observe_day_quarters(
             when, [0.5 + 0.05 * ((q * (day + 2)) % 7) for q in range(96)])
-    coord._price_days_seen = {ld, "2026-01-13"}
-    coord._price_qdays_seen = {ld}
+    coord._price_learner.days_seen = {ld, "2026-01-13"}
+    coord._price_learner.quarter_days_seen = {ld}
     for decile, kw in ((2, 3.0), (5, 5.5), (8, 8.0)):
         coord._freq_map.observe(30.0 + 5 * decile, kw, 20.0, 100.0)
     coord._capacity_envelope[3] = [7.5, 2]
@@ -2317,6 +2432,7 @@ def _main() -> int:
     print(f"RESULT type_drift_total={type_drift} count")
     print(f"RESULT refresh_escape_total={refresh_escape} count")
     _instant_arm(by_name)
+    _store_rules_arm(by_name)
     _class_arm()
     _domain_arm()
     _kinds_arm()
