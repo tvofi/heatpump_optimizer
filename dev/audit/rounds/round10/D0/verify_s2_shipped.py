@@ -5,7 +5,7 @@ Metric: per two-zone+DHW 24 h cell, shipped_gain = (J(x_ship@ftol1e-6) - J(x_shi
   call's returned x in each arm (arm F re-runs the whole optimize with every scipy L-BFGS-B ftol inside
   optimizer.py forced to F via _scoped_minimize). Positive = tighter ftol ships a better plan. Also the bill
   delta sum(price*x[:n]*DT) when the call is the price-length space call. Not a polish from prod.x.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
    dev/audit/rounds/round10/D0/verify_s2_shipped.py [--ftol 1e-10] [--prices ...]
 Expected: see verify.md. Baseline 17f1c55fad1b, Apple Silicon macOS.
 """

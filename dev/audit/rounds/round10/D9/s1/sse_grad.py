@@ -9,7 +9,7 @@ _optimize_space_only.move_starts), "scipy" = scipy approx_derivative (scalar
 FD path). Key: SSE counted at the production seams simulate_step /
 simulate_trajectory_batch (rows), attributed to the innermost open gradient
 or, between gradients, to the enclosing phase's "fun" bucket.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py [--perturb fuse|nocont]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py [--perturb fuse|nocont]
 Expected (17f1c55fad1b, Darwin arm64 M-series): main sse/grad = 97 + n/a scalar;
 cont sse/grad = 96 batch + 2x96 scalar steps = 288 (+-0, counts are exact).
 Grid: --scenarios tz:<price>:<weather>,... builds a two-zone no-DHW day.
