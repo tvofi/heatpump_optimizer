@@ -211,10 +211,17 @@ const NAV_SURFACE = [
   // those refuses the tree; requiring a member name after it is what tells the
   // object from the word.
   { what: "the history object", re: /history\s*\.[A-Za-z_$]/ },
-  { what: "a qualified open()", re: /\.open\s*\(/ },
-  // A bare `open(`, minus the dialog's own method DEFINITION `open() {`,
-  // which calls nothing; a call is what resolves the global.
-  { what: "a bare open()", re: /(?<![.\w$])open\s*\((?!\s*\)\s*\{)/ },
+  // The `open` member NAMED. Every way of invoking a global by name mentions
+  // the name: a bare call, a qualified call, an indirect one (`open.call(`,
+  // `open.apply(`, `open.bind(`), a value handed to `Reflect.apply`, or a
+  // computed key (`this["open"]`). Enumerating invocation spellings is what
+  // let the round-5 review's written `globalThis.open.call(...)` pass -- the
+  // qualified token wanted `open(` and the bare token refused a dot-prefixed
+  // `open` -- so the token is the name itself, in code or in a string. A name
+  // BUILT at run time (`"op" + "en"`) names nothing here and is the dynamic
+  // arm's, on every row it drives. The card's own dialog uses are removed
+  // before this list is applied (see the scan below).
+  { what: "the open member, named", re: /\bopen\b/, exact: true },
   { what: "the Navigation API", re: /\bnavigation\b/ },
   { what: "a form", re: /<form\b/ },
   { what: "a form's action", re: /(?<![\w-])action\s*=\s*["'`]/ },
@@ -222,7 +229,15 @@ const NAV_SURFACE = [
   { what: "HA's more-info event", re: /hass-more-info/ },
   { what: "HA's action event", re: /hass-action/ },
 ];
-const NAV_TOKEN = new RegExp(NAV_SURFACE.map((m) => `(?:${m.re.source})`).join("|"), "i");
+// The markup-facing members are matched case-insensitively (`HREF`, `<FORM`);
+// `open` is an IdentifierName and JS is case-sensitive, so prose that opens
+// with "Open" ("Open settings") cannot resolve the global and is not a mention
+// of it. `exact` keeps that one token case-sensitive.
+const navUnion = (entries, flags) =>
+  entries.length ? new RegExp(entries.map((m) => `(?:${m.re.source})`).join("|"), flags) : null;
+const NAV_TOKEN = navUnion(NAV_SURFACE.filter((m) => !m.exact), "i");
+const NAV_EXACT = navUnion(NAV_SURFACE.filter((m) => m.exact), "");
+const namesSurface = (l) => NAV_TOKEN.test(l) || (NAV_EXACT !== null && NAV_EXACT.test(l));
 
 // The same surface as an OBJECT GRAPH, in one place, because two callers need
 // its exact shape and may not disagree about which members exist: the inert
@@ -283,8 +298,22 @@ const navShapeInert = () => ({
     .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
   const navAt = code.findIndex((l) => /^function navigateTo\(/.test(l));
   const navEnd = code.findIndex((l, i) => i > navAt && l === "}");
-  const tokenLines = code.map((l, i) => [l.replace(/this\.dialog\.open\(\)/g, ""), i])
-    .filter(([l, i]) => !(i > navAt && i < navEnd) && NAV_TOKEN.test(l))
+  // The Dialog class's OWN `open` is the only allowed name, and each allowance
+  // is a use that cannot resolve the global: its `open()` method definition,
+  // this card's `this.dialog.open()` call, the `<dialog>` element's boolean
+  // `open` state and the `open` attribute its fallback sets, and the shadow
+  // root's `mode: "open"` (a different word that names no member). Removed
+  // before the surface list is applied. The element-property allowance is
+  // narrow -- `dlg.open.call(` is NOT removed, so an indirect call through the
+  // element property is still refused by name.
+  const ownDialog = (l) => l
+    .replace(/this\.dialog\.open\(\)/g, "")
+    .replace(/\bdlg\.open(?!\s*[.(\[])/g, "")
+    .replace(/\bdlg\.setAttribute\(\s*"open"/g, "")
+    .replace(/^\s*open\(\)\s*\{/g, "")
+    .replace(/\bmode:\s*"open"/g, "");
+  const tokenLines = code.map((l, i) => [ownDialog(l), i])
+    .filter(([l, i]) => !(i > navAt && i < navEnd) && namesSurface(l))
     .map(([l, i]) => `${i + 1}: ${l.trim().slice(0, 60)}`);
   check("no navigation token in the card's code outside navigateTo",
     navAt >= 0 && navEnd > navAt && tokenLines.length === 0, tokenLines.join(" | "));
@@ -11567,15 +11596,29 @@ check("without an indoor reading the corner now label is absent",
     && haLink("entity", null, "sensor.x") ===
       "/config/entities?domain=heatpump_optimizer&more-info-entity-id=sensor.x&more-info-view=settings");
 
-  const srcLines = cardSrc.split("\n");
+  // The reach rule enumerates every MENTION of the two link functions, not the
+  // `name(` call-site spelling. A call split from its `(` by whitespace or a
+  // comment, `.call`/`.apply`, a value handed on, or a computed key all name
+  // the route the same way, and the round-5 review planted
+  // `navigateTo ("/config/entities")` -- one space -- into code no press
+  // reaches and it passed. As with the surface's `open`, the token is the NAME,
+  // and every mention must be one the census reached. The two definitions are
+  // not routes, and `openHaLink`'s own follow-through (`if (path)
+  // navigateTo(path)`) is reached whenever an `openHaLink` call is, so it is
+  // excused rather than owing a press of its own. Comments are blanked first,
+  // so prose that names a route is not a mention.
+  const srcLines = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
   const bodyOf = (re) => {
     const at = srcLines.findIndex((l) => re.test(l));
     return [at, srcLines.findIndex((l, i) => i > at && l === "}")];
   };
-  const [openAt, openEnd] = bodyOf(/^async function openHaLink\(/);
+  const [openAt, openEnd] = bodyOf(/^\s*async function openHaLink\s*\(/);
+  const LINK_NAME = /\b(navigateTo|openHaLink)\b/;
   const sites = srcLines.map((l, i) => [l, i])
-    .filter(([l, i]) => /\b(navigateTo|openHaLink)\(/.test(l.replace(/^(async )?function (navigateTo|openHaLink)\(/, ""))
-      && !(i > openAt && i < openEnd && /navigateTo\(/.test(l)))
+    .filter(([l]) => LINK_NAME.test(l))
+    .filter(([l]) => !/^\s*(?:async\s+)?function\s+(?:navigateTo|openHaLink)\s*\(/.test(l))
+    .filter(([, i]) => !(i > openAt && i < openEnd))
     .map(([, i]) => i + 1);
   const unreached = sites.filter((i) => !hits.has(i));
   check("the act set the census declares is the one the card's source dispatches",
@@ -11589,7 +11632,7 @@ check("without an indoor reading the corner now label is absent",
     EVENT_TYPES.size > 0, [...EVENT_TYPES].join(","));
   check("no primitive this census does not instrument is reached for on a page or a press",
     unknown.size === 0, [...unknown].join(", "));
-  check("the census reached every navigateTo and openHaLink call site",
+  check("the census reached every navigateTo and openHaLink mention",
     sites.length > 0 && unreached.length === 0,
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
   check("no press throws",
