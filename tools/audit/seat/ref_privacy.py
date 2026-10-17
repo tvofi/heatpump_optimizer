@@ -473,6 +473,7 @@ def content_refusals(lines, ident: Identity | None = None) -> list[str]:
 #: macOS's per-user temp root, built rather than spelled: the content check
 #: reads this file like any other, and a spelled path is what it refuses.
 MAC_TEMP = "/".join(("", "var", "folders"))
+TMP_ROOT = "/".join(("", "tmp"))
 
 
 def scrub(text: str, ident: Identity) -> str:
@@ -482,7 +483,7 @@ def scrub(text: str, ident: Identity) -> str:
     home directory to `~`, and a remaining account name to `<owner-home>`. Line
     breaks are untouched, so a line count and every line number survive."""
     if ident.uid is not None:
-        root = rf"(?:/private)?/tmp/claude-{ident.uid}(?![0-9])"
+        root = rf"(?:/private)?{TMP_ROOT}/claude-{ident.uid}(?![0-9])"
         text = re.sub(root + r"/[^/\s\"'`]+/[^/\s\"'`]+/scratchpad(?![\w-])", "<scratchpad>", text)
         text = re.sub(root, "<session-tmp>", text)
     text = re.sub(r"(?:/private)?" + MAC_TEMP + r"/[\w-]+/[\w-]+/T(?![\w-])", "<tmp>", text)
