@@ -1,0 +1,266 @@
+===== M0 (rc=1) =====
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.2168  duplication_copies+0.213, coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+69781076                                     corpus   GOOD     IMPROVES  y       0.7631  shared_inplace_writes+0.413, duplication_copies+0.162, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_41_layer_chain_past_module                redteam  GAME     NULL      y       0.0000  
+  RED TEAM 14/14 attempts read NULL or inadmissible; IMPROVES: none
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_lead_homing_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_event_write_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_reader_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED rt_04zz1_dup_wrapsplit_uncharged: recorded {'admissible': True, 'label': 'KNOWN-OPEN', 'set': 'redteam', 'verdict': 'IMPROVES'} now None
+
+===== M18 (rc=1) =====
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.2168  duplication_copies+0.213, coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+69781076                                     corpus   GOOD     IMPROVES  y       0.7631  shared_inplace_writes+0.413, duplication_copies+0.162, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     NULL      y       0.0000  
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_39_layer_parent_ns_public_pair            redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_41_layer_chain_past_module                redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+  RED TEAM 11/14 attempts read NULL or inadmissible; IMPROVES: rt_38_layer_parent_ns_public, rt_39_layer_parent_ns_public_pair, rt_41_layer_chain_past_module
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_lead_homing_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_event_write_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_reader_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED rt_04zz1_dup_wrapsplit_uncharged: recorded {'admissible': True, 'label': 'KNOWN-OPEN', 'set': 'redteam', 'verdict': 'IMPROVES'} now None
+MOVED rt_38_layer_parent_ns_public: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_39_layer_parent_ns_public_pair: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_41_layer_chain_past_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+
+===== M19 (rc=1) =====
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.2168  duplication_copies+0.213, coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+69781076                                     corpus   GOOD     IMPROVES  y       0.7631  shared_inplace_writes+0.413, duplication_copies+0.162, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_41_layer_chain_past_module                redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+  RED TEAM 14/14 attempts read NULL or inadmissible; IMPROVES: none
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_lead_homing_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_event_write_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_reader_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED rt_04zz1_dup_wrapsplit_uncharged: recorded {'admissible': True, 'label': 'KNOWN-OPEN', 'set': 'redteam', 'verdict': 'IMPROVES'} now None
+
+===== M20 (rc=1) =====
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.2168  duplication_copies+0.213, coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+69781076                                     corpus   GOOD     IMPROVES  y       0.7631  shared_inplace_writes+0.413, duplication_copies+0.162, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_41_layer_chain_past_module                redteam  GAME     NULL      y       0.0000  
+  RED TEAM 13/14 attempts read NULL or inadmissible; IMPROVES: rt_40_layer_module_const_ann
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_lead_homing_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_event_write_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_reader_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED rt_04zz1_dup_wrapsplit_uncharged: recorded {'admissible': True, 'label': 'KNOWN-OPEN', 'set': 'redteam', 'verdict': 'IMPROVES'} now None
+MOVED rt_40_layer_module_const_ann: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+
+===== M21 (rc=1) =====
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.2168  duplication_copies+0.213, coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+69781076                                     corpus   GOOD     IMPROVES  y       0.7631  shared_inplace_writes+0.413, duplication_copies+0.162, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_41_layer_chain_past_module                redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+  RED TEAM 13/14 attempts read NULL or inadmissible; IMPROVES: rt_41_layer_chain_past_module
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_lead_homing_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_event_write_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_reader_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED rt_04zz1_dup_wrapsplit_uncharged: recorded {'admissible': True, 'label': 'KNOWN-OPEN', 'set': 'redteam', 'verdict': 'IMPROVES'} now None
+MOVED rt_41_layer_chain_past_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+
+===== M14 (rc=1) =====
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.2168  duplication_copies+0.213, coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+69781076                                     corpus   GOOD     IMPROVES  y       0.7631  shared_inplace_writes+0.413, duplication_copies+0.162, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_33_layer_parent_ns_from                   redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_34_layer_parent_ns_from_alias             redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_35_layer_parent_ns_plain                  redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_36_layer_getattr_chain                    redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_39_layer_parent_ns_public_pair            redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_41_layer_chain_past_module                redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+  RED TEAM 6/14 attempts read NULL or inadmissible; IMPROVES: rt_32_layer_parent_ns_alias, rt_33_layer_parent_ns_from, rt_34_layer_parent_ns_from_alias, rt_35_layer_parent_ns_plain, rt_36_layer_getattr_chain, rt_38_layer_parent_ns_public, rt_39_layer_parent_ns_public_pair, rt_41_layer_chain_past_module
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_lead_homing_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_event_write_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_reader_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED rt_04zz1_dup_wrapsplit_uncharged: recorded {'admissible': True, 'label': 'KNOWN-OPEN', 'set': 'redteam', 'verdict': 'IMPROVES'} now None
+MOVED rt_32_layer_parent_ns_alias: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_33_layer_parent_ns_from: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_34_layer_parent_ns_from_alias: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_35_layer_parent_ns_plain: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_36_layer_getattr_chain: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_38_layer_parent_ns_public: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_39_layer_parent_ns_public_pair: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_41_layer_chain_past_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+
+DONE

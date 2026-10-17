@@ -1,3 +1,4 @@
+STDOUT:
 case                                         set      label    verdict   adm         dS  rises / top terms
 8827452e                                     corpus   BAD      WORSENS   n      -1.1392  hub_solve_writes 15->16; untyped_payload_keys 37->38; coord_footprint 264->304
 5f6ada5e                                     corpus   BAD      WORSENS   n     -16.0904  hub_solve_writes 23->41; shared_inplace_writes 1->3; duplication_copies 27->28
@@ -44,27 +45,25 @@ ff30236d                                     corpus   GOOD     NULL      y      
 3bae92d9                                     corpus   GOOD     WORSENS   n      -0.0017  coord_footprint 2517->2520
 c2a0448d                                     corpus   GOOD     WORSENS   n      -0.1037  hub_solve_writes 73->74
 5395394d                                     corpus   GOOD     WORSENS   n       4.1369  coordinator_private_reach 95->96
-a3_layer_violations_control                  planted  BAD      WORSENS   n      -1.5850  layer_violations 1->5
-a3_layer_violations_fix                      planted  GOOD     IMPROVES  y       1.1699  layer_violations+1.000, private_cross_module+0.170
-a3_layer_violations_null                     planted  NULL     NULL      y       0.0000  
-a3_private_cross_module_control              planted  BAD      WORSENS   n      -0.1520  private_cross_module 8->9
-a3_private_cross_module_fix                  planted  GOOD     IMPROVES  y       0.3626  private_cross_module+0.363
-a3_private_cross_module_null                 planted  NULL     NULL      y       0.0000  
-rt_21_lazy_solver_import                     redteam  GAME     IMPROVES  y       1.1699  layer_violations+1.000, private_cross_module+0.170
-rt_22_private_module_attr                    redteam  GAME     NULL      y       0.0000  
-rt_23_layer_owner_import                     redteam  GAME     WORSENS   n       1.0000  unused_boundary_imports 1->3
-rt_24_layer_guarded_else                     redteam  GAME     NULL      y       0.0000  
-rt_25_layer_negated_guard                    redteam  GAME     NULL      y       0.0000  
-rt_26_layer_import_module                    redteam  GAME     NULL      y       0.0000  
-rt_27_layer_absolute_self_import             redteam  GAME     NULL      y       0.0000  
-  planted  GOOD       2/2   blind  0  wrong-way  0
-  planted  BAD        2/2   blind  0  wrong-way  0
-  planted  NULL       2/2   blind  0  wrong-way  0
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     NULL      y       0.0000  
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_39_layer_parent_ns_public_pair            redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_41_layer_chain_past_module                redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
   corpus   GOOD       8/24  blind  7  wrong-way  9
   corpus   BAD       11/14  blind  3  wrong-way  0
   corpus   NEUTRAL    7/7   blind  0  wrong-way  0
-  CALIBRATION 32/51 labelled cases classify as their label says
-  RED TEAM 6/7 attempts read NULL or inadmissible; IMPROVES: rt_21_lazy_solver_import
+  CALIBRATION 26/45 labelled cases classify as their label says
+  RED TEAM 11/14 attempts read NULL or inadmissible; IMPROVES: rt_38_layer_parent_ns_public, rt_39_layer_parent_ns_public_pair, rt_41_layer_chain_past_module
 weights.json sha256 2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978
 MOVED a1_B1_copy_cross_module: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a1_B1c_copy_same_module_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
@@ -116,6 +115,9 @@ MOVED a3_hub_solve_writes_null: recorded {'admissible': True, 'label': 'NULL', '
 MOVED a3_import_cycles_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
 MOVED a3_import_cycles_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
+MOVED a3_layer_violations_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
 MOVED a3_payload_annotated_param_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
 MOVED a3_payload_annotated_param_spelling_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
@@ -123,6 +125,9 @@ MOVED a3_payload_annotated_param_spelling_control_write: recorded {'admissible':
 MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
 MOVED a3_payload_any_spelling_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
 MOVED a3_private_reach_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a3_private_reach_control_write: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a3_private_reach_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'NULL'} now None
@@ -194,5 +199,19 @@ MOVED rt_17_typeddict_any_spellings: recorded {'admissible': True, 'label': 'GAM
 MOVED rt_18_family_invented_pair: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
 MOVED rt_19_hub_reader_lambda: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_20_hub_write_event: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
-MOVED rt_21_lazy_solver_import: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
-calibration moved on 129 case(s)
+MOVED rt_21_lazy_solver_import: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_22_private_module_attr: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_23_layer_owner_import: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_24_layer_guarded_else: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_25_layer_negated_guard: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_26_layer_import_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_27_layer_absolute_self_import: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_36_layer_getattr_chain: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'NULL', 'admissible': True}
+MOVED rt_38_layer_parent_ns_public: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_39_layer_parent_ns_public_pair: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_41_layer_chain_past_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+calibration moved on 145 case(s)
+
+STDERR:
+
+RC: 1
