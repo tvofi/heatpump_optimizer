@@ -1,0 +1,102 @@
+Fix review of PR #2340 R10-STRUCTURE-BLIND, head 40683e8d7dcae31c6958434d9606682fcd7141f1
+Measured from a fresh detached worktree at that head (git worktree add --detach).
+Merge base d7b1712297030e4250487799d23212fb452a0f95. origin/main 10d00fe0f46cab2dbe5246094fddf7c18a34625d.
+
+=== (1) budget re-record genuine (fix-review step 14) ===
+python3 -I tools/policy/budget_raise_gate.py --base d7b171229 --head HEAD --pr 2340
+  RESULT budget_raises=0 count
+  PASS: no budget raise; no owner review is owed
+
+class_excess_loc 18468 earned by the #2336 coordinator shrink, measured both ends:
+  pre-merge authored head b3090df34: coordinator 8688 LOC, 410 helper lines, class_excess_loc=18498, max_class_loc=8688
+  head 40683e8d:                coordinator 8635 LOC, 431 helper lines, class_excess_loc=18468, max_class_loc=8635
+  sysid.py SystemIdentification: 1063 -> 1065 (+2)
+  delta -30 = (coordinator span -53) + (helper lines +21) + (sysid +2) = -32 + 2 = -30
+The PR's own dead-member deletions (drift.py -4, inputs.py -21) are present in BOTH trees,
+so they contribute 0 to the -30; the -30 is entirely the main merge (#2336). archscore reads
+the deletions as IMPROVEMENT (dead_members 5->1, duplication_copies 66->65), not worse.
+class_excess_loc is not gamed.
+
+=== (2) structure ratchet (M0 null run) ===
+PYTHONPATH=tests/hastub python3 tests/structure.py
+  RESULT class_excess_loc=18468 count
+  RESULT max_class_loc=8635 count
+  RESULT dead_methods=0 count
+  RESULT duplication_copies=34 count
+  ok 56 counting rules hold
+  STRUCTURE RATCHET PASSED
+
+=== (3) architecture score ===
+PYTHONPATH=tests/hastub python3 tools/audit/archscore/score.py --diff origin/main
+  Architecture score: dS +1.7787 IMPROVES
+    duplication_copies 66 -> 65  +0.1937
+    dead_members 5 -> 1  +1.5850
+No metric up. Matches the body exactly.
+
+=== (4) mutation proof (structure.py sha1 56c816051e70c9984cb4a034a1fb573d64be4944 before/after all) ===
+M0 null: STRUCTURE RATCHET PASSED (above)
+M1 (helper predicate removed, lines 2240-2241): rc=1
+    FAIL  a method moved verbatim into a coordinator.py helper moves no class row
+    1 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+M2 (total += -> total = max): rc=1
+    FAIL  a class below the largest is priced when it grows
+    1 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+M3 (typed branch reverted to name-based edge): rc=1
+    FAIL  a load on a constructor-typed attribute reaches that class only
+    FAIL  a return annotation and a tuple unpacking type a local
+    FAIL  a parameter only placed calls pass takes their arguments' class
+    3 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+M3 via companion harness on merge-base package: RESULT six_measured_dead=0, six_name_kept=6
+
+=== (5) finder harnesses, both ends ===
+class_growth.py (D7-s1-01):
+  base: RESULT keys_moved_second_class=0 count, keys_moved_coordinator=1 count, lines_added_per_arm=1201
+  head: RESULT keys_moved_second_class=1 count, keys_moved_coordinator=2 count, lines_added_per_arm=1201
+namekept_receivers.py (D7-s3-01) flat at both ends:
+  base: RESULT candidates_with_zero_typed_hits=6, total_typed_hits=0 sites
+  head: RESULT candidates_with_zero_typed_hits=6, total_typed_hits=0 sites
+
+=== (6) companion harness dev/audit/harnesses/r10_structure_blind.py (sha1 155b99597372c0bc3b7b2cdcea5a66172aef83d4) ===
+head tree (no flags):          six_measured_dead=0 six_name_kept=2 six_deleted=4 name_kept=39 dead_methods=0 second_keys_moved=1 move_class_excess_delta=0 merge_class_excess_delta=-12
+merge-base package:            six_measured_dead=4 six_name_kept=2 six_deleted=0 name_kept=39 dead_methods=4 second_keys_moved=1
+base structure + base package: six_measured_dead=0 six_name_kept=6 name_kept=153 dead_methods=0 second_keys_moved=0 move_class_excess_delta=absent merge_class_excess_delta=absent
+entity_members_keyed=21, same_name_not_keyed=2 (head arms); absent (base arm)
+All three arms match the body's table exactly.
+
+=== (7) seam enumerator ===
+enumerate.py: RESULT seams=10, RESULT instances=5; --null: RESULT null_fixture_instances=0
+
+=== (8) claim files / env drift ===
+tests/golden/claimed_drift.txt and card_claimed_drift.txt byte-identical to merge base.
+env_drift.py --all: NO UNCLAIMED DRIFT: 56 scenario(s); NO STALE FIXTURE: 56 fixture(s). exit 0.
+
+=== (9) other budgets untouched ===
+git diff d7b171229..HEAD name-only for budget/closure/golden/claim:
+  tests/closures.json  (one line: r10_structure_blind.py added to inert_reads["tests/harness_headers.py"], the prepr ci-predict RCA repair)
+  tests/structure_budgets.json  (class_excess_loc added 18468; duplication_copies 35->34; recorded_at -> d7b171229)
+No other budget file moved. VERSION, manifest.json, RELEASE_NOTES.md untouched.
+
+=== (10) red checks ===
+Head check-runs (40683e8d): fast (3.14) = success; all gate checks success/skipped.
+Body "## Red checks" names fast (3.14) and answers it (the unrecorded improvement; re-record 18468).
+arch-score = success in CI (the full tests/arch_score.py ALL 72 CHECKS).
+
+=== (11) merge conflict (step 13) ===
+git merge-tree --write-tree origin/main 40683e8d -> exit 0, only tests/closures.json LEDGER-resolved.
+No conflict on claim files or any other path.
+
+=== (12) forward-carry (step 10) ===
+Body names destination R10-ARCHSCORE-COVERAGE in dev/programme/rosters/wave-r10-groups.json.
+On origin/main (10d00fe0f), that group's carry field holds the finding (3 items), carrying the
+control ("re-recording expected.json from a base without that change turns a3_dead_by_reachability_fix
+back to NULL") and the precondition ("Re-measure from the post-STRUCTURE-BLIND base"). In the tree.
+
+=== corpus / calibration ===
+corpus_vectors.json sha1 85d62c4e23c2f201d5bdf8ac081e6ab619ef1f14 (matches body).
+
+=== corpus / calibration (correction) ===
+corpus_vectors.json sha1 85d62c4e23c2f201d5bdf8ac081e6ab619ef1f14 (matches body).
+Local corpus re-measure NOT completed (heavy: 87 stored trees via git archive; reached 9/87).
+Corpus/expected.json consistency cited from CI: head check-runs show arch-score = success
+(the full tests/arch_score.py ALL 72 ARCHITECTURE SCORE CHECKS), and local
+score.py --diff origin/main reproduces dS +1.7787 with dead_members 5->1 and duplication_copies 66->65.
