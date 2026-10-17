@@ -424,6 +424,14 @@ INERT = (
     # green, precisely because no check could see the file. Unreadable by the
     # gate and unread by the gate are different claims, and only the first was
     # ever true here.
+    # The development-onboarding pair at the `dev/` root. Same claim as
+    # `dev/audit/README.md` and the `dev/governance/` prose: they orient a seat
+    # and no gate script opens them. They sit outside the INERT prefixes above,
+    # so they are named exactly rather than widening one to `dev/`: a prefix
+    # would classify every future file under `dev/` silently, including a
+    # second handover the handover hole is meant to refuse.
+    "dev/README.md",
+    "dev/CI-GATE.md",
 )
 
 # Directories whose files are ONE dependency (design/ledger-layout). A ledger
