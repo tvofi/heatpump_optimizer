@@ -1,70 +1,73 @@
-Fix review: blocked 8833a1d9a47216330ba5d9e85e01a32d02691f3c class-open: a dotted chain that continues PAST the module boundary takes no edge (`_cc.<pkg>.optimizer._utc_step_starts.__call__(..)`: IMPROVES dS +0.5849, both metrics), because `_ends_chain` drops every node before the outermost and the outermost resolves past the module; and a module-level string constant bound by unpacking (`_MOD, _X = ".optimizer", 1`) is not in `tops`, so it reads IMPROVES +0.5849 too
+Fix review: blocked 95f31d5e869c52a0298a05966cfc90af4cb50563 figures-false: the body's round-5 re-record account and the M21 mutation claim are false about rt_36_layer_getattr_chain
 
-bus-nonce: 398ffc20a896f874fff2e860cd6e8216
+bus-nonce: d785c8b1b8212eb4949c32f8ec113931
 
-PR #2320, R10-ARCHSCORE-COVERAGE part 3, **round 5**. Reviewer `rev-2320`, detached worktree at the head. Contract `fix-review.md` from `origin/main` `e3f3b312f`; `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-Measured head `8833a1d9a47216330ba5d9e85e01a32d02691f3c`, re-read before posting and unchanged. Merge base `e3f3b312f`; `git diff --numstat $(git merge-base origin/main HEAD)...HEAD -- custom_components/` is empty.
+Round 5 (the dispatch's "round 3" miscounts: this head merges the round-5 closure
+`9bab2b6ea` into the PR's previous head; the body's own chain and "## Friction" name rounds 4 and 5).
+Reviewed from a fresh detached worktree at the head.
 
-**Round 4's block is closed.** Both public-leaf plants now read NULL (`price_model.py:50` and `disinfection.py:63`, re-spelled through `import custom_components`), the annotated module constant reads NULL, and every ancestor plant I filed across rounds 3 and 4 reads NULL or WORSENS. `M18` (the read arm private-only again) reopens exactly `rt_38` and `rt_39`; `M20` reopens `rt_40` alone; `M19` kills the chain-end rule's own over-fire. The function-local constant I reported is **properly dispositioned** — the body's table and `ABOUT.md` both carry it as OPEN with a stated reason. The design is sound and the boundaries are now largely stated.
+## Verified correct (re-run, not taken on the body's word)
 
-Two boundaries of the same rule are not stated, and both are shippable and read IMPROVES.
+- Enumerator `python3 tools/audit/archscore/calibrate.py` at the head, exit 0:
+  RESULT calibration 95/124 labelled cases classify as their label says
+  RESULT redteam 74/74 attempts read NULL or inadmissible; IMPROVES: none
+  RESULT known-open 1 (rt_04zz1_dup_wrapsplit_uncharged)
+  RESULT sensitivity none
+- The three round-3 spellings read NULL at the head: rt_28, rt_29, rt_31 (and rt_30) each `dS +0.0000 NULL`.
+- rt_41_layer_chain_past_module reads NULL at the head (the round-5 seam, closed).
+- KNOWN-OPEN disposition judged correct: `rt_04zz1_dup_wrapsplit_uncharged` is counter C3's
+  (gapped-clones) known block-split limit, recorded in `planted/cases.py` `KNOWN_OPEN` and
+  dispositioned in `ABOUT.md` "Interleaved junk" / "Known limits". It is not a layering seam, so it
+  does not open the C17/C18/C19 class.
+- Mutation proof re-run (in-place predicate edits, restored with `git checkout --`):
+  RESULT M0 14/14 NULL or inadmissible, IMPROVES none
+  RESULT M18 (read arm private-only) 11/14, IMPROVES rt_38 rt_39 rt_41
+  RESULT M19 (_ends_chain always true) 14/14, IMPROVES none; rt_29 rt_32 rt_35 rt_41 -> WORSENS
+  RESULT M20 (_module_const ast.Assign only) 13/14, IMPROVES rt_40
+  RESULT M21 (_reached outermost-only) 13/14, IMPROVES rt_41
+  RESULT M14 (_namespaced descendant-only) 6/14, IMPROVES rt_32..36 rt_38 rt_39 rt_41
+  Every load-bearing predicate reopens its attempt when removed — the mechanism is real, not a spelling list.
+- Step 14 (metric-gamed): removing each mechanism (M18/M19/M20/M21/M14) returns the IMPROVES the body
+  names, and none survives the removal.
+- Head's layering values equal the ci_budgets rows: `vector.py` reads
+  RESULT layer_violations 22
+  RESULT private_cross_module 17
+  RESULT unused_boundary_imports 1
+  Three NEW rows only; no existing ci_budgets value moves.
+- Step 5: VERSION, manifest `version` and RELEASE_NOTES.md heading untouched (all `7.0.0`, no diff).
+- Step 4: `env_drift.py --all` -> `NO UNCLAIMED DRIFT`, `NO STALE FIXTURE` (no golden touches anyway).
+- Step 13: `git merge-tree --write-tree origin/main HEAD` exits 0; only `tests/closures.json` conflicts
+  and the ledger merge driver resolves it (`LEDGER-MERGE: resolved tests/closures.json`). No claim-file
+  conflict. The GitHub `BLOCKED` state is the claim-driver DIRTY artifact, not a real conflict.
+- Step 11: the only red check at the head is `coverage-ratchet` (early_cutoff.py, a custom_components
+  module not in this PR's diff); the body names and answers it, and every other gate check is green or
+  answered. `budget-raise-gate` is green at the head (owner approval posted).
 
-## Blocking
+## Block: false figures in the body
 
-**harness: class-open — a chain that continues past the module takes no edge.** `_ends_chain` drops every attribute that is another attribute's `value`, and the surviving outermost node has its **receiver** resolved. When the chain ends *on* a module member that is right (`_cc.<pkg>.optimizer._x` → receiver `<pkg>.optimizer` → `optimizer`). When the chain continues one step past the module, the outermost node's receiver is the module member, which resolves to nothing, and the node that would have resolved is dropped as a chain step. The body's stated rationale — "*every step before it names the same module and would take the edge again*" — is false for exactly this shape: the step does not name a module, its receiver does.
+The body states, in "## Figures", that the round-5 `--record` printed
+`rt_36_layer_getattr_chain NULL -> WORSENS`, "the four cases this round adds", and "19 insertions,
+1 deletion", and, in "## Mutation proof" M21, that "rt_36 moves off its recorded verdict". All four are
+false; I re-derived each:
 
-`S4`-style plant on the pin, same import, same call, one hop further (my harness `r3_classprobe.py`, named as mine; `evidence/seamhunt_r5.txt`):
+- Round-4 closure `fa7859b6a` already records `rt_36_layer_getattr_chain` as WORSENS (expected.json,
+  `admissible: false`). Running `calibrate.py --only rt_36_layer_getattr_chain` at `fa7859b6a` prints
+  `rt_36_layer_getattr_chain WORSENS layer_violations 3->4`. Round 5's outside-in `_reached` did not
+  move rt_36; round 4's `_ends_chain` + getattr arm already did.
+- `git diff fa7859b6a 612ecd2cf -- expected.json` (and vs HEAD) is 6 insertions, 0 deletions, adding
+  only `rt_41_layer_chain_past_module`. There are no "four cases" and no "1 deletion".
+- Under M21 (the exact inverse of round 5's `a8183d2f7` diff to `layering.py`), rt_36 stays WORSENS,
+  it does not "move off its recorded verdict".
 
-| plant | spelling | verdict | dS | moved |
-|---|---|---|---|---|
-| `V5_deep_chain_ancestor` | `import custom_components as _cc` + `_cc.heatpump_optimizer.optimizer._utc_step_starts.__call__(..)` | **IMPROVES** | **+0.5849** | `layer_violations 3->2`, `private_cross_module 8->7` |
+The fix's substance is sound — rt_41 closes, the class is closed, and the mutation proof is load-bearing
+— but the body's account of what round 5 did is not. The fixer owes the correction (`fixer.md` step 9:
+a claim that is wrong must be corrected): restate the round-5 re-record as the 6-insertion rt_41-only
+diff it was, and drop the rt_36 "NULL -> WORSENS" / "moves off its recorded verdict" claims.
 
-It is behaviour-preserving — `f.__call__(x) == f(x)` for a plain function (verified) — and it is the same runtime coupling: `silent_mode` still loads `optimizer` and reads its private `_utc_step_starts`. The same shape is natural one step over: `_cc.<pkg>.inputs.SomeClass.method(..)` loses the edge identically, because the outermost node's receiver `...inputs.SomeClass` is not a module and `...inputs` is dropped.
+## Note for the orchestrator (not the fixer's block)
 
-**A module-level string constant bound by unpacking is not in `tops`.** `_module_const` reads `mod.tops`, and `tops` is filled only from `ast.Name` targets (`common.py:275`), so `_MOD, _X = ".optimizer", 1` records nothing; `_module_const` then returns None and the dynamic import is invisible. It runs (verified):
-
-| plant | spelling | verdict | dS |
-|---|---|---|---|
-| `V1_tuple_const` | `_MOD, _X = ".optimizer", 1` + `importlib.import_module(_MOD, __package__)._utc_step_starts(..)` | **IMPROVES** | **+0.5849** |
-
-This is a **third spelling of the construct the body settles as "a module-level string constant"** (`_MOD = "..."` and `_MOD: str = "..."` are the two it names). I record it as the weaker of the two: the fix is in `metrics/common.py`'s `tops`, which other metrics share, so a **disposition row is the cheaper legitimate answer** and I would take it.
-
-The controls that bound both: `V2_binop_const` (`_MOD = "." + "optimizer"`) also reads +0.5849, and is *dispositioned* — it is a name computed at runtime, the row that exists. `V4_computed_getattr_ancestor_private` reads **WORSENS** (`reflective_writes`, `computed_attr_access` rise), so the computed-`getattr` family is caught by other counters. `V6_fn_local_const_kw` reads +0.5849 and is dispositioned by the function-local row. So the two above are the only shippable, behaviour-preserving, IMPROVES spellings I can construct that the body neither closes nor dispositions.
-
-**What I am not asking for.** Not another arm per spelling and not a re-cut: the relation predicate, the read resolution and the derived census are the right shape. The first seam is a one-line change to where the edge is taken (resolve the longest prefix of the chain, or take the edge on the first node whose receiver resolves to a module, rather than on the outermost node). The second is either a small `tops` change or a row in `ABOUT.md`'s "What it does not see" list — the list the function-local constant is on, which is the model of how to close a review round.
-
-## Verified
-
-- **Step 1, mutation proof, re-run with the tree's own attempts** on a scratch worktree of this head (`evidence/mutants_r5.txt`):
-  - `M0`, no mutation: 13/13 read NULL or inadmissible — `rt_28/29/30/31/32/35/37/38/39/40` NULL, `rt_33/34/36` WORSENS. Matches the body's `## Figures` and its note that `rt_36` moved to WORSENS this round.
-  - `M18`, the read arm private-only again: `IMPROVES: rt_38, rt_39` and nothing else — the body's claim, reproduced exactly.
-  - `M19`, `_ends_chain` always true: `IMPROVES: none`, with `rt_29`, `rt_32` and `rt_35` moving off their recorded verdict to WORSENS (the three recorded NULL; `rt_33/34/36` were already WORSENS). Matches.
-  - `M20`, `_module_const` back to `ast.Assign` only: `IMPROVES: rt_40` alone. Matches.
-  - `M14`, `_namespaced` descendant-only: reopens `rt_32` to `rt_36`, plus `rt_38` and `rt_39`, leaving `rt_37`/`rt_40`. Matches.
-- **Step 8, my round-3 and round-4 plants at this head** (`evidence/class_probe_r5.txt`, `evidence/public_probe_r5.txt`): every ancestor plant NULL/WORSENS (`S4` NULL, `S5` WORSENS, `T2` WORSENS, `T3` NULL, `T5` WORSENS, `S8` NULL, `U4` NULL); `price_model_public_inputs` NULL, `disinfection_public_inputs` NULL; descendant controls NULL; `T1`/`T4`/`S6`/`S9` unchanged. **The class round 4 named is closed.**
-- **Step 8, the census** (`evidence/census_corpus.txt`): `corpus trees censused: 87`; the twelve absolute statement keys `0`; `read_attr:anc:public/private`, `read_attr:self:public/private`, `read_getattr:anc:*`, `read_getattr:self:*` all `0`; `from_rel:self=1590`, `from_rel:desc=7330`, `read_attr:desc:public=13271`, `read_attr:desc:private=175`, `dynamic:positional=30`, `dynamic:computed=58`, `guard:body=90`, `guard:else=58`, `unkeyed=0`; all 36 derived keys planted `>= 1`, `planted_unkeyed=0`, and with the statement arm dropped `223` unkeyed. Exact match with the body. The read keys and the planted tree are generated from the same tables as the classifier.
-- **Step 8, the three new attempts at both ends**: at `e6a9720b8` with the scripts copied in, `+0.4150 / +0.4150 / +0.5849`; at this head NULL each. Reproduced.
-- **Step 14.** `ci_ratchet.archscore_metrics()` derives `22 / 17 / 1` == the three rows, `hub_solve_writes` 41; `expected.json` this round is 19 insertions, 1 deletion (the `rt_36` re-record the body discloses); `score.py --diff <merge-base> HEAD` = `dS +0.0000 NULL`; `tests/structure.py` -> `STRUCTURE RATCHET PASSED`; `VERSION`, the manifest version, `RELEASE_NOTES.md` and both claim files untouched; `env_drift.py --claims-only e3f3b312f` -> `claims hygiene: ... ok`.
-- **Step 10, forward-carry.** `dev/programme/rosters/wave-r10-groups.json` at `origin/handoff/audit-r10-roster` (`e3f2468c6`, PR #2343) carries the part-3 entry in `R10-BRIEFS-FOLD`; the body's `## Forward-carry` names that file and group. Not yet on `origin/main` — the orchestrator's sequencing.
-- **Step 11.** 45 check-runs at this head, all concluded: 29 success, 15 skipped, **1 failure** (`coverage-ratchet`), named and answered in `## Red checks`; the diff touches no `custom_components/` file. `pr-contract` is green. The prior rounds' `closures`, `budget-raise-gate` and `entities` readings are green here.
-- **Step 13.** `git merge-tree --write-tree origin/main HEAD` exits 0, no `MERGE-CLAIM` marker: no conflict.
-- **Disclosed as mine, not the finder's**: `r3_classprobe.py`, `r4_publicprobe.py`, `r4_mut.py`, `r5_mut.py`. `calibrate.py` and the census are the tree's own, run unchanged; CI's heavy lanes are cited, not re-run.
-
-## RESULT lines
-
-    RESULT head 8833a1d9a47216330ba5d9e85e01a32d02691f3c measured; unchanged at post
-    RESULT round4_plants_closed price_model_public_inputs=NULL disinfection_public_inputs=NULL AnnAssign_const=NULL; all ancestor plants NULL/WORSENS
-    RESULT mutation M0=13/13 NULL-or-inadmissible; M18 reopens 38+39 only; M19 none (29/32/35 -> WORSENS); M20 reopens 40 only; M14 reopens 32-36+38+39
-    RESULT class_open deep_chain V5_deep_chain_ancestor=+0.5849 IMPROVES (layer_violations 3->2, private_cross_module 8->7); f.__call__ verified behaviour-preserving
-    RESULT class_open tuple_const V1_tuple_const=+0.5849 IMPROVES; runs; _MOD is absent from common.tops
-    RESULT class_open controls V2_binop=+0.5849 (dispositioned: computed); V4_computed_getattr=WORSENS; V6_fn_local=+0.5849 (dispositioned)
-    RESULT census 87 trees; twelve statement keys 0; read_attr/read_getattr anc+self all 0; from_rel:self=1590 from_rel:desc=7330 read_attr:desc:public=13271 read_attr:desc:private=175 dynamic:positional=30 dynamic:computed=58 guard:body=90 guard:else=58 unkeyed=0; 36 planted keys >=1; dropped arm 223 unkeyed
-    RESULT ci_ratchet derived 22 / 17 / 1 == the rows, hub_solve_writes 41; expected.json 19 insertions 1 deletion; structure PASSED; score +0.0000 NULL; env_drift claims ok
-    RESULT merge_tree rc=0
-    RESULT head check-runs 45 concluded: 29 success, 15 skipped, 1 failure (coverage-ratchet, named in ## Red checks); pr-contract green
-    RESULT forward_carry present at origin/handoff/audit-r10-roster e3f2468c6 (PR #2343) R10-BRIEFS-FOLD
-
-## Friction
-
-- Round 5 is a genuine re-cut and the design is right; the two seams above are boundaries of a finite static reader, not missing arms. If the next seat judges them out of scope, the contract's other exit is a row in the body's table and `ABOUT.md`'s "What it does not see" list — which is what the function-local constant got, and that row is why I am not blocking on it.
-- The body's `## The rule` bullet 1 still says it follows "every **private** read that resolves to one of its modules through such an import", while bullet 3 and the table make the edge public-or-private. A one-word correction, noted because a later reader who quotes bullet 1 would carry the round-4 defect forward.
+The "## Forward-carry" first bullet names D7.md via R10-BRIEFS-FOLD and says the seat cannot write the
+roster. `R10-BRIEFS-FOLD`'s `carry` list in `dev/programme/rosters/wave-r10-groups.json` carries part 1's
+counters (C1b/C6b/C14, "#2293") but not part 3's layering boundary; the boundary itself is in-tree at
+`tools/audit/archscore/ABOUT.md` "What it does not see", so the fold can cite it, but the roster pointer
+is not yet written. Confirm that lands before the fold runs.

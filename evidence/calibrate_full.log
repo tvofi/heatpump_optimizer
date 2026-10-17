@@ -1,0 +1,46 @@
+commit
+---run calibrate---
+rt_15_payload_cast                           redteam  GAME     NULL      y       0.0000  
+rt_16_payload_annotated_helper               redteam  GAME     NULL      y       0.0000  
+rt_16b_payload_union_helper                  redteam  GAME     NULL      y       0.0000  
+rt_16c_payload_annotated_param_helper        redteam  GAME     NULL      y       0.0000  
+rt_17_typeddict_any_spellings                redteam  GAME     NULL      y       0.0000  
+rt_18_family_invented_pair                   redteam  GAME     WORSENS   n       2.2686  family_orphan_overrides 0->4
+rt_19_hub_reader_lambda                      redteam  GAME     NULL      y       0.0000  
+rt_20_hub_write_event                        redteam  GAME     NULL      y       0.0000  
+rt_21_lazy_solver_import                     redteam  GAME     NULL      y       0.0000  
+rt_22_private_module_attr                    redteam  GAME     NULL      y       0.0000  
+rt_23_layer_owner_import                     redteam  GAME     WORSENS   n       2.0000  unused_boundary_imports 1->3
+rt_24_layer_guarded_else                     redteam  GAME     NULL      y       0.0000  
+rt_25_layer_negated_guard                    redteam  GAME     NULL      y       0.0000  
+rt_26_layer_import_module                    redteam  GAME     NULL      y       0.0000  
+rt_27_layer_absolute_self_import             redteam  GAME     NULL      y       0.0000  
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_41_layer_chain_past_module                redteam  GAME     NULL      y       0.0000  
+  planted  GOOD      16/23  blind  6  wrong-way  1
+  planted  BAD       36/37  blind  1  wrong-way  0
+  planted  NULL      17/19  blind  0  wrong-way  2
+  corpus   GOOD       8/24  blind  7  wrong-way  9
+  corpus   BAD       11/14  blind  3  wrong-way  0
+  corpus   NEUTRAL    7/7   blind  0  wrong-way  0
+  CALIBRATION 95/124 labelled cases classify as their label says
+  RED TEAM 74/74 attempts read NULL or inadmissible; IMPROVES: none
+  KNOWN-OPEN 1 attempts the counters do not close (ABOUT.md, Known limit); IMPROVES: rt_04zz1_dup_wrapsplit_uncharged
+weights.json sha256 2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978
+calibration pinned
+python3 tools/audit/archscore/calibrate.py 2>&1  3169.75s user 91.55s system 330% cpu 16:27.05 total
+tail -40  0.00s user 0.00s system 0% cpu 16:27.06 total
+
+[exited with code 0]

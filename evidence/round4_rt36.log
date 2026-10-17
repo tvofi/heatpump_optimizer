@@ -1,0 +1,32 @@
+Updating files:  21% (1189/5568)Updating files:  22% (1225/5568)Updating files:  23% (1281/5568)Updating files:  24% (1337/5568)Updating files:  25% (1392/5568)Updating files:  26% (1448/5568)Updating files:  27% (1504/5568)Updating files:  28% (1560/5568)Updating files:  29% (1615/5568)Updating files:  30% (1671/5568)Updating files:  31% (1727/5568)Updating files:  32% (1782/5568)Updating files:  33% (1838/5568)Updating files:  34% (1894/5568)Updating files:  35% (1949/5568)Updating files:  36% (2005/5568)Updating files:  37% (2061/5568)Updating files:  38% (2116/5568)Updating files:  39% (2172/5568)Updating files:  40% (2228/5568)Updating files:  41% (2283/5568)Updating files:  41% (2307/5568)Updating files:  42% (2339/5568)Updating files:  43% (2395/5568)Updating files:  44% (2450/5568)Updating files:  45% (2506/5568)Updating files:  46% (2562/5568)Updating files:  47% (2617/5568)Updating files:  48% (2673/5568)Updating files:  49% (2729/5568)Updating files:  50% (2784/5568)Updating files:  51% (2840/5568)Updating files:  52% (2896/5568)Updating files:  53% (2952/5568)Updating files:  54% (3007/5568)Updating files:  55% (3063/5568)Updating files:  56% (3119/5568)Updating files:  57% (3174/5568)Updating files:  58% (3230/5568)Updating files:  59% (3286/5568)Updating files:  60% (3341/5568)Updating files:  61% (3397/5568)Updating files:  62% (3453/5568)Updating files:  63% (3508/5568)Updating files:  64% (3564/5568)Updating files:  65% (3620/5568)Updating files:  66% (3675/5568)Updating files:  67% (3731/5568)Updating files:  68% (3787/5568)Updating files:  69% (3842/5568)Updating files:  70% (3898/5568)Updating files:  71% (3954/5568)Updating files:  72% (4009/5568)Updating files:  72% (4029/5568)Updating files:  73% (4065/5568)Updating files:  74% (4121/5568)Updating files:  75% (4176/5568)Updating files:  76% (4232/5568)Updating files:  77% (4288/5568)Updating files:  78% (4344/5568)Updating files:  79% (4399/5568)Updating files:  80% (4455/5568)Updating files:  81% (4511/5568)Updating files:  82% (4566/5568)Updating files:  83% (4622/5568)Updating files:  84% (4678/5568)Updating files:  85% (4733/5568)Updating files:  86% (4789/5568)Updating files:  87% (4845/5568)Updating files:  88% (4900/5568)Updating files:  89% (4956/5568)Updating files:  90% (5012/5568)Updating files:  91% (5067/5568)Updating files:  92% (5123/5568)Updating files:  93% (5179/5568)Updating files:  94% (5234/5568)Updating files:  95% (5290/5568)Updating files:  96% (5346/5568)Updating files:  97% (5401/5568)Updating files:  98% (5457/5568)Updating files:  99% (5513/5568)Updating files: 100% (5568/5568)Updating files: 100% (5568/5568), done.
+HEAD is now at fa7859b6a chore(closures): list the three read-side attempts in arch_score's closure
+--- run rt_36 at round-4 closure ---
+d979110c                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+5a4e6ff9                                     corpus   GOOD     IMPROVES  y       0.0078  coord_footprint+0.008
+8281f544                                     corpus   GOOD     IMPROVES  y       0.0022  coord_footprint+0.002
+d04ed89f                                     corpus   GOOD     IMPROVES  y       0.2168  duplication_copies+0.213, coord_footprint+0.004
+0f9eb71a                                     corpus   GOOD     IMPROVES  y       0.0090  coord_footprint+0.009
+69781076                                     corpus   GOOD     IMPROVES  y       0.7631  shared_inplace_writes+0.413, duplication_copies+0.162, coordinator_multiassigned_attrs+0.108
+ec263d82                                     corpus   GOOD     IMPROVES  y       0.1946  coordinator_multiassigned_attrs+0.117, coord_footprint+0.077
+33cedffa                                     corpus   GOOD     IMPROVES  y       0.0006  coord_footprint+0.001
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+  RED TEAM 1/1 attempts read NULL or inadmissible; IMPROVES: none
+MOVED a1_G3_move_cluster_with_state: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G4a_public_accessor_existing: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a1_G5_frozen_record_arg: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_lead_homing_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_family_splits_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_event_write_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_reader_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_hub_solve_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_import_cycles_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_layer_violations_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_annotated_param_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_payload_any_spelling_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_private_cross_module_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_shared_inplace_writes_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED a3_untyped_payload_keys_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
+MOVED rt_04zz1_dup_wrapsplit_uncharged: recorded {'admissible': True, 'label': 'KNOWN-OPEN', 'set': 'redteam', 'verdict': 'IMPROVES'} now None
+
+[exited with code 0]

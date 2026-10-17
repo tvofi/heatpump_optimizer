@@ -1,5 +1,0 @@
-RESULT spelling V1_tuple_const verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
-RESULT spelling V2_binop_const verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
-RESULT spelling V4_computed_getattr_ancestor_private verdict=WORSENS dS=+0.1699 moved={'private_cross_module': '8->7', 'reflective_writes': '16->17', 'computed_attr_access': '31->32'}
-RESULT spelling V5_deep_chain_ancestor verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
-RESULT spelling V6_fn_local_const_kw verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
