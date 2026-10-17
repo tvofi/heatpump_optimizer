@@ -36,17 +36,12 @@ def _log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any)
 
     ``owner`` is the object that outlives the call and carries the transition
     -- the coordinator for its own sites, ``hass`` for the pump arbiter and the
-    input reader. It must be weak-referenceable; a snapshot built without its
-    ``hass`` is not, and is logged every call rather than raising into a cycle.
+    input reader. It must be weak-referenceable; ``None`` (a snapshot built
+    without its ``hass``) is logged every call rather than raising into a cycle.
     """
-    try:
-        held = _HELD_CONDITIONS.setdefault(owner, {})
-    except TypeError:
-        # No long-lived owner to hold state against: an ``ArbiterInputs``
-        # snapshot built with ``hass=None``, or a non-weak-referenceable
-        # value. A throwaway dict makes the call below log the condition and
-        # hold nothing, which is the only honest outcome without a stable key.
-        held = {}
+    # No stable owner means no transition to hold: a throwaway dict logs the
+    # condition on every call, which is the only honest outcome without a key.
+    held = {} if owner is None else _HELD_CONDITIONS.setdefault(owner, {})
     if not active:
         if held.pop(key, None) is not None:
             _LOGGER.info("Resolved: %s", key.replace("_", " "))
