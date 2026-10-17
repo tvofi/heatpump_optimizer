@@ -28,23 +28,24 @@ to name. `--script` runs the same matrix against another copy: `git show
 
 ## Head
 
-`7ae39aa460f98904603709c9eed17c12578382b0`, one commit on the round-1 head
-`5c35cd9ba6c6915a28ec982648389bd53d742b32`. Merge base
-`81ae048e8bbdf2335fe2016e987ec2739481f293`. Every figure below that reads the
-pull-request corpus is a function of `origin/main`'s tip, which was
-`92accb2cff702c910d33ee1a276d38f5b482061c` on 2026-10-16; re-take those against
-a newer tip.
+`2f7aafdc856db407ac2407c4231d547899546b88`: the round-1 head
+`5c35cd9ba6c6915a28ec982648389bd53d742b32`, one commit adding the arm, the rule
+harness and the pins, a merge of `origin/main` `e3f3b312fff572904f24d78a44a2c4492b1a8ddb`
+with no hand resolution, and one commit recording the new harness in
+`tests/closures.json`. The merge base is therefore `e3f3b312f` itself. Every
+figure below that reads the pull-request corpus is a function of `origin/main`'s
+tip, which was `e3f3b312f` on 2026-10-17; re-take those against a newer tip.
 
 ## Mutation proof
 
-Each mutation is ONE named edit of arm 1b's production lines, applied alone on
-this head and restored from the index. The check names are what
-`PYTHONPATH=tests/hastub python3 tests/entities.py` printed, and the second
-column is the committed rule harness run against the mutated tree.
+Each mutation is ONE named edit of arm 1b's production lines, applied alone in
+its own worktree at this head. The check names are what
+`PYTHONPATH=tests/hastub python3 tests/entities.py` printed there, and the
+second column is the committed rule harness run against the mutated tree.
 
 - `M1-needs-three-references` -- the predicate narrowed from
   `hits(clause[i], ref) > s` to `> s + 1`, i.e. refuse only a THIRD reference.
-  `1 of 2334 ENTITY CHECKS FAILED`: `one closing keyword naming several issues
+  `1 of 2343 ENTITY CHECKS FAILED`: `one closing keyword naming several issues
   refuses, since GitHub closes only the first`, detail `rc per separator:
   {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand':
   0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline':
@@ -52,7 +53,7 @@ column is the committed rule harness run against the mutated tree.
   102 shapes.
 - `M2-clause-becomes-paragraph` -- the clause reset
   (`gsub(/[.!?][[:space:]]+/, "&\n", t)`) deleted, so the scope is the paragraph.
-  `1 of 2334 ENTITY CHECKS FAILED`: `and a second reference in a LATER clause is
+  `1 of 2343 ENTITY CHECKS FAILED`: `and a second reference in a LATER clause is
   not refused (the scope's own null control)`, detail `rc per shape: {'part-of':
   0, 'leaves-open': 1, 'bare-reference': 0, 'heading': 0}`. The multi-reference
   check stays green -- which is what makes the scope a pinned decision rather
@@ -61,15 +62,18 @@ column is the committed rule harness run against the mutated tree.
   excludes.
 - `M3-no-boundary-sentinel` -- the leading space removed from the clause the
   site count reads (`c = " " clause[i]` -> `c = clause[i]`), so the keyword's
-  boundary class has no preceding character to bound on. `1 of 2334 ENTITY
+  boundary class has no preceding character to bound on. `1 of 2343 ENTITY
   CHECKS FAILED`: the multi-issue check, all twelve rcs 0. The harness reads
   `seams_open=86` and `refused_but_not_seam=1` -- `not-owned:two-keywords-one-clause`,
   the one shape whose SECOND keyword still has a space in front of it.
-- `M4-arm-deleted` -- the whole arm-1b block removed. `1 of 2334 ENTITY CHECKS
+- `M4-arm-deleted` -- the whole arm-1b block removed. `1 of 2343 ENTITY CHECKS
   FAILED`: the multi-issue check; the harness reads `seams_open=86`. The SCOPE
   check is green here, which is the contrast with `M2`: removing the arm cannot
   red a check about scope, and narrowing the scope cannot red the multi-issue
-  check. Each pin moves for its own line.
+  check. Each pin moves for its own line. (Run beside its three siblings this
+  mutant once also red `the lease has one winner ...`, the gate-lease race
+  measuring five concurrent gate scripts; it is green with the mutant alone,
+  which is the run this figure is taken from.)
 
 ## Null control
 
@@ -111,12 +115,15 @@ column is the committed rule harness run against the mutated tree.
   corpus above and `dev/programme/rosters/wave-r*-groups.json` -- the two inputs
   are the whole reproduction. The 9 the round-1 body named is a lower bound; the
   corpus answers 27.
-- `MODE: SCOPED -- 2 script(s) run` (`tests/entities.py`, `tests/harness_headers.py`),
-  derived per `fixer.md` step 5; the new harness is classified by the `dev/audit/`
-  INERT prefix. `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `MODE: SCOPED -- 2 script(s) run` over 6 changed files (`tests/entities.py`,
+  `tests/harness_headers.py`), derived per `fixer.md` step 5 against the merge
+  base `e3f3b312f`. `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
   `tests/closure.py selftest`: `ALL 115 closure shrink pins PASSED`.
-  `tests/env_drift.py --claims-only 81ae048e8`: `claims hygiene ... ok`.
-  `tests/layout.py`: `layout self-test: ok`. `tests/harness_headers.py`: green.
+  `tests/env_drift.py --claims-only e3f3b312f`: `claims hygiene ... ok`.
+  `tests/layout.py`: `layout self-test: ok`. `tests/harness_headers.py`: green,
+  after the new harness's inline `repo_root` matched the canonical copy (a
+  `ROOT = Path(__file__).resolve().parents[3]` reds its depth-seam arm, which is
+  how that arm was found).
 
 ### The class's seams, each with its disposition
 
@@ -137,8 +144,28 @@ claim under the generated matrix; this table is the review's own six instances.
 | a plain word | `Closes #A then #B` | closed in this diff -- rc 1 |
 | newline split | `Closes #A<newline>#B` | closed in this diff -- rc 1 |
 | the keyword's casing | `CLOSES #A; #B` | closed in this diff -- rc 1. The arm's keyword class is case-permissive because check 1's grep is `-i`; a case-sensitive class would leave the second reference out of a body check 1 had already acted on. Found by the generated matrix, not by the review |
-| the four reference forms | `Closes #A / GH-B` and `/ gh-N`, `/ owner/repo#N`, `/ <issue URL>` | closed in this diff -- rc 1 |
+| the four reference forms | `Closes #A / GH-N` and `/ gh-N`, `/ owner/repo#N`, `/ <issue URL>` | closed in this diff -- rc 1 |
 | a second reference in a LATER clause | `Closes #A. #B.` | NOT the class, and deliberately not refused: the reference is in another clause, so the keyword does not claim it. Dispositioned here rather than filed, because `fixer.md` step 8's third arm is for a DISTINCT finding and this is the same class's boundary -- measured, not argued: clause scope refuses 0 of the 200 merged bodies, whole-body scope refuses 25 |
+
+### The closure entry the `closures` job would have reddened
+
+`tests/harness_headers.py`'s depth-seam scan reads every `.py` under
+`dev/audit/harnesses/`, and it does so in a CHILD process -- `inline_scan` runs
+as a child of `check_repo_roots`, as its own docstring says. CI's Linux
+`strace -f` union sees that read and prints `INERT READS tests/harness_headers.py:
+dev/audit/harnesses/closing_keyword_ownership.py (a new file beside 37 it
+lists)`, which `python3 tools/pr/ci_predict.py --base origin/main` predicted at
+the first handoff. A Darwin `--single` recording CANNOT add the entry: the audit
+hook does not follow children, so `bash tests/derive_closures.sh --single
+tests/harness_headers.py` exited 0 here having changed only the recorded
+`seconds` (and reporting `would drop 152 file(s) the committed closure listed;
+keeping them`, the partial merge that stops a Darwin recording replacing a Linux
+one). The entry is therefore made the way that recording would make it -- through
+`closure.write_closures`, sorted into `inert_reads["tests/harness_headers.py"]`,
+validated by `closure.layout_errors` -- and `ci_predict` afterwards reads
+`CI PREDICT: no closures or fast red predicted against e3f3b312fff5`. The
+re-recorded `seconds` for that script sits beside it; `closure.py lane-plan` is
+identical with and without them.
 
 ### Where a proxy rule and the class statement diverge, and why the measurement decides
 
