@@ -5,7 +5,7 @@
  "coordinator_private_reach": 0,
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
- "duplication_copies": 35,
+ "duplication_copies": 34,
  "functions_cc_over_15": 31,
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
@@ -14,6 +14,6 @@
  "max_method_loc": 373,
  "methods_over_150": 17,
  "methods_over_200": 9,
- "recorded_at": "7215e39df7a122a319be0f6ab2d3e49853325b21",
+ "recorded_at": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
  "seam_cut_total": 752
 }
