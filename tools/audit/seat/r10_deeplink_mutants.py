@@ -31,11 +31,30 @@ Plants:
            a computed key, `Reflect.apply`, `.call` on the reach side, a
            newline before the paren). Z3c is the control: the standard spelling
            in the same position is red on reach.
+  V1-V13   the round-7 review's written programmatic form (#2345) and this
+           fix's isolating variants of it: createElement("form") (V2, and V13
+           with the tag's upper case), the action written through setAttribute
+           (V3), createAttribute (V9), setAttributeNS (V12), Reflect.set (V7),
+           Object.assign (V8) and a computed key (V11), and a submit by name
+           (V4), computed key (V5), requestSubmit (V6) and indirect .call
+           (V10). V1 is the review's plant verbatim. Each is wrapped in the
+           try its own handler has, so a stub missing `submit` cannot kill it
+           by a crash -- a crash is rc=1 with no FAIL line, i.e. no census arm
+           ran.
+  F1-F4    the CONTROLS that must stay GREEN (rc=0 fails=0): the same words as
+           values or as a key on a legitimate object (`sensor === "action"`
+           inside a setAttribute value, `act === "action"` inside an
+           Object.assign value, `{ action: "off" }`), and an identifier that
+           begins with `submit`. They are what shows the new rows key on the
+           name position rather than the word.
   X*       this fix's own lines, each mutated where a plant it closes sits
-           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z, X6Z2, X9Z3): if the
+           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z, X6Z2, X9Z3, X10V2,
+           X10V13, X11V3, X11V9, X11V12, X12V7, X12V8, X12V11, X13V4, X13V5,
+           X13V6, X13V10): if the
            mutant alone leaves the plant green, the plant's catch DEPENDS on
            that line, and a fix line whose removal changes no check is a line
-           this census does not need. X1, X2, X3, X4, X5, X6 and X9 alone are
+           this census does not need. X1, X2, X3, X4, X5, X6, X9, X10, X11,
+           X12 and X13 alone are
            the detector demonstrations -- the check each line carries is red
            without it. X7 and X7K1b are the other shape: with the surface
            member gone the plant is red only as a crash, which is what the
@@ -110,6 +129,56 @@ Z3_KEYDOWN_NAV_SPACE = card(KEYDOWN, '      navigateTo ("/config/entities");\n' 
 Z3B_KEYDOWN_NAV_CALL = card(KEYDOWN, '      navigateTo.call(globalThis, "/config/entities");\n' + KEYDOWN)
 Z3D_KEYDOWN_NAV_NEWLINE = card(KEYDOWN, '      navigateTo\n        ("/config/entities");\n' + KEYDOWN)
 Z3C_KEYDOWN_NAV_SPACE_CONTROL = card(KEYDOWN, '      navigateTo("/config/entities");\n' + KEYDOWN)
+# The round-7 review's plant (#2345): a form built, given an action and
+# submitted entirely by name, in that same undriven keydown handler. The
+# written `"form"` and `"action"` strings matched neither markup row
+# (`/<form\b/`, `action\s*=`) and `submit` was on no list, so it passed both
+# arms. V2-V10 isolate each written spelling the class admits -- creating the
+# form by name, writing its action through an attribute, a member, a
+# computed key or a setter, and submitting it by name directly, indirectly or
+# through a computed key -- so the surface closes the CLASS rather than this
+# one plant. Every one is a written spelling; a name BUILT at run time stays
+# the residual the census states.
+V1_KEYDOWN_PROGRAMMATIC_FORM = card(
+    KEYDOWN, '      { try { const f = document.createElement("form"); f.setAttribute("action", "%s"); document.body.appendChild(f); f.submit(); } catch (_e) {} }\n' % P + KEYDOWN)
+V2_KEYDOWN_CREATE_FORM = card(
+    KEYDOWN, '      try { const f = document.createElement("form"); root.appendChild(f); } catch (_e) {}\n' + KEYDOWN)
+V3_KEYDOWN_SET_ATTRIBUTE_ACTION = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); f.setAttribute("action", "%s"); root.appendChild(f); } catch (_e) {}\n' % P + KEYDOWN)
+V4_KEYDOWN_SUBMIT = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); root.appendChild(f); f.submit(); } catch (_e) {}\n' + KEYDOWN)
+V5_KEYDOWN_SUBMIT_BRACKET = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); root.appendChild(f); f["submit"](); } catch (_e) {}\n' + KEYDOWN)
+V6_KEYDOWN_REQUEST_SUBMIT = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); root.appendChild(f); f.requestSubmit(); } catch (_e) {}\n' + KEYDOWN)
+V7_KEYDOWN_REFLECT_ACTION = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); Reflect.set(f, "action", "%s"); } catch (_e) {}\n' % P + KEYDOWN)
+V8_KEYDOWN_OBJECT_ASSIGN_ACTION = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); Object.assign(f, { action: "%s" }); } catch (_e) {}\n' % P + KEYDOWN)
+V9_KEYDOWN_CREATE_ATTRIBUTE_ACTION = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); const at = document.createAttribute("action"); at.value = "%s"; } catch (_e) {}\n' % P + KEYDOWN)
+V10_KEYDOWN_SUBMIT_CALL = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); root.appendChild(f); f.submit.call(f); } catch (_e) {}\n' + KEYDOWN)
+V11_KEYDOWN_BRACKET_ACTION = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); f["action"] = "%s"; } catch (_e) {}\n' % P + KEYDOWN)
+V12_KEYDOWN_SET_ATTRIBUTE_NS_ACTION = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); f.setAttributeNS("http://www.w3.org/1999/xhtml", "action", "%s"); } catch (_e) {}\n' % P + KEYDOWN)
+V13_KEYDOWN_CREATE_FORM_UPPER = card(
+    KEYDOWN, '      try { const f = document.createElement("FORM"); root.appendChild(f); } catch (_e) {}\n' + KEYDOWN)
+# The CONTROLS: legitimate card code that writes the same WORDS as values or
+# keys, which the new rows must leave green. The action rows key on a call's
+# name position, so a value that merely equals `"action"` is not a name; the
+# submit row keys on a member, so an identifier that begins with `submit` is
+# not one. Expected rc=0 fails=0 -- the opposite verdict from every other
+# plant in this file, and the reason the rows are anchored.
+F1_KEYDOWN_ACTION_AS_A_VALUE = card(
+    KEYDOWN, '      try { const d = document.createElement("div"); d.setAttribute("aria-label", sensor === "action" ? "a" : "b"); } catch (_e) {}\n' + KEYDOWN)
+F2_KEYDOWN_ACTION_AS_AN_OBJECT_VALUE = card(
+    KEYDOWN, '      try { const f = document.createElement("div"); Object.assign(f, { label: act === "action" ? "a" : "b" }); } catch (_e) {}\n' + KEYDOWN)
+F3_KEYDOWN_ACTION_AS_AN_OBJECT_KEY = card(
+    KEYDOWN, '      try { const cur = { action: "off" }; } catch (_e) {}\n' + KEYDOWN)
+F4_KEYDOWN_SUBMIT_AS_AN_IDENTIFIER = card(
+    KEYDOWN, '      try { const submission = { submitted: true }; } catch (_e) {}\n' + KEYDOWN)
 # The two seams this fix found for itself.
 W1 = after_nav('if (globalThis.frames) globalThis.dispatchEvent(new Event("nothing-to-see"));')
 W2 = after_nav('globalThis[["hist", "ory"].join("")].go(-1);')
@@ -131,6 +200,23 @@ X6 = test('  { what: "the open member, named", re: /\\bopen\\b/, exact: true },'
 # escaped. X9 is that old enumeration, so Z3 must go green under it.
 X9 = test('  const LINK_NAME = /\\b(navigateTo|openHaLink)\\b/;',
           '  const LINK_NAME = /\\b(navigateTo|openHaLink)\\(/;')
+# The round-7 fix's four new surface rows, one mutant each: X10 the form
+# created by name, X11 its action written through an attribute, X12 its action
+# written through a member or a computed key, X13 a submit by name. Each is
+# run alone (green: it moves no check by itself) and paired with every plant
+# its row is the only closure of -- if the pair is green, the row is what
+# closes that plant.
+X10 = test(r'''  { what: "a form created by name", re: /\bcreateElement\s*\(\s*["'`]form["'`]/ },
+''', "")
+X11 = test(r'''  { what: "a form's action written through an attribute",
+    re: /(?:\bsetAttribute\s*\(\s*["'`]action["'`]|\bsetAttributeNS\s*\([^,]*,\s*["'`]action["'`]|\bcreateAttribute\s*\(\s*["'`]action["'`])/ },
+''', "")
+X12 = test(r'''  { what: "a form's action written through a member",
+    re: /(?:\bReflect\.set\s*\([^,]*,\s*["'`]action["'`]|\bObject\.assign\s*\([^,]*,\s*\{[^}]*\baction\s*:|\[\s*["'`]action["'`]\s*\]\s*=)/ },
+''', "")
+X13 = test(r'''  { what: "a form submitted by name",
+    re: /(?:\.\s*(?:submit|requestSubmit)\b|\[\s*["'`](?:submit|requestSubmit)["'`]\s*\])/ },
+''', "")
 X7 = test('  sink.navigation.navigate = (u) => { left.push(["navigation", String(u)]); return null; };',
           '  sink.navigation.navigate = undefined;')
 
@@ -195,6 +281,23 @@ PLANTS = {
     "Z3b_navigate_to_call_in_undriven_keydown": Z3B_KEYDOWN_NAV_CALL,
     "Z3d_navigate_to_newline_in_undriven_keydown": Z3D_KEYDOWN_NAV_NEWLINE,
     "Z3c_navigate_to_standard_in_undriven_keydown_control": Z3C_KEYDOWN_NAV_SPACE_CONTROL,
+    "V1_programmatic_form_in_undriven_keydown": V1_KEYDOWN_PROGRAMMATIC_FORM,
+    "V2_create_element_form_in_undriven_keydown": V2_KEYDOWN_CREATE_FORM,
+    "V3_set_attribute_action_in_undriven_keydown": V3_KEYDOWN_SET_ATTRIBUTE_ACTION,
+    "V4_submit_in_undriven_keydown": V4_KEYDOWN_SUBMIT,
+    "V5_submit_bracket_in_undriven_keydown": V5_KEYDOWN_SUBMIT_BRACKET,
+    "V6_request_submit_in_undriven_keydown": V6_KEYDOWN_REQUEST_SUBMIT,
+    "V7_reflect_set_action_in_undriven_keydown": V7_KEYDOWN_REFLECT_ACTION,
+    "V8_object_assign_action_in_undriven_keydown": V8_KEYDOWN_OBJECT_ASSIGN_ACTION,
+    "V9_create_attribute_action_in_undriven_keydown": V9_KEYDOWN_CREATE_ATTRIBUTE_ACTION,
+    "V10_submit_call_in_undriven_keydown": V10_KEYDOWN_SUBMIT_CALL,
+    "V11_bracket_action_in_undriven_keydown": V11_KEYDOWN_BRACKET_ACTION,
+    "V12_set_attribute_ns_action_in_undriven_keydown": V12_KEYDOWN_SET_ATTRIBUTE_NS_ACTION,
+    "V13_create_element_form_upper_in_undriven_keydown": V13_KEYDOWN_CREATE_FORM_UPPER,
+    "F1_action_as_a_setattribute_value_control": F1_KEYDOWN_ACTION_AS_A_VALUE,
+    "F2_action_as_an_object_assign_value_control": F2_KEYDOWN_ACTION_AS_AN_OBJECT_VALUE,
+    "F3_action_as_an_object_key_control": F3_KEYDOWN_ACTION_AS_AN_OBJECT_KEY,
+    "F4_submit_as_an_identifier_prefix_control": F4_KEYDOWN_SUBMIT_AS_AN_IDENTIFIER,
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,
     "W3_unicode_global": W3,
@@ -219,6 +322,22 @@ PLANTS = {
     "X7K1b_surface_member_names_the_primitive_K1b": X7 + K1B,
     "X8_ascii_grammar": X8,
     "X8W3_grammar_line_is_what_closes_W3": X8 + W3,
+    "X10_create_form_row_dropped": X10,
+    "X10V2_create_form_row_is_what_closes_V2": X10 + V2_KEYDOWN_CREATE_FORM,
+    "X10V13_create_form_row_is_what_closes_V13": X10 + V13_KEYDOWN_CREATE_FORM_UPPER,
+    "X11_action_attribute_row_dropped": X11,
+    "X11V3_action_attribute_row_is_what_closes_V3": X11 + V3_KEYDOWN_SET_ATTRIBUTE_ACTION,
+    "X11V9_action_attribute_row_is_what_closes_V9": X11 + V9_KEYDOWN_CREATE_ATTRIBUTE_ACTION,
+    "X11V12_action_attribute_row_is_what_closes_V12": X11 + V12_KEYDOWN_SET_ATTRIBUTE_NS_ACTION,
+    "X12_action_member_row_dropped": X12,
+    "X12V7_action_member_row_is_what_closes_V7": X12 + V7_KEYDOWN_REFLECT_ACTION,
+    "X12V8_action_member_row_is_what_closes_V8": X12 + V8_KEYDOWN_OBJECT_ASSIGN_ACTION,
+    "X12V11_action_member_row_is_what_closes_V11": X12 + V11_KEYDOWN_BRACKET_ACTION,
+    "X13_submit_row_dropped": X13,
+    "X13V4_submit_row_is_what_closes_V4": X13 + V4_KEYDOWN_SUBMIT,
+    "X13V5_submit_row_is_what_closes_V5": X13 + V5_KEYDOWN_SUBMIT_BRACKET,
+    "X13V6_submit_row_is_what_closes_V6": X13 + V6_KEYDOWN_REQUEST_SUBMIT,
+    "X13V10_submit_row_is_what_closes_V10": X13 + V10_KEYDOWN_SUBMIT_CALL,
 }
 
 
