@@ -302,7 +302,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   unwritten — archive before regenerating.
 - `roster_edit.py` — the safe roster edit: every op loads the whole roster,
   validates, and dumps with the file's own formatting; ops `set-stage`
-  (with `--at-sha`), `wire-issue`, `append-group`, `edit-brief`,
+  (with `--at-sha`; a stage outside done, rca-done, not-started, in-progress,
+  in-review is refused -- `done: merged #N` reads as open), `wire-issue`, `append-group`, `edit-brief`,
   `append-carry`, `set-after <group> <g1,g2 | empty>` (unknown name, self-edge
   and cycle refused), `set-architect-note <group> <text | @file>` (empty
   clears), and `set-resume <group> --field

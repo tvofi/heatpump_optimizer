@@ -49,7 +49,9 @@ whose brief text the linter refuses is refused at the same gate, before
 anything reaches GitHub.
 
 Ops (all group ids must exist, except append-group which must not):
-  set-stage    sets resume.stage (and resume.commit with --at-sha);
+  set-stage    sets resume.stage (and resume.commit with --at-sha); refuses a
+               stage outside done, rca-done, not-started, in-progress[: text],
+               in-review[: text] -- `done: merged #N` reads as open;
   wire-issue   appends an integer issue, refusing a duplicate;
   append-group inserts a validated new group (group/lane/after/brief needed,
                `after` naming known groups, resume defaulted);
@@ -104,10 +106,27 @@ def run(cmd, cwd=None):
 
 
 # ----------------------------------------------------------------- ops
+#: The canonical stages: roster_lib.DONE_STAGES, `not-started`, and the
+#: prefixes `in-progress` / `in-review` (free text may follow after a colon).
+#: Anything else -- `done: merged #N` -- reads as OPEN to roster_lib and holds
+#: every downstream edge; the PR number belongs in `set-resume --field note`.
+STAGE_RE = re.compile(r"\A(?:%s|not-started|in-progress|in-review)(?::.*)?\Z"
+                      % "|".join(map(re.escape, roster_lib.DONE_STAGES)),
+                      re.S)
+#: done stages take no free-text suffix: that is the open-reading trap.
+_BARE = set(roster_lib.DONE_STAGES) | {"not-started"}
+
+
 def op_set_stage(roster, group, stage, at_sha):
     g = _need(roster, group)
     if not isinstance(stage, str) or not stage.strip():
         raise Refuse("stage must be a non-empty string")
+    m = STAGE_RE.match(stage)
+    if not m or (stage.split(":")[0] in _BARE and ":" in stage):
+        raise Refuse(f"stage {stage!r} is outside the canonical set "
+                     f"({', '.join(sorted(_BARE))}, or in-progress / "
+                     "in-review [: text]); put a PR number in "
+                     "`set-resume --field note`, not the stage")
     if at_sha and not SHA_RE.match(at_sha):
         raise Refuse(f"--at-sha is not a sha: {at_sha!r}")
     g.setdefault("resume", {})["stage"] = stage
@@ -611,11 +630,23 @@ def _self_test() -> int:
         return json.loads(run(["git", "-C", str(origin), "show",
                                f"{sha}:{FIXTURE_ROSTER}"]))
 
+    def refused_stage(value):
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            rc = edit("set-stage", "R9-A", value)
+        return rc == 2 and "canonical set" in buf.getvalue()
+
     # round-trips: each op lands in the dumped JSON, never a string splice.
     check("set-stage rc", edit("set-stage", "R9-A", "in-review") == 0)
     r = branch_roster()
     check("set-stage round-trip",
           r["groups"][0]["resume"]["stage"] == "in-review")
+    check("set-stage 'done: merged #1' refused",
+          refused_stage("done: merged #1")
+          and refused_stage("done (#1 merged)") and refused_stage("merged")
+          and edit("set-stage", "R9-A", "in-review: #1 round 2") == 0)
     check("set-stage --at-sha",
           edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
           and branch_roster()["groups"][0]["resume"]["commit"] == "a" * 40)
