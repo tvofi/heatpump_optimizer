@@ -2283,7 +2283,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done (#2275 merged 74cf47b9c; #2225 CLOSED)",
+    "stage": "done",
     "branch": "handoff/r10-gate-yield",
     "commit": "74cf47b9c402c2c780cba13cf6e34655a2967a02",
     "last_step": null,
