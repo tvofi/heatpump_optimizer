@@ -1,0 +1,31 @@
+head: dd3e87c60c89c5f60e05b990647a224f56a0bde9
+merge-base: fbd99a3d9e3738499bc1981e49188c0689589061
+
+mutation-proof-deleted: #2342 reused coverage.json -> rc 1
+  FAIL package coverage 95.61 % >= 96.0 % (20611/21558 statements)
+  FAIL every module >= 95.0 %  (4 below)
+    early_cutoff.py: 81.53 %  coordinator.py: 84.14 %
+    sysid.py: 91.28 %         price_model.py: 94.77 %
+  COVERAGE RATCHET BREACHED
+
+mutation-proof-restored: #2341 fresh coverage.json -> rc 0
+  ok   package coverage 98.61 % >= 96.0 % (21258/21558 statements)
+  ok   every module >= 95.0 %  (0 below)
+  COVERAGE RATCHET PASSED
+
+null-control: detection predicate rc=0 on reused payload, rc=1 on fresh payload
+
+metric-gamed: planted genuine drop (early_cutoff.py 120/157) -> grader rc 1
+  FAIL every module >= 95.0 %  (1 below)  early_cutoff.py: 76.43 %
+
+mechanical:
+  bash -n tools/coverage/coverage_tree.sh -> clean
+  python3 tests/closure.py selftest -> ALL 115 closure shrink pins PASSED
+  python3 tests/entities.py -> ALL 2343 ENTITY CHECKS PASSED
+  python3 tests/structure.py -> STRUCTURE RATCHET PASSED
+  VERSION 7.0.0 / manifest 7.0.0 / notes heading untouched
+  merge-tree origin/main..head -> rc 0, no conflict
+
+payload facts (re-derived):
+  2342-reused: files=77 statements=21558 early_cutoff.py 128/157
+  2341-fresh:  files=77 statements=21558 early_cutoff.py 157/157
