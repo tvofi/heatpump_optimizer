@@ -78,7 +78,7 @@ Five arms, each an in-place predicate edit on the committed head, restored with 
 - **M20**, `_module_const` back to `ast.Assign` only: `IMPROVES: rt_40_layer_module_const_ann` alone.
 - **M14**, `_namespaced` back to the descendant direction only: `IMPROVES: rt_32` to `rt_36`, plus `rt_38` and `rt_39` -- the whole ancestor family, public leaves included -- and `rt_37`/`rt_40` untouched, their names being relative.
 
-`_name_bindings` (M11), `_dynamic_name`'s positional slot (M13) and `_dotted_path`'s `getattr` arm (M15) are unchanged by this diff, so their arms were not re-run; each was killed by its own attempt when it landed, and every attempt still reads NULL or inadmissible here.
+`_name_bindings` (M11), `_dynamic_name`'s positional slot (M13) and `_dotted_path`'s `getattr` arm (M15) are unchanged by this diff, so their arms were not re-run; each was killed by its own attempt when it landed, and every attempt still reads NULL or inadmissible here. The `ast.Import` edge arm is unchanged too, and removing it reopens nothing -- disclosed since it landed as a NON-kill, because a read through the binding supplies the same edge: the arm stays as the model's rule (an import that runs loads the module, read or not), and no attempt can pin it, a bare `import <pkg>.m` with no read *worsening* `layer_violations` rather than improving it.
 
 ## Null control
 
