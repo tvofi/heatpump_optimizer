@@ -2181,7 +2181,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2323",
+    "stage": "done",
     "branch": "handoff/r10-pre-edit-hook",
     "commit": "0570b86e9351dfeda88d630093cfe4d442a6d664",
     "last_step": null,
