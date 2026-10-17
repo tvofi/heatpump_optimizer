@@ -197,14 +197,30 @@ def _ends_chain(parent: dict[int, ast.AST], node: ast.AST) -> bool:
     return not (isinstance(p, ast.Attribute) and p.value is node)
 
 
-def _reached(pkg: C.Pkg, modbind: dict[str, str], m: str, node: ast.AST) -> str | None:
-    """The module of this package an expression reaches, or None. The dotted path it spells resolves
-    through the binding an import of this module made: a descendant of the package directly, and an
-    ancestor where the read dots down into it (attempts 28-36). Never ``m`` itself, which is no
-    crossing."""
-    path = _dotted_path(modbind, node)
-    target = _pkg_module(pkg, path) if path is not None else None
-    return None if target is None or target == m else target
+def _reached(pkg: C.Pkg, modbind: dict[str, str], m: str, node: ast.AST) -> tuple[str, str] | None:
+    """(module, the name read off it) for the OUTERMOST point of an expression's dotted chain whose
+    receiver resolves to a module of this package, searching outside in: ``a.b.c.d`` where ``a.b`` is a
+    module takes the edge for ``a.b`` with ``c`` the name read off it, so a chain that walks on PAST the
+    module -- ``_cc.<pkg>.optimizer._utc_step_starts.__call__`` -- still takes it (round-5 review).
+    None where no receiver in the chain resolves to a module of ours, and never ``m`` itself."""
+    e: ast.AST = node
+    while True:
+        if isinstance(e, ast.Attribute):
+            path = _dotted_path(modbind, e.value)
+            target = _pkg_module(pkg, path) if path is not None else None
+            if target is not None and target != m:
+                return target, e.attr
+            e = e.value
+        elif isinstance(e, ast.Call) and isinstance(e.func, ast.Name) \
+                and e.func.id in ("getattr", "hasattr", "setattr") and len(e.args) >= 2 \
+                and isinstance(e.args[1], ast.Constant) and isinstance(e.args[1].value, str):
+            path = _dotted_path(modbind, e.args[0])
+            target = _pkg_module(pkg, path) if path is not None else None
+            if target is not None and target != m:
+                return target, e.args[1].value
+            e = e.args[0]
+        else:
+            return None
 
 
 def _package_of(mod: str) -> str:
@@ -326,13 +342,13 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
                     and (t := _pkg_module(pkg, dynamic[id(n.value)])) is not None:
                 cross(m, t, n.attr, private=PRIVATE_ATTRS)
             elif _ends_chain(parent, n) and isinstance(n, ast.Attribute) \
-                    and (t := _reached(pkg, modalias, m, n.value)) is not None:
-                cross(m, t, n.attr, private=PRIVATE_ATTRS)
+                    and (hit := _reached(pkg, modalias, m, n)) is not None:
+                cross(m, hit[0], hit[1], private=PRIVATE_ATTRS)
             elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
                     and n.func.id in ("getattr", "hasattr", "setattr") and len(n.args) >= 2 \
                     and isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str) \
-                    and (t := _reached(pkg, modalias, m, n.args[0])) is not None:
-                cross(m, t, n.args[1].value, private=PRIVATE_ATTRS)
+                    and (hit := _reached(pkg, modalias, m, n)) is not None:
+                cross(m, hit[0], hit[1], private=PRIVATE_ATTRS)
     return edges, ext, crossings
 
 
