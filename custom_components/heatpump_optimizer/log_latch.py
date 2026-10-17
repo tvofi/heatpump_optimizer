@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 _HELD_CONDITIONS: WeakKeyDictionary[Any, dict[str, str]] = WeakKeyDictionary()
 
 
-def _log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) -> bool:
+def log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) -> bool:
     """Whether condition ``key`` holds, logging only its transitions; returns ``active``.
 
     A condition that persists (no forecast, no prices, a malformed option)

@@ -52,7 +52,7 @@ ARMS = {
 }
 
 #: The R10 sweep's static-only five (and the solver's per-failed-solve
-#: reports), each held over four passes and latched through ``log_latch._log_held``.
+#: reports), each held over four passes and latched through ``log_latch.log_held``.
 #: These exercise the production site directly rather than a full cycle, so the
 #: condition is held by construction.
 DIRECT = {

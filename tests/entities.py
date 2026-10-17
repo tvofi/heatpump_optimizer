@@ -36601,12 +36601,12 @@ def _r10_unlatched_logs(sources):
 
 #: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
 #: disposition (dev/audit/rounds/round10/sweep-N-log-flood.md) less the
-#: instances routed through ``log_latch._log_held``.
+#: instances routed through ``log_latch.log_held``.
 _R10_LOG_ALLOWED_BY_REASON = {
     "the latch itself, or latched by a guard the static rule cannot read "
     "(an outage counter, a transition notice, a once-per-attempt spacing, "
     "an lru_cache parsing an option once per distinct text)": {
-        ("log_latch.py", "_log_held"): 1, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("log_latch.py", "log_held"): 1, ("coordinator.py", "_tibber_fetch_failed"): 1,
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
@@ -36667,7 +36667,7 @@ _r10_log_planted = _r10_unlatched_logs({
 })
 R.check(
     "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
-    "with its exact count -- a persisting condition goes through _log_held",
+    "with its exact count -- a persisting condition goes through log_held",
     not _r10_log_verdict(_r10_log_found)
     # Non-vacuity: the enumerator read the whole package, not a stub. It drops
     # as sites get latched (74 unlatched before this PR's ten, 64 after).

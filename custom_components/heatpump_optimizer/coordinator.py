@@ -552,7 +552,7 @@ def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
 #: R10 N-log-flood (#2226): the transition latch lives in ``log_latch.py``, a
 #: leaf module, so the pump arbiter and the input reader can route a persisting
 #: condition through it without importing this module (which imports them all).
-from .log_latch import _log_held  # noqa: E402
+from .log_latch import log_held  # noqa: E402
 
 
 @functools.lru_cache(maxsize=8)
@@ -632,7 +632,7 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
     owns none of its state, and the failure branch it serves must stay one
     screen (#1644, D1-s4-02 moved its third caller into it).
     """
-    _log_held(coord, "solve_failure", True, "Optimization failed: %s", err)
+    log_held(coord, "solve_failure", True, "Optimization failed: %s", err)
     coord._solve_failures += 1
     if coord._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
         # Exactly-at, not at-or-above: the issue is idempotent to
@@ -6643,7 +6643,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 try:
                     return float(lat), float(lon)
                 except (TypeError, ValueError):
-                    _log_held(self, "solar_location", True,
+                    log_held(self, "solar_location", True,
                               "Ignoring malformed solar location %s", location)
 
         lat = getattr(self.hass.config, "latitude", None)
@@ -6659,7 +6659,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         location = self._solar_location()
-        _log_held(self, "solar_coordinate", location is None,
+        log_held(self, "solar_coordinate", location is None,
                   "Open-Meteo solar is selected but no coordinate is available; "
                   "set one in the integration options or configure the Home "
                   "Assistant home location")
@@ -6708,7 +6708,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         curve there used to let the optimizer run and report a savings figure
         that no price data supported, so the caller skips the run instead.
         """
-        if _log_held(self, "no_prices", not self._prices,
+        if log_held(self, "no_prices", not self._prices,
                      "No electricity price data available; skipping optimization "
                      "until prices can be fetched"):
             return None
@@ -6724,7 +6724,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # span. The known series stops at the first step no entry covers, and
         # the learned prior fills the rest below.
         known = self._known_prices_for(step_starts)
-        if _log_held(self, "prices_uncovered", not known,  # #239
+        if log_held(self, "prices_uncovered", not known,  # #239
                      "No published prices cover the planning horizon; skipping"):
             return None
 
@@ -6786,7 +6786,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         as soon as the forecast is stale or starts at the *next* hour, and
         the whole horizon then reads a few hours out of phase.
         """
-        if _log_held(self, "no_weather_forecast", not self._weather_forecast,
+        if log_held(self, "no_weather_forecast", not self._weather_forecast,
                      "No weather forecast available — using current conditions. "
                      "Predictive optimization will be limited."):
             return (
@@ -7317,7 +7317,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         kind = ctx._config.mixing_valve_write_target_kind
         if kind == mixing_valve.WRITE_TARGET_FLOW:
             if not params.two_zone_enabled:
-                _log_held(self, "valve_flow_needs_two_zone", True,
+                log_held(self, "valve_flow_needs_two_zone", True,
                           "mixing_valve_write_target_kind=flow needs two-zone")
                 return
             outdoor = ctx._current_state.outdoor_temperature
@@ -7330,7 +7330,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         try:
             if not await write_setpoint_c(self.hass, entity_id, target):
-                _log_held(
+                log_held(
                     self, "valve_write_entity_domain", True,
                     "Valve write entity %s is a %s; smart_write can command "
                     "number, input_number and climate entities",
@@ -7338,7 +7338,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 )
                 return
         except Exception as err:  # noqa: BLE001 - never break planning
-            _log_held(self, "valve_write_error", True,
+            log_held(self, "valve_write_error", True,
                       "Error commanding valve target: %s", err)
             return
         _LOGGER.info(

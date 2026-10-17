@@ -155,7 +155,7 @@ from .const import (
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .inputs import read_setpoint, setpoint_range_c, write_setpoint_c
-from .log_latch import _log_held
+from .log_latch import log_held
 from .payload import CurrentAction
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
@@ -429,7 +429,7 @@ def _space_target(
         # is the 25 degC this module must never write to a flow entity.
         # Latched on ``hass``, which outlives the per-pass ``ArbiterInputs``
         # snapshot, exactly as ``inputs._age_gate`` does.
-        _log_held(
+        log_held(
             inp.hass, "space_target_flow_declared", True,
             "Pump duty: %s is declared an indoor set-point but its minimum is "
             "%.1f degC; set its unit to Flow temperature. Not writing it.",

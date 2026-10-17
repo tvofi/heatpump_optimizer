@@ -64192,8 +64192,8 @@ _fd_latch_owner = _fd_coord()
 
 def _fd_latch_run():
     for active in (True, True, True, True, False, False, True):
-        _fd_cm._log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
-    _fd_cm._log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
+        _fd_cm.log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
+    _fd_cm.log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
 
 
 _fd_latch = _fd_logged(_fd_latch_run)
@@ -64278,7 +64278,7 @@ _fd_ownerless_errors = []
 def _fd_ownerless_run():
     for _ in range(4):
         try:
-            _fd_cm._log_held(
+            _fd_cm.log_held(
                 None, "ownerless_condition", True, "Probe %s", "ownerless")
         except Exception as err:  # noqa: BLE001 - the guard is what is probed
             _fd_ownerless_errors.append(f"{type(err).__name__}: {err}")
