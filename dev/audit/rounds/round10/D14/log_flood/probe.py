@@ -1,16 +1,22 @@
 """N-log-flood runtime probe: a persisting condition held over 4 real cycles.
 
-Per arm, counts each distinct WARNING/ERROR message (first 48 chars) the
-package logs over 4 _async_update_data cycles. A message logged 4 times
-under a condition that did not change is a flood (an instance); the control
-arm must print zero floods.
+Per arm, counts each distinct WARNING/ERROR message the package logs over 4
+``_async_update_data`` cycles, with runs of digits folded to one placeholder.
+A message logged 4 times under a condition that did not change is a flood (an
+instance); the control arm must print zero floods and the script exits 1 when
+any arm floods.
+
+The digit fold is what makes a varying WARNING visible: a site that renders a
+per-cycle age or failure count logs four different texts, so keying on the raw
+text reads each as a one-off and reports zero. Folding the numbers measures
+the condition, not the arithmetic (#2351 round 3).
 
     PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py [arm ...] [--perturb]
 
 --perturb re-introduces one line: _weather_fetch_failed's latch test is
 replaced by ``if True:`` in memory, so the stale-weather arm must move 1 -> 4.
 """
-import os, sys, asyncio, logging, collections
+import os, re, sys, asyncio, logging, collections
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -58,12 +64,15 @@ DIRECT = {
 }
 
 
+_DIGITS = re.compile(r"\d+")
+
+
 class Cap(logging.Handler):
     def __init__(self):
         super().__init__(logging.WARNING); self.c = collections.Counter()
     def emit(self, r):
         if "heatpump" in r.name:
-            self.c[r.getMessage()[:48]] += 1
+            self.c[_DIGITS.sub("#", r.getMessage())] += 1
 
 
 async def arm(name):
@@ -126,7 +135,16 @@ async def direct_arm(name):
         c._mode = const.MODE_AUTO
         c._current_action = {"heat_pump_on": True, "displace_value": 0.5}
         c._last_optimization = dt_util.now() - timedelta(minutes=400)
+        interval = c.effective_config.optimization_interval
         for _ in range(4):
+            # Production cadence, not a frozen snapshot: the next cycle runs
+            # one solve interval later (the stamp is fixed, so the age grows
+            # by ``interval``) and that cycle's failed solve increments the
+            # count the message renders. The round-2 arm advanced neither, so
+            # all four texts were identical and the latch's per-cycle WARNING
+            # was invisible (#2351 round 3).
+            c._last_optimization -= timedelta(minutes=interval)
+            cm._note_solve_failure(c, RuntimeError("probe solve failure"))
             await c._apply_action()
     elif name == "valve_mistyped":
         for _ in range(4):
@@ -154,11 +172,18 @@ async def direct_arm(name):
 
 async def main():
     names = [a for a in sys.argv[1:] if not a.startswith("--")] or list(ARMS) + list(DIRECT)
+    flooded = []
     for n in names:
         c = await (direct_arm(n) if n in DIRECT else arm(n))
         floods = {m: k for m, k in c.items() if k >= 4}
         print(f"RESULT {n}.floods={len(floods)} count")
         for m, k in sorted(c.items()):
             print(f"  {k}x {m}")
+        if floods:
+            flooded.append(n)
+    if flooded:
+        print(f"PROBE FAILED: {len(flooded)} arm(s) flood: {', '.join(flooded)}",
+              file=sys.stderr)
+        sys.exit(1)
 
 asyncio.run(main())

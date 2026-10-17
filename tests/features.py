@@ -64227,6 +64227,66 @@ R.check(
     repr(_fd_flood_counts),
 )
 
+# R10 round 3 (#2351): the stale-plan hold is reached only while stale, and
+# its text renders the age and the failed-solve count -- both advance every
+# cycle -- so no transition latch can hold it: a stable key would drop what the
+# line exists to report, and the latch's clear path never runs from a branch
+# taken only while stale. The per-cycle detail is DEBUG and the notifier's
+# EVENT_PLAN_STALE is the once-per-occurrence signal (the "UX-4 plan stale"
+# check above fires it once with the age and stays quiet on repeats).
+_fd_stale = _fd_coord()
+_fd_stale._mode = "auto"
+_fd_stale._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+_fd_stale_interval = _fd_stale.effective_config.optimization_interval
+
+
+def _fd_stale_run():
+    _fd_stale._last_optimization = _fd_dt.now() - timedelta(minutes=400)
+    for _ in range(4):
+        # Production cadence: the next cycle runs one solve interval later
+        # (the stamp is fixed, so the age grows) and that cycle's failed
+        # solve increments the count the message renders.
+        _fd_stale._last_optimization -= timedelta(minutes=_fd_stale_interval)
+        _fd_stale._solve_failures += 1
+        _fd_asyncio.run(_fd_stale._apply_action())
+
+
+_fd_stale_log = _fd_logged(_fd_stale_run)
+R.check(
+    "#2226/#2351: the stale-plan hold logs its advancing age and failure count "
+    "at DEBUG, so a persisting stale plan never warns every cycle",
+    _fd_stale_log.count("WARNING", "Plan is") == 0
+    # null control: the line still runs on every pass, so a deletion is not
+    # what read zero WARNINGs
+    and _fd_stale_log.count("DEBUG", "Plan is") == 4,
+    repr(_fd_stale_log.rows),
+)
+
+# The latch's precondition is a long-lived, weak-referenceable owner. A
+# snapshot built with ``hass=None`` (tests/features.py and tests/block_duty.py
+# both build ``ArbiterInputs`` that way) has none: it must log the condition
+# every call rather than raise into a cycle.
+_fd_ownerless_errors = []
+
+
+def _fd_ownerless_run():
+    for _ in range(4):
+        try:
+            _fd_cm._log_held(
+                None, "ownerless_condition", True, "Probe %s", "ownerless")
+        except Exception as err:  # noqa: BLE001 - the guard is what is probed
+            _fd_ownerless_errors.append(f"{type(err).__name__}: {err}")
+
+
+_fd_ownerless_log = _fd_logged(_fd_ownerless_run)
+R.check(
+    "#2351: a None owner is logged every call and never raises -- no stable "
+    "key means no transition to hold, not a cycle-ending exception",
+    not _fd_ownerless_errors
+    and _fd_ownerless_log.count("WARNING", "Probe ownerless") == 4,
+    f"errors={_fd_ownerless_errors!r} rows={_fd_ownerless_log.rows!r}",
+)
+
 # -- the consumers of an unknown price (#2229's distinct failure value) ------
 _fd_acc = _fd_coord()
 _fd_acc_before = dict(_fd_acc._energy_totals)

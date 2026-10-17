@@ -7376,13 +7376,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The action was cut from a plan whose horizon has slid out from
             # under it — its "cheap hour" may be the current peak. Stop
             # actuating, exactly as when no plan exists: the pump's own
-            # weather-compensated curve holds comfort until a solve succeeds.
-            # Fixed-rule modes (comfort/boost/off) carry no horizon and are
-            # unaffected.
-            _log_held(self, "stale_plan", True,
-                      "Plan is %.0f minutes old after %d failed solves; holding "
-                      "comfort on the pump's own curve instead of actuating it",
-                      self._plan_age_minutes() or 0.0, self._solve_failures)
+            # weather-compensated curve holds comfort until a solve succeeds;
+            # fixed-rule modes carry no horizon. DEBUG, not latched: age and
+            # failures change every cycle, so EVENT_PLAN_STALE announces it.
+            _LOGGER.debug("Plan is %.0f minutes old after %d failed solves; "
+                          "holding comfort on the pump's own curve instead of "
+                          "actuating it",
+                          self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
         # A cut-off holds the pump off for MIN_OFF across an early refresh.

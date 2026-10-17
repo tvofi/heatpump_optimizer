@@ -33,8 +33,20 @@ def _log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any)
     read four times a cycle. Now WARNING when it starts or its text changes,
     DEBUG while it holds, INFO when it clears: the outage latches'
     (``_tibber_fetch_failed``) shape, one helper instead of per-site counters.
+
+    ``owner`` is the object that outlives the call and carries the transition
+    -- the coordinator for its own sites, ``hass`` for the pump arbiter and the
+    input reader. It must be weak-referenceable; a snapshot built without its
+    ``hass`` is not, and is logged every call rather than raising into a cycle.
     """
-    held = _HELD_CONDITIONS.setdefault(owner, {})
+    try:
+        held = _HELD_CONDITIONS.setdefault(owner, {})
+    except TypeError:
+        # No long-lived owner to hold state against: an ``ArbiterInputs``
+        # snapshot built with ``hass=None``, or a non-weak-referenceable
+        # value. A throwaway dict makes the call below log the condition and
+        # hold nothing, which is the only honest outcome without a stable key.
+        held = {}
     if not active:
         if held.pop(key, None) is not None:
             _LOGGER.info("Resolved: %s", key.replace("_", " "))
