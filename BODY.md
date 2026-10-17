@@ -173,10 +173,24 @@ tests/plan_view.py`, except where the merge base is named.
   adds no production line.
 - `ALL 16 ARCHITECTURE SCORE HEAD CHECKS PASSED` -- `python3
   tests/arch_score_head.py`.
+- `wave-script  186 passed, 0 failed` against this head in the worktree --
+  `bash tools/pr/prepr.sh <body.md> 2317` (its `wave-script` step; the same check
+  is red at the pull-request head for the row, `## Red checks` above).
 
 ## Red checks
 
-`none`.
+- **`wave-script`** (the governance job that drives
+  `tools/policy/check-wave-script.mjs`): red on this head because
+  `dev/programme/delivery/2345.md` does not exist yet. That row is the
+  orchestrator's and is written off the code head by the opener, after the body
+  contract passes, so no author head carries it (`delivery-status-tracking.md`),
+  and the red is the row's absence rather than this diff. Cheaper detector, and
+  it exists: the row write itself, one local step of seconds, with its own
+  refusal arm -- `bus.sh dispatch` refuses a head that carries no
+  `dev/programme/delivery/<pr>.md` -- against the governance job's queue-time
+  run, so nothing is owed above it. Against this worktree the same check prints
+  `wave-script 186 passed, 0 failed` (`prepr`'s own step), because the absent row
+  is a property of the pull request, not of the tree.
 
 ## Forward-carry
 
