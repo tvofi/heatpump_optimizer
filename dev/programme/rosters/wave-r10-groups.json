@@ -632,7 +632,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chains: coordinator.py (position 2 of 25; before you: R10-FAHRENHEIT; next: R10-FEEDS, R10-RATIO-SITES); optimizer.py (position 1 of 4; before you: none; next: R10-LEAF-IMPORTS, R10-SAV-REASONS). Owning seams in this group: the peak-day keyword arguments in optimizer.py, and `_roll_month`'s monthly booking in coordinator.py (the #2230 fix) and nothing else in coordinator.py. Shape: one billing record. Touch only the owning seams named here; a hunk outside them is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "done: merged #2282",
+    "stage": "done",
     "branch": "handoff/r10-tariff",
     "commit": "4c01a3dc2ba7420cd60bfbf798be9198e883ef74",
     "last_step": null,
