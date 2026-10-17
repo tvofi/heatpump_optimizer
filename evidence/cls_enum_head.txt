@@ -1,0 +1,51 @@
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
+PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+PASS the cited-program arm follows a path literal through every open shape the two fix reviews 
+PASS every carry and every policy file this arm reads for citations selects this script, so a b
+READS   one-hop name
+READS   two-hop alias
+READS   two-hop alias via join
+READS   pathlib / in open
+READS   pathlib / then read_text
+READS   pathlib / via name then read_text
+READS   f-string root prefix
+READS   f-string bare
+READS   dict value then subscript
+READS   tuple-unpack assign
+READS   annotated assign
+READS   str concat
+READS   read via json.loads(Path.read_text)
+READS   three-hop alias
+READS   chained assign
+READS   walrus bind
+READS   for-target bind
+READS   func-param default
+READS   list index
+READS   tuple index
+READS   dict key by name
+ESCAPES attr bind (ns)
+READS   augassign
+READS   percent-format
+READS   pathlib joinpath
+READS   conditional expr
+READS   os.path.join first arg
+READS   Path receiver .open()
+READS   named receiver .open()
+READS   named receiver .read_bytes()
+READS   receiver .open() in with
+READS   star-unpack
+ESCAPES global-in-func
+READS   nested f-string attr
+NULL held-literal (must be READS=False): False
+ESCAPE_COUNT 2 OF 34
+ESCAPES ['attr bind (ns)', 'global-in-func']
+ARM PASS [True, True, True, True]

@@ -1,0 +1,28 @@
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
+PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+PASS the cited-program arm follows a path literal through every open shape the two fix reviews 
+PASS every carry and every policy file this arm reads for citations selects this script, so a b
+READS   for-target (fixed r2)
+READS   walrus (fixed r2)
+READS   .open() receiver (fixed r2)
+ESCAPES class attr, read as C.P
+ESCAPES class attr, read via instance
+ESCAPES self.attr set in __init__, read in another method
+READS   self.attr set and read in the SAME method
+ESCAPES global set in a function, read at module level
+ESCAPES global set in a function, read in ANOTHER function
+ESCAPES nonlocal in a nested function
+READS   module constant read through a function
+NULL held-literal (must be False): False
+ESCAPE_COUNT 6 OF 11
+ESCAPES ['class attr, read as C.P', 'class attr, read via instance', 'self.attr set in __init__, read in another method', 'global set in a function, read at module level', 'global set in a function, read in ANOTHER function', 'nonlocal in a nested function']
+ARM PASS [True, True, True, True]

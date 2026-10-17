@@ -1,0 +1,5 @@
+V1 from/control/brief, executable ext      15
+V2 from/control/brief, any extension       30
+V3 all string fields, executable ext       15
+V4 all string fields, any extension        30
+V5 all string fields, any path token       30

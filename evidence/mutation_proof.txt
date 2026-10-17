@@ -1,0 +1,43 @@
+===== M0 null run (unmodified round-2 head)
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  PASS the cited-program arm follows a path literal through every open shape the two fix reviews 
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM PASS [True, True, True, True]
+===== M1 _sp_reach stops following a bound name
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  FAIL the cited-program arm: a cited harness that runs passes, a planted opened stale path and a :: units.py faults []; codeowners_gap holds 4 stale literal(s), opens-faults []
+  FAIL the cited-program arm follows a path literal through every open shape the two fix reviews  :: shapes that still escape ['annotated assign', 'augmented assign', 'dict value then subscrip
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, False, False, True]
+===== M2 _SP_READS dropped from the open-site test
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  FAIL the cited-program arm follows a path literal through every open shape the two fix reviews  :: shapes that still escape ['pathlib / then read_text', 'pathlib / via a name then read_text'
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, True, False, True]
+===== M3 f-string strip removed
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  FAIL the cited-program arm follows a path literal through every open shape the two fix reviews  :: shapes that still escape ['f-string root prefix']; no longer read as opens []
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, True, False, True]
+===== M4 receiver branch removed
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  FAIL the cited-program arm follows a path literal through every open shape the two fix reviews  :: shapes that still escape ['pathlib / then open', 'pathlib / then read_text', 'pathlib / via
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, True, False, True]
+===== M5 for-target binding removed
+  PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
+  PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+  FAIL the cited-program arm follows a path literal through every open shape the two fix reviews  :: shapes that still escape ['for over a list', 'for target', 'for tuple target']; no longer r
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [True, True, False, True]
+===== M6 scope chain replaced by one flat map
+  FAIL every program live policy or a carry's remeasure tells a seat to run, under a historical p :: policy files 41, carries 8, cited 5 (floors: an arm that finds nothing is not a pass); faul
+  FAIL the cited-program arm: a cited harness that runs passes, a planted opened stale path and a :: units.py faults []; codeowners_gap holds 4 stale literal(s), opens-faults ["dev/audit/round
+  PASS the cited-program arm follows a path literal through every open shape the two fix reviews 
+  PASS every carry and every policy file this arm reads for citations selects this script, so a b
+  ARM FAIL [False, False, True, True]
+restored; git status: (clean)
