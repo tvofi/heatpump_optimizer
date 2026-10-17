@@ -157,7 +157,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 3 of 25; before you: R10-FAHRENHEIT, R10-TARIFF; next: R10-RATIO-SITES, R10-VENT-DETECTOR). Owning seam in this group: the price and weather ingest methods named above. Shape: an age-bounded last-known holder plus a distinct failure value; no new coordinator attributes beyond one holder (coordinator_attrs is at zero headroom). Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-review: #2336 (mutation-autofix awaited; delivery row owed)",
+    "stage": "done: merged #2336",
     "branch": "handoff/r10-feeds",
     "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
