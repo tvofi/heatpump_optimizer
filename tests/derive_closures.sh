@@ -107,11 +107,36 @@ if [ -z "$SINGLE" ] && [ -z "$SCRIPTS_FROM" ]; then
     rm -rf "$FULL_DIR"; exit 2; }
   SCRIPTS_FROM="$FULL_DIR/scripts.txt"
 fi
+OUTDIR_MADE=0
 if [ -z "$OUTDIR" ]; then
   OUTDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-closure-XXXXXX")
-  trap 'rm -rf "$OUTDIR"' EXIT
+  OUTDIR_MADE=1
 fi
 mkdir -p "$OUTDIR"
+
+# --- the heavy-slot lease (R10-PREPR-CAP, #2267). ---------------------------
+# A derive is minutes of CPU at four lanes, so it is the minutes side of
+# gate-scoping.md's rule and joins the four slots -- but only STANDALONE: two
+# seats each taking a slot and then four lanes inside it would stack to eight,
+# which is the load this pool exists to bound. A derive a prepr already holds a
+# slot for ($HPO_SLOT_LABEL, exported by prepr.sh step 1b) records inside that
+# slot and takes nothing. Released on any exit the shell sees; the orphan-steal
+# in gate_lock.py covers a SIGKILL once this process is gone (`--owner-pid`).
+DERIVE_SLOT=""
+if [ -n "${HPO_SLOT_LABEL:-}" ]; then
+  echo "  heavy slot: joined $HPO_SLOT_LABEL (already inside a slot)"
+elif MSG=$($PYTHON tests/gate_lock.py slot-take --label "derive-$$" --owner-pid $$ 2>&1); then
+  DERIVE_SLOT="derive-$$"
+  export HPO_SLOT_LABEL="$DERIVE_SLOT"
+  echo "  heavy slot: $(printf '%s' "$MSG" | tail -1)"
+else
+  echo "  heavy slot: WARN $MSG -- running with the cap unenforced" >&2
+fi
+derive_cleanup() {
+  [ "$OUTDIR_MADE" = 0 ] || rm -rf "$OUTDIR"
+  [ -z "$DERIVE_SLOT" ] || $PYTHON tests/gate_lock.py slot-release --label "$DERIVE_SLOT" >/dev/null 2>&1 || true
+}
+trap derive_cleanup EXIT
 
 rec() {
   local script="$1"; shift
