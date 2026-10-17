@@ -1560,7 +1560,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("thermal_model", "Thermal model (expert)", _ADVANCED),
     _P("thermal_model_zones", "Two-zone model", _ADVANCED),
     _P("hot_water_tank", "Hot water tank and inlet", _ADVANCED),
-    _P("hot_water_pumps", "Circulation pumps", _ADVANCED),
+    _P("hot_water_pumps", "Hot water circulation", _ADVANCED),
     _P("solar_pv", "Solar panels", _ADVANCED),
     _P("learning", "Self-learning and diagnostics", _ADVANCED),
     _P("learning_features", "Advanced learning features", _ADVANCED),

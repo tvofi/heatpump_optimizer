@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:forecast_outdoor_now GUARD_OFF d71aac2a",
+  "killed_by": "tests/features.py",
+  "old": "        if index is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0570b86e9351dfeda88d630093cfe4d442a6d664: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

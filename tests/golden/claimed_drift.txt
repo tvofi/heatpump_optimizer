@@ -658,4 +658,13 @@
 # R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below
 # is space_reasons or dhw_reasons. No value leaf moves.
 
-
+# R10-UX-SETUP (fix/r10-ux-setup, #2222's hot_water_pumps label). ONE leaf of
+# ONE fixture moves, and it is not a plan, a schedule or a solver value:
+#   config_flow._menu.advanced[8][1]: 'Circulation pumps' -> 'Hot water
+#   circulation' -- the options menu's label for the hot_water_pumps page,
+#   corrected in config_flow._OPTION_PAGES to the name the integration's own
+#   translations already carry (en.json, sv.json and strings.json all say
+#   "Hot water circulation"), which is what the menu now renders.
+# Direction: the label only; the step key, the page's fields and every other
+# menu entry are unmoved, and no value leaf moves anywhere.
+config_flow # R10-UX-SETUP: the hot_water_pumps menu label, 'Circulation pumps' -> 'Hot water circulation', to the name the flow's own translations carry
