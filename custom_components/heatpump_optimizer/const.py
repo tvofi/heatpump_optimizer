@@ -962,14 +962,15 @@ VENT_CUSUM_CLIP_C: Final = VENT_CUSUM_THRESHOLD_C / 2.0
 #: heat-loss learner needs indoor−outdoor ≥ 6 °C), and a latch nothing
 #: can feed would otherwise freeze every learner indefinitely.
 VENT_CUSUM_STARVE_HOURS: Final = 6.0
-#: #2241: time constant of the level the ventilation CUSUM measures from.
-#: The detector folds the residual's departure from its own persistent
-#: level, so a model bias the learners have not yet removed (a steady cold
-#: residual) accumulates nothing and only a change does. The level must
-#: hold across the longest window an occupant leaves open (overnight,
-#: 8-12 h: a 24 h constant absorbs under 40 % of it in 12 h) while still
-#: following a bias that persists for days, which the heat-loss learner
-#: itself takes days to remove.
+#: #2241: time constant of the reference the ventilation CUSUM measures
+#: from. The detector folds the residual's departure from what it normally
+#: reads -- a level plus a slope on the interval's space-heating energy,
+#: fitted over this horizon -- so a model bias the learners have not yet
+#: removed (a steady cold residual, or one scaling with the heat put in, as
+#: a meter or COP error does) accumulates nothing and only a change does.
+#: The fit must hold across the longest window an occupant leaves open
+#: (overnight, 8-12 h) while still following a bias that persists for days,
+#: which the heat-loss learner itself takes days to remove.
 VENT_CUSUM_REFERENCE_HOURS: Final = 24.0
 
 # T4b — weather inputs (#21 #30). The humidity feed ships ungated: with no

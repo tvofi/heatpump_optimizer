@@ -2776,7 +2776,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         relaxation, the DHW margin nudge) is gated behind its own flag.
         """
         # #26: an open window shows as a sustained cold CHANGE in the heat-loss
-        # replay residual, measured from its own level (#2241), not from zero.
+        # replay residual, measured from what it normally reads (#2241).
         self._vent_cusum = Cusum(
             threshold=VENT_CUSUM_THRESHOLD_C,
             drift=VENT_CUSUM_DRIFT_C,
@@ -5144,10 +5144,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # #26: an open window shows as SUSTAINED colder-than-predicted
         # residuals — often exactly the large ones the guard below throws
-        # away, which is why the detector is fed first (it clips, so one
-        # glitch cannot trip it alone). On a trip every learner freezes
-        # with reason "ventilation" until the residuals recover.
-        vent_changed = self._vent_cusum.update(now, float(residual))
+        # away, which is why it is fed first, with the interval's heat
+        # input: a delivery bias scales with it, a window does not (#2241).
+        # On a trip every learner freezes ("ventilation") until it recovers.
+        vent_changed = self._vent_cusum.update(now, float(residual), previous_power * dt_h)
         if vent_changed:
             _LOGGER.info(
                 "Open-window detector %s (stat %.2f)",

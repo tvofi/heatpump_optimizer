@@ -16911,13 +16911,13 @@ _feed_residual(_cb, -0.4, 40, _T4)
 R.check(
     "a steady cold residual from the first sample on is a bias, not a window",
     not _cb._vent_cusum.tripped and _cb._learning_frozen() is None,
-    f"stat {_cb._vent_cusum.stat:.2f}, level {_cb._vent_cusum.reference}",
+    f"stat {_cb._vent_cusum.stat:.2f}, reference {getattr(_cb._vent_cusum, 'reference', None)}",
 )
 _feed_residual(_cb, -1.0, 4, _T4 + timedelta(days=1))
 R.check(
     "and a window opening on top of that bias still trips",
     _cb._vent_cusum.tripped and _cb._learning_frozen() == "ventilation",
-    f"stat {_cb._vent_cusum.stat:.2f}, level {_cb._vent_cusum.reference}",
+    f"stat {_cb._vent_cusum.stat:.2f}, reference {getattr(_cb._vent_cusum, 'reference', None)}",
 )
 _cl = _vent_coord()
 _cl._vent_cusum.load(
@@ -16933,28 +16933,32 @@ R.check(
 _cg1 = _vent_coord()
 _feed_residual(_cg1, [-10.0] + [0.0] * 6, 7, _T4)
 R.check(
-    "a glitch on the very first sample seeds the level clipped, not raw",
-    abs(_cg1._vent_cusum.reference) < VENT_CUSUM_CLIP_C,
-    f"level {_cg1._vent_cusum.reference}: a raw -10 seed would need "
+    "a glitch on the very first sample seeds the reference clipped, not raw",
+    abs(_cg1._vent_cusum.reference[0]) < VENT_CUSUM_CLIP_C,
+    f"reference {_cg1._vent_cusum.reference}: a raw -10 seed would need "
     "thousands of samples to climb back, blinding the detector",
 )
 _cr = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
 _cr.load(_cb._vent_cusum.as_dict())
 R.check(
-    "the level survives a store round trip",
+    "the reference survives a store round trip",
     _cr.reference is not None
-    and abs(_cr.reference - _cb._vent_cusum.reference) < 1e-3
-    and _cr.reference_n == _cb._vent_cusum.reference_n,
+    and all(abs(a - b) < 1e-5 for a, b in zip(_cr.reference, _cb._vent_cusum.reference))
+    and all(
+        abs(a - b) < 1e-8
+        for a, b in zip(_cr.reference_cov, _cb._vent_cusum.reference_cov)
+    ),
 )
-_cr.load({"stat": 0.0, "reference": True, "reference_n": 5})
+_cov = [0.5, 0.0, 0.5]
+_cr.load({"stat": 0.0, "reference": [True, 0.0], "reference_cov": _cov})
 _cr2 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
-_cr2.load({"stat": 0.0, "reference": float("nan"), "reference_n": 5})
+_cr2.load({"stat": 0.0, "reference": [float("nan"), 0.0], "reference_cov": _cov})
 _cr3 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
-_cr3.load({"stat": 0.0, "reference": -0.3, "reference_n": 0})
+_cr3.load({"stat": 0.0, "reference": [-0.3, 0.0], "reference_cov": [0.5, 0.9, 0.5]})
 R.check(
-    "a corrupt level loads as none, to be re-seeded, never as a number",
+    "a corrupt reference loads as none, to be re-seeded, never as a number",
     _cr.reference is None and _cr2.reference is None and _cr3.reference is None,
-    "a bool, a NaN and a level with no samples behind it",
+    "a bool, a NaN, and a covariance no fit can have (not positive definite)",
 )
 
 # --- #193 S7: one bounded Newton step behind both heat-loss learners ---------
@@ -58696,28 +58700,35 @@ R.check(
     "_vent_cusum" in _r10p5_cusums and _r10p5_cusums == sorted(_r10p5_gated),
     f"gated {sorted(_r10p5_gated)}, CUSUMs {_r10p5_cusums}",
 )
+# Two bias shapes: steady, and scaling with the interval's heat input (a
+# meter or COP error under an on/off schedule: 4 h at 1.5 kWh per interval,
+# 4 h off), the same mean. Two days of each, then the window.
 _r10p5_biases = (0.1, 0.4, _r10p5_cmod.HOUSE_LOSS_MAX_RESIDUAL)
+_r10p5_on = [1.5 if (_i // 16) % 2 == 0 else 0.0 for _i in range(192)]
 _r10p5_rows = []
 for _r10p5_name in _r10p5_cusums:
     for _r10p5_bias in _r10p5_biases:
-        _r10p5_trips = []
-        for _r10p5_extra in ((), (-0.5,) * 4):
-            _r10p5_det = getattr(_vent_coord(), _r10p5_name)
-            for _i, _r in enumerate([0.0] * 96 + list(_r10p5_extra)):
-                _r10p5_det.update(
-                    _T4 + timedelta(minutes=15 * _i), -_r10p5_bias + _r
-                )
-            _r10p5_trips.append(_r10p5_det.tripped)
-        _r10p5_rows.append((
-            _r10p5_name, _r10p5_bias,
-            getattr(_r10p5_coord, _r10p5_name).reference_hours is not None,
-            *_r10p5_trips,
-        ))
+        for _r10p5_shape in ("steady", "power-scaled"):
+            _r10p5_trips = []
+            for _r10p5_extra in ((), (-0.5,) * 4):
+                _r10p5_det = getattr(_vent_coord(), _r10p5_name)
+                for _i, _x in enumerate(_r10p5_on + [1.5] * len(_r10p5_extra)):
+                    _r = -_r10p5_bias * (_x / 0.75 if _r10p5_shape != "steady" else 1.0)
+                    if _i >= len(_r10p5_on):
+                        _r += _r10p5_extra[_i - len(_r10p5_on)]
+                    _r10p5_det.update(_T4 + timedelta(minutes=15 * _i), _r, _x)
+                _r10p5_trips.append(_r10p5_det.tripped)
+            _r10p5_rows.append((
+                _r10p5_name, _r10p5_bias, _r10p5_shape,
+                getattr(_r10p5_coord, _r10p5_name).reference_hours is not None,
+                *_r10p5_trips,
+            ))
 R.check(
-    "R10-P5: each measures from a tracked level; a steady bias up to the "
-    "learner's rejection never trips it, and a window on top of it does",
+    "R10-P5: each measures from a tracked reference; a bias up to the "
+    "learner's rejection, steady or scaling with the heat put in, never "
+    "trips it, and a window on top of it does",
     bool(_r10p5_rows)
-    and all(ref and not bias and window for _, _, ref, bias, window in _r10p5_rows),
+    and all(ref and not bias and window for _, _, _, ref, bias, window in _r10p5_rows),
     _r10p5_rows,
 )
 
