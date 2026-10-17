@@ -4205,7 +4205,7 @@
       "parts_missing": [],
       "process_state": "(d) the stage step was sound when written on 2026-10-01 (a push restored under its own never-hitting key, so the destination never existed); a99be2532 on 2026-10-13 keyed the push restore to HEAD^1 and removed the `if: github.event_name != 'push'` guard while leaving the step untouched, so cp -R nested into the restored directory",
       "countermeasure": "rm -rf the staging destination before the copy; move the cache key coverage-per-v1 -> v2 to invalidate the poisoned chain; tests/entities.py _cov_stage_entry drives the trusted-restore and miss shapes, red on the defect and green once fixed (0.123 s/run; 308 s per occurrence against 2.3 s per release)",
-      "landed": "fix/r10-coverage-cache-stage-pr (countermeasure PR)",
+      "landed": "the countermeasure PR (handoff/r10-coverage-cache-stage)",
       "in_tree_home": "dev/audit/rca/R10-RCA-coverage-cache-stage.md",
       "doc": [
         "dev/audit/rca/R10-RCA-coverage-cache-stage.md"

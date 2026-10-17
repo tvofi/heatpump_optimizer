@@ -1,8 +1,19 @@
 # RCA: the coverage cache stages the parent's data under the child's marker
 
-Seat: round-10 root-cause, class `N-cache-stage-nests`. This seat fixes nothing;
-the countermeasure is its own pull request. Tree: `b254b5b069c2` (`origin/main`,
-2026-10-17), worktree `/private/tmp/rca-coverage-base-reuse/fix`.
+Seat: round-10 root-cause, class `N-cache-stage-nests`. The cause was measured
+at tree `b254b5b069c2` (`origin/main`, 2026-10-17); the countermeasure lands in
+the same pull request as this record.
+
+**Relation to `R10-RCA-coverage-base-reuse.md` (#2349).** That record traced the
+same reds to reuse that never consults the floor, landed a floor re-validation
+backstop in `tools/coverage/coverage_tree.sh`, and left open "the exact
+mechanism by which the reused per-script data fails to reproduce the base's own
+green measurement". This record is that mechanism: the base data is not the
+base's. The backstop stays and is not superseded — it is the floor-side guard —
+but it is blind in two places this fix closes: a stale base that grades
+**above** the floor passes the backstop and the ratchet alike, and every stale
+base that grades below it now costs a full re-measure of every script instead of
+a red.
 
 Instances: #2320 (`8833a1d9a`), #2342 (`e10481396`), #2343/#2348 (`e3f2468c6`,
 `0759c90ec`), and `main` at `b254b5b06` (required `coverage-ratchet` red,
@@ -172,8 +183,16 @@ Addresses (d):
    to remember it.
 2. **Invalidate the poisoned chain.** The cache key version moves
    `coverage-per-v1` → `coverage-per-v2`. Without it the first post-fix push
-   would still reuse its parent's stale scripts through `out/per`, and the
-   current main red would persist until some other key input changed. A new
+   would still reuse its parent's stale scripts through `out/per`. (#2349
+   changed `tools/coverage/coverage_tree.sh`, a `hashFiles` input, so its own
+   push missed once and re-seeded from a full measurement; the next pushes
+   hit and nested again — `33e0ee4a2` (job 117436564587) restored
+   `1138a4ef5`'s entry, printed `trusted=true` and
+   `MODE: SCOPED -- 0 script(s) run, 33 scoped out`, and `9804c7700`
+   (job 117458468301) restored `33e0ee4a2`'s and ran 16 scripts whose fresh
+   data its save then nested under `per/`. So the chain since #2349 is again
+   frozen at its last miss; it reads green only while the frozen data still
+   clears the floor.) A new
    version makes the next push and every pull request miss once, measure every
    script, and re-seed a correct entry; the measured correct values above
    (98.61 %) show the floor is met.
