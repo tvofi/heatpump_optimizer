@@ -1139,5 +1139,41 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "NULL"
+ },
+ "rt_32_layer_parent_ns_alias": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_33_layer_parent_ns_from": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_34_layer_parent_ns_from_alias": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_35_layer_parent_ns_plain": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_36_layer_getattr_chain": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_37_layer_module_const_name": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  }
 }
