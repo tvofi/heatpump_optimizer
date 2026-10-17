@@ -2978,9 +2978,19 @@ class HeatPumpOptimizer:
 
         # If lots of solar is coming in 6-12h, reduce current heating
         # The slab has enough thermal mass to coast through to solar period
-        typical_heat_loss = (  # the learned scale too, as the dynamics (D2-s2-01)
-            self.model.params.heat_loss_coefficient
-            * self.model.params.house_heat_loss_scale
+        p = self.model.params
+        if p.two_zone_enabled:
+            # The learned lower-floor split too (#2239), as the learned scale
+            # (D2-s2-01) and the dynamics: this prices the whole house, so a
+            # two-zone total read from the configured `heat_loss_coefficient`
+            # alone sits below the model's effective UA by the split once the
+            # learner has left ratio 1.
+            u_house = p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned
+        else:
+            u_house = p.heat_loss_coefficient
+        typical_heat_loss = (
+            u_house
+            * p.house_heat_loss_scale
             * (self.config.target_temp - np.mean(outdoor_temps))
         )
         if typical_heat_loss > 0:
