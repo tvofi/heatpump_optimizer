@@ -80,6 +80,12 @@ into. A file with a site and no entry, a `guarded` entry that does not call this
 module, and an entry whose file has no site are each refused, so the registry
 cannot rot into an exemption.
 
+CONTENT. `--check` also judges every line a diff adds to a tracked file since
+the merge base with origin/main, with the classes above (round 4: the records
+under dev/ had published the home path 955 times). A line the same diff
+removes elsewhere is a move and is not charged; main's stock is not charged.
+`scrub --write <file>...` is the remedy: this host's spans, rewritten in place.
+
 WHAT IT DOES NOT CATCH. A push built across lines whose `push` line opens
 with neither a push option, `origin` nor a variable; a `gh api` ref write
 whose path and field sit on different lines; a commit written through the
@@ -87,8 +93,10 @@ Contents API (`gh api .../contents/<path>` with a `message` field), whose
 message the guard never sees; a push through another wrapper
 name or a git variable not named GIT; a guarded
 file that gains a second, unguarded push (the registry is keyed on the file:
-review owns the site); file CONTENT a push publishes (the guard reads ref names,
-messages and commit identities only); text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
+review owns the site); file content a push publishes outside a tracked diff --
+a bus ref's evidence tree, a handoff body -- (the guard reads ref names,
+messages and commit identities; CONTENT reads tracked diffs); on a runner, an
+account name standing alone, since a runner knows only its own; text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
 and another machine's account name, unless it sits in a `/Users/`, `/home/` or
 `Users-` shape.
 """
