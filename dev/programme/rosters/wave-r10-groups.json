@@ -2132,7 +2132,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done (#2284 merged 8747bbfc4; #2219 closed)",
+    "stage": "done",
     "branch": "handoff/r10-i1",
     "commit": "8747bbfc4d4628fa8419634792229fd15dcc21e2",
     "last_step": null,
