@@ -39,7 +39,7 @@ and refuses one it has not classified.
 
 ## Head
 
-`9234984e3`, the code head every figure below was taken at, against the merge
+`c4304bb1f`, the code head every figure below was taken at, against the merge
 base `92accb2cf` (`origin/main`'s tip was `d7b171229` at 2026-10-16 23:31 UTC;
 no figure here is a function of main's tip). `thermal_model.py` is
 byte-identical at `92accb2cf` and at the findings' own baselines `554e2ecfa` and
