@@ -56,7 +56,7 @@ class CurrentAction(TypedDict, total=False):
     lower_setpoint: float
     displace_value: float
     heat_pump_on: bool
-    price: float
+    price: float | None
     valve_target: float
     solar_gain_kw: float
     baseline_kw: float
@@ -698,7 +698,7 @@ class MeasurementView(TypedDict, total=False):
 
 
 class GridView(TypedDict, total=False):
-    current_price: float
+    current_price: float | None
     prices_available: int
     weather_forecast_available: int
     outdoor_forecast_temperature: float | None
