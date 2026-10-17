@@ -1,0 +1,6 @@
+RESULT plant price_model_public_inputs verdict=IMPROVES dS=+0.4150 moved={'layer_violations': '3->2'}
+RESULT plant disinfection_public_inputs verdict=IMPROVES dS=+0.4150 moved={'layer_violations': '3->2'}
+RESULT plant silent_mode_public_leaf_MECHANISM_ONLY verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT plant CONTROL_price_model_desc_plain verdict=NULL dS=+0.0000 moved={}
+RESULT plant CONTROL_price_model_desc_from verdict=NULL dS=+0.0000 moved={}
+RESULT plant price_model_public_inputs verdict=IMPROVES dS=+0.4150 moved={'layer_violations': '3->2'}

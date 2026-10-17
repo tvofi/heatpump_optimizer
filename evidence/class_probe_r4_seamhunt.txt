@@ -1,0 +1,7 @@
+RESULT spelling U1_ancestor_public_read verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling U2_fn_local_const_name verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling U4_annassign_const_name verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling U16_getattr_const_name_rel verdict=WORSENS dS=+0.1699 moved={'private_cross_module': '8->7', 'reflective_writes': '16->17', 'computed_attr_access': '31->32'}
+RESULT spelling U17_getattr_const_name_anc verdict=WORSENS dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7', 'reflective_writes': '16->17', 'computed_attr_access': '31->32'}
+RESULT spelling U12_dunder5arg_level verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
+RESULT spelling U19_ancestor_getattr_const_control verdict=WORSENS dS=-0.3219 moved={'layer_violations': '3->4', 'reflective_writes': '16->17'}

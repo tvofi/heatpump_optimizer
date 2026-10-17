@@ -34,6 +34,11 @@ def _edit(import_stmt: str, callee: str):
     return go
 
 
+def _raw(fn):
+    """A spelling written directly as a function of the source."""
+    return fn
+
+
 def _prepend(text: str, import_stmt: str, callee: str):
     """As _edit, plus TEXT inserted before the import statement (a module-level constant)."""
     def go(src: str) -> str:
@@ -78,6 +83,20 @@ SPELLINGS: dict = {
     "T3_import_parent_plain": _edit("import custom_components\n", "custom_components.heatpump_optimizer.optimizer." + CALL),
     "T4_relative_module_noalias": _edit("from . import optimizer\n", "optimizer." + CALL),
     "T5_getattr_parent_chain": _edit("import custom_components as _cc\n", 'getattr(getattr(_cc, "heatpump_optimizer"), "optimizer").' + CALL),
+    # --- round-4 seam hunt ---
+    "U1_ancestor_public_read": _edit("import custom_components as _cc\n", "_cc.heatpump_optimizer.optimizer.some_public_name("),
+    "U2_fn_local_const_name": _raw(lambda src: src.replace(ORIG, "import importlib\n").replace(
+        "    if fraction >= 1.0", '    _M = ".optimizer"\n    if fraction >= 1.0', 1).replace(
+        "_utc_step_starts(", 'importlib.import_module(_M, __package__)._utc_step_starts(')),
+    "U4_annassign_const_name": _prepend('_MOD: str = ".optimizer"\n', "import importlib\n",
+        'importlib.import_module(_MOD, __package__)._utc_step_starts('),
+    "U16_getattr_const_name_rel": _prepend('_NAME = "_utc_step_starts"\n', "from . import optimizer as _o\n",
+        'getattr(_o, _NAME)('),
+    "U17_getattr_const_name_anc": _prepend('_NAME = "_utc_step_starts"\n', "import custom_components as _cc\n",
+        'getattr(_cc.heatpump_optimizer.optimizer, _NAME)('),
+    "U12_dunder5arg_level": _edit("", '__import__(".optimizer", globals(), locals(), ["_utc_step_starts"], 1)._utc_step_starts('),
+    "U19_ancestor_getattr_const_control": _edit("from custom_components import heatpump_optimizer as _p\n",
+        'getattr(_p.optimizer, "_utc_step_starts")('),
     "S14_from_dot_optimizer_f": _edit("from .optimizer import _utc_step_starts as _f\n", "_f("),
 }
 
