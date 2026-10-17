@@ -1,7 +1,7 @@
 {
  "archscore._inlined_bases": 0,
  "archscore.card_clone_copies": 108,
- "archscore.card_dead_definitions": 1,
+ "archscore.card_dead_definitions": 0,
  "archscore.computed_attr_access": 32,
  "archscore.coord_footprint": 2592,
  "archscore.coordinator_multiassigned_attrs": 120,
@@ -23,8 +23,8 @@
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 4): archscore.literal_clone_copies 184, archscore.card_dead_definitions 1 and archscore.card_clone_copies 108, the three keys the literal-clone and card metrics add to the score vector, recorded at the values ci_ratchet.archscore_metrics() derives at 4ccb3da9a; a derived key with no row is refused as growth. No existing row moves. Previous: part 3's new rows (layer_violations 22, private_cross_module 17, unused_boundary_imports 1) and part 2's hub_solve_writes 38 -> 41 (mandate 6175172275).",
- "recorded_at": "9d94f8fe763ebba005b37c00148f4367879907c8",
+ "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 4): archscore.literal_clone_copies 184, archscore.card_dead_definitions 0 and archscore.card_clone_copies 108, the three keys the literal-clone and card metrics add to the score vector, recorded at the values card.measure and literal_clones.measure derive at 4b17a5419 (origin/main 6e5753a4a merged; R10-UX-SETUP #2346 gave D7-s3-02's textWidth its callers, so card_dead_definitions reads 0); a derived key with no row is refused as growth. No existing row moves. Previous: part 3's new rows (layer_violations 22, private_cross_module 17, unused_boundary_imports 1) and part 2's hub_solve_writes 38 -> 41 (mandate 6175172275).",
+ "recorded_at": "4b17a54193b06f75973d3d874dc1a3f4ad1db554",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 68
 }
