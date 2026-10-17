@@ -645,6 +645,25 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   const taughtWords = examples.map(([f, ex]) => [f, ex.match(/^blocked <sha> ([a-z][a-z0-9-]*):/)?.[1]]).filter(([, w]) => w)
   t('the briefs teach at least one block class word (floor, not a count)', taughtWords.length > 0, `found ${taughtWords.length}`)
   for (const [f, w] of taughtWords) t(`${f} teaches block class "${w}", and VERDICT_CLASSES carries it`, classes.includes(w), `routed to \`other\`; taught: ${classes.join(', ')}`)
+  // A TAUGHT WORD MUST NOT BE TAUGHT AS ANOTHER WORD'S REASON (R10-RCA-HARNESS-
+  // FRICTION). #1414 added `class-open` to VERDICT_CLASSES and, in the same
+  // commit, taught fix-review.md step 6's spelling `blocked <sha> harness:
+  // class-open <seam>`, which VERDICT_RE parses as class `harness`. Both readers
+  // agree on it, so the arm above is green; the word the contract added is
+  // reachable only by a reviewer who departs from its example. Over
+  // v7.0.0..6e5753a4, 11 of 14 class-open blocks were keyed `harness` and 3
+  // `class-open`, and the friction cron filed one obligation twice (#2331,
+  // #2353). An example whose reason opens with a taught word keys on the wrong one.
+  const shadowed = (ex) => {
+    const m = ex.match(/^blocked <sha> ([a-z][a-z0-9-]*):\s*([a-z][a-z0-9-]*)/)
+    return m && m[2] !== m[1] && classes.includes(m[2]) ? m[2] : null
+  }
+  t('the shadow predicate fires on the #1414 spelling (negative control)', shadowed('blocked <sha> harness: class-open <seam>') === 'class-open', 'it cannot fail')
+  t('the shadow predicate passes a free-text reason (null control)', shadowed('blocked <sha> harness: class-rule-missing') === null, 'it fires on an untaught word')
+  for (const [f, ex] of examples) {
+    const w = shadowed(ex)
+    if (w) t(`${f} teaches "${w}" as a reason under another class: ${ex.slice(0, 60)}`, false, `spell it \`blocked <sha> ${w}: ...\``)
+  }
   const colonForm = briefs.filter(([, text]) => /`blocked:/.test(text)).map(([f]) => f)
   t('no brief spells a verdict in the form the parser rejects (`blocked:`)', colonForm.length === 0, `found in ${colonForm.join(', ')}`)
   t('the spelling the contract used for a session is refused (negative control)',
