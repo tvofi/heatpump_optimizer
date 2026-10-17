@@ -388,7 +388,7 @@
   "admissible": true,
   "label": "GOOD",
   "set": "planted",
-  "verdict": "NULL"
+  "verdict": "IMPROVES"
  },
  "a3_dead_by_reachability_null": {
   "admissible": true,

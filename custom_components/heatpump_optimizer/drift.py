@@ -154,10 +154,6 @@ class Cusum:
         )
         return True
 
-    def reset(self) -> None:
-        self.stat = 0.0
-        self.tripped = False
-
     def _note(self, when: datetime, text: str) -> None:
         self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
         del self.evidence[:-6]
