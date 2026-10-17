@@ -29449,12 +29449,28 @@ _SP_EXE = r"((?:[\w.-]+/)+[\w.-]+\.(?:py|mjs|js|sh))(?![\w.])"
 _SP_CITE = re.compile(r"(?<![\w./-])" + _SP_EXE)
 _SP_TOPS = {Path(p).parts[0] for p in subprocess.run(
     ["git", "ls-files"], capture_output=True, text=True).stdout.split()}
-_SP_OPENS = {"open", "Path", "join", "run", "check_output", "check_call", "call",
+_SP_OPENS = {"open", "Path", "joinpath", "run", "check_output", "check_call", "call",
              "Popen", "exists", "is_file", "isfile", "isdir", "locate", "canon"}
 # The read half of an open: `Path(lit).read_text()` is caught through `Path`,
 # but `(Path('.') / lit).read_text()` and `_P = Path('.') / lit; _P.read_text()`
-# name the path only on the RECEIVER, so the method is an open site of its own.
+# name the path only on the RECEIVER, so each is an open site of its own --
+# as is `.open()` on such a receiver, the same shape one method over.
 _SP_READS = {"read_text", "read_bytes"}
+# `join` is the one name that is BOTH `os.path.join` (a path site) and
+# `str.join` (not one): `"".join(rows)` over a list that HELD a path literal
+# opens nothing, and following it reads codeowners_gap.py's four classifier
+# inputs as faults -- the shape the review's "every constant is an open"
+# ablation fires. A bare `join(...)` is a path site (the module qualified it by
+# import); `x.join(...)` is too only for a path module.
+_SP_JOIN_MODULES = {"posixpath", "ntpath", "pathlib"}
+
+
+def _sp_path_join(func):
+    if isinstance(func, ast.Name):
+        return True
+    return (isinstance(func, ast.Attribute)
+            and ((isinstance(func.value, ast.Attribute) and func.value.attr == "path")
+                 or (isinstance(func.value, ast.Name) and func.value.id in _SP_JOIN_MODULES)))
 _SP_LOAD = (
     "import importlib.util as u, os, sys\n"
     "f = sys.argv[1]; sys.path.insert(0, os.path.dirname(os.path.abspath(f)))\n"
@@ -29505,42 +29521,96 @@ def _sp_remeasures(node):
 
 
 def _sp_bind_names(node):
-    """Every Name a bind target introduces: a plain name, or a tuple/list
-    unpack's element names."""
+    """Every name a bind target introduces: a plain name, a tuple/list unpack's
+    element names, or the attribute of a `self.x = ...` target."""
     if isinstance(node, ast.Name):
         yield node.id
+    elif isinstance(node, ast.Attribute):
+        yield node.attr
     elif isinstance(node, (ast.Tuple, ast.List)):
         for e in node.elts:
             yield from _sp_bind_names(e)
 
 
-def _sp_bindings(tree):
-    """name -> [value node], for every binding the module makes: a plain
-    assignment, an ANNOTATED assignment, and a tuple/list unpack (the i-th
-    name takes the i-th element of a tuple value)."""
-    out = {}
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Assign):
-            for t in n.targets:
-                if (isinstance(t, (ast.Tuple, ast.List)) and isinstance(n.value, (ast.Tuple, ast.List))
-                        and len(t.elts) == len(n.value.elts)):
-                    for el, val in zip(t.elts, n.value.elts):
-                        for nm in _sp_bind_names(el):
-                            out.setdefault(nm, []).append(val)
-                else:
-                    for nm in _sp_bind_names(t):
-                        out.setdefault(nm, []).append(n.value)
-        elif isinstance(n, ast.AnnAssign) and n.value is not None:
-            for nm in _sp_bind_names(n.target):
-                out.setdefault(nm, []).append(n.value)
-    return out
+_SP_SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 
 
-def _sp_reach(node, binds):
-    """Every expression node `node` can reach: the name it is bound to, a
-    pathlib `/` or a `+` join, an f-string, a dict subscript, a held tuple --
-    so a literal written several hops from the open, or inside an f-string's
-    literal part, is still the path that open names. `seen` breaks a cycle."""
+def _sp_scope_map(tree):
+    """((node, enclosing scope) ..., {scope: parent scope}); the module object is
+    the root scope. A binding resolves in the scope that READS it, so a name
+    bound in one function is not read as a same-named binding in another -- the
+    leak that turns a classifier input into an open, which is
+    codeowners_gap.py's `line`, `want` and `ok` (#2344 review, round 1)."""
+    nodes, parent, stack = [], {}, [(tree, tree)]
+    while stack:
+        node, scope = stack.pop()
+        nodes.append((node, scope))
+        inner = node if isinstance(node, _SP_SCOPE_NODES) else scope
+        if inner is not scope:
+            parent[inner] = scope
+        stack.extend((c, inner) for c in ast.iter_child_nodes(node))
+    return nodes, parent
+
+
+def _sp_args(node):
+    """(arg, default) for every parameter carrying a default."""
+    a = node.args
+    positional = [*a.posonlyargs, *a.args]
+    yield from zip(positional[len(positional) - len(a.defaults):], a.defaults)
+    for arg, default in zip(a.kwonlyargs, a.kw_defaults):
+        if default is not None:
+            yield arg, default
+
+
+def _sp_bindings(nodes):
+    """{scope: {name: [value node]}}: every binding the module makes -- a plain
+    or annotated assignment, a tuple/list unpack, a `for` target over a LITERAL
+    collection, `+=` and the other augmented targets, a walrus, a parameter
+    default, and a `with ... as` target. A `for x in <expression>` target is
+    NOT bound: it takes whatever the expression yields, and binding it reads
+    an unrelated loop's classifier inputs as this one's opens."""
+    scopes = {}
+
+    def bind(scope, targets, value):
+        book = scopes.setdefault(scope, {})
+        for t in targets:
+            if (isinstance(t, (ast.Tuple, ast.List)) and isinstance(value, (ast.Tuple, ast.List))
+                    and len(t.elts) == len(value.elts)):
+                for el, val in zip(t.elts, value.elts):
+                    for nm in _sp_bind_names(el):
+                        book.setdefault(nm, []).append(val)
+            else:
+                for nm in _sp_bind_names(t):
+                    book.setdefault(nm, []).append(value)
+
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            bind(scope, node.targets, node.value)
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, ast.AugAssign):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            if isinstance(node.iter, (ast.Tuple, ast.List, ast.Set)):
+                bind(scope, [node.target], node.iter)
+        elif isinstance(node, ast.NamedExpr):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            for arg, default in _sp_args(node):
+                bind(scope, [ast.Name(id=arg.arg)], default)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    bind(scope, [item.optional_vars], item.context_expr)
+    return scopes
+
+
+def _sp_reach(node, scopes, parent, scope):
+    """Every expression node `node` can reach: the name or attribute it is bound
+    to here or in an enclosing scope, a pathlib `/` or a `+` join, an f-string,
+    a dict subscript, a held tuple -- so a literal written several hops from the
+    open, or inside an f-string's literal part, is still the path that open
+    names. `seen` breaks a cycle."""
     seen, stack, out = set(), [node], []
     while stack:
         n = stack.pop()
@@ -29548,8 +29618,14 @@ def _sp_reach(node, binds):
             continue
         seen.add(id(n))
         out.append(n)
-        if isinstance(n, ast.Name):
-            stack.extend(binds.get(n.id, ()))
+        key = n.id if isinstance(n, ast.Name) else (n.attr if isinstance(n, ast.Attribute) else None)
+        if key is not None:
+            s = scope
+            while s is not None:
+                if key in scopes.get(s, {}):
+                    stack.extend(scopes[s][key])
+                    break
+                s = parent.get(s)
         stack.extend(ast.iter_child_nodes(n))
     return out
 
@@ -29558,11 +29634,12 @@ def _sp_literals(src, opened=True):
     """(line, literal, resolved) per repository path the module opens (every
     path literal it holds, with opened=False)."""
     tree = ast.parse(src)
+    nodes, parent = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes)
     docs = {id(n.body[0].value) for n in ast.walk(tree)
             if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
             and n.body and isinstance(n.body[0], ast.Expr)
             and isinstance(n.body[0].value, ast.Constant)}
-    binds = _sp_bindings(tree)
     # The literal parts of an f-string, so a leading slash is stripped only for
     # `f"{root}/<path>"` and never for a plain absolute string (which the token
     # regex below would refuse anyway, but `/dev/null` inside a quoted literal
@@ -29570,21 +29647,28 @@ def _sp_literals(src, opened=True):
     fstr = {id(c) for j in ast.walk(tree) if isinstance(j, ast.JoinedStr)
             for c in j.values if isinstance(c, ast.Constant)}
     via, opens = {}, set()
-    for n in ast.walk(tree):
+    for n, scope in nodes:
         if not isinstance(n, ast.Call):
             continue
         name = getattr(n.func, "id", None) or getattr(n.func, "attr", None)
         if name in ("locate", "canon") and n.args and isinstance(n.args[0], ast.Constant):
             via[id(n.args[0])] = _layout_locate if name == "locate" else _layout_canon
-        if name in _SP_OPENS:
+        if (name in _SP_OPENS or name in _SP_READS
+                or (name == "join" and _sp_path_join(n.func))):
             for arg in [*n.args, *(k.value for k in n.keywords)]:
-                for cc in _sp_reach(arg, binds):
+                for cc in _sp_reach(arg, scopes, parent, scope):
                     if isinstance(cc, ast.Constant):
                         opens.add(id(cc))
-        elif name in _SP_READS and isinstance(n.func, ast.Attribute):
-            for cc in _sp_reach(n.func.value, binds):
-                if isinstance(cc, ast.Constant):
-                    opens.add(id(cc))
+            # A METHOD call names its path on the RECEIVER, not in its
+            # arguments: `(Path('.') / lit).open()`, `_P = Path('.') / lit;
+            # _P.open()`, `Path(lit).read_text()`. The round-1 review planted
+            # the `read_text()` pair; `.open()` is the same structure, and
+            # `Path(lit).open()` is caught by the inner `Path` call only by
+            # accident.
+            if isinstance(n.func, ast.Attribute):
+                for cc in _sp_reach(n.func.value, scopes, parent, scope):
+                    if isinstance(cc, ast.Constant):
+                        opens.add(id(cc))
     out = []
     for n in ast.walk(tree):
         if not (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
@@ -29688,16 +29772,17 @@ R.check(
     f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
     f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
 )
-# F1 (#2312): the open shapes the round-1 fix review planted -- its plants.py is
-# the control. A literal reached through a two-hop alias, a join, a pathlib `/`
-# whose result is read with `.read_text()`, an f-string prefix, a dict subscript,
-# a tuple unpack or an annotated assignment was held by the module but never
-# counted as an open, so the program it names was never probed. Each planted
-# shape must be read as an open, the five the arm already caught stay caught, and
-# -- the null control the whole arm rests on -- a literal the program only HOLDS
-# is still not an open. Asserted on `_sp_literals`, the shape reader, not on
-# `_sp_faults`: a planted `open(<retired>)` ALSO fails to load, and that failure
-# would hide a shape the reader still misses.
+# F1 (#2312): the open shapes the fix reviews planted -- #2289's round-1
+# `plants.py` is the control for the first eight, and #2344's round-1 review
+# named the binding and receiver forms beside them (a `for` target, a walrus,
+# `+=`, a parameter default, `with ... as`, a `self.x` attribute, and `.open()`
+# on a `/`-join receiver). A literal reached through any of them was held by the
+# module but never counted as an open, so the program it names was never probed.
+# Each planted shape must be read as an open, the five the arm already caught
+# stay caught, and -- the null control the whole arm rests on -- a literal the
+# program only HOLDS is still not an open. Asserted on `_sp_literals`, the shape
+# reader, not on `_sp_faults`: a planted `open(<retired>)` ALSO fails to load,
+# and that failure would hide a shape the reader still misses.
 _sp_probe = "\nimport os\nfrom pathlib import Path\n"
 
 
@@ -29710,10 +29795,19 @@ _sp_escapes = {
     "two-hop alias via join": f"_A = {_sp_old!r}\n_B = _A\n_X = os.path.join('.', _B)\n",
     "pathlib / then read_text": f"_X = (Path('.') / {_sp_old!r}).read_text()\n",
     "pathlib / via a name then read_text": f"_P = Path('.') / {_sp_old!r}\n_X = _P.read_text()\n",
+    "pathlib / then open": f"_X = (Path('.') / {_sp_old!r}).open()\n",
+    "pathlib / via a name then open": f"_P = Path('.') / {_sp_old!r}\n_X = _P.open()\n",
     "f-string root prefix": f"_X = open(f\"{{os.getcwd()}}/{_sp_old}\")\n",
     "dict value then subscript": f"_C = {{'k': {_sp_old!r}}}\n_X = open(_C['k'])\n",
     "tuple-unpack assign": f"_A, _B = {_sp_old!r}, 'x'\n_X = open(_A)\n",
     "annotated assign": f"_A: str = {_sp_old!r}\n_X = open(_A)\n",
+    "for target": f"for _P in ({_sp_old!r},):\n    _X = open(_P)\n",
+    "walrus": f"if (_P := {_sp_old!r}):\n    _X = open(_P)\n",
+    "augmented assign": f"_P = ''\n_P += {_sp_old!r}\n_X = open(_P)\n",
+    "parameter default": f"def _f(_p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "with ... as": f"with Path('.') / {_sp_old!r} as _P:\n    _X = _P.read_text()\n",
+    "self attribute": f"class _C:\n    def m(self):\n        self._P = {_sp_old!r}\n"
+                      f"        _X = open(self._P)\n",
 }
 _sp_caught = {
     "one-hop name": f"_P = {_sp_old!r}\n_X = open(_P)\n",
@@ -29728,9 +29822,11 @@ _sp_regressed = sorted(k for k, p in _sp_caught.items()
                        if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
 R.check(
     "the cited-program arm follows a path literal through every open shape the "
-    "round-1 review planted -- an alias, a join, a pathlib / read through "
-    ".read_text(), an f-string prefix, a dict subscript, a tuple unpack and an "
-    "annotated assignment -- and the shapes it already caught stay caught",
+    "two fix reviews planted -- an alias, a join, a pathlib / read through "
+    ".read_text() or .open(), an f-string prefix, a dict subscript, a tuple "
+    "unpack, an annotated assignment, a for target, a walrus, +=, a parameter "
+    "default, a with ... as target and a self.x attribute -- and the shapes it "
+    "already caught stay caught",
     not _sp_missed and not _sp_regressed
     and not _sp_opens(_sp_unit_src + f"\n_X = ({_sp_old!r},)\n", _sp_old),
     f"shapes that still escape {_sp_missed}; no longer read as opens {_sp_regressed}",
