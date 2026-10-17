@@ -2820,9 +2820,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done",
     "branch": "handoff/r10-replay-loopnorm",
-    "commit": null,
+    "commit": "92accb2cff702c910d33ee1a276d38f5b482061c",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
