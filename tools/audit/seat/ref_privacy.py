@@ -82,7 +82,7 @@ cannot rot into an exemption.
 
 CONTENT. `--check` also judges every line a diff adds to a tracked file since
 the merge base with origin/main, with the classes above (round 4: the records
-under dev/ had published the home path 955 times). A line the same diff
+under dev/ and the ledger had published the home path in 128 files). A line the same diff
 removes elsewhere is a move and is not charged; main's stock is not charged.
 `scrub --write <file>...` is the remedy: this host's spans, rewritten in place.
 
