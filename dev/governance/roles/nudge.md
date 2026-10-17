@@ -70,7 +70,7 @@ Before loading a train, direct-merge what step 3 leaves off the train and what i
 
 ## 8. Prepr slots
 
-This machine runs up to four `prepr.sh` at a time. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, and `tools/pr/app_push.sh` each count as one. Do not start a fifth. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry. Do not start the train when four preprs are already running.
+Up to four `prepr.sh` run at a time, and the lease enforces it: `prepr.sh` takes one of `tests/gate_lock.py`'s four heavy slots for its run and a fifth queues behind it. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, `tools/pr/app_push.sh` and a `tests/derive_closures.sh` run each count as one. Do not start a fifth. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry. Do not start the train when four preprs are already running.
 
 ## 9. Conflicting or DIRTY
 
