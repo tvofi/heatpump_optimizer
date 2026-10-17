@@ -24,8 +24,22 @@ only keep by name stay on the record.
 
 ## Head
 
+`40683e8d7dcae31c6958434d9606682fcd7141f1` re-stamps `class_excess_loc` 18498 -> 18468
+after the orchestrator's `ci: merge main` (the `## Red checks` answer). It sits on
+`87dc4f68f35313a8ebf0b2164b52bc971b8acb33`, the previous head
+(`264027cc862516abf623ee17d9c7b21b55e80b47`, the delivery-row commit over the
+authored head `b3090df34b2e8236b52ecdc57d001556762a9eaa`) merged with
+`origin/main` at `d7b1712297030e4250487799d23212fb452a0f95` (PR #2336
+`fix/r10-feeds`, PR #2339 `fix/r10-replay-loopnorm-pr`).
+`git merge-base origin/main HEAD` is `d7b1712297030e4250487799d23212fb452a0f95`;
+`origin/main` is at `10d00fe0f46cab2dbe5246094fddf7c18a34625d`.
+`date -u` at the re-take: 2026-10-17T11:18Z.
+
+`264027cc862516abf623ee17d9c7b21b55e80b47` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2340.md`. The authored code head is `b3090df34b2e8236b52ecdc57d001556762a9eaa`.
+
 `b3090df34b2e8236b52ecdc57d001556762a9eaa` on `handoff/r10-structure-blind`, measured with
-`origin/main` at `81ae048e8bbdf2335fe2016e987ec2739481f293`, which is also `git merge-base origin/main HEAD`.
+`origin/main` at `81ae048e8bbdf2335fe2016e987ec2739481f293` -- the merge base at that
+handoff, before the `ci: merge main` that moved it to `d7b171229`.
 `date -u` at the run: 2026-10-16T18:04Z.
 
 **This head is a merge.** It is the authored head `540ede178c846c7270465161d967bf5b7e2182e3`
@@ -85,13 +99,23 @@ merge base's package separates them.
 and returns 1, so every mutant above is a red on the script the scoped gate runs,
 not on a probe kept beside it.
 
+**Re-executed after the `ci: merge main`** (head `40683e8d`): `tests/structure.py`
+is byte-identical (`sha1sum` `56c816051e70c9984cb4a034a1fb573d64be4944` before and
+after all four runs). M0 prints `ok 56 counting rules hold` / `STRUCTURE RATCHET
+PASSED`; M1, M2 and M3 each re-fire the exact counting-rule breaks above (1, 1 and
+3 rules, rc 1). The companion harness's three census arms were re-run at the new
+merge base `d7b171229` and read the same table -- the middle arm still
+`six_measured_dead=4`, the base arm still `six_name_kept=6`.
+
 ## Null control
 
 - **The unmodified tree**: M0 above, plus the companion harness's own null arm,
   `RESULT null_keys_moved=0` -- the unchanged tree measured twice, every metric
   equal.
 - **The budget gate**: `python3 -I tools/policy/budget_raise_gate.py --base <merge base> --head HEAD --pr <N>`
-  reads `RESULT budget_raises=0 count` here. The same command against a head whose
+  reads `RESULT budget_raises=0 count` here (re-taken at `40683e8d`, base
+  `d7b171229`: `RESULT budget_raises=0 count`, `PASS`). The same command against a
+  head whose
   `max_class_loc` is one higher (8688 -> 8689, committed in a scratch commit and
   reset away) reads `RESULT budget_raises=1 count`, `RAISE tests/structure_budgets.json:
   max_class_loc: 8688 -> 8689 (a cap went up)`, `REFUSED`. So `class_excess_loc`
@@ -108,18 +132,22 @@ not on a probe kept beside it.
 
 ## Figures
 
-Every line below was re-taken at `b3090df34b2e8236b52ecdc57d001556762a9eaa`; a figure
+Every line below was re-taken at `40683e8d7dcae31c6958434d9606682fcd7141f1`; a figure
 that is a function of `origin/main`'s tip is dated above. The prose figures --
 1201 lines added per arm (`class_growth.py`'s `RESULT lines_added_per_arm`), 16 budget
 keys (`python3 -c "import json;print(len(json.load(open('tests/structure_budgets.json')))-1)"`),
-3495 lines for `HeatPumpOptimizer` and 8688 for the coordinator (`tests/structure.py`'s
+3495 lines for `HeatPumpOptimizer` and 8635 for the coordinator (`tests/structure.py`'s
 `classes over 300 LOC` table), 56 counting rules and 10 seams (`tests/structure.py`'s
 `ok 56 counting rules hold`; the enumerator's `RESULT seams=10`) -- are each their
 instrument's own line, re-taken in the same pass.
 
 **The finding's own harnesses, both ends.** The baseline end is an export of
-`e8718ec3b52e24531236c30e508a4d1b3cf086ed` (`git archive $(git merge-base origin/main HEAD)`),
+`d7b1712297030e4250487799d23212fb452a0f95` (`git archive $(git merge-base origin/main HEAD)`),
 and both harnesses are the round-10 record's, at `dev/audit/rounds/round10/D7/`.
+Both were re-run at this head and at the `d7b171229` baseline after the `ci: merge
+main`; every figure below is what the re-run printed, and it matches the
+pre-merge pass exactly -- the main merge moved `class_excess_loc`'s value and
+nothing these harnesses measure.
 
 - `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/s1/class_growth.py` --
   D7-s1-01's harness. Merge base: `RESULT keys_moved_second_class=0 count`,
@@ -135,7 +163,7 @@ and both harnesses are the round-10 record's, at `dev/audit/rounds/round10/D7/`.
   `RESULT Cusum.reset_typed_hits=1 sites`, 0 -> 1.
 
 **The companion that applies the tree's own rule to the same six**,
-`dev/audit/harnesses/r10_structure_blind.py`, sha1 `072d5d6c94526fcabdbef893d23474c92a076bdd`.
+`dev/audit/harnesses/r10_structure_blind.py`, sha1 `155b99597372c0bc3b7b2cdcea5a66172aef83d4`.
 Three arms, the same command with `--structure` and `--package-ref`:
 
 | arm | command suffix | six_measured_dead | six_name_kept | name_kept | dead_methods | second_keys_moved |
@@ -201,8 +229,8 @@ halves are pinned by `entity_self_check`. Measured effect of the narrowing on
 every tree the corpus stores: none -- the corpus re-measure after it is byte-identical.
 
 **The structure ratchet**, `PYTHONPATH=tests/hastub python3 tests/structure.py`:
-`class_excess_loc=18498 count`, `dead_methods=0`, `name_kept` 39 members printed,
-`max_class_loc=8688`, `duplication_copies=34`, `ok 56 counting rules hold`,
+`class_excess_loc=18468 count`, `dead_methods=0`, `name_kept` 39 members printed,
+`max_class_loc=8635`, `duplication_copies=34`, `ok 56 counting rules hold`,
 `STRUCTURE RATCHET PASSED`.
 
 **The corpus**, `PYTHONPATH=tests/hastub python3 tools/audit/archscore/calibrate.py --measure-corpus --jobs 4`:
@@ -217,7 +245,9 @@ passes on it, `ALL 72 ARCHITECTURE SCORE CHECKS PASSED`.
 ## Architecture score
 
 `PYTHONPATH=tests/hastub python3 tools/audit/archscore/score.py --diff origin/main`:
-`Architecture score: dS +1.7787 IMPROVES`, admissible, no metric up.
+`Architecture score: dS +1.7787 IMPROVES`, admissible, no metric up. Re-taken at
+`40683e8d` against `origin/main` `10d00fe0f`: identical -- the main merge moved no
+arch-score leaf.
 
 - `dead_members 5 -> 1` (+1.5850) -- the four members the sharper census measures dead.
 - `duplication_copies 66 -> 65` (+0.1937) -- one of the four deleted members was a copy.
@@ -229,7 +259,27 @@ retired row in its pre-study difference table.
 
 ## Red checks
 
-`tests/golden.py` in `GOLDEN_MODE=strict`, the only red the scoped gate reports
+**`fast (3.14)`, answered here.** The orchestrator's `ci: merge main`
+(`87dc4f68f`) merged `origin/main` at `d7b171229` (PR #2336 `fix/r10-feeds`,
+whose "price and weather ingest seam" refactored `coordinator.py`). On the
+merged tree `tests/structure.py` measured `class_excess_loc=18468` against this
+PR's recorded `18498`, and the ratchet failed the run:
+
+    1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED
+      class_excess_loc  18498 -> 18468  -30  BETTER (lower is better)
+
+The coordinator's span shrank 8688 -> 8635 LOC while its counted helper lines
+rose 410 -> 431 (net -32 in `class_excess_loc`), and `sysid.py`'s
+`SystemIdentification` grew 1063 -> 1065 (+2), net -30. #350 refuses an
+unrecorded improvement, so the fix is the re-record itself: commit `40683e8d`
+runs `python3 tests/structure.py --record`, locking `class_excess_loc` to
+`18468` and `recorded_at` to the new merge base `d7b171229`. No metric moved
+up; `max_class_loc` stays `8635`, already re-recorded by `main`. The cheaper
+detector that could have run this before CI is `python3 tests/structure.py`
+(or the scoped gate) at the merged head, which names the unrecorded
+improvement directly (~14 s, already in the gate).
+
+`tests/golden.py` in `GOLDEN_MODE=strict`, a red the scoped gate reports
 (`1 TEST SCRIPT(S) FAILED`, `55 of 56 GOLDEN SCENARIOS CHANGED`).
 **Not this diff.** The strict mode compares this machine's scenarios against the
 committed fixtures, which were recorded on CI's x86_64 BLAS; solver floats are
@@ -284,3 +334,4 @@ seconds at the local head.
 ## Friction
 
 `fixer.md#8: cost: the class's seam rule (`enumerate.py` rule A) tests a shape -- a `len()` sibling on the maxima table -- while its own text states a property ("a non-max unit grows unpriced"), so a fix that closes the property leaves the rule firing and the disposition has to be argued rather than read. Measured: `--perturb` flips the row to `guarded` without changing whether growth is priced.`
+
