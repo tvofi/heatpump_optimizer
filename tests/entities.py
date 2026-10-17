@@ -18325,6 +18325,98 @@ R.check(
     "preflight.sh must exit 0 when every closing keyword is declared; without "
     "this arm the check above passes for a script that refuses everything",
 )
+# The multi-issue arm's class is OWNERSHIP, not a separator list: a closing
+# keyword owns at most one reference, so a second reference between it and the
+# next keyword or clause end is silently dropped by GitHub. Its first version
+# spelled three separators (whitespace, a comma, an "and"); the round-1 review
+# ran the class's own rule over 200 merged bodies and returned six more it let
+# through -- `/`, `&`, `+`, `(`, `;`, any plain word (`then`), and a keyword and
+# a reference split across a newline. One plant per seam, so a seam that
+# reopens names itself in the detail rather than hiding behind an `all()`.
+#
+# These plants run preflight.sh from a directory that is not a checkout. Arm 1b
+# is a property of the body text alone, and the corpus arm it skips there is a
+# `check`, never a refusal: isolating it takes the pins from 1.1 s to 0.16 s
+# each and leaves what is measured exactly what the check is named for.
+_PREFLIGHT_ABS = _preflight.resolve()
+_PREFLIGHT_MULTI_SEAMS = {
+    "space": "Closes #2231 #2230.\n",
+    "comma": "Closes #2231, #2230.\n",
+    "and": "Closes #2231 and #2230.\n",
+    "slash": "Closes #2231/#2230.\n",
+    "spaced-slash": "Closes #2231 / #2230.\n",
+    "ampersand": "Closes #2231 & #2230.\n",
+    "plus": "Closes #2231 +#2230.\n",
+    "paren": "Closes #2231 (#2230).\n",
+    "semicolon": "Closes #2231; #2230.\n",
+    "word": "Closes #2231 then #2230.\n",
+    "colon": "Closes: #2231 #2230.\n",
+    "newline": "Closes #2231\n#2230\n",
+}
+# ... and the scope, in the other direction. A second reference in a LATER
+# clause is not owned by the keyword: `Part of #B` is this repository's own
+# convention for "closes one, touches another" and `Leaves #B open` says the
+# opposite of a close. Measured over the same 200 merged bodies: ownership at
+# clause scope refuses none of them, and the same test over the whole body
+# refuses 25, each carrying its second reference in a LATER clause -- a
+# `Part of`/`Leaves` site, or a prose mention after a blank line. A pin that
+# only widened the rule would red here.
+_PREFLIGHT_NOT_OWNED = {
+    "part-of": "Closes #2231.\n\nPart of #2230.\n",
+    "leaves-open": "Closes #2231. Leaves #2230 open.\n",
+    "bare-reference": "Closes #2231.\n\n#2230\n",
+    "heading": "Closes #2231\n\n## Notes\n\n#2230 is unrelated.\n",
+}
+
+
+def _preflight_rc(body: str, intended: str = "2231 2230") -> int:
+    """preflight.sh's exit code for ``body``, arm 1b's own input surface."""
+    with tempfile.TemporaryDirectory() as tmp:
+        return subprocess.run(
+            ["bash", str(_PREFLIGHT_ABS), *intended.split()],
+            input=body, capture_output=True, text=True, cwd=tmp,
+        ).returncode
+
+
+_PREFLIGHT_MULTI_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_MULTI_SEAMS.items()}
+    if _preflight.is_file() else {}
+)
+_PREFLIGHT_NOT_OWNED_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_NOT_OWNED.items()}
+    if _preflight.is_file() else {}
+)
+R.check(
+    "one closing keyword naming several issues refuses, since GitHub closes "
+    "only the first",
+    bool(_PREFLIGHT_MULTI_RC) and all(rc == 1 for rc in _PREFLIGHT_MULTI_RC.values()),
+    f"rc per separator: {_PREFLIGHT_MULTI_RC} -- `Closes #A <sep> #B` closes #A "
+    "and silently not #B, because GitHub's rule is KEYWORD #N with nothing "
+    "between the keyword and the number, so a second number has no keyword of "
+    "its own and the grep in check 1 keeps only the first. The arm is the "
+    "ownership property, not a separator list: a spelled-out set always has a "
+    "next separator, and six of these twelve are the seams a round-1 review "
+    "returned against the three-separator version",
+)
+R.check(
+    "and a second reference in a LATER clause is not refused (the scope's own "
+    "null control)",
+    bool(_PREFLIGHT_NOT_OWNED_RC)
+    and all(rc == 0 for rc in _PREFLIGHT_NOT_OWNED_RC.values()),
+    f"rc per shape: {_PREFLIGHT_NOT_OWNED_RC} -- ownership is decided inside a "
+    "clause (a paragraph, and a sentence within it), because a reference in a "
+    "later clause is not presented as part of the close. `Closes #M.` then "
+    "`Part of #N.` is the tree's own convention; keeping the count across the "
+    "blank line would refuse 24 of the 200 most recently merged bodies, every "
+    "one of them that shape",
+)
+R.check(
+    "and two keywords pass, so it is not simply always-red",
+    _preflight.is_file()
+    and _preflight_rc("Closes #2231. Closes #2230.\n") == 0,
+    "two closing keywords, each its own number, must pass; the multi-issue arm "
+    "refuses only one keyword followed by several references in one clause",
+)
 # The '; echo' refusal is split: inline backticks in prose are advisory, a
 # fenced block is not. Both directions are pinned because the arms above feed
 # only single-line inputs, so widening the exemption to strip fenced blocks
@@ -25793,6 +25885,41 @@ R.check(
     and not _red_history_credentialed(
         re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
     "the predicate must read the env line, not the step's name",
+)
+# The preflight step's closing-keyword arm was dead two ways: the step passed
+# preflight.sh no intended-issue list (check #1 refuses a close not in the list
+# it is given, so every close was refused) and appended `|| true` (so the
+# refusal never gated). Both are pinned over the comment-stripped step: the
+# list must be derived (`INTENDED=`) and passed (`$INTENDED`), and the swallow
+# must be gone. Re-adding `|| true` is the one-character edit that silences the
+# arm again.
+def _preflight_derives_intended(step: str) -> bool:
+    return (
+        step.startswith("Pre-flight the body for unmeasured claims")
+        and "INTENDED=" in step
+        and "$INTENDED" in step
+        and "|| true" not in step
+    )
+
+
+_PC_PREFLIGHT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Pre-flight the body for unmeasured claims")), "")
+R.check(
+    "the preflight step derives and passes the intended list and its refusal gates",
+    _preflight_derives_intended(_PC_PREFLIGHT_STEP),
+    f"step found={bool(_PC_PREFLIGHT_STEP)}, "
+    f"derives={'INTENDED=' in _PC_PREFLIGHT_STEP}, "
+    f"passed={'$INTENDED' in _PC_PREFLIGHT_STEP}, "
+    f"swallow_gone={'|| true' not in _PC_PREFLIGHT_STEP}; with no list and "
+    "`|| true`, every closing keyword is refused and the refusal is discarded "
+    "-- the arm bound nowhere",
+)
+R.check(
+    "and the same step re-adding the swallow is not (null control)",
+    bool(_PC_PREFLIGHT_STEP)
+    and not _preflight_derives_intended(_PC_PREFLIGHT_STEP + " || true"),
+    "the predicate must read the swallow's absence, not the step's name",
 )
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is

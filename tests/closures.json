@@ -3284,6 +3284,7 @@
    "dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py",
    "dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py",
    "dev/audit/harnesses/ci_script_seconds.py",
+   "dev/audit/harnesses/closing_keyword_ownership.py",
    "dev/audit/harnesses/cop_duty_floor.py",
    "dev/audit/harnesses/d1_s3_02_queued_apply.py",
    "dev/audit/harnesses/d6_page_anchors.py",
@@ -4132,7 +4133,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 99.7
+   "seconds": 241.1
   },
   "tests/layout.py": {
    "rc": 0,
