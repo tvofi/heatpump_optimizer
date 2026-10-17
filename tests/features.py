@@ -63998,7 +63998,7 @@ def _fd_coord():
 
 
 class _FdLog(_fd_logging.Handler):
-    """Every record the coordinator module logs, as (level, message)."""
+    """Every record the package logs, as (level, message)."""
 
     def __init__(self):
         super().__init__(_fd_logging.DEBUG)
@@ -64013,7 +64013,12 @@ class _FdLog(_fd_logging.Handler):
 
 def _fd_logged(fn):
     log = _FdLog()
-    logger = _fd_logging.getLogger(_fd_cm.__name__)
+    # Rooted at the package, not at the coordinator module: the transition
+    # latch lives in log_latch.py and logs through its own logger, and a
+    # handler on the coordinator's module logger never sees a child module's
+    # records. The child loggers carry no level of their own, so the package
+    # logger's DEBUG is what admits the latch's DEBUG rows here.
+    logger = _fd_logging.getLogger(_fd_cm.__name__.rsplit(".", 1)[0])
     old = logger.level
     logger.addHandler(log)
     logger.setLevel(_fd_logging.DEBUG)
