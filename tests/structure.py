@@ -21,7 +21,20 @@ Metrics (definitions, one line each; the code is the authority):
   max_class_loc               the largest class span in the integration --
                               the coordinator's while it is the largest
                               class (coordinator_loc, equal to it at every
-                              measured point, merged in by #1738)
+                              measured point, merged in by #1738). It prices
+                              the largest class only, and falls when a method
+                              moves out verbatim: class_excess_loc is the row
+                              that prices both
+  class_excess_loc            every class's span past GOD_CLASS_LOC_LIMIT,
+                              summed, the coordinator's span counting its
+                              coordinator.py helpers (#1686's units). Growth
+                              in ANY class over the limit moves it (D7-s1-01:
+                              1201 lines into the second-largest class moved
+                              no row); a method cut verbatim into a helper
+                              leaves it where it was, so only lines that go --
+                              copies merged, dead code deleted -- lower it
+                              (#2285's review). A class under the limit costs
+                              nothing, so a new small class is free
   max_method_loc              the largest function span in the integration --
                               the WORST offender, not a count of offenders
                               (#374). Reads 0 when nothing exceeds
@@ -111,12 +124,18 @@ Metrics (definitions, one line each; the code is the authority):
                               that reaches none. Live is REACHABILITY: a load
                               counts from module-level code, a module-level
                               function, a dunder, a Home Assistant convention
-                              member (``HA_CONVENTION_METHODS``) or a live
+                              member (``HA_CONVENTION_METHODS``, and
+                              ``HA_ENTITY_METHODS`` where the class is one
+                              HA instantiates) or a live
                               member, so a member reached only from its own
                               body, or from dead members, is dead. The live
                               members an untyped load of a name two classes
                               define keeps alive are printed: the shape this
-                              cannot measure, on the record
+                              cannot measure, on the record. A receiver the
+                              source types -- an annotation, a constructor, a
+                              return annotation, an attribute every store of
+                              which types (``ReceiverTypes``, D7-s3-01) --
+                              reaches its class's family only
   coordinator_private_reach   ``<coordinator>._x`` reads, plus
                               PRIVATE_WRITE_WEIGHT x each write (a store, a
                               delete, an in-place mutation of what the slot
@@ -310,6 +329,27 @@ def is_ha_convention_method(name: str) -> bool:
         name in HA_CONVENTION_METHODS
         or name.startswith(HA_CONVENTION_METHOD_PREFIXES)
     )
+
+
+# HA-read members of an ENTITY, keyed on (name, the class is one HA
+# instantiates) -- not on the name alone (#1395's D7-s3-02 named ``available``
+# among the HA-read properties; D7-s3-01's typed receivers took away the
+# shared-name load that had kept them alive by luck, and ec263d82's tree read
+# every one of them, and what they read, as dead).
+#
+# THE KEY, because a one-field key blinds. ``HA_CONVENTION_METHODS`` is keyed
+# on the member name and silences every class's member of that name; an
+# ``available`` the ast cannot attach to an entity -- ``OpenMeteoSolar``'s, a
+# plain class's -- is not a convention, and an entry that covered it would hide
+# that member's death for good. So this set is matched with the class: a
+# member is a root here only when its class's family derives from an external
+# base HA names ``*Entity`` (Entity, SensorEntity, BinarySensorEntity,
+# ButtonEntity, ClimateEntity, SwitchEntity ...), which is also what carries
+# the entity mixins in ``entity.py``, whose own bases are in-package. The
+# suffix is HA's own naming convention rather than a list that goes stale on
+# the next platform. ``entity_self_check`` pins both halves of the separation.
+HA_ENTITY_METHODS = frozenset({"available", "target_temperature"})
+HA_ENTITY_BASE_SUFFIX = "Entity"
 
 
 def is_property_getter(node: ast.AST) -> bool:
@@ -1293,6 +1333,535 @@ def import_bindings(mods: dict[str, tuple[str, ast.Module]],
     return sym_bind, mod_bind
 
 
+def _walk_unit(fn: ast.AST):
+    """``ast.walk`` over one unit, not descending into a nested class."""
+    todo = [fn]
+    while todo:
+        node = todo.pop()
+        yield node
+        if node is fn or not isinstance(node, ast.ClassDef):
+            todo.extend(ast.iter_child_nodes(node))
+
+
+def _is_classmethod(fn: ast.AST) -> bool:
+    return any(isinstance(d, ast.Name) and d.id == "classmethod"
+               for d in getattr(fn, "decorator_list", []))
+
+
+def _is_property(fn: ast.AST) -> bool:
+    return any((isinstance(d, ast.Name) and d.id in ("property", "cached_property"))
+               or (isinstance(d, ast.Attribute) and d.attr == "cached_property")
+               for d in getattr(fn, "decorator_list", []))
+
+
+IDENTITY_CALLS = (("dataclasses", "replace"), ("copy", "copy"), ("copy", "deepcopy"))
+
+
+class ReceiverTypes:
+    """The in-package classes a receiver holds, where the source says so (D7-s3-01).
+
+    A type is a frozenset of class keys; ``None`` is a value the AST cannot
+    type, and an empty set one only ever ``None``. What types a value: an
+    annotation naming in-package classes (``K``, ``"K"``, ``K | None``,
+    ``Optional[K]``, ``Self``), a call of a class, a call of a function or
+    method whose return annotation does, and an instance attribute EVERY store
+    of which types -- a class-body field or annotation, ``self.a = v`` in the
+    class family, ``x.a = v`` and ``setattr(x, "a", v)`` anywhere whose
+    receiver types into the family. One untyped store, or a store on an
+    untyped receiver, leaves the attribute untyped; a local is typed only when
+    every binding of its name in the unit is, and an unannotated parameter
+    only when every call reaching its function is placed and passes a typed
+    argument (archscore's B3b: an extraction into unannotated parameters would
+    otherwise hide a dead member behind them).
+
+    Two choices are stated rather than measured. Annotations are trusted, as
+    a type checker trusts them; and a store through a COMPUTED name
+    (``setattr(x, name, v)``, ``x.__dict__[k] = v``) is outside the census --
+    its sites print beside the name-kept list, so the boundary has a size. A
+    ``Protocol`` types what its members return but reaches no implementer,
+    which does not derive from it; and an untyped local's ``x.m(...)`` runs
+    ``m`` when one class alone defines it, the census's own ``unique`` rule.
+    """
+
+    def __init__(self, pkg: Package):
+        self.pkg = pkg
+        self._attr: dict[tuple[tuple[str, str], str], frozenset | None] = {}
+        self._local: dict[tuple[int, str], frozenset | None] = {}
+        self._busy: set[tuple] = set()
+        self._fam: dict[tuple[str, str], set[tuple[str, str]]] = {}
+        # Each node's innermost unit, so a store is typed where it is written.
+        self.owner: dict[int, int] = {}
+        for fid, (_m, _c, fn) in sorted(pkg.units.items(), key=lambda kv: -span_loc(kv[1][2])):
+            for n in ast.walk(fn):
+                self.owner[id(n)] = fid
+        # attr -> (unit, module, receiver, "val" | "ann" | "?", value or annotation)
+        self.stores: dict[str, list[tuple[int | None, str, ast.AST, str, ast.AST | None]]] = \
+            defaultdict(list)
+        self.computed: list[tuple[str, int]] = []
+        self.binds: dict[int, dict[str, list[tuple[str, ast.AST | None]]]] = {}
+        for mod, (rel, tree) in pkg.mods.items():
+            for n in ast.walk(tree):
+                fid = self.owner.get(id(n))
+                if isinstance(n, (ast.Assign, ast.AnnAssign)):
+                    for t in (n.targets if isinstance(n, ast.Assign) else [n.target]):
+                        if isinstance(t, ast.Attribute):
+                            if isinstance(n, ast.AnnAssign):
+                                self.stores[t.attr].append((fid, mod, t.value, "ann", n.annotation))
+                            else:
+                                self.stores[t.attr].append((fid, mod, t.value, "val", n.value))
+                        elif isinstance(t, (ast.Tuple, ast.List)):
+                            for x in ast.walk(t):
+                                if isinstance(x, ast.Attribute) and isinstance(x.ctx, ast.Store):
+                                    self.stores[x.attr].append((fid, mod, x.value, "?", None))
+                        elif isinstance(t, ast.Subscript) and isinstance(t.value, ast.Attribute) \
+                                and t.value.attr == "__dict__":
+                            self.computed.append((rel, n.lineno))
+                elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Attribute):
+                    self.stores[n.target.attr].append((fid, mod, n.target.value, "?", None))
+                elif isinstance(n, (ast.For, ast.AsyncFor, ast.With, ast.AsyncWith,
+                                    ast.comprehension)):
+                    targets = [n.target] if not isinstance(n, (ast.With, ast.AsyncWith)) else \
+                        [i.optional_vars for i in n.items if i.optional_vars is not None]
+                    for t in targets:
+                        for x in ast.walk(t):
+                            if isinstance(x, ast.Attribute) and isinstance(x.ctx, ast.Store):
+                                self.stores[x.attr].append((fid, mod, x.value, "?", None))
+                elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
+                        and n.func.id == "setattr" and len(n.args) >= 3:
+                    if isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str):
+                        self.stores[n.args[1].value].append((fid, mod, n.args[0], "val", n.args[2]))
+                    else:
+                        self.computed.append((rel, n.lineno))
+                elif isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+                        and n.func.attr == "update" and isinstance(n.func.value, ast.Attribute) \
+                        and n.func.value.attr == "__dict__":
+                    self.computed.append((rel, n.lineno))
+        self.computed.sort()
+        # Calls returning their first argument's class: dataclasses.replace, copy.
+        self.same: set[tuple[str, ...]] = set()
+        for mod, (_rel, tree) in pkg.mods.items():
+            for n in tree.body:
+                for alias in getattr(n, "names", ()) if isinstance(n, (ast.Import, ast.ImportFrom)) \
+                        else ():
+                    bound = alias.asname or alias.name
+                    if isinstance(n, ast.ImportFrom) and n.level == 0 \
+                            and (n.module, alias.name) in IDENTITY_CALLS:
+                        self.same.add((mod, bound))
+                    elif isinstance(n, ast.Import):
+                        self.same.update((mod, bound, f) for m, f in IDENTITY_CALLS
+                                         if m == alias.name)
+        # The method names exactly one class defines and no class holds as a field.
+        defs: dict[str, list[tuple[str, ast.AST, tuple[str, str]]]] = defaultdict(list)
+        held = set(self.stores)
+        for key, cls in pkg.classes.items():
+            for item in cls.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    defs[item.name].append((key[0], item, key))
+                elif isinstance(item, (ast.Assign, ast.AnnAssign)):
+                    held.update(t.id for t in (item.targets if isinstance(item, ast.Assign)
+                                               else [item.target]) if isinstance(t, ast.Name))
+        self.sole = {name: d[0] for name, d in defs.items() if len(d) == 1 and name not in held}
+        # Every call the AST places, by callee; a callee whose name is loaded
+        # anywhere but as one of those calls escapes, and its parameters stay
+        # as their annotations say.
+        self.callers: dict[int, list[tuple[int, str, ast.Call, int]]] = defaultdict(list)
+        loads: Counter = Counter()
+        for fid, (mod, cls, fn) in pkg.units.items():
+            params = fn_params(fn)
+            sn = params[0] if cls is not None and params and not _is_static(fn) else None
+            for n in _walk_unit(fn):
+                if isinstance(n, ast.Call):
+                    hit = pkg.callee(mod, cls, sn, n)
+                    if hit is not None and id(hit[0]) in pkg.units:
+                        self.callers[id(hit[0])].append((fid, mod, n, hit[1]))
+        for mod, (_rel, tree) in pkg.mods.items():
+            for n in ast.walk(tree):
+                if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+                    loads[n.id] += 1
+                elif isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load):
+                    loads[n.attr] += 1
+        self.closed = {callee for callee, sites in self.callers.items()
+                       if loads[pkg.units[callee][2].name] == len(sites)}
+
+    # -- classes and annotations ------------------------------------------
+
+    def family(self, key: tuple[str, str]) -> set[tuple[str, str]]:
+        if key not in self._fam:
+            self._fam[key] = self.pkg.family(key)
+        return self._fam[key]
+
+    def class_of(self, mod: str, e: ast.AST) -> tuple[str, str] | None:
+        """The in-package class ``e`` names in ``mod`` (``K`` or ``m.K``)."""
+        key = None
+        if isinstance(e, ast.Name):
+            key = self.pkg.resolve(mod, e.id)
+        elif isinstance(e, ast.Attribute) and isinstance(e.value, ast.Name) \
+                and (mod, e.value.id) in self.pkg.mod_bind:
+            key = self.pkg.resolve(self.pkg.mod_bind[(mod, e.value.id)], e.attr)
+        return key if key in self.pkg.classes else None
+
+    def ann(self, mod: str, node: ast.AST | None, cls: tuple[str, str] | None = None
+            ) -> frozenset | None:
+        if node is None:
+            return None
+        if isinstance(node, ast.Constant):
+            if node.value is None:
+                return frozenset()
+            if isinstance(node.value, str):
+                try:
+                    return self.ann(mod, ast.parse(node.value, mode="eval").body, cls)
+                except SyntaxError:
+                    return None
+            return None
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+            return self._union([self.ann(mod, node.left, cls), self.ann(mod, node.right, cls)])
+        if isinstance(node, ast.Subscript):
+            head = node.value.attr if isinstance(node.value, ast.Attribute) else \
+                node.value.id if isinstance(node.value, ast.Name) else None
+            arms = node.slice.elts if isinstance(node.slice, ast.Tuple) else [node.slice]
+            if head in ("Optional", "Union"):
+                return self._union([self.ann(mod, a, cls) for a in arms])
+            return None
+        if isinstance(node, ast.Name) and node.id == "Self" and cls is not None:
+            return frozenset({cls})
+        key = self.class_of(mod, node)
+        return None if key is None else frozenset({key})
+
+    @staticmethod
+    def _union(parts: list[frozenset | None]) -> frozenset | None:
+        if any(p is None for p in parts):
+            return None
+        return frozenset().union(*parts)
+
+    def protocol(self, key: tuple[str, str]) -> bool:
+        """A ``Protocol`` types what its members return, but reaches no
+        implementer: those do not derive from it."""
+        return "Protocol" in self.pkg.external_bases(key)
+
+    def descriptor(self, mod: str, value: ast.AST) -> str | None:
+        """The name a class-body ``a = f("n")`` reads, where ``f -> property``.
+
+        The coordinator's facades: a view (``_view("n")``) reads the
+        instance's ``n``; a hub (``_hub("a")``, its own name) reads that field
+        of the context it holds in ``STATE_CONTEXT_ATTR``.
+        """
+        if not isinstance(value, ast.Call) or not value.args \
+                or not isinstance(value.args[0], ast.Constant) \
+                or not isinstance(value.args[0].value, str):
+            return None
+        sigs = self.signatures(value, None, mod)
+        if not sigs or not all(isinstance(fn.returns, ast.Name) and fn.returns.id == "property"
+                               for _m, fn, _c in sigs):
+            return None
+        return value.args[0].value
+
+    def method(self, key: tuple[str, str], name: str) -> tuple[tuple[str, str], ast.AST] | None:
+        """``name`` as ``key`` defines or inherits it in the package."""
+        for owner in [key, *self.pkg.base_keys(key)]:
+            for item in self.pkg.classes[owner].body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == name:
+                    return owner, item
+        return None
+
+    def returns(self, key: tuple[str, str], name: str, recv: tuple[str, str]) -> frozenset | None:
+        hit = self.method(key, name)
+        return None if hit is None else self.ann(hit[0][0], hit[1].returns, recv)
+
+    # -- attributes, locals, expressions ----------------------------------
+
+    def attr(self, key: tuple[str, str], name: str) -> frozenset | None:
+        """What attribute ``name`` of a ``key`` instance holds."""
+        memo = (key, name)
+        if memo in self._attr:
+            return self._attr[memo]
+        if memo in self._busy:
+            return None
+        self._busy.add(memo)
+        fam = self.family(key)
+        parts: list[frozenset | None] = []
+        for owner in sorted(fam):
+            omod = owner[0]
+            for item in self.pkg.classes[owner].body:
+                if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name) \
+                        and item.target.id == name:
+                    parts.append(self.ann(omod, item.annotation, owner))
+                elif isinstance(item, ast.Assign) and any(
+                        isinstance(t, ast.Name) and t.id == name for t in item.targets):
+                    reads = self.descriptor(omod, item.value)
+                    parts.append(self.expr(item.value, None, omod) if reads is None else
+                                 self.attr(key, reads) if reads != name else
+                                 self._on(self.attr(key, STATE_CONTEXT_ATTR),
+                                          lambda k: self.attr(k, name)))
+                elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                        and item.name == name:
+                    parts.append(self.ann(omod, item.returns, owner) if _is_property(item) else None)
+        for fid, mod, recv, kind, value in self.stores.get(name, ()):
+            where = self.expr(recv, fid, mod)
+            if where is None:
+                parts.append(None)
+            elif where & fam:
+                parts.append(self.ann(mod, value) if kind == "ann" else
+                             self.expr(value, fid, mod) if kind == "val" else None)
+            if parts and parts[-1] is None:
+                break
+        out = self._union(parts) if parts else None
+        self._busy.discard(memo)
+        self._attr[memo] = out
+        return out
+
+    def bindings(self, fid: int) -> dict[str, list[tuple[str, ast.AST | None]]]:
+        """name -> how unit ``fid`` binds it: self, cls, ``ann`` A, ``val`` V, or ``?``.
+
+        A nested class is its own unit, so its body is not walked here.
+        """
+        if fid in self.binds:
+            return self.binds[fid]
+        mod, cls, fn = self.pkg.units[fid]
+        out: dict[str, list[tuple[str, ast.AST | None]]] = defaultdict(list)
+        handled: set[int] = set()
+        for n in _walk_unit(fn):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                a = n.args
+                params = a.posonlyargs + a.args + a.kwonlyargs
+                for i, p in enumerate(params):
+                    if n is fn and i == 0 and cls is not None and not _is_static(fn):
+                        out[p.arg].append(("cls" if _is_classmethod(fn) else "self", None))
+                    elif n is fn and p.annotation is None and fid in self.closed \
+                            and not _is_static(fn) and not _is_classmethod(fn):
+                        out[p.arg].append(("param", (i, p.arg)))
+                    elif isinstance(n, ast.Lambda) or p.annotation is None:
+                        out[p.arg].append(("?", None))
+                    else:
+                        out[p.arg].append(("ann", p.annotation))
+                for p in (a.vararg, a.kwarg):
+                    if p is not None:
+                        out[p.arg].append(("?", None))
+                if n is not fn and not isinstance(n, ast.Lambda):
+                    out[n.name].append(("?", None))
+            elif isinstance(n, ast.Assign):
+                for t in n.targets:
+                    if isinstance(t, ast.Name):
+                        out[t.id].append(("val", n.value))
+                        handled.add(id(t))
+                    elif isinstance(t, (ast.Tuple, ast.List)) \
+                            and all(isinstance(x, ast.Name) for x in t.elts):
+                        pairs = isinstance(n.value, (ast.Tuple, ast.List)) \
+                            and len(n.value.elts) == len(t.elts)
+                        if not pairs and not isinstance(n.value, ast.Call):
+                            continue
+                        for k, x in enumerate(t.elts):
+                            out[x.id].append(("val", n.value.elts[k]) if pairs else
+                                             ("unpack", (n.value, k, len(t.elts))))
+                            handled.add(id(x))
+            elif isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
+                out[n.target.id].append(("ann", n.annotation))
+                handled.add(id(n.target))
+            elif isinstance(n, ast.NamedExpr):
+                out[n.target.id].append(("val", n.value))
+                handled.add(id(n.target))
+            elif isinstance(n, ast.ExceptHandler) and n.name:
+                out[n.name].append(("?", None))
+            elif isinstance(n, (ast.Import, ast.ImportFrom)):
+                for alias in n.names:
+                    out[(alias.asname or alias.name).split(".")[0]].append(("import", None))
+            elif isinstance(n, (ast.Global, ast.Nonlocal)):
+                for name in n.names:
+                    out[name].append(("?", None))
+            elif isinstance(n, ast.ClassDef):
+                out[n.name].append(("?", None))
+            elif isinstance(n, (ast.MatchAs, ast.MatchStar)) and n.name:
+                out[n.name].append(("?", None))
+            elif isinstance(n, ast.MatchMapping) and n.rest:
+                out[n.rest].append(("?", None))
+        for n in _walk_unit(fn):
+            if isinstance(n, ast.Name) and isinstance(n.ctx, (ast.Store, ast.Del)) \
+                    and id(n) not in handled:
+                out[n.id].append(("?", None))
+        self.binds[fid] = out
+        return out
+
+    def local(self, fid: int, name: str) -> frozenset | None:
+        memo = (fid, name)
+        if memo in self._local:
+            return self._local[memo]
+        if memo in self._busy:
+            return None
+        binds = self.bindings(fid).get(name)
+        if not binds:
+            return None
+        self._busy.add(memo)
+        mod, cls, _fn = self.pkg.units[fid]
+        parts = []
+        for kind, node in binds:
+            if kind == "self":
+                parts.append(frozenset({(mod, cls)}))
+            elif kind == "cls":
+                parts.append(None)
+            elif kind == "ann":
+                parts.append(self.ann(mod, node, (mod, cls) if cls else None))
+            elif kind == "val":
+                parts.append(self.expr(node, fid, mod))
+            elif kind == "unpack":
+                parts.append(self.unpacked(*node, fid, mod))
+            elif kind == "param":
+                parts.append(self.argument(fid, *node))
+            else:
+                parts.append(None)
+            if parts[-1] is None:
+                break
+        out = self._union(parts)
+        self._busy.discard(memo)
+        self._local[memo] = out
+        return out
+
+    def expr(self, e: ast.AST, fid: int | None, mod: str) -> frozenset | None:
+        """The classes expression ``e`` evaluates to, in unit ``fid`` of ``mod``."""
+        if isinstance(e, ast.Constant):
+            return frozenset() if e.value is None else None
+        if isinstance(e, ast.Name):
+            if fid is not None and self.bindings(fid).get(e.id):
+                return self.local(fid, e.id)
+            key = self.class_of(mod, e)   # a class object: its members are the class's
+            return frozenset({key}) if key is not None else None
+        if isinstance(e, ast.Attribute):
+            return self._on(self.expr(e.value, fid, mod), lambda k: self.attr(k, e.attr))
+        if isinstance(e, (ast.Await, ast.NamedExpr)):
+            return self.expr(e.value, fid, mod)
+        if isinstance(e, ast.IfExp):
+            return self._union([self.expr(e.body, fid, mod), self.expr(e.orelse, fid, mod)])
+        if isinstance(e, ast.BoolOp) and isinstance(e.op, ast.Or):
+            return self._union([self.expr(v, fid, mod) for v in e.values])
+        if not isinstance(e, ast.Call):
+            return None
+        f = e.func
+        if isinstance(f, ast.Name) and f.id == "getattr" and len(e.args) >= 2 \
+                and isinstance(e.args[1], ast.Constant) and isinstance(e.args[1].value, str):
+            name = e.args[1].value
+            got = self._on(self.expr(e.args[0], fid, mod), lambda k: self.attr(k, name))
+            return got if len(e.args) == 2 else self._union([got, self.expr(e.args[2], fid, mod)])
+        if isinstance(f, ast.Name) and fid is not None and self.bindings(fid).get(f.id):
+            fmod, fcls, _fn = self.pkg.units[fid]
+            return frozenset({(fmod, fcls)}) \
+                if self.bindings(fid)[f.id] == [("cls", None)] else None
+        if e.args and ((isinstance(f, ast.Name) and (mod, f.id) in self.same)
+                       or (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name)
+                           and (mod, f.value.id, f.attr) in self.same)):
+            return self.expr(e.args[0], fid, mod)   # replace(x, ...), copy(x): x's class
+        key = self.class_of(mod, f)
+        if key is not None:
+            return frozenset({key})
+        sigs = self.signatures(e, fid, mod)
+        return None if sigs is None else \
+            self._union([self.ann(m, fn.returns, c) for m, fn, c in sigs])
+
+    def signatures(self, e: ast.Call, fid: int | None, mod: str
+                   ) -> list[tuple[str, ast.AST, tuple[str, str] | None]] | None:
+        """``(module, def, Self class)`` of each package function call ``e`` may run.
+
+        An untyped parameter or local's ``x.m(...)`` runs ``m`` when exactly
+        one class defines it and no class stores a field of that name: the
+        census's own ``unique`` rule, applied to the call's result. Never on a
+        module or an attribute chain, where ``np.empty`` would read as a
+        package method.
+        """
+        f = e.func
+        if isinstance(f, ast.Name):
+            if fid is not None and self.bindings(fid).get(f.id):
+                return None
+            target = self.pkg.resolve(mod, f.id)
+            node = self.pkg.top.get(target)
+            return [(target[0], node, None)] if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                else None
+        if not isinstance(f, ast.Attribute):
+            return None
+        local = isinstance(f.value, ast.Name) and fid is not None \
+            and bool(self.bindings(fid).get(f.value.id))
+        owner = None if local else self.class_of(mod, f.value)
+        if owner is not None:
+            hit = self.method(owner, f.attr)
+            return None if hit is None else [(hit[0][0], hit[1], owner)]
+        if not local and isinstance(f.value, ast.Name) and (mod, f.value.id) in self.pkg.mod_bind:
+            target = self.pkg.resolve(self.pkg.mod_bind[(mod, f.value.id)], f.attr)
+            node = self.pkg.top.get(target)
+            return [(target[0], node, None)] if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                else None
+        base = self.expr(f.value, fid, mod)
+        if not base:
+            # A parameter or local of this unit, not a module or an attribute chain.
+            binds = self.bindings(fid).get(f.value.id, ()) if local else ()
+            return [self.sole[f.attr]] if f.attr in self.sole and binds \
+                and all(kind != "import" for kind, _n in binds) else None
+        out = []
+        for k in sorted(base):
+            hit = self.method(k, f.attr)
+            if hit is None:
+                return None
+            out.append((hit[0][0], hit[1], k))
+        return out
+
+    def argument(self, fid: int, index: int, name: str) -> frozenset | None:
+        """An unannotated parameter: what every call the AST places passes it.
+
+        Only for a callee nothing reaches but those calls (``closed``), so no
+        caller is unseen; a missing argument takes the default, and a starred
+        one, or a call that passes nothing a default does not cover, is untyped.
+        """
+        fn = self.pkg.units[fid][2]
+        a = fn.args  # type: ignore[attr-defined]
+        positional = a.posonlyargs + a.args
+        defaults = dict(zip([p.arg for p in positional][len(positional) - len(a.defaults):],
+                            a.defaults))
+        defaults.update({p.arg: d for p, d in zip(a.kwonlyargs, a.kw_defaults) if d is not None})
+        parts: list[frozenset | None] = []
+        for cfid, cmod, call, skip in self.callers.get(fid, ()):
+            if any(isinstance(x, ast.Starred) for x in call.args) \
+                    or any(k.arg is None for k in call.keywords):
+                return None
+            pos = index - skip
+            given = call.args[pos] if 0 <= pos < len(call.args) and index < len(positional) else \
+                next((k.value for k in call.keywords if k.arg == name), None)
+            if given is not None:
+                parts.append(self.expr(given, cfid, cmod))
+            elif name in defaults:
+                parts.append(self.expr(defaults[name], None, self.pkg.units[fid][0]))
+            else:
+                return None
+            if parts[-1] is None:
+                return None
+        return self._union(parts) if parts else None
+
+    def unpacked(self, call: ast.Call, index: int, arity: int, fid: int, mod: str
+                 ) -> frozenset | None:
+        """Element ``index`` of a call returning ``tuple[...]`` of ``arity`` elements."""
+        sigs = self.signatures(call, fid, mod)
+        if sigs is None:
+            return None
+        parts = []
+        for m, fn, c in sigs:
+            r = fn.returns
+            if isinstance(r, ast.Constant) and isinstance(r.value, str):
+                try:
+                    r = ast.parse(r.value, mode="eval").body
+                except SyntaxError:
+                    return None
+            head = r.value.id if isinstance(r, ast.Subscript) and isinstance(r.value, ast.Name) \
+                else None
+            elts = r.slice.elts if head in ("tuple", "Tuple") and isinstance(r.slice, ast.Tuple) \
+                else []
+            if len(elts) != arity or any(isinstance(x, ast.Constant) and x.value is Ellipsis
+                                         for x in elts):
+                return None
+            parts.append(self.ann(m, elts[index], c))
+        return self._union(parts)
+
+    @staticmethod
+    def _on(base: frozenset | None, step) -> frozenset | None:
+        if not base:
+            return None
+        parts = [step(k) for k in sorted(base)]
+        return ReceiverTypes._union(parts)
+
+
 class CoordinatorRoles:
     """Which values in the package are the coordinator, found by role.
 
@@ -1506,7 +2075,8 @@ def coordinator_writers(roles: CoordinatorRoles) -> dict[str, set[str]]:
     return writers
 
 
-def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tuple[str, str, str]]]:
+def dead_members(pkg: Package, types: ReceiverTypes | None = None
+                 ) -> tuple[list[tuple[str, str, str, int]], list[tuple[str, str, str]]]:
     """``(dead, name-kept)``: class-body functions no live code reaches (#1395, D7-s3-02).
 
     A member is a method or a property -- a property is a member like any
@@ -1522,9 +2092,10 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tu
     a member already live -- so a member reached only from its own body, or
     from other dead members, stays dead.
 
-    ``name-kept`` is the shape this cannot measure, printed so its size is on
-    the record: live members whose only live loads are untyped ``x.n`` reads
-    of a name another class also defines, as a member or as a field. One of them may be dead behind
+    A receiver ``ReceiverTypes`` can type reaches its classes' families only,
+    like ``self``. ``name-kept`` is the shape this cannot measure, printed so
+    its size is on the record: live members whose only live loads are untyped
+    ``x.n`` reads of a name another class also defines, as a member or as a field. One of them may be dead behind
     another's field (D7-s3-01's ``DefrostDerate.samples`` stood alive behind
     ``AccuracyTracker.samples`` in every name-based view).
     """
@@ -1558,47 +2129,72 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tu
     def unique(key: tuple[str, str, str]) -> bool:
         return len(by_name[key[2]]) == 1 and not fields[key[2]] - {(key[0], key[1])}
 
+    def ha_entity_member(key: tuple[str, str, str]) -> bool:
+        """Whether ``key`` is one HA reads off an entity it instantiates.
+
+        The key is the member's name WITH its class's family deriving from an
+        external ``*Entity`` base -- never the name alone, which would silence
+        a same-named member of a class HA never instantiates (D7-s3-02 named
+        ``available`` among the HA-read properties; ``HA_ENTITY_METHODS``
+        carries it with the class, ``HA_CONVENTION_METHODS`` without).
+        """
+        return key[2] in HA_ENTITY_METHODS and any(
+            base.endswith(HA_ENTITY_BASE_SUFFIX)
+            for owner in pkg.family((key[0], key[1]))
+            for base in pkg.external_bases(owner))
+
     def is_root_member(key: tuple[str, str, str]) -> bool:
         name = key[2]
         return (name.startswith("__") and name.endswith("__")) \
-            or name in HA_CONVENTION_NAMES or is_ha_convention_method(name)
+            or name in HA_CONVENTION_NAMES or is_ha_convention_method(name) \
+            or ha_entity_member(key)
 
     # (from-member or None for a root place, reached members, typed?)
     edges: list[tuple[tuple[str, str, str] | None, set[tuple[str, str, str]], bool]] = []
     families: dict[tuple[str, str], set[tuple[str, str]]] = {}
 
-    def visit(node: ast.AST, mod: str, cls: str | None,
-              unit: tuple[str, str, str] | None, self_name: str | None) -> None:
+    def reach(name: str, owners: frozenset) -> set[tuple[str, str, str]]:
+        fam = set()
+        for owner in owners:
+            fam |= families.setdefault(owner, pkg.family(owner))
+        return {k for k in by_name[name] if (k[0], k[1]) in fam}
+
+    def visit(node: ast.AST, mod: str, cls: str | None, unit: tuple[str, str, str] | None,
+              self_name: str | None, fid: int | None) -> None:
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.ClassDef):
                 for item in child.body:
                     if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         params = fn_params(item)
                         sn = params[0] if params and not _is_static(item) else None
-                        visit(item, mod, child.name, (mod, child.name, item.name), sn)
+                        visit(item, mod, child.name, (mod, child.name, item.name), sn, id(item))
                     else:
-                        visit(item, mod, child.name, unit, self_name)
+                        visit(item, mod, child.name, unit, self_name, fid)
                 for deco in child.decorator_list + child.bases:
-                    visit(deco, mod, cls, unit, self_name)
+                    visit(deco, mod, cls, unit, self_name, fid)
                 continue
-            name = None
+            name = recv = None
             if isinstance(child, ast.Attribute) and isinstance(child.ctx, ast.Load):
-                name = child.attr
+                name, recv = child.attr, child.value
             elif isinstance(child, ast.Call) and isinstance(child.func, ast.Name) \
                     and child.func.id in ("getattr", "hasattr") and len(child.args) >= 2 \
                     and isinstance(child.args[1], ast.Constant) and isinstance(child.args[1].value, str):
-                name = child.args[1].value
+                name, recv = child.args[1].value, child.args[0]
             if name is not None and name in by_name:
-                recv = child.value if isinstance(child, ast.Attribute) else None
                 if cls is not None and isinstance(recv, ast.Name) and recv.id == self_name:
-                    fam = families.setdefault((mod, cls), pkg.family((mod, cls)))
-                    edges.append((unit, {k for k in by_name[name] if (k[0], k[1]) in fam}, True))
+                    edges.append((unit, reach(name, frozenset({(mod, cls)})), True))
                 else:
-                    edges.append((unit, set(by_name[name]), False))
-            visit(child, mod, cls, unit, self_name)
+                    owners = types.expr(recv, fid, mod)
+                    if owners and not any(types.protocol(k) for k in owners):
+                        edges.append((unit, reach(name, owners), True))
+                    else:
+                        edges.append((unit, set(by_name[name]), False))
+            inner = id(child) if id(child) in pkg.units else fid
+            visit(child, mod, cls, unit, self_name, inner)
 
+    types = types or ReceiverTypes(pkg)
     for mod, (_rel, tree) in pkg.mods.items():
-        visit(tree, mod, None, None, None)
+        visit(tree, mod, None, None, None, None)
 
     live = {k for k in members if is_root_member(k)}
     typed_live: set[tuple[str, str, str]] = set()
@@ -1618,6 +2214,33 @@ def dead_members(pkg: Package) -> tuple[list[tuple[str, str, str, int]], list[tu
     name_kept = sorted((members[k][0], k[1], k[2]) for k in live
                        if k not in typed_live and not is_root_member(k))
     return dead, name_kept
+
+
+def class_excess(trees: list[tuple[Path, ast.Module]],
+                 helpers: dict[str, tuple[ast.AST, frozenset[str]]]) -> tuple[int, int]:
+    """``(class_excess_loc, helper lines)``: each class's span past GOD_CLASS_LOC_LIMIT, summed.
+
+    ``max_class_loc`` prices the largest class and nothing else, so the
+    runner-up could take thousands of lines unmeasured (D7-s1-01: 1201 lines
+    into ``HeatPumpOptimizer`` moved no row). Summing each class's excess
+    prices growth wherever it lands, and a class under the limit costs
+    nothing, so a new small class is free. The coordinator's span counts its
+    helpers (``coordinator_helpers``, #1686): a method moved verbatim into
+    ``_helper(self, ...)`` is the same code with the same reach, so the move
+    leaves this row where it was, and only lines that go -- copies merged,
+    dead code deleted -- lower it. A move to another module is priced by
+    ``coordinator_private_reach`` and ``seam_cut_total`` instead.
+    """
+    helper_loc = sum(span_loc(fn) for fn, _p in helpers.values())
+    total = 0
+    for path, tree in trees:
+        mod = path.relative_to(PACKAGE_DIR).as_posix()[:-3].replace("/", ".")
+        for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
+            loc = span_loc(cls)
+            if mod == COORDINATOR_MODULE and cls.name == COORDINATOR_CLASS_NAME:
+                loc += helper_loc
+            total += max(0, loc - GOD_CLASS_LOC_LIMIT)
+    return total, helper_loc
 
 
 # ---------------------------------------------------------------------------
@@ -1696,7 +2319,8 @@ def measure() -> dict:
                     if is_dead_symbol((rel, name), bound, dynamic_exempt)]
 
     # -- dead members (#1395, D7-s3-02) ------------------------------------
-    dead_methods, name_kept = dead_members(pkg)
+    types = ReceiverTypes(pkg)
+    dead_methods, name_kept = dead_members(pkg, types)
 
     # -- the coordinator, by role (#1686, #1738) ---------------------------
     roles = CoordinatorRoles(pkg)
@@ -1708,6 +2332,7 @@ def measure() -> dict:
 
     clones = duplicate_clones(trees)
     cycles = import_cycle_modules(trees)
+    excess, helper_loc = class_excess(trees, helpers)
     max_method_loc, max_cc = table_maxima(monsters, cc_scores)
 
     metrics = {
@@ -1718,6 +2343,9 @@ def measure() -> dict:
         # still priced (coordinator_loc merged in, identical in 30 of 30 of the
         # pre-study's perturbations).
         "max_class_loc": max((g[0] for g in god_classes), default=0),
+        # Every class's lines past the limit, the coordinator's helpers in
+        # its span: growth anywhere is priced, a verbatim move is not a gain.
+        "class_excess_loc": excess,
         # The worst offender, off tables that are already built and already
         # sorted (#374). The four threshold counts above stop pricing a
         # function once it has crossed the line, so without these two the
@@ -1741,6 +2369,7 @@ def measure() -> dict:
     }
     tables = {
         "god_classes": sorted(god_classes, reverse=True),
+        "helper_loc": helper_loc,
         "monsters": sorted(monsters, reverse=True),
         "cc_scores": sorted(cc_scores, reverse=True),
         "const_fanout": dict(sorted(const_fanout.items(), key=lambda kv: -kv[1])),
@@ -1748,6 +2377,7 @@ def measure() -> dict:
         "dead_symbols": dead_symbols,
         "dead_methods": dead_methods,
         "name_kept": name_kept,
+        "computed_stores": types.computed,
         "dynamic_exempt": sorted(dynamic_exempt),
         "dynamic_problems": dynamic_problems,
         "clones": clones,
@@ -1777,6 +2407,9 @@ def print_report(result: dict) -> None:
           % GOD_CLASS_LOC_LIMIT)
     for loc, rel, span, name, methods in tables["god_classes"]:
         print(f"  {rel}:{span}  {loc} LOC  {methods} methods  {name}")
+    print("  class_excess_loc = %d (every class's span past %d, summed; the"
+          " coordinator's %d helper lines count in its span)"
+          % (metrics["class_excess_loc"], GOD_CLASS_LOC_LIMIT, tables["helper_loc"]))
 
     print()
     print("########## monster methods: top 10 of %d over %d LOC ##########"
@@ -1820,6 +2453,10 @@ def print_report(result: dict) -> None:
           " name another class also defines" % len(tables["name_kept"]))
     for rel, cls, name in tables["name_kept"]:
         print(f"    {rel}  {cls}.{name}")
+    print("  untyped by design: %d store(s) through a computed name (setattr(x, name, v),"
+          " __dict__), which no attribute's type sees" % len(tables["computed_stores"]))
+    for rel, line in tables["computed_stores"]:
+        print(f"    {rel}:{line}")
 
     print()
     print("########## dynamic-reference allowlist (not counted above) ##########")
@@ -2523,6 +3160,155 @@ FIELD_SELF_CHECK_SOURCE = (
 )
 
 
+# D7-s3-01's six, in miniature: a member whose every load is on a receiver
+# the source types to ANOTHER class -- by constructor, return annotation,
+# tuple unpacking, class object or the arguments of every call -- is dead, not
+# name-kept; a Protocol receiver, an attribute some untyped receiver stores and
+# the parameter of a function that escapes as a value stay untyped (the last
+# is archscore's B3b: an extraction into unannotated parameters must not hide
+# a dead member).
+TYPED_SELF_CHECK_SOURCE = (
+    "from typing import Protocol\n"
+    "import numpy as np\n"
+    "class Shape:\n"
+    "    def size(self):\n        return 1\n"
+    "class Other:\n"
+    "    def size(self):\n        return 2\n"
+    "class Maker:\n"
+    "    def zeros(self) -> Shape:\n        return Shape()\n"
+    "class Gauge:\n"
+    "    def level(self):\n        return 1\n"
+    "class Tank:\n"
+    "    level: float = 0.0\n"
+    "class Cusum:\n"
+    "    def reset(self):\n        return 0\n"
+    "class Comfort:\n"
+    "    def reset(self):\n        return 1\n"
+    "    @classmethod\n"
+    "    def restore(cls, d) -> 'Comfort':\n        return cls()\n"
+    "class Reading:\n"
+    "    value: float | None = None\n"
+    "class Reader:\n"
+    "    def read(self, key) -> Reading:\n        return Reading()\n"
+    "    def pair(self) -> tuple[Reading, int]:\n        return Reading(), 1\n"
+    "    def value(self, key):\n        return 2\n"
+    "    def flag(self):\n        return 3\n"
+    "class Held(Protocol):\n"
+    "    def flag(self): ...\n"
+    "class Owner:\n"
+    "    def __init__(self, name):\n"
+    "        self._comfort = Comfort()\n"
+    "        self._watch = Comfort.restore({})\n"
+    "        setattr(self, name, None)\n"
+    "    def tick(self, reader: Reader, held: Held):\n"
+    "        got = reader.read('k')\n"
+    "        first, _n = reader.pair()\n"
+    "        return (self._comfort.reset() + self._watch.reset() + got.value\n"
+    "                + first.value + held.flag() + self._part(Tank()))\n"
+    "    def _part(self, piece):\n"
+    "        return piece.level\n"
+    "def run():\n"
+    "    return Owner('n').tick(Reader(), None) + np.zeros(3).size\n"
+)
+TYPED_SELF_CHECK_POISON = ("def poke(thing, other):\n    thing._comfort = other\n"
+                           "def leak(thing):\n    return thing._part\n")
+
+
+def _filler(name: str, methods: int, tail: str = "") -> str:
+    """A class of ``methods`` two-line methods, then ``tail`` in its body."""
+    return f"class {name}:\n" + "".join(
+        f"    def m{i}(self):\n        return {i}\n" for i in range(methods)) + tail
+
+
+# A 12-line method, inline in the coordinator or cut verbatim into a helper.
+MOVED_BODY = "".join(f"    x{i} = {i}\n" for i in range(10)) + "    return x0\n"
+
+
+def class_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin class_excess_loc (D7-s1-01; #2285's review): growth, a move, a merge."""
+    coord = COORDINATOR_CLASS_NAME
+
+    def excess(**modules: str) -> int:
+        trees = [(PACKAGE_DIR / f"{m}.py", ast.parse(src)) for m, src in modules.items()]
+        return class_excess(trees, CoordinatorRoles(Package(trees)).coordinator_helpers())[0]
+
+    method = "    def moved(self):\n" + "".join("    " + ln + "\n" for ln in MOVED_BODY.splitlines())
+    inline = _filler(coord, 160, "    def tick(self):\n        return self.moved()\n" + method)
+    copied = inline + method.replace("def moved(", "def moved_copy(")
+    helped = _filler(coord, 160, "    def tick(self):\n        return _moved(self)\n") \
+        + "def _moved(self):\n" + MOVED_BODY
+    big, second, grown = _filler(coord, 300), _filler("Second", 200), _filler("Second", 225)
+    return (
+        ("a class below the largest is priced when it grows",
+         excess(coordinator=big, other=grown) - excess(coordinator=big, other=second) == 50),
+        ("a method moved verbatim into a coordinator.py helper moves no class row",
+         excess(coordinator=helped) == excess(coordinator=inline) > 0),
+        ("a merged copy is priced: its lines leave the row",
+         excess(coordinator=copied) - excess(coordinator=inline) == span_loc(
+             ast.parse(method.strip()).body[0])),
+        ("a class under the limit costs nothing", excess(other=_filler("Small", 140)) == 0),
+    )
+
+
+# ``HA_ENTITY_METHODS``' two halves, side by side: the same member name on the
+# class HA instantiates and on one it does not. A key of the name alone reads
+# both the same -- the entry would then silence a same-named member of a class
+# HA never looks at, which is the blinding `fixer.md` step 14 refuses -- so the
+# census must keep the second one and report it dead.
+ENTITY_SELF_CHECK_SOURCE = (
+    "class PowerSensor(SensorEntity):\n"
+    "    def available(self):\n        return True\n"
+    "class Gauge:\n"
+    "    def available(self):\n        return True\n"
+)
+
+
+def entity_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin the key of the HA-read entity exemption (D7-s3-01; step 14)."""
+    pkg = Package([(PACKAGE_DIR / "entitycheck.py",
+                    ast.parse(ENTITY_SELF_CHECK_SOURCE))])
+    dead, _kept = dead_members(pkg)
+    dead_pairs = {(cls, name) for _rel, cls, name, _line in dead}
+    return (
+        ("an HA-read member of an entity class is a root, not dead",
+         ("PowerSensor", "available") not in dead_pairs),
+        ("the same name on a class HA never instantiates is measured dead",
+         ("Gauge", "available") in dead_pairs),
+        ("no entity-read name is exempt as a bare name",
+         not is_ha_convention_method("available")
+         and not is_ha_convention_method("target_temperature")),
+    )
+
+
+def typed_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin ReceiverTypes on D7-s3-01's shapes."""
+    def census(source: str) -> tuple[set, set, list]:
+        pkg = Package([(PACKAGE_DIR / "typed.py", ast.parse(source))])
+        types = ReceiverTypes(pkg)
+        dead, kept = dead_members(pkg, types)
+        return ({(c, n) for _r, c, n, _l in dead}, {(c, n) for _r, c, n in kept}, types.computed)
+
+    dead, kept, computed = census(TYPED_SELF_CHECK_SOURCE)
+    poisoned, _k, _c = census(TYPED_SELF_CHECK_SOURCE + TYPED_SELF_CHECK_POISON)
+    return (
+        ("a load on a constructor-typed attribute reaches that class only",
+         ("Cusum", "reset") in dead and ("Comfort", "reset") not in dead | kept),
+        ("a return annotation and a tuple unpacking type a local",
+         ("Reader", "value") in dead),
+        ("a Protocol receiver reaches no implementer, so stays untyped",
+         ("Reader", "flag") in kept and ("Reader", "flag") not in dead),
+        ("an attribute an untyped receiver stores is untyped",
+         ("Cusum", "reset") not in poisoned),
+        ("a parameter only placed calls pass takes their arguments' class",
+         ("Gauge", "level") in dead),
+        ("a function whose name escapes a call keeps its parameters untyped",
+         ("Gauge", "level") not in poisoned),
+        ("a store through a computed name is listed, not typed", len(computed) == 1),
+        ("a module's call is never a package method of the same name",
+         ("Other", "size") not in dead and ("Other", "size") in kept),
+    )
+
+
 def role_self_check() -> tuple[tuple[str, bool], ...]:
     """Pin the member census, the role engine and the #1738 rows on our own trees."""
     trees = [(PACKAGE_DIR / m, ast.parse(src)) for m, src in ROLE_SELF_CHECK_SOURCES.items()]
@@ -2634,6 +3420,9 @@ def self_check() -> int:
         *audit_self_check(),
         *seam_self_check(),
         *role_self_check(),
+        *typed_self_check(),
+        *class_self_check(),
+        *entity_self_check(),
     )
     failures = [message for message, ok in rules if not ok]
     print("########## counting-rule self-check ##########")

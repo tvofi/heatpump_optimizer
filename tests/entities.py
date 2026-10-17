@@ -15251,14 +15251,26 @@ R.check(
 
 
 def _gl_auto_lease() -> tuple[bool, str]:
-    """run.sh leases a FULL or stress run itself; a second one waits."""
+    """run.sh leases a FULL or stress run itself; a second one waits.
+
+    The classifier is driven at all three answers, and at the fail-closed arm
+    the block on #2341 found open: the exclusive lease for the machine-measuring
+    scripts, a slot for the multi-minute CPU ones, a slot for a name the
+    recordings do NOT carry (`tests/rolling.py`, gated behind `SLOW=1` and so
+    never timed), and none only for a recorded seconds-side script
+    (R10-PREPR-CAP, #2267).
+    """
     import threading
     with _tempfile.TemporaryDirectory() as td:
         d, seen = Path(td) / "lock", Path(td) / "seen"
         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+        seconds, rolling = Path(td) / "c.run", Path(td) / "d.run"
         scoped.write_text("tests/entities.py\n")
         stress.write_text("tests/entities.py\ntests/stress.py\n")
-        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
+        seconds.write_text("tests/structure.py\n")
+        rolling.write_text("tests/rolling.py\n")
+        need = [_gate_lock.needs_lease(s)
+                for s in ("", str(stress), str(scoped), str(seconds), str(rolling))]
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         child = ("import os, sys; from pathlib import Path; "
                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
@@ -15276,10 +15288,42 @@ def _gl_auto_lease() -> tuple[bool, str]:
         finally:
             _gate_lock.WAIT_POLL_SECS = poll
         text = seen.read_text() if seen.exists() else ""
-        ok = (need == [True, True, False] and waited and out == [3]
+        ok = (need == ["lease", "lease", "slot", "none", "slot"] and waited
+              and out == [3]
               and "label=auto" in text and text.endswith("auto")
               and _gate_lock.read_owner(d) is None)
         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+
+
+def _gl_slot_count() -> tuple[bool, str]:
+    """The pool's capacity is the cap unless the OWNER raises it (#2267).
+
+    The predicate is the CLAMP, not the number: an override below the cap is
+    honoured and one above it is refused without the owner's mark, so a seat
+    cannot widen the box's concurrency by exporting one variable. The owner arm
+    is the null control -- the same `8` is honoured once the mark is present.
+    """
+    import os as _os
+    saved = {k: _os.environ.get(k)
+             for k in (_gate_lock.SLOTS_ENV, _gate_lock.SLOTS_OWNER_ENV)}
+    try:
+        got = []
+        for value, owner in ((None, None), ("3", None), ("8", None),
+                             ("8", "1"), ("junk", None), ("0", None)):
+            for key, val in ((_gate_lock.SLOTS_ENV, value),
+                             (_gate_lock.SLOTS_OWNER_ENV, owner)):
+                _os.environ.pop(key, None)
+                if val is not None:
+                    _os.environ[key] = val
+            got.append(_gate_lock.heavy_slots())
+        want = [_gate_lock.HEAVY_SLOTS, 3, _gate_lock.HEAVY_SLOTS, 8,
+                _gate_lock.HEAVY_SLOTS, _gate_lock.HEAVY_SLOTS]
+        return got == want, f"heavy_slots over (unset,3,8,8+owner,junk,0)={got}"
+    finally:
+        for key, val in saved.items():
+            _os.environ.pop(key, None)
+            if val is not None:
+                _os.environ[key] = val
 
 
 def _gl_lease_hardening() -> tuple[bool, str]:
@@ -15398,11 +15442,80 @@ def _gl_lease_hardening() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_auto_lease()
 _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
+_gl_line = 'answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)'
 R.check(
-    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
-    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
-    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
+    "run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits",
+    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2
+    and _run_sh.count('slot-auto-lease --label "run.sh-$$"') == 1,
+    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none', "
+    "and give a 'slot' answer the pool rather than the exclusive lease",
+)
+_gl_count_ok, _gl_count_detail = _gl_slot_count()
+R.check(
+    "the heavy-slot capacity is the cap unless the owner raises it (#2267)",
+    _gl_count_ok,
+    _gl_count_detail,
+)
+
+
+def _gl_lease_class_sweep() -> tuple[bool, str]:
+    """Every script run.sh dispatches through `leased` is classified.
+
+    THE CLASS, and its seams. Both `run` and `run_always` dispatch through
+    `leased`, so the class is the scripts `tests/run.sh` names in those calls,
+    and the property is that none of them is left UNLEASED unless the
+    recordings say it takes seconds. #2341's review found `tests/rolling.py`
+    open: gated behind `SLOW=1`, never timed, so `needs_lease` answered `none`
+    for a script whose own comment calls it "about a quarter of an hour".
+    An untimed name's weight is unknown, and the conservative answer for the
+    unknown is the pool -- bounded -- never `none`, which leaves it unbounded
+    beside three others.
+
+    The rule is read from the two files that own it: the dispatch sites in
+    run.sh and `needs_lease` itself. A script added to either reaches this
+    census with no edit here. The census asserts its OWN preconditions, because
+    a sweep over an empty set passes silently: it refuses when the parse finds
+    fewer than a floor of dispatched scripts (a regex that stopped matching
+    reads as a closed class), and it names every seam it leaves unleased.
+    """
+    run_lines = Path("tests/run.sh").read_text().splitlines()
+    dispatched: list[str] = []
+    for line in run_lines:
+        match = _re.match(r"\s*(?:run|run_always)\s+(?:\"\$PYTHON\"|node)?\s*"
+                          r"(tests/[A-Za-z0-9_]+\.(?:py|mjs))", line)
+        if match and match.group(1) not in dispatched:
+            dispatched.append(match.group(1))
+    floor = 30
+    by_answer: dict[str, list[str]] = {"lease": [], "slot": [], "none": []}
+    unleased: list[str] = []
+    with _tempfile.NamedTemporaryFile("w+", suffix=".run") as handle:
+        for script in dispatched:
+            handle.seek(0)
+            handle.truncate()
+            handle.write(script + "\n")
+            handle.flush()
+            answer = _gate_lock.needs_lease(handle.name)
+            seconds = _gate_lock._recorded_seconds(script)
+            by_answer.setdefault(answer, []).append(script)
+            if answer == "none" and (seconds is None
+                                     or seconds >= _gate_lock.SLOT_MIN_SECONDS):
+                unleased.append(script)
+    ok = len(dispatched) >= floor and not unleased
+    detail = (f"dispatched={len(dispatched)} (floor {floor}) "
+              f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
+              f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
+    # Printed on a PASS as well as carried into the failure: the census's own
+    # shape is the evidence a body cites, and a row that prints only when it
+    # fails shows the reader nothing about the class it just cleared.
+    print(f"lease class: {detail}")
+    return ok, detail
+
+
+_gl_sweep_ok, _gl_sweep_detail = _gl_lease_class_sweep()
+R.check(
+    "every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)",
+    _gl_sweep_ok,
+    _gl_sweep_detail,
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
@@ -15411,6 +15524,81 @@ R.check(
     "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
     _gl_ok,
     _gl_detail,
+)
+
+
+def _gl_heavy_slots() -> tuple[bool, str]:
+    """R10-PREPR-CAP (#2267): the heavy-slot pool admits exactly `slots`.
+
+    The predicate is the CAP, not the number four: a pool that admitted any
+    number would pass a check that only took four, so the capacity arm takes
+    the fifth and requires it to block, and the null control runs the same code
+    at `slots=1`, where the second take must block. The reuse arm frees one
+    holder and requires the next take to land on a slot inside the pool, so a
+    pool that grew a new slot on every take is caught beside one that never
+    released.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        held = [_gate_lock.take_slot(f"h{i}", lock_dir=d, slots=4, wait=False)[0]
+                for i in range(4)]
+        try:
+            _gate_lock.take_slot("fifth", lock_dir=d, slots=4, wait=False)
+            admitted = True
+        except BlockingIOError:
+            admitted = False
+        _gate_lock.release_slot("h0", lock_dir=d, slots=4)
+        idx, _owner = _gate_lock.take_slot("next", lock_dir=d, slots=4, wait=False)
+        reused = idx in range(4) and _gate_lock.release_slot("next", lock_dir=d, slots=4)
+        # Null control: the same calls with a one-slot pool refuse the second.
+        d1 = Path(td) / "one"
+        _gate_lock.take_slot("a", lock_dir=d1, slots=1, wait=False)
+        try:
+            _gate_lock.take_slot("b", lock_dir=d1, slots=1, wait=False)
+            single_admitted = True
+        except BlockingIOError:
+            single_admitted = False
+        ok = not admitted and reused and not single_admitted and held == [0, 1, 2, 3]
+        return ok, (f"fifth_admitted={admitted} reused_slot={idx} reused={reused} "
+                    f"single_pool_admitted_second={single_admitted} held={held}")
+
+
+def _gl_heavy_slot_reclaim() -> tuple[bool, str]:
+    """A slot whose lease expired, or whose named owner process is gone, is
+    reclaimed instead of wedging the pool; a live one is not (the control)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        dead = _subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait(timeout=5)
+        _gate_lock.take_slot("orphan", lock_dir=d, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=dead.pid)
+        try:
+            stolen = _gate_lock.take_slot("heir", lock_dir=d, slots=1, wait=False)[0] == 0
+        except BlockingIOError:
+            stolen = False
+        # Null control: the same shape with a LIVE owner pid is not stolen.
+        d2 = Path(td) / "live"
+        _gate_lock.take_slot("seat", lock_dir=d2, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=_os.getpid())
+        try:
+            _gate_lock.take_slot("other", lock_dir=d2, slots=1, wait=False)
+            live_admitted = True
+        except BlockingIOError:
+            live_admitted = False
+        return stolen and not live_admitted, f"stolen={stolen} live_admitted={live_admitted}"
+
+
+_gl_slots_ok, _gl_slots_detail = _gl_heavy_slots()
+R.check(
+    "the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second",
+    _gl_slots_ok,
+    _gl_slots_detail,
+)
+_gl_rec_ok, _gl_rec_detail = _gl_heavy_slot_reclaim()
+R.check(
+    "a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)",
+    _gl_rec_ok,
+    _gl_rec_detail,
 )
 
 
@@ -18181,6 +18369,98 @@ R.check(
     "preflight.sh must exit 0 when every closing keyword is declared; without "
     "this arm the check above passes for a script that refuses everything",
 )
+# The multi-issue arm's class is OWNERSHIP, not a separator list: a closing
+# keyword owns at most one reference, so a second reference between it and the
+# next keyword or clause end is silently dropped by GitHub. Its first version
+# spelled three separators (whitespace, a comma, an "and"); the round-1 review
+# ran the class's own rule over 200 merged bodies and returned six more it let
+# through -- `/`, `&`, `+`, `(`, `;`, any plain word (`then`), and a keyword and
+# a reference split across a newline. One plant per seam, so a seam that
+# reopens names itself in the detail rather than hiding behind an `all()`.
+#
+# These plants run preflight.sh from a directory that is not a checkout. Arm 1b
+# is a property of the body text alone, and the corpus arm it skips there is a
+# `check`, never a refusal: isolating it takes the pins from 1.1 s to 0.16 s
+# each and leaves what is measured exactly what the check is named for.
+_PREFLIGHT_ABS = _preflight.resolve()
+_PREFLIGHT_MULTI_SEAMS = {
+    "space": "Closes #2231 #2230.\n",
+    "comma": "Closes #2231, #2230.\n",
+    "and": "Closes #2231 and #2230.\n",
+    "slash": "Closes #2231/#2230.\n",
+    "spaced-slash": "Closes #2231 / #2230.\n",
+    "ampersand": "Closes #2231 & #2230.\n",
+    "plus": "Closes #2231 +#2230.\n",
+    "paren": "Closes #2231 (#2230).\n",
+    "semicolon": "Closes #2231; #2230.\n",
+    "word": "Closes #2231 then #2230.\n",
+    "colon": "Closes: #2231 #2230.\n",
+    "newline": "Closes #2231\n#2230\n",
+}
+# ... and the scope, in the other direction. A second reference in a LATER
+# clause is not owned by the keyword: `Part of #B` is this repository's own
+# convention for "closes one, touches another" and `Leaves #B open` says the
+# opposite of a close. Measured over the same 200 merged bodies: ownership at
+# clause scope refuses none of them, and the same test over the whole body
+# refuses 25, each carrying its second reference in a LATER clause -- a
+# `Part of`/`Leaves` site, or a prose mention after a blank line. A pin that
+# only widened the rule would red here.
+_PREFLIGHT_NOT_OWNED = {
+    "part-of": "Closes #2231.\n\nPart of #2230.\n",
+    "leaves-open": "Closes #2231. Leaves #2230 open.\n",
+    "bare-reference": "Closes #2231.\n\n#2230\n",
+    "heading": "Closes #2231\n\n## Notes\n\n#2230 is unrelated.\n",
+}
+
+
+def _preflight_rc(body: str, intended: str = "2231 2230") -> int:
+    """preflight.sh's exit code for ``body``, arm 1b's own input surface."""
+    with tempfile.TemporaryDirectory() as tmp:
+        return subprocess.run(
+            ["bash", str(_PREFLIGHT_ABS), *intended.split()],
+            input=body, capture_output=True, text=True, cwd=tmp,
+        ).returncode
+
+
+_PREFLIGHT_MULTI_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_MULTI_SEAMS.items()}
+    if _preflight.is_file() else {}
+)
+_PREFLIGHT_NOT_OWNED_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_NOT_OWNED.items()}
+    if _preflight.is_file() else {}
+)
+R.check(
+    "one closing keyword naming several issues refuses, since GitHub closes "
+    "only the first",
+    bool(_PREFLIGHT_MULTI_RC) and all(rc == 1 for rc in _PREFLIGHT_MULTI_RC.values()),
+    f"rc per separator: {_PREFLIGHT_MULTI_RC} -- `Closes #A <sep> #B` closes #A "
+    "and silently not #B, because GitHub's rule is KEYWORD #N with nothing "
+    "between the keyword and the number, so a second number has no keyword of "
+    "its own and the grep in check 1 keeps only the first. The arm is the "
+    "ownership property, not a separator list: a spelled-out set always has a "
+    "next separator, and six of these twelve are the seams a round-1 review "
+    "returned against the three-separator version",
+)
+R.check(
+    "and a second reference in a LATER clause is not refused (the scope's own "
+    "null control)",
+    bool(_PREFLIGHT_NOT_OWNED_RC)
+    and all(rc == 0 for rc in _PREFLIGHT_NOT_OWNED_RC.values()),
+    f"rc per shape: {_PREFLIGHT_NOT_OWNED_RC} -- ownership is decided inside a "
+    "clause (a paragraph, and a sentence within it), because a reference in a "
+    "later clause is not presented as part of the close. `Closes #M.` then "
+    "`Part of #N.` is the tree's own convention; keeping the count across the "
+    "blank line would refuse 24 of the 200 most recently merged bodies, every "
+    "one of them that shape",
+)
+R.check(
+    "and two keywords pass, so it is not simply always-red",
+    _preflight.is_file()
+    and _preflight_rc("Closes #2231. Closes #2230.\n") == 0,
+    "two closing keywords, each its own number, must pass; the multi-issue arm "
+    "refuses only one keyword followed by several references in one clause",
+)
 # The '; echo' refusal is split: inline backticks in prose are advisory, a
 # fenced block is not. Both directions are pinned because the arms above feed
 # only single-line inputs, so widening the exemption to strip fenced blocks
@@ -19023,7 +19303,7 @@ R.check(
     "dev/audit one level above a recorded directory",
 )
 _A_IR_BOUND = _closure.affected(
-    ["dev/governance/roles/fixer.md", "handoff/r9-x/note.md"])
+    ["dev/governance/decisions/0011-app-authored-identity.md", "handoff/r9-x/note.md"])
 R.check(
     "prose outside every recorded reach still skips (the bound's other edge)",
     _A_IR_BOUND["case"] == "skip",
@@ -25650,6 +25930,41 @@ R.check(
         re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
     "the predicate must read the env line, not the step's name",
 )
+# The preflight step's closing-keyword arm was dead two ways: the step passed
+# preflight.sh no intended-issue list (check #1 refuses a close not in the list
+# it is given, so every close was refused) and appended `|| true` (so the
+# refusal never gated). Both are pinned over the comment-stripped step: the
+# list must be derived (`INTENDED=`) and passed (`$INTENDED`), and the swallow
+# must be gone. Re-adding `|| true` is the one-character edit that silences the
+# arm again.
+def _preflight_derives_intended(step: str) -> bool:
+    return (
+        step.startswith("Pre-flight the body for unmeasured claims")
+        and "INTENDED=" in step
+        and "$INTENDED" in step
+        and "|| true" not in step
+    )
+
+
+_PC_PREFLIGHT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Pre-flight the body for unmeasured claims")), "")
+R.check(
+    "the preflight step derives and passes the intended list and its refusal gates",
+    _preflight_derives_intended(_PC_PREFLIGHT_STEP),
+    f"step found={bool(_PC_PREFLIGHT_STEP)}, "
+    f"derives={'INTENDED=' in _PC_PREFLIGHT_STEP}, "
+    f"passed={'$INTENDED' in _PC_PREFLIGHT_STEP}, "
+    f"swallow_gone={'|| true' not in _PC_PREFLIGHT_STEP}; with no list and "
+    "`|| true`, every closing keyword is refused and the refusal is discarded "
+    "-- the arm bound nowhere",
+)
+R.check(
+    "and the same step re-adding the swallow is not (null control)",
+    bool(_PC_PREFLIGHT_STEP)
+    and not _preflight_derives_intended(_PC_PREFLIGHT_STEP + " || true"),
+    "the predicate must read the swallow's absence, not the step's name",
+)
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
 # driven by prepr.sh --self-test; what that cannot see is whether THIS job
@@ -29466,10 +29781,12 @@ R.check(
 # the brief of a stage with no roster group, and carry-201 told seats to run
 # `corpus_churn.py` at a path two moves old. A citation is followed through the
 # move map (`locate`), and kept when it lands under a layout.json `historical`
-# prefix, the half no other check runs. Both sources are read from the INDEX, as
-# tests/layout.py reads prose: they are on tests/closure.py's INERT list, and a
-# worktree read would record them into this script's closure, the
-# INERT-and-recorded pair `merge` refuses (#357).
+# prefix, the half no other check runs. Both sources are read from the WORKTREE,
+# which is what keeps an edit to one from skipping this arm: each is off
+# closure.py's INERT list (its `_is_citation_source`), so a worktree read enters
+# this script's measured closure and a pull request that only adds a broken
+# citation selects this script and is refused here rather than one merge later
+# on main (#2312, F2 -- the late-gate shape #518 and #533 closed the same way).
 #
 # THE PROBE. A cited `.py` is loaded in a fresh interpreter the way a seat runs
 # it (cwd the root, its directory first on sys.path, PYTHONPATH=tests/hastub,
@@ -29491,8 +29808,28 @@ _SP_EXE = r"((?:[\w.-]+/)+[\w.-]+\.(?:py|mjs|js|sh))(?![\w.])"
 _SP_CITE = re.compile(r"(?<![\w./-])" + _SP_EXE)
 _SP_TOPS = {Path(p).parts[0] for p in subprocess.run(
     ["git", "ls-files"], capture_output=True, text=True).stdout.split()}
-_SP_OPENS = {"open", "Path", "join", "run", "check_output", "check_call", "call",
+_SP_OPENS = {"open", "Path", "joinpath", "run", "check_output", "check_call", "call",
              "Popen", "exists", "is_file", "isfile", "isdir", "locate", "canon"}
+# The read half of an open: `Path(lit).read_text()` is caught through `Path`,
+# but `(Path('.') / lit).read_text()` and `_P = Path('.') / lit; _P.read_text()`
+# name the path only on the RECEIVER, so each is an open site of its own --
+# as is `.open()` on such a receiver, the same shape one method over.
+_SP_READS = {"read_text", "read_bytes"}
+# `join` is the one name that is BOTH `os.path.join` (a path site) and
+# `str.join` (not one): `"".join(rows)` over a list that HELD a path literal
+# opens nothing, and following it reads codeowners_gap.py's four classifier
+# inputs as faults -- the shape the review's "every constant is an open"
+# ablation fires. A bare `join(...)` is a path site (the module qualified it by
+# import); `x.join(...)` is too only for a path module.
+_SP_JOIN_MODULES = {"posixpath", "ntpath", "pathlib"}
+
+
+def _sp_path_join(func):
+    if isinstance(func, ast.Name):
+        return True
+    return (isinstance(func, ast.Attribute)
+            and ((isinstance(func.value, ast.Attribute) and func.value.attr == "path")
+                 or (isinstance(func.value, ast.Name) and func.value.id in _SP_JOIN_MODULES)))
 _SP_LOAD = (
     "import importlib.util as u, os, sys\n"
     "f = sys.argv[1]; sys.path.insert(0, os.path.dirname(os.path.abspath(f)))\n"
@@ -29500,8 +29837,8 @@ _SP_LOAD = (
     "s.loader.exec_module(u.module_from_spec(s))\n")
 
 
-def _sp_index(path):
-    return subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True).stdout
+def _sp_source(path):
+    return Path(path).read_text()
 
 
 def _sp_cited(texts):
@@ -29542,41 +29879,224 @@ def _sp_remeasures(node):
             yield from _sp_remeasures(v)
 
 
+def _sp_bind_names(node):
+    """Every name a bind target introduces: a plain name, a tuple/list unpack's
+    element names, or the attribute of a `self.x = ...` target."""
+    if isinstance(node, ast.Name):
+        yield node.id
+    elif isinstance(node, ast.Attribute):
+        yield node.attr
+    elif isinstance(node, (ast.Tuple, ast.List)):
+        for e in node.elts:
+            yield from _sp_bind_names(e)
+
+
+_SP_SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
+
+
+_SP_FN_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def _sp_scope_map(tree):
+    """((node, enclosing scope) ..., {scope: parent scope}, {scope: global names},
+    {scope: nonlocal names}); the module object is the root scope. A binding
+    resolves in the scope that READS it, so a name bound in one function is not
+    read as a same-named binding in another -- the leak that turns a classifier
+    input into an open, which is codeowners_gap.py's `line`, `want` and `ok`
+    (#2344 review, round 1). The `global`/`nonlocal` sets are the one name the
+    reader may re-route: a name declared there is bound in the scope the
+    declaration points to, not the scope that textually holds the assignment."""
+    nodes, parent, glbs, nlcls, stack = [], {}, {}, {}, [(tree, tree)]
+    while stack:
+        node, scope = stack.pop()
+        nodes.append((node, scope))
+        inner = node if isinstance(node, _SP_SCOPE_NODES) else scope
+        if inner is not scope:
+            parent[inner] = scope
+        if isinstance(node, ast.Global):
+            glbs.setdefault(scope, set()).update(node.names)
+        elif isinstance(node, ast.Nonlocal):
+            nlcls.setdefault(scope, set()).update(node.names)
+        stack.extend((c, inner) for c in ast.iter_child_nodes(node))
+    return nodes, parent, glbs, nlcls
+
+
+def _sp_args(node):
+    """(arg, default) for every parameter carrying a default."""
+    a = node.args
+    positional = [*a.posonlyargs, *a.args]
+    yield from zip(positional[len(positional) - len(a.defaults):], a.defaults)
+    for arg, default in zip(a.kwonlyargs, a.kw_defaults):
+        if default is not None:
+            yield arg, default
+
+
+def _sp_bindings(nodes, parent, root, glbs, nlcls):
+    """{scope: {name: [value node]}}: every binding the module makes -- a plain
+    or annotated assignment, a tuple/list unpack, a `for` target over a LITERAL
+    collection, `+=` and the other augmented targets, a walrus, a parameter
+    default, and a `with ... as` target. A `for x in <expression>` target is
+    NOT bound: it takes whatever the expression yields, and binding it reads
+    an unrelated loop's classifier inputs as this one's opens. A name the scope
+    declares `global` is bound in the module (the root) and one it declares
+    `nonlocal` in the nearest enclosing function scope, matching Python's own
+    re-routing of those assignments."""
+    scopes = {}
+
+    def eff(scope, nm):
+        if nm in glbs.get(scope, ()):
+            return root
+        if nm in nlcls.get(scope, ()):
+            s = parent.get(scope)
+            while s is not None and not isinstance(s, _SP_FN_SCOPES):
+                s = parent.get(s)
+            return s if s is not None else parent.get(scope)
+        return scope
+
+    def bind(scope, targets, value):
+        for t in targets:
+            if (isinstance(t, (ast.Tuple, ast.List)) and isinstance(value, (ast.Tuple, ast.List))
+                    and len(t.elts) == len(value.elts)):
+                pairs = [(nm, val) for el, val in zip(t.elts, value.elts)
+                         for nm in _sp_bind_names(el)]
+            else:
+                pairs = [(nm, value) for nm in _sp_bind_names(t)]
+            for nm, val in pairs:
+                scopes.setdefault(eff(scope, nm), {}).setdefault(nm, []).append(val)
+
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            bind(scope, node.targets, node.value)
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, ast.AugAssign):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            if isinstance(node.iter, (ast.Tuple, ast.List, ast.Set)):
+                bind(scope, [node.target], node.iter)
+        elif isinstance(node, ast.NamedExpr):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            for arg, default in _sp_args(node):
+                bind(scope, [ast.Name(id=arg.arg)], default)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    bind(scope, [item.optional_vars], item.context_expr)
+    return scopes
+
+
+def _sp_reach(node, scopes, parent, scope):
+    """Every expression node `node` can reach: the name or attribute it is bound
+    to here or in an enclosing scope, a pathlib `/` or a `+` join, an f-string,
+    a dict subscript, a held tuple -- so a literal written several hops from the
+    open, or inside an f-string's literal part, is still the path that open
+    names. `seen` breaks a cycle."""
+    seen, stack, out = set(), [node], []
+    while stack:
+        n = stack.pop()
+        if id(n) in seen:
+            continue
+        seen.add(id(n))
+        out.append(n)
+        key = n.id if isinstance(n, ast.Name) else (n.attr if isinstance(n, ast.Attribute) else None)
+        if key is not None:
+            s = scope
+            while s is not None:
+                if key in scopes.get(s, {}):
+                    stack.extend(scopes[s][key])
+                    break
+                s = parent.get(s)
+        stack.extend(ast.iter_child_nodes(n))
+    return out
+
+
+def _sp_path_literal(v):
+    """True when a string is a repository-path-shaped literal -- the same shape
+    `_sp_literals` collects, so the census below and the reader agree on what
+    counts as a path."""
+    return (isinstance(v, str) and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v)
+            and v.split("/")[0] in _SP_TOPS)
+
+
+def _sp_attr_bound(src):
+    """(line, name) for every path literal a module binds to an ATTRIBUTE: a
+    `obj.attr = <path>` target, or a class-body `Name = <path>` read as
+    `ClassName.Name`. `_sp_reach` resolves a read by the attribute NAME and walks
+    up only enclosing scopes, so a path bound to an attribute in one scope and
+    opened in another is the one shape the resolver cannot follow."""
+    tree = ast.parse(src)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
+    out = []
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and node.value is not None:
+            targets = [node.target]
+        else:
+            continue
+        if not any(isinstance(c, ast.Constant) and _sp_path_literal(c.value)
+                   for c in _sp_reach(node.value, scopes, parent, scope)):
+            continue
+        for t in targets:
+            if isinstance(t, ast.Attribute):
+                out.append((node.lineno, t.attr))
+            elif isinstance(t, ast.Name) and isinstance(scope, ast.ClassDef):
+                out.append((node.lineno, t.id))
+    return out
+
+
 def _sp_literals(src, opened=True):
     """(line, literal, resolved) per repository path the module opens (every
     path literal it holds, with opened=False)."""
     tree = ast.parse(src)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
     docs = {id(n.body[0].value) for n in ast.walk(tree)
             if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
             and n.body and isinstance(n.body[0], ast.Expr)
             and isinstance(n.body[0].value, ast.Constant)}
-    named = {}
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Assign) and isinstance(n.value, (ast.Constant, ast.Call)):
-            for t in n.targets:
-                if isinstance(t, ast.Name):
-                    named.setdefault(t.id, []).append(n.value)
+    # The literal parts of an f-string, so a leading slash is stripped only for
+    # `f"{root}/<path>"` and never for a plain absolute string (which the token
+    # regex below would refuse anyway, but `/dev/null` inside a quoted literal
+    # must not become the repository's `dev/null`).
+    fstr = {id(c) for j in ast.walk(tree) if isinstance(j, ast.JoinedStr)
+            for c in j.values if isinstance(c, ast.Constant)}
     via, opens = {}, set()
-    for n in ast.walk(tree):
+    for n, scope in nodes:
         if not isinstance(n, ast.Call):
             continue
         name = getattr(n.func, "id", None) or getattr(n.func, "attr", None)
         if name in ("locate", "canon") and n.args and isinstance(n.args[0], ast.Constant):
             via[id(n.args[0])] = _layout_locate if name == "locate" else _layout_canon
-        if name in _SP_OPENS:
+        if (name in _SP_OPENS or name in _SP_READS
+                or (name == "join" and _sp_path_join(n.func))):
             for arg in [*n.args, *(k.value for k in n.keywords)]:
-                for m in ast.walk(arg):
-                    for c in [m, *(named.get(m.id, ()) if isinstance(m, ast.Name) else ())]:
-                        for cc in ast.walk(c):
-                            if isinstance(cc, ast.Constant):
-                                opens.add(id(cc))
+                for cc in _sp_reach(arg, scopes, parent, scope):
+                    if isinstance(cc, ast.Constant):
+                        opens.add(id(cc))
+            # A METHOD call names its path on the RECEIVER, not in its
+            # arguments: `(Path('.') / lit).open()`, `_P = Path('.') / lit;
+            # _P.open()`, `Path(lit).read_text()`. The round-1 review planted
+            # the `read_text()` pair; `.open()` is the same structure, and
+            # `Path(lit).open()` is caught by the inner `Path` call only by
+            # accident.
+            if isinstance(n.func, ast.Attribute):
+                for cc in _sp_reach(n.func.value, scopes, parent, scope):
+                    if isinstance(cc, ast.Constant):
+                        opens.add(id(cc))
     out = []
     for n in ast.walk(tree):
-        if (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
-                and (not opened or id(n) in opens)
-                and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", n.value)
-                and n.value.split("/")[0] in _SP_TOPS):
-            out.append((n.lineno, n.value, via.get(id(n), lambda v: v)(n.value)))
+        if not (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
+                and (not opened or id(n) in opens)):
+            continue
+        # `f"{os.getcwd()}/<path>"` leaves the literal part with a leading slash,
+        # which is the repository's own root once the interpolated prefix is the
+        # cwd -- the one f-string shape the round-1 review planted.
+        v = n.value[1:] if id(n) in fstr and n.value.startswith("/") else n.value
+        if _sp_path_literal(v):
+            out.append((n.lineno, v, via.get(id(n), lambda x: x)(v)))
     return out
 
 
@@ -29603,12 +30123,12 @@ _SP_POLICY = sorted({_layout_locate(f) for f in _SP_POLICY})
 _SP_CARRIES = sorted(f for f in subprocess.run(
     ["git", "ls-files", "dev/programme/carries/"], capture_output=True, text=True).stdout.split()
     if re.fullmatch(r"dev/programme/carries/carry-\d+\.json", f))
-_SP_CITED = _sp_cited((f, _sp_index(f)) for f in _SP_POLICY)
+_SP_CITED = _sp_cited((f, _sp_source(f)) for f in _SP_POLICY)
 # A carry COMMAND is pasted as written, so its spelling must name the file too:
 # carry-201 told a seat to run corpus_churn.py at its pre-move path, which
 # the move map follows and a shell does not (ENOENT). Policy prose citing a
 # retired path is tests/layout.py's `reference` arm; a command is this arm's.
-_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_index(f) or "{}"))))
+_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_source(f) or "{}"))))
                   for f in _SP_CARRIES]
 _SP_STALE_RUN = _sp_moved_spellings(_SP_REMEASURES)
 for _sp_p, _sp_by in _sp_cited(_SP_REMEASURES).items():
@@ -29668,6 +30188,143 @@ R.check(
     and _sp_check_stale(_sp_unit),
     f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
     f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
+)
+# F1 (#2312): the open shapes the fix reviews planted, and the binding family
+# beside them -- #2289's round-1 `plants.py` is the control for the first eight,
+# and #2344's round-1 review named the two plainly inside the rule (a `for`
+# target holding the literal, and `.open()` on a `/`-join receiver) plus the
+# forms that ride with them. A literal reached through any of them was held by
+# the module but never counted as an open, so the program it names was never
+# probed. Each planted shape must be read as an open, the five the arm already
+# caught stay caught, and -- the null control the whole arm rests on -- a
+# literal the program only HOLDS is still not an open. Asserted on
+# `_sp_literals`, the shape reader, not on `_sp_faults`: a planted
+# `open(<retired>)` ALSO fails to load, and that failure would hide a shape the
+# reader still misses. Round 3 added the two declarations the reader re-routes
+# (`global` and `nonlocal`) to the plant list; an attribute bound to a path in
+# one scope and opened in another is the one shape it cannot follow and is
+# dispositioned by the census right after this check.
+_sp_probe = "\nimport os\nfrom pathlib import Path\n"
+
+
+def _sp_opens(src, lit):
+    return any(l == lit for _, l, _ in _sp_literals(src))
+
+
+_sp_escapes = {
+    "two-hop alias": f"_A = {_sp_old!r}\n_B = _A\n_X = open(_B)\n",
+    "two-hop alias via join": f"_A = {_sp_old!r}\n_B = _A\n_X = os.path.join('.', _B)\n",
+    "pathlib / then read_text": f"_X = (Path('.') / {_sp_old!r}).read_text()\n",
+    "pathlib / via a name then read_text": f"_P = Path('.') / {_sp_old!r}\n_X = _P.read_text()\n",
+    "pathlib / then open": f"_X = (Path('.') / {_sp_old!r}).open()\n",
+    "pathlib / via a name then open": f"_P = Path('.') / {_sp_old!r}\n_X = _P.open()\n",
+    "f-string root prefix": f"_X = open(f\"{{os.getcwd()}}/{_sp_old}\")\n",
+    "dict value then subscript": f"_C = {{'k': {_sp_old!r}}}\n_X = open(_C['k'])\n",
+    "tuple-unpack assign": f"_A, _B = {_sp_old!r}, 'x'\n_X = open(_A)\n",
+    "annotated assign": f"_A: str = {_sp_old!r}\n_X = open(_A)\n",
+    "for target": f"for _P in ({_sp_old!r},):\n    _X = open(_P)\n",
+    "walrus": f"if (_P := {_sp_old!r}):\n    _X = open(_P)\n",
+    "augmented assign": f"_P = ''\n_P += {_sp_old!r}\n_X = open(_P)\n",
+    "parameter default": f"def _f(_p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "with ... as": f"with Path('.') / {_sp_old!r} as _P:\n    _X = _P.read_text()\n",
+    "self attribute": f"class _C:\n    def m(self):\n        self._P = {_sp_old!r}\n"
+                      f"        _X = open(self._P)\n",
+    "list element then subscript": f"_L = [{_sp_old!r}]\n_X = open(_L[0])\n",
+    "nested dict subscript": f"_C = {{'a': {{'b': {_sp_old!r}}}}}\n_X = open(_C['a']['b'])\n",
+    "for tuple target": f"for _A, _B in (({_sp_old!r}, 'x'),):\n    _X = open(_A)\n",
+    "for over a list": f"for _P in [{_sp_old!r}]:\n    _X = open(_P)\n",
+    "kwonly default": f"def _f(*, _p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "lambda default": f"_f = lambda _p={_sp_old!r}: open(_p)\n",
+    "joinpath then read_text": f"_X = Path('.').joinpath({_sp_old!r}).read_text()\n",
+    "global binding": f"_G = None\ndef _load():\n    global _G\n"
+                      f"    _G = {_sp_old!r}\n_X = open(_G)\n",
+    "nonlocal binding": f"def _outer():\n    _P = ''\n    def _inner():\n"
+                        f"        nonlocal _P\n        _P = {_sp_old!r}\n    _X = open(_P)\n",
+}
+# The null controls beside the plants: a literal the program only HOLDS -- in a
+# tuple, a set, or a comparison -- is read as no open, whatever else it is in.
+_sp_held_shapes = {
+    "held tuple": f"_X = ({_sp_old!r},)\n",
+    "held set": f"_S = {{{_sp_old!r}}}\n",
+    "held comparison": f"_X = ('x' == {_sp_old!r})\n",
+}
+_sp_caught = {
+    "one-hop name": f"_P = {_sp_old!r}\n_X = open(_P)\n",
+    "pathlib / in open": f"_X = open(Path('.') / {_sp_old!r})\n",
+    "f-string bare": f"_X = open(f\"{_sp_old}\")\n",
+    "str concat": f"_X = open('./' + {_sp_old!r})\n",
+    "read via Path.read_text": f"_X = Path({_sp_old!r}).read_text()\n",
+}
+_sp_missed = sorted(k for k, p in _sp_escapes.items()
+                    if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+_sp_regressed = sorted(k for k, p in _sp_caught.items()
+                       if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+_sp_held_open = sorted(k for k, p in _sp_held_shapes.items()
+                       if _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+R.check(
+    "the cited-program arm follows a path literal through every open shape the "
+    "two fix reviews planted and the binding family beside them -- an alias, a "
+    "join, a pathlib / read through .read_text() or .open(), an f-string prefix, "
+    "a dict or list subscript, a tuple unpack, an annotated assignment, a for "
+    "target, a walrus, +=, a parameter or lambda default, a with ... as target, "
+    "a self.x attribute, and a name bound through a global or nonlocal "
+    "declaration -- the shapes it already caught stay caught, and a literal the "
+    "program only HOLDS is still not an open",
+    not _sp_missed and not _sp_regressed and not _sp_held_open,
+    f"shapes that still escape {_sp_missed}; no longer read as opens {_sp_regressed}",
+)
+# The one shape the name-only resolver cannot follow is an attribute bound to a
+# path literal in one scope and opened in another: `self._p` set in `__init__`
+# and opened in a sibling method, or a class-body `P = <path>` opened as `C.P`.
+# `_sp_reach` keys a read by the attribute NAME and walks up only enclosing
+# scopes, so a binding in a sibling scope is invisible; following it precisely
+# needs object identity, which the flat name map M6 removed over-fires on
+# (two `self._p` sites on different objects would read as one). The census below
+# asserts no cited program does either today -- a writer is a new finding, not a
+# silently held path.
+_sp_attr_planted = (
+    _sp_attr_bound("class _C:\n    def __init__(self):\n"
+                   f"        self._p = {_sp_old!r}\n"
+                   "    def m(self):\n        return open(self._p)\n")
+    + _sp_attr_bound(f"class C:\n    P = {_sp_old!r}\n_X = open(C.P)\n"))
+_sp_attr_sites = sorted((_sp_p, _sp_attr_bound(_sp_source(_sp_p)))
+                        for _sp_p in sorted(_SP_CITED) if _sp_p.endswith(".py"))
+R.check(
+    "no cited program binds a path literal to an attribute or a class-body "
+    "name at all -- so the attribute-bound-in-one-scope-opened-in-another shape "
+    "(`self.x` set in one method and opened in another, a class-body name "
+    "opened through its owner) that the name-only resolver cannot follow has 0 "
+    "live sites today, and the census catches each planted variant",
+    not any(s for _, s in _sp_attr_sites) and len(_sp_attr_planted) >= 2,
+    f"attribute-bound path sites {[(p, s) for p, s in _sp_attr_sites if s]}",
+)
+# THE SOURCES MUST SELECT THIS SCRIPT, or the citation half above is a main-only
+# check: policy files and carries are read as TEXT, and if they stay INERT a
+# pull request that only adds a broken citation is SCOPED to zero scripts, so
+# the arm is skipped and `main`'s forced full run catches it one merge later.
+# That is the late-gate shape #518 (the handover) and #533 (the nightly lane)
+# each closed by reading the file here, and this is the same move for the
+# sources this arm reads (#2312, F2). The gate's own `select` decides, so this
+# pins the mechanism rather than a copy of the closure table: a source that is
+# still INERT is the #357 contradiction the worktree read would create, and one
+# that selects no script (or the whole suite) is the skip that hid the finding.
+_sp_sources = [*_SP_CARRIES, *_SP_POLICY]
+import closure as _sp_closure  # the arm block runs standalone under its driver (fix-review)
+_sp_inert = sorted(f for f in _sp_sources if _sp_closure.is_inert(f))
+_sp_select = {f: _sp_closure.select([f]) for f in _sp_sources}
+_sp_unselected = sorted(
+    f for f, r in _sp_select.items()
+    if "tests/entities.py" not in r["run"] or r["mode"] != "scoped")
+R.check(
+    "every carry and every policy file this arm reads for citations selects "
+    "this script, so a broken citation added to one is refused on the pull "
+    "request and not on the next merge to main (#2312, F2)",
+    len(_SP_CARRIES) >= 1 and len(_SP_POLICY) >= 20
+    and not _sp_inert and not _sp_unselected,
+    f"citation sources left INERT (an edit to one selects no script, so the arm "
+    f"never runs on the PR that adds the broken citation): {_sp_inert[:6]}"
+    f"{' ...' if len(_sp_inert) > 6 else ''}; selecting no script or the whole "
+    f"suite: {_sp_unselected[:6]} of {len(_sp_sources)}",
 )
 
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
@@ -29827,7 +30484,7 @@ R.check(
 # pathspec can restore it and this check passes while the corpus is graded by
 # the pull request's copy again. That residual, and the criteria files the pin
 # deliberately leaves to the pull request, are carried to the next D11 round in
-# `.claude/workflows/carry-201.json`.
+# `dev/programme/carries/carry-201.json`.
 _GOV_PD = _workflow_job(Path(_GOV_WF).read_text(), "policy-docs")
 R.check(
     "`policy-docs` restores its graders from the base commit before it grades",
@@ -32381,6 +33038,46 @@ R.check(
     and _cim_rows[0].startswith("closures\ttests/x.py\t"),
     f"the recorded script saw HPO_CI_METRICS={_cim_seen!r}; rows={_cim_rows} "
     f"rc={_cim_res.returncode}",
+)
+
+
+def _derive_join_arm() -> tuple[bool, str]:
+    """derive_closures.sh takes a slot STANDALONE and joins one it is in
+    (#2267). The predicate is the env var, so it is driven both ways: with
+    `$HPO_SLOT_LABEL` set -- what prepr.sh step 1b exports -- the stub `PYTHON`
+    it hands every child sees no `slot-take`, and without it, it does (the null
+    control). A join arm that always took a slot, or one that never did, fails
+    one of the two arms.
+    """
+    taken: dict[str, bool] = {}
+    with _tempfile.TemporaryDirectory() as td:
+        for label, slot in (("inside", "parent-1"), ("outside", "")):
+            d = Path(td) / label
+            d.mkdir()
+            stub = d / "py"
+            stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$ARGVLOG"\n')
+            stub.chmod(0o755)
+            log = d / "argv.log"
+            log.write_text("")
+            env = {**_os.environ, "PYTHON": str(stub), "ARGVLOG": str(log),
+                   "HPO_CI_METRICS": ""}
+            env.pop("HPO_SLOT_LABEL", None)
+            if slot:
+                env["HPO_SLOT_LABEL"] = slot
+            _subprocess.run(
+                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
+                 "--record-only", "--out-dir", str(d / "rec")],
+                env=env, capture_output=True, text=True, timeout=180)
+            taken[label] = "slot-take" in log.read_text()
+    return (not taken["inside"] and taken["outside"],
+            f"inside_takes={taken['inside']} outside_takes={taken['outside']}")
+
+
+_derive_join_ok, _derive_join_detail = _derive_join_arm()
+R.check(
+    "derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)",
+    _derive_join_ok,
+    _derive_join_detail,
 )
 
 # The composed-closure allow-list (round-9 C1): every entry a real selectable
@@ -35833,5 +36530,205 @@ R.check(
     _egb3_standalone is True,
     str(_egb3_standalone),
 )
+
+# ---------------------------------------------------------------------------
+# R10 class barriers, the two RCAs' countermeasures (dev/audit/rca/
+# R10-N-no-expiry.md, R10-N-log-flood.md). Both read every module of the
+# package by AST and refuse a site that is neither routed through the class's
+# helper nor on a reasoned allow-list. Each allow-list is keyed (module,
+# function) -> EXACT count, so a second site added inside a listed function
+# still fails; a site that went away fails too, until its entry is deleted.
+# ---------------------------------------------------------------------------
+from collections import Counter  # noqa: E402
+
+_r10_pkg = Path("custom_components/heatpump_optimizer")
+_r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
+
+
+def _r10_functions(source):
+    """(function, its nodes minus nested functions') for every def in source."""
+    tree = ast.parse(source)
+    for fn in ast.walk(tree):
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            nested = {id(n) for f in ast.walk(fn)
+                      if f is not fn and isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))
+                      for n in ast.walk(f)}
+            yield fn, [n for n in ast.walk(fn) if id(n) not in nested]
+
+
+def _r10_covering_lookups(sources):
+    """N-no-expiry seams: each ``bisect_right(...) - 1`` -- "the entry covering
+    now" with no end of its own -- counted per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        for fn, nodes in _r10_functions(source):
+            for n in nodes:
+                if (isinstance(n, ast.BinOp) and isinstance(n.op, ast.Sub)
+                        and isinstance(n.left, ast.Call)
+                        and "bisect_right" in ast.unparse(n.left.func)
+                        and isinstance(n.right, ast.Constant) and n.right.value == 1):
+                    found[(name, fn.name)] += 1
+    return found
+
+
+#: Every covering lookup that is not ``coordinator._covering_index``'s, and why
+#: it may hold its last entry open (the R10 sweep's dispositions).
+_R10_COVERING_ALLOWED = {
+    ("coordinator.py", "_covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
+    ("coordinator.py", "_weather_series"): (1, "builds the future horizon; padding past the last "
+                                               "entry is documented extrapolation, never published as current"),
+    ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
+    ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
+    ("pump_arbiter.py", "step_duty"): (1, "returns None past the plan's last step"),
+    ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
+}
+
+
+def _r10_covering_verdict(found):
+    allowed = {k: v[0] for k, v in _R10_COVERING_ALLOWED.items()}
+    return {k: (found.get(k, 0), allowed.get(k, 0))
+            for k in set(found) | set(allowed) if found.get(k, 0) != allowed.get(k, 0)}
+
+
+_r10_cov_found = _r10_covering_lookups(_r10_sources)
+_r10_cov_planted = _r10_covering_lookups({
+    "planted.py": "from bisect import bisect_right\n"
+                  "def current(s, now):\n    return s[bisect_right(s, now) - 1]\n",
+    "pump_arbiter.py": _r10_sources["pump_arbiter.py"]
+    + "\ndef _share(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
+})
+R.check(
+    "R10 N-no-expiry barrier: every 'entry covering now' lookup goes through "
+    "_covering_index or is on the reasoned list with its exact count",
+    not _r10_covering_verdict(_r10_cov_found)
+    and sum(_r10_cov_found.values()) >= 6 and len(_r10_sources) >= 70
+    # null control and perturbation: a planted unbounded lookup, and a second
+    # lookup inside an allow-listed function, are each refused
+    and ("planted.py", "current") in _r10_covering_verdict(_r10_cov_planted)
+    and ("pump_arbiter.py", "_share") in _r10_covering_verdict(_r10_cov_planted),
+    f"mismatch {_r10_covering_verdict(_r10_cov_found)}; read {sum(_r10_cov_found.values())} "
+    f"lookups in {len(_r10_sources)} modules",
+)
+
+_R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notified|seen)", re.I)
+
+
+def _r10_unlatched_logs(sources):
+    """N-log-flood seams: each ``_LOGGER.warning``/``.error`` with no latch in
+    an enclosing ``if`` (a latch-named test, or a ``not in`` against a set the
+    function ``.add``s to; the R10 sweep's static rule), per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        tree = ast.parse(source)
+
+        def walk(node, chain, fn):
+            for child in ast.iter_child_nodes(node):
+                inner = child if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn
+                if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
+                        and child.func.attr in ("warning", "error")
+                        and ast.unparse(child.func.value) == "_LOGGER"):
+                    latched = False
+                    for test in chain:
+                        text = ast.unparse(test.test)
+                        if _R10_LATCH_WORD.search(text) or (
+                                isinstance(test.test, ast.Compare)
+                                and any(isinstance(o, ast.NotIn) for o in test.test.ops)
+                                and f"{ast.unparse(test.test.comparators[0])}.add(" in ast.unparse(fn)):
+                            latched = True
+                    if not latched:
+                        found[(name, fn.name if fn else "<module>")] += 1
+                walk(child, chain + [child] if isinstance(child, ast.If) else chain, inner)
+
+        walk(tree, [], None)
+    return found
+
+
+#: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
+#: disposition (dev/audit/rounds/round10/sweep-N-log-flood.md) less the
+#: instances this barrier's PR routed through ``coordinator._log_held``.
+_R10_LOG_ALLOWED_BY_REASON = {
+    "the latch itself, or latched by a guard the static rule cannot read "
+    "(an outage counter, a transition notice, a once-per-attempt spacing, "
+    "an lru_cache parsing an option once per distinct text)": {
+        ("coordinator.py", "_log_held"): 1, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
+        ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
+        ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
+        ("coordinator.py", "_peak_tariff_months"): 1, ("coordinator.py", "_peak_tariff_hours"): 1,
+        ("open_meteo.py", "async_refresh"): 1, ("legionella.py", "check_mode_block"): 1,
+        ("legionella.py", "async_track_cycle"): 5, ("pump_arbiter.py", "_not_held"): 1,
+        ("curve_learning.py", "record_miss"): 1,
+    },
+    "once per event by the function's own state (a refit, an issue raised, a "
+    "rollback per alarm, a malformed month closed so it is not retried)": {
+        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 1,
+        ("coordinator.py", "_raise_cop_issue"): 1,
+        ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+    },
+    "not reached per cycle: load, restore, migration, setup, frontend "
+    "registration, a service call or shutdown": {
+        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
+        ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
+        ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,
+        ("snapshots.py", "best_restore"): 1, ("store.py", "_bound_instants"): 1,
+        ("store.py", "_surface_version"): 1, ("tariff.py", "from_dict"): 1,
+        ("thermal_model.py", "from_config"): 1, ("grid_fee.py", "from_config"): 1,
+        ("grid_fee.py", "apply_catalog"): 2, ("frontend.py", "_register_lovelace_resource"): 2,
+        ("frontend.py", "_register_static_path"): 2, ("dhw_schedule.py", "parse_day_overrides"): 1,
+        ("coordinator.py", "_async_load_manual_plan"): 1,
+        ("coordinator.py", "_async_load_thermal_learning"): 1,
+        ("coordinator.py", "_async_setup_peak_guard"): 1,
+        ("coordinator.py", "async_restore_learned_snapshot"): 1,
+        ("coordinator.py", "async_update_thermal_params"): 1, ("coordinator.py", "async_simulate"): 1,
+        ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+    },
+    "one record per failed call, an event and not a held condition (the "
+    "sweep's actuation handlers, and an unexpected exception per failed update)": {
+        ("climate.py", "_async_publish_displace_from_current_action"): 1,
+        ("coordinator.py", "_publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
+        ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
+        ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
+        ("pump_arbiter.py", "switch_supply"): 1,
+    },
+    "OWED, a distinct finding: unlatched and reached every cycle or solve "
+    "under a condition that can persist; a runtime probe is owed (the R10 "
+    "sweep's static-only five, and the solver's per-failed-solve reports)": {
+        ("coordinator.py", "_apply_action"): 1, ("coordinator.py", "_command_valve_target"): 3,
+        ("coordinator.py", "_note_solve_failure"): 1, ("pump_arbiter.py", "_space_target"): 1,
+        ("inputs.py", "_age_gate"): 1, ("optimizer.py", "optimize"): 1,
+        ("optimizer.py", "_solve_space"): 1, ("optimizer.py", "_optimize_space_only"): 1,
+    },
+}
+_R10_LOG_ALLOWED = {k: n for group in _R10_LOG_ALLOWED_BY_REASON.values() for k, n in group.items()}
+
+
+def _r10_log_verdict(found):
+    return {k: (found.get(k, 0), _R10_LOG_ALLOWED.get(k, 0))
+            for k in set(found) | set(_R10_LOG_ALLOWED)
+            if found.get(k, 0) != _R10_LOG_ALLOWED.get(k, 0)}
+
+
+_r10_log_found = _r10_unlatched_logs(_r10_sources)
+_r10_log_planted = _r10_unlatched_logs({
+    "planted.py": "def poll(self):\n    if not self._x:\n        _LOGGER.warning('none')\n"
+                  "def latched(self):\n    if not self._warned:\n        _LOGGER.warning('once')\n",
+    "inputs.py": _r10_sources["inputs.py"]
+    + "\ndef _age_gate(x):\n    _LOGGER.warning('a')\n    _LOGGER.warning('b')\n",
+})
+R.check(
+    "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
+    "with its exact count -- a persisting condition goes through _log_held",
+    not _r10_log_verdict(_r10_log_found)
+    and sum(_r10_log_found.values()) >= 70
+    # null control: a latched warning is not a site; perturbation: an unlatched
+    # one, and a second site inside a listed function, are each refused
+    and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
+    and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
+    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
+    f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))
