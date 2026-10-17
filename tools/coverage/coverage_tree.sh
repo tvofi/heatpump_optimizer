@@ -239,37 +239,68 @@ measure() {
 # plan_view.py writes the payload doc_claims.py reads (HPO_PLANDATA, one file
 # for the stage), so those two stay in one lane in plan order; features.py
 # and boost_drift_replay.py do not use it, and go alone.
-[ -f "$OUT/scripts.tsv" ] || printf 'script\texit\twall_s\n' > "$OUT/scripts.tsv"
-case "${W5P_LANES:-3}" in
-  1) measure "$PLAN" || exit 1 ;;
-  2)
-    FEAT=$(echo "$PLAN" | awk -F'\t' '$2=="features"')
-    REST=$(echo "$PLAN" | awk -F'\t' '$2!="features"')
-    measure "$FEAT" & lane_a=$!
-    measure "$REST" & lane_b=$!
-    rc=0
-    wait "$lane_a" || rc=1
-    wait "$lane_b" || rc=1
-    [ "$rc" -eq 0 ] || exit 1
-    ;;
-  3)
-    FEAT=$(echo "$PLAN" | awk -F'\t' '$2=="features"')
-    BOOST=$(echo "$PLAN" | awk -F'\t' '$2=="boost_drift_replay"')
-    REST=$(echo "$PLAN" | awk -F'\t' '$2!="features" && $2!="boost_drift_replay"')
-    measure "$FEAT" & lane_a=$!
-    measure "$BOOST" & lane_b=$!
-    measure "$REST" & lane_c=$!
-    rc=0
-    wait "$lane_a" || rc=1
-    wait "$lane_b" || rc=1
-    wait "$lane_c" || rc=1
-    [ "$rc" -eq 0 ] || exit 1
-    ;;
-  *) echo "W5P_LANES must be 1, 2 or 3" >&2; exit 2 ;;
-esac
+# Run the current $PLAN through the lanes. Factored out (R10) so the floor
+# re-validation below can re-run a full-measure plan the same way.
+run_plan() {
+  [ -f "$OUT/scripts.tsv" ] || printf 'script\texit\twall_s\n' > "$OUT/scripts.tsv"
+  case "${W5P_LANES:-3}" in
+    1) measure "$PLAN" || exit 1 ;;
+    2)
+      FEAT=$(echo "$PLAN" | awk -F'\t' '$2=="features"')
+      REST=$(echo "$PLAN" | awk -F'\t' '$2!="features"')
+      measure "$FEAT" & lane_a=$!
+      measure "$REST" & lane_b=$!
+      rc=0
+      wait "$lane_a" || rc=1
+      wait "$lane_b" || rc=1
+      [ "$rc" -eq 0 ] || exit 1
+      ;;
+    3)
+      FEAT=$(echo "$PLAN" | awk -F'\t' '$2=="features"')
+      BOOST=$(echo "$PLAN" | awk -F'\t' '$2=="boost_drift_replay"')
+      REST=$(echo "$PLAN" | awk -F'\t' '$2!="features" && $2!="boost_drift_replay"')
+      measure "$FEAT" & lane_a=$!
+      measure "$BOOST" & lane_b=$!
+      measure "$REST" & lane_c=$!
+      rc=0
+      wait "$lane_a" || rc=1
+      wait "$lane_b" || rc=1
+      wait "$lane_c" || rc=1
+      [ "$rc" -eq 0 ] || exit 1
+      ;;
+    *) echo "W5P_LANES must be 1, 2 or 3" >&2; exit 2 ;;
+  esac
+}
+run_plan
 
 "$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep "$OUT/per" >> "$OUT/logs/combine.log" 2>&1
 unset COVERAGE_PROCESS_START
 "$PY" -m coverage json --rcfile="$WORK/coveragerc" -o "$OUT/coverage.json" >> "$OUT/logs/combine.log" 2>&1
 "$PY" -m coverage report --rcfile="$WORK/coveragerc" > "$OUT/coverage_report.txt" 2>&1
 echo "wrote $OUT/coverage.json"
+
+# FLOOR RE-VALIDATION (R10, #2342): a reused per-script base, re-combined with a
+# changed subset of freshly-measured scripts, can grade below the floor though the
+# tree itself is green -- the reuse path does not reproduce the base's own green
+# measurement. Re-measure every script (no reuse) and re-combine, so the grader
+# never sees that stale union. The pinned grader is the floor's own voice; its
+# pragma row is a source grep reuse cannot move, so it is not a reason to re-run.
+if [ -n "${W5P_REUSE:-}" ] && [ -s "$OUT/scripts.tsv" ] \
+   && grep -q $'\treused' "$OUT/scripts.tsv"; then
+  _grade="$(env -u COVERAGE_PROCESS_START "$PY" tests/coverage_ratchet.py \
+              --coverage "$OUT/coverage.json" 2>&1 || true)"
+  if printf '%s\n' "$_grade" | grep -qE "FAIL (package coverage|every module|config_flow\.py coverage)"; then
+    echo "reused measurement grades below the floor; re-measuring every script"
+    printf '%s\n' "$_grade" | grep -E "FAIL|below" || true
+    rm -f "$OUT/per"/.coverage.* "$OUT/per"/*.nodata 2>/dev/null || true
+    rm -f "$OUT/per/provenance.tsv" "$OUT/scripts.tsv"
+    PLAN=$(echo "$SCRIPTS" | sed 's/^/measure\t/')
+    run_plan
+    rm -f "$WORK/data/.coverage"
+    "$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep "$OUT/per" >> "$OUT/logs/combine.log" 2>&1
+    unset COVERAGE_PROCESS_START
+    "$PY" -m coverage json --rcfile="$WORK/coveragerc" -o "$OUT/coverage.json" >> "$OUT/logs/combine.log" 2>&1
+    "$PY" -m coverage report --rcfile="$WORK/coveragerc" > "$OUT/coverage_report.txt" 2>&1
+    echo "wrote $OUT/coverage.json (re-measured)"
+  fi
+fi
