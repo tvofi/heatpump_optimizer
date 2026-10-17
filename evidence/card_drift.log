@@ -1,0 +1,5 @@
+command: node tests/card_drift.mjs origin/main (at 400df157)
+summary (the full rendered-state dump was 14.9 MB and is not archived; this is the measurement line):
+card_drift: origin/main = 81b7aa9ff976, tree = 400df157aae0, 40 states
+card_drift: 39 state(s) moved and claimed, 1 identical
+rc=0

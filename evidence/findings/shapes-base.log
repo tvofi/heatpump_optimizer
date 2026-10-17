@@ -1,0 +1,11 @@
+RESULT live_guard=10 count
+RESULT state_sig=4 count
+RESULT null_number=5 count
+RESULT finite_inline=7 count
+RESULT picker_open=1 count
+RESULT char_width_inline=2 count
+RESULT no_plan_state=2 count
+RESULT total=31 count
+  dead: top:textWidth top:openHaLink
+RESULT definitions=471 count
+RESULT dead=2 count

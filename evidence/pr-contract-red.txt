@@ -1,0 +1,5 @@
+pr-contract run 39042398374 (head f97973cc760b126f4fc5507f2f9e24034f757c34, event pull_request, 2026-10-17T14:49:42Z) failed at step 9.
+Log lines:
+  record   red-history           15 commit(s) between origin/main and this head, every failure conclusion across them: closures
+  HEAD: `## Head` names 400df15; accepted autofix commit(s) on top of it: f97973c (ci: re-record closures)
+  ERROR   [pr-body] check `closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.

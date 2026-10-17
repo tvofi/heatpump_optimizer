@@ -1,0 +1,52 @@
+  temperature:target_temperature
+  temperature:min_temperature
+  temperature:max_temperature
+  temperature:comfort_temp_day
+  temperature:comfort_temp_night
+  temperature:day_start_hour
+  temperature:day_end_hour
+  building_extras:heat_pump_cop_nominal
+  building_extras:heat_pump_max_power
+  building_extras:heat_pump_min_power
+  thermal:house_thermal_mass
+  thermal:house_heat_loss_coefficient
+  thermal:slab_thermal_mass
+  thermal:slab_heat_transfer
+  thermal:heat_pump_cop_nominal
+  thermal:heat_pump_max_power
+  thermal:heat_pump_min_power
+  thermal:optimization_interval
+  thermal:price_weight
+  thermal:comfort_weight
+  zones:upper_floor_thermal_mass
+  zones:lower_floor_thermal_mass
+  zones:upper_floor_heat_loss
+  zones:lower_floor_heat_loss
+  zones:inter_zone_heat_transfer
+  zones:radiator_power_fraction
+  zones:upper_floor_area_ratio
+  zones:buffer_tank_volume
+  zones:window_area
+  zones:solar_orientation_factor
+  zones:solar_heat_gain_coefficient
+  dhw:dhw_tank_volume
+  dhw:dhw_setpoint
+  dhw:dhw_min_temperature
+  dhw:dhw_daily_consumption
+  dhw:dhw_cooling_rate
+  dhw:dhw_schedule_enabled
+  dhw:dhw_windows
+  dhw:dhw_idle_min_temperature
+  dhw:dhw_legionella_enabled
+  dhw:dhw_legionella_temperature
+  dhw:dhw_legionella_interval_days
+  weather_sensitivity:wind_sensitivity_factor
+  weather_sensitivity:rain_heat_loss_multiplier
+RESULT wizard_fields=46 count
+RESULT in_registry=44 count
+RESULT spelled_twice=44 count
+RESULT disagree=0 count
+RESULT menu_fallbacks=23 count
+RESULT menu_disagree=0 count
+RESULT golden_equal=1 bool
+RESULT load1=206.85

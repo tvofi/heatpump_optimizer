@@ -1,0 +1,8 @@
+A widened-regex + M9+M10 (expect FAIL) rc=1 fails=1 finite_check=FAIL
+    FAIL the finite-number test is spelled in exactly one place
+B old-regex + M9+M10 (expect PASS = class returns) rc=0 fails=0 finite_check=PASS
+CARD_SHAPES re-spelled: ['RESULT finite_inline=3 count', 'RESULT total=24 count']
+C old-regex + M7 (expect FAIL, control) rc=1 fails=1 finite_check=FAIL
+    FAIL the finite-number test is spelled in exactly one place
+D restored head (expect PASS) rc=0 fails=0 finite_check=PASS
+DONE

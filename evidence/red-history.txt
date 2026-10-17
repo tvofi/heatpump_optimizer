@@ -1,0 +1,4 @@
+Failure conclusions across origin/main..f97973c (per-commit check-runs):
+400df157aae0281b8c7d91de16a8fb02ff37c0c9 :: pr-contract:failure closures:failure
+e740ebff41ea34850946467f6d7e5353820bf051 :: (all cancelled: composed-proof, graders-head-copy, closures-autofix, coverage-ratchet, ci-ratchet, lane-proofs, closures, claims-autofix, coverage, fast)
+closures at 400df157 is the UNDER-SCOPED run; github-actions[bot] f97973c `ci: re-record closures` adds custom_components/heatpump_optimizer/translations/en.json to a closure.

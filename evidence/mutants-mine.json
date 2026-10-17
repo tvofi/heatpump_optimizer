@@ -8,7 +8,7 @@
  },
  {
   "mutant": "M1",
-  "why": "fitSlotRow wraps -> ellipsizes",
+  "why": "fitSlotRow wraps -> ellipsizes the label again",
   "rc": 1,
   "fails": [
    "a slot label is drawn whole, wrapped rather than cut",
@@ -20,7 +20,7 @@
  },
  {
   "mutant": "M2",
-  "why": "unset slots fold -> ordinary rows",
+  "why": "the unset slots fold -> become ordinary rows again",
   "rc": 1,
   "fails": [
    "a slot label is drawn whole, wrapped rather than cut",
@@ -39,7 +39,7 @@
  },
  {
   "mutant": "M8",
-  "why": "open folded block height -> folded height",
+  "why": "an OPEN folded block's height counted as the folded one",
   "rc": 1,
   "fails": [
    "a block that is open sizes its box for the rows it now draws"
@@ -48,7 +48,7 @@
  },
  {
   "mutant": "M3",
-  "why": "card painted -> invisible",
+  "why": "the card is painted -> left invisible",
   "rc": 1,
   "fails": [
    "the card is painted from the product's surface, border and radius"
@@ -57,7 +57,7 @@
  },
  {
   "mutant": "M4",
-  "why": "one precision -> HA precision",
+  "why": "one precision per unit -> Home Assistant's own precision",
   "rc": 1,
   "fails": [
    "two temperatures on one drawing are spelled to one precision"
@@ -66,7 +66,7 @@
  },
  {
   "mutant": "M5",
-  "why": "axis measures label -> counts chars (C1)",
+  "why": "the axis measures its label -> counts its characters (C1)",
   "rc": 1,
   "fails": [
    "the chart's label-width rule is spelled in exactly one place"
@@ -75,7 +75,7 @@
  },
  {
   "mutant": "M6",
-  "why": "noPlanHtml owns empty state -> second spelling (C4)",
+  "why": "noPlanHtml owns the empty state -> a second spelling (C4)",
   "rc": 1,
   "fails": [
    "the no-plan empty state is built in exactly one place"
@@ -84,7 +84,7 @@
  },
  {
   "mutant": "M7",
-  "why": "finiteNum owns number test -> second spelling (C4)",
+  "why": "finiteNum owns the number test -> a second spelling, name `n` (C4)",
   "rc": 1,
   "fails": [
    "the finite-number test is spelled in exactly one place"
@@ -92,10 +92,21 @@
   "tail": "1 CARD CHECK(S) FAILED"
  },
  {
-  "mutant": "N1",
-  "why": "Configure chip names a page the flow does not use",
-  "rc": 0,
-  "fails": [],
-  "tail": "ALL CARD CHECKS PASSED"
+  "mutant": "M9",
+  "why": "nowTemp deduped -> re-spelled inline under a non-`n` name (round-2 fix reverted)",
+  "rc": 1,
+  "fails": [
+   "the finite-number test is spelled in exactly one place"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M10",
+  "why": "refit.scale deduped -> re-spelled inline under a non-`n` name (round-2 fix reverted)",
+  "rc": 1,
+  "fails": [
+   "the finite-number test is spelled in exactly one place"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
  }
 ]

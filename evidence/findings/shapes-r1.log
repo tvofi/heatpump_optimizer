@@ -1,0 +1,11 @@
+RESULT live_guard=10 count
+RESULT state_sig=4 count
+RESULT null_number=5 count
+RESULT finite_inline=3 count
+RESULT picker_open=1 count
+RESULT char_width_inline=0 count
+RESULT no_plan_state=1 count
+RESULT total=24 count
+  dead: -
+RESULT definitions=478 count
+RESULT dead=0 count
