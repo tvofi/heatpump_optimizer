@@ -56,6 +56,7 @@ from .const import (
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
 )
+from .log_latch import _log_held
 from .payload import InputProblem
 
 _LOGGER = logging.getLogger(__name__)
@@ -754,7 +755,11 @@ class InputReader:
         limit = reading.max_age_minutes
         if self.enabled and limit is not None and future:
             reading.problem = "stale"
-            _LOGGER.warning(
+            # Latched per install and per input: the reader is rebuilt on every
+            # read, so keying on ``self`` would log once per read, and a single
+            # key for every input would re-warn as distinct entities alternate.
+            _log_held(
+                self.hass, f"future_stamp:{reading.key}", True,
                 "Input %s (%s) has a last-reported stamp ahead of the host "
                 "clock; treating as stale rather than age 0",
                 reading.key,

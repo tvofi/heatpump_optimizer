@@ -19,7 +19,10 @@ _a = list(sys.argv); sys.argv = [sys.argv[0], "0", "__none__"]
 import store_fuzz as F  # noqa: E402
 sys.argv = _a
 from homeassistant.helpers import storage  # noqa: E402
+from homeassistant.util import dt as dt_util  # noqa: E402
 from custom_components.heatpump_optimizer import const, coordinator as cm  # noqa: E402
+from custom_components.heatpump_optimizer import inputs as inputs_mod  # noqa: E402
+from custom_components.heatpump_optimizer import pump_arbiter as pa_mod  # noqa: E402
 
 if "--perturb" in sys.argv:
     import inspect, textwrap
@@ -40,6 +43,18 @@ ARMS = {
     "no_prices": ({}, "noprices"),
     "bad_peak_months": ({const.CONF_PEAK_TARIFF_ENABLED: True, const.CONF_PEAK_TARIFF_MONTHS: "Smarch"}, None),
     "bad_peak_hours": ({const.CONF_PEAK_TARIFF_ENABLED: True, const.CONF_PEAK_TARIFF_HOURS: "25:99-xx"}, None),
+}
+
+#: The R10 sweep's static-only five (and the solver's per-failed-solve
+#: reports), each held over four passes and latched through ``log_latch._log_held``.
+#: These exercise the production site directly rather than a full cycle, so the
+#: condition is held by construction.
+DIRECT = {
+    "solve_failure": "_note_solve_failure under a solver that always fails",
+    "stale_plan": "_apply_action under a plan older than the stale bound",
+    "valve_mistyped": "_command_valve_target under a mis-typed valve entity",
+    "space_target_misdeclared": "_space_target under an indoor set-point whose minimum is above the room target",
+    "future_stamp": "_age_gate under a future last-reported stamp",
 }
 
 
@@ -82,10 +97,65 @@ async def arm(name):
     return cap.c
 
 
+class _FakeResult:
+    """The two plan series ``_space_target`` reads: timestamps and set-points."""
+
+
+async def direct_arm(name):
+    """Hold one OWED condition over four passes and count what it logs."""
+    from datetime import timedelta
+    storage._DISK.clear(); storage._VERSIONS.clear()
+    F.CFG.clear(); F.CFG.update(BASE)
+    F.CFG.pop(const.CONF_WEATHER_ENTITY, None)
+    F.CFG[const.CONF_WEATHER_ENTITY] = "weather.home"
+
+    if name == "valve_mistyped":
+        F.CFG[const.CONF_MIXING_VALVE_MODE] = "smart_write"
+        F.CFG[const.CONF_MIXING_VALVE_WRITE_ENTITY] = "switch.valve"
+    elif name == "space_target_misdeclared":
+        F.CFG[const.CONF_SPACE_SETPOINT_ENTITY] = "number.space_setpoint"
+
+    h, c = F.build()
+    await F.drain(c)
+    cap = Cap(); logging.getLogger().addHandler(cap)
+
+    if name == "solve_failure":
+        for _ in range(4):
+            cm._note_solve_failure(c, RuntimeError("probe solve failure"))
+    elif name == "stale_plan":
+        c._mode = const.MODE_AUTO
+        c._current_action = {"heat_pump_on": True, "displace_value": 0.5}
+        c._last_optimization = dt_util.now() - timedelta(minutes=400)
+        for _ in range(4):
+            await c._apply_action()
+    elif name == "valve_mistyped":
+        for _ in range(4):
+            await c._command_valve_target()
+    elif name == "space_target_misdeclared":
+        h.states.set("number.space_setpoint",
+                     F.FakeState("21.0", attributes={"min": 25.0, "max": 30.0}))
+        now = dt_util.now()
+        inp = c.arbiter_inputs()
+        result = _FakeResult()
+        result.timestamps = [now]
+        result.optimal_setpoints = [21.0]
+        for _ in range(4):
+            pa_mod._space_target(c, inp, result, now, "space")
+    elif name == "future_stamp":
+        for _ in range(4):
+            st = dt_util.utcnow() + timedelta(minutes=60)
+            h.states.set("sensor.indoor", F.FakeState("21.4", last_updated=st, last_reported=st))
+            h.states.set("sensor.outdoor", F.FakeState("-3.0", last_updated=st, last_reported=st))
+            await F.cycle(c)
+
+    logging.getLogger().removeHandler(cap)
+    return cap.c
+
+
 async def main():
-    names = [a for a in sys.argv[1:] if not a.startswith("--")] or list(ARMS)
+    names = [a for a in sys.argv[1:] if not a.startswith("--")] or list(ARMS) + list(DIRECT)
     for n in names:
-        c = await arm(n)
+        c = await (direct_arm(n) if n in DIRECT else arm(n))
         floods = {m: k for m, k in c.items() if k >= 4}
         print(f"RESULT {n}.floods={len(floods)} count")
         for m, k in sorted(c.items()):

@@ -3323,7 +3323,11 @@ class HeatPumpOptimizer:
                             if not _pin_is_free(value) and value < 0.5:
                                 pins[i] = float("nan")
                                 released.add(i)
-                        _LOGGER.warning(
+                        # The release is surfaced to the user by the
+                        # ``manual_plan_released`` notification, which latches
+                        # per occurrence; the per-solve WARNING here was the
+                        # N-log-flood duplicate (R10-N-log-flood, #2337).
+                        _LOGGER.debug(
                             "Manual %s plan could not be made safe in %d "
                             "rounds; releasing every forced-off slot on that "
                             "channel and planning it freely",
@@ -3759,7 +3763,11 @@ class HeatPumpOptimizer:
                 float(objective(power, dhw_plan)),
             )
         except Exception as e:
-            _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
+            # The ``failed (...)`` status below reaches the coordinator, which
+            # reports the failure once through its own latched
+            # ``_note_solve_failure``; the per-solve ERROR here was the
+            # duplicate (R10-N-log-flood, #2337).
+            _LOGGER.debug("Space heating optimization (with DHW) failed: %s", e)
             return (
                 guess,
                 f"failed ({e})",
@@ -4347,7 +4355,11 @@ class HeatPumpOptimizer:
             )
             status = _solver_status(result, objective, initial_power)
         except Exception as e:
-            _LOGGER.error("Optimization failed: %s", e)
+            # The ``failed (...)`` status reaches the coordinator, which
+            # reports the failure once through its own latched
+            # ``_note_solve_failure``; the per-solve ERROR here was the
+            # duplicate (R10-N-log-flood, #2337).
+            _LOGGER.debug("Optimization failed: %s", e)
             optimal_power = initial_power
             status = f"failed ({e})"
 
