@@ -45,34 +45,44 @@ surface name built at run time inside code no press reaches (a pointer, wheel or
 keyboard handler). The static arm still refuses that surface's names wherever
 they are written.
 
-The census's global-name scan shares the identifier word grammar with
-`tests/doc_claims.py`, which the agreement lane refuses as a grammar written
-twice and unregistered; the copy is now registered in
-`tools/policy/agreement.mjs` (class I4, the file the lane reads) and disclosed
-where the scan lives.
+The census's global-name scan first copied `tests/doc_claims.py`'s ASCII word
+grammar (`[A-Za-z_$][\w$]*`), which the agreement lane refuses as one grammar
+written twice and unregistered. Registering the copy does not clear CI: the
+`wave-script` lane restores `tools/policy/agreement.mjs` from the base commit,
+so a registration a branch writes is never the copy the lane grades. The two
+readers ask different questions -- this scan asks which identifiers the JS
+source names, `doc_claims.py`'s `_tokens` asks which ASCII words a document
+names -- so the scan now uses ECMAScript's IdentifierName production, and the
+two grammars are deliberately not kept identical. That also closes a hole the
+ASCII form had: `främes` split at the `ä`, so a non-ASCII global was never
+watched (W3).
 
 Closes #2317.
 
 ## Head
 
-`7ee88aa3b673e2b547b6549537413c9e01edfc10`, two commits on `92accb2cf` (the
-merge base, `origin/main` at 2026-10-16T22:11Z). Everything below was measured
-at that SHA.
+`485d0aa819851bf6a83cf0b64da46b8e9298fa5a` merges origin/main `10d00fe0f` into
+the authored code head `1fc6ce6933d0617ca6d54a2b3eec8cbf7da50199` (an automatic
+merge; no resolution inside the code head). `origin/main` is at `10d00fe0f`
+(2026-10-17T10:48Z); the branch's own diff against it is the census work
+(`f710ccca5`, `7ee88aa3b`) plus the grammar fix `1fc6ce693`. Everything below
+was measured at that SHA, except where the two-ends base `b254b5b06` is named.
+
+`1fc6ce693`, the grammar fix, sits on `75742368e`, the previous fixer's merge of
+`origin/main` `b254b5b06` onto the earlier handoff head `1d45350ba`.
 
 ## Mutation proof
 
 Every plant is one mutation, applied by `tools/audit/seat/r10_deeplink_mutants.py`,
 which restores the file byte for byte and refuses to start on a dirty tree.
 `K*` are the round-4 review's plants (#2317) and this fix's isolating variants;
-`W*` are two seams this fix found for itself; `X*` mutate this fix's own lines.
+`W*` are the seams this fix found for itself; `X*` mutate this fix's own lines;
+`W3` and `X8` are the grammar fix's own plant and mutant.
 
-At the head, all 27 plants:
+At the head, the full 62-plant sweep (`python3 tools/audit/seat/r10_deeplink_mutants.py`,
+no args, runs every M/R/N/H/K/W/X/Z plant) and the census's 30:
 
-    python3 tools/audit/seat/r10_deeplink_mutants.py K5_bare_open_on_dismiss K5b_bracket_open_on_dismiss K5c_open_call_on_dismiss K5r_bare_open_rendered_control K1_navigation_api_in_try K1c_navigation_api_no_try K1b_navigation_name_built K2_form_action_rendered K2b_action_set_at_run_time K3t_event_runtime_more_info K3c_event_literal_more_info_control Z_open_in_undriven_keydown W1_guarded_frames W2_history_go_built X1_fixture_drops_feedback_row X1K5b_fixture_line_is_what_closes_K5b X2_card_gains_an_act_branch X3_anchors_drop_action X3K2b_anchors_line_is_what_closes_K2b X4_recordEvent_disabled X4K3t_recordEvent_line_is_what_closes_K3t X5_watch_swallows X5W1_watch_line_is_what_closes_W1 X6_surface_drops_bare_open X6Z_surface_member_is_what_closes_Z X7_sink_drops_navigation X7K1b_surface_member_names_the_primitive_K1b
-
-Every one of the 22 plants and composites is rc=1 with a FAIL line, `fails=1`
-or `fails=2`, and none is killed only by a crash tail; the five `X*` singles
-with no plant under them are green (the composites' controls, below).
+    python3 tools/audit/seat/r10_deeplink_mutants.py K5_bare_open_on_dismiss K5b_bracket_open_on_dismiss K5c_open_call_on_dismiss K5r_bare_open_rendered_control K1_navigation_api_in_try K1c_navigation_api_no_try K1b_navigation_name_built K2_form_action_rendered K2b_action_set_at_run_time K3t_event_runtime_more_info K3c_event_literal_more_info_control Z_open_in_undriven_keydown W1_guarded_frames W2_history_go_built W3_unicode_global X1_fixture_drops_feedback_row X1K5b_fixture_line_is_what_closes_K5b X2_card_gains_an_act_branch X3_anchors_drop_action X3K2b_anchors_line_is_what_closes_K2b X4_recordEvent_disabled X4K3t_recordEvent_line_is_what_closes_K3t X5_watch_swallows X5W1_watch_line_is_what_closes_W1 X6_surface_drops_bare_open X6Z_surface_member_is_what_closes_Z X7_sink_drops_navigation X7K1b_surface_member_names_the_primitive_K1b X8_ascii_grammar X8W3_grammar_line_is_what_closes_W3
 
 - **K5, K5b, K5c** (a bare, a bracketed and a `.call`-ed `open(` on the feedback
   row the old fixture never rendered): `every link the census records from a
@@ -99,6 +109,11 @@ with no plant under them are green (the composites' controls, below).
   press` -> `frames`; green at the merge base.
 - **W2** (the history object's back step, behind a built name): `...
   -> history go(-1)`; at the merge base `rc=1 fails=0`, a crash.
+- **W3** (a read of a non-ASCII global, `globalThis.främes`): `no primitive this
+  census does not instrument is reached for on a page or a press` -> `främes`;
+  at the merge base `rc=0 fails=0` -- the base has no census allow-list arm (the
+  census is this PR's work), so the read goes unrecorded. The ASCII-vs-IDENT
+  distinction itself is the `X8W3` control at the head, below.
 
 This fix's own lines, each mutated *under the plant it closes*, with the single
 mutant as that composite's control:
@@ -119,31 +134,36 @@ mutant as that composite's control:
   `no press throws`: without the member the same plant is caught only as a
   `TypeError` inside a press, which is what a member installed by name
   replaces. X7 alone is green.
+- **X8** (revert the scan's grammar to the ASCII `[A-Za-z_$][\w$]*`) + W3 ->
+  green; X8 alone is green. That is the grammar fix's both-ends: under the
+  ASCII grammar `främes` is split at the `ä` and never watched, so the same
+  plant escapes; under the IDENT line it is one identifier and is refused. The
+  IDENT line is exactly what closes W3.
 
 At the merge base, in a detached worktree with THIS BRANCH's driver copied in
 (the driver is part of the fix):
 
-    git worktree add --detach /tmp/r10-base 92accb2cf
+    git worktree add --detach /tmp/r10-base b254b5b06
     cd /tmp/r10-base && cp <head>/tools/audit/seat/r10_deeplink_mutants.py tools/audit/seat/
     PYTHONPATH=tests/hastub python3 tests/plan_view.py
-    python3 tools/audit/seat/r10_deeplink_mutants.py K5_bare_open_on_dismiss K5b_bracket_open_on_dismiss K5c_open_call_on_dismiss K5r_bare_open_rendered_control K1_navigation_api_in_try K1c_navigation_api_no_try K1b_navigation_name_built K2_form_action_rendered K2b_action_set_at_run_time K3t_event_runtime_more_info K3c_event_literal_more_info_control Z_open_in_undriven_keydown W1_guarded_frames W2_history_go_built
+    python3 tools/audit/seat/r10_deeplink_mutants.py K5_bare_open_on_dismiss K5b_bracket_open_on_dismiss K5c_open_call_on_dismiss K5r_bare_open_rendered_control K1_navigation_api_in_try K1c_navigation_api_no_try K1b_navigation_name_built K2_form_action_rendered K2b_action_set_at_run_time K3t_event_runtime_more_info K3c_event_literal_more_info_control Z_open_in_undriven_keydown W1_guarded_frames W2_history_go_built W3_unicode_global
 
 prints: `K5` rc=0 fails=0, `K5b` rc=0 fails=0, `K5c` rc=0 fails=0, `K1` rc=0
 fails=0, `K2` rc=0 fails=0, `K2b` rc=0 fails=0, `K3t` rc=0 fails=0, `Z` rc=0
-fails=0, `W1` rc=0 fails=0 -- the nine routes that escaped both old arms;
-`K1c` rc=1 fails=0, `K1b` rc=1 fails=0, `W2` rc=1 fails=0 -- killed only by a
-crash tail; `K5r` rc=1 fails=1 and `K3c` rc=1 fails=1 -- the review's own
-controls. The `X*` names do not exist at the merge base (`anchor not unique`),
-which is the right refusal.
+fails=0, `W1` rc=0 fails=0, `W3` rc=0 fails=0 -- the ten routes that escaped
+both old arms; `K1c` rc=1 fails=0, `K1b` rc=1 fails=0, `W2` rc=1 fails=0 --
+killed only by a crash tail; `K5r` rc=1 fails=1 and `K3c` rc=1 fails=1 -- the
+review's own controls. The `X*` names do not exist at the merge base (`anchor
+not unique`), which is the right refusal.
 
 ## Null control
 
 `python3 tools/audit/seat/r10_deeplink_mutants.py --null` prints `RESULT
 mutant=NULL_no_plant rc=0 fails=0`; `node tests/card.mjs` alone prints
 `ALL CARD CHECKS PASSED`; the same null is green at the merge base, so every red
-above is the plant's. The five `X*` singles with no plant under them (`X3`, `X4`,
-`X5`, `X6`, `X7`) are green, which is what makes each composite a measurement of
-its line rather than of the plant.
+above is the plant's. The `X*` singles with no plant under them (`X3`, `X4`,
+`X5`, `X6`, `X7`, `X8`) are green, which is what makes each composite a
+measurement of its line rather than of the plant.
 
 ## Figures
 
@@ -152,45 +172,57 @@ tests/plan_view.py`, except where the merge base is named.
 
 - `1253` passing checks at the head, `1249` at the merge base --
   `node tests/card.mjs | grep -c "^  ok  "`.
-- The card's own `act` set is the `ACTS` the census declares, both derived and
-  both 11 names -- `grep -oE '\bact === "[a-z_]+"' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | sort -u`
+- The card's own `act` set is the `ACTS` the census declares, and the source's
+  dispatch set is the union the census's own extraction takes: `act === "..."`
+  yields 11 names and `data-act="..."` yields 5 literal names (plus two
+  `${...}` templates the `[a-z_]+` extraction skips), the union 11 -- the
+  declared `ACTS`.
+  `grep -oE '\bact === "[a-z_]+"' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | sort -u`
   and `grep -oE 'data-act="[a-z_]+"' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | sort -u`.
 - `42/25/10/32/24` pressables pressed on plan/setup/savings/advisor/health --
   the `X2_card_gains_an_act_branch` detail line.
-- `MODE: SCOPED -- 4 script(s) run, 29 scoped out` over
-  `dev/programme/rosters/wave-r10-groups.json`, `tests/card.mjs`,
-  `tools/audit/seat/r10_deeplink_mutants.py` and `tools/policy/agreement.mjs` --
-  `python3 tests/closure.py select --diff 92accb2cf --workdir <dir>`.
-- `AGREEMENT ok` with the census's global-name scan registered --
-  `python3 -I tools/policy/agreement_py.py --out /tmp/ag.json && node
-  tools/policy/agreement.mjs --py-json /tmp/ag.json` (before the entry:
-  `unregistered=1`, `"[A-Za-z_$][\w$]*" in tests/card.mjs, tests/doc_claims.py`).
-- `8 TEST SCRIPT(S) PASSED; 27 SCOPED OUT AND NOT RUN`, the scoped gate (units
-  lane included) --
-  `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=92accb2cf ./tests/run.sh`.
+- `MODE: SCOPED -- 9 script(s) run, 24 scoped out` over
+  `dev/programme/rosters/wave-r10-groups.json`, `tests/card.mjs` and
+  `tools/audit/seat/r10_deeplink_mutants.py` --
+  `python3 tests/closure.py select --diff 10d00fe0f --workdir <dir>`.
+- `AGREEMENT ok` with the census's global-name scan no longer a grammar written
+  twice -- `python3 -I tools/policy/agreement_py.py --out /tmp/ag.json && node
+  tools/policy/agreement.mjs --py-json /tmp/ag.json` prints
+  `divergent=0 unregistered=0 dead=0 refused=0` (before the fix, the earlier
+  handoff head printed `unregistered=1`,
+  `"[A-Za-z_$][\w$]*" in tests/card.mjs, tests/doc_claims.py`).
 - `STRUCTURE RATCHET PASSED` with every metric unmoved (`max_method_loc 373 <=
   373`, `seam_cut_total 752 <= 752`) -- `python3 tests/structure.py`; the diff
   adds no production line.
 - `ALL 16 ARCHITECTURE SCORE HEAD CHECKS PASSED` -- `python3
   tests/arch_score_head.py`.
-- `wave-script  186 passed, 0 failed` against this head in the worktree --
-  `bash tools/pr/prepr.sh <body.md> 2317` (its `wave-script` step; the same check
-  is red at the pull-request head for the row, `## Red checks` above).
 
 ## Red checks
 
-- **`wave-script`** (the governance job that drives
-  `tools/policy/check-wave-script.mjs`): red on this head because
-  `dev/programme/delivery/2345.md` does not exist yet. That row is the
-  orchestrator's and is written off the code head by the opener, after the body
-  contract passes, so no author head carries it (`delivery-status-tracking.md`),
-  and the red is the row's absence rather than this diff. Cheaper detector, and
-  it exists: the row write itself, one local step of seconds, with its own
-  refusal arm -- `bus.sh dispatch` refuses a head that carries no
-  `dev/programme/delivery/<pr>.md` -- against the governance job's queue-time
-  run, so nothing is owed above it. Against this worktree the same check prints
-  `wave-script 186 passed, 0 failed` (`prepr`'s own step), because the absent row
-  is a property of the pull request, not of the tree.
+- **`wave-script`** (the governance job that restores `tools/policy/*.mjs` and
+  the wave scripts from the base, then drives `check-wave-script.mjs` and the
+  agreement lane): red on the earlier handoff head `1d45350ba` because
+  `tests/card.mjs`'s global-name scan copied `tests/doc_claims.py`'s ASCII word
+  grammar `[A-Za-z_$][\w$]*` -- one grammar written twice -- and the base's
+  `agreement.mjs` (the copy the lane grades, restored from the base commit)
+  does not register it: `UNREGISTERED "[A-Za-z_$][\w$]*" in tests/card.mjs,
+  tests/doc_claims.py`. This head fixes it by making the two readers different
+  grammars -- the scan uses ECMAScript's IdentifierName production, so the
+  grammar is no longer written twice and nothing is left to register (the
+  registration the earlier head added is removed, and `agreement.mjs` is
+  byte-identical to the base again). Cheaper detector, and it exists:
+  `node tools/policy/agreement.mjs --only discovery` runs in under a second and
+  prints the UNREGISTERED line before the fix and `AGREEMENT ok` after; against
+  this head the full lane prints `AGREEMENT ok`, `divergent=0 unregistered=0
+  dead=0 refused=0` (`## Figures`).
+
+- **`pr-contract`**: red on the earlier handoff head only as the cascade of the
+  unnamed `wave-script` red -- the body's `## Red checks` said `none` while the
+  head carried a foreign red, so `policy_lint.mjs --red wave-script` refused a
+  body that did not name it. This body names it, and `wave-script` is green at
+  this head, so the cascade is discharged. Cheaper detector, and it exists: the
+  same `policy_lint.mjs --pr-body <body> --head <sha> --red wave-script` run CI
+  makes, driven locally in seconds by `tools/pr/prepr.sh <body> 2345`.
 
 ## Forward-carry
 
