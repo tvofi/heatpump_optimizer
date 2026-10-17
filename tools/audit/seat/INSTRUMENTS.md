@@ -275,6 +275,16 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   older than the row directory's move. Refusal: any file but a new one-line
   row at its canonical path that the API's facts re-generate, or an author
   other than the hpo-author App.
+- `ref_privacy.py` — the one owner of what a push may say about the host
+  (#2310): `slug <path>` names a local path for a ref (`<root>-<rest>` under
+  a named root, else `ext-<leaf>-<hash>`); `guard --ref R [--message M]
+  [--commits REV -C DIR]` refuses a ref name or commit message carrying the
+  home directory, an account name, the uid, a session temp root or a host
+  path (exit 3, the class named, the text not echoed); `--check` refuses a
+  tracked file with a push site its `PUSHERS` registry does not name, and a
+  `guarded` entry that calls no guard. When: before every push an instrument
+  composes; a new pusher registers in `PUSHERS` in the same diff. Refusal: a
+  push that would publish the host never runs.
 - `remerge_main.sh` — merges origin/main into an open PR (claimnotes merge
   driver), drops inherited claims, pushes as the App with `app_push.sh
   --recarry`, which prefixes ## Head with what happened and skips prepr only
@@ -384,9 +394,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   silently.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
-  `origin/wip-sync/<slug>`, plus the orchestrator scratch. When: loop it
+  `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is
+  `ref_privacy.py slug`'s, never a host path (#2310). When: loop it
   detached so a crashed seat is recoverable from its branch. Refusal: it
-  never touches the worktree or its index — a snapshot, not a save.
+  never touches the worktree or its index — a snapshot, not a save; a
+  worktree whose snapshot would name the host is skipped with the guard's
+  reason.
 - `shims/seat-python`, `shims/seat-python3` — the seat interpreter: execs the
   venv-ci `seat_venv.sh` builds, under `$HPO_STATE_DIR` first and the default
   state root `~/.local/state/hpo` second, and refuses naming that build command

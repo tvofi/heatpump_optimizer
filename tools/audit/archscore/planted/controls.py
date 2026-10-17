@@ -325,10 +325,17 @@ def plan():
                                "import numpy as np\n\nfrom .optimizer import HeatPumpOptimizer  # noqa: F401\n")),
         fix=("the horizon clock moves out of the optimizer into step_clock.py; silent_mode, pure, imports it there",
              step_clock),
-        null=("silent_mode's optimizer import moves above its const import (same module level, same edge)",
+        null=("silent_mode's optimizer import moves above its const import (same module level, same edge), "
+              "and drift.py gains an annotation-only import of the optimizer under `if TYPE_CHECKING:`, "
+              "which the runtime never runs",
               lambda w: (sub(w, "silent_mode.py", "from .optimizer import _utc_step_starts\n", ""),
                          sub(w, "silent_mode.py", "import numpy as np\n",
-                             "import numpy as np\n\nfrom .optimizer import _utc_step_starts\n"))),
+                             "import numpy as np\n\nfrom .optimizer import _utc_step_starts\n"),
+                         sub(w, "drift.py", "from typing import Any\n",
+                             "from typing import TYPE_CHECKING, Any\n"),
+                         sub(w, "drift.py", "import numpy as np\n",
+                             "import numpy as np\n\nif TYPE_CHECKING:  # noqa: E402\n"
+                             "    from .optimizer import HeatPumpOptimizer  # noqa: F401\n"))),
     )
 
     # 6c private_cross_module (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)

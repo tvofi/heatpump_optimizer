@@ -395,6 +395,18 @@ jobs:
           python3 -I tools/audit/seat/tmp_paths.py --self-test
           python3 -I tools/audit/seat/tmp_paths.py --check
 
+      # A push whose ref name or commit message names the host (#2310: 70
+      # wip-sync refs carried the account name). The self-test drives the
+      # slug, the guard and wt_sync.sh end to end on a planted identity; the
+      # check refuses a tracked file with a push site the registry does not
+      # name, and a guarded entry that calls no guard. Here for tmp_paths.py's
+      # reason.
+      - name: Refuse a push that names the host, and an unregistered pusher
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/ref_privacy.py --self-test
+          python3 -I tools/audit/seat/ref_privacy.py --check
+
       # A throwaway git repository built without the shared helper
       # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
       # even a tiny repository, and it outlives the temporary directory. The

@@ -56,7 +56,7 @@ class CurrentAction(TypedDict, total=False):
     lower_setpoint: float
     displace_value: float
     heat_pump_on: bool
-    price: float
+    price: float | None
     valve_target: float
     solar_gain_kw: float
     baseline_kw: float
@@ -408,6 +408,9 @@ class ExternalHeat(TypedDict, total=False):
 class SysIdResultView(TypedDict, total=False):
     completed: bool
     time_constant_hours: float | None
+    # On the configured zone total the learned scale multiplies, not the
+    # model's effective UA -- `SysIdResult.heat_loss_kw_per_c` names the basis,
+    # and `house_heat_loss_effective` publishes the effective one.
     heat_loss_kw_per_c: float | None
     thermal_mass_kwh_per_c: float | None
     internal_gains_kw: float | None
@@ -698,7 +701,7 @@ class MeasurementView(TypedDict, total=False):
 
 
 class GridView(TypedDict, total=False):
-    current_price: float
+    current_price: float | None
     prices_available: int
     weather_forecast_available: int
     outdoor_forecast_temperature: float | None

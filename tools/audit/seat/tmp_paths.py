@@ -77,6 +77,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SELF = "tools/audit/seat/tmp_paths.py"
+# What spells a home directory is ref_privacy.py's (its one owner, #2310).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ref_privacy  # noqa: E402
 
 CLASSES = (
     ("private-tmp", re.compile(r"/private/tmp(?![\w-])")),
@@ -87,7 +90,7 @@ CLASSES = (
         r"(?:\$\{TMPDIR(?::-[^}]*)?\}|\$TMPDIR\b|tempfile\.gettempdir\(\)|os\.environ(?:\.get)?\(\s*[\"']TMPDIR[\"'][^)]*\)"
         r"|os\.environ\[\s*[\"']TMPDIR[\"']\s*\])"
         r"(?=\s*(?:/|\+\s*[\"']|,\s*[\"']|\)\s*/\s*[\"']))")),
-    ("home-abs", re.compile(r"/(?:Users|home)/[\w.-]+/")),
+    ("home-abs", re.compile(ref_privacy.HOME_DIR + "/")),
     ("home-instrument", re.compile(r"(?:~|\$HOME|\$\{HOME\})/[^\s'\"`)]*(?:\.(?:sh|py|mjs|js)\b|/bin\b)")),
 )
 TEMP_CLASSES = ("private-tmp", "tmp", "tmpdir-fixed")
@@ -166,7 +169,7 @@ def allowed_by_rule(path: str, cls: str, text: str, m: re.Match) -> bool:
         return True
     if cls == "home-instrument" and ".local/state/hpo" in m.group(0):
         return True
-    if cls == "home-abs" and re.match(r"/home/user/(?:heatpump_optimizer\b|wt/)", text[m.start():]):
+    if cls == "home-abs" and re.match(ref_privacy.CLOUD_ROOTS, text[m.start():]):
         return True
     return False
 
@@ -212,7 +215,7 @@ def grep(ref: str) -> list[tuple[str, int, str]]:
 # diff adds are judged, by their text, so main's stock is not charged to every
 # branch and a row the ledger re-keys keeps its line.
 LEDGER = "tests/mutation_ledger"
-MACHINE = re.compile(r"/private/tmp/|(?<![\w.~-])/tmp/|/(?:Users|home)/(?!user/(?:heatpump_optimizer\b|wt/))[\w.-]+/"
+MACHINE = re.compile(r"/private/tmp/|(?<![\w.~-])/tmp/|(?!" + ref_privacy.CLOUD_ROOTS + ")" + ref_privacy.HOME_DIR + "/"
                      r"|(?<![\w/])~/|\$\{?HOME\}?/|(?<![\w.-])hpo-seats/")
 
 
