@@ -1,8 +1,0 @@
-custom_components/heatpump_optimizer/coordinator.py
-custom_components/heatpump_optimizer/payload.py
-custom_components/heatpump_optimizer/price_model.py
-custom_components/heatpump_optimizer/sysid.py
-tests/entities.py
-tests/features.py
-tests/gate_lock.py
-tests/solar_alignment.py
