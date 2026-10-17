@@ -18,7 +18,9 @@ metric change silently moves a verdict or re-opens a game:
     A weight change is a policy change, so it is a change to this file as well, which is code-owned;
   * the check can fail: the same comparison on a vector with one metric nudged does not read as before;
   * the required check's rule (archscore/gate.py, R9-EG-A4): an admissible change passes, a rise passes
-    only explained under ``## Architecture score``, one line per metric.
+    only explained under ``## Architecture score``, one line per metric;
+  * the hub census reads each spelling C15 and C16 name on a synthetic package, and none of them with the
+    counters off.
 
 The corpus and the planted verdicts are what the pre-study recorded (PRE-STUDY section 6 on
 handoff/audit-r9-alt), re-measured with the metrics tests/structure.py now defines; the changes that made
@@ -166,6 +168,106 @@ def base_runs_the_gate() -> None:
             re.search(r"^SAW PLANT$", out, re.M) is not None, out[-300:])
 
 
+#: A synthetic package for the hub census's spellings (C15, C16; D7-s1-83 and ARCH2-s2 P4). Each plant goes
+#: into the scheduled cycle, and the census must read exactly ``want`` more sites than the bare package.
+_HUB_PKG = """from homeassistant.helpers.event import async_track_state_change_event
+
+
+class Params:
+    x = 0
+
+
+class Model:
+    def __init__(self, p):
+        self.p = p
+
+    def bump(self):
+        self.p.x = 1
+
+
+class Learner:
+    def __init__(self, read):
+        self._read = read
+
+    def go(self):
+        self._read().x = 1
+
+
+def _ctx_of(c):
+    return getattr(c, "_ctx", c)
+
+
+class HeatPumpOptimizerCoordinator:
+    def __init__(self):
+        self._thermal_params = Params()
+        self._opt_config = Params()
+        self._current_state = Params()
+        self._model = Model(None)
+        self._learner = Learner(lambda: self._thermal_params)
+        async_track_state_change_event(None, [], self._on_event)
+        _register(self._on_package_callback)
+
+    def _live(self):
+        return self._thermal_params
+
+    def _other(self):
+        return self._model
+
+    def _on_event(self, event):
+        pass
+
+    def _on_package_callback(self, event):
+        pass
+
+    async def _async_update_data(self):
+        pass
+        return {}
+
+
+def _register(cb):
+    return cb
+"""
+_HUB_PLANTS = {  # name -> (where, the plant, sites it adds)
+    "a rebind onto a collaborator's attribute": ("cycle", "self._model.p = self._thermal_params\n        self._model.bump()", 1),
+    "a rebind through a local the hub is rebound to":
+        ("cycle", "fresh = Params()\n        self._thermal_params = fresh\n        self._model.p = fresh\n        self._model.bump()", 1),
+    "a zero-argument reader method": ("cycle", "self._live().x = 1", 1),
+    "a package function's returned value": ("cycle", "_ctx_of(self)._thermal_params.x = 1", 1),
+    "a zero-argument lambda reader handed to a constructor": ("cycle", "self._learner.go()", 1),
+    "an event callback handed to Home Assistant": ("event", "self._thermal_params.x = 1", 1),
+    "null: a reader returning a collaborator, not a hub": ("cycle", "self._other().z = 1", 0),
+    "null: a callback handed to a package function": ("package", "self._thermal_params.x = 1", 0),
+}
+
+
+def hub_spellings() -> None:
+    """C15 and C16 on a package that holds one spelling each; with the counter off each reads 0."""
+    from archscore.metrics import common, hub_solve_writes as H
+
+    def sites(body: str, where: str) -> int:
+        with tempfile.TemporaryDirectory(prefix="archscore-hub-") as tmp:
+            pkg = Path(tmp) / "custom_components" / "heatpump_optimizer"
+            pkg.mkdir(parents=True)
+            anchor = {"cycle": "    async def _async_update_data(self):\n        pass\n",
+                      "event": "    def _on_event(self, event):\n        pass\n",
+                      "package": "    def _on_package_callback(self, event):\n        pass\n"}[where]
+            (pkg / "coordinator.py").write_text(_HUB_PKG.replace(anchor, anchor.replace("pass", body) if body else anchor))
+            common.reset_caches()
+            common.load.cache_clear()
+            return H.measure(Path(tmp))["value"]
+
+    base = sites("", "cycle")
+    for name, (where, body, want) in _HUB_PLANTS.items():
+        got = sites(body, where) - base
+        common.FOLLOW_RETURNS, H.EVENT_ROOTS = False, False
+        try:
+            off = sites(body, where) - sites("", "cycle")
+        finally:
+            common.FOLLOW_RETURNS, H.EVENT_ROOTS = True, True
+        R.check(f"hub census: {name} reads {want} site(s), and 0 with C15 and C16 off",
+                got == want and off == 0, f"got {got} (C15/C16 off: {off}), base {base}")
+
+
 def smoke() -> None:
     """Every planted case's script applies to the pin: the anchors still hold and every file the full
     run reads is read, at the cost of the scripts alone. The helpers the scripts import are read and
@@ -209,6 +311,7 @@ def main() -> int:
     for name, ok in gate.self_test():
         R.check(f"arch-score gate: {name}", ok)
     base_runs_the_gate()
+    hub_spellings()
 
     jobs = min(4, os.cpu_count() or 1)
     collected = calibrate.collect(stored, jobs)

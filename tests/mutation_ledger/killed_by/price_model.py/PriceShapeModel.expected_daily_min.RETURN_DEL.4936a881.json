@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.expected_daily_min RETURN_DEL 4936a881",
+  "killed_by": "tests/features.py",
+  "old": "        return float(level * min(factors))",
+  "reason": "Recorded by `mutation_table.py --drain` against e3f3b312fff572904f24d78a44a2c4492b1a8ddb: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

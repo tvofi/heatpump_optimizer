@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._decay GUARD_OFF 66b67c4f",
+  "killed_by": "tests/features.py",
+  "old": "        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --drain` against e3f3b312fff572904f24d78a44a2c4492b1a8ddb: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

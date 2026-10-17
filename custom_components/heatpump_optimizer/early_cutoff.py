@@ -131,6 +131,9 @@ class CutoffInputs:
     opt_config: Any
 
 
+#: Weak-keyed, so a value must not reach its key: ``wiring.inputs`` is the
+#: coordinator's bound ``arbiter_inputs``, and until :func:`detach` drops it
+#: at unload the entry pins its coordinator for good.
 _STATES: WeakKeyDictionary[Any, CutoffState] = WeakKeyDictionary()
 
 
@@ -154,6 +157,10 @@ async def arm(
     the entry is released or no switch or room thermometer is configured.
     """
     now = now or dt_util.now()
+    if held.wiring is None:
+        # Once per record, listener or not: the wiring below reaches the
+        # coordinator and has to be dropped with the entry.
+        on_unload(lambda: detach(held))
     held.wiring = CutoffInputs(inputs, boosts, opt_config)
     inp = inputs()
     cfg = EntryConfig.from_mapping(inp.config)
@@ -172,8 +179,6 @@ async def arm(
                 on_room_event(held, held.wiring, event)
 
         held.unsub = async_track_state_change_event(inp.hass, [room], _changed)
-        # Dropped with the entry, as every other registration is (#236).
-        on_unload(lambda: release(held))
         _LOGGER.debug("Early cut-off listening on %s", room)
 
 
@@ -193,6 +198,12 @@ def allow_on(held: CutoffState, on: bool, now: datetime | None = None) -> bool:
     if now - held.cut_at >= MIN_OFF:
         return True
     return _exempt(held.wiring.inputs(), held.wiring.boosts, now) is not None
+
+
+def detach(held: CutoffState) -> None:
+    """Unload: drop the listener and the wiring that reaches the coordinator."""
+    release(held)
+    held.wiring = None
 
 
 def release(held: CutoffState) -> None:
