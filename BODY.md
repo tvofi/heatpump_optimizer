@@ -143,6 +143,16 @@ Each line names its instrument; the round-10 harnesses are out of the tree
   changed files, and `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`. The
   two lanes the held branch reddens are green here: `ALL 84 OPTIMALITY CHECKS
   PASSED`, `ALL 110 STRESS CHECKS PASSED`.
+- `python3 tools/pr/ci_predict.py --base 92accb2cf`: `CI PREDICT: no
+  closures or fast red predicted` -- after `tests/closures.json` lists the new
+  harness in `harness_headers.py`'s `inert_reads` by hand, as the harness that
+  reads every harness header (`--single` does not clear an inert read; the
+  R10-REGISTRY-LEAK precedent). That one-line data edit came after the scoped
+  run above, so the checks that read it were re-run: `python3 tests/entities.py`
+  `ALL 2332 ENTITY CHECKS PASSED`, `python3 tests/harness_headers.py` `ALL 109
+  HARNESS HEADER CHECKS PASSED`, `python3 tests/closure.py selftest` `ALL 115
+  closure shrink pins PASSED`, and the scope re-derived still reads `MODE:
+  SCOPED -- 27 script(s) run`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (no budget moved;
   the diff removes lines from both production modules).
 - `python3 tools/audit/archscore/score.py --diff 92accb2cf`: `dS +0.0000 NULL`,
