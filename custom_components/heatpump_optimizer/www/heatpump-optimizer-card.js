@@ -3363,7 +3363,11 @@ function setupSvgHtml(topo, ctx) {
     b.liveRows = liveRows;
     b.unsetRows = unsetRows;
     // Open when ANY of the box's unset slots was asked for by name.
-    b.open = unsetRows.some((r) => openKeys.has(r.slot.key));
+    // The fold's own open state. It is not `open`: that is the navigation
+    // primitive's name, which `tests/card.mjs`'s census refuses anywhere but
+    // `navigateTo` and the dialog's own `open()`, so an unrelated boolean
+    // carrying it would be a namesake the census cannot tell from a link.
+    b.foldOpen = unsetRows.some((r) => openKeys.has(r.slot.key));
     // The folded block is ALWAYS drawn when there are unset slots -- its own
     // count line and its Configure chip are what opens and closes the rows --
     // so its rows are counted once here, wrapped once, and drawn from the
@@ -3377,7 +3381,7 @@ function setupSvgHtml(topo, ctx) {
       : null;
     const lines = (rows) => rows.reduce((n, r) => n + r.fit.lines.length, 0);
     b.h = 24 + pad + rowH * (
-      lines(liveRows) + lines(b.open ? unsetRows : []) + b.extra.length +
+      lines(liveRows) + lines(b.foldOpen ? unsetRows : []) + b.extra.length +
       (b.foldLines ? b.foldLines.length + 1 : 0)
     );
   }
@@ -3724,10 +3728,10 @@ function setupSvgHtml(topo, ctx) {
       rows.push(`<rect class="setup-hit setup-fold-hit"
         data-fold="${esc(b.unsetRows.map((r) => r.slot.key).join(","))}"
         data-place="${esc(b.place || "")}"
-        aria-expanded="${b.open ? "true" : "false"}"
+        aria-expanded="${b.foldOpen ? "true" : "false"}"
         tabindex="${ctx.picking ? "-1" : "0"}" role="button"
         aria-label="${esc(L(
-          b.open ? "setup.fold_hide" : "setup.fold_show",
+          b.foldOpen ? "setup.fold_hide" : "setup.fold_show",
           { n: b.unsetRows.length }
         ))}" x="${b.x + 4}" y="${r2(y - rowH + 5 - (foldH - foldBase) / 2)}"
         width="${colW - 8}" height="${r2(foldH)}" rx="3"></rect>`);
@@ -3743,7 +3747,7 @@ function setupSvgHtml(topo, ctx) {
         `data-configure="${esc(b.place || "")}"`, aria));
       y += rowH;
     }
-    for (const row of b.open ? b.unsetRows : []) {
+    for (const row of b.foldOpen ? b.unsetRows : []) {
       rows.push(rowHtml(row, "setup-slot empty"));
     }
     for (const ex of b.extra) {
