@@ -1,0 +1,76 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+  changed files (33), measured against the recorded closures in tests/closures.json:
+      dev/audit/harnesses/archscore_layering_seam_census.py
+      dev/programme/delivery/2320.md
+      tests/ci_budgets.json
+      tests/closures.json
+      tools/audit/archscore/ABOUT.md
+      tools/audit/archscore/calibration/corpus_vectors.json
+      tools/audit/archscore/calibration/expected.json
+      tools/audit/archscore/counters.py
+      tools/audit/archscore/metrics/common.py
+      tools/audit/archscore/metrics/layering.py
+      tools/audit/archscore/planted/controls.py
+      tools/audit/archscore/planted/redteam/21_lazy_solver_import.py
+      tools/audit/archscore/planted/redteam/22_private_module_attr.py
+      tools/audit/archscore/planted/redteam/23_layer_owner_import.py
+      tools/audit/archscore/planted/redteam/24_layer_guarded_else.py
+      tools/audit/archscore/planted/redteam/25_layer_negated_guard.py
+      tools/audit/archscore/planted/redteam/26_layer_import_module.py
+      tools/audit/archscore/planted/redteam/27_layer_absolute_self_import.py
+      tools/audit/archscore/planted/redteam/28_layer_import_abs_alias.py
+      tools/audit/archscore/planted/redteam/29_layer_import_abs_plain.py
+      tools/audit/archscore/planted/redteam/30_layer_from_abs_module.py
+      tools/audit/archscore/planted/redteam/31_layer_import_module_kw.py
+      tools/audit/archscore/planted/redteam/32_layer_parent_ns_alias.py
+      tools/audit/archscore/planted/redteam/33_layer_parent_ns_from.py
+      tools/audit/archscore/planted/redteam/34_layer_parent_ns_from_alias.py
+      tools/audit/archscore/planted/redteam/35_layer_parent_ns_plain.py
+      tools/audit/archscore/planted/redteam/36_layer_getattr_chain.py
+      tools/audit/archscore/planted/redteam/37_layer_module_const_name.py
+      tools/audit/archscore/planted/redteam/38_layer_parent_ns_public.py
+      tools/audit/archscore/planted/redteam/39_layer_parent_ns_public_pair.py
+      tools/audit/archscore/planted/redteam/40_layer_module_const_ann.py
+      tools/audit/archscore/planted/redteam/41_layer_chain_past_module.py
+      tools/audit/archscore/vector.py
+
+      RUN   tests/arch_score.py (its tests/closures.json entry changed)
+      RUN   tests/arch_score_head.py (its tests/closures.json entry changed)
+      RUN   tests/entities.py (its tests/closures.json entry changed)
+
+      SKIP  tests/backtest.py  (closure: 35 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 87 files, no changed file is in its measured closure)
+      SKIP  tests/boost_drift_replay.py  (closure: 85 files, no changed file is in its measured closure)
+      SKIP  tests/card.mjs  (closure: 89 files, no changed file is in its measured closure)
+      SKIP  tests/card_drift.mjs  (closure: 94 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 120 files, no changed file is in its measured closure)
+      SKIP  tests/debug_collect.py  (closure: 91 files, no changed file is in its measured closure)
+      SKIP  tests/deployment_shape.py  (closure: 118 files, no changed file is in its measured closure)
+      SKIP  tests/doc_claims.py  (closure: 148 files, no changed file is in its measured closure)
+      SKIP  tests/edge.py  (closure: 33 files, no changed file is in its measured closure)
+      SKIP  tests/env_drift.py  (closure: 186 files, no changed file is in its measured closure)
+      SKIP  tests/features.py  (closure: 134 files, no changed file is in its measured closure)
+      SKIP  tests/finite_boundary.py  (closure: 109 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/golden.py  (closure: 188 files, no changed file is in its measured closure)
+      SKIP  tests/guard_pins.py  (closure: 63 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 34 files, no changed file is in its measured closure)
+      SKIP  tests/harness_headers.py  (closure: 384 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/manual_plan.py  (closure: 100 files, no changed file is in its measured closure)
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/optimality.py  (closure: 35 files, no changed file is in its measured closure)
+      SKIP  tests/plan_view.py  (closure: 83 files, no changed file is in its measured closure)
+      SKIP  tests/solar_alignment.py  (closure: 84 files, no changed file is in its measured closure)
+      SKIP  tests/stress.py  (closure: 39 files, no changed file is in its measured closure)
+      SKIP  tests/structure.py  (closure: 80 files, no changed file is in its measured closure)
+      SKIP  tests/typing_ruler.py  (closure: 80 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 33 files, no changed file is in its measured closure)
+      SKIP  tests/wood_advisor.py  (closure: 87 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.

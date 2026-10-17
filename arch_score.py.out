@@ -1,0 +1,28 @@
+
+=== architecture score calibration (R9-EG-A1) ===
+  ok   weights.json is the frozen file
+  ok   weights.sha256 names the frozen file
+  ok   arch-score gate: an admissible change passes without a section
+  ok   arch-score gate: a rise with no section fails
+  ok   arch-score gate: a rise explained on its own line passes
+  ok   arch-score gate: a section naming another metric fails
+  ok   arch-score gate: a line naming the metric with no reason fails
+  ok   arch-score gate: an explanation under another heading fails
+  ok   arch-score gate: a metric whose name prefixes another is not explained by it
+  ok   arch-score gate: two rises need two explanations
+  ok   the plant is real: git archive drops the export-ignore'd module (control)
+  ok   score.tree_of extracts the module the head's .gitattributes marks export-ignore
+  ok   a symlink under custom_components/ is refused by name, not skipped (plant 5)
+  ok   the gate turns that refusal into a named FAIL and rc 1, not a traceback
+  ok   arch-score.yml: a head edit to tests/structure.py is not what the gate loads (the #2068 plant)
+  ok   and a base with no gate.py is the adoption: the head's copy runs once (null control)
+  ok   hub census: a rebind onto a collaborator's attribute reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a rebind through a local the hub is rebound to reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a zero-argument reader method reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a package function's returned value reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a zero-argument lambda reader handed to a constructor reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: an event callback handed to Home Assistant reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: null: a reader returning a collaborator, not a hub reads 0 site(s), and 0 with C15 and C16 off
+  ok   hub census: null: a callback handed to a package function reads 0 site(s), and 0 with C15 and C16 off
+/Users/timmalmstrom/.local/share/uv/python/cpython-3.14.7-macos-aarch64-none/lib/python3.14/multiprocessing/resource_tracker.py:475: UserWarning: resource_tracker: There appear to be 6 leaked semaphore objects to clean up at shutdown: {'/mp-m6kvjssl', '/mp-ddda_6cl', '/mp-qe4s7q1w', '/mp-rv7w02hi', '/mp-1ru4vmn3', '/mp-_f3n27y9'}
+  warnings.warn(

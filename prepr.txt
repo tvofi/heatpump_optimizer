@@ -1,0 +1,55 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             e3f3b312fff572904f24d78a44a2c4492b1a8ddb
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=1 label=prepr-96768 expires_at=2026-10-17T16:53:35.355040+00:00
+  ok       gate mode              MODE: FULL
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since e3f3b312fff5
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: e3f3b312fff572904f24d78a44a2c4492b1a8ddb ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against e3f3b312fff5 (a data-file read is not seen)
+  skip     no-copies              the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name
+  ok       layout guard           layout: GUARD: 0 refusal(s) against e3f3b312fff5
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             7:never
+             9:both
+             11:never
+             12:every
+             12:every
+             16:every
+             16:every
+             20:every
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             3 of 5
+             22 a
+             21 b
+             17 a
+             19 b
+             24 t
+             37 t
+             26 t
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/review-2320-33845/pr-body.md -- no budget leaf raised over e3f3b312f...95f31d5e8
+  ok       figures                FIGURES: 15 resolved, 7 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  skip     push order             HEAD is detached, so no branch of this repository is the pull request's head
+  skip     ancestry reds          HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head
+
+PRE-PR: 95f31d5e869c52a0298a05966cfc90af4cb50563 00000000000000000000000

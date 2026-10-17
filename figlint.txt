@@ -1,0 +1,46 @@
+  unverified git archive b202335e2 dev/audit/rounds/round10/D7/arch2-s4
+             `git archive` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git worktree
+             `git worktree` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python3 tools/audit/archscore/calibrate.py --only rt_38_layer_parent_ns_public,rt_39_layer_parent_ns_public_pair,rt_40_layer_module_const_ann
+             `tools/audit/archscore/calibrate.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/calibrate.py --record
+             `tools/audit/archscore/calibrate.py` is in the tree at this head
+  unverified git status --short
+             `git status` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git diff fa7859b6a 612ecd2cf -- tools/audit/archscore/calibration/expected.json
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         tests/arch_score.py
+             `tests/arch_score.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/calibrate.py --measure-corpus --only-metric layering --jobs 6
+             `tools/audit/archscore/calibrate.py` is in the tree at this head
+  ok         python3 dev/audit/harnesses/archscore_layering_seam_census.py <wt> --corpus
+             `dev/audit/harnesses/archscore_layering_seam_census.py` is in the tree at this head
+  ok         python3 dev/audit/harnesses/archscore_layering_seam_census.py <wt>
+             `dev/audit/harnesses/archscore_layering_seam_census.py` is in the tree at this head
+  unverified T=$(mktemp -d); mkdir -p "$T/p/s"; : > "$T/p/__init__.py"; printf 'def _f():\n    return 1\n' > "$T/p/s/mod.py"; printf 'a = __import__(".mod", fromlist=["_f"], level=1)\n' > "$T/p/s/who.py"; printf 'import p.s.who\n' > "$T/run.py"; ( cd "$T" && python3 run.py )
+             `run.py` does not look like a path in this tree
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
+  ok         tests/arch_score_head.py
+             `tests/arch_score_head.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         tests/env_drift.py --claims-only 81ae048e8
+             `tests/env_drift.py` is in the tree at this head
+  ok         tests/closure.py selftest
+             `tests/closure.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  ok         tests/layout.py
+             `tests/layout.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD
+             `tools/audit/archscore/score.py` is in the tree at this head
+  unverified git diff --numstat $(git merge-base origin/main HEAD)...HEAD -- custom_components/
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified python3 -c "import sys; sys.path.insert(0,'tests'); import closure; print(closure.orphan_files())"
+             python3 runs an inline script rather than a file
+
+FIGURES: 15 resolved, 7 not verified, 0 refused
