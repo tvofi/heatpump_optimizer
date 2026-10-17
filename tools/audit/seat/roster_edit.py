@@ -6,6 +6,8 @@
     python3 tools/audit/seat/roster_edit.py append-group <json-file>
     python3 tools/audit/seat/roster_edit.py edit-brief  <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py append-carry <group> <text | @file>
+    python3 tools/audit/seat/roster_edit.py set-after   <group> <group,group | empty>
+    python3 tools/audit/seat/roster_edit.py set-architect-note <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py set-resume  <group> --field <stage|commit|branch|last_step|next_step|note> <text | @file>
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
         [--roster-path PATH] [--worktree DIR] [--lint-cwd DIR] [--push]
@@ -53,6 +55,11 @@ Ops (all group ids must exist, except append-group which must not):
                `after` naming known groups, resume defaulted);
   edit-brief   replaces the brief (an @file argument reads the file);
   append-carry appends to the group's carry list, refusing an exact repeat;
+  set-after    replaces the group's `after` list (comma-separated group ids,
+               empty clears to []); an unknown name, a self-edge and a cycle
+               (roster_lib.depth_of's detection) are refused;
+  set-architect-note replaces the group's architect_note (@file reads a
+               file; empty clears it to null);
   set-resume   sets one resume field -- the free-text state a session
                restarts from. stage and branch are non-null: an empty value
                is refused. commit demands a sha. An empty value for commit,
@@ -186,6 +193,33 @@ def op_append_carry(roster, group, text):
     if entry in carry:
         raise Refuse(f"{group} already carries that entry")
     carry.append(entry)
+
+
+def op_set_after(roster, group, value):
+    g = _need(roster, group)
+    names = [n.strip() for n in value.split(",") if n.strip()]
+    known = {x.get("group") for x in roster.get("groups", [])}
+    if group in names:
+        raise Refuse(f"{group} cannot come after itself")
+    unknown = [n for n in names if n not in known]
+    if unknown:
+        raise Refuse(f"after names no group in this roster: {unknown}")
+    old = g.get("after")
+    g["after"] = list(dict.fromkeys(names))
+    # depth_of drops edges to done groups, which would hide a cycle through
+    # one: probe a copy with every group open.
+    probe = json.loads(json.dumps(roster))
+    for x in probe["groups"]:
+        x["resume"] = {"stage": "not-started"}
+    try:
+        roster_lib.depth_of(probe)
+    except ValueError as e:
+        g["after"] = old
+        raise Refuse(f"{e}; nothing written")
+
+
+def op_set_architect_note(roster, group, value):
+    _need(roster, group)["architect_note"] = _text(value) if value else None
 
 
 def _need(roster, group):
@@ -333,7 +367,8 @@ def main(argv=None) -> int:
             return _self_test()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "append-group",
-                                  "edit-brief", "append-carry", "set-resume"))
+                                  "edit-brief", "append-carry", "set-resume",
+                                  "set-after", "set-architect-note"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("--at-sha")
@@ -358,7 +393,8 @@ def main(argv=None) -> int:
     if a.value is not None and a.value_opt is not None:
         p.error("give the value positionally or with --value, not both")
     value = a.value_opt if a.value is None else a.value
-    if value is None or (value == "" and a.op != "set-resume"):
+    if value is None or (value == "" and a.op not in (
+            "set-resume", "set-after", "set-architect-note")):
         p.error(f"{a.op} needs a value argument")
     if a.op == "set-resume" and not a.field:
         p.error("set-resume needs --field")
@@ -390,6 +426,10 @@ def main(argv=None) -> int:
             op_edit_brief(roster, a.group, value)
         elif a.op == "set-resume":
             op_set_resume(roster, a.group, a.field, value)
+        elif a.op == "set-after":
+            op_set_after(roster, a.group, value)
+        elif a.op == "set-architect-note":
+            op_set_architect_note(roster, a.group, value)
         else:
             op_append_carry(roster, a.group, value)
         path.write_text(dump(roster), encoding="utf-8")
@@ -609,6 +649,42 @@ def _self_test() -> int:
     check("dup carry refused",
           edit("append-carry", "R9-A", "carry text one") == 2)
     check("unknown group refused", edit("set-stage", "R9-ZZ", "done") == 2)
+
+    # set-after / set-architect-note: the dependency edge and the note.
+    def refused_with(word, *args):
+        """rc 2 AND the op's own refusal text: an op the parser does not know
+        also exits 2 (argparse), so the rc alone pins nothing."""
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            rc = edit(*args)
+        return rc == 2 and "REFUSED" in buf.getvalue() and word in buf.getvalue()
+
+    check("set-after unknown group refused",
+          refused_with("names no group", "set-after", "R9-A", "R9-NOPE"))
+    check("set-after self-edge refused",
+          refused_with("itself", "set-after", "R9-A", "R9-A"))
+    check("set-after cycle refused",
+          edit("set-after", "R9-C", "R9-A,R9-B") == 0
+          and refused_with("cycle", "set-after", "R9-A", "R9-C"))
+    check("set-after valid edit lands",
+          edit("set-after", "R9-C", "R9-A,R9-B") == 0
+          and branch_roster()["groups"][2]["after"] == ["R9-A", "R9-B"])
+    tip_before = run(["git", "-C", str(origin), "rev-parse",
+                      "refs/heads/edit-1"]).strip()
+    check("set-after no-op reproduces bytes (no commit, tip unmoved)",
+          edit("set-after", "R9-C", "R9-A,R9-B") == 0
+          and run(["git", "-C", str(origin), "rev-parse",
+                   "refs/heads/edit-1"]).strip() == tip_before)
+    check("set-after empty clears",
+          edit("set-after", "R9-C", "") == 0
+          and branch_roster()["groups"][2]["after"] == [])
+    check("set-architect-note lands then clears",
+          edit("set-architect-note", "R9-A", "note one") == 0
+          and branch_roster()["groups"][0]["architect_note"] == "note one"
+          and edit("set-architect-note", "R9-A", "") == 0
+          and branch_roster()["groups"][0]["architect_note"] is None)
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.

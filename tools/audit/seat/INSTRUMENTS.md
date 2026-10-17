@@ -303,7 +303,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `roster_edit.py` — the safe roster edit: every op loads the whole roster,
   validates, and dumps with the file's own formatting; ops `set-stage`
   (with `--at-sha`), `wire-issue`, `append-group`, `edit-brief`,
-  `append-carry`, and `set-resume <group> --field
+  `append-carry`, `set-after <group> <g1,g2 | empty>` (unknown name, self-edge
+  and cycle refused), `set-architect-note <group> <text | @file>` (empty
+  clears), and `set-resume <group> --field
   <stage|commit|branch|last_step|next_step|note>` for the resume free-text
   fields a session restarts from. When: any roster change — never a string
   splice, which unbalanced the file twice. Refusals: the lint gate (run from
