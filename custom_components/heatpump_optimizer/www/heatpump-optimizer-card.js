@@ -7068,7 +7068,7 @@ function renderChart(frame, opts) {
   // for an unknown/unavailable sensor).
   // R9-UI-4: in the temperature panel's own first row, beside the curves it
   // reads against.
-  if (typeof nowTemp === "number" && Number.isFinite(nowTemp) && axes.temp) {
+  if (finiteNum(nowTemp) && axes.temp) {
     parts.push(
       `<text class="now-temp" x="${plotL + 6}" y="${panelOf("temp").top + labelRow}" font-size="${font}" fill="var(--hpo-ink, #212121)">${esc(
         L("plan.now_temp", { temp: nowTemp.toFixed(1) })
@@ -8681,7 +8681,7 @@ function restartRows(plan) {
   const row = (act, title, detail) => ({ kind: "restart", status: "ready", value: null, act, title, detail });
   const refit = attrs.refit;
   const rows = [];
-  if (refit && typeof refit.scale === "number" && Number.isFinite(refit.scale)) {
+  if (refit && finiteNum(refit.scale)) {
     rows.push(row("adopt_refit",
       L("advisor.refit_title", { to: Number(refit.scale).toFixed(2), from: Number(attrs.current_scale).toFixed(2) }),
       L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs })));

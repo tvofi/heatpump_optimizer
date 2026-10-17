@@ -2957,6 +2957,32 @@ check("the hand-scheduled reason has a label",
       .filter(([, line]) =>
         /(?:\.length|widest)\s*\*\s*CHAR_WIDTH_EM/.test(line) &&
         !/^\s*(\*|\/\/)/.test(line));
+    // R10-DEEPLINK's carry: Home Assistant has no route into an options-flow
+    // step, so the Configure chip names the page it opens instead of linking
+    // into it. The names have to be the flow's own, or the chip points at a
+    // step it misnames -- the I5 drift this group also fixes. The step id is
+    // derived from the string key (`setup.page_<step>`), so this reads the
+    // card's own map rather than a second copy of it: every place the chip can
+    // be drawn for resolves through STRINGS to the label
+    // `translations/en.json` publishes for that step in the advanced menu.
+    {
+      const en = JSON.parse(fs.readFileSync(
+        path.join(testsDir, "..", "custom_components", "heatpump_optimizer",
+          "translations", "en.json"), "utf8"));
+      const menu = en.options.step.advanced.menu_options;
+      const strings = vm.runInContext("STRINGS.en", ctx);
+      const map = vm.runInContext("SETUP_CONFIGURE_PAGE", ctx);
+      const places = Object.entries(map);
+      const bad = places
+        .filter(([, key]) => !String(key).startsWith("setup.page_") ||
+          strings[key] !== menu[String(key).slice("setup.page_".length)])
+        .map(([place, key]) => `${place}: ${JSON.stringify(strings[key])} vs ` +
+          `${JSON.stringify(menu[String(key).slice("setup.page_".length)])}`);
+      check("the Configure chip names the options page the flow itself names",
+        places.length > 0 && bad.length === 0,
+        `${places.length} place(s); ` +
+        (bad.join("; ") || "each equal to translations/en.json's menu label"));
+    }
     check("the chart's label-width rule is spelled in exactly one place",
       at > 0 && inline.length === 0,
       at < 0 ? "textWidth is gone" :
@@ -2968,12 +2994,18 @@ check("the hand-scheduled reason has a label",
       .filter((l) => /L\("errors\.no_plan_data"\)/.test(l));
     check("the no-plan empty state is built in exactly one place",
       plans.length === 1, `${plans.length} place(s) build it`);
+    // The finder's own pattern (card_shapes.mjs's `finite_inline`): the SAME
+    // identifier on both sides of the `&&`, whatever that identifier is. A
+    // census written as the owner's own parameter (`typeof n === ...`) would
+    // miss the two sites that spelled the rule for `nowTemp` and a refit's
+    // `scale` -- which is exactly what this check exists to catch.
     const finite = cardSrc.split("\n")
-      .filter((l) => /typeof n === "number" && Number\.isFinite\(n\)/.test(l)
+      .filter((l) =>
+        /typeof (\w+(?:\.\w+)?) === "number" && Number\.isFinite\(\1\)/.test(l)
         && !/^\s*(const finiteNum|\*|\/\/)/.test(l));
     check("the finite-number test is spelled in exactly one place",
       /const finiteNum = /.test(cardSrc) && finite.length === 0,
-      `${finite.length} inline spelling(s)`);
+      `${finite.length} inline spelling(s)${finite.length ? ": " + finite.map((l) => l.trim()).join(" | ") : ""}`);
   }
 
   check("the plan chart is genuinely unrendered on the setup page",
@@ -11564,7 +11596,9 @@ check("without an indoor reading the corner now label is absent",
 
   // openHaLink resolves this card's entry through the registry and follows
   // haLink with it; a failed lookup links the whole integration. Driven
-  // directly, because no button calls it until a later group converts one.
+  // directly here so both registry answers (found, refused) are exercised
+  // without a page: its real caller is the Setup page's Configure chip
+  // (R10-UX-SETUP), which the press census above clicks.
   const follow = async (ws, kind, entityId) => {
     const c = open("advisor");
     c.hass = { ...c.hass, callWS: ws };
