@@ -58,7 +58,7 @@ Finder and catch-up harnesses, each run from the tree with its blob sha1, at the
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL` — no gate rise, so no metric needs explaining.
 - `python3 tools/audit/seat/tmp_paths.py --check`: `0 refused`.
 - `node tools/policy/brief_lint.mjs`: no finding outside its own fixtures.
-- `bash tools/pr/prepr.sh <body.md> 2239`: `PRE-PR: 96bab6f672a6933251190de8d242b51c5769a0c4 00000000000000000000000000` — zero refusals; `FIGURES: 12 resolved, 1 not verified, 0 refused`, the unverified one being the inline probe above (`figure_lint` names an inline script rather than a file), and `merge-base e3f3b312fff5`.
+- `bash tools/pr/prepr.sh <body.md> 2239`: `PRE-PR: 96bab6f672a6933251190de8d242b51c5769a0c4 000000000000000000000000000` — zero refusals; `FIGURES: 12 resolved, 1 not verified, 0 refused`, the unverified one being the inline probe above (`figure_lint` names an inline script rather than a file), and `merge-base e3f3b312fff5`.
 
 ## Red checks
 
