@@ -513,6 +513,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
@@ -4078,7 +4079,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 15.2
+   "seconds": 40.2
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -4102,7 +4103,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 284.1
+   "seconds": 674.1
   },
   "tests/env_drift.py": {
    "rc": 0,
