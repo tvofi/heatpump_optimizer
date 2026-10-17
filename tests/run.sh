@@ -298,42 +298,27 @@ run() {
   run_always "$@"
 }
 
-# The lease `gate_lock.py needs-lease` names decides each run: `lease` for the
-# scripts that MEASURE the machine (stress.py, harness_headers.py), taken alone
-# and released right after the run; `slot` for the multi-minute CPU scripts
-# (>= SLOT_MIN_SECONDS in closures.json's recordings), which join the pool of
-# four so several can share the box; `none` for the seconds side, which runs
-# unleased. Fail closed: anything but those two words leases, a crash included.
-# A seat's own HPO_GATE_LOCK_LABEL is renewed instead, re-queued when another
-# label waits, and refused at once when the seat never took it (flock-wrap would
-# otherwise leave it held); auto-lease and flock-wrap both hold flock for the
-# run, so a crash releases at once (#404). A `slot` run already inside a slot
-# ($HPO_SLOT_LABEL, exported by prepr.sh step 1b or a slot-auto-lease above it)
-# joins that slot and takes nothing, so one seat's heavy tree is one slot.
+# The gate lease guards only the scripts `gate_lock.py needs-lease` names
+# (stress.py, which measures the machine): taken for that one run, queueing
+# first come first served, and released right after it, so every other script
+# runs unleased. Fail closed: anything but an explicit "none" (a crash
+# included) leases. A seat's own HPO_GATE_LOCK_LABEL is renewed instead,
+# re-queued when another label waits, and refused at once when the seat never
+# took it (flock-wrap would otherwise leave it held); auto-lease and flock-wrap both hold
+# flock for the run, so a crash releases at once (#404).
 leased() {
-  local s one answer
+  local s one
   s=$(scope_script "$@")
   one="$WORKDIR/lease.$LANE.$step"
   printf '%s\n' "$s" > "$one"
-  answer=none
-  [ -z "$s" ] || answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)
-  case "$answer" in
-    none) "$@" ;;
-    slot)
-      if [ -n "${HPO_SLOT_LABEL:-}" ]; then
-        "$@"
-      else
-        echo "  SLOT: $s joins a heavy slot as run.sh-$$"
-        "$PYTHON" tests/gate_lock.py slot-auto-lease --label "run.sh-$$" --owner-pid $$ -- "$@"
-      fi ;;
-    *)
-      if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
-        "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
-      else
-        echo "  LEASE: $s runs under the gate lease as run.sh-$$"
-        "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
-      fi ;;
-  esac
+  if [ -z "$s" ] || [ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then
+    "$@"
+  elif [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
+    "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
+  else
+    echo "  LEASE: $s runs under the gate lease as run.sh-$$"
+    "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
+  fi
 }
 
 # Same as run, but GATE_SCOPE cannot skip it. Inherited claims and the
