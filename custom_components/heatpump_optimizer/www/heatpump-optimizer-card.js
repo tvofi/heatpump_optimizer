@@ -3069,19 +3069,19 @@ const SlotModel = {
   /** Collapse per-step power into contiguous runs of "on". */
   runsFrom(forecast, field, threshold = 0.05, stepMs = 15 * 60000) {
     const runs = [];
-    let open = null;
+    let run = null;
     for (const point of forecast || []) {
       const t = Date.parse(point.t);
       if (!Number.isFinite(t)) continue;
       const on = Number(point[field]) > threshold;
-      if (on && !open) open = { start: t, end: t + stepMs };
-      else if (on && open) open.end = t + stepMs;
-      else if (!on && open) {
-        runs.push(open);
-        open = null;
+      if (on && !run) run = { start: t, end: t + stepMs };
+      else if (on && run) run.end = t + stepMs;
+      else if (!on && run) {
+        runs.push(run);
+        run = null;
       }
     }
-    if (open) runs.push(open);
+    if (run) runs.push(run);
     return runs;
   },
 
