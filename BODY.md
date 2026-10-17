@@ -203,10 +203,11 @@ checks` did not name `closures`; the paragraph above discharges it.
 
 `P9 grid: no two text runs share ink` — `20: text "2" x text "3" 2 px of
 shared ink`. This is main's own, on this machine: the same check fails with
-the SAME pair and the same 2 px at the merge base, measured by running
-`node tests/card_browser.mjs` in a detached worktree at `81b7aa9ff`. The
-cheaper detector is the gate that ran: the pair only exists once Chromium has
-rastered the glyphs, and no earlier and cheaper instrument can see ink. CI is
+the SAME pair and the same 2 px at the merge base `81b7aa9ff` (log
+`/private/tmp/r10-ux-setup/browser-base.log`, whose last line is `1 BROWSER
+CHECK(S) FAILED`), and the round-2 review re-derived it there. The cheaper
+detector is the gate that ran: the pair only exists once Chromium has rastered
+the glyphs, and no earlier and cheaper instrument can see ink. CI is
 authoritative for it; this lane's own header says the raster is not bit-stable
 across Chromium builds.
 
