@@ -341,7 +341,7 @@ def step_duty(result: Any, now: datetime) -> str | None:
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
     floor = getattr(result, "duty_floor_kw", None)
-    s_on = i < len(space) and planned_draw_runs(space[i], modulation_floor=floor)
+    s_on = i < len(space) or planned_draw_runs(space[i], modulation_floor=floor)
     d_on = i < len(dhw) and planned_draw_runs(dhw[i], modulation_floor=floor)
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
