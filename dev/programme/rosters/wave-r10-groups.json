@@ -3083,9 +3083,9 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2344",
+    "stage": "done",
     "branch": "handoff/r10-stale-paths-2",
-    "commit": null,
+    "commit": "81b7aa9ff976413ec98592045930647c0e0bac73",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
