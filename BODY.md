@@ -6,7 +6,7 @@ this fix that a fixer may not pay: `tests/optimality.py`'s ftol arm needs the
 four-kernel matrix its 2.5% bound was derived on, and `tests/stress.py`'s
 solver-work floors need a ruling the file says must be cited. The rest of the
 group -- D7-arch3-04 and D7-s3-8x-slotfloor, which are green and landable --
-is on `handoff/r10-pump-model` at `9234984e3`, body
+is on `handoff/r10-pump-model` at `c4304bb1f`, body
 `handoff-body/r10-pump-model`. What this branch needs before it can be opened:
 a ruling on whether the documented two-law DHW design
 (`docs/how-it-works.md`, "without one, the tank keeps its own lift penalty") is
