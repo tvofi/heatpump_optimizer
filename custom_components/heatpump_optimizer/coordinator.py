@@ -97,6 +97,7 @@ from .const import (
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_FLOW_METER_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_MIXING_VALVE_TARGET_ENTITY,
     MIXING_VALVE_WRITE_EPSILON,
@@ -311,6 +312,7 @@ from .thermal_model import (
     learner_newton_step,
     mold_safe_room_floor,
     learner_unmetered,
+    probe_install,
     on_threshold_kw,
     planned_draw_runs,
 )
@@ -1311,6 +1313,97 @@ def house_loss_confidence(samples: int) -> float:
     level so tests import it rather than re-implement it (issue #91).
     """
     return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))
+
+
+def reanchor_multiplier(
+    label: str,
+    value: float,
+    samples: int,
+    anchor: Any,
+    current: float | None,
+    bounds: tuple[float, float],
+) -> tuple[float, bool] | None:
+    """The re-anchor law for one learned multiplier on a configured prior.
+
+    An options edit reloads the entry with a new nameplate while the store
+    holds a multiplier fitted against the old one; restoring it verbatim
+    left the model up to 1.94x wrong (issue #86, four prior attempts in
+    dev/archive/backlog.md). The law, from the recorded decisions:
+
+    ``U_eff' = (1 - phi) * prior_new + phi * value * prior_old``
+
+    where ``anchor`` is ``prior_old``, ``current`` is ``prior_new`` and phi
+    is ``house_loss_confidence(samples)``. Path-independent, sign-preserving
+    at convergence, and the nameplate at zero samples -- an install that has
+    learned nothing keeps its configuration edits.
+
+    ``None`` keeps the stored value verbatim: no usable anchor (a pre-fix
+    store adopts one on its next save), a degenerate prior, or a prior that
+    moved by no more than ``HOUSE_LOSS_MAX_STEP`` -- below convergence the
+    law is a measured regression on that path (the 30-hop walk: +2.5% for
+    today against the ungated law's 18.2%), and the learner absorbs a small
+    edit in one step anyway. Otherwise ``(new_value, reset)``: outside
+    ``bounds`` the measurement cannot be expressed against the new prior, so
+    it resets to 1.0 explicitly (``reset`` True, the caller zeroes the
+    samples) rather than clipping onto a bound the next edit would read as
+    the learner's own signal.
+    """
+    try:
+        anchor = float(anchor)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if current is None or not np.isfinite(anchor) or anchor <= 1e-9 or current <= 1e-9:
+        return None
+    if abs(current / anchor - 1.0) <= HOUSE_LOSS_MAX_STEP:
+        return None
+    phi = house_loss_confidence(samples)
+    new_value = ((1.0 - phi) * current + phi * value * anchor) / current
+    if not bounds[0] <= new_value <= bounds[1]:
+        _LOGGER.warning(
+            "Learned %s %.3f (fitted against %.4f, %d samples) cannot be "
+            "expressed against the newly configured %.4f: resetting to the "
+            "configuration", label, value, anchor, samples, current,
+        )
+        return 1.0, True
+    _LOGGER.info(
+        "Re-anchored learned %s %.3f -> %.3f against the configured "
+        "%.4f -> %.4f (%d samples, confidence %.2f)",
+        label, value, new_value, anchor, current, samples, phi,
+    )
+    return new_value, False
+
+
+#: The stored priors ``_reanchor_learned`` reads; a store missing any adopts them.
+_LEARNED_ANCHOR_KEYS = ("house_heat_loss_anchor", "lower_floor_loss_anchor", "learner_power_basis")
+
+
+def zone_split(params: ThermalParameters) -> float | None:
+    """The configured lower/upper loss split the learned ratio corrects.
+
+    The ratio is fitted about ``lower_floor_heat_loss * scale`` while the
+    scale is fitted from the upper zone, so what it measures is the split
+    relative to this one -- the prior it multiplies. ``None`` off two-zone;
+    rounded as stored, so the live and the stored figure compare alike.
+    """
+    if not params.two_zone_enabled or params.upper_floor_heat_loss <= 1e-9:
+        return None
+    return round(params.lower_floor_heat_loss / params.upper_floor_heat_loss, 6)
+
+
+def learner_power_basis(config: Any) -> str:
+    """G-ID-3: which heat input the interval learners replay.
+
+    ``_interval_space_power`` replays the metered draw where a power entity
+    exists and the commanded one otherwise, and ``_interval_measured_heat_kw``
+    substitutes a flow meter's heat when nothing outranks it (power or
+    frequency, ``flow_meter.read_heat_output_kw``). A fit on one basis
+    carries that basis's bias (a delivery shortfall replayed as commanded
+    power reads as heat loss), so it is not a measurement on another.
+    """
+    cap = probe_install(config)
+    if cap.measured_power:
+        return "metered"
+    return "flow" if (config or {}).get(CONF_FLOW_METER_ENTITY) and not cap.frequency else "commanded"
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -3778,16 +3871,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
 
-        # v5.7.0 (issue #86): the store records the UA the scale was fitted
-        # against, and an options edit that changed it is corrected here --
-        # on load, before anything solves -- not restored verbatim. The
-        # gated write adopts an anchor for a pre-fix store and re-anchors;
-        # `updated_at` defeats the content-hash skip, so not unconditionally.
-        _had_anchor = "house_heat_loss_anchor" in stored
-        _reanchored = self._reanchor_house_heat_loss_scale(
-            stored.get("house_heat_loss_anchor")
-        )
-        if _reanchored or not _had_anchor:
+        # v5.7.0 (issue #86): the store records the priors the multipliers
+        # were fitted against, and an options edit that changed one is
+        # corrected here -- on load, before anything solves -- not restored
+        # verbatim. The gated write adopts anchors for a pre-fix store and
+        # re-anchors; `updated_at` defeats the content-hash skip.
+        _had_anchor = all(k in stored for k in _LEARNED_ANCHOR_KEYS)
+        if self._reanchor_learned(stored) or not _had_anchor:
             await self._async_save_thermal_learning()
 
         cop_scale = stored.get(_COP_STORE_KEY)
@@ -3915,14 +4005,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return {
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
-            # The configured UA the scale was fitted against, so an options
-            # edit that changes it can be corrected on load instead of
-            # multiplying a correction fitted against the old nameplate by
-            # the new one (issue #86). The KNOWN DEFECT note that was here
-            # is resolved by _reanchor_house_heat_loss_scale; the shape of
-            # the fix and the four attempts that did not ship are recorded
-            # in dev/archive/backlog.md's "Open" entry and its decisions.
+            # The priors the multipliers were fitted against, so an options
+            # edit of one is corrected on load (#86, D12-s2-71, G-ID-3:
+            # _reanchor_learned) instead of multiplying the old fit by it.
             "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
+            "lower_floor_loss_anchor": zone_split(getattr(self, "_ctx", self)._thermal_params),
+            "learner_power_basis": learner_power_basis(self.effective_config),
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
@@ -4861,88 +4949,56 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return float(p.heat_loss_coefficient)
 
     def _reanchor_house_heat_loss_scale(self, anchor: float | None) -> bool:
-        """Re-express the learned scale against the UA now configured.
+        """Re-express the learned scale against the UA now configured (#86).
 
-        An options edit reloads the entry with a new nameplate while the
-        store still holds a scale fitted against the old one; restoring
-        it verbatim left the model up to 1.94x wrong (issue #86, four
-        prior attempts recorded in dev/archive/backlog.md). The law, from the
-        recorded decisions:
-
-        ``U_eff' = (1 - phi) * nameplate_new + phi * measured_UA``
-
-        written in absolute UA on the zone-total basis, where
-        ``measured_UA = scale * anchor`` and phi is
-        ``house_loss_confidence(samples)``. Path-independent and sign-
-        preserving at convergence, and the nameplate at zero samples --
-        an install that has learned nothing keeps its configuration
-        edits, which is where round 1 did its damage.
-
-        Two guards, both from the recorded decisions:
-
-        * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` nameplate
-          change the stored scale is kept verbatim: below convergence
-          the law is a measured regression against today's behaviour on
-          exactly that path (the 30-hop walk: +2.5% for today against
-          the ungated law's 18.2%), and the learner absorbs a small
-          edit in one step anyway.
-        * **Clamp means reset.** If the re-anchored scale falls outside
-          ``[0.3, 3.0]`` the measurement cannot be expressed against
-          the new nameplate: reset explicitly and log it. Clipping onto
-          a bound instead lets the next edit read that bound as the
-          learner's own signal.
-
-        Returns whether the stored state changed, so callers can gate
-        the one persistence write (``updated_at`` moves every save, so
-        the content-hash skip cannot gate this store).
+        :func:`reanchor_multiplier` on the zone-total basis
+        (``_house_heat_loss_anchor``); True when the stored state changed, so
+        callers can gate the one persistence write (``updated_at`` moves on
+        every save, so the content-hash skip cannot gate this store).
         """
-        if anchor is None:
-            # A pre-fix store carries no anchor: nothing to re-express,
-            # and the caller adopts one on its next save.
+        out = reanchor_multiplier(
+            "house heat loss scale", self._house_heat_loss_scale,
+            self._house_heat_loss_samples, anchor, self._house_heat_loss_anchor(),
+            (HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX),
+        )
+        if out is None:
             return False
-        try:
-            anchor = float(anchor)
-        except (TypeError, ValueError, OverflowError):
-            return False
-        current = self._house_heat_loss_anchor()
-        if anchor <= 1e-9 or current <= 1e-9 or not np.isfinite(anchor):
-            return False
-        if abs(current / anchor - 1.0) <= HOUSE_LOSS_MAX_STEP:
-            return False
-        phi = house_loss_confidence(self._house_heat_loss_samples)
-        measured_ua = self._house_heat_loss_scale * anchor
-        effective = (1.0 - phi) * current + phi * measured_ua
-        new_scale = effective / current
-        if (
-            new_scale < HOUSE_HEAT_LOSS_SCALE_MIN
-            or new_scale > HOUSE_HEAT_LOSS_SCALE_MAX
-        ):
+        self._apply_house_heat_loss_scale(out[0])
+        if out[1]:
+            self._house_heat_loss_samples = 0
+        return True
+
+    def _reanchor_learned(self, stored: Mapping[str, Any]) -> bool:
+        """Re-express every stored heat-loss multiplier against now; True if any moved.
+
+        In order: a fit on another replay basis (G-ID-3, a meter added or
+        removed) is no measurement on this one, so the level restarts from the
+        configuration; then the split against the configured split it
+        corrects (D12-s2-71); then the level, whose zone-total anchor reads
+        the split just re-expressed. Re-anchoring both makes a reseed exact
+        at full confidence: upper ``U*s`` and lower ``L*r*s`` survive.
+        """
+        basis, now = stored.get("learner_power_basis"), learner_power_basis(self.effective_config)
+        moved = basis is not None and basis != now
+        if moved:
             _LOGGER.warning(
-                "Learned house heat loss scale %.3f (fitted against "
-                "%.4f kW/°C, %d samples) cannot be expressed against the "
-                "newly configured %.4f kW/°C: resetting to the "
-                "configuration",
-                self._house_heat_loss_scale,
-                anchor,
-                self._house_heat_loss_samples,
-                current,
+                "Learned house heat loss scale %.3f was fitted on a %s replay "
+                "basis, now %s: restarting it from the configuration",
+                self._house_heat_loss_scale, basis, now,
             )
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
-            return True
-        _LOGGER.info(
-            "Re-anchored learned house heat loss scale %.3f -> %.3f "
-            "against the configured UA %.4f -> %.4f kW/°C (%d samples, "
-            "confidence %.2f)",
-            self._house_heat_loss_scale,
-            new_scale,
-            anchor,
-            current,
-            self._house_heat_loss_samples,
-            phi,
+        out = reanchor_multiplier(
+            "lower floor loss ratio", self._lower_floor_loss_ratio,
+            self._lower_floor_loss_samples, stored.get("lower_floor_loss_anchor"),
+            zone_split(getattr(self, "_ctx", self)._thermal_params),
+            (LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX),
         )
-        self._apply_house_heat_loss_scale(new_scale)
-        return True
+        if out is not None:
+            self._apply_lower_floor_loss_ratio(out[0])
+            if out[1]:
+                self._lower_floor_loss_samples = 0
+        return self._reanchor_house_heat_loss_scale(stored.get("house_heat_loss_anchor")) or moved or out is not None
 
     async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
         """Refine the buffer tank standby loss from quiet decay.
@@ -9312,14 +9368,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._flow_bias = FlowCurveBias()
             self._load_t4b_learners(thermal)
             # v5.7.0 (issue #86): a snapshot from before an options edit
-            # carries a scale fitted against the pre-edit anchor; restoring
-            # it verbatim here would re-install the pre-edit correction
-            # against the new configuration. The same law the loader uses,
-            # without the save -- snapshots are restores, and the next
-            # regular save records the fresh anchor.
-            self._reanchor_house_heat_loss_scale(
-                thermal.get("house_heat_loss_anchor")
-            )
+            # carries multipliers fitted against the pre-edit priors; restoring
+            # them verbatim would re-install the pre-edit correction against
+            # the new configuration. The loader's law, without the save --
+            # snapshots are restores; the next regular save records anchors.
+            self._reanchor_learned(thermal)
         profile = learners.get("dhw_profile")
         if isinstance(profile, dict):
             self._dhw_learner.apply_payload(profile)
