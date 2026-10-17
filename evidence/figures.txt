@@ -1,24 +1,24 @@
-FIGURES RE-DERIVATION - reviewer's run. head 5c35cd9ba6c6915a28ec982648389bd53d742b32
-merge base 81ae048e8bbdf2335fe2016e987ec2739481f293
-bodies fetched live: gh api repos/tvofi/heatpump_optimizer/pulls/<n> --jq .body
-OLD = git show 81ae048e8:tools/pr/preflight.sh, invoked with NO intended list (the pre-fix CI step)
-NEW = git show 5c35cd9ba:tools/pr/preflight.sh, invoked with the workflow's jq-derived INTENDED
+FIGURES RE-DERIVATION - reviewer's run, head e1048139659b3e995de63df5ac809ca4ddf8bc0d
+corpus: gh pr list --state merged --limit 200 --json number,body  (window #2009..#2341)
 
-PR       OLD_RC   old_overfire  NEW_RC   INTENDED
-#2329    1        1             0        [2231]
-#2316    1        1             0        [2310]
-#2305    1        1             0        [2266]
-#2294    1        1             0        [2221]
-#2293    1        1             0        [2228]
-#2289    1        1             0        [2227]
-#2284    1        1             0        [2219]
-#2282    1        1             0        [2230]
-#2275    1        1             0        [2225]
-#2212    1        1             0        [2205]
-#2122    1        3             0        [2102]
-#2118    1        2             0        [2016]
-
-POPULATION (step 6): all 200 merged PRs (gh pr list --state merged --limit 200) run through NEW.
-  result: 194 exit 0 ; 6 refuse, all on INTENDED=[] -- #2007 #2008 #2009 #2010 #2015 #2041,
-  each a Closes #N where N is a round-9 roster 'issues' (Part-of) number no group names in 'fixes'.
-  That shape IS dispositioned in the body ('a body closing #1791 ... a roster issue no group names in fixes').
+1. 12-body round-1 figure at this head: 12/12 exit 0 (body says 12)  -- VERIFIED
+2. corpus_clause_scope=0 / corpus_whole_body=25                        -- VERIFIED (harness.txt)
+3. no intended list over the 200: 27 exit 1                            -- VERIFIED
+4. with the workflow's jq derivation: body says 6
+   #2007 #2008 #2009 #2010 #2015 #2041; reviewer's run of the same command gives 5:
+   #2009 #2010 #2015 #2041 #2341
+   why: #2007/#2008 are OUTSIDE the --limit 200 window (they are in at --limit 202),
+   and #2341 (Closes #2267) is INSIDE it and refuses at intended=0.
+   the body's own hedge ('re-take those against a newer tip') does not cover this:
+   origin/main is still e3f3b312fff572904f24d78a44a2c4492b1a8ddb, the tip it names.
+5. tests/entities.py:18410 detail says 'refuses 24 of the 200 most recently merged bodies'.
+   no scope reproduces 24: clause 0 / sentence-only 3 / paragraph 7 / whole-body 25.
+   the same file's comment at :18361 and the harness and preflight.sh all say 25.
+6. 'closure.py lane-plan is identical with and without them': true for this PR's scoped
+   2-script plan at lanes 1-4; FALSE for --all-scripts at lanes 1-4 (measured).
+7. MODE: SCOPED -- 2 script(s) run: VERIFIED by CI's own fast job (117259619666),
+   'MODE: SCOPED -- 2 script(s) run, 31 scoped out'.
+8. tests/structure.py: STRUCTURE RATCHET PASSED (reviewer ran it, 17s).
+9. tests/harness_headers.py: ALL 109 HARNESS HEADER CHECKS PASSED (reviewer ran it);
+   CI measured it green in 188s, so the re-recorded 241.1 s is the right order.
+10. closures job 117260898826: 'closure: committed closures cover every file this run touched'.

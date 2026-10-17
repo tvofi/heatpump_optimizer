@@ -1,20 +1,33 @@
-CLASS PROBE - reviewer's own enumeration rule, disclosed as mine (fix-review.md step 9)
-head 5c35cd9ba6c6915a28ec982648389bd53d742b32
-pristine preflight.sh from the head: md5 bf6c362d0216b763d6ce025f729588ed  (git show 5c35cd9ba:tools/pr/preflight.sh)
+CLASS PROBE - reviewer's own enumeration, head e1048139659b3e995de63df5ac809ca4ddf8bc0d
+pristine preflight.sh from the head: md5 b77a51977358dc19030a61ae470e25d8
 
-rule: one closing keyword followed by MORE THAN ONE issue reference; compare the arm-1b separator set
-covered by arm 1b: whitespace, comma, 'and'   |  probe = does a SECOND, UNINTENDED ref pass silently?
+ROUND-1's six seams, second ref UNINTENDED (round 1: rc=0 was the seam)
+  Closes #2231/#9998.                    rc=1 ARM-1B
+  Closes #2231 / #9998.                  rc=1 ARM-1B
+  Closes #2231 & #9998.                  rc=1 ARM-1B
+  Closes #2231 +#9998.                   rc=1 ARM-1B
+  Closes #2231 (#9998).                  rc=1 ARM-1B
+  Closes #2231; #9998.                   rc=1 ARM-1B
+  Closes #2231 then #9998.               rc=1 ARM-1B
+  Closes #2231 twice #9998.              rc=1 ARM-1B
+  Closes #2231<newline>#9998             rc=1 ARM-1B
 
-BODY                                     INTENDED       RC    NOTE
-Closes #2231 #9998.                      2231           1     refused by arm 1b
-Closes #2231, #9998.                     2231           1     refused by arm 1b
-Closes #2231 and #9998.                  2231           1     refused by arm 1b
-Closes #2231/#9998.                      2231           0     SEAM: second ref passes silently
-Closes #2231 / #9998.                    2231           0     SEAM: second ref passes silently
-Closes #2231 & #9998.                    2231           0     SEAM: second ref passes silently
-Closes #2231 +#9998.                     2231           0     SEAM: second ref passes silently
-Closes #2231 (#9998).                    2231           0     SEAM: second ref passes silently
-Closes #2231; #9998.                     2231           0     SEAM: second ref passes silently
-Closes #2231 then #9998.                 2231           0     SEAM: second ref passes silently
-Closes #2231 twice #9998.                2231           0     SEAM: second ref passes silently
-Closes #2231<newline>#9998               2231           0     SEAM: newline-split second ref passes silently
+MY OWN UNDER-FIRE HUNT (shapes outside the six)
+  Closes https://github.com/tvofi/heatpump_optimizer/issues/2231 #2230 rc=1 ARM-1B
+  Closes tvofi/heatpump_optimizer#2231 #2230                 rc=1 ARM-1B
+  Closes GH-2231 #2230                                       rc=1 ARM-1B
+  Closes: #2231 #2230                                        rc=1 ARM-1B
+  FIXED #2231 #2230                                          rc=1 ARM-1B
+  Resolved #2231 #2230                                       rc=1 ARM-1B
+
+CONTROLS (must pass)
+  Closes #2231. Closes #2230.                    rc=0
+  Closes #2231. See #2230.                       rc=0
+  Closes #2231.                                  rc=0
+  See #2231 and #2230 for context.               rc=0
+  Closes #2231<blank>Part of #2230.              rc=0
+
+OVER-FIRE PROBE (same-clause prose mention; 0 of the 200 corpus bodies trip it)
+  Closes #2231 because of #2230.                 rc=1 REFUSED (over-fire)
+  Closes #2231, as reported in #2230.            rc=1 REFUSED (over-fire)
+  Closes #2231 (the cause is #2230).             rc=1 REFUSED (over-fire)

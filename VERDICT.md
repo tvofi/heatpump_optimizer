@@ -1,146 +1,162 @@
-Fix review: blocked 5c35cd9ba6c6915a28ec982648389bd53d742b32 harness: class-rule-missing the body names no rule for the class "one closing keyword naming several issues", and six separator seams that class's own rule returns appear in neither the diff nor the body
+Fix review: merge e1048139659b3e995de63df5ac809ca4ddf8bc0d
 
-bus-nonce: 14cec6a91b0266edfa7d5c680b205162
+bus-nonce: e270f5bb078eff733e4f62ea7a48bfb6
 
-Round 1. Detached worktree at the head; contract currency `git diff $(git merge-base
-origin/main HEAD)...origin/main -- dev/governance/roles/` empty before step 1.
+Round 2. My round-1 `blocked ... harness: class-rule-missing` is answered, and I
+re-ran the class myself rather than reading the answer. Detached worktree at the
+head; `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`
+empty before step 1. Merge base `e3f3b312fff572904f24d78a44a2c4492b1a8ddb`.
 
-Everything below is measured at `5c35cd9ba6c6915a28ec982648389bd53d742b32`, merge base
-`81ae048e8bbdf2335fe2016e987ec2739481f293`. The fix itself is sound and its two named
-pins both move under their own mutations — I blocked only on step 6, and the block is
-one body edit plus a disposition, not a change to the fix.
+RESULT 1 mutation proof: all four named mutants redden exactly one check each,
+in their own worktree at this head, baseline `ALL 2343 ENTITY CHECKS PASSED`
+(its `  FAIL ` lines are embedded negative-control output, reproduced unchanged
+by every mutant). Each FAIL-set diff against the baseline is one added line.
+  M1 `> s` -> `> s + 1` -> `1 of 2343`, the multi-issue check, all twelve rcs 0;
+  the scope null control and the two-keywords control stay green; the harness
+  reads `seams_open=86`.
+  M2 delete `gsub(/[.!?][[:space:]]+/, "&\n", t)` -> `1 of 2343`, the SCOPE null
+  control, `{'part-of': 0, 'leaves-open': 1, 'bare-reference': 0, 'heading': 0}`;
+  the multi-issue check stays green; harness `seams_open=0`,
+  `refused_but_not_seam=8` naming `punct:! punct:? punct:.. word:i.e.
+  not-owned:leaves-open not-owned:superseded-by not-owned:across-a-sentence
+  not-owned:prose-mention`.
+  M3 `c = " " clause[i]` -> `c = clause[i]` -> `1 of 2343`, the multi-issue
+  check, all twelve rcs 0; harness `seams_open=86`, `refused_but_not_seam=1`
+  `not-owned:two-keywords-one-clause`.
+  M4 whole arm-1b block deleted -> `1 of 2343`, the multi-issue check; harness
+  `seams_open=86`.
+  M2 and M4 are the pair that matters: removing the arm cannot red a check about
+  scope, and narrowing the scope cannot red the multi-issue check. Each pin is
+  load-bearing for its own production lines, not for the other's.
 
-RESULT 1 mutation proof: all three named pins redden, each alone, each with its null
-control green. Detached worktree at the head, `PYTHONPATH=tests/hastub python3
-tests/entities.py` (2333 checks). Baseline: `ALL 2333 ENTITY CHECKS PASSED`, and its 46
-`  FAIL ` lines are the sub-harnesses' own embedded negative-control output, which every
-mutation reproduces unchanged.
-  MA delete the `if [ -n "$multi" ]` block in `tools/pr/preflight.sh` -> `1 of 2333
-  ENTITY CHECKS FAILED`, the added line being exactly `one closing keyword naming
-  several issues refuses, since GitHub closes only the first`; the null control
-  `and two keywords pass` stays `ok`. Not vacuous: the same deletion leaves the two
-  structural pins `ok`.
-  MB re-add ` || true` to the preflight step -> same `1 of 2333`, on `the preflight
-  step derives and passes the intended list and its refusal gates`, detail
-  `swallow_gone=False`; its own null control stays `ok`.
-  MC drop the passed `$INTENDED` argument (keeping `INTENDED=`) -> same `1 of 2333` on
-  the same pin, detail `passed=False`; null control `ok`.
-  So each pinned production line is load-bearing for exactly the check the body names.
+RESULT 2 harness, both ends, run by me: the committed
+`dev/audit/harnesses/closing_keyword_ownership.py` prints
+`shapes=102  seams_open=0  refused_but_not_seam=0  refusal_not_gating=0`, rc 0.
+`--script` on the round-1 head's own `tools/pr/preflight.sh` prints
+`seams_open=73`, rc 1 — so the matrix is not vacuous, and the six seams my
+round-1 evidence measured are rows of it. `--corpus` over the 200 most recently
+merged PRs prints `corpus_clause_scope=0 []` and `corpus_whole_body=25`.
 
-RESULT 2 finder's harness, both ends, my own run: 12/12. The finding's instrument is
-the pre-fix CI invocation, `bash tools/pr/preflight.sh < body` with no intended list,
-run over merged bodies. At the merge base's `preflight.sh` all 12 of the body's cited
-PRs exit 1 and every one prints `not in the intended list`; at the head's, invoked with
-the workflow's own `jq -rs --rawfile` derivation, all 12 exit 0. Per-PR table in
-`figures.txt`. Nothing is flat-by-design here.
+RESULT 3 null controls, re-run by me: the changed-template shapes pass —
+`Closes #2231. Closes #2230.`, `Closes #2231. See #2230.`, `See #2231 and #2230
+for context.`, `Closes #2231.` then a blank line then `Part of #2230.` all exit
+0 — and the corpus is the false-positive floor (`corpus_clause_scope=0` at every
+lane count I read). The twelve multi-reference shapes all refuse.
 
-RESULT 3 null controls re-run: the multi-issue arm is not always-red — `Closes #2231.
-Closes #2230.` with both declared exits 0 at the head — and the intended-list arm is
-not always-red: the 12 merged bodies above exit 0 with the derivation. The body's
-`Defect bodies exit 1` claim reproduces: `Closes #1791` (a roster `issues` number no
-group names in `fixes`) exits 1, and so do `Closes #2231 #2230`, `Closes #2231, #2230`
-and `Closes #2231 and #2230`.
+RESULT 4 claim files: neither `tests/golden/claimed_drift.txt` nor
+`card_claimed_drift.txt` nor any fixture is in the diff, so no drift claim is
+owed.
 
-RESULT 4 claim files: `env_drift.py --all` and `card_drift.mjs` not needed — the diff
-touches neither `tests/golden/claimed_drift.txt`, nor `card_claimed_drift.txt`, nor any
-fixture. The changed-file set is exactly `.github/workflows/pr-contract.yml`,
-`dev/programme/delivery/2342.md`, `tests/entities.py`, `tools/pr/preflight.sh`.
+RESULT 5 VERSION: `VERSION`, the manifest version and the `RELEASE_NOTES.md`
+heading are absent from the three-dot diff.
 
-RESULT 5 VERSION: `VERSION`, the manifest version and the `RELEASE_NOTES.md` heading are
-absent from the diff (three-dot against the merge base).
+RESULT 6 class CLOSED, and this is the round-1 block answered by measurement:
+  my six separable seams (`/`, `&`, `+`, `(`, `;`, a plain word, and a newline
+  split) all exit 1 through arm 1b at this head, where each exited 0 at the
+  round-1 head;
+  a hunt of my own outside those six — a full issue URL, `owner/repo#N`, `GH-N`,
+  `Closes:`, `FIXED`, `Resolved` as the first reference, a keyword and its
+  reference split across a newline, two multi-reference clauses in one body —
+  finds no under-fire; every one refuses through arm 1b;
+  the rule is stated, committed and independently implemented, and the body
+  tabulates every class seam with a disposition. `seams_open=0` is the claim
+  under generated shapes; my instances are the same claim under real ones.
+  One residual in the OTHER direction, named so it is not silent: the ownership
+  count is per clause, so a same-clause prose mention after a closing keyword is
+  refused too — `Closes #2231 because of #2230.`, `Closes #2231, as reported in
+  #2230.` and `Closes #2231 (the cause is #2230).` all exit 1. That is loud, it
+  carries a remedy line ("give each reference its own keyword, or move it out of
+  the closing sentence"), and it refuses 0 of the 200 merged bodies, so it is an
+  over-fire observation rather than a seam.
 
-RESULT 6 BLOCK. This is a block rather than a report because step 6's class run is
-unconditional — it runs on round 1, and an un-dispositioned returned seam is an open
-seam with the class not closed (`R9-RCA-2004` records that as the reviewer's half of the
-two contracts' disagreement, and leaves it standing). The finding here states two seams
-and the body names no rule for the second. The class is "one closing keyword naming
-several issues, where check 1
-keeps only the first reference so the second silently escapes". The body names no rule
-that enumerates it. I derived one and ran it over the same population the body's other
-rule uses (all 200 merged PRs), and it returns six separator seams beyond the three the
-body's pin text lists (space, comma, `and`): `/`, `&`, `+`, `(`, `;` and a word
-separator, plus a keyword and a reference split across a newline. Measured at the head's
-pristine `preflight.sh`, each with the second reference UNINTENDED:
-`Closes #2231 / #9998`, `#2231/#9998`, `#2231 & #9998`, `#2231 +#9998`,
-`#2231 (#9998)`, `#2231; #9998`, `#2231 then #9998`, `#2231<newline>#9998` all exit 0 —
-the second, unintended reference passes silently, the same harm the arm exists to catch.
-None of the six appears in the diff (arm 1b's comment states its scope as "whitespace, a
-comma or an 'and'", which is the disclosure, not a disposition) and none is dispositioned
-in the body. `fixer.md` step 8's own menu is the remedy: closed in this diff, already
-guarded, or a distinct finding named by id. Probe output in `class-probe.txt`.
-  The rule is MINE, not the finder's (step 9), and I say so: this finding has no
-  committed harness in the tree — `grep -rl preflight.sh dev/audit/ tools/audit/ tests/`
-  returns only `dual_path.py` and round-3 `mechanisms.py`, neither of them this one.
-  Stated for the record; it is not the block.
+RESULT 7 head: the body's `## Head` names
+`e1048139659b3e995de63df5ac809ca4ddf8bc0d` and the authored code head
+`2f7aafdc856db407ac2407c4231d547899546b88`; the head is that SHA and the
+merge base is `e3f3b312f` as stated. Confirmed from the range, not the body.
 
-RESULT 7 head: the body's `## Head` names `5c35cd9ba6c6915a28ec982648389bd53d742b32`
-and names `55b0fba110bf2cd4e19f0f06daf224335bf788e4` as the authored code head; the head
-is `5c35cd9b` and the only commit `5c35cd9b` adds to `55b0fba1` is
-`dev/programme/delivery/2342.md`. Confirmed from the range, not from the body.
+RESULT 8 figures: eight of ten re-derive exactly, two do not, and I report them
+rather than confirming them.
+  Re-derived: the corpus `0` and `25`; the no-list count over the 200 (`27`);
+  the twelve round-1 bodies (`12/12` exit 0 at this head); `MODE: SCOPED -- 2
+  script(s) run` (CI's own fast job printed `MODE: SCOPED -- 2 script(s) run, 31
+  scoped out`, identical); `102/0/0/0`; `--script` on the round-1 head `73`; the
+  nine-body over-fire from round 1.
+  NOT re-derivable, 1: the body's "with the workflow's own derivation, 6 still
+  exit 1 -- #2007 #2008 #2009 #2010 #2015 #2041". Running its own two inputs
+  gives **5**: `#2009 #2010 #2015 #2041 #2341`. `#2007` and `#2008` are outside
+  the `--limit 200` window (they are in at `--limit 202`) and `#2341` — which
+  closes `#2267`, a roster `issues` number no group names in `fixes` — is inside
+  it and refuses at `intended=0`. The body's own hedge ("re-take those against a
+  newer tip") does not cover this: `origin/main` is still `e3f3b312f`, the tip it
+  names. The RULE the bullet demonstrates still holds — the derivation does
+  refuse a Part-of close — so this is a stale enumeration, not a false claim.
+  NOT re-derivable, 2: `tests/entities.py:18410`'s failure detail says "keeping
+  the count across the blank line would refuse 24 of the 200 most recently merged
+  bodies". No scope reproduces 24 — clause 0, sentence-only 3, paragraph 7,
+  whole-body 25 — and the same file's own comment at `:18361`, the harness and
+  `preflight.sh:68` all say 25. Off by one, in a detail string only rendered when
+  the check fails; the file contradicts itself.
+  One more, minor: "`closure.py lane-plan` is identical with and without them"
+  holds for this pull request's own scoped two-script plan (identical at lanes
+  1-4, measured) and not for `--all-scripts` (non-identical at lanes 1-4,
+  measured). The load-bearing half — this PR's gate is unaffected — is true.
 
-RESULT 8 figures re-derived under the body's stated rule: both hold. The pre-fix
-over-fire claim reproduces on all 9 named PRs (each prints `not in the intended list`,
-rc 1), and the post-fix claim on all 12 (exit 0). Two things the body does not say and
-a reader should have: the 9 is a lower bound, because the other three of the 12 also
-over-fire under the old invocation; and over the full 200-merged-PR population six
-bodies still refuse after the fix (#2007 #2008 #2009 #2010 #2015 #2041), all of them the
-one shape the body DOES disposition — `INTENDED=[]` because the closed number is a
-round-9 roster `issues` (Part-of) number no group names in `fixes`.
+RESULT 9 harness: committed, in `dev/audit/harnesses/` (fixer.md step 18's home),
+independently implemented from the awk it grades, with `NOT_OWNED` as a
+scope-null control and `--script` as the cross-head control. It reds on the
+round-1 arm and passes on this one, which is `defect-root-cause.md`'s
+demonstration for a check.
 
-RESULT 9 harness: no committed harness for this finding (see RESULT 6). The instrument
-the body quotes — `bash tools/pr/preflight.sh < body` over merged PRs — is the fixer's
-own re-derivation of the over-fire; it is not claimed as a finder's harness in the body
-and I do not read it as one.
+RESULT 10 forward-carry: `none` is right. The same-stage sibling seam my round-1
+verdict named is closed in this diff — `fixer.md` step 8's first disposition —
+rather than routed to an issue, and the rule's remaining shapes are the generated
+matrix and the `NOT_OWNED` table, each with its exit code.
 
-RESULT 11 red checks: one check is red at this head, `coverage-ratchet` (failure,
-20:18:33Z, `early_cutoff.py 81.53 %` against the 95 % per-module floor), and the body's
-`## Red checks` says `none`. I read it off the commit's own check-runs API, not the
-body. It is NOT this pull request's and I do not block on it, on three measurements:
-`55b0fba1` — the same branch, the same tree but for the one-line delivery row — carries
-`coverage-ratchet` SUCCESS at 19:45; the sibling PR #2343 at `d0dc4c2dc` is red on the
-same lane at 20:02 with a DIFFERENT figure, `early_cutoff.py 75.16 %`, on a branch whose
-whole diff is a delivery row and `dev/programme/rosters/wave-r10-groups.json`; and the
-module is untouched by this diff. The lane is flaky on this runner class, not a red this
-branch turned. It is also not in the ruleset's 17 required contexts, so it does not gate
-the merge. The body's `none` answers `defect-root-cause.md`'s second trigger — the
-defect could not turn a check red — which is what the section is for.
-  Procedurally: `closures` is still in progress at the head, so a `root-cause-*` block
-  could not be posted anyway (step 11).
+RESULT 11 red checks, read off the commit's check-runs API, not the body:
+  `coverage-ratchet` is red at THIS head too (00:35:33Z) and is named and
+  answered in `## Red checks`; the answer is the one I measured in round 1 and it
+  still holds, and the shortfall has widened rather than narrowed — `4 module(s)
+  below the 95.0 % per-module floor: early_cutoff.py 81.53 %, coordinator.py
+  84.14 %, sysid.py 91.28 %, price_model.py 94.77 %`, every module absent from
+  this diff. It is not one of the ruleset's 17 required contexts and does not
+  gate the merge; all seventeen are green.
+  `pr-contract` at the round-1 head: red once at 20:29:55Z and green at
+  20:34:14Z on the same commit, as the body says. I read the failing job
+  (`117181315015`): the red was
+  `check 'coverage-ratchet' is red and '## Red checks' does not name it` — the
+  body check doing its job on the round-1 body. This revision's `## Red checks`
+  names it and answers it, and `pr-contract` is green at this head, so the
+  trigger is answered; the body's one-line account of that red is thinner than
+  the rest of the section, not silent.
 
 RESULT 12 head re-read before posting: still
-`5c35cd9ba6c6915a28ec982648389bd53d742b32`. Every number above is from it.
+`e1048139659b3e995de63df5ac809ca4ddf8bc0d`.
 
 RESULT 13 conflict: none. `git merge-tree --write-tree origin/main
-5c35cd9ba6c6915a28ec982648389bd53d742b32` exits 0 and prints no conflicted path.
-GitHub's `BLOCKED` is the ruleset awaiting the code-owner review, not `DIRTY`.
+e1048139659b3e995de63df5ac809ca4ddf8bc0d` exits 0 with no conflicted path;
+GitHub's `BLOCKED` is the ruleset awaiting the code-owner review.
 
-RESULT 14 metric-gamed: none. The diff moves no `tests/structure_budgets.json` key (that
-file's keys are all package metrics; none is a per-file LOC for `tests/entities.py`), and
-none of the four changed paths is in `POLICY_GLOBS` (`policy_lint.mjs --corpus-filter`
-returns only `CLAUDE.md` from the set plus a control), so no policy cap moves either. No
-golden, no mutation ledger, no `closures.json`/`INERT`, no claim file. The two body
-figures that are numbers move under the change and not under the instrument: they are
-produced by running the pre- and post-fix scripts, and re-adding `|| true` does not
-change them.
-  Planted with nothing improved: on this same instrument the shape the diff's change IS
-  — a refusal arm — is what the change adds, so there is no diff-shaped move left to
-  plant that a null control would leave standing.
+RESULT 14 metric-gamed: the diff moves one instrument, `tests/closures.json`, and
+both movements are earned. The `inert_reads["tests/harness_headers.py"]` entry is
+the new harness, which `inline_scan` reads as a child process; the `closures`
+job at this head prints `committed closures cover every file this run touched`,
+and `closure.layout_errors` is `[]`. The `seconds` move `99.7 -> 241.1` is the
+same one extra file, and CI measured `tests/harness_headers.py` green in 188 s,
+so the recording is the right order; the scoped lane plan for this pull request's
+two scripts is identical with and without it at lanes 1-4. No structure or policy
+budget moves (`tests/structure.py`: `STRUCTURE RATCHET PASSED`, and none of the
+four changed paths plus the harness is in `POLICY_GLOBS`). No golden, no mutation
+ledger, no claim file.
 
-RESULT 15 architecture-unsound (on added lines): no breach. `tools/pr/preflight.sh`
-owns the closing-keyword check, so arm 1b stays in its owner; the added jq lives in the
-workflow that owns CI's derivation and, as `55b0fba1` reworked it for, stays inside
-`codeowners_gap.py`'s `admitted()` set (no heredoc, no `-c`, no `-`); no
-`homeassistant` import, no side effect beyond printing, inputs on stdin, no
-`entry.options` read. One observation, not a block: the closing-reference pattern now
-has three spellings — check 1's grep, arm 1b's grep, and the workflow's jq — and they
-must agree, since the jq computes the list the grep grades against. They do agree today
-(jq's `\s` matches a superset of what the line-oriented grep sees, so the drift
-direction is a harmless extra intended entry), and the workflow's comment names the
-coupling.
+RESULT 15 architecture-unsound: none on added lines. The change consolidates the
+closing-reference spelling into one `CLOSING_REF` in `preflight.sh`, which is an
+improvement on the round-1 head's two in-file spellings and is what closes the
+observation I raised there; the harness lives where step 18 sends it; no
+`homeassistant` import, no side effect beyond printing, inputs on stdin.
 
-RESULT 10 forward-carry: the body says `none`, and for later stages it is none — the
-finding changes nothing a stage that has not started must do. What is owed is the
-same-stage sibling seam in RESULT 6, which `finding-propagation.md` sends to a new issue
-filed by the same pull request; routing it is the disposition the block asks for.
+RESULT 16 round: round 2, a repair after a block, not a re-cut.
 
-RESULT round: round 1, not a re-cut.
+Merge. The two unreproducible numbers in RESULT 8 are body-and-detail
+corrections, not defects in the fix — I am naming them here rather than letting
+them pass as confirmed, per step 8; the code, the pins and every load-bearing
+figure are sound.

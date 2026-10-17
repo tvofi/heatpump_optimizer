@@ -15,20 +15,20 @@ Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit,
 Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
 Config entry version 8 is newer than the supported version 7; downgrade is not supported
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/private/tmp/rv2342/wt-head/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/private/tmp/rv2342r2/wt/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-16 20:25:39.139478+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:25:39.792269+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:25:39.792269+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:25:39.792269+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:25:41.541962+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-17 08:24:56.230607+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-17 08:24:57.021026+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-17 08:24:57.021026+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-17 08:24:57.021026+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-17 08:24:58.575036+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-16 20:25:42.264367+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by seat until 2026-10-16 20:25:56.629836+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-17 08:24:59.304227+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-17 08:25:14.574133+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
 closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
@@ -1417,12 +1417,17 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   a live agent between commands keeps the lock
   ok   a crashed hold lets take('successor') steal
   ok   a lease whose named owner process is gone is stolen (#1143)
-  ok   run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits
+  ok   run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits
+  ok   the heavy-slot capacity is the cap unless the owner raises it (#2267)
+lease class: dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=10 none=24 unleased_but_heavy=[]
+  ok   every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)
   ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
   ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
   ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
   ok   gate lease queue: null control: with no live waiter renew extends and a take succeeds
   ok   the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased
+  ok   the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second
+  ok   a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)
   ok   run.sh's lane_stress waits for the lease and its other scripts do not
   ok   a seat label never taken fails at once; a held one re-queues behind a waiter
   ok   an expired same-label take rewrites the lease
@@ -1435,8 +1440,8 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   the widening rule itself leaves the card out
   ok   while still widening to the rest of the integration
   ok   the widening rule leaves the quality-scale register out too
-  baseline worktree add failed on baseline-84500-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
-  baseline worktree add failed on baseline-84500-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-68869-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-68869-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
   ok   a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
   ok   a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
   ok   concurrent gate instances name distinct baseline worktrees (#2119)
@@ -1558,7 +1563,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
-  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'run_optimization__dup', 'set_thermal_parameters__dup']; missing=[]]
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'assign_entity__dup', 'simulate_plan__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 13; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1666,7 +1671,8 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   the pre-flight refuses a conclusion echoed after ';'
   ok   and it refuses the four commonest reference forms, not only #N
   ok   and passes a declared one, so it is not simply always-red
-  ok   one closing keyword naming several issues refuses, since GitHub closes only the first
+  FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [rc per separator: {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand': 0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline': 0} -- `Closes #A <sep> #B` closes #A and silently not #B, because GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own and the grep in check 1 keeps only the first. The arm is the ownership property, not a separator list: a spelled-out set always has a next separator, and six of these twelve are the seams a round-1 review returned against the three-separator version]
+  ok   and a second reference in a LATER clause is not refused (the scope's own null control)
   ok   and two keywords pass, so it is not simply always-red
   ok   a transcript pasted in a fenced block refuses, backticks or not
   ok   while the same shape quoted inline in prose stays advisory
@@ -1689,7 +1695,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpkm0vzgxr/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpvp3p3wik/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1710,7 +1716,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-v4umeqt9/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-fxjfh71l/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1789,7 +1795,15 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   a closures.json change runs the scripts whose entry moved, either way
   ok   a closures.json change is measured against the merge base's table, not HEAD's
   ok   the NOT RUN block lists what did not run, and only that (R9-F10.9)
-  ok   a diff inside one closure re-derives one entry, not eighteen
+  ok   a diff inside one closure re-derives one entry, not eighteenTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+ci-ratchet: not counted: 3 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
+Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+
   ok   a scoped re-derive pulls in the producer of anything it selects
   ok   and lists the producer before the consumer that reads its output (#1146)
   ok   the files the workflow reads carry the plan the predicate made
@@ -1801,15 +1815,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   manifest.json carries the release version
   ok   RELEASE_NOTES.md opens with this release
   ok   the drift claim file is stamped for this release
-  ok   the card declares a valid CARD_VERSIONTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-ci-ratchet: not counted: 3 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
-Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
-
+  ok   the card declares a valid CARD_VERSION
   ok   CARD_VERSION does not run ahead of VERSION
   ok   the D6 register records the live VERSION (the stamp re-records it)
   ok   a claim file stamped for another release is rejected
@@ -1893,7 +1899,7 @@ Accuracy store: ignoring non-list 'samples' field (str); the other learned field
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs 87a95b742d066b73964251feef58ad3b84cc962c
+  DRIFT wood_coil: 1 leaves moved vs 7e1fe612ab58eb7156ee4bd8053fe7a93763cfc2
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2153,7 +2159,7 @@ Accuracy store: ignoring non-list 'samples' field (str); the other learned field
   ok   and a listing with the guard and the RED filter stripped is not (null control)
   ok   the body check holds a token, so red-history is read rather than skipped
   ok   and the same step with its token removed is not (null control)
-  FAIL the preflight step derives and passes the intended list and its refusal gates  [step found=True, derives=True, passed=True, swallow_gone=False; with no list and `|| true`, every closing keyword is refused and the refusal is discarded -- the arm bound nowhere]
+  ok   the preflight step derives and passes the intended list and its refusal gates
   ok   and the same step re-adding the swallow is not (null control)
   ok   the contract lane refuses a version edit on every pull request
   ok   the instrument self-test job runs both App identity self-tests
@@ -2399,6 +2405,7 @@ MUTATION LEDGER: measured -- a measured slice did not reach main
   ok   the CI ratchet counts a lane's rows only from that lane's own artifact
   ok   every HPO_CI_METRICS emitter keeps the file from the children it runs
   ok   derive_closures.sh writes its own metrics row and hands its child none
+  ok   derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)
   ok   every composed-closure entry is a selectable, composable script
   ok   the composed-proof driver measures through closure.py's own comparison
   ok   every workflow pins each actions/* action at one canonical commit
@@ -2511,6 +2518,8 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   replay control:cycle_cost:loose_budget
   ok   replay control:cycle_cost:unrecorded
   ok   replay control:cycle_cost:loop_thread
+  ok   replay control:cycle_cost:loop_normaliser
+  ok   replay control:cycle_cost:cpu_normaliser
   ok   replay control:cycle_cost:short_doubling
   ok   replay control:cycle_cost:unmetered_doubling
   ok   replay control:cycle_cost:coverage
@@ -2623,5 +2632,7 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   EG-B3b: every payload key an entity reads is declared in Payload
   ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
   ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+  ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
+  ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through _log_held
 
-1 of 2333 ENTITY CHECKS FAILED
+1 of 2343 ENTITY CHECKS FAILED
