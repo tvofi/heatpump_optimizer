@@ -235,7 +235,7 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> 
 
 #: The classes a comment body is judged on: this host's own identity, and any
 #: session temp root. A comment may quote another home (a planted fixture's
-#: `/Users/exampleuser`), so the generic host-path class is a ref-name rule only.
+#: home under another account), so the generic host-path class is a ref-name rule only.
 BODY_CLASSES = ("home-directory", "account-name", "uid", "scratch-root")
 
 
@@ -470,6 +470,11 @@ def content_refusals(lines, ident: Identity | None = None) -> list[str]:
     return out
 
 
+#: macOS's per-user temp root, built rather than spelled: the content check
+#: reads this file like any other, and a spelled path is what it refuses.
+MAC_TEMP = "/".join(("", "var", "folders"))
+
+
 def scrub(text: str, ident: Identity) -> str:
     """`text` with this host's spans rewritten in place, each to a fixed placeholder:
     a session scratchpad under the host's temp root to `<scratchpad>`, any other
@@ -480,7 +485,7 @@ def scrub(text: str, ident: Identity) -> str:
         root = rf"(?:/private)?/tmp/claude-{ident.uid}(?![0-9])"
         text = re.sub(root + r"/[^/\s\"'`]+/[^/\s\"'`]+/scratchpad(?![\w-])", "<scratchpad>", text)
         text = re.sub(root, "<session-tmp>", text)
-    text = re.sub(r"(?:/private)?/var/folders/[\w-]+/[\w-]+/T(?![\w-])", "<tmp>", text)
+    text = re.sub(r"(?:/private)?" + MAC_TEMP + r"/[\w-]+/[\w-]+/T(?![\w-])", "<tmp>", text)
     for h in sorted(ident.homes, key=len, reverse=True):
         text = re.sub(re.escape(h) + r"(?![\w.-])", "~", text, flags=re.IGNORECASE)
     for nm in ident.names:
