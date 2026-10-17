@@ -4161,6 +4161,25 @@ jobs:
                     || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
                 done
           }
+          # THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A live merge train
+          # moves main under a head it has settled when a record pull request
+          # merges, and CI cannot see the train's local pidfile. The train
+          # publishes refs/heads/train-hold while it runs and deletes it at its
+          # closing line; a hold younger than train_hold.py's bound blocks this
+          # merge, a stale one (a crashed train) expires so records are never
+          # blocked forever, and an unreadable one reddens the report rather
+          # than merging blind -- the next beat retries.
+          HOLD=$(GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/train_hold.py --check --repo "$REPO") || {
+            echo "::warning::the train hold could not be read; this beat merges nothing"
+            say skip-unread; exit 0; }
+          case "$HOLD" in
+            fresh*) echo "AUTOMERGE: a live merge train holds record merges ($HOLD)"
+                    say held-by-train; exit 0 ;;
+            stale*) echo "::warning::$HOLD -- the hold is stale; a crashed train's hold expires" ;;
+            absent*) ;;
+            *) echo "::warning::unrecognized train-hold state '$HOLD'; this beat merges nothing"
+               say skip-unread; exit 0 ;;
+          esac
           HEAD=$(pr_field 'd["head"]["sha"]') || {
             echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
           if ! guard; then
@@ -4236,7 +4255,7 @@ jobs:
           echo "status: $STATUS" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           case "$STATUS" in
-            pushed|nothing-owed|held) exit 0 ;;
+            pushed|nothing-owed|held|held-by-train) exit 0 ;;
             "")
               echo "::error::the record step did not run; a beat owed cannot be distinguished from one skipped"
               exit 1 ;;

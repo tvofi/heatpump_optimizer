@@ -26022,6 +26022,35 @@ R.check(
     "failing check names:\n" + _rr_detail,
 )
 
+# --- R10-TRAIN-HOLD: the hold a live merge train publishes (issue #2302) ----
+#
+# The record beat auto-merges a record pull request on its own schedule, and a
+# record PR merged mid-train moves main under a head the train has settled
+# (#2291, #2295 and #2299 each landed mid-train on 2026-10-15). CI cannot see
+# the train's local pidfile, so the train publishes `refs/heads/train-hold`
+# and the beat reads it through `train_hold.py`: fresh skips the merge, stale
+# (a crashed train) and absent both resume. This drives the predicate, the API
+# read and the ref's age through the production symbols, including the null
+# controls: an absent or stale hold must NOT read fresh.
+try:
+    _th_spec = _rr_util.spec_from_file_location(
+        "hpo_train_hold",
+        _closure.ROOT / "tools" / "audit" / "seat" / "train_hold.py")
+    _th = _rr_util.module_from_spec(_th_spec)
+    _th_spec.loader.exec_module(_th)
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _th_out, \
+            _rr_cx.redirect_stderr(_rr_io.StringIO()):
+        _th_ok = _th.self_test() == 0
+    _th_detail = _th_out.getvalue()
+except Exception as _th_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _th_ok, _th_detail = False, f"{type(_th_exc).__name__}: {_th_exc}"
+R.check(
+    "tools/audit/seat/train_hold.py --self-test passes",
+    _th_ok,
+    "run `python3 tools/audit/seat/train_hold.py --self-test` for the "
+    "failing check names:\n" + _th_detail,
+)
+
 # The branch-to-group lookup is roster_lib's, not the generator's own: a
 # second derivation of the same mapping is the drift `roster_lib` exists to
 # prevent (#1948). Equality on the NORMALIZED tail, never a prefix, so
@@ -26329,6 +26358,34 @@ _RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
 _RAF_GUARD = '--automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"'
 
 
+# THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A live merge train publishes
+# `refs/heads/train-hold`; the automerge step must consult it BEFORE it reads
+# the pull request, approves or merges, and must distinguish the three states
+# the reader returns: fresh skips the beat (green `held-by-train`), stale and
+# absent both resume, and an unreadable hold reddens the report rather than
+# merging blind. Pinned as wiring, not prose: the pin reads the job's own
+# non-comment lines, and the null controls drop each token and move the call.
+_RAF_HOLD = 'tools/audit/seat/train_hold.py --check --repo "$REPO"'
+
+
+_RAF_HOLD_LINE = 'HOLD=$(GH_TOKEN="$TOKEN" python3 -I ' + _RAF_HOLD + ')'
+
+
+def _raf_hold_first(job: str) -> bool:
+    """The hold is read BEFORE the pull request is read (HEAD=$(pr_field) and
+    the guard's first call follow it), so a fresh hold costs no API read and
+    can never be consulted after an approval or a merge."""
+    h = job.find(_RAF_HOLD_LINE)
+    head = job.find("HEAD=$(pr_field")
+    first_guard = job.find("if ! guard; then")
+    return (0 < h < head and 0 < h < first_guard
+            and _RAF_HOLD_LINE in job
+            and "fresh*)" in job and "say held-by-train" in job
+            and "stale*)" in job and "absent*)" in job
+            and "say skip-unread" in job
+            and "pushed|nothing-owed|held|held-by-train)" in job)
+
+
 def _raf_review_gated(job: str) -> bool:
     hits = [m.start() for m in re.finditer(r"pulls/[^\s\"]*/reviews", job)]
     g = job.find(_RAF_GUARD)
@@ -26383,6 +26440,7 @@ def _raf_job_ok(job: str) -> bool:
         and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
                     for p in pushes)
         and "--automerge-check --hold" in job
+        and _raf_hold_first(job)
         and _raf_review_gated(job)
         and _raf_merge_pinned(job))
 
@@ -26429,6 +26487,26 @@ R.check(
     "call so `bash -e` aborts the step before its `case` -- must "
     "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
+)
+_RAF_HOLD_MOVED = _RAF_JOB.replace(_RAF_HOLD_LINE, "", 1).replace(
+    "if ! guard; then", _RAF_HOLD_LINE + "\n          if ! guard; then", 1)
+R.check(
+    "tests.yml's automerge step consults the train hold before the guard, and the "
+    "report accepts its green status (null controls)",
+    _raf_hold_first(_RAF_JOB)
+    and not _raf_hold_first(_RAF_JOB.replace(_RAF_HOLD_LINE, "", 1))
+    and not _raf_hold_first(_RAF_HOLD_MOVED)
+    and not _raf_hold_first(_RAF_JOB.replace("say held-by-train", "true", 1))
+    and not _raf_hold_first(_RAF_JOB.replace("stale*)", "", 1))
+    and not _raf_hold_first(_RAF_JOB.replace("absent*)", "", 1))
+    and not _raf_hold_first(_RAF_JOB.replace(
+        "pushed|nothing-owed|held|held-by-train)", "pushed|nothing-owed|held)", 1)),
+    "the step must call train_hold.py --check before it reads the PR or the guard, "
+    "skip on `fresh` with the green `held-by-train` status, resume on `stale` and "
+    "`absent`, and redden on an unreadable hold -- dropping any state, moving the "
+    "call behind the guard, or leaving `held-by-train` out of the report's accepted "
+    "statuses must each turn the pin red; otherwise a train's hold is read after "
+    "the merge it exists to stop, or a crash-time hold is silent",
 )
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
 # API answers [] for `<owner>/<repo>:<branch>`, so the lookup missed the open

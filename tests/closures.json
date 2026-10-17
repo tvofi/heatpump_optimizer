@@ -1456,6 +1456,7 @@
    "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/state_docs.py",
+   "tools/audit/seat/train_hold.py",
    "tools/coverage/composed_proof.sh",
    "tools/coverage/coverage_tree.sh",
    "tools/merge/ledger_merge.py",
@@ -4103,7 +4104,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 674.1
+   "seconds": 311.2
   },
   "tests/env_drift.py": {
    "rc": 0,

@@ -731,6 +731,15 @@ INERT_EXCEPT = (
     "tools/policy/figure_lint.mjs",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
+    # R10-TRAIN-HOLD (#2302): tests/entities.py loads train_hold.py by
+    # importlib and runs its self-test -- the freshness predicate and the API
+    # read the record beat's automerge step calls -- so it is a dependency of
+    # a gate script. Left inside the `tools/audit/` prefix it would be
+    # declared unread while being read (#357). It moves to entities.py's
+    # recorded closure, so an edit to it selects that script instead of
+    # skipping it. merge_train.py reads it too, but nothing in the gate reads
+    # merge_train.py.
+    "tools/audit/seat/train_hold.py",
     # R9-RO-14: tests/entities.py loads state_docs.py by importlib and runs
     # its self-test, and that self-test SPAWNS the three state-doc generators
     # on subprocess command lines -- a repo path on a command line is a real

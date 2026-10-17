@@ -203,6 +203,16 @@ merge bot PRs automatically"; run and batch):
       clean (no untracked file) with HEAD at origin/<branch> is detached
       (`git -C <holder> switch <branch>` restores it); anything else is the
       HOLDER stop, its reason appended.
+
+THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A real train publishes
+`refs/heads/train-hold` before it can move anything and deletes it before its
+closing line; the record beat reads it through `tools/audit/seat/train_hold.py`
+and skips its record merge while the hold is fresh, so a record pull request
+can no longer land under a head the train has settled. The hold is a commit
+whose committer date is the freshness clock: the train refreshes it at every
+CI poll and before every recarry, so a long wait never reads as a crashed
+train, and a crashed train's hold expires at the beat's bound. A `batch/`
+rehearsal publishes nothing -- its merges reach no main.
 """
 
 from __future__ import annotations
@@ -250,6 +260,17 @@ def tool(name: str) -> str:
 
 def is_sha(s: str) -> bool:
     return len(s) == 40 and set(s) <= HEX
+
+
+def _api_method(argv: list[str]) -> str:
+    """The HTTP method of a `gh api` argv: `--method` (what this file writes)
+    or its `-X` shorthand (what a caller may). `GET` when neither is given."""
+    for flag in ("--method", "-X"):
+        if flag in argv:
+            return argv[argv.index(flag) + 1]
+    return "GET"
+
+
 GREEN = ("success", "skipped", "neutral")
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
@@ -296,6 +317,19 @@ def _fastpath():
     """merge_fastpath.py, whose file classes route a pull request serial."""
     import importlib.util
     spec = importlib.util.spec_from_file_location("merge_fastpath", ROOT / "tools/audit/merge_fastpath.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@functools.lru_cache(maxsize=None)
+def _hold():
+    """train_hold.py, imported, never copied (fixer.md step 17): the ref name
+    and the beat's staleness bound are its reader's, so the train cannot
+    publish a branch the record beat does not look for."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "train_hold", ROOT / "tools/audit/seat/train_hold.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -433,6 +467,9 @@ class Train:
         self.main_moved_tries, self.bot_prs = main_moved_tries, bot_prs
         self.pre_flight, self.free_holders = pre_flight, free_holders
         self.skipped: list[dict] = []
+        # THE TRAIN HOLD: whether this run published a hold it still owns, the
+        # sha it last pointed the ref at, and the tree its commits carry.
+        self._hold_live, self._hold_sha, self._hold_tree = False, "", ""
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
 
     @staticmethod
@@ -556,6 +593,98 @@ class Train:
         item.setdefault("carried_from", h)
         item.setdefault("carried_chain", []).append(h)
 
+    # ------------------------------------------------------ THE TRAIN HOLD
+    def _hold_commit(self) -> "str | None":
+        """A fresh commit on main's tree whose COMMITTER DATE is the freshness
+        clock the record beat ages (`train_hold.check`). None when the tree read
+        or the API write failed. A new commit each time is the point: the date
+        is the signal, and an empty change keeps the tree exactly main's."""
+        tree = self._hold_tree
+        if not tree:
+            code, tree = self.run(["git", "rev-parse", "origin/main^{tree}"])
+            tree = tree.strip()
+            if code or not tree:
+                self.log(f"HOLD: no tree to stamp the hold with ({tree[-120:] or code})")
+                return None
+            self._hold_tree = tree
+        code, o = self.run(["gh", "api", "--method", "POST", f"repos/{self.repo}/git/commits",
+                            "-f", f"message={_hold().BRANCH}", "-f", f"tree={tree}",
+                            "--jq", ".sha"])
+        sha = (o.strip().splitlines() or [""])[-1].strip()
+        if code or not is_sha(sha):
+            self.log(f"HOLD: could not create the hold commit ({o.strip()[-160:] or code})")
+            return None
+        return sha
+
+    def _hold_point(self, sha: str) -> bool:
+        """Create or move refs/heads/train-hold to <sha>. POST first; an
+        existing hold (a stale one, or a second live train's) answers non-zero,
+        so PATCH with force -- the ref is a liveness flag, and the freshest
+        train wins it. Fail-soft, with the fallback named in the line."""
+        branch = _hold().BRANCH
+        code, o = self.run(["gh", "api", "--method", "POST", f"repos/{self.repo}/git/refs",
+                            "-f", f"ref=refs/heads/{branch}", "-f", f"sha={sha}",
+                            "--jq", ".ref"])
+        if code:
+            code, o = self.run(["gh", "api", "--method", "PATCH",
+                                f"repos/{self.repo}/git/refs/heads/{branch}",
+                                "-f", f"sha={sha}", "-F", "force=true", "--jq", ".ref"])
+        if code:
+            self.log(f"HOLD: refs/heads/{branch} NOT published ({o.strip()[-160:] or code}); "
+                     "the record beat may merge a record pull request under this train")
+            return False
+        return True
+
+    def hold_publish(self) -> None:
+        """THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302): while this train runs,
+        the record beat must not merge a record pull request and move main under
+        a head the train has settled. CI cannot see the pidfile of a train that
+        runs here, so the hold is a ref the beat reads (`train_hold.py`), and
+        this is the line that publishes it -- before the first thing that can
+        move main. Fail-soft: an unreadable API stops nothing, says so, and the
+        beat's ordinary behaviour is the fallback."""
+        if not self.real:
+            return  # a batch/ rehearsal lands on its own base; a record on main cannot move it
+        sha = self._hold_commit()
+        if sha and self._hold_point(sha):
+            self._hold_live, self._hold_sha = True, sha
+            self.log(f"HOLD refs/heads/{_hold().BRANCH} at {sha[:8]}: record merges are "
+                     "held while this train runs")
+
+    def hold_touch(self) -> None:
+        """Refresh the hold's committer date. Called at every CI poll and before
+        every recarry -- the train's longest silent stretches -- so a LIVE
+        train's hold never ages past the beat's bound. No-op when this Train
+        published nothing (a rehearsal, or the `wait-ci` subcommand)."""
+        if not self._hold_live:
+            return
+        sha = self._hold_commit()
+        if sha and self._hold_point(sha):
+            self._hold_sha = sha
+
+    def hold_clear(self) -> None:
+        """Delete the hold BEFORE the closing line. Compare-and-delete: a second
+        live train that moved the ref keeps it (its run has not closed), so a
+        concurrent train's hold is never dropped by this one's exit. An
+        undeletable ref is only a warning -- the beat's stale bound expires it."""
+        if not self._hold_live:
+            return
+        self._hold_live = False
+        branch = _hold().BRANCH
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/git/ref/heads/{branch}",
+                            "--jq", ".object.sha"])
+        if code and ("404" in o or "Not Found" in o):
+            return  # already gone (the stale cleanup or another train): nothing of ours to delete
+        live = (o.strip().splitlines() or [""])[-1].strip() if code == 0 else ""
+        if is_sha(live) and live != self._hold_sha:
+            self.log(f"HOLD refs/heads/{branch} left at {live[:8]}: another live train moved it")
+            return
+        code, o = self.run(["gh", "api", "--method", "DELETE",
+                            f"repos/{self.repo}/git/refs/heads/{branch}"])
+        self.log(f"HOLD refs/heads/{branch} deleted" if code == 0 else
+                 f"HOLD: refs/heads/{branch} NOT deleted ({o.strip()[-160:] or code}); "
+                 f"the beat's {_hold().MAX_AGE_SECONDS}s stale bound expires it")
+
     def sweep_bots(self) -> None:
         """`--bot-prs`: merge the open record/autofix pull request NOW, in the
         train's own sequence, rather than let its CI beat merge it under a head
@@ -650,6 +779,7 @@ class Train:
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
         for k in range(1, self.polls + 1):
+            self.hold_touch()  # a live train refreshes its hold at every poll
             runs = self._check_runs(h)
             last = self._by_name(runs or ())
             if only is not None and runs is not None and all(
@@ -971,6 +1101,7 @@ class Train:
         pr, v = int(item["pr"]), item["verdict"]
         if not is_sha(v):
             raise Stop("queue", f"verdict '{v}' is not a 40-hex sha")
+        self.hold_touch()  # a recarry is the longest silent stretch (5-15 min)
         self.sweep_bots()  # a record PR merged now is inside this recarry, not under it
         h = self.head(pr)
         if not is_sha(h):
@@ -1184,19 +1315,23 @@ class Train:
             return self._train(queue)
         finally:
             self.release_worktrees()
+            self.hold_clear()  # idempotent; a crash's leftover is the beat's stale bound
 
     def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_publish()
         for item in self.preflight(queue):
             try:
                 self.one(item)
             except Stop as s:
                 self.release_worktrees()  # before the closing line, which stays last
+                self.hold_clear()
                 self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {classified(s)}")
                 return 1
         self.release_worktrees()
+        self.hold_clear()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1462,6 +1597,7 @@ class Train:
             return self._batch(queue, tag)
         finally:
             self.release_worktrees()
+            self.hold_clear()  # idempotent; a crash's leftover is the beat's stale bound
 
     def _batch(self, queue: list[dict], tag: str) -> int:
         # The banner is the FIRST output, before any blocking call: a
@@ -1473,6 +1609,8 @@ class Train:
         self.state.mkdir(parents=True, exist_ok=True)
         self.branches: list[str] = []
         self.skipped: list[dict] = []
+        self.hold_publish()  # before sweep_bots: a bot PR the train merges itself is fine;
+        #                    the record BEAT merging one under a proof is not
         try:
             mf = _fastpath()
             self.sweep_bots()  # before the base is read: a record PR merged now is under every proof
@@ -1602,11 +1740,13 @@ class Train:
                                   f"#{a['pr']} {s.why}", s.cls)
         except Stop as s:
             self.release_worktrees()  # before the closing lines, which stay last
+            self.hold_clear()
             self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(len(queue))
             return 1
         self.release_worktrees()
+        self.hold_clear()
         if self.branches:  # the proofs are spent; their shas are in the log above
             code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
             names = ", ".join(self.branches)
@@ -1645,6 +1785,23 @@ def _self_test() -> int:
                 return world.get("bot_guard", (0, "AUTOMERGE OK #9"))
             if argv[:3] == ["gh", "auth", "token"]:
                 return 0, "tok"
+            if argv[:2] == ["git", "rev-parse"] and a.endswith("^{tree}"):
+                return 0, "d" * 40  # the hold commit's tree, from origin/main
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a:  # the hold's commit
+                world["hold_commits"] = world.get("hold_commits", 0) + 1
+                return 0, "f" * 40
+            if argv[:2] == ["gh", "api"] and "/git/ref" in a:  # create / patch / read / delete
+                method = _api_method(argv)
+                if method == "DELETE":
+                    world["hold_deletes"] = world.get("hold_deletes", 0) + 1
+                    world["hold_live"] = ""
+                    return 0, ""
+                if method == "GET":
+                    return 0, world.get("hold_live") or ""
+                if method == "POST" and world.get("hold_live"):
+                    return 1, "gh: Reference already exists (HTTP 422)"  # the real ref does
+                world["hold_live"] = "f" * 40
+                return 0, "refs/heads/train-hold"
             if argv[:3] == ["gh", "pr", "view"] and argv[3] == "9":  # the record PR
                 return 0, ("e" * 40 if "headRefOid" in a else
                            "MERGED " + "9" * 40 if 9 in world.get("bot_merged", ()) else "OPEN None")
@@ -1943,6 +2100,57 @@ def _self_test() -> int:
           rc == 0 and not any("record_row.py" in " ".join(c) for c in calls))
     if had_token is None:
         os.environ.pop("GH_TOKEN", None)
+    # THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A live train moves main
+    # under a head it has settled when the record beat auto-merges a record
+    # PR; CI cannot see the train's local pidfile, so the train publishes
+    # refs/heads/train-hold (a commit whose committer date is the freshness
+    # clock the beat ages) before it can move anything, and deletes it before
+    # its closing line. A stop path deletes it too: a crashed train's block
+    # must be the stale-expiry's, never a normal exit's.
+    rc, lines, calls = go({})
+    pub = next((i for i, c in enumerate(calls) if "git/commits" in " ".join(c)), -1)
+    mrg = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
+    clr = next((i for i, c in enumerate(calls) if c[:2] == ["gh", "api"]
+                and _api_method(c) == "DELETE"), -1)
+    check("a live train publishes refs/heads/train-hold before it can move main "
+          "and deletes it before its closing line",
+          rc == 0 and -1 < pub < mrg < clr and lines[-1] == "TRAIN DONE"
+          and lines[-2].startswith("HOLD refs/heads/train-hold deleted")
+          and any("git/refs" in " ".join(c) and "refs/heads/train-hold" in " ".join(c) for c in calls))
+    check("the hold is a fresh commit, not a pointer at main's tip, so its committer "
+          "date is the beat's staleness clock",
+          any("git/commits" in " ".join(c) and "message=train-hold" in " ".join(c) for c in calls))
+    rc, lines, calls = go({"files": ["custom_components/x.py"]})  # the ROW-MISSING stop
+    clr = next((i for i, c in enumerate(calls) if c[:2] == ["gh", "api"]
+                and _api_method(c) == "DELETE"), -1)
+    check("a stopped train still deletes the hold before its closing line: the block is "
+          "never a normal exit's, only a crash's (stale expiry)",
+          rc == 1 and clr > 0 and lines[-1].startswith("TRAIN STOPPED")
+          and lines[-2].startswith("HOLD refs/heads/train-hold deleted"))
+    # Null controls: a process that is not a train landing on main holds nothing.
+    run0, calls0 = fake({"heads": [H0], "runs": green})
+    with tempfile.TemporaryDirectory() as d:
+        Train("o/r", Path(d), None, "", (), 1, run=run0, sleep=lambda s: None,
+              log=lambda s: None, polls=1).wait_ci(H0)
+    check("wait-ci alone publishes no hold (null control)",
+          not any("git/commits" in " ".join(c) for c in calls0))
+    # The refresh: a long CI wait would otherwise age a live train's hold past
+    # the beat's bound while the train is plainly alive.
+    w = {"heads": [H0], "runs": [{"name": "fast", "status": "in_progress",
+                                  "conclusion": None, "started_at": "1"}]}
+    run0, calls0 = fake(w)
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=run0, sleep=lambda s: None,
+                  log=lambda s: None, polls=3)
+        t.hold_publish()
+        t.wait_ci(H0)  # times out after 3 polls
+        t.hold_clear()
+    check("a live train refreshes the hold on every CI poll, so a wait longer than the "
+          "beat's bound never reads as a crashed train",
+          w.get("hold_commits") == 4  # publish + 3 polls
+          and any("git/refs/heads/train-hold" in " ".join(c)
+                  and _api_method(c) == "PATCH" for c in calls0)
+          and w.get("hold_deletes") == 1)
     # --pre-flight: queue_pre_flight's reads first; a failing entry PARKs.
     bad = dict(item, pr=6, verdict="f" * 39 + "g")
     rc, lines, calls = go({}, q=[bad, dict(item)], pre_flight=True)
@@ -2408,6 +2616,8 @@ def _self_test() -> int:
               any((ROOT / c).is_file() for c in cands))
     check("the train's mandate reader budget_raise_gate.py is in the tree ("
           + " or ".join(GATE_PATHS) + ")", any((ROOT / c).is_file() for c in GATE_PATHS))
+    check("the train's hold reader the record beat shares, train_hold.py, is in the tree",
+          (ROOT / "tools/audit/seat/train_hold.py").is_file())
     check(f"the delivery-row directory the train requires, {ROW_DIR}/, is in the tree",
           (ROOT / ROW_DIR).is_dir())
     bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
@@ -2500,6 +2710,21 @@ def _batch_self_test(check) -> None:
                 return (0, "9") if "--find-open" in argv else (0, "AUTOMERGE OK #9")
             if argv[:3] == ["gh", "auth", "token"]:
                 return 0, "tok"
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a:  # THE TRAIN HOLD's commit
+                w["hold_commits"] = w.get("hold_commits", 0) + 1
+                return 0, "f" * 40
+            if argv[:2] == ["gh", "api"] and "/git/ref" in a:
+                method = _api_method(argv)
+                if method == "DELETE":
+                    w["hold_deletes"] = w.get("hold_deletes", 0) + 1
+                    w["hold_live"] = ""
+                    return 0, ""
+                if method == "GET":
+                    return 0, w.get("hold_live") or ""
+                if method == "POST" and w.get("hold_live"):
+                    return 1, "gh: Reference already exists (HTTP 422)"  # the real ref does
+                w["hold_live"] = "f" * 40
+                return 0, "refs/heads/train-hold"
             if argv[:3] in (["gh", "pr", "view"], ["gh", "pr", "merge"]) and argv[3] == "9":
                 if argv[2] == "merge":  # the record PR lands on the base as GitHub would
                     (w["R"] / "rec.txt").write_text("row\n")
@@ -2703,6 +2928,19 @@ def _batch_self_test(check) -> None:
           "rehearsal writes nothing to main -- while the rehearsal itself still lands",
           w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and not w.get("bot_calls")
           and not w.get("bot_merged") and not any(ln.startswith("BOT") for ln in w["lines"]))
+    # THE TRAIN HOLD in a batch: published by a real batch, deleted before its
+    # closing line; a rehearsal publishes nothing (it lands on batch/, and a
+    # record merge on main cannot move that base).
+    w = go({1: {"a.txt": "A\n"}}, base="main")
+    hdel = max((i for i, ln in enumerate(w["lines"])
+                if ln.startswith("HOLD refs/heads/train-hold deleted")), default=-1)
+    check("a real batch publishes the train hold and deletes it before its closing line",
+          w["rc"] == 0 and w.get("hold_commits", 0) >= 1 and w.get("hold_deletes") == 1
+          and hdel > 0 and hdel < len(w["lines"]) - 1
+          and w["lines"][-1] == "TRAIN DONE")
+    w = go({1: {"a.txt": "A\n"}})  # a batch/ rehearsal
+    check("a batch/ rehearsal publishes no hold (null control)",
+          "hold_commits" not in w and "hold_deletes" not in w)
     if had_token is None:
         os.environ.pop("GH_TOKEN", None)
 

@@ -350,6 +350,17 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   shape offline (missing required arg, live pidfile, unknown argument, the
   `--ignore-red` argv shape, the absent-venv refusal), the child's cwd on a
   launch without `--checkout`, and a bare launch's argv carrying no flag.
+- `train_hold.py` — the merge train's hold ref, read by the record beat's
+  automerge step (`tests.yml`) and written by `merge_train.py`: while a real
+  train runs, `refs/heads/train-hold` points at a commit whose committer date
+  is the freshness clock, and the beat skips its record merge while the hold
+  is younger than the bound. When: automatically, on every real train and
+  every record beat — a record PR merged mid-train moves main under a head the
+  train has settled (#2291, #2295, #2299 on 2026-10-15). Refusal: a hold older
+  than the bound reads `stale` and the beat resumes (a crashed train cannot
+  block records forever); a commit stamped ahead of the reading clock is
+  `fresh` with the age named unknowable, never read as expired; an unreadable
+  ref exits 2 so the beat reddens instead of merging blind.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at
