@@ -76,8 +76,11 @@ Finder and catch-up harnesses, each run from the tree, at the baseline export of
 
 Two notes on the destination. The in-tree roster at this merge base is behind the roster branch (`handoff/audit-r10-roster`) in other groups' `resume` and `carry` fields, but `R10-SCORES`' entries are byte-identical in both (and unchanged on `origin/main` since the merge base), so this change merges as an append to one brief and one array. And the file is outside this group's declared `files`; it is a brief, which is the destination `finding-propagation.md` names, not a production hunk.
 
+## Unpinned sites
+
+- custom_components/heatpump_optimizer/optimizer.py:1883 RETURN_DEL: pinned by mutation-autofix after the push; the value check is the #2239 rows in `tests/features.py`, which drive the helper's `return base * scale` through both arms of the split.
+
 ## Friction
 
 - `orchestrator.md: contradiction: the R10-RATIO-SITES roster entry holds two architect notes that disagree -- its `architect_note` names coordinator.py "position 4 of 25; before you: R10-TARIFF, R10-FEEDS" while its `brief` names "position 3 of 24; before you: R10-FAHRENHEIT, R10-FEEDS", and the `after` array names R10-FEEDS alone. The brief was followed; a resumer reading the other field would serialise against a group that finished first.
 - `fixer.md`: cost: max_class_loc prices every physical line of the coordinator class, so a docstring or comment line a fix adds to a hot 8.6k-line class costs exactly what code costs, and that row sits at zero headroom. Paying it is why the D-1 fix's own explanation is one line.
-- The `typical_heat_loss` seam was missed on the first pass because the enumeration's wider arm was run once and its `optimizer.py:2982` row was read as the single-zone arm without checking that it was a two-zone whole-house price. The re-run now dispositions every row the arm returns.
