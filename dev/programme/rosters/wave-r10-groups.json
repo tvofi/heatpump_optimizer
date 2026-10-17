@@ -214,7 +214,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 25; before you: R10-TARIFF, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-review: #2347 round 2",
     "branch": "handoff/r10-ratio-sites",
     "commit": null,
     "last_step": null,
