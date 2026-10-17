@@ -9,7 +9,7 @@
   cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
 PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
 PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
-PASS the cited-program arm follows a path literal through every open shape the round-1 review p
+PASS the cited-program arm follows a path literal through every open shape the two fix reviews 
 PASS every carry and every policy file this arm reads for citations selects this script, so a b
 READS   one-hop name
 READS   two-hop alias
@@ -26,26 +26,26 @@ READS   str concat
 READS   read via json.loads(Path.read_text)
 READS   three-hop alias
 READS   chained assign
-ESCAPES walrus bind
-ESCAPES for-target bind
-ESCAPES func-param default
+READS   walrus bind
+READS   for-target bind
+READS   func-param default
 READS   list index
 READS   tuple index
 READS   dict key by name
 ESCAPES attr bind (ns)
-ESCAPES augassign
+READS   augassign
 READS   percent-format
-ESCAPES pathlib joinpath
+READS   pathlib joinpath
 READS   conditional expr
 READS   os.path.join first arg
-ESCAPES Path receiver .open()
-ESCAPES named receiver .open()
+READS   Path receiver .open()
+READS   named receiver .open()
 READS   named receiver .read_bytes()
-ESCAPES receiver .open() in with
+READS   receiver .open() in with
 READS   star-unpack
-READS   global-in-func
+ESCAPES global-in-func
 READS   nested f-string attr
 NULL held-literal (must be READS=False): False
-ESCAPE_COUNT 9 OF 34
-ESCAPES ['walrus bind', 'for-target bind', 'func-param default', 'attr bind (ns)', 'augassign', 'pathlib joinpath', 'Path receiver .open()', 'named receiver .open()', 'receiver .open() in with']
+ESCAPE_COUNT 2 OF 34
+ESCAPES ['attr bind (ns)', 'global-in-func']
 ARM PASS [True, True, True, True]

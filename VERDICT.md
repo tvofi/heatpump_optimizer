@@ -1,132 +1,113 @@
-Fix review: blocked ae5ed33ac8cfd8fbc62ed131ca28946c8858e5dc harness: class-open a path literal opened by a for-target bind, and by .open() on a /-join receiver -- two members of the rule the body names that _sp_literals still does not read
+Fix review: blocked a0743cfa2727cd010020e5aa39be31f443c37869 harness: class-open a global/nonlocal-declared binding -- read by the round-1 head, lost by this one -- and an attribute resolved only in the scope that binds it
 
-bus-nonce: c0cf2f4718f4040735a6fb7da59c9503
+bus-nonce: b73849fef4699dae61cd6291eae6cff5
 
-Round 1. Reviewer seat, detached worktree at `ae5ed33ac8cfd8fbc62ed131ca28946c8858e5dc`
-(re-read at posting time below), merge base `92accb2cff702c910d33ee1a276d38f5b482061c`,
-seat venv python 3.14.7. The preamble diff of `dev/governance/roles/` against
-`origin/main` is empty, so this contract is current. Evidence: the `evidence/`
+Round 2. Detached worktree at `a0743cfa2727cd010020e5aa39be31f443c37869` (re-read at
+posting), merge base `e3f3b312fff572904f24d78a44a2c4492b1a8ddb` -- main moved
+since round 1, so every both-ends figure below is re-taken at the NEW base, and
+`ae5ed33ac` is used only as "the head round 1 measured". The preamble diff of
+`dev/governance/roles/` against `origin/main` is empty. Evidence: the `evidence/`
 directory of this verdict's bus ref.
 
-**Everything in the body re-derives except one figure and the class.** Steps 1-5,
-7-15 pass; step 6 is the block. Read the block first; the RESULT lines below are
-its support.
+**Round 1's two seams are closed, and M1-M6 all reproduce. The block is narrower
+and different in kind: this round's scoping change is a REGRESSION on a shape the
+round-1 head read.** Read the block first.
 
 ## The block (step 6, open the class)
 
-The body names the fix's rule: *"`_sp_literals` now follows a literal through
-every binding, join, dict subscript, f-string and read site"*. `_sp_bindings`'
-own docstring says *"for every binding the module makes"*. The class RCA the
-group's own countermeasure comes from — `dev/audit/rca/R10-N-move-stale-path.md`,
-point 1 — states the same rule as the arm's spec: *"checks that each path literal
-the file opens resolves"*. I ran that rule as an enumerator over the class
-(`cls_enum.py`, my own script, not the finder's and not the fixer's; 34 shapes,
-the round-1 plant list as its population plus 21 more).
+Round 1 named nine escaping shapes in the enumerator I disclosed (`cls_enum.py`,
+34 shapes). At this head **seven are closed** — `for` target, walrus, parameter
+default, augmented assign, `joinpath`, and both `.open()`-on-a-receiver plants
+read as opens now. Two still escape:
 
-At this head **9 of the 34 still escape**, and two of them are plainly inside the
-named rule and neither in the diff nor dispositioned in the body:
+- `attr bind (ns)`: a class-body constant read as `C.P` / `C().P`.
+- `global-in-func`: a `global`-declared binding read at module level.
 
-1. **A `for` target holding the literal — a binding.** `_sp_bindings` follows a
-   plain assignment, an annotated assignment and a tuple/list unpack; a `For`
-   target is a binding the module makes and is not followed.
-   `for _P in (<retired>,): open(_P)` reads as HELD, not as an open.
-2. **`.open()` on a receiver — a read site.** The fix's own comment on
-   `_SP_READS` says *"the method is an open site of its own"*, and the set is
-   `{"read_text", "read_bytes"}`. `open` cannot be added to it as written: `open`
-   is already in `_SP_OPENS`, and that branch reads only the call's *arguments*,
-   so an attribute call `.open()` takes the args-only branch and the receiver is
-   never traversed. `(Path('.') / <retired>).open()` and
-   `_P = Path('.') / <retired>; _P.open()` both escape — the exact structure of
-   the two round-1 plants `_SP_READS` was added for, with `.open()` in place of
-   `.read_text()`. (`Path(<retired>).open()` happens to be caught, but only
-   because the inner `Path(...)` call is an open — by accident, not by design.)
+The second is the block, and it is a **regression**, not a leftover. The same
+minimal source, run at each head through that head's own `_sp_literals`:
 
-Neither is hypothetical for this repository. A `for` target over path literals
-occurs at least 15 times in tracked `.py` — including in the corpus this arm
-probes: `dev/audit/rounds/round3/D11/mechanisms.py:242`
-(`for f in ("tests/golden/claimed_drift.txt", "tests/golden/card_claimed_drift.txt")`),
-`dev/audit/rounds/round3/D6/claims.py:80`, `dev/audit/round9/D14/s1/p1_store.py:71`,
-`dev/audit/round10/D15/s1/intake.py:35`,
-`dev/audit/round8/evidence/D11/v1_owner_flip.py:135` (a tuple of
-`.claude/workflows/` paths, with `.claude/workflows/policy_lint.mjs` two lines
-below at a path that has moved). `.open()` on a pathlib receiver is live too:
-`tests/layout.py:689` reads a file that way.
+```
+_G = None
+def load():
+    global _G
+    _G = "dev/audit/rounds/round4/D12/units.py"
+_X = open(_G)
+```
 
-**I am not claiming a live fault today.** I widened the reader to the missing
-shapes and re-ran it over every cited program at this head
-(`widened.py`, my own; its positive control reads
-`_P = Path(".") / "dev/nope_xyz/file.py"; _X = _P.open()`, which the arm does not
-and the widened reader does). Result: **0 live faults** — the 5 cited programs
-name no path through these shapes. The seams are latent, exactly as the 8 the
-fix closes were latent. That is why the remedy is cheap either way.
+```
+round-1 head ae5ed33ac : HEADSELF opens: [(7, 'dev/audit/rounds/round4/D12/units.py', ...)]   READS
+round-2 head a0743cfa : HEADSELF opens: []                                                  ESCAPES
+merge base  e3f3b312 : HEADSELF opens: [(7, 'dev/audit/rounds/round4/D12/units.py', ...)]   READS
+```
 
-**Remedy.** Either follow the two shapes — `open` needs its own attribute branch
-or to leave `_SP_OPENS`, and `_sp_bindings` needs `For`/`NamedExpr` — or
-disposition them by name in the body, with a destination under
-`finding-propagation.md` (`carry-1922.json`/R9-RO-9 is *not* a destination for a
-shape gap; a new issue under class `N-move-stale-path` is). The remaining 7 —
-walrus, function-parameter default, class attribute, `+=`, and the
-`joinpath`-without-a-read case — are the same binding family and can ride the
-same disposition; `pathlib joinpath` alone opens nothing, so I do not count it as
-a seam. Then correct the "every binding" claim to the forms the code follows.
+The cause is `_sp_scope_map`: a `global _G` assignment is filed in the
+`FunctionDef`'s scope, and `_sp_reach` resolves a name only UP the parent chain,
+never through a `global`/`nonlocal` declaration. `nonlocal` is the same loss. So
+this round made the arm **strictly worse** on a shape it used to catch, while the
+body claims it "follows a literal through every binding the module makes". The
+class RCA states the arm's spec the same way: *"checks that each path literal the
+file opens resolves"* (`dev/audit/rca/R10-N-move-stale-path.md` point 1).
+
+The attribute seam is the same root and pre-existing: `_sp_bind_names` already
+yields the attribute of a `self.x = ...` target, but the read resolves it only in
+the scope that bound it, so `self._p` assigned in `__init__` and read in `run` —
+and `class C: P = ...` read as `C.P` — escape. Both heads miss it.
+
+**Proportionality, stated rather than left implicit.** A census over tracked
+`.py` finds **0** sites of either realistic variant (0 `global`-assigned
+string-with-slash literals; 0 `self.<attr> = "<path>"` read from another method),
+and the 5 cited programs read **identical** opens at both heads (2/0/3/1/2), so
+there is no live fault either way. The block turns on the regression: a reviewer
+should not merge a change that loses a shape the previous head caught and then
+claims every binding. Remedy, either: special-case `global`/`nonlocal` in
+`_sp_bindings`/`_sp_scope_map` (bind into the declared scope -- precise, no
+over-fire, unlike the flat map), and either resolve an attribute through its
+owner's scope or disposition it by name; or record both by name with a
+destination, and correct the "every binding" sentence to the forms the code
+follows.
 
 ## RESULT lines
 
 ```
-RESULT step 1, mutation proof re-run at this head with the finder's driver, the named line deleted each time and restored with cp (worktree `git status` clean after every one):
+RESULT step 1, mutation proof at this head, each named line deleted and restored with cp (git status clean after):
 RESULT   M0 null run (unmodified): all four arm checks PASS
-RESULT   M1 `_sp_reach` stops following a bound name: FAIL both the round-1-shapes check (escapes ['annotated assign', 'dict value then subscript', 'pathlib / via a name then read_text', 'tuple-unpack assign', 'two-hop alias', ...]) and the pre-existing cited-program check -- the body's claim
-RESULT   M2 `_SP_READS` branch deleted: FAIL the round-1-shapes check (escapes ['pathlib / then read_text', 'pathlib / via a name then read_text'])
+RESULT   M1 `_sp_reach` stops following a bound name (`key = None`): FAIL the round-1-shapes check and the pre-existing cited-program check -- the body's claim
+RESULT   M2 `_SP_READS` dropped from the open-site test: FAIL the round-1-shapes check
 RESULT   M3 f-string leading-slash strip removed: FAIL the round-1-shapes check (escapes ['f-string root prefix'])
-RESULT   M4a `_is_citation_source` off the is_inert override: FAIL the sources-select check (49 sources back INERT)
-RESULT   M4b closures.json reverted to the merge base: FAIL the sources-select check (all 49 sources read `selecting no script or the whole suite`)
-RESULT step 3, the null control is load-bearing (my own ablation M5, not claimed by the body): making every string constant read as an open FAILs the round-1-shapes check outright (held-literal clause empty in the detail) and, in the two checks beside it, fires 4 false faults on codeowners_gap.py's classifier inputs -- which is the design choice the body's Rejected alternatives names
-RESULT step 2, the FINDER's harness, both ends (round-1 `arm.py` + round-1 `plants.py` of #2289, md5 08964449.../754a7b9a..., run with ARM_EXTRA unset and set): base 92accb2cf = 8 ESCAPES / 5 REFUSED; head ae5ed33ac = 0 ESCAPES / 13 REFUSED. The body's figure re-derived exactly, with my own RESULT lines
-RESULT step 6, class enumeration (cls_enum.py, my own): base 24 of 34 shapes escape, head 9 of 34 -- so the fix closes 15 and leaves 9; the 9 are the block above
-RESULT step 6, live-seam test (widened.py, my own): 0 unresolving opens among the 5 cited programs through the missing shapes; positive control fires, so the zero is the instrument working, not a vacuous pass
-RESULT step 6, class rule: the body names the rule; the class RCA (dev/audit/rca/R10-N-move-stale-path.md point 1) states the same one; so `class-rule-missing` does not apply -- a rule is named and it returns seams the diff does not close
-RESULT step 6, F2 both ends: `tests/closure.py select --files dev/programme/carries/carry-201.json` = `MODE: SCOPED -- 0 script(s) run` at the merge base, `MODE: SCOPED -- 1 script(s) run` / `RUN tests/entities.py` at the head. Re-derived
-RESULT step 6, F4 both ends: the review's moved-spelling rule over carry-201's from/control/brief, `locate(w) != w and not isfile(w) and isfile(locate(w))` with any extension = 30 at the merge base, 0 at the head. The body's 30/0 re-derived
-RESULT step 6, layout reference arm: `python3 tests/layout.py --report --verbose` against `dev/programme/carries/carry-201.json` = 30 lines (15 distinct line numbers) at the merge base, 3 at the head (lines 56-58, all `tools/audit/round4/`). The head figure re-derives; the body says 16 at the merge base and I cannot re-derive 16 --
-RESULT   see "Not verified" below
-RESULT step 4, claim files: the diff touches no golden, no claim file and no card; both claim files are byte-identical to the merge base. Nothing owes a claim
-RESULT step 5, VERSION / the manifest version / the RELEASE_NOTES heading: untouched (the diff is 5 files, none of them)
-RESULT step 3, both-ends floors: the arm still reads 41 policy files and 8 carries, finds 5 cited programs, all of which run, `_SP_STALE_RUN=[]` at both ends
-RESULT step 7, head: the body's ## Head names ae5ed33ac8cfd8fbc62ed131ca28946c8858e5dc, the head I measured and re-read at posting time
-RESULT step 9, harness provenance: the finding has no committed harness -- the round-1 `arm.py`/`plants.py` live only in #2289's verdict evidence. The fixer discloses it as the fix review's own and does not claim it as the finder's; the fix's own check plants the 13 shapes in-tree, so the class is pinned in the tree even though the driver is not. Not a block
-RESULT step 10, forward-carry: the residual (3 carry-201 lines citing tools/audit/round4/, whose two files still live there) IS recorded with its control and its precondition, in carry-201's entry 5 `brief` ("Constraint on preparing the NEXT round's baseline") and in the entry's `control`. Present, so not `carry-missing`
-RESULT   correction: the body says that entry "names them and the R9-RO-9 that ends the pin". It names them; R9-RO-9 is not in carry-201.json at all -- it is the stage of dev/programme/carries/carry-1922.json, which carries the move of tools/audit/round4/D11/governance_cost.py. The destination exists; the body's sentence points at the wrong file
-RESULT step 11, checks: no check went red on any commit of the branch. Head ae5ed33ac: 45 check-runs, 30 success / 15 skipped, 0 failure/cancelled. The code head 04fcb74f2: 45 runs, 24 success / 12 skipped / 1 neutral / 8 CANCELLED, 0 failure -- so the root-cause trigger does not fire --
-RESULT   correction: the body's reason is wrong. It says "Four commits were made locally and none was pushed for CI before this handoff"; 04fcb74f2 carries 45 check-runs. The conclusion ("Red checks: none") is right, the reason is not
-RESULT step 14, metric-gamed: not earned by the instrument. The closures.json movement is 0 removals and additions to tests/entities.py only, at 4 hunks; no other script's recorded closure holds any of the 49 sources; `_is_citation_source`'s set is EXACTLY the arm's read set (49 == 49, both set differences empty); `closure.orphan_files()` = 0 at the head. Planted the diff's own kind of move with nothing improved -- naming a file the arm does not read (SECURITY.md) in _CITATION_POLICY makes it non-inert and `orphan_files()` returns exactly it, so the movement cannot be faked; `select` then reads `full`. `tests/deployment_shape.py` passes at both ends
-RESULT step 13, merge-tree: `git merge-tree --write-tree origin/main ae5ed33ac` exits 0, no stderr, no MERGE-CLAIM line. The ledger driver is not invoked because nothing conflicts
-RESULT step 15, architecture: sound on added lines. One concern one owner (the arm's shape reader stays in tests/entities.py beside the arm; the INERT carve-out stays in closure.py, where INERT lives); no parallel mechanism (the worktree read replaces the index read rather than sitting beside it, and `_sp_source` is a one-line helper); the class is pinned in-tree by the 13 planted shapes so a later seat can re-run the class without the out-of-tree driver
-RESULT step 12, head at posting: re-read with `git ls-remote origin refs/heads/fix/r10-stale-paths-2-pr` and `gh pr view 2344 --json headRefOid` -- see the posting line below
+RESULT   M4 receiver branch removed: FAIL the round-1-shapes check (escapes ['pathlib / then open', 'pathlib / then read_text', 'pathlib / via a name then read_text'])
+RESULT   M5 for-target binding removed: FAIL the round-1-shapes check (escapes ['for over a list', 'for target', 'for tuple target'])
+RESULT   M6 scope chain replaced by one flat map: FAIL the pre-existing cited-program check, with codeowners_gap.py's four classifier inputs read as opens -- the leak the scoping closes, and the null control the body names
+RESULT step 2, the FINDER's harness, both ends (round-1 arm.py + round-1 plants.py of #2289, unchanged md5s, driven with my own RESULT lines): base e3f3b312 = 8 ESCAPES / 5 REFUSED; head a0743cfa = 0 ESCAPES / 13 REFUSED. The body's figure re-derived at the new base
+RESULT step 3, both-ends arm checks: the arm reads 41 policy files and 8 carries, finds 5 cited programs, all run, `_SP_STALE_RUN=[]` at both ends; the held-literal controls (tuple, set, comparison) read as NO open at the head and M1-M5 each fail the caught-five
+RESULT step 6, class enumerator (`cls_enum.py`, my own, 34 shapes): base 24 escapes, round-1 head 9, this head 2 -- so this round closes 7 and leaves 2, and the 2 include the regression above
+RESULT step 6, realistic-variant enumerator (`cls_enum2.py`, my own, 11 shapes): base 7 escapes, round-1 head 7, this head 6 -- the three `global`/`nonlocal` rows moved READS -> ESCAPES between the two heads
+RESULT step 6, whole-tree over-fire control over the 1215 `.py` files byte-identical at both heads (my own, positive control shown): this head reads 42 NEW opens (11 of them non-resolving) and LOSES 216 opens round 1 read (71 of them non-resolving at round 1) --
+RESULT   the narrowing is the classifier-input fix working; inside `dev/audit/rounds/**` (the citation corpus, 859 files) it loses 69 and adds 25, of which 2 lost were non-resolving (round5-fix/R5-INST-01/schema_d13_admission.py:47 `tools/audit/round5/`, round10/D14/sweep-N-move-stale-path/enumerate.py:24). None of those files is cited today, so no fault is lost today; a lost open matters only if the file is cited later
+RESULT step 6, F2 both ends: base `MODE: SCOPED -- 0 script(s) run`; head `MODE: SCOPED -- 1 script(s) run` / `RUN tests/entities.py`. Re-derived
+RESULT step 6, F4 both ends: the review's moved-spelling rule over carry-201's from/control/brief, any extension = 30 at the base, 0 at the head. Re-derived
+RESULT step 6, layout reference arm: 30 lines / 15 distinct line numbers at the base, 3 at the head. The body's corrected figure re-derives (round 1 I could not re-derive "16"; that sentence is gone)
+RESULT step 4, claim files: diff touches no golden, no claim file, no card; both claim files byte-identical to the base. Nothing owes a claim
+RESULT step 5, VERSION / manifest / RELEASE_NOTES heading: untouched
+RESULT step 7, head: the body's ## Head names a0743cfa2727cd010020e5aa39be31f443c37869, the head I measured
+RESULT step 10, forward-carry: corrected. carry-201's entry 5 records the round4 residual with its control and precondition, and the body now names R9-RO-9 as carry-1922.json's stage -- both verified present
+RESULT step 11, checks: no failure on any commit of the branch. a4ee12b17 / 32d426082 / 44fa770fc carry 0 runs; the head carries 42, 28 success / 13 skipped / 1 IN PROGRESS (`closures`, 117349622560) / 0 failure. The root-cause trigger does not fire; the body's corrected ## Red checks names the cancelled generation at 04fcb74f2 (8 cancelled, 0 failure), which I re-derived
+RESULT step 13, merge-tree: `git merge-tree --write-tree origin/main a0743cfa2` exits 0, no stderr, no MERGE-CLAIM line
+RESULT step 14, metric-gamed: closures.json has 0 removed lines; `_is_citation_source`'s set is EXACTLY the arm's read set (49 == 49, both differences empty); `closure.orphan_files()` = 0; planting a non-read file (SECURITY.md) into _CITATION_POLICY is still refused by orphan_files. Not earned by the instrument
+RESULT step 15, architecture: sound on added lines. The scope map is a real improvement (it removes the flat-map over-fire, M6), one concern one owner, no parallel mechanism, and the class is pinned in-tree by the arm's own 23 plants and 3 held controls
+RESULT step 12, head at posting: re-read with `git ls-remote origin refs/heads/fix/r10-stale-paths-2-pr` and `gh pr view 2344` -- see the posting line
 ```
-
-## Not verified
-
-- The layout reference-arm figure **"16 lines at the merge base"** does not
-  re-derive: I read 30 lines / 15 distinct line numbers for
-  `dev/programme/carries/carry-201.json` at `92accb2cf` (evidence
-  `layout_base.txt`). 30 is the whole file's reference-arm count and equals the
-  F4 probe's count; 15 is the distinct line numbers. I could not find a rule
-  yielding 16. The head figure (3) re-derives, and the fix's effect does not turn
-  on it, so this is a note and not the block.
-- Body figures I took as CI's or did not re-run: `entities.py`'s full "ALL 2333
-  ENTITY CHECKS PASSED" and `harness_headers.py`'s 109 (heavy runs are CI's,
-  `fix-review.md` step 11). I did re-run the cheap ones:
-  `tests/structure.py` -> STRUCTURE RATCHET PASSED;
-  `tests/closure.py selftest` -> ALL 115 closure shrink pins PASSED;
-  `tests/layout.py --guard` -> 0 refusal(s) against 92accb2cf.
 
 ## Notes, not blocks
 
-- The body's `## Friction` asks whether a reviewer's one-shot driver belongs in
-  the tree (`fixer.md` 18). It does not, on this reading: 18 binds what a *later
-  round or seat reruns*, and the class is re-runnable from the in-tree plants.
-  The friction is real but its resolution is "no", which the body has already
-  recorded.
-- `dev/programme/delivery/2344.md` is the row-only commit on top of the authored
-  head, so the head's own runs and the code head's are the same tree for every
-  path this verdict measures.
+- `tests/structure.py` -> STRUCTURE RATCHET PASSED; `tests/closure.py selftest`
+  -> ALL 115 closure shrink pins PASSED; `tests/layout.py --guard` -> 0
+  refusal(s) against `e3f3b312`. `entities.py`'s full run is CI's (`fix-review.md`
+  step 11).
+- The `closures` check is still IN PROGRESS at this head, so a required context
+  has not concluded. It gates a `merge`, not this verdict; a confirmer should see
+  it green before relying on the head.
+- The body's `## Friction` (does a reviewer's one-shot driver belong in the tree)
+  is unchanged and correctly answered "no": step 18 binds what a later seat
+  reruns, and the class is re-runnable from the in-tree plants. My `cls_enum.py`
+  and `cls_enum2.py` are mine, not the finder's and not the fixer's, and are in
+  the evidence.

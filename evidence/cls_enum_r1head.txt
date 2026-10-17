@@ -9,27 +9,29 @@
   cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
 PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
 PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
+PASS the cited-program arm follows a path literal through every open shape the round-1 review p
+PASS every carry and every policy file this arm reads for citations selects this script, so a b
 READS   one-hop name
-ESCAPES two-hop alias
-ESCAPES two-hop alias via join
+READS   two-hop alias
+READS   two-hop alias via join
 READS   pathlib / in open
-ESCAPES pathlib / then read_text
-ESCAPES pathlib / via name then read_text
-ESCAPES f-string root prefix
+READS   pathlib / then read_text
+READS   pathlib / via name then read_text
+READS   f-string root prefix
 READS   f-string bare
-ESCAPES dict value then subscript
-ESCAPES tuple-unpack assign
-ESCAPES annotated assign
+READS   dict value then subscript
+READS   tuple-unpack assign
+READS   annotated assign
 READS   str concat
 READS   read via json.loads(Path.read_text)
-ESCAPES three-hop alias
+READS   three-hop alias
 READS   chained assign
 ESCAPES walrus bind
 ESCAPES for-target bind
 ESCAPES func-param default
-ESCAPES list index
-ESCAPES tuple index
-ESCAPES dict key by name
+READS   list index
+READS   tuple index
+READS   dict key by name
 ESCAPES attr bind (ns)
 ESCAPES augassign
 READS   percent-format
@@ -38,12 +40,12 @@ READS   conditional expr
 READS   os.path.join first arg
 ESCAPES Path receiver .open()
 ESCAPES named receiver .open()
-ESCAPES named receiver .read_bytes()
+READS   named receiver .read_bytes()
 ESCAPES receiver .open() in with
-ESCAPES star-unpack
+READS   star-unpack
 READS   global-in-func
-ESCAPES nested f-string attr
+READS   nested f-string attr
 NULL held-literal (must be READS=False): False
-ESCAPE_COUNT 24 OF 34
-ESCAPES ['two-hop alias', 'two-hop alias via join', 'pathlib / then read_text', 'pathlib / via name then read_text', 'f-string root prefix', 'dict value then subscript', 'tuple-unpack assign', 'annotated assign', 'three-hop alias', 'walrus bind', 'for-target bind', 'func-param default', 'list index', 'tuple index', 'dict key by name', 'attr bind (ns)', 'augassign', 'pathlib joinpath', 'Path receiver .open()', 'named receiver .open()', 'named receiver .read_bytes()', 'receiver .open() in with', 'star-unpack', 'nested f-string attr']
-ARM PASS [True, True]
+ESCAPE_COUNT 9 OF 34
+ESCAPES ['walrus bind', 'for-target bind', 'func-param default', 'attr bind (ns)', 'augassign', 'pathlib joinpath', 'Path receiver .open()', 'named receiver .open()', 'receiver .open() in with']
+ARM PASS [True, True, True, True]

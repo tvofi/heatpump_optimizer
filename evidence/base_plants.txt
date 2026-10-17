@@ -1,14 +1,4 @@
-### BASE root=/private/tmp/rev-2344-base head=92accb2cff702c910d33ee1a276d38f5b482061c
---- bare (no ARM_EXTRA): the arm's own checks ---
-  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: runs
-  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
-  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
-  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
-  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
-PASS every program live policy or a carry's remeasure tells a seat to run, under a historical p
-PASS the cited-program arm: a cited harness that runs passes, a planted opened stale path and a
-ARM PASS [True, True]
---- with the round-1 plants.py as ARM_EXTRA ---
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
 <unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
 <unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
 <unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
