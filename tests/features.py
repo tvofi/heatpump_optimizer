@@ -64436,11 +64436,14 @@ R.check(
 # for single-zone (unchanged by the fix). The single-zone arm and the ratio-1.0
 # two-zone arm are the controls; the ratio-1.6 two-zone arm is the split.
 from heatpump_optimizer.optimizer import HeatPumpOptimizer as _fst_opt  # noqa: E402
+from types import SimpleNamespace as _fst_ns  # noqa: E402
+from dataclasses import replace as _fst_replace  # noqa: E402
+from profiles import house as _fst_house  # noqa: E402
 
 _fst_rows = []
 for _fst_zone, _fst_ratio in ((False, 1.0), (True, 1.0), (True, 1.6)):
-    _fst_p = _dc_replace(
-        ThermalParameters.from_config(_grad_house(two_zone=_fst_zone, dhw=False)),
+    _fst_p = _fst_replace(
+        ThermalParameters.from_config(_fst_house(two_zone=_fst_zone, dhw=False)),
         lower_floor_loss_ratio=_fst_ratio,
         house_heat_loss_scale=1.0,
         wind_sensitivity=0.0,
@@ -64452,9 +64455,9 @@ for _fst_zone, _fst_ratio in ((False, 1.0), (True, 1.0), (True, 1.6)):
         else _fst_p.heat_loss_coefficient
     )
     _fst_out = _fst_opt._analyze_forecast_trajectory(
-        _NS(
-            model=_NS(params=_fst_p, compute_solar_gain=lambda sr: 0.5),
-            config=_NS(target_temp=21.0),
+        _fst_ns(
+            model=_fst_ns(params=_fst_p, compute_solar_gain=lambda sr: 0.5),
+            config=_fst_ns(target_temp=21.0),
         ),
         solar_radiation=np.full(24, 400.0),
         wind_speeds=np.zeros(24),
