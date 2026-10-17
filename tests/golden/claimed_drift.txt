@@ -657,5 +657,21 @@
 # No plan, schedule or solver fixture moves.
 # R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below
 # is space_reasons or dhw_reasons. No value leaf moves.
+#
+# R10-RATIO-SITES (#2239): this branch claims these three and nothing else.
+# `_house_ua_kw_per_c` prices the whole house from the two-zone split (upper
+# 0.10 + lower 0.09 = 0.19) where `typical_heat_loss` read the configured
+# single-zone `heat_loss_coefficient` (0.15), so the forecast summary's
+# typical heat loss rises by 0.19/0.15 and `solar_fraction` falls. Every
+# moved leaf is that summary or the plan it seeds. Direction, measured at
+# head against 81b7aa9ff in one environment (CI runner, CPython 3.13,
+# numpy 2.4.6): solar_reduction_factor 0.98877 -> 0.991134 and
+# pre_heat_urgency 0.15754 -> 0.162269 both RISE (less solar share, so less
+# reduction and more urgency), and displace_schedule moves by 0.1 at the
+# leaves named per fixture. No price, cost, outdoor, price_known or
+# baseline_cost leaf moves.
+valve_storage_flat_prices  # R10-RATIO-SITES (#2239): displace_schedule[33] -18.4 -> -18.3; pre_heat_urgency and solar_reduction_factor rise as above
+valve_storage_low_target  # R10-RATIO-SITES (#2239): displace_schedule[1] 3.7 -> 3.8 and [21] 7.3 -> 7.4; pre_heat_urgency and solar_reduction_factor rise as above
+valve_storage_small_tank  # R10-RATIO-SITES (#2239): displace_schedule[21] 9.8 -> 9.9 and [41] -13.7 -> -13.6; pre_heat_urgency and solar_reduction_factor rise as above
 
 
