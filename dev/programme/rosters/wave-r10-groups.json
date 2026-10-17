@@ -89,9 +89,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 1 of 25; before you: none; next: R10-TARIFF, R10-FEEDS). Owning seam in this group: `_command_valve_target` and the set-point write path only; `_roll_month`'s monthly booking belongs to R10-TARIFF, which merges next on coordinator.py. Shape: route every set-point write through the inputs owner; no new state on the coordinator. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2285",
     "branch": "handoff/r10-fahrenheit",
-    "commit": null,
+    "commit": "19ff374e9298e64a19edb5217b38c1dc7e941c08",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -157,9 +157,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 3 of 25; before you: R10-FAHRENHEIT, R10-TARIFF; next: R10-RATIO-SITES, R10-VENT-DETECTOR). Owning seam in this group: the price and weather ingest methods named above. Shape: an age-bounded last-known holder plus a distinct failure value; no new coordinator attributes beyond one holder (coordinator_attrs is at zero headroom). Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-review: #2336 (mutation-autofix awaited; delivery row owed)",
     "branch": "handoff/r10-feeds",
-    "commit": null,
+    "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -209,7 +209,8 @@
    "carry": [
     "D-2 (D2-s3-73) is REFUTED by the catch-up judge: the finder's oracle feeds `adoption_decision` a basis the production fit never returns. Do not fix `_zone_heat_loss` or `adoption_decision` here. The orchestrator removes D2-s3-73 from #2239's body.",
     "Null control: ratio 1.0 drives the error to 0.0000 (`--ratio 1.0` on the reseed harness).",
-    "This group precedes R10-SCORES, the identifiability groups (R10-VENT-DETECTOR, R10-NIGHT-FOLDS, R10-LEARNER-ETA, R10-COP-GATE) and R10-TRUST-RELATIVE, which read the same inputs."
+    "This group precedes R10-SCORES, the identifiability groups (R10-VENT-DETECTOR, R10-NIGHT-FOLDS, R10-LEARNER-ETA, R10-COP-GATE) and R10-TRUST-RELATIVE, which read the same inputs.",
+    "From R10-FEEDS (#2336): any new warning/error log site or a bisect-right-minus-one lookup in the package must route through the transition-latch and covering-slot helpers that fix introduces, or be added to the matching list in `tests/entities.py` with its reason \u2014 the barrier's arms there refuse a new unbounded lookup or an unlatched warning."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 25; before you: R10-TARIFF, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -263,7 +264,8 @@
    ],
    "carry": [
     "Null control: delivery 1.0 reads 0 trips before and after; the fix must keep a real open-window signature tripping (plant one).",
-    "R10-NIGHT-FOLDS (G-ID-1) runs after this group and is re-measured on the owner's bundle once both land; the deferred joint estimator (G-ID-5) is decided only after that re-measurement."
+    "R10-NIGHT-FOLDS (G-ID-1) runs after this group and is re-measured on the owner's bundle once both land; the deferred joint estimator (G-ID-5) is decided only after that re-measurement.",
+    "From R10-FEEDS (#2336): any new warning/error log site or a bisect-right-minus-one lookup in the package must route through the transition-latch and covering-slot helpers that fix introduces, or be added to the matching list in `tests/entities.py` with its reason \u2014 the barrier's arms there refuse a new unbounded lookup or an unlatched warning."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 5 of 25; before you: R10-FEEDS, R10-RATIO-SITES; next: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR). Owning seam in this group: `_vent_cusum` and `_learning_frozen`. Shape: a detector input independent of the replay residual. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -630,9 +632,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chains: coordinator.py (position 2 of 25; before you: R10-FAHRENHEIT; next: R10-FEEDS, R10-RATIO-SITES); optimizer.py (position 1 of 4; before you: none; next: R10-LEAF-IMPORTS, R10-SAV-REASONS). Owning seams in this group: the peak-day keyword arguments in optimizer.py, and `_roll_month`'s monthly booking in coordinator.py (the #2230 fix) and nothing else in coordinator.py. Shape: one billing record. Touch only the owning seams named here; a hunk outside them is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2282",
     "branch": "handoff/r10-tariff",
-    "commit": null,
+    "commit": "4c01a3dc2ba7420cd60bfbf798be9198e883ef74",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -800,9 +802,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 1 of 5; before you: none; next: R10-UX-SETUP, R10-ADVISOR). Owning seam in this group: the new link helper and its test only. Shape: one pure helper; the three call sites stay for their groups. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2283",
     "branch": "handoff/r10-deeplink",
-    "commit": null,
+    "commit": "07c5c7c3457566e7743efc0608ba0d14b30bfb43",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -859,7 +861,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-ux-setup",
     "commit": null,
     "last_step": null,
@@ -1247,9 +1249,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2329",
     "branch": "handoff/r10-registry-leak",
-    "commit": null,
+    "commit": "81ae048e8bbdf2335fe2016e987ec2739481f293",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -1298,7 +1300,7 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-pump-model",
     "commit": null,
     "last_step": null,
@@ -1469,9 +1471,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done (#2290 merged d8c13ac5b)",
     "branch": "handoff/r10-services-guard",
-    "commit": null,
+    "commit": "d8c13ac5bddfafad52ed385fca5a9d170608feba",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -1527,13 +1529,16 @@
    "after": [],
    "carry": [
     "A weight change re-records expected.json and states the reason in the commit message.",
-    "This group runs BEFORE R10-BRIEFS-FOLD, so the folded D7 brief can cite the new counters, and before R10-PARAMS-OWNER, whose D7-s1-82 credit is re-measured on the extended census."
+    "This group runs BEFORE R10-BRIEFS-FOLD, so the folded D7 brief can cite the new counters, and before R10-PARAMS-OWNER, whose D7-s1-82 credit is re-measured on the extended census.",
+    "From R10-STRUCTURE-BLIND (#2235): after that group merges, your corpus re-measure starts from `dead_members` 85 stored trees higher and `a3_dead_by_reachability_fix` reads IMPROVES; re-recording `expected.json` from a base without that change turns that verdict back to NULL. Re-measure from the post-STRUCTURE-BLIND base.",
+    "From R10-STRUCTURE-BLIND: `tools/audit/archscore/metrics/common.py` defines `HA_CONVENTION_METHODS` and `is_ha_method` and nothing reads either (grep returns only the definition), while its key omits hvac_mode/preset_mode/available and has drifted from `tests/structure.py`'s copy. Dead code in this group's file class.",
+    "Precondition from R10-STRUCTURE-BLIND (#2340, merged before you): it keys dead members and sums max_class_loc in tests/structure.py, so the structural ratchet and the archscore corpus re-measure differ from the pre-#2340 merge base. Re-derive your corpus (calibrate.py --measure-corpus) and your a3_dead_by_reachability_fix verdict against #2340's measurement: dead_members and duplication_copies counts shift (the 85-of-87-tree corpus delta on dead_members is this change, not a regression), and a3_dead_by_reachability_fix reads IMPROVES at #2340's head where the pre-#2340 base reads NULL."
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r2; p4/p5 not started",
     "branch": "handoff/r10-archscore-coverage",
-    "commit": null,
+    "commit": "acfeaf8b4eba86d458a706cb3f5165635a1945bf",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2128,9 +2133,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done (#2284 merged 8747bbfc4; #2219 closed)",
     "branch": "handoff/r10-i1",
-    "commit": null,
+    "commit": "8747bbfc4d4628fa8419634792229fd15dcc21e2",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2177,9 +2182,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2323",
     "branch": "handoff/r10-pre-edit-hook",
-    "commit": null,
+    "commit": "0570b86e9351dfeda88d630093cfe4d442a6d664",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2230,9 +2235,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2294",
     "branch": "handoff/r10-policy-lint-stats",
-    "commit": null,
+    "commit": "98fe51b42b5c5e0fd0392fdc88f49f2a9fd12ac9",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2279,9 +2284,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done (#2275 merged 74cf47b9c; #2225 CLOSED)",
     "branch": "handoff/r10-gate-yield",
-    "commit": null,
+    "commit": "74cf47b9c402c2c780cba13cf6e34655a2967a02",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2331,9 +2336,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2289",
     "branch": "handoff/r10-stale-paths",
-    "commit": null,
+    "commit": "7215e39df7a122a319be0f6ab2d3e49853325b21",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2383,9 +2388,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-review: PR opening",
     "branch": "handoff/r10-structure-blind",
-    "commit": null,
+    "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2496,9 +2501,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "b,d,j merged in #2281 (49a98d739); a,c open",
     "branch": "handoff/r10-tick-orch",
-    "commit": null,
+    "commit": "49a98d739",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2600,9 +2605,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done: merged #2305",
     "branch": "handoff/r10-tick-train",
-    "commit": null,
+    "commit": "dc6390b08e538f54f9574cf591f1191028cfc2ce",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2648,14 +2653,14 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-prepr-cap",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "The prepr cap of 4 is advisory: at 22:57 on 2026-10-14 the tick read 10 prepr runs, each spawning a nested chain of self-test runs, and load1 reached 168 on 8 cores. Each seat starts prepr independently and nothing enforces the cap, unlike the gate lease. Measure first: the cost of the nested self-test chain per prepr run; then have tools/pr/prepr.sh take a lease from tests/gate_lock.py (4 heavy slots).\n\nForward-carried (finding-propagation.md): (1) Measure before fixing; an independent reviewer is owed (it is the orchestrator's own instrument).\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+   "brief": "`tools/pr/prepr.sh` runs unleased and each seat starts one independently, so the tick read 8+ concurrent preprs (each spawning its nested `--self-test`) and load hit ~168 on 8 cores; `nudge.md` \u00a78's \"up to four\" is advisory \u2014 the tick counts and flags it, nothing blocks a fifth.\n\nTake the gate lease beyond `stress.py`: `tests/gate_lock.py` gains a **slot-counted lease beside the exclusive one** \u2014 default **4** slots (a slot-count environment override, clamped to \u2264 4 without the owner), taken FIFO with the existing lease/expiry/orphan-steal machinery, released on exit; `needs-lease` grows a third answer **`slot`** beside `lease`/`none`. `prepr.sh` takes **one slot for its whole life** and exports a slot-label environment variable so its heavy steps (self-test ~172 s, mutants drive ~127 s, the scoped closures recordings) run *inside* that slot and do not re-acquire; `tests/derive_closures.sh` takes a slot only **standalone** (else two seats' four-lane derives stack to eight). The exclusive lease stays exclusive for the scripts whose numbers are comparable only alone \u2014 `stress.py` and, within the mutation pool, `harness_headers.py`. The rule: **machine-measuring \u21d2 exclusive; multi-minute CPU-bound \u21d2 join the four slots; seconds \u21d2 no lease** (`structure.py` ~11.5 s and `layout.py` ~17 s are the seconds side; the recordings \u2265 69 s are the minutes side). `gate-scoping.md` and `nudge.md` \u00a78 state the scope and that the lease \u2014 not the tick's count \u2014 is the enforcement.\n\n**Measure first** (finding-propagation.md, carried from the lead): the run must show prepr taking and releasing a slot, four concurrent preprs admitted, a fifth queued, and a nested heavy step *not* re-acquiring; an independent reviewer is owed (this is the orchestrator's own instrument).\n\n**Forward-carried:** (1) `gate-scoping.md` is policy and sits at its per-file line cap \u2014 the prose is line-neutral or the cap is re-recorded with the owner's approval; (2) `dev/governance/rules/*` is the canon and `.claude/rules/`, `.cursor/rules/` regenerate via `rules_sync`; (3) `nudge.md` is policy \u2014 the owner reviews it before merge.\n\n**Identity and flow:** the seat pushes refs only, through `tools/audit/seat/handoff_push.sh` and `tools/audit/seat/bus.sh`; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh `origin/main` in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow `dev/governance/roles/fixer.md`: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, `tests/structure.py` before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: **policy \u2014 `dev/governance/rules/gate-scoping.md` and `dev/governance/roles/nudge.md` need the owner's approving review.** Models: fixer sonnet, reviewer opus. Closing: the pull request names #2267 in prose with a closing keyword; the orchestrator verifies it closed after the merge."
   },
   {
    "group": "R10-D15-GRADER",
@@ -2763,6 +2768,7 @@
     "Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose.",
     "If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).",
     "From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed.",
+    "From R10-ARCHSCORE-COVERAGE part 3 (#2320): the D7 brief must state what the layering counters do not see \u2014 a private crossing spelled `getattr(_o, \"_x\"+suffix)`, `vars(_o)[\"_x\"]` or through a rebound alias (C18's class); C19's tripwire satisfied by one bare read; and `a3_private_cross_module_fix` being a pure private-to-public rename. The measurements live in `tools/audit/archscore/ABOUT.md` under \"What R10-ARCHSCORE-COVERAGE part 3 moved\", with the attempt ids; cite them and re-measure at your merge base.",
     "From #2275: web-fix-wave.js now teaches two block classes, root-cause-detectable and root-cause-unrecorded (both block and route to the root-cause seat). dev/governance/roles/fix-review.md step 11 must teach the same two words, because hand-run reviews read the contract, not the web-wave prompt. The next D13 bucketing (blocks_friction) and the D14 enumerator must place both words. fix-review.md is policy at zero headroom: pay for it within the cap.",
     "From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them."
    ],
@@ -2815,7 +2821,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-replay-loopnorm",
     "commit": null,
     "last_step": null,
@@ -3078,7 +3084,7 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-stale-paths-2",
     "commit": null,
     "last_step": null,
@@ -3136,7 +3142,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-ref-privacy",
     "commit": null,
     "last_step": null,
@@ -3186,7 +3192,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress: fixer dispatched",
     "branch": "handoff/r10-deeplink-census",
     "commit": null,
     "last_step": null,

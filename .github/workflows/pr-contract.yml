@@ -299,9 +299,44 @@ jobs:
         if: always()
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
 
+      # preflight.sh refuses a closing keyword whose number is not in the
+      # intended list it is given. A seat states that list (the roster group's
+      # `fixes`) on prepr.sh; CI has no seat, so it derives the list here. The
+      # key is the issue NUMBER, not the branch: a group's `resume.branch` is a
+      # handoff path (`handoff/r10-tariff`) that the fix branch drifts from
+      # (`fix/r10-tariff-pr`), and `group_for_branch`'s last-segment fallback
+      # does not answer for the `-pr` suffix. The number is the one field the
+      # body and every roster share.
+      #
+      # WHAT IS REFUSED: a `Closes #N` where N is a roster issue no group names
+      # in `fixes` -- a "Part of" issue given a closing keyword (the brief's
+      # rule: closing keyword only for `fixes`). An unrostered N is an ad-hoc
+      # fix the roster cannot verify (e.g. #2212 closes #2205, in no roster),
+      # so it is treated as intended rather than refused -- refusing it would
+      # be the over-fire this step exists to end.
+      #
+      # `|| true` is gone: it swallowed the refusal, so the check bound
+      # nowhere. Before, no intended list was passed (every `Closes` was
+      # refused) and the refusal was discarded; a genuine refusal now fails
+      # the step.
       - name: Pre-flight the body for unmeasured claims
         if: always()
-        run: if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh < /tmp/pr-body.md; else bash tools/pr/preflight.sh < /tmp/pr-body.md; fi|| true
+        run: |
+          set -euo pipefail
+          # jq, NOT python. The derivation must stay on this job's pin
+          # allowlist (`codeowners_gap.py`'s admitted(): no heredoc, no `-c`,
+          # no `-`). A `python3 - <<'PY'` heredoc is not an admitted command, so
+          # it taints the job from its line on and unpins every file after it --
+          # `tools/pr/preflight.sh` just below and `tools/pr/prepr.sh` in the
+          # version-edit step, both of which the restore above puts back from
+          # the base. That unpinning is what `codeowners_gap.py --check` refuses
+          # (#1515; decision 0013), so a rewrite back to python must keep an
+          # admitted command or the pin falls. Same extraction and set
+          # arithmetic as the seat's prepr.sh states: closes = a number after a
+          # closing keyword; never = a roster `issues` number no group names in
+          # `fixes`; intended = closes minus never.
+          INTENDED=$(jq -rs --rawfile body /tmp/pr-body.md '. as $r | [$r[].groups[]? | .fixes[]?] as $fixes | [$r[].groups[]? | .issues[]?] as $issues | [$issues[] | select(. as $n | ($fixes | index($n)) == null)] as $never | [ $body | match("\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s*:?\\s+(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)([0-9]+)"; "gi") | .captures[0].string | tonumber ] as $closes | [$closes[] | select(. as $n | ($never | index($n)) == null)] | unique | sort | map(tostring) | join(" ")' dev/programme/rosters/wave-r*-groups.json)
+          if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh $INTENDED < /tmp/pr-body.md; else bash tools/pr/preflight.sh $INTENDED < /tmp/pr-body.md; fi
 
       # CLAUDE.md rule 4, refused where it binds. `prepr.sh` step 5 held this
       # check and ran only on a seat's own machine; the self-test above drives
