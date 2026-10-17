@@ -406,15 +406,8 @@ def check(ref: str) -> int:
                               text=True, check=True).stdout
 
     bad = registry_refusals(found, text_of)
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import tmp_paths
-    base = tmp_paths.ledger_base(ref)
-    if base is None:
-        print(f"ref_privacy: content SKIP -- no merge base with origin/main and no parent of {ref}")
-        added = []
-    else:
-        added = added_lines(base, ref)
-        bad += content_refusals(added)
+    base, added, refused = content_check(ref)
+    bad += refused
     for line in bad:
         print(f"ref_privacy: REFUSE {line}", file=sys.stderr)
     guarded = sum(1 for p in found if PUSHERS.get(p, ("",))[0] == GUARDED)
@@ -433,6 +426,18 @@ def check(ref: str) -> int:
 # runner the identity is a public account, so the host-path and scratch-root
 # shapes are what judge there; on a seat its own home, name and uid join them.
 # The remedy is `scrub`, which rewrites only this host's spans.
+
+def content_check(ref: str, root: Path = ROOT, ident: Identity | None = None):
+    """(base, added lines, refusals) for `ref` against tmp_paths.ledger_base: what --check runs."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import tmp_paths
+    base = tmp_paths.ledger_base(ref, root)
+    if base is None:
+        print(f"ref_privacy: content SKIP -- no merge base with origin/main and no parent of {ref}")
+        return None, [], []
+    added = added_lines(base, ref, root)
+    return base, added, content_refusals(added, ident)
+
 
 def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, str]]:
     """(path, line, text) for every line `base..ref` adds that it does not also remove."""
@@ -499,6 +504,7 @@ def scrub(text: str, ident: Identity) -> str:
 # Self-test: synthetic identity only; the host's own name is never planted.
 
 def self_test() -> int:
+    import inspect
     import tempfile
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_env, throwaway_git_init
@@ -766,7 +772,11 @@ def self_test() -> int:
         Path(td, "moved.log").write_text(stock)  # moved out of rec.log, not added
         Path(td, "other.log").write_text("ran at " + under("home", "someone", "w") + "\n")
         g("add", "-A"); g("commit", "-q", "-m", "plant")
-        bad = content_refusals(added_lines(base, "HEAD", Path(td)), fid)
+        g("update-ref", "refs/remotes/origin/main", base)
+        got_base, _, bad = content_check("HEAD", Path(td), fid)
+        ok("--check's content arm judges the diff from the merge base with origin/main", got_base == base)
+        ok("and check() runs it (a pin by text: check() itself needs the real tree's pushers)",
+           "content_check(ref)" in inspect.getsource(check))
         ok("a diff adding a line naming the host's scratch path is refused, by line and class",
            any(b.startswith("rec.log:2: account-name, uid, scratch-root, host-path") for b in bad), str(bad))
         ok("and one naming another machine's home, by the host-path shape a runner can see",
