@@ -24,14 +24,22 @@ Plants:
   W*       two seams this fix found for itself: a global the census cannot see
            the use of, read behind a feature test, and the history object's own
            back step behind a name built at run time.
+  Z2, Z3   the round-5 review's two written spellings in the chart's undriven
+           keydown handler -- an indirect open (`globalThis.open.call(...)`)
+           and `navigateTo ("...")` with a space before the paren -- plus the
+           other written invocation forms the name rules must catch (`.apply`,
+           a computed key, `Reflect.apply`, `.call` on the reach side, a
+           newline before the paren). Z3c is the control: the standard spelling
+           in the same position is red on reach.
   X*       this fix's own lines, each mutated where a plant it closes sits
-           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z): if the mutant alone
-           leaves the plant green, the plant's catch DEPENDS on that line, and
-           a fix line whose removal changes no check is a line this census does
-           not need. X1, X2, X3, X4, X5 and X6 alone are the detector
-           demonstrations -- the check each line carries is red without it.
-           X7 and X7K1b are the other shape: with the surface member gone the
-           plant is red only as a crash, which is what the member replaces.
+           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z, X6Z2, X9Z3): if the
+           mutant alone leaves the plant green, the plant's catch DEPENDS on
+           that line, and a fix line whose removal changes no check is a line
+           this census does not need. X1, X2, X3, X4, X5, X6 and X9 alone are
+           the detector demonstrations -- the check each line carries is red
+           without it. X7 and X7K1b are the other shape: with the surface
+           member gone the plant is red only as a crash, which is what the
+           member replaces.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
@@ -78,8 +86,30 @@ K5B = card(DISMISS, '        globalThis["open"]("/config/entities", "_self");\n'
 K1B = after_nav('globalThis[["navi", "gation"].join("")].navigate("/config/entities");')
 K2B = after_nav('{ const f = document.createElement("form"); f.setAttribute("action", "%s"); root.appendChild(f); }' % P)
 K3T = after_nav('try { const ev = new Event(%s, { bubbles: true, composed: true }); ev.detail = { entityId: "sensor.x" }; globalThis.dispatchEvent(ev); } catch (_e) { /* no router */ }' % RUNTIME_MORE_INFO)
-Z_KEYDOWN = card('      const wantsRemove = key === "Delete" || key === "Backspace";',
-                 '      open("/config/entities", "_self");\n      const wantsRemove = key === "Delete" || key === "Backspace";')
+KEYDOWN = '      const wantsRemove = key === "Delete" || key === "Backspace";'
+Z_KEYDOWN = card(KEYDOWN, '      open("/config/entities", "_self");\n' + KEYDOWN)
+# The round-5 review's two written spellings that passed both arms in that same
+# unreached handler: an indirect `open` (`open.call(` names the member without
+# matching a `open(` token) and `navigateTo` split from its `(` by a space. Z3c
+# is the control: the standard spelling in the same position is red on reach,
+# so the space alone is what hid the call.
+Z2_KEYDOWN_OPEN_CALL = card(
+    KEYDOWN, '      globalThis.open.call(globalThis, "/config/entities", "_self");\n' + KEYDOWN)
+# The other written ways to invoke the member by name, so the round closes the
+# CLASS the review's spelling belongs to rather than that one spelling: an
+# `.apply`, a computed string key, a function value handed to `Reflect.apply`,
+# and the same on the reach side. Each must be refused by the census's name
+# rules wherever it is written.
+Z2B_KEYDOWN_OPEN_APPLY = card(
+    KEYDOWN, '      globalThis.open.apply(globalThis, ["/config/entities", "_self"]);\n' + KEYDOWN)
+Z2C_KEYDOWN_OPEN_BRACKET = card(
+    KEYDOWN, '      globalThis["open"]("/config/entities", "_self");\n' + KEYDOWN)
+Z2D_KEYDOWN_OPEN_REFLECT = card(
+    KEYDOWN, '      Reflect.apply(globalThis.open, globalThis, ["/config/entities", "_self"]);\n' + KEYDOWN)
+Z3_KEYDOWN_NAV_SPACE = card(KEYDOWN, '      navigateTo ("/config/entities");\n' + KEYDOWN)
+Z3B_KEYDOWN_NAV_CALL = card(KEYDOWN, '      navigateTo.call(globalThis, "/config/entities");\n' + KEYDOWN)
+Z3D_KEYDOWN_NAV_NEWLINE = card(KEYDOWN, '      navigateTo\n        ("/config/entities");\n' + KEYDOWN)
+Z3C_KEYDOWN_NAV_SPACE_CONTROL = card(KEYDOWN, '      navigateTo("/config/entities");\n' + KEYDOWN)
 # The two seams this fix found for itself.
 W1 = after_nav('if (globalThis.frames) globalThis.dispatchEvent(new Event("nothing-to-see"));')
 W2 = after_nav('globalThis[["hist", "ory"].join("")].go(-1);')
@@ -94,8 +124,13 @@ X1 = test('    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =
 X3 = test('  for (const at of ["href", "action", "formaction"]) {', '  for (const at of ["href"]) {')
 X4 = test('    if (typeof type === "string" && !EVENT_TYPES.has(type)) {', '    if (false) {')
 X5 = test('      unknown.add(name);\n      return uninstrumented(name);', '      return undefined;')
-X6 = test('  { what: "a bare open()", re: /(?<![.\\w$])open\\s*\\((?!\\s*\\)\\s*\\{)/ },',
-          '  { what: "a bare open()", re: /(?<![.\\w$])_unwatched\\s*\\(/ },')
+X6 = test('  { what: "the open member, named", re: /\\bopen\\b/, exact: true },',
+          '  { what: "the open member, named", re: /(?!)open/, exact: true },')
+# The reach rule enumerates every mention of a link function; the pre-fix form
+# enumerated the `name(` call-site spelling, which a space before the paren
+# escaped. X9 is that old enumeration, so Z3 must go green under it.
+X9 = test('  const LINK_NAME = /\\b(navigateTo|openHaLink)\\b/;',
+          '  const LINK_NAME = /\\b(navigateTo|openHaLink)\\(/;')
 X7 = test('  sink.navigation.navigate = (u) => { left.push(["navigation", String(u)]); return null; };',
           '  sink.navigation.navigate = undefined;')
 
@@ -152,6 +187,14 @@ PLANTS = {
     "K3t_event_runtime_more_info": K3T,
     "K3c_event_literal_more_info_control": after_nav('globalThis.dispatchEvent(new Event("hass-more-info"));'),
     "Z_open_in_undriven_keydown": Z_KEYDOWN,
+    "Z2_open_call_in_undriven_keydown": Z2_KEYDOWN_OPEN_CALL,
+    "Z2b_open_apply_in_undriven_keydown": Z2B_KEYDOWN_OPEN_APPLY,
+    "Z2c_open_bracket_in_undriven_keydown": Z2C_KEYDOWN_OPEN_BRACKET,
+    "Z2d_open_reflect_in_undriven_keydown": Z2D_KEYDOWN_OPEN_REFLECT,
+    "Z3_navigate_to_space_in_undriven_keydown": Z3_KEYDOWN_NAV_SPACE,
+    "Z3b_navigate_to_call_in_undriven_keydown": Z3B_KEYDOWN_NAV_CALL,
+    "Z3d_navigate_to_newline_in_undriven_keydown": Z3D_KEYDOWN_NAV_NEWLINE,
+    "Z3c_navigate_to_standard_in_undriven_keydown_control": Z3C_KEYDOWN_NAV_SPACE_CONTROL,
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,
     "W3_unicode_global": W3,
@@ -167,8 +210,11 @@ PLANTS = {
     "X4K3t_recordEvent_line_is_what_closes_K3t": X4 + K3T,
     "X5_watch_swallows": X5,
     "X5W1_watch_line_is_what_closes_W1": X5 + W1,
-    "X6_surface_drops_bare_open": X6,
+    "X6_surface_drops_the_open_name": X6,
     "X6Z_surface_member_is_what_closes_Z": X6 + Z_KEYDOWN,
+    "X6Z2_surface_member_is_what_closes_Z2": X6 + Z2_KEYDOWN_OPEN_CALL,
+    "X9_reach_enumerates_call_sites_not_names": X9,
+    "X9Z3_reach_line_is_what_closes_Z3": X9 + Z3_KEYDOWN_NAV_SPACE,
     "X7_sink_drops_navigation": X7,
     "X7K1b_surface_member_names_the_primitive_K1b": X7 + K1B,
     "X8_ascii_grammar": X8,
