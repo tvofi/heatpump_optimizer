@@ -1,0 +1,101 @@
+[
+ {
+  "mutant": "M0",
+  "why": "null control: no mutation",
+  "rc": 0,
+  "fails": [],
+  "tail": "ALL CARD CHECKS PASSED"
+ },
+ {
+  "mutant": "M1",
+  "why": "fitSlotRow wraps -> ellipsizes",
+  "rc": 1,
+  "fails": [
+   "a slot label is drawn whole, wrapped rather than cut",
+   "the six cases really are six different slopes",
+   "and the label is never cut either, at any real length",
+   "a label that fits is left exactly alone"
+  ],
+  "tail": "4 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M2",
+  "why": "unset slots fold -> ordinary rows",
+  "rc": 1,
+  "fails": [
+   "a slot label is drawn whole, wrapped rather than cut",
+   "an unset input folds into its box's one muted line, not a row",
+   "a stale wood-valve payload re-homes its slot onto the wood tank",
+   "the valve's two probes are drawn on the one valve that has them",
+   "every slot is reachable from the diagram: a row, or inside a folded block",
+   "every target on the diagram loses its tab stop while a picker covers it (#1522, P9-f61b)",
+   "the truly absent slot folds, and the fallback row is still a reading",
+   "with no source at all the solar slot folds too",
+   "every configured slot is matched with its own hit rect",
+   "a block that is open sizes its box for the rows it now draws",
+   "the census reached every navigateTo and openHaLink call site"
+  ],
+  "tail": "11 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M8",
+  "why": "open folded block height -> folded height",
+  "rc": 1,
+  "fails": [
+   "a block that is open sizes its box for the rows it now draws"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M3",
+  "why": "card painted -> invisible",
+  "rc": 1,
+  "fails": [
+   "the card is painted from the product's surface, border and radius"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M4",
+  "why": "one precision -> HA precision",
+  "rc": 1,
+  "fails": [
+   "two temperatures on one drawing are spelled to one precision"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M5",
+  "why": "axis measures label -> counts chars (C1)",
+  "rc": 1,
+  "fails": [
+   "the chart's label-width rule is spelled in exactly one place"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M6",
+  "why": "noPlanHtml owns empty state -> second spelling (C4)",
+  "rc": 1,
+  "fails": [
+   "the no-plan empty state is built in exactly one place"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "M7",
+  "why": "finiteNum owns number test -> second spelling (C4)",
+  "rc": 1,
+  "fails": [
+   "the finite-number test is spelled in exactly one place"
+  ],
+  "tail": "1 CARD CHECK(S) FAILED"
+ },
+ {
+  "mutant": "N1",
+  "why": "Configure chip names a page the flow does not use",
+  "rc": 0,
+  "fails": [],
+  "tail": "ALL CARD CHECKS PASSED"
+ }
+]

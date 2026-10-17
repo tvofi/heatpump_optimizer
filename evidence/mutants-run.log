@@ -1,0 +1,32 @@
+M0 rc=0 fails=0 :: null control: no mutation
+M1 rc=1 fails=4 :: fitSlotRow wraps -> ellipsizes
+    FAIL a slot label is drawn whole, wrapped rather than cut
+    FAIL the six cases really are six different slopes
+    FAIL and the label is never cut either, at any real length
+    FAIL a label that fits is left exactly alone
+M2 rc=1 fails=11 :: unset slots fold -> ordinary rows
+    FAIL a slot label is drawn whole, wrapped rather than cut
+    FAIL an unset input folds into its box's one muted line, not a row
+    FAIL a stale wood-valve payload re-homes its slot onto the wood tank
+    FAIL the valve's two probes are drawn on the one valve that has them
+    FAIL every slot is reachable from the diagram: a row, or inside a folded block
+    FAIL every target on the diagram loses its tab stop while a picker covers it (#1522, P9-f61b)
+    FAIL the truly absent slot folds, and the fallback row is still a reading
+    FAIL with no source at all the solar slot folds too
+    FAIL every configured slot is matched with its own hit rect
+    FAIL a block that is open sizes its box for the rows it now draws
+    FAIL the census reached every navigateTo and openHaLink call site
+M8 rc=1 fails=1 :: open folded block height -> folded height
+    FAIL a block that is open sizes its box for the rows it now draws
+M3 rc=1 fails=1 :: card painted -> invisible
+    FAIL the card is painted from the product's surface, border and radius
+M4 rc=1 fails=1 :: one precision -> HA precision
+    FAIL two temperatures on one drawing are spelled to one precision
+M5 rc=1 fails=1 :: axis measures label -> counts chars (C1)
+    FAIL the chart's label-width rule is spelled in exactly one place
+M6 rc=1 fails=1 :: noPlanHtml owns empty state -> second spelling (C4)
+    FAIL the no-plan empty state is built in exactly one place
+M7 rc=1 fails=1 :: finiteNum owns number test -> second spelling (C4)
+    FAIL the finite-number test is spelled in exactly one place
+N1 rc=0 fails=0 :: Configure chip names a page the flow does not use
+DONE
