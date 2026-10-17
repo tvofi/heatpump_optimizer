@@ -1,0 +1,10 @@
+RESULT D1.r1.600.space_demand_vs_dynamics=+0.0000  (6.344 vs 6.344 kW)
+RESULT D1.r1.000.space_demand_vs_dynamics=-0.0000  (4.940 vs 4.940 kW)
+RESULT D2.r1.600.adopted_eff_vs_truth=-0.0007  (admit True reason 'adopted'; scale 0.9993 vs true 1.0; fit heat_loss_kw_per_c 189.9 W/K; true effective 244.0 W/K)
+RESULT D2.r1.000.adopted_eff_vs_truth=-0.0008  (admit True reason 'adopted'; scale 0.9992 vs true 1.0; fit heat_loss_kw_per_c 189.9 W/K; true effective 190.0 W/K)
+RESULT D3.r1.600.no_nameplate.lower_rel=+0.0000 upper_rel=+0.0000 total_rel=+0.0000 (scale 1.000 ratio 1.600)
+RESULT D3.r1.600.lower_to_learned_split.lower_rel=+0.1817 upper_rel=-0.2614 total_rel=+0.0001 (scale 0.739 ratio 1.600)
+RESULT D3.r1.000.no_nameplate.lower_rel=+0.0000 upper_rel=+0.0000 total_rel=+0.0000 (scale 1.000 ratio 1.000)
+RESULT D3.r1.000.lower_to_learned_split.lower_rel=+0.0000 upper_rel=+0.0000 total_rel=+0.0000 (scale 1.000 ratio 1.000)
+RESULT thread_factor=1.000
+RESULT load1=16.19
