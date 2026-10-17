@@ -1193,5 +1193,11 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "NULL"
+ },
+ "rt_41_layer_chain_past_module": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  }
 }

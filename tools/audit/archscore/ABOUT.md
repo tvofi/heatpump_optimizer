@@ -53,7 +53,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
 | C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
 | C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import on the `from` form (27), on the plain dotted `import` with an alias (28) and with the full dotted read (29), through an absolute from-import's module binding (30), from the namespace ABOVE the package -- `import custom_components` aliased (32) and bare (35), `from custom_components import heatpump_optimizer` (33) and aliased (34) -- and as a constant-name `import_module` (26), by its `name` keyword (31), or through a module-level string constant (37), each of them runtime code. Ancestor and descendant are one predicate: the relation of a dotted name to the package's own path, at a dot boundary | 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 40 |
-| C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), from the namespace ABOVE the package (32 to 35), through an attribute or `getattr` chain rooted at one (36), and through a constant-name `import_module` (26), its `name`-keyword form (31) or a module-level string constant (37). A read that resolves to a module is also that module's EDGE, whether the name read off it is public or private -- which is what an import of an ancestor needs, since that statement loads no module of ours; the edge is added once, on the node a dotted chain ENDS on (38, 39) | 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39 |
+| C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), from the namespace ABOVE the package (32 to 35), through an attribute or `getattr` chain rooted at one (36), and through a constant-name `import_module` (26), its `name`-keyword form (31) or a module-level string constant (37). A read that resolves to a module is also that module's EDGE, whether the name read off it is public or private -- which is what an import of an ancestor needs, since that statement loads no module of ours; the edge is added once, at the OUTERMOST point of the chain whose receiver resolves to a module, so a chain that walks past it still takes it (38, 39, 41) | 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
@@ -178,6 +178,12 @@ WORSENS -- and the rule is that the edge lands once, on the node the chain ENDS 
 (`_MOD: str = ".optimizer"`) was refused by the resolver rather than by the model; it reads either spelling
 now (attempt 40).
 
+Round-5 review (`#2320`) found the chain-end test read from the wrong end when a chain walks ON past the
+module: `_cc.<pkg>.optimizer._utc_step_starts.__call__(..)` names `optimizer` four segments down, and the
+outermost receiver resolves to a function, so the edge was taken only where the outermost node resolved.
+`_reached` now searches the chain OUTSIDE IN and returns the module the first receiver resolves to, with
+the name read off it, so a chain that continues past the module is the same arm (attempt 41).
+
 What it does not see, and no rule here closes:
 
 - a private crossing spelled outside the ones C18 counts: `getattr(_o, "_utc" + "_step_starts")`, `vars(_o)["_utc_step_starts"]`,
@@ -187,6 +193,11 @@ What it does not see, and no rule here closes:
   held by a MODULE-LEVEL string constant is NOT in this list: it is statically readable, in either spelling,
   `_MOD = ".optimizer"` or `_MOD: str = ".optimizer"` (attempts 37, 40). The census counts the computed
   form as `dynamic:computed` rather than leaving it out.
+- a module-level string constant bound by UNPACKING, `_MOD, _X = ".optimizer", 1`: `Pkg.tops` records a
+  binding only when the target is an `ast.Name` (`common.py:275`), and the same construct read as
+  `_MOD = ".optimizer"` or `_MOD: str = ".optimizer"` IS closed (attempts 37, 40). Dispositioned rather than
+  closed because the fix is in `metrics/common.py`, a module every architecture metric shares: widening its
+  index to tuple targets moves the whole instrument, which a folding counter should not do (#2320 round 5).
 - a FUNCTION-LOCAL string constant, `_M = ".optimizer"` inside the function that calls `import_module(_M, ...)`.
   OPEN, and recorded rather than closed: `Pkg.tops` is built from the module body, so the resolver reads
   module-level bindings only, and following a local would need the enclosing scope's assignments. A seat
