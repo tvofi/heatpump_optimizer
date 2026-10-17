@@ -29723,21 +29723,31 @@ def _sp_bind_names(node):
 _SP_SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 
 
+_SP_FN_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
 def _sp_scope_map(tree):
-    """((node, enclosing scope) ..., {scope: parent scope}); the module object is
-    the root scope. A binding resolves in the scope that READS it, so a name
-    bound in one function is not read as a same-named binding in another -- the
-    leak that turns a classifier input into an open, which is
-    codeowners_gap.py's `line`, `want` and `ok` (#2344 review, round 1)."""
-    nodes, parent, stack = [], {}, [(tree, tree)]
+    """((node, enclosing scope) ..., {scope: parent scope}, {scope: global names},
+    {scope: nonlocal names}); the module object is the root scope. A binding
+    resolves in the scope that READS it, so a name bound in one function is not
+    read as a same-named binding in another -- the leak that turns a classifier
+    input into an open, which is codeowners_gap.py's `line`, `want` and `ok`
+    (#2344 review, round 1). The `global`/`nonlocal` sets are the one name the
+    reader may re-route: a name declared there is bound in the scope the
+    declaration points to, not the scope that textually holds the assignment."""
+    nodes, parent, glbs, nlcls, stack = [], {}, {}, {}, [(tree, tree)]
     while stack:
         node, scope = stack.pop()
         nodes.append((node, scope))
         inner = node if isinstance(node, _SP_SCOPE_NODES) else scope
         if inner is not scope:
             parent[inner] = scope
+        if isinstance(node, ast.Global):
+            glbs.setdefault(scope, set()).update(node.names)
+        elif isinstance(node, ast.Nonlocal):
+            nlcls.setdefault(scope, set()).update(node.names)
         stack.extend((c, inner) for c in ast.iter_child_nodes(node))
-    return nodes, parent
+    return nodes, parent, glbs, nlcls
 
 
 def _sp_args(node):
@@ -29750,26 +29760,38 @@ def _sp_args(node):
             yield arg, default
 
 
-def _sp_bindings(nodes):
+def _sp_bindings(nodes, parent, root, glbs, nlcls):
     """{scope: {name: [value node]}}: every binding the module makes -- a plain
     or annotated assignment, a tuple/list unpack, a `for` target over a LITERAL
     collection, `+=` and the other augmented targets, a walrus, a parameter
     default, and a `with ... as` target. A `for x in <expression>` target is
     NOT bound: it takes whatever the expression yields, and binding it reads
-    an unrelated loop's classifier inputs as this one's opens."""
+    an unrelated loop's classifier inputs as this one's opens. A name the scope
+    declares `global` is bound in the module (the root) and one it declares
+    `nonlocal` in the nearest enclosing function scope, matching Python's own
+    re-routing of those assignments."""
     scopes = {}
 
+    def eff(scope, nm):
+        if nm in glbs.get(scope, ()):
+            return root
+        if nm in nlcls.get(scope, ()):
+            s = parent.get(scope)
+            while s is not None and not isinstance(s, _SP_FN_SCOPES):
+                s = parent.get(s)
+            return s if s is not None else parent.get(scope)
+        return scope
+
     def bind(scope, targets, value):
-        book = scopes.setdefault(scope, {})
         for t in targets:
             if (isinstance(t, (ast.Tuple, ast.List)) and isinstance(value, (ast.Tuple, ast.List))
                     and len(t.elts) == len(value.elts)):
-                for el, val in zip(t.elts, value.elts):
-                    for nm in _sp_bind_names(el):
-                        book.setdefault(nm, []).append(val)
+                pairs = [(nm, val) for el, val in zip(t.elts, value.elts)
+                         for nm in _sp_bind_names(el)]
             else:
-                for nm in _sp_bind_names(t):
-                    book.setdefault(nm, []).append(value)
+                pairs = [(nm, value) for nm in _sp_bind_names(t)]
+            for nm, val in pairs:
+                scopes.setdefault(eff(scope, nm), {}).setdefault(nm, []).append(val)
 
     for node, scope in nodes:
         if isinstance(node, ast.Assign):
@@ -29818,12 +29840,48 @@ def _sp_reach(node, scopes, parent, scope):
     return out
 
 
+def _sp_path_literal(v):
+    """True when a string is a repository-path-shaped literal -- the same shape
+    `_sp_literals` collects, so the census below and the reader agree on what
+    counts as a path."""
+    return (isinstance(v, str) and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v)
+            and v.split("/")[0] in _SP_TOPS)
+
+
+def _sp_attr_bound(src):
+    """(line, name) for every path literal a module binds to an ATTRIBUTE: a
+    `obj.attr = <path>` target, or a class-body `Name = <path>` read as
+    `ClassName.Name`. `_sp_reach` resolves a read by the attribute NAME and walks
+    up only enclosing scopes, so a path bound to an attribute in one scope and
+    opened in another is the one shape the resolver cannot follow."""
+    tree = ast.parse(src)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
+    out = []
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and node.value is not None:
+            targets = [node.target]
+        else:
+            continue
+        if not any(isinstance(c, ast.Constant) and _sp_path_literal(c.value)
+                   for c in _sp_reach(node.value, scopes, parent, scope)):
+            continue
+        for t in targets:
+            if isinstance(t, ast.Attribute):
+                out.append((node.lineno, t.attr))
+            elif isinstance(t, ast.Name) and isinstance(scope, ast.ClassDef):
+                out.append((node.lineno, t.id))
+    return out
+
+
 def _sp_literals(src, opened=True):
     """(line, literal, resolved) per repository path the module opens (every
     path literal it holds, with opened=False)."""
     tree = ast.parse(src)
-    nodes, parent = _sp_scope_map(tree)
-    scopes = _sp_bindings(nodes)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
     docs = {id(n.body[0].value) for n in ast.walk(tree)
             if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
             and n.body and isinstance(n.body[0], ast.Expr)
@@ -29866,7 +29924,7 @@ def _sp_literals(src, opened=True):
         # which is the repository's own root once the interpolated prefix is the
         # cwd -- the one f-string shape the round-1 review planted.
         v = n.value[1:] if id(n) in fstr and n.value.startswith("/") else n.value
-        if re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v) and v.split("/")[0] in _SP_TOPS:
+        if _sp_path_literal(v):
             out.append((n.lineno, v, via.get(id(n), lambda x: x)(v)))
     return out
 
@@ -29971,7 +30029,10 @@ R.check(
 # literal the program only HOLDS is still not an open. Asserted on
 # `_sp_literals`, the shape reader, not on `_sp_faults`: a planted
 # `open(<retired>)` ALSO fails to load, and that failure would hide a shape the
-# reader still misses.
+# reader still misses. Round 3 added the two declarations the reader re-routes
+# (`global` and `nonlocal`) to the plant list; an attribute bound to a path in
+# one scope and opened in another is the one shape it cannot follow and is
+# dispositioned by the census right after this check.
 _sp_probe = "\nimport os\nfrom pathlib import Path\n"
 
 
@@ -30004,6 +30065,10 @@ _sp_escapes = {
     "kwonly default": f"def _f(*, _p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
     "lambda default": f"_f = lambda _p={_sp_old!r}: open(_p)\n",
     "joinpath then read_text": f"_X = Path('.').joinpath({_sp_old!r}).read_text()\n",
+    "global binding": f"_G = None\ndef _load():\n    global _G\n"
+                      f"    _G = {_sp_old!r}\n_X = open(_G)\n",
+    "nonlocal binding": f"def _outer():\n    _P = ''\n    def _inner():\n"
+                        f"        nonlocal _P\n        _P = {_sp_old!r}\n    _X = open(_P)\n",
 }
 # The null controls beside the plants: a literal the program only HOLDS -- in a
 # tuple, a set, or a comparison -- is read as no open, whatever else it is in.
@@ -30030,11 +30095,37 @@ R.check(
     "two fix reviews planted and the binding family beside them -- an alias, a "
     "join, a pathlib / read through .read_text() or .open(), an f-string prefix, "
     "a dict or list subscript, a tuple unpack, an annotated assignment, a for "
-    "target, a walrus, +=, a parameter or lambda default, a with ... as target "
-    "and a self.x attribute -- the shapes it already caught stay caught, and a "
-    "literal the program only HOLDS is still not an open",
+    "target, a walrus, +=, a parameter or lambda default, a with ... as target, "
+    "a self.x attribute, and a name bound through a global or nonlocal "
+    "declaration -- the shapes it already caught stay caught, and a literal the "
+    "program only HOLDS is still not an open",
     not _sp_missed and not _sp_regressed and not _sp_held_open,
     f"shapes that still escape {_sp_missed}; no longer read as opens {_sp_regressed}",
+)
+# The one shape the name-only resolver cannot follow is an attribute bound to a
+# path literal in one scope and opened in another: `self._p` set in `__init__`
+# and opened in a sibling method, or a class-body `P = <path>` opened as `C.P`.
+# `_sp_reach` keys a read by the attribute NAME and walks up only enclosing
+# scopes, so a binding in a sibling scope is invisible; following it precisely
+# needs object identity, which the flat name map M6 removed over-fires on
+# (two `self._p` sites on different objects would read as one). The census below
+# asserts no cited program does either today -- a writer is a new finding, not a
+# silently held path.
+_sp_attr_planted = (
+    _sp_attr_bound("class _C:\n    def __init__(self):\n"
+                   f"        self._p = {_sp_old!r}\n"
+                   "    def m(self):\n        return open(self._p)\n")
+    + _sp_attr_bound(f"class C:\n    P = {_sp_old!r}\n_X = open(C.P)\n"))
+_sp_attr_sites = sorted((_sp_p, _sp_attr_bound(_sp_source(_sp_p)))
+                        for _sp_p in sorted(_SP_CITED) if _sp_p.endswith(".py"))
+R.check(
+    "no cited program binds a path literal to an attribute or a class-body "
+    "name at all -- so the attribute-bound-in-one-scope-opened-in-another shape "
+    "(`self.x` set in one method and opened in another, a class-body name "
+    "opened through its owner) that the name-only resolver cannot follow has 0 "
+    "live sites today, and the census catches each planted variant",
+    not any(s for _, s in _sp_attr_sites) and len(_sp_attr_planted) >= 2,
+    f"attribute-bound path sites {[(p, s) for p, s in _sp_attr_sites if s]}",
 )
 # THE SOURCES MUST SELECT THIS SCRIPT, or the citation half above is a main-only
 # check: policy files and carries are read as TEXT, and if they stay INERT a
