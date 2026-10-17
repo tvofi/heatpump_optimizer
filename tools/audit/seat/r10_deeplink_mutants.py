@@ -16,6 +16,22 @@ Plants:
   N1-N5,   the round-3 review's mut3.py, verbatim: replaceState, open and
   H1-H10   location navigations, in and out of try; href in eight spellings,
            on a selector the stub resolves (".zz") and one it cannot ("a.zz").
+  K*       the round-4 review's mut4.py (#2317), and this fix's isolating
+           variants of them: a bare open() on a row nothing rendered, the
+           Navigation API under three spellings, a form's action, and an
+           Event-built more-info. K5r and K3c are the review's own controls:
+           red before this fix, on the spellings its denylist held.
+  W*       two seams this fix found for itself: a global the census cannot see
+           the use of, read behind a feature test, and the history object's own
+           back step behind a name built at run time.
+  X*       this fix's own lines, each mutated where a plant it closes sits
+           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z): if the mutant alone
+           leaves the plant green, the plant's catch DEPENDS on that line, and
+           a fix line whose removal changes no check is a line this census does
+           not need. X1, X2, X3, X4, X5 and X6 alone are the detector
+           demonstrations -- the check each line carries is red without it.
+           X7 and X7K1b are the other shape: with the surface member gone the
+           plant is red only as a crash, which is what the member replaces.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
@@ -49,6 +65,39 @@ def attach(sel, stmt):
 
 def card(old, new):
     return [(CARD, old, new)]
+
+
+def test(old, new):
+    return [(TEST, old, new)]
+
+
+# The four nav-less spellings the round-4 review planted, and this fix's
+# isolating variants of them.
+K5 = card(DISMISS, '        open("/config/entities", "_self");\n' + DISMISS)
+K5B = card(DISMISS, '        globalThis["open"]("/config/entities", "_self");\n' + DISMISS)
+K1B = after_nav('globalThis[["navi", "gation"].join("")].navigate("/config/entities");')
+K2B = after_nav('{ const f = document.createElement("form"); f.setAttribute("action", "%s"); root.appendChild(f); }' % P)
+K3T = after_nav('try { const ev = new Event(%s, { bubbles: true, composed: true }); ev.detail = { entityId: "sensor.x" }; globalThis.dispatchEvent(ev); } catch (_e) { /* no router */ }' % RUNTIME_MORE_INFO)
+Z_KEYDOWN = card('      const wantsRemove = key === "Delete" || key === "Backspace";',
+                 '      open("/config/entities", "_self");\n      const wantsRemove = key === "Delete" || key === "Backspace";')
+# The two seams this fix found for itself.
+W1 = after_nav('if (globalThis.frames) globalThis.dispatchEvent(new Event("nothing-to-see"));')
+W2 = after_nav('globalThis[["hist", "ory"].join("")].go(-1);')
+# The scan's grammar, ECMAScript's IdentifierName production: under the ASCII
+# word grammar the source split `främes` at the `ä`, so the name was never
+# watched and the read of the global went unrecorded and unrefused.
+W3 = after_nav('if (globalThis.främes) globalThis.dispatchEvent(new Event("nothing-to-see"));')
+X8 = test(r'  const IDENT = /[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*/gu;',
+          r'  const IDENT = /[A-Za-z_$][\w$]*/g;')
+X1 = test('    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =\n'
+          '      [{ class: "power", key: "heat_pump_power_entity" }];\n', "")
+X3 = test('  for (const at of ["href", "action", "formaction"]) {', '  for (const at of ["href"]) {')
+X4 = test('    if (typeof type === "string" && !EVENT_TYPES.has(type)) {', '    if (false) {')
+X5 = test('      unknown.add(name);\n      return uninstrumented(name);', '      return undefined;')
+X6 = test('  { what: "a bare open()", re: /(?<![.\\w$])open\\s*\\((?!\\s*\\)\\s*\\{)/ },',
+          '  { what: "a bare open()", re: /(?<![.\\w$])_unwatched\\s*\\(/ },')
+X7 = test('  sink.navigation.navigate = (u) => { left.push(["navigation", String(u)]); return null; };',
+          '  sink.navigation.navigate = undefined;')
 
 
 PLANTS = {
@@ -90,6 +139,40 @@ PLANTS = {
     "H8_innerHTML_anchor_single_quote": card(LOOP, "  { const d = root.querySelector('.setup-result'); if (d) d.innerHTML = \"<a href='%s'>x</a>\"; }\n" % P + LOOP),
     "H9_innerHTML_template": card(LOOP, '  { const u = "%s"; const d = root.querySelector(".adv-act"); if (d) d.insertAdjacentHTML("afterend", `<a href=${u}>x</a>`); }\n' % P + LOOP),
     "H10_setAttribute_literal_rendered": attach(".zz", 'a.setAttribute("href", "%s");' % P),
+    # Round 4 (the review's mut4.py, #2317) and this fix's isolating variants.
+    "K5_bare_open_on_dismiss": K5,
+    "K5b_bracket_open_on_dismiss": K5B,
+    "K5c_open_call_on_dismiss": card(DISMISS, '        globalThis.open.call(globalThis, "/config/entities", "_self");\n' + DISMISS),
+    "K5r_bare_open_rendered_control": after_nav('open("/config/entities", "_self");'),
+    "K1_navigation_api_in_try": after_nav('try { globalThis.navigation.navigate("/config/entities"); } catch (_e) { /* no router */ }'),
+    "K1c_navigation_api_no_try": after_nav('globalThis.navigation.navigate("/config/entities");'),
+    "K1b_navigation_name_built": K1B,
+    "K2_form_action_rendered": card(DIAG, '<form action="/config/entities"><button type="submit">go</button></form>' + DIAG),
+    "K2b_action_set_at_run_time": K2B,
+    "K3t_event_runtime_more_info": K3T,
+    "K3c_event_literal_more_info_control": after_nav('globalThis.dispatchEvent(new Event("hass-more-info"));'),
+    "Z_open_in_undriven_keydown": Z_KEYDOWN,
+    "W1_guarded_frames": W1,
+    "W2_history_go_built": W2,
+    "W3_unicode_global": W3,
+    # This fix's own lines, and the plant each one closes.
+    "X1_fixture_drops_feedback_row": X1,
+    "X1K5b_fixture_line_is_what_closes_K5b": X1 + K5B,
+    "X2_card_gains_an_act_branch": card(
+        '      } else if (act === "apply_valve") {',
+        '      } else if (act === "navigate_home") {\n        navigateTo(SETTINGS_PATH);\n        return;\n      } else if (act === "apply_valve") {'),
+    "X3_anchors_drop_action": X3,
+    "X3K2b_anchors_line_is_what_closes_K2b": X3 + K2B,
+    "X4_recordEvent_disabled": X4,
+    "X4K3t_recordEvent_line_is_what_closes_K3t": X4 + K3T,
+    "X5_watch_swallows": X5,
+    "X5W1_watch_line_is_what_closes_W1": X5 + W1,
+    "X6_surface_drops_bare_open": X6,
+    "X6Z_surface_member_is_what_closes_Z": X6 + Z_KEYDOWN,
+    "X7_sink_drops_navigation": X7,
+    "X7K1b_surface_member_names_the_primitive_K1b": X7 + K1B,
+    "X8_ascii_grammar": X8,
+    "X8W3_grammar_line_is_what_closes_W3": X8 + W3,
 }
 
 
