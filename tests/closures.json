@@ -3236,6 +3236,7 @@
    "dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py",
    "dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py",
    "dev/audit/harnesses/ci_script_seconds.py",
+   "dev/audit/harnesses/closing_keyword_ownership.py",
    "dev/audit/harnesses/cop_duty_floor.py",
    "dev/audit/harnesses/d1_s3_02_queued_apply.py",
    "dev/audit/harnesses/d6_page_anchors.py",
@@ -3260,6 +3261,7 @@
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
    "dev/audit/harnesses/r10_registry_leak.py",
+   "dev/audit/harnesses/r10_replay_loopnorm.py",
    "dev/audit/harnesses/r10_stats_window.mjs",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",
    "dev/audit/harnesses/r10_tick_which_roster.py",
@@ -4083,7 +4085,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 99.7
+   "seconds": 241.1
   },
   "tests/layout.py": {
    "rc": 0,
