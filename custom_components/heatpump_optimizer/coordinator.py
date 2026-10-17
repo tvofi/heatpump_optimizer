@@ -4479,12 +4479,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return parse_bool(reading.text)
 
     def _space_demand_kw(self) -> float:
-        """Current space-heating standing loss, kW thermal."""
+        """Current space-heating standing loss, kW thermal, on the learned split."""
         ctx = getattr(self, "_ctx", self)
         params = ctx._thermal_params
         state = ctx._current_state
         if params.two_zone_enabled:
-            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss)
+            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned)
         else:
             u = float(params.heat_loss_coefficient)
         return max(0.0, float(u * params.house_heat_loss_scale * (state.room_temperature - state.outdoor_temperature)))

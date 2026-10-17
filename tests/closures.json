@@ -24,6 +24,7 @@
    "tools/audit/archscore/metrics/family_splits.py",
    "tools/audit/archscore/metrics/footprint.py",
    "tools/audit/archscore/metrics/hub_solve_writes.py",
+   "tools/audit/archscore/metrics/layering.py",
    "tools/audit/archscore/metrics/public_surface.py",
    "tools/audit/archscore/metrics/shared_inplace_writes.py",
    "tools/audit/archscore/metrics/untyped_payload_keys.py",
@@ -118,6 +119,27 @@
    "tools/audit/archscore/planted/redteam/18_family_invented_pair.py",
    "tools/audit/archscore/planted/redteam/19_hub_reader_lambda.py",
    "tools/audit/archscore/planted/redteam/20_hub_write_event.py",
+   "tools/audit/archscore/planted/redteam/21_lazy_solver_import.py",
+   "tools/audit/archscore/planted/redteam/22_private_module_attr.py",
+   "tools/audit/archscore/planted/redteam/23_layer_owner_import.py",
+   "tools/audit/archscore/planted/redteam/24_layer_guarded_else.py",
+   "tools/audit/archscore/planted/redteam/25_layer_negated_guard.py",
+   "tools/audit/archscore/planted/redteam/26_layer_import_module.py",
+   "tools/audit/archscore/planted/redteam/27_layer_absolute_self_import.py",
+   "tools/audit/archscore/planted/redteam/28_layer_import_abs_alias.py",
+   "tools/audit/archscore/planted/redteam/29_layer_import_abs_plain.py",
+   "tools/audit/archscore/planted/redteam/30_layer_from_abs_module.py",
+   "tools/audit/archscore/planted/redteam/31_layer_import_module_kw.py",
+   "tools/audit/archscore/planted/redteam/32_layer_parent_ns_alias.py",
+   "tools/audit/archscore/planted/redteam/33_layer_parent_ns_from.py",
+   "tools/audit/archscore/planted/redteam/34_layer_parent_ns_from_alias.py",
+   "tools/audit/archscore/planted/redteam/35_layer_parent_ns_plain.py",
+   "tools/audit/archscore/planted/redteam/36_layer_getattr_chain.py",
+   "tools/audit/archscore/planted/redteam/37_layer_module_const_name.py",
+   "tools/audit/archscore/planted/redteam/38_layer_parent_ns_public.py",
+   "tools/audit/archscore/planted/redteam/39_layer_parent_ns_public_pair.py",
+   "tools/audit/archscore/planted/redteam/40_layer_module_const_ann.py",
+   "tools/audit/archscore/planted/redteam/41_layer_chain_past_module.py",
    "tools/audit/archscore/planted/redteam/rt_lib.py",
    "tools/audit/archscore/score.py",
    "tools/audit/archscore/vector.py",
@@ -235,6 +257,7 @@
    "tools/audit/archscore/metrics/family_splits.py",
    "tools/audit/archscore/metrics/footprint.py",
    "tools/audit/archscore/metrics/hub_solve_writes.py",
+   "tools/audit/archscore/metrics/layering.py",
    "tools/audit/archscore/metrics/public_surface.py",
    "tools/audit/archscore/metrics/shared_inplace_writes.py",
    "tools/audit/archscore/metrics/untyped_payload_keys.py",
@@ -518,6 +541,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
@@ -1453,6 +1477,7 @@
    "tools/audit/archscore/metrics/family_splits.py",
    "tools/audit/archscore/metrics/footprint.py",
    "tools/audit/archscore/metrics/hub_solve_writes.py",
+   "tools/audit/archscore/metrics/layering.py",
    "tools/audit/archscore/metrics/public_surface.py",
    "tools/audit/archscore/metrics/shared_inplace_writes.py",
    "tools/audit/archscore/metrics/untyped_payload_keys.py",
@@ -3307,6 +3332,7 @@
   ],
   "tests/harness_headers.py": [
    "LICENSE",
+   "dev/audit/harnesses/archscore_layering_seam_census.py",
    "dev/audit/harnesses/boost_replay_fork_parity.py",
    "dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py",
    "dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py",
@@ -4105,7 +4131,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 15.2
+   "seconds": 40.2
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -4129,7 +4155,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 284.1
+   "seconds": 674.1
   },
   "tests/env_drift.py": {
    "rc": 0,
