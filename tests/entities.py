@@ -28015,6 +28015,60 @@ R.check(
 )
 
 
+def _cov_stage_entry(stage_run: str, restored: "str | None") -> "tuple[str, bool, str]":
+    """(top-level data, a nested copy, marker) after staging one entry.
+
+    ``restored`` is the parent's top-level data the restore step leaves at
+    ``$RUNNER_TEMP/coverage-base`` on a trusted hit; ``None`` simulates a miss.
+    The V1 push arm (a99be2532) restores before it stages, so BOTH shapes reach
+    this one step, and the entry the next push reads must carry THIS run's
+    per/, never the parent's. ``cp -R src existing-dir`` copies ``src`` INTO
+    ``existing-dir``; the marker is then overwritten to this commit, so the
+    entry claims a provenance its top-level files do not have.
+    """
+    with tempfile.TemporaryDirectory() as _t:
+        _tmp = Path(_t)
+        (_tmp / "w" / "out" / "per").mkdir(parents=True)
+        (_tmp / "w" / "out" / "per" / ".coverage.features").write_text("THIS RUN")
+        if restored is not None:
+            (_tmp / "coverage-base").mkdir()
+            (_tmp / "coverage-base" / ".coverage.features").write_text(restored)
+            (_tmp / "coverage-base" / ".measured-by").write_text(
+                "push refs/heads/main " + "0" * 40)
+        subprocess.run(["bash", "-c", stage_run], capture_output=True, text=True,
+                       env={**os.environ, "RUNNER_TEMP": str(_tmp),
+                            "W5P_WORK": str(_tmp / "w"),
+                            "GITHUB_EVENT_NAME": "push",
+                            "GITHUB_REF": "refs/heads/main"})
+        _top = _tmp / "coverage-base" / ".coverage.features"
+        _mark = _tmp / "coverage-base" / ".measured-by"
+        return (_top.read_text() if _top.is_file() else "<absent>",
+                (_tmp / "coverage-base" / "per" / ".coverage.features").exists(),
+                _mark.read_text() if _mark.is_file() else "")
+
+
+_COV_HIT = (_cov_stage_entry(_COV_STAGE["run"], "PARENT") if _COV_STAGE
+            else ("<no step>", False, ""))
+_COV_MISS = (_cov_stage_entry(_COV_STAGE["run"], None) if _COV_STAGE
+             else ("<no step>", False, ""))
+R.check(
+    "the staged coverage entry carries THIS run's per-script data when a trusted "
+    "restore left the parent's entry at the same path (the V1 push-arm precondition)",
+    _COV_HIT[0] == "THIS RUN" and not _COV_HIT[1]
+    and _COV_HIT[2].startswith("push refs/heads/main "),
+    f"top-level={_COV_HIT[0]!r} nested={_COV_HIT[1]} marker={_COV_HIT[2]!r}: "
+    "`cp -R src existing-dir` nests src and leaves the parent's files on top, "
+    "so the saved entry carries a stale base under this commit's marker -- every "
+    "reuse after it reads data frozen at the last cache miss",
+)
+R.check(
+    "and the same step stages correctly on a miss, when no restored entry is "
+    "there (null control)",
+    _COV_MISS[0] == "THIS RUN" and not _COV_MISS[1],
+    f"top-level={_COV_MISS[0]!r} nested={_COV_MISS[1]}",
+)
+
+
 # --- decision 0013 as amended: the budget-raise gate's wiring. The budget
 # files carry no code owner, so this job is the only thing between a raise and
 # a merge on the approver App's review. Each property is a way the gate goes

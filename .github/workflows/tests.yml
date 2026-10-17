@@ -715,8 +715,15 @@ jobs:
           HASH="${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tools/coverage/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           echo "restore_base=$RESTORE_BASE" >> "$GITHUB_OUTPUT"
-          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-$HASH" >> "$GITHUB_OUTPUT"
-          echo "restore_key=coverage-per-v1-${{ runner.os }}-$RESTORE_BASE-py$PY-$HASH" >> "$GITHUB_OUTPUT"
+          # v2 (2026-10-17): before the stage step cleared its destination,
+          # every entry's TOP LEVEL was the restored parent's data while its
+          # marker named the child -- the chain froze at the last cache miss.
+          # The stored entry now means what its marker always claimed, so the
+          # v1 entries must not be restored: a new version makes every push
+          # and pull request miss once, measure every script, and re-seed a
+          # correct chain.
+          echo "key=coverage-per-v2-${{ runner.os }}-$BASE-py$PY-$HASH" >> "$GITHUB_OUTPUT"
+          echo "restore_key=coverage-per-v2-${{ runner.os }}-$RESTORE_BASE-py$PY-$HASH" >> "$GITHUB_OUTPUT"
 
       # An exact key and no restore-keys: data from any other commit is a
       # miss. The push arm restores its parent's entry by the same rule.
@@ -884,9 +891,21 @@ jobs:
       # provenance.tsv saying which (V1). Copied to the path the restore
       # names, because a cache entry's version hashes its path: saved from
       # the mktemp directory, no restore would ever hit.
+      #
+      # CLEAR FIRST. A trusted restore leaves the parent's entry at this path,
+      # and `cp -R src existing-dir` copies src INTO it -- putting this run's
+      # fresh per/ at coverage-base/per/ while the parent's files stay at the
+      # top level, where the next restore reads them. The marker below would
+      # then name this commit over the parent's data. That is how the push arm
+      # froze at the last cache miss: from 2026-10-13 (a99be2532) the restore
+      # key moved to HEAD^1 and started hitting, while this step still assumed
+      # a push never restored. Measured on b254b5b06: early_cutoff.py 81.53 %
+      # here against 100.00 % at the same tree (e3f3b312) when every script was
+      # measured; the four modules below the floor were all reused scripts.
       - name: Stage this commit's per-script coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
+          rm -rf "$RUNNER_TEMP/coverage-base"
           cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
           printf '%s %s %s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$(git rev-parse HEAD)" \
             > "$RUNNER_TEMP/coverage-base/.measured-by"

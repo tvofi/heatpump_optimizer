@@ -4194,6 +4194,22 @@
       "doc": [
         "dev/audit/rca/R10-N-confounded-learner.md"
       ]
+    },
+    "R10-RCA-coverage-cache-stage": {
+      "class": "N-cache-stage-nests",
+      "level": "class",
+      "subject": "the coverage job's push-arm stage step copied this run's per/ INTO the restored parent's entry, so each cache entry carried the parent's data under this commit's marker; four coverage-ratchet false reds in round 10 plus main",
+      "trigger": "class: 4 process instances in round 10 (2026-10-16T00:51Z..2026-10-17T08:57Z), measured by the root-cause seat",
+      "date": "2026-10-17",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d) the stage step was sound when written on 2026-10-01 (a push restored under its own never-hitting key, so the destination never existed); a99be2532 on 2026-10-13 keyed the push restore to HEAD^1 and removed the `if: github.event_name != 'push'` guard while leaving the step untouched, so cp -R nested into the restored directory",
+      "countermeasure": "rm -rf the staging destination before the copy; move the cache key coverage-per-v1 -> v2 to invalidate the poisoned chain; tests/entities.py _cov_stage_entry drives the trusted-restore and miss shapes, red on the defect and green once fixed (0.123 s/run; 308 s per occurrence against 2.3 s per release)",
+      "landed": "fix/r10-coverage-cache-stage-pr (countermeasure PR)",
+      "in_tree_home": "dev/audit/rca/R10-RCA-coverage-cache-stage.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-coverage-cache-stage.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -4579,6 +4595,41 @@
       "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": false
+    }
+  },
+  "N-cache-stage-nests": {
+    "kind": "instrument",
+    "mechanism": "A workflow stages a fresh artifact into the directory a cache restore populated and then saves it under the new commit's key: `cp -R src existing-dir` copies src INTO the directory, the parent's files stay at the top level, and the marker is rewritten last, so every later restore trusts a marker naming the child over data frozen at the last cache miss",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "tests/entities.py `_cov_stage_entry` (added by this class's countermeasure): drives .github/workflows/tests.yml's staging step with a populated $RUNNER_TEMP/coverage-base (the trusted-restore shape) and with none, and asserts the entry's top level is this run's per/ and no nested copy exists; red on the pre-fix step, green after, 0.123 s per run",
+    "barrier": "tests.yml clears the staging destination (`rm -rf`) before the copy, so the entry's top level is always this run's per/; the cache key moves coverage-per-v1 -> v2 to invalidate the poisoned chain once; the tests/entities.py arm pins the restored-directory precondition",
+    "status": "barriered",
+    "nearest_existing": "I3",
+    "mechanism_difference": "I3 is a required check skipped, run on a stale ref or bypassable as a defect of the check itself; here the check runs on the right ref and its verdict is wrong because the payload it grades was assembled from a stale cache entry under a fresh marker",
+    "aliases": [
+      "new: a cache entry saved under the child's marker carrying the parent's staged data"
+    ],
+    "non_round_note": "Process incidents measured by the round-10 root-cause seat over 2026-10-16..17, not audit findings, not in register_rows.tsv, not counted in total: five coverage-ratchet false reds from one staging defect (the four the brief names plus main).",
+    "non_round_instances": [
+      "PR #2320 head 8833a1d9a coverage-ratchet failure (job 117278555497)",
+      "PR #2342 head e10481396 coverage-ratchet failure (job 117260898809)",
+      "PR #2343 head e3f2468c6 coverage-ratchet failure (job 117182158471)",
+      "PR #2348 head 0759c90ec coverage-ratchet failure (job 117355831154)",
+      "main b254b5b06 coverage-ratchet failure (job 117357623002)"
+    ],
+    "rca": [
+      "R10-RCA-coverage-cache-stage"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
     }
   }
 }
