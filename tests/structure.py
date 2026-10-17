@@ -244,7 +244,7 @@ CONST_FANOUT_LIMIT = 50
 
 # The seam partition of #193's plan of record. A coordinator method's seam is
 # its entry in SEAM_MAP_FILE, never its name (#1539): bucketing by name let a
-# pure rename move cross_seam_edges. A method the map does not name is refused,
+# pure rename move the seam cut count. A method the map does not name is refused,
 # so a new or renamed method is assigned to a seam in a diff a reviewer sees.
 SEAM_LABELS = ("dhw", "learning", "fetch", "grid", "views")
 SEAM_MAP_FILE = REPO_ROOT / "tests" / "seam_map.json"
@@ -406,9 +406,10 @@ DYNAMIC_REFERENCES: dict[tuple[str, str], tuple[str, str, str, str]] = {
 # metric: a ratio of cross-seam call edges to all call edges falls when a
 # class tangles and RISES when a cohesive part leaves it (the legionella guard
 # removes 17 edges of which 6 cross a seam), so it refused the one move it was
-# built to price. cross_seam_edges, the ratio's own numerator, ratchets like
-# every other row and falls on that move. The seam table still prints the
-# ratio as evidence; nothing budgets it.
+# built to price. The ratio's own numerator was budgeted as cross_seam_edges
+# until #1738 folded it into seam_cut_total, which ratchets like every other
+# row and falls on that move. The seam table still prints the ratio as
+# evidence; nothing budgets it.
 
 
 # ---------------------------------------------------------------------------
@@ -2594,8 +2595,8 @@ def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
     ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
     every comparison against NaN is False -- ``current > nan`` never fires and
     ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
-    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
-    by arithmetic. The other spellings fail differently per script and none of
+    that this script printed as ``ok cut_views 110 <= nan`` (a row since folded
+    into seam_cut_total). Infinity passes by arithmetic. The other spellings fail differently per script and none of
     them says why: a string crashed one comparison and ``float()``-coerced in
     another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
 

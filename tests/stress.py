@@ -4690,7 +4690,7 @@ if __name__ == "__main__":
         # cannot fix that: the ubuntu-latest fleet is not enumerable.
         #
         # So the baseline is CAPTURED, not recorded: the merge base solves
-        # the same fifty-one scenarios in a pristine worktree, on this
+        # the same scenarios in a pristine worktree, on this
         # machine, minutes before this tree does. A runner's basin choice
         # then moves both halves together and cancels, exactly as
         # tests/env_drift.py's doctrine says it must -- that file exists

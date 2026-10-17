@@ -825,10 +825,10 @@ To check, open the browser console and reload the dashboard. The card prints
 its version on load:
 
 ```
- heatpump-optimizer-card  v6.6.8
+ heatpump-optimizer-card  v<version>
 ```
 
-That is the card's own version, and it is rewritten to match on every release
+`<version>` stands for the version your card prints. That is the card's own version, and it is rewritten to match on every release
 the integration stamps — the release step edits the card file itself, so the
 banner and the integration version move together. If the banner is older than
 the integration version you installed, a stale copy of the card is loading.
