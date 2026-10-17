@@ -1165,12 +1165,30 @@
   "verdict": "NULL"
  },
  "rt_36_layer_getattr_chain": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_37_layer_module_const_name": {
   "admissible": true,
   "label": "GAME",
   "set": "redteam",
   "verdict": "NULL"
  },
- "rt_37_layer_module_const_name": {
+ "rt_38_layer_parent_ns_public": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_39_layer_parent_ns_public_pair": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_40_layer_module_const_ann": {
   "admissible": true,
   "label": "GAME",
   "set": "redteam",
