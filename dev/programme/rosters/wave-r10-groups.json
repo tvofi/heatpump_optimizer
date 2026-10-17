@@ -157,7 +157,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 3 of 25; before you: R10-FAHRENHEIT, R10-TARIFF; next: R10-RATIO-SITES, R10-VENT-DETECTOR). Owning seam in this group: the price and weather ingest methods named above. Shape: an age-bounded last-known holder plus a distinct failure value; no new coordinator attributes beyond one holder (coordinator_attrs is at zero headroom). Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-review: #2336 (mutation-autofix awaited; delivery row owed)",
+    "stage": "done: merged #2336",
     "branch": "handoff/r10-feeds",
     "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
@@ -214,7 +214,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 25; before you: R10-TARIFF, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-review: #2347 round 2",
     "branch": "handoff/r10-ratio-sites",
     "commit": null,
     "last_step": null,
@@ -861,7 +861,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "in-review: #2346 round 2",
     "branch": "handoff/r10-ux-setup",
     "commit": null,
     "last_step": null,
@@ -1535,7 +1535,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r2; p4/p5 not started",
+    "stage": "in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r4; p4/p5 not started",
     "branch": "handoff/r10-archscore-coverage",
     "commit": "acfeaf8b4eba86d458a706cb3f5165635a1945bf",
     "last_step": null,
@@ -2387,7 +2387,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-review: PR opening",
+    "stage": "done: merged #2340",
     "branch": "handoff/r10-structure-blind",
     "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
     "last_step": null,
@@ -2652,7 +2652,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done: merged #2341",
     "branch": "handoff/r10-prepr-cap",
     "commit": null,
     "last_step": null,
@@ -3083,7 +3083,7 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done: merged #2344",
     "branch": "handoff/r10-stale-paths-2",
     "commit": null,
     "last_step": null,
@@ -3191,7 +3191,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "in-review: #2345",
     "branch": "handoff/r10-deeplink-census",
     "commit": null,
     "last_step": null,
