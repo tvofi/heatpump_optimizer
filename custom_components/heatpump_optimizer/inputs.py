@@ -944,27 +944,6 @@ class InputReader:
         reading.value = converted
         return reading
 
-    def value(self, key: str, default: float | None = None) -> float | None:
-        """Convenience: the usable value for a key, or ``default``."""
-        reading = self.health.readings.get(key)
-        if reading is None or not reading.ok:
-            return default
-        return reading.value
-
-    def text(self, key: str, default: str | None = None) -> str | None:
-        """Convenience: the usable state string for a key, or ``default``."""
-        reading = self.health.readings.get(key)
-        if reading is None or not reading.ok:
-            return default
-        return reading.text
-
-    def flag(self, key: str, default: bool | None = None) -> bool | None:
-        """Convenience: the usable flag for a key, or ``default``."""
-        reading = self.health.readings.get(key)
-        if reading is None or not reading.ok or reading.flag is None:
-            return default
-        return reading.flag
-
 
 def stale_summary(health: InputHealth) -> str:
     """One-line description for the diagnostic entity's state."""

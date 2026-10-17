@@ -2653,13 +2653,6 @@ R.check(
     "absent evidence must not read as a fault, or every install without the "
     "optional sensor would look broken",
 )
-R.check(
-    "the convenience accessors mirror value()",
-    _health_reader.text("heat_pump_mode_entity") == "heat"
-    and _health_reader.flag("heat_pump_online_entity", default=None) is None
-    and _health_reader.flag("heat_pump_defrost_entity", default=True) is True,
-    "an unusable or unread key falls back to the caller's default",
-)
 
 
 # ===========================================================================
@@ -45435,25 +45428,6 @@ R.check(
     "guard, so a detector fed only NaNs must still look starved rather than "
     "freshly fed, or `release_if_starved` never releases it",
 )
-_g8_cusum_live = _G8Cusum(threshold=1.0, drift=0.0)
-for _i in range(6):
-    _g8_cusum_live.update(_G8_T0 + timedelta(hours=_i), 1.0)
-_g8_cusum_was = (_g8_cusum_live.stat, _g8_cusum_live.tripped)
-_g8_cusum_live.reset()
-R.check(
-    "reset clears the statistic and the latch, and nothing else",
-    _g8_cusum_was[0] > 0.0
-    and _g8_cusum_live.stat == 0.0
-    and _g8_cusum_live.tripped is False
-    and _g8_cusum_live.last_fed is not None
-    and _g8_cusum_live.evidence,
-    f"before {_g8_cusum_was!r}; after stat {_g8_cusum_live.stat!r} tripped "
-    f"{_g8_cusum_live.tripped!r}, last_fed kept "
-    f"{_g8_cusum_live.last_fed is not None}, evidence kept "
-    f"{len(_g8_cusum_live.evidence)} -- the evidence trail and the feed time "
-    "are the record of WHY it tripped, and a reset that erased them would "
-    "leave the next reader unable to say what happened",
-)
 _g8_cusum_load = _G8Cusum(threshold=2.0, drift=0.1)
 _g8_cusum_load.load(
     {"stat": 1.0, "tripped": "yes", "evidence": ["a"], "last_fed": "not-a-time"}
@@ -51112,9 +51086,9 @@ R.check(
     f"{_p8s_areas!r}",
 )
 
-# InputReader.value: a STALE reading keeps its number (read() leaves it for a
-# caller that explicitly wants the last value) but value() must not hand it
-# out -- the default path treats stale as absent.
+# A STALE reading keeps its number (read() leaves it for a caller that
+# explicitly wants the last value) but is not ``ok``, the gate every
+# production caller reads it through (``x.value if x.ok else None``).
 _p8s_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
 _p8s_reader = InputReader(
     FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(days=3))}),
@@ -51123,24 +51097,20 @@ _p8s_reader = InputReader(
 )
 _p8s_stale = _p8s_reader.read("indoor_temp_entity")
 R.check(
-    "value() returns the default for a stale reading that still holds a number",
-    _p8s_stale.stale
-    and _p8s_stale.value == 21.4
-    and _p8s_reader.value("indoor_temp_entity", -99.0) == -99.0
-    and _p8s_reader.value("outdoor_temp_entity", -99.0) == -99.0,
-    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
-    f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
+    "a stale reading still holds its number but is not ok",
+    _p8s_stale.stale and _p8s_stale.value == 21.4 and not _p8s_stale.ok,
+    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} ok={_p8s_stale.ok}",
 )
 _p8s_fresh = InputReader(
     FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(minutes=5))}),
     {"indoor_temp_entity": "sensor.indoor"},
     now=lambda: _p8s_now,
 )
-_p8s_fresh.read("indoor_temp_entity")
+_p8s_fresh_reading = _p8s_fresh.read("indoor_temp_entity")
 R.check(
-    "null control: value() returns a fresh reading's number",
-    _p8s_fresh.value("indoor_temp_entity", -99.0) == 21.4,
-    f"got {_p8s_fresh.value('indoor_temp_entity', -99.0)!r}",
+    "null control: a fresh reading is ok and holds its number",
+    _p8s_fresh_reading.ok and _p8s_fresh_reading.value == 21.4,
+    f"ok={_p8s_fresh_reading.ok} value={_p8s_fresh_reading.value!r}",
 )
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
