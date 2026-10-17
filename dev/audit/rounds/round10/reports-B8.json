@@ -101,7 +101,7 @@
       "dimension": "D13",
       "baseline_sha": "17f1c55fad1b",
       "report_path": "dev/audit/rounds/round10/D13/s2/REPORT.md",
-      "exposure": "Read-only GitHub API for tvofi/heatpump_optimizer: /commits/<sha>/pulls for the 185 first-parent merges in v6.7.16..17f1c55fad1b, and /pulls/<n>, /issues/<n>/comments and /pulls/<n>/reviews for those 185 PRs. Verdict and friction text was used only as the population being counted. Raw payload: /private/tmp/claude-501/d13s2/window.json",
+      "exposure": "Read-only GitHub API for tvofi/heatpump_optimizer: /commits/<sha>/pulls for the 185 first-parent merges in v6.7.16..17f1c55fad1b, and /pulls/<n>, /issues/<n>/comments and /pulls/<n>/reviews for those 185 PRs. Verdict and friction text was used only as the population being counted. Raw payload: <session-tmp>/d13s2/window.json",
       "coverage": [
         {
           "step": "D13.M3",
@@ -124,7 +124,7 @@
           "severity": "high",
           "claim": "In the window v6.7.16..17f1c55fad1b, 37 of 124 blocked fix-review verdicts are root-cause-unanswered, a class whose fix the prompt calls sound, while the largest engineering class (harness) has 23.",
           "evidence": {
-            "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
+            "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json",
             "harness_path": "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
             "value": 37,
             "unit": "blocked verdicts (of 124)",
@@ -160,7 +160,7 @@
           "severity": "medium",
           "claim": "statsHistogram's head-moved row reports 133 entries over 71 PRs while only 4 blocked verdicts carry head-moved, so the table cannot give the block-class count the D13 brief asks for.",
           "evidence": {
-            "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
+            "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json",
             "harness_path": "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
             "value": "133 vs 4",
             "unit": "entries in PROD head-moved row vs blocked head-moved verdicts",
