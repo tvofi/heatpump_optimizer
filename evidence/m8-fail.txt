@@ -1,0 +1,2 @@
+2286:  FAIL no cited program binds a path literal to an attribute or a class-body name at all -- so the attribute-bound-in-one-scope-opened-in-another shape (`self.x` set in one method and opened in another, a class-body name opened through its owner) that the name-only resolver cannot follow has 0 live sites today, and the census catches each planted variant  [attribute-bound path sites []]
+2641:1 of 2346 ENTITY CHECKS FAILED

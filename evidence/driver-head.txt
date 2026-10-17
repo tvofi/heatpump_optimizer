@@ -1,0 +1,7 @@
+RESULT sp_old='.claude/workflows/agreement.mjs'
+RESULT minimal-global-resolves=True
+RESULT minimal-nonlocal-resolves=True
+RESULT escapes-count=25 missed=[]
+RESULT held-count=3 held-open=[]
+RESULT census-planted=2 planted=[(3, '_p'), (2, 'P')]
+RESULT census-benign=0
