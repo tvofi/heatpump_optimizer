@@ -37,7 +37,10 @@ The name's relation to this package is one predicate at a dot boundary: a DESCEN
 the package is nested in -- reaches one where the read dots back down into it, so ``import
 custom_components as _cc`` with ``_cc.<pkg>.optimizer._x`` is the edge and the crossing the relative
 spelling is (attempts 32-35); a read through an attribute chain, and through ``getattr``, names the
-same module (attempt 36). A name COMPUTED at runtime is the one form no static read follows; the package's is
+same module (attempt 36). The EDGE belongs to the module a read resolves to, whether the name read off it
+is public or private -- the edge is the layer coupling, and C18 prices only the private names -- and it is
+added once, on the node a dotted chain ENDS on, because every step of a chain before it names the same
+module and would take the edge a second time (attempts 38, 39). A name COMPUTED at runtime is the one form no static read follows; the package's is
 ``__init__``'s platform loader.
 
 LAYERS is a design choice, stated: Home Assistant is the integration's glue edge (model, optimizer and
@@ -186,6 +189,14 @@ def _dotted_path(modbind: dict[str, str], node: ast.AST) -> str | None:
     return None
 
 
+def _ends_chain(parent: dict[int, ast.AST], node: ast.AST) -> bool:
+    """Is this the node a dotted chain ENDS on? An attribute that is another attribute's ``value`` is a
+    step of that chain, not a read of its own: a read anywhere in it takes the edge for the module the
+    WHOLE chain names, so the edge is added once, on the outermost node (round-4 review)."""
+    p = parent.get(id(node))
+    return not (isinstance(p, ast.Attribute) and p.value is node)
+
+
 def _reached(pkg: C.Pkg, modbind: dict[str, str], m: str, node: ast.AST) -> str | None:
     """The module of this package an expression reaches, or None. The dotted path it spells resolves
     through the binding an import of this module made: a descendant of the package directly, and an
@@ -204,14 +215,17 @@ def _package_of(mod: str) -> str:
 
 def _module_const(mod: C.Mod, node: ast.AST) -> ast.Constant | None:
     """The string constant a module-level name holds, or None: ``_MOD = ".optimizer"`` is statically
-    readable, so an ``import_module`` naming it is the constant-name call it spells. A name rebound, a
-    name that is not a module-level assignment, and one holding anything but a string are all None
-    (attempt 37)."""
+    readable, so an ``import_module`` naming it is the constant-name call it spells, in either
+    module-level spelling: ``_MOD = "..."`` or ``_MOD: str = "..."`` (attempts 37, 40). A name rebound,
+    a name that is not a module-level assignment, and one holding anything but a string are all None."""
     name = node.id if isinstance(node, ast.Name) else None
     assign = mod.tops.get(name) if name is not None else None
-    if isinstance(assign, ast.Assign) and len(assign.targets) == 1 \
-            and isinstance(assign.targets[0], ast.Name) \
-            and isinstance(assign.value, ast.Constant) and isinstance(assign.value.value, str):
+    if not isinstance(assign, (ast.Assign, ast.AnnAssign)):
+        return None
+    targets = assign.targets if isinstance(assign, ast.Assign) else [assign.target]
+    if len(targets) != 1 or not isinstance(targets[0], ast.Name):
+        return None
+    if isinstance(assign.value, ast.Constant) and isinstance(assign.value.value, str):
         return assign.value
     return None
 
@@ -266,16 +280,22 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
     ext: dict[str, set[str]] = {m: set() for m in pkg.mods}
     crossings: set[str] = set()
 
-    def cross(m: str, target: str, name: str) -> None:
+    def cross(m: str, target: str, name: str, private: bool = True) -> None:
+        """The edge, and -- when the name it is read by is private and C18 is on -- the crossing. The
+        two are separate on purpose: the edge is the LAYER coupling, which a public name takes as much
+        as a private one, and C18 prices only the private names (round-4 review)."""
         if target == m:
             return
         edges[m].add(target)
-        if _private(name or target.rsplit(".", 1)[-1]):
+        if private and _private(name or target.rsplit(".", 1)[-1]):
             crossings.add(f"{m} -> {target}.{name}" if name else f"{m} -> {target}")
 
     for m, mod in pkg.mods.items():
         live = None if ALL_SCOPES else _module_level(mod.tree)
         modalias = _name_bindings(pkg, mod, live)
+        # id of each node -> its parent: a dotted chain's intermediate nodes are steps, not reads, and
+        # only the node the chain ENDS on takes the edge (round-4 review).
+        parent = {id(c): n for n in C.walk(mod.tree) for c in ast.iter_child_nodes(n)}
         # id of each constant-name dynamic import's call -> the module it names. The walk reaches a call
         # before the attribute read off it, so the private arm resolves from this table, not from order.
         dynamic = {}
@@ -301,19 +321,18 @@ def graph(pkg: C.Pkg) -> tuple[dict[str, set[str]], dict[str, set[str]], set[str
                     cross(m, target, "")
                 else:
                     ext[m].add(dynamic[id(n)].split(".")[0])
-            elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and _private(n.attr) \
+            elif _ends_chain(parent, n) and isinstance(n, ast.Attribute) \
                     and isinstance(n.value, ast.Call) and id(n.value) in dynamic \
                     and (t := _pkg_module(pkg, dynamic[id(n.value)])) is not None:
-                cross(m, t, n.attr)
-            elif PRIVATE_ATTRS and isinstance(n, ast.Attribute) and _private(n.attr) \
+                cross(m, t, n.attr, private=PRIVATE_ATTRS)
+            elif _ends_chain(parent, n) and isinstance(n, ast.Attribute) \
                     and (t := _reached(pkg, modalias, m, n.value)) is not None:
-                cross(m, t, n.attr)
-            elif PRIVATE_ATTRS and isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
+                cross(m, t, n.attr, private=PRIVATE_ATTRS)
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Name) \
                     and n.func.id in ("getattr", "hasattr", "setattr") and len(n.args) >= 2 \
                     and isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str) \
-                    and _private(n.args[1].value) \
                     and (t := _reached(pkg, modalias, m, n.args[0])) is not None:
-                cross(m, t, n.args[1].value)
+                cross(m, t, n.args[1].value, private=PRIVATE_ATTRS)
     return edges, ext, crossings
 
 

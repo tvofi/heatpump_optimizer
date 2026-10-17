@@ -65,8 +65,13 @@ SLOTS = {
 }
 DYNAMICS = ("positional", "keyword", "const", "computed")
 GUARDS = ("body", "else", "negated", "disjoined")
+#: the READ side: how the chain is spelled, the relation of the binding its root name holds, and whether
+#: the name read off it is public or private. The layer edge is taken by either; only the crossing is
+#: private-only, which is why the two are keyed apart (round-4 review).
+READ_SLOTS = ("attr", "getattr")
+READ_VISIBILITY = ("public", "private")
 #: the classifier's arms, one per node family. `PRECONDITION` drops one and requires `unkeyed` to fire.
-ARMS = ("statement", "dynamic", "guard")
+ARMS = ("statement", "dynamic", "guard", "read")
 
 
 def relation(name: str) -> str | None:
@@ -84,7 +89,9 @@ def keys() -> tuple[str, ...]:
     relations plus the dynamic and guard slots. Derived, so a slot or a relation added to the tables
     above extends the census and the planted tree in one edit."""
     return (tuple(f"{slot}:{rel}" for slot, rels in SLOTS.items() for rel in rels)
-            + tuple(f"dynamic:{d}" for d in DYNAMICS) + tuple(f"guard:{g}" for g in GUARDS))
+            + tuple(f"dynamic:{d}" for d in DYNAMICS) + tuple(f"guard:{g}" for g in GUARDS)
+            + tuple(f"read_{slot}:{rel}:{vis}" for slot in READ_SLOTS for rel in RELATIONS
+                    for vis in READ_VISIBILITY))
 
 
 def relative_source(mod: str, node: ast.ImportFrom) -> str:
@@ -121,7 +128,96 @@ def _dynamic_slot(node: ast.Call, mod: Mod) -> str:
     return "computed"
 
 
-def spelling(node: ast.AST, mod: Mod, arms: tuple[str, ...] = ARMS) -> str | None:
+def bindings(mod: Mod) -> dict[str, str]:
+    """Local name -> the absolute dotted path the import statements of this module bind, for every name in
+    this package's namespace. This module's OWN reader -- the metric's binding map is not imported here,
+    so an arm that changes shape over there cannot move the census with it."""
+    out: dict[str, str] = {}
+    for n in ast.walk(mod.tree):
+        if isinstance(n, ast.Import):
+            for a in n.names:
+                if relation(a.name) is not None:
+                    out[a.asname or a.name.split(".")[0]] = a.name if a.asname else a.name.split(".")[0]
+        elif isinstance(n, ast.ImportFrom):
+            if n.level:
+                path = relative_source(mod.name, n)
+            elif n.module and relation(n.module) is not None:
+                path = n.module
+            else:
+                continue
+            for a in n.names:
+                out.setdefault(a.asname or a.name, f"{path}.{a.name}")
+    return out
+
+
+def spells(modbind: dict[str, str], node: ast.AST) -> str | None:
+    """The dotted path an expression spells through those bindings: a name, an attribute of one, and a
+    ``getattr``/``hasattr``/``setattr`` with a constant name. None where a step is computed."""
+    if isinstance(node, ast.Name):
+        return modbind.get(node.id)
+    if isinstance(node, ast.Attribute):
+        base = spells(modbind, node.value)
+        return f"{base}.{node.attr}" if base is not None else None
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+            and node.func.id in ("getattr", "hasattr", "setattr") and len(node.args) >= 2 \
+            and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str):
+        base = spells(modbind, node.args[0])
+        return f"{base}.{node.args[1].value}" if base is not None else None
+    return None
+
+
+def root_of(node: ast.AST) -> ast.AST:
+    """The name a chain is rooted at, through attributes and ``getattr`` calls."""
+    while True:
+        if isinstance(node, ast.Attribute):
+            node = node.value
+        elif isinstance(node, ast.Call) and node.args and isinstance(node.func, ast.Name) \
+                and node.func.id in ("getattr", "hasattr", "setattr"):
+            node = node.args[0]
+        else:
+            return node
+
+
+def chain_end(parent: dict[int, ast.AST], node: ast.AST) -> bool:
+    """Is this the node a dotted chain ends on? An attribute that is another attribute's ``value`` is a
+    step of that chain, and the rule takes the edge once, on the outermost node (round-4 review)."""
+    p = parent.get(id(node))
+    return not (isinstance(p, ast.Attribute) and p.value is node)
+
+
+def read_form(modbind: dict[str, str], mods: frozenset[str], parent: dict[int, ast.AST],
+              node: ast.AST) -> str | None:
+    """The read form a node spells: an attribute a dotted chain ENDS on, or a ``getattr`` with a constant
+    name, whose receiver resolves to a module of this package. The key carries the direction the binding
+    its root name holds roots in (anc/self/desc) and whether the name read off it is public or private --
+    the layer edge is taken by either, and only the crossing is private-only (round-4 review)."""
+    if not chain_end(parent, node):
+        return None
+    if isinstance(node, ast.Attribute):
+        slot, receiver, name = "attr", node.value, node.attr
+    elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+            and node.func.id in ("getattr", "hasattr", "setattr") and len(node.args) >= 2 \
+            and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str):
+        slot, receiver, name = "getattr", node.args[0], node.args[1].value
+    else:
+        return None
+    path = spells(modbind, receiver)
+    rel = relation(spells(modbind, root_of(receiver)) or "")
+    if path is None or rel is None:
+        return None
+    if path == SELF:
+        reached = "__init__"
+    elif path.startswith(SELF + "."):
+        reached = path[len(SELF) + 1:]
+    else:
+        return None
+    if reached not in mods:
+        return None
+    vis = "private" if name.startswith("_") and not name.startswith("__") else "public"
+    return f"read_{slot}:{rel}:{vis}"
+
+def spelling(node: ast.AST, mod: Mod, mods: frozenset[str], parent: dict[int, ast.AST],
+             modbind: dict[str, str], arms: tuple[str, ...] = ARMS) -> str | None:
     """The form of a reach into this package that ``node`` spells, or None. The key is the node's slot
     and the name's relation to SELF; nothing in it is a spelling."""
     if "statement" in arms and isinstance(node, ast.Import):
@@ -144,10 +240,13 @@ def spelling(node: ast.AST, mod: Mod, arms: tuple[str, ...] = ARMS) -> str | Non
         if bare:
             return "guard:else" if node.orelse else "guard:body"
         return "guard:negated" if isinstance(node.test, ast.UnaryOp) else "guard:disjoined"
+    elif "read" in arms:
+        return read_form(modbind, mods, parent, node)
     return None
 
 
-def touches(node: ast.AST, mod: Mod) -> bool:
+def touches(node: ast.AST, mod: Mod, mods: frozenset[str], parent: dict[int, ast.AST],
+           modbind: dict[str, str]) -> bool:
     """Does ``node`` name this package's namespace at all, whether or not ``spelling`` has a key for its
     shape? The detector behind the ``unkeyed`` count: a form the classifier does not key refuses the
     census instead of reading as a zero (round-3 review)."""
@@ -158,7 +257,9 @@ def touches(node: ast.AST, mod: Mod) -> bool:
         return relation(src) is not None
     if isinstance(node, ast.Call) and _dynamic_name(node) is not None:
         return True
-    return isinstance(node, ast.If) and "TYPE_CHECKING" in ast.unparse(node.test)
+    if isinstance(node, ast.If) and "TYPE_CHECKING" in ast.unparse(node.test):
+        return True
+    return read_form(modbind, mods, parent, node) is not None
 
 
 def census(root: Path, arms: tuple[str, ...] = ARMS) -> dict[str, int]:
@@ -171,12 +272,15 @@ def census(root: Path, arms: tuple[str, ...] = ARMS) -> dict[str, int]:
     C.load.cache_clear()
     out: dict[str, int] = {}
     pkg = C.load(str(root))
+    mods = frozenset(pkg.mods)
     for mod in pkg.mods.values():
+        parent = {id(c): n for n in C.walk(mod.tree) for c in ast.iter_child_nodes(n)}
+        modbind = bindings(mod)
         for n in C.walk(mod.tree):
-            key = spelling(n, mod, arms)
+            key = spelling(n, mod, mods, parent, modbind, arms)
             if key is not None:
                 out[key] = out.get(key, 0) + 1
-            elif touches(n, mod):
+            elif touches(n, mod, mods, parent, modbind):
                 out["unkeyed"] = out.get("unkeyed", 0) + 1
     return out
 
@@ -222,6 +326,19 @@ def plant(root: Path) -> None:
             if d == "const":
                 return f'_MOD = ".{mod}"\nimportlib.import_module(_MOD, __package__)\n'
             return 'importlib.import_module(f".{_MOD}", __package__)\n'
+        if slot.startswith("read_"):
+            rel, vis = key.split(":")[1], key.split(":")[2]
+            leaf = "_x" if vis == "private" else "reachable_name"
+            # the receiver the read is taken off, in the alias's own terms: the namespace dotted down to
+            # the module, the package dotted down to it, or the module the alias holds.
+            # ONE ALIAS PER KEY: a shared name would be rebound by the next snippet and every read
+            # would resolve through the last binding only.
+            alias = "_" + key.replace(":", "_")
+            recv = {"anc": f"{alias}.{SELF.split('.')[-1]}.{mod}", "self": f"{alias}.{mod}",
+                    "desc": alias}[rel]
+            binding = {"anc": NS, "self": SELF, "desc": f"{SELF}.{mod}"}[rel]
+            read = f"getattr({recv}, '{leaf}')" if slot == "read_getattr" else f"{recv}.{leaf}"
+            return f"import {binding} as {alias}\n{read}\n"
         if key == "guard:body":
             return f"if TYPE_CHECKING:\n    from .{mod} import _x  # noqa: F401\n"
         if key == "guard:else":
