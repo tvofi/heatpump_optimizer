@@ -2998,11 +2998,14 @@ check("the hand-scheduled reason has a label",
     // identifier on both sides of the `&&`, whatever that identifier is. A
     // census written as the owner's own parameter (`typeof n === ...`) would
     // miss the two sites that spelled the rule for `nowTemp` and a refit's
-    // `scale` -- which is exactly what this check exists to catch.
+    // `scale` -- which is exactly what this check exists to catch. The
+    // exclusion is anchored to the owner's assignment, not its name prefix: a
+    // prefix match would also skip a second owner `finiteNum2`, leaving this
+    // check green while the finder's census counts 2.
     const finite = cardSrc.split("\n")
       .filter((l) =>
         /typeof (\w+(?:\.\w+)?) === "number" && Number\.isFinite\(\1\)/.test(l)
-        && !/^\s*(const finiteNum|\*|\/\/)/.test(l));
+        && !/^\s*(const finiteNum = |\*|\/\/)/.test(l));
     check("the finite-number test is spelled in exactly one place",
       /const finiteNum = /.test(cardSrc) && finite.length === 0,
       `${finite.length} inline spelling(s)${finite.length ? ": " + finite.map((l) => l.trim()).join(" | ") : ""}`);
