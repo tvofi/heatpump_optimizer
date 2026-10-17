@@ -1,0 +1,4 @@
+RESULT plant price_model_public_inputs verdict=NULL dS=+0.0000 moved={}
+RESULT plant disinfection_public_inputs verdict=NULL dS=+0.0000 moved={}
+RESULT plant CONTROL_price_model_desc_plain verdict=NULL dS=+0.0000 moved={}
+RESULT plant CONTROL_price_model_desc_from verdict=NULL dS=+0.0000 moved={}

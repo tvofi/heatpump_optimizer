@@ -1,42 +1,45 @@
-Analyze (actions)	success	2026-10-17T00:14:55Z
-Analyze (javascript-typescript)	success	2026-10-17T00:14:54Z
-Analyze (python)	success	2026-10-17T00:14:54Z
-CodeQL	success	2026-10-17T00:15:30Z
-arch-score	success	2026-10-17T00:14:54Z
-arch-score	success	2026-10-17T00:14:55Z
-briefs	success	2026-10-17T00:14:55Z
-browser	success	2026-10-17T00:15:18Z
-budget-raise-gate	success	2026-10-17T00:14:54Z
-budget-raise-gate	success	2026-10-17T00:14:54Z
-claims-autofix	skipped	2026-10-17T00:41:54Z
-closure-scope	success	2026-10-17T00:14:55Z
-closures	null	2026-10-17T00:23:49Z
-coverage	success	2026-10-17T00:15:18Z
-coverage-ratchet	failure	2026-10-17T00:23:49Z
-delivery-status	success	2026-10-17T00:14:54Z
-delivery-status-publish	skipped	2026-10-17T00:14:52Z
-env-matrix	success	2026-10-17T00:14:54Z
-fast (3.14)	success	2026-10-17T00:15:18Z
-graders-head-copy	success	2026-10-17T00:23:49Z
-hassfest	success	2026-10-17T00:14:54Z
-instrument-self-tests	success	2026-10-17T00:14:54Z
-lane-proofs	success	2026-10-17T00:41:56Z
-mutation	success	2026-10-17T00:14:54Z
-mutation-autofix	skipped	2026-10-17T00:15:24Z
-mutation-ledger	skipped	2026-10-17T00:14:52Z
-mutation-ledger-push	skipped	2026-10-17T00:14:52Z
-mutation-nightly	skipped	2026-10-17T00:14:52Z
-mutation-pin-plan	skipped	2026-10-17T00:15:24Z
-mutation-pins	skipped	2026-10-17T00:15:24Z
-nightly-ha	skipped	2026-10-17T00:15:16Z
-nightly-status	success	2026-10-17T00:14:55Z
-policy-docs	success	2026-10-17T00:14:55Z
-pr-contract	success	2026-10-17T00:14:55Z
-pr-contract	success	2026-10-17T00:15:32Z
-recheck-gate	skipped	2026-10-17T00:14:52Z
-record	skipped	2026-10-17T00:14:52Z
-record-autofix	skipped	2026-10-17T00:14:52Z
-slow	skipped	2026-10-17T00:14:52Z
-typing	success	2026-10-17T00:14:54Z
-validate-hacs	success	2026-10-17T00:14:54Z
-wave-script	success	2026-10-17T00:14:54Z
+Analyze (actions)	success	completed
+Analyze (javascript-typescript)	success	completed
+Analyze (python)	success	completed
+CodeQL	success	completed
+arch-score	success	completed
+arch-score	success	completed
+briefs	success	completed
+browser	success	completed
+budget-raise-gate	success	completed
+budget-raise-gate	success	completed
+ci-ratchet	skipped	completed
+claims-autofix	skipped	completed
+closure-scope	success	completed
+closures	success	completed
+closures-autofix	skipped	completed
+composed-proof	success	completed
+coverage	success	completed
+coverage-ratchet	failure	completed
+delivery-status	success	completed
+delivery-status-publish	skipped	completed
+env-matrix	success	completed
+fast (3.14)	success	completed
+graders-head-copy	success	completed
+hassfest	success	completed
+instrument-self-tests	success	completed
+lane-proofs	success	completed
+mutation	success	completed
+mutation-autofix	skipped	completed
+mutation-ledger	skipped	completed
+mutation-ledger-push	skipped	completed
+mutation-nightly	skipped	completed
+mutation-pin-plan	skipped	completed
+mutation-pins	skipped	completed
+nightly-ha	skipped	completed
+nightly-status	success	completed
+policy-docs	success	completed
+pr-contract	success	completed
+pr-contract	success	completed
+recheck-gate	skipped	completed
+record	skipped	completed
+record-autofix	skipped	completed
+slow	skipped	completed
+typing	success	completed
+validate-hacs	success	completed
+wave-script	success	completed

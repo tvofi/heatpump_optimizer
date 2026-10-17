@@ -1,14 +1,14 @@
-RESULT spelling 28_import_abs_alias verdict=NULL dS=+0.0000 moved={}
-RESULT spelling 29_import_abs_plain verdict=NULL dS=+0.0000 moved={}
-RESULT spelling 30_from_abs_module_alias verdict=NULL dS=+0.0000 moved={}
-RESULT spelling 31_import_module_kw verdict=NULL dS=+0.0000 moved={}
 RESULT spelling S4_import_parent_ns verdict=NULL dS=+0.0000 moved={}
 RESULT spelling S5_from_parent_ns verdict=WORSENS dS=-0.3219 moved={'layer_violations': '3->4'}
 RESULT spelling T2_from_parent_child_alias verdict=WORSENS dS=-0.3219 moved={'layer_violations': '3->4'}
 RESULT spelling T3_import_parent_plain verdict=NULL dS=+0.0000 moved={}
-RESULT spelling T5_getattr_parent_chain verdict=NULL dS=+0.0000 moved={}
+RESULT spelling T5_getattr_parent_chain verdict=WORSENS dS=-0.3219 moved={'layer_violations': '3->4'}
 RESULT spelling S8_module_const_name verdict=NULL dS=+0.0000 moved={}
+RESULT spelling U4_annassign_const_name verdict=NULL dS=+0.0000 moved={}
+RESULT spelling U2_fn_local_const_name verdict=IMPROVES dS=+0.5849 moved={'layer_violations': '3->2', 'private_cross_module': '8->7'}
 RESULT spelling T1_import_pkg_alias_then_subattr verdict=WORSENS dS=-0.3219 moved={'layer_violations': '3->4'}
 RESULT spelling T4_relative_module_noalias verdict=NULL dS=+0.0000 moved={}
-RESULT spelling S6_relative_module_alias verdict=NULL dS=+0.0000 moved={}
-RESULT spelling S9_dunder_abs verdict=NULL dS=+0.0000 moved={}
+RESULT spelling 28_import_abs_alias verdict=NULL dS=+0.0000 moved={}
+RESULT spelling 29_import_abs_plain verdict=NULL dS=+0.0000 moved={}
+RESULT spelling 30_from_abs_module_alias verdict=NULL dS=+0.0000 moved={}
+RESULT spelling 31_import_module_kw verdict=NULL dS=+0.0000 moved={}

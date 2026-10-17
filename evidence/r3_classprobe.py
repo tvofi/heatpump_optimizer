@@ -97,6 +97,18 @@ SPELLINGS: dict = {
     "U12_dunder5arg_level": _edit("", '__import__(".optimizer", globals(), locals(), ["_utc_step_starts"], 1)._utc_step_starts('),
     "U19_ancestor_getattr_const_control": _edit("from custom_components import heatpump_optimizer as _p\n",
         'getattr(_p.optimizer, "_utc_step_starts")('),
+    # --- round-5 seam hunt ---
+    "V1_tuple_const": _prepend('_MOD, _X = ".optimizer", 1\n', "import importlib\n",
+        'importlib.import_module(_MOD, __package__)._utc_step_starts('),
+    "V2_binop_const": _prepend('_MOD = "." + "optimizer"\n', "import importlib\n",
+        'importlib.import_module(_MOD, __package__)._utc_step_starts('),
+    "V4_computed_getattr_ancestor_private": _edit("import custom_components as _cc\n",
+        'getattr(_cc.heatpump_optimizer.optimizer, "_utc" + "_step_starts")('),
+    "V5_deep_chain_ancestor": _edit("import custom_components as _cc\n",
+        "_cc.heatpump_optimizer.optimizer._utc_step_starts.__call__("),
+    "V6_fn_local_const_kw": _raw(lambda src: src.replace(ORIG, "import importlib\n").replace(
+        "    if fraction >= 1.0", '    _M = ".optimizer"\n    if fraction >= 1.0', 1).replace(
+        "_utc_step_starts(", 'importlib.import_module(name=_M, package=__package__)._utc_step_starts(')),
     "S14_from_dot_optimizer_f": _edit("from .optimizer import _utc_step_starts as _f\n", "_f("),
 }
 

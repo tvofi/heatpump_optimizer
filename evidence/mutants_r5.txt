@@ -1,0 +1,102 @@
+M0: no edit
+----- M0 -----
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+----- M18 -----
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+M19: applied
+----- M19 -----
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+M20: applied
+----- M20 -----
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     NULL      y       0.0000  
+rt_39_layer_parent_ns_public_pair            redteam  GAME     NULL      y       0.0000  
+rt_40_layer_module_const_ann                 redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+M14: applied
+----- M14 -----
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_33_layer_parent_ns_from                   redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_34_layer_parent_ns_from_alias             redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_35_layer_parent_ns_plain                  redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_36_layer_getattr_chain                    redteam  GAME     IMPROVES  y       0.5849  layer_violations+0.415, private_cross_module+0.170
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_39_layer_parent_ns_public_pair            redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+rt_28_layer_import_abs_alias                 redteam  GAME     IMPROVES  y       0.2224  private_cross_module+0.222
+rt_29_layer_import_abs_plain                 redteam  GAME     IMPROVES  y       0.2224  private_cross_module+0.222
+rt_30_layer_from_abs_module                  redteam  GAME     IMPROVES  y       0.2224  private_cross_module+0.222
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     IMPROVES  y       0.6374  layer_violations+0.415, private_cross_module+0.222
+rt_33_layer_parent_ns_from                   redteam  GAME     IMPROVES  y       0.2224  private_cross_module+0.222
+rt_34_layer_parent_ns_from_alias             redteam  GAME     IMPROVES  y       0.2224  private_cross_module+0.222
+rt_35_layer_parent_ns_plain                  redteam  GAME     IMPROVES  y       0.6374  layer_violations+0.415, private_cross_module+0.222
+rt_36_layer_getattr_chain                    redteam  GAME     IMPROVES  y       0.2224  private_cross_module+0.222
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_39_layer_parent_ns_public_pair            redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  
+M18: applied
+--- M18 (read arm private-only again) ---
+rt_28_layer_import_abs_alias                 redteam  GAME     NULL      y       0.0000  
+rt_29_layer_import_abs_plain                 redteam  GAME     NULL      y       0.0000  
+rt_30_layer_from_abs_module                  redteam  GAME     NULL      y       0.0000  
+rt_31_layer_import_module_kw                 redteam  GAME     NULL      y       0.0000  
+rt_32_layer_parent_ns_alias                  redteam  GAME     NULL      y       0.0000  
+rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_35_layer_parent_ns_plain                  redteam  GAME     NULL      y       0.0000  
+rt_36_layer_getattr_chain                    redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
+rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
+rt_38_layer_parent_ns_public                 redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_39_layer_parent_ns_public_pair            redteam  GAME     IMPROVES  y       0.4150  layer_violations+0.415
+rt_40_layer_module_const_ann                 redteam  GAME     NULL      y       0.0000  

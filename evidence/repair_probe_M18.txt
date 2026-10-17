@@ -1,9 +1,0 @@
------ M18 (read arm adds the edge for a public leaf too) -----
-RESULT plant price_model_public_inputs verdict=NULL dS=+0.0000 moved={}
-RESULT plant disinfection_public_inputs verdict=NULL dS=+0.0000 moved={}
-rt_32_layer_parent_ns_alias                  redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
-rt_33_layer_parent_ns_from                   redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
-rt_34_layer_parent_ns_from_alias             redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
-rt_35_layer_parent_ns_plain                  redteam  GAME     WORSENS   n      -0.3219  layer_violations 3->4
-rt_36_layer_getattr_chain                    redteam  GAME     NULL      y       0.0000  
-rt_37_layer_module_const_name                redteam  GAME     NULL      y       0.0000  
