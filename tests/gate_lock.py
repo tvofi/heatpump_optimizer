@@ -23,22 +23,12 @@ The lease is first come, first served. A waiter holds a ticket
 process is gone or whose ticket expired is skipped and removed. ``renew``
 refuses (``RENEW_REFUSED_RC``) while another label's ticket waits: the holder
 finishes its current run, releases, and takes again behind the waiter.
-
-That single lease serialises the commands that must run ALONE -- those that
-measure the machine, so their numbers are comparable only with nothing else
-running: ``stress.py`` and ``harness_headers.py``. Commands that are
-multi-minute CPU-bound but do not measure take instead from the heavy-slot
-POOL (``take_slot``/``release_slot``, ``heavy_slots()`` slots under the `slots`
-subdirectory; #2267), which is what makes nudge.md's four-prepr cap mechanical
-instead of advisory. ``needs_lease`` classifies a scope into the three answers
-``run.sh`` dispatches on: ``lease``, ``slot`` or ``none``.
 """
 from __future__ import annotations
 
 import argparse
 import contextlib
 import fcntl
-import json
 import os
 import signal
 import subprocess
@@ -57,38 +47,6 @@ FLOCK_NAME = "flock"
 HOLDING_NAME = "holding"
 WAIT_POLL_SECS = 5
 TICKET_PREFIX = "ticket-"
-# --- the heavy-slot pool (R10-PREPR-CAP, #2267) ------------------------------
-# The single lease above serialises one exclusive holder (stress.py). Proving a
-# branch is *runnable* is throughput-bound instead: several commands that each
-# load the box may share it up to a cap, and until now the cap was the
-# orchestrator's, held by hand (nudge.md step 8) and enforced by nothing. A pool
-# of HEAVY_SLOTS slots, taken by `take_slot`, is that cap made mechanical.
-#
-# THE POOL IS ITS OWN LOCK DIR, `lock_dir/<POOL_DIRNAME>`, for two reasons. Its
-# reclaim tests read `flock_available` and `_abandoned_hold` on the directory
-# they reclaim in, and a pool sharing the single lease's directory would read
-# that lease's flock -- a stress run holding it would freeze every dead slot
-# until expiry. And a shared directory would put the pool's waiters and the
-# lease's waiters in one FIFO, so the oldest waiter for either resource would
-# hold the head. Its own directory (and its own `ticket-` queue) keeps the two
-# resources independent, and its files are a plain second naming of the same
-# Owner/ticket/expiry primitives the single lease uses.
-HEAVY_SLOTS = 4
-SLOT_PREFIX = "slot-"
-POOL_DIRNAME = "slots"
-# The slot-count override, and the owner's mark that lets it rise above the cap.
-SLOTS_ENV = "HPO_HEAVY_SLOTS"
-SLOTS_OWNER_ENV = "HPO_HEAVY_SLOTS_OWNER"
-# The label a slot holder exports so its nested heavy steps join that slot
-# instead of taking a second (prepr.sh's step 1b sets it; derive_closures.sh
-# and run.sh's lease arm read it).
-SLOT_LABEL_ENV = "HPO_SLOT_LABEL"
-# The recordings (tests/closures.json's `recorded.seconds`) at or above this are
-# the multi-minute CPU side: they join the slots. Below it they are seconds and
-# run unleased. stress.py (760 s) and harness_headers.py (100 s) measure the
-# machine and take the exclusive lease whatever this says.
-SLOT_MIN_SECONDS = 69
-MACHINE_MEASURING = ("tests/stress.py", "tests/harness_headers.py")
 # A waiter rewrites its ticket every poll; one this far past it is dead.
 TICKET_SECONDS = 60
 RENEW_REFUSED_RC = 75
@@ -163,17 +121,14 @@ def parse_owner(text: str) -> Owner:
     )
 
 
-def _read_at(owner_path: Path) -> Owner | None:
+def read_owner(lock_dir: Path) -> Owner | None:
+    owner_path = lock_dir / OWNER_NAME
     if not owner_path.is_file():
         return None
     try:
         return parse_owner(owner_path.read_text())
     except (OSError, ValueError):
         return None
-
-
-def read_owner(lock_dir: Path) -> Owner | None:
-    return _read_at(lock_dir / OWNER_NAME)
 
 
 def _new_owner(label: str, lease_seconds: int, pid: int | None = None) -> Owner:
@@ -271,12 +226,10 @@ def _orphaned(lock_dir: Path, owner: Owner) -> bool:
     return flock_available(lock_dir)
 
 
-def _steal(owner_path: Path, seen: Owner) -> None:
+def _steal(lock_dir: Path, seen: Owner) -> None:
     """Remove a dead owner by rename, so one of two stealers wins and a fresh
-    owner written in between is put back rather than deleted. Takes the owner
-    file, not the lock dir, so the single lease's ``owner`` and a pooled
-    ``slot-<i>`` file are stolen by the same code (#2267)."""
-    lock_dir = owner_path.parent
+    owner written in between is put back rather than deleted."""
+    owner_path = lock_dir / OWNER_NAME
     grave = lock_dir / f"stale-{os.getpid()}-{time.monotonic_ns()}"
     try:
         os.rename(owner_path, grave)
@@ -375,7 +328,7 @@ def take(
                 return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds,
                              owner_pid=owner_pid)
             elif owner.expired or _abandoned_hold(lock_dir) or _orphaned(lock_dir, owner):
-                _steal(lock_dir / OWNER_NAME, owner)
+                _steal(lock_dir, owner)
                 continue
             else:
                 held = f"{owner.label} until {owner.expires_at}"
@@ -446,171 +399,6 @@ def status(lock_dir: Path = DEFAULT_LOCK_DIR) -> dict[str, object]:
     }
 
 
-# --- the heavy-slot pool (#2267) --------------------------------------------
-# The same Owner/ticket/expiry/steal primitives as the single lease above, over
-# a fixed set of POOL slots instead of one owner file. `take_slot` returns the
-# slot index it claimed so a caller can name the slot it holds; `release_slot`
-# frees the slot a label holds, whichever index that is.
-
-
-def pool_dir(lock_dir: Path = DEFAULT_LOCK_DIR) -> Path:
-    """Where the pool's slot files and queue live (see POOL_DIRNAME)."""
-    return lock_dir / POOL_DIRNAME
-
-
-def _slot_path(pool: Path, index: int) -> Path:
-    return pool / f"{SLOT_PREFIX}{index:03d}"
-
-
-def _slot_of(pool: Path, slots: int, label: str) -> tuple[int, Owner] | None:
-    """The slot ``label`` already holds, so a re-take is idempotent."""
-    for i in range(slots):
-        owner = _read_at(_slot_path(pool, i))
-        if owner is not None and owner.label == label:
-            return i, owner
-    return None
-
-
-def _free_slot(pool: Path, slots: int) -> int | None:
-    """The first slot that may be claimed, stealing an expired or orphaned one.
-
-    A missing file is free; an unreadable one is a broken holder, not a live
-    one, and is replaced. A dead named pid is stolen at once (#1143's rule for
-    the single lease), and the pool directory's own flock -- never held, since
-    only the single lease takes flock -- makes ``_orphaned``'s gate honest.
-    """
-    for i in range(slots):
-        path = _slot_path(pool, i)
-        owner = _read_at(path)
-        if owner is None:
-            if not path.is_file():
-                return i
-            path.unlink(missing_ok=True)  # unparseable: no live holder to lose
-            return i
-        if owner.expired or _orphaned(pool, owner):
-            _steal(path, owner)
-            return i
-    return None
-
-
-def _held_slots(pool: Path, slots: int) -> str:
-    """A one-line description of the holders, for the waiting message."""
-    who = []
-    for i in range(slots):
-        owner = _read_at(_slot_path(pool, i))
-        if owner is not None:
-            who.append(f"{i}:{owner.label} until {owner.expires_at}")
-    return "; ".join(who) or "none"
-
-
-def take_slot(
-    label: str,
-    *,
-    lock_dir: Path = DEFAULT_LOCK_DIR,
-    slots: int | None = None,
-    lease_seconds: int = LEASE_SECONDS,
-    wait: bool = True,
-    owner_pid: int | None = None,
-) -> tuple[int, Owner]:
-    """Claim one of ``slots`` heavy slots for ``label``; return (index, owner).
-
-    First come, first served like the single lease: while every slot is held a
-    caller queues behind older live tickets and takes the next slot to free, so
-    a fifth caller waits rather than loading the box. ``owner_pid`` names a
-    process that outlives the commands holding the slot, so a later take steals
-    a slot whose seat has exited (#1143). ``slots`` defaults to `heavy_slots()`,
-    the pool's own capacity.
-    """
-    if slots is None:
-        slots = heavy_slots()
-    if slots < 1:
-        raise ValueError("slots must be at least 1")
-    pool = pool_dir(lock_dir)
-    said, ticket = False, None
-    try:
-        while True:
-            _ensure_lock_dir(pool)
-            mine = _slot_of(pool, slots, label)
-            if mine is not None:
-                index, owner = mine
-                fresh = Owner(
-                    label=label,
-                    taken_at=owner.taken_at,
-                    expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
-                    pid=owner_pid if owner_pid is not None else owner.pid,
-                )
-                fresh.write(_slot_path(pool, index))
-                return index, fresh
-            free = _free_slot(pool, slots)
-            if free is not None:
-                queue = _queue(pool)
-                if not queue or queue[0][0] == ticket:
-                    fresh = _new_owner(label, lease_seconds, owner_pid)
-                    if fresh.create(_slot_path(pool, free)):
-                        return free, fresh
-                    continue  # another caller won the O_EXCL create; try again
-                held = f"{queue[0][1]}, queued first"
-            else:
-                held = _held_slots(pool, slots)
-            if not wait:
-                raise BlockingIOError(f"all {slots} heavy slots held: {held}")
-            ticket = _enqueue(pool, label, ticket)
-            if not said:
-                print(f"gate_lock: waiting for a heavy slot ({held})", file=sys.stderr)
-                said = True
-            time.sleep(WAIT_POLL_SECS)
-    finally:
-        if ticket is not None:
-            ticket.unlink(missing_ok=True)
-
-
-def release_slot(
-    label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int | None = None
-) -> bool:
-    """Free the one slot ``label`` holds. False when it held none."""
-    slots = heavy_slots() if slots is None else slots
-    pool = pool_dir(lock_dir)
-    mine = _slot_of(pool, slots, label)
-    if mine is None:
-        return False
-    index, _owner = mine
-    _slot_path(pool, index).unlink(missing_ok=True)  # the queue stays
-    return True
-
-
-def slots_status(
-    *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int | None = None
-) -> dict[str, object]:
-    slots = heavy_slots() if slots is None else slots
-    pool = pool_dir(lock_dir)
-    holders: list[Owner | None] = []
-    for i in range(slots):
-        holders.append(_read_at(_slot_path(pool, i)))
-    return {
-        "pool_dir": str(pool),
-        "slots": slots,
-        "holders": holders,
-        "queue": [who for _, who in _queue(pool)] if pool.exists() else [],
-    }
-
-
-def slot_auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR,
-                    owner_pid: int | None = None) -> int:
-    """Take one heavy slot for ``argv``, run it with the slot's label exported,
-    and release on any exit -- run.sh's counterpart to ``auto_lease``.
-
-    ``HPO_SLOT_LABEL`` reaches the child, so a heavy step of ``argv`` that is
-    itself leased (a nested run.sh, derive_closures.sh) joins this slot instead
-    of taking a second."""
-    take_slot(label, lock_dir=lock_dir, owner_pid=owner_pid)
-    env = {**os.environ, SLOT_LABEL_ENV: label}
-    try:
-        return run_group(argv, env)
-    finally:
-        with contextlib.suppress(RuntimeError):
-            release_slot(label, lock_dir=lock_dir)
-
-
 def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
     """Renew the lease, hold flock for ``argv``, release flock on exit.
 
@@ -647,92 +435,14 @@ def run_group(argv: list[str], env: dict[str, str] | None = None, fd: int | None
                 continue
 
 
-def _recorded_seconds(script: str) -> float | None:
-    """``tests/closures.json``'s recorded runtime for ``script``, or None.
+def needs_lease(scope_run: str) -> bool:
+    """run.sh's derived mode decides, not a seat's prediction of it.
 
-    The classifier below is derived from this, never carried: a script that
-    gets heavier moves itself into the slots the next time the recordings are
-    re-taken. None means the table has no such script -- a script nothing has
-    timed, which `needs_lease` sends to the slots rather than unleased.
-    """
-    recorded = Path(__file__).resolve().parent / "closures.json"
-    try:
-        data = json.loads(recorded.read_text())
-        entry = data.get("recorded", {}).get(script)
-    except (OSError, ValueError, AttributeError):
-        return None
-    return entry.get("seconds") if isinstance(entry, dict) else None
-
-
-def needs_lease(scope_run: str) -> str:
-    """``lease``, ``slot`` or ``none`` for the script(s) in run.sh's SCOPE_RUN.
-
-    The rule (gate-scoping.md): a script that MEASURES the machine runs alone,
-    under the exclusive lease; one that is multi-minute CPU-bound joins the
-    four slots; one that takes seconds runs unleased. ``scope_run`` is run.sh's
-    SCOPE_RUN file; empty means MODE: FULL, whose suite carries stress.py, so
-    an empty scope is the exclusive lease.
-
-    Two fail-closed arms, deliberately different. A scope that names a
-    MACHINE_MEASURING script is leased whatever the recordings say. And a name
-    the recordings do NOT carry -- `tests/rolling.py` is the one run.sh
-    dispatches, gated behind `SLOW=1` so nothing ever timed it -- JOINS THE
-    SLOTS: an untimed script's weight is unknown, and the conservative answer
-    for an unknown is the pool, which bounds it, never `none`, which leaves it
-    unbounded beside three other scripts. Only a table that cannot be read at
-    all -- a corrupted tree, where no name at all can be classified -- takes
-    the exclusive lease.
+    ``scope_run`` is run.sh's SCOPE_RUN: empty means MODE: FULL.
     """
     if not scope_run:
-        return "lease"
-    try:
-        names = Path(scope_run).read_text().split()
-    except OSError:
-        return "lease"
-    if any(name in MACHINE_MEASURING for name in names):
-        return "lease"
-    table = Path(__file__).resolve().parent / "closures.json"
-    try:
-        json.loads(table.read_text()).get("recorded", {})
-    except (OSError, ValueError):
-        return "lease"
-    for name in names:
-        seconds = _recorded_seconds(name)
-        if seconds is None or seconds >= SLOT_MIN_SECONDS:
-            return "slot"
-    return "none"
-
-
-def heavy_slots() -> int:
-    """The pool's capacity: ``HEAVY_SLOTS``, or ``$HPO_HEAVY_SLOTS`` within it.
-
-    Raising the cap ABOVE ``HEAVY_SLOTS`` is the owner's: the override is
-    honoured above the cap only with ``$HPO_HEAVY_SLOTS_OWNER`` set, so no seat
-    raises the box's concurrency by exporting one variable. A value that does
-    not parse, or is below 1, reads as the cap rather than as something else.
-    """
-    raw = os.environ.get(SLOTS_ENV)
-    if not raw:
-        return HEAVY_SLOTS
-    try:
-        count = int(raw)
-    except ValueError:
-        return HEAVY_SLOTS
-    if count < 1:
-        return HEAVY_SLOTS
-    if count > HEAVY_SLOTS and os.environ.get(SLOTS_OWNER_ENV) != "1":
-        return HEAVY_SLOTS
-    return count
-
-
-def holding_slot() -> bool:
-    """Whether ``$HPO_SLOT_LABEL`` says this process is already inside a slot.
-
-    A nested heavy step (derive_closures.sh under a prepr, a multi-minute suite
-    script under run.sh) joins the slot it was given instead of taking a
-    second, so one prepr costs one slot however many heavy steps it spawns.
-    """
-    return bool(os.environ.get(SLOT_LABEL_ENV))
+        return True
+    return "tests/stress.py" in Path(scope_run).read_text().split()
 
 
 @contextlib.contextmanager
@@ -805,43 +515,6 @@ def _cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_slot_take(args: argparse.Namespace) -> int:
-    index, owner = take_slot(
-        args.label,
-        lock_dir=args.lock_dir,
-        slots=args.slots,
-        lease_seconds=args.lease_seconds,
-        wait=not args.no_wait,
-        owner_pid=args.owner_pid,
-    )
-    print(
-        f"taken slot={index} label={owner.label} expires_at={owner.expires_at.isoformat()}",
-        file=sys.stderr,
-    )
-    return 0
-
-
-def _cmd_slot_release(args: argparse.Namespace) -> int:
-    if release_slot(args.label, lock_dir=args.lock_dir, slots=args.slots):
-        print("released", file=sys.stderr)
-        return 0
-    print("no slot", file=sys.stderr)
-    return 0
-
-
-def _cmd_slot_status(args: argparse.Namespace) -> int:
-    info = slots_status(lock_dir=args.lock_dir, slots=args.slots)
-    held = [
-        f"{i}:{o.label}({'expired' if o.expired else 'live'})"
-        for i, o in enumerate(info["holders"]) if o is not None
-    ]
-    print(
-        f"{info['pool_dir']}: {len(held)}/{info['slots']} slots held "
-        f"[{', '.join(held) or '-'}] queue={','.join(info['queue']) or '-'}"
-    )
-    return 0
-
-
 def _cmd_flock_wrap(args: argparse.Namespace) -> int:
     try:
         return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
@@ -853,12 +526,6 @@ def _cmd_flock_wrap(args: argparse.Namespace) -> int:
 def _cmd_auto_lease(args: argparse.Namespace) -> int:
     argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
     return auto_lease(args.label, argv, lock_dir=args.lock_dir)
-
-
-def _cmd_slot_auto_lease(args: argparse.Namespace) -> int:
-    argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
-    return slot_auto_lease(args.label, argv, lock_dir=args.lock_dir,
-                           owner_pid=args.owner_pid)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -906,43 +573,14 @@ def _parser() -> argparse.ArgumentParser:
     wrap_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
     wrap_p.set_defaults(func=_cmd_flock_wrap)
 
-    nl_p = sub.add_parser(
-        "needs-lease", help="print how run.sh's scope should run: lease|slot|none"
-    )
+    nl_p = sub.add_parser("needs-lease", help="exit 0 if run.sh's scope needs the lease")
     nl_p.add_argument("scope_run", help="run.sh's SCOPE_RUN; empty means MODE: FULL")
-    nl_p.set_defaults(func=lambda a: print(needs_lease(a.scope_run)))
+    nl_p.set_defaults(func=lambda a: print("lease" if needs_lease(a.scope_run) else "none"))
 
     auto_p = sub.add_parser("auto-lease", help="take, hold flock for a command, release")
     auto_p.add_argument("--label", required=True)
     auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
     auto_p.set_defaults(func=_cmd_auto_lease)
-
-    slot_take_p = sub.add_parser(
-        "slot-take", help="take one of the heavy slots (#2267)"
-    )
-    slot_take_p.add_argument("--label", required=True)
-    slot_take_p.add_argument("--slots", type=int, default=None)
-    slot_take_p.add_argument("--lease-seconds", type=int, default=LEASE_SECONDS)
-    slot_take_p.add_argument("--no-wait", action="store_true")
-    slot_take_p.add_argument("--owner-pid", type=int, default=None)
-    slot_take_p.set_defaults(func=_cmd_slot_take)
-
-    slot_rel_p = sub.add_parser("slot-release", help="free the slot a label holds")
-    slot_rel_p.add_argument("--label", required=True)
-    slot_rel_p.add_argument("--slots", type=int, default=None)
-    slot_rel_p.set_defaults(func=_cmd_slot_release)
-
-    slot_st_p = sub.add_parser("slot-status", help="print the heavy-slot pool state")
-    slot_st_p.add_argument("--slots", type=int, default=None)
-    slot_st_p.set_defaults(func=_cmd_slot_status)
-
-    slot_auto_p = sub.add_parser(
-        "slot-auto-lease", help="take a heavy slot, run a command inside it, release"
-    )
-    slot_auto_p.add_argument("--label", required=True)
-    slot_auto_p.add_argument("--owner-pid", type=int, default=None)
-    slot_auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
-    slot_auto_p.set_defaults(func=_cmd_slot_auto_lease)
 
     return p
 

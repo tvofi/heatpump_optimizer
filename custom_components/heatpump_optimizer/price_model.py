@@ -648,45 +648,39 @@ def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, An
     homes = data.get("data", {}).get("viewer", {}).get("homes", [])
     if not homes:
         return "No homes found in Tibber data"
-    subscription = homes[0].get("currentSubscription")
-    if not subscription:
-        # The API answered and the account holds no contract: a successful
-        # fetch of nothing, not an API error (pinned in tests/features.py).
-        return []
-    price_info = subscription.get("priceInfo") or {}
+    price_info = (homes[0].get("currentSubscription") or {}).get("priceInfo") or {}
     prices: list[dict[str, Any]] = []
     for period in ("today", "tomorrow"):
         for row in price_info.get(period) or []:
             if not isinstance(row, dict):
                 continue
-            # R5-D1-06 (#1297) and R10 D1-s3-02 (#2236): the entity path's
-            # own validators (#1090's drop-whole shape). A total that is not
-            # a finite float, or a start that is not a timestamp, drops the
-            # row: a startless row was placed by list position, 95 of 96
-            # quarters in the wrong slot. One rule for both ingress paths.
-            total, start = _raw_value(row), _raw_start(row)
-            if total is None or start is None:
+            # R5-D1-06 (#1297): the entity path's own validator (#1090's
+            # drop-whole shape). A total that is not a finite float — a
+            # numeric string, null, a nested object, NaN — otherwise
+            # landed raw in `_prices`, crashing `_dhw_plan_fields`'
+            # np.mean and leaking through the uncovered `_current_spot_
+            # price` fallback. One rule for both ingress paths.
+            total = _raw_value(row)
+            if total is None:
                 continue
             prices.append(
-                {"total": total, "starts_at": start, "level": row.get("level", "NORMAL")}
+                {
+                    "total": total,
+                    "starts_at": row.get("startsAt") or row.get("starts_at") or "",
+                    "level": row.get("level", "NORMAL"),
+                }
             )
-    # R10 D1-s3-01 (#2233): a subscription with no usable row is a failed
-    # fetch, never an empty success -- an HTTP 200 with empty days used to
-    # replace a good series.
-    return prices or "Tibber returned no usable price rows"
+    return prices
 
 
 def _raw_start(item: dict[str, Any]) -> str | None:
-    """A row's start as ISO text, or None when it is absent or no timestamp."""
     start = item.get("start") or item.get("starts_at") or item.get("startsAt")
     if start is None:
         return None
-    text = str(start.isoformat()) if hasattr(start, "isoformat") else str(start).strip()
-    try:
-        datetime.fromisoformat(text)
-    except ValueError:
-        return None
-    return text
+    if hasattr(start, "isoformat"):
+        return str(start.isoformat())
+    text = str(start).strip()
+    return text or None
 
 
 def _raw_value(item: dict[str, Any]) -> float | None:
