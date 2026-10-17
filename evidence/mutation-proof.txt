@@ -1,0 +1,51 @@
+MUTATION PROOF - reviewer's re-run at e1048139659b3e995de63df5ac809ca4ddf8bc0d
+instrument: PYTHONPATH=tests/hastub python3 tests/entities.py (2343 checks), detached worktree at the head
+and, beside it, the committed harness on the mutated tree
+
+BASELINE: ALL 2343 ENTITY CHECKS PASSED
+  its '  FAIL ' lines are embedded negative-control output, reproduced identically by every mutation.
+
+MUTATION M1: predicate narrowed: hits(clause[i], ref) > s  ->  > s + 1 (refuse only a THIRD reference)
+  entities: 1 of 2343 ENTITY CHECKS FAILED
+  FAIL set diff vs baseline (first field):
+    29a30
+    >   FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  
+  named pins:
+      FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [rc per separator: {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand': 0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline': 0} -- `Closes #A <sep> #B` closes #A and silently not #B, because GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own and the grep in check 1 keeps only the first. The arm is the ownership property, not a separator list: a spelled-out set always has a next separator, and six of these twelve are the seams a round-1 review returned against the three-separator version]
+      ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+      ok   and two keywords pass, so it is not simply always-red
+  harness:   RESULT seams_open=86 whitespace comma and slash spaced-slash ampersand plus paren semicolon word-then word-twice newline site-split-across-lines punct:" punct:$ punct:% punct:& punct:' punct:( punct:) punct:* punct:+ punct:, punct:- punct:/ punct:: punct:; p
+
+MUTATION M2: the clause reset deleted: gsub(/[.!?][[:space:]]+/, "&\n", t) removed, so the scope is the paragraph
+  entities: 1 of 2343 ENTITY CHECKS FAILED
+  FAIL set diff vs baseline (first field):
+    27a28
+    >   FAIL and a second reference in a LATER clause is not refused (the scope's own null control)  
+  named pins:
+      ok   one closing keyword naming several issues refuses, since GitHub closes only the first
+      FAIL and a second reference in a LATER clause is not refused (the scope's own null control)  [rc per shape: {'part-of': 0, 'leaves-open': 1, 'bare-reference': 0, 'heading': 0} -- ownership is decided inside a clause (a paragraph, and a sentence within it), because a reference in a later clause is not presented as part of the close. `Closes #M.` then `Part of #N.` is the tree's own convention; keeping the count across the blank line would refuse 24 of the 200 most recently merged bodies, every one of them that shape]
+      ok   and two keywords pass, so it is not simply always-red
+  harness:   RESULT seams_open=0    RESULT refused_but_not_seam=8 punct:! punct:? punct:.. word:i.e. not-owned:leaves-open not-owned:superseded-by not-owned:across-a-sentence not-owned:prose-mention 
+
+MUTATION M3: the boundary sentinel dropped: c = " " clause[i]  ->  c = clause[i]
+  entities: 1 of 2343 ENTITY CHECKS FAILED
+  FAIL set diff vs baseline (first field):
+    29a30
+    >   FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  
+  named pins:
+      FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [rc per separator: {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand': 0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline': 0} -- `Closes #A <sep> #B` closes #A and silently not #B, because GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own and the grep in check 1 keeps only the first. The arm is the ownership property, not a separator list: a spelled-out set always has a next separator, and six of these twelve are the seams a round-1 review returned against the three-separator version]
+      ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+      ok   and two keywords pass, so it is not simply always-red
+  harness:   RESULT seams_open=86 whitespace comma and slash spaced-slash ampersand plus paren semicolon word-then word-twice newline site-split-across-lines punct:" punct:$ punct:% punct:& punct:' punct:( punct:) punct:* punct:+ punct:, punct:- punct:/ punct:: punct:; p
+
+MUTATION M4: the whole arm-1b block deleted
+  entities: 1 of 2343 ENTITY CHECKS FAILED
+  FAIL set diff vs baseline (first field):
+    29a30
+    >   FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  
+  named pins:
+      FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [rc per separator: {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand': 0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline': 0} -- `Closes #A <sep> #B` closes #A and silently not #B, because GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own and the grep in check 1 keeps only the first. The arm is the ownership property, not a separator list: a spelled-out set always has a next separator, and six of these twelve are the seams a round-1 review returned against the three-separator version]
+      ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+      ok   and two keywords pass, so it is not simply always-red
+  harness:   RESULT seams_open=86 whitespace comma and slash spaced-slash ampersand plus paren semicolon word-then word-twice newline site-split-across-lines punct:" punct:$ punct:% punct:& punct:' punct:( punct:) punct:* punct:+ punct:, punct:- punct:/ punct:: punct:; p
+

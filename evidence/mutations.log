@@ -1,0 +1,80 @@
+########## BASELINE (unmutated head)
+  harness:
+      RESULT shapes=102
+      RESULT seams_open=0 
+      RESULT refused_but_not_seam=0 
+      RESULT refusal_not_gating=0
+  entities:
+    summary: 
+    named pins:
+        ok   one closing keyword naming several issues refuses, since GitHub closes only the first
+        ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+        ok   and two keywords pass, so it is not simply always-red
+        ok   the preflight step derives and passes the intended list and its refusal gates
+        ok   and the same step re-adding the swallow is not (null control)
+
+########## M1: predicate > s  ->  > s + 1 (refuse only a THIRD reference)
+  applied
+  harness:
+      RESULT shapes=102
+      RESULT seams_open=86 whitespace comma and slash spaced-slash ampersand plus paren semicolon word-then word-twice newline site-split-across-lines punct:" punct:$ punct:% punct:& punct:' punct:( punct:) punct:* punct:+ punct:, punct:- punct:/ punct:: punct:; punct:< punct:= punct:> punct:@ punct:[ punct:] punct:^ punct:_ punct:` punct:{ punct:| punct:} punct:~ punct:\ punct:-> punct:=> punct:| punct:// punct:→ punct:— punct:· punct:… punct: →  word:and word:also word:plus word:then word:twice word:along word:with word:via word:per word:covering word:namely word:viz word:too layout:0 layout:1 layout:2 layout:4 layout:5 layout:6 layout:7 layout:8 layout:9 form:GH-2230 form:gh-2230 form:tvofi/heatpump_optimizer#2230 form:https://github.com/tvofi/heatpump_optimizer/issues/2230 keyword:0:CLOSES keyword:1:closes keyword:2:Closes: keyword:3:Fixed keyword:4:resolves keyword:5:Fixes keyword:6:Resolved keyword:7:CLOSES keyword:8:Resolved keyword:9:FIXED
+      RESULT refused_but_not_seam=0 
+      RESULT refusal_not_gating=0
+  entities:
+    summary: 
+    named pins:
+        FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [rc per separator: {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand': 0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline': 0} -- `Closes #A <sep> #B` closes #A and silently not #B, because GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own and the grep in check 1 keeps only the first. The arm is the ownership property, not a separator list: a spelled-out set always has a next separator, and six of these twelve are the seams a round-1 review returned against the three-separator version]
+        ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+        ok   and two keywords pass, so it is not simply always-red
+        ok   the preflight step derives and passes the intended list and its refusal gates
+        ok   and the same step re-adding the swallow is not (null control)
+
+########## M2: clause becomes paragraph (delete the sentence reset)
+  applied
+  harness:
+      RESULT shapes=102
+      RESULT seams_open=0 
+      RESULT refused_but_not_seam=8 punct:! punct:? punct:.. word:i.e. not-owned:leaves-open not-owned:superseded-by not-owned:across-a-sentence not-owned:prose-mention
+      RESULT refusal_not_gating=0
+  entities:
+    summary: 
+    named pins:
+        ok   one closing keyword naming several issues refuses, since GitHub closes only the first
+        FAIL and a second reference in a LATER clause is not refused (the scope's own null control)  [rc per shape: {'part-of': 0, 'leaves-open': 1, 'bare-reference': 0, 'heading': 0} -- ownership is decided inside a clause (a paragraph, and a sentence within it), because a reference in a later clause is not presented as part of the close. `Closes #M.` then `Part of #N.` is the tree's own convention; keeping the count across the blank line would refuse 24 of the 200 most recently merged bodies, every one of them that shape]
+        ok   and two keywords pass, so it is not simply always-red
+        ok   the preflight step derives and passes the intended list and its refusal gates
+        ok   and the same step re-adding the swallow is not (null control)
+
+########## M3: drop the boundary sentinel (c = " " clause[i] -> c = clause[i])
+  applied
+  harness:
+      RESULT shapes=102
+      RESULT seams_open=86 whitespace comma and slash spaced-slash ampersand plus paren semicolon word-then word-twice newline site-split-across-lines punct:" punct:$ punct:% punct:& punct:' punct:( punct:) punct:* punct:+ punct:, punct:- punct:/ punct:: punct:; punct:< punct:= punct:> punct:@ punct:[ punct:] punct:^ punct:_ punct:` punct:{ punct:| punct:} punct:~ punct:\ punct:-> punct:=> punct:| punct:// punct:→ punct:— punct:· punct:… punct: →  word:and word:also word:plus word:then word:twice word:along word:with word:via word:per word:covering word:namely word:viz word:too layout:0 layout:1 layout:2 layout:4 layout:5 layout:6 layout:7 layout:8 layout:9 form:GH-2230 form:gh-2230 form:tvofi/heatpump_optimizer#2230 form:https://github.com/tvofi/heatpump_optimizer/issues/2230 keyword:0:CLOSES keyword:1:closes keyword:2:Closes: keyword:3:Fixed keyword:4:resolves keyword:5:Fixes keyword:6:Resolved keyword:7:CLOSES keyword:8:Resolved keyword:9:FIXED
+      RESULT refused_but_not_seam=1 not-owned:two-keywords-one-clause
+      RESULT refusal_not_gating=0
+  entities:
+    summary: 
+    named pins:
+        FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [rc per separator: {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand': 0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline': 0} -- `Closes #A <sep> #B` closes #A and silently not #B, because GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own and the grep in check 1 keeps only the first. The arm is the ownership property, not a separator list: a spelled-out set always has a next separator, and six of these twelve are the seams a round-1 review returned against the three-separator version]
+        ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+        ok   and two keywords pass, so it is not simply always-red
+        ok   the preflight step derives and passes the intended list and its refusal gates
+        ok   and the same step re-adding the swallow is not (null control)
+
+########## M4: delete the whole arm-1b block (lines multi= ... fi)
+  removed 1315 bytes, 25 lines
+  harness:
+      RESULT shapes=102
+      RESULT seams_open=86 whitespace comma and slash spaced-slash ampersand plus paren semicolon word-then word-twice newline site-split-across-lines punct:" punct:$ punct:% punct:& punct:' punct:( punct:) punct:* punct:+ punct:, punct:- punct:/ punct:: punct:; punct:< punct:= punct:> punct:@ punct:[ punct:] punct:^ punct:_ punct:` punct:{ punct:| punct:} punct:~ punct:\ punct:-> punct:=> punct:| punct:// punct:→ punct:— punct:· punct:… punct: →  word:and word:also word:plus word:then word:twice word:along word:with word:via word:per word:covering word:namely word:viz word:too layout:0 layout:1 layout:2 layout:4 layout:5 layout:6 layout:7 layout:8 layout:9 form:GH-2230 form:gh-2230 form:tvofi/heatpump_optimizer#2230 form:https://github.com/tvofi/heatpump_optimizer/issues/2230 keyword:0:CLOSES keyword:1:closes keyword:2:Closes: keyword:3:Fixed keyword:4:resolves keyword:5:Fixes keyword:6:Resolved keyword:7:CLOSES keyword:8:Resolved keyword:9:FIXED
+      RESULT refused_but_not_seam=0 
+      RESULT refusal_not_gating=0
+  entities:
+    summary: 
+    named pins:
+        FAIL one closing keyword naming several issues refuses, since GitHub closes only the first  [rc per separator: {'space': 0, 'comma': 0, 'and': 0, 'slash': 0, 'spaced-slash': 0, 'ampersand': 0, 'plus': 0, 'paren': 0, 'semicolon': 0, 'word': 0, 'colon': 0, 'newline': 0} -- `Closes #A <sep> #B` closes #A and silently not #B, because GitHub's rule is KEYWORD #N with nothing between the keyword and the number, so a second number has no keyword of its own and the grep in check 1 keeps only the first. The arm is the ownership property, not a separator list: a spelled-out set always has a next separator, and six of these twelve are the seams a round-1 review returned against the three-separator version]
+        ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+        ok   and two keywords pass, so it is not simply always-red
+        ok   the preflight step derives and passes the intended list and its refusal gates
+        ok   and the same step re-adding the swallow is not (null control)
+
+########## tree after run:

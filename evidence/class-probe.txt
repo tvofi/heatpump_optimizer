@@ -1,0 +1,33 @@
+CLASS PROBE - reviewer's own enumeration, head e1048139659b3e995de63df5ac809ca4ddf8bc0d
+pristine preflight.sh from the head: md5 b77a51977358dc19030a61ae470e25d8
+
+ROUND-1's six seams, second ref UNINTENDED (round 1: rc=0 was the seam)
+  Closes #2231/#9998.                    rc=1 ARM-1B
+  Closes #2231 / #9998.                  rc=1 ARM-1B
+  Closes #2231 & #9998.                  rc=1 ARM-1B
+  Closes #2231 +#9998.                   rc=1 ARM-1B
+  Closes #2231 (#9998).                  rc=1 ARM-1B
+  Closes #2231; #9998.                   rc=1 ARM-1B
+  Closes #2231 then #9998.               rc=1 ARM-1B
+  Closes #2231 twice #9998.              rc=1 ARM-1B
+  Closes #2231<newline>#9998             rc=1 ARM-1B
+
+MY OWN UNDER-FIRE HUNT (shapes outside the six)
+  Closes https://github.com/tvofi/heatpump_optimizer/issues/2231 #2230 rc=1 ARM-1B
+  Closes tvofi/heatpump_optimizer#2231 #2230                 rc=1 ARM-1B
+  Closes GH-2231 #2230                                       rc=1 ARM-1B
+  Closes: #2231 #2230                                        rc=1 ARM-1B
+  FIXED #2231 #2230                                          rc=1 ARM-1B
+  Resolved #2231 #2230                                       rc=1 ARM-1B
+
+CONTROLS (must pass)
+  Closes #2231. Closes #2230.                    rc=0
+  Closes #2231. See #2230.                       rc=0
+  Closes #2231.                                  rc=0
+  See #2231 and #2230 for context.               rc=0
+  Closes #2231<blank>Part of #2230.              rc=0
+
+OVER-FIRE PROBE (same-clause prose mention; 0 of the 200 corpus bodies trip it)
+  Closes #2231 because of #2230.                 rc=1 REFUSED (over-fire)
+  Closes #2231, as reported in #2230.            rc=1 REFUSED (over-fire)
+  Closes #2231 (the cause is #2230).             rc=1 REFUSED (over-fire)

@@ -1,0 +1,14 @@
+head e1048139659b3e995de63df5ac809ca4ddf8bc0d
+=== default matrix (committed harness) ===
+  RESULT shapes=102
+  RESULT seams_open=0 
+  RESULT refused_but_not_seam=0 
+  RESULT refusal_not_gating=0
+=== null control: same matrix against the round-1 head ===
+  RESULT shapes=102
+  RESULT seams_open=73 slash spaced-slash ampersand plus paren semicolon word-then word-twice newline site-split-across-lines punct:" punct:$ punct:% punct:& punct:' punct:( punct:) punct:* punct:+ punct:- punct:/ punct:: punct:; punct:< punct:= punct:> punct:@ punct:[ punct:] punct:^ punct:_ punct:` punct:{ punct:| punct:} punct:~ punct:\ punct:-> punct:=> punct:| punct:// punct:→ punct:— punct:· punct:… punct: →  word:also word:plus word:then word:twice word:along word:with word:via word:per word:covering word:namely word:viz word:too layout:0 layout:1 layout:4 layout:5 layout:6 layout:7 layout:8 layout:9 form:GH-2230 form:gh-2230 form:tvofi/heatpump_optimizer#2230 form:https://github.com/tvofi/heatpump_optimizer/issues/2230 keyword:7:CLOSES keyword:8:Resolved keyword:9:FIXED
+  RESULT refused_but_not_seam=0 
+=== corpus (200 merged PRs) ===
+  RESULT corpus_clause_scope=0 []
+  RESULT corpus_whole_body=25
+  RESULT whole_body_only=25 [2009, 2010, 2012, 2013, 2014, 2015, 2017, 2024, 2025, 2041, 2059, 2062, 2068, 2118, 2212, 2275, 2282, 2284, 2289, 2293, 2294, 2305, 2316, 2336, 2341]
