@@ -1,0 +1,127 @@
+2204	2026-10-14T14:38:47Z	Fix review: merge dbc96ee50dbd906f76247b7c5e5b0f48df9ddd90
+2204	2026-10-14T14:38:59Z	Fix review: merge dbc96ee50dbd906f76247b7c5e5b0f48df9ddd90
+2204	2026-10-14T14:39:05Z	Approved by `hpo-approver` at `dbc96ee50dbd906f76247b7c5e5b0f48df9ddd90` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2204#issuecomment-6170931107 (`Fix review: merge dbc96ee50dbd906f76247b7c5e5b0f48df9ddd90`), via `tools/pr/app_approve.sh`.
+2206	2026-10-14T19:32:42Z	Fix review: merge c674dc3b8630df977d7c1333093f082a40365bf9
+2206	2026-10-14T19:33:29Z	Approved by `hpo-approver` at `c674dc3b8630df977d7c1333093f082a40365bf9` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2206#issuecomment-6176649004 (`Fix review: merge c674dc3b8630df977d7c1333093f082a40365bf9`), via `tools/pr/app_approve.sh`.
+2207	2026-10-14T19:32:57Z	Fix review: merge 17fd924a6fe8e14d1871c6b9d255f153127ac39d
+2207	2026-10-14T20:08:36Z	Approved by the orchestrator agent under mandate 6175172275 (tvofi, #201 issuecomment-6175172275, scope all, until 2026-10-28T18:14Z). The policy edits (verifier.md one-verifier panel, COMMON.md, CLAUDE.md, README and D13/D14 path fixes) implement tvofi's 2026-10-14 rulings. Verdict: Fix review: merge 17fd924a6fe8e14d1871c6b9d255f153127ac39d (hpo-approver comment 61766536
+2209	2026-10-14T23:17:01Z	Fix review: merge 4666a7dd8d43e7bd8d5cae9c51268c31db031dd9
+2209	2026-10-15T01:18:25Z	Fix review: merge 860afdbcb5e9578460022fa95585e760e1403ff7
+2210	2026-10-14T20:53:34Z	Fix review: merge 35c5f68d9d38fa57190e2a38b2683176a7d62162
+2210	2026-10-14T21:22:35Z	Approved by `hpo-approver` at `c41652da564966f52953369e38e6729d3dcadeaa` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2210#issuecomment-6178232554 (`Fix review: merge 35c5f68d9d38fa57190e2a38b2683176a7d62162`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2211	2026-10-14T22:18:01Z	Fix review: merge 82443a023ac7187e6cc580d0c8b5e752cbd6c583
+2211	2026-10-14T22:50:28Z	Fix review: merge cab2a3b1739530e687afbe135ebd4161903cdcc4
+2212	2026-10-14T23:03:26Z	Fix review: merge 66a33cab8db7fe1ce41ef2c8a88c05fd5da0eb4c
+2212	2026-10-14T23:48:29Z	Approved by `hpo-approver` at `f56319587d5d781e1f9c657afb33dd20e69268a4` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2212#issuecomment-6180412339 (`Fix review: merge 66a33cab8db7fe1ce41ef2c8a88c05fd5da0eb4c`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2213	2026-10-14T22:30:56Z	Fix review: blocked ed9989c0b2e3f042c8195936daa110f3e3d6a017 row-format: delivery rows for #2197 #2201 #2203 carry 9-char merge shas, record_row.row_line writes 7 (sha7)
+2213	2026-10-14T23:15:07Z	Fix review: merge bbf0215563bf8d4072346de1446537e44fa543a0
+2213	2026-10-15T00:48:44Z	Approved by `hpo-approver` at `1656d3e76b9a52104867ceb2449118227d0392d3` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2213#issuecomment-6180580280 (`Fix review: merge bbf0215563bf8d4072346de1446537e44fa543a0`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2214	2026-10-14T23:14:38Z	Fix review: merge 490bd805da7d3ca75b169bbe07e4397cff3f5604
+2214	2026-10-15T00:18:47Z	Approved by `hpo-approver` at `7bdfbf4feaf822e87a8c791d9258d7845c8af431` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2214#issuecomment-6180574161 (`Fix review: merge 490bd805da7d3ca75b169bbe07e4397cff3f5604`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2215	2026-10-14T23:44:37Z	Fix review: blocked 990743c078a3c85b87dfaf09ab3a25fb679c8dcd figure-unverified: R10-RCA-2205.md section 4 runner-class split (19 slow at 0.2441-0.2742, 11 fast) re-derives as 17 slow at 0.2441-0.2783 (1.14x), 13 fast
+2215	2026-10-15T00:18:50Z	Fix review: merge 84c24884c64af7c427164721bfb9aadc4f1c1f8c
+2215	2026-10-15T01:14:53Z	Approved by `hpo-approver` at `2b4580844c61cc5c954bf6b507076abbd712c39e` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2215#issuecomment-6181410036 (`Fix review: merge 84c24884c64af7c427164721bfb9aadc4f1c1f8c`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2216	2026-10-14T23:43:45Z	Fix review: blocked 25418620f9fb39304e82dceea3ce8d2114ad018f body-stale: the code is verified; the body says the diff lists 5 files and adds no tracked file, but head adds dev/programme/delivery/2216.md (6 files), and the PR title is a merge-commit subject
+2216	2026-10-15T00:10:51Z	Fix review: blocked 25418620f9fb39304e82dceea3ce8d2114ad018f closures-red: the diff's new emitter check makes tests/entities.py read tools/coverage/coverage_tree.sh, an INERT file; closures job 116164533770 printed INERT READS UNDER-APPROXIMATED and closures-autofix 116172854754 refused (skip-merge-failed)
+2216	2026-10-15T04:38:10Z	Fix review: merge e530ff16701d78656e458acc4da6b40d6ad204ef
+2217	2026-10-15T01:36:54Z	Fix review: merge c40d1ee872b2481b272cbef5dc3653b41973ebf3
+2217	2026-10-15T01:58:07Z	Approved by `hpo-approver` at `b0d7427625abc688bfb5d604ef11a4a6ad1d99ca` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2217#issuecomment-6182379342 (`Fix review: merge c40d1ee872b2481b272cbef5dc3653b41973ebf3`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2244	2026-10-15T11:40:08Z	Fix review: merge 8cf16a150a947f52321fc5ea438edd778c0684e0
+2251	2026-10-15T13:36:22Z	Fix review: merge e1ac127d3237d54392def9a9b763b4cc43421825
+2275	2026-10-15T14:54:43Z	Fix review: blocked 6285ed67cee097c853f18112420db23440076f54 mutation-vacuous: the reviewer-prompt sentence that defines root-cause-detectable against root-cause-unrecorded is pinned by no check; deleting it or swapping the two definitions leaves check-wave-script 184 passed, 0 failed
+2275	2026-10-15T17:22:35Z	Fix review: merge 5f47b7911e138ec564b53774f9f8e1fea4519b5d
+2277	2026-10-15T16:16:31Z	Fix review: merge 2298eb7350eadedd8db609124e4ad8134a121981
+2277	2026-10-15T16:37:52Z	Approved by `hpo-approver` at `e73a0b331c0da4c8e39fd481937263db1de3abad` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2277#issuecomment-6196775497 (`Fix review: merge 2298eb7350eadedd8db609124e4ad8134a121981`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2281	2026-10-15T16:56:33Z	Fix review: merge f3cbd393c8aa12ae5406b66ee894c500bac0a1cb
+2281	2026-10-15T18:02:09Z	Approved by `hpo-approver` at `996da8f16bf5a4a803b2182bcab6c3f10fb09d1d` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2281#issuecomment-6197572347 (`Fix review: merge f3cbd393c8aa12ae5406b66ee894c500bac0a1cb`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2282	2026-10-16T00:04:47Z	Fix review: merge 5c50fd3e0ae6e8b8bae463ba14fff8be6529b84e
+2282	2026-10-16T01:31:08Z	Approved by `hpo-approver` at `429fedf1b46b55d45a0e6dede3692325a0125e08` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2282#issuecomment-6204885073 (`Fix review: merge 5c50fd3e0ae6e8b8bae463ba14fff8be6529b84e`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2283	2026-10-15T16:46:59Z	Fix review: blocked 0b4d46abd10c6d4f95bc8a14aa1885f963c34ecf harness: surviving mutant in openHaLink's registry lookup, and the census misses href= and hass-more-info links
+2283	2026-10-15T18:22:32Z	Fix review: blocked ccdcb4d4039bc9e513f990fdd11d9f71d220811f harness: class-open setAttribute("href") link passes the census and the static guard
+2283	2026-10-15T21:01:23Z	Fix review: blocked 0c78705926a8af8910996b876ca9ddbc922cbef7 harness: class-open replaceState, globalThis.open and location= navigations pass the census and the static guard
+2283	2026-10-15T23:59:17Z	Fix review: blocked 1826c67c37a1332a36fb284eecfad248e07a1ee3 harness: class-open bare open() on an unrendered row, navigation.navigate, form action and an Event-built hass-more-info pass the census
+2283	2026-10-16T01:10:11Z	Fix review: blocked ef47407a05560b49cc33cbdc44ea08ace7ad0a9e harness: over-claim the check "no press throws, so no navigation primitive is swallowed" stays green under the listed gap K1, and the title still claims "a census of every link button"
+2283	2026-10-16T02:36:28Z	Fix review: merge 788c116a408a37b6b276adf95fd17ba69f333fb0
+2283	2026-10-16T02:36:55Z	Approved by `hpo-approver` at `788c116a408a37b6b276adf95fd17ba69f333fb0` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2283#issuecomment-6206774499 (`Fix review: merge 788c116a408a37b6b276adf95fd17ba69f333fb0`), via `tools/pr/app_approve.sh`.
+2284	2026-10-15T17:20:19Z	Fix review: merge ce4d5d5ca6518370cc05c78a9ad261fb63fcd1d6
+2285	2026-10-15T21:08:09Z	Fix review: merge 77b042d4f51acc23f620914377d9b765fc2c7347
+2285	2026-10-15T22:56:39Z	Approved by `hpo-approver` at `de944cd2cd06e80e4b13980e00fb45c7338392a6` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2285#issuecomment-6202307204 (`Fix review: merge 77b042d4f51acc23f620914377d9b765fc2c7347`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2287	2026-10-15T16:50:12Z	Fix review: merge a39b9ef0a2d4d8317696c7ba14a55527679e5d46
+2287	2026-10-15T17:18:59Z	Approved by `hpo-approver` at `2880181d195346454108e368d4d9724ba2832d36` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2287#issuecomment-6197444802 (`Fix review: merge a39b9ef0a2d4d8317696c7ba14a55527679e5d46`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2289	2026-10-15T18:49:17Z	Fix review: blocked fc75984b2e961563bed4e952272024f14fb3d764 preflight-mismatch: closures is red (UNDER-SCOPED tests/entities.py misses dev/audit/rounds/round4/D12/cells.py and d12lib.py; tests/harness_headers.py misses corpus_churn.py), closures-autofix reports skip-classifier-disagrees so no bot commit comes, and the body says "Red checks: none" and that prepr's ci pred
+2289	2026-10-15T20:32:23Z	Fix review: blocked 5014df1399aebbffde19178a50ab6fd999d4b379 class-open: carry-201's carries/1 remeasure still tells a seat to "run the D13 instrument (tools/audit/round5/D13/seat-a/dora_cfr.py)", a pre-move path that names no file; the new stale-command check misses it because _SP_RUN needs the path straight after `run`, and the body says the carry-201 command spellings 
+2289	2026-10-15T22:50:01Z	Fix review: blocked 60c4b9b13e5a02bf54199b707c961e29bfe321a6 harness: class-open F1 (8 of 13 open shapes the arm misses) and F2 (a broken citation caught only on main's full run): the body says they are "routed by the orchestrator, not carried here" and names no destination, none exists, and the PR closes #2227
+2289	2026-10-16T00:27:49Z	Fix review: merge 2e819456954548351ba8fd2d0c375fa3355d9543
+2290	2026-10-15T18:55:39Z	Fix review: merge b7a0eb305f44a16e3bbbf5961275e8bcd2520781
+2290	2026-10-15T20:19:20Z	Approved by `hpo-approver` at `6561cd8476adacde93ab4072046278985ac17b68` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2290#issuecomment-6199892838 (`Fix review: merge b7a0eb305f44a16e3bbbf5961275e8bcd2520781`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2290	2026-10-15T20:58:51Z	Approved by `hpo-approver` at `1d90f8d6e38f2bda984085feaaeef9dfa6bfb1cf` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2290#issuecomment-6199892838 (`Fix review: merge b7a0eb305f44a16e3bbbf5961275e8bcd2520781`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2292	2026-10-15T18:20:58Z	Fix review: merge 26abe519525614c05898e54222f15aecb0a94d8e
+2292	2026-10-15T18:53:20Z	Approved by `hpo-approver` at `26abe519525614c05898e54222f15aecb0a94d8e` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2292#issuecomment-6199203831 (`Fix review: merge 26abe519525614c05898e54222f15aecb0a94d8e`), via `tools/pr/app_approve.sh`.
+2293	2026-10-15T19:28:12Z	Fix review: blocked 92f549f9cf7339627c3d8acda08c6d4eec0061b1 class-open: C14 seed misses Union[X, None], Union[None, X] and Annotated[X, ...] -- each reopens rt_16 (IMPROVES at head)
+2293	2026-10-15T21:27:18Z	Fix review: merge 54cb8531b6cbe7576381d0acf68f733e496a115b
+2294	2026-10-15T19:51:06Z	Fix review: blocked 48d926c1c991774540afbe24b04992d0066a2477 other: docs-code-mismatch: two comments still state the old definition of the head-moved row, and this PR exists to give that row one definition. policy_lint.mjs 2743-2755 (rows stop partitioning; blocked head-moved already in the row by the word) and friction_issues.mjs 22-29 (rework counted under head-moved, f
+2294	2026-10-15T20:58:52Z	Fix review: merge e6f3837585f0aa83952eb4828c4576587fd50c07
+2294	2026-10-15T21:47:34Z	Approved by `hpo-approver` at `b03a77fa776aa8b0967f0d0fa9f1fd4345f6ca8c` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2294#issuecomment-6202146446 (`Fix review: merge e6f3837585f0aa83952eb4828c4576587fd50c07`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2296	2026-10-15T19:18:32Z	Fix review: merge 39b733a7dcdff0e12ba05cea0c69e50fb48db105
+2296	2026-10-15T20:54:21Z	Fix review: merge fb2d6109a37f943c529b05be0fe0474eb9c49ed3
+2296	2026-10-15T21:34:28Z	Approved by `hpo-approver` at `6e3f90570886b49a0abf26a2e43823c30c727517` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2296#issuecomment-6202069616 (`Fix review: merge fb2d6109a37f943c529b05be0fe0474eb9c49ed3`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2297	2026-10-15T20:17:45Z	Fix review: blocked 1c385e45693e6d72965391146ea549d51f633afe test-vacuous: the production wiring of pins_running in run() and the mutation-pin-plan alternative survive deletion with the self-test green
+2297	2026-10-15T21:44:01Z	Fix review: merge 4792a3d14df943c588a3a374ae5fbf8590bf01c6
+2297	2026-10-15T22:58:07Z	Approved by `hpo-approver` at `0b3fc43aa5cfa75e7b39955207bbcfc63fcd11ef` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2297#issuecomment-6202912231 (`Fix review: merge 4792a3d14df943c588a3a374ae5fbf8590bf01c6`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2301	2026-10-16T02:47:41Z	Fix review: blocked 69f04ec613a14a4f50cb55b10820e411716ac993 policy-regression: D6.md pays its cap by deleting two method requirements, and its web step names an inexecutable anchor check and the wrong drift reference
+2301	2026-10-16T04:18:19Z	Fix review: merge 1755a8a7df54093861beba00610825dd0e9f46ae
+2305	2026-10-15T22:10:07Z	Fix review: blocked 3c807ab5bb62d2d4da36003d2787437d2b012b4b mutation-vacuous: five reviewer mutants on new safety predicates survive the self-test (R4 post-merge no-recover, R11 carry chain, R14 rehearsal bot merge, R15 first-merge green re-read after re-proof, R16 batch sweep), and the body's claim that the gate's mutation pass covers the rest is false (empty scope)
+2305	2026-10-16T00:06:04Z	Fix review: merge e01e66f0d00bdc2acfcdef725b2d4c53ff0455ac
+2305	2026-10-16T01:32:23Z	Approved by `hpo-approver` at `a508f5d100ea0c31e64770efa51939981f541d48` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2305#issuecomment-6204903683 (`Fix review: merge e01e66f0d00bdc2acfcdef725b2d4c53ff0455ac`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2306	2026-10-15T21:46:01Z	Fix review: merge ffcf1a46a12d99f6890a33ac6cf10124c037f71c
+2306	2026-10-15T22:11:33Z	Approved by `hpo-approver` at `48107ca7fc2c52528e0ec864b7029c6a21dc2881` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2306#issuecomment-6202944363 (`Fix review: merge ffcf1a46a12d99f6890a33ac6cf10124c037f71c`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2309	2026-10-15T22:36:08Z	Fix review: merge 74c207a7f5d05740925222a819ffbe8915aa6c6b
+2309	2026-10-15T23:03:06Z	Fix review: merge afcab4125e4bf2ca8caf5baf266bd7b03d956d8c
+2309	2026-10-15T23:36:04Z	Approved by `hpo-approver` at `248df2736704bb7f148941d0a49cf51a368c0f7f` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2309#issuecomment-6204086357 (`Fix review: merge afcab4125e4bf2ca8caf5baf266bd7b03d956d8c`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2309	2026-10-15T23:39:00Z	Approved by `hpo-approver` at `248df2736704bb7f148941d0a49cf51a368c0f7f` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2309#issuecomment-6204086357 (`Fix review: merge afcab4125e4bf2ca8caf5baf266bd7b03d956d8c`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2311	2026-10-16T06:03:28Z	Fix review: merge f687e6175e44dd21c691e04b43ed0e5fdd51602d
+2315	2026-10-15T23:49:06Z	Fix review: merge aac725283ee756c10fd1019a19d20f1c307a9df3
+2315	2026-10-16T00:15:55Z	Fix review: merge 706c2d24706268ab14907465f482cf3880f21ed4
+2315	2026-10-16T00:44:51Z	Approved by `hpo-approver` at `38ff5a3006b0b59e8d8b4baa738b0ce91e19d016` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2315#issuecomment-6205039497 (`Fix review: merge 706c2d24706268ab14907465f482cf3880f21ed4`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2316	2026-10-16T01:32:18Z	Fix review: blocked 9d7beec3bedb9557c19e42096689e1b137838c68 harness: class-open tools/audit/seat/prune_refs.py writes origin refs through gh api git/refs, which --check cannot see
+2316	2026-10-16T03:38:28Z	Fix review: blocked 98ca694d1bb08532e7a440fd2bfb718a7bdcd1d0 harness: class-open .github/workflows/release.yml creates a tag through gh release create, which the site rule cannot see; push.sh's --commits is unpinned
+2316	2026-10-16T06:02:13Z	Fix review: merge 9b35a00a9b25be2d49e2e061c001ef7a3a575131
+2320	2026-10-16T03:10:12Z	Fix review: blocked 4a4107fcde80e55b5b9a24748554f0d4491b6b59 harness: class-open runtime imports in the else or not-branch of TYPE_CHECKING, constant-name importlib.import_module and absolute self-imports are not edges; each plant reads IMPROVES +0.1466
+2320	2026-10-16T17:02:14Z	Fix review: blocked 353f7f3c4dafe94b1eb3b152af79024eb0af368f class-open: the absolute self-import spelled `import <pkg>.m`, the `m._x` binding an absolute self-import makes, and `import_module(name=..., package=__package__)` are not edges; each keeps the runtime import and reads IMPROVES (dS +0.1466 / +0.0825 / +0.1466) at the repaired instrument
+2320	2026-10-17T13:32:55Z	Fix review: blocked 95f31d5e869c52a0298a05966cfc90af4cb50563 figures-false: the body's round-5 re-record account and the M21 mutation claim are false about rt_36_layer_getattr_chain
+2320	2026-10-17T16:50:30Z	Fix review: merge 95f31d5e869c52a0298a05966cfc90af4cb50563
+2320	2026-10-17T17:00:21Z	Owner approval (code-owned path `tools/audit/archscore/calibration/expected.json`) at head `97f0abacc1c008e48629b0a714a39768f95950ca`, after the `Fix review: merge 95f31d5e8` verdict carried to `97f0abac` by a clean recarry. Given under the round-10 mandate, #201 comment 6175172275 (scope all, to 2026-10-28).
+2321	2026-10-16T00:56:33Z	Fix review: merge 3e42151ee52702ad78c090137cfa32253b354933
+2321	2026-10-16T01:22:20Z	Fix review: merge 35332265f5fc233a6bdc85a507f967284a4cf3ea
+2321	2026-10-16T02:07:46Z	Approved by `hpo-approver` at `0f3c66bb00d11b670d613c7d81a6e64b60486d93` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2321#issuecomment-6205863438 (`Fix review: merge 35332265f5fc233a6bdc85a507f967284a4cf3ea`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2323	2026-10-16T04:43:41Z	Fix review: blocked 8fef39fc30e2e7700c6eac7303fa7c36d68c4673 harness: class-open #2220 arm B (yield.mjs, D13-s1-01) is neither in the diff nor dispositioned in a body that writes Closes #2220
+2323	2026-10-16T14:33:01Z	Fix review: merge 8fef39fc30e2e7700c6eac7303fa7c36d68c4673
+2325	2026-10-16T02:35:20Z	Fix review: merge 6fdaaa5e37d07b3074971cc4a2557df962fd220b
+2325	2026-10-16T03:16:57Z	Approved by `hpo-approver` at `a59f1658da7d5efa5ad32bd7ad69f0ac80f7748f` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2325#issuecomment-6206761267 (`Fix review: merge 6fdaaa5e37d07b3074971cc4a2557df962fd220b`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2329	2026-10-16T14:45:59Z	Fix review: blocked c777f855b9d87f8218ed3650aead1e92537f51e1 harness: class-rule-missing the body names no rule for class N-registry-leak — the issue's own is `dev/audit/rounds/round10/D14/N-registry-leak/registry_leak.py`, and the four seams it returns beyond the ones the body lists (`const.INPUT_MAX_AGE_MINUTES`, `coordinator._FENCED_CAUSES`, `coordinator._WORKER_FALL
+2329	2026-10-16T15:14:12Z	Fix review: merge c777f855b9d87f8218ed3650aead1e92537f51e1
+2329	2026-10-16T15:14:48Z	Approved by `hpo-approver` at `c777f855b9d87f8218ed3650aead1e92537f51e1` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2329#issuecomment-6218556393 (`Fix review: merge c777f855b9d87f8218ed3650aead1e92537f51e1`), via `tools/pr/app_approve.sh`.
+2330	2026-10-16T05:37:51Z	Fix review: merge 2a7883798c15b603043e18f3871f0dd775445436
+2330	2026-10-16T06:03:48Z	Fix review: merge 2a7883798c15b603043e18f3871f0dd775445436
+2330	2026-10-16T06:09:34Z	Fix review: merge 69c5799bcc9f69b23314788ea963a3b8e94cf41c
+2330	2026-10-16T06:54:48Z	Approved by `hpo-approver` at `eddacb8ba2613437f673657335069c1438109eab` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2330#issuecomment-6209280899 (`Fix review: merge 69c5799bcc9f69b23314788ea963a3b8e94cf41c`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2336	2026-10-16T19:30:59Z	Fix review: merge c99d73f3b39220dc09441b430ea2d85bd48e653e
+2336	2026-10-16T22:14:19Z	Approved by `hpo-approver` at `efa77aac299cf612a9eb10fc39f868ee10c5e94c` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2336#issuecomment-6223146383 (`Fix review: merge c99d73f3b39220dc09441b430ea2d85bd48e653e`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2339	2026-10-16T19:19:47Z	Fix review: merge c4080d7bde673c71c59acfd6f18f699e7ff539ab
+2339	2026-10-16T19:20:57Z	Approved by `hpo-approver` at `c4080d7bde673c71c59acfd6f18f699e7ff539ab` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2339#issuecomment-6222964124 (`Fix review: merge c4080d7bde673c71c59acfd6f18f699e7ff539ab`), via `tools/pr/app_approve.sh`.
+2340	2026-10-17T13:32:27Z	Fix review: merge 40683e8d7dcae31c6958434d9606682fcd7141f1
+2341	2026-10-16T22:52:48Z	Fix review: merge 945f0787c349793fd4e771622b7147da5c90df65
+2342	2026-10-17T08:45:00Z	Fix review: merge e1048139659b3e995de63df5ac809ca4ddf8bc0d
+2344	2026-10-17T08:42:01Z	Fix review: blocked a0743cfa2727cd010020e5aa39be31f443c37869 harness: class-open a global/nonlocal-declared binding -- read by the round-1 head, lost by this one -- and an attribute resolved only in the scope that binds it
+2344	2026-10-17T13:28:18Z	Fix review: merge c424aabf74362aacddd1ecf9a8e2f752bc19bc59
+2346	2026-10-17T12:59:03Z	Fix review: blocked 82daaab4421a380e3e73c570e58dffe19dc0d588 harness: class-open finite_inline (nowTemp, refit.scale)
+2346	2026-10-17T17:29:32Z	Fix review: merge 71fcfd7319a09d93318a8b0c08ba625f12f6ed16
+2346	2026-10-17T17:29:35Z	Owner approval (code-owned path `tests/card_browser.mjs`) at head `71fcfd7319a09d93318a8b0c08ba625f12f6ed16`, after the `Fix review: merge 71fcfd73` verdict. Given under the round-10 mandate, #201 comment 6175172275 (scope all, to 2026-10-28).
+2347	2026-10-17T08:59:48Z	Fix review: blocked b8639bc20d5b2310ee25853831d5a4280accf231 harness: class-open optimizer.py:2982
+2347	2026-10-17T13:55:34Z	Fix review: blocked 13c98d851e1e63002c951629590fbec95b5a6693 root-cause-unanswered: fast (3.14), mutation, mutation-autofix went red, unanswered
+2347	2026-10-17T17:32:32Z	Fix review: merge 4488a3f5ad973ec7a2bf13ad6c7690f797bb2bc4
+2347	2026-10-17T18:22:53Z	Fix review: merge 3a07c2eaa9453528f8e921e0b04364aab4adc209
+2347	2026-10-17T20:01:37Z	Approved by `hpo-approver` at `2230f28ecccd5706b7729769ef58f708eb083ac3` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2347#issuecomment-6238497038 (`Fix review: merge 3a07c2eaa9453528f8e921e0b04364aab4adc209`), carried to this head (#1667), via `tools/pr/app_approve.sh`.
+2349	2026-10-17T13:39:12Z	Fix review: merge dd3e87c60c89c5f60e05b990647a224f56a0bde9
+2349	2026-10-17T13:39:29Z	Approved by `hpo-approver` at `dd3e87c60c89c5f60e05b990647a224f56a0bde9` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2349#issuecomment-6234552853 (`Fix review: merge dd3e87c60c89c5f60e05b990647a224f56a0bde9`), via `tools/pr/app_approve.sh`.
+2349	2026-10-17T15:20:20Z	Approved by `hpo-approver` at `bb700f2005a85d1d6d5ec19688633ee0f8ec9728` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2349#issuecomment-6234552853 (`Fix review: merge dd3e87c60c89c5f60e05b990647a224f56a0bde9`), carried to this head (#1667), via `tools/pr/app_approve.sh`.

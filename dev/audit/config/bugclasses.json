@@ -4105,6 +4105,22 @@
         "dev/audit/rca/R10-RCA-2205.md"
       ]
     },
+    "R10-RCA-HARNESS-FRICTION": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2331 harness key at 9 PRs and #2353 class-open key at 3 PRs in v7.0.0..6e5753a4: one fix-review.md step-6 refusal under two spellings, because #1414 taught `harness: class-open` beside the block class `class-open` (11 of 14 class-open blocks keyed harness)",
+      "trigger": "recurring friction (harness key filed in 4 of 5 release windows: #1881, #2004, #2034, #2136, #2331)",
+      "date": "2026-10-17",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) reviewers followed step 6's example and check-wave-script.mjs's example arm passed it, its unit the first class word only",
+      "countermeasure": "check-wave-script.mjs refuses a contract example whose reason opens with another taught block class (shown failing on fix-review.md:29, passing once step 6 reads `class-open:`); step-6 line proposed as policy; fixer.md step-8 alignment and free-text sub-keying refused by the cost test",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-HARNESS-FRICTION.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-HARNESS-FRICTION.md"
+      ]
+    },
     "R10-N-staleness": {
       "class": "N-staleness",
       "level": "class",
