@@ -1,3 +1,0 @@
-# label arithmetic re-derivation, stock two-zone house, scale 1.0
-RESULT ratio=1.0: fit_basis=190.0000 W/K  effective=190.0000 W/K  rel=+0.0000%  U=0.1 L=0.09
-RESULT ratio=1.6: fit_basis=190.0000 W/K  effective=244.0000 W/K  rel=-22.1311%  U=0.1 L=0.09

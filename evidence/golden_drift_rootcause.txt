@@ -1,0 +1,7 @@
+two_zone_enabled: True
+heat_loss_coefficient: 0.15
+upper_floor_heat_loss: 0.1
+lower_floor_heat_loss: 0.09
+lower_floor_loss_ratio: 1.0
+_house_ua_kw_per_c (NEW): 0.19
+heat_loss_coefficient*scale (OLD): 0.15
