@@ -29772,17 +29772,18 @@ R.check(
     f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
     f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
 )
-# F1 (#2312): the open shapes the fix reviews planted -- #2289's round-1
-# `plants.py` is the control for the first eight, and #2344's round-1 review
-# named the binding and receiver forms beside them (a `for` target, a walrus,
-# `+=`, a parameter default, `with ... as`, a `self.x` attribute, and `.open()`
-# on a `/`-join receiver). A literal reached through any of them was held by the
-# module but never counted as an open, so the program it names was never probed.
-# Each planted shape must be read as an open, the five the arm already caught
-# stay caught, and -- the null control the whole arm rests on -- a literal the
-# program only HOLDS is still not an open. Asserted on `_sp_literals`, the shape
-# reader, not on `_sp_faults`: a planted `open(<retired>)` ALSO fails to load,
-# and that failure would hide a shape the reader still misses.
+# F1 (#2312): the open shapes the fix reviews planted, and the binding family
+# beside them -- #2289's round-1 `plants.py` is the control for the first eight,
+# and #2344's round-1 review named the two plainly inside the rule (a `for`
+# target holding the literal, and `.open()` on a `/`-join receiver) plus the
+# forms that ride with them. A literal reached through any of them was held by
+# the module but never counted as an open, so the program it names was never
+# probed. Each planted shape must be read as an open, the five the arm already
+# caught stay caught, and -- the null control the whole arm rests on -- a
+# literal the program only HOLDS is still not an open. Asserted on
+# `_sp_literals`, the shape reader, not on `_sp_faults`: a planted
+# `open(<retired>)` ALSO fails to load, and that failure would hide a shape the
+# reader still misses.
 _sp_probe = "\nimport os\nfrom pathlib import Path\n"
 
 
@@ -29808,6 +29809,20 @@ _sp_escapes = {
     "with ... as": f"with Path('.') / {_sp_old!r} as _P:\n    _X = _P.read_text()\n",
     "self attribute": f"class _C:\n    def m(self):\n        self._P = {_sp_old!r}\n"
                       f"        _X = open(self._P)\n",
+    "list element then subscript": f"_L = [{_sp_old!r}]\n_X = open(_L[0])\n",
+    "nested dict subscript": f"_C = {{'a': {{'b': {_sp_old!r}}}}}\n_X = open(_C['a']['b'])\n",
+    "for tuple target": f"for _A, _B in (({_sp_old!r}, 'x'),):\n    _X = open(_A)\n",
+    "for over a list": f"for _P in [{_sp_old!r}]:\n    _X = open(_P)\n",
+    "kwonly default": f"def _f(*, _p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "lambda default": f"_f = lambda _p={_sp_old!r}: open(_p)\n",
+    "joinpath then read_text": f"_X = Path('.').joinpath({_sp_old!r}).read_text()\n",
+}
+# The null controls beside the plants: a literal the program only HOLDS -- in a
+# tuple, a set, or a comparison -- is read as no open, whatever else it is in.
+_sp_held_shapes = {
+    "held tuple": f"_X = ({_sp_old!r},)\n",
+    "held set": f"_S = {{{_sp_old!r}}}\n",
+    "held comparison": f"_X = ('x' == {_sp_old!r})\n",
 }
 _sp_caught = {
     "one-hop name": f"_P = {_sp_old!r}\n_X = open(_P)\n",
@@ -29820,15 +29835,17 @@ _sp_missed = sorted(k for k, p in _sp_escapes.items()
                     if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
 _sp_regressed = sorted(k for k, p in _sp_caught.items()
                        if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+_sp_held_open = sorted(k for k, p in _sp_held_shapes.items()
+                       if _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
 R.check(
     "the cited-program arm follows a path literal through every open shape the "
-    "two fix reviews planted -- an alias, a join, a pathlib / read through "
-    ".read_text() or .open(), an f-string prefix, a dict subscript, a tuple "
-    "unpack, an annotated assignment, a for target, a walrus, +=, a parameter "
-    "default, a with ... as target and a self.x attribute -- and the shapes it "
-    "already caught stay caught",
-    not _sp_missed and not _sp_regressed
-    and not _sp_opens(_sp_unit_src + f"\n_X = ({_sp_old!r},)\n", _sp_old),
+    "two fix reviews planted and the binding family beside them -- an alias, a "
+    "join, a pathlib / read through .read_text() or .open(), an f-string prefix, "
+    "a dict or list subscript, a tuple unpack, an annotated assignment, a for "
+    "target, a walrus, +=, a parameter or lambda default, a with ... as target "
+    "and a self.x attribute -- the shapes it already caught stay caught, and a "
+    "literal the program only HOLDS is still not an open",
+    not _sp_missed and not _sp_regressed and not _sp_held_open,
     f"shapes that still escape {_sp_missed}; no longer read as opens {_sp_regressed}",
 )
 # THE SOURCES MUST SELECT THIS SCRIPT, or the citation half above is a main-only
