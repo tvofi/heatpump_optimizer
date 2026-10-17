@@ -2,7 +2,8 @@
 metric must rise), one that REMOVES an instance (fix: it must fall) and a behaviour-neutral rename or reformat
 (null: it must not move). Anchored on the pinned tree (``cases.PINNED``): every ``sub`` asserts its anchor
 occurs exactly once, so a tree that is not the pin fails loudly instead of being edited in the wrong place.
-``fix_on == "control"`` applies the fix on top of the control edit (the pin holds no instance to remove).
+``on`` maps an arm to the case it is applied on top of and compared against (the pin holds no instance to
+remove, or the arm re-spells what another case planted).
 """
 from __future__ import annotations
 
@@ -99,6 +100,36 @@ def plan():
                                         cls="HeatPumpOptimizerCoordinator"))),
     )
 
+    # 1b a hub read through a zero-argument reader (counter C15, D7-s1-83)
+    def reader(w):
+        sub(w, "coordinator.py", "            ctx._thermal_params,\n            frozen=self._learning_frozen,\n",
+            "            lambda: ctx._thermal_params,\n            frozen=self._learning_frozen,\n")
+        p = _p(w, "dhw_learning.py")
+        s2, n = re.subn(r"\bself\._params\b(?! = params)", "self._params()", p.read_text())
+        assert n >= 6, n
+        p.write_text(s2)
+
+    probe = "        self._params().dhw_setpoint = self._params().dhw_setpoint\n"
+    rate = "        self._params().dhw_cooling_rate = self.cooling_rate\n"
+    P["hub_reader"] = dict(
+        control=("the DHW learner holds the hub as `lambda: ctx._thermal_params` and writes one more field through it",
+                 lambda w: (reader(w), sub(w, "dhw_learning.py", rate, rate + probe))),
+        fix=("[on top of control] the extra write through the reader goes",
+             lambda w: sub(w, "dhw_learning.py", rate + probe, rate)),
+        on={"fix": "a3_hub_reader_control"},
+    )
+
+    # 1c a hub write in an event callback (counter C16, ARCH2-s2 P4)
+    ecl = "            self._ecl110_current_displace = displace\n"
+    ecl_hub = "            ctx._current_state.ecl110_last_displace = displace\n"
+    P["hub_event_write"] = dict(
+        control=("the ECL110 state message writes the live state instead of the coordinator's own slot",
+                 lambda w: sub(w, "coordinator.py", ecl, ecl_hub)),
+        fix=("[on top of control] the event's live-state write goes",
+             lambda w: sub(w, "coordinator.py", ecl_hub, "")),
+        on={"fix": "a3_hub_event_write_control"},
+    )
+
     # 2 shared_inplace_writes
     P["shared_inplace_writes"] = dict(
         control=("re-plant #1752: boost.apply overlays the LIVE _current_action instead of a copy",
@@ -149,6 +180,58 @@ def plan():
                                        cls="HeatPumpOptimizerCoordinator")),
     )
 
+    # 4b the payload census through an annotated parameter (counter C14, ARCH-s3 round 10)
+    away_call = "        data.update(self._away_state.as_dict())\n"
+
+    def away_helper(w, ann="away_mode.AwayState"):
+        sub(w, "coordinator.py", away_call, "        data.update(_away_view(self._away_state))\n")
+        sub(w, "coordinator.py", "\nclass HeatPumpOptimizerCoordinator(",
+            "\nfrom typing import Annotated, Union  # noqa: E402\n\n\n"
+            f"def _away_view(state: {ann}) -> dict[str, Any]:\n"
+            '    return {**state.as_dict(), "probe_away_key": 1}\n\n\nclass HeatPumpOptimizerCoordinator(')
+
+    def away_contract(w):
+        # The keys AwayState.as_dict's literal publishes, read from the tree, not from the census under test.
+        cls = next(n for n in ast.parse(_p(w, "away.py").read_text()).body
+                   if isinstance(n, ast.ClassDef) and n.name == "AwayState")
+        fn = next(f for f in cls.body if isinstance(f, ast.FunctionDef) and f.name == "as_dict")
+        ret = next(n for n in ast.walk(fn) if isinstance(n, ast.Return))
+        keys = sorted(k.value for k in ret.value.keys) + ["probe_away_key"]
+        sub(w, "coordinator.py", ") -> dict[str, Any]:\n    return {**state.as_dict(), ",
+            ") -> AwayViewProbe:\n    return {**state.as_dict(), ")
+        sub(w, "coordinator.py", "\ndef _away_view(",
+            "\nfrom typing import TypedDict  # noqa: E402\n\n\nclass AwayViewProbe(TypedDict, total=False):\n"
+            + "".join(f"    {k}: bool | float | str | None\n" for k in keys) + "\n\ndef _away_view(")
+
+    P["payload_annotated_param"] = dict(
+        control=("the away view moves behind `_away_view(state: away_mode.AwayState)`, which adds one key",
+                 away_helper),
+        fix=("[on top of control] the helper's return is a TypedDict declaring every key it publishes",
+             away_contract),
+        on={"fix": "a3_payload_annotated_param_control"},
+    )
+
+    # 4b' the same, the parameter's type spelled in the forms #2293's review found open
+    P["payload_annotated_param_spelling"] = dict(
+        control=("as payload_annotated_param's control, the parameter spelled `Union[None, away_mode.AwayState]`",
+                 lambda w: away_helper(w, "Union[None, away_mode.AwayState]")),
+        control_write=("as payload_annotated_param's control, the parameter spelled `Annotated[away_mode.AwayState, \"x\"]`",
+                       lambda w: away_helper(w, 'Annotated[away_mode.AwayState, "x"]')),
+        fix=("[on top of control] the helper's return is a TypedDict declaring every key it publishes",
+             away_contract),
+        on={"fix": "a3_payload_annotated_param_spelling_control"},
+    )
+
+    # 4c a key that states no type, spelled other than a bare Any (counter C1b, ARCH-s3 round 10)
+    P["payload_any_spelling"] = dict(
+        control=("[on top of a3_untyped_payload_keys_fix] the contract re-spells `mode: str` as `mode: Any | None`",
+                 lambda w: sub(w, "coordinator.py", "    mode: str\n    plan_stale: bool\n",
+                               "    mode: Any | None\n    plan_stale: bool\n")),
+        fix=("[on top of control] `mode: Any | None` becomes `mode: str | None`",
+             lambda w: sub(w, "coordinator.py", "    mode: Any | None\n", "    mode: str | None\n")),
+        on={"control": "a3_untyped_payload_keys_fix", "fix": "a3_payload_any_spelling_control"},
+    )
+
     # 5 xmodule_duplication
     def copy_window_slot(w):
         src = _p(w, "tariff.py").read_text()
@@ -197,10 +280,58 @@ def plan():
              lambda w: sub(w, "drift.py", "\nfrom . import coordinator as _probe_cycle  # noqa: E402,F401\n",
                            "\nfrom typing import TYPE_CHECKING  # noqa: E402\nif TYPE_CHECKING:\n"
                            "    from . import coordinator as _probe_cycle  # noqa: F401\n")),
-        fix_on="control",
+        on={"fix": "a3_import_cycles_control"},
         null=("swap two intra-package import lines in coordinator.py",
               lambda w: sub(w, "coordinator.py", "from . import mixing_valve\nfrom . import topology\n",
                             "from . import topology\nfrom . import mixing_valve\n")),
+    )
+
+    # 6b layer_violations: modules reaching a layer above their own (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)
+    def step_clock(w):
+        src = _p(w, "optimizer.py").read_text()
+        a, b = func_span(src, "_utc_step_starts")
+        body = "".join(src.splitlines(keepends=True)[a - 1:b])
+        (_p(w, "step_clock.py")).write_text(
+            '"""The horizon clock, one owner for the solver and the windows that cap it."""\n'
+            "from __future__ import annotations\n\nfrom datetime import datetime, timedelta, timezone\n\n\n"
+            + body.replace("def _utc_step_starts(", "def utc_step_starts("))
+        lines = src.splitlines(keepends=True)
+        p = _p(w, "optimizer.py")
+        p.write_text("".join(lines[:a - 1]) + "from .step_clock import utc_step_starts as _utc_step_starts  # noqa: E402\n"
+                     + "".join(lines[b:]))
+        sub(w, "silent_mode.py", "from .optimizer import _utc_step_starts\n",
+            "from .step_clock import utc_step_starts as _utc_step_starts\n")
+
+    P["layer_violations"] = dict(
+        control=("drift.py, a pure module, imports the optimizer, so it reaches the solver's layer",
+                 lambda w: sub(w, "drift.py", "import numpy as np\n",
+                               "import numpy as np\n\nfrom .optimizer import HeatPumpOptimizer  # noqa: F401\n")),
+        fix=("the horizon clock moves out of the optimizer into step_clock.py; silent_mode, pure, imports it there",
+             step_clock),
+        null=("silent_mode's optimizer import moves above its const import (same module level, same edge), "
+              "and drift.py gains an annotation-only import of the optimizer under `if TYPE_CHECKING:`, "
+              "which the runtime never runs",
+              lambda w: (sub(w, "silent_mode.py", "from .optimizer import _utc_step_starts\n", ""),
+                         sub(w, "silent_mode.py", "import numpy as np\n",
+                             "import numpy as np\n\nfrom .optimizer import _utc_step_starts\n"),
+                         sub(w, "drift.py", "from typing import Any\n",
+                             "from typing import TYPE_CHECKING, Any\n"),
+                         sub(w, "drift.py", "import numpy as np\n",
+                             "import numpy as np\n\nif TYPE_CHECKING:  # noqa: E402\n"
+                             "    from .optimizer import HeatPumpOptimizer  # noqa: F401\n"))),
+    )
+
+    # 6c private_cross_module (R10-ARCHSCORE-COVERAGE item 1, ARCH2-s4)
+    P["private_cross_module"] = dict(
+        control=("drift.py imports freq_control's private _finite",
+                 lambda w: sub(w, "drift.py", "import numpy as np\n",
+                               "import numpy as np\n\nfrom .freq_control import _finite  # noqa: F401\n")),
+        fix=("away._parse_return_time, which datetime.py imports, is declared public as parse_return_time",
+             lambda w: rename_everywhere(w, "_parse_return_time", "parse_return_time")),
+        null=("datetime.py binds the same private under an alias (`as _parse`)",
+              lambda w: (sub(w, "datetime.py", "from .away import _parse_return_time\n",
+                             "from .away import _parse_return_time as _parse\n"),
+                         sub(w, "datetime.py", "        return _parse_return_time(", "        return _parse("))),
     )
 
     # 7 public_surface
@@ -234,5 +365,22 @@ def plan():
              lambda w: json_name(w, "Expected Return", "Away Expected Return")),
         null=("en 'Away Mode' -> 'Away mode' (case only; the sort casefolds)",
               lambda w: json_name(w, "Away Mode", "Away mode")),
+    )
+
+    # 9b an override homes a member in the family its name leads with (counter C6b, ARCH-s3 round 10)
+    pair = ('ENTITY_FAMILY_OVERRIDES: Final[dict[str, str]] = {\n',
+            'ENTITY_FAMILY_OVERRIDES: Final[dict[str, str]] = {\n'
+            '    "away_return": "zzpair",\n    "away_mode": "zzpair",\n')
+    P["family_lead_homing"] = dict(
+        control=("the split away member `away_return` and its neighbour `away_mode` declared one invented family",
+                 lambda w: sub(w, "const.py", *pair)),
+        fix=("[on top of control] the invented family goes; the member's names lead with the family instead",
+             lambda w: (sub(w, "const.py", pair[1], pair[0]),
+                        json_name(w, "Expected Return", "Away Expected Return"),
+                        sub(w, "translations/sv.json", '"away_return": {\n        "name": "F\u00f6rv\u00e4ntad hemkomst"',
+                            '"away_return": {\n        "name": "Borta: f\u00f6rv\u00e4ntad hemkomst"'))),
+        null=("a redundant override: `away_return` declared into `away`, the family its key already names",
+              lambda w: sub(w, "const.py", pair[0], pair[0] + '    "away_return": "away",\n')),
+        on={"fix": "a3_family_lead_homing_control"},
     )
     return P

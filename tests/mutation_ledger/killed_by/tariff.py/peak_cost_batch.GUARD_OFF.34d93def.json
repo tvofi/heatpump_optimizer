@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:peak_cost_batch GUARD_OFF 34d93def",
-  "killed_by": "tests/stress.py",
-  "old": "    if price_per_kw <= 0 or not np.isfinite(threshold_kw):",
-  "reason": "Recorded by `mutation_table.py --drain` against a745200209b275c0f33dc2253af8c7757ffb8de2: GUARD_OFF (`if False:`) took tests/stress.py from rc=0 failed=0 to rc=1 failed=1."
-}

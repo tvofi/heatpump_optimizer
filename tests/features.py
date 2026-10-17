@@ -74,6 +74,7 @@ from heatpump_optimizer.sysid import (
 )
 from heatpump_optimizer.tariff import (
     CapacityTariff,
+    PeakBilling,
     PeakTracker,
     _smooth_topk_sum,
     peak_cost,
@@ -2652,13 +2653,6 @@ R.check(
     "absent evidence must not read as a fault, or every install without the "
     "optional sensor would look broken",
 )
-R.check(
-    "the convenience accessors mirror value()",
-    _health_reader.text("heat_pump_mode_entity") == "heat"
-    and _health_reader.flag("heat_pump_online_entity", default=None) is None
-    and _health_reader.flag("heat_pump_defrost_entity", default=True) is True,
-    "an unusable or unread key falls back to the caller's default",
-)
 
 
 # ===========================================================================
@@ -3608,8 +3602,8 @@ R.check("a new month resets the peaks", tracker.month == "2026-04")
 R.check(
     "staying under the threshold costs nothing",
     peak_cost(
-        np.full(8, 2.0), np.full(8, 1.0), 5.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25,
+        np.full(8, 2.0), np.full(8, 1.0), PeakBilling(5.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25),
     ) == 0.0,
 )
 
@@ -3622,7 +3616,7 @@ R.check(
 # this originally did, under-states a plan with several high hours -- the very
 # plan a capacity tariff exists to discourage.
 hourly = np.array([8.0, 7.9, 7.8, 5.5, 5.1] + [3.0] * 19)
-charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False)
+charged = peak_cost(hourly, np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False))
 top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
     "the peak charge equals the bill it models",
@@ -3631,8 +3625,8 @@ R.check(
 )
 R.check(
     "several high hours cost more than one",
-    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False)
-    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False),
+    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False))
+    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False)),
 )
 
 # The solver reaches this through numerical gradients, so a term that is flat
@@ -3643,13 +3637,13 @@ R.check(
 # probe breaks the tie in its own favour) but not at bound-pinned plateaus,
 # which is #232's blindness and the surrogate's reason to exist.
 flat = np.full(96, 3.0)
-base_cost = peak_cost_smooth(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3, distinct_days=False)
+base_cost = peak_cost_smooth(flat, np.full(96, 1.5), PeakBilling(3.0, 20.0, 60, 0.25, 3, distinct_days=False))
 gradients = []
 for index in (5, 50, 90, 95):
     probe = flat.copy()
     probe[index] += 1e-4
     gradients.append(
-        (peak_cost_smooth(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3, distinct_days=False)
+        (peak_cost_smooth(probe, np.full(96, 1.5), PeakBilling(3.0, 20.0, 60, 0.25, 3, distinct_days=False))
          - base_cost) / 1e-4
     )
 R.check(
@@ -3666,7 +3660,7 @@ R.check(
     not np.isfinite(fresh.threshold_kw(tariff))
     and peak_cost(
         np.full(96, 6.0), np.zeros(96),
-        fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3, distinct_days=False
+        PeakBilling(fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3, distinct_days=False)
     )
     == 0.0,
     "otherwise a normal day is charged ~9x its own energy cost",
@@ -3684,12 +3678,12 @@ burst[0] = 8.0
 R.check(
     "a 15-minute burst is averaged over the metering window",
     peak_cost(
-        burst, np.zeros(8), 1.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False
+        burst, np.zeros(8), PeakBilling(1.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False)
     )
     < peak_cost(
-        np.full(8, 8.0), np.zeros(8), 1.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False
+        np.full(8, 8.0), np.zeros(8), PeakBilling(1.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False)
     ),
     "penalising the instantaneous step would give away real savings",
 )
@@ -3702,9 +3696,9 @@ R.check(
     "the charge covers exactly the peaks the bill averages",
     abs(
         peak_cost(
-            _distinct, np.zeros(8), 5.0,
+            _distinct, np.zeros(8), PeakBilling(5.0,
             tariff.marginal_price_per_kw, tariff.window_minutes, 1.0,
-            tariff.peaks_averaged, distinct_days=False
+            tariff.peaks_averaged, distinct_days=False)
         )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
@@ -3775,9 +3769,9 @@ R.check(
 _d201_flat = np.full(96, 12.0)
 R.check(
     "a flat plan is charged its billed top-k, not a multiple of it",
-    abs(peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) - 720.0)
+    abs(peak_cost(_d201_flat, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)) - 720.0)
     < 7.2,
-    f"charged {peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False):.2f}"
+    f"charged {peak_cost(_d201_flat, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)):.2f}"
     " SEK, bill 720.00 (1% of 3 x 12 kW at 20/kW)",
 )
 R.check(
@@ -3787,7 +3781,7 @@ R.check(
 )
 # The same defect at hourly metering: reachable on a 24 h horizon, where
 # the break point is ~10.3 kW (fewer windows, smaller ln((n-k)/k)).
-_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), 0.0, 20.0, 60, 0.25, 3, distinct_days=False)
+_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), PeakBilling(0.0, 20.0, 60, 0.25, 3, distinct_days=False))
 R.check(
     "hourly metering keeps the flat-plateau charge at the bill",
     abs(_d201_hourly - 840.0) < 8.4,
@@ -3798,7 +3792,7 @@ R.check(
 # top-k sum. And a plan with at most k windows at the peak never enters the
 # smooth branch at all, whatever the excess.
 _d201_null_flat = peak_cost(
-    np.full(96, 5.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False
+    np.full(96, 5.0), np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)
 )
 R.check(
     "below the tie-band break point the charge stays exact",
@@ -3809,7 +3803,7 @@ _d201_spiky = np.full(96, 1.0)
 _d201_spiky[:3] = 12.0
 R.check(
     "at most k windows at the peak stay on the exact hard sum",
-    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) == 720.0,
+    peak_cost(_d201_spiky, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)) == 720.0,
     "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
 )
 
@@ -3822,18 +3816,18 @@ R.check(
 # surrogate's whole reason to exist (#232), so the pin reads the surface
 # that owes the property.
 _tied_base = peak_cost_smooth(
-    np.full(24, 7.0), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False
+    np.full(24, 7.0), np.zeros(24), PeakBilling(6.0, 20.0, 60, 1.0, 3, distinct_days=False)
 )
 _tied_fd = [
     (
         peak_cost_smooth(
             np.where(np.arange(24) == i, 7.0001, 7.0),
             np.zeros(24),
-            6.0,
+            PeakBilling(6.0,
             20.0,
             60,
             1.0,
-            3, distinct_days=False
+            3, distinct_days=False)
         )
         - _tied_base
     )
@@ -3869,9 +3863,9 @@ _d1201_exact = 20.0 * 3 * 5.0                # price x k x tie-level excess
 R.check(
     "a mixed plateau is charged the exact billed top-k, not the leaked "
     "soft sum (#1210: no under-charge)",
-    peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False)
+    peak_cost(_d1201_mixed, np.zeros(96), PeakBilling(3.0, 20.0, 15, 0.25, 3, distinct_days=False))
     == _d1201_exact,
-    f"charged {peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False):.6f}"
+    f"charged {peak_cost(_d1201_mixed, np.zeros(96), PeakBilling(3.0, 20.0, 15, 0.25, 3, distinct_days=False)):.6f}"
     f" against the bill {_d1201_exact:.6f} (3 x 5 kW excess at 20/kW)",
 )
 # Null controls: the shapes that were already exact stay exact -- the pure
@@ -3879,13 +3873,13 @@ R.check(
 # branch both before and after).
 R.check(
     "the pure plateau stays at the exact billed top-k",
-    peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False)
+    peak_cost(np.full(96, 12.0), np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False))
     == 720.0,
-    f"charged {peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False):.6f}",
+    f"charged {peak_cost(np.full(96, 12.0), np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)):.6f}",
 )
 R.check(
     "at most k windows at the peak stay on the exact hard sum",
-    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) == 720.0,
+    peak_cost(_d201_spiky, np.zeros(96), PeakBilling(0.0, 20.0, 15, 0.25, 3, distinct_days=False)) == 720.0,
     "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
 )
 # The solver's surrogate on the same mixed cell: still smooth (that is its
@@ -3893,7 +3887,7 @@ R.check(
 # finding states (weights sum to k, so soft <= hard) -- with the deficit
 # bounded by the measured worst case (-3.45% on the round-5 grid).
 _smooth_mixed = peak_cost_smooth(
-    _d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False
+    _d1201_mixed, np.zeros(96), PeakBilling(3.0, 20.0, 15, 0.25, 3, distinct_days=False)
 )
 R.check(
     "the solver's surrogate stays on the smooth arm and under the exact "
@@ -6790,14 +6784,14 @@ for _off948 in (0, 1, 3):
     for _win948, _dt948 in ((60, 0.25), (15, 0.25), (45, 0.25)):
         for _fac948 in (None, _facs948[: 96 // max(1, _win948 // 15)]):
             _want948 = [
-                peak_cost_smooth(_rows948[_b948], _base948, 3.0, 20.0,
+                peak_cost_smooth(_rows948[_b948], _base948, PeakBilling(3.0, 20.0,
                                  _win948, _dt948, 3, _off948,
-                                 window_factors=_fac948)
+                                 window_factors=_fac948))
                 for _b948 in range(_rows948.shape[0])
             ]
             _got948 = _pcb948(
-                _rows948, _base948, 3.0, 20.0, _win948, _dt948, 3,
-                _off948, window_factors=_fac948,
+                _rows948, _base948, PeakBilling(3.0, 20.0, _win948, _dt948, 3,
+                _off948, window_factors=_fac948),
             )
             for _b948 in range(_rows948.shape[0]):
                 if _got948[_b948] != _want948[_b948]:
@@ -6806,11 +6800,11 @@ for _off948 in (0, 1, 3):
                         f"row={_b948}: {_got948[_b948]!r} != {_want948[_b948]!r}"
                     )
                 if peak_cost_smooth(
-                    _rows948[_b948], _base948, 3.0, 20.0, _win948, _dt948,
-                    3, _off948, window_factors=_fac948,
+                    _rows948[_b948], _base948, PeakBilling(3.0, 20.0, _win948, _dt948,
+                    3, _off948, window_factors=_fac948),
                 ) > peak_cost(
-                    _rows948[_b948], _base948, 3.0, 20.0, _win948, _dt948,
-                    3, _off948, window_factors=_fac948,
+                    _rows948[_b948], _base948, PeakBilling(3.0, 20.0, _win948, _dt948,
+                    3, _off948, window_factors=_fac948),
                 ) * (1.0 + 1e-6):
                     _mismatch948.append(
                         f"off={_off948} win={_win948} row={_b948}"
@@ -6831,7 +6825,7 @@ R.check(
 )
 R.check(
     "a disabled tariff prices a whole batch as zeros, like the scalar guard",
-    bool(np.all(_pcb948(_rows948, _base948, 3.0, 0.0, 60, 0.25) == 0.0)),
+    bool(np.all(_pcb948(_rows948, _base948, PeakBilling(3.0, 0.0, 60, 0.25)) == 0.0)),
     "peak_price_per_kw <= 0 must short-circuit before any window arithmetic",
 )
 _cyc_bad948 = [
@@ -14015,9 +14009,9 @@ _power = np.zeros(96)
 _power[92:96] = 6.0  # a 23:00 burst on a day starting at midnight
 _day_start = datetime(2026, 1, 14, 0, 0)
 _nf = _wfactors(_masked_ct, _day_start, _mwindows(_power, 60, 0.25).size, 0.25)
-_cost_masked = _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3,
-                          window_factors=_nf)
-_cost_flat = _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3)
+_cost_masked = _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3,
+                          window_factors=_nf))
+_cost_flat = _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3))
 R.check(
     "the plan's peak term prices a night burst at the off-peak rate",
     0.0 < _cost_masked < _cost_flat
@@ -14028,10 +14022,10 @@ _ct_free_night = _CT(enabled=True, price_per_kw=30.0, peak_hours=((7.0, 19.0),),
                      offpeak_factor=0.0)
 R.check(
     "free off-peak hours make a night burst cost nothing in capacity",
-    _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3,
+    _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3,
                window_factors=_wfactors(
                    _ct_free_night, _day_start,
-                   _mwindows(_power, 60, 0.25).size, 0.25)) == 0.0,
+                   _mwindows(_power, 60, 0.25).size, 0.25))) == 0.0,
 )
 _pt_round = _PT.from_dict(_pt_night.as_dict())
 R.check(
@@ -14556,10 +14550,10 @@ R.check(
 # windows are one day: billed once, at price/k. Per window it was k times.
 _bo_morning = np.full(96, 1.0)
 _bo_morning[28:40] = 5.0
-_bo_one_day = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0 / 3, 60, 0.25, 3)
-_bo_windows = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0 / 3, 60, 0.25, 3,
-                        distinct_days=False)
-_bo_k1 = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0, 60, 0.25, 1)
+_bo_one_day = peak_cost(_bo_morning, np.full(96, 2.0), PeakBilling(6.0, 49.0 / 3, 60, 0.25, 3))
+_bo_windows = peak_cost(_bo_morning, np.full(96, 2.0), PeakBilling(6.0, 49.0 / 3, 60, 0.25, 3,
+                        distinct_days=False))
+_bo_k1 = peak_cost(_bo_morning, np.full(96, 2.0), PeakBilling(6.0, 49.0, 60, 0.25, 1))
 R.check(
     "one cold morning in a plan is charged once: 49/3 SEK, not 49 "
     "(per-window with distinct days off; k=1 unchanged)",
@@ -14575,8 +14569,8 @@ _bo_flat = np.full(96, 1.0)
 _bo_flat[28:44] = 5.0
 _bo_probe = _bo_flat.copy()
 _bo_probe[28:32] -= 1e-4
-_bo_s0 = peak_cost_smooth(_bo_flat, np.full(96, 2.0), 6.0, 20.0, 60, 0.25, 3)
-_bo_s1 = peak_cost_smooth(_bo_probe, np.full(96, 2.0), 6.0, 20.0, 60, 0.25, 3)
+_bo_s0 = peak_cost_smooth(_bo_flat, np.full(96, 2.0), PeakBilling(6.0, 20.0, 60, 0.25, 3))
+_bo_s1 = peak_cost_smooth(_bo_probe, np.full(96, 2.0), PeakBilling(6.0, 20.0, 60, 0.25, 3))
 R.check(
     "a same-day plateau keeps the solver's gradient: probing one tied "
     "window down lowers peak_cost_smooth",
@@ -14593,7 +14587,7 @@ R.check(
 _bo_nan = np.full(8, 1.0)
 _bo_nan[3] = np.nan
 _bo_nan_charges = [
-    fn(_bo_nan, np.zeros(8), 5.0, 20.0, 60, 0.25, 3, distinct_days=dd)
+    fn(_bo_nan, np.zeros(8), PeakBilling(5.0, 20.0, 60, 0.25, 3, distinct_days=dd))
     for fn in (peak_cost, peak_cost_smooth) for dd in (True, False)
 ]
 R.check(
@@ -14615,12 +14609,12 @@ for _bo_lab in (None, _bo_days(24, 60, datetime(2026, 1, 14, 12, 0, tzinfo=_BO_T
         if _bo_lab is not None and _bo_lab.size != 96 // (_bo_w // 15):
             continue  # labels are per window of one length
         for _bo_dd in (True, False):
-            _bo_got = _bo_pcb(_bo_rows, np.full(96, 2.0), 6.0, 20.0, _bo_w, 0.25, 3,
-                              window_days=_bo_lab, distinct_days=_bo_dd)
+            _bo_got = _bo_pcb(_bo_rows, np.full(96, 2.0), PeakBilling(6.0, 20.0, _bo_w, 0.25, 3,
+                              window_days=_bo_lab, distinct_days=_bo_dd))
             for _bo_r in range(_bo_rows.shape[0]):
-                _bo_one = peak_cost_smooth(_bo_rows[_bo_r], np.full(96, 2.0), 6.0, 20.0,
+                _bo_one = peak_cost_smooth(_bo_rows[_bo_r], np.full(96, 2.0), PeakBilling(6.0, 20.0,
                                            _bo_w, 0.25, 3, window_days=_bo_lab,
-                                           distinct_days=_bo_dd)
+                                           distinct_days=_bo_dd))
                 if _bo_got[_bo_r] != _bo_one:
                     _bo_twin_bad.append(f"w={_bo_w} dd={_bo_dd} row={_bo_r}")
 R.check(
@@ -17520,6 +17514,58 @@ R.check(
     )
     == 1,
 )
+# R10 D3-s2-01: the two store loaders' quarantine WARNING is the only trace a
+# dropped record leaves, so it must fire once, counting the drop, on a
+# malformed load -- and never on a clean one, where it would cry wolf every
+# start-up.
+import logging as _qw_logging
+from heatpump_optimizer import ledger as _qw_ledger_mod
+from heatpump_optimizer import snapshots as _qw_snap_mod
+
+
+class _QwSink(_qw_logging.Handler):
+    def __init__(self):
+        super().__init__(level=_qw_logging.DEBUG)
+        self.warnings = []
+
+    def emit(self, record):
+        if record.levelno >= _qw_logging.WARNING:
+            self.warnings.append(record.getMessage())
+
+
+def _qw_quarantine_warnings(module, load, payload):
+    sink, logger = _QwSink(), module._LOGGER
+    real_level = logger.level
+    logger.addHandler(sink)
+    logger.setLevel(_qw_logging.DEBUG)
+    try:
+        load(payload)
+    finally:
+        logger.removeHandler(sink)
+        logger.setLevel(real_level)
+    return [m for m in sink.warnings if m.startswith("Quarantined")]
+
+
+_qw_snap = {"taken_at": "2026-01-01T00:00:00+00:00", "accuracy": None,
+            "learners": {}}
+_qw_month = {"lines": {}, "meta": {}}
+for _qw_name, _qw_mod, _qw_load, _qw_clean, _qw_bad in (
+    ("ledger", _qw_ledger_mod, _qw_ledger_mod.MonthlyLedger.from_dict,
+     {"months": {"2026-01": _qw_month}},
+     {"months": {"2026-01": _qw_month, "2026-02": {"lines": 3}}}),
+    ("snapshot ring", _qw_snap_mod, _qw_snap_mod.SnapshotRing.from_dict,
+     {"snapshots": [_qw_snap]}, {"snapshots": [_qw_snap, "junk"]}),
+):
+    _qw_on_clean = _qw_quarantine_warnings(_qw_mod, _qw_load, _qw_clean)
+    _qw_on_bad = _qw_quarantine_warnings(_qw_mod, _qw_load, _qw_bad)
+    R.check(
+        f"the {_qw_name} loader warns once per malformed load, counting the "
+        "drop, and never on a clean load",
+        not _qw_on_clean
+        and len(_qw_on_bad) == 1
+        and _qw_on_bad[0].startswith("Quarantined 1 "),
+        f"clean load warned {_qw_on_clean}, malformed load warned {_qw_on_bad}",
+    )
 _r7 = SnapshotRing()
 _live = {"thermal": {"scale": 1.0}}
 _r7.take(_T4, _live, {"temperature_bias": 0.1}, True)
@@ -25900,8 +25946,10 @@ R.check(
 )
 # The forecast summary's solar fraction (the solve's initial guess and the
 # published solar_reduction_factor) reads the same house: a learned scale of 2
-# answers what a nameplate coefficient twice as large does (0.6 vs 0.776 at
-# 3dfebc16 on a 48-step sunny afternoon).
+# answers what the configured losses doubled do. On a two-zone house the
+# nameplate knob is the upper/lower split (`heat_loss_coefficient` is the
+# single-zone field, so doubling it would change nothing once #2239 routes the
+# summary through `lower_floor_heat_loss_learned`).
 _d2s2_sr = np.zeros(48)
 _d2s2_sr[14:22] = 600.0
 _d2s2_solar = [
@@ -25910,7 +25958,11 @@ _d2s2_solar = [
     )["solar_reduction_factor"]
     for _d2s2_p in (
         _dc_replace(_d2s2_base, house_heat_loss_scale=2.0),
-        _dc_replace(_d2s2_base, heat_loss_coefficient=2.0 * _d2s2_base.heat_loss_coefficient),
+        _dc_replace(
+            _d2s2_base,
+            upper_floor_heat_loss=2.0 * _d2s2_base.upper_floor_heat_loss,
+            lower_floor_heat_loss=2.0 * _d2s2_base.lower_floor_heat_loss,
+        ),
     )
 ]
 _d2s2_lin.append((_d2s2_solar[0] / _d2s2_solar[1], 1.0))
@@ -33376,6 +33428,42 @@ R.check(
     f"{_wx_empty._weather_stale_since}",
 )
 
+# The raise path's two other rungs (R10 D3-s1-01). With a previous forecast
+# the fetch keeps it, marked stale: the fabricated constant trajectory may
+# replace nothing better (it cost +41.9 % realized). With no previous forecast
+# and no entity state there is nothing to fabricate from, and the fetch stays
+# quiet rather than throwing.
+_wx_kept = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+_wx_kept.hass.services.async_call = _wx_raising_call
+_wx_kept.hass.states.set(
+    _WX_ENTITY,
+    FakeState("cold", attributes={"temperature": "-8.0", "wind_speed": "3.0"}),
+)
+_wx_kept._weather_forecast = [{"temperature": 2.0} for _ in range(24)]
+_asyncio.run(_wx_kept._fetch_weather_forecast())
+R.check(
+    "a raising fetch with a previous forecast keeps it, marked stale",
+    len(_wx_kept._weather_forecast) == 24
+    and all(fc["temperature"] == 2.0 for fc in _wx_kept._weather_forecast)
+    and _wx_kept._weather_stale_since is not None,
+    f"entries {len(_wx_kept._weather_forecast)}, stale since "
+    f"{_wx_kept._weather_stale_since}",
+)
+_wx_bare = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+_wx_bare.hass.services.async_call = _wx_raising_call
+_wx_bare_err = None
+try:
+    _asyncio.run(_wx_bare._fetch_weather_forecast())
+except Exception as _exc:  # the check below names it
+    _wx_bare_err = _exc
+R.check(
+    "a raising fetch with no forecast and no entity state fabricates nothing",
+    _wx_bare_err is None
+    and not _wx_bare._weather_forecast
+    and _wx_bare._weather_stale_since is not None,
+    f"raised {_wx_bare_err!r}, entries {len(_wx_bare._weather_forecast)}",
+)
+
 # R5-D1-07 (#1298): the success path must be exception-safe. One hostile
 # entry in an otherwise healthy forecast reached the bare float() at the
 # parse seam, so the fetch threw AFTER _weather_forecast was replaced but
@@ -33565,6 +33653,75 @@ _et_check(
     "clear_manual_plan with no loaded entry at all raises a translatable error",
     _et_call(_et_idle, "clear_manual_plan", {}),
     "no_loaded_config_entry",
+)
+
+# D10-s1-51 (#2238, class P2): _loaded_entries decides which entries a call
+# acts on, and every action must consult it before it returns.
+# apply_schedule's "nothing to apply" return came first, so an empty call
+# naming no config entry, or made with none loaded, succeeded where every
+# sibling refused. "Resolved before any return" has no AST shape, so this
+# census holds it (_P2_CENSUSES in tests/entities.py): every registered
+# action, through the registry and its schema, with the smallest payload the
+# schema accepts, in both refusing states. Its preconditions: it drives the
+# whole catalog, each action's payload reaches the handler without an
+# entry_id, and the only refusal it accepts from a schema is of entry_id
+# itself (five actions act on every loaded entry and take none).
+import voluptuous as _ger_vol  # noqa: E402
+
+#: The fields an action's schema requires; any other's smallest payload is {}.
+_GER_REQUIRED = {
+    "set_mode": {"mode": "auto"}, "set_away": {"active": True},
+    "debug_collect": {"action": "status"},
+    "assign_entity": {"key": "outdoor_temp_entity", "entity_id": ""},
+    "apply_topology": {"layout": "no_valve"},
+}
+_ger_actions = sorted(_et_idle.services.async_services()[_DOMAIN])
+_ger_bad, _ger_unreached = [], []
+for _ger_name in _ger_actions:
+    _ger_base = _GER_REQUIRED.get(_ger_name, {})
+    for _ger_payload, _ger_key in (
+        (_ger_base, "no_loaded_config_entry"),
+        ({**_ger_base, "entry_id": "ghost"}, "config_entry_not_found"),
+    ):
+        try:
+            _ger_err = _et_call(_et_idle, _ger_name, _ger_payload)
+        except _ger_vol.Invalid as _ger_inv:
+            if "entry_id" not in _ger_payload or {
+                tuple(_e.path) for _e in getattr(_ger_inv, "errors", [_ger_inv])
+            } != {("entry_id",)}:
+                _ger_unreached.append(f"{_ger_name}: {_ger_inv}")
+            continue
+        if _ger_err is None or _et_why(_ger_err, _ger_key):
+            _ger_bad.append(f"{_ger_name}{sorted(_ger_payload)}: "
+                            f"{_et_why(_ger_err, _ger_key) if _ger_err else 'returned'}")
+R.check(
+    "every action resolves its config entries before it returns: an unknown "
+    "entry_id, or none loaded, is refused by all of them (D10-s1-51)",
+    set(_ger_actions) == _lc_catalog and set(_GER_REQUIRED) <= set(_ger_actions)
+    and not _ger_unreached and not _ger_bad,
+    f"silent or wrong: {_ger_bad}; census unreached: {_ger_unreached}",
+)
+# Its null control: a known, loaded entry still takes apply_schedule -- an
+# empty call answers "nothing to apply" and a valid field reaches its options.
+_ger_hass = FakeHass()
+_seed_prices(_ger_hass)
+_ger_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _ger_hass, _ger_entry))
+_ger_id = {"entry_id": _ger_entry.entry_id}
+try:
+    _ger_empty = _asyncio.run(
+        _ger_hass.services.async_call(_DOMAIN, "apply_schedule", _ger_id))
+    _ger_set = _asyncio.run(_ger_hass.services.async_call(
+        _DOMAIN, "apply_schedule", {**_ger_id, "dhw_windows": "06:00-07:00"}))
+except _ET_HAE as _ger_refused:
+    _ger_empty = _ger_set = _ger_refused
+R.check(
+    "apply_schedule on a known, loaded entry still answers an empty call and "
+    "applies a valid one (the D10-s1-51 census's null control)",
+    _ger_empty == {"updated": {}, "reason": "nothing to apply"}
+    and _ger_set == {"updated": {_ger_entry.entry_id: {"dhw_windows": "06:00-07:00"}}}
+    and _ger_entry.options.get("dhw_windows") == "06:00-07:00",
+    f"empty: {_ger_empty!r}; set: {_ger_set!r}",
 )
 
 # A loaded entry, so the handlers that resolve targets get a coordinator.
@@ -37127,6 +37284,64 @@ R.check(
     repr(_act_zero.get("baseline_kw")),
 )
 
+# R10 D3-s1-02: every optional per-step schedule get_current_action reads is
+# guarded by `X and i < len(X)`, and every other plan in this suite gives all
+# schedules power_schedule's length, so the length half of the twelve guards
+# ran on no input. Here each optional schedule is two steps long on a
+# four-step plan: inside it every key is read, past it every key falls back
+# (absent, None, 0.0 or the plan's own running rule) and nothing raises.
+_short_sched = _SavOR(
+    power_schedule=[1.0] * 4,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[22.0] * 5,
+    timestamps=_ts_sav,
+    prices=[1.0] * 4,
+    predicted_cost=1.0,
+    baseline_cost=2.0,
+    predicted_savings=1.0,
+    savings_percentage=50.0,
+    optimal_setpoints=[21.0] * 4,
+    status="optimal",
+)
+for _ss_name in ("displace_schedule", "dhw_power_schedule",
+                 "baseline_power_schedule", "valve_target_schedule",
+                 "upper_setpoints", "lower_setpoints", "solar_gain_trajectory",
+                 "dhw_temp_trajectory"):
+    setattr(_short_sched, _ss_name, [0.5] * 2)
+_short_sched.heat_pump_on_schedule = [False] * 2
+_short_sched.space_reasons = ["r"] * 2
+_short_sched.dhw_reasons = ["r"] * 2
+_SS_KEYS = ("valve_target", "upper_setpoint", "lower_setpoint",
+            "solar_gain_kw", "dhw_power", "dhw_heating_active", "baseline_kw",
+            "dhw_temperature")
+_ss_in = _bl_opt.get_current_action(_short_sched, _ts_sav[1])
+R.check(
+    "inside a short optional schedule get_current_action reads every key",
+    all(k in _ss_in for k in _SS_KEYS)
+    and _ss_in["displace_value"] == 0.5
+    and _ss_in["heat_pump_on"] is False
+    and _ss_in["space_reason"] == "r"
+    and _ss_in["dhw_reason"] == "r",
+    repr(sorted(_ss_in.items())),
+)
+try:
+    _ss_past = _bl_opt.get_current_action(
+        _short_sched, _ts_sav[3] + timedelta(minutes=1)
+    )
+except Exception as _ss_exc:  # the check below names it
+    _ss_past = {"raised": repr(_ss_exc)}
+R.check(
+    "past a short optional schedule get_current_action falls back on every "
+    "key and raises nothing",
+    "raised" not in _ss_past
+    and not any(k in _ss_past for k in _SS_KEYS)
+    and _ss_past["displace_value"] == 0.0
+    and _ss_past["heat_pump_on"] is True
+    and _ss_past["space_reason"] is None
+    and _ss_past["dhw_reason"] is None,
+    repr(sorted(_ss_past.items())),
+)
+
 # #1499: Heat Pump Action read "off" while the pump ran. The band is keyed on
 # SPACE power, so a DHW-only step (space blocked, tank heating) and a space
 # step at the pump's minimum modulation both fell under the "off" rung. The
@@ -39333,9 +39548,17 @@ R.check(
 # threshold, so the evidence accumulates and the weight does not move yet.
 _t1_ov_on = _t1_coord(comfort_learning_enabled=True)
 _t1_ov_on._current_action = {"setpoint": 21.0}
-_t1_ov_on._prices = [{"total": 1.0}, {"total": 3.0}]
+# R10 #2229: the rows carry their hours and the clock sits in the first --
+# a row that covers no hour is no current price (the relative goes neutral).
+from homeassistant.util import dt as _t1_ov_dt
+
+_t1_ov_t = datetime(2026, 1, 15, 10, 30, tzinfo=timezone.utc)
+_t1_ov_on._prices = [{"total": 1.0, "starts_at": "2026-01-15T10:00:00+00:00"},
+                     {"total": 3.0, "starts_at": "2026-01-15T11:00:00+00:00"}]
 _t1_ov_on_weight = _t1_ov_on._comfort_learner.learned_weight
+_t1_ov_dt.freeze(_t1_ov_t)
 _t1_ov_on.record_setpoint_override(23.0)
+_t1_ov_dt.freeze(None)
 R.check(
     "a cheap-hour override is recorded at half weight and banked, not spent",
     _t1_ov_on._comfort_learner.overrides == 1
@@ -41106,8 +41329,9 @@ R.check(
 _t3_kp_pos = _t3_coord()
 _t3_kp_pos._prices = [{"total": 1.0}, {"total": 2.0}]
 R.check(
-    "untimestamped prices take the same hourly positional assumption",
-    _t3_kp_pos._known_prices_for(_T3_STEPS) == [1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0],
+    "untimestamped prices cover nothing: no row is placed by its position "
+    "(R10 #2236 -- 95 of 96 startless quarters landed in the wrong slot)",
+    _t3_kp_pos._known_prices_for(_T3_STEPS) == [],
     f"{_t3_kp_pos._known_prices_for(_T3_STEPS)!r}",
 )
 _t3_kp_late = _t3_coord()
@@ -45210,25 +45434,6 @@ R.check(
     "guard, so a detector fed only NaNs must still look starved rather than "
     "freshly fed, or `release_if_starved` never releases it",
 )
-_g8_cusum_live = _G8Cusum(threshold=1.0, drift=0.0)
-for _i in range(6):
-    _g8_cusum_live.update(_G8_T0 + timedelta(hours=_i), 1.0)
-_g8_cusum_was = (_g8_cusum_live.stat, _g8_cusum_live.tripped)
-_g8_cusum_live.reset()
-R.check(
-    "reset clears the statistic and the latch, and nothing else",
-    _g8_cusum_was[0] > 0.0
-    and _g8_cusum_live.stat == 0.0
-    and _g8_cusum_live.tripped is False
-    and _g8_cusum_live.last_fed is not None
-    and _g8_cusum_live.evidence,
-    f"before {_g8_cusum_was!r}; after stat {_g8_cusum_live.stat!r} tripped "
-    f"{_g8_cusum_live.tripped!r}, last_fed kept "
-    f"{_g8_cusum_live.last_fed is not None}, evidence kept "
-    f"{len(_g8_cusum_live.evidence)} -- the evidence trail and the feed time "
-    "are the record of WHY it tripped, and a reset that erased them would "
-    "leave the next reader unable to say what happened",
-)
 _g8_cusum_load = _G8Cusum(threshold=2.0, drift=0.1)
 _g8_cusum_load.load(
     {"stat": 1.0, "tripped": "yes", "evidence": ["a"], "last_fed": "not-a-time"}
@@ -45416,6 +45621,8 @@ from heatpump_optimizer import comfort_band as _g8_band  # noqa: E402
 from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
 from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
 from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
+from heatpump_optimizer import issues as _g8_issues  # noqa: E402
+from heatpump_optimizer import inputs as _g8_inputs  # noqa: E402
 from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
@@ -45591,18 +45798,18 @@ class _G8SpHass:
 
 _G8_SP_ID = "number.pump_dhw_setpoint"
 _g8_sp_reads = {
-    "absent entity": _g8_sp._read_setpoint(_G8SpHass(), _G8_SP_ID),
-    "unavailable": _g8_sp._read_setpoint(
+    "absent entity": _g8_inputs.read_setpoint(_G8SpHass(), _G8_SP_ID),
+    "unavailable": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("unavailable")}), _G8_SP_ID),
-    "no entity id": _g8_sp._read_setpoint(_G8SpHass(), None),
-    "text, no attribute": _g8_sp._read_setpoint(
+    "no entity id": _g8_inputs.read_setpoint(_G8SpHass(), None),
+    "text, no attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("warm")}), _G8_SP_ID),
-    "text, bad attribute": _g8_sp._read_setpoint(
+    "text, bad attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("warm", {"temperature": "warmer"})}),
         _G8_SP_ID),
-    "plain float": _g8_sp._read_setpoint(
+    "plain float": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("52.5")}), _G8_SP_ID),
-    "float on the attribute": _g8_sp._read_setpoint(
+    "float on the attribute": _g8_inputs.read_setpoint(
         _G8SpHass({_G8_SP_ID: _G8SpState("heat", {"temperature": 48.0})}),
         _G8_SP_ID),
 }
@@ -45654,13 +45861,13 @@ class _G8SpIssues:
 
 
 _g8_sp_reg = _G8SpIssues()
-_g8_sp_real_delete = _g8_sp.ir.async_delete_issue
+_g8_sp_real_delete = _g8_issues.ir.async_delete_issue
 try:
-    _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
+    _g8_issues.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
     _g8_sp_clear = _t6_call(
-        _g8_sp.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+        _g8_issues.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
 finally:
-    _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
+    _g8_issues.ir.async_delete_issue = _g8_sp_real_delete
 R.check(
     "a registry that refuses the clear is logged, not raised",
     _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
@@ -46570,21 +46777,20 @@ _g8_attrs_empty = _g8_pm.prices_from_entity_attributes({})
 _g8_attrs_norows = _g8_pm.prices_from_entity_attributes({"raw_today": []})
 R.check(
     "a half-formed price series yields the rows it can and an error when it cannot",
-    [r["total"] for r in _g8_attrs_ok] == [1.0, 2.0]
+    [r["total"] for r in _g8_attrs_ok] == [1.0]
     and [r["starts_at"] for r in _g8_attrs_ok]
-    == ["2026-01-15T18:00:00+00:00", "bad"]
+    == ["2026-01-15T18:00:00+00:00"]
     and isinstance(_g8_attrs_none, str)
     and isinstance(_g8_attrs_empty, str)
     and isinstance(_g8_attrs_norows, str),
     f"four rows in, {len(_g8_attrs_ok)} out -> {_g8_attrs_ok!r}; None -> "
     f"{_g8_attrs_none!r}; empty -> {_g8_attrs_empty!r}; a present but empty "
-    f"series -> {_g8_attrs_norows!r}. Two survive, not one: the non-dict row "
-    "and the one whose VALUE will not float are dropped here, but an "
-    "unparseable START is not -- `_raw_start` NORMALISES a timestamp and does "
-    "not validate it, and the rejection happens one stage later where the "
-    "rows are bucketed by day. Worth pinning as the division of labour it is, "
-    "because a reader of this function alone would expect both to be checked "
-    "in the same place. And the distinction that IS load-bearing here: rows "
+    f"series -> {_g8_attrs_norows!r}. One survives: the non-dict row, the "
+    "one whose VALUE will not float and the one whose START is no timestamp "
+    "are all dropped here -- `_raw_start` validates since R10 #2236, because "
+    "the later stage that used to reject a bad start (the day bucketing) is "
+    "not the only reader, and the coordinator's price lookup placed "
+    "startless rows by position. And the distinction that IS load-bearing here: rows "
     "the parser dropped leave a shorter plan, while no rows at all is a "
     "failed fetch the coordinator must report rather than plan around",
 )
@@ -46688,8 +46894,9 @@ R.check(
 # `_raw_value`, so a row no parser would admit reads as a float or as 0
 # (no price known), never as a crash or a string. Driven directly on a
 # coordinator because production ingress (both parsers, above) can no
-# longer deliver such a row; starts_at far in the future keeps the read
-# on the fallback branch deterministically.
+# longer deliver such a row. R10 #2229: the clock is pinned inside the row's
+# hour, because a row that does not cover now is no current price at all,
+# and a row with no usable total is no row (None, not 0.0).
 from harness import FakeEntry as _G8NFEntry
 
 _g8_nf_spot_coord = Coord(
@@ -46704,13 +46911,17 @@ _g8_nf_spot_none = Coord(
 _g8_nf_spot_none._prices = [
     {"total": None, "starts_at": "2099-01-01T00:00:00+00:00"},
 ]
+from homeassistant.util import dt as _g8_nf_dt
+
+_g8_nf_dt.freeze(datetime(2099, 1, 1, 0, 30, tzinfo=UTC))
 _g8_nf_spot_value = _g8_nf_spot_coord._current_spot_price()
 _g8_nf_spot_null = _g8_nf_spot_none._current_spot_price()
+_g8_nf_dt.freeze(None)
 R.check(
-    "the spot-price fallback never returns a raw total: a floatable one "
-    "coerces, an unfloatable one reads 0",
+    "the spot price never returns a raw total: a floatable one coerces, an "
+    "unfloatable one is no price (None, never 0.0)",
     isinstance(_g8_nf_spot_value, float) and _g8_nf_spot_value == 0.55
-    and isinstance(_g8_nf_spot_null, float) and _g8_nf_spot_null == 0.0,
+    and _g8_nf_spot_null is None,
     f"string total -> {_g8_nf_spot_value!r}, null total -> "
     f"{_g8_nf_spot_null!r}",
 )
@@ -50518,6 +50729,7 @@ from types import SimpleNamespace as _p8_ns  # noqa: E402
 from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
 from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
 from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
+from heatpump_optimizer import issues as _p8_issues  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_GRID_FEE_ENTITY as _P8_FEE,
     CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
@@ -50880,9 +51092,9 @@ R.check(
     f"{_p8s_areas!r}",
 )
 
-# InputReader.value: a STALE reading keeps its number (read() leaves it for a
-# caller that explicitly wants the last value) but value() must not hand it
-# out -- the default path treats stale as absent.
+# A STALE reading keeps its number (read() leaves it for a caller that
+# explicitly wants the last value) but is not ``ok``, the gate every
+# production caller reads it through (``x.value if x.ok else None``).
 _p8s_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
 _p8s_reader = InputReader(
     FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(days=3))}),
@@ -50891,24 +51103,20 @@ _p8s_reader = InputReader(
 )
 _p8s_stale = _p8s_reader.read("indoor_temp_entity")
 R.check(
-    "value() returns the default for a stale reading that still holds a number",
-    _p8s_stale.stale
-    and _p8s_stale.value == 21.4
-    and _p8s_reader.value("indoor_temp_entity", -99.0) == -99.0
-    and _p8s_reader.value("outdoor_temp_entity", -99.0) == -99.0,
-    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
-    f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
+    "a stale reading still holds its number but is not ok",
+    _p8s_stale.stale and _p8s_stale.value == 21.4 and not _p8s_stale.ok,
+    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} ok={_p8s_stale.ok}",
 )
 _p8s_fresh = InputReader(
     FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(minutes=5))}),
     {"indoor_temp_entity": "sensor.indoor"},
     now=lambda: _p8s_now,
 )
-_p8s_fresh.read("indoor_temp_entity")
+_p8s_fresh_reading = _p8s_fresh.read("indoor_temp_entity")
 R.check(
-    "null control: value() returns a fresh reading's number",
-    _p8s_fresh.value("indoor_temp_entity", -99.0) == 21.4,
-    f"got {_p8s_fresh.value('indoor_temp_entity', -99.0)!r}",
+    "null control: a fresh reading is ok and holds its number",
+    _p8s_fresh_reading.ok and _p8s_fresh_reading.value == 21.4,
+    f"ok={_p8s_fresh_reading.ok} value={_p8s_fresh_reading.value!r}",
 )
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
@@ -52707,7 +52915,7 @@ def _pa_failing_delete_issue(hass, domain, issue_id):
 _pa.ir.async_delete_issue = _pa_failing_delete_issue
 _pa_clear_ok = True
 try:
-    _pa._clear(_PaCoord(_PA_TUYA), _pa.ISSUE_IGNORED)
+    _pa.issues.clear_issue(_PaCoord(_PA_TUYA).hass, _pa.ISSUE_IGNORED)
 except Exception:  # noqa: BLE001 - the check is that nothing escapes
     _pa_clear_ok = False
 _pa.ir.async_delete_issue = _pa_orig_delete_issue
@@ -52866,7 +53074,7 @@ R.check(
     f"{_pa.state_for(_pa_sd).written=} {_pa.state_for(_pa_sd_again).written=}",
 )
 _pa_stored = _PaCoord(_PA_TUYA)
-_p8_sp.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
+_p8_issues.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
 _pa_aio.run(_pa._store(_pa_stored).async_save({
     "manual": "select.pump_mode: Heating (set by the optimizer: DHW)",
     "written": {},
@@ -54252,6 +54460,10 @@ def _p5_night(how):
                               ("outdoor_temp_entity", "sensor.outdoor", 2.0)):
             health.record(_P5Reading(key=key, entity_id=ent, value=val))
         c._input_health = health
+        # R10 #2229: a published price must cover the night -- an unknown
+        # price never starts an experiment -- so hourly rows span it.
+        c._prices = [{"total": 1.0, "starts_at": (_P5_T0 + timedelta(hours=h)).isoformat()}
+                     for h in range(-12, 13)]
         c._sysid.config.enabled = True
         c._sysid.config.min_days_between_runs = 0.0
         c._sysid.arm(_P5_T0, plant=c._thermal_params)
@@ -54721,7 +54933,7 @@ import asyncio as _p6_aio  # noqa: E402
 
 from harness import FakeEntry as _P6Entry  # noqa: E402
 from heatpump_optimizer import config_flow as _p6_cf  # noqa: E402
-from heatpump_optimizer import repairs as _p6_repairs  # noqa: E402
+from heatpump_optimizer import inputs as _p6_inputs  # noqa: E402
 from heatpump_optimizer import topology as _p6_topo  # noqa: E402
 from heatpump_optimizer.disinfection import DisinfectionSwitch as _P6Dis  # noqa: E402
 
@@ -54844,7 +55056,7 @@ async def _p6_freq(eid):
 
 async def _p6_setpoint(eid):
     hass = FakeHass({})
-    await _p6_repairs._write_setpoint(hass, eid, 55.0)
+    await _p6_inputs.write_setpoint(hass, eid, 55.0)
     return hass.services.calls
 
 
@@ -55222,6 +55434,272 @@ R.check(
     f"caps {None if _p3_cc_caps is None else _p3_cc_caps.tolist()} vs "
     f"{_p3_cap_at(90.0):.4f}/{_p3_cap_at(60.0):.4f}; at the ambient "
     f"{_p3_cap_at(None):.4f}",
+)
+
+# R10 I1 sweep: every per-step length guard meets a short input. The block
+# builds every fixture it reads, so dev/audit/harnesses/r10_i1_sweep_guards.py
+# can execute it alone against each guard's flip.
+# The round-10 I1 sweep (dev/audit/rounds/round10/sweep-I1.md) enumerated the
+# `<seq> and i < len(<seq>)` guards in the package and traced them through
+# the gate: seventeen beyond the D3 findings never evaluated False, because
+# every plan in this suite gives its optional per-step series the horizon's
+# length. Each is handed a series two steps short here, and each check pins
+# both halves: inside the series the value is read, past it the guard's own
+# fallback stands and nothing raises.
+from harness import FakeEntry as _SwEntry, FakeHass as _SwHass  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HeatPumpOptimizerCoordinator as _SwCoord,
+    _apply_result_payload as _sw_apply_payload,
+)
+from heatpump_optimizer.const import CAPACITY_MIN_SAMPLES as _SW_CAP_MIN  # noqa: E402
+from heatpump_optimizer.dhw_planner import _dhw_windows_at as _sw_windows_at  # noqa: E402
+from heatpump_optimizer.narrative import group_by_reason as _sw_group  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _SwOpt,
+    OptimizationConfig as _SwCfg,
+    OptimizationResult as _SwRes,
+    classify_dhw_steps as _sw_dhw_steps,
+    classify_space_steps as _sw_space_steps,
+)
+from heatpump_optimizer.pump_arbiter import step_duty as _sw_step_duty  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _SwModel,
+    ThermalParameters as _SwParams,
+    ThermalState as _SwState,
+    WeatherSeries as _SwWS,
+)
+
+
+def _sw_try(fn):
+    try:
+        return fn(), None
+    except Exception as exc:  # the check names it
+        return None, repr(exc)
+
+
+_sw_n = 4
+_sw_ts = [
+    datetime(2026, 3, 1, tzinfo=timezone.utc) + timedelta(minutes=15 * i)
+    for i in range(_sw_n)
+]
+_sw_on = np.ones(_sw_n)
+
+# optimizer.classify_space_steps: the PV surplus and heat-loss series.
+_sw_space, _sw_err = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.array([1.5, 1.5]), np.array([1.0, 1.0]), _sw_n,
+))
+_sw_full, _ = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.full(_sw_n, 1.0), np.zeros(_sw_n), _sw_n,
+))
+R.check(
+    "classify_space_steps reads a short surplus and heat-loss series inside "
+    "them and classifies past them as if absent",
+    _sw_err is None and _sw_full is not None
+    and _sw_space[:2] == ["solar_surplus", "solar_surplus"]
+    and _sw_space[2:] == _sw_full[2:],
+    f"raised {_sw_err}, short {_sw_space}, absent {_sw_full}",
+)
+_sw_space_hl, _sw_err = _sw_try(lambda: _sw_space_steps(
+    _sw_on, np.array([2.0, 2.0, 2.0, 2.0]), np.full(_sw_n + 1, 21.0),
+    np.full(_sw_n, 18.0), np.array([1.5, 1.5]), None, _sw_n,
+))
+R.check(
+    "...and a short heat-loss series marks weather pre-heat inside it only",
+    _sw_err is None
+    and _sw_space_hl[:2] == ["preheat_weather", "preheat_weather"]
+    and _sw_space_hl[2:] == _sw_full[2:],
+    f"raised {_sw_err}, {_sw_space_hl} vs {_sw_full}",
+)
+
+# optimizer.classify_dhw_steps: the ready-temperature and window series.
+_sw_dhw, _sw_err = _sw_try(lambda: _sw_dhw_steps(
+    _sw_on, np.array([True, True]), np.array([0.0, 55.0]), None, _sw_n,
+))
+R.check(
+    "classify_dhw_steps reads short ready and window series inside them and "
+    "pre-heats past them",
+    _sw_err is None
+    and _sw_dhw == ["dhw_window", "dhw_ready", "dhw_preheat", "dhw_preheat"],
+    f"raised {_sw_err}, {_sw_dhw}",
+)
+
+# narrative.group_by_reason: a reasons list shorter than the schedule.
+_sw_groups, _sw_err = _sw_try(lambda: _sw_group(
+    [1.0] * _sw_n, [2.0] * _sw_n, ["cheap_price"] * 2, 0.25,
+))
+R.check(
+    "group_by_reason books steps past a short reasons list as untagged",
+    _sw_err is None
+    and _sw_groups["cheap_price"]["kwh"] == 0.5
+    and _sw_groups["untagged"]["kwh"] == 0.5,
+    f"raised {_sw_err}, {_sw_groups}",
+)
+
+
+# pump_arbiter.step_duty: power schedules shorter than the timestamps.
+class _SwPlan:
+    timestamps = _sw_ts
+    power_schedule = [1.0, 0.0]
+    dhw_power_schedule = [0.0, 1.0]
+
+
+_sw_duty = [
+    _sw_try(lambda k=k: _sw_step_duty(_SwPlan, _sw_ts[k] + timedelta(minutes=1)))
+    for k in range(_sw_n)
+]
+R.check(
+    "step_duty reads short schedules inside them and reads idle past them",
+    [d for d, _ in _sw_duty] == ["space", "dhw", "idle", "idle"],
+    f"{_sw_duty}",
+)
+
+# dhw_planner._dhw_windows_at: holiday flags shorter than the horizon.
+_sw_normal, _sw_holiday = [(6, 7)], [(10, 11)]
+_sw_win = [
+    _sw_try(lambda k=k: _sw_windows_at(
+        None, None, k, _sw_normal, _sw_holiday, np.array([True, True]),
+    ))
+    for k in range(_sw_n)
+]
+R.check(
+    "a step past short holiday flags gets the ordinary DHW windows",
+    [w for w, _ in _sw_win]
+    == [_sw_holiday, _sw_holiday, _sw_normal, _sw_normal],
+    f"{_sw_win}",
+)
+
+# HeatPumpOptimizer._compute_baseline_power: comfort targets and external
+# heat shorter than the weather.
+_sw_opt = _SwOpt(_SwModel(_SwParams()), _SwCfg(target_temp=21.0))
+_sw_state = _SwState(
+    room_temperature=21.0, slab_temperature=26.0, outdoor_temperature=-5.0
+)
+_sw_wx = dict(
+    outdoor_temps=np.full(_sw_n, -5.0), wind_speeds=np.zeros(_sw_n),
+    precipitation=np.zeros(_sw_n), solar_radiation=np.zeros(_sw_n),
+)
+_sw_bl_ref, _ = _sw_opt._compute_baseline_power(_SwWS(**_sw_wx), _sw_state, 0.25)
+_sw_bl_ct, _sw_err_ct = _sw_try(lambda: _sw_opt._compute_baseline_power(
+    _SwWS(**_sw_wx), _sw_state, 0.25, np.array([21.0, 21.0]),
+)[0])
+_sw_bl_ext, _sw_err_ext = _sw_try(lambda: _sw_opt._compute_baseline_power(
+    _SwWS(**_sw_wx, external_heat_kw=np.zeros(2)), _sw_state, 0.25,
+)[0])
+R.check(
+    "the baseline thermostat holds the configured target past short comfort "
+    "targets and burns no free heat past a short external-heat series",
+    _sw_err_ct is None and _sw_err_ext is None
+    and np.allclose(_sw_bl_ct, _sw_bl_ref)
+    and np.allclose(_sw_bl_ext, _sw_bl_ref),
+    f"raised {_sw_err_ct} / {_sw_err_ext}",
+)
+
+# HeatPumpOptimizer._safety_release_steps: a DHW trajectory that stops one
+# step short reads that step's tank as cold, which releases the off-block
+# before it; the full trajectory, warm throughout, releases nothing.
+_sw_opt._dhw_requirement = np.full(3, 50.0)
+
+
+def _sw_release(traj):
+    res = _SwRes(
+        power_schedule=[0.0] * 3, room_temp_trajectory=[21.0] * 4,
+        slab_temp_trajectory=[22.0] * 4, timestamps=_sw_ts[:3],
+        prices=[1.0] * 3, predicted_cost=0.0, baseline_cost=0.0,
+        predicted_savings=0.0, savings_percentage=0.0,
+        optimal_setpoints=[21.0] * 3, status="optimal",
+        dhw_power_schedule=[0.0] * 3, dhw_temp_trajectory=traj,
+    )
+    return _sw_opt._safety_release_steps(res, np.full(3, 18.0), None, np.zeros(3))
+
+
+_sw_rel, _sw_err = _sw_try(lambda: _sw_release([50.0, 55.0, 55.0]))
+_sw_rel_full, _ = _sw_try(lambda: _sw_release([50.0, 55.0, 55.0, 55.0]))
+R.check(
+    "the DHW safety release reads a short tank trajectory as cold past its end",
+    _sw_err is None and _sw_rel == ([], [0, 1, 2]) and _sw_rel_full == ([], []),
+    f"raised {_sw_err}, released {_sw_rel} short, {_sw_rel_full} full",
+)
+
+# HeatPumpOptimizerCoordinator._plan_slots: the other channel's powers and the
+# reasons, both shorter than the slot.
+_sw_slots, _sw_err = _sw_try(lambda: _SwCoord._plan_slots(
+    _sw_ts, [1.0] * _sw_n, [2.0] * _sw_n, 0.25,
+    reasons=["cheap_price"] * 2, other_powers=[1.0] * 2,
+))
+R.check(
+    "a plan slot counts shared energy and reasons only where the shorter "
+    "series reach",
+    _sw_err is None and len(_sw_slots) == 1
+    and _sw_slots[0].get("shared_kwh") == 0.5
+    and _sw_slots[0].get("reasons") == ["cheap_price"],
+    f"raised {_sw_err}, {_sw_slots}",
+)
+
+# The coordinator's payload: displace, on/off and reason series shorter than
+# the plan, through _build_plan_views (reason_at) and _apply_result_payload.
+_sw_res = _SwRes(
+    power_schedule=[1.0] * _sw_n, room_temp_trajectory=[21.0] * (_sw_n + 1),
+    slab_temp_trajectory=[22.0] * (_sw_n + 1), timestamps=_sw_ts,
+    prices=[1.0] * _sw_n, predicted_cost=10.0, baseline_cost=12.0,
+    predicted_savings=2.0, savings_percentage=16.7,
+    optimal_setpoints=[21.0] * _sw_n, status="optimal",
+    dhw_power_schedule=[0.5] * _sw_n, dhw_temp_trajectory=[50.0] * (_sw_n + 1),
+    displace_schedule=[0.5] * 2, heat_pump_on_schedule=[False] * 2,
+    space_reasons=["cheap_price"] * 2, dhw_reasons=["dhw_window"] * 2,
+)
+
+
+def _sw_coord(**config):
+    return _SwCoord(_SwHass(), _SwEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", **config,
+    }))
+
+
+def _sw_payload():
+    views = _sw_coord(dhw_tank_volume=180.0)._build_plan_views(_sw_res)
+    data: dict = {}
+    _sw_apply_payload(data, _sw_res, {}, views)
+    return views, data
+
+
+_sw_pl, _sw_err = _sw_try(_sw_payload)
+_sw_views, _sw_data = _sw_pl if _sw_pl else ({}, {})
+_sw_sched = _sw_data.get("schedule") or []
+R.check(
+    "the published schedule reads short displace and on/off series inside "
+    "them and falls back past them",
+    _sw_err is None and len(_sw_sched) == _sw_n
+    and [r["displace"] for r in _sw_sched] == [0.5, 0.5, 0.0, 0.0]
+    and [r["heat_pump_on"] for r in _sw_sched] == [False, False, True, True],
+    f"raised {_sw_err}, {_sw_sched}",
+)
+R.check(
+    "the plan forecast carries a reason inside a short reasons list and None "
+    "past it, on both circuits",
+    _sw_err is None
+    and [s["reason"] for s in _sw_views["space_plan"]["forecast"]]
+    == ["cheap_price", "cheap_price", None, None]
+    and [s["reason"] for s in _sw_views["dhw_plan"]["forecast"]]
+    == ["dhw_window", "dhw_window", None, None],
+    f"raised {_sw_err}",
+)
+
+# HeatPumpOptimizerCoordinator._capacity_caps: humidity shorter than the
+# outdoor forecast prices the steps past it at the ambient humidity.
+_sw_cc = _sw_coord(capacity_curve_enabled=True)
+_sw_cc._thermal_params.ambient_humidity = 55.0
+_sw_cc._capacity_envelope[0] = [8.0, _SW_CAP_MIN + 2]
+_sw_cc_caps, _sw_err = _sw_try(lambda: _sw_cc._capacity_caps(
+    np.array([1.0, 1.0, 1.0]), np.array([90.0, 60.0]),
+))
+_sw_cc_ambient = _sw_cc._capacity_caps(np.array([1.0]))
+R.check(
+    "the capacity envelope prices a step past short humidity at the ambient",
+    _sw_err is None and _sw_cc_caps is not None and _sw_cc_ambient is not None
+    and abs(float(_sw_cc_caps[2]) - float(_sw_cc_ambient[0])) < 1e-12,
+    f"raised {_sw_err}, caps {_sw_cc_caps} vs ambient {_sw_cc_ambient}",
 )
 
 # The seam rule, as a barrier (R8-P3; widened in round 2 from the fix review).
@@ -57654,8 +58132,10 @@ for _f25_tag, _f25_batch in (
         )
         _f25_growth[(_f25_tag, _f25_b)] = _f22_calls(
             _f25_partial(
-                _f25_pcb, _f25_mat, _f25_base, 3.0, 20.0, 60, 0.25, 3, 3,
-                window_days=_f25_labels, distinct_days=True,
+                _f25_pcb, _f25_mat, _f25_base, PeakBilling(
+                    3.0, 20.0, 60, 0.25, 3, 3,
+                    window_days=_f25_labels, distinct_days=True,
+                ),
             )
         )[0]
 _f25_growth_pairs = {
@@ -57702,16 +58182,16 @@ for _f25_w, _f25_dt, _f25_offs in (
                     for _f25_order in ("C", "F"):
                         _f25_mat = np.asarray(_f25_rows, order=_f25_order)
                         _f25_got = _f25_pcb(
-                            _f25_mat, _f25_base, 3.0, 20.0, _f25_w, _f25_dt, 3,
+                            _f25_mat, _f25_base, PeakBilling(3.0, 20.0, _f25_w, _f25_dt, 3,
                             _f25_off, window_factors=_f25_fac,
-                            distinct_days=_f25_dd, window_days=_f25_lab,
+                            distinct_days=_f25_dd, window_days=_f25_lab),
                         )
                         for _f25_r in range(_f25_mat.shape[0]):
                             _f25_one = peak_cost_smooth(
-                                np.array(_f25_mat[_f25_r]), _f25_base, 3.0, 20.0,
+                                np.array(_f25_mat[_f25_r]), _f25_base, PeakBilling(3.0, 20.0,
                                 _f25_w, _f25_dt, 3, _f25_off,
                                 window_factors=_f25_fac, distinct_days=_f25_dd,
-                                window_days=_f25_lab,
+                                window_days=_f25_lab),
                             )
                             if (np.float64(_f25_got[_f25_r]).tobytes()
                                     != np.float64(_f25_one).tobytes()):
@@ -57741,13 +58221,13 @@ for _f25_w_n in (8, 12, 48, 96, 129, 192):
         _f25_nw, 60, datetime(2026, 1, 14, 12, 0, tzinfo=timezone.utc)
     )
     _f25_got = _f25_pcb(
-        _f25_wrows, np.full(_f25_w_n, 1.5), 3.0, 20.0, 60, 0.25, 3, 3,
-        window_days=_f25_lab, distinct_days=True,
+        _f25_wrows, np.full(_f25_w_n, 1.5), PeakBilling(3.0, 20.0, 60, 0.25, 3, 3,
+        window_days=_f25_lab, distinct_days=True),
     )
     for _f25_r in range(7):
         _f25_one = peak_cost_smooth(
-            _f25_wrows[_f25_r], np.full(_f25_w_n, 1.5), 3.0, 20.0, 60, 0.25,
-            3, 3, window_days=_f25_lab, distinct_days=True,
+            _f25_wrows[_f25_r], np.full(_f25_w_n, 1.5), PeakBilling(3.0, 20.0, 60, 0.25,
+            3, 3, window_days=_f25_lab, distinct_days=True),
         )
         if (np.float64(_f25_got[_f25_r]).tobytes()
                 != np.float64(_f25_one).tobytes()):
@@ -60540,7 +61020,8 @@ R.check(
 )
 _pp_fb = _pa._flow_target(
     _PaNS(
-        config={_PP_FLOW_KEY: 48.0},
+        config={_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"},
+        hass=FakeHass({"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}),
         state=_PaNS(
             outdoor_temperature=-5.0,
             return_temperature=35.0,
@@ -60549,7 +61030,6 @@ _pp_fb = _pa._flow_target(
         thermal=_PaNS(curve_flow_temp=lambda _o: 60.0),
         plan=None,
     ),
-    FakeState("40", attributes={"min": 20, "max": 70}),
     None,
     _PA_T0,
 )
@@ -60560,7 +61040,8 @@ R.check(
 )
 _pp_low = _pa._flow_target(
     _PaNS(
-        config={_PP_FLOW_KEY: 48.0},
+        config={_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"},
+        hass=FakeHass({"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}),
         state=_PaNS(
             outdoor_temperature=15.0,
             return_temperature=35.0,
@@ -60569,7 +61050,6 @@ _pp_low = _pa._flow_target(
         thermal=_PaNS(curve_flow_temp=lambda _o: 20.0),
         plan=None,
     ),
-    FakeState("40", attributes={"min": 20, "max": 70}),
     None,
     _PA_T0,
 )
@@ -61286,6 +61766,66 @@ R.check(
     and _ux6_march.get("total_sek") == 194.5 + 225.0
     and "capacity" in _ux6_march.get("basis", []),
     f"{_ux6_march}",
+)
+# #2230 (R10 D2-s3-01, N-period-rollover): the month's LAST metering window
+# reaches the month's bill. The tracker closes a window only when the next
+# one opens, so the window open at midnight closed into the NEW month and
+# was wiped with it; the settlement before midnight had booked the month
+# without it. Driven through the real settlement order: a cycle settles the
+# interval that started at the previous cycle (_roll_month on pending
+# "when"), then folds its own sample.
+from heatpump_optimizer.tariff import PeakTracker as _r2230_PT  # noqa: E402
+
+
+def _r2230_month(coord, *, spike_windows_back=1, restart_at_rollover=False):
+    tariff = coord._capacity_tariff()
+    window = timedelta(minutes=tariff.window_minutes)
+    end = datetime(2026, 4, 1, tzinfo=UTC)
+    spike = end - spike_windows_back * window
+    t, interval_start = datetime(2026, 3, 31, 12, 0, tzinfo=UTC), None
+    while t < end + timedelta(hours=1):
+        if t.minute % 15 == 0:
+            if interval_start is not None:
+                coord._roll_month(interval_start)
+            interval_start = t
+        coord._peak_tracker.observe(t, 5.0 if spike <= t < spike + window else 1.0, tariff)
+        if restart_at_rollover and t == end:
+            # A restart between the rollover and the settlement that books it.
+            coord._peak_tracker = _r2230_PT.from_dict(coord._peak_tracker.as_dict())
+        t += timedelta(minutes=5)
+    return coord._month_reports.get("2026-03", {}).get("capacity_peak_kw")
+
+
+_r2230_cfg = dict(peak_tariff_enabled=True, peak_tariff_price_per_kw=45.0,
+                  peak_tariff_peaks_averaged=1, peak_tariff_window_minutes=60)
+_r2230_last = _r2230_month(_ux6_coord(**_r2230_cfg))
+_r2230_restart = _r2230_month(_ux6_coord(**_r2230_cfg), restart_at_rollover=True)
+_r2230_null = _r2230_month(_ux6_coord(**_r2230_cfg), spike_windows_back=2)
+R.check(
+    "#2230: a spike in the month's last metering window reaches that month's "
+    "capacity receipt, across a restart between rollover and settlement too",
+    _r2230_last == 5.0 and _r2230_restart == 5.0,
+    f"last window {_r2230_last}, after a restart {_r2230_restart} (want 5.0; "
+    "1.0 is the window lost at the reset)",
+)
+R.check(
+    "#2230 null control: a spike one window earlier was always billed",
+    _r2230_null == 5.0,
+    f"{_r2230_null}",
+)
+# Null control on the tracker itself: closing before the reset changes
+# nothing for a period with no open window -- a tracker loaded with a
+# month's peaks and no window key carries exactly those into the closed
+# month's statement.
+_r2230_tariff = _ux6_coord(**_r2230_cfg)._capacity_tariff()
+_r2230_bare = _r2230_PT.from_dict({"month": "2026-03", "peaks": [4.0, 2.0]})
+_r2230_bare.observe(datetime(2026, 4, 1, 0, 5, tzinfo=UTC), 1.0, _r2230_tariff)
+R.check(
+    "#2230 null control: a rollover with no open window closes the month on "
+    "its recorded peaks unchanged",
+    _r2230_bare.billing_statements(_r2230_tariff)
+    == [("2026-03", 4.0), ("2026-04", 0.0)],
+    f"{_r2230_bare.billing_statements(_r2230_tariff)}",
 )
 _ux6_nocap = _ux6_coord()
 _ux6_nocap._peak_tracker.month = "2026-03"
@@ -62976,8 +63516,41 @@ R.check(
 for _ec_fn in list(_ec_wired.entry._on_unload):
     _ec_fn()
 R.check(
+    "arming twice registers one unload hook, not one per cycle",
+    len(_ec_wired.entry._on_unload) == 1,
+    f"{len(_ec_wired.entry._on_unload)}",
+)
+R.check(
     "unloading the entry drops the listener",
     _ec.state_for(_ec_wired).unsub is None,
+)
+
+
+# A weak-keyed registry whose value reaches its key never lets go (D1-s1-01):
+# the record's wiring is the coordinator's bound ``arbiter_inputs``. Unload must
+# free the coordinator, with a listener or without one.
+def _ec_freed(switch, unload):
+    import gc
+    import weakref
+    coord = _EcCoord(switch=switch)
+    coord.arm()
+    if unload:
+        for fn in list(coord.entry._on_unload):
+            fn()
+    ref = weakref.ref(coord)
+    del coord
+    gc.collect()
+    return ref() is None
+
+
+R.check(
+    "unloading the entry frees the coordinator the cut-off record was keyed by",
+    _ec_freed("switch.hp", True) and _ec_freed(None, True),
+    f"{_ec_freed('switch.hp', True)} {_ec_freed(None, True)}",
+)
+R.check(
+    "control: an entry never unloaded still pins its coordinator, so the check can fail",
+    not _ec_freed("switch.hp", False),
 )
 
 # The learners: a cut interval is one _learning_frozen reason, held for the
@@ -63165,6 +63738,716 @@ R.check(
     f"{_ec._cycle_guard(_ec_mon.arbiter_inputs(), _ec_mon_h, _ec_mon_now)}",
 )
 
+
+
+R.section("°F set-points: one unit rule for every set-point write (D12-s3-01, L1, L2)")
+
+# A climate entity's target and range are attributes in the instance's unit
+# system, which its state never declares; a number declares its own. Every
+# set-point write -- the arbiter's slots and the smart_write valve -- picks the
+# unit by that rule, by domain, so a 50 degC hot-water target on a US-customary
+# install reaches the pump as 122 degF and not as 50 degF (10 degC). The
+# expected values are the physical conversion, not a reader's round trip.
+import asyncio as _df_aio  # noqa: E402
+import itertools as _df_it  # noqa: E402
+from types import SimpleNamespace as _DfNS  # noqa: E402
+
+from harness import FakeEntry as _DfEntry  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _df_pa  # noqa: E402
+
+_DF, _DC = "°F", "°C"
+_DF_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_df_ids = _df_it.count()
+
+
+def _df_hass(states, instance):
+    hass = FakeHass(states)
+    hass.config.units = _DfNS(temperature_unit=instance)
+    return hass
+
+
+class _DfCoord:
+    """The arbiter keys its per-coordinator state weakly, so a plain class."""
+
+
+def _df_write(slot, entity, state, instance, value_c):
+    """What the arbiter's ``_write`` hands the service for ``value_c`` degC."""
+    hass = _df_hass({entity: state}, instance)
+    coord = _DfCoord()
+    coord.hass, coord.entry = hass, _DfNS(entry_id=f"df{next(_df_ids)}")
+    inp = _DfNS(hass=hass, config={f"{slot}_entity": entity})
+    _df_aio.run(_df_pa._write(coord, inp, slot, value_c, _DF_T0))
+    calls = [c for c in hass.services.calls if (c[2] or {}).get("entity_id") == entity]
+    data = calls[-1][2] if calls else {}
+    return data.get("temperature", data.get("value"))
+
+
+_df_cells = {}
+for _df_slot, _df_c in (("dhw_setpoint", 50.0), ("space_setpoint", 21.0)):
+    for _df_inst in (_DF, _DC):
+        _df_f = round(_df_c * 9 / 5 + 32, 1)
+        _df_want = _df_f if _df_inst == _DF else _df_c
+        _df_cells[(_df_slot, "climate", _df_inst)] = (_df_write(
+            _df_slot, f"climate.{_df_slot}",
+            FakeState("heat", attributes={"temperature": _df_want - 5.0}),
+            _df_inst, _df_c), _df_want)
+        for _df_dom in ("number", "input_number"):
+            _df_cells[(_df_slot, _df_dom, _df_inst)] = (_df_write(
+                _df_slot, f"{_df_dom}.{_df_slot}",
+                FakeState(str(_df_want - 5.0), unit=_df_inst), _df_inst, _df_c), _df_want)
+_df_bad = {k: v for k, v in _df_cells.items() if v[0] != v[1]}
+R.check(
+    "every arbiter set-point write reaches its entity in that entity's unit, "
+    "a climate on a degF install included (D12-s3-01)",
+    not _df_bad and len(_df_cells) == 12,
+    f"{len(_df_bad)} of {len(_df_cells)} cells misdelivered: {_df_bad}",
+)
+
+# The unit is chosen by the climate domain, not by whether a target reading
+# exists: a degF climate that reports no target yet (the attribute missing,
+# or None while it is off) is still written in degF.
+_df_none = {
+    label: _df_write("dhw_setpoint", "climate.dhw", FakeState("off", attributes=attrs), _DF, 50.0)
+    for label, attrs in (("absent", {}), ("None", {"temperature": None}))
+}
+R.check(
+    "a degF climate with no target attribute is still written in degF",
+    _df_none == {"absent": 122.0, "None": 122.0},
+    f"{_df_none}",
+)
+
+
+# L1: the smart_write valve target goes through the same rule. The commanded
+# value it remembers stays degC, so the unchanged-target guard compares like
+# with like.
+def _df_valve(entity, state, instance):
+    coord = Coord(FakeHass({entity: state}), _DfEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        "max_temperature": 23.5, "mixing_valve_mode": "smart_write",
+        "mixing_valve_write_entity": entity,
+    }))
+    coord.hass.config.units = _DfNS(temperature_unit=instance)
+    _df_aio.run(coord._command_valve_target())
+    _df_aio.run(coord._command_valve_target())
+    data = [c[2] for c in coord.hass.services.calls]
+    return [d.get("temperature", d.get("value")) for d in data], coord._valve_commanded_target
+
+
+_df_valves = {
+    "climate on degF": _df_valve("climate.valve", FakeState("heat", attributes={"temperature": 70.0}), _DF),
+    "climate on degF, no target": _df_valve("climate.valve", FakeState("off"), _DF),
+    "number declaring degF": _df_valve("number.valve", FakeState("70", unit=_DF), _DC),
+    "climate on degC": _df_valve("climate.valve", FakeState("heat", attributes={"temperature": 21.0}), _DC),
+    "number declaring degC": _df_valve("number.valve", FakeState("21", unit=_DC), _DC),
+}
+R.check(
+    "the smart_write valve target is written in the entity's unit, once, "
+    "and remembered in degC (L1)",
+    _df_valves == {
+        "climate on degF": ([74.3], 23.5),
+        "climate on degF, no target": ([74.3], 23.5),
+        "number declaring degF": ([74.3], 23.5),
+        "climate on degC": ([23.5], 23.5),
+        "number declaring degC": ([23.5], 23.5),
+    },
+    f"{_df_valves}",
+)
+
+
+# L2: a climate state carries its range as min_temp/max_temp, in the
+# instance's unit; a number carries min/max in its declared unit. The
+# arbiter clamps a set-point to that range whichever the slot is.
+def _df_dhw_command(entity, state, instance, setpoint_c):
+    hass = _df_hass({entity: state}, instance)
+    inp = _df_pa.ArbiterInputs(
+        hass=hass, config=EntryConfig.from_mapping({"dhw_setpoint_entity": entity}),
+        mode="auto", plan=None, plan_stale=False, entry_released=False,
+        state=_DfNS(outdoor_temperature=2.0), thermal=None,
+        params=_DfNS(dhw_setpoint=setpoint_c), action={}, measured_power_kw=None,
+        disinfecting=False,
+    )
+    return _df_pa.desired(None, inp, "dhw", _DF_T0).dhw_setpoint
+
+
+_df_ranges = {
+    "climate on degF, above max": _df_dhw_command(
+        "climate.dhw", FakeState("heat", attributes={"min_temp": 44.6, "max_temp": 122.0}), _DF, 55.0),
+    "climate on degF, below min": _df_dhw_command(
+        "climate.dhw", FakeState("heat", attributes={"min_temp": 44.6, "max_temp": 122.0}), _DF, 3.0),
+    "climate on degC, above max": _df_dhw_command(
+        "climate.dhw", FakeState("heat", attributes={"min_temp": 7, "max_temp": 50}), _DC, 55.0),
+    "number on degC, above max": _df_dhw_command(
+        "number.dhw", FakeState("45", unit=_DC, attributes={"min": 7, "max": 50}), _DC, 55.0),
+    "number on degC, inside": _df_dhw_command(
+        "number.dhw", FakeState("45", unit=_DC, attributes={"min": 7, "max": 50}), _DC, 45.0),
+}
+R.check(
+    "a climate set-point slot is clamped to its own min_temp/max_temp, read "
+    "in the instance's unit (L2)",
+    _df_ranges == {
+        "climate on degF, above max": 50.0,
+        "climate on degF, below min": 7.0,
+        "climate on degC, above max": 50.0,
+        "number on degC, above max": 50.0,
+        "number on degC, inside": 45.0,
+    },
+    f"{_df_ranges}",
+)
+
+
+# An unconfigured set-point slot is ``None`` (or empty), and Home Assistant's
+# StateMachine.get does ``self._states_data.get(entity_id) or
+# self._states_data.get(entity_id.lower())`` (2026.9.3), so it RAISES on None
+# where FakeStates' dict lookup returns None. This stub keeps that one upstream
+# behaviour, faithfully and locally, rather than changing FakeHass for every
+# test. The owner's guard returns no reading for a missing id before any
+# lookup; without it, setpoint_check.evaluate on an install with no DHW
+# entity raises inside _dhw and skips the space and quiet checks after it.
+class _DfStrictStates:
+    def __init__(self, mapping):
+        self._states_data = dict(mapping)
+
+    def get(self, entity_id):
+        return self._states_data.get(entity_id) or self._states_data.get(entity_id.lower())
+
+
+def _df_strict_hass(mapping):
+    hass = FakeHass({})
+    hass.states = _DfStrictStates(mapping)
+    return hass
+
+
+from heatpump_optimizer import inputs as _df_inputs  # noqa: E402
+from heatpump_optimizer import setpoint_check as _df_sc  # noqa: E402
+
+def _df_or_raised(fn, *args):
+    try:
+        return fn(*args)
+    except Exception as err:  # noqa: BLE001 - the raise is the reading
+        return f"raised {type(err).__name__}"
+
+
+_df_missing = {
+    repr(eid): (_df_or_raised(_df_inputs.read_setpoint, _df_strict_hass({}), eid),
+                _df_or_raised(_df_inputs.setpoint_and_unit, _df_strict_hass({}), eid))
+    for eid in (None, "")
+}
+_df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
+_df_sc.evaluate(_DfNS(
+    hass=_df_space_hass,
+    effective_config={"space_setpoint_entity": "number.space"},
+    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+                         dhw_legionella_temp=60.0),
+))
+R.check(
+    "a set-point slot with no entity id reads nothing, before any state lookup, "
+    "so the consistency check still reaches the space notice",
+    _df_missing == {"None": (None, None), "''": (None, None)}
+    and _df_sc.ISSUE_SPACE in str(getattr(_df_space_hass, "issues", [])),
+    f"{_df_missing} issues={getattr(_df_space_hass, 'issues', [])!r}",
+)
+
+
+# ---------------------------------------------------------------------------
+# R10-FEEDS: the price and weather ingest seam (#2229 N-no-expiry, #2233
+# N-silent-zero, #2226 N-log-flood, #2236 P1 D1-s3-02). Each arm drives the
+# production symbol; its null control is the covered / healthy input.
+# ---------------------------------------------------------------------------
+import asyncio as _fd_asyncio  # noqa: E402
+import logging as _fd_logging  # noqa: E402
+from types import SimpleNamespace as _FdNS  # noqa: E402
+
+from harness import FakeEntry as _FdEntry  # noqa: E402
+from homeassistant.helpers.update_coordinator import UpdateFailed as _FdUpdateFailed  # noqa: E402
+from homeassistant.util import dt as _fd_dt  # noqa: E402
+from heatpump_optimizer import coordinator as _fd_cm  # noqa: E402
+from heatpump_optimizer import price_model as _fd_pm  # noqa: E402
+
+_FD_T0 = datetime(2026, 1, 15, 10, 0, tzinfo=timezone.utc)
+_FD_CFG = {"tibber_token": "x", "price_source": "tibber", "weather_entity": "weather.home",
+           "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor"}
+
+
+def _fd_coord():
+    return Coord(FakeHass(), _FdEntry(data=dict(_FD_CFG)))
+
+
+class _FdLog(_fd_logging.Handler):
+    """Every record the coordinator module logs, as (level, message)."""
+
+    def __init__(self):
+        super().__init__(_fd_logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        self.rows.append((record.levelname, record.getMessage()))
+
+    def count(self, level, needle):
+        return sum(1 for lv, msg in self.rows if lv == level and needle in msg)
+
+
+def _fd_logged(fn):
+    log = _FdLog()
+    logger = _fd_logging.getLogger(_fd_cm.__name__)
+    old = logger.level
+    logger.addHandler(log)
+    logger.setLevel(_fd_logging.DEBUG)
+    try:
+        fn()
+    finally:
+        logger.removeHandler(log)
+        logger.setLevel(old)
+    return log
+
+
+# -- N-no-expiry (#2229): the covering rule has an end --------------------
+_fd_starts = [_FD_T0 + timedelta(hours=k) for k in range(4)]
+_fd_cov = {
+    "before": _fd_cm._covering_index(_fd_starts, _FD_T0 - timedelta(minutes=1), timedelta(hours=1)),
+    "first": _fd_cm._covering_index(_fd_starts, _FD_T0, timedelta(hours=1)),
+    "inner": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=90), timedelta(hours=1)),
+    "last": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=239), timedelta(hours=1)),
+    "end": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=4), timedelta(hours=1)),
+    "past": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=50), timedelta(hours=1)),
+    "lone_in": _fd_cm._covering_index([0.0], 899.0, 900.0),
+    "lone_out": _fd_cm._covering_index([0.0], 900.0, 900.0),
+    "quarter_last": _fd_cm._covering_index([0.0, 900.0], 1799.0, 3600.0),
+    "quarter_out": _fd_cm._covering_index([0.0, 900.0], 1800.0, 3600.0),
+}
+R.check(
+    "#2229: an entry covers [start, next start); the last one its predecessor's span, "
+    "a lone one the given span -- and nothing covers before the first or past the end",
+    _fd_cov == {"before": None, "first": 0, "inner": 1, "last": 3, "end": None,
+                "past": None, "lone_in": 0, "lone_out": None,
+                "quarter_last": 1, "quarter_out": None},
+    repr(_fd_cov),
+)
+
+_fd_spot = _fd_coord()
+_fd_spot._prices = [{"total": round(1.0 + 0.1 * k, 2), "starts_at": (_FD_T0 + timedelta(hours=k)).isoformat(),
+                     "level": "NORMAL"} for k in range(-2, 4)]
+_fd_spot_read = {}
+for _fd_h in (0.5, 3.5, 4.0, 5.0, 50.0):
+    _fd_dt.freeze(_FD_T0 + timedelta(hours=_fd_h))
+    _fd_spot_read[_fd_h] = (_fd_spot._current_spot_price(), _fd_spot._get_current_price(),
+                            _fd_spot._grid_view()["current_price"])
+_fd_dt.freeze(None)
+R.check(
+    "#2229: a price list that stopped updating publishes no current price past its "
+    "last entry's hour; a covered hour (the null control) still reads its entry",
+    _fd_spot_read[0.5] == (1.0, 1.0, 1.0) and _fd_spot_read[3.5] == (1.3, 1.3, 1.3)
+    and all(v == (None, None, None) for h, v in _fd_spot_read.items() if h >= 4.0),
+    repr(_fd_spot_read),
+)
+_fd_dt.freeze(_FD_T0)
+_fd_none = _fd_coord()
+_fd_future = _fd_coord()
+_fd_future._prices = [{"total": 0.55, "starts_at": "2099-01-01T00:00:00+00:00"}]
+R.check(
+    "#2229: no prices, or none started yet, is no current price -- never 0.0, the "
+    "cheapest price there is, and never the head of a list that covers a later hour",
+    _fd_none._current_spot_price() is None and _fd_future._current_spot_price() is None,
+    f"{_fd_none._current_spot_price()!r} {_fd_future._current_spot_price()!r}",
+)
+_fd_dt.freeze(None)
+
+_fd_fc = [{"datetime": (_FD_T0 + timedelta(hours=k)).isoformat(), "temperature": -3.0 + k}
+          for k in range(4)]
+_fd_plan = _FdNS(timestamps=[_FD_T0 + timedelta(minutes=15 * k) for k in range(12)],
+                 dhw_temp_trajectory=[50.0 - 0.5 * k for k in range(12)])
+_fd_series = {
+    "fc_before": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 - timedelta(minutes=30)),
+    "fc_cover": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 + timedelta(minutes=90)),
+    "fc_last": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 + timedelta(minutes=230)),
+    "fc_past": _fd_cm.forecast_outdoor_now(_fd_fc, _FD_T0 + timedelta(hours=50)),
+    "plan_cover": _fd_cm._open_loop_plan_value(_fd_plan, "dhw_temp_trajectory", _FD_T0 + timedelta(minutes=20)),
+    "plan_last": _fd_cm._open_loop_plan_value(_fd_plan, "dhw_temp_trajectory", _FD_T0 + timedelta(minutes=179)),
+    "plan_past": _fd_cm._open_loop_plan_value(_fd_plan, "dhw_temp_trajectory", _FD_T0 + timedelta(hours=50)),
+}
+R.check(
+    "#2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series "
+    "(the sweep's two siblings); inside it they read the covering entry",
+    _fd_series == {"fc_before": -3.0, "fc_cover": -2.0, "fc_last": 0.0, "fc_past": None,
+                   "plan_cover": 49.5, "plan_last": 44.5, "plan_past": None},
+    repr(_fd_series),
+)
+
+# -- N-silent-zero (#2233) and P1 D1-s3-02 (#2236): ingress refuses, never empties --
+_fd_mid = datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc)
+_fd_good = [{"total": 1.0 + i / 100, "startsAt": (_fd_mid + timedelta(minutes=15 * i)).isoformat(),
+             "level": "NORMAL"} for i in range(96)]
+
+
+def _fd_body(today, tomorrow=()):
+    return {"data": {"viewer": {"homes": [{"currentSubscription": {"priceInfo": {
+        "current": None, "today": list(today), "tomorrow": list(tomorrow)}}}]}}}
+
+
+_fd_parse = {
+    "empty": _fd_pm.prices_from_tibber_payload(_fd_body([])),
+    "startless": _fd_pm.prices_from_tibber_payload(
+        _fd_body([{"total": 1.0, "level": "NORMAL"}] * 4)),
+    "bad_start": _fd_pm.prices_from_tibber_payload(
+        _fd_body([{"total": 1.0, "startsAt": "noon"}, _fd_good[0]])),
+    "good": _fd_pm.prices_from_tibber_payload(_fd_body(_fd_good)),
+}
+R.check(
+    "#2233/#2236: a Tibber body with no usable row is a failure reason, a row with no "
+    "parseable start is dropped, and a good body (null control) keeps all 96 rows",
+    isinstance(_fd_parse["empty"], str) and isinstance(_fd_parse["startless"], str)
+    and [r["starts_at"] for r in _fd_parse["bad_start"]] == [_fd_good[0]["startsAt"]]
+    and len(_fd_parse["good"]) == 96,
+    repr({k: v if isinstance(v, str) else len(v) for k, v in _fd_parse.items()}),
+)
+R.check(
+    "#2236: one start rule for both ingress paths -- the entity path drops an "
+    "unparseable start too",
+    _fd_pm._raw_start({"start": "bad"}) is None
+    and _fd_pm._raw_start({"start": "2026-01-15T18:00:00+00:00"}) == "2026-01-15T18:00:00+00:00",
+    repr(_fd_pm._raw_start({"start": "bad"})),
+)
+
+
+class _FdResp:
+    status = 200
+
+    def __init__(self, body):
+        self._b = body
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def json(self):
+        return self._b
+
+
+class _FdSess:
+    def __init__(self, body):
+        self.body = body
+
+    def post(self, *a, **k):
+        return _FdResp(self.body)
+
+
+async def _fd_fetch(coord, body):
+    _fd_cm.async_get_clientsession = lambda hass: _FdSess(body)
+    try:
+        await coord._fetch_tibber_prices()
+        return "ok"
+    except _FdUpdateFailed:
+        return "failed"
+
+
+_fd_session_getter = _fd_cm.async_get_clientsession
+_fd_tib = _fd_coord()
+_fd_tib_run = [_fd_asyncio.run(_fd_fetch(_fd_tib, _fd_body(_fd_good))), len(_fd_tib._prices)]
+_fd_tib_run += [_fd_asyncio.run(_fd_fetch(_fd_tib, _fd_body([]))), len(_fd_tib._prices),
+                _fd_tib._tibber_outage_cycles]
+_fd_cm.async_get_clientsession = _fd_session_getter
+R.check(
+    "#2233: an HTTP 200 with empty days fails the fetch and keeps the 96 held rows; "
+    "the good fetch before it (null control) succeeds",
+    _fd_tib_run == ["ok", 96, "failed", 96, 1],
+    repr(_fd_tib_run),
+)
+
+
+class _FdWeather:
+    def __init__(self):
+        self.rows = []
+
+    async def async_call(self, *a, **k):
+        return {"weather.home": {"forecast": self.rows}}
+
+
+_fd_wx = _fd_coord()
+_fd_wx.hass.services = _fd_wx_svc = _FdWeather()
+_fd_wx_svc.rows = [{"datetime": (_FD_T0 + timedelta(hours=h)).isoformat(), "temperature": 3.0}
+                   for h in range(48)]
+_fd_asyncio.run(_fd_wx._fetch_weather_forecast())
+_fd_wx_good = (len(_fd_wx._weather_forecast), _fd_wx._weather_stale_since)
+_fd_wx_svc.rows = ["x"] * 48
+_fd_asyncio.run(_fd_wx._fetch_weather_forecast())
+R.check(
+    "#2233: a forecast whose rows all fail plausibility is a failed fetch: the held "
+    "48 rows stay and are marked stale; the good fetch (null control) is not stale",
+    _fd_wx_good == (48, None) and len(_fd_wx._weather_forecast) == 48
+    and _fd_wx._weather_stale_since is not None and _fd_wx._weather_outage_cycles == 1,
+    f"good={_fd_wx_good} after={len(_fd_wx._weather_forecast)} "
+    f"stale={_fd_wx._weather_stale_since} outage={_fd_wx._weather_outage_cycles}",
+)
+
+# -- N-log-flood (#2226): a held condition logs its transitions only ---------
+_fd_latch_owner = _fd_coord()
+
+
+def _fd_latch_run():
+    for active in (True, True, True, True, False, False, True):
+        _fd_cm._log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
+    _fd_cm._log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
+
+
+_fd_latch = _fd_logged(_fd_latch_run)
+R.check(
+    "#2226: a held condition warns when it starts, DEBUGs while it holds, INFOs once "
+    "when it clears, and warns again on recurrence or a changed text",
+    _fd_latch.count("WARNING", "Probe held") == 2
+    and _fd_latch.count("DEBUG", "Probe held") == 3
+    and _fd_latch.count("INFO", "Resolved: probe condition") == 1
+    and _fd_latch.count("WARNING", "Probe changed") == 1,
+    repr(_fd_latch.rows),
+)
+
+_fd_flood = _fd_coord()
+_fd_flood._prices = []
+_fd_flood._weather_forecast = []
+
+
+def _fd_flood_run():
+    for _ in range(4):
+        _fd_flood._price_series(96, _FD_T0, 0)
+        _fd_flood._weather_series(96, _FD_T0, 0)
+        _fd_cm._peak_tariff_months("Smarch-fd")
+        _fd_cm._peak_tariff_hours("25:99-fd")
+
+
+_fd_flood_log = _fd_logged(_fd_flood_run)
+_fd_flood_counts = {
+    needle: _fd_flood_log.count("WARNING", needle)
+    for needle in ("No electricity price data", "No weather forecast available",
+                   "Invalid peak tariff months", "Invalid peak tariff hours")
+}
+R.check(
+    "#2226: four cycles of no prices, no forecast and malformed peak-tariff options "
+    "log each WARNING once (it was 4, and 16 for a tariff option)",
+    set(_fd_flood_counts.values()) == {1},
+    repr(_fd_flood_counts),
+)
+
+# -- the consumers of an unknown price (#2229's distinct failure value) ------
+_fd_acc = _fd_coord()
+_fd_acc_before = dict(_fd_acc._energy_totals)
+_fd_acc._accumulate_energy(
+    AccuracySample(when=_FD_T0, predicted_power_kw=2.0, actual_power_kw=2.0),
+    0.5, {"when": _FD_T0, "price": None, "spot_price": None,
+          "space_power": 2.0, "dhw_power": 0.0})
+_fd_acc_spot = _fd_acc._ledger._month("2026-01")["meta"].get("spot_price")
+R.check(
+    "#2229: an interval no price covered books its energy, no cost and no spot sample "
+    "-- not a zero-priced kWh and not a 0.0 dragging the month's mean spot",
+    _fd_acc._energy_totals["total_energy_kwh"] - _fd_acc_before["total_energy_kwh"] == 1.0
+    and _fd_acc._energy_totals["space_cost"] == _fd_acc_before["space_cost"]
+    and _fd_acc_spot is None,
+    f"totals={_fd_acc._energy_totals} spot_meta={_fd_acc_spot}",
+)
+_fd_acc_priced = _fd_coord()
+_fd_acc_priced._accumulate_energy(
+    AccuracySample(when=_FD_T0, predicted_power_kw=2.0, actual_power_kw=2.0),
+    0.5, {"when": _FD_T0, "price": 2.0, "spot_price": 1.5,
+          "space_power": 2.0, "dhw_power": 0.0})
+R.check(
+    "#2229 null control: a priced interval still books its cost and spot sample",
+    _fd_acc_priced._energy_totals["space_cost"] == 2.0
+    and _fd_acc_priced._ledger._month("2026-01")["meta"]["spot_price"]["count"] == 1,
+    repr(_fd_acc_priced._energy_totals),
+)
+
+_fd_ac = _fd_coord()
+_fd_ac._measured_power = 1.0
+_fd_ac._pending_prediction = {"when": _FD_T0, "power": 2.0, "price": None,
+                              "predicted_temp": None, "outdoor": None}
+_fd_dt.freeze(_FD_T0 + timedelta(minutes=30))
+_fd_ac._record_accuracy()
+_fd_ac_priced = _fd_coord()
+_fd_ac_priced._measured_power = 1.0
+_fd_ac_priced._pending_prediction = {"when": _FD_T0, "power": 2.0, "price": 2.0,
+                                     "predicted_temp": None, "outdoor": None}
+_fd_ac_priced._record_accuracy()
+_fd_dt.freeze(None)
+_fd_ac_last = _fd_ac._accuracy.samples[-1] if _fd_ac._accuracy.samples else None
+_fd_acp_last = _fd_ac_priced._accuracy.samples[-1] if _fd_ac_priced._accuracy.samples else None
+R.check(
+    "#2229: an accuracy sample with no price records no cost comparison (None, which "
+    "the tracker's pairing skips), not a 0.0 cost; a priced one (null control) does",
+    _fd_ac_last is not None and _fd_ac_last.predicted_cost is None
+    and _fd_ac_last.actual_cost is None
+    and _fd_acp_last is not None and _fd_acp_last.predicted_cost == 2.0
+    and _fd_acp_last.actual_cost == 1.0,
+    f"{_fd_ac_last!r} / {_fd_acp_last!r}",
+)
+
+_fd_sysid = SystemIdentification(SysIdConfig())
+_fd_sysid_night = datetime(2026, 1, 15, 2, 0, tzinfo=timezone.utc)
+_fd_sysid_ok = _fd_sysid.conditions_met(_fd_sysid_night, 0.0, None, np.array([1.0, 2.0]), 0)
+R.check(
+    "#2229: an unknown current price never starts a system-identification experiment",
+    _fd_sysid_ok[0] is False and "price" in _fd_sysid_ok[1],
+    repr(_fd_sysid_ok),
+)
+
+_fd_ov = _fd_coord()
+with_config(_fd_ov, {"comfort_learning_enabled": True})
+_fd_ov._prices = [{"total": 1.0, "starts_at": "2099-01-01T00:00:00+00:00"}]
+_fd_ov_seen = []
+_fd_ov._comfort_learner = _FdNS(record_override=_fd_ov_seen.append,
+                                configured_weight=1.0, effective_weight=1.0)
+_fd_dt.freeze(_FD_T0)
+_fd_ov.record_setpoint_override(22.0)
+_fd_dt.freeze(None)
+R.check(
+    "#2229: an override with no current price is recorded at a neutral relative price",
+    len(_fd_ov_seen) == 1 and getattr(_fd_ov_seen[0], "relative_price", None) == 1.0,
+    repr(_fd_ov_seen),
+)
+
+_fd_score = _fd_coord()
+_fd_score._fold_score_sample(_FD_T0, 1.0, float("nan"), float("nan"), 0.25, False)
+_fd_score_unpriced = dict(_fd_score._score_day)
+_fd_score._fold_score_sample(_FD_T0, 1.0, 1.5, 1.5, 0.25, True)
+R.check(
+    "#2229: the operation score's day book takes an unpriced interval's kWh nowhere -- "
+    "counted at 0 SEK it lowered the day's mean paid price; a priced one (null control) books",
+    _fd_score_unpriced.get("kwh") == 0.0 and _fd_score_unpriced.get("sek") == 0.0
+    and _fd_score._score_day.get("kwh") == 1.0 and _fd_score._score_day.get("sek") == 1.5,
+    f"unpriced={_fd_score_unpriced} priced={_fd_score._score_day}",
+)
+
+
+# ===========================================================================
+# #2239 — the house the detector prices is the house the dynamics simulate
+# ===========================================================================
+# R10 D2-s1-71: `_space_demand_kw` summed the two zones' CONFIGURED losses, so
+# once the learner had moved the lower-floor ratio off 1 the external-heat
+# detector's standing loss read below the whole-house demand the model rolls.
+# The oracle is the production symbol `hold_demand_kw` (`_hold_kw` above): its
+# docstring owns the same quantity -- the tank sits upstream of the mixing
+# valve feeding both zones, so it is whole-house -- and it already carried the
+# learned ratio, so driven with the same params, the same state and no gains or
+# solar the two must agree exactly. Ratio 1.0 is the null arm: there the
+# configured total and the learned one are the same number, and the two agreed
+# before the fix too.
+_rsd_rows = []
+for _rsd_zone in (False, True):
+    for _rsd_ratio in (1.0, 1.922):
+        _rsd_p = _dc_replace(
+            ThermalParameters.from_config(
+                _grad_house(two_zone=_rsd_zone, dhw=False)
+            ),
+            wind_sensitivity=0.0,
+            internal_gains=0.0,
+            house_heat_loss_scale=1.567,
+            lower_floor_loss_ratio=_rsd_ratio,
+        )
+        _rsd_state = ThermalState(room_temperature=21.0, outdoor_temperature=-5.0)
+        _rsd_rows.append((
+            _rsd_zone,
+            _rsd_ratio,
+            Coord._space_demand_kw(
+                _NS(_thermal_params=_rsd_p, _current_state=_rsd_state)
+            ),
+            _hold_kw(_rsd_p, 21.0, -5.0),
+        ))
+R.check(
+    "#2239: the external-heat detector's space demand is the whole-house demand "
+    "the tank's drain law prices, on the learned lower-floor ratio; the "
+    "single-zone and ratio-1.0 arms are the controls",
+    all(abs(_g - _w) < 1e-12 for _, _, _g, _w in _rsd_rows),
+    f"got {[(z, r, round(g, 6), round(w, 6)) for z, r, g, w in _rsd_rows]}",
+)
+
+# The refuted D-2's residual (catch-up judge, 2026-10-15): the number
+# `SysIdResult.as_dict()` publishes as `heat_loss_kw_per_c` is the identified UA
+# on the configured zone total the learned scale multiplies -- the base
+# `sysid._candidate_model` divides into that scale, and `adoption_decision`
+# divides by -- NOT the model's effective UA, which also carries the learned
+# lower-floor split. That basis is what the field's own doc now names. Prose
+# cannot be pinned by a check; the arithmetic it states can, so this fails on
+# the day the two bases are unified, which is the day the label must move with
+# them.
+_ua_basis = []
+for _ua_r in (1.0, 1.6):
+    _ua_p = _dc_replace(
+        ThermalParameters.from_config(_grad_house(two_zone=True, dhw=False)),
+        lower_floor_loss_ratio=_ua_r,
+        house_heat_loss_scale=1.0,
+    )
+    _ua_basis.append((
+        _ua_r,
+        _r9f41_sysid._zone_heat_loss(_ua_p) * _ua_p.house_heat_loss_scale,
+        _s5_effective(_ua_p, _ua_p.house_heat_loss_scale),
+    ))
+R.check(
+    "#2239 (D-2 residual): the fit's published UA is on the configured "
+    "zone-total basis and reads below the model's effective UA once the learned "
+    "lower-floor split leaves 1; ratio 1.0 is the null arm",
+    abs(_ua_basis[0][1] - _ua_basis[0][2]) <= 1e-4
+    and _ua_basis[1][1] < _ua_basis[1][2],
+    f"{[(r, round(b, 6), round(e, 6)) for r, b, e in _ua_basis]}",
+)
+
+
+# ===========================================================================
+# #2239 (class widened) — the forecast's solar-reduction anticipation prices
+# the learned lower-floor split
+# ===========================================================================
+# `_analyze_forecast_trajectory`'s `typical_heat_loss` normalised the coming
+# solar energy against `heat_loss_coefficient * house_heat_loss_scale`. That is
+# the single-zone field: on a two-zone house it omits the learned lower-floor
+# split the dynamics (and #2239) apply, so it read below the model's whole-house
+# UA the moment the learner left ratio 1. It only feeds `solar_fraction`, which
+# shapes the solver's initial guess, so the property pinned is the returned
+# `solar_reduction_factor`: driven with a constant solar forecast, it must be
+# the value the whole-house UA predicts -- `upper + lower_floor_heat_loss_learned`
+# for two-zone (the same quantity `_hold_kw` prices), `heat_loss_coefficient`
+# for single-zone (unchanged by the fix). The single-zone arm and the ratio-1.0
+# two-zone arm are the controls; the ratio-1.6 two-zone arm is the split.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _fst_opt  # noqa: E402
+from types import SimpleNamespace as _fst_ns  # noqa: E402
+from dataclasses import replace as _fst_replace  # noqa: E402
+from profiles import house as _fst_house  # noqa: E402
+
+_fst_rows = []
+for _fst_zone, _fst_ratio in ((False, 1.0), (True, 1.0), (True, 1.6)):
+    _fst_p = _fst_replace(
+        ThermalParameters.from_config(_fst_house(two_zone=_fst_zone, dhw=False)),
+        lower_floor_loss_ratio=_fst_ratio,
+        house_heat_loss_scale=1.0,
+        wind_sensitivity=0.0,
+        rain_heat_loss_multiplier=1.0,
+    )
+    _fst_u = (
+        _fst_p.upper_floor_heat_loss + _fst_p.lower_floor_heat_loss_learned
+        if _fst_zone
+        else _fst_p.heat_loss_coefficient
+    )
+    _fst_out = _fst_opt._analyze_forecast_trajectory(
+        _fst_ns(
+            model=_fst_ns(params=_fst_p, compute_solar_gain=lambda sr: 0.5),
+            config=_fst_ns(target_temp=21.0),
+        ),
+        solar_radiation=np.full(24, 400.0),
+        wind_speeds=np.zeros(24),
+        precipitation=np.zeros(24),
+        outdoor_temps=np.full(24, -5.0),
+        dt_hours=1.0,
+    )
+    # 6 steps at 0.5 kW each = 3.0 kWh of future solar; target 21 - outdoor -5
+    # = 26 K; the 6 in the denominator is the horizon-hours factor the method
+    # applies to `typical_heat_loss` before dividing.
+    _fst_expected = 1.0 - 0.4 * min(3.0 / max(_fst_u * 26.0 * 6.0, 0.1), 1.0)
+    _fst_rows.append((_fst_zone, _fst_ratio, _fst_out["solar_reduction_factor"], _fst_expected))
+R.check(
+    "#2239 (typical_heat_loss): the forecast's solar-reduction factor prices "
+    "the whole-house UA -- the learned split for two-zone, the configured "
+    "coefficient for single-zone; ratio 1.0 is the split's null arm",
+    all(abs(_o - _e) < 1e-12 for _, _, _o, _e in _fst_rows)
+    and _fst_rows[2][2] > _fst_rows[1][2],
+    f"got {[(z, r, round(o, 6), round(e, 6)) for z, r, o, e in _fst_rows]}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:BufferTankTempSensor.native_value RETURN_DEL ab9d44f4",
+  "killed_by": "tests/entities.py",
+  "old": "            return round(val, 1) if val is not None else None",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

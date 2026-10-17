@@ -8,7 +8,8 @@
     python3 tools/audit/seat/roster_edit.py append-carry <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py set-resume  <group> --field <stage|commit|branch|last_step|next_step|note> <text | @file>
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
-        [--worktree DIR] [--lint-cwd DIR] [--push] [--message MSG]
+        [--roster-path PATH] [--worktree DIR] [--lint-cwd DIR] [--push]
+        [--message MSG]
     python3 tools/audit/seat/roster_edit.py --self-test
 
 Two recorded JSON breakages came from editing the roster as text; every op
@@ -22,9 +23,16 @@ naive `json.dump(..., indent=2)` did exactly that).
 
 The write path is the checkout -B worktree pattern: a throwaway worktree of
 `--checkout` (default: this directory's repository) is created detached at
-`origin/<--roster-ref>` and `checkout -B <--branch>` resets the branch there,
-so a re-run is idempotent. An existing worktree with uncommitted changes is
-refused, never clobbered.
+`origin/<--branch>` when that exists, else at `origin/<--roster-ref>`, and
+`checkout -B <--branch>` resets the branch there, so a re-run is idempotent.
+An existing worktree with uncommitted changes is refused, never clobbered.
+
+WHICH ROSTER is `roster_lib.roster_path`'s answer, never a path of this
+file's: the newest `dev/programme/rosters/wave-r<N>-groups.json` in the
+worktree, or `--roster-path`. `--roster-ref` defaults to `main`, and
+`--branch` to `--roster-ref` when that is given, else to the round's roster
+branch (`roster_lib.round_branch`: `handoff/audit-r<N>-roster`, N the newest
+round at `origin/<--roster-ref>`) -- never to main itself.
 
 THE LINT GATE. `--push` refuses unless the brief_lint the fresh origin/main
 checkout contains, run in that checkout on the modified roster, prints
@@ -64,11 +72,9 @@ import tempfile
 from pathlib import Path
 
 SELF = "tools/audit/seat/roster_edit.py"
-# The roster's home at closure (#2086): `dev/programme/rosters/`, not
-# `.claude/workflows/` (whose `wave-*-groups.json` basename the `briefs` and
-# `wave-script` scans treat as a LIVE web-fix-wave roster). Same value as
-# roster_lib.ROSTER_PATH.
-ROSTER_PATH = "dev/programme/rosters/wave-r9-groups.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
+import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
 SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 # Historical path first, then the moved one: the same preference as
@@ -205,9 +211,8 @@ def prepare_worktree(checkout, ref, branch, wt) -> None:
     one exists (so sequential edits accumulate) and to origin/<ref> otherwise.
     checkout -B makes the reset idempotent; the guards refuse anything that
     would clobber work: uncommitted changes in an existing worktree, and a
-    local branch tip the base does not contain (unpushed commits)."""
-    run(["git", "-C", str(checkout), "fetch", "-q", "origin",
-         "+refs/heads/*:refs/remotes/origin/*"])
+    local branch tip the base does not contain (unpushed commits). The
+    caller fetches first (`fetch_origin`)."""
     base = f"origin/{ref}"
     has_branch = subprocess.run(
         ["git", "-C", str(checkout), "rev-parse", "--verify", "--quiet",
@@ -233,6 +238,27 @@ def prepare_worktree(checkout, ref, branch, wt) -> None:
         run(["git", "-C", str(checkout), "worktree", "add", "-q", "--detach",
              str(wt), base])
         run(["git", "-C", str(wt), "checkout", "-B", branch, base])
+
+
+def fetch_origin(checkout) -> None:
+    run(["git", "-C", str(checkout), "fetch", "-q", "origin",
+         "+refs/heads/*:refs/remotes/origin/*"])
+
+
+def roster_target(checkout, roster_ref, branch, roster_path):
+    """(ref, branch): `--roster-ref` defaults to main; `--branch` to the
+    given `--roster-ref`, else to the round's roster branch -- the newest
+    roster at origin/<ref> names the round -- so a default edit never lands
+    on main itself."""
+    ref = roster_ref or "main"
+    if branch or roster_ref:
+        return ref, branch or roster_ref
+    try:
+        path = roster_lib.roster_path(str(checkout), f"origin/{ref}",
+                                      roster_path)
+        return ref, roster_lib.round_branch(path)
+    except roster_lib.RosterNotFound as e:
+        raise Refuse(str(e))
 
 
 def brief_lint_script(lint_cwd) -> str | None:
@@ -316,8 +342,14 @@ def main(argv=None) -> int:
     p.add_argument("--value", dest="value_opt",
                    help="the value, for when a positional value does not fit")
     p.add_argument("--checkout", default=".")
-    p.add_argument("--roster-ref", default="handoff/audit-r9-fixplan")
-    p.add_argument("--branch", default=None)
+    p.add_argument("--roster-ref", default=None,
+                   help="the base ref (default main)")
+    p.add_argument("--branch", default=None,
+                   help="the branch the edit lands on (default --roster-ref, "
+                        "else handoff/audit-r<N>-roster)")
+    p.add_argument("--roster-path", default=None,
+                   help="the roster file, repo-relative (default: the newest "
+                        "dev/programme/rosters/wave-r<N>-groups.json)")
     p.add_argument("--worktree", required=True)
     p.add_argument("--lint-cwd")
     p.add_argument("--push", action="store_true")
@@ -332,10 +364,21 @@ def main(argv=None) -> int:
         p.error("set-resume needs --field")
     if a.op != "set-resume" and a.field:
         p.error("--field is a set-resume flag")
-    branch = a.branch or a.roster_ref
     try:
-        prepare_worktree(a.checkout, a.roster_ref, branch, a.worktree)
-        path = Path(a.worktree) / ROSTER_PATH
+        fetch_origin(a.checkout)
+        ref, branch = roster_target(a.checkout, a.roster_ref, a.branch,
+                                    a.roster_path)
+        msg = a.message or f"roster_edit {a.op} {a.group} ({SELF})"
+        why = ref_privacy.refusal(branch, (("the message", msg),))
+        if why:
+            raise Refuse(f"{why} would publish this host (#2310); nothing written")
+        prepare_worktree(a.checkout, ref, branch, a.worktree)
+        try:
+            rel = roster_lib.roster_path(str(a.worktree), None, a.roster_path)
+        except roster_lib.RosterNotFound as e:
+            raise Refuse(str(e))
+        path = Path(a.worktree) / rel
+        print(f"roster: {rel} on {branch}")
         roster = json.loads(path.read_text(encoding="utf-8"))
         if a.op == "set-stage":
             op_set_stage(roster, a.group, value, a.at_sha)
@@ -358,7 +401,6 @@ def main(argv=None) -> int:
             print(f"no change: {a.op} {a.group} wrote the roster's own "
                   "bytes (byte-identical); nothing to commit or push")
             return 0
-        msg = a.message or f"roster_edit {a.op} {a.group} ({SELF})"
         run(["git", "-C", str(a.worktree), "commit", "-q", "-am", msg])
         head = run(["git", "-C", str(a.worktree), "rev-parse", "HEAD"]).strip()
         ok, detail = lint_gate(a.checkout, a.lint_cwd, path)
@@ -460,6 +502,8 @@ def _self_test() -> int:
     finally:
         os.chdir(here)
 
+    # The fixture's roster: one round, so the newest IS this path.
+    FIXTURE_ROSTER = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
     seed = Path(tmp, "seed")
     seed.mkdir()
     throwaway_git_init(seed, "-q", "-b", "main")
@@ -479,8 +523,8 @@ def _self_test() -> int:
          "after": ["R9-A"], "brief": "fixture group B",
          "resume": {"stage": "not-started", "branch": "handoff/b"}},
     ]}
-    (seed / ROSTER_PATH).parent.mkdir(parents=True, exist_ok=True)
-    (seed / ROSTER_PATH).write_text(dump(roster), encoding="utf-8")
+    (seed / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
+    (seed / FIXTURE_ROSTER).write_text(dump(roster), encoding="utf-8")
     run(["git", "-C", str(seed), "add", "-A"])
     run(["git", "-C", str(seed), "commit", "-q", "-m", "fixture roster"])
     # a second commit, so the stale-checkout arm can detach to HEAD~1
@@ -525,7 +569,7 @@ def _self_test() -> int:
         sha = run(["git", "-C", str(origin), "rev-parse",
                    f"refs/heads/{name}"]).strip()
         return json.loads(run(["git", "-C", str(origin), "show",
-                               f"{sha}:{ROSTER_PATH}"]))
+                               f"{sha}:{FIXTURE_ROSTER}"]))
 
     # round-trips: each op lands in the dumped JSON, never a string splice.
     check("set-stage rc", edit("set-stage", "R9-A", "in-review") == 0)
@@ -634,8 +678,8 @@ def _self_test() -> int:
     (seed2 / ".claude/workflows/brief_lint.mjs").write_text(
         "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
         encoding="utf-8")
-    (seed2 / ROSTER_PATH).parent.mkdir(parents=True, exist_ok=True)
-    (seed2 / ROSTER_PATH).write_text(canon, encoding="utf-8")
+    (seed2 / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
+    (seed2 / FIXTURE_ROSTER).write_text(canon, encoding="utf-8")
     run(["git", "-C", str(seed2), "add", "-A"])
     run(["git", "-C", str(seed2), "commit", "-q", "-m", "fixture roster"])
     origin2 = Path(tmp, "origin2.git")
@@ -651,7 +695,7 @@ def _self_test() -> int:
                            "--lint-cwd", str(seed2), "--push"])) == 0)
     # The no-op path commits and pushes nothing, so the bytes are read from
     # the worktree the op wrote: they must be the roster's own, unchanged.
-    tip = (Path(tmp, "wt2") / ROSTER_PATH).read_text(encoding="utf-8")
+    tip = (Path(tmp, "wt2") / FIXTURE_ROSTER).read_text(encoding="utf-8")
     check("no-op set-resume is byte-identical", tip == canon)
 
     # the lint gate: a bad brief is refused BEFORE the push; the branch on the
@@ -666,6 +710,13 @@ def _self_test() -> int:
     after = run(["git", "-C", str(origin), "rev-parse", "refs/heads/edit-1"]).strip()
     check("refused push moved nothing", before == after)
 
+    # a branch name naming a host path refuses before anything is committed (#2310)
+    leaky = "edit/Users-" + "exampleuser-x"
+    rc = edit("set-stage", "R9-A", "review", push=True, branch=leaky)
+    check("a branch naming a host path refuses", rc == 2, rc)
+    check("and pushes nothing", not run(["git", "-C", str(origin), "for-each-ref",
+                                         f"refs/heads/{leaky}"]).strip())
+
     # the stale-worktree trap: a lint checkout main has moved past is refused
     # even when the roster itself is fine.
     stale = Path(tmp, "stale")
@@ -675,7 +726,7 @@ def _self_test() -> int:
     rc = edit("set-stage", "R9-A", "done", push=True, branch="edit-2",
               lint_cwd=str(stale))
     check("stale lint-cwd refused", rc == 3, rc)
-    ok, why = lint_gate(drv, str(stale), seed / ROSTER_PATH)
+    ok, why = lint_gate(drv, str(stale), seed / FIXTURE_ROSTER)
     check("stale refusal named the trap",
           not ok and "stale-worktree" in why, why[:80])
     # and the good path pushes: fresh lint checkout (the seed is main's tip).
@@ -683,6 +734,72 @@ def _self_test() -> int:
           edit("set-stage", "R9-A", "done", push=True, branch="edit-3") == 0)
     check("pushed roster carries the edit",
           branch_roster("edit-3")["groups"][0]["resume"]["stage"] == "done")
+
+    # WHICH ROSTER (R10-TICK b): a tree carrying round 9's roster AND round
+    # 10's. The edit lands in the newest unless --roster-path names another;
+    # a fixed round-9 path refused every round-10 group ("no roster group").
+    seed3 = Path(tmp, "seed3")
+    seed3.mkdir()
+    throwaway_git_init(seed3, "-q", "-b", "main")
+    (seed3 / BRIEF_LINT_NEW).parent.mkdir(parents=True)
+    (seed3 / BRIEF_LINT_NEW).write_text(
+        "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
+        encoding="utf-8")
+    r9_path = FIXTURE_ROSTER
+    r10_path = f"{roster_lib.ROSTERS_DIR}/wave-r10-groups.json"
+    r9 = {"groups": [{"group": "R9-A", "lane": "L1", "issues": [],
+                      "after": [], "brief": "r9", "resume": {}}]}
+    r10 = {"groups": [{"group": "R10-A", "lane": "L1", "issues": [],
+                       "after": [], "brief": "r10", "resume": {}}]}
+    (seed3 / r9_path).parent.mkdir(parents=True, exist_ok=True)
+    (seed3 / r9_path).write_text(dump(r9), encoding="utf-8")
+    (seed3 / r10_path).write_text(dump(r10), encoding="utf-8")
+    run(["git", "-C", str(seed3), "add", "-A"])
+    run(["git", "-C", str(seed3), "commit", "-q", "-m", "two rounds"])
+    origin3 = Path(tmp, "origin3.git")
+    throwaway_git_clone(seed3, origin3, "-q", "--bare")
+    drv3 = Path(tmp, "drv3")
+    throwaway_git_clone(origin3, drv3, "-q")
+
+    def edit3(*extra, wt):
+        return sysrc(lambda: main(
+            ["wire-issue", *extra, "--checkout", str(drv3),
+             "--worktree", str(Path(tmp, wt)), "--lint-cwd", str(seed3),
+             "--push"]))
+
+    def at3(branch, path):
+        return json.loads(run(["git", "-C", str(origin3), "show",
+                               f"refs/heads/{branch}:{path}"]))
+
+    main_before = run(["git", "-C", str(origin3), "rev-parse",
+                       "refs/heads/main"]).strip()
+    check("two rosters: a round-10 group is editable (the newest)",
+          edit3("R10-A", "2300", wt="wt3") == 0)
+    check("two rosters: the edit lands in the round-10 roster",
+          at3("handoff/audit-r10-roster", r10_path)["groups"][0]["issues"]
+          == [2300])
+    check("two rosters: the round-9 roster is untouched",
+          at3("handoff/audit-r10-roster", r9_path) == r9)
+    check("the default branch is the round's roster branch, never main",
+          run(["git", "-C", str(origin3), "rev-parse",
+               "refs/heads/main"]).strip() == main_before)
+    check("--roster-path wins over the newest",
+          edit3("R9-A", "2301", "--roster-path", r9_path, "--branch",
+                "edit-r9", wt="wt4") == 0
+          and at3("edit-r9", r9_path)["groups"][0]["issues"] == [2301])
+    check("--roster-path naming a missing file refuses",
+          edit3("R10-A", "2302", "--roster-path", "nope.json", "--branch",
+                "edit-nope", wt="wt5") == 2)
+    run(["git", "-C", str(seed3), "rm", "-q", r9_path, r10_path])
+    run(["git", "-C", str(seed3), "commit", "-q", "-m", "no rosters"])
+    run(["git", "-C", str(seed3), "push", "-q", str(origin3),
+         "main:refs/heads/main"])
+    check("no roster at all refuses (no silent fallback)",
+          edit3("R10-A", "2303", "--roster-ref", "main", "--branch",
+                "edit-none", wt="wt6") == 2)
+    check("no roster: the default branch refuses before any worktree",
+          edit3("R10-A", "2303", wt="wt7") == 2
+          and not Path(tmp, "wt7").exists())
 
     shutil.rmtree(tmp, ignore_errors=True)
     print(f"roster_edit self-test: {passed + len(failed)} checks, "

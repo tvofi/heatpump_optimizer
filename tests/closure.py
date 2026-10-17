@@ -267,7 +267,8 @@ INERT = (
     # docs/, .claude/rules/ and tools/audit/briefs/. They are prose. The
     # living handover is the hole is_handover cuts, under dev/programme/ as
     # well as under docs/ so a second copy put back in the old place is
-    # unclassified rather than inert.
+    # unclassified rather than inert. `_is_citation_source` below reads the
+    # roles and dimensions contracts and a carry's JSON back out of the prefix.
     "dev/governance/",
     "dev/programme/",
     # tests/README.md was here until #938: entities.py now reads the
@@ -326,19 +327,22 @@ INERT = (
     "tools/coverage/",
     "tools/devices/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
-    # under tests/ reads them. Same reason `.claude/` is here.
+    # under tests/ reads them. Same reason `.claude/` is here -- save the
+    # policy files `_is_citation_source` below reads back out of it.
     ".cursor/",
     # Orientation for a session that starts cold. Claude Code loads a root
     # CLAUDE.md automatically, which is the whole reason it cannot live under
-    # docs/ with the rest of the prose. Nothing under tests/ reads it -- unlike
-    # README.md and RELEASE_NOTES.md above, which entities.py checks against the
-    # code and which are therefore dependencies rather than inert.
+    # docs/ with the rest of the prose. Nothing under tests/ reads it for its
+    # own checks -- unlike README.md and RELEASE_NOTES.md above, which
+    # entities.py checks against the code. It is a citation SOURCE, though, so
+    # `_is_citation_source` below takes it back off this list for the #2227 arm.
     "CLAUDE.md",
     # The harness-neutral twin of the entry above: ZCode and Codex auto-load a
     # root AGENTS.md instead of CLAUDE.md. It defers to CLAUDE.md and states no
-    # policy of its own, and nothing under tests/ reads it either. It is still
+    # policy of its own, and no check reads it either -- except as a citation
+    # source, on the entry above's terms. It is still
     # measured policy -- POLICY_GLOBS matches it and policy_budgets.json caps
-    # it -- only this gate has no dependency on it.
+    # it -- only this gate has no dependency on it beyond that.
     "AGENTS.md",
     "DISCLAIMER.md",
     # The quality-scale register (#229) sat here from #229 to #951: no gate
@@ -351,7 +355,9 @@ INERT = (
     # still skips it for custom repos; that is about the external checker,
     # not this gate.
     # The pull-request template. GitHub renders it into a new body; no gate
-    # script reads it. It is NOT under `.github/workflows/`, so the GATE_FILES
+    # script reads it as a body, though `_is_citation_source` below reads it as
+    # a citation source for the #2227 arm. It is NOT under
+    # `.github/workflows/`, so the GATE_FILES
     # prefix above does not cover it, and an unclassified file forces the whole
     # suite -- which is how a template edit would otherwise cost a full run.
     # Its headings ARE checked, by policy_lint's pr-body class against the
@@ -707,6 +713,12 @@ INERT_EXCEPT = (
     "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
     "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
     "dev/audit/rounds/round5/D13/seat-a/fixtures/window_merges.json",
+    # #2227: tests/entities.py's cited-program arm loads every program live
+    # policy or a carry's `remeasure` tells a seat to run under a historical
+    # prefix, and reads its source for the paths it opens -- the
+    # web-fix-wave.js route. carry-201 commands this one; the other cited
+    # programs are already excepted above. An edit to it selects entities.py.
+    "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
     # R9-FR-10: tests/entities.py loads record_row.py and roster_lib.py by
     # importlib (the record-autofix generator and the branch-to-group lookup)
     # and drives figure_lint.mjs through node, so each is a dependency of a
@@ -732,6 +744,9 @@ INERT_EXCEPT = (
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/handover_prompt.py",
+    # #2310: state_docs.py imports ref_privacy.py, the push guard its push
+    # path calls, so entities.py's load of the beat reads it the same way.
+    "tools/audit/seat/ref_privacy.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the
@@ -812,8 +827,45 @@ def _is_archscore(rel: str) -> bool:
     return rel.startswith("tools/audit/archscore/") and not rel.endswith(".md")
 
 
+# The text tests/entities.py's N-move-stale-path arm reads for a citation of a
+# program a seat is told to run: a CARRY's JSON (a `remeasure` command), and live
+# POLICY text -- the corpus policy_lint.mjs's own POLICY_GLOBS names, which is
+# what the arm asks that module's `policyFiles()` for rather than a copy of its
+# globs. The shapes below are that corpus's spelling as the arm reads it, after
+# the move map: the brief and rule files policyFiles() spells at their pre-move
+# names resolve to `.claude/rules/` and `dev/governance/{roles,dimensions}/`,
+# which is where the arm opens them. The two cannot drift unnoticed:
+# policyFiles() returning a file this misses fails the arm's own source-select
+# check in tests/entities.py, and naming a file the arm does not read fails
+# `orphan_files` on the other side.
+#
+# Reading them from the worktree is what makes an edit to one select
+# tests/entities.py instead of skipping it. Left INERT -- the shape they were in
+# -- the citation half runs only on the push to main, the late-gate shape #518
+# (the handover) and #533 (the nightly lane) each closed by reading the file in
+# a gate script (#2312, F2).
+_CITATION_POLICY = (
+    r"CLAUDE\.md",
+    r"AGENTS\.md",
+    r"tests/README\.md",
+    r"dev/audit/README\.md",
+    r"\.github/PULL_REQUEST_TEMPLATE\.md",
+    r"\.claude/workflows/web-fragments\.md",
+    r"\.claude/skills/[a-z0-9-]+/SKILL\.md",
+    r"\.claude/rules/[a-z0-9-]+\.md",
+    r"dev/governance/roles/[A-Za-z0-9_.-]+\.md",
+    r"dev/governance/dimensions/[A-Za-z0-9_.-]+\.md",
+)
+
+
+def _is_citation_source(rel: str) -> bool:
+    return (rel.startswith("dev/programme/carries/") and rel.endswith(".json")) or \
+        any(re.fullmatch(p, rel) for p in _CITATION_POLICY)
+
+
 def is_inert(rel: str) -> bool:
-    if is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel) or _is_archscore(rel):
+    if (is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel)
+            or _is_archscore(rel) or _is_citation_source(rel)):
         return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 

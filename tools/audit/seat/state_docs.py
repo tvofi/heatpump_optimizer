@@ -2,7 +2,7 @@
 """The state-doc pusher: regenerate the three handoff state docs in one call.
 
     python3 tools/audit/seat/state_docs.py [--repo OWNER/REPO] \
-        [--roster-ref GITREF | --roster-file PATH] \
+        [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH] \
         [--checkout DIR] [--state-ref BR] [--pr-state FILE] \
         [--mirror DIR] [--push] [--message M]
     python3 tools/audit/seat/state_docs.py beat [the same flags] \
@@ -11,9 +11,13 @@
 
 The loop the #1946 generators left open: run plan_table.py, resume_doc.py
 and handover_prompt.py in order, commit exactly their outputs to the orphan
-ref `handoff/audit-r9-plan` at handoff/round9/state/, and mirror the three
+ref `handoff/audit-r<N>-plan` at handoff/round<N>/state/, and mirror the three
 files to a local directory. Without --push it is a dry run: nothing remote
-is written and it prints what it would push.
+is written and it prints what it would push. N is the ROSTER's round, never a
+constant here: the round `roster_lib.roster_path` picks (the newest
+`dev/programme/rosters/wave-r<N>-groups.json` at --roster-ref, or
+--roster-path) or the one --roster-file's name carries. A roster whose round
+cannot be read is refused, so a round-10 beat cannot write round 9's state.
 
 The write set is guarded the way record_row.py guards its rows: every path
 the commit touches must be one of the three state docs, checked BEFORE any
@@ -53,22 +57,47 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import NamedTuple
 
 SELF = "tools/audit/seat/state_docs.py"
 SEAT = Path(__file__).resolve().parent
-STATE_REF = "handoff/audit-r9-plan"
-STATE_DIR = "handoff/round9/state"
+sys.path.insert(0, str(SEAT))
+import roster_lib  # noqa: E402  which roster, hence which round
+import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 #: The beat's default watched ref and sleep. The tip a pass reads is a full
 #: ref name, so a short name that happens to be a prefix matches nothing.
 WATCH_REF = "refs/heads/main"
 BEAT_INTERVAL = 300.0
-#: The WHOLE write surface. Every other path at the state ref's tip -- a
-#: round's evidence, the older state docs -- is carried, never touched.
-WRITE_SET = (
-    STATE_DIR + "/PLAN-TABLE.md",
-    STATE_DIR + "/RESUME-CURRENT.md",
-    STATE_DIR + "/NEXT-SESSION-PROMPT.md",
-)
+#: The three docs, one per generator. Under a round's state dir they are the
+#: WHOLE write surface: every other path at the state ref's tip -- a round's
+#: evidence, the older state docs -- is carried, never touched.
+DOC_NAMES = ("PLAN-TABLE.md", "RESUME-CURRENT.md", "NEXT-SESSION-PROMPT.md")
+
+
+class State(NamedTuple):
+    ref: str
+    dir: str
+    write_set: tuple
+
+
+def state_of(round_n: int) -> State:
+    """A round's state ref, dir and write set, derived from its number."""
+    d = f"handoff/round{round_n}/state"
+    return State(f"handoff/audit-r{round_n}-plan", d,
+                 tuple(f"{d}/{n}" for n in DOC_NAMES))
+
+
+def roster_round_of(a) -> int:
+    """The round of the roster this run reads: --roster-file's name, else
+    roster_lib's pick at --roster-ref (or --roster-path). Refuses when there
+    is none, rather than defaulting to some round."""
+    try:
+        if a.roster_file:
+            return roster_lib.roster_round(a.roster_file)
+        return roster_lib.roster_round(roster_lib.roster_path(
+            a.checkout, a.roster_ref, a.roster_path))
+    except roster_lib.RosterNotFound as e:
+        raise Refuse(f"which round: {e}")
 
 
 class Refuse(Exception):
@@ -86,7 +115,7 @@ def run(cmd, cwd=None, env=None, input_text=None) -> str:
 
 # ----------------------------------------------------------------- generate
 def generate(repo: str, roster_args: list, checkout: str, pr_state: str,
-             staging: Path) -> dict:
+             staging: Path, state_dir: str) -> dict:
     """Run the three #1946 generators, in order, into staging.
 
     Returns {repo path: text} keyed by the write-set paths. The generators
@@ -115,23 +144,24 @@ def generate(repo: str, roster_args: list, checkout: str, pr_state: str,
         if not target.exists() or not target.read_text(encoding="utf-8").strip():
             raise Refuse(f"{script} produced no {name}")
         text = target.read_text(encoding="utf-8")
-        out[f"{STATE_DIR}/{name}"] = text
+        out[f"{state_dir}/{name}"] = text
     return out
 
 
 # ------------------------------------------------------------------ the tree
-def check_write_set(staged: dict) -> None:
+def check_write_set(staged: dict, write_set: tuple) -> None:
     """The guarded write set, record_row's shape: anything outside the three
     state docs is refused, never skipped."""
-    bad = sorted(p for p in staged if p not in WRITE_SET)
+    bad = sorted(p for p in staged if p not in write_set)
     if bad:
         raise Refuse(
             f"outside the state-doc write set: {', '.join(bad)} -- the write "
-            f"set is exactly {', '.join(WRITE_SET)}; every other path at the "
+            f"set is exactly {', '.join(write_set)}; every other path at the "
             "state ref is carried untouched, never written")
 
 
-def write_tree(checkout: str, staged: dict, prev: str | None) -> str:
+def write_tree(checkout: str, staged: dict, prev: str | None,
+               write_set: tuple) -> str:
     """Build the state commit's tree over a TEMP index; returns the tree sha.
 
     `prev` is the state ref's current tip (None before the ref exists): its
@@ -139,7 +169,7 @@ def write_tree(checkout: str, staged: dict, prev: str | None) -> str:
     exactly as it was. The temp index keeps the calling checkout's own index
     untouched. The guard runs before anything is staged.
     """
-    check_write_set(staged)
+    check_write_set(staged, write_set)
     with tempfile.TemporaryDirectory() as t:
         env = dict(os.environ, GIT_INDEX_FILE=str(Path(t) / "index"))
         if prev:
@@ -220,12 +250,15 @@ def beat_main_argv(a) -> list:
     inputs plus `--push`, because publishing the regeneration is what the
     manual loop this replaces already did. The watch ref, the interval and
     the tip file are the LOOP's and are never passed on."""
-    argv = ["--repo", a.repo, "--checkout", a.checkout,
-            "--state-ref", a.state_ref, "--push"]
+    argv = ["--repo", a.repo, "--checkout", a.checkout, "--push"]
+    if a.state_ref:
+        argv += ["--state-ref", a.state_ref]
     if a.roster_file:
         argv += ["--roster-file", a.roster_file]
     else:
         argv += ["--roster-ref", a.roster_ref]
+        if a.roster_path:
+            argv += ["--roster-path", a.roster_path]
     if a.pr_state:
         argv += ["--pr-state", a.pr_state]
     if a.mirror:
@@ -324,10 +357,15 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
     src = p.add_mutually_exclusive_group()
     src.add_argument("--roster-ref", default="origin/main")
     src.add_argument("--roster-file")
+    p.add_argument("--roster-path",
+                   help="the roster at --roster-ref (default: the newest "
+                        "dev/programme/rosters/wave-r<N>-groups.json there)")
     p.add_argument("--checkout", default=".",
                    help="the clone the git operations and generators run in")
-    p.add_argument("--state-ref", default=STATE_REF,
-                   help="the orphan ref the state docs are committed to")
+    p.add_argument("--state-ref", default=None,
+                   help="the orphan ref the state docs are committed to "
+                        "(default handoff/audit-r<N>-plan, N the roster's "
+                        "round)")
     p.add_argument("--pr-state",
                    help="JSON list of open pull requests; passed to "
                         "resume_doc with --offline (no network, no gh)")
@@ -357,49 +395,61 @@ def main(argv=None) -> int:
     a = parser().parse_args(argv)
     if a.self_test:
         return run_self_test()
+    if a.roster_file and a.roster_path:
+        print("state_docs: REFUSED: --roster-path reads at --roster-ref; "
+              "give --roster-file alone", file=sys.stderr)
+        return 2
     roster_args = (["--roster-file", a.roster_file] if a.roster_file
-                   else ["--roster-ref", a.roster_ref])
+                   else ["--roster-ref", a.roster_ref]
+                   + (["--roster-path", a.roster_path] if a.roster_path
+                      else []))
     try:
+        st8 = state_of(roster_round_of(a))
+        state_ref = a.state_ref or st8.ref
+        print(f"round state: {state_ref} at {st8.dir}/")
         with tempfile.TemporaryDirectory() as st:
             staged = generate(a.repo, roster_args, a.checkout, a.pr_state,
-                              Path(st))
+                              Path(st), st8.dir)
         for path in sorted(staged):
             print(f"generated {path}: "
                   f"{len(staged[path].encode('utf-8'))} bytes")
-        prev = remote_tip(a.checkout, f"refs/heads/{a.state_ref}")
-        tree = write_tree(a.checkout, staged, prev)
+        prev = remote_tip(a.checkout, f"refs/heads/{state_ref}")
+        tree = write_tree(a.checkout, staged, prev, st8.write_set)
         if prev:
             changed = run(["git", "diff-tree", "-r", "--name-only", prev,
                            tree], cwd=a.checkout).split()
-            bad = sorted(p for p in changed if p not in WRITE_SET)
+            bad = sorted(p for p in changed if p not in st8.write_set)
             if bad:  # unreachable while write_tree's guard holds; checked
                 raise Refuse(  # again here, before any commit exists to push
                     f"the commit would touch paths outside the write set: "
                     f"{', '.join(bad)}")
             if not changed:
-                print(f"already current: {a.state_ref} at {prev[:12]} carries "
+                print(f"already current: {state_ref} at {prev[:12]} carries "
                       "these bytes; nothing to commit or push")
                 mirror_files(staged, a.mirror)
                 return 0
         else:
             names = run(["git", "ls-tree", "-r", "--name-only", tree],
                         cwd=a.checkout).split()
-            if sorted(names) != sorted(WRITE_SET):
-                raise Refuse(f"the first commit on {a.state_ref} would carry "
+            if sorted(names) != sorted(st8.write_set):
+                raise Refuse(f"the first commit on {state_ref} would carry "
                              f"{sorted(names)}, not exactly the write set")
         message = a.message or (
             "state: " + ", ".join(Path(p).name for p in sorted(staged))
             + " regenerated (state_docs.py)")
+        why = ref_privacy.refusal(state_ref, (("the message", message),))
+        if why:
+            raise Refuse(f"{why} would publish this host (#2310); nothing committed")
         cargs = ["git", "commit-tree", tree]
         if prev:
             cargs += ["-p", prev]
         commit = run(cargs + ["-m", message], cwd=a.checkout).strip()
         if a.push:
             run(["git", "push", "-q", "origin",
-                 f"{commit}:refs/heads/{a.state_ref}"], cwd=a.checkout)
-            print(f"pushed {a.state_ref} at {commit}")
+                 f"{commit}:refs/heads/{state_ref}"], cwd=a.checkout)
+            print(f"pushed {state_ref} at {commit}")
         else:
-            print(f"ready: would push {a.state_ref} at {commit} (no --push)")
+            print(f"ready: would push {state_ref} at {commit} (no --push)")
         mirror_files(staged, a.mirror)
         return 0
     except Refuse as e:
@@ -413,6 +463,9 @@ def self_test() -> int:
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
     from throwaway_git import throwaway_git_clone, throwaway_git_init
     fails: list[str] = []
+    # The fixtures are round 9's: the roster files below are named
+    # wave-r9-groups.json, so the derived state is round 9's.
+    STATE_REF, _, WRITE_SET = state_of(9)
 
     def ok(name: str, cond, got="") -> None:
         if not cond:
@@ -499,13 +552,15 @@ def self_test() -> int:
         # THE GUARD: a write outside the three files refuses, in both the
         # direct check and a real write_tree call over the live tip.
         try:
-            check_write_set({"dev/programme/HANDOVER.md": "x", WRITE_SET[0]: "ok"})
+            check_write_set({"dev/programme/HANDOVER.md": "x", WRITE_SET[0]: "ok"},
+                            WRITE_SET)
             ok("guard refuses a path outside the write set", False)
         except Refuse:
             pass
         try:
             write_tree(str(drv), {**{p: "x" for p in WRITE_SET},
-                                  "dev/programme/HANDOVER.md": "x"}, tip)
+                                  "dev/programme/HANDOVER.md": "x"}, tip,
+                       WRITE_SET)
             ok("write_tree refuses an outside path", False)
         except Refuse:
             pass
@@ -520,6 +575,10 @@ def self_test() -> int:
         roster["groups"][0]["resume"]["stage"] = "done"
         roster_path.write_text(json.dumps(roster, indent=1) + "\n",
                                encoding="utf-8")
+        # a message naming a host path refuses (#2310); the push below is its null
+        rc = main(common + ["--push", "--message", "state: from /Users/" + "exampleuser/x"])
+        ok("a message naming a host path refuses and pushes nothing",
+           rc != 0 and tip_at_origin() == tip, rc)
         rc = main(common + ["--push"])
         ok("changed roster pushes", rc == 0 and tip_at_origin() != tip, rc)
         ok("plan table reflects the roster",
@@ -537,14 +596,14 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
         seed = root / "seed"
-        (seed / ".claude" / "workflows").mkdir(parents=True)
+        (seed / roster_lib.ROSTERS_DIR).mkdir(parents=True)
         roster = {
             "repo": "fixture/state", "session": "r9-fix", "groups": [
                 {"group": "R9-A", "lane": "L1", "issues": [10], "fixes": [],
                  "after": [], "brief": "fixture group A does a thing.",
                  "resume": {"stage": "in-flight", "branch": "handoff/a",
                             "commit": "a" * 40}}]}
-        roster_path = seed / ".claude" / "workflows" / "wave-r9-groups.json"
+        roster_path = seed / roster_lib.ROSTERS_DIR / "wave-r9-groups.json"
 
         def write_roster() -> None:
             roster_path.write_text(json.dumps(roster, indent=1) + "\n",
@@ -731,6 +790,46 @@ def self_test() -> int:
             except subprocess.TimeoutExpired:
                 loop.kill()
                 loop.wait(timeout=30)
+
+    # --- which round (R10-TICK d) ------------------------------------------
+    # The state ref and dir follow the roster's round. A ref carrying round
+    # 9's roster AND round 10's derives round 10; --roster-path picks the
+    # other; a ref with no roster refuses before anything is generated.
+    ok("round 10's state", state_of(10) == (
+        "handoff/audit-r10-plan", "handoff/round10/state",
+        tuple(f"handoff/round10/state/{n}" for n in DOC_NAMES)))
+    with tempfile.TemporaryDirectory() as td:
+        seed = Path(td) / "two"
+        (seed / roster_lib.ROSTERS_DIR).mkdir(parents=True)
+        throwaway_git_init(seed, "-q", "-b", "main")
+        for n in (9, 10):
+            (seed / roster_lib.ROSTERS_DIR / f"wave-r{n}-groups.json").write_text(
+                json.dumps({"groups": []}), encoding="utf-8")
+        git("-C", str(seed), "add", "-A")
+        git("-C", str(seed), "commit", "-q", "-m", "two rounds")
+
+        def round_for(*argv) -> int | str:
+            try:
+                return roster_round_of(parser().parse_args(
+                    ["--checkout", str(seed), *argv]))
+            except Refuse as e:
+                return str(e)
+
+        ok("two rosters at the ref: round 10", round_for("--roster-ref",
+                                                         "main") == 10,
+           round_for("--roster-ref", "main"))
+        ok("--roster-path picks round 9", round_for(
+            "--roster-ref", "main", "--roster-path",
+            f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json") == 9)
+        ok("--roster-file's name carries its round", round_for(
+            "--roster-file", "/x/wave-r10-groups.json") == 10)
+        git("-C", str(seed), "rm", "-q", "-r", roster_lib.ROSTERS_DIR)
+        git("-C", str(seed), "commit", "-q", "-m", "none")
+        got = round_for("--roster-ref", "main")
+        ok("no roster refuses, naming the round question",
+           isinstance(got, str) and "which round" in got, got)
+        rc = main(["--checkout", str(seed), "--roster-ref", "main"])
+        ok("main refuses rc 2 with no roster to take a round from", rc == 2, rc)
 
     if fails:
         print(f"{len(fails)} self-test check(s) failed: " + ", ".join(fails))
