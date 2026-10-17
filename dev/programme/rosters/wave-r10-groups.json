@@ -3191,7 +3191,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "in-review: #2345",
     "branch": "handoff/r10-deeplink-census",
     "commit": null,
     "last_step": null,
