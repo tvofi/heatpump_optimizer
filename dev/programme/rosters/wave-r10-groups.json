@@ -2234,7 +2234,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2294",
+    "stage": "done",
     "branch": "handoff/r10-policy-lint-stats",
     "commit": "98fe51b42b5c5e0fd0392fdc88f49f2a9fd12ac9",
     "last_step": null,
