@@ -1,0 +1,6 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (763 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+  REFUSE   ancestry reds          RED UNANSWERED (mutation):   ERROR   [pr-body] /Users/timmalmstrom/.local/state/hpo/pr/r10-registry-leak/body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

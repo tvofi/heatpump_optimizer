@@ -1,0 +1,49 @@
+train.sh: queue=/Users/timmalmstrom/hpo-orch/train-b5/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/train-b5 pid=24587 start=2026-10-15T19:00:41Z
+python3: can't open file '/Users/timmalmstrom/heatpump_optimizer/tools/tools/audit/seat/merge_train.py': [Errno 2] No such file or directory
+TRAIN_RC=2 end=2026-10-15T19:00:41Z
+train.sh: queue=/Users/timmalmstrom/hpo-orch/train-b5/queue.json repo=tvofi/heatpump_optimizer state=/Users/timmalmstrom/hpo-orch/train-b5 pid=29464 start=2026-10-15T19:01:13Z
+BATCH 20261015-190113 pid=29497 base=main queue=3 (#2284 #2275 #2290) --overlap --skip-bad
+OVERLAP: main at 613b10c51b1b is not green (Analyze (python), browser, closures, env-matrix, fast (3.14)) before admission; --overlap logs it and does not wait
+/Users/timmalmstrom/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+beat: waiting CI at 5f7bded0 (poll 2, t+241s, required: 14, concluded: 11/14)
+beat: waiting CI at 5f7bded0 (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 5f7bded0 (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at 5f7bded0 (poll 5, t+963s, required: 14, concluded: 12/14)
+beat: waiting CI at 5f7bded0 (poll 6, t+1204s, required: 14, concluded: 13/14)
+beat: waiting CI at 5f7bded0 (poll 7, t+1445s, required: 14, concluded: 13/14)
+beat: waiting CI at 5f7bded0 (poll 8, t+1686s, required: 14, concluded: 13/14)
+beat: waiting CI at 5f7bded0 (poll 9, t+1927s, required: 14, concluded: 13/14)
+beat: waiting CI at 5f7bded0 (poll 10, t+2168s, required: 14, concluded: 13/14)
+#2284 admitted at 5f7bded0
+#2275 serial: grader
+#2290 serial: grader
+OVERLAP: recarrying #2275, #2290 up front, their pull_request runs fire together
+#2275 overlap: recarry start
+#2275 recarry START (branch fix/r10-gate-yield-pr)
+#2275 recarry: main merged, head ff51321f; app_push: RECARRY: prepr SKIPPED: HEAD ff51321f is the clean merge of the live head 5f47b791 and origin/main's 613b10c5, and the body is the live one
+#2290 overlap: recarry start
+#2290 recarry START (branch fix/r10-services-guard)
+#2290 recarry: main merged, head 6561cd84; app_push: RECARRY: prepr SKIPPED: HEAD 6561cd84 is the clean merge of the live head b7a0eb30 and origin/main's 613b10c5, and the body is the live one
+#2284 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2284 approved (mandate)
+#2284 MERGED 8747bbfc4d4628fa8419634792229fd15dcc21e2
+#2284 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2219,"state":"CLOSED"}]}}}}}
+#2284 main 8747bbfc tree == proof 7a94732f
+OVERLAP: main at 8747bbfc4d46 is not green (Analyze (actions), Analyze (javascript-typescript), Analyze (python), briefs, browser, closures, env-matrix, fast (3.14), hassfest, mutation, policy-docs, typing, validate-hacs, wave-script) after #2284's unproved merge: revert it first; --overlap logs it and does not wait
+serial: #2275, #2290
+beat: waiting CI at ff51321f (poll 2, t+241s, required: 14, concluded: 12/14)
+beat: waiting CI at ff51321f (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at ff51321f (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at ff51321f (poll 5, t+964s, required: 14, concluded: 13/14)
+#2275 ff51321f ci red=[]
+#2275 approved (mandate)
+#2275 MERGED 74cf47b9c402c2c780cba13cf6e34655a2967a02
+#2275 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":2225,"state":"CLOSED"}]}}}}}
+beat: waiting CI at 6561cd84 (poll 2, t+242s, required: 14, concluded: 13/14)
+#2290 6561cd84 ci red=[]
+#2290 approved (app)
+SKIP #2290 merge: #2290 not merged after 8 attempts
+SKIP REPORT: 1 skipped of 3
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-15T20:24:04Z

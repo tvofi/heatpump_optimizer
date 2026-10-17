@@ -1,0 +1,5 @@
+===== daemonize pid=2378 2026-10-15T16:57:05Z argv: python3 -u tools/audit/seat/merge_train.py run /Users/timmalmstrom/hpo-orch/train-2281/queue.json --mandate mandate 6175172275 --ignore-red nightly-status --ignore-red delivery-status
+TRAIN pid=2378 queue=1 (#2281)
+===== daemonize pid=13673 2026-10-15T17:20:20Z argv: python3 -u tools/audit/seat/merge_train.py run /Users/timmalmstrom/hpo-orch/train-2281/queue.json --mandate mandate 6175172275 --ignore-red nightly-status --ignore-red delivery-status
+TRAIN pid=13673 queue=1 (#2281)
+TRAIN STOPPED #2281 recarry: [HOLDER] could not make a worktree at /Users/timmalmstrom/.local/state/hpo/merge_train/wt/2281: branch fix/r10-tick-roster is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/r10-tick-roster/wt. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/r10-tick-roster/wt (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-tick-roster/wt status)

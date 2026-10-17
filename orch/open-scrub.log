@@ -1,0 +1,3 @@
+  REFUSE   temp paths             tmp_paths: 31 refused, 0 stale allow entries at HEAD, ledger lines added since dec1a2645534
+  REFUSE   pr-body                PR-BODY: 1 error(s) in /Users/timmalmstrom/.local/state/hpo/pr/r10-ref-privacy-scrub/body.md -- no budget leaf raised over dec1a2645...0855dad0f
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

@@ -1,0 +1,17 @@
+[
+  {
+    "pr": 2282,
+    "verdict": "5c50fd3e0ae6e8b8bae463ba14fff8be6529b84e",
+    "verdict_comment": "6204885073"
+  },
+  {
+    "pr": 2305,
+    "verdict": "e01e66f0d00bdc2acfcdef725b2d4c53ff0455ac",
+    "verdict_comment": "6204903683"
+  },
+  {
+    "pr": 2289,
+    "verdict": "2e819456954548351ba8fd2d0c375fa3355d9543",
+    "verdict_comment": "6205192194"
+  }
+]

@@ -1,0 +1,6 @@
+#1896 15aa2934 ci red=[]
+#1896 approved (app)
+#1896 MERGED 7865ba9060a49aecf8f113bcaf7cb6c4ab58bd84
+#1896 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+TRAIN STOPPED #1894 recarry: the main merge pushed nothing: app_push: REFUSE: worktree HEAD (267e5c136f04a2067bbff503ff5fc956da8640d3) is not the committed tip of 'fix/r9-web-5' (e
+RESULT pr=1894 head=e24add20b1a50e96252776c19cf40c8dcb615707

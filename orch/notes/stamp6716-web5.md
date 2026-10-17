@@ -1,0 +1,5 @@
+**Stamped v6.7.16** (`--allow-rowless` deferral recorded: #1885/#1890's own delivery rows ride the next row batch — R9-F10.16 already carries the three rows owed from 2026-10-03; the window they close is v6.7.15..v6.7.16). The tag publishes the Pages site. Claims self-check passed (39 card claims retired with the shipped card, `claims-for` bumped, HEAD^1 hygiene ok).
+
+**R9-WEB-5 folded** (tvofi's ask, 2026-10-04: the README links the product page repo-relative, `docs/index.html` at lines 16 and 1012 — on github.com that opens the raw file, not the published page). Brief: point every README product-page link at the served Pages URL (verified against pages.yml staging + the live site), keep it working on the site, extend the W1 pin (the `tests/doc_claims.py` arm) to refuse the repo-relative form. Roster head moved; fixer dispatched.
+
+Also dispatched: the Tests workflow on main (run 37190840519) to re-run the mutation ledger fixed by #1878 and clear the red `ledger` deployment from 2026-10-02. Issue truthing + friction triage seats are out.

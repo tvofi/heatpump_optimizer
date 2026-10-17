@@ -1,0 +1,2 @@
+  REFUSE   ci predict             CI PREDICT: 3 predicted red(s) on closures against 78324e4a1acb -- repair before the handoff; who repairs which is ci-autofix.md's
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again

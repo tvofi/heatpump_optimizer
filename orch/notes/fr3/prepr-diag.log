@@ -1,0 +1,49 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             1913f0dd736cb66b800b5eabfa6973a917459d83
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 238 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD
+  ok       pinned graders         
+  ok       self-test              148 passed, 0 failed
+  ok       wave-script            170 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 1913f0dd736cb66b800b5eabfa6973a917459d83 ok
+  REFUSE   closures               failed while being recorded: tests/entities.py (exit 1) -- fix the script first; a re-derive would record the same truncation
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             3:every
+             3:never
+             17:each
+             22:both
+             28:every
+             28:all
+             28:both
+             28:both
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             14 w
+             1825 n
+             92 e
+             238 p
+             12 c
+             14 a
+             15 t
+             14 a
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/notes/fr3/BODY.md
+  ok       figures                FIGURES: 7 resolved, 0 not verified, 0 refused
+  ok       push order             origin/fix/r9-fr-3 is at c2cdbd778 -- local mirror, unfetched
+
+PRE-PR: c2cdbd778ded9750cb85929b2b25706ea5a1c17e 00000000000000000000010000

@@ -1,0 +1,2 @@
+#2293 PARK (recarry: fix/r10-archscore-coverage is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-archscore-coverage; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree)
+PRE-FLIGHT: 1 entries: 0 PASS, 1 PARK, 0 FAIL

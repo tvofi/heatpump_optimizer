@@ -1,0 +1,14 @@
+[
+  {
+    "pr": 2285,
+    "phase": "ci",
+    "reason": "#2285 head 77b042d4 is a GITHUB_TOKEN push (github-actions[bot]: 'ci: merge main'): no pull_request run fires at it, so the required contexts only one writes never report -- the head looks settled and is unmergeable, with nothing saying why. The required follow-up is an App push at this head: run the train again once main has moved (its recarry is one), or have the orchestrator App-push the branch",
+    "class": "BOT-HEAD"
+  },
+  {
+    "pr": 2297,
+    "phase": "recarry",
+    "reason": "could not make a worktree at /Users/timmalmstrom/hpo-orch/train-b8/wt/2297: branch fix/r10-tick-train-pins is already checked out in another worktree at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-tick-train-pins. Free it: git worktree remove /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-tick-train-pins (safe when its work is pushed; verify with git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-tick-train-pins status)",
+    "class": "HOLDER"
+  }
+]

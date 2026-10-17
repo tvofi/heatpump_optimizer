@@ -1,0 +1,9 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (768 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+CONFLICT (content): Merge conflict in tests/features.py
+Automatic merge failed; fix conflicts and then commit the result.
+rc=1

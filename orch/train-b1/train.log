@@ -1,0 +1,32 @@
+===== daemonize pid=19102 2026-10-15T17:21:15Z argv: python3 -u tools/audit/seat/merge_train.py run /Users/timmalmstrom/hpo-orch/train-b1/queue.json --mandate mandate 6175172275 --ignore-red nightly-status --ignore-red delivery-status
+TRAIN pid=19102 queue=2 (#2281 #2284)
+#2281 recarry START (branch fix/r10-tick-roster)
+#2281 recarry: main merged, head 996da8f1; app_push: RECARRY: prepr SKIPPED: HEAD 996da8f1 is the clean merge of the live head f3cbd393 and origin/main's 3998c7fe, and the body is the live one
+beat: waiting CI at 996da8f1 (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at 996da8f1 (poll 3, t+482s, required: 14, concluded: 12/14)
+beat: waiting CI at 996da8f1 (poll 4, t+723s, required: 14, concluded: 12/14)
+beat: waiting CI at 996da8f1 (poll 5, t+964s, required: 14, concluded: 12/14)
+beat: waiting CI at 996da8f1 (poll 6, t+1205s, required: 14, concluded: 13/14)
+beat: waiting CI at 996da8f1 (poll 7, t+1446s, required: 14, concluded: 13/14)
+beat: waiting CI at 996da8f1 (poll 8, t+1687s, required: 14, concluded: 13/14)
+beat: waiting CI at 996da8f1 (poll 9, t+1928s, required: 14, concluded: 13/14)
+beat: waiting CI at 996da8f1 (poll 10, t+2169s, required: 14, concluded: 13/14)
+#2281 996da8f1 ci red=[]
+#2281 approved (app)
+#2281 MERGED 49a98d739ddce0041542b928f8c24d3f360f6f84
+#2281 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2284 recarry START (branch fix/r10-i1-pr)
+#2284 recarry: main merged, head 9bee177a; app_push: RECARRY: prepr SKIPPED: HEAD 9bee177a is the clean merge of the live head ce4d5d5c and origin/main's 49a98d73, and the body is the live one
+beat: waiting CI at 9bee177a (poll 2, t+241s, required: 14, concluded: 10/14)
+beat: waiting CI at 9bee177a (poll 3, t+482s, required: 14, concluded: 11/14)
+beat: waiting CI at 9bee177a (poll 4, t+723s, required: 14, concluded: 11/14)
+beat: waiting CI at 9bee177a (poll 5, t+964s, required: 14, concluded: 11/14)
+beat: waiting CI at 9bee177a (poll 6, t+1205s, required: 14, concluded: 11/14)
+beat: waiting CI at 9bee177a (poll 7, t+1446s, required: 14, concluded: 12/14)
+beat: waiting CI at 9bee177a (poll 8, t+1687s, required: 14, concluded: 13/14)
+beat: waiting CI at 9bee177a (poll 9, t+1928s, required: 14, concluded: 13/14)
+beat: waiting CI at 9bee177a (poll 10, t+2169s, required: 14, concluded: 13/14)
+beat: waiting CI at 9bee177a (poll 11, t+2409s, required: 14, concluded: 13/14)
+beat: waiting CI at 9bee177a (poll 12, t+2650s, required: 14, concluded: 13/14)
+#2284 9bee177a ci red=[]
+TRAIN STOPPED #2284 main: origin/main moved during CI and is not in the head; run the train again
