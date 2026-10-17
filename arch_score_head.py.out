@@ -1,0 +1,20 @@
+
+=== architecture score on today's tree (R9-EG-A1) ===
+  ok   every score metric and tripwire measures on today's tree
+  ok   a tree against itself reads NULL
+  ok   a tree against itself reports no metric moved
+  ok   the metrics and tests/structure.py key on the same coordinator class
+  ok   the score's clone census with no gap is the ratchet's census (C3 only widens it)
+  ok   ...and with any gap it keeps every class the ratchet finds
+  ok   nothing the scheduled cycle reaches writes a hub but its listed producers (#1736)
+  ok   the hub check refuses a write planted at the top of the solve, and lists only it
+  ok   the hub check refuses a write planted in the pre-solve step, and lists only it
+  ok   every listed producer is still reached, so the table holds no stale row
+  ok   the payload census sees every key AwayState.as_dict publishes (C14: `_fold_away(state: AwayState)`)
+  ok   the head census does not out-count the score's own guard (C4 can only add copies)
+  ok   every function over ten parameters is a dispositioned row (#1776)
+  ok   every dispositioned row is still over the line, so the table holds no stale row
+  ok   the guard's round target holds: no more than 14 over the line
+  ok   the guard refuses a parameter planted on a four-parameter function, and lists only it
+
+ALL 16 ARCHITECTURE SCORE HEAD CHECKS PASSED
