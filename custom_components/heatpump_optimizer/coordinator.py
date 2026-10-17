@@ -25,7 +25,6 @@ import pickle
 import subprocess
 import sys
 import threading
-from weakref import WeakKeyDictionary
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
@@ -550,33 +549,10 @@ def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
     return i if now < starts[i] + span else None
 
 
-#: R10 N-log-flood (#2226): per coordinator, each persisting condition logged
-#: at WARNING and the text it was logged with. A side table on boost.py's
-#: precedent, so the latch costs the coordinator no attribute.
-_HELD_CONDITIONS: WeakKeyDictionary[Any, dict[str, str]] = WeakKeyDictionary()
-
-
-def _log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) -> bool:
-    """Whether condition ``key`` holds, logging only its transitions; returns ``active``.
-
-    A condition that persists (no forecast, no prices, a malformed option)
-    used to log WARNING on every cycle -- 48 a day, 192 for a tariff option
-    read four times a cycle. Now WARNING when it starts or its text changes,
-    DEBUG while it holds, INFO when it clears: the outage latches'
-    (``_tibber_fetch_failed``) shape, one helper instead of per-site counters.
-    """
-    held = _HELD_CONDITIONS.setdefault(owner, {})
-    if not active:
-        if held.pop(key, None) is not None:
-            _LOGGER.info("Resolved: %s", key.replace("_", " "))
-        return False
-    text = message % args if args else message
-    if held.get(key) == text:
-        _LOGGER.debug("Still: %s", text)
-    else:
-        held[key] = text
-        _LOGGER.warning("%s", text)
-    return True
+#: R10 N-log-flood (#2226): the transition latch lives in ``log_latch.py``, a
+#: leaf module, so the pump arbiter and the input reader can route a persisting
+#: condition through it without importing this module (which imports them all).
+from .log_latch import _log_held  # noqa: E402
 
 
 @functools.lru_cache(maxsize=8)
@@ -656,7 +632,7 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
     owns none of its state, and the failure branch it serves must stay one
     screen (#1644, D1-s4-02 moved its third caller into it).
     """
-    _LOGGER.error("Optimization failed: %s", err, exc_info=True)
+    _log_held(coord, "solve_failure", True, "Optimization failed: %s", err)
     coord._solve_failures += 1
     if coord._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
         # Exactly-at, not at-or-above: the issue is idempotent to
@@ -7341,7 +7317,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         kind = ctx._config.mixing_valve_write_target_kind
         if kind == mixing_valve.WRITE_TARGET_FLOW:
             if not params.two_zone_enabled:
-                _LOGGER.error("mixing_valve_write_target_kind=flow needs two-zone")
+                _log_held(self, "valve_flow_needs_two_zone", True,
+                          "mixing_valve_write_target_kind=flow needs two-zone")
                 return
             outdoor = ctx._current_state.outdoor_temperature
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
@@ -7353,15 +7330,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         try:
             if not await write_setpoint_c(self.hass, entity_id, target):
-                _LOGGER.warning(
+                _log_held(
+                    self, "valve_write_entity_domain", True,
                     "Valve write entity %s is a %s; smart_write can command "
                     "number, input_number and climate entities",
-                    entity_id,
-                    entity_id.split(".", 1)[0],
+                    entity_id, entity_id.split(".", 1)[0],
                 )
                 return
         except Exception as err:  # noqa: BLE001 - never break planning
-            _LOGGER.error("Error commanding valve target: %s", err)
+            _log_held(self, "valve_write_error", True,
+                      "Error commanding valve target: %s", err)
             return
         _LOGGER.info(
             "Commanded mixing valve target %.1f °C via %s", target, entity_id
@@ -7398,15 +7376,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The action was cut from a plan whose horizon has slid out from
             # under it — its "cheap hour" may be the current peak. Stop
             # actuating, exactly as when no plan exists: the pump's own
-            # weather-compensated curve holds comfort until a solve succeeds.
-            # Fixed-rule modes (comfort/boost/off) carry no horizon and are
-            # unaffected.
-            _LOGGER.warning(
-                "Plan is %.0f minutes old after %d failed solves; holding "
-                "comfort on the pump's own curve instead of actuating it",
-                self._plan_age_minutes() or 0.0,
-                self._solve_failures,
-            )
+            # weather-compensated curve holds comfort until a solve succeeds;
+            # fixed-rule modes carry no horizon. DEBUG, not latched: age and
+            # failures change every cycle, so EVENT_PLAN_STALE announces it.
+            _LOGGER.debug("Plan is %.0f minutes old after %d failed solves; "
+                          "holding comfort on the pump's own curve instead of "
+                          "actuating it",
+                          self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
         # A cut-off holds the pump off for MIN_OFF across an early refresh.
