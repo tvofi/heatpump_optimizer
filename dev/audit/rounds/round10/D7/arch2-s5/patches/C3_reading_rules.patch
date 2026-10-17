@@ -1,0 +1,208 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index a80c43562..717f08677 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -5289,6 +5289,33 @@ function bandRow(s, t, unit) {
+   ];
+ }
+ 
++// ---- Reading a published value ----------------------------------------------
++// The three rules every tab applies to what Home Assistant hands it, each in
++// one place: whether an entity has a reading at all, the token a render
++// signature keys an entity by, and whether a published value is a number.
++// Every tab's reads go through these, so the Plan chart, the headline, the
++// Advisor, Health and Setup pages cannot disagree about what "no value" is.
++
++/** The state object when the entity has a reading, else null: missing,
++ * `unavailable` and `unknown` are Home Assistant's three ways of having none. */
++function liveState(st) {
++  return st && st.state !== "unavailable" && st.state !== "unknown" ? st : null;
++}
++
++/** An entity's token in a render signature: its state and update stamp. */
++function stateSig(st) {
++  return st ? `${st.state}@${st.last_updated || ""}` : "-";
++}
++
++/** A published value as a finite number, or null. `Number(null)` and
++ * `Number("")` are 0, and 0 is finite -- without the first test a value the
++ * backend published as None would read as a measured zero. */
++function readNumber(raw) {
++  if (raw === null || raw === undefined || raw === "") return null;
++  const n = Number(raw);
++  return Number.isFinite(n) ? n : null;
++}
++
+ // ---- PlanSource -----------------------------------------------------------
+ // What the card knows about the plan sensors: which entities they are, what
+ // they publish, and the memos that make asking cheap. Reads `host.hass` and
+@@ -5474,8 +5501,8 @@ class PlanSource {
+   }
+ 
+   forecast(entityId) {
+-    const st = this.stateOf(entityId);
+-    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
++    const st = liveState(this.stateOf(entityId));
++    if (!st) return null;
+     const attrs = st.attributes || {};
+     let fc = attrs.forecast;
+     if (typeof fc === "string") {
+@@ -5501,14 +5528,11 @@ class PlanSource {
+ 
+   attr(name, fallback) {
+     const st = this.stateOf(this.resolveEntity("space"));
+-    const raw = ((st && st.attributes) || {})[name];
+-    // `Number(null)` is 0, and 0 is finite -- so without this guard an
+-    // attribute the coordinator published as None would read as a real
+-    // measurement of zero rather than "not known", silently producing a 0 °C
++    // Through `readNumber`: an attribute the coordinator published as None
++    // must not read as a real measurement of zero, silently producing a 0 °C
+     // comfort target or a hot water ceiling of nothing.
+-    if (raw === null || raw === undefined || raw === "") return fallback;
+-    const value = Number(raw);
+-    return Number.isFinite(value) ? value : fallback;
++    const value = readNumber(((st && st.attributes) || {})[name]);
++    return value === null ? fallback : value;
+   }
+ 
+   /** A plan-sensor attribute as-is, for the ones that are not numbers. */
+@@ -5628,7 +5652,7 @@ class PlanSource {
+     if (!st) {
+       return L("errors.diag_not_found", { label, id: esc(id), kind });
+     }
+-    if (st.state === "unavailable" || st.state === "unknown") {
++    if (!liveState(st)) {
+       return L("errors.diag_unavailable", {
+         label,
+         id: esc(id),
+@@ -5734,10 +5758,8 @@ class PlanSource {
+ 
+   /** A headline sensor's state as a finite number, or null. */
+   statNumber(suffix) {
+-    const st = this.statEntity(suffix);
+-    if (!st || st.state === "unavailable" || st.state === "unknown") {
+-      return null;
+-    }
++    const st = liveState(this.statEntity(suffix));
++    if (!st) return null;
+     const v = Number(st.state);
+     return Number.isFinite(v) ? v : null;
+   }
+@@ -5996,13 +6018,8 @@ class HistorySource {
+    * sensor. An unavailable/unknown state is logged as a hole (null), never
+    * dropped and never read as zero -- the v5.2.0 rule. */
+   absorb(per) {
+-    const num = (v) => {
+-      if (v === null || v === undefined || v === "") return null;
+-      const n = Number(v);
+-      return Number.isFinite(n) ? n : null;
+-    };
+-    const missing = (row) =>
+-      row.state === "unavailable" || row.state === "unknown";
++    const num = readNumber;
++    const missing = (row) => !liveState(row);
+     const add = (field, rows, valueOf) => {
+       const log = this.log[field] || (this.log[field] = []);
+       for (const row of rows || []) {
+@@ -8114,11 +8131,8 @@ class Legend {
+  * would never redraw a card whose plan had not changed (R9-UI-3). */
+ function headlineSignature(plan, cfg, indoor, now) {
+   if (!cfg.show_stats) return "off";
+-  return HEADLINE_SUFFIXES.map((sfx) => {
+-    const st = plan.statEntity(sfx);
+-    return st ? `${st.state}@${st.last_updated || ""}` : "-";
+-  }).concat(
+-    indoor ? `${indoor.state}@${indoor.last_updated || ""}` : "-",
++  return HEADLINE_SUFFIXES.map((sfx) => stateSig(plan.statEntity(sfx))).concat(
++    stateSig(indoor),
+     String(priceNow(plan, now)),
+   ).join("~");
+ }
+@@ -8141,7 +8155,7 @@ function indoorState(host) {
+ 
+ /** An indoor state as a finite number, or null while it has no live value. */
+ function indoorValue(st) {
+-  if (!st || st.state === "unavailable" || st.state === "unknown") return null;
++  if (!liveState(st)) return null;
+   const n = Number(st.state);
+   return Number.isFinite(n) ? n : null;
+ }
+@@ -8179,11 +8193,9 @@ function priceNow(plan, now) {
+ function planTotal(plan, attr) {
+   let sum = null;
+   for (const kind of ["space", "dhw"]) {
+-    const st = plan.stateOf(plan.resolveEntity(kind));
+-    if (!st || st.state === "unavailable" || st.state === "unknown") continue;
+-    const raw = st.attributes && st.attributes[attr];
+-    const v = Number(raw);
+-    if (raw === null || raw === undefined || raw === "" || !Number.isFinite(v)) continue;
++    const st = liveState(plan.stateOf(plan.resolveEntity(kind)));
++    const v = st ? readNumber(st.attributes && st.attributes[attr]) : null;
++    if (v === null) continue;
+     sum = (sum === null ? 0 : sum) + v;
+   }
+   return sum;
+@@ -8514,10 +8526,7 @@ const SETTINGS_PATH = "/config/integrations/integration/heatpump_optimizer";
+ const DAYS_PER_MONTH = 30;
+ 
+ function advisorSignature(plan) {
+-  return Object.values(ADVISOR_SUFFIXES).map((sfx) => {
+-    const st = plan.statEntity(sfx);
+-    return st ? `${st.state}@${st.last_updated}` : "-";
+-  }).join("|");
++  return Object.values(ADVISOR_SUFFIXES).map((sfx) => stateSig(plan.statEntity(sfx))).join("|");
+ }
+ 
+ /** One advisor sensor as an inbox row, or null when it has nothing to say
+@@ -8769,11 +8778,10 @@ function inputProblemState(plan) {
+ }
+ 
+ function healthSignature(plan, minute) {
+-  const sig = (st) => (st ? `${st.state}@${st.last_updated}` : "-");
+-  return [sig(inputProblemState(plan)), sig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
+-    sig(plan.statEntity("_last_optimization")), sig(plan.statEntity("_next_optimization")),
+-    ...HEALTH_WAITING.map(([, sfx]) => sig(plan.statEntity(sfx))),
+-    sig(plan.statEntity(HEALTH_MODEL_SUFFIX)),
++  return [stateSig(inputProblemState(plan)), stateSig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
++    stateSig(plan.statEntity("_last_optimization")), stateSig(plan.statEntity("_next_optimization")),
++    ...HEALTH_WAITING.map(([, sfx]) => stateSig(plan.statEntity(sfx))),
++    stateSig(plan.statEntity(HEALTH_MODEL_SUFFIX)),
+     minute ? Math.floor(minute / 60000) : 0].join("|");
+ }
+ 
+@@ -8787,7 +8795,7 @@ function fmtMinutes(m) {
+ /** The header pill over every page of the dialog, or "" with no sensor. */
+ function healthPillHtml(plan) {
+   const st = inputProblemState(plan);
+-  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
++  if (!liveState(st)) return "";
+   const n = ((st.attributes || {}).problems || []).length;
+   const text = n === 0 ? L("health.pill_ok")
+     : L(n === 1 ? "health.pill_one" : "health.pill_other", { n });
+@@ -8806,7 +8814,7 @@ function healthRow(attrs, title, detail, pill) {
+ 
+ function healthInputsHtml(plan) {
+   const st = inputProblemState(plan);
+-  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
++  if (!liveState(st)) return "";
+   const a = st.attributes || {};
+   const problems = Array.isArray(a.problems) ? a.problems : [];
+   const bad = new Set(problems.map((p) => p.input));
+@@ -8889,7 +8897,7 @@ function healthGainsRow(gains) {
+ /** "What the model has learned" (R9-UX-7): the model status sensor's rows. */
+ function healthModelHtml(plan) {
+   const st = plan.statEntity(HEALTH_MODEL_SUFFIX);
+-  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
++  if (!liveState(st)) return "";
+   const a = st.attributes || {};
+   const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+   const rows = [];
+@@ -11937,7 +11945,7 @@ class SetupPage {
+     const st = this.host.hass && this.host.hass.states
+       ? this.host.hass.states[slot.entity]
+       : null;
+-    if (!st || st.state === "unavailable" || st.state === "unknown") {
++    if (!liveState(st)) {
+       return L("setup.unavailable");
+     }
+     // HA's own formatter applies the user's unit system and any per-entity

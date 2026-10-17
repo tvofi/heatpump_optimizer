@@ -1,0 +1,66 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index a80c43562..6b3cf230b 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -5618,6 +5618,14 @@ class PlanSource {
+     return null;
+   }
+ 
++  /** The empty state the card and the dialog's Plan page show while there
++   * is no plan to draw: the one line, then `diagnose` for each plan kind. */
++  noPlanHtml() {
++    return `<div class="empty">${L("errors.no_plan_data")}<br>
++      ${this.diagnose("space")}<br>
++      ${this.diagnose("dhw")}</div>`;
++  }
++
+   // Explain precisely why a plan is missing. "Waiting for an entity" is not
+   // actionable when the real problem is that the entity is named something
+   // else, so distinguish not-found from present-but-empty.
+@@ -13701,9 +13709,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
+       this._geom = null;
+       this._geoms = [];
+     } else if (!anyData) {
+-      body = `<div class="empty">${L("errors.no_plan_data")}<br>
+-      ${this.plan.diagnose("space")}<br>
+-      ${this.plan.diagnose("dhw")}</div>`;
++      body = this.plan.noPlanHtml();
+       this._plot = null;
+       // And the lane geometry with it (#142): a stale one would let the edit
+       // floor and a pointer hit-test answer against a chart that is not there.
+@@ -13740,9 +13746,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
+               ? healthPageHtml(this)
+               : anyData
+                 ? `${stats}${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
+-                : `<div class="empty">${L("errors.no_plan_data")}<br>
+-      ${this.plan.diagnose("space")}<br>
+-      ${this.plan.diagnose("dhw")}</div>`;
++                : this.plan.noPlanHtml();
+       dialog = this.dialog.html({
+         title: this._title(),
+         pill: healthPillHtml(this.plan),
+@@ -13950,12 +13954,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
+     // the table of every month below them is unchanged.
+     const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+     const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
+-    const money = (n) =>
+-      typeof n === "number" && Number.isFinite(n) ? n.toFixed(2) : "—";
+-    const pct = (n) =>
+-      typeof n === "number" && Number.isFinite(n) ? `${n.toFixed(0)}%` : "—";
+-    const amount = (n) =>
+-      typeof n === "number" && Number.isFinite(n) ? Math.abs(n) : 0;
++    const money = (n) => (finiteNum(n) ? n.toFixed(2) : "—");
++    const pct = (n) => (finiteNum(n) ? `${n.toFixed(0)}%` : "—");
++    const amount = (n) => (finiteNum(n) ? Math.abs(n) : 0);
+     // Scaled to the biggest month in the table, so the bar answers "compared
+     // with the others" rather than against a figure the reader cannot see. A
+     // table where nothing was saved has no biggest and draws no bar, which is
+@@ -13963,7 +13964,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
+     const biggest = rows.reduce((n, r) => Math.max(n, amount(r.savings_sek)), 0);
+     const mag = (n) => {
+       const w = biggest > 0 ? (amount(n) / biggest) * 100 : 0;
+-      const neg = typeof n === "number" && Number.isFinite(n) && n < 0;
++      const neg = finiteNum(n) && n < 0;
+       return `<span class="sv-mag${neg ? " neg" : ""}" style="width:${w.toFixed(1)}%"></span>`;
+     };
+     const tr = (row) => {
