@@ -5,6 +5,7 @@
     python3 -I tools/audit/seat/ref_privacy.py path <path>      (~/-relative for a posted text)
     python3 -I tools/audit/seat/ref_privacy.py guard --ref <ref> [--message <text>]...
                                                      [--commits <rev> [-C <dir>]]
+    python3 -I tools/audit/seat/ref_privacy.py scrub [--write] <file>...  (this host's spans, in place)
     python3 -I tools/audit/seat/ref_privacy.py --check [--ref <commit>]
     python3 -I tools/audit/seat/ref_privacy.py --self-test
 
@@ -405,12 +406,87 @@ def check(ref: str) -> int:
                               text=True, check=True).stdout
 
     bad = registry_refusals(found, text_of)
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import tmp_paths
+    base = tmp_paths.ledger_base(ref)
+    if base is None:
+        print(f"ref_privacy: content SKIP -- no merge base with origin/main and no parent of {ref}")
+        added = []
+    else:
+        added = added_lines(base, ref)
+        bad += content_refusals(added)
     for line in bad:
         print(f"ref_privacy: REFUSE {line}", file=sys.stderr)
     guarded = sum(1 for p in found if PUSHERS.get(p, ("",))[0] == GUARDED)
     print(f"ref_privacy --check at {ref}: {len(found)} file(s) with a push site, {guarded} guarded, "
-          f"{len(bad)} refused")
+          f"{len(added)} line(s) added since {(base or 'nothing')[:12]} judged, {len(bad)} refused")
     return 1 if bad else 0
+
+
+# ---------------------------------------------------------------------------
+# Tracked content: what a diff adds is judged like a ref name (#2310's third
+# part). A tracked record publishes on every clone, so a home path in an
+# evidence log is the 70 refs' leak with a longer life. Only lines a diff ADDS
+# are judged, against the merge base with origin/main (tmp_paths.ledger_base,
+# its one owner): main's stock is not charged to every branch, and a line the
+# same diff removes is a move, not an addition. The classes are CLASSES: on a
+# runner the identity is a public account, so the host-path and scratch-root
+# shapes are what judge there; on a seat its own home, name and uid join them.
+# The remedy is `scrub`, which rewrites only this host's spans.
+
+def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, str]]:
+    """(path, line, text) for every line `base..ref` adds that it does not also remove."""
+    out = subprocess.run(["git", "-c", "core.quotePath=false", "diff", "--no-color", "--no-ext-diff",
+                          "--no-renames", "--unified=0", base, ref], cwd=cwd, capture_output=True, text=True,
+                         errors="replace")
+    if out.returncode != 0:
+        raise RuntimeError(f"git diff {base[:12]} {ref} exited {out.returncode}: {out.stderr.strip()}")
+    added, removed, path, n = [], set(), None, 0
+    for line in out.stdout.splitlines():
+        if line.startswith("+++ "):
+            path = line[6:] if line.startswith("+++ b/") else None
+        elif line.startswith("--- "):
+            continue
+        elif line.startswith("@@"):
+            m = re.match(r"@@ -\S+ \+(\d+)", line)
+            n = int(m.group(1)) if m else 0
+        elif line.startswith("+") and path is not None:
+            added.append((path, n, line[1:]))
+            n += 1
+        elif line.startswith("-"):
+            removed.add(line[1:].strip())
+    return [(p, k, t) for p, k, t in added if t.strip() not in removed]
+
+
+def content_refusals(lines, ident: Identity | None = None) -> list[str]:
+    """One refusal per added line that would publish a host: where and which class, never the text."""
+    ident = ident or Identity.of_host()
+    out = []
+    for path, n, text in lines:
+        why = leaks(text, ident)
+        if why:
+            out.append(f"{path}:{n}: {', '.join(why)} in an added line of a tracked file; "
+                       f"rewrite it with `ref_privacy.py scrub --write {path}` or drop the path")
+    return out
+
+
+def scrub(text: str, ident: Identity) -> str:
+    """`text` with this host's spans rewritten in place, each to a fixed placeholder:
+    a session scratchpad under the host's temp root to `<scratchpad>`, any other
+    path under that root to `<session-tmp>`, a macOS per-user temp to `<tmp>`, the
+    home directory to `~`, and a remaining account name to `<owner-home>`. Line
+    breaks are untouched, so a line count and every line number survive."""
+    if ident.uid is not None:
+        root = rf"(?:/private)?/tmp/claude-{ident.uid}(?![0-9])"
+        text = re.sub(root + r"/[^/\s\"'`]+/[^/\s\"'`]+/scratchpad(?![\w-])", "<scratchpad>", text)
+        text = re.sub(root, "<session-tmp>", text)
+    text = re.sub(r"(?:/private)?/var/folders/[\w-]+/[\w-]+/T(?![\w-])", "<tmp>", text)
+    for h in sorted(ident.homes, key=len, reverse=True):
+        text = re.sub(re.escape(h) + r"(?![\w.-])", "~", text, flags=re.IGNORECASE)
+    for nm in ident.names:
+        text = re.sub(r"(?<![A-Za-z0-9])" + re.escape(nm) + r"(?![A-Za-z0-9])", "<owner-home>", text,
+                      flags=re.IGNORECASE)
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -668,6 +744,48 @@ def self_test() -> int:
     ok("a guarded entry that calls no guard is refused",
        any("guarded.sh: registered guarded" in b for b in registry_refusals(found, texts.__getitem__, reg)))
 
+    # Tracked content (round 4): a diff adding a line that names a host is
+    # refused, by where and class; the planted text is built, never spelled.
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q", "-b", "main")
+
+        def g(*a: str) -> str:
+            return subprocess.run(["git", *a], cwd=td, env=env, check=True, capture_output=True,
+                                  text=True).stdout.strip()
+        stock = "stock log line from " + fake_home + "/old\n"
+        Path(td, "rec.log").write_text("clean\n" + stock)
+        g("add", "-A"); g("commit", "-q", "-m", "base")
+        base = g("rev-parse", "HEAD")
+        Path(td, "rec.log").write_text("clean\n" + "File " + scratch + "/x.py\n")
+        Path(td, "moved.log").write_text(stock)  # moved out of rec.log, not added
+        Path(td, "other.log").write_text("ran at " + under("home", "someone", "w") + "\n")
+        g("add", "-A"); g("commit", "-q", "-m", "plant")
+        bad = content_refusals(added_lines(base, "HEAD", Path(td)), fid)
+        ok("a diff adding a line naming the host's scratch path is refused, by line and class",
+           any(b.startswith("rec.log:2: account-name, uid, scratch-root, host-path") for b in bad), str(bad))
+        ok("and one naming another machine's home, by the host-path shape a runner can see",
+           any(b.startswith("other.log:1: host-path") for b in bad), str(bad))
+        ok("the refusal never echoes the planted text", not any(fake_name in b for b in bad), str(bad))
+        ok("a line the diff moves from another file is not charged (the null control)",
+           len(bad) == 2 and not any(b.startswith("moved.log:") for b in bad), str(bad))
+        Path(td, "rec.log").write_text("clean\n" + scrub(stock + "File " + scratch + "/x.py\n", fid))
+        Path(td, "moved.log").unlink(); Path(td, "other.log").unlink()
+        g("add", "-A"); g("commit", "-q", "-m", "scrubbed")
+        ok("the scrubbed tree's diff is refused nothing (scrub is the remedy)",
+           content_refusals(added_lines(base, "HEAD", Path(td)), fid) == [],
+           str(content_refusals(added_lines(base, "HEAD", Path(td)), fid)))
+    planted = (scratch + "/a.log and " + fake_home + "/x and EXAMPLEUSER and "
+               + under("private", "var", "folders", "ab", "cd0", "T", "t1") + " and "
+               + under("tmp", "claude-4242", "d13", "w.json") + "\n")
+    clean = scrub(planted, fid)
+    ok("scrub leaves no leak class under the planted identity, and keeps the line count",
+       leaks(clean, fid) == [] and clean.count("\n") == planted.count("\n"), clean)
+    ok("scrub's placeholders, in order: scratchpad, home, account, temp, session temp",
+       clean == "<scratchpad>/fix-1/a.log and ~/x and <owner-home> and <tmp>/t1 and <session-tmp>/d13/w.json\n", clean)
+    ok("scrub leaves another account's home and a public one alone (the null control)",
+       scrub(under("home", "runner", "w") + " " + under("Users", "someone"), fid)
+       == under("home", "runner", "w") + " " + under("Users", "someone"))
+
     print(f"ref_privacy self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -678,6 +796,18 @@ def main(argv: list[str]) -> int:
     if argv[:1] == ["--check"]:
         ref = argv[argv.index("--ref") + 1] if "--ref" in argv else "HEAD"
         return check(ref)
+    if argv[:1] == ["scrub"] and len(argv) >= 2:
+        write, paths = "--write" in argv[1:], [a for a in argv[1:] if a != "--write"]
+        ident, changed = Identity.of_host(), 0
+        for f in paths:
+            text = Path(f).read_text(encoding="utf-8", errors="surrogateescape")
+            new = scrub(text, ident)
+            if new != text:
+                changed += 1
+                if write:
+                    Path(f).write_text(new, encoding="utf-8", errors="surrogateescape")
+        print(f"ref_privacy scrub: {changed} of {len(paths)} file(s) {'rewritten' if write else 'would change'}")
+        return 0
     if argv[:1] == ["path"] and len(argv) == 2:
         print(home_relative(argv[1]))
         return 0
