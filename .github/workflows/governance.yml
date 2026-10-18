@@ -339,6 +339,13 @@ jobs:
       - name: Show the merge-main bot refusing its own fixtures
         run: python3 tools/pr/merge_main_bot.py --self-test
 
+      # The superseded-run canceller (R10-CI-CONCURRENCY): the recorded pair
+      # 39090494028/39091600343 it must select, and the runs it must never
+      # cancel (a same-SHA twin, the live head, a bot-sent caller, main, a
+      # stale head), over a stub gh.
+      - name: Show the superseded-run canceller refusing its own fixtures
+        run: python3 tools/pr/cancel_superseded.py --self-test
+
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
