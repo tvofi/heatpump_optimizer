@@ -104,10 +104,10 @@ printf '%s\n' "$BODY" | tools/pr/preflight.sh <intended-numbers>
 Two ways it misleads. **Empty
 stdin prints `clean` and exits 0 having read nothing** — which is what happens if
 you pass a filename as an argument. **Held-open stdin blocks silently** and
-reports 143 when killed. Neither looks like a failure. And the declared-argument
+reports 143 when killed. And the declared-argument
 escape is **per number, not per occurrence**: declare a number once and every
 armed keyword bound to it passes, including in a body that also quotes the
-incident, which this section encourages.
+incident.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
@@ -276,7 +276,7 @@ shape that lets a real error be waved through.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `root-cause-unanswered` at a settled head (`fix-review.md` step 11,
   `defect-root-cause.md`).
-- The merge message passes section 4.
+- The merge message passes section 4; never a custom `--subject`, four readers parse it (#2423).
 - Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
