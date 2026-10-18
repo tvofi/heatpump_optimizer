@@ -16949,6 +16949,24 @@ R.check(
         for a, b in zip(_cr.reference_cov, _cb._vent_cusum.reference_cov)
     ),
 )
+_cs1 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cs1.update(_T4, -0.5, (1.0, 0.0))
+_cs1b = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cs1b.load(_cs1.as_dict())
+R.check(
+    "the seeding sample folds nothing, and a fit at its seed round-trips",
+    _cs1.stat == 0.0 and _cs1b.reference == _cs1.reference
+    and _cs1b.reference_cov == _cs1.reference_cov,
+    f"stat {_cs1.stat}, reference {_cs1b.reference} / {_cs1.reference}",
+)
+_cs1_before = (_cs1.stat, list(_cs1.reference), _cs1.last_fed)
+_cs1.update(_T4 + timedelta(minutes=15), -0.5, (float("nan"), 0.0))
+_cs1.update(_T4 + timedelta(minutes=30), float("inf"), (1.0, 0.0))
+R.check(
+    "a non-finite residual or regressor feeds nothing, not even the fit",
+    (_cs1.stat, _cs1.reference, _cs1.last_fed) == _cs1_before,
+    f"{(_cs1.stat, _cs1.reference, _cs1.last_fed)} vs {_cs1_before}",
+)
 # Ten days at one power: the slope is unobservable, and forgetting alone
 # would inflate its covariance without bound until one sample at a new
 # power swung the fit. It stops at the prior's trace.
@@ -16965,14 +16983,18 @@ R.check(
 )
 _cov = [0.5, 0.0, 0.0, 0.5]
 _cr.load({"stat": 0.0, "reference": [True, 0.0], "reference_cov": _cov})
+_cr4 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr4.load({"stat": 0.0, "reference": [-0.3, 0.0], "reference_cov": [0.5, 0.1, -0.1, 0.5]})
 _cr2 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
 _cr2.load({"stat": 0.0, "reference": [float("nan"), 0.0], "reference_cov": _cov})
 _cr3 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
 _cr3.load({"stat": 0.0, "reference": [-0.3, 0.0], "reference_cov": [0.5, 0.9, 0.9, 0.5]})
 R.check(
     "a corrupt reference loads as none, to be re-seeded, never as a number",
-    _cr.reference is None and _cr2.reference is None and _cr3.reference is None,
-    "a bool, a NaN, and a covariance no fit can have (not positive definite)",
+    _cr.reference is None and _cr2.reference is None and _cr3.reference is None
+    and _cr4.reference is None,
+    "a bool, a NaN, and covariances no fit can have (not positive definite; "
+    "not symmetric)",
 )
 
 # --- #193 S7: one bounded Newton step behind both heat-loss learners ---------
