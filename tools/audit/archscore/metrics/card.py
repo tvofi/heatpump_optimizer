@@ -269,7 +269,7 @@ def drop_noops(body: list[str]) -> list[str]:
             while j < n and body[j] != ";" and body[j] not in ("{", "}"):
                 j += 1
             run = body[i:j]
-            if j < n and body[j] == ";" and (run or out[-1:] != ["}"]) and all(
+            if j < n and body[j] == ";" and all(
                     (x in _PURE_OPS or x in ("S", "R") or _NUM.fullmatch(x) or _IDENT.fullmatch(x))
                     and x not in _HEADS for x in run) \
                     and not any(run[k + 1] == "(" and (_IDENT.fullmatch(run[k]) or run[k] == ")")
