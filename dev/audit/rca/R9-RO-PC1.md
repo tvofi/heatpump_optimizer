@@ -4,7 +4,7 @@ This is the root-cause seat's analysis of a class that cost three resolution rou
 2026-10-09 (#2024, #2065, #2066). The seat followed `dev/governance/roles/root-cause.md`;
 the countermeasure is the census arm group `R9-RO-PC1` carries. Measurements were taken at
 `origin/main` `d0f085ffb` and reproduced in detached worktrees under
-`/Users/timmalmstrom/hpo-seats/rca-prose-counts/`.
+`~/hpo-seats/rca-prose-counts/`.
 
 **Trigger:** the defect reached pull requests that every existing instrument read as green,
 and each occurrence consumed a full resolution round — 110.0, 110.1 and 138.7 wall-clock

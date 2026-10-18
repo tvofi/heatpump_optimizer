@@ -45,7 +45,7 @@ import logging
 import math
 import time as _time_mod
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from collections.abc import Mapping
 from typing import Any, Callable, Iterable
 
@@ -61,9 +61,30 @@ from .const import (
 )
 from .batchmath import row_sums
 from .dhw_planner import DhwPlanner
+from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
-from .payload import CurrentAction
+from .payload import (
+    CurrentAction,
+    REASON_COMFORT_FLOOR,
+    REASON_CHEAP_PRICE,
+    REASON_PREHEAT_WEATHER,
+    REASON_SCHEDULED,
+    REASON_TERMINAL_VALUE,
+    REASON_SOLAR_SURPLUS,
+    REASON_DHW_WINDOW,
+    REASON_DHW_READY,
+    REASON_DHW_PREHEAT,
+    REASON_LEGIONELLA,
+    REASON_IDLE,
+    REASON_IDLE_OTHER,
+    REASON_IDLE_FUSE,
+    REASON_IDLE_SOLAR,
+    REASON_IDLE_DEARER,
+    REASON_IDLE_COASTING,
+    REASON_MANUAL,
+    REASON_PUMP_MODE,
+)
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
@@ -244,26 +265,6 @@ def _dhw_resolved_publish(params: ThermalParameters) -> dict[str, Any]:
             params.dhw_day_windows,
         )
     }
-
-
-def _utc_step_starts(
-    start: datetime, n: int, step: timedelta, offset: int = 0
-) -> list[datetime]:
-    """The start of steps ``offset`` .. ``offset + n - 1``, walked in UTC.
-
-    The one horizon clock: the optimizer's horizon, the coordinator's
-    forecast and price grids, and the silent-mode schedule all read it
-    (#1741), so no two of them can label one step differently. Adding a
-    wall-clock step invents the spring DST gap and stretches the autumn
-    overlap into a 75-minute step; walking the count in UTC keeps every label
-    a real instant, converted back to ``start``'s zone. A naive ``start``
-    keeps the wall-clock walk, so unzoned fixtures stay byte-identical.
-    """
-    tz = start.tzinfo
-    if tz is None:
-        return [start + step * (offset + i) for i in range(n)]
-    base = start.astimezone(timezone.utc)
-    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
 
 
 def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
@@ -1037,36 +1038,10 @@ def cycling_penalty_batch(
 
 
 # ---------------------------------------------------------------------------
-# Plan reason codes (item 16)
+# Plan reason codes (item 16): the codes are the payload's vocabulary
+# (``payload.py``); which of them mean idle is the solver's own grouping.
 # ---------------------------------------------------------------------------
 
-REASON_COMFORT_FLOOR = "comfort_floor"
-REASON_CHEAP_PRICE = "cheap_price"
-REASON_PREHEAT_WEATHER = "preheat_weather"
-#: The neutral fall-through: a step that is none of the specific cases below,
-#: which is to say an ordinary slot holding the house at target. Until v5.1.7
-#: these steps were tagged ``preheat_weather`` — the same code as the genuine
-#: high-heat-loss branch — so the card told a user that a mid-price hour on a
-#: mild afternoon was "Pre-heating before colder weather". A reason code that
-#: doubles as a default is a reason code that cannot be trusted, and this one
-#: was read as evidence that the optimizer was chasing weather it had not been
-#: shown.
-REASON_SCHEDULED = "scheduled"
-REASON_TERMINAL_VALUE = "terminal_value"
-REASON_SOLAR_SURPLUS = "solar_surplus"
-REASON_DHW_WINDOW = "dhw_window"
-REASON_DHW_READY = "dhw_ready"
-REASON_DHW_PREHEAT = "dhw_preheat"
-REASON_LEGIONELLA = "legionella"
-REASON_IDLE = "idle"
-#: Why an idle step is idle, when the solved plan shows it (R9-UX-5). One
-#: code, the most specific that applies: a hard limit, then a named wait,
-#: then the price, then coasting. ``idle`` remains the fall-through.
-REASON_IDLE_OTHER = "idle_other_channel"
-REASON_IDLE_FUSE = "idle_fuse"
-REASON_IDLE_SOLAR = "idle_solar"
-REASON_IDLE_DEARER = "idle_dearer"
-REASON_IDLE_COASTING = "idle_coasting"
 _IDLE_REASONS = frozenset({
     REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
     REASON_IDLE_DEARER, REASON_IDLE_COASTING,
@@ -1257,19 +1232,6 @@ def classify_dhw_steps(
 # arrays are floats — NaN means "leave it to the optimizer", 0 forces the step
 # off, 1 forces it on — so a whole channel is a single array the solver bounds
 # can be built from directly. See ``manual_plan.py`` for how they are produced.
-
-#: A step ran because the manual plan said so, not because the optimizer chose
-#: it. Kept distinct from the automatic reasons so a pinned slot is never
-#: mistaken for the solver's own decision.
-REASON_MANUAL = "manual_plan"
-
-#: A step is empty because the heat pump's *operating mode* cannot serve that
-#: channel at all — a unit in ``heat`` makes no hot water, a unit in ``DHW`` or
-#: ``cool`` heats no rooms. Deliberately distinct from ``idle``: idle means the
-#: optimizer chose not to run, and a user reading "not heating" against a
-#: comfort floor the plan is missing would look for a bug in the optimizer
-#: instead of at the mode selector on the pump. See ``pump_mode.py``.
-REASON_PUMP_MODE = "pump_mode"
 
 #: How many times a manual plan may be repaired before its forced-off slots are
 #: abandoned entirely. Each round costs a full solve, so this trades run time
@@ -1813,7 +1775,7 @@ class _Horizon:
 
     @property
     def timestamps(self) -> list[datetime]:
-        return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
+        return utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
 
 
 
@@ -1867,6 +1829,22 @@ class SolveInputs:
     limits: SolveLimits = field(default_factory=SolveLimits)
 
 
+def _house_ua_kw_per_c(params: ThermalParameters, scale: float = 1.0) -> float:
+    """Whole-house heat loss after the learned correction, kW/°C.
+
+    Two-zone: the upper loss plus the learned lower-floor split; single-zone:
+    the configured coefficient. `hold_demand_kw`, `_buffer_charge_ceiling`
+    and the forecast summary's `typical_heat_loss` all price the whole house,
+    so they share this one reader of the split; `slab_settlement_cap` does
+    not -- it prices the lower zone alone.
+    """
+    if params.two_zone_enabled:
+        base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
+    else:
+        base = params.heat_loss_coefficient
+    return base * scale
+
+
 def hold_demand_kw(
     params: ThermalParameters,
     target: float,
@@ -1895,12 +1873,8 @@ def hold_demand_kw(
     gains alone hold the target — which is a real and common summer state,
     not a degenerate one. Callers must handle it rather than dividing by it.
     """
-    if params.two_zone_enabled:
-        u_eff = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
-    else:
-        u_eff = params.heat_loss_coefficient
     # D2-s2-01: the learned leakage scale the dynamics apply to both zones.
-    u_eff *= params.house_heat_loss_scale
+    u_eff = _house_ua_kw_per_c(params, params.house_heat_loss_scale)
     return max(
         0.0,
         u_eff * (target - out_mean)
@@ -2886,7 +2860,7 @@ class HeatPumpOptimizer:
         tracker uses. That alone never settled which *instant* each window is
         sampled at, which is where they actually diverged (#777); the agreement
         rests on ``window_factors`` walking the windows in UTC, the same rule
-        ``_utc_step_starts`` applies to the step grid this power array is
+        ``drift.utc_step_starts`` applies to the step grid this power array is
         indexed on.
         """
         cfg = self.config
@@ -2978,9 +2952,13 @@ class HeatPumpOptimizer:
 
         # If lots of solar is coming in 6-12h, reduce current heating
         # The slab has enough thermal mass to coast through to solar period
-        typical_heat_loss = (  # the learned scale too, as the dynamics (D2-s2-01)
-            self.model.params.heat_loss_coefficient
-            * self.model.params.house_heat_loss_scale
+        p = self.model.params
+        # The learned scale and split too (#2239 / D2-s2-01): this prices the
+        # whole house, so it reads the model's effective UA, not the configured
+        # single-zone `heat_loss_coefficient` on its own.
+        u_house = _house_ua_kw_per_c(p, p.house_heat_loss_scale)
+        typical_heat_loss = (
+            u_house
             * (self.config.target_temp - np.mean(outdoor_temps))
         )
         if typical_heat_loss > 0:
@@ -3154,7 +3132,7 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
-        step_datetimes = _utc_step_starts(start_time, n_steps, timedelta(hours=dt))
+        step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
         step_hours = np.array([
             d.hour + d.minute / 60.0 for d in step_datetimes
         ])
@@ -3323,7 +3301,11 @@ class HeatPumpOptimizer:
                             if not _pin_is_free(value) and value < 0.5:
                                 pins[i] = float("nan")
                                 released.add(i)
-                        _LOGGER.warning(
+                        # The release is surfaced to the user by the
+                        # ``manual_plan_released`` notification, which latches
+                        # per occurrence; the per-solve WARNING here was the
+                        # N-log-flood duplicate (R10-N-log-flood, #2337).
+                        _LOGGER.debug(
                             "Manual %s plan could not be made safe in %d "
                             "rounds; releasing every forced-off slot on that "
                             "channel and planning it freely",
@@ -3759,7 +3741,12 @@ class HeatPumpOptimizer:
                 float(objective(power, dhw_plan)),
             )
         except Exception as e:
-            _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
+            # On the first pass the ``failed (...)`` status below reaches the
+            # coordinator, which reports it once through its latched
+            # ``_note_solve_failure``; a failed ``_co_optimize`` candidate pass
+            # keeps the first pass's status and stays at DEBUG, as its sibling
+            # except does (R10-N-log-flood, #2337).
+            _LOGGER.debug("Space heating optimization (with DHW) failed: %s", e)
             return (
                 guess,
                 f"failed ({e})",
@@ -4347,7 +4334,11 @@ class HeatPumpOptimizer:
             )
             status = _solver_status(result, objective, initial_power)
         except Exception as e:
-            _LOGGER.error("Optimization failed: %s", e)
+            # The ``failed (...)`` status reaches the coordinator, which
+            # reports the failure once through its own latched
+            # ``_note_solve_failure``; the per-solve ERROR here was the
+            # duplicate (R10-N-log-flood, #2337).
+            _LOGGER.debug("Optimization failed: %s", e)
             optimal_power = initial_power
             status = f"failed ({e})"
 
@@ -4838,15 +4829,11 @@ class HeatPumpOptimizer:
         if hi <= lo:
             return hi
         target = self.config.target_temp
-        if p.two_zone_enabled:
-            u_house = p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned
-        else:
-            u_house = p.heat_loss_coefficient
         # The learned leakage scale rides along: the dynamics and the battery
         # view both apply it, and a learned-leaky house that omitted it here
         # got an optimistic ceiling — the one direction this bound must not
         # err (v4.0.5 review).
-        u_house *= p.house_heat_loss_scale
+        u_house = _house_ua_kw_per_c(p, p.house_heat_loss_scale)
         # What the valve keeps feeding the house while the tank charges: the
         # standing demand at the comfort target, the same steady-state frame
         # as the settlement caps themselves.

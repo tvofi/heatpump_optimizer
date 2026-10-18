@@ -242,6 +242,10 @@ function gridStates(plan) {
     S("view_limit", { states: planStates(plan), config: wi, steps: [["cardClick"], ["zoom", 0.25]] }),
     S("layout_editing", { states: setupStates(layoutCatalogTopo()), steps: [["cardClick"], ["page", "setup"], ["clickSel", ".layout-edit-toggle"]] }),
     S("setup_clear_armed", { states: setupStates(qaTopologies().base), steps: [["cardClick"], ["page", "setup"], ["armClear"]] }),
+    // The folded block OPEN: the unset rows it stands for, drawn in the
+    // muted voice the rule that sets their colour has to be measured on
+    // (R10-UX-SETUP).
+    S("setup_unset_open", { states: setupStates(qaTopologies().coil), steps: [["cardClick"], ["page", "setup"], ["openUnset", "dhw_temp_entity"]] }),
     S("picker_twins", { states: setupStates(qaTopologies().base, twins()), steps: [["cardClick"], ["page", "setup"], ["picker", "vedpanna"]] }),
   ];
 }
@@ -914,8 +918,24 @@ function instrument() {
         if (!lane) { missed.push(`${op} ${a1}`); continue; }
         const lr = lane.getBoundingClientRect();
         c.lanes.openMenu(a1, t, x, (lr.top + lr.bottom) / 2, svg, false);
+      } else if (op === "openUnset") {
+        const fold = [...root().querySelectorAll(".setup-fold-hit")]
+          .find((f) => (f.dataset.fold || "").split(",").includes(a1));
+        if (!fold) { missed.push(`${op} ${a1}`); continue; }
+        click(fold); await frame();
+        if (!root().querySelector(".setup-slot.empty")) missed.push(`${op} did not open`);
       } else if (op === "picker") {
-        const hit = [...root().querySelectorAll(".setup-hit")].find((h) => h.dataset.key === "wood_tank_top_entity");
+        // The slot has no reading, so its row is inside its box's folded
+        // block (R10-UX-SETUP): the block's own line opens it first, exactly
+        // as a reader reaches it.
+        const find = () => [...root().querySelectorAll(".setup-hit")]
+          .find((h) => h.dataset.key === "wood_tank_top_entity");
+        let hit = find();
+        if (!hit) {
+          const fold = [...root().querySelectorAll(".setup-fold-hit")]
+            .find((f) => (f.dataset.fold || "").split(",").includes("wood_tank_top_entity"));
+          if (fold) { click(fold); await frame(); hit = find(); }
+        }
         if (!hit) { missed.push(op); continue; }
         click(hit); await frame();
         const box = root().querySelector(".sp-filter");
@@ -2187,26 +2207,40 @@ try {
           out.push({ name, ratio: +r.toFixed(2), missing: false });
         }
       } else {
-        const empty = root.querySelector("text.setup-slot.empty");
-        if (empty) {
-          const raw = empty.getAttribute("fill") || "";
-          const fg = parse(raw.startsWith("#") ? raw : getComputedStyle(empty).fill);
+        // R10-UX-SETUP: the muted setup text is the folded block's own line
+        // and the Configure chip's label, and both are painted on a CARD,
+        // not on the dialog -- the card's own fill is what they have to
+        // clear 4.5:1 against.
+        const cardFillOf = (el) => {
+          const g = el.closest("g");
+          const box = g && g.querySelector(".setup-box");
+          const fill = box ? getComputedStyle(box).fill : "";
+          const parsed = parse(fill);
+          if (parsed) return parsed;
           const rawBg = getComputedStyle(window.__card)
             .getPropertyValue("--card-background-color").trim();
-          const cardBg = parse(rawBg) || [255, 255, 255];
+          return parse(rawBg) || [255, 255, 255];
+        };
+        for (const [sel, name] of [
+          ["text.setup-slot.folded", "setup-slot.folded"],
+          ["text.setup-slot.empty", "setup-slot.empty"],
+          ["text.setup-chip-label", "setup-chip-label"],
+        ]) {
+          const el = root.querySelector(sel);
+          if (!el) { out.push({ name, missing: true }); continue; }
+          const fg = parse(getComputedStyle(el).fill);
           out.push({
-            name: "setup-slot.empty",
-            ratio: fg ? +ratio(fg, cardBg).toFixed(2) : 0,
+            name,
+            ratio: fg ? +ratio(fg, cardFillOf(el)).toFixed(2) : 0,
             missing: false,
           });
-        } else {
-          out.push({ name: "setup-slot.empty", missing: true });
         }
       }
       return out;
     }, dlgPage);
   };
-  const REQUIRED = ["wi-apply", "wi-save", "setup-slot.empty", "chip-off"];
+  const REQUIRED = ["wi-apply", "wi-save", "setup-slot.folded",
+    "setup-chip-label", "chip-off"];
   for (const [label, theme] of [
     ["HA light theme", HA_LIGHT],
     ["HA dark theme", HA_DARK],

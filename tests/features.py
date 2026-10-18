@@ -10973,6 +10973,12 @@ R.check(
     f"got {_nc.hass.services.calls} / {_mc.hass.services.calls} / "
     f"{_uc.hass.services.calls}",
 )
+R.check(
+    "#2351: a write the valve refused is not remembered as commanded, so the "
+    "next cycle retries it rather than skipping it as unchanged",
+    _uc._valve_commanded_target is None,
+    f"remembered {_uc._valve_commanded_target!r} after an uncommandable write",
+)
 
 # With a hold schedule in force the actuator follows *it*, not the fixed
 # recommendation -- otherwise the plan holds the tank on paper while the real
@@ -14715,7 +14721,7 @@ R.check(
     f"15={_w15} 60={_w60}",
 )
 
-from heatpump_optimizer.optimizer import _utc_step_starts as _usteps
+from heatpump_optimizer.drift import utc_step_starts as _usteps
 from zoneinfo import ZoneInfo as _ClkZone
 
 _clk_tz = _ClkZone("Europe/Stockholm")
@@ -25619,7 +25625,7 @@ R.section("Plan reason codes: the fall-through is neutral (v5.1.7)")
 # "Pre-heating before colder weather". The card renders exactly that sentence,
 # which is what an owner read on a mild afternoon and reported as the
 # optimizer chasing weather it had never been shown.
-from heatpump_optimizer.optimizer import (  # noqa: E402
+from heatpump_optimizer.payload import (  # noqa: E402
     REASON_CHEAP_PRICE as _R_CHEAP,
     REASON_COMFORT_FLOOR as _R_FLOOR,
     REASON_IDLE as _R_IDLE,
@@ -25628,6 +25634,8 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_SCHEDULED as _R_SCHED,
     REASON_SOLAR_SURPLUS as _R_SURPLUS,
     REASON_TERMINAL_VALUE as _R_TERMINAL,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
     classify_space_steps as _classify,
     slab_settlement_cap as _slab_cap,
 )
@@ -25946,8 +25954,10 @@ R.check(
 )
 # The forecast summary's solar fraction (the solve's initial guess and the
 # published solar_reduction_factor) reads the same house: a learned scale of 2
-# answers what a nameplate coefficient twice as large does (0.6 vs 0.776 at
-# 3dfebc16 on a 48-step sunny afternoon).
+# answers what the configured losses doubled do. On a two-zone house the
+# nameplate knob is the upper/lower split (`heat_loss_coefficient` is the
+# single-zone field, so doubling it would change nothing once #2239 routes the
+# summary through `lower_floor_heat_loss_learned`).
 _d2s2_sr = np.zeros(48)
 _d2s2_sr[14:22] = 600.0
 _d2s2_solar = [
@@ -25956,7 +25966,11 @@ _d2s2_solar = [
     )["solar_reduction_factor"]
     for _d2s2_p in (
         _dc_replace(_d2s2_base, house_heat_loss_scale=2.0),
-        _dc_replace(_d2s2_base, heat_loss_coefficient=2.0 * _d2s2_base.heat_loss_coefficient),
+        _dc_replace(
+            _d2s2_base,
+            upper_floor_heat_loss=2.0 * _d2s2_base.upper_floor_heat_loss,
+            lower_floor_heat_loss=2.0 * _d2s2_base.lower_floor_heat_loss,
+        ),
     )
 ]
 _d2s2_lin.append((_d2s2_solar[0] / _d2s2_solar[1], 1.0))
@@ -29743,7 +29757,7 @@ R.check(
 
 R.section("v5.3.0 review — the narrative explains a blocked channel")
 
-from heatpump_optimizer.optimizer import REASON_PUMP_MODE  # noqa: E402
+from heatpump_optimizer.payload import REASON_PUMP_MODE  # noqa: E402
 
 R.check(
     "pump_mode has a sentence in BOTH languages",
@@ -32304,7 +32318,7 @@ R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day"
 # cost planner had a 60 °C ceiling to spend every day of the week — and it
 # spent it, because pre-buying at the night trough beats heating at the
 # evening window even after standby losses.
-from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _LG_REASON
+from heatpump_optimizer.payload import REASON_LEGIONELLA as _LG_REASON
 
 # The step the planner chose for the cycle is the last DHW plan's
 # `legionella_step` (#1743: the optimizer no longer stashes it). A spy on the
@@ -51992,6 +52006,29 @@ def _pa_run(coord, minutes):
     _pa_aio.run(_pa.apply(coord, _PA_T0 + timedelta(minutes=minutes)))
 
 
+# #2351: the misdeclared-indoor bound is strict. An indoor entity whose minimum
+# sits exactly SETPOINT_TOLERANCE above the room target can hold it (the write
+# is clamped up within tolerance); only one beyond that is a flow set-point
+# declared indoor, which is refused.
+_pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
+
+
+def _pa_bound_target(low):
+    _pa_bound.hass.states.get("number.water_set").attributes = {"min": low, "max": 63}
+    return _pa._space_target(
+        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space")
+
+
+_pa_bound_at = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE)
+_pa_bound_past = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE + 0.1)
+R.check(
+    "#2351: an indoor set-point whose minimum is exactly the tolerance above the "
+    "room target is written; one beyond it is refused as a declared flow set-point",
+    _pa_bound_at is not None and _pa_bound_past is None,
+    f"at tolerance -> {_pa_bound_at!r}, beyond -> {_pa_bound_past!r}",
+)
+
+
 def _pa_own(coord, signals):
     held = _pa.own(coord, signals)
     return _pa_aio.run(held) if _pa_aio.iscoroutine(held) else held
@@ -57431,7 +57468,7 @@ for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in
     )
 
 # The one clock keeps a naive start naive: the wall-clock walk, no zone added.
-from heatpump_optimizer.optimizer import _utc_step_starts as _r9p3_clock  # noqa: E402
+from heatpump_optimizer.drift import utc_step_starts as _r9p3_clock  # noqa: E402
 
 _r9p3_naive = datetime(2026, 3, 29, 1, 0)
 _r9p3_steps = _r9p3_clock(_r9p3_naive, 4, timedelta(minutes=30), 2)
@@ -57440,6 +57477,58 @@ R.check(
     _r9p3_steps == [_r9p3_naive + timedelta(minutes=30) * k for k in (2, 3, 4, 5)]
     and all(s.tzinfo is None for s in _r9p3_steps),
     f"{_r9p3_steps}",
+)
+
+# R10-LEAF-IMPORTS (ARCH2-s4 P1, ARCH3-s6 P4): the horizon clock is drift's and
+# the reason vocabulary is the payload's, so a leaf that needs either loads
+# without the solver. Read at run time, in a fresh interpreter per leaf: a
+# module-level edge to the optimizer anywhere in a leaf's closure puts it (and
+# scipy) in ``sys.modules``. The vocabulary check reads optimizer.py's own
+# assignments, so a second definition of a code beside the payload's refuses.
+import ast as _leaf_ast  # noqa: E402
+import os as _leaf_os  # noqa: E402
+import subprocess as _leaf_sp  # noqa: E402
+from pathlib import Path as _leaf_Path  # noqa: E402
+from heatpump_optimizer import optimizer as _leaf_opt, payload as _leaf_payload  # noqa: E402
+
+_leaf_env = {**_leaf_os.environ, "PYTHONPATH": _leaf_os.pathsep.join(p for p in sys.path if p)}
+for _leaf in ("store", "silent_mode", "quiet_windows", "legionella"):
+    _leaf_run = _leaf_sp.run(
+        [sys.executable, "-c",
+         f"import sys, heatpump_optimizer.{_leaf}; "
+         "print(sorted(m for m in sys.modules if m == 'scipy' "
+         "or m == 'heatpump_optimizer.optimizer'))"],
+        capture_output=True, text=True, env=_leaf_env, timeout=120,
+    )
+    R.check(
+        f"R10-LEAF-IMPORTS: {_leaf} loads without the solver",
+        _leaf_run.returncode == 0 and _leaf_run.stdout.strip() == "[]",
+        f"rc={_leaf_run.returncode} loaded={_leaf_run.stdout.strip()} {_leaf_run.stderr[-300:]}",
+    )
+_leaf_opt_src = _leaf_ast.parse(_leaf_Path(_leaf_opt.__file__).read_text())
+# Any binding of a REASON_ name in optimizer.py, at any depth and in any form
+# (plain, annotated, augmented, walrus, a for/with target, a def or class, an
+# import from elsewhere), save the one ``from .payload import``: the review's
+# M6 was an annotated redefinition the Assign-only walk passed.
+_leaf_own = sorted(
+    {n.id for n in _leaf_ast.walk(_leaf_opt_src)
+     if isinstance(n, _leaf_ast.Name) and isinstance(n.ctx, _leaf_ast.Store)
+     and n.id.startswith("REASON_")}
+    | {n.name for n in _leaf_ast.walk(_leaf_opt_src)
+       if isinstance(n, (_leaf_ast.FunctionDef, _leaf_ast.AsyncFunctionDef, _leaf_ast.ClassDef))
+       and n.name.startswith("REASON_")}
+    | {(a.asname or a.name) for n in _leaf_ast.walk(_leaf_opt_src)
+       if isinstance(n, (_leaf_ast.Import, _leaf_ast.ImportFrom))
+       and not (isinstance(n, _leaf_ast.ImportFrom) and n.level == 1 and n.module == "payload")
+       for a in n.names if (a.asname or a.name).startswith("REASON_")}
+)
+_leaf_used = sorted(k for k in vars(_leaf_opt) if k.startswith("REASON_"))
+R.check(
+    "R10-LEAF-IMPORTS: the payload owns every reason code the optimizer writes",
+    bool(_leaf_used) and not _leaf_own
+    and all(getattr(_leaf_payload, k, None) is getattr(_leaf_opt, k) for k in _leaf_used),
+    f"optimizer binds {_leaf_own} outside its payload import; imports {len(_leaf_used)}, "
+    f"payload lacks {[k for k in _leaf_used if not hasattr(_leaf_payload, k)]}",
 )
 
 # A tank colder than the room it stands in loses nothing to it: the standby
@@ -60191,13 +60280,15 @@ R.check(
 
 # R9-UX-5 (#1795): exact idle sub-codes, the what-if's setback, the published
 # floor, and the comfort event's cause.
-from heatpump_optimizer.optimizer import (  # noqa: E402
+from heatpump_optimizer.payload import (  # noqa: E402
     REASON_IDLE as _UX5_IDLE,
     REASON_IDLE_COASTING as _UX5_COAST,
     REASON_IDLE_DEARER as _UX5_DEAR,
     REASON_IDLE_FUSE as _UX5_FUSE,
     REASON_IDLE_OTHER as _UX5_OTHER,
     REASON_IDLE_SOLAR as _UX5_SOLAR,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
     IdleContext as _Ux5Idle,
     classify_dhw_steps as _ux5_dhw,
     classify_space_steps as _ux5_space,
@@ -63968,7 +64059,7 @@ def _fd_coord():
 
 
 class _FdLog(_fd_logging.Handler):
-    """Every record the coordinator module logs, as (level, message)."""
+    """Every record the package logs, as (level, message)."""
 
     def __init__(self):
         super().__init__(_fd_logging.DEBUG)
@@ -63983,7 +64074,12 @@ class _FdLog(_fd_logging.Handler):
 
 def _fd_logged(fn):
     log = _FdLog()
-    logger = _fd_logging.getLogger(_fd_cm.__name__)
+    # Rooted at the package, not at the coordinator module: the transition
+    # latch lives in log_latch.py and logs through its own logger, and a
+    # handler on the coordinator's module logger never sees a child module's
+    # records. The child loggers carry no level of their own, so the package
+    # logger's DEBUG is what admits the latch's DEBUG rows here.
+    logger = _fd_logging.getLogger(_fd_cm.__name__.rsplit(".", 1)[0])
     old = logger.level
     logger.addHandler(log)
     logger.setLevel(_fd_logging.DEBUG)
@@ -64181,8 +64277,8 @@ _fd_latch_owner = _fd_coord()
 
 def _fd_latch_run():
     for active in (True, True, True, True, False, False, True):
-        _fd_cm._log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
-    _fd_cm._log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
+        _fd_cm.log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
+    _fd_cm.log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
 
 
 _fd_latch = _fd_logged(_fd_latch_run)
@@ -64220,6 +64316,107 @@ R.check(
     "log each WARNING once (it was 4, and 16 for a tariff option)",
     set(_fd_flood_counts.values()) == {1},
     repr(_fd_flood_counts),
+)
+
+# R10 round 3 (#2351): the stale-plan hold is reached only while stale, and
+# its text renders the age and the failed-solve count -- both advance every
+# cycle -- so no transition latch can hold it: a stable key would drop what the
+# line exists to report, and the latch's clear path never runs from a branch
+# taken only while stale. The per-cycle detail is DEBUG and the notifier's
+# EVENT_PLAN_STALE is the once-per-occurrence signal (the "UX-4 plan stale"
+# check above fires it once with the age and stays quiet on repeats).
+_fd_stale = _fd_coord()
+_fd_stale._mode = "auto"
+_fd_stale._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+_fd_stale_interval = _fd_stale.effective_config.optimization_interval
+
+
+def _fd_stale_run():
+    _fd_stale._last_optimization = _fd_dt.now() - timedelta(minutes=400)
+    for _ in range(4):
+        # Production cadence: the next cycle runs one solve interval later
+        # (the stamp is fixed, so the age grows) and that cycle's failed
+        # solve increments the count the message renders.
+        _fd_stale._last_optimization -= timedelta(minutes=_fd_stale_interval)
+        _fd_stale._solve_failures += 1
+        _fd_asyncio.run(_fd_stale._apply_action())
+
+
+_fd_stale_log = _fd_logged(_fd_stale_run)
+R.check(
+    "#2226/#2351: the stale-plan hold logs its advancing age and failure count "
+    "at DEBUG, so a persisting stale plan never warns every cycle",
+    _fd_stale_log.count("WARNING", "Plan is") == 0
+    # null control: the line still runs on every pass, so a deletion is not
+    # what read zero WARNINGs
+    and _fd_stale_log.count("DEBUG", "Plan is") == 4,
+    repr(_fd_stale_log.rows),
+)
+
+# The latch's precondition is a long-lived, weak-referenceable owner. A
+# snapshot built with ``hass=None`` (tests/features.py and tests/block_duty.py
+# both build ``ArbiterInputs`` that way) has none: it must log the condition
+# every call rather than raise into a cycle.
+_fd_ownerless_errors = []
+
+
+def _fd_ownerless_run():
+    for _ in range(4):
+        try:
+            _fd_cm.log_held(
+                None, "ownerless_condition", True, "Probe %s", "ownerless")
+        except Exception as err:  # noqa: BLE001 - the guard is what is probed
+            _fd_ownerless_errors.append(f"{type(err).__name__}: {err}")
+
+
+_fd_ownerless_log = _fd_logged(_fd_ownerless_run)
+R.check(
+    "#2351: a None owner is logged every call and never raises -- no stable "
+    "key means no transition to hold, not a cycle-ending exception",
+    not _fd_ownerless_errors
+    and _fd_ownerless_log.count("WARNING", "Probe ownerless") == 4,
+    f"errors={_fd_ownerless_errors!r} rows={_fd_ownerless_log.rows!r}",
+)
+
+# R10 round 6 (#2351): a failed solve starts as an ERROR carrying its
+# traceback (the pre-latch level), repeats at DEBUG, and the clearing call the
+# success path makes lets the next failure spell ERROR again. forget_held, run
+# at shutdown, drops a hass-owned condition so a reloaded entry reports it.
+_fd_sf = _fd_coord()
+_fd_sf_tb = []
+
+
+class _FdTraceback(_fd_logging.Handler):
+    def emit(self, record):
+        if "Optimization failed" in record.getMessage():
+            _fd_sf_tb.append((record.levelname, record.exc_info is not None))
+
+
+def _fd_sf_run():
+    tb = _FdTraceback(_fd_logging.DEBUG)
+    logger = _fd_logging.getLogger(_fd_cm.__name__.rsplit(".", 1)[0])
+    logger.addHandler(tb)
+    try:
+        for _ in range(2):
+            _fd_cm._note_solve_failure(_fd_sf, RuntimeError("fd solve"))
+        _fd_cm.log_held(_fd_sf, "solve_failure", False)
+        _fd_cm._note_solve_failure(_fd_sf, RuntimeError("fd solve"))
+        _fd_cm.log_held(_fd_sf.hass, "fd_hass_condition", True, "Probe %s", "hass-owned")
+        _fd_cm.forget_held(_fd_sf.hass)
+        _fd_cm.log_held(_fd_sf.hass, "fd_hass_condition", True, "Probe %s", "hass-owned")
+    finally:
+        logger.removeHandler(tb)
+
+
+_fd_sf_log = _fd_logged(_fd_sf_run)
+R.check(
+    "#2351: a failed solve ERRORs with its traceback once per spell, DEBUGs on "
+    "repeats, ERRORs again after the success path clears it; forget_held re-arms",
+    _fd_sf_tb[:1] == [("ERROR", True)]
+    and _fd_sf_log.count("ERROR", "Optimization failed") == 2
+    and _fd_sf_log.count("DEBUG", "Optimization failed") == 1
+    and _fd_sf_log.count("WARNING", "Probe hass-owned") == 2,
+    f"tracebacks={_fd_sf_tb!r} rows={_fd_sf_log.rows!r}",
 )
 
 # -- the consumers of an unknown price (#2229's distinct failure value) ------
@@ -64308,6 +64505,139 @@ R.check(
     _fd_score_unpriced.get("kwh") == 0.0 and _fd_score_unpriced.get("sek") == 0.0
     and _fd_score._score_day.get("kwh") == 1.0 and _fd_score._score_day.get("sek") == 1.5,
     f"unpriced={_fd_score_unpriced} priced={_fd_score._score_day}",
+)
+
+
+# ===========================================================================
+# #2239 — the house the detector prices is the house the dynamics simulate
+# ===========================================================================
+# R10 D2-s1-71: `_space_demand_kw` summed the two zones' CONFIGURED losses, so
+# once the learner had moved the lower-floor ratio off 1 the external-heat
+# detector's standing loss read below the whole-house demand the model rolls.
+# The oracle is the production symbol `hold_demand_kw` (`_hold_kw` above): its
+# docstring owns the same quantity -- the tank sits upstream of the mixing
+# valve feeding both zones, so it is whole-house -- and it already carried the
+# learned ratio, so driven with the same params, the same state and no gains or
+# solar the two must agree exactly. Ratio 1.0 is the null arm: there the
+# configured total and the learned one are the same number, and the two agreed
+# before the fix too.
+_rsd_rows = []
+for _rsd_zone in (False, True):
+    for _rsd_ratio in (1.0, 1.922):
+        _rsd_p = _dc_replace(
+            ThermalParameters.from_config(
+                _grad_house(two_zone=_rsd_zone, dhw=False)
+            ),
+            wind_sensitivity=0.0,
+            internal_gains=0.0,
+            house_heat_loss_scale=1.567,
+            lower_floor_loss_ratio=_rsd_ratio,
+        )
+        _rsd_state = ThermalState(room_temperature=21.0, outdoor_temperature=-5.0)
+        _rsd_rows.append((
+            _rsd_zone,
+            _rsd_ratio,
+            Coord._space_demand_kw(
+                _NS(_thermal_params=_rsd_p, _current_state=_rsd_state)
+            ),
+            _hold_kw(_rsd_p, 21.0, -5.0),
+        ))
+R.check(
+    "#2239: the external-heat detector's space demand is the whole-house demand "
+    "the tank's drain law prices, on the learned lower-floor ratio; the "
+    "single-zone and ratio-1.0 arms are the controls",
+    all(abs(_g - _w) < 1e-12 for _, _, _g, _w in _rsd_rows),
+    f"got {[(z, r, round(g, 6), round(w, 6)) for z, r, g, w in _rsd_rows]}",
+)
+
+# The refuted D-2's residual (catch-up judge, 2026-10-15): the number
+# `SysIdResult.as_dict()` publishes as `heat_loss_kw_per_c` is the identified UA
+# on the configured zone total the learned scale multiplies -- the base
+# `sysid._candidate_model` divides into that scale, and `adoption_decision`
+# divides by -- NOT the model's effective UA, which also carries the learned
+# lower-floor split. That basis is what the field's own doc now names. Prose
+# cannot be pinned by a check; the arithmetic it states can, so this fails on
+# the day the two bases are unified, which is the day the label must move with
+# them.
+_ua_basis = []
+for _ua_r in (1.0, 1.6):
+    _ua_p = _dc_replace(
+        ThermalParameters.from_config(_grad_house(two_zone=True, dhw=False)),
+        lower_floor_loss_ratio=_ua_r,
+        house_heat_loss_scale=1.0,
+    )
+    _ua_basis.append((
+        _ua_r,
+        _r9f41_sysid._zone_heat_loss(_ua_p) * _ua_p.house_heat_loss_scale,
+        _s5_effective(_ua_p, _ua_p.house_heat_loss_scale),
+    ))
+R.check(
+    "#2239 (D-2 residual): the fit's published UA is on the configured "
+    "zone-total basis and reads below the model's effective UA once the learned "
+    "lower-floor split leaves 1; ratio 1.0 is the null arm",
+    abs(_ua_basis[0][1] - _ua_basis[0][2]) <= 1e-4
+    and _ua_basis[1][1] < _ua_basis[1][2],
+    f"{[(r, round(b, 6), round(e, 6)) for r, b, e in _ua_basis]}",
+)
+
+
+# ===========================================================================
+# #2239 (class widened) — the forecast's solar-reduction anticipation prices
+# the learned lower-floor split
+# ===========================================================================
+# `_analyze_forecast_trajectory`'s `typical_heat_loss` normalised the coming
+# solar energy against `heat_loss_coefficient * house_heat_loss_scale`. That is
+# the single-zone field: on a two-zone house it omits the learned lower-floor
+# split the dynamics (and #2239) apply, so it read below the model's whole-house
+# UA the moment the learner left ratio 1. It only feeds `solar_fraction`, which
+# shapes the solver's initial guess, so the property pinned is the returned
+# `solar_reduction_factor`: driven with a constant solar forecast, it must be
+# the value the whole-house UA predicts -- `upper + lower_floor_heat_loss_learned`
+# for two-zone (the same quantity `_hold_kw` prices), `heat_loss_coefficient`
+# for single-zone (unchanged by the fix). The single-zone arm and the ratio-1.0
+# two-zone arm are the controls; the ratio-1.6 two-zone arm is the split.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _fst_opt  # noqa: E402
+from types import SimpleNamespace as _fst_ns  # noqa: E402
+from dataclasses import replace as _fst_replace  # noqa: E402
+from profiles import house as _fst_house  # noqa: E402
+
+_fst_rows = []
+for _fst_zone, _fst_ratio in ((False, 1.0), (True, 1.0), (True, 1.6)):
+    _fst_p = _fst_replace(
+        ThermalParameters.from_config(_fst_house(two_zone=_fst_zone, dhw=False)),
+        lower_floor_loss_ratio=_fst_ratio,
+        house_heat_loss_scale=1.0,
+        wind_sensitivity=0.0,
+        rain_heat_loss_multiplier=1.0,
+    )
+    _fst_u = (
+        _fst_p.upper_floor_heat_loss + _fst_p.lower_floor_heat_loss_learned
+        if _fst_zone
+        else _fst_p.heat_loss_coefficient
+    )
+    _fst_out = _fst_opt._analyze_forecast_trajectory(
+        _fst_ns(
+            model=_fst_ns(params=_fst_p, compute_solar_gain=lambda sr: 0.5),
+            config=_fst_ns(target_temp=21.0),
+        ),
+        solar_radiation=np.full(24, 400.0),
+        wind_speeds=np.zeros(24),
+        precipitation=np.zeros(24),
+        outdoor_temps=np.full(24, -5.0),
+        dt_hours=1.0,
+    )
+    # 6 steps at 0.5 kW each = 3.0 kWh of future solar; target 21 - outdoor -5
+    # = 26 K; the 6 in the denominator is the horizon-hours factor the method
+    # applies to `typical_heat_loss` before dividing.
+    _fst_expected = 1.0 - 0.4 * min(3.0 / max(_fst_u * 26.0 * 6.0, 0.1), 1.0)
+    _fst_rows.append((_fst_zone, _fst_ratio, _fst_out["solar_reduction_factor"], _fst_expected))
+R.check(
+    "#2239 (typical_heat_loss): the forecast's solar-reduction factor prices "
+    "the whole-house UA -- the learned split for two-zone, the configured "
+    "coefficient for single-zone; ratio 1.0 is the split's null arm",
+    all(abs(_o - _e) < 1e-12 for _, _, _o, _e in _fst_rows)
+    and _fst_rows[2][2] > _fst_rows[1][2],
+    f"got {[(z, r, round(o, 6), round(e, 6)) for z, r, o, e in _fst_rows]}",
 )
 
 

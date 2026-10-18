@@ -56,6 +56,7 @@ from .const import (
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
 )
+from .log_latch import log_held
 from .payload import InputProblem
 
 _LOGGER = logging.getLogger(__name__)
@@ -752,14 +753,18 @@ class InputReader:
         # (untimestamped stubs). A future stamp is the #775 fail-open.
         future = age is None and state_age(state, self._utcnow()) is not None
         limit = reading.max_age_minutes
-        if self.enabled and limit is not None and future:
+        # Latched per install, input and entity (the reader is rebuilt every
+        # read; one key for all inputs would re-warn as they alternate), and
+        # cleared by every fresh read, so a stamp ahead again warns again.
+        if log_held(
+            self.hass, f"future_stamp:{reading.key}:{reading.entity_id}",
+            self.enabled and limit is not None and future,
+            "Input %s (%s) has a last-reported stamp ahead of the host "
+            "clock; treating as stale rather than age 0",
+            reading.key,
+            reading.entity_id,
+        ):
             reading.problem = "stale"
-            _LOGGER.warning(
-                "Input %s (%s) has a last-reported stamp ahead of the host "
-                "clock; treating as stale rather than age 0",
-                reading.key,
-                reading.entity_id,
-            )
             return
         if self.enabled and limit is not None and age is not None and age > limit:
             # Keep the content populated so a caller that explicitly wants the

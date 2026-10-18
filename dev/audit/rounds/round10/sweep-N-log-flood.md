@@ -6,6 +6,7 @@
 
 - Static: `python3 dev/audit/rounds/round10/D14/log_flood/enumerate.py custom_components/heatpump_optimizer`. It reads every `_LOGGER.warning` and `_LOGGER.error` call through the AST. A call counts as latched when it sits under an `if` whose test names a latch flag, or under a `not in` test against a set the same function `.add`s to. Result: 85 sites, 6 latched, 79 unlatched seams.
 - Runtime: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py [arm...] [--perturb]`. Each arm runs 4 real `_async_update_data` cycles under a condition that does not change, and counts every distinct package message. A message that appears 4 or more times is a flood.
+- Round 3 (#2351) folds runs of digits to `#` before counting, and the script exits 1 on any flood. The stale-plan site renders a per-cycle age and failure count, so its four texts were four distinct messages and the pre-fold rule read `floods=0` for a flood that warned every cycle.
 
 ## Controls
 

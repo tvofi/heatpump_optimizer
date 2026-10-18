@@ -1,75 +1,75 @@
 KILLS M01 
-MUTANT M01 optimizer:5541 ' and '->' or ' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M01.log
+MUTANT M01 optimizer:5541 ' and '->' or ' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M01.log
 RESULT M01=SURVIVED
-MUTANT M02 optimizer:2009 'max('->'min(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M02.log
-MUTANT M02 optimizer:2009 'max('->'min(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M02.log
+MUTANT M02 optimizer:2009 'max('->'min(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M02.log
+MUTANT M02 optimizer:2009 'max('->'min(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M02.log
 KILLS M02 tests/env_drift.py
 KILLS M02 tests/env_drift.py
 RESULT M02=tests/env_drift.py(rc=1)
 RESULT M02=tests/env_drift.py(rc=1)
 KILLS M03 
-MUTANT M03 optimizer:5557 ' and '->' or ' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M03.log
+MUTANT M03 optimizer:5557 ' and '->' or ' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M03.log
 RESULT M03=SURVIVED
-MUTANT M04 coordinator:7735 'min('->'max(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M04.log
+MUTANT M04 coordinator:7735 'min('->'max(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M04.log
 KILLS M04 tests/features.py
 RESULT M04=tests/features.py(rc=1)
 KILLS M05 
-MUTANT M05 defrost:739 ' and '->' or ' ran=13 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M05.log
+MUTANT M05 defrost:739 ' and '->' or ' ran=13 log=<scratchpad>/d3s1wt/logs/d3s1-M05.log
 RESULT M05=SURVIVED
 KILLS M06 
-MUTANT M06 flow_lift:227 ' < '->' <= ' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M06.log
+MUTANT M06 flow_lift:227 ' < '->' <= ' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M06.log
 RESULT M06=SURVIVED
 KILLS M07 tests/env_drift.py
-MUTANT M07 thermal_model:1874 'min('->'max(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M07.log
+MUTANT M07 thermal_model:1874 'min('->'max(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M07.log
 RESULT M07=tests/env_drift.py(rc=1)
 KILLS M08 
-MUTANT M08 coordinator:6522 ' and '->' or ' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M08.log
+MUTANT M08 coordinator:6522 ' and '->' or ' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M08.log
 RESULT M08=SURVIVED
-MUTANT M09 optimizer:4481 ' or '->' and ' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M09.log
+MUTANT M09 optimizer:4481 ' or '->' and ' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M09.log
 KILLS M09 tests/features.py
 RESULT M09=tests/features.py(rc=1)
 KILLS M10 
-MUTANT M10 coordinator:10357 ' <= '->' < ' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M10.log
+MUTANT M10 coordinator:10357 ' <= '->' < ' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M10.log
 RESULT M10=SURVIVED
 KILLS M11 
-MUTANT M11 coordinator:8833 ' > '->' >= ' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M11.log
+MUTANT M11 coordinator:8833 ' > '->' >= ' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M11.log
 RESULT M11=SURVIVED
-MUTANT M12 dhw_planner:537 'max('->'min(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M12.log
+MUTANT M12 dhw_planner:537 'max('->'min(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M12.log
 KILLS M12 tests/manual_plan.py,tests/env_drift.py
 RESULT M12=tests/manual_plan.py(rc=1)
-MUTANT M13 dhw_planner:2115 ' and '->' or ' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M13.log
+MUTANT M13 dhw_planner:2115 ' and '->' or ' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M13.log
 KILLS M13 tests/card.mjs,tests/env_drift.py
 RESULT M13=tests/card.mjs(rc=1)
-MUTANT M14 tariff:148 'min('->'max(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M14.log
+MUTANT M14 tariff:148 'min('->'max(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M14.log
 KILLS M14 tests/env_drift.py
 RESULT M14=tests/env_drift.py(rc=1)
 KILLS M15 tests/features.py
-MUTANT M15 thermal_model:670 'max('->'min(' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M15.log
+MUTANT M15 thermal_model:670 'max('->'min(' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M15.log
 RESULT M15=tests/features.py(rc=1)
 KILLS M16 tests/features.py
-MUTANT M16 thermal_model:2407 ' or '->' and ' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M16.log
+MUTANT M16 thermal_model:2407 ' or '->' and ' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M16.log
 RESULT M16=tests/features.py(rc=1)
 KILLS M17 tests/env_drift.py
-MUTANT M17 thermal_model:2829 'min('->'max(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M17.log
+MUTANT M17 thermal_model:2829 'min('->'max(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M17.log
 RESULT M17=tests/env_drift.py(rc=1)
 KILLS M18 
-MUTANT M18 sysid:1800 ' or '->' and ' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M18.log
+MUTANT M18 sysid:1800 ' or '->' and ' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M18.log
 RESULT M18=SURVIVED
 KILLS M19 
-MUTANT M19 dhw_planner:1540 'min('->'max(' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M19.log
+MUTANT M19 dhw_planner:1540 'min('->'max(' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M19.log
 RESULT M19=SURVIVED
-MUTANT M20 dhw_planner:1014 'min('->'max(' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M20.log
+MUTANT M20 dhw_planner:1014 'min('->'max(' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M20.log
 KILLS M20 tests/env_drift.py
 RESULT M20=tests/env_drift.py(rc=1)
 KILLS M21 
-MUTANT M21 grid_fee:390 ' and '->' or ' ran=12 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M21.log
+MUTANT M21 grid_fee:390 ' and '->' or ' ran=12 log=<scratchpad>/d3s1wt/logs/d3s1-M21.log
 RESULT M21=SURVIVED
 KILLS M22 
-MUTANT M22 tariff:755 ' <= '->' < ' ran=15 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M22.log
+MUTANT M22 tariff:755 ' <= '->' < ' ran=15 log=<scratchpad>/d3s1wt/logs/d3s1-M22.log
 RESULT M22=SURVIVED
 KILLS M23 
-MUTANT M23 price_model:448 ' >= '->' > ' ran=13 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M23.log
+MUTANT M23 price_model:448 ' >= '->' > ' ran=13 log=<scratchpad>/d3s1wt/logs/d3s1-M23.log
 RESULT M23=SURVIVED
-MUTANT M24 defrost:806 'min('->'max(' ran=13 log=/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/d3s1wt/logs/d3s1-M24.log
+MUTANT M24 defrost:806 'min('->'max(' ran=13 log=<scratchpad>/d3s1wt/logs/d3s1-M24.log
 KILLS M24 tests/features.py
 RESULT M24=tests/features.py(rc=1)

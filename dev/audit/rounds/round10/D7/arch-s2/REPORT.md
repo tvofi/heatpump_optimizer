@@ -145,7 +145,7 @@ Things you should know about these changes:
 
 The local prototype branches (`proto/s2-*`) are not pushed. The worktree is left on `audit/r10-arch-s2`.
 
-Files are in `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/agent-a09c8f8f34cdd82d0/dev/audit/rounds/round10/D7/arch-s2/`:
+Files are in `~/heatpump_optimizer/.claude/worktrees/agent-a09c8f8f34cdd82d0/dev/audit/rounds/round10/D7/arch-s2/`:
 - `harness.py`
 - `run_findings.sh`
 - `census.py`

@@ -6,9 +6,9 @@ Round 1 (`friction-prestudy.md`, this directory, commit `8eab7dfd` at
 `1913f0dd` = `v6.7.16`) folded R9-FR-2 (#1860, merged as #1891) and R9-FR-3
 (#1825, merged as #1892). This round re-measures everything at
 **`origin/main` = `86dbf0ca`**, 2026-10-05 ~21:20Z, in
-`/Users/timmalmstrom/hpo-seats/r9-fr-1/wt`. Raw outputs:
-`/Users/timmalmstrom/hpo-seats/r9-fr-1/scratch/`. Every figure's command is in
-§8. The triage seat's scratch (`/Users/timmalmstrom/hpo-seats/friction-triage/`)
+`~/hpo-seats/r9-fr-1/wt`. Raw outputs:
+`~/hpo-seats/r9-fr-1/scratch/`. Every figure's command is in
+§8. The triage seat's scratch (`~/hpo-seats/friction-triage/`)
 and round 1's (`r9-fr-study/scratch/`) are gone from disk; nothing below is
 carried from either — round 1's per-window figures are re-derived and agree
 (§1).
@@ -244,7 +244,7 @@ of §3 and R9-FR-1's own `resume` update, for the orchestrator to apply.
 
 ## 8. Figure index
 
-All in `/Users/timmalmstrom/hpo-seats/r9-fr-1/wt` at `86dbf0ca`; scripts and
+All in `~/hpo-seats/r9-fr-1/wt` at `86dbf0ca`; scripts and
 outputs in `../scratch/`.
 
 1. Sweep: `GITHUB_TOKEN=$(gh auth token) node .claude/workflows/policy_lint.mjs --stats --since <tag>` for v6.7.12–16 → `sweep-<tag>.txt`; table by `python3 ../scratch/census_table.py ../scratch` → `census-table.md`. Rounds: the `STATS ROUNDS` line of each, differenced.
