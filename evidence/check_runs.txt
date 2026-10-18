@@ -1,0 +1,2 @@
+check-runs on 9951f224 (get_check_runs, 46 runs): every run completed; conclusions success or skipped; none failure/cancelled/timed_out.
+pr-contract: 2 runs success (117722596693, 117722692775). budget-raise-gate: 2 success. arch-score: 2 success. closures, fast (3.14), coverage, mutation, typing, briefs, delivery-status, nightly-status: success.

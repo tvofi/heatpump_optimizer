@@ -1,0 +1,17 @@
+RESULT Cusum.reset_loads=2 sites
+RESULT Cusum.reset_typed_hits=0 sites
+RESULT InputReader.value_loads=30 sites
+RESULT InputReader.value_typed_hits=0 sites
+RESULT InputReader.text_loads=11 sites
+RESULT InputReader.text_typed_hits=0 sites
+RESULT InputReader.flag_loads=7 sites
+RESULT InputReader.flag_typed_hits=0 sites
+RESULT BoostState.as_dict_loads=35 sites
+RESULT BoostState.as_dict_typed_hits=0 sites
+RESULT HeatPumpOptimizerCoordinator.dhw_temperature_loads=26 sites
+RESULT HeatPumpOptimizerCoordinator.dhw_temperature_typed_hits=0 sites
+RESULT candidates_with_zero_typed_hits=6
+RESULT total_typed_hits=0 sites
+RESULT thread_factor=1.000
+RESULT load1=1.53
+RESULT swapins=0

@@ -1,0 +1,4 @@
+  read     census structure.py dead_methods: 0 -> 1 with one planted member, refused on dead_methods
+  read     census structure.py dead_top_level_symbols: 1 -> 2 with one planted member, refused on dead_top_level_symbols
+  REFUSED  census structure.py name_kept_members: its count line cannot be read at the unplanted tree
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
