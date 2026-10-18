@@ -1220,14 +1220,17 @@ def planned_draw_runs(
 
     ``modulation_floor`` is the install probe's refusal (#1955): a level in
     ``(MIN_RUNNING_DRAW_KW, p_min)`` is a duty-cycle average, and a
-    switch-plus-setpoint surface cannot realize one. ``None`` — every caller
-    that does not pass it — keeps the duty-cycle reading.
+    switch-plus-setpoint surface cannot realize one. It arrives as THIS
+    argument and nowhere else: the arbiter used to hand it over through a
+    ``modulation_floor`` attribute on this function object, one module-level
+    slot for a per-plan value that any floorless caller then read
+    (D7-arch3-04). ``None`` — every caller that does not pass it — keeps the
+    duty-cycle reading.
     """
-    floor = (
-        modulation_floor
-        if modulation_floor is not None
-        else getattr(planned_draw_runs, "modulation_floor", None)
-    )
+    # The floor is this argument alone (D7-arch3-04): the lookup that could
+    # fall back to a module-level attribute is gone, and ``floor`` names the
+    # value the two lines below read.
+    floor = modulation_floor
     total = float(space_kw) + float(dhw_kw)
     below_floor = False
     if floor is not None:
