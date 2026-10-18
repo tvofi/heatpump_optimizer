@@ -1,0 +1,4 @@
+2026-10-16T07:29:28.2522588Z   lane 3 (941.3s recorded): tests/arch_score.py, tests/entities.py, tests/boost_drift_replay.py, tests/backtest.py, tests/edge.py, tests/manual_plan.py, tests/doc_claims.py
+2026-10-16T07:29:28.3490143Z   lane 3 (941.3s recorded): tests/arch_score.py, tests/entities.py, tests/boost_drift_replay.py, tests/backtest.py, tests/edge.py, tests/manual_plan.py, tests/doc_claims.py
+2026-10-16T07:47:13.3691136Z   [07:47:13] record tests/boost_drift_replay.py 
+2026-10-16T07:54:23.8299265Z   [07:54:23] done   tests/boost_drift_replay.py (exit 0)

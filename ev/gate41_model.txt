@@ -1,0 +1,20 @@
+A null: synchronize code run, all units green
+    gate: pass
+    expected by review: pass
+
+B prelude emits pr='' on a pull_request code run: pr-contract and budget-raise-gate never run
+    gate: pass
+    expected by review: pass = GREEN WITH TWO REQUIRED JOBS NEVER RUN
+
+C retarget (edited + changes.base, kind=code) runs to completion
+    gate: FAIL governance / policy-docs: ABSENT; governance / wave-script: ABSENT; governance / env-matrix: ABSENT ...
+    expected by review: FAIL: governance/hassfest/validate skipped by their action!='edited' guard
+
+D retarget R pending, then a body edit: R cancelled unstarted, V carries C1 (OLD base)
+    gate: pass
+    expected by review: pass = GREEN, no code unit ever ran against the new base
+
+E synchronize C2 pending behind cancelling C0, edit 0-4 s later replaces it
+    gate: FAIL no code verdict at this head
+    expected by review: FAIL, and nothing re-queues a code run: stuck until a new push
+

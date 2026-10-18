@@ -1,0 +1,29 @@
+run id      wall  cov_end  closures_waited  closures_dur  cp_tail  last job            gain_if_no_edge
+39158277850   1917    1618            1472           278       17  composed-proof         276
+39158231320   2314    1102            1072          1186       23  composed-proof         339
+39155370055   1131     598             576           509       21  composed-proof         431
+39154182950   2967    1012             993          1297      655  composed-proof         181
+39153860761   1218     544             471           653       19  composed-proof         469
+39153812016   1453     760             665           674       17  composed-proof         594
+39153372062   3004    1430            1362          1553       17  composed-proof        1358
+39153364517   4175    1347            1314          1601     1223  composed-proof        1310
+39152091270   2619    1370            1366          1215       18  composed-proof         153
+39151687395   1802    1358            1366           273       28  composed-proof         346
+39151673429   2201     973             936          1097      128  composed-proof         307
+39151671544   3861    1324            1305          1479     1055  composed-proof         838
+39150747003   1858     748             738          1079       18  composed-proof         725
+39150736179   2398     735             715          1576       84  composed-proof         307
+39150084062   3449    1270            1323           857     1245  composed-proof        1246
+39148893518   4063    1255            1232          1557       20  mutation-autofix         0
+39148592346    962     418             359           525       16  composed-proof         356
+39148193627    360      99              57           236       22  composed-proof          54
+39147429159   1197     624             573           552       19  composed-proof         556
+39146604817   1839    1015             950           800       21  composed-proof         121
+39146484549   3967    1269            1254          1464     1231  composed-proof        1178
+39146364588   2442     709             685           933       19  lane-proofs              0
+39144835740   1111     603             579           491       14  composed-proof         487
+39144259024   3546    1255            1237          1049     1239  composed-proof        1234
+
+runs 24; last job: {'composed-proof': 22, 'mutation-autofix': 1, 'lane-proofs': 1}
+closures waited after closure-scope: median 972 s
+run would end sooner without the coverage->closures edge: median 394 s, max 1358 s, runs gaining >0: 22

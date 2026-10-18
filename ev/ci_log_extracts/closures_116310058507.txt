@@ -1,0 +1,4 @@
+2026-10-15T07:50:02.0436369Z   lane 1 (3379.1s recorded): tests/boost_drift_replay.py
+2026-10-15T07:50:02.1047348Z   lane 1 (3379.1s recorded): tests/boost_drift_replay.py
+2026-10-15T07:50:02.1129553Z   [07:50:02] record tests/boost_drift_replay.py 
+2026-10-15T07:53:43.1762271Z   [07:53:43] done   tests/boost_drift_replay.py (exit 0)

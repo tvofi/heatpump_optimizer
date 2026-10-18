@@ -1,0 +1,4 @@
+2026-10-18T07:27:24.7214396Z   lane 1 (1126.3s recorded): tests/stress.py, tests/boost_drift_replay.py, tests/backtest.py, tests/plan_view.py, tests/card.mjs, tests/card_drift.mjs, tests/layout.py, tests/structure.py, tests/wood_advisor.py, tests/block_duty.py, tests/env_drift.py, tests/typing_ruler.py
+2026-10-18T07:27:24.8848415Z   lane 1 (1126.3s recorded): tests/stress.py, tests/boost_drift_replay.py, tests/backtest.py, tests/plan_view.py, tests/card.mjs, tests/card_drift.mjs, tests/layout.py, tests/structure.py, tests/wood_advisor.py, tests/block_duty.py, tests/env_drift.py, tests/typing_ruler.py
+2026-10-18T07:41:14.4872451Z   [07:41:14] record tests/boost_drift_replay.py 
+2026-10-18T07:49:14.8111333Z   [07:49:14] done   tests/boost_drift_replay.py (exit 0)

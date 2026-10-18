@@ -1,0 +1,5 @@
+2026-10-18T18:59:57.7890979Z     raise HTTPError(req.full_url, code, msg, hdrs, fp)
+2026-10-18T18:59:57.7891560Z urllib.error.HTTPError: HTTP Error 403: Forbidden
+2026-10-18T18:59:57.8007697Z ##[error]Process completed with exit code 1.
+2026-10-18T18:59:57.8403534Z ##[error]the record step did not run; a beat owed cannot be distinguished from one skipped
+2026-10-18T18:59:57.8407058Z ##[error]Process completed with exit code 1.

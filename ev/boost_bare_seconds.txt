@@ -1,0 +1,6 @@
+closures job (schedule run)  boost_drift_replay.py bare recording on the CI runner, seconds
+116310058507 221
+116863532407 430
+117338282214 424
+117616974645 480
+tests/closures.json recorded seconds: 239.1

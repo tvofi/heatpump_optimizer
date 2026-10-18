@@ -1,0 +1,8 @@
+STEPSET: before 88 after 88 lost 0 gained 0
+rc=0
+STEPSET: before 86 after 88 lost 0 gained 2
+rc=0
+STEPSET: before 102 after 88 lost 16 gained 2
+rc=0
+STEPSET: before 78 after 77 lost 49 gained 48
+rc=0
