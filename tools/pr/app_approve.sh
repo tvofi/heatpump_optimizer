@@ -361,7 +361,7 @@ else:
     [ -n "$tok" ] || continue
     # A posted verdict names its evidence home-relative (`~/...`, bus.sh's
     # home_rel, #2310): resolved here, against this machine's own $HOME.
-    case "$tok" in "~/"*) tok="$HOME/${tok#\~/}" ;; esac
+    :
     case "$tok" in
       /*/*) ;;   # at least two path components -- refuses the bare root too
       *) evwhy="$tok has fewer than two path components"; continue ;;
