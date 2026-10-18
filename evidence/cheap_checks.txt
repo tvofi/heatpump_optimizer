@@ -1,0 +1,1 @@
+subprocess.CalledProcessError: Command '['git', '-C', '/Users/timmalmstrom/hpo-seats/r10s3/review-pump-model/mut3/m0', 'ls-files', '-z', '--', 'custom_components/heatpump_optimizer']' returned non-zero exit status 128.
