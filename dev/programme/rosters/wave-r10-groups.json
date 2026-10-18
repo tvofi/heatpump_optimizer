@@ -2929,7 +2929,8 @@
    ],
    "carry": [
     "The new fixture is a new tracked file: classify it.",
-    "D14-s3 (the nightly-replay seat) re-runs on the real day once it has landed."
+    "D14-s3 (the nightly-replay seat) re-runs on the real day once it has landed.",
+    "From R10-REPLAY-LOOPNORM (#2339, finding sweep P61): the replay loop figure is normalised by a pure-Python ruler (budget 0.426 -> 0.111) and the narrowing is a construction claim one box could not measure; the empirical series comparison was deferred to \"next week's timed runs\". Once this lane gates the nightly replay, read the loop_cpu_ratio series from the nightly runs, compare its spread to the pre-#2339 series, and record the comparison in the pull request. If the spread has not narrowed, report to the orchestrator BEFORE any budget raise (a raise needs tvofi)."
    ],
    "architect_note": null,
    "resume": {
