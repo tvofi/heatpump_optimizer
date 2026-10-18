@@ -563,6 +563,11 @@ INERT_EXCEPT = (
     # being read, and check refuses the committed table before it compares
     # a recording (#357).
     "tools/pr/README.md",
+    # R10-CI-CONCURRENCY: tests/entities.py opens the cancel-superseded job's
+    # program (CI's recording at 72a3f1bbd, which closures-autofix could not
+    # merge: skip-merge-failed on this pair). Same route as the README above:
+    # the tools/pr/ prefix stays INERT, the file moves to the recorded closure.
+    "tools/pr/cancel_superseded.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -2794,9 +2799,6 @@ _RENAME_EXEMPT = ("--no-renames", "hash-object -t tree /dev/null", "--cached",
                   "rename-null-control")
 #: (file, text the line must contain, reason). Exact and per file.
 RENAME_ALLOW = (
-    ("tests/entities.py", 'git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"',  # rename-null-control
-     "a fixture copy of graders-head-copy's job text that codeowners_gap's "
-     "restore arms are driven over; it is data, never run"),
     ("tools/audit/seat/merge_train.py", "the `git diff --name-only h0..h` delta names no branch-own file",  # rename-null-control
      "a docstring describing the delta check; prose, never run"),
     ("tools/audit/seat/ref_privacy.py", "of `git diff --name-only --diff-filter=A`:",  # rename-null-control
@@ -2893,7 +2895,8 @@ def _selftest_renames(pin) -> None:
         (Path(td) / "tests" / "x.py").write_text(
             'a = run(["git", "diff", "--name-only", "b...h"])\n'  # rename-null-control
             'b = run(["git", "diff", "--no-renames", "--name-only", "b...h"])\n')
-        (Path(td) / "tests" / "entities.py").write_text("")
+        (Path(td) / "tools" / "policy").mkdir(parents=True)
+        (Path(td) / "tools" / "policy" / "policy_lint.mjs").write_text("")
         (Path(td) / "tests" / "y.mjs").write_text(
             '// git diff --name-only in a comment\n'  # rename-null-control
             'const a = git("diff", "--name-only", `${b}...HEAD`);\n'  # rename-null-control
@@ -2915,7 +2918,7 @@ def _selftest_renames(pin) -> None:
         bad_t == ['tests/x.py:1: a = run(["git", "diff", "--name-only", "b...h"])'], str(bad_t))  # rename-null-control
     pin("and reports every allow entry nothing matches as stale",
         len(stale_t) == len(RENAME_ALLOW)
-        and any(x.startswith("tests/entities.py: ") for x in stale_t), str(stale_t))
+        and any(x.startswith("tools/policy/policy_lint.mjs: ") for x in stale_t), str(stale_t))
 
 
 CLOSURES_REL = "tests/closures.json"

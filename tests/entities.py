@@ -3886,6 +3886,15 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
+        # D7-s2-54 (R10-SENSOR-PAYLOAD): the plan step's zone setpoints are
+        # published under one pair of names by zone_setpoint_attributes; the
+        # climate entity, Current Setpoint and Heat Pump Action each spelled
+        # the renaming before it.
+        dict(fact="zone_setpoint_names", finding="D7-s2-54",
+             match=_p2_match_node(
+                 (ast.Constant,), r"_floor_setpoint",
+                 lambda n: n.value in ("upper_floor_setpoint", "lower_floor_setpoint")),
+             owners=["entity.py::zone_setpoint_attributes"], dispositions={}),
         # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
         # #2365's review): which plan step an instant falls in. One concern --
         # the optimizer's plan step covering now -- read by the solve's anchor
@@ -3941,6 +3950,16 @@ _P2_CENSUSES = {
     # _loaded_entries's, consulted by every action before it can return.
     "service_entries_resolved_first": (
         "tests/features.py", "every action resolves its config entries before it returns"),
+    # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
+    # payload_number's -- every number state driven with a bool and a text
+    # payload publishes neither, nor reads either as a number.
+    "payload_number_published": (
+        "tests/finite_boundary.py",
+        "every number state publishes None, never the bool or the text, from a "),
+    # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
+    # runtime-object mixin's included.
+    "finite_scrub_resolves_mro": (
+        "tests/finite_boundary.py", "a package mixin with runtime base object"),
 }
 
 
@@ -4059,6 +4078,9 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
+_P2_PLANTS["zone_setpoint_names"] = (
+    "\n\ndef _p2_plant(action):\n    return {\"upper_floor_setpoint\": action[\"upper_setpoint\"]}\n"
 )
 _P2_PLANTS["slot_floor_rule"] = (
     "\n\ndef _p2_plant(now):\n"
@@ -4623,6 +4645,17 @@ def _p6_arm_k(walks, declared=None):
     for name, nodes in walks.items():
         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
             continue
+        # A sensor declaring its state's payload path (sensor._PayloadNumberMixin)
+        # reads the path's first key off the payload: a declaration, not a
+        # ``.get`` call, so the walk below would not see it.
+        for n in nodes:
+            if isinstance(n, ast.Assign) and any(
+                    isinstance(t, ast.Name) and t.id == "_payload_path" for t in n.targets) \
+                    and isinstance(n.value, ast.Tuple) and n.value.elts \
+                    and (key := _p6_lit(n.value.elts[0])):
+                reads += 1
+                if key not in produced:
+                    seams.add(f"{name}:{n.lineno} {key}")
         fns = [n for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
         accessors = {
             fn.name for fn in fns
@@ -4953,6 +4986,15 @@ R.check(
     "every coordinator.data key a platform reads is one production writes (P6 K)",
     _p6_k_reads > 0 and not _p6_k,
     f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
+)
+# Null control for the declared-path read: a sensor naming a key no
+# producer writes in its ``_payload_path`` is a seam.
+_p6_k_plant = {**_P6_WALKS, "sensor.py": _P6_WALKS["sensor.py"] + list(ast.walk(ast.parse(
+    "class _P6Plant:\n    _payload_path = (\"p6_no_such_key\", \"leaf\")\n")))}
+R.check(
+    "a declared _payload_path naming an unwritten key is a P6 K seam (null control)",
+    any(seam.endswith(" p6_no_such_key") for seam in _p6_arm_k(_p6_k_plant)[1]),
+    "the planted declaration was not read",
 )
 R.check(
     "every entity id a blueprint, the card or the package names is one a platform "
@@ -24805,10 +24847,11 @@ _NS_OVERRIDES = sorted(
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly six jobs override the workflow's read-only floor, four of them "
-    "read-only",
-    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
-                      "closures-autofix", "mutation-autofix", "nightly-status"],
+    "exactly seven jobs override the workflow's read-only floor, the newest "
+    "(R10-CI-CONCURRENCY's cancel-superseded, `actions: write`) running the base's program",
+    _NS_OVERRIDES == ["cancel-superseded", "ci-ratchet", "claims-autofix",
+                      "closures", "closures-autofix", "mutation-autofix",
+                      "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -26598,7 +26641,7 @@ steps:
       HEAD: ${{ github.event.pull_request.head.sha }}
     run: |
       set -euo pipefail
-      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+      python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
       for g in coverage_ratchet delivery_status; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
@@ -26749,11 +26792,21 @@ def _pt_armed(docs: dict) -> "set[str]":
 
 
 def _pt_trigger(script: str, planted: str) -> str:
-    """Run the arm's `changed` step on a planted one-file diff; its governance output."""
+    """Run the arm's `changed` step on a planted one-file diff; its governance output.
+
+    The step lists the diff with `tests/closure.py changed`, so the planted
+    base carries this tree's copy of it and `python` resolves to this
+    interpreter: the step runs the real producer, not a stand-in.
+    """
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
         _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
+        Path(_td, "tests").mkdir()
+        Path(_td, "tests", "closure.py").write_text(Path("tests/closure.py").read_text())
+        _bin = Path(_td, ".bin")
+        _bin.mkdir()
+        os.symlink(sys.executable, _bin / "python")
         subprocess.run(_g + ["add", "-A"], check=True, env=_env)
         subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
         _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
@@ -26765,6 +26818,7 @@ def _pt_trigger(script: str, planted: str) -> str:
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
+                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
                             "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"
@@ -28304,9 +28358,9 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
         "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
 R.check(
     "and the same tests.yml with its restores and token hygiene undone is "
-    "refused on each of the three autofix jobs (null control)",
-    _PRW_SUBJECTS == ["tests.yml:claims-autofix", "tests.yml:closures-autofix",
-                      "tests.yml:mutation-autofix"],
+    "refused on each of the three autofix jobs and the cancel-superseded job (null control)",
+    _PRW_SUBJECTS == ["tests.yml:cancel-superseded", "tests.yml:claims-autofix",
+                      "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
 _PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(
