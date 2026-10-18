@@ -242,22 +242,26 @@ class Cusum:
         del self.evidence[:-6]
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "stat": round(self.stat, 4),
             "tripped": self.tripped,
             "evidence": list(self.evidence),
             "last_fed": (
                 self.last_fed.isoformat() if self.last_fed is not None else None
             ),
-            "reference": (
+        }
+        if self.reference_hours is not None:
+            # Only a tracked detector persists a fit: the zero-referenced
+            # one's payload is the same as before the reference existed.
+            data["reference"] = (
                 [round(v, 6) for v in self.reference]
                 if self.reference is not None else None
-            ),
-            "reference_cov": (
+            )
+            data["reference_cov"] = (
                 [round(v, 9) for v in self.reference_cov]
                 if self.reference_cov is not None else None
-            ),
-        }
+            )
+        return data
 
     def load(self, data: dict[str, Any] | None) -> None:
         """Restore state; thresholds stay code-owned, never persisted."""
@@ -280,7 +284,11 @@ class Cusum:
         # payload from before it existed loads exactly like a fresh one.
         ref = _finite_floats(data.get("reference"))
         cov = _finite_floats(data.get("reference_cov"))
-        if ref and cov and len(cov) == len(ref) ** 2 and _positive_definite(cov, len(ref)):
+        if (
+            ref and cov and len(cov) == len(ref) ** 2
+            and all(abs(v) <= REFERENCE_PRIOR_COV for v in cov)
+            and _positive_definite(cov, len(ref))
+        ):
             self.reference, self.reference_cov = ref, cov
         else:
             self.reference, self.reference_cov = None, None
