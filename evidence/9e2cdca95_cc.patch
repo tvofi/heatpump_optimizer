@@ -1,0 +1,71 @@
+diff --cc tests/entities.py
+index 7e2f4aad7,5be602ac8..949730ea9
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@@ -3878,15 -3886,42 +3886,51 @@@ def _p2_registry(sources)
+                       "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
+                       "selector's renderer walks the wrap back to a range",
+               }),
+ +        # D7-s2-54 (R10-SENSOR-PAYLOAD): the plan step's zone setpoints are
+ +        # published under one pair of names by zone_setpoint_attributes; the
+ +        # climate entity, Current Setpoint and Heat Pump Action each spelled
+ +        # the renaming before it.
+ +        dict(fact="zone_setpoint_names", finding="D7-s2-54",
+ +             match=_p2_match_node(
+ +                 (ast.Constant,), r"_floor_setpoint",
+ +                 lambda n: n.value in ("upper_floor_setpoint", "lower_floor_setpoint")),
+ +             owners=["entity.py::zone_setpoint_attributes"], dispositions={}),
++         # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
++         # #2365's review): which plan step an instant falls in. One concern --
++         # the optimizer's plan step covering now -- read by the solve's anchor
++         # and by the pump arbiter's ledger row and silent-window lookup, so one
++         # owner on one width: plan_step.plan_step_start on PLAN_STEP_MINUTES.
++         # It was spelled three times: coordinator._solve_anchor on
++         # FORECAST_STEP_MINUTES, pump_arbiter._step_start on a literal 15, and
++         # _observe inline. The other hits are different rules, each driven
++         # against the owner on the same probes by
++         # dev/audit/harnesses/r10_slot_floor_twins.py, whose own precondition
++         # is that the driven set is the enumerated one.
++         dict(fact="slot_floor_rule", finding="D7-s3-8x-slotfloor",
++              match=_p2_match_node(
++                  (ast.BinOp,), r"\.minute",
++                  lambda n: isinstance(n.op, (ast.FloorDiv, ast.Mod))
++                  and ".minute" in ast.unparse(n)),
++              owners=["plan_step.py::plan_step_start"],
++              dispositions={
++                  "tariff.py::_window_slot":
++                      "the METERING window, a different rule: anchored at local "
++                      "midnight so a 90/120-minute DSO window advances the hour, "
++                      "with ``fold`` restored so the autumn hour's two passes "
++                      "keep two keys. Same reading only for windows that divide "
++                      "the hour -- the twins harness's --perturb (the fold "
++                      "dropped) reads 2 of 10 probes apart, and both are the "
++                      "autumn folds",
++                  "optimizer.py::HeatPumpOptimizer._window_offset_steps":
++                      "the metering window's PHASE, not its start: steps from "
++                      "now to the DSO's next boundary, the same modulo asked for "
++                      "a distance where tariff._window_slot's anchor is the "
++                      "instant itself",
++                  "price_model.py::PriceShapeModel.quarter_factor":
++                      "an index INTO a learned quarter-hour profile, not a "
++                      "floored instant: it returns a slot number between 0 and "
++                      "QUARTERS_PER_HOUR, and no datetime at all",
++              }),
+      ]
+  
+  
+@@@ -4035,9 -4060,11 +4079,14 @@@ _P2_PLANTS["peak_tie_rule"] = 
+  _P2_PLANTS["cyclic_range_wrap"] = (
+      "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+  )
+ +_P2_PLANTS["zone_setpoint_names"] = (
+ +    "\n\ndef _p2_plant(action):\n    return {\"upper_floor_setpoint\": action[\"upper_setpoint\"]}\n"
+ +)
++ _P2_PLANTS["slot_floor_rule"] = (
++     "\n\ndef _p2_plant(now):\n"
++     "    return now.replace(minute=now.minute - now.minute % 15,"
++     " second=0, microsecond=0)\n"
++ )
+  _P2_PLANTS["entity_write_domain"] = (
+      "\n\nasync def _p2_plant(hass):\n"
+      "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"

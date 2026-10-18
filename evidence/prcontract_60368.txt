@@ -1,1 +1,0 @@
-pr-contract 117675820781 at 60368fbac: failure, failed step 'Check the body against the contract'; log blob unreachable through the proxy. Green at head: 117718962099, 117719079174.

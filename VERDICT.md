@@ -2,57 +2,55 @@ Fix review: merge f4e168719d12f071bbc7771944e9430147a223db
 
 bus-nonce: a71ad76c02dff7e6ce6a5308fcc45606
 
-Review round 4. Round 1 blocked at `aac8c5e80`. Round 2 returned merge at `98d33ce03`. Round 3 carried that merge to `6f6aa4e48`. This round judges only the resolution delta, `6f6aa4e48..f4e168719`, by `fix-review.md` step 12. The last verdict was a merge, so the round-4 re-cut rule does not bite.
+Review round 4, by a cloud seat. This re-takes the round-4 review whose return was lost. I judged it afresh and did not rely on that seat's evidence. Earlier verdicts on the PR: round 1 `blocked aac8c5e80` (three mutation survivors), round 2 `merge 98d33ce03` (its evidence is cited in round 3), and round 3 `merge 6f6aa4e48` (a carry). Since round 2 every round has judged a carry or a resolution delta, not a repair, so `fixer.md`'s "re-cut from the fourth round" has nothing to act on here.
 
-I measured head `f4e168719d12f071bbc7771944e9430147a223db`. The merge base with origin/main is `55dc8d9c2`. origin/main is at `5a41a5669` both now and at the time of posting, and the PR head is unchanged at posting. My copy of the contract is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty. Evidence is under `/tmp/seat/rev2379/ev`.
+Measured head: `f4e168719d12f071bbc7771944e9430147a223db`. I re-read it just before writing this: `refs/heads/fix/r10-sensor-payload` and `refs/pull/2379/head` both point at it. Merge base with origin/main: `55dc8d9c2`. Evidence is in `ev/`.
 
-## Resolution delta
+## Resolution delta since the carried merge 6f6aa4e48
 
-The delta has five commits, all merges.
+The first-parent chain is `6f6aa4e48 -> fe4d15d76 (bot, ci: merge main) -> 60368fbac (bot, ci: merge main) -> b44e17cb0 (merges 9e2cdca95) -> f4e168719 (merges origin/main 55dc8d9c2)`. No authored commit lies on that range. Every commit is a merge.
 
-- `fe4d15d76` and `60368fbac` are `ci: merge main` by github-actions. They are clean merges, and `merge-tree` reproduces each tree byte for byte. The ledger driver resolved `structure_budgets.json` and `closures.json`.
-- `9e2cdca95` is tvofi's merge of `be2d3676e`. It **conflicted** in `tests/entities.py` in two hunks, both additions at the same spot. The hand resolution differs from the conflicted tree only by deleting the six marker lines and restoring one closing `)` (`resolution_9e2cdca95_entities.diff`). It keeps both sides: this branch's `zone_setpoint_names` P2 entry and plant, and main's `slot_floor_rule` entry and plant. That matches the body's `## Head` account.
-- `b44e17cb0` and `f4e168719` are clean, and their trees reproduce.
-- **The authored diff is unchanged.** Compare each end's three-dot diff against its own base: `6f6aa4e48` against `42e6dedb2`, and `f4e168719` against `55dc8d9c2`. The added and removed lines are identical across `custom_components/`, `tests/finite_boundary.py`, `tests/mutation_ledger/`, `tests/structure_budgets.json` (the `recorded_at` line aside), `tests/entities.py`, `tests/closures.json` and `dev/programme/delivery/`. The delta brings in main and nothing else.
+- The PR's own patch, `git diff <merge-base> <head>`, is the same at both ends: 41 files, +756/-385, at 6f6aa4e48 and at f4e168719. I compared the changed lines (`+`/`-`) of every file. Only `tests/structure_budgets.json` differs, and only in context lines: main moved `seam_cut_total` from 752 to 720 and `recorded_at`'s base value. The branch's own lines are unchanged (`duplication_copies 33 -> 17`, `recorded_at -> 811df3cf3`). See `ev/patch_delta_files.txt`.
+- I ran `git show --cc` on each merge (`ev/combined_merge_hunks.txt`). fe4d15d76, b44e17cb0 and f4e168719 have no combined hunks, so no evil-merge content. 60368fbac has one: the `structure_budgets.json` `recorded_at` / `seam_cut_total` adjacency, which keeps both sides. 9e2cdca95 has two hunks in `tests/entities.py` (`ev/9e2cdca95_cc.patch`). Both keep both sides, exactly as the body describes: the `zone_setpoint_names` P2 owner beside main's `slot_floor_rule`, and both `_P2_PLANTS` entries. No production file changed in any merge resolution.
 
-## Checks re-run at this head
+## Checks at this head
 
-- **Mutation proof of the resolved hunk.** Mutant: climate's `extra_state_attributes` writes `attrs["upper_floor_setpoint"]` directly, a second spelling outside the owner. In `tests/entities.py`, `P2 owners: zone_setpoint_names` goes red (`SEAM ['climate.py:266 ...']`), and so does the P2 null-control row. That is 3 failures against the head's baseline. I restored the mutant, which was in a separate worktree. So the resolved entry is live beside `slot_floor_rule`.
-- **`tests/entities.py` at the head reads `ALL 2349 ENTITY CHECKS PASSED`.** My first run read `1 of 2349` failed. The failing row was `graders-head-copy's delivery_status step ...`, which is the container's doing, not this PR's. This container's `BASH_ENV=/etc/profile.d/hpo-toolchain.sh` puts `/opt/hpo/venv-ci/bin` back in front of `PATH` inside the arm's `bash -e -c`, so the arm's stub `python` is shadowed. I reproduced this directly (`type python` gives the venv's python). Neither the arm nor `tests.yml` differs from main. With `env -u BASH_ENV`, every check passes. This is an instrument finding (below).
-- **`tests/finite_boundary.py` at the head reads `ALL 106 FINITE BOUNDARY CHECKS PASSED`.**
-- **Finder's harnesses at both ends.** I ran scratch copies of origin/main's files with `BASE` set to each end's SHA. The base end is `55dc8d9c2` and the head end is `f4e168719`.
-  - `shape_payload_guard`: `guard_families` 4 to 2, `driven_sites` 26 to 1, `disagreeing_probes` 3 (`0,True,'21.5'`) to 0.
-  - `scrub_escapes`: `escapes=0` over 91 entity classes at both ends.
-  - `probe_scrub_mixin`: `nan_published` 1 to 0, with `nan_published_outside_pkg` and `nan_published_null` at 0 at both ends.
-  - P6 `enumerate.py --tree`: `seams=56 instance=31 guarded=5 not_applicable=20` to `seams=26 instance=0 guarded=6 not_applicable=20`. Its null control: `--fixture clean` gives instance=0 and `--fixture reintro` gives instance=1.
-  - Every figure matches round 1's. The same blindness still applies: the mixin's seams leave the enumerator rather than becoming guarded by it. Round 1 covered that behaviourally.
-- **Budget decrease, step 14.** `duplication_copies` goes from 33 to 17, recorded in c15f92abf with its reason.
-  - Measured: `structure.py` reads 33 at the base and 17 at the head, and every ratchet row passes.
-  - Mechanism removed: I put back the base's `sensor.py`, `climate.py` and `entity.py` in the head tree, and the count returns to `33`. So the drop is the change's.
-  - What dropped: the four clone classes that vanished are the 11-copy, 4-copy and 2-copy `native_value` bodies and the 3-copy zone `extra_state_attributes`. That is 10+3+1+2 = 16 copies, all of them bodies the mixin and owners replaced. **Earned.**
-  - Plant: on the base, I rewrote one of the 11-copy `native_value` bodies cosmetically, with no deduplication (`IndoorTemp` as `(data or {}).get(...)`), and the count reads `32`. The instrument therefore credits a reworded clone. The diff's change is not that shape, because its bodies are deleted, not reworded. Per step 14 this is an instrument finding, not a block (below).
-- **Merge-tree.** `git merge-tree --write-tree origin/main(5a41a5669) f4e168719` exits 0 with no conflicts.
-- **Untouched paths.** `VERSION`, the manifest version, `RELEASE_NOTES.md` and `tests/golden/` are not in the three-dot diff.
-- **Forward-carry.** D8-s1-01 is in the R10-ARCH-SHAPES carry on origin/main (`wave-r10-groups.json:1739`). It carries the 1 and 4 control and a re-measure instruction, and the body names R10-ARCH-SHAPES and #2380.
-- **Head.** The body's `## Head` names `f4e168719...`.
+- **Merge with main.** `git merge-tree --write-tree origin/main <head>` exits 0 against c8cc75ea9. It also exits 0 against 176851e95, which main moved to during this review. That range touches only tooling and record paths and none of the PR's files (`ev/main_ahead_overlap.txt` is empty).
+- **CI.** The commit's check-runs API returns 46 runs: 31 success, 15 skipped, none failed or pending (`ev/check_runs.tsv`). All 11 workflow runs concluded success. `mutation` (job 117719203618) reads `MUTATION TABLE PASSED`. Its log shows the three round-1 survivors killed: climate.py:140 GUARD_OFF by finite_boundary, and entity.py:142 and sensor.py:2808 CMP_BOUND by entities. The null control `climate.py:43 NULL_COMMENT` survived every driver, as it should. It is not INCONCLUSIVE (`ev/mutation_job.log`).
+- **Red checks.** None is red at the head. The body answers the earlier red `mutation` and `nightly-ha (stable)`. pr-contract is green in both runs.
+- **Local checks.** `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2349 ENTITY CHECKS PASSED`. `tests/finite_boundary.py` prints `ALL 106 FINITE BOUNDARY CHECKS PASSED` with `number_states=50 number_state_escapes=0`. `tests/structure.py` passes with `duplication_copies 17 <= 17`. The body quotes 2348 and 101, taken at an earlier head. The increases come from main's checks merged in since (`git diff 98d33ce03 HEAD -- tests/finite_boundary.py` comes from main's store fixes 40ad33528 and 36f0f5cbe), not from this diff.
+- **VERSION, manifest, notes, claims.** VERSION, the manifest version, the `RELEASE_NOTES.md` heading, `tests/golden/` and both claim files are untouched three-dot from the merge base.
+- **Forward-carry.** D8-s1-01 is still on origin/main in R10-ARCH-SHAPES' `carry`, with the control and a re-run instruction (`ev/forward_carry_main.txt`).
+- **Role file.** `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract I followed is current.
 
-## CI
+## Mutants, mine, run at this head
 
-- **At the head, from the commit's check-runs API:** 46 runs, 31 success and 15 skipped, none red.
-  - `mutation` (117719203618), read from its log: `PIN RE-VERIFICATION: 8 reproduced`. It covers the three round-1 survivors (climate.py:140, entity.py:142, which is round 1's entity.py:140 after the shift, and sensor.py:2808), and reads `0 survivor(s) of 8 evaluated`, `MUTATION TABLE PASSED`. Not inconclusive.
-  - `closures`, `composed-proof`, `fast (3.14)`, `coverage`, `pr-contract` (twice), `budget-raise-gate` and `delivery-status`: all success.
-- **Reds in the range, step 11:**
-  - `nightly-ha (stable)` was red at `fe4d15d76`. The body answers it: a py-spy attach timeout, no file the diff reaches, green at the next head, cheaper detector none with its standing cost.
-  - `pr-contract` was red at `60368fbac`, in the `Check the body against the contract` step. I could not read its log, because the blob host is unreachable through this container's proxy. Both `pr-contract` runs at the head are green, so the body now satisfies the contract.
-  - The runs at `b44e17cb0` were `cancelled` because a newer head superseded them.
-  - `mutation`'s earlier reds are answered in the body's `## Red checks`.
+Each mutant ran in its own detached worktree at f4e168719, which was then removed. Records are in `ev/mutant_*.txt`.
 
-## Not verified by me
+- R1 (`payload_number` drops the bool test): KILLED by finite_boundary. Four arms fail, including the number-state census (`BaselineCostSensor.native_value: True -> 1`, ...).
+- R2 (numpy unwrap off, entity.py:140): KILLED by `payload_number reads numpy.int64(7) as 7 (#2379) [got None, want 7]`.
+- R3 (climate.py:140 `if measured is not None` set to False): KILLED by `climate current_temperature reads the measured upper floor first`.
+- R4 (sensor.py:2808 `<=` changed to `<`): KILLED by `_gap_energy_rate falls back to the contract price at a zero spot price`.
+- R5 (Home Assistant owner skip deleted): KILLED by `Home Assistant's own native_value default is not wrapped by the scrub`.
+- R6 (the scrub keys on `cls.__dict__` again, patch 00's shape): KILLED. The NaN-mixin arm, the no-rewrap arm and the #1541 leak arm all fail.
+- R7 (upper and lower names swapped in `zone_setpoint_attributes`): KILLED by finite_boundary `zone_setpoint_attributes keeps upper and lower apart`. tests/entities.py alone does not catch it, which is expected: P2 pins the single spelling, not the values.
 
-- I did not re-derive archscore `dS +5.6289` at this base. It is round 1's figure, and the authored diff is unchanged since then.
-- I did not re-run the mutation table. CI's run is cited, per step 11.
+Each body mutation claim I re-ran (M1, M2, M3, and the round-1 pins) reproduces with the arm the body names.
 
-## Instrument findings (non-blocking; for `finding-propagation.md`, not filed)
+## Finder's harnesses, both ends
 
-1. **`tests/structure.py` `duplication_copies` credits rewording.** One cosmetic rewrite of one clone moves the count by 1 (`plant_cosmetic.txt`: 33 to 32). A drop recorded under a "pay by improving code" ratchet should be checked by removing its mechanism, as step 14 already does. The count alone does not show that.
-2. **`tools/audit/seat/cloud-setup.sh`'s profile breaks a PATH-stubbing arm for cloud seats.** The profile goes into `BASH_ENV` (`PROFILE=${HPO_PROFILE:-/etc/profile.d/hpo-toolchain.sh}`), so every `bash -c` re-prepends the venv. A cloud reviewer running `tests/entities.py` therefore reads one false red, the graders-head-copy `delivery_status` row. CI is unaffected.
+Each is a scratch copy of origin/main's file. The only edits are `BASE` set to the end's SHA and `REPO` set to my worktree. The sha1 of each matches the body. The fork end is 811df3cf3 and the head end is f4e168719.
+
+- `shape_payload_guard.py`, fork: `implementations=35 guard_families=4 driven_sites=26 distinct_answer_vectors=5 disagreeing_probes=3 (0,True,'21.5')`. Head: `implementations=6 guard_families=2 driven_sites=1 disagreeing_probes=0`. Confirmed.
+- `probe_scrub_mixin.py`, fork: `mixin_supplied=0 nan_published=1 nan_published_outside_pkg=0 nan_published_null=0`. Head: `nan_published=0 nan_published_outside_pkg=0 nan_published_null=0`. Confirmed. The carry's outside-package figure is 0 at both ends.
+- `scrub_escapes.py`: `entity_classes=91 escapes=0` at both ends. Confirmed.
+- P6 `enumerate.py --tree` over `git archive` trees, fork: `seams=56 instance=31 guarded=5 not_applicable=20`. Head: `seams=26 instance=0 guarded=6 not_applicable=20`. Its null control gives `--fixture clean` instance=0 and `reintro` instance=1. Confirmed, with the blindness the body already discloses: mixin seams drop out of the enumerator, and my R1, R2 and R6 mutants plus the census cover them behaviourally.
+- archscore. `--diff 55dc8d9c2 HEAD`, the current merge base, gives `dS +5.6289 IMPROVES` (`duplication_copies 64 -> 41`, `coord_footprint 2506 -> 2499`). The dS matches the body. The body's command `--diff 811df3cf3 HEAD` now reads `+7.4577` at this head, because the head carries main's own improvements since 811df3cf3 (`private_cross_module`, `layer_violations`, `shared_inplace_writes` and others). The body's `coord_footprint 2547 -> 2540` endpoints are stale for the same reason. The PR's own delta is unchanged at -7. This is a stale figure, not a gamed one. The `duplication_copies` drop is earned: R6 and R1 show the mixin mechanism carries the behaviour, and round 2 confirmed that 30 per-sensor bodies were deleted.
+- `f1_active_now.py` (D8-s1-01): not re-run. `coordinator.py` is not in this diff, and the PR's patch is identical to the one round 2 measured flat (1 and 4).
+
+## Notes, not blocking
+
+- The figures the body quotes at earlier heads (2348 entity checks, 101 finite-boundary checks, the archscore against 811df3cf3) are true at the commits it names, not at this head. The head's figures above differ only by what main merged in.
+- `tests/closure.py select --diff 55dc8d9c2` at the head prints `MODE: SCOPED -- 22 script(s) run, 11 scoped out`. The body's `2 script(s)` was measured against 7e79b6762, a different base.
+
+I posted, approved, merged and pushed nothing, except the probe ref this verdict returns on.

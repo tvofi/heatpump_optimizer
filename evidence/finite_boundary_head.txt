@@ -88,7 +88,7 @@ RESULT class_unseeded_sections=27 count
   UNSEEDED thermal_learning:cop_baseline
   UNSEEDED thermal_learning:cop_health_cusum/evidence
   UNSEEDED thermal_learning:vent_cusum/evidence
-RESULT class_arm_seconds=33.4
+RESULT class_arm_seconds=34.9
   ok   the class sweep drove every seeded store (it cannot go green by skipping)
   ok   the healthy populated stores load clean through every loader and consumer (null control)
   ok   no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)
@@ -97,7 +97,7 @@ RESULT domain_fields=1275 count
 RESULT domain_probes=883 count
 RESULT domain_refused=0 count
 RESULT domain_unreached=0 count
-RESULT domain_arm_seconds=5.0
+RESULT domain_arm_seconds=5.1
   ok   every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)
   ok   a planted undeclared field is refused (the coverage check's own control)
   ok   the healthy rich seed round-trips unchanged through every loader and saver (null control)
@@ -173,3 +173,4 @@ RESULT number_state_escapes=0 count
 RESULT store_version_unsurfaced=0 count
 
 ALL 106 FINITE BOUNDARY CHECKS PASSED
+rc=0

@@ -1,4 +1,0 @@
-LEDGER-MERGE: resolved tests/structure_budgets.json
-LEDGER-MERGE: resolved tests/closures.json
-  closures.tests/entities.py: merged as a set (324 entries)
-  re-run the gate that owns this file before pushing
