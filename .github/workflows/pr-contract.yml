@@ -101,7 +101,6 @@ jobs:
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
-            'tools/audit/carry_audit.py' \
             'tools/audit/seat/roster_lib.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
@@ -340,24 +339,6 @@ jobs:
           INTENDED=$(jq -rs --rawfile body /tmp/pr-body.md '. as $r | [$r[].groups[]? | .fixes[]?] as $fixes | [$r[].groups[]? | .issues[]?] as $issues | [$issues[] | select(. as $n | ($fixes | index($n)) == null)] as $never | [ $body | match("\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s*:?\\s+(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)([0-9]+)"; "gi") | .captures[0].string | tonumber ] as $closes | [$closes[] | select(. as $n | ($never | index($n)) == null)] | unique | sort | map(tostring) | join(" ")' dev/programme/rosters/wave-r*-groups.json)
           if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh $INTENDED < /tmp/pr-body.md; else bash tools/pr/preflight.sh $INTENDED < /tmp/pr-body.md; fi
 
-      # finding-propagation.md's `Carry:` marker, refused where a body is
-      # written: every `## Friction` and `## Forward-carry` item, and every
-      # out-of-scope or residual item, names a destination that exists -- a
-      # live roster group, an issue a live group or carry file owns, an O-brief,
-      # or `dismissed: <reason>` (tools/audit/carry_audit.py). Round 10 left 39
-      # of 95 findings with no owner, 20 of them in a body. The roster is the
-      # tree's; an O-brief is out of tree, so here it passes UNVERIFIED and the
-      # train's pre-flight checks it. The program is the base's (restored
-      # above); a base without it skips, since an unrestored copy would be the
-      # pull request's own program grading it.
-      - name: Every finding the body records names its destination
-        if: always()
-        env:
-          PR_BASE: ${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}
-        run: |
-          set -euo pipefail
-          if git cat-file -e "$PR_BASE:tools/audit/carry_audit.py"; then python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md; else echo "skip carry_audit: the base has no tools/audit/carry_audit.py"; fi
-
       # CLAUDE.md rule 4, refused where it binds. `prepr.sh` step 5 held this
       # check and ran only on a seat's own machine; the self-test above drives
       # its predicate over strings and never reads this pull request's diff, so
@@ -383,3 +364,23 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi
+
+      # finding-propagation.md's `Carry:` marker, refused where a body is
+      # written: every `## Friction` and `## Forward-carry` item, and every
+      # out-of-scope or residual item, names a destination that exists -- a
+      # live roster group, an issue a live group or carry file owns, an O-brief,
+      # or `dismissed: <reason>` (tools/audit/carry_audit.py). Round 10 left 39
+      # of 95 findings with no owner, 20 of them in a body.
+      #
+      # THE PULL REQUEST'S OWN COPY, OWNED, AND LAST -- not pinned. A pinned
+      # grader must be declared in field_coverage.mjs, which is itself pinned,
+      # so the pull request adding one cannot pass (#1847); protection is
+      # ownership instead, as for fold_ledger.py: CODEOWNERS names carry_audit.py.
+      # It is the job's LAST step, so the one thing a pull-request program here
+      # could do to the job -- write $GITHUB_ENV for a later step -- reaches
+      # nothing. roster_lib.py, which it imports, is restored from the base
+      # above. The roster read is the tree's; an O-brief is out of tree, so here
+      # it passes UNVERIFIED and the train's pre-flight checks it.
+      - name: Every finding the body records names its destination
+        if: always()
+        run: python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md

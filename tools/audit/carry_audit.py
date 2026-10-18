@@ -71,7 +71,6 @@ import roster_lib  # noqa: E402  (the one reader of which roster, and of done)
 CARRIES_DIR = "dev/programme/carries"
 REPO = "tvofi/heatpump_optimizer"
 
-FENCE = re.compile(r"^\s*(```|~~~)")
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 BULLET = re.compile(r"^( {0,1})(?:[-*+]|\d+[.)])\s+")
 TABLE_SEP = re.compile(r"^\s*\|?\s*:?-{3,}")
@@ -111,7 +110,7 @@ def items(text: str, verdict: bool) -> list[dict]:
     finding-shaped ones)."""
     lines, fenced = [], False
     for ln in text.replace("\r\n", "\n").split("\n"):
-        if FENCE.match(ln):
+        if ln.lstrip().startswith(("```", "~~~")):  # a fence, as tests/doc_claims.py reads one
             fenced = not fenced
             continue
         if not fenced and not ln.lstrip().startswith("<!--"):
@@ -268,16 +267,25 @@ class Dests:
 
 def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
                issue_state=None) -> Dests:
+    # A carry file's destination issue is its own `issue` field (brief_lint.mjs
+    # owns the file-name grammar and refuses a name that disagrees with it).
     if ref:
         roster = roster_lib.show_roster(str(repo), ref)
         r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
                            capture_output=True, text=True)
-        names = r.stdout.split()
+        texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
+                                text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
     else:
         roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
-        d = repo / CARRIES_DIR
-        names = [p.name for p in d.iterdir()] if d.is_dir() else []
-    carry = {int(m.group(1)) for n in names if (m := re.search(r"carry-(\d+)\.json$", n))}
+        texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
+    carry = set()
+    for t in texts:
+        try:
+            n = json.loads(t).get("issue")
+        except (ValueError, AttributeError):
+            continue
+        if isinstance(n, int):
+            carry.add(n)
     return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state)
 
 
