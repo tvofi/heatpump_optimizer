@@ -13,7 +13,7 @@
  "archscore.hub_solve_writes": 41,
  "archscore.import_cycle_modules": 0,
  "archscore.layer_violations": 22,
- "archscore.literal_clone_copies": 184,
+ "archscore.literal_clone_copies": 186,
  "archscore.params_over_10": 12,
  "archscore.private_cross_module": 17,
  "archscore.public_unused": 1,
@@ -23,8 +23,8 @@
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 4): archscore.literal_clone_copies 184, archscore.card_dead_definitions 0 and archscore.card_clone_copies 108, the three keys the literal-clone and card metrics add to the score vector, recorded at the values card.measure and literal_clones.measure derive at 4b17a5419 (origin/main 6e5753a4a merged; R10-UX-SETUP #2346 gave D7-s3-02's textWidth its callers, so card_dead_definitions reads 0); a derived key with no row is refused as growth. No existing row moves. Previous: part 3's new rows (layer_violations 22, private_cross_module 17, unused_boundary_imports 1) and part 2's hub_solve_writes 38 -> 41 (mandate 6175172275).",
- "recorded_at": "4b17a54193b06f75973d3d874dc1a3f4ad1db554",
+ "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 4): archscore.literal_clone_copies 186, archscore.card_dead_definitions 0 and archscore.card_clone_copies 108, the three keys the literal-clone and card metrics add to the score vector, recorded at the values card.measure and literal_clones.measure derive at 45da9204f (R10-UX-SETUP #2346 gave D7-s3-02's textWidth its callers, so card_dead_definitions reads 0; the #2373 round-2 module-binding constant fold reads store.py's two equal-valued Domain bounds as one class, 184 -> 186); a derived key with no row is refused as growth. No existing row moves. Previous: part 3's new rows (layer_violations 22, private_cross_module 17, unused_boundary_imports 1) and part 2's hub_solve_writes 38 -> 41 (mandate 6175172275).",
+ "recorded_at": "45da9204f34a5ae431fe4ef4dc36ce3d81bbbd21",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 68
 }

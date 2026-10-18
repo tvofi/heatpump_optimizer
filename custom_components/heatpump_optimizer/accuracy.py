@@ -135,7 +135,7 @@ def utc_shift(when: datetime, delta: timedelta) -> datetime:
 
     ``+`` on a zoned stamp adds wall clock: across the autumn fold a 2 h lead
     lands 3 h later. Adding in UTC and converting back keeps the label a real
-    instant (the same walk ``_utc_step_starts`` makes); a naive stamp keeps
+    instant (the same walk ``drift.utc_step_starts`` makes); a naive stamp keeps
     the plain addition.
     """
     if when.tzinfo is None:

@@ -17,7 +17,7 @@ pattern: evidence strings, explicit release, nothing actuates from here.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, tzinfo
+from datetime import datetime, timedelta, timezone, tzinfo
 from typing import Any
 
 import numpy as np
@@ -45,6 +45,26 @@ def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
     difference, which is what the identity-zone test clock means by it.
     """
     return (_as_utc(newer) - _as_utc(older)).total_seconds()
+
+
+def utc_step_starts(
+    start: datetime, n: int, step: timedelta, offset: int = 0
+) -> list[datetime]:
+    """The start of steps ``offset`` .. ``offset + n - 1``, walked in UTC.
+
+    The one horizon clock: the optimizer's horizon, the coordinator's
+    forecast and price grids, and the silent-mode schedule all read it
+    (#1741), so no two of them can label one step differently. Adding a
+    wall-clock step invents the spring DST gap and stretches the autumn
+    overlap into a 75-minute step; walking the count in UTC keeps every label
+    a real instant, converted back to ``start``'s zone. A naive ``start``
+    keeps the wall-clock walk, so unzoned fixtures stay byte-identical.
+    """
+    tz = start.tzinfo
+    if tz is None:
+        return [start + step * (offset + i) for i in range(n)]
+    base = start.astimezone(timezone.utc)
+    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
 
 
 def stored_instant(
