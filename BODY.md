@@ -4,13 +4,14 @@ R10-CI-CONCURRENCY. A newer App push does not cancel an older run that was bot-s
 
 ## Head
 
-`a5849788bb9a67461fc74ee3231215a2c295b74e` (code head of `handoff/r10-ci-concurrency`, origin/main `f00e1d85b` merged in). Measured 2026-10-18.
+`1daf9361b43ff04a3c6a0b757ae7496217c91a2f` (code head of `handoff/r10-ci-concurrency`): the authored head `a5849788b` with origin/main merged in twice (last `003c3731c`, merge `a67b4c0f7`; the ledger driver merged `tests/closures.json`'s `inert_reads` as a set), the `INERT_EXCEPT` fix `b3ea5b31d`, and the re-derive `1daf9361b`. Round 2 (fixer takeover), measured 2026-10-18.
 
 What changed:
 - `tools/pr/cancel_superseded.py` (new, one owner, `--self-test`). Cancels nothing unless: the caller is a `pull_request` run whose sender is not `github-actions[bot]`; the branch is not `main`; the PR is open, same-repo, and its head right now is the caller's head SHA (the live-head check); then only runs on that branch of event `pull_request`/`workflow_dispatch`, queued/in progress/waiting, at a different head SHA and a lower run id. Unreadable answers cancel nothing; always exit 0 (an optimisation, never a gate).
 - `tests.yml`, `codeql.yml`: job `cancel-superseded` (`actions: write` on that job alone, `fetch-depth: 2`, `persist-credentials: false`), restoring the program from the pinned base sha and running it under `-I` (D11-s1-03); until the base carries the file it only prints a notice.
 - `governance.yml`: `instrument-self-tests` runs the self-test on every PR.
 - `.github/CODEOWNERS`: owns the script (`codeowners_gap.py`: `uncovered_files` 1 -> 0). `tests/closures.json`: the new harness recorded as an INERT READ of `tests/harness_headers.py` (`tools/pr/ci_predict.py --apply-inert`).
+- `tests/closure.py`: `tools/pr/cancel_superseded.py` joins `INERT_EXCEPT` (round 2). `tests/entities.py` opens it, so CI's recording at `72a3f1bbd` put an INERT file in that script's closure and the merge refused the pair (#357). Same route as `tools/pr/README.md` (R9-RO-4): the `tools/pr/` prefix stays INERT, the file moves to the recorded closure. Null control: `closure.is_inert('tools/pr/cancel_superseded.py')` is `True` at origin/main's `tests/closure.py` and `False` at this head; `is_inert('tools/pr/ci_predict.py')` stays `True`. The alternative, filing it under `inert_reads` by hand, lost: the recording would put it back in `files` and every later merge would refuse again.
 - `tests/entities.py`: the permission-override pin and the undone-copy pin list the new job (7 jobs override the floor; the D11-s1-03 null control now refuses 4 jobs).
 
 Not changed: the `concurrency:` blocks, `pr-contract.yml`, `budget-raise-gate.yml`, `arch-score.yml` (cancel false on purpose), `approve_held_runs.sh`, the dispatch and approve steps.
@@ -53,7 +54,14 @@ Ran locally: `tests/entities.py` (2346 checks, all passed at `82015b1ac`; the la
 
 ## Red checks
 
-`none` at the head I measured. Two reds appeared during the work and were answered in-tree, not left: `entities.py` "exactly six jobs override the workflow's read-only floor" and the D11-s1-03 pin ("runs tools/pr/cancel_superseded.py unrestored", and its null control now also refuses the new job). Both are the pins doing their work on a new write grant; the job now follows the pinned-base restore pattern and the pins list it. Expected possible reds on CI: `UNDER-SCOPED` / `INERT READS` on `tests/closures.json` for the new script (autofix: `ci: re-record closures`, `ci-autofix.md`); a new script with no recording is not UNDER-SCOPED, so add it to a derive lane if CI asks.
+At `72a3f1bbd` (check-runs read 2026-10-18): `closures`, `closures-autofix`, `pr-contract`. Every other check-run there is `success` or `skipped`.
+
+- `closures` (job 117671067846): `INERT READS UNDER-APPROXIMATED`, `tests/entities.py: tools/pr/cancel_superseded.py`. The new script sits under the INERT `tools/pr/` prefix and `tests/entities.py` opens it. Answered in-tree: the `INERT_EXCEPT` entry above, plus the `--single tests/entities.py` re-derive (`1daf9361b`). Cheaper detector: none needed; `closures` is the detector and named the pair on the first CI run. Standing cost: one CI cycle per new file under an INERT prefix that a gate script reads.
+- `closures-autofix` (job 117676459987): `AUTOFIX: skip-merge-failed`. The bot's merge refused `files on the INERT list are actually read by tests: tools/pr/cancel_superseded.py`, so no bot commit comes and the repair is the fixer's (`ci-autofix.md`). The same `INERT_EXCEPT` entry answers it: with the file no longer INERT, the recording merges. A cheaper detector does not exist locally: only a recording of `tests/entities.py` (674 s) sees the read, and `closure.py`'s refusal text already names both remedies.
+- Re-derive (round 2): `./tests/derive_closures.sh --single tests/entities.py` at the fix commit exited 1. The single failure of 2347 was `every tracked file is either measured or deliberately classified [... tools/pr/cancel_superseded.py]`: once out of INERT the file is an orphan until the table lists it, which is what this derive writes. `entities.py` runs every check and exits at the end, so the recording was complete: `--record-only` then `closure.py merge --partial --allow-failures` added the file to its closure, and a second `--single tests/entities.py` then exited 0 (`rc: 0` recorded). `closure.py check --in-dir <recording> --partial`: `committed closures cover every file this run touched`; `orphan_files()` is `[]`.
+- `pr-contract` (job 117678895680): the body did not name `closures-autofix`. This section answers it.
+
+Expected on the next head: none of the three, at this head. tvofi's review is still required at merge (CODEOWNERS and workflows).
 
 ## Forward-carry
 
@@ -65,3 +73,4 @@ Two findings from the pre-study, OUT of scope here and named for the orchestrato
 ## Friction
 
 `none`. Two process notes, not rule events: `tools/audit/seat/body_push.sh` is mode 0644 in the tree (it only runs as `bash <path>`), and a `pkill -f tests/entities.py` I ran to stop my own mis-redirected run matches every seat's process of that name; I could not tell whether another seat's run was hit.
+
