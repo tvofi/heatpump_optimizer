@@ -6037,7 +6037,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._release_registrations()
         await self._legionella.async_release_switch()
         await pump_arbiter.release(self)
-        forget_held(self.hass)  # the reader's and arbiter's latches re-warn after a reload
+        pass
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
