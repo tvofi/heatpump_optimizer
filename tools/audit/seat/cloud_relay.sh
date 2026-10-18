@@ -1,6 +1,7 @@
 #!/bin/bash
 # cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>    relay one cloud reviewer's verdict
 # cloud_relay.sh --watch [--interval N] [--once] [--confirm] [--log FILE]
+# cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]
 # cloud_relay.sh --self-test
 #
 # WHY. A cloud reviewer cannot run `bus.sh push-verdict`: the dispatch record
@@ -49,6 +50,27 @@
 # confirm never runs after a refused relay or a failed push-verdict, and writes
 # nothing for them (a refusal prints its reason, and --watch's .refused file
 # holds it). HPO_RELAY_CONFIRM replaces the confirm command (the self-test's stub).
+#
+# `pass` is the orchestrator's whole beat, ONE entry point a driver calls once
+# (and takes over relay_watch.sh, which was session-local). A pass runs two arms.
+#   handoff arm: for every OPEN pull request, topic = headRefName less a leading
+#     `fix/` and a trailing `-pr`. If handoff-body/<topic> and handoff/<topic>
+#     exist and handoff/<topic> is NOT an ancestor of the PR head, it runs
+#     update_pr.sh <branch> <code-sha> <body> <issues> (issues = the body's
+#     closing keywords), then approve_held_runs.sh on the branch, then
+#     `bus.sh dispatch <pr> <new head> cloud`, and appends
+#       OWED reviewer-fire <pr> <head40> <nonce> <utc>
+#     to the log: firing the cloud reviewer stays with the orchestrator. It only
+#     UPDATES an existing PR (a soft cap counts opens, and an update is not one).
+#     A handoff already contained in its PR, or with no body ref, does nothing;
+#     a topic whose update failed is noted in `<ledger>.handoff-failed` by
+#     `<topic> <code-sha>` and retried only when handoff/<topic> moves, with an
+#     `OWED handoff-update` line.
+#   relay arm: the --watch pass below (probe/rev-* -> relay -> confirm).
+# `--loop` repeats a pass every --interval seconds (default 120); without it a
+# pass runs once. HPO_RELAY_PRS, HPO_RELAY_UPDATE, HPO_RELAY_APPROVE and
+# HPO_RELAY_DISPATCH replace the PR lister (tab lines `number branch head`),
+# update_pr.sh, approve_held_runs.sh and bus.sh dispatch: the self-test's stubs.
 #
 # The ledger is ${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relayed and is
 # written only after push-verdict succeeded. HPO_RELAY_PUSH replaces the
@@ -132,16 +154,66 @@ watch() { # [--interval N] [--once]
   while :; do watch_once; [ -n "$once" ] && return 0; sleep "$every"; done
 }
 
+handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs body iss nh nonce
+  f=$state/cloud-handoff-failed; mkdir -p "$state"
+  { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
+    else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
+      -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } > "$state/cloud-prs.$$" \
+    || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }
+  while IFS=$'\t' read -r pr br head; do
+    [ -n "$pr" ] || continue
+    topic=${br#fix/}; topic=${topic%-pr}
+    hs=$(git ls-remote origin "refs/heads/handoff/$topic" | awk 'NF { print $1; exit }')
+    bs=$(git ls-remote origin "refs/heads/handoff-body/$topic" | awk 'NF { print $1; exit }')
+    [ -n "$hs" ] && [ -n "$bs" ] || continue
+    git fetch -q origin "refs/heads/handoff/$topic" "refs/heads/$br" 2>/dev/null
+    git cat-file -e "$hs^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null || continue
+    git merge-base --is-ancestor "$hs" "$head" && continue
+    if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi
+    git fetch -q origin "refs/heads/handoff-body/$topic" 2>/dev/null && body=$(mktemp "${TMPDIR:-/tmp}/cloud_body.XXXXXX") \
+      && git show "$bs:BODY.md" > "$body" 2>/dev/null || { echo "cloud_relay: no BODY.md at handoff-body/$topic" >&2; continue; }
+    iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')
+    echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
+    if ! { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2; then
+      echo "$topic $hs" >> "$f"; logline OWED "handoff-update $pr $topic $hs"; rm -f "$body"; continue
+    fi
+    rm -f "$body"
+    if [ -n "${HPO_RELAY_APPROVE:-}" ]; then "$HPO_RELAY_APPROVE" "$br"; else bash "$HERE/../../pr/approve_held_runs.sh" "$repo" "$br"; fi >&2 \
+      || logline OWED "approve-held-runs $pr $br"
+    nh=$( { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"; else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
+      -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } | awk -F'\t' -v p="$pr" '$1 == p { print $3; exit }')
+    printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { logline OWED "dispatch $pr no new head read after the update"; continue; }
+    if nonce=$( { if [ -n "${HPO_RELAY_DISPATCH:-}" ]; then "$HPO_RELAY_DISPATCH" "$pr" "$nh" cloud; else bash "$HERE/bus.sh" dispatch "$pr" "$nh" cloud; fi; } | sed -n 's/^bus-nonce: //p' | head -n 1) \
+       && printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$'; then
+      mkdir -p "$(dirname -- "${LOG:-$state/cloud-relay.log}")" && printf 'OWED reviewer-fire %s %s %s %s\n' "$pr" "$nh" "$nonce" "$(date -u +%FT%TZ)" >> "${LOG:-$state/cloud-relay.log}"
+      echo "cloud_relay: OWED reviewer-fire #$pr $nh"
+    else logline OWED "dispatch $pr $nh bus.sh dispatch failed; run it by hand"; fi
+  done < "$state/cloud-prs.$$"
+  rm -f "$state/cloud-prs.$$"
+}
+
+pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
+  local every=120 loop=""
+  while [ $# -gt 0 ]; do case $1 in
+    --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
+    *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
+  case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
+  while :; do handoff_arm; watch_once; [ -z "$loop" ] && return 0; sleep "$every"; done
+}
+
 self_test() {
   local t ok=0 bad=0 c=0 h n stub
   t=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay_st.XXXXXX") || exit 1
-  git init -q --bare "$t/o.git"; git init -q "$t/w"; cd "$t/w" || exit 1
+  # Every scratch repository comes from the shared helper (tests/throwaway_git.sh, #2051).
+  . "$HERE/../../../tests/throwaway_git.sh" && throwaway_git_env || exit 1
+  throwaway_git_init "$t/o.git" -q --bare; throwaway_git_init "$t/w" -q; cd "$t/w" || exit 1
   git remote add origin "$t/o.git"
   h=0123456789abcdef0123456789abcdef01234567; n=0123456789abcdef0123456789abcdef
-  export HPO_STATE_DIR=$t/state GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.invalid
+  export HPO_STATE_DIR=$t/state
   stub=$t/stub.sh; printf '#!/bin/sh\necho "$1" >> "%s/pushed"\necho "review/$1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n' "$t" > "$stub"; chmod +x "$stub"; export HPO_RELAY_PUSH=$stub
   mk() { # mk <pr> <subject-head> <verdict-head> <nonce-in-verdict> : push a probe ref for nonce n
-    rm -rf "$t/pr"; git init -q "$t/pr"; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
     printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$3" "$4" > "$t/pr/verdict.md"
     git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict $1 $2"
     git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-$1-${n:0:8}"; }
@@ -163,7 +235,7 @@ self_test() {
   chk "a non-numeric PR is refused" 2 relay x $n $h
   # normalisation of a bracketed blocked tail
   bl() { # bl <first line>: push a probe ref for PR 9 with that first line
-    rm -rf "$t/pr"; git init -q "$t/pr"; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
     printf '%s\n\nbus-nonce: %s\n' "$1" "$n" > "$t/pr/verdict.md"
     git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict 9 $h"
     git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-9-${n:0:8}"; }
@@ -230,6 +302,49 @@ self_test() {
   watch_once >/dev/null 2>&1
   chk "a watch pass with --confirm confirms and logs POSTED" 0 grep -q "^POSTED .* 5 " "$LOG"
   CONFIRM=
+  # the handoff arm (a bare origin holds PR branches, handoff/ and handoff-body/ refs)
+  unset HPO_RELAY_PUSH; export HPO_RELAY_PUSH=$stub; LOG=$t/pass.log; : > "$LOG"; CONFIRM=
+  prs=$t/prs.tsv; ustub=$t/ustub.sh; dstub=$t/dstub.sh; astub=$t/astub.sh; N40=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  hc() { git -C "$t/pr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"; }
+  mkref() { git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/$1"; }
+  rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; hc base; mkref fix/topic-a-pr; PRH=$(git -C "$t/pr" rev-parse HEAD)
+  printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+  printf '#!/bin/sh\ncat "%s"\n' "$prs" > "$t/lister.sh"; chmod +x "$t/lister.sh"; export HPO_RELAY_PRS=$t/lister.sh
+  # update stub: records args, advances the PR head to a new commit that contains the handoff
+  printf '#!/bin/sh\necho "$1 $2 $(basename "$3" | cut -c1-0) $4 $5" >> "%s/updated"\ncp "$3" "%s/body.seen"\nprintf "41\\tfix/topic-a-pr\\t%s\\n" > "%s"\n' "$t" "$t" "$N40" "$prs" > "$ustub"
+  printf '#!/bin/sh\necho "$1" >> "%s/approved"\n' "$t" > "$astub"
+  printf '#!/bin/sh\necho "$1 $2 $3" >> "%s/dispatched.seen"\necho "bus-nonce: 0123456789abcdef0123456789abcdef"\n' "$t" > "$dstub"
+  chmod +x "$ustub" "$astub" "$dstub"; export HPO_RELAY_UPDATE=$ustub HPO_RELAY_APPROVE=$astub HPO_RELAY_DISPATCH=$dstub
+  # a missing body ref does nothing
+  hc ahead; mkref handoff/topic-a; HS=$(git -C "$t/pr" rev-parse HEAD)
+  handoff_arm >/dev/null 2>&1
+  chk "a handoff with no body ref does nothing" 0 test ! -e "$t/updated"
+  # a handoff ahead of its PR fires the arm
+  rm -rf "$t/b"; throwaway_git_init "$t/b" -q; printf 'Part of #201\n\nCloses #77 and fixes #78.\n' > "$t/b/BODY.md"
+  git -C "$t/b" add BODY.md; git -C "$t/b" -c user.name=t -c user.email=t@t commit -qm body; mkref2() { git -C "$t/o.git" fetch -qf "$t/b" "HEAD:refs/heads/handoff-body/topic-a"; }; mkref2
+  handoff_arm >/dev/null 2>&1
+  chk "a handoff ahead of its PR runs update_pr with branch and code sha" 0 grep -q "^fix/topic-a-pr $HS " "$t/updated"
+  chk "the issues come from the body's closing keywords" 0 grep -q " 77 78 *$" "$t/updated"
+  chk "the body handed to update_pr is the handoff-body BODY.md" 0 grep -q "^Part of #201" "$t/body.seen"
+  chk "held runs are approved on the branch" 0 test "$(cat "$t/approved")" = fix/topic-a-pr
+  chk "dispatch runs at the NEW head" 0 test "$(cat "$t/dispatched.seen")" = "41 $N40 cloud"
+  chk "OWED reviewer-fire is logged with pr, head and nonce" 0 grep -q "^OWED reviewer-fire 41 $N40 0123456789abcdef0123456789abcdef " "$LOG"
+  # null control: the PR head now contains the handoff -> nothing more
+  git -C "$t/pr" -c user.name=t -c user.email=t@t merge -q --no-edit -m m "$HS" 2>/dev/null; git -C "$t/pr" reset -q --hard "$HS"; hc "pr tip"; mkref fix/topic-a-pr; NEW=$(git -C "$t/pr" rev-parse HEAD)
+  printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$NEW" > "$prs"; rm -f "$t/updated"
+  handoff_arm >/dev/null 2>&1
+  chk "a handoff already merged into its PR does nothing (null control)" 0 test ! -e "$t/updated"
+  # a failing update is noted once and not retried
+  rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr
+  printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
+  fu=$t/fu.sh; printf '#!/bin/sh\necho x >> "%s/updated"\nexit 1\n' "$t" > "$fu"; chmod +x "$fu"; HPO_RELAY_UPDATE=$fu
+  handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "a failed update is tried once" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 1
+  chk "and logs OWED handoff-update" 0 grep -q "^OWED .* handoff-update 41 topic-a $HS" "$LOG"
+  chk "pass --loop is the only loop (a bad interval is refused)" 2 pass --loop --interval 0
+  HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+  chk "pass runs both arms once and returns" 0 pass --log "$LOG"
+  chk "the pass fired the handoff arm" 0 test -e "$t/updated"
   rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }
@@ -237,8 +352,9 @@ self_test() {
 case ${1:-} in
   --self-test) self_test; exit $?;;
   --watch) shift; watch "$@"; exit $?;;
+  pass) shift; pass "$@"; exit $?;;
   --confirm|--log) while [ $# -gt 0 ]; do case $1 in --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; *) break;; esac; done
     [ $# = 3 ] || { echo "usage: cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>" >&2; exit 2; }; relay "$1" "$2" "$3"; exit $?;;
-  ''|-*) echo "usage: cloud_relay.sh <pr> <nonce> <head40> | --watch [--interval N] [--once] [--confirm] [--log FILE] | --self-test" >&2; exit 2;;
+  ''|-*) echo "usage: cloud_relay.sh <pr> <nonce> <head40> | pass [--confirm] [--log FILE] [--loop [--interval N]] | --watch [--interval N] [--once] [--confirm] [--log FILE] | --self-test" >&2; exit 2;;
   *) [ $# = 3 ] || { echo "usage: cloud_relay.sh <pr> <nonce> <head40>" >&2; exit 2; }; relay "$1" "$2" "$3"; exit $?;;
 esac
