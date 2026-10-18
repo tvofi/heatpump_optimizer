@@ -63,13 +63,20 @@ A ratchet payment was made rather than a raise. `violations` entered measured co
 
 ## Red checks
 
-none. Four scripts went red locally on the first cut and are fixed in this branch:
-- `deployment_shape`: reading `const.py` by path from the package. The read is gone; the integration uses its own `const` namespace.
-- `doc_claims`: `docs/architecture.md`'s module counts are updated to 78 and 49.
+None on CI yet: nothing has been pushed to a pull request. The scripts that went red locally on the first cut are all fixed in this branch:
+
+- `deployment_shape`: the package read `const.py` by path. The read is gone; the integration uses its own `const` namespace.
+- `doc_claims` and `harness_headers`: `docs/architecture.md`'s module counts, and the round-4 D6 harness header, are updated to 78. The harness's committed output is regenerated: only the two counts moved.
 - `finite_boundary`: its seeded row's stand-in lacked `integration_version`, and now seeds it.
 - `typing_ruler`: 22 strict errors in the moved code, all annotated, with no ignore.
+- `entities`, three of its checks:
+  - The `state_age` P2 owner: the replay half's two row readers, `debugger.py::_since` and `_record`, are dispositioned.
+  - The P11 floor: `tests/ha_floor_names.json` is re-recorded. This seat's `gh` cannot read home-assistant/core, so the recorder's cache was filled from the PyPI wheel of 2025.2.0 and a cache miss answered 404. The diff is 5 added answers, and every existing answer is unchanged.
+  - The deployment-shape full-coverage census: `entities.py`'s closure is re-recorded.
 
-The cheaper detector for each was the script itself, run before the push. Closures were recorded on Linux for the 12 scripts that read the new files (`derive_closures.sh --scripts-from`). The rest of the selected scripts that read them, `features.py`, `entities.py`, `harness_headers.py` and others, are left to `closures-autofix`'s UNDER-SCOPED repair (`ci-autofix.md`).
+The cheaper detector for each was the script itself, run before the push. One check stays red, and it is not this branch's: `entities.py`'s "graders-head-copy's delivery_status step..." fails identically at the merge base.
+
+Closures are recorded on Linux for the 15 scripts that read the new files: 12 via `derive_closures.sh --scripts-from`, and `entities`, `features` and `harness_headers` via `--record-only`, then `merge --partial --allow-failures`. Those three runs completed; they failed only the checks named above. Scoped gate (`GATE_SCOPE=auto`, `GOLDEN_MODE=drift`) at the base: every selected script green but those three, and they were then re-run green, entities apart from the check named above. `stress.py` was run under the gate lease: `ALL 110 STRESS CHECKS PASSED`.
 
 ## Forward-carry
 
