@@ -2,7 +2,7 @@
 coordinator._plausible_forecast_rows and price_model.prices_from_tibber_payload.
 Metric: exceptions escaping each parser over 400 seeded hostile inputs (count), and
 non-finite values in their outputs (count).
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py
+Command: PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/parser_fuzz.py
 Expected: raises_* reported as measured; nonfinite_*=0. Baseline 17f1c55fad1b, macOS arm64.
 Perturbation: --perturb removes the isfinite drop in _parse_block (wraps float) -> nonfinite_open_meteo up.
 """

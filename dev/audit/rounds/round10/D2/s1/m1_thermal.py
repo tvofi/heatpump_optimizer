@@ -10,7 +10,7 @@ Metrics (one line each):
   dt_inv_maxdiff    = max |T(4x15min) - T(1x60min)| per store (K) after one hour.
   monotone_viol     = count of (cell,step) where +0.5 kW electrical lowers any store.
   bound_viol        = count of steps where any store leaves [min(init,out)-1, max(init,cap)+1].
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 \
+Command: PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 \
     dev/audit/rounds/round10/D2/s1/m1_thermal.py [--perturb tank_ambient_shift]
 Expected at baseline 17f1c55fad1b: energy_resid_max <= 1e-9, parity_mismatch 0
   (or as RESULT prints; the perturbation moves energy_resid_max above 1e-3).
