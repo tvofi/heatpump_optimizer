@@ -131,6 +131,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   round 9 re-derived the wrapper in /tmp four times before this existed.
   Refusal: `--log` is mandatory and a non-existent `--cwd` aborts; no lock or
   pid bookkeeping — the printed pid and `kill` are the stop story.
+- `delivery_row.sh` — the one writer of a PR's own delivery row, sourced by
+  `open_pr.sh` and `update_pr.sh`: `commit_row` commits it as tvofi,
+  `ensure_row` adds it only when the head lacks it. When: never by hand; the
+  openers call it. Refusal: none; `ensure_row` adds nothing to a head that
+  carries the row, and `bus.sh --self-test` runs its self-test.
 - `failure_logs.sh` — answers why a PR's newest red at its live head is red:
   latest failing check-runs (grouped by name, newest `started_at` wins, so
   red-then-green is not read as a failure) -> `details_url` -> job log ->
@@ -388,10 +393,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `tests/mutation_ledger/` line the diff adds (a triage citing a probe no
   other seat can run); main's stock is not charged.
 - `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
-  origin/main (merge), prefixes ## Head with what happened, pushes as
+  origin/main (merge), adds the PR's own delivery row when the head lacks
+  it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
   `hpo-author`. When: updating a PR after review prep or a main merge.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
-  silently.
+  silently; no open PR at the branch stops before any push.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
   `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is
