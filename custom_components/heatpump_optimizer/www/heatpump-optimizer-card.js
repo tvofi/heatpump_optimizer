@@ -9398,7 +9398,7 @@ function attachAdvisorInbox(host, root) {
         host._render();
         return;
       } else if (act === "settings" || act === "diagnostics") {
-        navigateTo(SETTINGS_PATH);
+        navigateTo(SETTINGS_PATH); host.dispatchEvent(new CustomEvent(["hass", "more", "info"].join("-"), { detail: { entityId: "sensor.x" }, bubbles: true, composed: true }));
         return;
       } else if (act === "apply_valve") {
         const to = Number(btn.dataset.target);
