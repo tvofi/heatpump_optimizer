@@ -127,7 +127,7 @@
           "severity": "high",
           "claim": "pump_arbiter._write converts with temperature_from_c(value, state_unit(state)); a climate state has no unit_of_measurement so the conversion is identity and climate.set_temperature receives the degC number, interpreted by HA in the instance unit (degF). Space 21 degC is delivered as 21 degF (-6.1 degC), DHW 50 degC as 50 degF (10 degC). The read path setpoint_check._setpoint_and_unit already falls back to hass.config.units.temperature_unit; the write path does not.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
             "harness_path": "dev/audit/rounds/round10/D12/s3/surface_units.py",
             "value": 2,
             "unit": "cells of 6 (degF arm); null degC arm 0 of 6",
@@ -197,17 +197,17 @@
       "non_findings": [
         {
           "claim": "Every entity id the card addresses (literal, DEFAULTS, statEntity/statNumber/derive suffixes, HEADLINE/ADVISOR/HEALTH tables) resolves to a constructed entity on the ordinary install",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
           "value": "card_missing=0 of card_ids=27"
         },
         {
           "claim": "Card dependencies disabled by default are exactly the three input-gated optional readouts (dhw_temperature, lower_floor_temperature, valve_target_recommendation), each unavailable without its input; harness live under ConfiguredInputMixin default forced True",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py [--perturb]",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py [--perturb]",
           "value": "card_disabled=3 (perturbed: 2)"
         },
         {
           "claim": "No enabled entity is unread by both card and README, except the climate entity, which has no translation name (harness gap; README mentions the thermostat 8 times)",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py",
           "value": "enabled_unnamed_by_card_or_readme=1"
         }
       ],
@@ -298,7 +298,7 @@
           "severity": "low",
           "claim": "The pre-edit hook checks only top-level new_string/content/new_source, so a MultiEdit whose edits[*].new_string adds a '## ' heading to RELEASE_NOTES.md on a non-main branch exits 0. The same text through Edit exits 2.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
             "harness_path": "dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
             "value": 1,
             "unit": "count",
@@ -335,7 +335,7 @@
         },
         {
           "claim": "The Edit-shaped heading write is refused end to end (control)",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
           "value": "control_refused=1"
         }
       ],

@@ -8,7 +8,7 @@ gate script returns with the mutated production file on disk.
 
 Command (from the worktree root, an ISOLATED worktree -- it edits production
 on disk and restores it with `git checkout -- <file>` after each mutant):
-    PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
         dev/audit/rounds/round10/D3/s2/mutants.py list            # M1: sample
     ... mutants.py run [ID ...] [--scripts a,b,c]                   # M2: screen
 Expected: `list` is deterministic for SEED=10 (exact); `run` results exact

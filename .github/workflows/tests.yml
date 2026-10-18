@@ -3902,11 +3902,10 @@ jobs:
           TOKEN: ${{ steps.mint.outputs.token }}
           REPO: ${{ github.repository }}
           OWNER: ${{ github.repository_owner }}
-          # The roster's home moved into main at closure (#2086): the round-9
-          # ref `handoff/audit-r9-fixplan` is archived as a tag and deleted, so
-          # the beat reads the roster from `main` at
-          # `dev/programme/rosters/wave-r9-groups.json` (roster_lib.ROSTER_PATH).
-          # That directory, not `.claude/workflows/`, keeps the frozen roster
+          # The beat reads the roster from `main`: the newest
+          # `dev/programme/rosters/wave-r<N>-groups.json`, resolved by
+          # `roster_lib.roster_path` (the round compares as an integer).
+          # That directory, not `.claude/workflows/`, keeps frozen rosters
           # out of the live-roster scans (`briefs`, `wave-script`), which assert
           # web-fix-wave's stage vocabulary the round-9 orchestrator never used.
           # RECORD_ROSTER_REF is unset; this default is the whole of it.

@@ -557,7 +557,7 @@
    "config_flow_steps.py": {
     "rc": 1,
     "wall": 3.2,
-    "tail": "\", f\"Error updating data: {err}\", err, error=str(err))\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/coordinator.py\", line 11302, in _raise_update_failed\n    raise UpdateFailed(\n    ...<4 lines>...\n    ) from cause\nhomeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: 'NoneType' object is not callable\n"
+    "tail": "\", f\"Error updating data: {err}\", err, error=str(err))\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<scratchpad>/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/coordinator.py\", line 11302, in _raise_update_failed\n    raise UpdateFailed(\n    ...<4 lines>...\n    ) from cause\nhomeassistant.helpers.update_coordinator.UpdateFailed: Error updating data: 'NoneType' object is not callable\n"
    }
   },
   "closure": [
@@ -980,7 +980,7 @@
    "config_flow_steps.py": {
     "rc": 1,
     "wall": 67.5,
-    "tail": "s_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule\nInvalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule\n/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited\n  callback()\nRuntimeWarning: Enable tracemalloc to get the object allocation traceback\n"
+    "tail": "s_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule\nInvalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule\n<scratchpad>/orch/audit-r10-D3-s2/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited\n  callback()\nRuntimeWarning: Enable tracemalloc to get the object allocation traceback\n"
    }
   },
   "closure": [
@@ -1208,7 +1208,7 @@
    "guard_pins.py": {
     "rc": 1,
     "wall": 2.0,
-    "tail": "ad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/pump_arbiter.py\", line 944, in apply\n    mode = duty_mode(coord.arbiter_inputs().config)\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/pump_arbiter.py\", line 315, in duty_mode\n    return EntryConfig.from_mapping(config).pump_duty_mode\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'dict' object has no attribute 'pump_duty_mode'\n"
+    "tail": "ad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/pump_arbiter.py\", line 944, in apply\n    mode = duty_mode(coord.arbiter_inputs().config)\n  File \"<scratchpad>/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/pump_arbiter.py\", line 315, in duty_mode\n    return EntryConfig.from_mapping(config).pump_duty_mode\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'dict' object has no attribute 'pump_duty_mode'\n"
    }
   },
   "closure": [
@@ -1437,7 +1437,7 @@
    "debug_collect.py": {
     "rc": 1,
     "wall": 2.5,
-    "tail": "31db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/store.py\", line 522, in stored_fields\n    _fields(_tries().get(name, {}), payload, (), out)\n            ~~~~~~^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/store.py\", line 479, in _tries\n    aliases.append((node, last, domain.split(\"/\")))\n                                ^^^^^^^^^^^^\nAttributeError: 'Domain' object has no attribute 'split'\n"
+    "tail": "31db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/store.py\", line 522, in stored_fields\n    _fields(_tries().get(name, {}), payload, (), out)\n            ~~~~~~^^\n  File \"<scratchpad>/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/store.py\", line 479, in _tries\n    aliases.append((node, last, domain.split(\"/\")))\n                                ^^^^^^^^^^^^\nAttributeError: 'Domain' object has no attribute 'split'\n"
    }
   },
   "closure": [
@@ -1877,7 +1877,7 @@
    "features.py": {
     "rc": 1,
     "wall": 560.8,
-    "tail": " bounded to 2026-06-01 12:00:00\nheatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\n/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice\n  return _methods._mean(a, axis=axis, dtype=dtype,\n"
+    "tail": " bounded to 2026-06-01 12:00:00\nheatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\n~/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice\n  return _methods._mean(a, axis=axis, dtype=dtype,\n"
    }
   },
   "closure": [
@@ -1931,7 +1931,7 @@
    "entities.py": {
     "rc": 1,
     "wall": 23.3,
-    "tail": "e 233, in extra_state_attributes\n    floor, shortfall = self._floor()\n                       ~~~~~~~~~~~^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/binary_sensor.py\", line 195, in _floor\n    floors = self.coordinator.mold_floor_series(np.array([float(outdoor)]))\n                                                          ~~~~~^^^^^^^^^\nTypeError: float() argument must be a string or a real number, not 'NoneType'\n"
+    "tail": "e 233, in extra_state_attributes\n    floor, shortfall = self._floor()\n                       ~~~~~~~~~~~^^\n  File \"<scratchpad>/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/binary_sensor.py\", line 195, in _floor\n    floors = self.coordinator.mold_floor_series(np.array([float(outdoor)]))\n                                                          ~~~~~^^^^^^^^^\nTypeError: float() argument must be a string or a real number, not 'NoneType'\n"
    }
   },
   "closure": [
@@ -2102,7 +2102,7 @@
    "manual_plan.py": {
     "rc": 1,
     "wall": 12.1,
-    "tail": "6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/__init__.py\", line 318, in async_setup_entry\n    await coordinator.async_config_entry_first_refresh()\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/tests/hastub/homeassistant/helpers/update_coordinator.py\", line 261, in async_config_entry_first_refresh\n    raise ex\nhomeassistant.exceptions.ConfigEntryNotReady: Error updating data: 'NoneType' object has no attribute 'get'\n"
+    "tail": "6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/__init__.py\", line 318, in async_setup_entry\n    await coordinator.async_config_entry_first_refresh()\n  File \"<scratchpad>/orch/audit-r10-D3-s2/tests/hastub/homeassistant/helpers/update_coordinator.py\", line 261, in async_config_entry_first_refresh\n    raise ex\nhomeassistant.exceptions.ConfigEntryNotReady: Error updating data: 'NoneType' object has no attribute 'get'\n"
    }
   },
   "closure": [
@@ -2236,7 +2236,7 @@
    "entities.py": {
     "rc": 1,
     "wall": 27.0,
-    "tail": "64-none/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/button.py\", line 119, in async_press\n    raise HomeAssistantError(\n    ...<5 lines>...\n    )\nhomeassistant.exceptions.HomeAssistantError: The optimization did not run for test_entry: the solve failed; the error is in the integration's log\n"
+    "tail": "64-none/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"<scratchpad>/orch/audit-r10-D3-s2/custom_components/heatpump_optimizer/button.py\", line 119, in async_press\n    raise HomeAssistantError(\n    ...<5 lines>...\n    )\nhomeassistant.exceptions.HomeAssistantError: The optimization did not run for test_entry: the solve failed; the error is in the integration's log\n"
    }
   },
   "closure": [

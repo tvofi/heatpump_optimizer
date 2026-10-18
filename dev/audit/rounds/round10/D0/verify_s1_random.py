@@ -4,7 +4,7 @@ Metric: per captured _multi_start_minimize call, gap_rand = (f(prod.x) - min_k f
   x_k = production's own _multi_start_minimize run from 12 seeded-uniform random starts in the bounds
   (rng seed 0, same maxiter/batch objective), no structured seeds, no polish, no feasibility filter
   (room-band violation of the winner reported beside it). f = captured production objective.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
    dev/audit/rounds/round10/D0/verify_s1_random.py [--prices a,b] [--weather a,b] [--tz 0,1]
 Expected: see dev/audit/rounds/round10/D0/verify.md. Baseline 17f1c55fad1b, Apple Silicon macOS.
 """
