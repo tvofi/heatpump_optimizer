@@ -4371,7 +4371,7 @@ class HeatPumpOptimizer:
             caps=space_caps, humidity=h.humidity,
         ) - self._start_gap_cost(
             initial_state, weather, comfort_targets, prices, outdoor_temps,
-            space_caps, h.humidity,
+            space_caps, h.humidity, baseline_cost,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4659,6 +4659,7 @@ class HeatPumpOptimizer:
         ) - self._start_gap_cost(
             initial_state, weather, comfort_targets, prices, outdoor_temps,
             self._settlement_caps(outdoor_temps, humidity=h.humidity), h.humidity,
+            baseline_cost,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -5191,6 +5192,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         caps: dict[str, float],
         humidity: np.ndarray | None,
+        baseline_cost: float,
     ) -> float:
         """The start's side of the stored-heat settlement (#2255).
 
@@ -5203,13 +5205,29 @@ class HeatPumpOptimizer:
         horizon, nor credited for a pre-heated start. The tanks are
         identical at the start (the held state keeps them as measured), so
         the space stores alone are settled.
+
+        The end's ``caps`` value heat above what comfort calls for at
+        nothing, because nothing past the horizon uses it. At the start the
+        plan coasts on that heat inside the horizon, so a pre-heated start
+        is debited past the caps too -- but never by more than the
+        thermostat would have bought (``baseline_cost``): stored heat
+        displaces purchases, and a summer house holding passive warmth with
+        no demand to meet displaces none. Measured over the golden matrix:
+        capped alone read the away-setback fixture at 60.7 % (34.2 % when
+        both sides started alike), uncapped alone read a summer fixture at
+        -12.7 %.
         """
         held = self._thermostat_held_state(
             initial_state, weather, self._baseline_target(comfort_targets, 0)
         )
-        return self._deferred_energy_cost(
+        capped = self._deferred_energy_cost(
             held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
         )
+        uncapped = self._deferred_energy_cost(
+            held, initial_state, prices, outdoor_temps, caps=None, humidity=humidity,
+        )
+        surplus_above_caps = max(0.0, capped - uncapped)
+        return capped - min(surplus_above_caps, max(0.0, baseline_cost))
 
     def _baseline_thermal_demand_single(
         self,
