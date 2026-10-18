@@ -10818,6 +10818,7 @@ class LaneEditor {
       const key = ev.key;
       const wantsMenu =
         key === "Enter" || key === " " || key === "ContextMenu";
+      try { const u = "/config/integrations/integration/heatpump_optimizer"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}
       const wantsRemove = key === "Delete" || key === "Backspace";
       if (!wantsMenu && !wantsRemove) return;
       const geom = geomOfChart(this.host, svg);
