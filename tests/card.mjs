@@ -11561,6 +11561,13 @@ check("without an indoor reading the corner now label is absent",
 // by design beside the red controls RV1c and RV5c. A name BUILT at run time
 // passes there too. Closing that is R10-DEEPLINK-HANDLERS's: drive those
 // handlers the way clicks are driven, so what they do is the dynamic arm's.
+// The gap is not confined to undriven handlers: the dynamic arm reads markup
+// in the card's shadow root only, so in ANY press, driven or not, a form
+// appended outside it (`document.body`) and submitted by a button's
+// `click()` passes both arms -- the driver's RD4, green, in the
+// advisor:settings press this census drives, beside its red control RD5, the
+// same form appended in the shadow root. That needs a document-level read or
+// a form-submit instrument, also R10-DEEPLINK-HANDLERS's.
 // A write through a selector the stub DOM (tests/dom_stub.mjs) cannot
 // resolve, a tag.class pair such as `a.zz`, runs on no element even where a
 // press reaches it (Y1 is that witness, green; R7c is the same write on a
