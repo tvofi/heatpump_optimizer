@@ -4,7 +4,7 @@
 - **tree** `~/heatpump_optimizer/.claude/worktrees/audit-r4-D11` (a real checkout, `.git` present, because the subject is the process)
 - **harnesses** `tools/audit/round4/D11/*.py`, each runnable by the single command in its header
 - **interpreter** `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`, `PYTHONPATH=tests/hastub`, from the repository root; node v20.10.0
-- **limits observed** `main` never perturbed, the live ruleset never perturbed, no comment posted on any live pull request. Every perturbation was run against a scratch copy under `/tmp/claude-501/d11/pert`.
+- **limits observed** `main` never perturbed, the live ruleset never perturbed, no comment posted on any live pull request. Every perturbation was run against a scratch copy under `<session-tmp>/d11/pert`.
 
 ## exposure
 

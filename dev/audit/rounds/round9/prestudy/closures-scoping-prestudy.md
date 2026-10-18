@@ -5,7 +5,7 @@ orchestrator on tvofi's request ("dispatch a pre-study on how to safely scope
 closures to save time ... then prioritize that PR before the instrument
 series"). Study only — no fix PRs from this seat. Baseline
 **`origin/main` = `969c3a5c84`** (2026-10-10, the merge of #2109). Worktree
-`/Users/timmalmstrom/hpo-seats/r9pre-closures/wt`; run logs fetched read-only
+`~/hpo-seats/r9pre-closures/wt`; run logs fetched read-only
 via `gh api` from this macOS box. `tests/derive_closures.sh` was NOT run
 anywhere (forbidden off Linux, `dev/governance/rules/gate-scoping.md`); every
 timing below is either read out of a CI log (cited by job id) or out of the

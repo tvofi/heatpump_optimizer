@@ -24,7 +24,7 @@ the recarry's designed fast-path publishes a merge that no local instrument
 grades, so the first grade the merged tree ever receives is CI's.
 
 Enumerators for every figure sit in `## Figures`. Scratch copies of the API
-payloads and the extracted scripts: `/Users/timmalmstrom/hpo-seats/r9rca-postreview/`.
+payloads and the extracted scripts: `~/hpo-seats/r9rca-postreview/`.
 
 ## 1. Cause (reproduced)
 

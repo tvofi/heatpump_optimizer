@@ -188,38 +188,166 @@ function check(name, cond, detail) {
   }
 }
 
+// --- The navigation surface, declared once (R10-DEEPLINK) ------------------
+// The one list of what a navigation out of this card can be made of, and the
+// object graph those members live on. The static arm below refuses a mention
+// of any member in the card's code outside `navigateTo`; the link census at
+// the end of the file wraps each member of the graph with a recorder for its
+// presses. Both read THIS pair, so a member closed in one arm and left open in
+// the other cannot happen quietly -- which is the defect the earlier form of
+// this pair had (#2317): a denylist of spellings, patched once per round, with
+// a bare `open(`, the Navigation API, a form's `action` and an `Event`-built
+// more-info each passing both arms.
+//
+// A member is a way out, not a spelling: `open` is here once, and the census
+// catches it qualified, bare, bracketed or built at run time because all four
+// resolve the same name on the global object. Where the member's own word is
+// also the card's vocabulary -- `form` is a suffix loop variable and `action`
+// is an entity's name -- the row is anchored to the call or member access that
+// makes it a form navigation (createElement, setAttribute, Reflect.set,
+// Object.assign, .submit), so the census refuses the spelling without
+// refusing the word.
+const NAV_SURFACE = [
+  { what: "an anchor's href", re: /href/ },
+  { what: "the location object", re: /\blocation\b/ },
+  // The history object: any `history.<member>` reference, bare or qualified.
+  // The word alone cannot be the token -- "history" is the card's own prose
+  // and its recorder API path (`history/period/...`), and a token that refuses
+  // those refuses the tree; requiring a member name after it is what tells the
+  // object from the word.
+  { what: "the history object", re: /history\s*\.[A-Za-z_$]/ },
+  // The `open` member NAMED. Every way of invoking a global by name mentions
+  // the name: a bare call, a qualified call, an indirect one (`open.call(`,
+  // `open.apply(`, `open.bind(`), a value handed to `Reflect.apply`, or a
+  // computed key (`this["open"]`). Enumerating invocation spellings is what
+  // let the round-5 review's written `globalThis.open.call(...)` pass -- the
+  // qualified token wanted `open(` and the bare token refused a dot-prefixed
+  // `open` -- so the token is the name itself, in code or in a string. A name
+  // BUILT at run time (`"op" + "en"`) names nothing here and is the dynamic
+  // arm's, on every row it drives. The card's own dialog uses are removed
+  // before this list is applied (see the scan below).
+  { what: "the open member, named", re: /\bopen\b/, exact: true },
+  { what: "the Navigation API", re: /\bnavigation\b/ },
+  { what: "a form", re: /<form\b/ },
+  { what: "a form's action", re: /(?<![\w-])action\s*=\s*["'`]/ },
+  { what: "a submit button's formaction", re: /formaction/ },
+  // A form BUILT AND SUBMITTED by name -- the same members the three markup
+  // rows above name, reached through the DOM API instead. The round-7 review's
+  // plant (#2345) wrote `createElement("form")`, `setAttribute("action", ...)`
+  // and `.submit()`, and the markup rows do not match any of them. Each row is
+  // anchored to the call or member access that makes the word a form
+  // navigation rather than the word: `form` alone is the card's own suffix
+  // loop variable (`for (const form of forms)`), and `action` alone is the
+  // action entity's name in a dozen places, so a bare token for either would
+  // refuse the card. The `\bopen\b` collision the origin/main merge caused is
+  // the same mistake from the other side, and is why these are anchored.
+  //
+  // The action rows key on the NAME POSITION of the call -- the first argument
+  // of setAttribute, createAttribute and `["action"] =`, the second of
+  // setAttributeNS, Reflect.set, Object.assign and `{ action: ... }` -- so a
+  // value on the same line that merely equals the string `"action"` (an
+  // `aria-label` built from `sensor === "action"`) is not a name and stays
+  // green; the driver's F* plants are that control.
+  { what: "a form created by name", re: /\bcreateElement\s*\(\s*["'`]form["'`]/ },
+  { what: "a form's action written through an attribute",
+    re: /(?:\bsetAttribute\s*\(\s*["'`]action["'`]|\bsetAttributeNS\s*\([^,]*,\s*["'`]action["'`]|\bcreateAttribute\s*\(\s*["'`]action["'`])/ },
+  { what: "a form's action written through a member",
+    re: /(?:\bReflect\.set\s*\([^,]*,\s*["'`]action["'`]|\bObject\.assign\s*\([^,]*,\s*\{[^}]*\baction\s*:|\[\s*["'`]action["'`]\s*\]\s*=)/ },
+  // A submit is a member of the form, never a bare word: `.submit(`,
+  // `.submit.call(` (the indirect spelling the `open` member's round found),
+  // `.requestSubmit(`, and the computed key `["submit"]` are the written forms.
+  // A name BUILT at run time (`["sub", "mit"]`) is the residual the census
+  // states, not this row's.
+  { what: "a form submitted by name",
+    re: /(?:\.\s*(?:submit|requestSubmit)\b|\[\s*["'`](?:submit|requestSubmit)["'`]\s*\])/ },
+  { what: "HA's more-info event", re: /hass-more-info/ },
+  { what: "HA's action event", re: /hass-action/ },
+];
+// The markup-facing members are matched case-insensitively (`HREF`, `<FORM`);
+// `open` is an IdentifierName and JS is case-sensitive, so prose that opens
+// with "Open" ("Open settings") cannot resolve the global and is not a mention
+// of it. `exact` keeps that one token case-sensitive.
+const navUnion = (entries, flags) =>
+  entries.length ? new RegExp(entries.map((m) => `(?:${m.re.source})`).join("|"), flags) : null;
+const NAV_TOKEN = navUnion(NAV_SURFACE.filter((m) => !m.exact), "i");
+const NAV_EXACT = navUnion(NAV_SURFACE.filter((m) => m.exact), "");
+const namesSurface = (l) => NAV_TOKEN.test(l) || (NAV_EXACT !== null && NAV_EXACT.test(l));
+
+// The same surface as an OBJECT GRAPH, in one place, because two callers need
+// its exact shape and may not disagree about which members exist: the inert
+// copy every scenario before the link census runs against, and the copy the
+// census wraps with a recorder. A handler that reaches for a member must not
+// crash a scenario that presses it before the census can see it -- a plant
+// killed only by an earlier scenario's crash is `rc=1` with no FAIL line, so
+// the census's arms never ran and nothing was measured -- and the two copies
+// may not differ about which members exist, or a plant would be invisible to
+// the census for the opposite reason.
+const navShapeInert = () => ({
+  history: { pushState() {}, replaceState() {}, back() {}, forward() {}, go() {} },
+  open: () => null,
+  location: { href: "/", assign() {}, replace() {} },
+  navigation: { navigate() {}, reload() {}, traverseTo() {}, back() {}, forward() {} },
+});
+
 // --- Part of a browser's navigation surface, inert (R10-DEEPLINK) ----------
-// The rig gives the card no history, open, location or window dispatchEvent
-// (this adds those four, not the Navigation API's `navigation`). A browser always has
-// them, so a handler that calls one must not crash an unrelated scenario that
-// presses it before the link census (at the end of this file) can see it.
+// The rig gives the card none of that surface. A browser always has it, so a
+// handler that calls a member must not crash an unrelated scenario that presses
+// it before the link census (at the end of this file) can see it. The graph
+// and the token list are the two halves of one declaration: `navShapeInert`
+// says which members exist, `NAV_SURFACE` says what naming one looks like.
 {
-  const history = { pushState() {}, replaceState() {} };
-  const open = () => null;
-  const location = { href: "/", assign() {}, replace() {} };
+  const shape = navShapeInert();
   // dispatchEvent too: Home Assistant's own navigate pairs a history write
   // with a `location-changed` dispatch on the window.
   const dispatchEvent = () => true;
-  for (const g of [ctx, ctx.window]) Object.assign(g, { history, open, location, dispatchEvent });
+  // ...and `Event`, the class of them all: a browser has it, and Home
+  // Assistant's own `fireEvent` builds a plain `Event` (not a `CustomEvent`)
+  // and hangs the payload off `.detail`. Without it the rig has no way to
+  // build one, so a card that fires one throws inside its own try instead of
+  // being seen by the link census at the end of this file.
+  const Event = class Event {
+    constructor(type, o = {}) {
+      this.type = type;
+      this.detail = (o || {}).detail;
+      this.bubbles = !!(o || {}).bubbles;
+      this.composed = !!(o || {}).composed;
+    }
+  };
+  for (const g of [ctx, ctx.window]) {
+    Object.assign(g, { ...shape, dispatchEvent, Event });
+  }
 }
 
 // --- The link census's static arm, first (R10-DEEPLINK) --------------------
 // The card's code, with comments blanked line for line (card_shapes.mjs's
-// stripping), may not name a navigation token outside navigateTo's body: href
-// in any quoting or key form, location, pushState, replaceState, .open( (the
-// dialog's own `this.dialog.open()` excepted), hass-more-info or hass-action.
-// It runs here, before any card renders, so a plant that crashes a later
-// scenario is still refused by name. It matches spellings, not behaviour:
-// a token split across a string concatenation ("hr" + "ef"), a bare open(
-// with no dot, and the other known gaps listed at the census pass it.
+// stripping), may not name a member of NAV_SURFACE outside navigateTo's body
+// (the dialog's own `this.dialog.open()` excepted, which names no link). It
+// runs here, before any card renders, so a plant that crashes a later scenario
+// is still refused by name. It is the arm that covers code no press reaches;
+// where a name is BUILT rather than written -- a token split across a
+// concatenation ("hr" + "ef"), or an event type assembled at run time -- the
+// census's dynamic arm is the one that sees it, on every row it drives.
 {
   const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
   const navAt = code.findIndex((l) => /^function navigateTo\(/.test(l));
   const navEnd = code.findIndex((l, i) => i > navAt && l === "}");
-  const TOKEN = /href|\blocation\b|pushState|replaceState|\.open\s*\(|hass-more-info|hass-action/i;
-  const tokenLines = code.map((l, i) => [l.replace(/this\.dialog\.open\(\)/g, ""), i])
-    .filter(([l, i]) => !(i > navAt && i < navEnd) && TOKEN.test(l))
+  // The Dialog class's OWN `open` is the only allowed name, and each allowance
+  // is a use that cannot resolve the global: its `open()` method definition,
+  // this card's `this.dialog.open()` call, the `<dialog>` element's boolean
+  // `open` state and the `open` attribute its fallback sets, and the shadow
+  // root's `mode: "open"` (a different word that names no member). Removed
+  // before the surface list is applied. The element-property allowance is
+  // narrow -- `dlg.open.call(` is NOT removed, so an indirect call through the
+  // element property is still refused by name.
+  const ownDialog = (l) => l
+    .replace(/this\.dialog\.open\(\)/g, "")
+    .replace(/\bdlg\.open(?!\s*[.(\[])/g, "")
+    .replace(/\bdlg\.setAttribute\(\s*"open"/g, "")
+    .replace(/^\s*open\(\)\s*\{/g, "")
+    .replace(/\bmode:\s*"open"/g, "");
+  const tokenLines = code.map((l, i) => [ownDialog(l), i])
+    .filter(([l, i]) => !(i > navAt && i < navEnd) && namesSurface(l))
     .map(([l, i]) => `${i + 1}: ${l.trim().slice(0, 60)}`);
   check("no navigation token in the card's code outside navigateTo",
     navAt >= 0 && navEnd > navAt && tokenLines.length === 0, tokenLines.join(" | "));
@@ -3300,6 +3428,58 @@ check("the hand-scheduled reason has a label",
     "a new HTML control joins the floor or ships below it");
 }
 
+// The advisor inbox's states, at module scope rather than inside the scenario
+// below that first grew them, because two blocks render them now: the inbox's
+// own checks, and the link census at the end of the file, which has to render
+// every row the card can put a navigation behind (#2317). One fixture, so a
+// row that stops being produced stops being produced for both.
+const ADVISOR_PFX = "sensor.heat_pump_optimizer";
+const inboxStates = () => {
+  const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  s[DEFAULT_SPACE].attributes.setup_topology = {
+    two_zone: true, dhw: true, valve_mode: "manual",
+    buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+    wood: { present: false, volume_l: 500 }, edges: [],
+    slots: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      place: "lower_zone", entity: null, domains: ["sensor"] }],
+  };
+  s[`${ADVISOR_PFX}_sensor_gap_advisor`] = { state: "40", last_updated: "t1", attributes: {
+    top_slot: "lower_floor_temp_entity",
+    gaps: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      empty: true, sek_per_month: 40 }] } };
+  // The real sweep is 48..60 step 2 and the default setpoint, 55, is off it.
+  s[`${ADVISOR_PFX}_dhw_setpoint_advisor`] = { state: "48", last_updated: "t1", attributes: {
+    current_setpoint: 55, recommended_setpoint: 48, covers_heaviest_window: true,
+    candidates: [[48, 9.0], [50, 9.4], [52, 9.9], [54, 10.5], [56, 11.2], [58, 12.0],
+      [60, 12.9]].map(([setpoint, cost_per_day]) =>
+      ({ setpoint, cost_per_day, meets_heaviest_window: true })) } };
+  s[`${ADVISOR_PFX}_optimization_score`] = { state: "80", last_updated: "t1", attributes: {
+    price_tiles: {
+      target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
+      target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 },
+      power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10 } } } };
+  s[`${ADVISOR_PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
+    reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
+  return s;
+};
+// R9-UX-9 (#1956): the classes an install with no power, energy or frequency
+// signal could add, on the gap advisor it already publishes.
+const fbStates = (gaps) => {
+  const s = inboxStates();
+  s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps = gaps;
+  return s;
+};
+// R9-DIAG-2S (#1936): the drift alarm's two restart points.
+const restartStates = (patch = {}) => {
+  const s = inboxStates();
+  s[`${ADVISOR_PFX}_model_restart_advisor`] = { state: "1.138", last_updated: "t1", attributes: {
+    drift_alarm: true, current_scale: 0.673,
+    refit: { scale: 1.138, band_percent: 10, pairs: 180, settled_days: 3.25,
+      required_days: 3, settled_since: "2026-03-07T04:30:00+00:00" },
+    restore: { taken_at: "2026-03-01T03:00:00+00:00", scale: 1.0 }, ...patch } };
+  return s;
+};
+
 // --- Scenario: the advisor inbox (R9-UX-2, #1795) ---------------------------
 //
 // The Advisor tab leads with an inbox ranked by monthly value, read from the
@@ -3307,35 +3487,7 @@ check("the hand-scheduled reason has a label",
 // the card already calls. An advisor that is off by default is offered, never
 // read: tests/entities.py refuses a card read of one.
 {
-  const PFX = "sensor.heat_pump_optimizer";
-  const inboxStates = () => {
-    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
-    s[DEFAULT_SPACE].attributes.setup_topology = {
-      two_zone: true, dhw: true, valve_mode: "manual",
-      buffer: { volume_l: 750, is_store: true, max_temp: 70 },
-      wood: { present: false, volume_l: 500 }, edges: [],
-      slots: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
-        place: "lower_zone", entity: null, domains: ["sensor"] }],
-    };
-    s[`${PFX}_sensor_gap_advisor`] = { state: "40", last_updated: "t1", attributes: {
-      top_slot: "lower_floor_temp_entity",
-      gaps: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
-        empty: true, sek_per_month: 40 }] } };
-    // The real sweep is 48..60 step 2 and the default setpoint, 55, is off it.
-    s[`${PFX}_dhw_setpoint_advisor`] = { state: "48", last_updated: "t1", attributes: {
-      current_setpoint: 55, recommended_setpoint: 48, covers_heaviest_window: true,
-      candidates: [[48, 9.0], [50, 9.4], [52, 9.9], [54, 10.5], [56, 11.2], [58, 12.0],
-        [60, 12.9]].map(([setpoint, cost_per_day]) =>
-        ({ setpoint, cost_per_day, meets_heaviest_window: true })) } };
-    s[`${PFX}_optimization_score`] = { state: "80", last_updated: "t1", attributes: {
-      price_tiles: {
-        target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
-        target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 },
-        power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10 } } } };
-    s[`${PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
-      reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
-    return s;
-  };
+  const PFX = ADVISOR_PFX;
   const mkInbox = (states, lang) => {
     const calls = [];
     const c = new Card();
@@ -3504,11 +3656,6 @@ check("the hand-scheduled reason has a label",
     { class: "energy", key: "heat_pump_energy_entity" },
     { class: "frequency", key: "compressor_freq_sensor" },
   ];
-  const fbStates = (gaps) => {
-    const s = inboxStates();
-    s[`${PFX}_sensor_gap_advisor`].attributes.feedback_gaps = gaps;
-    return s;
-  };
   const clearDismissals = () => {
     for (const k of Object.keys(store)) if (/dismiss/.test(k)) delete store[k];
   };
@@ -3544,15 +3691,6 @@ check("the hand-scheduled reason has a label",
 
   // R9-DIAG-2S (#1936): the drift alarm's two restart points, each advice
   // until its button is pressed.
-  const restartStates = (patch = {}) => {
-    const s = inboxStates();
-    s[`${PFX}_model_restart_advisor`] = { state: "1.138", last_updated: "t1", attributes: {
-      drift_alarm: true, current_scale: 0.673,
-      refit: { scale: 1.138, band_percent: 10, pairs: 180, settled_days: 3.25,
-        required_days: 3, settled_since: "2026-03-07T04:30:00+00:00" },
-      restore: { taken_at: "2026-03-01T03:00:00+00:00", scale: 1.0 }, ...patch } };
-    return s;
-  };
   const rs = mkInbox(restartStates());
   const rsPage = rs.html().slice(rs.html().indexOf('advisor-page"'));
   check("a drift alarm offers the refit with its band, and the restore point",
@@ -11377,37 +11515,70 @@ check("without an indoor reading the corner now label is absent",
 //
 // The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup
 // "Configure" and Health "Show" each built their own Home Assistant link and
-// each landed on the integration's front page. `haLink` is now the one
-// builder. This census checks the links it can observe against it, in two
-// arms; it is NOT a proof that every link the card can emit goes through
-// haLink -- that complete census is #2317 (roster group R10-DEEPLINK-CENSUS).
+// each landed on the integration's front page. `haLink` is now the one builder
+// and `navigateTo` the one route; this census holds the card to it in three
+// parts.
 //
-// Dynamic: render every dialog page and press every element there with a
-// click listener of its own, one fresh card per press, with these primitives
-// instrumented so that using one is recorded, never thrown: history.pushState
-// / replaceState, open, the location setter and its href / assign / replace,
-// a CustomEvent named hass-more-info or hass-action, and any anchor href on
-// the page after the press. Each recorded link must be a path haLink builds
-// for this entry. No press may throw.
+// Static: the NAV_SURFACE check at the top of this file -- outside
+// `navigateTo`'s body the card's code may not name a member of the surface.
+// It reads the source, so it also covers code no press reaches.
 //
-// Static: the token check at the top of this file, for rows the fixture does
-// not render or selectors the stub DOM cannot resolve.
+// Dynamic: one fresh card per press, on every page, pressing every element the
+// shadow root wires to a click -- the dialog's own head, close button and tabs
+// included, which the earlier form of this census left out -- plus the chart
+// gesture that opens the slot menu. Each surface member is instrumented to
+// RECORD a use, never to throw: the history object (pushState, replaceState,
+// back, forward, go), open, the location setter and its href / assign /
+// replace, the Navigation API, a CustomEvent or plain Event built with a name
+// the card does not write as a literal, and `href`, `action` and `formaction`
+// read off the markup after every press. Each member is installed by NAME, so
+// a spelling that builds the name reaches the same instrument. Any global
+// name the card's code mentions that neither the global nor `window` binds is
+// refused BY NAME rather than returned as `undefined`, which is what makes
+// this arm allow-based: the realm's own names and the instrumented surface are
+// the whole allow list. Each recorded link must be a path haLink builds for
+// this entry, and no press may throw.
 //
-// Known gaps, each passing both arms (the #2283 round-4 review's plants):
-//   K5   a bare open(...) with no dot (or globalThis["open"], .open.call) on
-//        a row this fixture does not render;
-//   K1   the Navigation API, navigation.navigate(...);
-//   K2   a <form action=...> submitted from a rendered page (only href is read);
-//   K3t  a plain Event (not CustomEvent) whose hass-more-info name is built at
-//        run time;
-// and the static arm's own residual, a token split across a concatenation
-// ("hr" + "ef"), which the dynamic arm sees only on a rendered row and, for
-// an event name, only through CustomEvent.
+// Reach: the census asserts its own coverage rather than resting on the two
+// arms. ACTS is every `act` branch the card's source can dispatch; it is
+// compared with the source in both directions and every declared branch must
+// have been pressed, so a row that stops being rendered is a red reach check
+// and not a token arm's job. The #2283 round-4 review's four plants (#2317)
+// each walked through that gap: a bare `open(` on a row nothing rendered, the
+// Navigation API, a form's `action`, and an `Event`-built `hass-more-info`.
+//
+// Residual, stated because neither arm reaches it. The dynamic arm drives
+// clicks only, so navigation in a handler it does not drive -- keydown,
+// pointer, wheel, focus -- rests on the static arm alone, and the static arm
+// refuses only the spellings its rows name: `open` and its `.call` / `.apply`
+// / computed-key / Reflect forms, `history.<member>`, `createElement("form")`,
+// an `action` written through setAttribute, Reflect.set, Object.assign with a
+// bare key, a computed key or a literal member write, and `.submit` /
+// `.requestSubmit`. Other written spellings pass both arms there:
+// `history["back"]()`, `history?.back()`, a destructured `back`, a
+// `createElementNS` form, `.action = <variable>`, a quoted `"action"` key,
+// and a form submitted by a button's `click()` -- the driver's RV1-RV7, green
+// by design beside the red controls RV1c and RV5c. A name BUILT at run time
+// passes there too. Closing that is R10-DEEPLINK-HANDLERS's: drive those
+// handlers the way clicks are driven, so what they do is the dynamic arm's.
+// The gap is not confined to undriven handlers: the dynamic arm reads markup
+// in the card's shadow root only, so in ANY press, driven or not, any markup
+// appended outside it (`document.body`) whose navigation name no static row
+// refuses passes both arms. The driver's witnesses, green, in the
+// advisor:settings press this census drives: RD4, a form submitted by a
+// button's `click()`, and RD6, an anchor whose href name is built at run time,
+// `click()`ed. Their red controls put the same element in the shadow root:
+// RD5, the form with its action, placed and not submitted; RD6c, the anchor,
+// placed and not clicked. Closing it needs a document-level read, also
+// R10-DEEPLINK-HANDLERS's.
+// A write through a selector the stub DOM (tests/dom_stub.mjs) cannot
+// resolve, a tag.class pair such as `a.zz`, runs on no element even where a
+// press reaches it (Y1 is that witness, green; R7c is the same write on a
+// selector the stub resolves, red).
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
-// no press still produces is refused as stale. The census asserts its own
-// reach: every source line calling navigateTo or openHaLink is hit by a press.
+// no press still produces is refused as stale.
 {
   const ENTRY = "01JDEEPLINKENTRY";
   const BARE = "/config/integrations/integration/heatpump_optimizer";
@@ -11418,8 +11589,22 @@ check("without an indoor reading the corner now label is absent",
   };
   const haLink = fn("haLink");
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
+  // Every `act` branch the card's source can dispatch, by name.
+  const ACTS = ["assign", "apply_dhw", "apply_valve", "try_degree", "adopt_refit",
+    "restore_snapshot", "settings", "dismiss_feedback", "diagnostics", "add", "remove"];
+  const srcActs = [...new Set([...cardSrc.matchAll(/\bact\s*===\s*"([a-z_]+)"/g)].map((m) => m[1])
+    .concat([...cardSrc.matchAll(/data-act="([a-z_]+)"/g)].map((m) => m[1])))].sort();
+  const sourceOnly = srcActs.filter((a) => !ACTS.includes(a));
+  const declaredOnly = ACTS.filter((a) => !srcActs.includes(a));
+  // The fixture renders every row the card can put an `act` branch behind: the
+  // inbox's four priced rows, the two restart rows, the feedback row -- whose
+  // two branches no other scenario renders -- and the health page's checklist.
+  // Two of the eleven live in the slot menu, which no row renders until the
+  // chart's own gesture opens it; that gesture is driven below.
   const states = () => {
-    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    const s = restartStates();
+    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =
+      [{ class: "power", key: "heat_pump_power_entity" }];
     s[BIN] = { state: "off", last_updated: "t1", attributes: { problems: [], input_ages_minutes: {} } };
     // The Setup page renders its diagram, and with it the Configure controls
     // that leave the card (R10-UX-SETUP). Without a topology the page is its
@@ -11437,7 +11622,11 @@ check("without an indoor reading the corner now label is absent",
     }
     throw new Error(`not found: ${JSON.stringify(msg)}`);
   };
+  // The loop below presses `dismiss_feedback`, and the card remembers that
+  // dismissal per browser; without clearing it every later render would be
+  // missing the row, so each fresh card starts from an undismissed one.
   const open = (page) => {
+    for (const k of Object.keys(store)) if (/dismiss/.test(k)) delete store[k];
     const c = new Card();
     c.setConfig({ type: "custom:heatpump-optimizer-card" });
     c.hass = { states: states(), callService: async () => {}, callWS };
@@ -11446,21 +11635,26 @@ check("without an indoor reading the corner now label is absent",
     c._render();
     return c;
   };
+  // Every element the shadow root wires a click to, the card itself and the
+  // dialog's head included: a row this misses is a row nothing presses.
   const pressables = (c) => {
-    const body = c.shadowRoot.querySelector(".dlg-body");
     const out = [];
     const walk = (n) => {
-      if (n !== body && n._listeners && (n._listeners.click || []).length) out.push(n);
+      if (n._listeners && (n._listeners.click || []).length) out.push(n);
       (n.children || []).forEach(walk);
     };
-    if (body) walk(body);
+    walk(c.shadowRoot);
     return out;
   };
+  // The three attributes a browser navigates an element with: an anchor's
+  // `href`, a form's `action`, a submit button's `formaction`.
   const anchors = (c) => {
     const out = [];
     const walk = (n) => {
-      const href = (typeof n.getAttribute === "function" && n.getAttribute("href")) || n.href;
-      if (typeof href === "string" && href) out.push(href);
+      for (const at of ["href", "action", "formaction"]) {
+        const v = (typeof n.getAttribute === "function" && n.getAttribute(at)) || n[at];
+        if (typeof v === "string" && v) out.push([at, v]);
+      }
       (n.children || []).forEach(walk);
     };
     walk(c.shadowRoot);
@@ -11471,37 +11665,59 @@ check("without an indoor reading the corner now label is absent",
   const excused = (key, via, path) => built.has(path)
     || (via === "push" && key in PENDING && PENDING[key].path === path);
 
-  // The sink: every primitive the static arm names, instrumented for the
-  // census's duration on both the global and `window`, recording into `left`.
+  // The sink: that same graph, each member a recorder, so the census and the
+  // scenarios before it cannot disagree about which members exist.
   let left = [];
-  const sink = {
-    history: {
-      pushState: (_s, _t, p) => { left.push(["push", String(p)]); },
-      replaceState: (_s, _t, p) => { left.push(["replace", String(p)]); },
-    },
-    open: (u) => { left.push(["open", String(u)]); return null; },
-    location: {
-      get href() { return "/"; },
-      set href(v) { left.push(["location", String(v)]); },
-      assign: (v) => { left.push(["location", String(v)]); },
-      replace: (v) => { left.push(["location", String(v)]); },
-    },
+  const sink = navShapeInert();
+  // The history object's five routes: the two state writers carry a path, and
+  // back / forward / go carry none -- and every one of them is a way out.
+  sink.history.pushState = (_s, _t, p) => { left.push(["push", String(p)]); };
+  sink.history.replaceState = (_s, _t, p) => { left.push(["replace", String(p)]); };
+  sink.history.back = () => { left.push(["history", "back"]); };
+  sink.history.forward = () => { left.push(["history", "forward"]); };
+  sink.history.go = (d) => { left.push(["history", `go(${d})`]); };
+  sink.open = (u) => { left.push(["open", String(u)]); return null; };
+  sink.location = {
+    get href() { return "/"; },
+    set href(v) { left.push(["location", String(v)]); },
+    assign: (v) => { left.push(["location", String(v)]); },
+    replace: (v) => { left.push(["location", String(v)]); },
   };
+  // The Navigation API, recorded by NAME like every other member, so a
+  // spelling that builds the name -- `globalThis[["navi","gation"].join("")]`
+  // -- reaches this recorder and is refused with the path named, rather than
+  // thrown as `undefined.navigate is not a function` before the census runs.
+  sink.navigation.navigate = (u) => { left.push(["navigation", String(u)]); return null; };
+  sink.navigation.reload = () => { left.push(["navigation", "reload"]); return null; };
+  sink.navigation.traverseTo = (u) => { left.push(["navigation", String(u)]); return null; };
+  sink.navigation.back = () => { left.push(["navigation", "back"]); return null; };
+  sink.navigation.forward = () => { left.push(["navigation", "forward"]); return null; };
   const saved = { history: ctx.history, open: ctx.open, wHistory: ctx.window.history, wOpen: ctx.window.open,
-    location: ctx.location, wLocation: ctx.window.location,
+    location: ctx.location, wLocation: ctx.window.location, Event: ctx.Event,
+    navigation: ctx.navigation, wNavigation: ctx.window.navigation,
     CustomEvent: ctx.CustomEvent, navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
   const locDesc = { get: () => sink.location, set: (v) => { left.push(["location", String(v)]); }, configurable: true };
   ctx.history = sink.history; ctx.window.history = sink.history;
   ctx.open = sink.open; ctx.window.open = sink.open;
+  ctx.navigation = sink.navigation; ctx.window.navigation = sink.navigation;
   Object.defineProperty(ctx, "location", locDesc);
   Object.defineProperty(ctx.window, "location", locDesc);
-  ctx.CustomEvent = class extends saved.CustomEvent {
-    constructor(type, o) {
-      super(type, o);
-      if (type === "hass-more-info" || type === "hass-action") {
-        left.push(["event", `${type}:${JSON.stringify((o && o.detail) || {})}`]);
-      }
+  // An event whose type the card WRITES is the static arm's to refuse; one
+  // whose type is BUILT is this arm's, so any construction outside the types
+  // the source writes as literals is recorded, whatever class built it -- the
+  // plain `Event` included, which is the shape HA's own `fireEvent` uses.
+  const EVENT_TYPES = new Set(
+    [...cardSrc.matchAll(/new\s+(?:Custom)?Event\(\s*"([^"]*)"/g)].map((m) => m[1]));
+  const recordEvent = (type, o) => {
+    if (typeof type === "string" && !EVENT_TYPES.has(type)) {
+      left.push(["event", `${type}:${JSON.stringify((o && o.detail) || {})}`]);
     }
+  };
+  ctx.CustomEvent = class extends saved.CustomEvent {
+    constructor(type, o) { super(type, o); recordEvent(type, o); }
+  };
+  ctx.Event = class extends saved.Event {
+    constructor(type, o) { super(type, o); recordEvent(type, o); }
   };
   // Which source line each navigateTo / openHaLink call came from.
   const callerLine = () => {
@@ -11512,39 +11728,130 @@ check("without an indoor reading the corner now label is absent",
   ctx.navigateTo = (path) => { hits.add(callerLine()); return saved.navigateTo(path); };
   ctx.openHaLink = (...a) => { hits.add(callerLine()); return saved.openHaLink(...a); };
 
+  // The allow list, from the other side: a global name the CARD's code
+  // mentions that neither the global nor `window` binds is a primitive this
+  // census cannot record the use of, so it is refused by name instead of being
+  // handed back as `undefined`. Names the card binds itself, the realm's
+  // intrinsics and the rig's stub are all already bound and are not watched.
+  // Words that occur only inside strings or markup are watched too: a watcher
+  // for a name the card never reads as a global costs nothing and never fires.
+  // The grammar is ECMAScript's IdentifierName production: this scan asks
+  // about identifiers the JS source names, and the language admits non-ASCII
+  // ones (W3). tests/doc_claims.py's `_tokens` is a different reader with a
+  // different question -- ASCII words a document names -- not a copy of this
+  // one, and the two are deliberately not kept identical. The `u` flag is what
+  // makes the property escapes Unicode-aware; without it they are ASCII-only
+  // and an identifier like `frames` spelled with a non-ASCII letter is missed.
+  const KEYWORDS = new Set(["arguments", "async", "await", "break", "case", "catch", "class",
+    "const", "continue", "debugger", "default", "delete", "do", "else", "export", "extends",
+    "false", "finally", "for", "function", "get", "if", "import", "in", "instanceof", "let",
+    "new", "null", "of", "return", "set", "static", "super", "switch", "this", "throw", "true",
+    "try", "typeof", "undefined", "var", "void", "while", "with", "yield"]);
+  const unknown = new Set();
+  const shadowed = new Map();
+  // A callable stand-in: it records what was reached for and answers the same
+  // shape again, so the press runs to completion and the FAIL names the
+  // primitive instead of the scenario crashing around it.
+  const uninstrumented = (name) => new Proxy(function () {}, {
+    get: (_t, k) => {
+      if (k === Symbol.toPrimitive || k === "toString") return () => `[uninstrumented ${name}]`;
+      unknown.add(`${name}.${String(k)}`);
+      return uninstrumented(`${name}.${String(k)}`);
+    },
+    apply: () => { unknown.add(`${name}()`); return uninstrumented(`${name}()`); },
+  });
+  const watch = (target, name) => Object.defineProperty(target, name, {
+    configurable: true,
+    get() {
+      if (shadowed.has(name)) return shadowed.get(name);
+      unknown.add(name);
+      return uninstrumented(name);
+    },
+    set(v) { unknown.add(`${name} =`); shadowed.set(name, v); },
+  });
+  const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+  // The realm's own names, read from INSIDE: the contextified sandbox does not
+  // answer `in` for a global the context provides (`Error` among them), so
+  // asking the global object itself is the only faithful list.
+  const REALM = new Set(vm.runInContext("Object.getOwnPropertyNames(globalThis)", ctx)
+    .concat(Object.getOwnPropertyNames(ctx.window)));
+  const IDENT = /[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*/gu;
+  const watched = [...new Set(code.match(IDENT) || [])]
+    .filter((n) => !REALM.has(n) && !KEYWORDS.has(n));
+  for (const n of watched) { watch(ctx, n); watch(ctx.window, n); }
+
   const seen = {};
   const wrong = [];
   const threw = [];
   const census = [];
+  const pressed = new Set();
   for (const page of ["plan", "setup", "savings", "advisor", "health"]) {
     left = [];
     const shown = open(page);
     const n = pressables(shown).length;
     census.push(`${page}=${n}`);
-    for (const [via, path] of [...left, ...anchors(shown).map((h) => ["href", h])]) {
+    for (const [via, path] of [...left, ...anchors(shown)]) {
       if (!excused(`${page}:render`, via, path)) wrong.push(`${page}:render -> ${via} ${path}`);
     }
     for (let i = 0; i < n; i++) {
       const c = open(page);
       const el = pressables(c)[i];
       const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
+      if (el.dataset && el.dataset.act) pressed.add(el.dataset.act);
       left = [];
       try {
         await Promise.all((el._listeners.click || []).map((f) => f({
           stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
       } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
-      for (const [via, path] of [...left, ...anchors(c).map((h) => ["href", h])]) {
+      for (const [via, path] of [...left, ...anchors(c)]) {
         (seen[key] ||= new Set()).add(`${via} ${path}`);
         if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
       }
+    }
+  }
+  // The slot menu's `add` / `remove` are `act` branches too, and no click
+  // reaches them: the menu opens on the chart's own contextmenu gesture.
+  // Drive that gesture and press the row it renders. Which row renders --
+  // `remove` on a planned hot-water run, `add` off one -- depends on where the
+  // solver put the runs, so the gesture walks the chart until it has pressed
+  // both, rather than at fixed pixels a re-planned fixture can miss (four
+  // pixels found no run once D2-s2-01 re-priced the tank).
+  const probes = [];
+  for (const chart of [0, 1]) for (let x = 20; x <= 1200; x += 20) probes.push([chart, x]);
+  for (const [chart, x] of probes) {
+    if (pressed.has("add") && pressed.has("remove")) break;
+    const c = open("plan");
+    const svg = chartSvgs(c.shadowRoot)[chart];
+    if (!svg) continue;
+    left = [];
+    for (const f of (svg._listeners.contextmenu || [])) {
+      f({ clientX: x, clientY: 120, preventDefault() {}, stopPropagation() {},
+          target: { dataset: { channel: "dhw" } } });
+    }
+    const menu = c.shadowRoot.querySelector(".slot-menu");
+    const row = menu && menu.children[0];
+    if (!row || !row.dataset.act || !(menu._listeners.click || []).length) continue;
+    const key = `plan:slot_menu:${row.dataset.act}`;
+    pressed.add(row.dataset.act);
+    try {
+      await Promise.all((menu._listeners.click || []).map((f) => f({
+        stopPropagation() {}, preventDefault() {}, detail: 1, target: row, currentTarget: menu })));
+    } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
+    for (const [via, path] of [...left, ...anchors(c)]) {
+      (seen[key] ||= new Set()).add(`${via} ${path}`);
+      if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
     }
   }
   ctx.history = saved.history; ctx.window.history = saved.wHistory;
   ctx.open = saved.open; ctx.window.open = saved.wOpen;
   delete ctx.location; delete ctx.window.location;
   ctx.location = saved.location; ctx.window.location = saved.wLocation;
-  ctx.CustomEvent = saved.CustomEvent;
+  delete ctx.navigation; delete ctx.window.navigation;
+  if (saved.navigation) { ctx.navigation = saved.navigation; ctx.window.navigation = saved.wNavigation; }
+  ctx.CustomEvent = saved.CustomEvent; ctx.Event = saved.Event;
   ctx.navigateTo = saved.navigateTo; ctx.openHaLink = saved.openHaLink;
+  for (const n of watched) { delete ctx[n]; delete ctx.window[n]; }
 
   check("haLink builds the three deep links Home Assistant routes",
     haLink("options", ENTRY) === `${BARE}#config_entry=${ENTRY}`
@@ -11560,18 +11867,43 @@ check("without an indoor reading the corner now label is absent",
     && haLink("entity", null, "sensor.x") ===
       "/config/entities?domain=heatpump_optimizer&more-info-entity-id=sensor.x&more-info-view=settings");
 
-  const srcLines = cardSrc.split("\n");
+  // The reach rule enumerates every MENTION of the two link functions, not the
+  // `name(` call-site spelling. A call split from its `(` by whitespace or a
+  // comment, `.call`/`.apply`, a value handed on, or a computed key all name
+  // the route the same way, and the round-5 review planted
+  // `navigateTo ("/config/entities")` -- one space -- into code no press
+  // reaches and it passed. As with the surface's `open`, the token is the NAME,
+  // and every mention must be one the census reached. The two definitions are
+  // not routes, and `openHaLink`'s own follow-through (`if (path)
+  // navigateTo(path)`) is reached whenever an `openHaLink` call is, so it is
+  // excused rather than owing a press of its own. Comments are blanked first,
+  // so prose that names a route is not a mention.
+  const srcLines = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
   const bodyOf = (re) => {
     const at = srcLines.findIndex((l) => re.test(l));
     return [at, srcLines.findIndex((l, i) => i > at && l === "}")];
   };
-  const [openAt, openEnd] = bodyOf(/^async function openHaLink\(/);
+  const [openAt, openEnd] = bodyOf(/^\s*async function openHaLink\s*\(/);
+  const LINK_NAME = /\b(navigateTo|openHaLink)\b/;
   const sites = srcLines.map((l, i) => [l, i])
-    .filter(([l, i]) => /\b(navigateTo|openHaLink)\(/.test(l.replace(/^(async )?function (navigateTo|openHaLink)\(/, ""))
-      && !(i > openAt && i < openEnd && /navigateTo\(/.test(l)))
+    .filter(([l]) => LINK_NAME.test(l))
+    .filter(([l]) => !/^\s*(?:async\s+)?function\s+(?:navigateTo|openHaLink)\s*\(/.test(l))
+    .filter(([, i]) => !(i > openAt && i < openEnd))
     .map(([, i]) => i + 1);
   const unreached = sites.filter((i) => !hits.has(i));
-  check("the census reached every navigateTo and openHaLink call site",
+  check("the act set the census declares is the one the card's source dispatches",
+    srcActs.length > 0 && sourceOnly.length === 0 && declaredOnly.length === 0,
+    `source-only ${sourceOnly.join(",")}; declared-only ${declaredOnly.join(",")}`);
+  const unpressed = ACTS.filter((a) => !pressed.has(a));
+  check("the census pressed every act branch the card can dispatch",
+    unpressed.length === 0,
+    `unpressed ${unpressed.join(",")}; pressed ${[...pressed].sort().join(",")}`);
+  check("the event arm has a literal type to allow, so it measures something",
+    EVENT_TYPES.size > 0, [...EVENT_TYPES].join(","));
+  check("no primitive this census does not instrument is reached for on a page or a press",
+    unknown.size === 0, [...unknown].join(", "));
+  check("the census reached every navigateTo and openHaLink mention",
     sites.length > 0 && unreached.length === 0,
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
   check("no press throws",

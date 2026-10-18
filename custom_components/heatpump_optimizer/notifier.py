@@ -38,7 +38,7 @@ from homeassistant.util import dt as dt_util
 from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
 from .payload import InputProblem, Payload
 from .issues import set_issue
-from .store import QuarantiningStore
+from .store import QuarantiningStore, load_mapping
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -264,11 +264,8 @@ class Notifier:
         self._baseline = True
 
     async def async_load(self) -> None:
-        try:
-            raw = await self._store.async_load()
-        except Exception as err:  # noqa: BLE001 - a bad store only costs a repeat
-            _LOGGER.debug("Could not load notifier state: %s", err)
-            return
+        # A bad store only costs a repeat; one that is not a mapping is a bad store.
+        raw = await load_mapping(self._store, "notifier state")
         sent = raw.get("sent") if raw else None
         if isinstance(sent, dict):
             self._sent = {

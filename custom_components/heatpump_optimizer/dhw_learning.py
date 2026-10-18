@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 
 from homeassistant.core import HomeAssistant
-from .store import QuarantiningStore
+from .store import QuarantiningStore, load_mapping
 from homeassistant.util import dt as dt_util
 
 from .accuracy import utc_elapsed_seconds
@@ -298,12 +298,8 @@ class DhwProfileLearner:
 
     async def async_load_draws(self) -> None:
         """Load the per-window draw statistics (#32)."""
-        try:
-            stored = await self.draws_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load DHW draw statistics: %s", err)
-            return
-        if isinstance(stored, dict):
+        stored = await load_mapping(self.draws_store, "DHW draw statistics")
+        if stored is not None:
             self.draw_stats = DrawStats.from_dict(stored)
 
     async def async_save_draws(self) -> None:

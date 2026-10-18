@@ -121,9 +121,8 @@ from heatpump_optimizer.manual_plan import (
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
-    REASON_LEGIONELLA,
-    REASON_MANUAL,
 )
+from heatpump_optimizer.payload import REASON_LEGIONELLA, REASON_MANUAL
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,

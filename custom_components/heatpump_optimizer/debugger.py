@@ -43,12 +43,10 @@ from .drift import stored_instant
 from .store import (
     DOMAINS,
     QuarantiningStore,
-    _sanitize,
-    _store_name,
     admitted,
-    in_domain,
     load_mapping,
-    stored_fields,
+    off_domain,
+    quarantines,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -196,13 +194,9 @@ def store_report(stores: dict[str, tuple[Any, Any]]) -> dict[str, Any]:
     quarantine would scrub a leaf of it on the next load."""
     report = {}
     for key, (version, data) in stores.items():
-        off = list(dict.fromkeys(
-            "/".join(map(str, path))
-            for path, _key, domain, value in stored_fields(_store_name(key) or "", data)
-            if domain is None or not in_domain(domain, value)
-        ))
+        off = list(dict.fromkeys(off_domain(key, data)))
         report[key] = {"version": version, "off_domain": off[:10], "off_count": len(off),
-                       "quarantined": _dumps(_sanitize(data)) != _dumps(data)}
+                       "quarantined": quarantines(data)}
     return report
 
 

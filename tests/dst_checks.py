@@ -28,12 +28,11 @@ from heatpump_optimizer import (
     _plan_handovers,
     _take_fresh_handover,
 )
+from heatpump_optimizer.plan_step import PLAN_STEP_MINUTES, plan_step_start
 from heatpump_optimizer.coordinator import (
     FORECAST_STEP,
-    FORECAST_STEP_MINUTES,
     HeatPumpOptimizerCoordinator,
-    _solve_anchor,
-    _utc_step_starts,
+    utc_step_starts as _utc_step_starts,
 )
 from heatpump_optimizer.manual_plan import ManualOverride, PIN_OFF, PIN_ON
 from heatpump_optimizer.disinfection import DisinfectionSwitch
@@ -46,7 +45,7 @@ from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
     _Horizon,
-    _utc_step_starts as _opt_utc_step_starts,
+    utc_step_starts as _opt_utc_step_starts,
 )
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
@@ -82,7 +81,7 @@ dt_util.freeze(FROZEN)
 _data = {"tibber_token": "x", "weather_entity": "weather.home"}
 coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_data))
 
-anchor = _solve_anchor(dt_util.now())
+anchor = plan_step_start(dt_util.now())
 R.check(
     "12:07:33 floors to 12:00:00 with tz and date intact",
     anchor == datetime(2026, 8, 26, 12, 0, tzinfo=STHLM)
@@ -91,7 +90,7 @@ R.check(
 )
 R.check(
     "a boundary instant is its own anchor",
-    _solve_anchor(datetime(2026, 8, 26, 12, 45, tzinfo=STHLM))
+    plan_step_start(datetime(2026, 8, 26, 12, 45, tzinfo=STHLM))
     == datetime(2026, 8, 26, 12, 45, tzinfo=STHLM),
 )
 
@@ -385,7 +384,7 @@ for _label, _day in _DST_DAYS:
     _arrays = _c._forecast_arrays(_now)
     _labels = _utc_step_starts(_midnight, _n, FORECAST_STEP)
     _t0 = _labels[0].astimezone(UTC)
-    _real = [_t0 + timedelta(minutes=FORECAST_STEP_MINUTES * i) for i in range(_n)]
+    _real = [_t0 + timedelta(minutes=PLAN_STEP_MINUTES * i) for i in range(_n)]
     _expected = np.array([_price_for(r) for r in _real])
     _got = np.asarray(_priced[0] if _priced is not None else _arrays.prices)
     _mis[_label] = int(np.sum(_got != _expected))
@@ -428,7 +427,7 @@ R.check(
 )
 # #1741: one clock. The coordinator's bridge to the optimizer's horizon
 # (_horizon_step_starts) and _Horizon.timestamps both call the one
-# optimizer._utc_step_starts with the configured step, so they agree on both
+# drift.utc_step_starts with the configured step, so they agree on both
 # transition days by construction, not because the config surface only offers
 # whole-minute steps. A 7.5-minute step is the control the old two-clock pair
 # failed: its minute-rounding bridge walked 8-minute steps.
@@ -528,7 +527,7 @@ def _plan_on(day: datetime):
         wind_speeds=np.asarray(arrays.wind_speeds),
         precipitation=np.asarray(arrays.precipitation),
         solar_radiation=np.asarray(arrays.solar_radiation),
-        start_time=_solve_anchor(now),
+        start_time=plan_step_start(now),
     ))
     dt_util.freeze(None)
     return res
@@ -585,7 +584,7 @@ def _metered_factors(tariff: CapacityTariff, start: datetime, n: int) -> list[fl
     """The factor PRODUCTION assigns each window, over real UTC-walked instants.
 
     Nothing here re-implements the mask: the instants come from the
-    optimizer's own step clock (``_utc_step_starts``) and the factor is read
+    optimizer's own step clock (``drift.utc_step_starts``) and the factor is read
     back off ``PeakTracker`` after ``observe`` has attributed the window. That
     is exactly the quantity ``window_factors``' docstring promises the plan's
     cost term can never disagree with, so it is what the check compares to.
@@ -1003,7 +1002,7 @@ for _label, _day in _DST_DAYS:
         dt_util.freeze(None)
     _q0 = _now.replace(minute=0).astimezone(UTC)
     _want = [
-        _price_for(_q0 + timedelta(minutes=FORECAST_STEP_MINUTES * i))
+        _price_for(_q0 + timedelta(minutes=PLAN_STEP_MINUTES * i))
         for i in range(len(_prices))
     ]
     _post[_label] = sum(1 for g, w in zip(_prices, _want) if g != w)
@@ -1923,7 +1922,7 @@ import heatpump_optimizer.wood_fuel as _wood_fuel  # noqa: E402
 from heatpump_optimizer.comfort_learning import ComfortLearner  # noqa: E402
 from heatpump_optimizer.drift import Cusum  # noqa: E402
 from heatpump_optimizer.external_heat import ExternalHeatConfig, ExternalHeatDetector  # noqa: E402
-from heatpump_optimizer.optimizer import REASON_LEGIONELLA  # noqa: E402
+from heatpump_optimizer.payload import REASON_LEGIONELLA  # noqa: E402
 
 _F60_LAST = datetime(2026, 10, 25, 2, 59, 30, tzinfo=STHLM)  # true 60 s, wall -3540 s
 _F60_NOW = datetime(2026, 10, 25, 2, 0, 30, tzinfo=STHLM, fold=1)

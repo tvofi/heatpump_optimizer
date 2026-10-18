@@ -89,7 +89,7 @@ The scoped gate printed `MODE: SCOPED -- 28 script(s) run, 5 scoped out` and too
 
 No pull request was opened and nothing was written through the GitHub API.
 
-Files are in `dev/audit/rounds/round10/D7/arch-s3/` in the worktree `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/agent-a812ca38ac2ea7bed/`:
+Files are in `dev/audit/rounds/round10/D7/arch-s3/` in the worktree `~/heatpump_optimizer/.claude/worktrees/agent-a812ca38ac2ea7bed/`:
 - D7-arch3-01-census-param-annotations.patch
 - D7-arch3-02-c1-any-spellings.patch
 - D7-arch3-03-c6-invented-family.patch

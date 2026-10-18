@@ -559,17 +559,30 @@ def coverage_floors(
     so an override reaches both checks or neither: a re-plan the owner
     sanctioned for the solver-work floor re-plans the same families under
     the production-call meter (#201 comment 6240984157, step 3).
+
+    An override may also carry ``calls_floor``, the production-call floor as
+    measured, for when the share of the work floor rounds above it; it too
+    may only lower that floor below the literal's share, and a malformed one
+    is the share rule.
     """
+    def share(f: int) -> int:
+        return -(-n_population * f // n_sweep)
+
+    def lowers(v: object, literal: int) -> bool:
+        return (isinstance(v, int) and not isinstance(v, bool)
+                and 0 < v < literal)
+
     floor, cites = SCENARIO_WORK_MIN_COVERED, None
     override = table.get("coverage_floor_override")
     if isinstance(override, dict):
         ov_floor, ov_cites = override.get("floor"), override.get("cites")
-        if (isinstance(ov_floor, int)
-                and not isinstance(ov_floor, bool)
-                and 0 < ov_floor < SCENARIO_WORK_MIN_COVERED
+        if (lowers(ov_floor, SCENARIO_WORK_MIN_COVERED)
                 and isinstance(ov_cites, str) and ov_cites.strip()):
             floor, cites = ov_floor, ov_cites
-    return floor, -(-n_population * floor // n_sweep), cites
+            ov_calls = override.get("calls_floor")
+            if lowers(ov_calls, share(SCENARIO_WORK_MIN_COVERED)):
+                return floor, ov_calls, cites
+    return floor, share(floor), cites
 
 #: The baseline half of the solver-work comparison: the tree this run's
 #: counts are judged against. GOLDEN_REF, because this is the same question
@@ -3484,6 +3497,32 @@ if __name__ == "__main__":
         and _ov[1] < _lit[1]
         and all(b == _lit for b in _bad),
         f"literal {_lit}, override {_ov}, malformed {_bad}",
+    )
+    # An override may also name the production-call floor outright (D2-s2-01,
+    # the orchestrator's ruling on #201 comment 6240984157 step 3): CI judged
+    # 18 of 54 and 6 of 20, and the share rule rounds 18 of 54 up to 7 of 20,
+    # so an override at the measured work count still reddened the calls
+    # check. An explicit floor is held as written; one that is malformed or
+    # not below the literal's share falls back to the share rule.
+    _lit_calls = _lit[1]
+    _both = coverage_floors(
+        {"coverage_floor_override": {"floor": 18, "calls_floor": 6,
+                                     "cites": "ruling"}},
+        len(_pop), _n_sweep,
+    )
+    _share18 = (18, -(-len(_pop) * 18 // _n_sweep), "ruling")
+    _bad_calls = [
+        coverage_floors({"coverage_floor_override": {
+            "floor": 18, "calls_floor": c, "cites": "ruling"}},
+            len(_pop), _n_sweep)
+        for c in (_lit_calls, _lit_calls + 3, 0, -1, True, 6.0, "6", None)
+    ]
+    R.check(
+        "coverage floors: an override naming both floors is held to both, "
+        "and a malformed production-call floor is the share rule",
+        _both == (18, 6, "ruling")
+        and all(b == _share18 for b in _bad_calls),
+        f"both {_both}, share {_share18}, malformed calls {_bad_calls}",
     )
     _floor_reads = {
         t.id: getattr(getattr(n.value, "func", None), "id", None)
