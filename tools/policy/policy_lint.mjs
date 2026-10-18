@@ -2326,6 +2326,25 @@ function recordClassPaths(paths) {
 // fixture diffs, both ways, and puts the production default back.
 let mergeDiffSource = null
 
+// The body of the first top-level function named `name` in `src`: from its
+// header to the next top-level `function` (JS) or `def` (python) header.
+function fnBody(src, header, next) {
+  const at = src.indexOf(header)
+  if (at < 0) return ''
+  const end = src.indexOf(next, at + header.length)
+  return end < 0 ? src.slice(at) : src.slice(at, end)
+}
+
+// '' when mergeRecordClass and stamp.py's merge_is_record_class both diff a
+// merge with --no-renames inside their own bodies, else the reason (#2406).
+function recordDiffParity(policySrc, stampSrc) {
+  const js = fnBody(policySrc, '\nfunction mergeRecordClass(', '\nfunction ')
+  const py = fnBody(stampSrc, '\ndef merge_is_record_class(', '\ndef ')
+  if (js.includes("git(['diff', '--no-renames', '--name-only', `${sha}^1`, String(sha)]")
+      && py.includes('run("git", "diff", "--no-renames", "--name-only", f"{sha}^1", sha)')) return ''
+  return "the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames in their own bodies; the two commands must move together"
+}
+
 function mergeRecordClass(sha) {
   const out = mergeDiffSource
     ? mergeDiffSource(sha)
@@ -4395,10 +4414,24 @@ function assertAcceptance(derived) {
     }
   }
   // The two diffs that feed the predicates must both list a rename's source
-  // (#2406): a rename onto a delivery row is otherwise record-class.
-  if (!stampSrc.includes('run("git", "diff", "--no-renames", "--name-only", f"{sha}^1", sha)')
-      || !rcWired.includes("git(['diff', '--no-renames', '--name-only', `${sha}^1`, String(sha)]")) {
-    rcFail.push("the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames; the two commands must move together")
+  // (#2406): a rename onto a delivery row is otherwise record-class. Each
+  // needle is looked for in ITS FUNCTION'S BODY only -- this file spells the
+  // needle out right here, so a whole-file search always finds itself.
+  const parityFail = recordDiffParity(rcWired, stampSrc)
+  if (parityFail) rcFail.push(parityFail)
+  // The mutant and its null control, so the slice is not vacuous: the flag
+  // dropped from mergeRecordClass's own call fails; the same flag dropped
+  // from this arm's own copy of the call (outside the body) does not.
+  const realCall = "git(['diff', '--no-renames', '--name-only', `${sha}^1`, String(sha)]"
+  const mrcAt = rcWired.indexOf('\nfunction mergeRecordClass(')
+  const mutated = rcWired.slice(0, mrcAt) + rcWired.slice(mrcAt).replace(realCall, realCall.replace("'--no-renames', ", ''))
+  if (mrcAt < 0 || mutated === rcWired || !recordDiffParity(mutated, stampSrc)) {
+    rcFail.push('recordDiffParity passes mergeRecordClass with --no-renames dropped from its own call (the needle found itself)')
+  }
+  const lastAt = rcWired.lastIndexOf(realCall)
+  const elsewhere = rcWired.slice(0, lastAt) + rcWired.slice(lastAt).replace(realCall, realCall.replace("'--no-renames', ", ''))
+  if (lastAt <= mrcAt || recordDiffParity(elsewhere, stampSrc)) {
+    rcFail.push('recordDiffParity refuses a tree whose only change drops the flag from a copy of the call OUTSIDE mergeRecordClass (null control)')
   }
   if (rcFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordClassPaths ${JSON.stringify(rcFail)}. The record-class carve-out is what ends the record-PR row recursion; unpinned, it widens to a blanket exemption (any path set passes) or narrows to nothing (the recursion returns) with the mode's other counts unchanged.`)
