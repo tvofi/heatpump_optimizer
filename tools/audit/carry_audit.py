@@ -43,6 +43,9 @@ A DESTINATION (`Dests.check`):
   dismissed: a reason of two words or more.
 An item is also routed by a `Carry:` elsewhere in the body or a later verdict
 that names its id -- `Carry: R10-X (item 1a2b3c4d)`; every refusal prints it.
+The id counts only inside that marker's own segment, so a quoted refusal
+(`UNROUTED body item <id>`) beside a marker routes nothing. A `Carry:` inside
+a code span is a quoted example, never a marker.
 
 `sweep` adds three reads: `--issues`, every open issue nothing owns; given
 two `--roster-ref`, every carry or brief text the first holds and the second
@@ -100,7 +103,8 @@ NOTE_HEADING = re.compile(NONBLOCK.pattern + r"|residual|\bowed\b|instrument fin
 BLOCK_HEADING = re.compile(r"\bblock", re.I)
 
 CARRY = re.compile(r"(?<![\w-])Carry:")
-ITEM_REF = re.compile(r"\bitem\s+([0-9a-f]{8})\b")
+ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
+CODE_SPAN = re.compile(r"(`+)[^\n]*?\1")
 GROUP_TOK = re.compile(r"\A[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\Z")
 ISSUE_TOK = re.compile(r"\A#(\d+)\Z")
 BRIEF_TOK = re.compile(r"\AO(\d+)(?:-[a-z0-9][a-z0-9-]*)?\Z")
@@ -197,27 +201,54 @@ def items(text: str, verdict: bool) -> list[dict]:
     return out
 
 
-def carry_dests(text: str) -> list[str]:
-    """The destination tokens of every `Carry:` in <text>; [] when none."""
-    found = []
+def carry_segments(text: str) -> list[str]:
+    """The text of every `Carry:` marker in <text>, each cut at the next `Carry:`
+    or the line end; a `Carry:` inside a code span is a quoted example, not one."""
+    spans = [m.span() for m in CODE_SPAN.finditer(text)]
     starts = [m.start() for m in CARRY.finditer(text)]
+    segs = []
     for i, at in enumerate(starts):
+        if any(a <= at < b for a, b in spans):
+            continue
         # each `Carry:` up to the next one: a quoted marker earlier on the line
         # must not swallow the real one after it
-        seg = text[at:starts[i + 1] if i + 1 < len(starts) else len(text)].split("\n", 1)[0]
-        rest = seg.split(":", 1)[1].strip().strip("`*_")
-        dm = re.match(r"dismissed\s*:\s*(.*)", rest, re.I)
-        if dm:
-            found.append("dismissed:" + dm.group(1).strip().rstrip("`*_ "))
+        segs.append(text[at:starts[i + 1] if i + 1 < len(starts) else len(text)].split("\n", 1)[0])
+    return segs
+
+
+def carry_refs(text: str) -> "tuple[list[str], dict[str, list[str]]]":
+    """The destinations of <text>'s markers, and each item id a marker names
+    with that marker's destinations: an id counts only as `(item <id>)` inside
+    the segment of a marker that names a destination."""
+    found, refs = [], {}
+    for seg in carry_segments(text):
+        ds = seg_dests(seg)
+        found += ds
+        for ref in ITEM_REF.findall(seg) if ds else []:
+            refs.setdefault(ref, ds)
+    return found, refs
+
+
+def carry_dests(text: str) -> list[str]:
+    """The destination tokens of every `Carry:` in <text>; [] when none."""
+    return carry_refs(text)[0]
+
+
+def seg_dests(seg: str) -> list[str]:
+    """The destination tokens of one marker segment (`Carry: ...`)."""
+    rest = seg.split(":", 1)[1].strip().strip("`*_")
+    dm = re.match(r"dismissed\s*:\s*(.*)", rest, re.I)
+    if dm:
+        return ["dismissed:" + dm.group(1).strip().rstrip("`*_ ")]
+    found = []
+    for tok in re.split(r"[,;|/]\s*|\s+and\s+|\s+", rest):
+        tok = tok.strip("`*_().:")
+        if not tok or tok.lower() == "item" or re.fullmatch(r"[0-9a-f]{8}", tok):
             continue
-        for tok in re.split(r"[,;|/]\s*|\s+and\s+|\s+", rest):
-            tok = tok.strip("`*_().:")
-            if not tok or tok.lower() == "item" or re.fullmatch(r"[0-9a-f]{8}", tok):
-                continue
-            if GROUP_TOK.match(tok) or ISSUE_TOK.match(tok) or BRIEF_TOK.match(tok):
-                found.append(tok)
-                continue
-            break  # prose after the destinations
+        if GROUP_TOK.match(tok) or ISSUE_TOK.match(tok) or BRIEF_TOK.match(tok):
+            found.append(tok)
+            continue
+        break  # prose after the destinations
     return found
 
 
@@ -308,10 +339,9 @@ def finding_rows(body: str, comments: list[dict]) -> "tuple[list[dict], dict]":
     rows, refs = [], {}
     for where, text, verdict in texts:
         for it in items(text, verdict):
-            ds = carry_dests(it["text"])
-            for ref in ITEM_REF.findall(it["text"]):
-                if ds:
-                    refs.setdefault(ref, ds)
+            ds, named = carry_refs(it["text"])
+            for ref, rds in named.items():
+                refs.setdefault(ref, rds)
             if it["flagged"]:
                 rows.append({"where": where, **it, "dests": ds})
     return rows, refs
@@ -640,6 +670,21 @@ def _self_test() -> int:
     out = ledger_unrouted(led)
     check("a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed "
           "FINDING: are not", len(out) == 1 and out[0].startswith("LEDGER-UNROUTED l1:"))
+    fr = head + "## Friction\n\n- carry_audit.py: unenforced: nothing reads the ledger key at merge.\n"
+    fid = run(fr)["rows"][0]["id"]
+    r = run(fr + f"\n## Red checks\n\n- `pr-contract`: it printed `UNROUTED body item {fid} (## Friction)`; "
+            "the fold names Carry: R10-LIVE as its example.\n")
+    check("a quoted refusal beside an unrelated marker routes nothing (#2404's review)",
+          r["u"] == 1 and len(r["rows"]) == 1)
+    r = run(fr + f"\n## Red checks\n\n- `pr-contract`: answered. Carry: R10-LIVE (item {fid})\n")
+    check("the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)",
+          r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    r = run(head + "## Friction\n\n- PULL_REQUEST_TEMPLATE.md: unenforced: its example "
+            "`Carry: R10-LIVE` names a group a fixer copies unchecked.\n")
+    check("a backticked example `Carry:` in a finding's prose does not route it", r["u"] == 1)
+    r = run(head + "## Friction\n\n- PULL_REQUEST_TEMPLATE.md: unenforced: its example "
+            "`Carry: R10-LIVE` names a group a fixer copies unchecked. Carry: R10-LIVE\n")
+    check("the same finding with a plain marker routes (null control)", r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
     check("a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)",
           carry_dests("written `FINDING: x Carry: ...`, which the sweep reads. Carry: R10-LIVE")
           == ["R10-LIVE"])
