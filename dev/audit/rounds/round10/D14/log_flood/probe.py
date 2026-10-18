@@ -15,6 +15,14 @@ the condition, not the arithmetic (#2351 round 3).
 
 --perturb re-introduces one line: _weather_fetch_failed's latch test is
 replaced by ``if True:`` in memory, so the stale-weather arm must move 1 -> 4.
+
+The ``recur_*`` arms (the #2351 round-6 reviewer's hold/clear/recur harness,
+adopted here) ask the other half of a transition latch: a condition held for
+two passes, cleared for two, then held again must log at WARNING or above on
+the recurrence and log nothing while cleared. A latch whose clearing call is
+missing reads ``recur=0`` and fails the script; so does a clear phase that
+logs. ``recur_reload`` holds a hass-owned condition, unloads the coordinator
+and holds it again on a new one, which must warn again.
 """
 import os, re, sys, asyncio, logging, collections
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
@@ -170,10 +178,106 @@ async def direct_arm(name):
     return cap.c
 
 
+class _Count(logging.Handler):
+    """WARNING-and-above records from the package whose text holds ``pat``."""
+    def __init__(self, pat):
+        super().__init__(logging.WARNING); self.n = 0; self.pat = pat
+    def emit(self, r):
+        if "heatpump" in r.name and self.pat in r.getMessage():
+            self.n += 1
+
+
+def _fresh(extra=None):
+    storage._DISK.clear(); storage._VERSIONS.clear()
+    F.CFG.clear(); F.CFG.update(BASE); F.CFG[const.CONF_WEATHER_ENTITY] = "weather.home"
+    F.CFG.update(extra or {})
+    return F.build()
+
+
+async def _phases(pat, hold, clear):
+    out = []
+    for fn in (hold, clear, hold):
+        cap = _Count(pat); logging.getLogger().addHandler(cap)
+        for _ in range(2):
+            await fn()
+        logging.getLogger().removeHandler(cap); out.append(cap.n)
+    return out
+
+
+def _stamps(h, minutes_ahead):
+    from datetime import timedelta
+    st = dt_util.utcnow() + timedelta(minutes=minutes_ahead)
+    for ent, val in (("sensor.indoor", "21.4"), ("sensor.outdoor", "-3.0")):
+        h.states.set(ent, F.FakeState(val, last_updated=st, last_reported=st))
+
+
+async def recur_arm(name):
+    """``[hold, clear, recur]`` WARNING+ counts for one latched site."""
+    if name == "recur_future_stamp":
+        h, c = _fresh(); await F.drain(c)
+        async def bad(): _stamps(h, 60); await F.cycle(c)
+        async def ok(): _stamps(h, 0); await F.cycle(c)
+        return await _phases("ahead of the host clock", bad, ok)
+    if name == "recur_solve_failure":
+        h, c = _fresh(); await F.drain(c)
+        async def bad(): cm._note_solve_failure(c, RuntimeError("probe solve failure"))
+        async def ok(): await F.cycle(c)  # a real successful solve
+        return await _phases("Optimization failed", bad, ok)
+    if name == "recur_space_target":
+        h, c = _fresh({const.CONF_SPACE_SETPOINT_ENTITY: "number.space_setpoint"}); await F.drain(c)
+        now = dt_util.now()
+        result = _FakeResult(); result.timestamps = [now]; result.optimal_setpoints = [21.0]
+        def target(low):
+            h.states.set("number.space_setpoint",
+                         F.FakeState("21.0", attributes={"min": low, "max": 30.0}))
+            pa_mod._space_target(c.arbiter_inputs(), result, now, "space")
+        async def bad(): target(25.0)
+        async def ok(): target(5.0)
+        return await _phases("declared an indoor set-point", bad, ok)
+    if name == "recur_valve_write":
+        h, c = _fresh({const.CONF_MIXING_VALVE_MODE: "smart_write",
+                       const.CONF_MIXING_VALVE_WRITE_ENTITY: "number.valve"})
+        await F.drain(c)
+        saved = cm.write_setpoint_c
+        async def raising(*_a): raise RuntimeError("probe valve offline")
+        async def writing(*_a): return True
+        def via(fn):
+            async def run():
+                cm.write_setpoint_c = fn
+                c._valve_commanded_target = None  # never skipped as unchanged
+                try:
+                    await c._command_valve_target()
+                finally:
+                    cm.write_setpoint_c = saved
+            return run
+        return await _phases("Valve write entity", via(raising), via(writing))
+    if name == "recur_reload":
+        h, c = _fresh(); await F.drain(c)
+        async def bad(): _stamps(h, 60); await F.cycle(c)
+        cap = _Count("ahead of the host clock"); logging.getLogger().addHandler(cap)
+        await bad(); first = cap.n
+        await c.async_shutdown()
+        c = cm.HeatPumpOptimizerCoordinator(h, F.FakeEntry(data=dict(F.CFG)))
+        await bad()
+        logging.getLogger().removeHandler(cap)
+        return [first, 0, cap.n - first]
+    raise KeyError(name)
+
+
+RECUR = ("recur_future_stamp", "recur_solve_failure", "recur_space_target",
+         "recur_valve_write", "recur_reload")
+
+
 async def main():
-    names = [a for a in sys.argv[1:] if not a.startswith("--")] or list(ARMS) + list(DIRECT)
+    names = [a for a in sys.argv[1:] if not a.startswith("--")] or list(ARMS) + list(DIRECT) + list(RECUR)
     flooded = []
     for n in names:
+        if n in RECUR:
+            hold, clear, recur = await recur_arm(n)
+            print(f"RESULT {n}.hold={hold} clear={clear} recur={recur} count")
+            if not hold or clear or not recur:
+                flooded.append(n)
+            continue
         c = await (direct_arm(n) if n in DIRECT else arm(n))
         floods = {m: k for m, k in c.items() if k >= 4}
         print(f"RESULT {n}.floods={len(floods)} count")
@@ -182,7 +286,7 @@ async def main():
         if floods:
             flooded.append(n)
     if flooded:
-        print(f"PROBE FAILED: {len(flooded)} arm(s) flood: {', '.join(flooded)}",
+        print(f"PROBE FAILED: {len(flooded)} arm(s) flood or never re-warn: {', '.join(flooded)}",
               file=sys.stderr)
         sys.exit(1)
 

@@ -25,7 +25,10 @@ _LOGGER = logging.getLogger(__name__)
 _HELD_CONDITIONS: WeakKeyDictionary[Any, dict[str, str]] = WeakKeyDictionary()
 
 
-def log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) -> bool:
+def log_held(
+    owner: Any, key: str, active: bool, message: str = "", *args: Any,
+    exc_info: BaseException | None = None,
+) -> bool:
     """Whether condition ``key`` holds, logging only its transitions; returns ``active``.
 
     A condition that persists (no forecast, no prices, a malformed option)
@@ -38,6 +41,11 @@ def log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) 
     -- the coordinator for its own sites, ``hass`` for the pump arbiter and the
     input reader. It must be weak-referenceable; ``None`` (a snapshot built
     without its ``hass``) is logged every call rather than raising into a cycle.
+
+    Every caller owes the clearing call (``active=False``) on the condition's
+    recovery path: a key never cleared is a once-per-owner filter, and a
+    condition that recovers and recurs would log nothing above DEBUG again.
+    ``exc_info`` makes the start an ERROR carrying that exception's traceback.
     """
     # No stable owner means no transition to hold: a throwaway dict logs the
     # condition on every call, which is the only honest outcome without a key.
@@ -51,5 +59,18 @@ def log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) 
         _LOGGER.debug("Still: %s", text)
     else:
         held[key] = text
-        _LOGGER.warning("%s", text)
+        if exc_info is not None:
+            _LOGGER.error("%s", text, exc_info=exc_info)
+        else:
+            _LOGGER.warning("%s", text)
     return True
+
+
+def forget_held(owner: Any) -> None:
+    """Drop every condition held for ``owner``, so each warns afresh.
+
+    For an owner that outlives its entry: ``hass`` keys the pump arbiter's and
+    the input reader's conditions, so an entry unload forgets them and the
+    reloaded entry reports a persisting condition again.
+    """
+    _HELD_CONDITIONS.pop(owner, None)

@@ -419,22 +419,26 @@ def _space_target(
     inp: ArbiterInputs, result: Any, now: datetime, duty: str | None
 ) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
+    entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
+        log_held(inp.hass, f"space_target_flow_declared:{entity}", False)
         return _flow_target(inp, duty, now)
     room = _planned_room(result, now)
-    low = setpoint_range_c(inp.hass, _entities(inp.config)["space_setpoint"])[0]
-    if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
-        # An "indoor" entity that cannot hold the room target is a flow
-        # set-point declared as indoor: clamping 21 degC up to its minimum
-        # is the 25 degC this module must never write to a flow entity.
-        # Latched on ``hass``, which outlives the per-pass ``ArbiterInputs``
-        # snapshot, exactly as ``inputs._age_gate`` does.
-        log_held(
-            inp.hass, "space_target_flow_declared", True,
-            "Pump duty: %s is declared an indoor set-point but its minimum is "
-            "%.1f degC; set its unit to Flow temperature. Not writing it.",
-            _entities(inp.config)["space_setpoint"], low,
-        )
+    low = setpoint_range_c(inp.hass, entity)[0]
+    # An "indoor" entity that cannot hold the room target is a flow
+    # set-point declared as indoor: clamping 21 degC up to its minimum is the
+    # 25 degC this module must never write to a flow entity. Latched on
+    # ``hass``, which outlives the per-pass ``ArbiterInputs`` snapshot, as
+    # ``inputs._age_gate`` is, and cleared on every pass that reads a
+    # holdable minimum or a flow unit, so a fixed misdeclaration that recurs
+    # warns again.
+    misdeclared = room is not None and low is not None and low > room + SETPOINT_TOLERANCE
+    if log_held(
+        inp.hass, f"space_target_flow_declared:{entity}", misdeclared,
+        "Pump duty: %s is declared an indoor set-point but its minimum is "
+        "%.1f degC; set its unit to Flow temperature. Not writing it.",
+        entity, low,
+    ):
         return None
     return _bounded(inp, "space_setpoint", room)
 

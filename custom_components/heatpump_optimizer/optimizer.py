@@ -3779,10 +3779,11 @@ class HeatPumpOptimizer:
                 float(objective(power, dhw_plan)),
             )
         except Exception as e:
-            # The ``failed (...)`` status below reaches the coordinator, which
-            # reports the failure once through its own latched
-            # ``_note_solve_failure``; the per-solve ERROR here was the
-            # duplicate (R10-N-log-flood, #2337).
+            # On the first pass the ``failed (...)`` status below reaches the
+            # coordinator, which reports it once through its latched
+            # ``_note_solve_failure``; a failed ``_co_optimize`` candidate pass
+            # keeps the first pass's status and stays at DEBUG, as its sibling
+            # except does (R10-N-log-flood, #2337).
             _LOGGER.debug("Space heating optimization (with DHW) failed: %s", e)
             return (
                 guess,

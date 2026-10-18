@@ -552,7 +552,7 @@ def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
 #: R10 N-log-flood (#2226): the transition latch lives in ``log_latch.py``, a
 #: leaf module, so the pump arbiter and the input reader can route a persisting
 #: condition through it without importing this module (which imports them all).
-from .log_latch import log_held  # noqa: E402
+from .log_latch import forget_held, log_held  # noqa: E402
 
 
 @functools.lru_cache(maxsize=8)
@@ -632,7 +632,7 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
     owns none of its state, and the failure branch it serves must stay one
     screen (#1644, D1-s4-02 moved its third caller into it).
     """
-    log_held(coord, "solve_failure", True, "Optimization failed: %s", err)
+    log_held(coord, "solve_failure", True, "Optimization failed: %s", err, exc_info=err)
     coord._solve_failures += 1
     if coord._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
         # Exactly-at, not at-or-above: the issue is idempotent to
@@ -659,6 +659,7 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
                 ),
             },
         )
+
 
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
@@ -5802,6 +5803,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
                 ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
             self._solve_failures = 0
+            log_held(self, "solve_failure", False)  # a later failure spell warns again
             # T5 #16: file this plan's promises at each lead bucket, to be
             # scored when their moment arrives. Anchored to the instant
             # the trajectory was built from, not to "after the solve".
@@ -6019,6 +6021,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._release_registrations()
         await self._legionella.async_release_switch()
         await pump_arbiter.release(self)
+        forget_held(self.hass)  # the reader's and arbiter's latches re-warn after a reload
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -7315,11 +7318,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if planned is not None:
             target = float(planned)
         kind = ctx._config.mixing_valve_write_target_kind
+        if log_held(self, "valve_flow_needs_two_zone",
+                    kind == mixing_valve.WRITE_TARGET_FLOW and not params.two_zone_enabled,
+                    "mixing_valve_write_target_kind=flow needs two-zone"):
+            return
         if kind == mixing_valve.WRITE_TARGET_FLOW:
-            if not params.two_zone_enabled:
-                log_held(self, "valve_flow_needs_two_zone", True,
-                          "mixing_valve_write_target_kind=flow needs two-zone")
-                return
             outdoor = ctx._current_state.outdoor_temperature
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
         if (
@@ -7328,18 +7331,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             < MIXING_VALVE_WRITE_EPSILON
         ):
             return
+        # One latch for both failures: its text says which, and the next
+        # successful write clears it, so a valve that fails again warns again.
         try:
-            if not await write_setpoint_c(self.hass, entity_id, target):
-                log_held(
-                    self, "valve_write_entity_domain", True,
-                    "Valve write entity %s is a %s; smart_write can command "
-                    "number, input_number and climate entities",
-                    entity_id, entity_id.split(".", 1)[0],
-                )
-                return
+            why = None if await write_setpoint_c(self.hass, entity_id, target) else (
+                f"is a {entity_id.split('.', 1)[0]}; smart_write can command "
+                "number, input_number and climate entities")
         except Exception as err:  # noqa: BLE001 - never break planning
-            log_held(self, "valve_write_error", True,
-                      "Error commanding valve target: %s", err)
+            why = f"could not be commanded: {err}"
+        if log_held(self, "valve_write", why is not None, "Valve write entity %s %s", entity_id, why):
             return
         _LOGGER.info(
             "Commanded mixing valve target %.1f °C via %s", target, entity_id

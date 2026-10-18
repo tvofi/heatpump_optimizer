@@ -64293,6 +64293,47 @@ R.check(
     f"errors={_fd_ownerless_errors!r} rows={_fd_ownerless_log.rows!r}",
 )
 
+# R10 round 6 (#2351): a failed solve starts as an ERROR carrying its
+# traceback (the pre-latch level), repeats at DEBUG, and the clearing call the
+# success path makes lets the next failure spell ERROR again. forget_held, run
+# at shutdown, drops a hass-owned condition so a reloaded entry reports it.
+_fd_sf = _fd_coord()
+_fd_sf_tb = []
+
+
+class _FdTraceback(_fd_logging.Handler):
+    def emit(self, record):
+        if "Optimization failed" in record.getMessage():
+            _fd_sf_tb.append((record.levelname, record.exc_info is not None))
+
+
+def _fd_sf_run():
+    tb = _FdTraceback(_fd_logging.DEBUG)
+    logger = _fd_logging.getLogger(_fd_cm.__name__.rsplit(".", 1)[0])
+    logger.addHandler(tb)
+    try:
+        for _ in range(2):
+            _fd_cm._note_solve_failure(_fd_sf, RuntimeError("fd solve"))
+        _fd_cm.log_held(_fd_sf, "solve_failure", False)
+        _fd_cm._note_solve_failure(_fd_sf, RuntimeError("fd solve"))
+        _fd_cm.log_held(_fd_sf.hass, "fd_hass_condition", True, "Probe %s", "hass-owned")
+        _fd_cm.forget_held(_fd_sf.hass)
+        _fd_cm.log_held(_fd_sf.hass, "fd_hass_condition", True, "Probe %s", "hass-owned")
+    finally:
+        logger.removeHandler(tb)
+
+
+_fd_sf_log = _fd_logged(_fd_sf_run)
+R.check(
+    "#2351: a failed solve ERRORs with its traceback once per spell, DEBUGs on "
+    "repeats, ERRORs again after the success path clears it; forget_held re-arms",
+    _fd_sf_tb[:1] == [("ERROR", True)]
+    and _fd_sf_log.count("ERROR", "Optimization failed") == 2
+    and _fd_sf_log.count("DEBUG", "Optimization failed") == 1
+    and _fd_sf_log.count("WARNING", "Probe hass-owned") == 2,
+    f"tracebacks={_fd_sf_tb!r} rows={_fd_sf_log.rows!r}",
+)
+
 # -- the consumers of an unknown price (#2229's distinct failure value) ------
 _fd_acc = _fd_coord()
 _fd_acc_before = dict(_fd_acc._energy_totals)
