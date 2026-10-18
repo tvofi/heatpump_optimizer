@@ -15,11 +15,11 @@ git show origin/main:dev/programme/rosters/wave-r10-groups.json   # the roster
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-PUMP-MODEL (stage in-progress: fixer dispatched, branch `handoff/r10-pump-model`, note `None`): `git fetch origin handoff/r10-pump-model && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-ARCHSCORE-COVERAGE (stage in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r4; p4/p5 not started, branch `handoff/r10-archscore-coverage`, note `None`): `git fetch origin handoff/r10-archscore-coverage && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
-- R10-TICK-ORCH (stage b,d,j merged in #2281 (49a98d739); a,c open, branch `handoff/r10-tick-orch`, note `None`): `git fetch origin handoff/r10-tick-orch && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-REF-PRIVACY (stage in-progress: fixer dispatched, branch `handoff/r10-ref-privacy`, note `None`): `git fetch origin handoff/r10-ref-privacy && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-DEEPLINK-CENSUS (stage in-review: #2345, branch `handoff/r10-deeplink-census`, note `None`): `git fetch origin handoff/r10-deeplink-census && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-DEEPLINK-HANDLERS (stage planned, branch `handoff/r10-deeplink-handlers`, note `None`): `git fetch origin handoff/r10-deeplink-handlers && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ARCHSCORE-COVERAGE, R10-DEEPLINK-CENSUS, R10-I5-DOCS, R10-PUMP-MODEL, R10-REF-PRIVACY, R10-VENT-DETECTOR
+Ready next (after-edges satisfied; nothing open constrains them): R10-ARCHSCORE-COVERAGE, R10-DEEPLINK-CENSUS, R10-I5-DOCS, R10-PUMP-MODEL, R10-REF-PRIVACY, R10-TRAIN-HOLD, R10-VENT-DETECTOR
 
 ## Resume steps
 
