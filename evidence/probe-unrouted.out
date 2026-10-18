@@ -1,0 +1,3 @@
+UNROUTED body item e7176be8 (## Friction) [section]: '- carry_audit.py: unenforced: nothing reads the ledger key at merge.'
+CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)
+rc=1
