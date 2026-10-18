@@ -37538,12 +37538,13 @@ _sv._accumulate_energy(_sv_sample, 0.5, _sv_pending)
 _sv_m = NOW.strftime("%Y-%m")
 _sv_b = _sv._ledger.line(_sv_m, "savings_baseline")
 _sv_a = _sv._ledger.line(_sv_m, "savings_actual")
+# #2255: both sides at spot plus the interval's grid fee (2.0 + 0.5).
 R.check(
     "with a pending baseline both savings lines move",
     abs(_sv_b["kwh"] - 2.0) < 1e-12
-    and abs(_sv_b["sek"] - 4.0) < 1e-12
+    and abs(_sv_b["sek"] - 5.0) < 1e-12
     and abs(_sv_a["kwh"] - 1.0) < 1e-12
-    and abs(_sv_a["sek"] - 2.0) < 1e-12,
+    and abs(_sv_a["sek"] - 2.5) < 1e-12,
     f"base {_sv_b} actual {_sv_a}",
 )
 _sv0 = _t2_coord()
