@@ -1,0 +1,4 @@
+RESULT shape_copies=66 {'metric': 'shapes', 'shape_copies': 66, 'runtime_s': 11.874}
+RESULT card_clone_copies=108 card_dead_definitions=0
+RESULT literal_clone_copies=186
+RESULT hub_solve_writes=41
