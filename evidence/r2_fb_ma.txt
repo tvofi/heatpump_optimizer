@@ -1,0 +1,232 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  ok   the boundary quarantines nan at every depth
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  ok   the boundary quarantines str-nan at every depth
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+  ok   the ledger payload carries month line and meta leaves to corrupt (#1518)
+  ok   no non-finite value reaches the live thermal model
+  ok   no non-finite value reaches the published payload
+  ok   no corrupt leaf makes the next refresh's publication raise (#1518)
+  ok   no wrong-type leaf is installed where the live model holds a number
+  ok   no loader raised on a quarantined payload
+  ok   the peak store loads its pre-#1512 and malformed label shapes: finite peaks only, one string label each, no raise
+  ok   healthy payload 'heatpump_optimizer_test_entry_thermal_learning' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_price_model' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_accuracy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_energy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_manual_plan' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_snapshots' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_ledger' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_profile' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_draws' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_legionella' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_boost' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_away' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_pump_duty' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_notifier' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_debug' leaves the model finite (null control)
+RESULT store_boundaries=15 count
+RESULT raw_store_calls=0 count
+RESULT stores_swept=15 count
+RESULT model_poison_total=0 count
+RESULT published_poison_total=0 count
+RESULT loader_escape_total=0 count
+RESULT type_drift_total=0 count
+RESULT refresh_escape_total=0 count
+  ok   no stored instant reaches a loader beyond the clock plus its store's lead
+  ok   the instant sweep drove every loader and checked instants (not vacuous)
+  ok   every lead opt-out is a listed, reasoned one, and every listed one opts out
+  ok   an honest payload comes back byte-identical (null control)
+  ok   each writer round trip carries an instant ahead of the clock (not vacuous)
+  FAIL an instant inside its store's lead survives the load (a lead is not lost)  [lead_lost=['accuracy (writer round trip)', 'snapshots (writer round trip)']]
+RESULT instant_escaped_total=0 count
+RESULT instant_stores_driven=15 count
+RESULT instant_leaves_checked=36 count
+RESULT instant_lead_opt_outs=['away', 'notifier']
+  ok   a store holding JSON that is not a mapping fails no loader (load_mapping, D7-s4-81)
+RESULT store_non_mapping_raises=0 count
+  ok   a stored "" or "~" key is data, not a step into the declaration: the store and an embedding one still load
+  ok   the save digest skips only the payload its store last accepted, forgets it on a plain save and retries a failed one (ARCH2-s2 P3)
+  ok   quarantines() is the next load's scrub, keys included; a foreign key declares nothing
+RESULT class_mutants=5090 count
+RESULT class_seams=0 count
+RESULT class_unseeded_sections=27 count
+  UNSEEDED accuracy:accuracy/lead_counts
+  UNSEEDED accuracy:accuracy/lead_pending
+  UNSEEDED accuracy:accuracy/lead_sigma
+  UNSEEDED accuracy:accuracy/promises
+  UNSEEDED accuracy:comfort/history
+  UNSEEDED accuracy:dhw_accuracy/lead_counts
+  UNSEEDED accuracy:dhw_accuracy/lead_pending
+  UNSEEDED accuracy:dhw_accuracy/lead_sigma
+  UNSEEDED accuracy:dhw_accuracy/promises
+  UNSEEDED accuracy:peaks/closed_peaks
+  UNSEEDED ledger:month_reports
+  UNSEEDED ledger:score_day
+  UNSEEDED ledger:starts/months
+  UNSEEDED price_model:days_seen
+  UNSEEDED price_model:quarter_days_seen
+  UNSEEDED snapshots:snapshots/0/accuracy/lead_sigma
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_counts
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_pending
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_sigma
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/promises
+  UNSEEDED snapshots:snapshots/0/learners/comfort/history
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/cop_baseline
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/cop_health_cusum/evidence
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/vent_cusum/evidence
+  UNSEEDED thermal_learning:cop_baseline
+  UNSEEDED thermal_learning:cop_health_cusum/evidence
+  UNSEEDED thermal_learning:vent_cusum/evidence
+RESULT class_arm_seconds=112.9
+  ok   the class sweep drove every seeded store (it cannot go green by skipping)
+  ok   the healthy populated stores load clean through every loader and consumer (null control)
+  ok   no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)
+  DOMAIN accuracy:accuracy/lead_counts/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:accuracy/lead_counts/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:accuracy/lead_sigma/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:accuracy/lead_sigma/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:comfort/configured_weight held -18.5 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:comfort/configured_weight held 59.5 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:comfort/learned_weight held -18.5 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:comfort/learned_weight held 59.5 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:comfort/overrides held -1 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:defrost/version held 1 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:defrost/version held 3 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:dhw_accuracy/lead_counts/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:dhw_accuracy/lead_counts/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:dhw_accuracy/lead_sigma/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:dhw_accuracy/lead_sigma/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:mode held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:peaks/window_factor held -0.5 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:peaks/window_factor held 1.5 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:peaks/window_samples held -1 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:peaks/window_sum held -1.0 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:peaks/window_weight held -1.0 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN accuracy:peaks/window_wsum held -1.0 out of domain: ['accuracy/samples/0/t~', 'accuracy/samples/0/t']
+  DOMAIN dhw_draws:open_kwh held -1.0 out of domain: ['reservoirs/morning/0', 'reservoirs/morning/1']
+  DOMAIN dhw_profile:cooling_rate held -1.425 out of domain: ['hourly_profile/0', 'hourly_profile/1']
+  DOMAIN dhw_profile:cooling_rate held 4.475 out of domain: ['hourly_profile/0', 'hourly_profile/1']
+  DOMAIN dhw_profile:cooling_samples held -1 out of domain: ['hourly_profile/0', 'hourly_profile/1']
+  DOMAIN dhw_profile:profile_weekday_samples held -1 out of domain: ['hourly_profile/0', 'hourly_profile/1']
+  DOMAIN dhw_profile:profile_weekend_samples held -1 out of domain: ['hourly_profile/0', 'hourly_profile/1']
+  DOMAIN ledger:fuse_advisor/candidate_fuse_a held -1.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:fuse_advisor/candidate_kw held -1.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:fuse_advisor/comfort_shortfall_c held -1.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:fuse_advisor/current_fuse_a held -1.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:operation_score held -50.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:operation_score held 150.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:score_day/free_streak held -1.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:score_day/spot_h held -1.0 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN ledger:starts/lifetime held -1 out of domain: ['ledger/months/2026-01/lines~', 'ledger/months/2026-01/lines/savings_baseline~']
+  DOMAIN snapshots:bias_days held -1 out of domain: ['snapshots:snapshots/0/taken_at~', 'snapshots:snapshots/0/taken_at']
+  DOMAIN thermal_learning:buffer_cooling_rate held -1.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:buffer_cooling_samples held -1 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:cop_health_cusum/stat held -0.6 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:cop_health_cusum/stat held 1.7999999999999998 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:cop_samples held -1 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:cop_scale held -0.050000000000000044 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:cop_scale held 2.1500000000000004 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:curve_learner/bias held -6.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:curve_learner/bias held 2.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:curve_learner/comfortable_days held -1 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:curve_learner/resets held -1 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:flow_bias/bias_k held -60.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:flow_bias/bias_k held 120.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:flow_bias/samples held -1 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/2~ held -4 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/2~ held 13 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/3~ held -4 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/3~ held 13 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/4~ held -4 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/4~ held 13 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/6~ held -4 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:freq_map/6~ held 13 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:house_heat_loss_anchor held -1.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:house_heat_loss_samples held -1 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:house_heat_loss_scale held -1.05 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:house_heat_loss_scale held 4.35 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:lower_floor_loss_ratio held -1.05 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:lower_floor_loss_ratio held 4.35 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:lower_floor_loss_samples held -1 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:measured_cop/cop held -0.9 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:snow_accum_cm held -1.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:solar_aperture/mx held -1.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:solar_aperture/n held -1.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:solar_aperture/scale held -0.55 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:solar_aperture/scale held 2.85 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:solar_aperture/var held -1.0 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:vent_cusum/stat held -0.9 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+  DOMAIN thermal_learning:vent_cusum/stat held 2.7 out of domain: ['vent_cusum/evidence/0', 'cop_baseline/4/0']
+RESULT domain_stores=15 count
+RESULT domain_fields=1475 count
+RESULT domain_probes=169 count
+RESULT domain_refused=76 count
+RESULT domain_unreached=0 count
+RESULT domain_arm_seconds=1.9
+  FAIL every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)  [stores=['accuracy', 'away', 'boost', 'debug', 'dhw_draws', 'dhw_legionella', 'dhw_profile', 'energy', 'ledger', 'manual_plan', 'notifier', 'price_model', 'pump_duty', 'snapshots', 'thermal_learning'] off=['accuracy/lead_counts/3.0', 'accuracy/lead_counts/6.0', 'accuracy/lead_pending/0/0', 'accuracy/lead_pending/0/1', 'accuracy/lead_pending/0/2', 'accuracy/lead_sigma/3.0']]
+  ok   a planted undeclared field is refused (the coverage check's own control)
+  FAIL the healthy rich seed round-trips unchanged through every loader and saver (null control)  [changed=['ledger', 'snapshots:snapshots/0/taken_at~', 'snapshots:snapshots/0/taken_at', 'snapshots:snapshots/0/healthy~', 'snapshots:snapshots/0/healthy', 'snapshots:snapshots/0/alarmed_at_capture~', 'snapshots:snapshots/0/alarmed_at_capture', 'snapshots:snapshots/0/accuracy~', 'snapshots:snapshots/0/accuracy', 'snapshots:snapshots/0/learners~', 'dhw_profile:hourly_profile/0', 'dhw_profile:hourly_profile/1', 'dhw_profile:hourly_profile/2', 'dhw_profile:hourly_profile/3', 'dhw_profile:hourly_profile/4', 'dhw_profile:hourly_profile/5', 'dhw_profile:hourly_profile/6', 'dhw_profile:hourly_profile/7', 'dhw_profile:hourly_profile/8', 'dhw_profile:hourly_profile/9', 'dhw_profile:hourly_profile/10', 'dhw_profile:hourly_profile/11', 'dhw_profile:hourly_profile/12', 'dhw_profile:hourly_profile/13', 'dhw_profile:hourly_profile/14', 'dhw_profile:hourly_profile/15', 'dhw_profile:hourly_profile/16', 'dhw_profile:hourly_profile/17', 'dhw_profile:hourly_profile/18', 'dhw_profile:hourly_profile/19', 'dhw_profile:hourly_profile/20', 'dhw_profile:hourly_profile/21', 'dhw_profile:hourly_profile/22', 'dhw_profile:hourly_profile/23', 'dhw_profile:profile_weekday/0', 'dhw_profile:profile_weekday/1', 'dhw_profile:profile_weekday/2', 'dhw_profile:profile_weekday/3', 'dhw_profile:profile_weekday/4', 'dhw_profile:profile_weekday/5', 'dhw_profile:profile_weekday/6', 'dhw_profile:profile_weekday/7', 'dhw_profile:profile_weekday/8', 'dhw_profile:profile_weekday/9', 'dhw_profile:profile_weekday/10', 'dhw_profile:profile_weekday/11', 'dhw_profile:profile_weekday/12', 'dhw_profile:profile_weekday/13', 'dhw_profile:profile_weekday/14', 'dhw_profile:profile_weekday/15', 'dhw_profile:profile_weekday/16', 'dhw_profile:profile_weekday/17', 'dhw_profile:profile_weekday/18', 'dhw_profile:profile_weekday/19', 'dhw_profile:profile_weekday/20', 'dhw_profile:profile_weekday/21', 'dhw_profile:profile_weekday/22', 'dhw_profile:profile_weekday/23', 'dhw_profile:profile_weekend/0', 'dhw_profile:profile_weekend/1', 'dhw_profile:profile_weekend/2', 'dhw_profile:profile_weekend/3', 'dhw_profile:profile_weekend/4', 'dhw_profile:profile_weekend/5', 'dhw_profile:profile_weekend/6', 'dhw_profile:profile_weekend/7', 'dhw_profile:profile_weekend/8', 'dhw_profile:profile_weekend/9', 'dhw_profile:profile_weekend/10', 'dhw_profile:profile_weekend/11', 'dhw_profile:profile_weekend/12', 'dhw_profile:profile_weekend/13', 'dhw_profile:profile_weekend/14', 'dhw_profile:profile_weekend/15', 'dhw_profile:profile_weekend/16', 'dhw_profile:profile_weekend/17', 'dhw_profile:profile_weekend/18', 'dhw_profile:profile_weekend/19', 'dhw_profile:profile_weekend/20', 'dhw_profile:profile_weekend/21', 'dhw_profile:profile_weekend/22', 'dhw_profile:profile_weekend/23', 'price_model:model/shapes/0/0', 'price_model:model/shapes/0/1', 'price_model:model/shapes/0/2', 'price_model:model/shapes/0/3', 'price_model:model/shapes/0/4', 'price_model:model/shapes/0/5', 'price_model:model/shapes/0/6', 'price_model:model/shapes/0/7', 'price_model:model/shapes/0/8', 'price_model:model/shapes/0/9', 'price_model:model/shapes/0/10', 'price_model:model/shapes/0/11', 'price_model:model/shapes/0/12', 'price_model:model/shapes/0/13', 'price_model:model/shapes/0/14', 'price_model:model/shapes/0/15', 'price_model:model/shapes/0/16', 'price_model:model/shapes/0/17', 'price_model:model/shapes/0/18', 'price_model:model/shapes/0/19', 'price_model:model/shapes/0/20', 'price_model:model/shapes/0/21', 'price_model:model/shapes/0/22', 'price_model:model/shapes/0/23', 'price_model:model/shapes/1/0', 'price_model:model/shapes/1/1', 'price_model:model/shapes/1/2', 'price_model:model/shapes/1/3', 'price_model:model/shapes/1/4', 'price_model:model/shapes/1/5', 'price_model:model/shapes/1/6', 'price_model:model/shapes/1/7', 'price_model:model/shapes/1/8', 'price_model:model/shapes/1/9', 'price_model:model/shapes/1/10', 'price_model:model/shapes/1/11', 'price_model:model/shapes/1/12', 'price_model:model/shapes/1/13', 'price_model:model/shapes/1/14', 'price_model:model/shapes/1/15', 'price_model:model/shapes/1/16', 'price_model:model/shapes/1/17', 'price_model:model/shapes/1/18', 'price_model:model/shapes/1/19', 'price_model:model/shapes/1/20', 'price_model:model/shapes/1/21', 'price_model:model/shapes/1/22', 'price_model:model/shapes/1/23', 'price_model:model/days/0', 'price_model:model/days/1', 'price_model:model/quarter_factors/0/0', 'price_model:model/quarter_factors/0/1', 'price_model:model/quarter_factors/0/2', 'price_model:model/quarter_factors/0/3', 'price_model:model/quarter_factors/0/4', 'price_model:model/quarter_factors/0/5', 'price_model:model/quarter_factors/0/6', 'price_model:model/quarter_factors/0/7', 'price_model:model/quarter_factors/0/8', 'price_model:model/quarter_factors/0/9', 'price_model:model/quarter_factors/0/10', 'price_model:model/quarter_factors/0/11', 'price_model:model/quarter_factors/0/12', 'price_model:model/quarter_factors/0/13', 'price_model:model/quarter_factors/0/14', 'price_model:model/quarter_factors/0/15', 'price_model:model/quarter_factors/0/16', 'price_model:model/quarter_factors/0/17', 'price_model:model/quarter_factors/0/18', 'price_model:model/quarter_factors/0/19', 'price_model:model/quarter_factors/0/20', 'price_model:model/quarter_factors/0/21', 'price_model:model/quarter_factors/0/22', 'price_model:model/quarter_factors/0/23', 'price_model:model/quarter_factors/0/24', 'price_model:model/quarter_factors/0/25', 'price_model:model/quarter_factors/0/26', 'price_model:model/quarter_factors/0/27', 'price_model:model/quarter_factors/0/28', 'price_model:model/quarter_factors/0/29', 'price_model:model/quarter_factors/0/30', 'price_model:model/quarter_factors/0/31', 'price_model:model/quarter_factors/0/32', 'price_model:model/quarter_factors/0/33', 'price_model:model/quarter_factors/0/34', 'price_model:model/quarter_factors/0/35', 'price_model:model/quarter_factors/0/36', 'price_model:model/quarter_factors/0/37', 'price_model:model/quarter_factors/0/38', 'price_model:model/quarter_factors/0/39', 'price_model:model/quarter_factors/0/40', 'price_model:model/quarter_factors/0/41', 'price_model:model/quarter_factors/0/42', 'price_model:model/quarter_factors/0/43', 'price_model:model/quarter_factors/0/44', 'price_model:model/quarter_factors/0/45', 'price_model:model/quarter_factors/0/46', 'price_model:model/quarter_factors/0/47', 'price_model:model/quarter_factors/0/48', 'price_model:model/quarter_factors/0/49', 'price_model:model/quarter_factors/0/50', 'price_model:model/quarter_factors/0/51', 'price_model:model/quarter_factors/0/52', 'price_model:model/quarter_factors/0/53', 'price_model:model/quarter_factors/0/54', 'price_model:model/quarter_factors/0/55', 'price_model:model/quarter_factors/0/56', 'price_model:model/quarter_factors/0/57', 'price_model:model/quarter_factors/0/58', 'price_model:model/quarter_factors/0/59', 'price_model:model/quarter_factors/0/60', 'price_model:model/quarter_factors/0/61', 'price_model:model/quarter_factors/0/62', 'price_model:model/quarter_factors/0/63', 'price_model:model/quarter_factors/0/64', 'price_model:model/quarter_factors/0/65', 'price_model:model/quarter_factors/0/66', 'price_model:model/quarter_factors/0/67', 'price_model:model/quarter_factors/0/68', 'price_model:model/quarter_factors/0/69', 'price_model:model/quarter_factors/0/70', 'price_model:model/quarter_factors/0/71', 'price_model:model/quarter_factors/0/72', 'price_model:model/quarter_factors/0/73', 'price_model:model/quarter_factors/0/74', 'price_model:model/quarter_factors/0/75', 'price_model:model/quarter_factors/0/76', 'price_model:model/quarter_factors/0/77', 'price_model:model/quarter_factors/0/78', 'price_model:model/quarter_factors/0/79', 'price_model:model/quarter_factors/0/80', 'price_model:model/quarter_factors/0/81', 'price_model:model/quarter_factors/0/82', 'price_model:model/quarter_factors/0/83', 'price_model:model/quarter_factors/0/84', 'price_model:model/quarter_factors/0/85', 'price_model:model/quarter_factors/0/86', 'price_model:model/quarter_factors/0/87', 'price_model:model/quarter_factors/0/88', 'price_model:model/quarter_factors/0/89', 'price_model:model/quarter_factors/0/90', 'price_model:model/quarter_factors/0/91', 'price_model:model/quarter_factors/0/92', 'price_model:model/quarter_factors/0/93', 'price_model:model/quarter_factors/0/94', 'price_model:model/quarter_factors/0/95', 'price_model:model/quarter_factors/1/0', 'price_model:model/quarter_factors/1/1', 'price_model:model/quarter_factors/1/2', 'price_model:model/quarter_factors/1/3', 'price_model:model/quarter_factors/1/4', 'price_model:model/quarter_factors/1/5', 'price_model:model/quarter_factors/1/6', 'price_model:model/quarter_factors/1/7', 'price_model:model/quarter_factors/1/8', 'price_model:model/quarter_factors/1/9', 'price_model:model/quarter_factors/1/10', 'price_model:model/quarter_factors/1/11', 'price_model:model/quarter_factors/1/12', 'price_model:model/quarter_factors/1/13', 'price_model:model/quarter_factors/1/14', 'price_model:model/quarter_factors/1/15', 'price_model:model/quarter_factors/1/16', 'price_model:model/quarter_factors/1/17', 'price_model:model/quarter_factors/1/18', 'price_model:model/quarter_factors/1/19', 'price_model:model/quarter_factors/1/20', 'price_model:model/quarter_factors/1/21', 'price_model:model/quarter_factors/1/22', 'price_model:model/quarter_factors/1/23', 'price_model:model/quarter_factors/1/24', 'price_model:model/quarter_factors/1/25', 'price_model:model/quarter_factors/1/26', 'price_model:model/quarter_factors/1/27', 'price_model:model/quarter_factors/1/28', 'price_model:model/quarter_factors/1/29', 'price_model:model/quarter_factors/1/30', 'price_model:model/quarter_factors/1/31', 'price_model:model/quarter_factors/1/32', 'price_model:model/quarter_factors/1/33', 'price_model:model/quarter_factors/1/34', 'price_model:model/quarter_factors/1/35', 'price_model:model/quarter_factors/1/36', 'price_model:model/quarter_factors/1/37', 'price_model:model/quarter_factors/1/38', 'price_model:model/quarter_factors/1/39', 'price_model:model/quarter_factors/1/40', 'price_model:model/quarter_factors/1/41', 'price_model:model/quarter_factors/1/42', 'price_model:model/quarter_factors/1/43', 'price_model:model/quarter_factors/1/44', 'price_model:model/quarter_factors/1/45', 'price_model:model/quarter_factors/1/46', 'price_model:model/quarter_factors/1/47', 'price_model:model/quarter_factors/1/48', 'price_model:model/quarter_factors/1/49', 'price_model:model/quarter_factors/1/50', 'price_model:model/quarter_factors/1/51', 'price_model:model/quarter_factors/1/52', 'price_model:model/quarter_factors/1/53', 'price_model:model/quarter_factors/1/54', 'price_model:model/quarter_factors/1/55', 'price_model:model/quarter_factors/1/56', 'price_model:model/quarter_factors/1/57', 'price_model:model/quarter_factors/1/58', 'price_model:model/quarter_factors/1/59', 'price_model:model/quarter_factors/1/60', 'price_model:model/quarter_factors/1/61', 'price_model:model/quarter_factors/1/62', 'price_model:model/quarter_factors/1/63', 'price_model:model/quarter_factors/1/64', 'price_model:model/quarter_factors/1/65', 'price_model:model/quarter_factors/1/66', 'price_model:model/quarter_factors/1/67', 'price_model:model/quarter_factors/1/68', 'price_model:model/quarter_factors/1/69', 'price_model:model/quarter_factors/1/70', 'price_model:model/quarter_factors/1/71', 'price_model:model/quarter_factors/1/72', 'price_model:model/quarter_factors/1/73', 'price_model:model/quarter_factors/1/74', 'price_model:model/quarter_factors/1/75', 'price_model:model/quarter_factors/1/76', 'price_model:model/quarter_factors/1/77', 'price_model:model/quarter_factors/1/78', 'price_model:model/quarter_factors/1/79', 'price_model:model/quarter_factors/1/80', 'price_model:model/quarter_factors/1/81', 'price_model:model/quarter_factors/1/82', 'price_model:model/quarter_factors/1/83', 'price_model:model/quarter_factors/1/84', 'price_model:model/quarter_factors/1/85', 'price_model:model/quarter_factors/1/86', 'price_model:model/quarter_factors/1/87', 'price_model:model/quarter_factors/1/88', 'price_model:model/quarter_factors/1/89', 'price_model:model/quarter_factors/1/90', 'price_model:model/quarter_factors/1/91', 'price_model:model/quarter_factors/1/92', 'price_model:model/quarter_factors/1/93', 'price_model:model/quarter_factors/1/94', 'price_model:model/quarter_factors/1/95', 'price_model:model/quarter_days/0', 'price_model:model/quarter_days/1', 'price_model:model/residual_var/0/0', 'price_model:model/residual_var/0/1', 'price_model:model/residual_var/0/2', 'price_model:model/residual_var/0/3', 'price_model:model/residual_var/0/4', 'price_model:model/residual_var/0/5', 'price_model:model/residual_var/0/6', 'price_model:model/residual_var/0/7', 'price_model:model/residual_var/0/8', 'price_model:model/residual_var/0/9', 'price_model:model/residual_var/0/10', 'price_model:model/residual_var/0/11', 'price_model:model/residual_var/0/12', 'price_model:model/residual_var/0/13', 'price_model:model/residual_var/0/14', 'price_model:model/residual_var/0/15', 'price_model:model/residual_var/0/16', 'price_model:model/residual_var/0/17', 'price_model:model/residual_var/0/18', 'price_model:model/residual_var/0/19', 'price_model:model/residual_var/0/20', 'price_model:model/residual_var/0/21', 'price_model:model/residual_var/0/22', 'price_model:model/residual_var/0/23', 'price_model:model/residual_var/1/0', 'price_model:model/residual_var/1/1', 'price_model:model/residual_var/1/2', 'price_model:model/residual_var/1/3', 'price_model:model/residual_var/1/4', 'price_model:model/residual_var/1/5', 'price_model:model/residual_var/1/6', 'price_model:model/residual_var/1/7', 'price_model:model/residual_var/1/8', 'price_model:model/residual_var/1/9', 'price_model:model/residual_var/1/10', 'price_model:model/residual_var/1/11', 'price_model:model/residual_var/1/12', 'price_model:model/residual_var/1/13', 'price_model:model/residual_var/1/14', 'price_model:model/residual_var/1/15', 'price_model:model/residual_var/1/16', 'price_model:model/residual_var/1/17', 'price_model:model/residual_var/1/18', 'price_model:model/residual_var/1/19', 'price_model:model/residual_var/1/20', 'price_model:model/residual_var/1/21', 'price_model:model/residual_var/1/22', 'price_model:model/residual_var/1/23', 'accuracy:defrost/factors/0/0', 'accuracy:defrost/factors/0/1', 'accuracy:defrost/factors/1/0', 'accuracy:defrost/factors/1/1', 'accuracy:defrost/factors/2/0', 'accuracy:defrost/factors/2/1', 'accuracy:defrost/factors/3/0', 'accuracy:defrost/factors/3/1', 'accuracy:defrost/factors/4/0', 'accuracy:defrost/factors/4/1', 'accuracy:defrost/factors/5/0', 'accuracy:defrost/factors/5/1', 'accuracy:defrost/counts/0/0', 'accuracy:defrost/counts/0/1', 'accuracy:defrost/counts/1/0', 'accuracy:defrost/counts/1/1', 'accuracy:defrost/counts/2/0', 'accuracy:defrost/counts/2/1', 'accuracy:defrost/counts/3/0', 'accuracy:defrost/counts/3/1', 'accuracy:defrost/counts/4/0', 'accuracy:defrost/counts/4/1', 'accuracy:defrost/counts/5/0', 'accuracy:defrost/counts/5/1', 'accuracy:defrost/duty/0/0', 'accuracy:defrost/duty/0/1', 'accuracy:defrost/duty/1/0', 'accuracy:defrost/duty/1/1', 'accuracy:defrost/duty/2/0', 'accuracy:defrost/duty/2/1', 'accuracy:defrost/duty/3/0', 'accuracy:defrost/duty/3/1', 'accuracy:defrost/duty/4/0', 'accuracy:defrost/duty/4/1', 'accuracy:defrost/duty/5/0', 'accuracy:defrost/duty/5/1', 'accuracy:defrost/duty_counts/0/0', 'accuracy:defrost/duty_counts/0/1', 'accuracy:defrost/duty_counts/1/0', 'accuracy:defrost/duty_counts/1/1', 'accuracy:defrost/duty_counts/2/0', 'accuracy:defrost/duty_counts/2/1', 'accuracy:defrost/duty_counts/3/0', 'accuracy:defrost/duty_counts/3/1', 'accuracy:defrost/duty_counts/4/0', 'accuracy:defrost/duty_counts/4/1', 'accuracy:defrost/duty_counts/5/0', 'accuracy:defrost/duty_counts/5/1', 'accuracy:defrost/duty_events/0/0', 'accuracy:defrost/duty_events/0/1', 'accuracy:defrost/duty_events/1/0', 'accuracy:defrost/duty_events/1/1', 'accuracy:defrost/duty_events/2/0', 'accuracy:defrost/duty_events/2/1', 'accuracy:defrost/duty_events/3/0', 'accuracy:defrost/duty_events/3/1', 'accuracy:defrost/duty_events/4/0', 'accuracy:defrost/duty_events/4/1', 'accuracy:defrost/duty_events/5/0', 'accuracy:defrost/duty_events/5/1', 'snapshots ring']]
+  ok   a day-less score_day book (the free-day close's streak) survives a reload (#908)
+  ok   the domain sweep drove every bounded field (it cannot go green by skipping)
+  FAIL no stored field substituted just outside its declared domain is held live, and no one bad grid cell costs its neighbours (class P1, card C1)  [refused=76]
+  ok   every in-domain probe reaches live state (the out-probes are not vacuous)
+  ok   the DHW profile's declared ceiling is dhw_learning's own (a literal, since that module imports the store)
+  ok   an int past a double refuses as unreadable at each attribute- or service-fed float() site
+  ok   each kind's shape and parse conjuncts decide alone
+  ok   a store key names its DOMAINS entry, and a foreign key names none
+  ok   the off-domain diagnostic logs an out-of-domain field and stays silent on a clean one
+  ok   every sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published sensor value (the arm is not vacuous)
+RESULT publish_sensor_entities=62 count
+RESULT publish_sensor_leaks=0 count
+  ok   every binary_sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published binary_sensor value (the arm is not vacuous)
+RESULT publish_binary_sensor_entities=6 count
+RESULT publish_binary_sensor_leaks=0 count
+  ok   every button entity publishes finite values from non-finite input (#1541)
+RESULT publish_button_entities=5 count
+RESULT publish_button_leaks=0 count
+  ok   every climate entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published climate value (the arm is not vacuous)
+RESULT publish_climate_entities=1 count
+RESULT publish_climate_leaks=0 count
+  ok   every switch entity publishes finite values from non-finite input (#1541)
+RESULT publish_switch_entities=6 count
+RESULT publish_switch_leaks=0 count
+  ok   every datetime entity publishes finite values from non-finite input (#1541)
+RESULT publish_datetime_entities=1 count
+RESULT publish_datetime_leaks=0 count
+  ok   an inherited scrubbed property re-exported by a subclass is not wrapped twice
+  ok   _dhw_inlet_c keeps the inclusive lower plausibility bound (-5.0 is valid)
+  ok   FlowCurveBias.from_dict restores to inert on a non-finite stored bias_k
+  ok   PriceShapeModel.from_dict keeps a legitimate stored residual_var value
+  ok   DrawStats.from_dict keeps a legitimate stored open_kwh value
+  ok   MonthlyLedger.add drops a non-finite amount before any month is created
+  ok   every store's version is a named constant, never a literal (#1740)
+  ok   no two stores share a version constant, so a bump migrates one store (#1740)
+  ok   a store read at its own version surfaces nothing (the control)
+  ok   every store's version mismatch, older or newer, logs a WARNING and raises a repair issue naming its key (#1740)
+  ok   a downgraded store keeps the newer release's document through its load and the next save, so reinstalling that release finds it intact; a bumped store, and one re-read once the newer document is gone, still saves (#1869)
+  ok   a store whose version exceeds 1 overrides the default migration hook, so a bump without a migration fails here (#1740)
+  ok   the default hook raises NotImplementedError and surfaces a major mismatch older or newer, not a minor-only one
+  ok   a store whose hook was handed a newer document (the 2025.2.0 floor's downgrade) does not save over it (#1869)
+  ok   a downgrade leaves the store as UnsupportedStorageVersionError (#1740)
+  ok   a store that migrates loads the migrated payload and saves it at its own version, without waiting on its own read (#1740)
+  ok   a save from another task waits for the store's read in flight, and lands after it
+  ok   store.py imports at the 2025.2.0 floor, which has no UnsupportedStorageVersionError (#1869)
+  ok   two concurrent loads of a migrating store both land: the write-back does not wait on the second read, parked on the first (#1869)
+  ok   a task whose read has landed saves after another task's read in flight, not before it (#1869)
+RESULT store_version_unsurfaced=0 count
+
+4 of 89 FINITE BOUNDARY CHECKS FAILED

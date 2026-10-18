@@ -1,0 +1,36 @@
+=== probe r2
+RESULT lead_due10h=10.0 due30h=24.0 sample_t1h=0.0 evidence2h=0.0
+RESULT ring_due10h=10.0 ring_taken_at_future_clamped=0.0
+RESULT cell empty_key_instant in accuracy: dropped=0
+RESULT cell empty_key_instant in snapshots: dropped=0
+RESULT cell empty_key_list in accuracy: dropped=0
+RESULT cell empty_key_list in snapshots: dropped=0
+RESULT cell tilde_key_instant in accuracy: dropped=0
+RESULT cell tilde_key_instant in snapshots: dropped=0
+RESULT cell tilde_key_future_in_map in accuracy: dropped=0 tilde_value_h=0.0
+RESULT cell tilde_key_future_in_map in snapshots: dropped=0 tilde_value_h=0.0
+RESULT cells_dropped=0 count
+=== probe ma
+RESULT lead_due10h=0.0 due30h=0.0 sample_t1h=0.0 evidence2h=0.0
+RESULT ring_due10h=0.0 ring_taken_at_future_clamped=0.0
+RESULT cell empty_key_instant in accuracy: dropped=0
+RESULT cell empty_key_instant in snapshots: dropped=0
+RESULT cell empty_key_list in accuracy: dropped=0
+RESULT cell empty_key_list in snapshots: dropped=0
+RESULT cell tilde_key_instant in accuracy: dropped=0
+RESULT cell tilde_key_instant in snapshots: dropped=0
+RESULT cell tilde_key_future_in_map in accuracy: dropped=0 tilde_value_h=0.0
+RESULT cell tilde_key_future_in_map in snapshots: dropped=0 tilde_value_h=0.0
+RESULT cells_dropped=0 count
+=== probe r1 (round-1 head a5de7df1f, control)
+RESULT lead_due10h=10.0 due30h=24.0 sample_t1h=0.0 evidence2h=0.0
+RESULT ring_due10h=10.0 ring_taken_at_future_clamped=0.0
+RESULT cell empty_key_instant in accuracy: dropped=1
+RESULT cell empty_key_instant in snapshots: dropped=1
+RESULT cell empty_key_list in accuracy: dropped=1
+RESULT cell empty_key_list in snapshots: dropped=1
+RESULT cell tilde_key_instant in accuracy: dropped=1
+RESULT cell tilde_key_instant in snapshots: dropped=1
+RESULT cell tilde_key_future_in_map in accuracy: dropped=1
+RESULT cell tilde_key_future_in_map in snapshots: dropped=1
+RESULT cells_dropped=8 count
