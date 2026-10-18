@@ -1,0 +1,5 @@
+9cd483708: closures-autofix:cancelled,ci-ratchet:cancelled,composed-proof:cancelled,closures:cancelled,Analyze (python):cancelled total=46
+21e457fea: pr-contract:failure,pr-contract:failure,pr-contract:failure,pr-contract:failure,pr-contract:failure,arch-score:failure,arch-score:failure,validate-hacs:failure,env-matrix:failure,nightly-status:failure,pr-contract:failure total=45
+4f25f6fdf:  total=0
+c084cc242:  total=0
+107a6e00d:  total=0

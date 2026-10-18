@@ -1,0 +1,6 @@
+attempt1: Tests action_required completed actor=github-actions[bot] trig=github-actions[bot] event=pull_request head=720d3636 subj=ci: pin killed mutants
+latest: attempt=2 failure actor=github-actions[bot] trig=hpo-runs[bot]
+3c9fe53f pull_request runs: 0 author=41898282+github-actions[bot]@users.noreply.github.com
+63084989 pull_request runs: 0 author=41898282+github-actions[bot]@users.noreply.github.com
+18a04ed6 pull_request runs: 8 author=41898282+github-actions[bot]@users.noreply.github.com
+72cfb1d0 pull_request runs: 8 author=41898282+github-actions[bot]@users.noreply.github.com

@@ -1,0 +1,2 @@
+tools/audit/seat/merge_train.py AST-equal-modulo-strings: True
+tools/audit/seat/queue_pre_flight.py AST-equal-modulo-strings: True

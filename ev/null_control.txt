@@ -1,0 +1,2 @@
+  ERROR   [budgets] .claude/rules/ci-autofix.md: about 1518 tokens across its lines exceeds its cap of 1469 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 41 policy file(s)
