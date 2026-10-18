@@ -1,0 +1,16 @@
+R1_np_unwrap finite_boundary rc=0 121s SURVIVED fails=0
+R2_types_ignored finite_boundary rc=0 92s SURVIVED fails=0
+R3_no_rounding finite_boundary rc=0 69s SURVIVED fails=0
+R3_no_rounding features rc=0 353s SURVIVED fails=0
+R4_dhw_text_zero finite_boundary rc=1 66s KILLED fails=1
+     FAIL commanded_power_kw refuses a bool or text part on either channel, and adds two numbers (#2242)  [{'dhw True': 1.5, 'dhw text': 1.5}]
+R5_outdoor_order finite_boundary rc=1 116s KILLED fails=1
+     FAIL every number-state sensor publishes a number on the seeded payload, or is named computed, and no computed entry is reached (the census's reach)  [unreached-unnamed=['CurrentCOPSensor', 'OutdoorTempSensor'] stale=[]]
+R5_outdoor_order features rc=0 716s SURVIVED fails=0
+R6_zone_swap features rc=0 884s SURVIVED fails=0
+R6_zone_swap finite_boundary rc=0 173s SURVIVED fails=0
+R7_climate_indoor_raw finite_boundary rc=1 88s KILLED fails=1
+     FAIL every number state publishes None, never the bool or the text, from a bool or text payload (#2242)  [states=50 bad=["HeatPumpOptimizerClimate.current_temperature: '21.5' -> 21.5", 'HeatPumpOptimizerClimate.current_t
+R8_hvac_skip_all finite_boundary rc=1 192s KILLED fails=1
+     FAIL a NaN native_value on an entity subclass defined outside the package is published as None  [published nan]
+restored; status: clean

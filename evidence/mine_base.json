@@ -1,0 +1,681 @@
+{
+ "paths": {
+  "BaselineCostSensor": [
+   "baseline_cost"
+  ],
+  "BufferTankTempSensor": [
+   "buffer_tank_temperature"
+  ],
+  "ComfortWeightSensor": [
+   "comfort_weight"
+  ],
+  "CompressorStartsSensor": [
+   "insight",
+   "compressor_starts",
+   "lifetime"
+  ],
+  "ContractComparisonSensor": [
+   "contract_comparison",
+   "load_profile_value_per_kwh"
+  ],
+  "CurrentPriceSensor": [
+   "current_price"
+  ],
+  "DHWCostSensor": [
+   "dhw_cost"
+  ],
+  "DHWEnergySensor": [
+   "dhw_energy_kwh"
+  ],
+  "DHWHeatingCostSensor": [
+   "dhw_heating_cost"
+  ],
+  "DHWSetpointAdvisorSensor": [
+   "dhw_advisor",
+   "recommended_setpoint"
+  ],
+  "DHWTemperatureSensor": [
+   "dhw_temperature"
+  ],
+  "ECL110DisplaceSensor": [
+   "ecl110_displace"
+  ],
+  "ECL110EffectiveDisplaceSensor": [
+   "ecl110_effective_displace"
+  ],
+  "FloorReturnTempSensor": [
+   "floor_return_temperature"
+  ],
+  "FrequencyAdvisorSensor": [
+   "freq_control",
+   "recommended_hz"
+  ],
+  "IndoorTempSensor": [
+   "indoor_temperature"
+  ],
+  "LowerFloorTempSensor": [
+   "lower_floor_temperature"
+  ],
+  "MeasuredPowerSensor": [
+   "measured_power"
+  ],
+  "MixedHotWaterSensor": [
+   "dhw_mixed",
+   "litres_40c"
+  ],
+  "MonthlyPeakSensor": [
+   "billed_peak_kw"
+  ],
+  "ObservedCOPSensor": [
+   "measured_cop"
+  ],
+  "OptimizationScoreSensor": [
+   "insight",
+   "scores",
+   "overall"
+  ],
+  "PowerHeadroomSensor": [
+   "power_headroom",
+   "headroom_kw"
+  ],
+  "PredictedCostSensor": [
+   "predicted_cost"
+  ],
+  "PredictedSavingsSensor": [
+   "predicted_savings"
+  ],
+  "SavingsPercentageSensor": [
+   "savings_percentage"
+  ],
+  "SlabTempSensor": [
+   "slab_temperature"
+  ],
+  "SolarHeatGainSensor": [
+   "solar_heat_gain"
+  ],
+  "SolarIrradianceSensor": [
+   "solar_radiation"
+  ],
+  "SpaceCostSensor": [
+   "space_cost"
+  ],
+  "SpaceEnergySensor": [
+   "space_energy_kwh"
+  ],
+  "TotalCostSensor": [
+   "total_cost"
+  ],
+  "TotalEnergySensor": [
+   "total_energy_kwh"
+  ],
+  "UpperFloorTempSensor": [
+   "upper_floor_temperature"
+  ],
+  "ValveTargetRecommendationSensor": [
+   "valve_target_recommendation",
+   "target"
+  ]
+ },
+ "res": {
+  "BaselineCostSensor": {
+   "false": "int:0",
+   "float": "float:21.46",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "BufferTankTempSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "ComfortWeightSensor": {
+   "false": "int:0",
+   "float": "float:21.46",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "CompressorStartsSensor": {
+   "false": "bool:False",
+   "float": "NoneType:None",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "NoneType:None",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "NoneType:None",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "ContractComparisonSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "CurrentPriceSensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "DHWCostSensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "DHWEnergySensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "DHWHeatingCostSensor": {
+   "false": "int:0",
+   "float": "float:21.46",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "DHWSetpointAdvisorSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "DHWTemperatureSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "ECL110DisplaceSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "ECL110EffectiveDisplaceSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "FloorReturnTempSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "FrequencyAdvisorSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "IndoorTempSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "LowerFloorTempSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "MeasuredPowerSensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "MixedHotWaterSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "MonthlyPeakSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "bool:True",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "str:'21.5'",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "ObservedCOPSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "bool:True",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "str:'21.5'",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "OptimizationScoreSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "PowerHeadroomSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "bool:True",
+   "zero": "int:0"
+  },
+  "PredictedCostSensor": {
+   "false": "int:0",
+   "float": "float:21.46",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "PredictedSavingsSensor": {
+   "false": "int:0",
+   "float": "float:21.46",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "SavingsPercentageSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "SlabTempSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "SolarHeatGainSensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "SolarIrradianceSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "SpaceCostSensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "SpaceEnergySensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "TotalCostSensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "TotalEnergySensor": {
+   "false": "int:0",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "NoneType:None",
+   "np_f64": "float:2.5",
+   "np_i64": "NoneType:None",
+   "np_nan": "NoneType:None",
+   "text": "NoneType:None",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "UpperFloorTempSensor": {
+   "false": "int:0",
+   "float": "float:21.5",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.2",
+   "none": "NoneType:None",
+   "np_bool": "EXC:TypeError",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "EXC:TypeError",
+   "true": "int:1",
+   "zero": "int:0"
+  },
+  "ValveTargetRecommendationSensor": {
+   "false": "bool:False",
+   "float": "float:21.456",
+   "inf": "NoneType:None",
+   "int": "int:3",
+   "nan": "NoneType:None",
+   "neg": "float:-4.25",
+   "none": "NoneType:None",
+   "np_bool": "bool:True",
+   "np_f64": "float:2.5",
+   "np_i64": "int:7",
+   "np_nan": "NoneType:None",
+   "text": "str:'21.5'",
+   "true": "bool:True",
+   "zero": "int:0"
+  }
+ }
+}
