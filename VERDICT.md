@@ -52,4 +52,4 @@ PR #2401, R10-ARCHSCORE-COVERAGE part 5, review round 1. Reviewed from a detache
 - The companion's 0 -> 26 (item 4).
 - M2-M4, M17-M21 and P18's plant script (also in scratch).
 
-Evidence: /Users/timmalmstrom/hpo-seats/r10s3/review-2401/evidence
+Evidence: ~/hpo-seats/r10s3/review-2401/evidence
