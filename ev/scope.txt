@@ -1,0 +1,6 @@
+  MODE: SCOPED -- 4 script(s) run, 29 scoped out.
+      tests/arch_score.py
+      tests/arch_score_head.py
+      tests/ci_budgets.json
+      tests/closures.json
+      tests/doc_claims.py
