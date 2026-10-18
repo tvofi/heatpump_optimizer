@@ -4390,10 +4390,13 @@ class HeatPumpOptimizer:
             external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets, humidity=h.humidity,
         )
+        space_caps = self._settlement_caps(outdoor_temps, humidity=h.humidity)
         deferred_cost = self._deferred_energy_cost(
             baseline_end, optimized_end, prices, outdoor_temps,
-            caps=self._settlement_caps(outdoor_temps, humidity=h.humidity),
-            humidity=h.humidity,
+            caps=space_caps, humidity=h.humidity,
+        ) - self._start_gap_cost(
+            initial_state, weather, comfort_targets, prices, outdoor_temps,
+            space_caps, h.humidity,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4678,6 +4681,9 @@ class HeatPumpOptimizer:
                 outdoor_temps, dhw_cap=float(dhw_floor_temps[-1]), humidity=h.humidity
             ),
             humidity=h.humidity,
+        ) - self._start_gap_cost(
+            initial_state, weather, comfort_targets, prices, outdoor_temps,
+            self._settlement_caps(outdoor_temps, humidity=h.humidity), h.humidity,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -5199,6 +5205,35 @@ class HeatPumpOptimizer:
             lower_floor_temperature=target,
             slab_temperature=target
             + max(0.0, q_floor) / self.model.params.slab_heat_transfer_floored,
+        )
+
+    def _start_gap_cost(
+        self,
+        initial_state: ThermalState,
+        weather: WeatherSeries,
+        comfort_targets: np.ndarray | None,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        caps: dict[str, float],
+        humidity: np.ndarray | None,
+    ) -> float:
+        """The start's side of the stored-heat settlement (#2255).
+
+        The thermostat starts held (``_thermostat_held_state``) and the plan
+        from the measured house, so the two begin with different stored
+        heat, as they end with different stored heat. The end gap is charged
+        by ``_deferred_energy_cost``; this is the same valuation of the start
+        gap, which the caller nets off it: a plan starting colder than the
+        held house is not charged for buying that heat back inside its
+        horizon, nor credited for a pre-heated start. The tanks are
+        identical at the start (the held state keeps them as measured), so
+        the space stores alone are settled.
+        """
+        held = self._thermostat_held_state(
+            initial_state, weather, self._baseline_target(comfort_targets, 0)
+        )
+        return self._deferred_energy_cost(
+            held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
         )
 
     def _baseline_thermal_demand_single(
