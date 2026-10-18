@@ -1,3 +1,0 @@
-carry_audit self-test: 35 checks, 0 failed
-queue_pre_flight self-test: 37 checks, 0 failed
-CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
