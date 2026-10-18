@@ -1,0 +1,13 @@
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+index c7a79660e..af95f9678 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -382,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
+               "commit on the reviewed head")
+     if jobs:
+         reds = sum(1 for j, _ in preds if j != "mutation")
+-        who = ("`--apply-inert` repairs them" if inert == reds else
++        who = ("`--apply-inert` repairs them" if inert else
+                f"`--apply-inert` repairs the {inert} INERT READS, the rest "
+                f"is ci-autofix.md's" if inert else
+                "who repairs which is ci-autofix.md's")

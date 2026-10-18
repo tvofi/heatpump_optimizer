@@ -1,8 +1,8 @@
 diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
-index d5a3891e2..9f81bbfe0 100644
+index c7a79660e..9566515b8 100644
 --- a/tools/pr/ci_predict.py
 +++ b/tools/pr/ci_predict.py
-@@ -184,8 +184,6 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure,
+@@ -185,8 +185,6 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure,
                      if b in set(inert_reads.get(script, [])):
                          continue
                      kind = "INERT READS"
