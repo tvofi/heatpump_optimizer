@@ -173,14 +173,24 @@ requires, so a later change to `ci-autofix.md` cannot strand it.
    direction `_fold_inert_reads` keeps.
 2. When any INERT READS is predicted, the predictor prints the route:
    ``CI PREDICT: an INERT READS entry is written with `python3
-   tools/pr/ci_predict.py --apply-inert` and committed; ...``.
+   tools/pr/ci_predict.py --apply-inert` and committed: ...``. When every
+   predicted red is an INERT READS, 6d's step line names `--apply-inert`
+   instead of "who repairs which is ci-autofix.md's". The reason it gives is
+   the same for both arms: the bot's repair costs a red run and a commit on
+   the reviewed head. The Darwin limit is particular to the sibling arm, whose
+   read is a child process's; an import-edge read is in-process.
 3. The stale premise is corrected in `ci_predict.py`'s docstring and in
    `prepr.sh`'s 6d comment. Both now cite #2049, #2129 and run 38296697023,
    and say why the refusal stays.
-4. There are three `prepr.sh --self-test` arms beside the existing `pinert`
+4. There are six `prepr.sh --self-test` arms beside the existing `pinert`
    arm: the apply clears the prediction (rc=0), the table passes
-   `closure.layout_errors`, and `--apply-inert` on the null branch leaves
-   `tests/closures.json` byte-identical.
+   `closure.layout_errors`, `--apply-inert` on the null branch leaves
+   `tests/closures.json` byte-identical, the step line names `--apply-inert`,
+   and an import-edge plant (`pedge`: `tests/wood_advisor.py` gains a
+   top-level `import tools.audit.seat.moved_paths`) is refused and then
+   cleared by `--apply-inert`. Review round 1 of #2376 found the import-edge
+   arm unpinned: dropping its `pairs.add` left the self-test green. The
+   `pedge` arms are that repair.
 
 **Shown to detect** (`ev/demo_plant.txt`, `ev/demo_null.txt`):
 

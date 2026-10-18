@@ -13,9 +13,10 @@ every time. That premise no longer holds for INERT READS: since #2049
 re-records the reading script, so the bot repairs one after the push
 (run 38296697023: scoped, `AUTOFIX: changed`). It still refuses before the
 push, because that repair costs a red `closures` run and a bot commit on the
-reviewer's head; `--apply-inert` writes the entry the recording would, the
-one repair a Darwin seat can make (the read is a child's, which only Linux
-`strace` sees; dev/audit/rca/R10-RCA-INERT-PREDICT.md). Three arms call CI's own functions: UNCLASSIFIED
+reviewer's head; `--apply-inert` writes the entry the recording would, which
+for a child process's read (harness_headers' scan) is the one repair a Darwin
+seat can make, since only Linux `strace` sees it
+(dev/audit/rca/R10-RCA-INERT-PREDICT.md). Three arms call CI's own functions: UNCLASSIFIED
 (`closure.orphan_files`), the INERT test inside both closure arms
 (`closure.is_inert`), and ADDED UNPINNED (`mutation_table`'s source-only
 ratchet). One is this predictor's own model, because CI learns the answer by
@@ -372,16 +373,21 @@ def main(argv: list[str] | None = None) -> int:
     if sites:
         print(f"CI PREDICT: {sites} unpinned site(s) the diff adds -- a "
               f"warning; the body owes each a line under ## Unpinned sites")
-    if any(j == "closures" and l.startswith("INERT READS") for j, l in preds):
+    inert = sum(1 for j, l in preds if j == "closures" and l.startswith("INERT READS"))
+    if inert:
         print("CI PREDICT: an INERT READS entry is written with "
-              "`python3 tools/pr/ci_predict.py --apply-inert` and committed; "
-              "a Darwin --single cannot record a child's read, and the bot's "
-              "repair costs a red closures run and a commit on the reviewed head")
+              "`python3 tools/pr/ci_predict.py --apply-inert` and committed: "
+              "the entry CI's Linux recording would merge, before the push, "
+              "where the bot's repair after it costs a red closures run and a "
+              "commit on the reviewed head")
     if jobs:
         reds = sum(1 for j, _ in preds if j != "mutation")
+        who = ("`--apply-inert` repairs them" if inert == reds else
+               f"`--apply-inert` repairs the {inert} INERT READS, the rest "
+               f"is ci-autofix.md's" if inert else
+               "who repairs which is ci-autofix.md's")
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
-              f"against {base[:12]} -- repair before the handoff; who repairs "
-              f"which is ci-autofix.md's")
+              f"against {base[:12]} -- repair before the handoff; {who}")
     else:
         print(f"CI PREDICT: no closures or fast red predicted against "
               f"{base[:12]} (a data-file read is not seen)")
