@@ -174,14 +174,12 @@ def _bound_instants(
         return clamped.isoformat()
     if isinstance(value, dict):
         return {
-            k: _bound_instants(v, bound, where, naive_zone, hits, path + (k,),
-                               node.get(k, node.get("*", {})))
+            k: _bound_instants(v, bound, where, naive_zone, hits, path + (k,), _child(node, k, "*"))
             for k, v in value.items()
         }
     if isinstance(value, list):
         return [
-            _bound_instants(child, bound, where, naive_zone, hits, path + (i,),
-                            node.get(str(i), node.get("#", {})))
+            _bound_instants(child, bound, where, naive_zone, hits, path + (i,), _child(node, str(i), "#"))
             for i, child in enumerate(value)
         ]
     return value
@@ -505,6 +503,19 @@ def _tries() -> dict[str, dict[str, Any]]:
     return tries
 
 
+def _child(node: Mapping[str, Any], key: str, wildcard: str) -> dict[str, Any]:
+    """The trie node a stored ``key`` descends to: its own, else the wildcard's.
+
+    Never a declaration: ``""`` and ``"~"`` hold a node's ``Domain``s, so a
+    stored key spelled so is a data key like any other, not a step into them
+    (a corrupt leaf that did so raised out of the load and lost the store).
+    """
+    child = node.get(key)
+    if not isinstance(child, dict):
+        child = node.get(wildcard)
+    return child if isinstance(child, dict) else {}
+
+
 def _scalar_domain(node: dict[str, Any]) -> Domain | None:
     """The domain when this node declares one value, not a container of them.
 
@@ -523,12 +534,12 @@ def _fields(node: dict[str, Any], value: Any, path: tuple[Any, ...], out: list[A
         return
     if isinstance(value, dict):
         for key, child in value.items():
-            if key not in node:
+            if not isinstance(node.get(key), dict):
                 out.append((path + (key,), True, node.get("~") if "*" in node else None, key))
-            _fields(node.get(key, node.get("*", {})), child, path + (key,), out)
+            _fields(_child(node, key, "*"), child, path + (key,), out)
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _fields(node.get(str(index), node.get("#", {})), child, path + (index,), out)
+            _fields(_child(node, str(index), "#"), child, path + (index,), out)
     else:
         out.append((path, False, node.get(""), value))
 
