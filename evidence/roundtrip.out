@@ -1,0 +1,6 @@
+RESULT dev/programme/rosters/wave-r10-groups.json: dump(load) byte-identical=True
+RESULT dev/programme/rosters/wave-r10-groups.json wire+unwire --field issues: identical=57 changed=0 examples=[]
+RESULT dev/programme/rosters/wave-r10-groups.json wire+unwire --field fixes: identical=57 changed=0 examples=[]
+RESULT dev/programme/rosters/wave-r9-groups.json: dump(load) byte-identical=True
+RESULT dev/programme/rosters/wave-r9-groups.json wire+unwire --field issues: identical=169 changed=1 examples=[('R9-EG-A1', [1774, 1738])]
+RESULT dev/programme/rosters/wave-r9-groups.json wire+unwire --field fixes: identical=170 changed=0 examples=[]
