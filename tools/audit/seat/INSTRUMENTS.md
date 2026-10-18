@@ -131,11 +131,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   round 9 re-derived the wrapper in /tmp four times before this existed.
   Refusal: `--log` is mandatory and a non-existent `--cwd` aborts; no lock or
   pid bookkeeping — the printed pid and `kill` are the stop story.
-- `delivery_row.sh` — the one writer of a PR's own delivery row, sourced by
-  `open_pr.sh` and `update_pr.sh`: `commit_row` commits it as tvofi,
-  `ensure_row` adds it only when the head lacks it. When: never by hand; the
-  openers call it. Refusal: none; `ensure_row` adds nothing to a head that
-  carries the row, and `bus.sh --self-test` runs its self-test.
+- `delivery_row.sh` — the one seat-script writer of a PR's own `**open**`
+  row on its branch, sourced by `open_pr.sh`, `update_pr.sh` and
+  `handoff_push.sh`: `commit_row` commits it as tvofi, `ensure_row` adds it
+  only when the head lacks it. `record_row.py` is the other row writer, for
+  the record beat's rows and its own PRs. When: never by hand; the openers
+  call it. Refusal: none; `ensure_row` adds nothing to a head that carries
+  the row, and `bus.sh --self-test` runs its self-test and refuses a seat
+  script with its own `write_row` or row commit.
 - `failure_logs.sh` — answers why a PR's newest red at its live head is red:
   latest failing check-runs (grouped by name, newest `started_at` wins, so
   red-then-green is not read as a failure) -> `details_url` -> job log ->
@@ -145,7 +148,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   with the count over readable logs beside the unread one; no error-marker
   match falls back to the log's tail, never a silent zero.
 - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
-  `hpo-author` with body, title and its own delivery row. When: only where
+  `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
+  its update path adds a row a refused earlier push left out). When: only where
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
