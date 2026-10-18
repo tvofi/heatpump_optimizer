@@ -4,7 +4,7 @@ R10-CI-CONCURRENCY. A newer App push does not cancel an older run that was bot-s
 
 ## Head
 
-`1daf9361b43ff04a3c6a0b757ae7496217c91a2f` (code head of `handoff/r10-ci-concurrency`): the authored head `a5849788b` with origin/main merged in twice (last `003c3731c`, merge `a67b4c0f7`; the ledger driver merged `tests/closures.json`'s `inert_reads` as a set), the `INERT_EXCEPT` fix `b3ea5b31d`, and the re-derive `1daf9361b`. Round 2 (fixer takeover), measured 2026-10-18.
+`c7300b36e0c1e8108d5f889cbb7c5c6f9e314f13` (code head of `handoff/r10-ci-concurrency`): the authored head `a5849788b` with origin/main merged in (last `003c3731c`, by the orchestrator's merge `0a596b410`; the ledger driver merged `tests/closures.json`'s `inert_reads` as a set), the `INERT_EXCEPT` fix `b3ea5b31d`, the re-derive `1daf9361b`, and the PR's delivery row `c7300b36e` (`dev/programme/delivery/2396.md`, written by `delivery_row.sh`'s `commit_row`). Round 2 (fixer takeover), measured 2026-10-18.
 
 What changed:
 - `tools/pr/cancel_superseded.py` (new, one owner, `--self-test`). Cancels nothing unless: the caller is a `pull_request` run whose sender is not `github-actions[bot]`; the branch is not `main`; the PR is open, same-repo, and its head right now is the caller's head SHA (the live-head check); then only runs on that branch of event `pull_request`/`workflow_dispatch`, queued/in progress/waiting, at a different head SHA and a lower run id. Unreadable answers cancel nothing; always exit 0 (an optimisation, never a gate).
