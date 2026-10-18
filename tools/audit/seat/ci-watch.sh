@@ -3,12 +3,14 @@
 #
 # v3 (R9-RC-AUTOFIX-GOVERNANCE) also reports required contexts that are ABSENT
 # at a SETTLED head. A GITHUB_TOKEN push -- the autofix jobs' bot commits --
-# fires no pull_request workflow run at all, so the required contexts only one
-# writes (the governance family, pr-contract, budget-raise-gate) never report
-# there: the head looks fully settled, every run it has completed, and GitHub
-# refuses the merge with nothing saying why (measured 2026-10-09 at
-# 63084989/#2066 and a9ba0b88/#2070: 30 check-runs, none pending, the same 5
-# of the 17 required contexts absent; a v2 watcher printed nothing at either).
+# gets pull_request runs held action_required (every bot head from
+# 2026-10-15T10:23Z, e.g. Tests run 38781421410), so until one is approved the
+# required contexts only they write (the governance family, pr-contract,
+# budget-raise-gate) do not report there: the head looks fully settled, every
+# run it has completed, and GitHub refuses the merge with nothing saying why.
+# On 2026-10-09 no such run was created at all (63084989/#2066 and
+# a9ba0b88/#2070: 30 check-runs, none pending, the same 5 of the 17 required
+# contexts absent; a v2 watcher printed nothing at either).
 # ABSENT is judged only once every present run completed -- a head mid-push has
 # its runs not queued yet, which is pending, not absent. The required list is
 # read from the ruleset each cycle, never carried: when it cannot be read the

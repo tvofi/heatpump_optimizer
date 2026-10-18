@@ -16802,19 +16802,22 @@ def _vent_coord(**cfg):
     return c
 
 
-def _feed_residual(c, residual, n, start):
+def _feed_residual(c, residual, n, start, sun=None):
     """Replay exactly ``n`` half-hour intervals of one residual.
 
     ``residual`` is one value for every interval, or a list of ``n``, one
-    per interval. Successive runs must start >2 h after the previous one
-    ended: the learner's max-interval guard then skips call 0, which only
-    re-seeds the baseline, so calls 1..n each feed one residual.
+    per interval; ``sun``, if given, is a list of ``n`` irradiances (W/m²),
+    the state each interval starts from. Successive runs must start >2 h
+    after the previous one ended: the learner's max-interval guard then
+    skips call 0, which only re-seeds the baseline, so calls 1..n each feed
+    one residual.
     """
     import homeassistant.util.dt as _dt_mod
 
     observed = c._current_state.room_temperature
     per = list(residual) if isinstance(residual, list) else [residual] * n
     assert len(per) == n, (len(per), n)
+    assert sun is None or len(sun) == n, (len(sun), n)
     now_r = [0.0]
 
     def _sim(prev, power, outdoor, **kw):
@@ -16825,6 +16828,8 @@ def _feed_residual(c, residual, n, start):
     try:
         for i in range(n + 1):
             now_r[0] = per[max(i - 1, 0)]
+            if sun is not None:
+                c._current_state.solar_radiation = sun[min(i, n - 1)]
             _dt_mod.now = lambda i=i: start + timedelta(minutes=30 * i)
             _asyncio.run(c._async_learn_house_heat_loss())
     finally:
@@ -16953,6 +16958,36 @@ R.check(
     f"stat {_cgw._vent_cusum.stat:.2f}, reference {_cgw._vent_cusum.reference}: "
     "an unclipped +20 drags the level up and every clean sample after it "
     "reads cold, a window that is not there",
+)
+# The feed's sun regressor, through the real learner: an aperture error
+# reads cold by day in proportion to the sun and not at all by night, which
+# a fit on level and heat alone takes for a window opening every morning.
+# Four days of a 10 h day at 600 W/m², reading 0.4 K cold at full sun; the
+# fitted sun slope is per kWh/m² of the interval.
+_SUN_DAYS = [600.0 if (_i % 48) < 20 else 0.0 for _i in range(192)]
+_csun = _vent_coord()
+_feed_residual(_csun, [-0.4 * _q / 600.0 for _q in _SUN_DAYS], 192, _T4, sun=_SUN_DAYS)
+_csun_slope = -0.4 / (600.0 * 0.5 / 1000.0)
+R.check(
+    "a bias scaling with the sun never trips the detector: the feed passes "
+    "the interval's sun in kWh/m², and the fit learns its slope",
+    not _csun._vent_cusum.evidence
+    and abs(_csun._vent_cusum.reference[2] - _csun_slope) < 0.25 * abs(_csun_slope),
+    f"evidence {_csun._vent_cusum.evidence}, reference {_csun._vent_cusum.reference} "
+    f"(sun slope {_csun_slope:.2f} K per kWh/m²)",
+)
+_csn = _vent_coord()
+_csn_err = None
+try:
+    _feed_residual(_csn, _CLEAN_DAY, 40, _T4, sun=[None] * 40)
+except TypeError as _e:
+    _csn_err = _e
+R.check(
+    "an unknown irradiance feeds the detector as no sun",
+    _csn_err is None and _csn._vent_cusum.last_fed is not None
+    and _csn._vent_cusum.reference is not None
+    and _csn._vent_cusum.reference[2] == 0.0,
+    f"error {_csn_err!r}, reference {_csn._vent_cusum.reference}",
 )
 _cr = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
 _cr.load(_cb._vent_cusum.as_dict())
@@ -58817,8 +58852,10 @@ R.check(
 # refuses if it finds none, or loses the open-window one), must measure from a
 # tracked level, and is driven -- on a live coordinator, its own construction
 # -- with a constant cold bias across the range the heat-loss learner folds (up
-# to its 1.0 K rejection), which must not trip it, and the same bias with a
-# window planted on top, which must.
+# to its 1.0 K rejection), which must leave it untripped at the end of the
+# fourth day, and the same bias with a window planted on top, which must trip
+# it. Only the end state is read: a sun-scaled bias can trip it while the
+# first days' sun slope converges, which this census does not refuse.
 import ast as _r10p5_ast  # noqa: E402
 import inspect as _r10p5_inspect  # noqa: E402
 
@@ -58874,9 +58911,9 @@ for _r10p5_name in _r10p5_cusums:
                 *_r10p5_trips,
             ))
 R.check(
-    "R10-P5: each measures from a tracked reference; a bias up to the "
-    "learner's rejection -- steady, or scaling with the heat put in or the "
-    "sun -- never trips it, and a window on top of it does",
+    "R10-P5: each measures from a tracked reference; four days of a bias up "
+    "to the learner's rejection -- steady, or scaling with the heat put in or "
+    "the sun -- leave it untripped, and a window on top of it trips it",
     bool(_r10p5_rows)
     and all(ref and not bias and window for _, _, _, ref, bias, window in _r10p5_rows),
     _r10p5_rows,
