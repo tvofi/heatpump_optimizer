@@ -1,4 +1,0 @@
-guarded         fixture_platform:ASensor.native_value L12 [_as_float] rejects bool and str (the _as_float contract)
-instance        fixture_platform:BSensor.native_value L16 [round_if_not_none] True -> 1, '21.5' -> TypeError
-RESULT seams=2 instance=1 guarded=1 not_applicable=0
-RESULT modules=1 families=2 (_as_float,round_if_not_none) bool_str_vectors=2

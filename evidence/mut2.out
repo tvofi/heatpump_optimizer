@@ -1,0 +1,13 @@
+CLEAN rc=0 95s SURVIVED ALL 101 FINITE BOUNDARY CHECKS PASSED
+S1_climate140_GUARD_OFF rc=1 78s KILLED TypeError: float() argument must be a string or a real number, not 'NoneType'
+    FAIL every number state publishes None, never the bool or the text, from a bool or text payload (#2242)  [states=50 bad=["HeatPumpOptimizerClimate.current_temperature: '21.5' -> ('<build_data_dict rai
+    Traceback (most recent call last):
+S2_entity140_GUARD_OFF NOT APPLIED 2
+S2b_R1_unwrap_deleted NOT APPLIED 2
+S3_sensor2808_CMP_BOUND rc=1 190s KILLED 1 of 101 FINITE BOUNDARY CHECKS FAILED
+    FAIL _gap_energy_rate falls back to the contract price at a zero spot price (#2379)  [got 1.0, want 0.8]
+A1_R2_types_ignored rc=1 255s KILLED 1 of 101 FINITE BOUNDARY CHECKS FAILED
+    FAIL Compressor Starts refuses a float count (#2379)  [got 5.0, want None]
+A2_R6_zone_swap rc=1 223s KILLED 1 of 101 FINITE BOUNDARY CHECKS FAILED
+    FAIL zone_setpoint_attributes keeps upper and lower apart (#2379)  [got {'lower_floor_setpoint': 21.0, 'upper_floor_setpoint': 19.0}, want {'upper_floor_setpoint': 21.0, 'lower_floor_setpoint': 19.0}]
+restored: clean
