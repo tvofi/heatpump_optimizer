@@ -1,47 +1,71 @@
-Fix review: blocked 5f6d8fbd7141a01c9e30afae5b6d8a28f7368088 mutation: audit-find.js's cut-off arm is unpinned -- replyField reading unparseable text as an empty collection fails no check (197/0), so a finder report whose findings come back cut off reads as a seat with no findings, the exact (e)/(h) claim the body makes
-bus-nonce: 1ac839ad92bd59b8f6043a6e2e988cf0
+Fix review: merge aad55ffb4de4a12db5ac222160333bc4fda36050
 
-Round 1. Measured head 5f6d8fbd7141a01c9e30afae5b6d8a28f7368088 (still the PR head at posting); base = merge base 932f5d6019e5 (origin/main). Detached worktrees at both.
-Code-owned: .claude/workflows/audit-find.js, audit-verify.js, tools/audit/fold_ledger.py -> tvofi approves at merge, whatever this verdict.
+bus-nonce: df9e42d81b56e40fe065518340dc153e
 
-## The blocking item (step 1)
-The body: "Anything else, including cut-off text, is refused with the reply named and is never read as empty. In audit-find.js, a report that fails this is a seat not reported."
-Mutant R1 (audit-find.js replyField, `catch { throw ... }` -> `catch { x = kind === 'array' ? [] : {} }`): check-wave-script 197 passed, 0 failed -- survives.
-The same mutant in audit-verify.js (R2) is killed (196/1). The gather cut-off arm passes under R1 only because an empty reports object leaves the box's seats missing anyway.
-Behaviour difference is real: reviewer probe (evidence/reviewer_probe.patch), a finder report D1-s2 whose findings is JSON text cut at 25 chars:
-  head: ok (D1-s2 not reported); under R1: FAIL {"missing":[],"err":"","intake":true} -- the seat reaches intake with no findings.
-Repair: one pin of this shape in check-wave-script.mjs (the probe in evidence is one). The head's code is correct; only the pin is missing.
+Round 2 (round 1: blocked 5f6d8fbd7, mutation: audit-find.js's cut-off arm unpinned). Measured head aad55ffb4de4a12db5ac222160333bc4fda36050, still the PR head and origin/fix/r10-tick-drivers when written; base = merge base 07a09406a1cc (origin/main tip). Detached worktrees at both. The contract is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+Code-owned: .claude/workflows/audit-find.js, audit-verify.js, tools/audit/fold_ledger.py. tvofi approves at merge, whatever this verdict says.
 
-## RESULT lines (finder-group harness dev/audit/harnesses/r10_tick_drivers.py, --evidence = head tree)
+## OPEN BEFORE MERGE: pr-contract is red at this head (a body edit, not a head move)
+pr-contract job 117781735553 (started 20:29:53, after wave-script and delivery-status concluded red) fails with exactly one error: "check `wave-script` is red and `## Red checks` does not name it". The body's ## Red checks names only 03c0766bf's reds and says "This head has had no CI run yet".
+- The wave-script red (job 117780978357) is main's, the case the dispatch names. The wave-script checker passes 187/0. The agreement step refuses on `merge-subject-pr` with 2 divergent: "Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)" and "#2379 (R10-SENSOR-PAYLOAD)", where policy_lint.mjs reads null. I reproduced those same 2 divergent lines at base 07a09406 (ev/checks.txt and the agreement run). The R10-MERGE-SUBJECT fix is in flight for it.
+- delivery-status (job 117780978317) is OVERDUE on main's rows #2413, #2412 and #2407. The diff only adds its own row 2390.md, so it is not this PR's (step 11; pr-contract does not list it).
+- I have not posted `root-cause-unanswered`. The fixer did not turn this check red: main did. Also, not all of the head's workflows had concluded, because closures and Analyze (python) were still in_progress. The PR still needs a body line naming wave-script as main's merge-subject-pr divergence, then a pr-contract re-run. Until then the required pr-contract stays red. The orchestrator owns that edit; this review cannot make it.
+
+## Round-1 blocker: fixed
+64f855dcb adds the cut-off pin. Mutants were applied in a detached worktree at the head and restored, with `git status` empty after each (ev/mutants.txt):
+- M1, `replyField` catch reads cut-off text as empty: check-wave-script 197 passed, 1 failed, on "...and one whose findings came back cut off is a seat not reported...". This mutant survived at 197/0 on 5f6d8fbd7 in round 1, so it is now killed.
+- M2, the refusal kept but its log dropped: 197/1 on the same case.
+- M3, `replyField` returns the reply as given in both drivers: 193/4, the 4 cases the body names.
+- M4, FINDING_REPORT's expected_direction enum dropped:
+  - checker 197/1 ("the finder's return schema is finding.schema.json itself...");
+  - agreement prints 4 DIVERGENT finder-report-form lines (up, down, to_zero, sign_flip), RESULT divergent=4.
+- M5, fold without sync: fold_ledger --self-test prints the 4 FAIL lines the body names.
+- M6, `repairs()` returns [] and body_push's predictor call disabled: prepr --self-test 287 passed, 3 failed, rc 2, the 3 M2/M3 arms the body names.
+Every figure in the body's Mutation proof reproduces at this head.
+
+## RESULT lines: dev/audit/harnesses/r10_tick_drivers.py (sha1 b99267a7..., matches the body), --evidence = head tree, jsonschema 4.26.0 venv
 base: findings=44 form_file_rej=35 form_driver_rej=0 form_gap=35 form_both_ok=9 gather_replies=1 gather_max_kb=193.9 gather_missing=3 text_gather=-1 text_read=-1
 head: findings=44 form_file_rej=35 form_driver_rej=35 form_gap=0 form_both_ok=9 gather_replies=10 gather_max_kb=34.0 gather_missing=3 text_gather=3 text_read=44
-head --perturb: form_gap=11 form_driver_rej=24
-All match the body's figures (body took base at 64b1f82a3958; mine is the merge base 932f5d60, same numbers).
-Null controls hold: form_file_rej and form_both_ok flat at both ends; gather_missing=3 flat (D15 seats on B11, outside BOXES).
-Step 9: the harness is new in this diff and its header says "Written by the R10-TICK-DRIVERS fixer"; #2265's evidence had no committed harness. Disclosed, but the body's Figures calls it "the finder's harness" -- it is the fixer's.
-Step 8: --perturb deletes perturbation.properties wholesale, not only the expected_direction enum the body and the harness's own label name; form_gap=11 is the effect of dropping every perturbation sub-property. Description inaccuracy, not blocking.
+head --perturb: form_gap=11 form_driver_rej=24 (now drops the expected_direction enum alone, per fc145b97c; round 1's step-8 note is resolved)
+All match the body. The body took its base at 106af95a33f8; mine is 07a09406, with the same numbers.
+Null controls hold:
+- form_file_rej and form_both_ok are the same at both ends.
+- gather_missing=3 is the same at both ends (D15 seats on B11, outside BOXES).
+Step 9: the harness is the fixer's, not the finder's. The body says so ("The R10-TICK-DRIVERS fixer wrote it"; #2265's evidence had no committed harness). The jsonschema-unpinned friction is disclosed under ## Friction.
 
-## Mutation proof (fixer's) and my mutants -- evidence/mutants.txt
-Killed: R2 verify cut-off, R3 BOXES precedence, R5 off-box seat taken, R6 fold without sync (4 FAIL), R7 no-predictor guard (prepr 286/1), R8 predictor rc ignored (prepr 286/1).
-Survives: R1 (blocking, above); R4 (`r[k] ?? []` -> `r[k]`), no PR claim; recorded only.
+## Cheap checks at head (ev/checks.txt)
+- check-wave-script: 198 passed, 0 failed.
+- Base checker over the head's drivers: 187/0.
+- agreement: pair finder-report-form, 214 items, 0 divergent; self-test 13 of 13.
+- fold_ledger: --self-test 0 FAIL; check 0 violation(s); sync reports "already carries" and leaves the tree clean.
+- ci_predict --base origin/main: no closures or fast red predicted against 07a09406a1cc.
+- closure select: MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+- structure.py: STRUCTURE RATCHET PASSED.
+- throwaway_git --check: 0 refused.
+- ref_privacy --self-test: 66 checks, 0 failed.
+- env_drift --claims-only: ok.
+- archscore: dS +0.0000 NULL.
+- prepr.sh --self-test: 290 passed, 0 failed, rc 0 (ev/prepr_selftest_head.txt).
+Step 5: VERSION, the manifest, RELEASE_NOTES.md and both claim files are untouched (three-dot). No golden fixture is in any changed file's closure.
+Step 14: closures.json gains one line, an inert_reads entry for the new harness. The new file earns it.
 
-## Cheap checks at head
-fold_ledger --self-test 0 FAIL; check 0 violation(s); sync "already carries" (tree clean after).
-check-wave-script 197 passed, 0 failed. agreement: pair finder-report-form 214 items 0 divergent; RESULT divergent=0 unregistered=0 dead=0 refused=0.
-throwaway_git.py --check: 0 refused. structure.py: STRUCTURE RATCHET PASSED. closure select: MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-VERSION, manifest, RELEASE_NOTES.md, both claim files: untouched (three-dot). merge-tree --write-tree origin/main HEAD: rc 0.
-closures.json: one inert_reads line, earned by the new harness file (step 14).
+## Step 6, class rule (the body's grep)
+- Base: audit-find 3, audit-verify 9.
+- Head: 0 and 0.
+- Outside this group's files, unchanged: audit-fix 2, web-decomp-stage 4, web-fix-wave 1, web-stamp 3. That is the 10 the body dispositions (scalar replies; type-drift arm unmeasured, not carried).
+No undispositioned seam.
 
-## CI (cited, not re-run) -- commits/5f6d8fbd7141a01c9e30afae5b6d8a28f7368088/check-runs, 34 runs
-No failure. Concluded success include instrument-self-tests, pr-contract, wave-script, mutation, closure-scope, policy-docs, typing, env-matrix, arch-score, budget-raise-gate, fast (3.14).
-Still in progress when posted: coverage, CodeQL Analyze (python). Job logs unreadable from this seat (the blob host is refused by the proxy), so mutation's green is cited by conclusion only; the body says no changed line is in the mutation inventory.
+## Steps 12 and 13, the merges
+- `git merge-tree --write-tree origin/main aad55ffb` exits rc 0, giving tree 05c1665b. That equals the head's own tree, so the head already contains main.
+- Recomputing the final merge (efcc131e7 + 07a09406) gives "LEDGER-MERGE: resolved tests/closures.json", with the same tree as aad55ffb's. It is an automatic resolution.
+- efcc131e7 recomputes to its own tree exactly.
+- Authored delta since round 1: 64f855dcb (the pin) and fc145b97c (the --perturb scope). Both were reviewed above.
 
-## Red checks (step 11)
-Range reds: 03c0766bf only -- instrument-self-tests (117649560197) and pr-contract (117650396148). db9267d4, d95f4431, 559b8bda: none red.
-Both are named in ## Red checks; instrument-self-tests gives its cheaper detector (throwaway_git.py --check, seconds) and the prepr gap; pr-contract names its cause. Answered. pr-contract at head: success.
+## CI on this head (check-runs API, 45 runs)
+- failure: wave-script and delivery-status (both main's, above), and pr-contract 117781735553 (the body gap above). An earlier pr-contract run, 117780976514, succeeded.
+- in_progress at writing: closures and Analyze (python).
+- Every other concluded run is success, skipped or neutral. That includes instrument-self-tests, mutation, fast (3.14), coverage, coverage-ratchet, typing, env-matrix, policy-docs, closure-scope, arch-score, budget-raise-gate, browser, hassfest and validate-hacs.
+- mutation's green is cited by conclusion only. The body says no changed line is in the mutation inventory.
 
-## Forward-carry and scope (step 10)
-The body says none. The tick-fold follow-up is recorded by tvofi on #2265 (comment 6249063431): brief O14, tick-drivers-2, L03 L04 L05 P02 P55 P57 L12 b/c + --carry-sweep, cut from main after #2390 merges.
-No O14 brief exists in the tree on origin/main or any fetched ref -- consistent with "cut from main after #2390 merges".
-Not in this PR: the diff has no carry-sweep, and touches only the (e)(g)(h)(i)+M2+M3 sites the body lists.
-NOT VERIFIED: the item IDs L03..P57, L-T1 and L12(a)/(b)/(c) are defined nowhere I can read (tree, #2265, #201's 1776 comments, PR reviews). I cannot map them to code, so I cannot confirm that L12(a) is in this PR or that L-T1 is out; #2265's list names "L12 b/c" and omits L-T1. That mapping is the orchestrator's to confirm.
+## Step 10, forward-carry
+The body says none. Round 1 found the tick-fold follow-up (O14) recorded by tvofi on #2265 as cut from main after this merges. Nothing new needs carrying. Round 1's NOT VERIFIED note on the item IDs L03..P57 and L12(a/b/c) stands unchanged; the orchestrator should confirm it.

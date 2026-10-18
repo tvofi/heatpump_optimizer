@@ -1,0 +1,29 @@
+## check-wave-script
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  FAIL (probe, expected) threw: deliberate
+198 passed, 0 failed
+## base checker over head drivers
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+187 passed, 0 failed
+## agreement
+  pair finder-report-form: 2 readers, 214 items, 0 divergent
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+SELF-TEST 13 of 13 probes held
+## fold
+0
+fold_ledger: 0 violation(s)
+fold_ledger: .claude/workflows/audit-find.js already carries dev/audit/config/finding.schema.json
+## predictor
+CI PREDICT: no closures or fast red predicted against 07a09406a1cc (a data-file read is not seen)
+## closure select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+## structure
+STRUCTURE RATCHET PASSED
+## throwaway_git
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+## ref_privacy
+ref_privacy self-test: 66 checks, 0 failed
+## claims
+claims hygiene: origin/main ok
+## untouched
+(empty=untouched)

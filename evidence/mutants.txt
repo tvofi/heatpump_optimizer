@@ -1,10 +1,38 @@
-Reviewer's targeted mutants at 5f6d8fbd, each applied in a detached worktree and restored (git status clean after each).
-R1 audit-find.js replyField: unparseable (cut-off) text -> empty collection     check-wave-script 197 passed 0 failed   SURVIVES
-   + reviewer probe (reviewer_probe.patch), head: ok (198/0); under R1: FAIL {"missing":[],"err":"","intake":true}
-R2 audit-verify.js replyField: same substitution                                check-wave-script 196 passed 1 failed   killed
-R3 audit-find.js gather: first box wins instead of the BOXES box                check-wave-script 196 passed 1 failed   killed
-R4 audit-find.js REPORT_LISTS: `r[k] ?? []` -> `r[k]`                           check-wave-script 197 passed 0 failed   survives (not a PR claim; note only)
-R5 audit-find.js gather: off-box seat report dropped                            check-wave-script 196 passed 1 failed   killed
-R6 fold_ledger.py fold(): sync(root) -> pass                                    fold --self-test 4 FAIL                 killed
-R7 body_push.sh: no-predictor guard bypassed (`: || [ -f ...`)                  prepr --self-test 286/1 rc 2            killed
-R8 body_push.sh: predictor rc ignored (`...; true)`)                            prepr --self-test 286/1 rc 2            killed
+### M1 audit-find replyField cut-off -> empty
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  FAIL ...and one whose findings came back cut off is a seat not reported, refused with the field named, and intake does not run {"missing":[],"error":"","intake":true,"logs":["round 9: 16 dimension(s), 48 finder seat(s) here of 48: D0-s1 [M1+M2+M3], D3-s1 [M1+M2+M3+M4+M5], D9-s1 [M1], D5-s1 [M1], D6-s1 [M1+M2+M3], D10-s1 [M1+M2+M3], D0-s2 [M4+M5+M6], D3-s2 [M1+M2+M3+M4+M5], D9-s2 [M1], D5-s2 [M2+M3], D6-s2 [M1+M2+M3], D10-s2 [M1+M2], D0-s3 [M4+M5+M6+M7], D3-s3 [M1+M2+M3+M4+M5], D9-s3 [M2], D5-s3 [M1+M2+M3+M4], D6-s3 [M1+M2+M3], D10-s3 [M1+M2], D2-s1 [M1], D12-s1 [M1+M6], D1-s1 [M1+M4], D1-s2 [M2+M3], D1-s3 [M5+M6], D8-s1 [M1+M2], D2-s2 [M2], D12-s2 [M2+M4], D7-s2 [M2+M3+M4], D7-s1 [M1+M5], D7-s3 [M6], D8-s2 [M3], D2-s3 [M3+M4+M5], D12-s3 [M3+M5], D8-s3 [M4+M5], D4-s2 [M2], D11-s1 [M1], D14-s1 [M2+M3+M4], D14-s2 [M1+M2+M3+M4+M5], D14-s3 [M1+M2+M3+M4+M5], D11-s2 [M2+M3], D11-s3 [M4], D15-s2 [M5+M6], D15-s3 [M7+M8], D13-s1 [M1+M2], D13-s2 [M3+M6], D13-s3 [M4+M5], D15-s1 [M1+M2+M3+M4], D4-s1 [M1], D4-s3 [M3]"]}
+197 passed, 1 failed
+### M2 audit-find refusal without log
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  FAIL ...and one whose findings came back cut off is a seat not reported, refused with the field named, and intake does not run {"missing":["D1-s2"],"error":"","intake":false,"logs":["round 9: 16 dimension(s), 48 finder seat(s) here of 48: D0-s1 [M1+M2+M3], D3-s1 [M1+M2+M3+M4+M5], D9-s1 [M1], D5-s1 [M1], D6-s1 [M1+M2+M3], D10-s1 [M1+M2+M3], D0-s2 [M4+M5+M6], D3-s2 [M1+M2+M3+M4+M5], D9-s2 [M1], D5-s2 [M2+M3], D6-s2 [M1+M2+M3], D10-s2 [M1+M2], D0-s3 [M4+M5+M6+M7], D3-s3 [M1+M2+M3+M4+M5], D9-s3 [M2], D5-s3 [M1+M2+M3+M4], D6-s3 [M1+M2+M3], D10-s3 [M1+M2], D2-s1 [M1], D12-s1 [M1+M6], D1-s1 [M1+M4], D1-s2 [M2+M3], D1-s3 [M5+M6], D8-s1 [M1+M2], D2-s2 [M2], D12-s2 [M2+M4], D7-s2 [M2+M3+M4], D7-s1 [M1+M5], D7-s3 [M6], D8-s2 [M3], D2-s3 [M3+M4+M5], D12-s3 [M3+M5], D8-s3 [M4+M5], D4-s2 [M2], D11-s1 [M1], D14-s1 [M2+M3+M4], D14-s2 [M1+M2+M3+M4+M5], D14-s3 [M1+M2+M3+M4+M5], D11-s2 [M2+M3], D11-s3 [M4], D15-s2 [M5+M6], D15-s3 [M7+M8], D13-s1 [M1+M2], D13-s2 [M3+M6], D13-s3 [M4+M5], D15-s1 [M1+M2+M3+M4], D4-s1 [M1], D4-s3 [M3]","seats not reported: D1-s2","intake refused: D1-s2 not reported"]}
+197 passed, 1 failed
+### M3 replyField returns reply as given (both drivers)
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  FAIL a box reply returned as JSON text is parsed: every seat reported, intake runs (null control for the cut-off arm) ["D0-s1","D0-s2","D0-s3","D1-s1","D1-s2","D1-s3","D2-s1","D2-s2","D2-s3","D3-s1","D3-s2","D3-s3","D4-s1","D4-s2","D4-s3","D5-s1","D5-s2","D5-s3","D6-s1","D6-s2","D6-s3","D7-s1","D7-s2","D7-s3","D8-s1","D8-s2","D8-s3","D9-s1","D9-s2","D9-s3","D10-s1","D10-s2","D10-s3","D11-s1","D11-s2","D11-s3","D12-s1","D12-s2","D12-s3","D13-s1","D13-s2","D13-s3","D14-s1","D14-s2","D14-s3","D15-s1","D15-s2","D15-s3"]
+  FAIL a finder report whose findings came back as JSON text is read as its findings, not as none D1-s2-01 not registered
+  FAIL ...and one whose findings came back cut off is a seat not reported, refused with the field named, and intake does not run {"missing":[],"error":"","intake":true,"logs":["round 9: 16 dimension(s), 48 finder seat(s) here of 48: D0-s1 [M1+M2+M3], D3-s1 [M1+M2+M3+M4+M5], D9-s1 [M1], D5-s1 [M1], D6-s1 [M1+M2+M3], D10-s1 [M1+M2+M3], D0-s2 [M4+M5+M6], D3-s2 [M1+M2+M3+M4+M5], D9-s2 [M1], D5-s2 [M2+M3], D6-s2 [M1+M2+M3], D10-s2 [M1+M2], D0-s3 [M4+M5+M6+M7], D3-s3 [M1+M2+M3+M4+M5], D9-s3 [M2], D5-s3 [M1+M2+M3+M4], D6-s3 [M1+M2+M3], D10-s3 [M1+M2], D2-s1 [M1], D12-s1 [M1+M6], D1-s1 [M1+M4], D1-s2 [M2+M3], D1-s3 [M5+M6], D8-s1 [M1+M2], D2-s2 [M2], D12-s2 [M2+M4], D7-s2 [M2+M3+M4], D7-s1 [M1+M5], D7-s3 [M6], D8-s2 [M3], D2-s3 [M3+M4+M5], D12-s3 [M3+M5], D8-s3 [M4+M5], D4-s2 [M2], D11-s1 [M1], D14-s1 [M2+M3+M4], D14-s2 [M1+M2+M3+M4+M5], D14-s3 [M1+M2+M3+M4+M5], D11-s2 [M2+M3], D11-s3 [M4], D15-s2 [M5+M6], D15-s3 [M7+M8], D13-s1 [M1+M2], D13-s2 [M3+M6], D13-s3 [M4+M5], D15-s1 [M1+M2+M3+M4], D4-s1 [M1], D4-s3 [M3]"]}
+  FAIL the panel verification pass threw: reg.findings.map is not a function
+193 passed, 4 failed
+### M4 agreement
+  DIVERGENT     finder-report-form "/properties/findings/items/properties/perturbation/proper...": finding.schema.json, $refs inlined="up"  
+  DIVERGENT     finder-report-form "/properties/findings/items/properties/perturbation/proper...": finding.schema.json, $refs inlined="down"
+  DIVERGENT     finder-report-form "/properties/findings/items/properties/perturbation/proper...": finding.schema.json, $refs inlined="to_ze
+  DIVERGENT     finder-report-form "/properties/findings/items/properties/perturbation/proper...": finding.schema.json, $refs inlined="sign_
+RESULT divergent=4 unregistered=0 dead=0 refused=0 seconds=0.2
+### M4 FINDING_REPORT expected_direction enum dropped
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"title":"Audit finder report","type":"object","required":["dimension","baseline_sha","coverage","unfinished","findings","non_findings","harnesses","leads","report_path"],"properties":{"dimension":{"t
+197 passed, 1 failed
+    pass
+### M5 fold without sync
+FAIL a minted class reaches audit-find.js's CLASS_GUESS, the intake's third reader of the enum
+FAIL and FINDING_REPORT, the schema with its $ref inlined: the finder's return schema carries the new enum
+FAIL the lines outside the block are kept, and a second sync changes nothing (idempotent)
+FAIL null control: a fold that mints nothing still writes the block from the unchanged enum
+### M6 repairs() empty + body_push predictor disabled
+  FAIL an UNDER-SCOPED prediction names --single for its scripts, not ci-autofix.md's wait (M3) (got 1, wanted 0)
+  FAIL an UNCLASSIFIED prediction names the classification, a closure or INERT (M3) (got 1, wanted 0)
+  FAIL body_push refuses the probe head (a new harness, no inert_reads line) and pushes no body (M2) (got 1, wanted 0)
+  ok   transport: an unreadable range is refused, never passed
+287 passed, 3 failed
+rc=2
