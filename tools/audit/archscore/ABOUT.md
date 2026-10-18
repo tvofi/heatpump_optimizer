@@ -234,7 +234,7 @@ What it does not see, and no rule here closes:
 Three score metrics at the floor weight. `literal_clone_copies` (`metrics/literal_clones.py`) counts the copies of
 a declaration spelled as a call or literal more than once -- a selector, a schema, a record -- which sits inside one
 statement and so outside `duplication_copies`' windows: ARCH2-s5's F1 (the setup wizard reading its options-registry
-widgets) reads 184 -> 132 on it at the merge base `6e5753a4a` (ARCH2-s5's `arch_delta.py`, base `9061fbd3d`). The card (`www/*.js`, read by a tokenizer in `metrics/card.py`, never a parser)
+widgets) reads 186 -> 134 on it (ARCH2-s5's `arch_delta.py`, base `9061fbd3d`, with the round-2 instrument; 184 -> 132 before the module-binding fold). The card (`www/*.js`, read by a tokenizer in `metrics/card.py`, never a parser)
 gets `card_dead_definitions` (D7-s3-02's `textWidth` was its one; R10-UX-SETUP gave it callers, so today reads 0) and `card_clone_copies`, a 20-token window
 census; the window was calibrated on ARCH2-s5's four card patches, where 16 tokens read the finite-number owner (a
 dedupe) as one copy more. The shape census of N spellings of one rule is part 5's.
