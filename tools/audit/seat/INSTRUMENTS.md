@@ -202,8 +202,21 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   exits 0.
 - `open_pr.sh` — opens a draft PR from `handoff/<topic>` as `hpo-author`,
   adds its own delivery row, re-pushes, prints N and the head. When: the
-  orchestrator opens a seat's handed-off branch. Refusal: no BODY.md at
-  `handoff-body/<topic>` — the body is the transport, not an afterthought.
+  orchestrator opens a seat's handed-off branch. Refusal, each an
+  `open_pr: REFUSE:` line before anything is written (`pr_args.sh`): fewer
+  than four arguments; a code sha that is not 40-hex or names no commit; one
+  that is not an ancestor of `origin/handoff/<topic>`, saying whether it is the
+  tip of `handoff-body/<topic>` ("that is the BODY sha; pass the CODE sha" —
+  twice on 2026-10-18 that sha stopped the script silently); a missing
+  `handoff/<topic>` or `handoff-body/<topic>`; no BODY.md at the body ref — the
+  body is the transport, not an afterthought; the open-PR soft cap (tvofi,
+  2026-10-18): `HPO_OPEN_PR_CAP` (default 6) or more open pull requests, drafts
+  included, `record:`-titled and non-`hpo-author` bot ones excluded, unless a
+  leading `--over-cap "<reason>"` overrides it, which prints `OVER-CAP` with
+  the reason; a count it cannot read refuses (`pr_cap.py`). Any later stop
+  prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
+  refused push names its log. `--self-test` runs `delivery_row.sh`'s, then
+  `pr_args.sh`'s.
 - `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
   that measures the whole board — train liveness, stale queue entries, log/rc
   tail, prepr slots; per open PR the latest check-run per name, reds unanswered
@@ -230,11 +243,28 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   — a finding that only lands in tick output repeats the
   PR-comment-is-not-propagation defect. Refusal: a section whose read fails
   prints UNREADABLE, never a silent skip; a rule the tick cannot read from
-  the tree or API it does not report.
+  the tree or API it does not report. Every pass prints two level lines in
+  PRS (tvofi, 2026-10-18): `OPEN-PR CAP: N/CAP`, counted by `pr_cap.py`'s
+  rule and flagged at or over the cap `open_pr.sh` refuses at, and
+  `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
+  touches the coordinator, flagged over 2 or when a diff is unreadable.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
   but the gantt's grammar checks run in `--self-test`, not at render time.
+- `pr_args.sh` — sourced by `open_pr.sh` and `update_pr.sh`: their argument
+  checks and the ERR trap that reports every other stop, so neither stops
+  silently. When: never by hand; `--self-test` drives both scripts end to end
+  in a scratch repository, offline, each refusal arm beside a mutant that
+  deletes its predicate line (`# mut:<name>`) and must fail the arm, plus
+  null controls that pass every check. Refusal: its self-test's tally.
+- `pr_cap.py` — the open-PR soft cap's one counting rule (tvofi, 2026-10-18):
+  `gate` for `open_pr.sh`, imported by `orchestrator_tick.py`. A bot is a
+  GitHub-flagged bot other than `app/hpo-author`, which authors every seat PR.
+  When: `open_pr.sh` before it opens; the tick every pass. Refusal: at or over
+  the cap without `--over-cap <reason>`; an empty reason; an invalid
+  `HPO_OPEN_PR_CAP`; a list gh cannot read, that is not JSON, or that reaches
+  gh's 200 limit.
 - `proof_watch.py` — watches one named check-run at one pinned head of one
   pull request and, once it completes `success` beside green required contexts
   and a valid merge verdict at that exact head, merges through `merge_pr.sh`.
@@ -402,7 +432,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
   `hpo-author`. When: updating a PR after review prep or a main merge.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
-  silently; no open PR at the branch stops before any push.
+  silently; no open PR at the branch stops before any push. Up front, each an
+  `update_pr: REFUSE:` line (`pr_args.sh`): fewer than three arguments; a
+  code sha other than `-` that is not 40-hex, names no commit, or is not an
+  ancestor of `origin/handoff/<topic>` (the topic `HANDOFF_TOPIC`, else the
+  branch less `fix/`, then less `-pr`), naming a `handoff-body/<topic>` tip as
+  the BODY sha; a missing `handoff/<topic>`; no body file. The body is a file
+  here, so a missing body ref is no refusal. Any later stop prints
+  `update_pr: STOPPED: ...`, and a refused push names its log.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
   `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is

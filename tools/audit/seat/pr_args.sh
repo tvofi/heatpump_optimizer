@@ -198,6 +198,9 @@ pr_args_self_test() (
       && grep -qF "update_pr: REFUSE: the push failed" "$t/out" && ! grep -q STOPPED "$t/out"
     ck "null control: update_pr with code sha '${c:0:7}' passes every check, and its failed push names its log" $?
   done
+  # The cap's own counting rule, which orchestrator_tick.py imports too.
+  python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
+  ck "pr_cap.py --self-test: its tally says 0 failed" $?
   rm -rf "$t"
   echo "pr_args self-test: $n checks, $f failed"
   [ "$f" = 0 ]
