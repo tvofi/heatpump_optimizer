@@ -1,0 +1,5 @@
+M1 fallback `catch { return 'HEAD' }` -> `catch { return SUBJECT_CUTOFF }`: FAIL with no origin/main ref the walk falls back to HEAD and refuses a hand subject there; SELF-TEST 26 of 27
+M2 walk end `${cutoff}..${mainLineEnd(g)}` -> `${cutoff}..HEAD`: FAIL recarried-branch probe + FAIL hand-subject-from-recarried probe; SELF-TEST 25 of 27
+M3 (reviewer's) mainLineEnd returns 'refs/remotes/origin/main' instead of the merge base: SURVIVES, SELF-TEST 27 of 27 (non-blocking, see verdict)
+M4 refusal push -> note.push: 6 FAIL; SELF-TEST 21 of 27
+M5 fallback returns SUBJECT_CUTOFF.slice(0): FAIL fallback probe; SELF-TEST 26 of 27

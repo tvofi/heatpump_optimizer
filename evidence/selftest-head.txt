@@ -1,1 +1,29 @@
-SELF-TEST 26 of 26 probes held
+  ok   agreeing readers pass
+  ok   a disagreeing reader is divergent
+  ok   a reader that throws is refused, never a pass
+  ok   an empty corpus is refused
+  ok   one reader is refused
+  ok   a stale narrow declaration is divergent
+  ok   every reader null on a must-answer item is refused (merge-shape guard)
+  ok   null on an item that need not answer passes
+  ok   a pair's guard runs with its pair
+  ok   both GitHub templates pass the merge-subject guard
+  ok   a hand-written merge subject is refused (#2379, 5756f2b1)
+  ok   a title-only merge subject is refused
+  ok   a single-parent commit is not a merge
+  ok   the runner's test merge at HEAD is skipped, and refused anywhere else
+  ok   merge-subject-pr's null guard covers a hand merge's custom tail, and not a subject naming no pull request
+  ok   a merge call that passes --subject is refused
+  ok   a merge call that passes commit_title is refused
+  ok   a scan that finds no merge call is refused
+  ok   a recarried branch's own `Merge origin/main into <branch>` is not judged
+  ok   a hand subject on main is refused from a recarried branch, and only it
+  ok   a hand subject is refused on main's own push run
+  ok   with no origin/main ref the walk falls back to HEAD and refuses a hand subject there
+  ok   a grammar in two files and unregistered is found
+  ok   a registered grammar passes
+  ok   a grammar in one file is not shared
+  ok   an entry that no longer spans two files is DEAD
+  ok   a disposition of no known kind is refused
+SELF-TEST 27 of 27 probes held
+exit=0

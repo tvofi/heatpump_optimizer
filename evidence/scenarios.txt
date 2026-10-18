@@ -1,0 +1,10 @@
+Built in a --shared scratch clone at /tmp/seat/rev2424/cl, head's agreement.mjs copied over each tree, agreement_py.py run per tree.
+(a)  07a09406+work+`git merge --no-ff origin/main(89e33859)` (git default subject): base mjs refused=1 (6e88cf039), head mjs refused=0
+(a2) GitHub-shaped test merge `Merge 8baf5eac.. into 89e33859..`, origin/main present: refused=0
+(a3) #2422 branch ee93af58 + merge 89e33859: base mjs refused=2 (b772b1ad3, 0670b9cea), head mjs `1 first-parent commit(s)`, refused=0  (body's null control reproduced)
+(b1) main' = 89e33859 + `Merge pull request #9 (custom)` 92059fff2, test merge of PR head into it: refused=1 naming 92059fff2
+(b2) push run, HEAD = origin/main = 92059fff2: refused=1 naming it
+(b3) PR head recarried with main': refused=1 naming it
+(c1) no origin/main, HEAD = main': refused=1 naming 92059fff2
+(c2) no origin/main, HEAD = recarried branch: refused=1 naming the branch's own sync merge
+(c3) no origin/main, HEAD = PR head 8baf5eac: refused=1 naming 8baf5eac3 (its own merge subject)

@@ -1,33 +1,57 @@
-Fix review: blocked 63d4d2b2a16d8c04b982767a4c2c995f964ad7ed ci-red: instrument-self-tests is red at this head because of this PR — tests/throwaway_git.py --check refuses the raw `git init` the new self-test adds at tools/policy/agreement.mjs:441 (passes at base 89e33859); `## Red checks` does not name it and pr-contract refuses
+Fix review: merge 8baf5eac34e3e9fa3c447f47ec898a6e588efab3
 
-bus-nonce: 7f7e6c9dcf3072191cb6d839b07c1494
+bus-nonce: 2a93fe40315154492407d38c81024eb7
 
-Round 1 (the PR has no earlier `Fix review:` comments). Measured head: 63d4d2b2a16d8c04b982767a4c2c995f964ad7ed (still the branch tip when written). Contract current: `git diff merge-base...origin/main -- dev/governance/roles/` is empty.
+Round 2. Round 1 (hpo-approver comment 6256537345) blocked 63d4d2b2a. Measured head: 8baf5eac34e3e9fa3c447f47ec898a6e588efab3, still the branch tip when this was written. origin/main is 89e33859a, which is also the merge base. Contract current: `git diff merge-base...origin/main -- dev/governance/roles/` is empty.
 
-## Blocking
+## Round 1 blockers, each re-checked
 
-1. **instrument-self-tests is red, and the PR causes it.** On both heads, 931fa7b7b (job 117819749235) and 63d4d2b2a (job 117820624145), the step `python3 -I tests/throwaway_git.py --check` prints
-   `REFUSE tools/policy/agreement.mjs:441: rg(['init', '-q'])` / `throwaway_git: 1 raw git init or clone site(s) refused`, exit 1.
-   Reproduced locally: the head exits 1 and base 89e33859 exits 0 (`ev/throwaway_git-{head,base}.txt`). Main is green, so this red belongs to this PR. The new real-repository self-test opens a repo with a raw `git init`. The repo's throwaway-git rule refuses that unless the site goes through the throwaway_git helper or has an `ALLOW` entry with a reason in `tests/throwaway_git.py`. There is no JS twin of the helper, so the fix is probably an ALLOW entry, which edits a tests/ instrument. Whether that is policy- or code-owned is the fixer's to check.
-2. **The red is unanswered.** pr-contract (jobs 117820624071 and 117820701869) refuses with `check instrument-self-tests is red and ## Red checks does not name it`. The body's `## Red checks` names only `wave-script`, which was never red on CI. The fixer should have caught this: prepr / the instrument-self-tests lane would have refused before the push.
+1. **ci-red instrument-self-tests: fixed.** The self-test repository is now built through `throwaway_git_init` via `python3 -I`. `python3 -I tests/throwaway_git.py --check` at head prints `0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD` (`ev/throwaway_git-head.txt`). CI agrees: instrument-self-tests job 117824524152 is success, and its log prints the same line.
+2. **Red unanswered: fixed.** `## Red checks` names instrument-self-tests with a cause, a cheaper detector, a process state and a countermeasure. pr-contract job 117824983420 started at 23:50:01, after the last red run concluded (delivery-status, 23:47:54), and it is success.
+3. **Fallback arm unpinned: fixed.** There is a new probe, `with no origin/main ref the walk falls back to HEAD and refuses a hand subject there`. The round-1 mutant, `catch { return SUBJECT_CUTOFF }`, now prints `FAIL ...` and `SELF-TEST 26 of 27`. So does a variant of it, `SUBJECT_CUTOFF.slice(0)`.
+4. **815 vs 816: dropped.** The body no longer quotes the count. It states the rule instead: distinct first-parent subjects plus the fixed shapes, so the count grows by one per first-parent commit. Locally the head gives 817, which is 816 at 63d4d2b2 plus one commit. That fits the rule. CI's run shows 815, but CI walks the base's readers over the test merge, so it is a different tree.
 
-## Non-blocking (verified)
+## Adversarial checks
 
-- (a) A recarried branch passes. I built a real recarry: 07a09406, plus a commit, plus `git merge --no-ff origin/main` (git's default subject). Main's #2423 guard: `REFUSED merge-subject-pr 644f10e96 "Merge remote-tracking branch 'origin/main' into HEAD"`, `refused=1`. This head's agreement.mjs on the same tree: `1 first-parent commit(s) past 07a09406a`, `refused=0`. See `ev/recarry-lane-{base,head}.txt`.
-- (b) A custom subject on main is still refused. My probes, spliced into the self-test's scratch repo (`ev/reviewer-probes-head.txt`):
-  - GitHub-shaped test merge `Merge <sha> into <sha>` over a main carrying `Merge pull request #2 (custom)`: refused=1, naming that commit;
-  - test merge over a clean main with a recarried head: refused=0;
-  - main's push run (HEAD = origin/main = custom merge): refused=1, which is the PR's own probe.
-- (c) The fallback refuses rather than passes. With refs/remotes/origin/main deleted:
-  - recarried head: refused=1, naming the branch's own `Merge origin/main into fix/x`;
-  - dirty main: refused=1;
-  - clean main: refused=0.
-  **The self-test does not cover this arm.** Mutant 2 (`catch { return SUBJECT_CUTOFF }`, which makes the fallback walk an empty range and pass everything) leaves `SELF-TEST 26 of 26 probes held` (`ev/mutant2-fallback-pass.txt`). The behaviour is correct today but unpinned. Worth a probe on the re-cut.
-- (d) Nothing weakened. The diff changes only the walk's end point; both refusal arms are intact. The commits between a stale origin/main and the PR base go unjudged on a PR run, but main's own push run judges them, and that already held before.
-- Mutation proof re-run: restoring `${cutoff}..HEAD` gives `FAIL` on both recarry probes and `SELF-TEST 24 of 26 probes held` (`ev/mutant1-walk-HEAD.txt`), as the body states.
-- Figures: `26 of 26` at head is confirmed. `23` at the merge base is confirmed (`SELF-TEST 23 of 23`). Lane at head: `refused=0` confirmed. `815 items`: I measure 816 at head (`ev/lane-head.txt`). The count likely depends on the local refs and tags; I cannot re-derive 815.
-- Merge: `git merge-tree --write-tree origin/main 63d4d2b2a` exits 0 with no conflict.
-- VERSION, the manifest version and the notes heading are untouched.
-- Forward-carry: none claimed, and none needed.
-- delivery-status red (OVERDUE on #2413, #2412, #2407) is not this PR's: the diff only adds its own row.
-- CI at this head: the rest is green or still running (fast, coverage, browser, typing, env-matrix, CodeQL in progress when read; `ev/check-runs-head.tsv`).
+- (a) **A branch with main merged in passes the agreement lane.**
+  - 07a09406 + a commit + `git merge origin/main` (git's default subject): base gives refused=1, head gives refused=0.
+  - The body's own null control, #2422's ee93af58 with 89e33859 merged in, reproduces. The base refuses 2 (b772b1ad3, 0670b9cea). The head prints `1 first-parent commit(s) past 07a09406a` and `refused=0`.
+  - The GitHub test merge of this head into its base: refused=0.
+  - Details in `ev/scenarios.txt` and `ev/nullcontrol-ee93-*.txt`.
+- (b) **A custom-subject merge on main is still refused.** Main' is 89e33859 plus `Merge pull request #9 (custom)` (92059fff2). Each of these refuses exactly that commit:
+  - the test merge of the PR head into main';
+  - the push run, with HEAD = origin/main = main';
+  - the PR head recarried with main'.
+- (c) **The fallback refuses.** With no origin/main ref:
+  - HEAD = main' refuses 92059fff2;
+  - HEAD = a recarried branch refuses the branch's own sync merge;
+  - HEAD = this PR head refuses 8baf5eac3, its own `Merge commit ...` subject.
+- (d) **Nothing weakened.**
+  - The merge-call arm (`subjectWriters`) is untouched.
+  - The only change is the walk's end point, from HEAD to `merge-base(HEAD, origin/main)`. The commits after that point are main's, and main's push run judges them, where the end is HEAD itself.
+  - A branch's own merges can never be on main's first-parent line: GitHub's merge commit takes the first-parent slot, and squash/rebase drop them.
+  - Mutant M4, turning the refusal into a note, gives 6 FAIL and `21 of 27`.
+- **Mutation proof (`ev/mutants.txt`).** Both of the body's mutants reproduce as stated: the fallback mutant gives 26 of 27 with the named FAIL, and `${cutoff}..HEAD` gives 25 of 27 with both named FAILs.
+- **Figures at head.**
+  - `SELF-TEST 27 of 27`, and 23 of 23 at the base (`ev/selftest-head.txt`).
+  - ref_privacy, 0 refused; tmp_paths, 0 refused; `FIELD COVERAGE SELF-TEST ok` (`ev/figures-head.txt`).
+  - Lane at head: `refused=0` (`ev/lane-head.txt`).
+- **Merge with main.** `git merge-tree --write-tree origin/main 8baf5eac` exits 0 with tree 8760800c, no conflict.
+- **Untouched files.** VERSION, the manifest version and the RELEASE_NOTES heading are unchanged. The diff is `tools/policy/agreement.mjs` plus this PR's own delivery row.
+- **Body.** The head SHA in the body is the head I measured. Forward-carry is `none`, and none is needed.
+
+## CI on this head (check-runs API)
+
+- **Green:** instrument-self-tests, wave-script (agreement lane `refused=0`, run on the pinned base's readers), pr-contract (both runs), policy-docs, env-matrix, typing, briefs, mutation, closure-scope, arch-score, budget-raise-gate, hassfest, validate-hacs, CodeQL Analyze (actions, js).
+- **Red:** delivery-status, from main's overdue rows (#2413, #2412, #2407). It is exempt, and #2420 fixes it; the body answers it anyway.
+- **Still in progress when read:** browser, coverage, fast (3.14), CodeQL Analyze (python). The diff touches no Python and no UI, so those lanes cannot reach it; the orchestrator should confirm they finish green before merging.
+
+## Non-blocking observations
+
+- **M3 survives.** If `mainLineEnd` returns `refs/remotes/origin/main` instead of the merge base, the self-test still prints 27 of 27. The difference is real but is not a weakening. That mutant judges more of main's line, so a PR with an older origin/main merged in would turn red for main's own newer defect. The merge-base choice avoids that, but nothing pins it. A recarried-branch probe where origin/main has moved past the merged commit, carrying a hand subject, would pin it.
+- **Stacked branches.** If a branch is cut from another PR branch A that carries its own sync merges, and A is merged before this branch recarries, then the merge base is A's tip. That tip is off main's first-parent line, so the walk would refuse A's git-subject merges: a false refusal, never a pass. Branches here are merge-gated and cut from main, so I did not treat this as blocking.
+- **CI does not run this head's self-test.** wave-script runs the agreement lane and `--self-test` from the PINNED base (`SELF-TEST 23 of 23` in job 117824524154). The 27 probes therefore run only locally until this merges. That is the lane's design, not this PR's defect.
+
+## Instruments
+
+I built no harness of my own. I ran the repo's `agreement.mjs`/`agreement_py.py` and `throwaway_git.py`, applied my mutants by `sed`, and built scenario repositories in a `--shared` scratch clone.
