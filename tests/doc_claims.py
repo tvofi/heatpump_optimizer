@@ -1721,8 +1721,8 @@ def check_card_version_tracks_stamp() -> None:
     )
     # Null control: re-inserting the pre-fix sentences must fire the claim scan.
     mutated = doc.replace(
-        "That is the card's own version",
-        "That is the card's own version. It moves only when the card file "
+        "is the card's own version",
+        "is the card's own version. It moves only when the card file "
         "changes, so it is often lower than the integration version -- "
         "compare it against the card version named in the release notes, "
         "not against the integration version itself",
@@ -1730,7 +1730,7 @@ def check_card_version_tracks_stamp() -> None:
     )
     R.check(
         "re-inserting the pre-fix banner claim fires the scan (null control)",
-        len(_CARD_LAGS.findall(mutated)) == len(_CARD_LAGS.findall(doc)) + 2,
+        mutated != doc and len(_CARD_LAGS.findall(mutated)) == len(_CARD_LAGS.findall(doc)) + 2,
         f"{len(_CARD_LAGS.findall(doc))} -> {len(_CARD_LAGS.findall(mutated))}",
     )
 
