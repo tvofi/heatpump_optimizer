@@ -1235,16 +1235,17 @@ function checkRuleBinding(model = null) {
   // and every other arm stayed green: a glob that still matches something is
   // not a dead glob.
   const carryRule = rules.find((r) => r.file === CARRY_RULE)
-  for (const f of tracked) {
-    const names = [f, locate(f)]
-    const base = path.posix.basename(f)
+  // At the path `locate` reads, where the harness opens the file: a glob that
+  // matches only a moved file's old spelling loads the rule for nobody.
+  for (const real of tracked.map((f) => locate(f))) {
+    const base = path.posix.basename(real)
     if (!ROSTER_FILE_RE.test(base) && !CARRY_FILE_RE.test(base)) continue
-    if (names.some((n) => CARRY_HOME_EXCLUDE.test(n))) continue
-    if (carryRule?.globs?.some((g) => names.some((n) => globToRe(g).test(n)))) continue
+    if (CARRY_HOME_EXCLUDE.test(real)) continue
+    if (carryRule?.globs?.some((g) => globToRe(g).test(real))) continue
     findings.push({
       severity: 'error',
       check: 'rule-binding',
-      where: f,
+      where: real,
       message: `is a live carry destination that \`${CARRY_RULE}\` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's \`paths:\` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.`,
     })
   }
@@ -4612,18 +4613,18 @@ function assertAcceptance(derived) {
     try { return ruleBindingOverTree() } finally { ruleBindingSource = prev }
   }
   const bindingClean = {
-    // A bound live roster, and an archived roster and a fixture carry the
-    // carry-home arm must leave alone, so the over-fire check below drives it.
-    tracked: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md', 'src/app.py',
-      'dev/programme/rosters/wave-r1-groups.json', 'dev/archive/rosters/wave-1-groups.json', 'tools/policy/fixtures/carry-1.json'],
+    tracked: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md', 'src/app.py'],
     corpus: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md'],
-    rules: [{ file: '.claude/rules/a-rule.md', globs: ['CLAUDE.md', 'tools/audit/briefs/**', '.claude/rules/**'] },
-      { file: CARRY_RULE, globs: ['dev/programme/rosters/*.json'] }],
+    rules: [{ file: '.claude/rules/a-rule.md', globs: ['CLAUDE.md', 'tools/audit/briefs/**', '.claude/rules/**'] }],
   }
+  // A bound live roster, and an archived roster and a fixture carry the
+  // carry-home arm must leave alone, so the over-fire check below drives it.
+  bindingClean.tracked.push('dev/programme/rosters/wave-r1-groups.json', 'dev/archive/rosters/wave-1-groups.json', 'tools/policy/fixtures/carry-1.json')
+  bindingClean.rules.push({ file: CARRY_RULE, globs: ['dev/programme/rosters/*.json'] })
   const bindingArms = [
     ['unscoped', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: null }] }, 'declares no'],
     ['dead glob', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: [...bindingClean.rules[0].globs, 'docs/gone/**'] }] }, 'matches no tracked file'],
-    ['unbound corpus file', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: ['.claude/rules/**'] }, bindingClean.rules[1]] }, 'no `.claude/rules/*.md` binds'],
+    ['unbound corpus file', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: ['.claude/rules/**'] }] }, 'no `.claude/rules/*.md` binds'],
     // The #2408 shape: a live roster in a home the carry rule's globs dropped,
     // while every glob it kept still matches something.
     ['unbound carry home', { ...bindingClean, tracked: [...bindingClean.tracked, '.claude/workflows/wave-x-groups.json'] }, 'live carry destination'],
