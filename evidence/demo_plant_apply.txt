@@ -1,4 +1,0 @@
-APPLIED inert_reads tests/harness_headers.py: dev/audit/harnesses/review_2376_plant.py
-CI PREDICT: no closures or fast red predicted against 9a1ce39c3e90 (a data-file read is not seen)
-PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main   4.77s user 1.23s system 53% cpu 11.207 total
-rc=0

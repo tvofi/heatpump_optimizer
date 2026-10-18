@@ -1,4 +1,0 @@
-PREDICT closures INERT READS tests/harness_headers.py: dev/audit/harnesses/review_2376_plant.py (a new file beside 40 it lists)
-CI PREDICT: an INERT READS entry is written with `python3 tools/pr/ci_predict.py --apply-inert` and committed; a Darwin --single cannot record a child's read, and the bot's repair costs a red closures run and a commit on the reviewed head
-CI PREDICT: 1 predicted red(s) on closures against 9a1ce39c3e90 -- repair before the handoff; who repairs which is ci-autofix.md's
-rc=1

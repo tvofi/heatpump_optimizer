@@ -186,6 +186,9 @@ tools/pr/prepr.sh: line 1741: slot: command not found
   ok   --apply-inert writes the predicted entry, and the prediction then clears
   ok   and it writes the table in the layout closure.layout_errors accepts
   ok   --apply-inert leaves the table byte-identical where nothing is predicted (null control)
+  ok   and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS
+  ok   6d refuses an INERT READS a new top-level import adds (the import-edge arm)
+  FAIL --apply-inert writes the import-edge arm's entry too, and the prediction then clears (got 1, wanted 0)
   ok   6d stays quiet on a new selectable script: the derive plans its recording by construction (C1)
   ok   6d predicts ADDED UNPINNED for a guard the diff adds with no pin
   ok   and an unpinned site warns, never refuses: mutation-autofix may pin it after the push
@@ -286,5 +289,5 @@ AssertionError: queue-base
   ok   and takes it before the heavy steps begin
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
-277 passed, 0 failed
-rc=0
+279 passed, 1 failed
+rc=2
