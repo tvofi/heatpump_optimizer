@@ -2,7 +2,8 @@
 """The safe roster edit: JSON load, modify, dump -- never a string splice.
 
     python3 tools/audit/seat/roster_edit.py set-stage   <group> <stage> [--at-sha SHA]
-    python3 tools/audit/seat/roster_edit.py wire-issue  <group> <issue#>
+    python3 tools/audit/seat/roster_edit.py wire-issue  <group> <issue#> [--field fixes|issues]
+    python3 tools/audit/seat/roster_edit.py unwire-issue <group> <issue#> [--field fixes|issues]
     python3 tools/audit/seat/roster_edit.py append-group <json-file>
     python3 tools/audit/seat/roster_edit.py edit-brief  <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py append-carry <group> <text | @file>
@@ -48,7 +49,10 @@ anything reaches GitHub.
 
 Ops (all group ids must exist, except append-group which must not):
   set-stage    sets resume.stage (and resume.commit with --at-sha);
-  wire-issue   appends an integer issue, refusing a duplicate;
+  wire-issue   appends an integer issue (to `fixes` with --field fixes),
+               refusing a duplicate;
+  unwire-issue removes an integer from `issues` (default) or, with
+               `--field fixes`, from `fixes`; refuses when it is not there;
   append-group inserts a validated new group (group/lane/after/brief needed,
                `after` naming known groups, resume defaulted);
   edit-brief   replaces the brief (an @file argument reads the file);
@@ -136,16 +140,41 @@ def op_set_resume(roster, group, field, value):
     resume[field] = _text(value) if field in TEXT_RESUME_FIELDS else value
 
 
-def op_wire_issue(roster, group, issue):
+WIRE_FIELDS = ("issues", "fixes")
+
+
+def op_wire_issue(roster, group, issue, field="issues"):
+    """Append an integer to `issues` (default) or, with `--field fixes`, to
+    `fixes` (the issues the group's PR closes)."""
     g = _need(roster, group)
+    if field not in WIRE_FIELDS:
+        raise Refuse(f"--field for wire-issue is one of "
+                     f"{', '.join(WIRE_FIELDS)}, not {field!r}")
     try:
         n = int(issue)
     except ValueError:
         raise Refuse(f"issue must be an integer: {issue!r}")
-    if n in (g.get("issues") or []):
-        raise Refuse(f"{group} already wires #{n}")
-    g.setdefault("issues", []).append(n)
-    g["issues"].sort()
+    if n in (g.get(field) or []):
+        raise Refuse(f"{group} already wires #{n} in {field}")
+    g.setdefault(field, []).append(n)
+    g[field].sort()
+
+
+def op_unwire_issue(roster, group, issue, field="issues"):
+    """The inverse of wire-issue: drop one integer from `issues` or `fixes`."""
+    g = _need(roster, group)
+    if field not in WIRE_FIELDS:
+        raise Refuse(f"--field for unwire-issue is one of "
+                     f"{', '.join(WIRE_FIELDS)}, not {field!r}")
+    try:
+        n = int(issue)
+    except ValueError:
+        raise Refuse(f"issue must be an integer: {issue!r}")
+    held = g.get(field) or []
+    if n not in held:
+        raise Refuse(f"{group} does not hold #{n} in {field} "
+                     f"(holds: {held})")
+    g[field] = [i for i in held if i != n]
 
 
 def op_append_group(roster, json_file):
@@ -332,13 +361,14 @@ def main(argv=None) -> int:
         with throwaway_git_environ():
             return _self_test()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("op", choices=("set-stage", "wire-issue", "append-group",
+    p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("--at-sha")
-    p.add_argument("--field", choices=RESUME_FIELDS,
-                   help="set-resume only: which resume field to write")
+    p.add_argument("--field", choices=RESUME_FIELDS + WIRE_FIELDS,
+                   help="set-resume: which resume field to write; "
+                        "unwire-issue: issues (default) or fixes")
     p.add_argument("--value", dest="value_opt",
                    help="the value, for when a positional value does not fit")
     p.add_argument("--checkout", default=".")
@@ -362,8 +392,13 @@ def main(argv=None) -> int:
         p.error(f"{a.op} needs a value argument")
     if a.op == "set-resume" and not a.field:
         p.error("set-resume needs --field")
-    if a.op != "set-resume" and a.field:
-        p.error("--field is a set-resume flag")
+    if a.op == "set-resume" and a.field not in RESUME_FIELDS:
+        p.error(f"set-resume --field is one of {', '.join(RESUME_FIELDS)}")
+    if a.op in ("wire-issue", "unwire-issue") and a.field \
+            and a.field not in WIRE_FIELDS:
+        p.error(f"{a.op} --field is one of {', '.join(WIRE_FIELDS)}")
+    if a.op not in ("set-resume", "wire-issue", "unwire-issue") and a.field:
+        p.error("--field is a set-resume / wire-issue / unwire-issue flag")
     try:
         fetch_origin(a.checkout)
         ref, branch = roster_target(a.checkout, a.roster_ref, a.branch,
@@ -383,7 +418,9 @@ def main(argv=None) -> int:
         if a.op == "set-stage":
             op_set_stage(roster, a.group, value, a.at_sha)
         elif a.op == "wire-issue":
-            op_wire_issue(roster, a.group, value)
+            op_wire_issue(roster, a.group, value, a.field or "issues")
+        elif a.op == "unwire-issue":
+            op_unwire_issue(roster, a.group, value, a.field or "issues")
         elif a.op == "append-group":
             op_append_group(roster, value)
         elif a.op == "edit-brief":
@@ -584,6 +621,37 @@ def _self_test() -> int:
           branch_roster()["groups"][1]["issues"] == [1946])
     check("dup wire-issue refused",
           edit("wire-issue", "R9-B", "1946") == 2)
+    check("unwire-issue rc", edit("unwire-issue", "R9-B", "1946") == 0)
+    check("unwire-issue round-trip",
+          branch_roster()["groups"][1]["issues"] == [])
+    check("unwire-issue absent refused",
+          edit("unwire-issue", "R9-B", "1946") == 2)
+    check("unwire-issue default field is issues, not fixes",
+          edit("unwire-issue", "R9-A", "10", field="fixes") == 2
+          and edit("unwire-issue", "R9-A", "10", field="issues") == 0
+          and branch_roster()["groups"][0]["issues"] == [])
+    check("unwire-issue non-integer refused",
+          edit("unwire-issue", "R9-A", "abc") == 2)
+    check("unwire-issue unknown group refused",
+          edit("unwire-issue", "R9-NOPE", "10") == 2)
+    check("wire-issue --field fixes rc",
+          edit("wire-issue", "R9-B", "5", field="fixes") == 0)
+    rb = branch_roster()["groups"][1]
+    check("wire-issue --field fixes writes fixes only",
+          rb["fixes"] == [5] and rb["issues"] == [])
+    check("dup wire-issue --field fixes refused",
+          edit("wire-issue", "R9-B", "5", field="fixes") == 2)
+    check("wire-issue --field issues still defaults and sorts",
+          edit("wire-issue", "R9-B", "5") == 0
+          and branch_roster()["groups"][1]["issues"] == [5])
+    check("--field stage refused on wire-issue",
+          sysrc(lambda: edit("wire-issue", "R9-B", "6", field="stage")) != 0)
+    check("unwire-issue cleans the wire-issue arm",
+          edit("unwire-issue", "R9-B", "5") == 0
+          and edit("unwire-issue", "R9-B", "5", field="fixes") == 0)
+    check("--field stage refused on unwire-issue",
+          sysrc(lambda: edit("unwire-issue", "R9-A", "10", field="stage"))
+          != 0)
     newg = Path(tmp, "new.json")
     newg.write_text(json.dumps({"group": "R9-C", "lane": "L2",
                                 "after": ["R9-A"], "brief": "fixture C"}),
@@ -595,6 +663,18 @@ def _self_test() -> int:
           and rc[-1]["resume"]["stage"] == "not-started")
     check("dup append-group refused",
           edit("append-group", "R9-C", str(newg)) == 2)
+    fxg = Path(tmp, "fx.json")
+    fxg.write_text(json.dumps({"group": "R9-F", "lane": "L2", "after": [],
+                               "brief": "fixture F", "issues": [8],
+                               "fixes": [7, 8]}), encoding="utf-8")
+    check("append-group with fixes rc", edit("append-group", "R9-F", str(fxg)) == 0)
+    check("unwire-issue --field fixes rc",
+          edit("unwire-issue", "R9-F", "7", field="fixes") == 0)
+    rf = branch_roster()["groups"][-1]
+    check("unwire-issue --field fixes removes only that field's entry",
+          rf["fixes"] == [8] and rf["issues"] == [8])
+    check("unwire-issue --field fixes absent refused",
+          edit("unwire-issue", "R9-F", "7", field="fixes") == 2)
     badg = Path(tmp, "bad.json")
     badg.write_text(json.dumps({"group": "R9-D", "after": ["R9-NOPE"],
                                 "lane": "L2", "brief": "x"}), encoding="utf-8")
