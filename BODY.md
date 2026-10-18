@@ -17,11 +17,11 @@ The tests are in `tests/debug_collect.py`, the gate's driver for the debugger. E
 
 ## Head
 
-`36b786eb38682a22b3f5d6e1d3738692ee1d240b`, on merge base `c09d61dc9c9779e721eb73b1ea402913a52242fb`. Measured 2026-10-18 10:10 UTC; `origin/main` was then at `f00e1d85`, whose 9 changed files since the merge base include none this branch changes.
+`aaa61a950f55ff1edccc8c10a9de74b260d4477b`, a merge of `origin/main` at `932f5d6019e5801b06165bb7926b39347d91d643` (the merge base) into the first handoff head `36b786eb`. Measured 2026-10-18T11:31:20Z with `origin/main` at that tip. The merge's one semantic conflict: main's `log_latch.py` and this branch's `replay_doc.py` each took the package to 78 modules. The merged tree holds 79 modules (97 files), 50 of them free of `homeassistant`. `tests/deployment_shape.py`'s selection-cost note and the round-4 D6 harness header keep both histories; `docs/architecture.md` is re-counted, `doc_claims.py` green; the D6 output is regenerated.
 
 ## Mutation proof
 
-Each mutant was run from a scratch worktree at the head with `PYTHONPATH=tests/hastub python3 tests/debug_collect.py`, then restored. All 8 exit 1:
+Each mutant was run from a scratch worktree at the head with `PYTHONPATH=tests/hastub python3 tests/debug_collect.py`, then restored. All 8 exit 1 (re-run at the merged head `aaa61a95`, same kills):
 
 | Mutant | Production edit | Checks that go red |
 |---|---|---|
@@ -44,7 +44,7 @@ The conf-keys fix has its own mutant. With `conf_keys` restored to the line patt
 
 ## Figures
 
-- `PYTHONPATH=tests/hastub python3 tests/debug_collect.py`: `ALL 108 DEBUG COLLECT CHECKS PASSED` at `36b786eb`. Its `RESULT leak_probes_through_download=21 written=21 refused=0 unit=count` line counts every key of `tests/replay.py`'s `LEAK_PROBES` driven through the download, and how many replay halves were written.
+- `PYTHONPATH=tests/hastub python3 tests/debug_collect.py`: `ALL 108 DEBUG COLLECT CHECKS PASSED` at `aaa61a95`. Its `RESULT leak_probes_through_download=21 written=21 refused=0 unit=count` line counts every key of `tests/replay.py`'s `LEAK_PROBES` driven through the download, and how many replay halves were written.
 - `PYTHONPATH=tests/hastub python3 tools/replay/synthesize.py --out "$T" && cmp "$T" tests/replay/synthetic-dhw-only.json && echo IDENTICAL` (with `T=$(mktemp)`): prints `IDENTICAL` at the head. The fixture was written at the base.
 - `python3 tools/replay/export.py --check tests/replay/synthetic-dhw-only.json`: `0 violation(s)`.
 - `python3 -c "import sys; sys.path.insert(0, 'tools/replay'); import export; print(len(export.entry_keys(*export.default_const_paths())))"`: 214 at the merge base, 216 at the head. The rule is the number of distinct `CONF_*` string values the export admits as entry keys.
@@ -52,8 +52,8 @@ The conf-keys fix has its own mutant. With `conf_keys` restored to the line patt
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 tests/typing_ruler.py` (with `HPO_TYPING_PYTHON` set): `ALL 12 typing-ruler source checks PASSED`.
 - `PYTHONPATH=tests/hastub python3 tests/ha_contract.py`: `ALL 96 contracts PASSED`, the two new recorder stub contracts included.
-- `python3 tools/audit/archscore/score.py --diff c09d61dc9c9779e721eb73b1ea402913a52242fb`: `Architecture score: dS +0.0000 NULL`.
-- `python3 tests/closure.py select --diff c09d61dc9c9779e721eb73b1ea402913a52242fb --workdir "$D"`: `MODE: SCOPED -- 31 script(s) run, 2 scoped out.`
+- `python3 tools/audit/archscore/score.py --diff 932f5d6019e5801b06165bb7926b39347d91d643`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tests/closure.py select --diff 932f5d6019e5801b06165bb7926b39347d91d643 --workdir "$D"`: `MODE: SCOPED -- 31 script(s) run, 2 scoped out.`
 
 ## Architecture score
 
@@ -76,7 +76,7 @@ None on CI yet: nothing has been pushed to a pull request. The scripts that went
 
 The cheaper detector for each was the script itself, run before the push. One check stays red, and it is not this branch's: `entities.py`'s "graders-head-copy's delivery_status step..." fails identically at the merge base.
 
-Closures are recorded on Linux for the 15 scripts that read the new files: 12 via `derive_closures.sh --scripts-from`, and `entities`, `features` and `harness_headers` via `--record-only`, then `merge --partial --allow-failures`. Those three runs completed; they failed only the checks named above. Scoped gate (`GATE_SCOPE=auto`, `GOLDEN_MODE=drift`) at the base: every selected script green but those three, and they were then re-run green, entities apart from the check named above. `stress.py` was run under the gate lease: `ALL 110 STRESS CHECKS PASSED`.
+Closures are recorded on Linux for the 15 scripts that read the new files: 12 via `derive_closures.sh --scripts-from`, and `entities`, `features` and `harness_headers` via `--record-only`, then `merge --partial --allow-failures`. Those three runs completed; they failed only the checks named above. Before the merge, the scoped gate (`GATE_SCOPE=auto`, `GOLDEN_MODE=drift`) ran green at `36b786eb`, except the three scripts named above, which were then re-run green; `stress.py` passed (`ALL 110 STRESS CHECKS PASSED`) under the gate lease. After the merge, `closure.py select --diff 36b786eb` names 29 scripts for the delta. Re-run green locally at `aaa61a95`: `debug_collect`, `deployment_shape`, `doc_claims`, `finite_boundary`, `ha_contract`, `structure`, `typing_ruler`, `block_duty`, `config_flow_steps`, `guard_pins`, `manual_plan`, `plan_view`, `solar_alignment`, `wood_advisor`, `md_tables.mjs`, and `golden` (drift: 56 fixtures still match). **Left to CI** for the merge delta: `entities`, `features`, `stress`, `harness_headers`, `env_drift`, `optimality`, `boost_drift_replay`, `backtest`, `edge`, `validate`, `arch_score`, `arch_score_head`, `card.mjs` and `card_drift.mjs`.
 
 ## Forward-carry
 
@@ -88,27 +88,27 @@ The `version` stamp invalidates an assumption D15's method step 1 rests on: "`in
 
 Each site is driven by `tests/debug_collect.py` (the debugger's gate driver, which builds the replay half through every `replay_doc` rule) and by `tests/replay.py`'s sanitiser checks; CI's `mutation` job pins the ones it kills (`ci-autofix.md`).
 
-- custom_components/heatpump_optimizer/debugger.py:367 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:369 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:369 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:374 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:376 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:378 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:380 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:408 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:409 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:409 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:416 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:416 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:430 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:441 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:448 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:452 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:452 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:454 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:616 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:619 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/debugger.py:623 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:361 CLAMP_DROP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:363 CLAMP_DROP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:363 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:368 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:370 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:372 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:374 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:402 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:403 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:403 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:410 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:410 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:424 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:435 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:442 CLAMP_DROP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:446 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:446 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:448 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:610 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:613 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/debugger.py:617 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/replay_doc.py:40 CONST: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/replay_doc.py:109 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/replay_doc.py:137 BOOLOP: pinned by mutation-autofix
