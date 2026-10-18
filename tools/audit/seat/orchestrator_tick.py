@@ -226,6 +226,7 @@ class Tick:
                  mandate_id: int | None = None, stall_hours: float = 2.0,
                  grace_hours: float = 0.5, behind_max: int = 25,
                  mandate_since_days: int = 14,
+                 relay_log: str | None = None,
                  now: datetime.datetime | None = None,
                  gh=None, git=None, proc=None, bus=None) -> None:
         self.repo, self.checkout = repo, checkout
@@ -238,6 +239,10 @@ class Tick:
         self.mandate_id, self.mandate_since_days = mandate_id, mandate_since_days
         self.stall_hours, self.grace_hours = stall_hours, grace_hours
         self.behind_max = behind_max
+        # cloud_relay.sh's own default log (#2419): POSTED/OWED lines.
+        self.relay_log = relay_log or os.path.join(
+            os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"),
+            "cloud-relay.log")
         self.now = now or datetime.datetime.now(datetime.timezone.utc)
         self._gh, self._git, self._proc, self._bus = gh, git, proc, bus
         self.sections: dict[str, list] = {}
@@ -520,6 +525,7 @@ class Tick:
         self.body_staleness(S, prs)
         self.open_pr_cap(S, prs)
         self.verdict_levels(S, prs)
+        self.relay_owed(S)
         for head, ns in sorted(by_head.items()):
             if len(ns) > 1:
                 self.line(S, "twin open PRs at one head "
@@ -631,6 +637,32 @@ class Tick:
                     self.unreadable(S, f"handoff ref for blocked #{n}", "git read failed")
                 elif not newer:
                     self.line(S, f"BLOCKED-UNFIXED: #{n} {head[:8]}", flag=True)
+
+    def relay_owed(self, S: str) -> None:
+        """`OWED: <line>`, a level line every pass, for each OWED entry in
+        cloud_relay.sh's log with no later POSTED for the same PR (the round-10
+        orchestrator, 2026-10-18: a relayed verdict left unposted). The log's
+        lines are `POSTED <utc> <pr> <sha>` and `OWED <utc> <pr> <sha|-> <why>`.
+        No log is no relay yet, not a failure; an unreadable one is UNREADABLE."""
+        try:
+            with open(self.relay_log, encoding="utf-8", errors="replace") as fh:
+                rows = fh.read().splitlines()
+        except FileNotFoundError:
+            self.line(S, "cloud-relay log: none yet (no OWED to report)")
+            return
+        except OSError as e:
+            self.unreadable(S, "cloud-relay log", str(e)[:100])
+            return
+        owed: dict[str, list[str]] = {}
+        for row in rows:
+            f = row.split()
+            if len(f) >= 3 and f[0] == "OWED":
+                owed.setdefault(f[2], []).append(row.strip())
+            elif len(f) >= 3 and f[0] == "POSTED":
+                owed.pop(f[2], None)
+        for pr in sorted(owed, key=lambda x: (len(x), x)):
+            for row in owed[pr]:
+                self.line(S, f"OWED: {row}", flag=True)
 
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
@@ -1945,6 +1977,7 @@ def self_test() -> int:
         git.on(("rev-list", "--count", f"{handover}..origin/main"),
                out=str(behind_handover))
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
+        kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
@@ -2932,6 +2965,40 @@ def self_test() -> int:
              any(l["text"] == f"BLOCKED-UNFIXED: #48 {h(48)[:8]}" for l in stale_fix)),
             ("comments it cannot read are UNREADABLE, never silence",
              any(l["flag"] and "UNREADABLE: verdicts on #49" in l["text"] for l in unread)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- OWED from cloud_relay.sh's log (2026-10-18) ----
+        def owed_lines(text):
+            lg = tmp / "relay.log"
+            if text is None:
+                lg.unlink(missing_ok=True)
+            else:
+                lg.write_text(text)
+            t = tick(relay_log=str(lg))
+            t.relay_owed("PRS")
+            return t.sections.get("PRS", [])
+
+        o1 = f"OWED 2026-10-18T19:00:00Z 7 {'a' * 40} bus.sh confirm failed; run it by hand"
+        o2 = "OWED 2026-10-18T19:05:00Z 8 - push-verdict printed no 40-hex review commit"
+        p1 = f"POSTED 2026-10-18T19:10:00Z 7 {'a' * 40}"
+        o3 = f"OWED 2026-10-18T19:20:00Z 7 {'b' * 40} confirm failed"
+        both = owed_lines("\n".join([o1, o2]) + "\n")
+        healed = owed_lines("\n".join([o1, p1]) + "\n")
+        again = owed_lines("\n".join([o1, p1, o3]) + "\n")
+        none = owed_lines(None)
+        twice = owed_lines("\n".join([o1, o3]) + "\n")
+        a, f = check("relay OWED", [
+            ("each OWED with no later POSTED prints OWED: <line>, flagged",
+             [l["text"] for l in both if l["flag"]] == [f"OWED: {o1}", f"OWED: {o2}"]),
+            ("null control: an OWED followed by a POSTED prints nothing",
+             not any(l["text"].startswith("OWED:") for l in healed)),
+            ("an OWED after that POSTED prints again, alone",
+             [l["text"] for l in again if l["text"].startswith("OWED:")] == [f"OWED: {o3}"]),
+            ("two OWED for one PR with no POSTED print both, each entry",
+             [l["text"] for l in twice if l["flag"]] == [f"OWED: {o1}", f"OWED: {o3}"]),
+            ("no log yet is no OWED and no flag",
+             not any(l["flag"] for l in none) and any("cloud-relay log: none yet" in l["text"] for l in none)),
         ])
         total, failed = total + a, failed + f
 
