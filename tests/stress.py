@@ -561,9 +561,10 @@ def coverage_floors(
     the production-call meter (#201 comment 6240984157, step 3).
 
     An override may also carry ``calls_floor``, the production-call floor as
-    measured, for when the share of the work floor rounds above it; it too
-    may only lower that floor below the literal's share, and a malformed one
-    is the share rule.
+    measured, for when the share of the work floor rounds above it; it may
+    only lower that floor below the share of the override's own work floor,
+    so withdrawing it never lowers the floor, and a malformed one is the
+    share rule.
     """
     def share(f: int) -> int:
         return -(-n_population * f // n_sweep)
@@ -580,7 +581,7 @@ def coverage_floors(
                 and isinstance(ov_cites, str) and ov_cites.strip()):
             floor, cites = ov_floor, ov_cites
             ov_calls = override.get("calls_floor")
-            if lowers(ov_calls, share(SCENARIO_WORK_MIN_COVERED)):
+            if lowers(ov_calls, share(floor)):
                 return floor, ov_calls, cites
     return floor, share(floor), cites
 
@@ -3503,7 +3504,9 @@ if __name__ == "__main__":
     # 18 of 54 and 6 of 20, and the share rule rounds 18 of 54 up to 7 of 20,
     # so an override at the measured work count still reddened the calls
     # check. An explicit floor is held as written; one that is malformed or
-    # not below the literal's share falls back to the share rule.
+    # not below the share of the override's own work floor falls back to the
+    # share rule -- so withdrawing it never lowers the floor, which is what
+    # lets budget_raise_gate.py read a withdrawal as routine (#2368 review).
     _lit_calls = _lit[1]
     _both = coverage_floors(
         {"coverage_floor_override": {"floor": 18, "calls_floor": 6,
@@ -3515,7 +3518,8 @@ if __name__ == "__main__":
         coverage_floors({"coverage_floor_override": {
             "floor": 18, "calls_floor": c, "cites": "ruling"}},
             len(_pop), _n_sweep)
-        for c in (_lit_calls, _lit_calls + 3, 0, -1, True, 6.0, "6", None)
+        for c in (_lit_calls, _lit_calls + 3, _share18[1], _share18[1] + 3,
+                  0, -1, True, 6.0, "6", None)
     ]
     R.check(
         "coverage floors: an override naming both floors is held to both, "

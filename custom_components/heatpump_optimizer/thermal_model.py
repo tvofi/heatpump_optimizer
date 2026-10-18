@@ -2047,7 +2047,7 @@ class ThermalModel:
         terminal valuations, the efficiency learner's reference and the
         capacity caps -- inherits the lift from this one place rather than
         from a call site each. Hot water is not lifted twice:
-        :meth:`compute_cop_dhw` starts from :meth:`_cop_law` with no curve flow.
+        :meth:`compute_cop_dhw` passes :meth:`_cop_law` the tank's own water.
         The lift is one-sided, applied only above the reference flow, which
         is the batch twin's semantics and is kept for its bitwise parity: a
         curve below 35 °C earns no boost.
