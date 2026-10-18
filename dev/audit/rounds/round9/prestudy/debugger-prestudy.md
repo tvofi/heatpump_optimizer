@@ -11,7 +11,7 @@ existing code first, per-component reuse naming, anything duplicating an
 existing surface is refused here, in the pre-study itself.
 
 Baseline: `origin/main` at `ed0151ad2` ("ci: record nightly kills"), seat
-worktree `/Users/timmalmstrom/hpo-seats/r9-dbg-0/wt`, branch
+worktree `~/hpo-seats/r9-dbg-0/wt`, branch
 `handoff/r9-dbg-0`. Every figure below names its instrument; prototypes live
 beside this doc (`dbg_bundle_gen.py`, `dbg_ingest_smoke.py`) and their runs
 under `runs/`.

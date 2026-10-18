@@ -15,7 +15,7 @@ Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit,
 Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
 Config entry version 8 is newer than the supported version 7; downgrade is not supported
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+~/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.

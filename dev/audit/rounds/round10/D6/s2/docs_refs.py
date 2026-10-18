@@ -8,7 +8,7 @@ checked against the entity ids the real platform async_setup_entry produces
 and services.async_setup_services registration constant set; (c) every relative markdown
 link [..](file#anchor) in docs/*.md is checked for target existence and GitHub-slug anchor.
 Count key: entity ids as delivered by the constructed entities' .entity_id.
-RUN: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/docs_refs.py [--perturb]
+RUN: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/docs_refs.py [--perturb]
 --perturb: in memory, renames the produced ids' prefix (entity.f-string seam emulated by
 rewriting collected .entity_id) so entity_false must rise to the number of cited ids.
 EXPECTED: see REPORT.md, tolerance 0. BASELINE 17f1c55fad1b, machine macOS arm64 box B2.

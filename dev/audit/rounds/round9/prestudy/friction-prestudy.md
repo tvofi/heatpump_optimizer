@@ -4,12 +4,12 @@
 tvofi, 2026-10-04. Round-9 study seat R9-FR-1, per the roster entry on
 `origin/handoff/audit-r9-fixplan`. No fix PRs from this seat. Inputs: the
 friction-triage seat's six verdicts and stats
-(`/Users/timmalmstrom/hpo-seats/friction-triage/scratch/friction-triage/`, run
+(`~/hpo-seats/friction-triage/scratch/friction-triage/`, run
 at `9a51f6d72` on 2026-10-04 ~11:12Z) and its per-issue comments on #1807
 #1825 #1826 #1855 #1860 #1881. All measurements in this document were taken in
-the worktree `/Users/timmalmstrom/hpo-seats/r9-fr-study/wt` at
+the worktree `~/hpo-seats/r9-fr-study/wt` at
 **`origin/main` = `1913f0dd7` (tag `v6.7.16`)**. Raw sweep outputs:
-`/Users/timmalmstrom/hpo-seats/r9-fr-study/scratch/fr-study/sweep-*.txt`.
+`~/hpo-seats/r9-fr-study/scratch/fr-study/sweep-*.txt`.
 
 Every figure's command is in §7. Every histogram figure is a run with
 `GITHUB_TOKEN=$(gh auth token)` and exit code 0; the merge-enumeration GAP line
@@ -375,7 +375,7 @@ posts nothing to GitHub itself beyond its handoff branches.
 
 ## 7. Figure index — every figure's command
 
-Run in `/Users/timmalmstrom/hpo-seats/r9-fr-study/wt` at `1913f0dd7`:
+Run in `~/hpo-seats/r9-fr-study/wt` at `1913f0dd7`:
 
 1. Sweeps (all §1 tables): `GITHUB_TOKEN=$(gh auth token) node .claude/workflows/policy_lint.mjs --stats --since v6.7.13` (and `v6.7.14`, `v6.7.15`, `v6.7.16`); rc=0 each; `GAP: 0` each; raw outputs in `scratch/fr-study/sweep-v6.7.1{3,4,5,6}.txt` under the seat scratch.
 2. Null (no token): `node .claude/workflows/policy_lint.mjs --stats --since v6.7.15` with `GITHUB_TOKEN` unset — skip line and refused histogram, quoted in the preamble.

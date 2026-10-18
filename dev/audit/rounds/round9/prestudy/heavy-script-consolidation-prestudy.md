@@ -8,7 +8,7 @@ entry"*. This study attacks that conclusion, re-derives the count from real
 runs, and judges each consolidation mechanism sound or refused. Study only —
 no fix PR, no production file changed, no budgets file touched. Baseline
 **`origin/main` = `a74520020`** (2026-10-11). Worktree
-`/Users/timmalmstrom/hpo-seats/r9inv-consolidate/wt`. Every CI figure below is
+`~/hpo-seats/r9inv-consolidate/wt`. Every CI figure below is
 read from the API/logs cited in §8; the full suite and
 `tests/derive_closures.sh` were not run locally (forbidden off Linux,
 `gate-scoping.md`).

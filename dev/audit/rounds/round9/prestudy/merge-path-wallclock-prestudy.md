@@ -10,7 +10,7 @@ is **#2071** (`fix/live-diag`, merged 2026-10-10T06:38:11Z, merge commit
 `7cd5a588c`): a production-code pull request (6 `custom_components/` files,
 `tests/features.py`, `tests/entities.py`), merged as a batch of one through
 `merge_train.py`, whose head already contained main. Worktree
-`/Users/timmalmstrom/hpo-seats/r9pre-mergepath/wt`; CI numbers read from the
+`~/hpo-seats/r9pre-mergepath/wt`; CI numbers read from the
 API/logs, each cited by run id and job id; local numbers timed on this 8-core
 box under the seat venv. `tests/derive_closures.sh` full runs stayed in CI
 (`gate-scoping.md`); locally only `prepr` and single `--single --record-only`
