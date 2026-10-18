@@ -1,6 +1,0 @@
-REVIEWER test-merge on dirty main refused=1 ["merge-subject-pr b58c0515f \"Merge pull r"]
-REVIEWER test-merge on clean main, recarried head refused=0
-REVIEWER fallback no origin/main, recarried head refused=1 ["merge-subject-pr 31d204fa8 \"Merge origin/main into fix/x\": a"]
-REVIEWER fallback no origin/main, on dirty main refused=1
-REVIEWER fallback no origin/main, clean main refused=0
-SELF-TEST 26 of 26 probes held

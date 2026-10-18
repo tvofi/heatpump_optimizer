@@ -1,0 +1,5 @@
+  merge-subject guard: 14 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
+  REFUSED       merge-subject-pr b772b1ad3 "Merge commit '89e33859' into HEAD": a merge commit whose subject is not GitH
+  REFUSED       merge-subject-pr 0670b9cea "Merge remote-tracking branch 'origin/main' into fix/r10-openpr-silent": a me
+RESULT divergent=0 unregistered=0 dead=0 refused=2 seconds=0.2
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

@@ -1,3 +1,0 @@
-  FAIL a recarried branch's own `Merge origin/main into <branch>` is not judged
-  FAIL a hand subject on main is refused from a recarried branch, and only it
-SELF-TEST 24 of 26 probes held

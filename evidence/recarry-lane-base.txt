@@ -1,5 +1,0 @@
-  pair merge-subject-pr: 4 readers, 815 items, 0 divergent
-  merge-subject guard: 2 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
-  REFUSED       merge-subject-pr 644f10e96 "Merge remote-tracking branch 'origin/main' into HEAD": a merge commit whose subject is not GitHub's template. Merge through merge_train.py or merge_pr.sh, which pass no --subject; history cannot be rewritten, so the readers must now read it
-RESULT divergent=0 unregistered=0 dead=0 refused=1 seconds=0.3
-AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
