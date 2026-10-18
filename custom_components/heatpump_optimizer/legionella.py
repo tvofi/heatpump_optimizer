@@ -34,8 +34,7 @@ from .const import (
 from .drift import stored_instant
 from .disinfection import DisinfectionSwitch
 from .entry_config import EntryConfig
-from .optimizer import REASON_LEGIONELLA
-from .payload import CurrentAction
+from .payload import REASON_LEGIONELLA, CurrentAction
 from .issues import create_issue
 from .thermal_model import ThermalParameters
 

@@ -14715,7 +14715,7 @@ R.check(
     f"15={_w15} 60={_w60}",
 )
 
-from heatpump_optimizer.optimizer import _utc_step_starts as _usteps
+from heatpump_optimizer.drift import utc_step_starts as _usteps
 from zoneinfo import ZoneInfo as _ClkZone
 
 _clk_tz = _ClkZone("Europe/Stockholm")
@@ -25737,7 +25737,7 @@ R.section("Plan reason codes: the fall-through is neutral (v5.1.7)")
 # "Pre-heating before colder weather". The card renders exactly that sentence,
 # which is what an owner read on a mild afternoon and reported as the
 # optimizer chasing weather it had never been shown.
-from heatpump_optimizer.optimizer import (  # noqa: E402
+from heatpump_optimizer.payload import (  # noqa: E402
     REASON_CHEAP_PRICE as _R_CHEAP,
     REASON_COMFORT_FLOOR as _R_FLOOR,
     REASON_IDLE as _R_IDLE,
@@ -25746,6 +25746,8 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_SCHEDULED as _R_SCHED,
     REASON_SOLAR_SURPLUS as _R_SURPLUS,
     REASON_TERMINAL_VALUE as _R_TERMINAL,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
     classify_space_steps as _classify,
     slab_settlement_cap as _slab_cap,
 )
@@ -29867,7 +29869,7 @@ R.check(
 
 R.section("v5.3.0 review — the narrative explains a blocked channel")
 
-from heatpump_optimizer.optimizer import REASON_PUMP_MODE  # noqa: E402
+from heatpump_optimizer.payload import REASON_PUMP_MODE  # noqa: E402
 
 R.check(
     "pump_mode has a sentence in BOTH languages",
@@ -32428,7 +32430,7 @@ R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day"
 # cost planner had a 60 °C ceiling to spend every day of the week — and it
 # spent it, because pre-buying at the night trough beats heating at the
 # evening window even after standby losses.
-from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _LG_REASON
+from heatpump_optimizer.payload import REASON_LEGIONELLA as _LG_REASON
 
 # The step the planner chose for the cycle is the last DHW plan's
 # `legionella_step` (#1743: the optimizer no longer stashes it). A spy on the
@@ -57555,7 +57557,7 @@ for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in
     )
 
 # The one clock keeps a naive start naive: the wall-clock walk, no zone added.
-from heatpump_optimizer.optimizer import _utc_step_starts as _r9p3_clock  # noqa: E402
+from heatpump_optimizer.drift import utc_step_starts as _r9p3_clock  # noqa: E402
 
 _r9p3_naive = datetime(2026, 3, 29, 1, 0)
 _r9p3_steps = _r9p3_clock(_r9p3_naive, 4, timedelta(minutes=30), 2)
@@ -57564,6 +57566,58 @@ R.check(
     _r9p3_steps == [_r9p3_naive + timedelta(minutes=30) * k for k in (2, 3, 4, 5)]
     and all(s.tzinfo is None for s in _r9p3_steps),
     f"{_r9p3_steps}",
+)
+
+# R10-LEAF-IMPORTS (ARCH2-s4 P1, ARCH3-s6 P4): the horizon clock is drift's and
+# the reason vocabulary is the payload's, so a leaf that needs either loads
+# without the solver. Read at run time, in a fresh interpreter per leaf: a
+# module-level edge to the optimizer anywhere in a leaf's closure puts it (and
+# scipy) in ``sys.modules``. The vocabulary check reads optimizer.py's own
+# assignments, so a second definition of a code beside the payload's refuses.
+import ast as _leaf_ast  # noqa: E402
+import os as _leaf_os  # noqa: E402
+import subprocess as _leaf_sp  # noqa: E402
+from pathlib import Path as _leaf_Path  # noqa: E402
+from heatpump_optimizer import optimizer as _leaf_opt, payload as _leaf_payload  # noqa: E402
+
+_leaf_env = {**_leaf_os.environ, "PYTHONPATH": _leaf_os.pathsep.join(p for p in sys.path if p)}
+for _leaf in ("store", "silent_mode", "quiet_windows", "legionella"):
+    _leaf_run = _leaf_sp.run(
+        [sys.executable, "-c",
+         f"import sys, heatpump_optimizer.{_leaf}; "
+         "print(sorted(m for m in sys.modules if m == 'scipy' "
+         "or m == 'heatpump_optimizer.optimizer'))"],
+        capture_output=True, text=True, env=_leaf_env, timeout=120,
+    )
+    R.check(
+        f"R10-LEAF-IMPORTS: {_leaf} loads without the solver",
+        _leaf_run.returncode == 0 and _leaf_run.stdout.strip() == "[]",
+        f"rc={_leaf_run.returncode} loaded={_leaf_run.stdout.strip()} {_leaf_run.stderr[-300:]}",
+    )
+_leaf_opt_src = _leaf_ast.parse(_leaf_Path(_leaf_opt.__file__).read_text())
+# Any binding of a REASON_ name in optimizer.py, at any depth and in any form
+# (plain, annotated, augmented, walrus, a for/with target, a def or class, an
+# import from elsewhere), save the one ``from .payload import``: the review's
+# M6 was an annotated redefinition the Assign-only walk passed.
+_leaf_own = sorted(
+    {n.id for n in _leaf_ast.walk(_leaf_opt_src)
+     if isinstance(n, _leaf_ast.Name) and isinstance(n.ctx, _leaf_ast.Store)
+     and n.id.startswith("REASON_")}
+    | {n.name for n in _leaf_ast.walk(_leaf_opt_src)
+       if isinstance(n, (_leaf_ast.FunctionDef, _leaf_ast.AsyncFunctionDef, _leaf_ast.ClassDef))
+       and n.name.startswith("REASON_")}
+    | {(a.asname or a.name) for n in _leaf_ast.walk(_leaf_opt_src)
+       if isinstance(n, (_leaf_ast.Import, _leaf_ast.ImportFrom))
+       and not (isinstance(n, _leaf_ast.ImportFrom) and n.level == 1 and n.module == "payload")
+       for a in n.names if (a.asname or a.name).startswith("REASON_")}
+)
+_leaf_used = sorted(k for k in vars(_leaf_opt) if k.startswith("REASON_"))
+R.check(
+    "R10-LEAF-IMPORTS: the payload owns every reason code the optimizer writes",
+    bool(_leaf_used) and not _leaf_own
+    and all(getattr(_leaf_payload, k, None) is getattr(_leaf_opt, k) for k in _leaf_used),
+    f"optimizer binds {_leaf_own} outside its payload import; imports {len(_leaf_used)}, "
+    f"payload lacks {[k for k in _leaf_used if not hasattr(_leaf_payload, k)]}",
 )
 
 # A tank colder than the room it stands in loses nothing to it: the standby
@@ -60388,13 +60442,15 @@ R.check(
 
 # R9-UX-5 (#1795): exact idle sub-codes, the what-if's setback, the published
 # floor, and the comfort event's cause.
-from heatpump_optimizer.optimizer import (  # noqa: E402
+from heatpump_optimizer.payload import (  # noqa: E402
     REASON_IDLE as _UX5_IDLE,
     REASON_IDLE_COASTING as _UX5_COAST,
     REASON_IDLE_DEARER as _UX5_DEAR,
     REASON_IDLE_FUSE as _UX5_FUSE,
     REASON_IDLE_OTHER as _UX5_OTHER,
     REASON_IDLE_SOLAR as _UX5_SOLAR,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
     IdleContext as _Ux5Idle,
     classify_dhw_steps as _ux5_dhw,
     classify_space_steps as _ux5_space,

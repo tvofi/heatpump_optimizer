@@ -24,8 +24,8 @@ Two option keys, one spec per action, both in the unchanged
   can trim the plan but never starve the house. An off step is a deliberate
   zero and is NOT floored: the plan pre-heats before it and the soft comfort
   penalty prices any shortfall through the published breach figures.
-* **The solver's clock.** Steps are walked in UTC through the optimizer's
-  ``_utc_step_starts`` and read in the step's own zone, so a window binds
+* **The solver's clock.** Steps are walked in UTC through
+  ``drift.utc_step_starts`` and read in the step's own zone, so a window binds
   the real hours on a DST night.
 * **Enforced only where enforceable.** Nothing while the optimizer is off
   (D2: switching it off inside a window undoes nothing). A silent row needs
@@ -82,7 +82,7 @@ from .dhw_schedule import (
 )
 from .inputs import normalize_power_kw
 from .modbus_prefill import night_mode_write_ids, package_prefix
-from .optimizer import _utc_step_starts
+from .drift import utc_step_starts
 
 #: The per-step action codes, as one int8 array element per step.
 ACTION_NONE: Final = 0
@@ -138,7 +138,7 @@ def step_actions(
     (s_win, s_weekly), (o_win, o_weekly) = parsed
     out = np.full(n_steps, ACTION_NONE, dtype=np.int8)
     for i, step in enumerate(
-        _utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))
+        utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))
     ):
         hour = step.hour + step.minute / 60.0
         day = step.weekday()

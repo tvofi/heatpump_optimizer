@@ -3333,6 +3333,7 @@
    "dev/audit/harnesses/r10_i1_action_guards.py",
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
+   "dev/audit/harnesses/r10_leaf_solver_closure.py",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
    "dev/audit/harnesses/r10_registry_leak.py",
    "dev/audit/harnesses/r10_replay_loopnorm.py",
