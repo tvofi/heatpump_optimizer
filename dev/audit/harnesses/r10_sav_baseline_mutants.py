@@ -46,7 +46,7 @@ M = [
  ("M7 metered energy without immersion", "ledger.py",
   'ENERGY_LINES = ("spot", "immersion")\n', 'ENERGY_LINES = ("spot",)\n'),
  ("M9 no start settlement (space path)", "optimizer.py",
-  "        ) - self._start_gap_cost(\n            initial_state, weather, comfort_targets, prices, outdoor_temps,\n            space_caps, h.humidity, baseline_cost,\n        )\n",
+  "        ) - self._start_gap_cost(\n            initial_state, weather, comfort_targets, prices, outdoor_temps,\n            space_caps, h.humidity, baseline_cost,  # the space-only reference\n        )\n",
   "        )\n"),
  ("M10 start debit unbounded", "optimizer.py",
   "        return capped - min(surplus_above_caps, max(0.0, space_baseline_cost))", "        return capped - surplus_above_caps"),
