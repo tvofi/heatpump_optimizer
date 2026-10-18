@@ -18,7 +18,7 @@ After this merges, an open PR's `pr-contract` re-runs on its next push or body e
 
 ## Head
 
-`7167a97d9d54713ef415dc03fab04c9a75c0a53f` (branch base `64b1f82a3`; origin/main merged in three times, last at `63816b857`, 2026-10-18). Over the measured code: the `tests/layout.json` placement row, the pr-contract rewiring to an owned last step, one grammar owner each for the carry-file name and the fence, `tests/closures.json`'s INERT read of the new harness, and the `--ledger` sweep read. Mutants M1-M9 were re-run on the rewired file, all still killed.
+`71b30848f87112dfc65497ca4976a5b26da4418e` (on #2404's head `713182ca1`, which added the PR's delivery row, with origin/main `dc8aa807f` merged in, 2026-10-18; base `64b1f82a3`). The one code commit over `713182ca1`, `faf1bf1b1`, repairs the two reds below. Mutants M1-M9 and M11 were re-run on it, all still killed.
 
 ## Mutation proof
 
@@ -47,7 +47,7 @@ Each mutant was applied to `tools/audit/carry_audit.py` or `tools/audit/seat/que
 
 ## Figures
 
-- `python3 -I tools/audit/carry_audit.py --self-test`: `carry_audit self-test: 34 checks, 0 failed`.
+- `python3 -I tools/audit/carry_audit.py --self-test`: `carry_audit self-test: 35 checks, 0 failed`.
 - `python3 tools/audit/seat/queue_pre_flight.py --self-test`: `queue_pre_flight self-test: 37 checks, 0 failed`.
 - `python3 tools/audit/seat/merge_train.py --self-test`: `merge_train self-test: 180 checks, 0 failed` (at the base too; before the fake's comments branch was added, head read 2 failed on the two `--pre-flight` checks).
 - `python3 dev/audit/harnesses/r10_carry_sweep_rows.py rows39`: `RESULT rows_caught=33 of=33`. These are the sweep's PR-text UNCARRIED rows; the other six (ledger L14-L16, issues L20/L21, roster L18) are below.
@@ -68,7 +68,8 @@ Each mutant was applied to `tools/audit/carry_audit.py` or `tools/audit/seat/que
 
 ## Red checks
 
-none
+- `pr-contract` (job 117682137845 at `713182ca1`): `carry_audit.py check` refused this body. It printed `UNROUTED body item cb97c3b2 (## Forward-carry)`, although the item carried `Carry: O10-policy-fixer-md`. The cause was real: a quoted `Carry: ...` earlier on the same line was matched greedily to the end of the line, swallowing the real marker after it. Fixed: each `Carry:` is now parsed up to the next one, with a self-test arm (`a quoted Carry: ... earlier on a line does not hide the real one after it`). The same body now reads `4 routed, 0 unrouted`. Cheaper detector: the self-test now pins it. The miss was that no fixture had two markers on one line; this body was the first.
+- `fast (3.14)` (job 117682154858 at `713182ca1`): `tests/harness_headers.py`, `every inlined walk matches the canonical helper and no depth root remains`, refused `dev/audit/harnesses/r10_carry_sweep_rows.py:33: ROOT = Path(__file__).resolve().parents[3]`. Fixed: the harness inlines `tools/audit/repo_root.py`'s `repo_root`, as the other harnesses do. `harness_headers.inline_scan()` exits 0 at the head; with the old file put back it prints the same `FAIL depth seams` line (null control). Cheaper detector: none. The census runs only in the full harness script, which prepr leaves to CI ("left to CI: tests/harness_headers.py"), and the seat did not run its child scan.
 
 ## Forward-carry
 
