@@ -499,11 +499,16 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
   # One fetch of the three families into a private namespace: the ancestry and
   # age tests need the objects, and a fetch that fails must not read as a clean
   # zero. --prune drops a ref the remote deleted, so the topic list is current.
+  # FORCED ('+'): the namespace is a mirror of the remote, never work, so a ref
+  # the remote rewrote non-fast-forward is taken at its new tip. Unforced, one
+  # such rewrite made git reject the update and every later run refuse
+  # (2026-10-18: handoff/r10-ci-autofix-inert-route). A fetch that fails for any
+  # other reason -- network, auth, no such remote -- still dies below.
   git fetch -q --prune "$REMOTE" \
-    "refs/heads/main:$ns/main" \
-    "refs/heads/handoff/*:$ns/handoff/*" \
-    "refs/heads/handoff-body/*:$ns/handoff-body/*" \
-    "refs/heads/fix/*:$ns/fix/*" \
+    "+refs/heads/main:$ns/main" \
+    "+refs/heads/handoff/*:$ns/handoff/*" \
+    "+refs/heads/handoff-body/*:$ns/handoff-body/*" \
+    "+refs/heads/fix/*:$ns/fix/*" \
     || die "orphans: could not fetch the refs of $REMOTE (a shut fetch is not a clean zero)"
   main=$(git rev-parse --verify "$ns/main") || die "orphans: $REMOTE has no main to compare against"
   fix_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/fix/")"$LF
@@ -583,7 +588,7 @@ EOF
 self_test() {
   local W pass=0 fail=0 out rc h1 h2 norow r1 r2 r9 v1 v2 ra rf t tt ev n N0 N1 N1b N1c N2 N9
   local N3 N3b N3c N3d N4 DT fa g1 ro n0 realgit want wanttree
-  local o1 o2 u1 u2 c1 c2 s1 m1 mb
+  local o1 o2 u1 u2 c1 c2 s1 m1 mb f1 f2
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -1029,6 +1034,33 @@ B
   out=$(run orphans --min-age-h 0); rc=$?
   echo "$out" | grep -q "^orphans: 0 stranded" && [ $rc = 0 ]
   expect "green: with the pull requests pushed nothing is stranded and the run is 0" $?
+  # A rewritten ref: the private namespace is a mirror, so a handoff ref that
+  # the remote moved non-fast-forward after an earlier run must still be read.
+  # Without the '+' the fetch is rejected and every later run refuses forever.
+  f1=$(mkc "$mb" orph-force-1)
+  f2=$(mkc "$mb" orph-force-2)
+  git -C "$W/seat" push -q origin "$f1:refs/heads/handoff/orp-force" "$f1:refs/heads/handoff-body/orp-force"
+  run orphans --min-age-h 0 >/dev/null
+  git -C "$W/seat" push -q -f origin "$f2:refs/heads/handoff/orp-force"
+  out=$(run orphans --min-age-h 0); rc=$?
+  echo "$out" | grep -qx "ORPHAN orp-force $f2 .* repair=opener" && [ $rc = 1 ]
+  expect "a handoff ref rewritten non-fast-forward after a run is still read, at its new tip" $?
+  # Null control: a remote that cannot answer still refuses, never a clean zero.
+  out=$(HPO_BUS_REMOTE=$W/nowhere.git run orphans --min-age-h 0); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "could not fetch the refs of" && ! echo "$out" | grep -q "^orphans: "
+  expect "null control: an unreachable remote still refuses the orphans run" $?
+  # The row dispatch requires is the row open_pr.sh and update_pr.sh write:
+  # their shared writer's self-test runs here, where CI runs this one, and its
+  # ROW_DIR is the one dispatch reads.
+  out=$(bash "$ROOT/tools/audit/seat/delivery_row.sh" --self-test 2>&1) \
+    && echo "$out" | grep -q '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' \
+    && [ "$(. "$ROOT/tools/audit/seat/delivery_row.sh"; echo "$ROW_DIR")" = "$ROW_DIR" ]
+  expect "the shared delivery-row writer passes its self-test, at the ROW_DIR dispatch reads" $?
+  # One writer: no other seat shell script defines its own write_row or makes
+  # its own row commit (handoff_push.sh did, the shape #2390 and #2391 hit).
+  out=$(cd "$ROOT/tools/audit/seat" && grep -lE '^[[:space:]]*write_row\(\)|record: the delivery row f[o]r' -- *.sh)
+  [ "$out" = delivery_row.sh ]
+  expect "delivery_row.sh is the one seat script that defines write_row or commits a row" $?
 
   # #2310: a blocked verdict (the grammar that carries free text) whose first line names a host path is refused by
   # append_commit's guard, and review/7 does not move; the same verdict with a
