@@ -22,13 +22,9 @@ re-planned stress scenario's solver work against baseline from CI's stress log.
   equals that fixed point on every kernel point, retire the check with the
   per-kernel measurements as the recorded reason. The matrix comes from this
   branch's new `kernel-points` job (below), run on the pull request's label.
-- **the `coverage_floor_override` entry** (step 3). Ruled: explicit floors at
-  CI's measured counts -- solver work 18, production calls 6 -- with
-  `coverage_floors` taking an optional explicit production-call floor (the
-  share rule stays the default), its failing test first. Not on this head; it
-  lands with `## Raise justification` on the next push.
-- **the step-4 solver-work comparison**, re-taken from CI's stress log at the
-  head that carries the entry.
+- **CI's stress log at this head**: the two coverage figures and the step-4
+  solver-work comparison are re-taken from it, not carried; the figures below
+  are CI's at `74f23814e`, the counts the entry was set from.
 
 **D2-s2-01** (#2238, low, class P2). `ThermalModel.compute_cop_dhw` took its law
 from the space circuit's valve flag. With `cop_flow_carnot` the tank paid
@@ -56,8 +52,33 @@ Since then: `329514767` merges the primary's reviewed head `a0c0f8665` (one
 conflict, `tests/entities.py`'s P2 table: D2's `cop_law_fork` entry kept, the
 primary's slot-floor comment taken; against `a0c0f8665` the merged tree
 differs only in this finding's files), `da32f7ec9` merges `origin/main`
-`994695e06` (delivery records only), `04ea8dbb6` adds the kernel job, and
-`26e097a12` adds it to the stale-contract follower's watched list.
+`994695e06` (delivery records only), `04ea8dbb6` adds the kernel job,
+`26e097a12` adds it to the stale-contract follower's watched list,
+`b575020d4` and `f1878b10b` are the explicit production-call floor and the
+budget entry (`## Raise justification`), and `dcda811e4` merges `origin/main`
+`c09d61dc9`. That merge had two conflicts, both sides kept:
+`coordinator.py`'s `FORECAST_STEP` keeps the primary's one-owner width
+(`plan_step.PLAN_STEP_MINUTES`) under main's comment naming
+`drift.utc_step_starts`, and `tests/dst_checks.py` imports main's
+`utc_step_starts` and no longer `_solve_anchor`, which the primary folded into
+`plan_step.plan_step_start`.
+
+`7822a7423` repairs a check that merge brought in. Main's R10-DEEPLINK-CENSUS
+census in `tests/card.mjs` presses the slot menu's `add`/`remove` by
+right-clicking the plan charts at x=300 and x=600; which row renders depends
+on where the solver put the hot-water runs, and with this finding's re-priced
+tank none of the four pixels lands on a run, so the merged head read
+`unpressed remove` (`1 CARD CHECK(S) FAILED`) with the card unchanged. The
+gesture now walks each chart in 20 px steps until both branches are pressed:
+`ALL CARD CHECKS PASSED` here and on `c09d61dc9`'s tree; with the card's
+`editable` test forced false the census still fails `unpressed remove`
+(`4 CARD CHECK(S) FAILED`).
+
+`e7e7db805` merges the primary's new head `3ca9f1943` (its resolution against
+origin/main `42e6dedb2`: the same two conflicts this branch resolved in
+`dcda811e4`, resolved the same way, plus main's `log_latch.py` counted beside
+`plan_step.py` -- 79 modules, 97 package files) with no conflict, and
+`2cf679716` merges origin/main `d79dd4952` (record files only).
 
 **The `kernel-points` job** (`.github/workflows/kernel-points.yml`, ruling
 step 2, in the shape the orchestrator approved): outside the required set,
@@ -74,11 +95,13 @@ did. Both are `.github/workflows/` changes, so tvofi approves them at merge.
 
 ## Head
 
-`26e097a12`, against the merge base `994695e06` (`origin/main`). This
-finding's production and stress files (`thermal_model.py`, `tests/stress.py`)
-are byte-identical to `f89848334`, where the mutation proof below was taken
-(`git diff f89848334 26e097a12 -- custom_components/heatpump_optimizer/thermal_model.py tests/stress.py`
-is empty); everything else that moved since is the primary's reviewed head.
+`2cf679716`, against the merge base `d79dd4952` (`origin/main`). This
+finding's production file `thermal_model.py` is byte-identical to
+`f89848334`, where the D2-s2-01 and step-3 mutants below were taken
+(`git diff f89848334 2cf679716 -- custom_components/heatpump_optimizer/thermal_model.py`
+is empty); `tests/stress.py` differs from it only by `b575020d4`, whose own
+mutants were taken at `f1878b10b`; everything else that moved since is the
+primary's reviewed head and main.
 Before that merge the head was `f89848334`, against `6e5753a4a`. The "before"
 arm of every D2 figure is the primary head `03bffee33`, where
 `compute_cop_dhw` still has two laws; `thermal_model.py` there is
@@ -130,6 +153,30 @@ two self-checks it adds were driven through
   `check_sites_read_function=FAIL reads={'_floor': 'coverage_floors',
   '_calls_floor': None}`.
 
+**The explicit production-call floor** (`b575020d4`, `tests/stress.py`
+`coverage_floors`, and `tools/policy/budget_raise_gate.py`). Test first: the
+self-check `coverage floors: an override naming both floors is held to both,
+and a malformed production-call floor is the share rule` was written against
+`26e097a12`'s `coverage_floors` and driven through
+`$SCRATCH/drv/floors_drive.py <tree>`: `both=(18, 7, 'ruling')`,
+`check_explicit_calls_floor=FAIL`; after the change `both=(18, 6, 'ruling')`,
+`ok`. Each mutant below ran in its own `git archive f1878b10b` export, judged
+by the same driver and by `$SCRATCH/drv/table_floors.py <tree>`, which reads
+the tree's committed budget table and holds its floors to CI's 18 of 54 and
+6 of 20:
+- M0 (unmutated): `check_explicit_calls_floor=ok`; `work_floor=18
+  calls_floor=6 work_check=ok calls_check=ok`.
+- M5, the explicit field dropped from `coverage_floors` (the override reads
+  the share rule): `check_explicit_calls_floor=FAIL`; `calls_floor=7
+  calls_check=FAIL` -- red at 6 of 20.
+- M6, `calls_floor` dropped from the committed entry: `calls_floor=7
+  calls_check=FAIL`.
+- M7, the gate's `calls_floor` OVERRIDE rule deleted: `python3
+  tools/policy/budget_raise_gate.py --self-test` fails `the production-call
+  floor raised is routine` and `... withdrawn is routine`, 4 failed against
+  M0's 2 (both arms' other two are the export having no git repository; in
+  the worktree the self-test reads `239 checks, 0 failed`).
+
 ## Null control
 
 - **The grid census** (`r10_dhw_lift_law_grid.py`): at a 35 °C tank, the
@@ -173,22 +220,79 @@ two self-checks it adds were driven through
   `compute_cop_dhw`, `_batch_cop`), `2` at the head (`compute_cop`,
   `_batch_cop`, the registered owners); `--perturb` at the head `before=2
   after=3 moved=1`.
-- Scope, `python3 tests/closure.py select --diff 994695e06`: `MODE: SCOPED -- 28
-  script(s) run, 5 scoped out` over 39 changed files. Run here:
-  `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 4165 FEATURE CHECKS PASSED`;
+- Scope, `python3 tests/closure.py select --diff c09d61dc9`: `MODE: SCOPED -- 28
+  script(s) run, 5 scoped out` over 42 changed files. Run here at `dcda811e4`:
+  `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 4170 FEATURE CHECKS PASSED`;
   `tests/entities.py` `ALL 2348 ENTITY CHECKS PASSED` (at `04ea8dbb6` it read
   `1 of 2348 ENTITY CHECKS FAILED`, the follower check above); `tests/doc_claims.py` `ALL 169 checks
-  PASSED` (the two regenerated `docs/img/model/` figures fresh);
+  PASSED` (the two regenerated `docs/img/model/` figures fresh); `block_duty`,
+  `deployment_shape`, `guard_pins`, `manual_plan`, `solar_alignment`,
+  `wood_advisor`, `plan_view`, `debug_collect`, `config_flow_steps`,
+  `typing_ruler`, `structure` and `node tests/md_tables.mjs` each exit 0;
+  `node tests/card.mjs` at `7822a7423` `ALL CARD CHECKS PASSED`;
   `python3 tests/env_drift.py --claims-only` `claims hygiene: origin/main ok`.
   The heavy scoped scripts (`stress.py`, `optimality.py`, `golden.py`,
   `backtest.py` and the rest of `scope.run`) are CI's.
-- `python3 tools/pr/ci_predict.py --base 994695e06`: `CI PREDICT: no closures or
-  fast red predicted against 994695e06c4c (a data-file read is not seen)` --
+- At `2cf679716`, cheap checks only (the heavy lanes are CI's under tvofi's
+  heavy-to-CI rule): `python3 tests/closure.py select --diff d79dd4952`
+  `MODE: SCOPED -- 28 script(s) run, 5 scoped out` over 43 changed files;
+  `STRUCTURE RATCHET PASSED`; `tests/doc_claims.py` `ALL 169 checks PASSED`;
+  `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`;
+  `node tests/card.mjs` `ALL CARD CHECKS PASSED`; `python3
+  tools/policy/budget_raise_gate.py --self-test` `239 checks, 0 failed`; the
+  floors drivers `check_explicit_calls_floor=ok`, `work_floor=18
+  calls_floor=6`; `claims hygiene: origin/main ok`. `features.py` and
+  `entities.py` above are `dcda811e4`'s; the primary's resolution re-ran both
+  at `3ca9f1943` (`ALL 4171 FEATURE CHECKS PASSED`, `ALL 2347 ENTITY CHECKS
+  PASSED`), and CI's run at this head is the figure.
+- `python3 tools/pr/ci_predict.py --base d79dd4952`: `CI PREDICT: no closures or
+  fast red predicted against d79dd49529d7 (a data-file read is not seen)` --
   it does not run the heavy scripts, so it cannot see the two expected reds.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff origin/main HEAD` (`994695e06`):
-  `Architecture score: dS +0.0000 NULL`; `--diff a0c0f8665` (the primary):
-  `dS +0.0000 NULL`.
+- `python3 tools/audit/archscore/score.py --diff d79dd4952 HEAD` at
+  `2cf679716`: `dS +0.0000 NULL` (`--diff c09d61dc9 HEAD` at `dcda811e4`: the same); `--diff a0c0f8665` (the primary) at
+  `04ea8dbb6`: `dS +0.0000 NULL`.
+
+## Raise justification
+
+`tests/stress_budgets.json` gains `coverage_floor_override` at `floor: 18`,
+`calls_floor: 6` (`f1878b10b`): CI's measured counts at `74f23814e` exactly
+-- 18 of 54 scenarios judged by the solver-work check (literal floor 40) and
+6 of 20 families by the production-call check (literal floor 15). Every
+hot-water scenario re-plans because the tank's price changed, so it drops out
+of both comparisons. Sanctioned by ruling #201 comment 6240984157 step 3
+under mandate 6175172275; the orchestrator ruled the explicit floors at the
+measured values and refused a floor of 16 under the share rule as unearned
+headroom.
+
+Payments tried:
+1. Narrow the fix so fewer scenarios re-plan (keep the linear law on valve
+   plants): refused -- that law is the defect the ruling accepted fixing.
+2. Split the pull request: no lower count -- all 36 hot-water scenarios
+   re-plan on whichever half carries the law change.
+3. Re-record the baseline: impossible -- the baseline is main's tree solved
+   beside the run, not a recording a branch can move.
+4. Judge re-planned scenarios by a per-scenario work statement instead of a
+   floor: a larger change to `tests/stress.py`, and the ruling chose the
+   override; the statement is given anyway (CI at `74f23814e`: 36 re-planned
+   scenarios from 0.34x, `shoulder/tariff+cycle` 1180 vs 3462 evaluations, to
+   1.37x, `winter_mild/1z/dhw` 852 vs 622, none over the 3.0x factor).
+5. The share rule alone: floor 18 rounds to a calls floor of 7 against the
+   measured 6, and the largest floor holding both, 16, is 2 below the measured
+   work count -- so the override names the calls floor explicitly
+   (`b575020d4`), the share rule staying the default for every other entry and
+   for main.
+
+No code payment exists: `tools/audit/archscore/` reads only
+`custom_components/`, and the entry is a JSON file under `tests/`.
+`python3 tools/audit/archscore/score.py --diff <merge base> <head>`, against
+the merge base `994695e06`, before the entry (`26e097a12`) and after it
+(`f1878b10b`), each:
+Architecture score: dS +0.0000 NULL
+
+`tools/policy/budget_raise_gate.py` is code-owned (`.github/CODEOWNERS`
+`@tvofi`), so its new rule is tvofi's to approve at merge, with the two
+workflow files.
 
 ## Red checks
 
@@ -205,8 +309,18 @@ fix's own blast radius, and the same two are expected on this head:
 - **`stress.py`, the solver-work and production-call coverage floors**: every
   scenario with hot water re-plans, because the price of hot water changed:
   CI judged 18 of 54 (floor 40) and 6 of 20 families (floor 15), `2 of 112
-  STRESS CHECKS FAILED`. Owed by the pending override entry at exactly those
-  counts. Cheaper detector: none -- coverage is a property of a stress run.
+  STRESS CHECKS FAILED`. Answered by the override entry at exactly those
+  counts (`## Raise justification`); green here only if CI's counts at this
+  head hold. Cheaper detector: none -- coverage is a property of a stress run.
+- **`budget-raise-gate`** is red at this head by design: 2 budget raises in
+  `tests/stress_budgets.json` -- the override added at `floor: 18`, and
+  `coverage_floor_override.calls_floor: None -> 6`, which the base's copy of
+  `tools/policy/budget_raise_gate.py` reads as a pinned value it cannot sign
+  (the `calls_floor` OVERRIDE rule is this branch's, `b575020d4`, and binds
+  only once it is on main; under either copy the leaf is a raise). Answered
+  by `## Raise justification`; it stays red until the raise is approved at
+  this head. Cheaper detector: none -- this gate is the detector, and
+  `tools/pr/prepr.sh` already ran it here.
 - **`pr-contract`** was red at `74f23814e` on one error: `## Red checks` did
   not name `fast (3.14)`. The body named both failing scripts as expected
   reds but not the context they run under. Cheaper detector: none --
