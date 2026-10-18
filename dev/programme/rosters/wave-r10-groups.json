@@ -2564,7 +2564,8 @@
    "carry": [
     "(e) and (h) are one class, workflow scripts trusting a large agent reply; fix the class, not the two sites.",
     "R10-D15-GRADER and R10-BRIEFS-FOLD edit the wave-script check after you.",
-    "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat."
+    "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat.",
+    "From R10-ROSTER-FASTPATH (#2406): after #2405 and #2406 both merge, make tools/pr/codeql_scope.py's changed subcommand delegate to tests/closure.py changed_between, so CodeQL's list has one owner. Keep its rename probe. Check: python3 tests/closure.py selftest still passes its census (which reads tools/pr/*.py), and python3 tools/pr/codeql_scope.py --self-test still prints 0 failed."
    ],
    "architect_note": null,
    "resume": {
