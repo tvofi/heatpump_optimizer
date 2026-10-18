@@ -1,2 +1,0 @@
-IN: binary_sensor button climate coordinator datetime diagnostics early_cutoff legionella optimizer pump_arbiter quiet_windows repairs sensor services setpoint_check silent_mode switch
-RESULT modules=76 solver_in=17 scipy_in=18 import_failures=0

@@ -1,3 +1,0 @@
-Architecture score: dS +0.4646 IMPROVES
-  layer_violations 22 -> 19  +0.2016
-  private_cross_module 17 -> 14  +0.2630
