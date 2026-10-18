@@ -6,7 +6,7 @@ Three parts, each its own commit range on this branch:
 2. **The tracked-content refusal** (new). Nothing refused a tracked file carrying a host path: `ref_privacy.py --check` read push sites only, and `tmp_paths.py` reads scripts, decision records and mutation-ledger lines, not the records under `dev/`. `--check` now also judges every line a diff adds since the merge base with origin/main (`tmp_paths.ledger_base`, its one owner) with the guard's own classes. A line the same diff removes elsewhere is a move and is not charged; main's stock is not charged. On a runner, whose identity is a public account, the host-path and scratch-root shapes judge; on a seat its own home, name and uid join them. The NAME of every path the diff adds, renames or copies is judged too (round 3: `added_names`, `--no-renames --diff-filter=A`), with the same classes, refused by index and never echoed — #2310 began as a dash-mangled home in a name. A blob holding a NUL byte is judged too (round 2): its NULs are dropped and every other byte kept, so a path in a binary's ASCII or in UTF-16 text is seen; compressed content and base64 are not, and `WHAT IT DOES NOT CATCH` names both. `scrub [--write] <file>...` is the remedy the refusal names: it rewrites only this host's spans in place, so line counts and line numbers survive. CI already runs `ref_privacy.py --check` in `instrument-self-tests` (governance.yml, unchanged). Added lines are judged per changed file by line text at the two ends (a line whose text the file did not hold at the base), so no diff grammar is parsed and a reordered line is not charged.
 3. **The tracked-file scrub**: `handoff/r10-ref-privacy-scrub` (`0855dad0f`, 128 files) merged, then the residual it left on current main scrubbed with `scrub --write` (9 records), and 31 mutation-ledger reasons the old scrub had turned into `~/hpo-seats/...` rewritten to `<seat-scratch>/...`, which `tmp_paths.py`'s ledger rule refuses as lines a branch adds.
 
-Branch construction (fresh, not a re-cut): reset to `153797cbe`, `git merge origin/main`, `git merge origin/handoff/r10-ref-privacy-scrub` (clean), then this session's commits, then the PR head `ec773d944` (its delivery row) merged in, then `git merge origin/main` again, last at `52f698905`.
+Branch construction (fresh, not a re-cut): reset to `153797cbe`, `git merge origin/main`, `git merge origin/handoff/r10-ref-privacy-scrub` (clean), then this session's commits, then the PR head `ec773d944` (its delivery row) merged in, then `git merge origin/main` again, last at `9a1ce39c3`.
 
 Owner gate: `dev/governance/roles/nudge.md` is code-owned (`/dev/governance/roles/`) and policy; the scrub rewrites four path spans in it (4 lines, each `<home>/...` to `~/...`) and changes no rule — tvofi's approving review is owed, under mandate 6175172275. `tools/pr/app_approve.sh`, `tools/pr/gh_comment.py` and `tools/audit/seat/merge_pr.sh` are outside the group's file list and not code-owned (`.github/CODEOWNERS`); `tests/closure.py`, `governance.yml` and `stamp.py` are untouched.
 
@@ -16,7 +16,7 @@ Owed, not yet given: this diff rewrites four path spans in `dev/governance/roles
 
 ## Head
 
-7027bff04c95797f7148279bd647a33365428054
+e73c683a1e30eb135bb4b7ff4e51a1eeebe6690f
 
 ## Mutation proof
 
@@ -38,9 +38,9 @@ Baseline `ref_privacy.py --self-test`: 66 checks, 0 failed.
 
 ## Null control
 
-The content arm at the merge base and at the head, over one planted commit `X` = the merge base `52f698905` plus `dev/audit/plant.log` holding one line naming a home under another account (built in the shell, never spelled):
+The content arm at the merge base and at the head, over one planted commit `X` = the merge base `9a1ce39c3` plus `dev/audit/plant.log` holding one line naming a home under another account (built in the shell, never spelled):
 
-- base code (a detached worktree at `52f698905`), `python3 -I tools/audit/seat/ref_privacy.py --check --ref X`: rc 0, `0 refused` — the base does not look at content.
+- base code (a detached worktree at `9a1ce39c3`), `python3 -I tools/audit/seat/ref_privacy.py --check --ref X`: rc 0, `0 refused` — the base does not look at content.
 - head code, same command: rc 1, `REFUSE dev/audit/plant.log:1: host-path in an added line of a tracked file`.
 - the reviewer's P4 replayed on the head: `dev/audit/nul.log` = `bin\0\nran at <another account's /Users home>/w`: rc 1, `REFUSE dev/audit/nul.log:2: host-path` (it passed, rc 0, at round 1's head).
 - the reviewer's P11 shapes replayed on the head, each a one-file commit with content `ok`: a file under `dev/audit/rounds/` in a directory named for a synthetic account's home with `/` turned to `-` → rc 1, `REFUSE added path #1 ...: host-path in the name`; a file under this host's home with `/` turned to `-` (built from `$HOME` in the shell) → rc 1, `account-name, host-path in the name`; `dev/audit/rounds/fresh/ok.log` → rc 0 (the null control). Both refused names passed, rc 0, at round 2's head.
@@ -51,7 +51,7 @@ Within the self-tests every refusal arm has its pass twin: the moved line is not
 
 ## Figures
 
-Rules, all at the head unless named: the account name is `basename "$HOME"` at run time, never written here; a "file" is one tracked at the ref; B is `git merge-base origin/main HEAD` = `52f698905`.
+Rules, all at the head unless named: the account name is `basename "$HOME"` at run time, never written here; a "file" is one tracked at the ref; B is `git merge-base origin/main HEAD` = `9a1ce39c3`.
 
 - Files whose bytes carry the account name, case-insensitively, text and binary alike: 128 at B, 0 at the head: `U=$(basename "$HOME"); git grep -al -i "$U" <ref> | wc -l`.
 - Files naming this host's session temp root (its uid from `id -u`): 13 at B, 2 at the head: `git grep -lI -E "tmp[/-]+claude-$(id -u)" <ref> | wc -l`. Kept: `tools/pr/gh_comment.py` (`DEFECT_BODY`, the literal #541 defect path the poster's self-test must refuse) and `tools/audit/seat/tmp_paths.py` (its `ALLOW` entry for that same fixture, keyed on the text) — a fixture pair; changing one breaks the other's key.
