@@ -269,7 +269,7 @@ from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
 from .currency import declared_currency, resolve_currency
-from .drift import Cusum, stored_instant
+from .drift import Cusum, stored_instant, utc_step_starts
 from .ledger import (
     MonthlyLedger,
     freeze_month_report,
@@ -325,14 +325,12 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .optimizer import (
-    REASON_LEGIONELLA,
     ForecastSeries,
     HeatPumpOptimizer,
     OptimizationConfig,
     OptimizationResult,
     SolveInputs,
     SolveLimits,
-    _utc_step_starts,
     optimize_in_process,
     slab_settlement_cap,
 )
@@ -506,7 +504,7 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
 FORECAST_STEP_MINUTES = 15
 
 
-#: One forecast step, as the clock ``optimizer._utc_step_starts`` walks.
+#: One forecast step, as the clock ``drift.utc_step_starts`` walks.
 FORECAST_STEP = timedelta(minutes=FORECAST_STEP_MINUTES)
 
 
@@ -6737,7 +6735,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                      "until prices can be fetched"):
             return None
 
-        step_starts = _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+        step_starts = utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
 
         # Align by each entry's own timestamp, not by its position. Position
         # assumed the first entry is *today's* midnight, which breaks two real
@@ -6824,7 +6822,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The rows are already in m/s (`_forecast_in_model_units`, #1513):
         # guessing from the magnitude misreads a moderate 20 km/h breeze as
         # a 20 m/s storm and doubles the predicted heat loss.
-        step_starts = _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+        step_starts = utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
 
         parsed: list[
             tuple[datetime | None, tuple[float, float, float, float, float]]
@@ -6910,7 +6908,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         aligned: list[float] = []
         missing = 0
         for i, step_start in enumerate(
-            _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+            utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
         ):
             value = self._open_meteo.irradiance_for(step_start, step)
             if value is None:
@@ -6986,7 +6984,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._open_meteo is not None and self._open_meteo.available:
             step = timedelta(minutes=FORECAST_STEP_MINUTES)
             for i, step_start in enumerate(
-                _utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
+                utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
             ):
                 rh = self._open_meteo.humidity_for(step_start, step)
                 if rh is not None:
@@ -8141,7 +8139,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _horizon_step_starts(self, solve_now: datetime, n_steps: int) -> list[datetime]:
         """The instant each solved step begins, matching the optimizer's own."""
-        return _utc_step_starts(
+        return utc_step_starts(
             solve_now,
             n_steps,
             timedelta(hours=getattr(self, "_ctx", self)._opt_config.dt_hours),

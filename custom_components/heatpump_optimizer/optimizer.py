@@ -45,7 +45,7 @@ import logging
 import math
 import time as _time_mod
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from collections.abc import Mapping
 from typing import Any, Callable, Iterable
 
@@ -61,9 +61,30 @@ from .const import (
 )
 from .batchmath import row_sums
 from .dhw_planner import DhwPlanner
+from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
-from .payload import CurrentAction
+from .payload import (
+    CurrentAction,
+    REASON_COMFORT_FLOOR,
+    REASON_CHEAP_PRICE,
+    REASON_PREHEAT_WEATHER,
+    REASON_SCHEDULED,
+    REASON_TERMINAL_VALUE,
+    REASON_SOLAR_SURPLUS,
+    REASON_DHW_WINDOW,
+    REASON_DHW_READY,
+    REASON_DHW_PREHEAT,
+    REASON_LEGIONELLA,
+    REASON_IDLE,
+    REASON_IDLE_OTHER,
+    REASON_IDLE_FUSE,
+    REASON_IDLE_SOLAR,
+    REASON_IDLE_DEARER,
+    REASON_IDLE_COASTING,
+    REASON_MANUAL,
+    REASON_PUMP_MODE,
+)
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
@@ -244,26 +265,6 @@ def _dhw_resolved_publish(params: ThermalParameters) -> dict[str, Any]:
             params.dhw_day_windows,
         )
     }
-
-
-def _utc_step_starts(
-    start: datetime, n: int, step: timedelta, offset: int = 0
-) -> list[datetime]:
-    """The start of steps ``offset`` .. ``offset + n - 1``, walked in UTC.
-
-    The one horizon clock: the optimizer's horizon, the coordinator's
-    forecast and price grids, and the silent-mode schedule all read it
-    (#1741), so no two of them can label one step differently. Adding a
-    wall-clock step invents the spring DST gap and stretches the autumn
-    overlap into a 75-minute step; walking the count in UTC keeps every label
-    a real instant, converted back to ``start``'s zone. A naive ``start``
-    keeps the wall-clock walk, so unzoned fixtures stay byte-identical.
-    """
-    tz = start.tzinfo
-    if tz is None:
-        return [start + step * (offset + i) for i in range(n)]
-    base = start.astimezone(timezone.utc)
-    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
 
 
 def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
@@ -1037,36 +1038,10 @@ def cycling_penalty_batch(
 
 
 # ---------------------------------------------------------------------------
-# Plan reason codes (item 16)
+# Plan reason codes (item 16): the codes are the payload's vocabulary
+# (``payload.py``); which of them mean idle is the solver's own grouping.
 # ---------------------------------------------------------------------------
 
-REASON_COMFORT_FLOOR = "comfort_floor"
-REASON_CHEAP_PRICE = "cheap_price"
-REASON_PREHEAT_WEATHER = "preheat_weather"
-#: The neutral fall-through: a step that is none of the specific cases below,
-#: which is to say an ordinary slot holding the house at target. Until v5.1.7
-#: these steps were tagged ``preheat_weather`` — the same code as the genuine
-#: high-heat-loss branch — so the card told a user that a mid-price hour on a
-#: mild afternoon was "Pre-heating before colder weather". A reason code that
-#: doubles as a default is a reason code that cannot be trusted, and this one
-#: was read as evidence that the optimizer was chasing weather it had not been
-#: shown.
-REASON_SCHEDULED = "scheduled"
-REASON_TERMINAL_VALUE = "terminal_value"
-REASON_SOLAR_SURPLUS = "solar_surplus"
-REASON_DHW_WINDOW = "dhw_window"
-REASON_DHW_READY = "dhw_ready"
-REASON_DHW_PREHEAT = "dhw_preheat"
-REASON_LEGIONELLA = "legionella"
-REASON_IDLE = "idle"
-#: Why an idle step is idle, when the solved plan shows it (R9-UX-5). One
-#: code, the most specific that applies: a hard limit, then a named wait,
-#: then the price, then coasting. ``idle`` remains the fall-through.
-REASON_IDLE_OTHER = "idle_other_channel"
-REASON_IDLE_FUSE = "idle_fuse"
-REASON_IDLE_SOLAR = "idle_solar"
-REASON_IDLE_DEARER = "idle_dearer"
-REASON_IDLE_COASTING = "idle_coasting"
 _IDLE_REASONS = frozenset({
     REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
     REASON_IDLE_DEARER, REASON_IDLE_COASTING,
@@ -1257,19 +1232,6 @@ def classify_dhw_steps(
 # arrays are floats — NaN means "leave it to the optimizer", 0 forces the step
 # off, 1 forces it on — so a whole channel is a single array the solver bounds
 # can be built from directly. See ``manual_plan.py`` for how they are produced.
-
-#: A step ran because the manual plan said so, not because the optimizer chose
-#: it. Kept distinct from the automatic reasons so a pinned slot is never
-#: mistaken for the solver's own decision.
-REASON_MANUAL = "manual_plan"
-
-#: A step is empty because the heat pump's *operating mode* cannot serve that
-#: channel at all — a unit in ``heat`` makes no hot water, a unit in ``DHW`` or
-#: ``cool`` heats no rooms. Deliberately distinct from ``idle``: idle means the
-#: optimizer chose not to run, and a user reading "not heating" against a
-#: comfort floor the plan is missing would look for a bug in the optimizer
-#: instead of at the mode selector on the pump. See ``pump_mode.py``.
-REASON_PUMP_MODE = "pump_mode"
 
 #: How many times a manual plan may be repaired before its forced-off slots are
 #: abandoned entirely. Each round costs a full solve, so this trades run time
@@ -1813,7 +1775,7 @@ class _Horizon:
 
     @property
     def timestamps(self) -> list[datetime]:
-        return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
+        return utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
 
 
 
@@ -2898,7 +2860,7 @@ class HeatPumpOptimizer:
         tracker uses. That alone never settled which *instant* each window is
         sampled at, which is where they actually diverged (#777); the agreement
         rests on ``window_factors`` walking the windows in UTC, the same rule
-        ``_utc_step_starts`` applies to the step grid this power array is
+        ``drift.utc_step_starts`` applies to the step grid this power array is
         indexed on.
         """
         cfg = self.config
@@ -3170,7 +3132,7 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
-        step_datetimes = _utc_step_starts(start_time, n_steps, timedelta(hours=dt))
+        step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
         step_hours = np.array([
             d.hour + d.minute / 60.0 for d in step_datetimes
         ])

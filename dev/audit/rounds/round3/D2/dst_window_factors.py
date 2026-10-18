@@ -53,7 +53,7 @@ BASELINE SHA: ae36eff19d8e542bc351b1ab31ad4167ec8e4ea1
 MACHINE: 8-core Apple M1, 8 GB, numpy 2.4.6 / scipy 1.17.1 on OpenBLAS
 INSTRUMENTED SYMBOLS: tariff.py:window_factors, tariff.py:_window_slot,
     tariff.py:CapacityTariff.sample_factor, tariff.py:peak_cost,
-    optimizer.py:_utc_step_starts,
+    drift.py:utc_step_starts,
     optimizer.py:HeatPumpOptimizer._peak_window_factors
 """
 from datetime import datetime, timedelta
@@ -62,11 +62,8 @@ from zoneinfo import ZoneInfo
 import d2lib  # noqa: F401  -- thread pin + sys.path, must be first
 import numpy as np
 
-from heatpump_optimizer.optimizer import (
-    HeatPumpOptimizer,
-    OptimizationConfig,
-    _utc_step_starts,
-)
+from heatpump_optimizer.drift import utc_step_starts as _utc_step_starts
+from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.tariff import CapacityTariff, PeakBilling, peak_cost, window_factors
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
 
