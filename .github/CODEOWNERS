@@ -71,6 +71,7 @@
 /.claude/workflows/contract_rerun.py      @tvofi
 /tools/policy/budget_raise_gate.py        @tvofi
 /tools/pr/contract_rerun.py               @tvofi
+/tools/pr/codeql_scope.py                 @tvofi
 # The merge fast path decides when a pull request merges without a fresh CI
 # run (round-9 process review item 2B); the orchestrator runs main's copy, and
 # its self-test cannot stop a pull request that weakens a class and its fixture
