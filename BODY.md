@@ -10,44 +10,44 @@ The open-window detector (`_vent_cusum`, read by `_learning_frozen` as "ventilat
 
 ## Head
 
-`0d31b73be796eaa12818ff568697e71ce5d410ad` (above a merge of origin/main `994695e06`; main-merge catch-ups: 1). The harness figures and mutants below were measured at `b8c01b77e510da711fc8e1b9a83202232f6993cb`; the one later commit touching production, `f7f1af6eb`, changes only what is persisted (`Cusum.as_dict`/`load`, `store.DOMAINS`), which no harness reads -- every detector update path is byte-identical (`git diff b8c01b77e f7f1af6eb -- custom_components/heatpump_optimizer/drift.py` touches only `as_dict` and `load`). Suite figures (entities, structure, archscore, golden drift) are at `f7f1af6eb`; `0d31b73be` adds checks to `tests/features.py` only, and `tests/features.py` was re-run there. Base: `6e5753a4aca8b240559e8e11e8a68c7de988cd73` (the fork; main's production tree is unchanged since).
+`420f05f95924bbc4bd2b928fe0200dcf41999154` (main-merge catch-ups: 2; the second merges origin/main `c09d61dc9`, which carries R10-LEAF-IMPORTS' moves into `drift.py` and `coordinator.py`). Every figure below except where marked was re-taken at this head after that merge, from a `git archive` of it. Base for the finder's harness and the catch-up verifier: the merge base `c09d61dc9c97`, re-taken there (every RESULT line identical to the fork `6e5753a4a`'s); the planted-window and companion base figures are from the fork `6e5753a4a` (main changed no detector line between the two: `git diff 6e5753a4a c09d61dc9 -- custom_components/heatpump_optimizer/drift.py` touches only the moved `utc_step_starts`).
 
 ## Mutation proof
 
-Each mutant applied to a `git archive` of `b8c01b77e`, `tests/features.py` run in full (`PYTHONPATH=tests/hastub python3 tests/features.py`). Every run, the unmutated head included, also fails `and the path that proceeds still stamps a resolvable recorded_at (#363)` -- the archive has no git, the known runner artifact (fixer.md step 2); it is excluded from each list.
+Each mutant applied to a `git archive` of this head, `tests/features.py` run in full (`PYTHONPATH=tests/hastub python3 tests/features.py`). Every run, the unmutated head included, also fails `and the path that proceeds still stamps a resolvable recorded_at (#363)` -- the archive has no git, the known runner artifact (fixer.md step 2); it is excluded from each list.
 
 - M1 departure against zero (`departure = self._clipped(value)` in `Cusum._departure`): FAIL `a steady cold residual from the first sample on is a bias, not a window`, `a detector latched on a bias releases once the bias is its level`, `a glitch on the very first sample seeds the reference clipped, not raw`, `days at one heat input cannot wind any coefficient's variance past its prior`, `R10-P5: each measures from a tracked reference; ...`.
 - M2 feed without regressors (`self._vent_cusum.update(now, float(residual), ())`): FAIL `the fourth trips the detector through the real learner`, `a tripped detector freezes every learner with reason ventilation`, `while frozen, cold residuals feed the detector but never the model`.
 - M3 raw seed (`self.reference = [value] + ...`): FAIL `a glitch on the very first sample seeds the reference clipped, not raw`.
-- M4 no variance cap (the `cov * np.outer(shrink, shrink)` line deleted): FAIL `the fourth trips the detector through the real learner`, `a tripped detector freezes every learner with reason ventilation`, `while frozen, cold residuals feed the detector but never the model`, `days at one heat input cannot wind any coefficient's variance past its prior`.
+- M4 no variance cap (the `cov * np.outer(shrink, shrink)` line deleted): FAIL `the fourth trips the detector through the real learner`, `a tripped detector freezes every learner with reason ventilation`, `while frozen, cold residuals feed the detector but never the model`, `the reference survives a store round trip`, `days at one heat input cannot wind any coefficient's variance past its prior`.
 - M5 no reference at the construction (`reference_hours=VENT_CUSUM_REFERENCE_HOURS,` deleted): FAIL `a steady cold residual from the first sample on is a bias, not a window`, `a detector latched on a bias releases once the bias is its level`, then `TypeError` at the seed check (rc 1).
-- Failing test first: head's `tests/features.py` against the base production tree: FAIL `a steady cold residual from the first sample on is a bias, not a window`, `a detector latched on a bias releases once the bias is its level`, then `AttributeError: 'Cusum' object has no attribute 'reference'` (rc 1).
+- Failing test first (at `b8c01b77e`): that head's `tests/features.py` against the fork's production tree: FAIL `a steady cold residual from the first sample on is a bias, not a window`, `a detector latched on a bias releases once the bias is its level`, then `AttributeError: 'Cusum' object has no attribute 'reference'` (rc 1).
 
 ## Unpinned sites
 
 Each site `prepr.sh` step 6d lists, with its disposition (the check named is the one expected to kill it in CI's mutation run):
 
 - custom_components/heatpump_optimizer/drift.py:36 CONST: triage -- the prior's weight (one sample) is a design choice; checks read the constant by name, so none pins its magnitude by design.
-- custom_components/heatpump_optimizer/drift.py:135 BOOLOP: pinned by mutation-autofix, killed by `a non-finite residual or regressor feeds nothing, not even the fit`.
-- custom_components/heatpump_optimizer/drift.py:135 GUARD_OFF: pinned by mutation-autofix, killed by `a non-finite residual or regressor feeds nothing, not even the fit`.
-- custom_components/heatpump_optimizer/drift.py:139 CMP_BOUND: triage -- equivalent: `side` is +1 or -1 by construction, never 0 (line rewritten, logic unchanged from base).
-- custom_components/heatpump_optimizer/drift.py:174 GUARD_OFF: pinned by mutation-autofix, killed by `a -0.4 °C step trips at exactly the hand-computed fourth sample` (a zero-referenced detector).
-- custom_components/heatpump_optimizer/drift.py:184 RETURN_DEL: pinned by mutation-autofix, killed by `the seeding sample folds nothing, and a fit at its seed round-trips`.
-- custom_components/heatpump_optimizer/drift.py:189 CLAMP_DROP: triage -- reachable only with a feed clock running backwards; a negative gap would shrink the covariance, never inflate it.
-- custom_components/heatpump_optimizer/drift.py:198 CLAMP_DROP: pinned by mutation-autofix, killed by `the fourth trips the detector through the real learner` (M4's kill set).
-- custom_components/heatpump_optimizer/drift.py:206 RETURN_DEL: pinned by mutation-autofix, killed by the #2241 checks (the departure becomes None).
-- custom_components/heatpump_optimizer/drift.py:209 GUARD_OFF: pinned by mutation-autofix, killed by `one glitched -10 °C reading cannot trip the detector alone`.
-- custom_components/heatpump_optimizer/drift.py:211 CLAMP_DROP*2: pinned by mutation-autofix, killed by `one glitched -10 °C reading cannot trip the detector alone`.
-- custom_components/heatpump_optimizer/drift.py:211 RETURN_DEL: pinned by mutation-autofix, killed by `one glitched -10 °C reading cannot trip the detector alone`.
-- custom_components/heatpump_optimizer/drift.py:253 GUARD_OFF: pinned by mutation-autofix, killed by `tests/finite_boundary.py`'s `every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS`.
-- custom_components/heatpump_optimizer/drift.py:264 RETURN_DEL: pinned by mutation-autofix, killed by `the reference survives a store round trip`.
-- custom_components/heatpump_optimizer/drift.py:289 CMP_BOUND: pinned by mutation-autofix, killed by `the seeding sample folds nothing, and a fit at its seed round-trips` (a seed's variance is exactly the prior).
-- custom_components/heatpump_optimizer/drift.py:299 GUARD_OFF: pinned by mutation-autofix, killed by `a detector latched on a bias releases once the bias is its level` (a payload with no fit).
-- custom_components/heatpump_optimizer/drift.py:301 BOOLOP: pinned by mutation-autofix, killed by `a corrupt reference loads as none, to be re-seeded, never as a number`.
-- custom_components/heatpump_optimizer/drift.py:301 GUARD_OFF: pinned by mutation-autofix, killed by `a corrupt reference loads as none, to be re-seeded, never as a number`.
-- custom_components/heatpump_optimizer/drift.py:304 RETURN_DEL: pinned by mutation-autofix, killed by `a corrupt reference loads as none, to be re-seeded, never as a number`.
-- custom_components/heatpump_optimizer/drift.py:310 GUARD_OFF: pinned by mutation-autofix, killed by `a corrupt reference loads as none, ...` (the asymmetric arm).
-- custom_components/heatpump_optimizer/drift.py:316 RETURN_DEL: pinned by mutation-autofix, killed by `the reference survives a store round trip`.
+- custom_components/heatpump_optimizer/drift.py:155 BOOLOP: pinned by mutation-autofix, killed by `a non-finite residual or regressor feeds nothing, not even the fit`.
+- custom_components/heatpump_optimizer/drift.py:155 GUARD_OFF: pinned by mutation-autofix, killed by `a non-finite residual or regressor feeds nothing, not even the fit`.
+- custom_components/heatpump_optimizer/drift.py:159 CMP_BOUND: triage -- equivalent: `side` is +1 or -1 by construction, never 0 (line rewritten, logic unchanged from base).
+- custom_components/heatpump_optimizer/drift.py:194 GUARD_OFF: pinned by mutation-autofix, killed by `a -0.4 °C step trips at exactly the hand-computed fourth sample` (a zero-referenced detector).
+- custom_components/heatpump_optimizer/drift.py:204 RETURN_DEL: pinned by mutation-autofix, killed by `the seeding sample folds nothing, and a fit at its seed round-trips`.
+- custom_components/heatpump_optimizer/drift.py:209 CLAMP_DROP: triage -- reachable only with a feed clock running backwards; a negative gap would shrink the covariance, never inflate it.
+- custom_components/heatpump_optimizer/drift.py:218 CLAMP_DROP: pinned by mutation-autofix, killed by `the fourth trips the detector through the real learner` (M4's kill set).
+- custom_components/heatpump_optimizer/drift.py:226 RETURN_DEL: pinned by mutation-autofix, killed by the #2241 checks (the departure becomes None).
+- custom_components/heatpump_optimizer/drift.py:229 GUARD_OFF: pinned by mutation-autofix, killed by `one glitched -10 °C reading cannot trip the detector alone`.
+- custom_components/heatpump_optimizer/drift.py:231 CLAMP_DROP*2: pinned by mutation-autofix, killed by `one glitched -10 °C reading cannot trip the detector alone`.
+- custom_components/heatpump_optimizer/drift.py:231 RETURN_DEL: pinned by mutation-autofix, killed by `one glitched -10 °C reading cannot trip the detector alone`.
+- custom_components/heatpump_optimizer/drift.py:273 GUARD_OFF: pinned by mutation-autofix, killed by `tests/finite_boundary.py`'s `every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS`.
+- custom_components/heatpump_optimizer/drift.py:284 RETURN_DEL: pinned by mutation-autofix, killed by `the reference survives a store round trip`.
+- custom_components/heatpump_optimizer/drift.py:309 CMP_BOUND: pinned by mutation-autofix, killed by `the seeding sample folds nothing, and a fit at its seed round-trips` (a seed's variance is exactly the prior).
+- custom_components/heatpump_optimizer/drift.py:319 GUARD_OFF: pinned by mutation-autofix, killed by `a detector latched on a bias releases once the bias is its level` (a payload with no fit).
+- custom_components/heatpump_optimizer/drift.py:321 BOOLOP: pinned by mutation-autofix, killed by `a corrupt reference loads as none, to be re-seeded, never as a number`.
+- custom_components/heatpump_optimizer/drift.py:321 GUARD_OFF: pinned by mutation-autofix, killed by `a corrupt reference loads as none, to be re-seeded, never as a number`.
+- custom_components/heatpump_optimizer/drift.py:324 RETURN_DEL: pinned by mutation-autofix, killed by `a corrupt reference loads as none, to be re-seeded, never as a number`.
+- custom_components/heatpump_optimizer/drift.py:330 GUARD_OFF: pinned by mutation-autofix, killed by `a corrupt reference loads as none, ...` (the asymmetric arm).
+- custom_components/heatpump_optimizer/drift.py:336 RETURN_DEL: pinned by mutation-autofix, killed by `the reference survives a store round trip`.
 
 ## Null control
 
@@ -84,9 +84,9 @@ The barrier the sweep proposed lands as the `R10-P5` census in `tests/features.p
 
 Learner at both ends of its input range (fixer.md step 3): zero evidence -- a fresh detector seeds on its first sample (`a steady cold residual from the first sample on is a bias, not a window`); the clamp -- a bias at the learner's 1.0 K rejection, in all three shapes (`R10-P5` census).
 
-Structure: `python3 tests/structure.py` at this head: `STRUCTURE RATCHET PASSED` (rc 0). Architecture score: `python3 tools/audit/archscore/score.py --diff 994695e06c4c2b78d6420f82c322188317817f91` at this head prints `Architecture score: dS +0.0000 NULL`.
+Structure: `python3 tests/structure.py` at this head: `STRUCTURE RATCHET PASSED` (rc 0). Architecture score: `python3 tools/audit/archscore/score.py --diff c09d61dc9c9779e721eb73b1ea402913a52242fb` at this head prints `Architecture score: dS +0.0000 NULL`.
 
-Scoped gate: `python3 tests/closure.py select --diff 994695e06c4c2b78d6420f82c322188317817f91` prints `MODE: SCOPED -- 29 script(s) run, 4 scoped out.` Run locally at this head, each rc 0: `tests/features.py` (`ALL 4166 FEATURE CHECKS PASSED` at `0d31b73be`), `tests/entities.py` (`ALL 2346 ENTITY CHECKS PASSED`), `tests/finite_boundary.py` (`ALL 84 FINITE BOUNDARY CHECKS PASSED`), `tests/boost_drift_replay.py`, `tests/debug_collect.py`, `tests/structure.py`, and `GOLDEN_MODE=drift python3 tests/env_drift.py --all origin/main` (`NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main`; no claim-file change). At the merge `98236fdb3`, also rc 0: guard_pins, harness_headers, edge, validate, typing_ruler, doc_claims, deployment_shape, plan_view, block_duty, manual_plan, wood_advisor, solar_alignment, open_meteo, frontend, config_flow_steps, `closure.py selftest`. `stress.py`, `optimality.py`, `backtest.py`, `golden.py` and the card scripts are CI's.
+Scoped gate: `python3 tests/closure.py select --diff c09d61dc9c9779e721eb73b1ea402913a52242fb` prints `MODE: SCOPED -- 29 script(s) run, 4 scoped out.` Run locally at this head, each rc 0: `tests/features.py` (`ALL 4171 FEATURE CHECKS PASSED`), `tests/entities.py` (`ALL 2346 ENTITY CHECKS PASSED`, summary line present), `tests/finite_boundary.py` (`ALL 84 FINITE BOUNDARY CHECKS PASSED`), `tests/boost_drift_replay.py` (`ALL 46 BOOST DRIFT CHECKS PASSED`), `tests/structure.py`, `GOLDEN_MODE=drift python3 tests/env_drift.py --all origin/main` (`NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main`; no claim-file change), harness_headers, guard_pins, doc_claims, validate, edge, typing_ruler, deployment_shape, debug_collect, plan_view, block_duty, manual_plan, wood_advisor, solar_alignment, open_meteo, frontend, config_flow_steps, `closure.py selftest`. `stress.py`, `optimality.py`, `backtest.py`, `golden.py`, `arch_score_head.py` and the card scripts are CI's.
 
 ## Architecture score
 
@@ -94,12 +94,12 @@ Scoped gate: `python3 tests/closure.py select --diff 994695e06c4c2b78d6420f82c32
 
 ## Red checks
 
-Predicted, not yet run: `closures` INERT READS for the two new files under `dev/audit/harnesses/` (`tests/harness_headers.py` lists that directory); `closures-autofix` repairs it (`ci-autofix.md`), so wait for its commit.
+`closures` INERT READS for the two new files under `dev/audit/harnesses/` (`tests/harness_headers.py` opens that directory in a child process only CI's strace sees): recorded in-branch with `closure.write_closures` into `inert_reads["tests/harness_headers.py"]` (`420f05f95`), as R10-LEAF-IMPORTS did; `python3 tools/pr/ci_predict.py` at this head: no closures or fast red predicted.
 `tests/finite_boundary.py` went red locally at `98236fdb3` (never pushed): `every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS` named the undeclared `vent_cusum/reference` fields; answered in `f7f1af6eb`. The census is itself the cheapest detector for an undeclared stored field; no cheaper one exists.
 
 ## Forward-carry
 
-`dev/programme/rosters/wave-r10-groups.json`, group `R10-NIGHT-FOLDS`: appended to both its `carry` array and its `brief` (item 4). Its night-interval predicate must sit after the `_vent_cusum.update` feed in `_async_learn_house_heat_loss`, or the detector starves by day (it force-releases after `VENT_CUSUM_STARVE_HOURS`) and its fit loses the power and sun range the day spans; and the owner's-bundle re-measurement reports the vent freeze share beside the UA figures.
+Group `R10-NIGHT-FOLDS` on the roster branch `handoff/audit-r10-roster`: the orchestrator appends the carry (this diff does not touch `dev/programme/rosters/wave-r10-groups.json`). Its night-interval predicate must sit after the `_vent_cusum.update` feed in `_async_learn_house_heat_loss`, or the detector starves by day (it force-releases after `VENT_CUSUM_STARVE_HOURS`) and its fit loses the power and sun range the day spans. Control: `dev/audit/harnesses/r10_vent_bias_window.py` at that group's merge base and head keeps `false_share` 0.000 on the delivery 1.0 / UA 1.0 / no-window arm and `detect_h` finite for the 300 W/K windows on all 20 arms. When the owner's bundle is re-measured, report the vent freeze share beside the UA figures.
 
 ## Friction
 
