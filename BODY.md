@@ -61,13 +61,20 @@ that widens the tree's one width source to 30 minutes.
 
 ## Head
 
-`791fdba93`, the code head every figure below was taken at, against the merge
-base `e5f7e169d` (`origin/main`). `custom_components/`, `tests/features.py` and
-`tests/entities.py` are byte-identical between `6e5753a4a` and `e5f7e169d`, so a
-`git archive 6e5753a4a` export is the merge base's production tree; the
-previous head `b00c4a33a` is cited where an arm needs the tree this round
-repairs. This head merges `origin/main` at `a8786ce08`; main's side moved only
-`dev/programme/` records.
+`7ac9bace4`, the code head. It is `791fdba93` -- where the round-2 figures below
+were taken -- plus: a merge of `origin/main` at `52f698905` and again at
+`2b06786c2`; the D6 harness repair (`d9dcc1759`); the plan's last step made
+half-open, with its check (`7bb9590df`); and the seat's
+own mutation pins. Main's side moved no file under `custom_components/` and
+none of `tests/features.py`, `tests/entities.py`, `tests/closures.json`,
+`tests/dst_checks.py`, `tests/structure_budgets.json` or
+`dev/audit/harnesses/` between `e5f7e169d` and `2b06786c2`
+(`git diff --stat` over those paths is empty), so the round-2 figures
+transfer; the figures that the later commits move were re-taken at them and
+are named with their SHA. `custom_components/` is byte-identical between
+`6e5753a4a` and `2b06786c2`, so a `git archive 6e5753a4a` export is the merge
+base's production tree; the previous head `b00c4a33a` is cited where an arm
+needs the tree round 2 repairs.
 
 ## Mutation proof
 
@@ -107,6 +114,13 @@ fails `the solve anchor is plan_step.plan_step_start, outside the coordinator
 class and its module, and the coordinator reads that one function [module=False
 class=False same=False]` and `P2 owners: slot_floor_rule ... [SEAM
 ['coordinator.py:261 in plan_step_start'] ...]`.
+
+**The plan's last step, half-open** (`pump_arbiter.step_duty`, the pin
+drive's survivor -- `## Red checks`): with the expiry put back to
+`now - stamps[i] > timedelta(minutes=PLAN_STEP_MINUTES)` the block prints `1 of
+6 FEATURES BLOCK FAILED`: `the plan's last step covers [stamp, stamp + one plan
+step) -- live a microsecond before the edge, expired at it [duty just before
+the edge 'idle', at the edge 'idle']`.
 
 The unmutated export (M0) fails none of these lines.
 
@@ -159,23 +173,75 @@ the merge base (`6e5753a4a`'s production tree).
   `reflective_writes_pump_arbiter=2`; this head `leaked_reads=0` of `1433735`,
   `null_leaked_reads=0`, `reflective_writes_pump_arbiter=0` (`load1` 153.09).
   The count is a race, so the claim is > 0 against = 0, not its size.
-- Scope, `python3 tests/closure.py select --diff e5f7e169d`: `MODE: SCOPED -- 28 script(s) run, 5 scoped out` over 21 changed files. Run
+- Scope, `python3 tests/closure.py select --diff e5f7e169d` (at `791fdba93`): `MODE: SCOPED -- 28 script(s) run, 5 scoped out` over 21 changed files. Run
   here: `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 4160 FEATURE
-  CHECKS PASSED`; `tests/entities.py` `ALL 2347 ENTITY CHECKS PASSED`; `tests/doc_claims.py`
+  CHECKS PASSED` at `791fdba93` and `ALL 4161 FEATURE CHECKS PASSED` after the
+  edge check; `tests/entities.py` `ALL 2347 ENTITY CHECKS PASSED`; `tests/doc_claims.py`
   `ALL 169 checks PASSED`; `tests/guard_pins.py` `ALL 50 GUARD PIN CHECKS
   PASSED`. `tests/dst_checks.py` prints `8 of 134 DST / QUARTER-GRID CHECKS
   FAILED` here and the identical FAIL set at `b00c4a33a` (`diff` of the two
   FAIL lists is empty), where CI's run was green: this machine's, not this
   diff's; CI's run is the figure. The heavy scoped scripts are CI's.
-- `python3 tools/pr/ci_predict.py --base e5f7e169d`: `CI PREDICT: no closures or fast red predicted against e5f7e169d64b`, and `4 unpinned site(s) the diff adds` (`## Unpinned sites`).
+- `python3 tools/pr/ci_predict.py --base e5f7e169d` (at `791fdba93`): `CI PREDICT: no closures or fast red predicted against e5f7e169d64b`, and `4 unpinned site(s) the diff adds` (`## Unpinned sites`).
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 tools/audit/archscore/score.py --diff e5f7e169d`: `Architecture score: dS +0.0000 NULL`, gate-only tripwire `reflective_writes 17 -> 15`;
   `--diff b00c4a33a`: `Architecture score: dS +0.0000 NULL`.
 
 ## Red checks
 
-`none` on `b00c4a33a`'s check-runs (the reviewer's reading: 30 success, 15
-skipped, 0 failed). This head's are CI's.
+- **`fast (3.14)` at `1386009b7`** (job 117571211622, read with
+  `tools/audit/seat/failure_logs.sh 2365 <dir>`): `tests/harness_headers.py`
+  printed `3 of 109 HARNESS HEADER CHECKS FAILED` --
+  `dev/audit/rounds/round4/D6/claims.py RESULT arch_modules_on_disk matches
+  header [header='77' printed='78']`, the same for `arch_map_listed`, and `the
+  executed harnesses leave their committed output byte-identical [uncommitted:
+  M dev/audit/rounds/round4/D6/claims.json; M .../claims.md]`. This diff's own:
+  `plan_step.py` is the 78th module, and that harness pins the module count.
+  Repaired in `d9dcc1759`: header re-recorded with its history line, outputs
+  regenerated by the harness's own RUN line, which now prints
+  `arch_modules_on_disk=78`, `arch_map_listed=78`, `arch_map_missing=0`,
+  `claims_false=0`. `git grep "until R10-FAHRENHEIT's"` -- the history marker
+  every module-count pin carries -- names this file and
+  `tests/deployment_shape.py`, both now updated. At `d9dcc1759`,
+  `PYTHONPATH=tests/hastub:custom_components:tests python3
+  tests/harness_headers.py` prints `ALL 109 HARNESS HEADER CHECKS PASSED`.
+  **Cheaper detector: one exists and this seat skipped it.**
+  `tests/harness_headers.py` is in this diff's scope and runs locally; round 1
+  ran it (load-killed, then confirmed by CI), round 2 did not re-run it after
+  adding a module. Its standing cost is dominated by the frontier harness, which this run
+  billed `cpu=171.2s of the 480s bound`.
+  No new detector is owed: the check that caught it is the cheap one, and the
+  omission was the seat's.
+- **`mutation` at `1386009b7`** (job 117570935207): `MUTATION TABLE REFUSED
+  -- ... 5 of them added by this diff`, the five sites `## Unpinned sites`
+  names (`plan_step.py:41 RETURN_DEL` and `pump_arbiter.py:340` BOOLOP,
+  CMP_BOUND x2, GUARD_OFF). Expected for a diff that adds a module and
+  rewrites a pinned line; the pins are below. Cheaper detector: the one that
+  exists, `prepr.sh` step 6d / `tools/pr/ci_predict.py`, which listed all five
+  before the push; no new one is owed.
+- **`mutation-autofix` at `1386009b7`** (job 117579526782): `AUTOFIX:
+  skip-measure-failed -- THE REPAIR DID NOT HAPPEN`: its measurement ran on a
+  head whose `fast (3.14)` was red (above), so no pin commit was pushed. Per
+  `ci-autofix.md`, the seat ran the pin drive itself,
+  `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base
+  origin/main`. First drive: `PIN KILLED: 3 pinned, 2 left unpinned (2
+  survived ...)` -- `pump_arbiter.py:340 CMP_BOUND` lived. That survivor was a
+  real edge: the plan's last step stayed live at exactly `stamps[-1]` + one
+  plan step, one instant past where `bisect` ends every other step. Fixed in
+  this group's file rather than triaged: the expiry is now `>=`, the same
+  half-open `[start, start + step)` grid `plan_step_start` floors onto, and a
+  features check probes a microsecond either side of the edge (`## Mutation
+  proof`). Second drive at that text: `PIN KILLED: 4 pinned, 0 left unpinned`
+  -- `pump_arbiter.py:342` BOOLOP, CMP_BOUND x2 and GUARD_OFF, each killed by
+  `tests/features.py`; with `plan_step.py:41 RETURN_DEL` from the first drive
+  (killed by `tests/manual_plan.py`), all five sites are pinned and no
+  survivor triage is owed. Cheaper
+  detector: none beyond the one above; the red is the fast red's consequence.
+- **`pr-contract` at `1386009b7`** (job 117579610632): `PR-BODY: 3 error(s)` --
+  `## Red checks` did not name `fast (3.14)`, `mutation` or `mutation-autofix`,
+  because the body was cut before those runs. This body names all three.
+  Cheaper detector: `prepr.sh` cannot see a check that has not run yet; none
+  exists before CI reports.
 
 ## Forward-carry
 
@@ -183,24 +249,12 @@ skipped, 0 failed). This head's are CI's.
 
 ## Unpinned sites
 
-`prepr.sh` step 6d lists what the diff adds; `python3 tools/pr/ci_predict.py`
-names four, each left for `mutation-autofix` to pin from CI's
-mutation drive (`ci-autofix.md`), the lane that drives the killing scripts --
-none is triaged here:
-- `custom_components/heatpump_optimizer/plan_step.py:41 RETURN_DEL`:
-  `plan_step_start`'s return, the new owner's one line; `tests/features.py`'s
-  ledger and widen checks read its value;
-- `custom_components/heatpump_optimizer/pump_arbiter.py:340 BOOLOP`,
-- `custom_components/heatpump_optimizer/pump_arbiter.py:340 CMP_BOUND*2` and
-- `custom_components/heatpump_optimizer/pump_arbiter.py:340 GUARD_OFF`:
-  `step_duty`'s expiry of the plan's last step, whose text now reads
-  `PLAN_STEP_MINUTES`; the arbiter section of `tests/features.py` killed the
-  BOOLOP and GUARD_OFF mutants of the same line under its old text.
-
-Three ledger rows are dropped because their lines are gone or
-rewritten: `_step_start RETURN_DEL 623e1957` (the function is folded into
+`none` -- `prepr.sh` step 6d lists no unpinned site this diff adds: the five it
+listed at `791fdba93` are pinned (`## Red checks`, `mutation-autofix`). Three
+ledger rows were dropped because their lines are gone or rewritten:
+`_step_start RETURN_DEL 623e1957` (the function is folded into
 `plan_step_start`) and `step_duty BOOLOP 0d0efb52` / `GUARD_OFF 0d0efb52`
-(the expiry line now reads `PLAN_STEP_MINUTES`). Their sites are among the four above.
+(the expiry line's text), re-pinned at the new text.
 
 ## Friction
 
