@@ -1,0 +1,26 @@
+== baseline
+== mutant content_refusals
+  FAIL a diff adding a line naming the host's scratch path is refused, by line and class: []
+  FAIL and one naming another machine's home, by the host-path shape a runner can see: []
+  FAIL a line the diff moves from another file is not charged (the null control): []
+ref_privacy self-test: 60 checks, 3 failed
+  dirty after restore: 0
+== mutant move_rule
+  FAIL a line the diff moves from another file is not charged (the null control): ['moved.log:1: home-directory, account-name, host-path in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write moved.log` or drop the path', 'other.log:1: host-path in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write other.log` or drop the path', 'rec.log:2: account-name, uid, scratch-root, host-path in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write rec.log` or drop the path']
+ref_privacy self-test: 60 checks, 1 failed
+  dirty after restore: 0
+== mutant check_wiring
+  FAIL and check() runs it (a pin by text: check() itself needs the real tree's pushers)
+ref_privacy self-test: 60 checks, 1 failed
+  dirty after restore: 0
+== mutant binary_skip
+ref_privacy self-test: 60 checks, 0 failed
+  dirty after restore: 0
+== mutant was_set
+ref_privacy self-test: 60 checks, 0 failed
+  dirty after restore: 0
+== baseline
+ref_privacy self-test: 60 checks, 0 failed
+== mutant was_set_real_head
+PASSED-or-not 95759 line(s) added since e5f7e169d64b judged, 5 refused
+  dirty after restore: 0
