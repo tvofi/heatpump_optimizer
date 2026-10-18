@@ -18,7 +18,11 @@ D8-s1-01 is not closed here. Its harness hit (`heating_now_while_off`) comes fro
 
 ## Head
 
-a21ed7c29a8417b796789c8a2e6715fe9628703d
+9e2cdca95148fe5f105a74647771b62a31b42daa
+
+`9e2cdca95` merges origin/main `be2d3676e` into the previous PR head `60368fbac` (a plain merge, no rebase). `git merge` auto-merged `tests/closures.json` and conflicted in `tests/entities.py` in two hunks, both an addition at the same place by each side, none a competing edit of one line. Resolution keeps both sides: in the P2 owners block this branch's `zone_setpoint_names` entry (D7-s2-54) and main's `slot_floor_rule` entry (D7-s3-8x-slotfloor), and in the planted-defect table both `_P2_PLANTS` entries. `tests/closures.json` gained main's `plan_step.py` closure rows beside this branch's. No production file changed in the merge.
+
+The authored code head before the earlier merges was a21ed7c29a8417b796789c8a2e6715fe9628703d.
 
 It builds on the bot pin commit 7e79b6762 by a plain descendant commit (no rebase); its parent chain holds the orchestrator's merges aac8c5e80 and fa1ecd8e1 of origin/main 99cf51c1a.
 
