@@ -1,0 +1,12 @@
+# check-run 117719203618 (mutation, f4e16871), tail via GitHub MCP get_job_logs (blob host unreachable through the proxy)
+PIN RE-VERIFICATION: 8 reproduced, 0 not reproduced, 0 not re-verified
+  ok    custom_components/heatpump_optimizer/climate.py:140 GUARD_OFF  -- killed by tests/finite_boundary.py
+  ok    custom_components/heatpump_optimizer/climate.py:145 GUARD_OFF  -- killed by tests/entities.py
+  ok    custom_components/heatpump_optimizer/entity.py:95 GUARD_OFF  -- killed by tests/entities.py
+  ok    custom_components/heatpump_optimizer/entity.py:142 GUARD_OFF  -- killed by tests/entities.py
+  ok    custom_components/heatpump_optimizer/entity.py:239 GUARD_OFF  -- killed by tests/finite_boundary.py
+  ok    custom_components/heatpump_optimizer/sensor.py:373 RETURN_DEL  -- killed by tests/entities.py
+  ok    custom_components/heatpump_optimizer/sensor.py:664 RETURN_DEL  -- killed by tests/entities.py
+  ok    custom_components/heatpump_optimizer/sensor.py:2808 CMP_BOUND  -- killed by tests/entities.py
+  0 survivor(s) of 8 evaluated = 0.0%, cap 20.0%
+MUTATION TABLE PASSED

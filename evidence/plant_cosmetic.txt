@@ -1,0 +1,1 @@
+RESULT duplication_copies=32 count
