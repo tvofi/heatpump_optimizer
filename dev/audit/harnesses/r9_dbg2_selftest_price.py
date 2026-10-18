@@ -59,7 +59,7 @@ for _p in (ROOT / "tests" / "hastub", ROOT / "tests", ROOT / "custom_components"
 from harness import FakeHass  # noqa: E402
 from heatpump_optimizer import debugger  # noqa: E402
 from heatpump_optimizer.accuracy import AccuracyTracker  # noqa: E402
-from heatpump_optimizer.store import _store_name  # noqa: E402
+from heatpump_optimizer.store import store_name as _store_name  # noqa: E402
 
 ENTRY = "price"
 
