@@ -37349,6 +37349,7 @@ from profiles import house as _hb_house, prices as _hb_prices, weather as _hb_we
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer as _HbOpt,
     OptimizationConfig as _HbCfg,
+    _baseline_target as _hb_target,
     _floor_demand_at_target as _hb_floor_demand,
     _thermostat_held_state as _hb_held_state,
 )
@@ -37356,6 +37357,7 @@ from heatpump_optimizer.thermal_model import (
     ThermalModel as _HbModel,
     ThermalParameters as _HbParams,
     ThermalState as _HbState,
+    WeatherSeries as _HbWSeries,
 )
 
 _hb_t0 = _SavDT(2026, 1, 15, 0, 0)
@@ -37417,6 +37419,39 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
             "the booked thermostat step is the steady holding power at target",
             abs(_hb_first[0] - max(0.0, _hb_q) / _hb_cop) < 1e-9,
             f"{_hb_first[0]!r} vs {max(0.0, _hb_q) / _hb_cop!r}",
+        )
+        # The oracle above shares _floor_demand_at_target with production; the
+        # plant model does not. One plant step from the held house at the
+        # booked power leaves the room at target (the two-zone loss terms on a
+        # single-zone house drift it 0.06 K).
+        _hb_held = _hb_held_state(_hb_opt.model, _HbState(
+            room_temperature=19.0, slab_temperature=20.0, outdoor_temperature=float(_hb_out[0]),
+        ), _HbWSeries(outdoor_temps=_hb_out, wind_speeds=_hb_wind, precipitation=_hb_rain,
+                      solar_radiation=_hb_sol), _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0))
+        _hb_next = _hb_opt.model.simulate_step(
+            _hb_held, _hb_first[0], float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
+            float(_hb_sol[0]), dt_hours=0.25, hour_of_day=0.0,
+        )
+        R.check(
+            "the held house at the booked power is a steady state of the plant model",
+            abs(_hb_next.room_temperature - _hb_held.room_temperature) < 1e-6
+            and abs(_hb_next.slab_temperature - _hb_held.slab_temperature) < 1e-6,
+            f"room {_hb_held.room_temperature!r} -> {_hb_next.room_temperature!r}, "
+            f"slab {_hb_held.slab_temperature!r} -> {_hb_next.slab_temperature!r}",
+        )
+        # Edges of the two helpers: a schedule shorter than the horizon falls
+        # back to the default setpoint, and with no weather there is nothing
+        # to hold, so the measured state is returned.
+        R.check(
+            "past the comfort schedule's end the thermostat holds the default setpoint; "
+            "with no weather the held state is the measured one",
+            _hb_target(np.array([20.0]), 0, 18.0) == 20.0
+            and _hb_target(np.array([20.0]), 1, 18.0) == 18.0
+            and _hb_target(None, 0, 18.0) == 18.0
+            and _hb_held_state(_hb_opt.model, _hb_held, _HbWSeries(
+                outdoor_temps=np.array([]), wind_speeds=np.array([]),
+                precipitation=np.array([]), solar_radiation=np.array([])), 25.0) is _hb_held,
+            "",
         )
 
 # The start's settlement, at its two limits. A pre-heated start (24 C room,
