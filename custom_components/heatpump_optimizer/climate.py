@@ -32,6 +32,7 @@ from .const import (
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh
+from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
 from .entry_config import EntryConfig
 
 _LOGGER = logging.getLogger(__name__)
@@ -135,13 +136,13 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         """Return the current indoor temperature, or None if nothing measured it."""
         if not self.coordinator.data:
             return None
-        measured = self._measured("upper_floor_temperature")
-        if isinstance(measured, (int, float)) and not isinstance(measured, bool):
+        measured = payload_number(self._measured("upper_floor_temperature"))
+        if measured is not None:
             return float(measured)
         flags = self.coordinator.data.get("reading_ok") or {}
         if flags.get("upper_floor_temperature"):
-            indoor = self.coordinator.data.get("indoor_temperature")
-            if isinstance(indoor, (int, float)) and not isinstance(indoor, bool):
+            indoor = payload_number(self.coordinator.data.get("indoor_temperature"))
+            if indoor is not None:
                 return float(indoor)
         return None
 
@@ -213,21 +214,6 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         return data.get(key) if flags.get(key) else None
 
     @property
-    def _effective_outdoor(self) -> float | None:
-        """The outdoor thermometer, else the forecast step the plan uses.
-
-        Mirrors ``sensor._effective_outdoor``; kept as its own tiny property
-        rather than imported so the climate platform does not depend on the
-        sensor platform. The rule is the one that matters: without a
-        thermometer this attribute used to publish the 5.0 constructor
-        default beside a plan solved at the forecast's −5 °C.
-        """
-        data = self._data()
-        if (data.get("reading_ok") or {}).get("outdoor_temperature"):
-            return data.get("outdoor_temperature")
-        return data.get("outdoor_forecast_temperature")
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes including two-zone info."""
         attrs = {}
@@ -253,7 +239,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             attrs["ecl110_command_topic"] = self.coordinator.data.get(
                 "ecl110_command_topic"
             )
-            attrs["outdoor_temperature"] = self._effective_outdoor
+            attrs["outdoor_temperature"] = effective_outdoor(self._data())[0]
 
             # Two-zone attributes
             attrs["two_zone_enabled"] = self.coordinator.data.get(
@@ -276,10 +262,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             )
 
             # Zone setpoints from current action
-            if "upper_setpoint" in action:
-                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
-            if "lower_setpoint" in action:
-                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
+            attrs.update(zone_setpoint_attributes(action))
 
             # DHW status
             attrs["dhw_enabled"] = self.coordinator.data.get("dhw_enabled", False)

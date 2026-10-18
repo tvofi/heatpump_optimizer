@@ -1410,6 +1410,7 @@
    "tests/entities.py",
    "tests/env_drift.py",
    "tests/features.py",
+   "tests/finite_boundary.py",
    "tests/gate_lock.py",
    "tests/golden.py",
    "tests/golden/card_claimed_drift.txt",
