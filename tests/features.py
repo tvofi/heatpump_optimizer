@@ -57399,7 +57399,9 @@ _f23_real_base = _F23Opt._compute_baseline_power
 
 
 def _f23_def(self, baseline_end, optimized_end, *a, **k):
-    _f23_seen["ends"] = (baseline_end, optimized_end)
+    # The END settlement is the first call; #2255's start settlement values
+    # the start gap with the same function after it, so later calls are not it.
+    _f23_seen.setdefault("ends", (baseline_end, optimized_end))
     return _f23_real_def(self, baseline_end, optimized_end, *a, **k)
 
 

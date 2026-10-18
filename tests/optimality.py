@@ -719,17 +719,15 @@ _CERT_BARS = {
 def _cert_bar(name: str) -> float:
     """The gap this cell's checks compare against (see _CERT_BARS)."""
     return _CERT_BARS.get(name, _CERT_BAR)
+#: #2255 closed the two #1294 claims (one|summer_negative|shoulder,
+#: one|winter_narrow|shoulder; both 0.0000 % re-polish and ladder, measured on
+#: the arm64 seat): the thermostat reference now starts held, so its energy --
+#: which seeds the anchor starts -- is the steady holding energy rather than a
+#: transient's, and the anchors reach the basin they stopped short of.
 _CERT_CLAIMS = {
-    "one|summer_negative|shoulder":
-        "the optimum stores more than the baseline's energy and production's "
-        "anchors stop at 1.0x it; closing needs the production anchor ladder, "
-        "refused on cost (#1294).",
     "one|shoulder|winter_cold":
         "production stops at ftol=1e-6 short of its own fixed point; closing "
         "needs a tighter stop rule, refused on money (#1293).",
-    "one|winter_narrow|shoulder":
-        "a missed basin above the baseline anchor; closing needs the refused "
-        "production ladder (#1294).",
 }
 
 
