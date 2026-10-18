@@ -187,6 +187,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   retried until it is pushed again, so one refusal does not repeat every
   interval. Run it detached (`daemonize.py`); it uses ls-remote, not the REST
   quota. `--once` is one pass.
+  `--confirm` (on `--watch` and on a single relay) keeps going past
+  `push-verdict`: after one that passed it runs `bus.sh confirm <pr>
+  <review-sha>` (the sha `push-verdict` printed) and appends `POSTED <utc> <pr>
+  <sha>` or `OWED <utc> <pr> <sha|-> <why>` to `--log FILE` (default
+  `cloud-relay.log` under the state directory), the file the orchestrator
+  reads; two verdicts once sat relayed and unposted for 20 minutes. Confirm
+  never runs after a refused relay or a failed `push-verdict`, and those write
+  no line (the refusal is printed; `--watch` also keeps it in `.refused`).
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
