@@ -2935,11 +2935,12 @@ _IMG_TAG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
 
 
 def image_dim_findings(root: pathlib.Path, tracked: list[str]) -> tuple[list[str], int]:
-    """Declared width/height vs the PNG header, for every <img> in a tracked page.
+    """Declared width/height vs the PNG header, for every <img> in the pages named.
 
-    A page is any tracked .html or .md file. ``src`` resolves relative to the
-    page's own directory. An <img> that declares both width and height and
-    names a tracked PNG is compared; the count returned is how many were.
+    ``tracked`` lists the pages, relative to ``root``; only .html and .md are
+    read. ``src`` resolves relative to the page's own directory. An <img> that
+    declares both width and height and names a PNG is compared; the count
+    returned is how many were.
     """
     out, compared = [], 0
     for rel in tracked:
@@ -2964,10 +2965,23 @@ def image_dim_findings(root: pathlib.Path, tracked: list[str]) -> tuple[list[str
     return out, compared
 
 
+def published_pages() -> list[str]:
+    """The pages a reader loads: README, the reader-facing docs, and the product page.
+
+    The scanned corpus above (README.md and DOCS) plus every top-level
+    docs/*.html, which GitHub Pages serves. Records and programme state are
+    not pages a browser lays out for a reader, and reading every tracked file
+    would put the whole tree in this script's closure.
+    """
+    return ["README.md", *(f"docs/{k}" for k in DOCS),
+            *(f"docs/{p.name}" for p in sorted((ROOT / "docs").glob("*.html")))]
+
+
 def check_image_dimensions() -> None:
-    R.section("declared <img> sizes equal the PNG headers on every tracked page (#2298)")
-    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split()
-    bad, compared = image_dim_findings(ROOT, tracked)
+    R.section("declared <img> sizes equal the PNG headers on every published page (#2298)")
+    pages = published_pages()
+    R.check("the product page is one of the pages read (anchor)", "docs/index.html" in pages, repr(pages))
+    bad, compared = image_dim_findings(ROOT, pages)
     R.check("at least one sized <img> was compared (anchor)", compared > 0, str(compared))
     R.check("every declared width and height equals the PNG header", not bad, "; ".join(bad))
     with tempfile.TemporaryDirectory() as tmp:
