@@ -59,17 +59,26 @@ delivery_row_self_test() ( # a subshell: the throwaway git environment stays in 
   . "$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)/tests/throwaway_git.sh" && throwaway_git_env
   { throwaway_git_init "$t/r" -q && printf 'x\n' > "$t/r/x" && git -C "$t/r" add x \
     && git -C "$t/r" commit -q -m base; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
+  # Something else to stage: a stray untracked file and an unstaged edit. A
+  # writer that staged more than its row (`git add -A`) would commit them, so
+  # "only that row" is decided by the fixture, not by an empty work tree.
+  printf 'stray\n' > "$t/r/stray" && printf 'edited\n' > "$t/r/x"
   h0=$(git -C "$t/r" rev-parse HEAD)
   p=$(ensure_row "$t/r" 9 "$(row_line 9 o/r "a title")")
   h1=$(git -C "$t/r" rev-parse HEAD)
   [ "$p" = "$ROW_DIR/9.md" ] && [ "$(git -C "$t/r" rev-parse HEAD~1)" = "$h0" ] \
     && [ "$(git -C "$t/r" diff --name-only "$h0" "$h1")" = "$ROW_DIR/9.md" ] \
     && [ "$(git -C "$t/r" log -1 --format='%an <%ae>|%cn|%s')" = "tvofi <70032254+tvofi@users.noreply.github.com>|tvofi|record: the delivery row for #9" ] \
-    && [ "$(git -C "$t/r" show "$h1:$ROW_DIR/9.md")" = "- [#9](https://github.com/o/r/pull/9) — **open**, a title" ]
-  ck "a head without its row gains exactly one commit, adding only that row, as tvofi" $?
+    && [ "$(git -C "$t/r" show "$h1:$ROW_DIR/9.md")" = "- [#9](https://github.com/o/r/pull/9) — **open**, a title" ] \
+    && [ "$(git -C "$t/r" status --porcelain | LC_ALL=C sort | tr '\n' ' ')" = " M x ?? stray " ]
+  ck "a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out" $?
   p=$(ensure_row "$t/r" 9 "$(row_line 9 o/r "another")")
-  [ -z "$p" ] && [ "$(git -C "$t/r" rev-parse HEAD)" = "$h1" ]
-  ck "null control: a head that carries its row gains no commit" $?
+  [ -z "$p" ] && [ "$(git -C "$t/r" rev-parse HEAD)" = "$h1" ] \
+    && git -C "$t/r" diff --quiet -- "$ROW_DIR" \
+    && [ "$(git -C "$t/r" status --porcelain | LC_ALL=C sort | tr '\n' ' ')" = " M x ?? stray " ]
+  ck "null control: a head that carries its row gains no commit, and its row file is not rewritten" $?
+  [ "$(row_line 3 o/r T)" = "- [#3](https://github.com/o/r/pull/3) — **open**, T" ]
+  ck "no group writes no empty parentheses" $?
   [ "$(row_line 3 o/r T G)" = "- [#3](https://github.com/o/r/pull/3) — **open**, T (G)" ]
   ck "a group, when given, closes the row in parentheses (open_pr.sh's shape)" $?
   rm -rf "$t"

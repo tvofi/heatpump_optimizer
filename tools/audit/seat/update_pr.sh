@@ -23,11 +23,9 @@ OLD=$(git rev-parse HEAD)
 $G merge -q --no-edit origin/main
 N=${PR_N:-$(gh pr list -R $R --head "$BR" --state open --json number -q '.[0].number')}
 [ -n "$N" ] || { echo "no open pull request at $BR, so no row to check"; exit 1; }
-ROW=""
-if ! has_row . "$N"; then
-  ensure_row . "$N" "$(row_line "$N" $R "$(gh pr view "$N" -R $R --json title -q .title)")" >/dev/null
-  ROW="adds one commit containing only this PR's own row, \`$ROW_DIR/$N.md\`"
-fi
+# ensure_row's own guard decides; its output names the row only when it added one.
+_added=$(ensure_row . "$N" "$(row_line "$N" $R "$(gh pr view "$N" -R $R --json title -q .title)")")
+ROW=""; [ -z "$_added" ] || ROW="adds one commit containing only this PR's own row, \`$_added\`"
 M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 [ "$(git log -1 --format=%an)" = tvofi ] || { echo "author wrong"; exit 1; }
 python3 - $B $H "$NOTE" $M "$ROW" <<'E'

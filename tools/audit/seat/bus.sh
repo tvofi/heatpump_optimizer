@@ -1056,6 +1056,11 @@ B
     && echo "$out" | grep -q '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' \
     && [ "$(. "$ROOT/tools/audit/seat/delivery_row.sh"; echo "$ROW_DIR")" = "$ROW_DIR" ]
   expect "the shared delivery-row writer passes its self-test, at the ROW_DIR dispatch reads" $?
+  # One writer: no other seat shell script defines its own write_row or makes
+  # its own row commit (handoff_push.sh did, the shape #2390 and #2391 hit).
+  out=$(cd "$ROOT/tools/audit/seat" && grep -lE '^[[:space:]]*write_row\(\)|record: the delivery row f[o]r' -- *.sh)
+  [ "$out" = delivery_row.sh ]
+  expect "delivery_row.sh is the one seat script that defines write_row or commits a row" $?
 
   # #2310: a blocked verdict (the grammar that carries free text) whose first line names a host path is refused by
   # append_commit's guard, and review/7 does not move; the same verdict with a
