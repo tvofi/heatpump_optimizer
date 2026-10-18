@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/seat/rev2379/tools/mutants.py", line 20, in <module>
+    assert src.count(old) == 1, (name, src.count(old))
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: ('R2_numpy_unwrap_off', 2)
