@@ -1,0 +1,10 @@
+RESULT mutant M1 unwire absent-refusal deleted: rc=1 KILLED | roster_edit self-test: 67 checks, 3 failed
+RESULT mutant M2 unwire default field -> fixes: rc=1 KILLED | roster_edit self-test: 69 checks, 5 failed
+RESULT mutant M3 wire dispatch drops --field: rc=1 KILLED | roster_edit self-test: 67 checks, 3 failed
+RESULT mutant M4 unwire keeps the entry: rc=1 KILLED | roster_edit self-test: 71 checks, 7 failed
+RESULT mutant M5 wire dup-refusal deleted: rc=1 KILLED | roster_edit self-test: 66 checks, 2 failed
+RESULT mutant M6 wire writes issues regardless: rc=1 KILLED | roster_edit self-test: 68 checks, 4 failed
+RESULT mutant M7 main --field guard for wire ops deleted: rc=0 SURVIVED | roster_edit self-test: 64 checks, 0 failed
+RESULT mutant M8 op-level WIRE_FIELDS guard in unwire deleted: rc=0 SURVIVED | roster_edit self-test: 64 checks, 0 failed
+RESULT mutant M9 dispatch unwire op dropped: rc=1 KILLED | roster_edit self-test: 72 checks, 8 failed
+RESULT mutant M10 unwire removes from issues regardless: rc=1 KILLED | roster_edit self-test: 68 checks, 4 failed

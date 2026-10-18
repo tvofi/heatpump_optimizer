@@ -1,0 +1,4 @@
+RESULT mutant J1 both unwire guards (M7+M8): rc=0 SURVIVED | roster_edit self-test: 64 checks, 0 failed
+RESULT mutant J2 both wire guards (M7+op wire guard): rc=1 KILLED | roster_edit self-test: 65 checks, 1 failed
+    ['FAIL --field stage refused on wire-issue (got: )']
+RESULT mutant J3 op wire guard alone: rc=0 SURVIVED | roster_edit self-test: 64 checks, 0 failed

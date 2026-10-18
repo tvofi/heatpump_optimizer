@@ -1,0 +1,2 @@
+RESULT mutant M11 wire default field -> fixes: rc=1 KILLED | roster_edit self-test: 71 checks, 7 failed
+RESULT mutant M12 unwire dedupe-all -> remove first only: rc=0 SURVIVED | roster_edit self-test: 64 checks, 0 failed
