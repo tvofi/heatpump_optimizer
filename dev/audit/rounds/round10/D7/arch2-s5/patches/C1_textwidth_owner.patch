@@ -1,0 +1,23 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index a80c43562..d19123978 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -7186,8 +7186,7 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
+   // Widest rendered label, plus a gap, in viewBox units. The chart uses the
+   // default sans-serif face, whose characters average a little over half an
+   // em at these sizes.
+-  const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
+-  const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
++  const labelWidth = ticks.reduce((n, tick) => Math.max(n, textWidth(tick.label, size)), 0) + size * 0.6;
+   const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
+   const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
+   // Intervals that divide the day, so labels land on the same clock times
+@@ -7226,7 +7225,7 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
+       // label runs left under the value axis and the last runs off the
+       // chart -- which the boosted compact font (D4-01) makes far more
+       // likely, because the label grows while the tick does not move.
+-      const half = (size * tick.label.length * CHAR_WIDTH_EM) / 2;
++      const half = textWidth(tick.label, size) / 2;
+       let anchor = "middle";
+       let lx = tick.x;
+       if (plotL !== undefined && tick.x - half < plotL) {
