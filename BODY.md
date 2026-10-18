@@ -32,9 +32,9 @@ The CI pin shard recorded `ledger.py:186` as killed by `tests/entities.py`. That
 
 ## Head
 
-fe4e0a3b02049e1bb971f9c7808f58f531cce08f
+f25c9b1b74585735f5517765067d1843c24f2500
 
-The merge base is 07a09406a (origin/main at 2026-10-18T20:09Z). This head merges the PR branch's `ci: merge main` (339d4bce6) and, before that, origin/main at 106af95a3. Main's production changes in those merges (none up to 106af95a3; then #2379's `climate.py`, `entity.py` and `sensor.py`, and none from #2401) touch none of `optimizer.py`, `ledger.py`, `thermal_model.py` or `coordinator.py`. The new code commit is 90c104c5d (the value check and the two pins). Every figure below was taken in this pass at fe4e0a3b0, except where a line names another tree.
+This head merges, in order: the PR branch at 115541ec6 (the CI autofix `ci: pin killed mutants`, on top of `ci: merge main` 339d4bce6), and origin/main as fetched 2026-10-18T22:50Z, which brings #2423's `dev/programme/delivery/2423.md`, `tools/policy/agreement.mjs`, `tools/policy/agreement_py.py` and `tools/policy/policy_lint.mjs`. None of those four touches `optimizer.py`, `ledger.py`, `thermal_model.py` or `coordinator.py`. The code commit that adds the value check and the two pins is 90c104c5d. The figures below were taken at fe4e0a3b0, and the merges since add no production change to those files; the `ledger.py:186` mutant was re-run at the merge, see `## Mutation proof`.
 
 ## Mutation proof
 
@@ -73,6 +73,8 @@ The two sites this round pins, each with its mutant and an equivalent rewrite of
   - Mutant `or`: `tests/typing_ruler.py` (under `HPO_TYPING_PYTHON`) reads `FAIL errors did not grow [recorded 0, measured 2 (+2)]` and `FAIL by_code[index] did not grow`.
   - Null, the same `and` with the operands swapped: `the pinned census passed`.
   - `--pin-killed --scripts tests/typing_ruler.py` recorded the pin.
+
+After the merge with the PR's CI pin, the add/add conflict on the `ledger.py/MonthlyLedger.observe_spot_and_settle_savings.CMP_BOUND.f0f29f9a.json` pin was resolved to the `tests/features.py` pin (f25c9b1b7), not the autofix's `tests/entities.py`. Re-run at the merge under `if dt >= 0:`: `tests/features.py` fails (`1 of 4198 FEATURE CHECKS FAILED`) and `tests/entities.py` fails (`1 of 2349 ENTITY CHECKS FAILED`), the second being the `--anchor` self-test below. `mutation_table.py --normalize` after the resolution rewrote nothing.
 
 The kill that is not recorded: under `if dt >= 0:`, `tests/entities.py` fails exactly one check, "--anchor re-drives one site ... (R9-F10.13)". Its message is `MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory`. That self-test runs `mutation_table.main` against the live tree, so any edit to a line that already carries a pin (here `observe_spot_and_settle_savings.GUARD_OFF.f0f29f9a`) trips it. The equivalent rewrite `if 0 < dt:` fails the same single check (`1 of 2347 ENTITY CHECKS FAILED`, the same check name). It is carried below.
 
@@ -144,6 +146,8 @@ Every failed check run on this branch's pushed commits, each with its answer:
   - Both subjects are main's merge commits, brought in by `ci: merge main`.
   - Main's own Governance runs at 07a09406a (39158144006) and 5756f2b15 (39156632953) are red.
   - This diff touches no governance reader. No fix to port exists yet.
+- `prepr.sh` step 3f4 `agreement lane` at f25c9b1b7: `AGREEMENT REFUSED`, ten `merge-subject-pr` lines, every one a first-parent merge commit of this branch ("Merge remote-tracking branch 'origin/main' into ..." and the like, among them the two made by this merge). Inherited from the guard #2423 added: run from a branch, it walks the branch's own first-parent line, and the branch updates from main by merge, never rebase, so it cannot pass locally. It is not a check this diff can answer, and CI reads the pull request's merge ref, where the line is main's. Reported to the orchestrator.
+- `wave-script` and `delivery-status` on main itself: inherited. They are main's own reds, which #2423 fixes, and this merge brings #2423 in.
 - `delivery-status` at 339d4bce6 (117766080081): `DELIVERY STATUS OVERDUE`, with the overdue rows #2413, #2412 and #2407. It is not required, it grades main, and this diff adds no row it reads beyond its own `dev/programme/delivery/2411.md`. No answer is owed.
 
 ## Forward-carry
