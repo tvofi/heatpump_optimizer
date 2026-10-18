@@ -1,0 +1,5 @@
+  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+  FAIL a head without its row gains exactly one commit, adding only that row, as tvofi
+  ok   null control: a head that carries its row gains no commit
+  ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+delivery_row self-test: 4 checks, 1 failed
