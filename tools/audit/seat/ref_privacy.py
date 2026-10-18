@@ -96,7 +96,9 @@ file that gains a second, unguarded push (the registry is keyed on the file:
 review owns the site); file content a push publishes outside a tracked diff --
 a bus ref's evidence tree, a handoff body -- (the guard reads ref names,
 messages and commit identities; CONTENT reads tracked diffs); on a runner, an
-account name standing alone, since a runner knows only its own; text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
+account name standing alone, since a runner knows only its own; compressed
+content (a .gz or .zip blob is judged as its compressed bytes, which spell no
+path); text in an encoding neither ASCII-compatible nor UTF-16; text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
 and another machine's account name, unless it sits in a `/Users/`, `/home/` or
 `Users-` shape.
 """
@@ -447,11 +449,24 @@ def content_check(ref: str, root: Path = ROOT, ident: Identity | None = None):
     return base, added, content_refusals(added, ident)
 
 
+def blob_text(data: bytes) -> str:
+    """A blob as the content check reads it. Text is UTF-8 (undecodable bytes
+    replaced). A blob holding a NUL byte has its NULs dropped and every other
+    byte kept one-for-one (Latin-1), so the ASCII a binary carries -- a path in
+    an image's metadata, or UTF-16 text, whose ASCII is every other byte -- reads
+    as the guard's classes see it. A segment between two newlines is a "line"."""
+    if b"\0" in data:
+        return data.replace(b"\0", b"").decode("latin-1")
+    return data.decode("utf-8", "replace")
+
+
 def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, str]]:
     """(path, line, text) for every line of a file `base..ref` changes whose text the
     file did not hold at `base`, less any text another changed file gave up (a move).
     Judged by line text per file, not by hunk: a reordered line is not charged, and
-    no diff grammar is parsed here (the hunk header is mutation_table.py's to read)."""
+    no diff grammar is parsed here (the hunk header is mutation_table.py's to read).
+    A blob holding a NUL byte (an image, a UTF-16 capture, any binary) is judged
+    too, as `blob_text` renders it: binary content is not skipped (round 2)."""
     def run(*a: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *a], cwd=cwd, capture_output=True)
 
@@ -459,17 +474,13 @@ def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, s
     if names.returncode != 0:
         raise RuntimeError(f"git diff {base[:12]} {ref} exited {names.returncode}")
 
-    def lines(rev: str, path: str) -> list[str] | None:
+    def lines(rev: str, path: str) -> list[str]:
         got = run("show", f"{rev}:{path}")
-        if got.returncode != 0:
-            return []  # absent at that end: added or deleted whole
-        return None if b"\0" in got.stdout[:8000] else got.stdout.decode("utf-8", "replace").splitlines()
+        return blob_text(got.stdout).splitlines() if got.returncode == 0 else []  # absent: added or deleted whole
 
     added, removed = [], set()
     for path in filter(None, names.stdout.decode("utf-8", "replace").split("\0")):
         old, new = lines(base, path), lines(ref, path)
-        if old is None or new is None:
-            continue  # binary at either end
         was, now = {t.strip() for t in old}, {t.strip() for t in new}
         removed |= was - now
         added += [(path, n, t) for n, t in enumerate(new, 1) if t.strip() not in was]
@@ -779,11 +790,16 @@ def self_test() -> int:
                                   text=True).stdout.strip()
         stock = "stock log line from " + fake_home + "/old\n"
         Path(td, "rec.log").write_text("clean\n" + stock)
+        Path(td, "keep.log").write_text(stock)
         g("add", "-A"); g("commit", "-q", "-m", "base")
         base = g("rev-parse", "HEAD")
         Path(td, "rec.log").write_text("clean\n" + "File " + scratch + "/x.py\n")
         Path(td, "moved.log").write_text(stock)  # moved out of rec.log, not added
         Path(td, "other.log").write_text("ran at " + under("home", "someone", "w") + "\n")
+        Path(td, "keep.log").write_text(stock + "edited\n")  # a changed file keeping main's stock line
+        Path(td, "nul.bin").write_bytes(b"bin\0\nran at " + under("Users", "someone", "w").encode() + b"\n")
+        Path(td, "u16.txt").write_bytes(("ran at " + under("Users", "someone", "w") + "\n").encode("utf-16-le"))
+        Path(td, "clean.bin").write_bytes(b"\x89PNG\0\0\x01ran at ~/w\n\0")
         g("add", "-A"); g("commit", "-q", "-m", "plant")
         g("update-ref", "refs/remotes/origin/main", base)
         got_base, _, bad = content_check("HEAD", Path(td), fid)
@@ -796,9 +812,18 @@ def self_test() -> int:
            any(b.startswith("other.log:1: host-path") for b in bad), str(bad))
         ok("the refusal never echoes the planted text", not any(fake_name in b for b in bad), str(bad))
         ok("a line the diff moves from another file is not charged (the null control)",
-           len(bad) == 2 and not any(b.startswith("moved.log:") for b in bad), str(bad))
+           not any(b.startswith("moved.log:") for b in bad), str(bad))
+        ok("main's stock line in a changed file is not charged (the null control)",
+           not any(b.startswith("keep.log:") for b in bad), str(bad))
+        ok("a NUL-bearing file adding a host line is refused: binary content is judged (round 2)",
+           any(b.startswith("nul.bin:") for b in bad), str(bad))
+        ok("and so is UTF-16 text naming one, its NULs dropped",
+           any(b.startswith("u16.txt:") for b in bad), str(bad))
+        ok("a NUL-bearing file naming no host passes (the null control), and nothing else is charged",
+           not any(b.startswith("clean.bin:") for b in bad) and len(bad) == 4, str(bad))
         Path(td, "rec.log").write_text("clean\n" + scrub(stock + "File " + scratch + "/x.py\n", fid))
-        Path(td, "moved.log").unlink(); Path(td, "other.log").unlink()
+        for f in ("moved.log", "other.log", "nul.bin", "u16.txt"):
+            Path(td, f).unlink()
         g("add", "-A"); g("commit", "-q", "-m", "scrubbed")
         ok("the scrubbed tree's diff is refused nothing (scrub is the remedy)",
            content_refusals(added_lines(base, "HEAD", Path(td)), fid) == [],
