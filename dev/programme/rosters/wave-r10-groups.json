@@ -3194,9 +3194,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-review: #2345",
+    "stage": "done",
     "branch": "handoff/r10-deeplink-census",
-    "commit": null,
+    "commit": "f4955e15fc4b56bfc204087a0aee27d0893db7c0",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
