@@ -1,0 +1,11 @@
+tree /tmp/claude-0/-home-user-heatpump-optimizer/a9776a91-b64a-5709-9d0c-4c84d8ceefa0/scratchpad/wt (perturbed: expected_direction enum dropped)
+RESULT findings=44
+RESULT form_file_rej=35
+RESULT form_driver_rej=24
+RESULT form_gap=11
+RESULT form_both_ok=9
+RESULT gather_replies=10
+RESULT gather_max_kb=34.0
+RESULT gather_missing=3
+RESULT text_gather=3
+RESULT text_read=44

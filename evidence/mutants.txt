@@ -1,0 +1,10 @@
+Reviewer's targeted mutants at 5f6d8fbd, each applied in a detached worktree and restored (git status clean after each).
+R1 audit-find.js replyField: unparseable (cut-off) text -> empty collection     check-wave-script 197 passed 0 failed   SURVIVES
+   + reviewer probe (reviewer_probe.patch), head: ok (198/0); under R1: FAIL {"missing":[],"err":"","intake":true}
+R2 audit-verify.js replyField: same substitution                                check-wave-script 196 passed 1 failed   killed
+R3 audit-find.js gather: first box wins instead of the BOXES box                check-wave-script 196 passed 1 failed   killed
+R4 audit-find.js REPORT_LISTS: `r[k] ?? []` -> `r[k]`                           check-wave-script 197 passed 0 failed   survives (not a PR claim; note only)
+R5 audit-find.js gather: off-box seat report dropped                            check-wave-script 196 passed 1 failed   killed
+R6 fold_ledger.py fold(): sync(root) -> pass                                    fold --self-test 4 FAIL                 killed
+R7 body_push.sh: no-predictor guard bypassed (`: || [ -f ...`)                  prepr --self-test 286/1 rc 2            killed
+R8 body_push.sh: predictor rc ignored (`...; true)`)                            prepr --self-test 286/1 rc 2            killed

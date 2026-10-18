@@ -1,0 +1,12 @@
+--- /tmp/claude-0/-home-user-heatpump-optimizer/a9776a91-b64a-5709-9d0c-4c84d8ceefa0/scratchpad/wt/tools/policy/check-wave-script.mjs	2026-10-18 11:52:51.639381709 +0000
++++ cws_with_probe.mjs	2026-10-18 11:52:51.239704733 +0000
+@@ -1057,6 +1057,9 @@
+   const strFind = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: J([{ id: 'D1-s2-01', scope: 'D1-s2', class_guess: 'P3', step: 'D1.M1', severity: 'low', title: 't' }]) } : {}) })
+   t("a finder report whose findings came back as JSON text is read as its findings, not as none",
+     /"id":"D1-s2-01"/.test(strFind.calls.find((c) => c.label === 'intake')?.prompt ?? ''), strFind.error || 'D1-s2-01 not registered')
++  const cutFind = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: J([{ id: 'D1-s2-01', scope: 'D1-s2', class_guess: 'P3', step: 'D1.M1', severity: 'low', title: 't' }]).slice(0, 25) } : {}) })
++  t("REVIEWER-PROBE a finder report whose findings came back cut off is a seat not reported, never one with no findings",
++    (cutFind.out?.missing ?? []).includes('D1-s2') || /D1-s2/.test(cutFind.error ?? ''), J({ missing: cutFind.out?.missing, err: cutFind.error, intake: (cutFind.calls.find((c) => c.label === 'intake')?.prompt ?? '').includes('D1-s2') }))
+   const noBox = `B${Object.keys(D.BOXES).length + 1}`
+   t(`an unknown box is refused (${noBox})`, !D.BOXES[noBox] && /is not one of/.test((await drive({ ...base, box: noBox })).error), `${noBox} accepted`)
+   const both = await drive({ ...base, box: 'B1', from: 'intake' })
