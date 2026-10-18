@@ -1,268 +1,251 @@
-# R10-RCA-HARNESS-FRICTION: one reviewer obligation, two friction keys (#2331, #2353)
+# R10-RCA-HARNESS-FRICTION: a block class the contract does not teach splits one obligation across friction keys (#2331, #2353, #2409, #2410)
 
-The root-cause seat for **#2331** (`[policy] recurring friction: harness`, filed
-2026-10-16T06:05Z) and **#2353** (`[policy] recurring friction: class-open`, filed
-2026-10-17T18:26Z). Both were filed by the governance cron's friction step
-(`tools/policy/friction_issues.mjs`). The seat ran apart from any fix
-(`dev/governance/roles/root-cause.md`). It measured at origin/main `6e5753a4`.
+The root-cause seat for four issues the governance cron's friction step
+(`tools/policy/friction_issues.mjs`) filed in the window `v7.0.0..origin/main`:
 
-**#2353 is not a `harness` issue.** Its key is `class-open`. Its window is the same
-one, `v7.0.0..origin/main`. Section 2 shows that both issues measure the same
-obligation, `fix-review.md` step 6, under two spellings.
+- **#2331** `[policy] recurring friction: harness`
+- **#2353** `[policy] recurring friction: class-open`
+- **#2409** `[policy] recurring friction: mutation-vacuous`
+- **#2410** `[policy] recurring friction: mutation (family)`
 
-## 1. The count, reproduced
+It ran apart from any fix (`dev/governance/roles/root-cause.md`). Figures were
+re-taken on 2026-10-18 between origin/main `176851e9` (the `--stats` run) and
+`106af95a` (the verdict enumeration); section 1 says which instrument read which.
+#2331 and #2353 share one cause (section 2). #2409 is the same cause on a second
+step (section 5). #2410 is a different cause, outside this record (section 6).
+
+## 1. The counts, reproduced
 
 `GITHUB_TOKEN=$(gh auth token) node tools/policy/policy_lint.mjs --stats --since v7.0.0`
-ran at `6e5753a4` in 2 min 39 s with rc=0. It counted 87 merged pull requests, and 51
-of them carried a parsable verdict. It printed `9 / 14 harness` and `3 / 3 class-open`,
-both at or over the threshold. Both issues quote these numbers.
+ran with rc=0 in 4 min 5 s. It counted 129 merged pull requests, 67 with a parsable
+verdict, and printed, as distinct PRs / entries:
 
-The seat then listed every entry itself, without using `policy_lint.mjs`:
+| key | PRs / entries | issue |
+|---|---|---|
+| `harness` | 13 / 21 | #2331 |
+| `class-open` | 4 / 5 | #2353 |
+| `mutation-vacuous` | 3 / 3 | #2409 |
+| `mutation (family)` | 3 / 3 | #2410 |
+| `test-vacuous` | 2 / 2 | none (below threshold) |
+| `vacuous-check`, `mutant-survives` | 1 / 1 each | none |
 
-- The pull requests came from `git log --first-parent v7.0.0..origin/main` subjects
-  `Merge pull request #N`. That gave 87.
-- For each one, the seat read the first line of every comment
-  (`/issues/N/comments`) and every review (`/pulls/N/reviews`).
-- It kept each line matching `^Fix review:\s+blocked\s+[0-9a-f]{40}\s+(harness|class-open)`.
+The seat then listed every entry itself, without `policy_lint.mjs`:
 
-The script gave 29 blocked verdicts over all classes, the same total as the histogram.
-The 17 `harness` and `class-open` entries:
+- The pull requests are the `git log --first-parent v7.0.0..origin/main` subjects
+  `Merge pull request #N` at `106af95a`: 125 (`window_prs.txt`). The two PR rules
+  differ; `policy_lint.mjs` also recovers merges from `/commits/<sha>/pulls`.
+- For each, the first line of every comment (`/issues/N/comments`) and review
+  (`/pulls/N/reviews`); 0 of 125 fetches failed (`verdict_first_lines.tsv`).
+- `rounds.py` keeps each `Fix review: blocked <40-hex> <class>: <reason>` line: 48
+  blocked verdicts (`blocked_rounds.tsv`).
 
-| PR | verdict (UTC) | class written | reason's first word | to next verdict |
-|---|---|---|---|---|
-| #2283 | 10-15 16:46 | `harness` | `surviving` (mutant, and "the census misses ...") | 96 min |
-| #2283 | 10-15 18:22 | `harness` | `class-open` | 159 min |
-| #2293 | 10-15 19:28 | `class-open` | (seam) | 119 min |
-| #2289 | 10-15 20:32 | `class-open` | (seam) | 138 min |
-| #2283 | 10-15 21:01 | `harness` | `class-open` | 178 min |
-| #2289 | 10-15 22:50 | `harness` | `class-open` | 98 min |
-| #2283 | 10-15 23:59 | `harness` | `class-open` | 71 min |
-| #2283 | 10-16 01:10 | `harness` | `over-claim` | 86 min |
-| #2316 | 10-16 01:32 | `harness` | `class-open` | 126 min |
-| #2320 | 10-16 03:10 | `harness` | `class-open` | 832 min |
-| #2316 | 10-16 03:38 | `harness` | `class-open` | 144 min |
-| #2323 | 10-16 04:43 | `harness` | `class-open` | 589 min |
-| #2329 | 10-16 14:45 | `harness` | `class-rule-missing` | 28 min |
-| #2320 | 10-16 17:02 | `class-open` | (seam) | 1231 min |
-| #2344 | 10-17 08:42 | `harness` | `class-open` | 286 min |
-| #2347 | 10-17 08:59 | `harness` | `class-open` | 296 min |
-| #2346 | 10-17 12:59 | `harness` | `class-open` | 270 min |
+Every count in the table above reproduces from `blocked_rounds.tsv`. The one entry
+the histogram lacks is #2396's `conflict` verdict (15:25Z), posted after the
+`--stats` tip; it is in no class this record measures.
 
-"To next verdict" runs from the blocked verdict to the next verdict on the same pull
-request. It is elapsed time, so it includes fixer, CI, reviewer and idle time.
+**The step-6 class-open refusal, under both spellings:**
 
-- **`harness` totals: 14 entries over 9 PRs.** This matches the histogram. Eleven of the
-  14 open with `class-open`. The other three are a survivor (#2283), an over-claim
-  (#2283) and `class-rule-missing` (#2329). Those three fall in **2 PRs**.
-- **`class-open` totals: 3 entries over 3 PRs.** This matches the histogram.
-- **The step-6 class-open refusal, counted under both spellings: 14 entries over 9 PRs.**
-  That is 14 of the window's 29 blocked verdicts. Elapsed round time was 4537 min, with
-  a median of 168 min.
+- `harness` totals 21 entries over 13 PRs. **18 of the 21 open with `class-open`**,
+  over 12 of the 13 PRs. The other 3 are a survivor and an over-claim (#2283) and
+  `class-rule-missing` (#2329): **2 PRs**.
+- `class-open` written as the class: 5 entries over 4 PRs (#2289, #2293, #2320,
+  #2345).
+- Folded: **23 of the window's 48 blocked verdicts, over 13 PRs**; 10 of the 23
+  re-blocked a PR already blocked on a class-open seam. Elapsed time from each
+  block to the next verdict on the same PR sums to 5695 min, median 131 min (it
+  includes fixer, CI, reviewer and idle time).
 
 ## 2. Named cause
 
-**`fix-review.md` step 6 teaches `blocked <sha> harness: class-open <seam>`, but
-`class-open` is a block class in its own right.** `VERDICT_RE` in
-`.claude/workflows/web-fix-wave.js` takes the first word after the SHA as the class.
-So both readers deliver `harness` for the spelling the contract teaches: `parseVerdict`
-routes it, and `policy_lint.mjs` `statsHistogram` keys it. The word `class-open` reaches
-a key only when a reviewer writes something other than the contract's example. This
-window shows both spellings: 11 reviewers followed the example, and 3 did not.
+**A contract step that defines a block class does not teach the word
+`VERDICT_CLASSES` carries for it.** `VERDICT_RE` in `.claude/workflows/web-fix-wave.js`
+takes the first word after the SHA as the class, so both readers (`parseVerdict` and
+`policy_lint.mjs` `statsHistogram`) key a verdict on whatever word the reviewer wrote
+there. Where the step teaches a different word, or none, one obligation lands on
+several keys.
 
-Both halves came from one commit. `6bc932db` (#1414, 2026-09-22) added `'class-open'` to
-`VERDICT_CLASSES` and wrote the step-6 example
-`blocked <sha> harness: class-open <seam>`. Its commit message calls the word "the
-`class-open` verdict word". So the vocabulary has carried the word since the day the
-contract started teaching a spelling that never produces it.
+**#2331 and #2353.** `fix-review.md` step 6 taught `blocked <sha> harness: class-open
+<seam>`, which keys `harness`, while `class-open` is a block class of its own. Both
+halves came from one commit: `6bc932db` (#1414, 2026-09-22) added `'class-open'` to
+`VERDICT_CLASSES` and wrote that example. In this window 18 class-open blocks followed
+the example and 5 did not, so the cron filed one obligation twice.
 
-R9-RCA-2004 (#2004, section 2) named the effect: `harness` is "a parent verdict class,
-and the friction key counts the parent". It did not name the cause. It recommended
-sub-keying the histogram on free text and did not build it, because the text after
-`harness:` follows no grammar. The cause is narrower than that. One child already had its
-own word, and the contract spelled it as a child.
-
-**The cause has a measured cost.** The `harness` key was filed **5 times in 5 release
-windows**: #1881 (v6.7.14), #2004 (v6.7.16), #2034 and #2136 (both v6.7.17), and #2331
-(v7.0.0). Window v6.7.15..v6.7.16 stayed below threshold at 2/2. Each filing took a
-disposition seat. Each seat found `class-open` the largest child:
-
-- #2004: 4 of 7 entries.
-- #2034 and #2136: 3 of the 6 PRs (#2057, #2068, #2075), as their disposition comments
-  list them.
-- #2331: 11 of 14 entries.
-
-Each seat then closed the parent as "the mechanism working". This window adds a sixth
-issue, #2353, for the same obligation under its other spelling.
+R9-RCA-2004 (#2004, section 2) named the effect ("a parent verdict class, and the
+friction key counts the parent") but not the cause. The `harness` key was filed in
+5 release windows: #1881 (v6.7.14), #2004 (v6.7.16), #2034 and #2136 (v6.7.17),
+#2331 (v7.0.0); v6.7.15..v6.7.16 stayed below threshold at 2/2. Each disposition
+seat found `class-open` the largest child (#2004: 4 of 7 entries; #2034/#2136: 3 of
+6 PRs, #2057 #2068 #2075; #2331: 18 of 21 entries) and closed the parent as "the
+mechanism working".
 
 ## 3. Process state, with evidence
 
 **(c): the process was followed and did not produce the intended result.**
 
-- The reviewers obeyed `fix-review.md` step 6 as written. Eleven of 14 used its spelling.
-- The friction cron keyed and filed as `policy_lint.mjs` specifies. Both counts
-  reproduce exactly (section 1).
-- A check existed for this seam. `tools/policy/check-wave-script.mjs`, block "the
-  contract's verdict examples parse under the script's own grammar", extracts every
-  backticked `blocked ...` example from the role contracts. It checks that each example
-  parses (`example parses`), and that the first class word is taught (`teaches block
-  class "<w>", and VERDICT_CLASSES carries it`). `harness: class-open` passes both arms,
-  because `harness` is taught. The check's unit is the class word. It cannot see a
-  second taught word sitting in the reason position, which is the shape that keys one
-  obligation on another class.
+- Reviewers obeyed step 6 as written: 18 of the 23 class-open blocks used its spelling.
+- The cron keyed and filed as `policy_lint.mjs` specifies; every count reproduces
+  (section 1).
+- A check existed. `tools/policy/check-wave-script.mjs`, block "the contract's verdict
+  examples parse under the script's own grammar", checks that every backticked
+  `blocked ...` example parses and that its first word is taught. `harness:
+  class-open` passes both arms because `harness` is taught. The unit is the first
+  word; a taught word in the reason position is invisible to it, and a step that
+  teaches no word at all (section 5) offers it no example to read.
 
-This is not (b), because nothing was disobeyed. A firmer instruction to reviewers would
-contradict the contract's own example. It is not (a), because the example check
-existed. The countermeasure therefore changes the unit of the existing check and
-corrects the example. It does not add an instruction.
+Not (b): nothing was disobeyed, and a firmer instruction would contradict the
+contract's own example. Not (a): the example check existed. The countermeasure
+corrects the examples and changes the check's unit.
 
 ## 4. How far the class reaches
 
-- **Contract examples.** The extended arm (section 5) ran over every backticked
-  `blocked <sha> <A>: <B>` example in `dev/governance/roles/` and
-  `dev/governance/dimensions/`. It found exactly **one** whose reason opens with a taught
-  word: `fix-review.md:29`.
-  - `harness: class-rule-missing` (line 30) and `harness: design-trace-missing`
-    (line 41) put untaught words in the reason position. They stay `harness` sub-reasons
-    and do not split a key.
-  - `git grep -nE '\`blocked <sha> [a-z-]+: [a-z-]+'` over the tree finds no other
-    contract example of this shape.
-- **Literal `harness: class-open` elsewhere.** These hits are not teaching:
-  - `tools/audit/seat/bus.sh:779,784,890,915` are the bus self-test's fixture verdicts.
-    The bus routes on the head, not the class, so they are left as they are.
-  - `dev/audit/rca/1985/seq.txt`, `dev/audit/rca/2028/verdicts_review_refs.tsv` and
-    `dev/audit/rounds/round9/prestudy/friction-prestudy.md:164` are frozen evidence.
-- **The two readers still agree.** `group 14 -- the two readers of a blocked verdict
-  deliver one class` in the same check stays green. The defect was never that the readers
-  disagreed. Both read the contract's spelling the same wrong way.
-- **The rework the key measures.** The `class-open` refusal is the window's largest
-  rework class: 14 of 29 blocked verdicts over 9 of 51 reviewed PRs. Nine entries are
-  each PR's first `class-open` block. The other 5 re-opened a class after a repair. Section 6 costs this separately.
+Every `VERDICT_CLASSES` word against the backticked `blocked <sha> <w>:` examples in
+`dev/governance/roles/` and `dev/governance/dimensions/` (a `node -e` read of the
+literal and the examples, at this head): 8 of 17 words are taught (`mutation-vacuous`,
+`class-open`, `harness`, `carry-missing`, `root-cause-unanswered`, `head-moved`,
+`metric-gamed`, `architecture-unsound`); 9 are not.
 
-## 5. Countermeasure, built and demonstrated
+- **A taught word in the reason position:** exactly one example,
+  `fix-review.md` step 6 (the held detector, section 7, ran over every example and
+  fired there alone). `harness: class-rule-missing` and `harness:
+  design-trace-missing` put untaught words there and stay `harness` sub-reasons.
+- **A step that names a block with no word:** `fix-review.md` step 1 ("the test is
+  vacuous and the PR is blocked"), whose word `mutation-vacuous` no example taught
+  (section 5).
+- **Synonym splits in this window, untaught words over all 48 blocks:** the mutation
+  obligation is the only one whose split hides a threshold count (7 PRs, section 5).
+  `figures-false` and `figure-unverified` (1 PR each) are one figures obligation
+  with no vocabulary word, below threshold; left to the next window's count.
+- **Literal `harness: class-open` elsewhere** is fixture or frozen evidence, not
+  teaching: `tools/audit/seat/bus.sh`'s self-test verdicts (the bus routes on the
+  head, not the class), `dev/audit/rca/1985/`, `dev/audit/rca/2028/`, and
+  `dev/audit/rounds/round9/prestudy/friction-prestudy.md`.
 
-There are two commits on `rca/r10-harness-friction`. The detector came first.
+## 5. #2409: the same cause on step 1
 
-1. **`3145aeff`, the detector.** `tools/policy/check-wave-script.mjs` adds an arm in the
-   contract-examples block. An example `blocked <sha> <A>: <B> ...` fails when `<B>` is a
-   `VERDICT_CLASSES` word other than `<A>`. The failure message names the spelling that
-   keys correctly. The arm carries two controls on the predicate itself:
-   - A negative control: the #1414 spelling must fire.
-   - A null control: `harness: class-rule-missing`, an untaught reason, must not fire.
-2. **`99636a0e`, the fix (policy).** `fix-review.md` step 6 now reads
-   `blocked <sha> class-open: <seam>`. **This line is policy.** It is proposed for the
-   orchestrator's approval under mandate (#201 comment 6175172275, scope all) and is not
-   landed by this seat. If the line is refused, drop both commits, because the detector
-   alone reds `wave-script`.
+The mutation obligation (a reviewer mutant survives the PR's checks) was blocked on
+**7 distinct PRs** under four words. Only one is in `VERDICT_CLASSES`:
 
-The runs, `node tools/policy/check-wave-script.mjs`:
+| word | PRs |
+|---|---|
+| `mutation-vacuous` | #2275, #2305, #2365 |
+| `test-vacuous` | #2297, #2360 |
+| `mutant-survives` | #2376 |
+| `vacuous-check` | #2400 |
 
-| tree | rc | result | the arm |
-|---|---|---|---|
-| `6e5753a4` (main) | 0 | 186 passed, 0 failed | absent |
-| `3145aeff` (detector, defect present) | 1 | 188 passed, 1 failed | `FAIL fix-review.md teaches "class-open" as a reason under another class: blocked <sha> harness: class-open <seam>` |
-| `99636a0e` (fixed) | 0 | 188 passed, 0 failed | both controls `ok`; `fix-review.md teaches block class "class-open", and VERDICT_CLASSES carries it` |
-| `99636a0e` with the predicate mutated to `return null` | 1 | 187 passed, 1 failed | `FAIL the shadow predicate fires on the #1414 spelling (negative control)` |
+`test-vacuous` is step 1's own prose ("the test is vacuous"). The fix teaches the
+word: step 1 now reads `blocked <sha> mutation-vacuous: <mutant>`. Future windows key
+all seven under `mutation-vacuous`, so the count the cron files is the obligation's
+whole count rather than 3 of 7.
 
-The mutant shows that the arm cannot go green by finding nothing. A predicate that never
-fires fails its own negative control. The `FAIL (probe, expected) threw: deliberate` line
-is printed at every row, including main. It is the script's own throwing-block probe and
-is not counted as a failure.
+**The rework itself is the review working, and its substance has an owner.** 6 of
+the 7 PRs are tooling-only diffs (no `custom_components/` path: #2275 #2297 #2305
+#2360 #2376 #2400), where the CI `mutation` lane draws no mutant, so the reviewer's
+own mutant is the only one. That is O10-policy-fixer-md's item 1 (#2305's friction:
+"pinned by mutation-autofix" pins nothing under `tools/`), already in that group's
+brief. #2365 (`custom_components/`) is a receiver half the fixer's tests missed, an
+instance, not a recurrence.
 
-**What the fix changes.** The fix changes future verdict bodies. It does not change the
-keying rule. The current window's counts are a property of bodies that are already
-merged, so they do not move (as #2331's own body says).
+## 6. #2410: a different cause, not this record's
 
-Counterfactual, measured on this window's entries (section 1): had step 6 taught
-`class-open:`, the class-open blocks would have keyed `class-open` at 9 PRs and 14
-entries. The `harness` residue would have been 2 PRs (#2283, #2329), below the threshold.
-The cron would have filed one issue, under the name of the obligation, where it filed two.
+The `mutation (family)` key's 3 PRs are exactly `mutation-vacuous`'s 3: the family's
+other members, `mutation` and `mutation-survivor`, have no entry in
+`blocked_rounds.tsv`. So the family arm filed the same three occasions twice. In
+`tools/policy/policy_lint.mjs` the arm's comment says "a member already over
+threshold fires its own id line above and the family does not double it", and the
+code (`if (n < FRICTION_THRESHOLD) continue`, then push) has no such test. The
+family's hand-kept member list also misses the synonyms of section 5. Both are the
+keying rule, a different file and cause; section 8 names the owner.
 
-In the two earlier windows whose dispositions list the sub-reasons, the residue would
-still have reached 3 PRs:
+## 7. Countermeasure
 
-- v6.7.16: #1960, #1994 and #1993's `env-matrix` entry.
-- v6.7.17: #2025, #2070 and #2071.
+1. **The fix (policy), in this PR.** `fix-review.md` step 6 reads `blocked <sha>
+   class-open: <seam>`; step 1 reads `blocked <sha> mutation-vacuous: <mutant>`.
+   Step 8 drops "rather than reporting a number as confirmed", which restates its
+   bold lead, to pay the tokens (`policy_lint.mjs --budgets`: 2444 of 2451, was
+   2449). **These lines are policy**, for tvofi's approval at merge under mandate
+   6175172275.
+2. **The detector, held.** The arm (`detector.patch`, commit `3145aeff` of the
+   unpublished seat branch) adds to the contract-examples block of
+   `check-wave-script.mjs`: an example `blocked <sha> <A>: <B> ...` fails when `<B>`
+   is a `VERDICT_CLASSES` word other than `<A>`, with a negative control (the #1414
+   spelling must fire) and a null control (`harness: class-rule-missing` must not).
+   It is not in this PR: open PR #2390 edits the same file, and the orchestrator
+   ruled this group leaves it alone. It is carried to the orchestrator for the first
+   group that edits `check-wave-script.mjs` after #2390 merges.
 
-So the fix would have stopped the `harness` filing in 1 of the 3 windows checked. In all
-3 it would have filed the `class-open` count under its own name.
+`node tools/policy/check-wave-script.mjs`, each on a scratch copy of the tree named:
 
-## 6. Cost test
+| tree | rc | result |
+|---|---|---|
+| origin/main + detector | 1 | 189 passed, 1 failed: `fix-review.md teaches "class-open" as a reason under another class` |
+| this head + detector | 0 | 191 passed, 0 failed |
+| this head | 0 | 189 passed, 0 failed; `fix-review.md teaches block class "mutation-vacuous", and VERDICT_CLASSES carries it` |
+| this head, step 1's word misspelt `mutation-vacous` | 1 | 188 passed, 1 failed: that arm, `routed to other` |
+| this head, step 1 back to main's prose | 0 | 187 passed, 0 failed |
+
+The existing arm pins step 1's spelling (row 4). It does not pin step 1's presence
+(row 5): no arm asks that a step defining a block teach its word. That arm would also
+live in `check-wave-script.mjs`, so it goes with the held detector. The script's
+`FAIL (probe, expected) threw: deliberate` line prints on every row and is not
+counted.
+
+**What the fix changes:** future verdict bodies, not the keying rule. The window's
+counts are a property of merged bodies and do not move. Counterfactual on this
+window: with both spellings taught, `class-open` keys 13 PRs and the `harness`
+residue is 2 (below threshold), one filing where there were two; `mutation-vacuous`
+keys 7, where it keyed 3 and the family re-filed the same 3.
+
+## 8. Cost test
 
     cost(countermeasure, recurring) < cost(defect) x P(recurrence)
 
-The unit is wall-clock per release window. There were five windows from v6.7.14
-(2026-10-02) to `6e5753a4` (2026-10-17), about 3 days each.
+- **The two example lines: pass.** Standing cost: none at run time; the fix shortens
+  a step-6 verdict by a word. Defect cost: one mis-keyed or split filing takes one
+  disposition seat, estimated at **30 min** (an estimate from this seat's own
+  re-derivation: `--stats` 4 min, the enumeration a few minutes, the write-up).
+  P(recurrence): the `harness` key was filed in 4 of 5 windows (0.8). 30 min x 0.8 =
+  24 min per window against a one-time edit.
+- **The held detector: passes** on the same terms; the arm is a regex over examples
+  the block already extracts. The whole script took 0.343 s without it and 0.383 s
+  with it at this head (mean of 5 runs each, on scratch copies): at most 0.04 s a
+  run, a few seconds a window at several pushes per PR.
+- **Making `fixer.md` step 8 unconditional (every fix names an enumeration rule):
+  refused.** In this window 13 PRs took a class-open block, median 131 min to the
+  next verdict, against R9-RCA-2004's estimate of 3 min per PR over 125 PRs (375
+  min, not measured). Prevention is not shown: #2283 named a census and was
+  re-blocked on seams it missed. `class-open` is a review refusal, not an audit
+  class in `bugclasses.json`, so `defect-root-cause.md`'s barrier obligation does
+  not bind.
+- **Sub-keying `harness: <free text>` in `statsHistogram`: refused.** It would make
+  the histogram disagree with `parseVerdict`, which group 14 of
+  `check-wave-script.mjs` refuses (#1475). The fix makes both readers deliver the
+  right word at the source.
 
-**The countermeasure built (the example check and the policy line): passes.**
+## 9. Recorded
 
-- Standing cost: the check ran in 1.054 s at main and 1.035 s at the fix, which is no
-  measurable delta. The new arm is a regex over the examples the block already extracts.
-  The reviewer spelling is one word shorter. Taking 0.02 s as a ceiling over about 300
-  runs per window (87 PRs with several pushes each, in the `wave-script` job) gives at
-  most about 6 s per window.
-- Defect cost per occurrence: one mis-keyed filing takes one disposition seat.
-  - The seat estimates **30 min** per seat. This is an estimate, not a measurement.
-  - Its basis is this seat's own work: re-deriving `--stats` took 2 min 39 s, enumerating
-    the verdicts from the API took a few minutes, and the disposition had to be written.
-  - #2004 took a full RCA seat and a reviewed pull request (#2014), so it cost far more.
-- P(recurrence): the `harness` key was filed in **4 of 5** windows, P = 0.8. In this
-  window the same obligation was filed twice.
-- Expected cost at 30 min x 0.8 = **24 min per window**, not counting a split second
-  issue such as #2353. That is greater than 6 s.
-
-**Making `fixer.md` step 8 unconditional, so every fix names and lists an enumeration
-rule: not built, with the reason recorded.** R9-RCA-2004 section 4a costed and refused
-this.
-
-- Defect side: in this window, 9 PRs took their first `class-open` block. The median
-  elapsed round on those 9 was 270 min.
-- Countermeasure side: at R9-RCA-2004's estimate of 3 min per PR (not measured), 87 PRs
-  is about 261 min per window.
-- Prevention is not shown. The merged bodies of 8 of the 9 PRs name a census, an
-  enumeration or a rule (a body grep for `enumerat`, `census` and `rule`). #2283 was
-  re-blocked three times on seams its own census did not cover. A named rule that is
-  narrower than the class reaches the same review. The independent reviewer is the
-  cheapest detector that judges class membership. This seat did not read the
-  blocked-head bodies, so the prevention rate is unmeasured, and the refusal rests on
-  that.
-- `class-open` is not an audit class in `dev/audit/config/bugclasses.json`. It is a
-  review refusal, so the barrier obligation in `defect-root-cause.md` does not bind.
-
-**Sub-keying `harness: <free text>` in `statsHistogram`: refused.** R9-RCA-2004 raised
-the noise-key objection, and it still holds for the untaught residue. Promoting only
-taught words inside `policy_lint.mjs` would make the histogram disagree with
-`parseVerdict`. Group 14 of `check-wave-script.mjs` exists to refuse exactly that
-disagreement (#1475). The fix above makes both readers deliver `class-open` from the
-contract's spelling, at the source.
-
-## 7. Recorded
-
-- **Cause:** `fix-review.md` step 6 spells a taught block class as `harness`'s reason
-  (#1414, `6bc932db`).
+- **Cause:** a contract step defining a block class does not teach its vocabulary
+  word (step 6 taught another, #1414 `6bc932db`; step 1 taught none).
 - **State:** (c).
-- **Cost test:** the example check and the step-6 line pass, at about 6 s against
-  24 min per window. Making step 8 unconditional and sub-keying are refused, with the
-  numbers above.
-- **Countermeasure:** the `check-wave-script.mjs` arm (`3145aeff`), shown failing on the
-  defect and passing on `99636a0e`. The step-6 policy line awaits the orchestrator's
-  approval.
-- **#2331:** 8 of the `harness` key's 9 PRs carry a `class-open` block keyed under
-  the parent. Without those, the residue is 2 PRs (#2283, #2329). With the cause fixed at the contract, it closes on
-  this record.
-- **#2353:** the same obligation in the same window, under its own word. It is not a
-  duplicate by the filer's rule, which is one issue per key per window and was applied
-  correctly. It is a duplicate in substance. The rework it measures is the reviewer
-  catching real open seams. All 9 PRs were repaired and merged, and the step-8
-  countermeasure is refused above. It closes on this record. A later window that
-  crosses the threshold re-files under `class-open`, which is now the name every
-  step-6 block keys on.
+- **Cost test:** the two example lines and the held detector pass; step-8
+  unconditional and sub-keying are refused.
+- **Countermeasure:** the step-1 and step-6 lines in this PR; the detector and a
+  presence arm held for `check-wave-script.mjs` after #2390.
+- **#2331:** 12 of the key's 13 PRs carry a class-open block keyed under the parent;
+  the residue is 2 PRs. Closes on this record.
+- **#2353:** the same obligation in the same window under its own word; a duplicate
+  in substance, not by the filer's rule. Closes on this record.
+- **#2409:** 3 of the obligation's 7 PRs keyed; the spelling is fixed here and the
+  tooling-mutant substance is O10-policy-fixer-md's item 1. Closes on this record.
+- **#2410:** not this record's cause (section 6). Owner: a group on
+  `tools/policy/policy_lint.mjs`'s family arm (R10-POLICY-LINT-STATS is done; open
+  #2406 and #2408 edit the same file).
 
 ## Evidence
 
-`dev/audit/rca/harness-friction/` holds the evidence:
+`dev/audit/rca/harness-friction/`:
 
 - `stats_v7.0.0.txt`: the `--stats` run.
-- `window_prs.txt`: the 87 pull requests.
+- `window_prs.txt`: the 125 pull requests of the first-parent rule.
 - `verdict_first_lines.tsv`: every `Fix review:` first line, by PR and time.
-- `rounds.py`: the independent enumeration, which produced section 1's table.
-- `blocked_rounds.tsv`: the output of `rounds.py`.
+- `rounds.py`: the independent enumeration; `blocked_rounds.tsv`, its output.
+- `detector.patch`: the held `check-wave-script.mjs` arm.
