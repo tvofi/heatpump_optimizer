@@ -4,6 +4,7 @@
     python3 -I tools/audit/carry_audit.py check --body FILE [--comments FILE]
     python3 -I tools/audit/carry_audit.py pr N
     python3 -I tools/audit/carry_audit.py sweep (--prs N,N | --last N) [--from-dir DIR] [--issues]
+                                         [--ledger FILE]
     python3 -I tools/audit/carry_audit.py owners REGEX [REGEX ...] [--ledger FILE]
     python3 -I tools/audit/carry_audit.py --self-test
   (before the subcommand: --repo O/R, --briefs-dir DIR, --roster-ref REF, repeatable)
@@ -43,9 +44,11 @@ A DESTINATION (`Dests.check`):
 An item is also routed by a `Carry:` elsewhere in the body or a later verdict
 that names its id -- `Carry: R10-X (item 1a2b3c4d)`; every refusal prints it.
 
-`sweep` adds two reads: `--issues`, every open issue nothing owns; and, given
+`sweep` adds three reads: `--issues`, every open issue nothing owns; given
 two `--roster-ref`, every carry or brief text the first holds and the second
-lacks (a roster PR cut from the second reverts it without a conflict).
+lacks (a roster PR cut from the second reverts it without a conflict); and
+`--ledger`, every orchestrator-ledger line saying `FINDING:` or `LESSON:`
+with no `Carry:` (the ledger's work-queue OWED lines are tasks, not read).
 `owners` is the sweep's owner-corpus search. EXIT 0 when every finding item
 is routed to a valid destination; `CARRY-AUDIT:` is the summary line;
 `--self-test` prints `carry_audit self-test: N checks, 0 failed`. Reads only:
@@ -403,6 +406,19 @@ def roster_drift(repo: Path, refs: list[str]) -> list[str]:
     return out
 
 
+# A ledger line that records a finding, as the orchestrator writes one: the
+# work queue's OWED/QUEUED lines are tasks, not findings, and are not read (a
+# key on OWED printed 31 lines over round 10's SEATS.md, one a finding).
+LEDGER_FINDING = re.compile(r"\b(?:FINDING|LESSON):")
+
+
+def ledger_unrouted(text: str) -> list[str]:
+    """Each ledger line saying FINDING: or LESSON: with no `Carry:` on it."""
+    return [f"LEDGER-UNROUTED l{k}: {ln.strip()[:110]!r}"
+            for k, ln in enumerate(text.splitlines(), 1)
+            if LEDGER_FINDING.search(ln) and not carry_dests(ln)]
+
+
 # ---------------------------------------------------------------- the owners
 def owner_corpus(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
                  ledger: str | None = None) -> list[tuple[str, str]]:
@@ -446,6 +462,7 @@ def main(argv: list[str]) -> int:
     s.add_argument("--last", type=int)
     s.add_argument("--from-dir")
     s.add_argument("--issues", action="store_true")
+    s.add_argument("--ledger", help="the orchestrator's ledger: FINDING:/LESSON: lines need a Carry:")
     o = sub.add_parser("owners")
     o.add_argument("pattern", nargs="+")
     o.add_argument("--ledger")
@@ -492,6 +509,8 @@ def main(argv: list[str]) -> int:
             extra += [f"ISSUE-UNOWNED #{n} {t[:90]!r}" for n, t in unowned_issues(a.repo, dests)]
         if len(a.roster_ref) > 1:
             extra += roster_drift(ROOT, a.roster_ref)
+        if a.ledger:
+            extra += ledger_unrouted(Path(a.ledger).read_text())
         for line in extra:
             print(line)
         print(f"CARRY-SWEEP: {len(prs)} pull request(s), {len(extra)} other unowned finding(s)")
@@ -611,6 +630,12 @@ def _self_test() -> int:
     nv = {"id": 44, "body": "bus: verdict/1 at abc\n\nNon-blocking notes: x"}
     r = run(head, [nv])
     check("a comment that is not a `Fix review:` verdict is not read", r["rows"] == [])
+    led = ("== 03:50Z train PARKED. LESSON: remove the upd wt before training.\n"
+           "REVIEWERS OWED: #7 reviewer.\n"
+           "== 04:00Z FINDING: the regex rejects a form. Carry: R10-LIVE\n")
+    out = ledger_unrouted(led)
+    check("a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed "
+          "FINDING: are not", len(out) == 1 and out[0].startswith("LEDGER-UNROUTED l1:"))
     check("carry_dests stops at prose", carry_dests("Carry: R10-LIVE because it owns x") == ["R10-LIVE"])
     check("carry_dests reads dismissed whole", carry_dests("Carry: dismissed: host load")
           == ["dismissed:host load"])
