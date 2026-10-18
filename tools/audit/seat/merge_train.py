@@ -32,10 +32,11 @@ later pull request would be graded against a `main` the refused one never joined
                  neutral stops it, except the `--ignore-red` names (default
                  `nightly-status`, which grades `main`, not the head). A head
                  whose TIP is a GITHUB_TOKEN push (author `github-actions[bot]`)
-                 is refused before any check is read: such a push fires no
-                 `pull_request` run at all, so the required contexts only one
-                 writes stay ABSENT at it forever and the merge would be
-                 refused with nothing saying why (R9-RC-AUTOFIX-GOVERNANCE).
+                 is refused before any check is read: such a push's
+                 `pull_request` runs are held `action_required`, so the
+                 required contexts only one writes stay ABSENT at it until a
+                 held run is approved, and the merge would be refused with
+                 nothing saying why (R9-RC-AUTOFIX-GOVERNANCE).
                  The required follow-up is an App push -- step 1's recarry is
                  one, which is why the refusal fires only where the head
                  already contains main;
@@ -85,8 +86,8 @@ Same queue file; no head is re-merged with main. In order:
   1. admit    -- each head's own files (three-dot from main) are classed by
                  merge_fastpath.py's `file_class`: a workflow, claim, grader or
                  any `*_budgets.json` change goes SERIAL, and so does a head
-                 whose tip is a GITHUB_TOKEN push (`bot-head`): no proof can
-                 carry it, and its serial recarry -- once the batch's own merges
+                 whose tip is a GITHUB_TOKEN push (`bot-head`): its
+                 `pull_request` runs are held, so no proof can carry it, and its serial recarry -- once the batch's own merges
                  moved main -- is the App push that cures it (refused there as
                  before when main never moved). The
                  rest must be green at their head (all check runs, less
@@ -318,7 +319,7 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
-BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: no pull_request run can fire
+BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: its pull_request runs are held
 STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
 ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
 BOT_ROUTE = "bot-head"               # batch: a GITHUB_TOKEN tip goes serial, where its recarry cures it
@@ -454,19 +455,22 @@ class Train:
         return self.ok("git", "merge-base", "--is-ancestor", "origin/main", h)
 
     # R9-RC-AUTOFIX-GOVERNANCE. A GITHUB_TOKEN push (the autofix jobs' pin and
-    # re-record commits, the merge-main bot's resolution) fires NO pull_request
-    # workflow run at all -- GitHub suppresses events from GITHUB_TOKEN -- so at
-    # such a head the only runs are the four the autofix job dispatches, and the
-    # required contexts only a pull_request run writes stay ABSENT forever: the
-    # head settles, every run it has is green, and the merge is refused with
-    # nothing saying why (measured 2026-10-09 at 63084989/#2066 and
-    # a9ba0b88/#2070: 4 dispatched runs each, zero pull_request runs, the same
-    # 5 of the 17 required contexts of main-protect-checks absent). Dispatch
-    # cannot close the gap: governance.yml answers workflow_dispatch, but
-    # pr-contract.yml and budget-raise-gate.yml take pull_request/merge_group
-    # only. The one follow-up that repairs such a head is an App push, and the
-    # train's own recarry (step 1) is one -- so the refusal fires only where the
-    # head already contains main and no recarry is possible.
+    # re-record commits, the merge-main bot's resolution) does create
+    # pull_request runs, but they are held action_required (actor
+    # github-actions[bot]) until approved -- every bot head from
+    # 2026-10-15T10:23Z, e.g. Tests run 38781421410 at 720d3636: attempt 1
+    # action_required, attempt 2 approved by hpo-runs[bot]. Until then the
+    # required contexts only a pull_request run writes are ABSENT. On
+    # 2026-10-09 no such run was created at all (63084989/#2066 and
+    # a9ba0b88/#2070: 4 dispatched runs each, the same 5 of the 17 required
+    # contexts of main-protect-checks absent). The autofix job's approve step
+    # approves the held runs, fail-soft while its secrets are absent; this
+    # train does not read whether it did, so it still refuses such a tip.
+    # Dispatch cannot write those contexts: governance.yml answers
+    # workflow_dispatch, but pr-contract.yml and budget-raise-gate.yml take
+    # pull_request/merge_group only. An App push is a follow-up that does, and
+    # the train's own recarry (step 1) is one -- so the refusal fires only where
+    # the head already contains main and no recarry is possible.
     def bot_tip(self, h: str) -> "str | None":
         """The subject of <h>'s tip commit when a GITHUB_TOKEN push put it there
         (author github-actions[bot], the login every such push carries), else
@@ -482,9 +486,9 @@ class Train:
 
     def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
         return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
-                    f"'{subject}'): no pull_request run fires at it, so the required contexts "
-                    "only one writes never report -- the head looks settled and is unmergeable, "
-                    "with nothing saying why. The required follow-up is an App push at this "
+                    f"'{subject}'): its pull_request runs are held action_required, so the required "
+                    "contexts only they write are ABSENT until one is approved -- the head can look "
+                    "settled and be unmergeable, with nothing saying why. The required follow-up is an App push at this "
                     "head: run the train again once main has moved (its recarry is one), or "
                     "have the orchestrator App-push the branch", cls=BOT_HEAD)
 
@@ -1261,8 +1265,8 @@ class Train:
         target = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "baseRefName", "--jq", ".baseRefName")
         if target != self.base:
             raise Stop("base", f"#{pr} targets {target}, not {self.base}")
-        # A GITHUB_TOKEN tip cannot join a proof (no pull_request run writes its
-        # required contexts) but the SERIAL path cures it: its recarry at its
+        # A GITHUB_TOKEN tip cannot join a proof (its pull_request runs are held,
+        # so its required contexts may be ABSENT) but the SERIAL path cures it: its recarry at its
         # turn, once the batch's own merges moved main, is the App push. A head
         # still containing main then is refused there, as before.
         bot = self.bot_tip(h)
@@ -2221,11 +2225,10 @@ def _self_test() -> int:
         check(f"the recarry logs app_push's path line (prepr {way.split(':')[0]})",
               rc == 0 and any(ln.endswith(f"app_push: RECARRY: prepr {way}") for ln in lines))
     # R9-RC-AUTOFIX-GOVERNANCE: a GITHUB_TOKEN push (author github-actions[bot])
-    # fires NO pull_request workflow run at all, so the required contexts only
-    # one writes never report at such a head: it settles with them ABSENT and
-    # the merge is refused with nothing saying why (measured 2026-10-09 at
-    # 63084989/#2066 and a9ba0b88/#2070: 4 dispatched runs each, zero
-    # pull_request runs, the same 5 of the 17 required contexts absent).
+    # gets pull_request runs held action_required, so the required contexts
+    # only they write are ABSENT at such a head until one is approved, and the
+    # merge is refused with nothing saying why (the measurement is bot_tip's
+    # comment).
     BOT = "ci: pin killed mutants"
     rc, lines, calls = go({"bot_tips": {H0: BOT}})
     check("a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- "
