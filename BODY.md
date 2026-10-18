@@ -13,15 +13,22 @@ described what #1530 left behind, not a recorded design decision. Its steps:
 in `tests/stress_budgets.json` at CI's measured counts, (4) state each
 re-planned stress scenario's solver work against baseline from CI's stress log.
 
-**Pending CI**, each named so this body is not read as complete:
-- **the ftol bound** (step 2): the Accelerate point is measured below; the
-  CI-runner and OpenBLAS kernel points come from CI, and the bound is half the
-  smallest gap, shown still red when production ftol is loosened;
-- **the `coverage_floor_override` value** (step 3): set at CI's measured
-  covered counts, with `## Raise justification`, reported to the orchestrator
-  before it is pushed;
-- **the step-4 solver-work comparison**: per re-planned scenario, from CI's
-  stress log, against the 3.0x work factor.
+**Pending**, each named so this body is not read as complete:
+- **the ftol check** (step 2). CI's fast lane at `74f23814e` reads production
+  `60.96` and the both-sites 1e-2 arm `60.96` (0.00% gap); Accelerate reads
+  +0.635%. Half the smallest gap is zero, so no bound separates. The
+  orchestrator's ruling: race production against the ftol 1e-8 fixed point
+  instead, decided from the kernel matrix's tight-arm numbers; if production
+  equals that fixed point on every kernel point, retire the check with the
+  per-kernel measurements as the recorded reason. The matrix comes from this
+  branch's new `kernel-points` job (below), run on the pull request's label.
+- **the `coverage_floor_override` entry** (step 3). Ruled: explicit floors at
+  CI's measured counts -- solver work 18, production calls 6 -- with
+  `coverage_floors` taking an optional explicit production-call floor (the
+  share rule stays the default), its failing test first. Not on this head; it
+  lands with `## Raise justification` on the next push.
+- **the step-4 solver-work comparison**, re-taken from CI's stress log at the
+  head that carries the entry.
 
 **D2-s2-01** (#2238, low, class P2). `ThermalModel.compute_cop_dhw` took its law
 from the space circuit's valve flag. With `cop_flow_carnot` the tank paid
@@ -45,9 +52,34 @@ directs; and `tests/closures.json` had lost the slot-floor census inert read the
 primary added after the held branch was cut -- a silent revert, restored to the
 primary's bytes in `dfb12c47e`.
 
+Since then: `329514767` merges the primary's reviewed head `a0c0f8665` (one
+conflict, `tests/entities.py`'s P2 table: D2's `cop_law_fork` entry kept, the
+primary's slot-floor comment taken; against `a0c0f8665` the merged tree
+differs only in this finding's files), `da32f7ec9` merges `origin/main`
+`994695e06` (delivery records only), `04ea8dbb6` adds the kernel job, and
+`26e097a12` adds it to the stale-contract follower's watched list.
+
+**The `kernel-points` job** (`.github/workflows/kernel-points.yml`, ruling
+step 2, in the shape the orchestrator approved): outside the required set,
+started only by `workflow_dispatch` or the `kernel-points` pull-request label,
+never by a push. It runs `dev/audit/harnesses/k1725_blas_kernel_gap.py` under
+`OPENBLAS_CORETYPE` unset (the runner's native kernel), Haswell, Sandybridge
+and Nehalem, on the `fast` job's hash-pinned install, and writes each leg's
+`environment:` and `RESULT` lines to its step summary. The file joins the two
+closures that read every workflow (`tests/entities.py`,
+`tests/harness_headers.py`), and `pr-contract-rerun.yml` now watches it:
+`tests/entities.py`'s D13-s1-03 check requires that follower to watch every
+pull-request workflow but the contract, and failed on `04ea8dbb6` until it
+did. Both are `.github/workflows/` changes, so tvofi approves them at merge.
+
 ## Head
 
-`f89848334`, against the merge base `6e5753a4a` (`origin/main`). The "before"
+`26e097a12`, against the merge base `994695e06` (`origin/main`). This
+finding's production and stress files (`thermal_model.py`, `tests/stress.py`)
+are byte-identical to `f89848334`, where the mutation proof below was taken
+(`git diff f89848334 26e097a12 -- custom_components/heatpump_optimizer/thermal_model.py tests/stress.py`
+is empty); everything else that moved since is the primary's reviewed head.
+Before that merge the head was `f89848334`, against `6e5753a4a`. The "before"
 arm of every D2 figure is the primary head `03bffee33`, where
 `compute_cop_dhw` still has two laws; `thermal_model.py` there is
 byte-identical to `6e5753a4a`'s. The k1725 head arm was taken at `2ccfcd3ed`:
@@ -141,32 +173,46 @@ two self-checks it adds were driven through
   `compute_cop_dhw`, `_batch_cop`), `2` at the head (`compute_cop`,
   `_batch_cop`, the registered owners); `--perturb` at the head `before=2
   after=3 moved=1`.
-- Scope, `python3 tests/closure.py select --diff 6e5753a4a`: `MODE: SCOPED -- 28
-  script(s) run, 5 scoped out` over 22 changed files. Run here:
-  `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 4162 FEATURE CHECKS PASSED`;
-  `tests/entities.py` `ALL 2348 ENTITY CHECKS PASSED`; `tests/doc_claims.py` `ALL 169 checks
+- Scope, `python3 tests/closure.py select --diff 994695e06`: `MODE: SCOPED -- 28
+  script(s) run, 5 scoped out` over 39 changed files. Run here:
+  `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 4165 FEATURE CHECKS PASSED`;
+  `tests/entities.py` `ALL 2348 ENTITY CHECKS PASSED` (at `04ea8dbb6` it read
+  `1 of 2348 ENTITY CHECKS FAILED`, the follower check above); `tests/doc_claims.py` `ALL 169 checks
   PASSED` (the two regenerated `docs/img/model/` figures fresh);
   `python3 tests/env_drift.py --claims-only` `claims hygiene: origin/main ok`.
   The heavy scoped scripts (`stress.py`, `optimality.py`, `golden.py`,
   `backtest.py` and the rest of `scope.run`) are CI's.
-- `python3 tools/pr/ci_predict.py --base 6e5753a4a`: `CI PREDICT: no closures or
-  fast red predicted against 6e5753a4aca8`.
+- `python3 tools/pr/ci_predict.py --base 994695e06`: `CI PREDICT: no closures or
+  fast red predicted against 994695e06c4c (a data-file read is not seen)` --
+  it does not run the heavy scripts, so it cannot see the two expected reds.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff 6e5753a4a`: `Architecture
-  score: dS +0.0000 NULL`; `--diff 03bffee33`: `dS +0.0000 NULL`.
+- `python3 tools/audit/archscore/score.py --diff origin/main HEAD` (`994695e06`):
+  `Architecture score: dS +0.0000 NULL`; `--diff a0c0f8665` (the primary):
+  `dS +0.0000 NULL`.
 
 ## Red checks
 
-Expected on this head, both the fix's own blast radius, both pending CI:
+**`fast (3.14)`** is red at `74f23814e` on exactly two scripts, both this
+fix's own blast radius, and the same two are expected on this head:
 - **`optimality.py`, `the production stop rule (ftol) buys a materially better
   plan`**: at the head the loosened arm lands 0.635% above production on
   Accelerate, under the 2.5% bound. Production's ftol is unchanged; the plan is
   better conditioned (it is now its own ftol 1e-8 fixed point), so the bound
-  no longer separates. Step 2 re-derives it from the kernel matrix. Cheaper
-  detector: none -- this block is the only place the stop rule is raced.
+  no longer separates; on CI's own kernel the gap is 0.00% (`60.96` both).
+  Answered by the ruled re-derivation under **Pending** (the 1e-8 race, or the
+  check's retirement on the kernel matrix). Cheaper detector: none -- this
+  block is the only place the stop rule is raced.
 - **`stress.py`, the solver-work and production-call coverage floors**: every
-  scenario with hot water re-plans, because the price of hot water changed.
-  Step 3's override, at CI's counts, is the answer the ruling sanctions.
+  scenario with hot water re-plans, because the price of hot water changed:
+  CI judged 18 of 54 (floor 40) and 6 of 20 families (floor 15), `2 of 112
+  STRESS CHECKS FAILED`. Owed by the pending override entry at exactly those
+  counts. Cheaper detector: none -- coverage is a property of a stress run.
+- **`pr-contract`** was red at `74f23814e` on one error: `## Red checks` did
+  not name `fast (3.14)`. The body named both failing scripts as expected
+  reds but not the context they run under. Cheaper detector: none --
+  `tools/pr/prepr.sh` lints a body before the CI conclusion it would have to
+  match exists; naming the context of an expected red is the body's own duty,
+  and this section now does.
 - `golden.py` / `env_drift.py` drift is claimed (41 fixtures in
   `tests/golden/claimed_drift.txt`); a red there that names an unclaimed
   fixture is a new finding.
