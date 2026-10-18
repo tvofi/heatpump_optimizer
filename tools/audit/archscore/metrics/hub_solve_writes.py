@@ -25,7 +25,17 @@ C16 (round 10, ARCH2-s2 P4's instrument half): a coordinator method the package 
 outside it -- a Home Assistant event, MQTT or timer subscription -- is called back at runtime with
 the live hubs, so it is a root too (``event_roots``); before, an in-place hub write in the ECL110
 state message or the peak-guard meter event was counted by no score metric. A callback handed to
-a package function is reached from wherever that function is, so it is not a root of its own.
+a package function is reached from wherever that function is, so it is not a root of its own --
+unless that function passes it ON without calling it: hands it to code outside the package, at any
+depth of package calls, or returns it (``def wrap(cb): return cb``, or a closure over it) into a call
+that hands the result on -- ``subscribe(wrap(self._cb))`` (``_passes_on``, ``_consumed``, counter C16b;
+#2311 round-1 review F1, attempt 20b). A returned reference whose result is discarded, or bound to a
+name and handed on later, is not a root: the first because nothing subscribes it (the null control in
+``tests/arch_score.py``), the second because the census does not follow a local.
+
+Precision, stated: a method reference handed to ANY non-package call is a root, including one that
+never calls it (``_LOGGER.debug("%r", self.method)``): the census over-counts such a method's writes
+(#2311 review F2) rather than miss a subscription it cannot tell from it.
 
 Headline: distinct write sites (file:line, hub, field). Details: distinct
 fields, per-root split, sites inside a ``finally``-reached restore helper.
@@ -41,6 +51,83 @@ from . import common as C
 ROOTS = ("_async_update_data", "async_run_optimization", "async_simulate")
 #: Counter C16: the event callbacks are roots. ``vector.py`` switches it off.
 EVENT_ROOTS = True
+#: Counter C16b: a callback a package function passes on uncalled is a root. ``vector.py`` switches it off.
+PASS_ON = True
+
+
+def _carriers(fn_node: ast.AST, param: str) -> set[str]:
+    """``param`` and the nested functions of ``fn_node`` that read it: what carries the argument out."""
+    out = {param}
+    for n in C.walk(fn_node):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n is not fn_node \
+                and any(isinstance(y, ast.Name) and y.id == param for y in C.walk(n)):
+            out.add(n.name)
+    return out
+
+
+def _passes_on(pkg: C.Pkg, qual: str, param: str, _seen: frozenset = frozenset()) -> str | None:
+    """How package function ``qual`` lets its parameter ``param`` out uncalled: ``"out"`` when it hands
+    it to a call that does not resolve to a package function or class (directly, or through a package
+    callee that does), ``"returned"`` when a ``return`` reads it (or a nested function or lambda over it),
+    else None. A returned reference is a root only where its caller hands the result on (``_consumed``)."""
+    fn = pkg.funcs.get(qual)
+    if fn is None or (qual, param) in _seen:
+        return None
+    seen = _seen | {(qual, param)}
+    carry = _carriers(fn.node, param)
+
+    def reads(e: ast.AST | None) -> bool:
+        """``e`` reads a carrier other than as the function it calls (``cb(x)`` calls it, not passes it)."""
+        if e is None:
+            return False
+        called = {id(y.func) for y in C.walk(e) if isinstance(y, ast.Call)}
+        return any(isinstance(y, ast.Name) and y.id in carry and id(y) not in called for y in C.walk(e))
+
+    returned = False
+    for n in C.walk(fn.node):
+        if isinstance(n, ast.Return) and reads(n.value):
+            returned = True
+        if not isinstance(n, ast.Call):
+            continue
+        handed = [(i, a) for i, a in enumerate(n.args) if reads(a)] + \
+                 [(k.arg, k.value) for k in n.keywords if reads(k.value)]
+        if not handed:
+            continue
+        callee = pkg.resolve_expr_static(fn.mod, n.func)
+        if not callee or callee[0] not in ("func", "class"):
+            return "out"
+        target = pkg.funcs.get(callee[1]) if callee[0] == "func" else None
+        for pos, _a in handed:
+            if target is None:
+                continue
+            name = pos if isinstance(pos, str) else (target.params[pos] if pos < len(target.params) else None)
+            if name and _passes_on(pkg, target.qual, name, seen) == "out":
+                return "out"
+    return "returned" if returned else None
+
+
+def _param_at(target, pos) -> str | None:
+    return pos if isinstance(pos, str) else (target.params[pos] if pos < len(target.params) else None)
+
+
+def _consumed(pkg: C.Pkg, mod: str, call: ast.Call, parent: dict[int, ast.AST], _depth: int = 0) -> bool:
+    """Whether the value ``call`` returns is handed on: an argument of a call outside the package, or of a
+    package function that passes that argument on in turn (C16b's returned arm)."""
+    up = parent.get(id(call))
+    if not isinstance(up, ast.Call) or _depth > 8:
+        return False
+    pos = next((i for i, a in enumerate(up.args) if a is call), None)
+    if pos is None:
+        pos = next((k.arg for k in up.keywords if k.value is call), None)
+    if pos is None:
+        return False
+    callee = pkg.resolve_expr_static(mod, up.func)
+    if not callee or callee[0] not in ("func", "class"):
+        return True
+    target = pkg.funcs.get(callee[1]) if callee[0] == "func" else None
+    name = _param_at(target, pos) if target else None
+    how = _passes_on(pkg, target.qual, name) if name else None
+    return how == "out" or (how == "returned" and _consumed(pkg, mod, up, parent, _depth + 1))
 
 
 def event_roots(pkg: C.Pkg) -> list[str]:
@@ -53,15 +140,26 @@ def event_roots(pkg: C.Pkg) -> list[str]:
     for fn in pkg.funcs.values():
         if fn.cls != pkg.coord_key:
             continue
+        parent = {id(c): n for n in C.walk(fn.node) for c in ast.iter_child_nodes(n)}
         for n in C.walk(fn.node):
             if not isinstance(n, ast.Call):
                 continue
             callee = pkg.resolve_expr_static(fn.mod, n.func)
-            if callee and callee[0] in ("func", "class"):
+            target = pkg.funcs.get(callee[1]) if callee and callee[0] == "func" else None
+            if callee and callee[0] in ("func", "class") and (target is None or not PASS_ON):
                 continue
-            for a in [*n.args, *(k.value for k in n.keywords)]:
-                if isinstance(a, ast.Attribute) and isinstance(a.value, ast.Name) and a.value.id == fn.params[0] \
-                        and a.attr in methods and fn.kind == "method":
+            for pos, a in [*enumerate(n.args), *((k.arg, k.value) for k in n.keywords)]:
+                if not (isinstance(a, ast.Attribute) and isinstance(a.value, ast.Name) and a.value.id == fn.params[0]
+                        and a.attr in methods and fn.kind == "method"):
+                    continue
+                if target is None:
+                    out.add(methods[a.attr])
+                    continue
+                # a package function: a root only if it passes the reference on uncalled (C16b): hands it
+                # out itself, or returns it into a call that does
+                name = _param_at(target, pos)
+                how = _passes_on(pkg, target.qual, name) if name else None
+                if how == "out" or (how == "returned" and _consumed(pkg, fn.mod, n, parent)):
                     out.add(methods[a.attr])
     return sorted(out)
 
