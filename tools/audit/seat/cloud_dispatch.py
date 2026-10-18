@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Render the cloud-runner trigger payload for one seat.
+
+    python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer|fixer|probe \
+        --head <40-hex> [--pr N] [--topic T] [--nonce N] [--brief FILE] \
+        [--env-id ID] [--model M] [--repo OWNER/NAME] [--overlay FILE] [--out FILE]
+    python3 -I tools/audit/seat/cloud_dispatch.py --self-test
+
+WHAT IT RENDERS. The whole `job_config.ccr` object a cloud runner's trigger
+update takes: `environment_id`, `session_context` (`allowed_tools`, `model`,
+`sources`) and `events` (one user message, the seat's prompt). Every trigger
+update resends the full ccr and then `run`s it, so a payload is always whole;
+this prints exactly that and never a patch. INSTRUMENTS.md has the measured
+shape of a cloud seat.
+
+WHERE THE ENVIRONMENT COMES FROM. Never from this file. The environment id,
+the model and the repository are a flag, else the overlay file (`--overlay`, or
+$HPO_CLOUD_OVERLAY, a JSON object with `environment_id`, `model`, `repo`), else
+$HPO_CLOUD_ENV_ID / $HPO_CLOUD_MODEL / $HPO_CLOUD_REPO. One of the three is
+required: a missing value is a refusal, not a default that goes stale.
+
+THE BRIEF is read and INLINED at render time, because the runner snapshots the
+message at `run`: a brief edited afterwards reaches no running seat.
+
+WHAT IT REFUSES (exit 2, nothing printed on stdout):
+  * a head that is not exactly 40 lowercase hex digits;
+  * a reviewer with an empty bus nonce (the verdict push is unauthenticated
+    without it), or a reviewer with no --pr;
+  * a fixer or probe with no --topic (the return refs are named by it);
+  * a missing environment id, model or repository;
+  * any home-directory path in the rendered text (ref_privacy.HOME_DIR, the
+    host-path grammar): the payload is published to the runner, and a seat's
+    prompt may not name the machine it was written on;
+  * an unreadable brief.
+"""
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+
+def _ref_privacy():
+    """Load the sibling module by path (`python3 -I` puts no script dir on sys.path)."""
+    spec = importlib.util.spec_from_file_location("ref_privacy", HERE / "ref_privacy.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["ref_privacy"] = mod  # @dataclass reads sys.modules[cls.__module__]
+    spec.loader.exec_module(mod)
+    return mod
+
+
+HOME = re.compile(_ref_privacy().HOME_DIR)
+LOWER_HEX = frozenset("0123456789abcdef")
+
+
+def is_head(head: str) -> bool:
+    """Exactly 40 lowercase hex digits (not a regex: the grammar is policy_lint's to own)."""
+    return len(head) == 40 and set(head) <= LOWER_HEX
+
+ROLES = ("reviewer", "fixer", "probe")
+#: The tools a cloud seat is allowed; the same for every role (measured shape).
+ALLOWED_TOOLS = ["preset:default", "Bash", "Glob", "Grep", "Read", "Write",
+                 "BashOutput", "KillBash", "Monitor"]
+
+
+class Refusal(Exception):
+    pass
+
+
+def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
+    who = {"reviewer": "CLOUD REVIEWER", "fixer": "CLOUD FIXER", "probe": "CLOUD PROBE"}[role]
+    subject = f"PR #{pr} of {repo}, at head {head}" if pr else f"{repo}, topic {topic}, at head {head}"
+    first = f"{who} seat for {subject}."
+    if nonce:
+        first += f" Bus nonce: {nonce}."
+    first += " Never send push notifications."
+    setup = ("Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) "
+             "is on PATH from the environment. Run anything heavy in the background with Monitor "
+             "and no timeout.")
+    if role == "reviewer":
+        body = (
+            "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
+            f"exactly. Fetch the PR head with `git fetch origin {head}`; the PR body is in the PR. "
+            "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
+            "every figure in the body at this head. Check that it merges with origin/main "
+            "(`git merge-tree --write-tree`) and read CI on this head from the check-runs API.\n"
+            f"Output: write verdict.md, whose first line is exactly `Fix review: <merge|blocked> {head} "
+            f"[class: reason]` in the format the role file gives, and an evidence directory `ev` "
+            f"beside it, both under a fresh directory of your own. Then run `bash tools/audit/seat/bus.sh "
+            f"push-verdict {pr} <that verdict.md> <that ev>`. That pushes refs/heads/review/{pr}, "
+            "which is the return signal; push nothing else. Do not post comments, approve or merge; "
+            "the orchestrator confirms.")
+    elif role == "fixer":
+        body = (
+            "Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, "
+            f"in a worktree of your own cut from origin/main. Fetch {head} for the base you were given.\n"
+            f"Output: push the code to refs/heads/handoff/{topic}, then write the PR body and run "
+            f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
+            f"refs/heads/handoff-body/{topic}; that second push is the return signal. Push nothing "
+            "else, open no pull request and write no delivery row. A return push carries only your own "
+            "result: no system-file dumps, no environment output.")
+    else:
+        body = (
+            "Role: a read-only probe. Measure what the brief below asks against the tree at "
+            f"{head} (`git fetch origin {head}`); change no tracked file and send no code to any ref.\n"
+            f"Output: write your result as a body file and run `bash tools/audit/seat/body_push.sh "
+            f"{topic} <result.md>`, which pushes refs/heads/handoff-body/{topic}; that push is the "
+            "return signal. A return push carries only your own result tokens.")
+    tail = ("Never write to any branch except your return refs. Never work around a hook or a refusal; "
+            "report it in your result instead.")
+    text = "\n".join([first, setup, body, tail]) + "\n"
+    if brief:
+        text += "\nBrief (snapshotted when this payload was rendered):\n" + brief.rstrip("\n") + "\n"
+    return text
+
+
+def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
+           topic: str = "", nonce: str = "", brief: str = "") -> dict:
+    if role not in ROLES:
+        raise Refusal(f"role must be one of {', '.join(ROLES)}")
+    if not is_head(head or ""):
+        raise Refusal("head must be exactly 40 lowercase hex digits")
+    if role == "reviewer":
+        if not nonce.strip():
+            raise Refusal("a reviewer needs a non-empty bus nonce")
+        if not pr.isdigit():
+            raise Refusal("a reviewer needs --pr <number>")
+    elif not topic.strip() or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
+        raise Refusal("a fixer or probe needs --topic (letters, digits, . _ -)")
+    for name, val in (("environment id", env_id), ("model", model), ("repo", repo)):
+        if not (val or "").strip():
+            raise Refusal(f"no {name}: pass a flag, an overlay entry or its HPO_CLOUD_* variable")
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
+        raise Refusal("repo must be OWNER/NAME")
+    text = _prompt(role, repo, pr, head, topic, nonce, brief)
+    payload = {"job_config": {"ccr": {
+        "environment_id": env_id,
+        "session_context": {
+            "allowed_tools": list(ALLOWED_TOOLS),
+            "model": model,
+            "sources": [{"git_repository": {"url": f"https://github.com/{repo}"}}]},
+        "events": [{"data": {"type": "user", "message": {"role": "user", "content": text}}}]}}}
+    m = HOME.search(json.dumps(payload))
+    if m:
+        raise Refusal(f"the rendered payload names a home directory ({m.group(0)!r}); "
+                      "write the brief with repo-relative paths")
+    return payload
+
+
+def _config(args: argparse.Namespace) -> dict:
+    ov: dict = {}
+    path = args.overlay or os.environ.get("HPO_CLOUD_OVERLAY")
+    if path:
+        try:
+            ov = json.loads(Path(path).read_text())
+        except (OSError, ValueError) as e:
+            raise Refusal(f"unreadable overlay: {e.__class__.__name__}")
+        if not isinstance(ov, dict):
+            raise Refusal("overlay must be a JSON object")
+
+    def pick(flag, key, var):
+        return flag or ov.get(key) or os.environ.get(var) or ""
+    return {"env_id": pick(args.env_id, "environment_id", "HPO_CLOUD_ENV_ID"),
+            "model": pick(args.model, "model", "HPO_CLOUD_MODEL"),
+            "repo": pick(args.repo, "repo", "HPO_CLOUD_REPO")}
+
+
+def self_test() -> int:
+    passed = failed = 0
+
+    def check(name: str, cond: bool) -> None:
+        nonlocal passed, failed
+        passed, failed = passed + bool(cond), failed + (not cond)
+        print(f"  {'ok  ' if cond else 'FAIL'} {name}")
+
+    base = dict(env_id="env_x", model="m-1", repo="owner/name")
+    head = "0123456789abcdef" * 2 + "01234567"
+
+    def refused(role="reviewer", h=head, **kw) -> bool:
+        a = {**base, "pr": "7", "topic": "t-1", "nonce": "abc123", **kw}
+        try:
+            render(role, h, **a)
+        except Refusal:
+            return True
+        return False
+
+    ok = render("reviewer", head, **base, pr="7", nonce="abc123")
+    ccr = ok["job_config"]["ccr"]
+    check("a reviewer renders (null control for every refusal)", not refused())
+    check("the ccr carries environment_id, session_context and one user event",
+          set(ccr) == {"environment_id", "session_context", "events"} and len(ccr["events"]) == 1
+          and set(ccr["session_context"]) == {"allowed_tools", "model", "sources"})
+    msg = ccr["events"][0]["data"]["message"]["content"]
+    check("the prompt names the head, the nonce and the review ref",
+          head in msg and "abc123" in msg and "review/7" in msg)
+    check("the source is the repo", ccr["session_context"]["sources"][0]["git_repository"]["url"]
+          == "https://github.com/owner/name")
+    check("a fixer renders and names both return refs",
+          not refused("fixer", nonce="") and
+          all(r in render("fixer", head, **base, topic="t-1")["job_config"]["ccr"]["events"][0]
+              ["data"]["message"]["content"] for r in ("handoff/t-1", "handoff-body/t-1")))
+    check("a probe renders without a nonce", not refused("probe", nonce=""))
+    check("a 39-hex head is refused", refused(h=head[:-1]))
+    check("a 41-hex head is refused", refused(h=head + "0"))
+    check("an upper-case head is refused", refused(h=head.upper()))
+    check("a non-hex head is refused", refused(h="g" * 40))
+    check("an empty reviewer nonce is refused", refused(nonce=""))
+    check("a blank reviewer nonce is refused", refused(nonce="  "))
+    check("a reviewer without --pr is refused", refused(pr=""))
+    check("a fixer without --topic is refused", refused("fixer", topic=""))
+    check("a topic with a slash is refused", refused("probe", topic="a/b"))
+    check("a missing environment id is refused", refused(env_id=""))
+    check("a missing model is refused", refused(model=""))
+    check("a repo that is not OWNER/NAME is refused", refused(repo="name"))
+    check("an unknown role is refused", refused("author"))
+    # Built from parts: a literal home path would be refused in this very file.
+    users, home_ = "/" + "Users/", "/" + "home/"
+    for label, home in (("a macOS home", users + "someone/work"), ("a linux home", home_ + "someone/work"),
+                        ("a public account's home", home_ + "user/heatpump_optimizer")):
+        check(f"{label} in the brief is refused", refused(brief=f"cd {home}"))
+    check("a home path in the nonce is refused", refused(nonce="/" + "Users/x/y"))
+    check("a repo-relative brief passes (null control)", not refused(brief="read tools/audit/seat/bus.sh"))
+    check("the brief is inlined",
+          "FIND-ME" in render("fixer", head, **base, topic="t", brief="FIND-ME")["job_config"]["ccr"]
+          ["events"][0]["data"]["message"]["content"])
+    check("the rendered text carries no home directory", HOME.search(json.dumps(ok)) is None)
+    print(f"cloud_dispatch self-test: {passed + failed} checks, {failed} failed")
+    return 1 if failed else 0
+
+
+def main(argv: list[str]) -> int:
+    if argv == ["--self-test"]:
+        return self_test()
+    ap = argparse.ArgumentParser(prog="cloud_dispatch.py", description=__doc__.split("\n")[0])
+    ap.add_argument("--role", required=True, choices=ROLES)
+    ap.add_argument("--head", required=True)
+    ap.add_argument("--pr", default="")
+    ap.add_argument("--topic", default="")
+    ap.add_argument("--nonce", default="")
+    ap.add_argument("--brief")
+    ap.add_argument("--env-id")
+    ap.add_argument("--model")
+    ap.add_argument("--repo")
+    ap.add_argument("--overlay")
+    ap.add_argument("--out")
+    args = ap.parse_args(argv)
+    try:
+        brief = ""
+        if args.brief:
+            try:
+                brief = Path(args.brief).read_text()
+            except OSError as e:
+                raise Refusal(f"unreadable brief: {e.__class__.__name__}")
+        payload = render(args.role, args.head, pr=args.pr, topic=args.topic, nonce=args.nonce,
+                         brief=brief, **_config(args))
+    except Refusal as e:
+        print(f"cloud_dispatch: refused: {e}", file=sys.stderr)
+        return 2
+    out = json.dumps(payload)
+    if args.out:
+        Path(args.out).write_text(out)
+        print(args.out)
+    else:
+        print(out)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

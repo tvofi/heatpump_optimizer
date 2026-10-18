@@ -118,8 +118,38 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   silently skipping the ABSENT arm. `--self-test` grades every arm offline on
   the recorded defect shape; `CI_WATCH_ONCE=1` runs a single cycle.
 - `cloud-setup.sh` — the cloud seat environment's setup script (interpreter,
-  CI-run pinning). When: tvofi pastes it into Project settings; a seat cannot
-  apply its own environment.
+  CI-run pinning): it builds `venv-ci` and `venv-ha` under `/opt/hpo` and
+  writes the toolchain profile. When: tvofi pastes it into Project settings; a
+  seat cannot apply its own environment. A seat does not source that profile:
+  a non-interactive Bash call skips it, so the toolchain reaches a seat
+  through the environment's variables (see `cloud_dispatch.py`). Refusal: a
+  missing checkout warns and exits 0, so a session still starts, without pins.
+- `cloud_dispatch.py` — renders the whole cloud-runner trigger payload
+  (`job_config.ccr`: `environment_id`, `session_context` with `allowed_tools`,
+  `model` and `sources`, and one user-message event) for a `reviewer`,
+  `fixer` or `probe` seat from the PR, the 40-hex head, the bus nonce and an
+  optional brief file. The environment id, model and repository come from a
+  flag, an overlay JSON (`--overlay` / `$HPO_CLOUD_OVERLAY`) or `HPO_CLOUD_*`,
+  never from the tree. When: dispatching a seat to the cloud runner; paste
+  the printed JSON as the trigger update. The measured shape of a cloud seat:
+  every trigger update resends the full ccr and then `run`s it, never a
+  patch; the brief is snapshotted at `run`, so it is inlined at render time,
+  an edit afterwards reaches no running seat, and overlapping runs are fine;
+  the toolchain (`PATH` with `/opt/hpo/venv-ci/bin`, `BASH_ENV`,
+  `HPO_TYPING_PYTHON`, `OPENBLAS_CORETYPE`) comes from the environment's
+  variables, not from a profile the seat sources, so the prompt says only
+  that it is on `PATH`; the seat starts off `main` in a shallow clone
+  (`git fetch --unshallow --tags origin` first); the return signal is a
+  pushed ref (`review/<pr>` for a reviewer, `handoff/<topic>` plus
+  `handoff-body/<topic>` for a fixer, `handoff-body/<topic>` for a probe),
+  and a return push carries only the seat's own result tokens: a push
+  carrying system-file dumps is refused; the session is reachable one way,
+  by `SendMessage` to it, and nothing comes back on that channel. Refusal: a
+  head that is not 40 lowercase hex, a reviewer without a nonce or `--pr`, a
+  fixer or probe without `--topic`, a missing environment id, model or
+  repository, and any home-directory path in the rendered text
+  (`ref_privacy.HOME_DIR`, brief included). `--self-test` grades each
+  refusal against a rendering that passes, offline.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
