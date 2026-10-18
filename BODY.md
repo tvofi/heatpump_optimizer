@@ -42,6 +42,8 @@ makes no claim about what the learner does without one. This belongs to the D1
 
 ## Head
 
+`9ef452f5d8def3b7e4de3fc692d5b5a33b0a7994` merges origin/main `55dc8d9c2` (66 commits ahead of the previous merge point) into `cb4e0195ba1db57f12fb345f5fe14f82bc175a7c`, which adds this PR's own row `dev/programme/delivery/2393.md` over the earlier orchestrator merge `b021a4c7e56151e06725e8d0a890a658af05d3e4`. The merge was clean (no conflicts); `git diff --name-only origin/main HEAD` lists `README.md` and `dev/programme/delivery/2393.md` only. The authored code head is `38743da446494ffebbf96974bcaeecbe88de4854`.
+
 `38743da446494ffebbf96974bcaeecbe88de4854`, one commit on merge base
 `64b1f82a3958a1701755bf60973c592078cd0a12` (= origin/main at measurement,
 2026-10-18T09:36Z). The diff is `README.md` alone.
@@ -97,7 +99,12 @@ Each claim in the new section, and where it is true:
 
 ## Red checks
 
-none
+All four reds below sit on earlier heads of this branch (`b021a4c7e` and `cb4e0195b`), none on a code cause; this PR's diff is `README.md` plus its delivery row.
+
+- `arch-score` (run 39120936105 and 39120938712, job 117656226223 / 117656233404, head `b021a4c7e`): the step "pull request 2393, body ... bytes" failed with `gh: API rate limit exceeded for installation ... (HTTP 403)` at 2026-10-18T10:52Z, before any scoring ran. Cause is outside this repository (the shared 5,000/hr GitHub installation quota, which the seats exhausted); owner is the orchestrator's poll cadence. There is no cheaper detector to name: the check did not execute. Re-runs on `9ef452f5d8def3b7e4de3fc692d5b5a33b0a7994`.
+- `validate-hacs` (job 117656226469, head `b021a4c7e`): `aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for installation` at 10:52:58Z, the same quota. Green at origin/main `55dc8d9c2`'s own run (`validate-hacs` -> success), so not a property of main or this diff.
+- `nightly-status` (job 117656658301, head `cb4e0195b`): `NIGHTLY UNREADABLE ... HTTP 403 ... (rate limit exhausted)` at 10:54:27Z reading run 39106988523's jobs; the check fails closed by design. It reports main's nightly, is not a required context, and is not caused by this PR (a README-only diff cannot reach any nightly lane). Cause is the same quota exhaustion, outside this repository. It reports `skipped` at origin/main `55dc8d9c2` and is re-evaluated on the new head; I did not dispatch `tests.yml` on main (a seat does not start main runs).
+- `pr-contract` (jobs 117671022850, 117671105728, head `cb4e0195b`): `[pr-body] check `arch-score` is red and `## Red checks` does not name it` and the same for `validate-hacs`, because `## Red checks` said "none". Fixed by this section; the `nightly-status` red is named here too.
 
 ## Forward-carry
 
@@ -108,3 +115,4 @@ is for the orchestrator to route to that brief; this seat does not edit policy.
 
 - `container-toolchain: cost: /etc/profile.d/hpo-toolchain.sh is exported as BASH_ENV and ENV, so every non-interactive bash re-prepends /opt/hpo/venv-ci/bin to PATH; tests/entities.py's graders-head-copy delivery_status arm puts a stub python first on PATH and runs bash -e -c, the venv python shadows the stub, every case returns 0, and prepr.sh's closures step then refuses (entities.py exit 1). Same red at origin/main 64b1f82a; with BASH_ENV and ENV unset: ALL 2346 ENTITY CHECKS PASSED`
 - `r10-brief: stale: the brief names "tools/audit/round4/D6 claim checks"; tools/audit/round4/ holds only D11/, and the README claim checks are tests/doc_claims.py`
+
