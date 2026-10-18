@@ -878,15 +878,16 @@ await block('the scoped round driver', async () => {
     listGaps({ ...L, baseline: [...L.baseline, 'D2'] }).length > 0 && listGaps({ ...L, baseline: [...L.baseline, 'D99'] }).length === 0 && listGaps({ ...L, baseline: [...L.baseline, 'D99'], briefs: [...L.briefs, 'D99'], dims: [...L.dims, 'D99'] }).some((g) => /ISOLATED_DIMS/.test(g)), 'a declared or briefed dimension was tolerated, or a pending one refused')
   t('and an empty extraction is refused rather than reported clean (null control)', listGaps({ dims: [], isolated: [], api: [], baseline: [], briefs: [] }).length > 0, 'nothing read, nothing refused')
 
-  // Two more readers of one thing each, pinned once a driver declares the
-  // constant (round 10; round 9's drivers declare neither and are not held):
-  // the round directory both drivers write and fold_ledger.py reads, and the
-  // list Prepare copies over the baseline, which prepare_baseline.sh copies too.
+  // Two more readers of one thing each: the round directory both drivers write
+  // and fold_ledger.py reads, and the list Prepare copies over the baseline,
+  // which prepare_baseline.sh copies too. Every driver declares both now, so an
+  // undeclared constant is a gap, never a pass (#2268: a pin armed on the
+  // declaration it grades passes the driver that drops it).
   const vsrcRD = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
   const roundDir = (src) => (/^const ROUND_DIR = `([^`]*)`/m.exec(src) ?? [])[1]
   const foldRead = (/f"(dev\/audit\/rounds\/round)\{rnd\}"/.exec(fs.readFileSync(at('tools/audit/fold_ledger.py'), 'utf8')) ?? [])[1]
   const dirGaps = (find, verify, fold) => {
-    if (find === undefined) return []
+    if (find === undefined) return ['audit-find.js declares no ROUND_DIR (an undeclared constant is a gap)']
     const gaps = []
     if (!fold) gaps.push('no directory read off fold_ledger.py (an empty extraction is a gap)')
     else if (find !== `${fold}\${round}`) gaps.push(`audit-find.js ROUND_DIR ${find} is not where fold_ledger.py reads (${fold}<N>)`)
@@ -894,17 +895,14 @@ await block('the scoped round driver', async () => {
     return gaps
   }
   const dg = dirGaps(roundDir(rd), roundDir(vsrcRD), foldRead)
-  t(`once audit-find.js declares ROUND_DIR, both drivers write where fold_ledger.py reads (${roundDir(rd) ?? 'not declared: round 9 driver'})`, dg.length === 0, dg.join('; '))
+  t(`both drivers write where fold_ledger.py reads (${roundDir(rd) ?? 'not declared'})`, dg.length === 0, dg.join('; '))
   t('the check fires: a finder writing the old home while verify reads the new is refused (positive control)',
     dirGaps('tools/audit/round${round}', 'dev/audit/rounds/round${round}', 'dev/audit/rounds/round').length === 2 && dirGaps('dev/audit/rounds/round${round}', 'dev/audit/rounds/round${round}', undefined).length > 0, 'passed')
   const norm = (xs) => [...xs].map((x) => x.replace(/\/+$/, '')).sort()
   const curFind = (/^const CURRENT = \[([^\]]*)\]/m.exec(rd) ?? [])[1]
   const curShell = (/^CURRENT_PATHS="([^"]*)"/m.exec(shell) ?? [])[1]
-  // Keyed on BOTH declaring it: CI restores prepare_baseline.sh from the base
-  // (decision 0013), so the pull request introducing the pair is graded against
-  // a base script that has no CURRENT_PATHS yet; from its merge on, both hold.
   const curGaps = (f, s) => {
-    if (f === undefined || s === undefined) return []
+    if (f === undefined || s === undefined) return [`CURRENT ${f === undefined ? 'undeclared in audit-find.js' : ''}${s === undefined ? ' CURRENT_PATHS undeclared in prepare_baseline.sh' : ''} (an undeclared list is a gap)`]
     let lit = []
     try { lit = JSON.parse('[' + f.replaceAll("'", '"') + ']') } catch { return [`audit-find.js CURRENT is not a list of string literals: [${f}]`] }
     const a = norm(lit), b = norm(s.split(/\s+/).filter(Boolean))
@@ -912,8 +910,9 @@ await block('the scoped round driver', async () => {
     return J(a) === J(b) ? [] : [`audit-find.js CURRENT ${J(a)} != prepare_baseline.sh CURRENT_PATHS ${J(b)}`]
   }
   const cg = curGaps(curFind, curShell)
-  t(`once both declare it, audit-find.js CURRENT is prepare_baseline.sh's CURRENT_PATHS (${curFind === undefined || curShell === undefined ? 'not both declared' : 'both declared'})`, cg.length === 0, cg.join('; '))
+  t(`audit-find.js CURRENT is prepare_baseline.sh's CURRENT_PATHS (${curFind === undefined || curShell === undefined ? 'not both declared' : 'both declared'})`, cg.length === 0, cg.join('; '))
   t('the check fires: CURRENT narrowed to tools/audit/ alone is refused (positive control)', curGaps("'tools/audit/'", 'tools/audit dev/audit/config').length > 0 && curGaps("'tools/audit/'", 'tools/audit').length === 0, 'passed')
+  t('...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)', dirGaps(undefined, roundDir(vsrcRD), foldRead).length > 0 && curGaps(undefined, curShell).length > 0 && curGaps(curFind, undefined).length > 0, 'passed')
 
   // The dispatch block, evaluated alone: it uses nothing outside itself.
   const blk = rd.match(/\/\/ DISPATCH:BEGIN[\s\S]*?\/\/ DISPATCH:END/)
@@ -1062,18 +1061,20 @@ await block('the scoped round driver', async () => {
   t('every other finder keeps the earlier-findings wall (null control)', others.length > 0 && others.every((l) => walled(p(l))), others.filter((l) => !walled(p(l))).join(', '))
   // D15's bundle is out of tree, so its path reaches a seat only from args; with
   // none, the seat is told to report every step unfinished. The rest never see it.
-  // Armed once audit-find.js declares BUNDLE_DIMS, as the ROUND_DIR and CURRENT
-  // pins above are: the graders land one merge ahead of the driver.
-  const bundleDims = grab(/const BUNDLE_DIMS = new Set\(\[([^\]]*)\]/)
+  // Keyed on the brief, not on audit-find.js's BUNDLE_DIMS: a driver declaring
+  // no bundle dimension, or the wrong one, is what these pins exist to refuse
+  // (#2268). Which briefs take a bundle is a design choice written here: D15.md's
+  // Inputs name one; no other brief does.
+  const bundleDims = ['D15'].filter((d) => L.briefs.includes(d))
   const armed = bundleDims.length > 0
-  const withBundle = armed ? await drive({ ...base, debug_bundle: '/o/diag.json', debug_export: '/o/export.json' }) : { calls: [] }
+  const withBundle = await drive({ ...base, debug_bundle: '/o/diag.json', debug_export: '/o/export.json' })
   const pb = (l) => withBundle.calls.find((c) => c.label === l)?.prompt ?? ''
   const isBundle = (l) => bundleDims.includes(l.split('-')[0])
   const dB = finders.filter(isBundle)
-  t(`once audit-find.js declares BUNDLE_DIMS, its finders carry the named bundle and export, or are told to report every step unfinished (${armed ? dB.join(', ') : 'not declared'})`,
-    !armed || (dB.length > 0 && dB.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l)))), pb(dB[0] ?? '').slice(0, 200))
-  t(`...and no other finder is handed the bundle (null control${armed ? '' : ': not declared'})`, !armed || finders.filter((l) => !isBundle(l)).every((l) => !pb(l).includes('/o/diag.json')), 'leaked')
-  t(`a relative bundle path is refused before Prepare (${armed ? 'declared' : 'not declared'})`, !armed || /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error), 'accepted')
+  t(`once D15.md exists, its finders carry the named bundle and export, or are told to report every step unfinished (${armed ? dB.join(', ') : 'no D15 brief'})`,
+    !armed || (dB.length > 0 && dB.every((l) => pb(l).includes('/o/diag.json') && pb(l).includes('/o/export.json') && /report every step unfinished/.test(p(l)))), pb(dB[0] ?? '').slice(0, 200) || 'no D15 finder')
+  t('...and no other finder is handed the bundle (null control)', withBundle.error === '' && finders.filter((l) => !isBundle(l)).every((l) => !pb(l).includes('/o/diag.json')), withBundle.error || finders.filter((l) => !isBundle(l) && pb(l).includes('/o/diag.json')).join(', '))
+  t(`a relative bundle path is refused before Prepare (${armed ? 'D15 brief' : 'no D15 brief'})`, !armed || /absolute paths/.test((await drive({ ...base, debug_bundle: 'diag.json' })).error), 'accepted')
   // The schema the finder is held to by the runtime carries what the file does.
   const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
   const fs0 = r9.calls.find((c) => isFinder(c.label))?.schema ?? {}

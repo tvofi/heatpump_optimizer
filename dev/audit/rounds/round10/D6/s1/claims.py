@@ -4,7 +4,7 @@ Metric: per numbered README claim, the value production delivers vs the value
 the README states; RESULT claims_false = count of mismatches.
 Count key: the value the production seam delivers (async_setup_entry entity
 lists, registered services, schema keys, const defaults).
-Run: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s1/claims.py [--perturb]
+Run: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s1/claims.py [--perturb]
 --perturb: drops the last sensor from sensor.async_setup_entry's add list
 (in memory), so sensors_total and entities_total must fall by 1 and their
 verdicts flip/move.

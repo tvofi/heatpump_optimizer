@@ -17,7 +17,7 @@ RCA-865 (`pr-contract cannot be green at every head`, refused, S10 kept);
 RCA-1514 (body edit recreating required contexts; split the workflow out).
 
 Enumerators for every figure below sit in §Figures. Scratch copies of the API
-payloads: `/Users/timmalmstrom/hpo-seats/r9-rc-prcontract/`.
+payloads: `~/hpo-seats/r9-rc-prcontract/`.
 
 ## 1. Cause (reproduced)
 

@@ -94,7 +94,7 @@ is built.
 ## 7. Adjacent finding, not this cause: the killer a pin names
 
 This finding comes from #2025's round-7 review
-(`/Users/timmalmstrom/hpo-seats/review-2025-r6/verdict7/VERDICT.md`). CI pinned
+(`~/hpo-seats/review-2025-r6/verdict7/VERDICT.md`). CI pinned
 `pump_arbiter.py:572 RETURN_DEL` as `killed_by: tests/structure.py`. Under that mutant,
 structure.py's only failure is `dead_top_level_symbols 2 > 1`: deleting the return leaves
 `_inside_silent` unreferenced. Main's earlier pin on the line named `tests/features.py`, with 8
