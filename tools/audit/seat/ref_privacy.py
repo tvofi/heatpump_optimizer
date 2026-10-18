@@ -98,7 +98,10 @@ a bus ref's evidence tree, a handoff body -- (the guard reads ref names,
 messages and commit identities; CONTENT reads tracked diffs); on a runner, an
 account name standing alone, since a runner knows only its own; compressed
 content (a .gz or .zip blob is judged as its compressed bytes, which spell no
-path); text in an encoding neither ASCII-compatible nor UTF-16; text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
+path); text in an encoding neither ASCII-compatible nor UTF-16; base64 (a path
+inside an encoded run, as a .har or an HTML report embeds one, is judged as the
+encoded text, which spells no path; no decoder is run, since decoding every
+base64-looking run is not sound); text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
 and another machine's account name, unless it sits in a `/Users/`, `/home/` or
 `Users-` shape.
 """
@@ -446,7 +449,29 @@ def content_check(ref: str, root: Path = ROOT, ident: Identity | None = None):
         print(f"ref_privacy: content SKIP -- no merge base with origin/main and no parent of {ref}")
         return None, [], []
     added = added_lines(base, ref, root)
-    return base, added, content_refusals(added, ident)
+    return base, added, name_refusals(added_names(base, ref, root), ident) + content_refusals(added, ident)
+
+
+def added_names(base: str, ref: str, cwd: Path = ROOT) -> list[str]:
+    """Every path `ref` holds that `base` did not: an added, renamed or copied file's name
+    (round 3). A name publishes on every clone as surely as content: #2310 began as the
+    dash-mangled home of a project directory, `-Users-<name>-...`, in a ref name."""
+    got = subprocess.run(["git", "diff", "--no-renames", "--name-only", "--diff-filter=A", "-z", base, ref],
+                         cwd=cwd, capture_output=True)
+    if got.returncode != 0:
+        raise RuntimeError(f"git diff --diff-filter=A {base[:12]} {ref} exited {got.returncode}")
+    return [p for p in got.stdout.decode("utf-8", "replace").split("\0") if p]
+
+
+def name_refusals(paths, ident: Identity | None = None) -> list[str]:
+    """One refusal per added path whose NAME would publish a host, judged like a ref name."""
+    ident = ident or Identity.of_host()
+    out = []
+    for i, path in enumerate(paths, 1):
+        why = leaks(path, ident)
+        if why:
+            out.append(f"added path #{i} of `git diff --name-only --diff-filter=A`: {', '.join(why)} in the name of a file the diff adds; rename it")
+    return out
 
 
 def blob_text(data: bytes) -> str:
@@ -801,6 +826,10 @@ def self_test() -> int:
         Path(td, "nul.bin").write_bytes(b"bin\0\nran at " + under("Users", "someone", "w").encode() + b"\n")
         Path(td, "u16.txt").write_bytes(("ran at " + under("Users", "someone", "w") + "\n").encode("utf-16-le"))
         Path(td, "clean.bin").write_bytes(b"\x89PNG\0\0\x01ran at ~/w\n\0")
+        os.makedirs(Path(td, "rounds", f"-Users-{fake_name}-proj"))
+        Path(td, "rounds", f"-Users-{fake_name}-proj", "x.log").write_text("ok\n")  # the leak is the NAME
+        os.makedirs(Path(td, "fresh"))
+        Path(td, "fresh", "ok.log").write_text("ok\n")
         g("add", "-A"); g("commit", "-q", "-m", "plant")
         g("update-ref", "refs/remotes/origin/main", base)
         got_base, _, bad = content_check("HEAD", Path(td), fid)
@@ -820,10 +849,15 @@ def self_test() -> int:
            any(b.startswith("nul.bin:") for b in bad), str(bad))
         ok("and so is UTF-16 text naming one, its NULs dropped",
            any(b.startswith("u16.txt:") for b in bad), str(bad))
+        ok("a file added under a dash-mangled home is refused by its name, never echoing it (round 3)",
+           any(b.startswith("added path #") and "account-name, host-path in the name" in b
+               and fake_name not in b for b in bad), str(bad))
+        ok("an ordinary new path passes by name and content (the null control)",
+           not any(b.startswith("fresh/") for b in bad) and sum("in the name" in b for b in bad) == 1, str(bad))
         ok("a NUL-bearing file naming no host passes (the null control), and nothing else is charged",
-           not any(b.startswith("clean.bin:") for b in bad) and len(bad) == 4, str(bad))
+           not any(b.startswith("clean.bin:") for b in bad) and len(bad) == 5, str(bad))
         Path(td, "rec.log").write_text("clean\n" + scrub(stock + "File " + scratch + "/x.py\n", fid))
-        for f in ("moved.log", "other.log", "nul.bin", "u16.txt"):
+        for f in ("moved.log", "other.log", "nul.bin", "u16.txt", f"rounds/-Users-{fake_name}-proj/x.log"):
             Path(td, f).unlink()
         g("add", "-A"); g("commit", "-q", "-m", "scrubbed")
         ok("the scrubbed tree's diff is refused nothing (scrub is the remedy)",
