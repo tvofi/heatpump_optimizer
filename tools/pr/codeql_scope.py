@@ -86,15 +86,17 @@ def changed_files(base: str, head: str, cwd: str = ".",
 
 def _rename_probe() -> tuple[list[str], list[str]]:
     """(changed_files, porcelain `git diff --name-only`) over a throwaway repo
-    whose one commit is `git mv lib.py lib.md`; no inherited git config."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+    (tests/throwaway_git.py, the one way a tracked script builds one) whose
+    one commit is `git mv lib.py lib.md`."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    os.pardir, os.pardir, "tests"))
+    from throwaway_git import throwaway_git_init
     with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q")
+
         def git(*a: str) -> str:
-            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t",
-                                   *a], cwd=td, env=env, capture_output=True,
+            return subprocess.run(["git", *a], cwd=td, env=env, capture_output=True,
                                   text=True, check=True).stdout
-        git("init", "-q")
         with open(os.path.join(td, "lib.py"), "w", encoding="utf-8") as fh:
             fh.write("def sanitize(x):\n    return x.strip()\n" * 20)
         git("add", "-A")
@@ -102,7 +104,8 @@ def _rename_probe() -> tuple[list[str], list[str]]:
         base = git("rev-parse", "HEAD").strip()
         git("mv", "lib.py", "lib.md")
         git("commit", "-qm", "rename")
-        porcelain = [l for l in git("diff", "--name-only", f"{base}...HEAD").splitlines() if l]
+        # rename-null-control: porcelain on purpose, the form round 1 shipped.
+        porcelain = [l for l in git("diff", "--name-only", f"{base}...HEAD").splitlines() if l]  # rename-null-control
         return changed_files(base, "HEAD", cwd=td, env=env), porcelain
 
 
