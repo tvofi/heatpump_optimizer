@@ -662,6 +662,22 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
 
 
 
+
+async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str | None:
+    """Write the valve target; ``None`` when written, else why it was not.
+
+    A failure is swallowed into the reason, so a balky valve never breaks
+    planning: an entity of a domain smart_write cannot command, or the write
+    raising.
+    """
+    try:
+        if await write_setpoint_c(hass, entity_id, target):
+            return None
+    except Exception as err:  # noqa: BLE001 - never break planning
+        return f"could not be commanded: {err}"
+    return (f"is a {entity_id.split('.', 1)[0]}; smart_write can command "
+            "number, input_number and climate entities")
+
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
 
@@ -7333,12 +7349,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         # One latch for both failures: its text says which, and the next
         # successful write clears it, so a valve that fails again warns again.
-        try:
-            why = None if await write_setpoint_c(self.hass, entity_id, target) else (
-                f"is a {entity_id.split('.', 1)[0]}; smart_write can command "
-                "number, input_number and climate entities")
-        except Exception as err:  # noqa: BLE001 - never break planning
-            why = f"could not be commanded: {err}"
+        why = await _valve_write_problem(self.hass, entity_id, target)
         if log_held(self, "valve_write", why is not None, "Valve write entity %s %s", entity_id, why):
             return
         _LOGGER.info(
