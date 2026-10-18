@@ -12,7 +12,9 @@ The R10-N-log-flood barrier (`tests/entities.py` `_R10_LOG_ALLOWED_BY_REASON`) l
 
 ## Head
 
-`0adc1924112645f962bb6429d411ca273b5ff12f`
+`aef46436e67c917821a6126aa882d2a4f2468a28`
+
+It is `0adc1924112645f962bb6429d411ca273b5ff12f`, where every figure below was measured, plus a merge of main that changes no file under `custom_components/` and no `tests/*.py` (`git diff --quiet 0adc19241 aef46436e -- custom_components 'tests/*.py'` exits 0); under `tests/` it moves only 31 rows of `tests/mutation_ledger/killed_by/` whose sites this diff does not touch.
 
 ## Mutation proof
 
@@ -45,6 +47,7 @@ none: every site this diff adds is pinned under `tests/mutation_ledger/killed_by
 
 ## Red checks
 
+- `pr-contract` -- red at `0adc19241` (run 117608332257, 06:40Z): `## Head` still named `f4df860` while the PR carried the previous body. Cheaper detector: `tools/pr/prepr.sh` step 7, `## Head` against the local head before push; same push-order window as at `f4df86098` and `72a6844ae`.
 - `mutation` -- red at `f4df86098` and `75a788a87`: `MUTATION TABLE REFUSED`, six then two sites this diff added with no disposition. `mutation-autofix` pinned four at `75a788a87`; the two survivors (the valve latch's early return, the set-point bound) are now killed by new `tests/features.py` checks and pinned. Cheaper detector: `tools/pr/prepr.sh` step 7d lists the added unpinned sites before push; it read them, and the body deferred them to autofix rather than driving them, which is what left the survivors for CI.
 - `pr-contract` -- red at `f4df86098` (01:57Z), green there at 02:52Z: "`## Head` does not name f4df860" while the PR carried the previous body. Same push-order window as at `72a6844ae` below.
 - `pr-contract` -- red at `72a6844ae` (run 23:06Z), green there at 23:29Z: "`## Head` does not name 72a6844" -- the PR still carried the previous body when the code head landed. Cheaper detector: `tools/pr/prepr.sh` step 7, which passed on the new body; the window between the code push and the body edit is the push order steward S10 prescribes, not a missing check.
