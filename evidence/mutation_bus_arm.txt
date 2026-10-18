@@ -1,0 +1,36 @@
+== baselines
+bus self-test: 64 checks, 0 failed
+app_approve self-test: 169 checks, 0 failed
+SELF-TEST PASSED
+== mutant bus_post_verdict
+  FAIL the posted body cites its evidence directory home-relative (~/), and it names the head (#2310)
+  FAIL and the posted body carries no home path at all
+bus self-test: 64 checks, 2 failed
+  dirty after restore: 0
+== mutant app_approve_tilde
+FAIL a verdict citing ~/-relative evidence is approved, ~ resolved against $HOME at read time (#2310) (got '1', want '0')
+ok   naming the exact-sha rule it failed
+ok   naming the component-count rule it failed
+ok   the token is revoked after the failed POST
+ok   the private directory is gone after the failed POST
+app_approve self-test: 169 checks, 1 failed
+  dirty after restore: 0
+== mutant app_approve_token_regex
+FAIL a verdict citing ~/-relative evidence is approved, ~ resolved against $HOME at read time (#2310) (got '1', want '0')
+ok   naming the exact-sha rule it failed
+ok   naming the component-count rule it failed
+ok   the token is revoked after the failed POST
+ok   the private directory is gone after the failed POST
+app_approve self-test: 169 checks, 1 failed
+  dirty after restore: 0
+== mutant gh_comment_wiring
+FAILED: arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)
+FAIL arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)
+TOTAL: 1 failed
+  dirty after restore: 0
+== mutant gh_comment_predicate
+FAILED: arm_privacy_refuses_a_body_naming_the_home (#2310), arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)
+FAIL arm_privacy_refuses_a_body_naming_the_home (#2310)
+FAIL arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)
+TOTAL: 2 failed
+  dirty after restore: 0
