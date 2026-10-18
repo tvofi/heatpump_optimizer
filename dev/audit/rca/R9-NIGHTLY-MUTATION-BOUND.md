@@ -14,7 +14,7 @@ the two missing parts and the fix, and ran beside the fix, not inside it
   function of main's moving tip. Every bound is re-derived there with the tree's
   own `driver_timeout`, not carried from the diagnosing seat. Where a figure IS
   that seat's, or the round-1 review's, and was not re-taken, the line says so.
-- Evidence: `/Users/timmalmstrom/hpo-seats/fix-nightly-bound/logs/` --
+- Evidence: `~/hpo-seats/fix-nightly-bound/logs/` --
   `bounds_reproduction.txt`, `pool_tables.txt`, `enum_factor_rule.txt`,
   `enum_figures.txt`, `red_jobs_1003_1007.txt`, `jobs_1008.txt`,
   `record_autofix_nights.txt`, `schedule_created.txt`, the CI job logs
@@ -263,7 +263,7 @@ and `mutation-ledger` 08:44:54->09:49:08Z = **64.2 min** (127.6 min); 10-08
 `baseline_refusal` / `null_control_refusal` in the nightly's most expensive lane.
 The diagnosing seat measured, over the one day it queried exhaustively, 14 of 24
 pull-request `tests.yml` runs concluding `failure` on `nightly-status` alone
-(515 CI-min, mean 36.8 min; `/Users/timmalmstrom/hpo-seats/rca-nightly-red/logs/pr_only_nightly.txt`
+(515 CI-min, mean 36.8 min; `~/hpo-seats/rca-nightly-red/logs/pr_only_nightly.txt`
 -- **that seat's measurement, not re-taken here**), i.e. ~84 PR runs and ~3090
 CI-min carrying an unrelated red over six nights.
 

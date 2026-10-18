@@ -8,7 +8,7 @@ every platform via real async_setup_entry), are (a) disabled by default or
 (b) resolve to no entity at all. Count key: the registry default delivered by
 entity_registry_enabled_default on the constructed entity, and the entity_id
 the platform delivers -- not a card attribute.
-Command:  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py [--perturb]
+Command:  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s3/first_hour.py [--perturb]
 Baseline: 17f1c55fad1b   Machine: B6 macOS arm64   Tolerance: exact (counts)
 --perturb: patch heatpump_optimizer.entity.ConfiguredInputMixin.entity_registry_enabled_default
 to True (in memory) -> card_disabled must go down.
