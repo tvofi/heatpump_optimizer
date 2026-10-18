@@ -1,5 +1,0 @@
-HEAD 2fe8d1ec16f3476473baa82b5dea8927435eff67
-RESULT mutant=RD6c_anchor_built_href_in_root_driven_control rc=1 fails=1
-    FAIL  every link the census records from a press is one haLink builds for this entry
-      advisor:settings -> href /config/integrations/integration/heatpump_optimizer; advisor:settings -> href /config/integrations/integration/heatpump_optimizer; advisor:settings -> href /config/integration
-restored

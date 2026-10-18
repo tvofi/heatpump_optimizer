@@ -1,8 +1,7 @@
-HEAD 2fe8d1ec16f3476473baa82b5dea8927435eff67
+HEAD 9fc2f98be69b1949e86d60ec13d9b12a9005a81b
 RESULT mutant=RD4_form_ns_action_member_button_click_driven rc=0 fails=0
 RESULT mutant=RD5_action_member_to_variable_on_rendered_form_driven rc=1 fails=1
     FAIL  every link the census records from a press is one haLink builds for this entry
       advisor:settings -> action /config/integrations/integration/heatpump_optimizer; advisor:settings -> action /config/integrations/integration/heatpump_optimizer; advisor:settings -> action /config/integ
-RESULT mutant=RV1_history_bracket_back_in_undriven_keydown rc=0 fails=0
 restored
 EXIT 0

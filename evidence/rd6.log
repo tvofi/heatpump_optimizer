@@ -1,3 +1,0 @@
-HEAD 2fe8d1ec16f3476473baa82b5dea8927435eff67
-RESULT mutant=RD6_anchor_built_href_outside_root_click_driven rc=0 fails=0
-restored
