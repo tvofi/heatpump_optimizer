@@ -1,6 +1,0 @@
-RESULT runtime_object_mixins=7 count  ['heatpump_optimizer.coordinator.HeatPumpOptimizerCoordinator', 'heatpump_optimizer.entry_config.EntryConfig', 'heatpump_optimizer.payload.Payload', 'heatpump_optimizer.sensor._GapTerms', 'heatpump_optimizer.sensor._MeasuredStoreMixin', 'heatpump_optimizer.sensor._MeasuredTemperatureMixin', 'heatpump_optimizer.sensor._WaitsForEvidenceMixin']
-RESULT mixin_supplied=0 count
-RESULT nan_published_outside_pkg=0 bool  (value=None)
-RESULT nan_published=1 bool  (value=nan)
-RESULT nan_published_null=0 bool  (value=None)
-RESULT load1=160.02

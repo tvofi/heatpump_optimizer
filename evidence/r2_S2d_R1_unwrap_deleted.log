@@ -82,7 +82,7 @@ RESULT class_unseeded_sections=27 count
   UNSEEDED thermal_learning:cop_baseline
   UNSEEDED thermal_learning:cop_health_cusum/evidence
   UNSEEDED thermal_learning:vent_cusum/evidence
-RESULT class_arm_seconds=120.9
+RESULT class_arm_seconds=122.1
   ok   the class sweep drove every seeded store (it cannot go green by skipping)
   ok   the healthy populated stores load clean through every loader and consumer (null control)
   ok   no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)
@@ -91,7 +91,7 @@ RESULT domain_fields=1275 count
 RESULT domain_probes=883 count
 RESULT domain_refused=0 count
 RESULT domain_unreached=0 count
-RESULT domain_arm_seconds=19.3
+RESULT domain_arm_seconds=15.3
   ok   every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)
   ok   a planted undeclared field is refused (the coverage check's own control)
   ok   the healthy rich seed round-trips unchanged through every loader and saver (null control)
@@ -126,16 +126,25 @@ RESULT publish_switch_leaks=0 count
 RESULT publish_datetime_entities=1 count
 RESULT publish_datetime_leaks=0 count
   ok   an inherited scrubbed property re-exported by a subclass is not wrapped twice
-  FAIL a NaN native_value on a package mixin with runtime base object is published as None  [published nan]
+  ok   a NaN native_value on a package mixin with runtime base object is published as None
   ok   a NaN native_value on an entity subclass defined outside the package is published as None
   ok   a NaN native_value on the entity class itself (null control) is published as None
   ok   Home Assistant's own native_value default is not wrapped by the scrub
-  FAIL every number state publishes None, never the bool or the text, from a bool or text payload (#2242)  [states=37 bad=["BufferTankTempSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'BufferTankTempSensor.native_value: True -> 1', 'ComfortWeightSensor.native_value: True -> 1', 'CompressorStartsSensor.native_value: True -> True', "CurrentCOPSensor.native_value: '21.5' -> 4.77", 'CurrentCOPSensor.native_value: True -> 2.98', "CurrentPowerSensor.native_value: '21.5' -> 43.0", 'CurrentPowerSensor.native_value: True -> 2.0', 'DHWCostSensor.native_value: True -> 1', 'DHWEnergySensor.native_value: True -> 1', "DHWHeatingCostSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'DHWHeatingCostSensor.native_value: True -> 1', 'DHWHeavyDaySensor.native_value: True -> True', 'DHWSetpointAdvisorSensor.native_value: True -> True', "DHWTemperatureSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'DHWTemperatureSensor.native_value: True -> 1', "ECL110DisplaceSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'ECL110DisplaceSensor.native_value: True -> 1', "ECL110EffectiveDisplaceSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'ECL110EffectiveDisplaceSensor.native_value: True -> 1', "IndoorTempSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'IndoorTempSensor.native_value: True -> 1', "LowerFloorTempSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'LowerFloorTempSensor.native_value: True -> 1', 'MixedHotWaterSensor.native_value: True -> True', "MonthlyPeakSensor.native_value: '21.5' -> '21.5'", 'MonthlyPeakSensor.native_value: True -> True', 'MonthlySavingsSensor.native_value: True -> 1', "OutdoorTempSensor.native_value: '21.5' -> 21.5", 'OutdoorTempSensor.native_value: True -> 1.0', "SlabTempSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'SlabTempSensor.native_value: True -> 1', "SolarHeatGainSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'SolarHeatGainSensor.native_value: True -> 1', "SolarIrradianceSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'SolarIrradianceSensor.native_value: True -> 1', 'SpaceCostSensor.native_value: True -> 1', 'SpaceEnergySensor.native_value: True -> 1', 'TotalCostSensor.native_value: True -> 1', 'TotalEnergySensor.native_value: True -> 1', "UpperFloorTempSensor.native_value: '21.5' -> ('<build_data_dict raised>', 'TypeError')", 'UpperFloorTempSensor.native_value: True -> 1']]
+  ok   every number state publishes None, never the bool or the text, from a bool or text payload (#2242)
   ok   the bool and text payloads reach a published number state (the arm is not vacuous)
-  FAIL every number-state sensor publishes a number on the seeded payload, or is named computed, and no computed entry is reached (the census's reach)  [unreached-unnamed=['BaselineCostSensor', 'ContractComparisonSensor', 'CurrentPriceSensor', 'FloorReturnTempSensor', 'FrequencyAdvisorSensor', 'MeasuredPowerSensor', 'ObservedCOPSensor', 'OptimizationScoreSensor', 'PowerHeadroomSensor', 'PredictedCostSensor', 'PredictedSavingsSensor', 'SavingsPercentageSensor', 'ValveTargetRecommendationSensor'] stale=[]]
-RESULT number_states=37 count
-RESULT number_state_escapes=42 count
-  FAIL commanded_power_kw refuses a bool or text part on either channel, and adds two numbers (#2242)  [{'space True': 1.5, 'space text': 2.0, 'dhw True': 2.5, 'dhw text': 2.0}]
+  ok   every number-state sensor publishes a number on the seeded payload, or is named computed, and no computed entry is reached (the census's reach)
+RESULT number_states=50 count
+RESULT number_state_escapes=0 count
+  ok   commanded_power_kw refuses a bool or text part on either channel, and adds two numbers (#2242)
+  ok   climate current_temperature reads the measured upper floor first (#2379)
+  ok   climate current_temperature falls back to the indoor copy (#2379)
+  FAIL payload_number reads numpy.int64(7) as 7 (#2379)  [got None, want 7]
+  ok   payload_number refuses numpy.bool_(True) (#2379)
+  ok   _gap_energy_rate falls back to the contract price at a zero spot price (#2379)
+  ok   _gap_energy_rate keeps a positive spot price (control) (#2379)
+  ok   zone_setpoint_attributes keeps upper and lower apart (#2379)
+  ok   Compressor Starts publishes an integer count (#2379)
+  ok   Compressor Starts refuses a float count (#2379)
   ok   _dhw_inlet_c keeps the inclusive lower plausibility bound (-5.0 is valid)
   ok   FlowCurveBias.from_dict restores to inert on a non-finite stored bias_k
   ok   PriceShapeModel.from_dict keeps a legitimate stored residual_var value
@@ -157,4 +166,4 @@ RESULT number_state_escapes=42 count
   ok   a task whose read has landed saves after another task's read in flight, not before it (#1869)
 RESULT store_version_unsurfaced=0 count
 
-4 of 92 FINITE BOUNDARY CHECKS FAILED
+1 of 101 FINITE BOUNDARY CHECKS FAILED

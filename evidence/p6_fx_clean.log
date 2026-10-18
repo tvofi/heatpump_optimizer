@@ -1,4 +1,0 @@
-guarded         fixture_platform:ASensor.native_value L12 [_as_float] rejects bool and str (the _as_float contract)
-guarded         fixture_platform:BSensor.native_value L16 [_as_float] rejects bool and str (the _as_float contract)
-RESULT seams=2 instance=0 guarded=2 not_applicable=0
-RESULT modules=1 families=1 (_as_float) bool_str_vectors=1

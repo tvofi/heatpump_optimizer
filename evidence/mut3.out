@@ -1,0 +1,11 @@
+S1f_climate140_GUARD_OFF_false rc=1 251s KILLED 1 of 101 FINITE BOUNDARY CHECKS FAILED
+    FAIL climate current_temperature reads the measured upper floor first (#2379)  [got 19.0, want 20.5]
+S2f_entity140_GUARD_OFF_false rc=1 292s KILLED 1 of 101 FINITE BOUNDARY CHECKS FAILED
+    FAIL payload_number reads numpy.int64(7) as 7 (#2379)  [got None, want 7]
+S2t_entity140_GUARD_ON_true rc=1 258s KILLED AttributeError: 'bool' object has no attribute 'item'
+    FAIL every sensor entity publishes finite values from non-finite input (#1541)  [entities=62 leaks=['BaselineCostSensor.native_value', 'BufferTankTempSensor.native_value', 'ComfortWeightSensor.native_
+    FAIL every climate entity publishes finite values from non-finite input (#1541)  [entities=1 leaks=['HeatPumpOptimizerClimate.current_temperature', 'HeatPumpOptimizerClimate.extra_state_attributes']]
+    FAIL the poisoned input reaches a published climate value (the arm is not vacuous)  [no published value moved when every float input went non-finite]
+S2d_R1_unwrap_deleted rc=1 229s KILLED 1 of 101 FINITE BOUNDARY CHECKS FAILED
+    FAIL payload_number reads numpy.int64(7) as 7 (#2379)  [got None, want 7]
+restored: clean
