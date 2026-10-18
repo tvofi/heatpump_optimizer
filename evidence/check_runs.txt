@@ -1,86 +1,52 @@
-== e3a6f0729dbb5053bd92a5fb8168b3e74edbaa65
-      2 success	pr-contract
-      2 success	budget-raise-gate
-      2 success	arch-score
-      1 success	wave-script
-      1 success	validate-hacs
-      1 success	typing
-      1 success	policy-docs
-      1 success	nightly-status
-      1 success	mutation
-      1 success	lane-proofs
-      1 success	instrument-self-tests
-      1 success	hassfest
-      1 success	graders-head-copy
-      1 success	fast (3.14)
-      1 success	env-matrix
-      1 success	delivery-status
-      1 success	coverage-ratchet
-      1 success	coverage
-      1 success	composed-proof
-      1 success	closures
-      1 success	closure-scope
-      1 success	browser
-      1 success	briefs
-      1 success	CodeQL
-      1 success	Analyze (python)
-      1 success	Analyze (javascript-typescript)
-      1 success	Analyze (actions)
-      1 skipped	slow
-      1 skipped	record-autofix
-      1 skipped	record
-      1 skipped	recheck-gate
-      1 skipped	nightly-ha
-      1 skipped	mutation-pins
-      1 skipped	mutation-pin-plan
-      1 skipped	mutation-nightly
-      1 skipped	mutation-ledger-push
-      1 skipped	mutation-ledger
-      1 skipped	mutation-autofix
-      1 skipped	delivery-status-publish
-      1 skipped	closures-autofix
-      1 skipped	claims-autofix
-      1 skipped	ci-ratchet
-== 36b4a1cf4e33b7f343c99e41e49e14a2b050547a
-      2 success	pr-contract
-      2 success	budget-raise-gate
-      2 success	arch-score
-      1 success	wave-script
-      1 success	validate-hacs
-      1 success	typing
-      1 success	policy-docs
-      1 success	nightly-status
-      1 success	mutation
-      1 success	instrument-self-tests
-      1 success	hassfest
-      1 success	graders-head-copy
-      1 success	env-matrix
-      1 success	delivery-status
-      1 success	coverage-ratchet
-      1 success	coverage
-      1 success	closure-scope
-      1 success	browser
-      1 success	briefs
-      1 success	Analyze (javascript-typescript)
-      1 success	Analyze (actions)
-      1 skipped	slow
-      1 skipped	record-autofix
-      1 skipped	record
-      1 skipped	recheck-gate
-      1 skipped	nightly-ha
-      1 skipped	mutation-pins
-      1 skipped	mutation-pin-plan
-      1 skipped	mutation-nightly
-      1 skipped	mutation-ledger-push
-      1 skipped	mutation-ledger
-      1 skipped	mutation-autofix
-      1 skipped	delivery-status-publish
-      1 neutral	CodeQL
-      1 cancelled	lane-proofs
-      1 cancelled	fast (3.14)
-      1 cancelled	composed-proof
-      1 cancelled	closures-autofix
-      1 cancelled	closures
-      1 cancelled	claims-autofix
-      1 cancelled	ci-ratchet
-      1 cancelled	Analyze (python)
+Analyze (actions)	completed	success	2026-10-18T20:45:57Z	117785363423
+Analyze (javascript-typescript)	completed	success	2026-10-18T20:45:57Z	117785363523
+Analyze (python)	completed	success	2026-10-18T20:45:57Z	117785363456
+CodeQL	completed	success	2026-10-18T20:46:35Z	117785516199
+arch-score	completed	success	2026-10-18T20:45:37Z	117785285363
+arch-score	completed	success	2026-10-18T20:45:38Z	117785286948
+arch-score	completed	success	2026-10-18T21:26:30Z	117794455346
+briefs	completed	success	2026-10-18T20:45:38Z	117785287863
+browser	completed	success	2026-10-18T20:46:05Z	117785392658
+budget-raise-gate	completed	success	2026-10-18T20:45:37Z	117785285332
+budget-raise-gate	completed	success	2026-10-18T20:45:38Z	117785287013
+budget-raise-gate	completed	success	2026-10-18T21:26:30Z	117794455552
+cancel-superseded	completed	success	2026-10-18T20:45:38Z	117785287249
+cancel-superseded	completed	success	2026-10-18T20:45:38Z	117785287805
+ci-ratchet	completed	skipped	2026-10-18T21:06:19Z	117789948529
+claims-autofix	completed	skipped	2026-10-18T20:54:59Z	117787405115
+closure-scope	completed	success	2026-10-18T20:45:38Z	117785287897
+closures	completed	success	2026-10-18T20:57:25Z	117787924881
+closures-autofix	completed	skipped	2026-10-18T21:06:19Z	117789948262
+composed-proof	completed	success	2026-10-18T21:06:22Z	117789946870
+coverage	completed	success	2026-10-18T20:46:05Z	117785392585
+coverage-ratchet	completed	success	2026-10-18T20:57:25Z	117787924954
+delivery-status	completed	failure	2026-10-18T20:45:37Z	117785286942
+delivery-status-publish	completed	skipped	2026-10-18T20:45:35Z	117785287577
+env-matrix	completed	success	2026-10-18T20:45:38Z	117785287117
+fast (3.14)	completed	success	2026-10-18T20:46:05Z	117785392613
+graders-head-copy	completed	success	2026-10-18T20:57:25Z	117787924939
+hassfest	completed	success	2026-10-18T20:45:37Z	117785286824
+instrument-self-tests	completed	success	2026-10-18T20:45:38Z	117785287065
+lane-proofs	completed	success	2026-10-18T20:57:25Z	117787924955
+mutation	completed	success	2026-10-18T20:45:37Z	117785287788
+mutation-autofix	completed	skipped	2026-10-18T20:46:04Z	117785401700
+mutation-ledger	completed	skipped	2026-10-18T20:45:35Z	117785289033
+mutation-ledger-push	completed	skipped	2026-10-18T20:45:35Z	117785289174
+mutation-nightly	completed	skipped	2026-10-18T20:45:35Z	117785288979
+mutation-pin-plan	completed	skipped	2026-10-18T20:46:04Z	117785400965
+mutation-pins	completed	skipped	2026-10-18T20:46:04Z	117785401209
+nightly-ha	completed	skipped	2026-10-18T20:46:02Z	117785393787
+nightly-status	completed	success	2026-10-18T20:45:37Z	117785287679
+policy-docs	completed	success	2026-10-18T20:45:37Z	117785286847
+pr-contract	completed	failure	2026-10-18T20:45:37Z	117785285296
+pr-contract	completed	failure	2026-10-18T20:49:01Z	117786058932
+pr-contract	completed	success	2026-10-18T21:26:30Z	117794455376
+recheck-gate	completed	skipped	2026-10-18T20:45:35Z	117785288679
+record	completed	skipped	2026-10-18T20:45:35Z	117785287996
+record-autofix	completed	skipped	2026-10-18T20:45:35Z	117785288646
+scope	completed	success	2026-10-18T20:45:38Z	117785287173
+slow	completed	skipped	2026-10-18T20:45:35Z	117785288754
+typing	completed	success	2026-10-18T20:45:38Z	117785288170
+validate-hacs	completed	success	2026-10-18T20:45:37Z	117785286949
+wave-script	completed	failure	2026-10-18T20:45:37Z	117785286969
+pr-contract	success	2026-10-18T21:26:30Z	117794455376

@@ -1,0 +1,12 @@
+123:2026-10-18T21:26:38.6735280Z  * [new branch]          handoff-body/r10-codeql-lang-skip -> origin/handoff-body/r10-codeql-lang-skip
+224:2026-10-18T21:26:38.6925443Z  * [new branch]          handoff/r10-codeql-lang-skip -> origin/handoff/r10-codeql-lang-skip
+723:2026-10-18T21:26:38.7389428Z  * [new branch]          wip-sync/ext-wt-r10-codeql-lang-skip-05220358 -> origin/wip-sync/ext-wt-r10-codeql-lang-skip-05220358
+760:2026-10-18T21:26:38.7425233Z  * [new tag]             archive/fix/ci-budget-rerecord -> archive/fix/ci-budget-rerecord
+780:2026-10-18T21:26:38.7459429Z  * [new tag]             archive/handoff-body/r9-ci-1-autofix-skip -> archive/handoff-body/r9-ci-1-autofix-skip
+907:2026-10-18T21:26:38.7582998Z  * [new tag]             archive/handoff/r9-ci-1-autofix-skip -> archive/handoff/r9-ci-1-autofix-skip
+1450:2026-10-18T21:26:39.7212266Z [36;1m# the diff lists what PINNED holds of them, skipping the half it lacks,[0m
+1523:2026-10-18T21:26:41.4806373Z [36;1m# reporter that grades `main` is exempt from `## Red checks` only[0m
+1551:2026-10-18T21:26:42.2346681Z red checks the body must answer: delivery-status,wave-script
+1556:2026-10-18T21:26:42.2375417Z [36;1m# refusal nor `## Red checks` can match.[0m
+1583:2026-10-18T21:26:46.1307395Z   record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: delivery-status, wave-script
+1585:2026-10-18T21:26:46.1308380Z PR-BODY: 0 error(s) in /tmp/pr-body.md

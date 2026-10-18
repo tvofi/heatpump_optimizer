@@ -1,3 +1,1 @@
-  closure. The claim is re-checked by the FULL unscoped suite that runs
-  on every push to main, so a wrong closure turns main red within one
-  gate. Set GATE_SCOPE=full to run everything here and now.
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.

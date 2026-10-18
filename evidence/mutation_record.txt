@@ -1,7 +1,10 @@
 == head --record-known-bad
 recorded 7 entr(ies), 13 occurrence(s), to dev/governance/config/policy_known_bad.json: +0 -0 ~0
-exit=0
-== mutant: restore shadowing local 'at'
- tools/policy/policy_lint.mjs | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+rc=0
+ dev/governance/config/policy_known_bad.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== mutant: shadowing const at restored
 TypeError: at is not a function
+== mutant known-bad count 6->8
+  ERROR   [known-bad] dev/governance/config/policy_known_bad.json: 6 occurrence(s) left of 8 recorded: duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from CLAUDE.md:N. State an obligation once . Re-record with --record-known-bad, or the headroom lets it come back unseen.
+TOTAL: 1 error(s) across 41 policy file(s)
