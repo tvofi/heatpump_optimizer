@@ -37323,6 +37323,15 @@ R.check(
     and abs((_feb_row["actual_sek"] - 10.0) / 28.0 - 24.0) < 1e-9,
     repr(_feb_row),
 )
+_over = _SavLedger()
+for _h in range(700):
+    _over.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 15, 0), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_over.add(_SavDT(2026, 2, 9, 15, 0), "spot", kwh=700.0, sek=700.0)
+R.check(
+    "a month that settled more hours than it has is never scaled down",
+    _over.savings_months(_feb10)[0]["actual_sek"] == 700.0,
+    repr(_over.savings_months(_feb10)[0]),
+)
 _ren = _SavLedger.from_dict(_feb.as_dict())
 R.check(
     "the coverage survives the store round trip",
@@ -37454,6 +37463,32 @@ R.check(
     "between the two, the debit past the caps stops at the thermostat's cost",
     abs(_hs_gap(1.0) - (_hs_capped - 1.0)) < 1e-9,
     f"{_hs_gap(1.0)!r} vs {_hs_capped - 1.0!r}",
+)
+R.check(
+    "a negative thermostat cost (negative prices) never turns the debit into a credit",
+    abs(_hs_gap(-5.0) - _hs_capped) < 1e-9,
+    f"{_hs_gap(-5.0)!r} vs capped {_hs_capped!r}",
+)
+_hs_cold = _HbState(room_temperature=19.0, slab_temperature=20.0,
+                    outdoor_temperature=float(_hb_out[0]))
+_hs_cold_held = _hb_held_state(_hs_opt.model, _hs_cold, _hs_ws, 21.0)
+_hs_cold_capped = _hs_opt._deferred_energy_cost(
+    _hs_cold_held, _hs_cold, _hs_px, _hb_out, caps=_hs_caps)
+R.check(
+    "a start colder than the held house is settled at the caps, with no surplus to debit",
+    abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, 1e9)
+        - _hs_cold_capped) < 1e-9,
+    f"capped {_hs_cold_capped!r}",
+)
+_hs_sun = _hb_weather("summer_warm", _SavDT(2026, 7, 15, 12, 0))
+_hs_sun_held = _hb_held_state(
+    _hs_opt.model, _hs_cold,
+    _HbWS(outdoor_temps=_hs_sun[0], wind_speeds=_hs_sun[1], precipitation=_hs_sun[2],
+          solar_radiation=_hs_sun[3]), 21.0)
+R.check(
+    "with no demand at the held target the slab sits at the target, not below it",
+    _hs_sun_held.slab_temperature == 21.0 and _hs_sun_held.room_temperature == 21.0,
+    repr((_hs_sun_held.room_temperature, _hs_sun_held.slab_temperature)),
 )
 
 # On the hot-water path the reference's cost includes the tank's, and house
