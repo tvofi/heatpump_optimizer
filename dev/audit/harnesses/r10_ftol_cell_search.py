@@ -28,7 +28,7 @@ Run from the repository root, once per kernel:
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_ftol_cell_search.py [--perturb] [--cells tz:price:weather,...]
 
 It prints an environment line, one RESULT line per cell, and the contract's
-thread_factor/load1/swapins lines (tools/audit/README.md).
+thread_factor/load1/swapins lines (dev/audit/README.md).
 """
 import argparse
 import os
