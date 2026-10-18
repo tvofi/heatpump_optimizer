@@ -1,6 +1,0 @@
-[base2] RESULT implementations=35 count
-[base2] RESULT joined=0 count
-[base2] RESULT classes_spanned=0 count
-[head2] RESULT implementations=35 count
-[head2] RESULT joined=26 count
-[head2] RESULT classes_spanned=3 count

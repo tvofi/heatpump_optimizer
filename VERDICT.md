@@ -1,48 +1,80 @@
-Fix review: merge da688f50971bd31043383aeffca623d3b713c86b
-bus-nonce: 62444ef18f3cdcae7179c88536389af3
+Fix review: merge 311e9de3e0c6d5bd0aa2139caf16b7707bf232f6
 
-PR #2401, R10-ARCHSCORE-COVERAGE part 5, review round 2 (round 1 `0283ca6b5`/`aae44320c` blocked at `c75609c3a`). I judged the delta from `c75609c3a` to `da688f50971bd31043383aeffca623d3b713c86b` from detached worktrees at that head and at its merge base `f1b21daab`.
+bus-nonce: fd05f3fcbbf74d093a1fbc08b99c824a
 
-- The fixer's commits are `473d1cf36` (C16b) and `dfaaf9e18` (companion, general limit).
-- The merges `9151f90af` and `da688f509` have empty remerge-diffs, and `merge-tree` against origin/main exits 0.
-- The roles contract matches main.
-- Before pushing I re-read `refs/pull/2401/head`, and it was still `da688f50971bd31043383aeffca623d3b713c86b`.
+PR #2401, R10-ARCHSCORE-COVERAGE part 5, review round 3.
+- Round 1 blocked at `c75609c3a`.
+- Round 2 returned merge at `da688f509`; the third PR comment re-posts round 2.
+- This round judges two things: the head move `da688f509` -> `40c311ffe` -> `311e9de3e`, as its resolution delta, and the body's new `## Raise justification`.
+- I worked from a detached worktree at `311e9de3e0c6d5bd0aa2139caf16b7707bf232f6`, in a cloud seat.
+- The roles diff against origin/main is empty, so the contract is current.
 
-## Round-1 findings, each re-checked at this head
+## Head move (step 12, as a delta)
 
-1. **The `tests/arch_score.py` red is fixed.**
-   - C16b now roots a returned callback only where `_consumed` finds the call's value handed on.
-   - I ran `hub_spellings()` alone (my `hub_only.py`, which is cheap): all nine hub cases are `ok`. That includes "null: a callback handed to a package function reads 0" and the new positive fixture "returns into a Home Assistant subscription (C16b) reads 1".
-   - My mutants pin both arms. M22 (a returned reference rooted always) fails the null control (`got 1`). M23 (the returned arm off) fails the positive fixture (`got 0`).
-   - CI's `fast (3.14)` at this head is green. The body's `## Red checks` answers the red, naming the cheaper detector (`hub_spellings`, which runs alone).
-2. **`Closes #2259` is fixed:** the body says `Part of #2259` and `Part of #2235`, `closingIssuesReferences` is `[]`, and `pr-contract` at this head is green.
-3. **#2259 item 2's "duplicated spellings" is now dispositioned honestly.**
-   - The delivery table marks it "not delivered" with my probe's figures, and it says both issues stay open.
-   - It is carried "to the orchestrator to route" as a card counterpart of C23, accepted by ARCH2-s5's `card_shapes.mjs` perturbation. Routing it is owed by the orchestrator (below).
-4. **The companion has landed** as `dev/audit/harnesses/archscore_shape_family_coverage.py`.
-   - I ran it myself on ref `554e2ecfa`. With the base instrument (`f1b21daab`, no `metrics/shapes.py`) it prints `implementations=35 joined=0 classes_spanned=0`. With the head instrument it prints `implementations=35 joined=26 classes_spanned=3`, which matches the body.
-   - Its `family()` equals `arch-s2/shape_payload_guard.py`'s once unparsed, except for the dropped type annotations.
-5. **The #2373 general limit is stated.**
-   - `ABOUT.md` now says C20/C21 fold spellings, not values. It names the class attribute and the constant expression (186 -> 182 each), and says a literal census is a floor.
-   - The superseding R10-BRIEFS-FOLD carry ("normalise a finite list of spellings ... credited only when the copies are actually gone from the source") is on the roster branch `handoff/audit-r10-roster` (PR #2384, open). It is not yet on origin/main.
+- Both new commits are main merges: `40c311ffe` (main `c8cc75e`) and `311e9de3e` (main `176851e95`). `git show --remerge-diff` is empty for both (`ev/remerge_*.txt`), so neither merge has a hand resolution.
+- The branch's own three-dot diff did not change. I compared `git diff f1b21daab...da688f509` with `git diff 176851e95...311e9de3e`: the two are byte-identical (`ev/branch_delta_diff.txt`, 0 lines).
+- Main's range `f1b21daab..176851e95` touches nothing under `custom_components/`, `tools/audit/archscore/`, `tests/ci_budgets.json` or `tests/closures.json`. No measured value can move from it.
+- `git merge-tree --write-tree` exits 0 against both origin/main heads:
+  - `176851e95`, the PR base.
+  - `106af95a3`, the current main. Main's newer commits again touch none of those paths.
 
-## Also checked
+## Re-derived at this head
 
-- **Today's tree:** `shape_copies` reads 66, `card_clone_copies` 108, `card_dead_definitions` 0, `literal_clone_copies` 186 and `hub_solve_writes` 41. The four new `ci_budgets.json` rows match, and main's merged production changes move none of them.
-- **CI at this head:** 45 check-runs, 30 success and 15 skipped, none red. `arch-score`, `fast (3.14)`, `closures`, `pr-contract` and `budget-raise-gate` are all green.
+- **Today's values match their `ci_budgets.json` rows:**
+  - `shapes.measure(.)`: `shape_copies` 66, in 18 classes.
+  - The other rows: `literal_clone_copies` 186, `card_clone_copies` 108, `card_dead_definitions` 0, `hub_solve_writes` 41.
+  - Evidence: `ev/today_values.txt`, `ev/shape_classes_today.txt`.
+- **Mutant M1** (`len(v) > 999`, no class is ever formed), run with `calibrate.py --only a3_shape_copies_control,a3_shape_copies_null`:
+  - M0: the control reads `WORSENS shape_copies 87->88` and the null reads NULL.
+  - M1: the control reads NULL; the null is unchanged.
+  - The test is not vacuous (`ev/m0_full.txt`, `ev/m1_full.txt`).
+- **Architecture score:** the body's command, `score.py --diff c8cc75e 40c311ffe`, prints `Architecture score: dS +0.0000 NULL`. So does `score.py --diff 176851e95 HEAD`, with the current merge base and the head (`ev/score_*.txt`). The diff touches no `custom_components/` file.
+- **Scoped gate:** `closure.py select` prints `MODE: SCOPED -- 4 script(s) run, 29 scoped out`. That matches the body. `tmp_paths.py --check` prints `0 refused`.
+- I could not run `tests/arch_score_head.py` locally, because this seat's venv has no `homeassistant` module. I cite CI's `fast (3.14)` for it.
+- **CI at this head:** 46 check-runs, 31 success and 15 skipped, none red (`ev/check_runs.txt`). Every run concluded before I read them. Green runs include:
+  - `fast (3.14)`, `arch-score` (two runs) and `closures`.
+  - `pr-contract` (two runs) and `budget-raise-gate` (two runs).
+  - `coverage` and `coverage-ratchet`.
+- No red check, so step 11 owes nothing new.
+
+## Raise justification (step 14)
+
+The only new row from part 5 is `archscore.shape_copies` 66. It is a new key set at its measured value, not an existing row raised. Part 4's three rows ride in from #2373 and are justified there.
+
+Each payment the body lists, judged:
+
+1. **Keep the key out of the vector. Refused, correctly.** That is an instrument choice, not a code improvement. It would also drop the census's only refusing case: `a3_shape_copies_control` reads WORSENS through C23 alone, and NULL with it off. The body says this, and M1 at this head confirms it.
+2. **Deduplicate the production copies. Correctly described as not a payment for the row.** Lowering the count lowers the value the row is recorded at, but the row is still owed: `ci_ratchet` refuses any key in the vector that has no row. So no code change removes the need for the row.
+3. **Weighted at the floor. Correctly excluded.** It still needs the row, and calibration refuses it on `ca711b56`.
+
+The missed payment I hunted:
+- Today's tree holds a real, single-import duplicate in class 11 of `ev/shape_classes_today.txt`: `config_flow:_effective` copies `comfort_band:effective`. The PR's own `a3_shape_copies_fix` case plants exactly this fix.
+- Doing it would improve the code and move the row 66 -> 64. It would not avoid a row, so it is not a payment that the raise needed and missed. It is not `metric-gamed`.
+- I name it as an improvement the census already points at, for the orchestrator to route. I am not blocking on it.
+
+The body's dS line was taken at `40c311ffe` rather than this head. The two heads' branch diffs are identical, and I re-took the figure at this head: it is still `+0.0000 NULL`.
+
+## Earlier rounds' findings
+
+The round-2 dispositions all carry unchanged, because the authored code is byte-identical:
+- the C16b null control and positive fixture;
+- `Part of #2259`;
+- the item-2 card spellings, marked not delivered and carried;
+- the landed companion;
+- the #2373 general limit.
 
 ## Owed (not blocking)
 
-- **To the orchestrator, before or with this merge:**
-  - Land #2384, which carries the R10-BRIEFS-FOLD general-limit carry, so the destination holds it on main.
-  - Route #2259 item 2's card duplicated-spellings census, and the #2235 RCA, both carried in the body. #2259 and #2235 stay open, to be closed by hand.
-- **To tvofi at merge (mandate 6175172275):**
-  - `tests/ci_budgets.json` gains four new rows: `archscore.card_clone_copies` 108, `archscore.card_dead_definitions` 0, `archscore.literal_clone_copies` 186 and `archscore.shape_copies` 66.
-  - `tools/audit/archscore/calibration/expected.json` gains 23 cases (part 4's 17, part 5's 5 and `rt_20b`), with no deletions.
+- **Orchestrator:**
+  - Land #2384 for the R10-BRIEFS-FOLD carry.
+  - Route the card duplicated-spellings census and the #2235 RCA.
+  - Optionally, the `config_flow._effective` dedupe.
+- **tvofi or mandate 6175172275 at merge:**
+  - Four new `tests/ci_budgets.json` rows: `shape_copies` 66, `literal_clone_copies` 186, `card_clone_copies` 108, `card_dead_definitions` 0.
+  - 23 new `expected.json` cases.
 
 ## Not verified by me
 
-- The full `--record` and the corpus re-measure, which are CI's `arch-score`, green.
-- The mutants M2-M4 and M17-M21.
-
-Evidence: ~/hpo-seats/r10s3/review-2401/evidence2
+- The full `--record`, the corpus re-measure and the counterfactual arms. These are CI's `arch-score` and were green; I did not re-run them.
+- Mutants M2-M4 and M17-M23. They rest on round 2, and the authored diff is unchanged since then.
+- `arch_score_head.py`'s `ALL 18` line. I have only CI's `fast (3.14)`.

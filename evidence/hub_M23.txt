@@ -1,4 +1,0 @@
-M23 head=da688f50971bd31043383aeffca623d3b713c86b
- 1 file changed, 1 insertion(+), 1 deletion(-)
-  ok   hub census: null: a callback handed to a package function reads 0 site(s), and 0 with C15 and C16 off
-  FAIL hub census: a callback a package function returns into a Home Assistant subscription (C16b) reads 1 site(s), and 0 with C15 and C16 off  [got 0 (C15/C16 off: 0), base 0]
