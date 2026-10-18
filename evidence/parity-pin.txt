@@ -1,6 +1,0 @@
-== head
-PIN PASS | diff --no-renames --name-only REF...HEAD | diff --no-renames --name-only HEAD | ls-files --others --exclude-standard vs env_drift: diff --no-renames --name-only REF...HEAD | diff --no-renames --name-only HEAD | ls-files --others --exclude-standard
-== MP1 card_rig only
-PIN FAIL | diff --name-only REF...HEAD | diff --no-renames --name-only HEAD | ls-files --others --exclude-standard vs env_drift: diff --no-renames --name-only REF...HEAD | diff --no-renames --name-only HEAD | ls-files --others --exclude-standard
-== MP2 both twins reverted together
-PIN FAIL | diff --name-only REF...HEAD | diff --name-only HEAD | ls-files --others --exclude-standard vs env_drift: diff --name-only REF...HEAD | diff --name-only HEAD | ls-files --others --exclude-standard
