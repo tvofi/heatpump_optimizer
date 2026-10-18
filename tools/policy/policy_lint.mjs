@@ -2329,7 +2329,7 @@ let mergeDiffSource = null
 function mergeRecordClass(sha) {
   const out = mergeDiffSource
     ? mergeDiffSource(sha)
-    : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
+    : git(['diff', '--no-renames', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
   if (!out) return false
   return recordClassPaths(canonList(out.split('\n')))
 }
@@ -6028,7 +6028,7 @@ function autofixMerge(sha, short, message, ps) {
   if (!/^[0-9a-f]{40}$/.test(tree)) return { why: `${short}: git merge-tree gave no tree for its parents` }
   const drivers = git(['show', 'origin/main:.gitattributes'], { allowFail: true, quiet: true }).split('\n')
     .filter((l) => !l.startsWith('#') && / merge=/.test(l)).map((l) => `:(exclude)${l.split(/\s+/)[0]}`)
-  const moved = git(['diff', '--name-only', tree, sha, '--', '.', ...drivers], { allowFail: true, quiet: true }).trim()
+  const moved = git(['diff', '--no-renames', '--name-only', tree, sha, '--', '.', ...drivers], { allowFail: true, quiet: true }).trim()
   if (moved) return { why: `${short} is not the automatic merge of its parents (${moved.split('\n').join(', ')})` }
   return { parent: ps[0], message }
 }
