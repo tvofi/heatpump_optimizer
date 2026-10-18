@@ -1,0 +1,16 @@
+  ok   a stamp after the newest compaction is OK
+  ok   a stamp between two compactions is OWED: the newest one binds (null control for OK)
+  ok   a stamp in the same second but before the compaction's fraction is OWED
+  ok   no stamp is OWED
+  ok   an empty stamp is OWED
+  ok   an unparseable stamp is OWED
+  ok   a stamp with no zone is OWED
+  ok   a stamp ahead of the clock is OWED
+  ok   no compaction and a valid stamp is OK
+  ok   no compaction and no stamp is OWED
+  ok   a quoted compact_boundary inside a message is not a compaction
+  ok   a non-JSON line naming compact_boundary is OWED
+  ok   a compaction with an unreadable timestamp is OWED
+  ok   an unreadable transcript is OWED
+  ok   --write-stamp writes a stamp this check reads as OK
+policy_reread_check self-test: 15 checks, 0 failed

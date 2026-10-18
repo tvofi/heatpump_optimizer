@@ -1,0 +1,10 @@
+-- live transcript, fresh stamp
+STAMPED 2026-10-18T17:46:37Z
+OK (read 2026-10-18T17:46:37Z; no compaction in the transcript)
+rc=0
+-- plant a real compaction after the stamp
+OWED (read 2026-10-18T17:46:37Z <= compaction 2099-01-01T00:00:00.000Z)
+rc=1
+-- plant a compaction before the stamp
+OK (read 2026-10-18T17:46:37Z > compaction 2026-10-18T00:00:00.123Z)
+rc=0
