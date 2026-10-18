@@ -1,0 +1,72 @@
+sites=71 latched=6 seams=65
+SEAM  custom_components/heatpump_optimizer/__init__.py:212 async_migrate_entry 
+SEAM  custom_components/heatpump_optimizer/accuracy.py:477 from_dict 
+SEAM  custom_components/heatpump_optimizer/climate.py:313 _async_publish_displace_from_current_action 
+GUARD custom_components/heatpump_optimizer/config_flow.py:2944 async_step_dhw warning is not None
+GUARD custom_components/heatpump_optimizer/config_flow.py:3522 async_step_hot_water warning is not None
+SEAM  custom_components/heatpump_optimizer/coordinator.py:572 _peak_tariff_months 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:586 _peak_tariff_hours 
+GUARD custom_components/heatpump_optimizer/coordinator.py:621 _best_effort_cycle_step (message, cause) not in _FENCED_CAUSES
+SEAM  custom_components/heatpump_optimizer/coordinator.py:1155 async_adopt_heat_loss_refit 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:1605 _note_worker_fallback 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:2501 _publish_ecl110_topics 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:2518 _publish_ecl110_topics 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:3710 _async_set_pump 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:3850 _async_load_thermal_learning 
+GUARD custom_components/heatpump_optimizer/coordinator.py:4475 _external_heat_override not self._external_probe_stale_warned
+SEAM  custom_components/heatpump_optimizer/coordinator.py:4913 _reanchor_house_heat_loss_scale 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:5332 _check_pump_mode_expired 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:5513 _async_update_data 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:5563 _async_first_refresh_light 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:5989 async_update_thermal_params 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:6048 async_shutdown 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:6195 _update_current_state 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:6484 _tibber_fetch_failed 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:6520 _tibber_start_reauth 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:6615 _weather_fetch_failed 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:8110 _async_load_manual_plan 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:8397 _async_setup_peak_guard 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:8734 _detect_outage 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:9219 _raise_cop_issue 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:9420 _async_watch_learning_drift 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:9449 async_restore_learned_snapshot 
+GUARD custom_components/heatpump_optimizer/coordinator.py:10680 _observe_frequency self._freq_watchdog.note_report(reported, active=watch_active)
+SEAM  custom_components/heatpump_optimizer/coordinator.py:10741 _command_frequency 
+SEAM  custom_components/heatpump_optimizer/coordinator.py:11208 async_simulate 
+SEAM  custom_components/heatpump_optimizer/curve_learning.py:100 record_miss 
+SEAM  custom_components/heatpump_optimizer/defrost.py:592 from_dict 
+SEAM  custom_components/heatpump_optimizer/dhw_schedule.py:663 parse_day_overrides 
+GUARD custom_components/heatpump_optimizer/disinfection.py:140 turn_on not self._blocked_logged
+SEAM  custom_components/heatpump_optimizer/disinfection.py:194 release 
+SEAM  custom_components/heatpump_optimizer/disinfection.py:228 _write 
+SEAM  custom_components/heatpump_optimizer/disinfection.py:235 _write 
+SEAM  custom_components/heatpump_optimizer/frontend.py:63 _register_static_path 
+SEAM  custom_components/heatpump_optimizer/frontend.py:70 _register_static_path 
+SEAM  custom_components/heatpump_optimizer/frontend.py:136 _register_lovelace_resource 
+SEAM  custom_components/heatpump_optimizer/frontend.py:171 _register_lovelace_resource 
+SEAM  custom_components/heatpump_optimizer/grid_fee.py:289 from_config 
+SEAM  custom_components/heatpump_optimizer/grid_fee.py:487 apply_catalog 
+SEAM  custom_components/heatpump_optimizer/grid_fee.py:493 apply_catalog 
+SEAM  custom_components/heatpump_optimizer/ledger.py:307 from_dict 
+SEAM  custom_components/heatpump_optimizer/ledger.py:431 roll_receipts 
+SEAM  custom_components/heatpump_optimizer/legionella.py:307 async_track_cycle 
+SEAM  custom_components/heatpump_optimizer/legionella.py:358 async_track_cycle 
+SEAM  custom_components/heatpump_optimizer/legionella.py:374 async_track_cycle 
+SEAM  custom_components/heatpump_optimizer/legionella.py:389 async_track_cycle 
+SEAM  custom_components/heatpump_optimizer/legionella.py:398 async_track_cycle 
+SEAM  custom_components/heatpump_optimizer/legionella.py:680 check_mode_block 
+SEAM  custom_components/heatpump_optimizer/log_latch.py:63 log_held 
+SEAM  custom_components/heatpump_optimizer/log_latch.py:65 log_held 
+SEAM  custom_components/heatpump_optimizer/open_meteo.py:378 async_refresh 
+SEAM  custom_components/heatpump_optimizer/price_model.py:115 _stored_rows 
+SEAM  custom_components/heatpump_optimizer/price_model.py:142 _in_domain 
+SEAM  custom_components/heatpump_optimizer/price_model.py:402 from_dict 
+SEAM  custom_components/heatpump_optimizer/pump_arbiter.py:796 _not_held 
+SEAM  custom_components/heatpump_optimizer/pump_arbiter.py:849 _write 
+SEAM  custom_components/heatpump_optimizer/pump_arbiter.py:1027 switch_supply 
+SEAM  custom_components/heatpump_optimizer/snapshots.py:192 best_restore 
+SEAM  custom_components/heatpump_optimizer/snapshots.py:240 from_dict 
+SEAM  custom_components/heatpump_optimizer/store.py:160 _bound_instants 
+SEAM  custom_components/heatpump_optimizer/store.py:665 _surface_version 
+SEAM  custom_components/heatpump_optimizer/tariff.py:469 from_dict 
+SEAM  custom_components/heatpump_optimizer/thermal_model.py:1137 from_config 
