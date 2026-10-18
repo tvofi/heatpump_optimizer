@@ -1,49 +1,41 @@
-Fix review: blocked ee409c81d7861741f2288491c69cb805c218e24c harness: class-open written history member and programmatic form spellings in the undriven keydown handler pass both arms rc=0 fails=0 (history["back"](), history?.back(), destructured back, createElementNS form, .action = <variable>, Object.assign quoted "action" key, a createElementNS form submitted by button.click()); each sits beside a red control, and the census comment's "The static arm still refuses that surface's names wherever they are written" is false for them
+Fix review: blocked e9e6b99b30de85eebba6a1a77507a0179f36f5ad harness: class-open residual not exact: RV4's written form, appended to document.body and submitted by a button click, passes both arms rc=0 fails=0 inside a DRIVEN press (RD4, after advisor:settings' navigateTo), so the Residual paragraph, the body's "Residual, exactly" and the four carries, which confine the gap to handlers the dynamic arm does not drive, still over-claim; and R10-DEEPLINK-HANDLERS' control "each of RV1-RV7 must go red once its handler is driven" is already false for RV4
 
-bus-nonce: a660646dc796957c80c5d0685831fbe4
+bus-nonce: b87aaea45b247c1eb1cadfaea183ecaa
 
-Round: the body numbers the previous review round 7 (verdict on e59b1fb54), so this is round 8 on that count, and the third bus verdict on #2345 (after 90407915e and e59b1fb54). Past round 3, fixer.md owes a re-cut, not another repair (see Direction).
+Round: 9, a delta review after the orchestrator's split ruling. It judges b678c7d16 plus the main merges since ee409c81d. Measured head: e9e6b99b30de85eebba6a1a77507a0179f36f5ad; refs/pull/2345/head was re-read just before posting.
 
-Measured head: ee409c81d7861741f2288491c69cb805c218e24c (refs/pull/2345/head re-read before posting). Contract current: git diff $(merge-base)...origin/main -- dev/governance/roles/ is empty. Merge base 0b1ddb7fd36d995b845374d2aa8b8aeea4545571.
-
-## Resolution delta (orchestrator.md 11)
-- ee409c81d and 6e8617475 are pure merges: git merge-tree --write-tree of each one's parents gives exactly its tree (ef8d141e5, c27db9021). git diff c6ef1959a ee409c81d touches only main's files plus the roster. Card, tests/card.mjs and the driver are byte-identical to the code head.
-- 176db5f00 (the roster conflict): field by field against base, ours (f1542b17d) and main (6e5753a4a), only R10-SCORES.brief changed on both sides. The merged text is base plus main's item (4) from R10-RATIO-SITES at offset 1415 plus this group's carry appended at offset 3871. Every other changed field takes the side that changed it. The resolution is correct.
-- git merge-tree --write-tree origin/main (e5f7e169d) ee409c81d7861741f2288491c69cb805c218e24c exits 0.
-
-## RESULT lines (mine, at ee409c81d7861741f2288491c69cb805c218e24c, driver applied through its own run())
-Sample of the 109-plant sweep, 25 plants, four detached worktrees (evidence/sweep1-4.log):
+## RESULT lines (mine, at e9e6b99b30de85eebba6a1a77507a0179f36f5ad)
 RESULT mutant=NULL_no_plant rc=0 fails=0
-RESULT mutant=V3 rc=1 fails=1 | V8 rc=1 fails=1 | V13 rc=1 fails=1
-RESULT mutant=F1 rc=0 fails=0 | F2 rc=0 fails=0 (the re-fixed one) | F3 rc=0 fails=0 | F4 rc=0 fails=0
-RESULT mutant=X12V8 rc=0 fails=0 | X10V2 rc=0 fails=0
-RESULT mutant=T1c rc=1 fails=2 | T2c rc=1 fails=2 | R7c rc=1 fails=1 | Y1 rc=0 fails=0
-RESULT mutant=K1 rc=1 fails=2 | K2 rc=1 fails=2 | K3t rc=1 fails=1 | K5 rc=1 fails=2 | Z2 rc=1 fails=1 | Z3 rc=1 fails=1
-RESULT mutant=X3 rc=0 fails=0 | X7 rc=0 fails=0 | X8 rc=0 fails=0 | X7K1b rc=1 fails=1 | X1K5b rc=1 fails=2 | X2 rc=1 fails=2
-Every sampled plant reads as the body classifies it. node tests/card.mjs: ALL CARD CHECKS PASSED, 1257 ok, 0 FAIL. node tests/card_drift.mjs 0b1ddb7fd: identical in all 40 states (so the b.open to b.foldOpen rename, and runsFrom's open to run, change no rendered state).
+node tests/card.mjs: ALL CARD CHECKS PASSED, 1257 ok, 0 FAIL
+RESULT mutant=RV1_history_bracket_back_in_undriven_keydown rc=0 fails=0
+RESULT mutant=RV2_history_optional_back_in_undriven_keydown rc=0 fails=0
+RESULT mutant=RV3_history_destructure_in_undriven_keydown rc=0 fails=0
+RESULT mutant=RV4_form_ns_action_member_button_click_in_undriven_keydown rc=0 fails=0
+RESULT mutant=RV5_action_member_to_variable_in_undriven_keydown rc=0 fails=0
+RESULT mutant=RV6_object_assign_quoted_action_key_in_undriven_keydown rc=0 fails=0
+RESULT mutant=RV7_create_element_ns_form_in_undriven_keydown rc=0 fails=0
+RESULT mutant=RV1c_history_dot_back_control rc=1 fails=1
+RESULT mutant=RV5c_action_member_to_literal_control rc=1 fails=1
+RESULT mutant=Y1_runtime_name_on_unresolved_selector_residual rc=0 fails=0
+These come from the PR's own driver (evidence9/r9*.log). RV1-RV7, RV1c and RV5c are byte-identical to my review_plants.py: I compared each plant's edit list programmatically and all nine read VERBATIM.
 
-Reviewer's own plants. evidence/review_plants.py is my own instrument: it reuses the PR driver's run(), KEYDOWN anchor and P. The plants sit in the same undriven chart keydown handler the round-5 and round-7 blocks used (evidence/rv1-4.log):
-RESULT mutant=RV1_history_bracket_back rc=0 fails=0        globalThis.history["back"]()
-RESULT mutant=RV2_history_optional_back rc=0 fails=0       globalThis.history?.back()
-RESULT mutant=RV3_history_destructure rc=0 fails=0         const { back } = globalThis.history; back.call(...)
-RESULT mutant=RV1c_history_dot_back_control rc=1 fails=1   globalThis.history.back(): red on "no navigation token"
-RESULT mutant=RV7_create_element_ns_form rc=0 fails=0      document.createElementNS(xhtml, "form")
-RESULT mutant=RV5_action_member_to_variable rc=0 fails=0   f.action = u
-RESULT mutant=RV5c_action_member_to_literal_control rc=1 fails=1   f.action = "<path>": red
-RESULT mutant=RV6_object_assign_quoted_action_key rc=0 fails=0     Object.assign(f, { "action": P })
-RESULT mutant=RV4_form_ns_action_member_button_click rc=0 fails=0  a whole written form navigation: createElementNS form, .action = u, a button appended and .click()ed. It is #2345's round-7 class (a written programmatic form) with no refused row
+My round-9 plants (evidence9/review_plants9.py, my own instrument, using the PR driver's after_nav and run()) put the same spellings in a press the census DOES drive (evidence9/rd*.log):
+RESULT mutant=RD1_history_bracket_back_driven rc=1 fails=1            (RV1's spelling, driven: red on "every link the census records ... haLink builds")
+RESULT mutant=RD5_action_member_to_variable_on_rendered_form_driven rc=1 fails=1   (createElementNS form with .action = u, appended to the shadow root, driven: red, the control)
+RESULT mutant=RD4_form_ns_action_member_button_click_driven rc=0 fails=0   (RV4 verbatim, driven: GREEN)
+RD4 and RD5 differ only in where the form goes and how it is submitted. RD5 appends it to root and is red. RD4 appends it to document.body and submits it with a button's click(), which no row names; it is green. The dynamic arm reads href/action/formaction off the shadow root after each press, and the stub's click() submits nothing, so a form outside the shadow root that a button submits is invisible to both arms even where a press reaches it.
 
-## Why this blocks (fix-review 6)
-These names are all written, not built at run time. The census comment's Residual paragraph says "The static arm still refuses that surface's names wherever they are written, the written form spellings included", and the body says a form "built or submitted by name is red wherever it is written". Both claims are false for RV1-RV7. The history row (/history\s*\.[A-Za-z_$]/) is this PR's own; at the merge base there is no NAV_SURFACE. It misses the computed key and the optional chain, which is the same shape the open row was blocked for in round 5 (Z2c). The form rows key on createElement( and on a literal after action =, so createElementNS, a member assignment to a variable, a quoted object key and a submit by button click are each outside every row. Each sits one spelling away from a red control.
+## (a) Over-claims
+- Card.mjs Residual paragraph: the old "refuses ... wherever they are written" is gone, and the gap is now stated as the spellings its rows name. But it confines the gap to "a handler it does not drive" plus the a.zz stub selector, and RD4 is a third shape inside a driven press. The residual is narrower than measured, so it is still not exact.
+- The body ("Residual, exactly: navigation written in a handler the dynamic arm does not drive ...") and all four carries (R10-UX-SETUP, R10-ADVISOR, R10-SCORES, R10-UX-HEALTH: "navigation written in a handler the census's dynamic arm does not drive ... is not covered") have the same defect. They tell a later stage that a click-driven row is covered when RD4 shows it is not.
+- R10-DEEPLINK-HANDLERS's brief (f2d13bb4a) says "each of RV1-RV7 must go red once its handler is driven". RD4 shows RV4 stays green when driven. The split group's control is unsatisfiable as written, and driving handlers alone does not close that shape.
+- Z-plant comment ("in that unreached handler"): accurate. Grepping card.mjs and the driver for "wherever" finds no census claim left.
+Fix (narrow, comments and text only plus one plant): in the Residual paragraph, the body and the four carries, add a form placed outside the shadow root (document.body) and submitted by a button's click(), which passes even where a press reaches it. Add RD4 to the driver as a green-by-design witness beside RD5, the red control. The orchestrator then amends R10-DEEPLINK-HANDLERS's brief: RV4/RD4 needs the dynamic arm to read document-level markup, or a click-submits-form instrument, as well as driving handlers.
 
-## Direction (round 8: a re-cut, not a repair)
-This is the third round in which the static arm misses a written spelling (open.call in round 5, the programmatic form in round 7, now these). Adding rows patches spellings, which is the denylist #2317 asked the census to stop being. A re-cut that closes the class removes the reason the static arm carries it: the dynamic arm drives the handlers no click reaches (keydown, pointer, wheel, focus) the way it already drives clicks, through the instrumented surface. A written or built name in those handlers is then the dynamic arm's, and the static arm keeps only the bare-name rows that need no spelling list. If the fixer keeps the static design, the history and form rows must at least be name-based (history as an identifier in any member or destructuring position; action as a member or key name in any write position; createElementNS; a submit through a button's click), with RV1-RV7 added to the driver as plants. The orchestrator may prefer to split the remaining written-spelling class into its own group.
+## (b) RV plants: committed verbatim and re-run (above). Green and red as claimed.
+## (c) Disclosed: the body now discloses the runsFrom rename (open to run, d3513acc8). The X-plant docstring is corrected: X1/X2 alone red, X3-X13 alone green, X7K1b red on "no press throws". That matches my round-8 runs (X3, X7, X8 alone green; X7K1b FAIL "no press throws", evidence/sweep4.log).
+## (d) Closing keyword: none. The body says "Part of #2317". closingIssuesReferences is [], and a keyword regex over the body finds no match.
+## (e) Merges: pure. git merge-tree --write-tree of each merge's parents equals its tree for eb277f48f, 34f85f45f and e9e6b99b3. git merge-tree --write-tree origin/main e9e6b99b30de85eebba6a1a77507a0179f36f5ad exits 0. The b678c7d16 diff to tests/card.mjs changes comment lines only, and git diff ee409c81d b678c7d16 touches tests/card.mjs, the driver, the roster and two delivery rows only.
 
-## Other checks
-- Stub-selector residual: honestly stated. The Residual paragraph names tests/dom_stub.mjs, a.zz, Y1 green and R7c red, and I reproduced both. Its follow-on sentence about the static arm is the false part (above).
-- Card rename: b.open to b.foldOpen is behaviour-neutral. card_drift is identical in all 40 states and card.mjs is green. The body says "the rename is the only card change", but the branch also renames runsFrom's local open to run (d3513acc8, an earlier round). That rename is also neutral and is undisclosed in this body.
-- Driver docstring inaccuracy: it says "X1, X2, X3, ... X12 and X13 alone are the detector demonstrations -- the check each line carries is red without it". The body and my runs show X3, X7 and X8 alone read rc=0 fails=0, as the body's "33 green" accounting requires. The docstring contradicts the measurement and should be corrected in the re-cut.
-- Forward-carry (step 10): the carry text is present at ee409c81d7861741f2288491c69cb805c218e24c in R10-UX-SETUP, R10-ADVISOR, R10-SCORES and R10-UX-HEALTH, naming NAV_SURFACE, foldOpen and createElement. Its control is the census going red, and it is stated as a precondition. R10-UX-SETUP's resume.stage is already done, so its carry binds no future seat. The carry repeats the "red wherever it is written" claim RV4-RV7 refute, so the re-cut must amend all four.
-- Red checks (step 11): the check-runs API over every branch commit (evidence/red_history.tsv) shows failure runs only for pr-contract, fast (3.14) and delivery-status at e59b1fb54, pr-contract and coverage-ratchet at 485d0aa81, and pr-contract and wave-script at 1d45350ba. ## Red checks names and answers each one. At ee409c81d7861741f2288491c69cb805c218e24c every latest run per name is success or skipped (evidence/checkruns_head.tsv), and pr-contract is success.
-- VERSION, manifest, RELEASE_NOTES heading, both claim files, tests/closures.json and structure_budgets.json are untouched (three-dot diff is empty).
-- Not re-run: full gate, mutation table, structure.py, archscore. I cite CI instead: arch-score, closures, mutation and fast (3.14) are success at ee409c81d7861741f2288491c69cb805c218e24c.
+## Checks
+At e9e6b99b30de85eebba6a1a77507a0179f36f5ad all 42 check names' latest runs are success or skipped (evidence9/checkruns_head.tsv). The failure and cancelled runs in ee409c81d..e9e6b99b30de85eebba6a1a77507a0179f36f5ad are on main's own record commits 2808c5419 and 56182647d, not this branch's (evidence9/red_delta.tsv). The red-history answers judged in round 8 are unchanged in the body. Not re-run: the gate, mutation table, structure and archscore (CI's, green).
