@@ -1,0 +1,23 @@
+=== r2 ee964f0db
+--- snapshot_bound 
+RESULT snapshot_instants_rewritten=0 count
+RESULT snapshot_ahead_warnings=0 count
+RESULT ring_instants_changed_vs_disk=0 count
+RESULT control_accuracy_instants_rewritten=0 count
+RESULT control_accuracy_ahead_warnings=0 count
+--- snapshot_bound --perturb
+RESULT snapshot_instants_rewritten=0 count
+RESULT snapshot_ahead_warnings=0 count
+RESULT ring_instants_changed_vs_disk=0 count
+RESULT control_accuracy_instants_rewritten=0 count
+RESULT control_accuracy_ahead_warnings=0 count
+--- future_clamp_seams
+RESULT live instant_leaves=55 flagged_leaves=0 flagged_host_origin_pairs=0 []
+--- load_prelude
+RESULT raising_seams=0 count
+--- store_report_equiv 
+RESULT pairs=36279 count
+RESULT mismatches=0 count
+--- store_report_equiv --perturb
+RESULT pairs=36279 count
+RESULT mismatches=1764 count

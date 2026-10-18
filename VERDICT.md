@@ -1,80 +1,86 @@
-Fix review: blocked a5de7df1fac197d42d448e400bba72deb6e4bea7 defect: _bound_instants descends into a trie Domain on a stored "" key, so a corrupt instant leaf now drops the whole store (accuracy, snapshots) where the base loaded it
-bus-nonce: dc269303e69472fdd54a39329b93174c
+Fix review: merge 417ec846221f9a0c99fcbebaa5c835daf9473ba7
+bus-nonce: 76ae508e12abe5d342287cb7875795f9
 
-Round 1. Reviewer: review-2375 (fresh context, detached worktree at the head).
-Measured head: a5de7df1fac197d42d448e400bba72deb6e4bea7, which is 8508252635 plus one
-github-actions[bot] commit, "ci: pin killed mutants". That commit adds 19 files under
-tests/mutation_ledger/killed_by/ and nothing else. Every file is a new killed_by pin
-(features.py 8, finite_boundary.py 6, debug_collect.py 5). No production line moved,
-so my harness figures taken at 8508252635 still hold at a5de7df1f.
-Baseline: merge base 52f698905868c9140ed213ea542c44053fca7096. origin/main is now 9a1ce39c3,
-and `git merge-tree --write-tree origin/main HEAD` returns rc=0.
+Round 2. Reviewer: review-2375. Round 1 blocked a5de7df1f (review commit 7f6ee976c) because
+_bound_instants walked into a trie Domain when a stored key was "" or "~", so the whole store was dropped.
+Scope, per the orchestrator: the round-1 delta a5de7df1f..ee964f0db, the main-merge delta ee964f0db..8755e99dd,
+and the bot pin 8755e99dd..417ec846 (the verdict head; dispatched by the orchestrator).
 
-## The blocking defect (the reviewer's own probe: ev/rev_probe.py, my instrument, not the finder's)
+## Round-1 delta (36f0f5cbe fix, ee964f0db ledger drop), measured at ee964f0db
 
-The added walk is `node.get(k, node.get("*", {}))` (store.py:178) and `node.get("")` (store.py:163).
-`_tries()` stores a leaf's Domain under the key "" and a map key's Domain under "~", so for a
-stored dict key of "" (or "~") the child node is a `Domain` (a NamedTuple), and the next
-`.get` raises AttributeError out of `QuarantiningStore.async_load`. `load_mapping` turns that
-into None, so the loader starts from nothing: every sample, lead record and promise in the
-accuracy store, or the whole snapshot ring, is lost because of one malformed leaf. That breaks
-the boundary's contract ("a poisoned leaf becomes that loader's own absent-data default").
+My probe (ev/rev_probe2.py, my instrument, disclosed as such; ev/r2_probe.txt) loads eight corrupt
+stores: four shapes ("" at an instant leaf, "" holding a list, "~" holding an instant, "~" holding
+an instant 50 h ahead), each in the accuracy store and in a snapshot ring that embeds it.
+Each goes through QuarantiningStore.async_load and load_mapping:
+    a5de7df1f (control): RESULT cells_dropped=8
+    ee964f0db:           RESULT cells_dropped=0   ("~" value 50 h ahead bounded to 0.0 h)
+Lead rows are unchanged at ee964f0db. In the accuracy store a due 10 h ahead reads 10.0 h and one
+30 h ahead reads 24.0 h, and a sample t at +1 h and evidence_since at +2 h read 0.0 h. In the
+snapshot ring a due 10 h ahead reads 10.0 h and taken_at at +3 h reads 0.0 h.
 
-    RESULT corrupt_empty_key_under_leaf_raises            base=0  head=1 (AttributeError: 'Domain' object has no attribute 'get')
-    RESULT corrupt_empty_key_under_leaf_load_mapping_none base=0  head=1
-    RESULT corrupt_empty_key_list_under_leaf_raises       base=0  head=1
-    RESULT corrupt_tilde_key_instant_raises               base=1  head=1   (pre-existing, see below)
+tests/finite_boundary.py (ev/r2_mutants.txt, ev/r2_fb_*.txt), run by me:
+- unmutated ee964f0db: ALL 89 PASSED. Round 1's null mutant, a comment-only edit, also passed (ev/fb_m0.txt).
+- M6 (fixer's: `_child` back to `node.get(key, node.get(wildcard, {}))`): 1 FAIL. The new
+  '"" or "~" key is data' row fails with all six of its cells "the store was dropped".
+- M6b (fixer's: `_child` accepts any non-None entry): the same FAIL.
+- ma (mine: `_child` loses its wildcard fallback): 4 FAIL, including lead_lost=['accuracy (writer
+  round trip)', 'snapshots (writer round trip)'] and the healthy round-trip null control.
+- mb (mine: store.py:537 GUARD_OFF, `if False:` on the rewritten `_fields` line): 2 FAIL
+  (quarantines foreign=['x','y/0'], and the planted-undeclared-field control).
 
-The documents were {"accuracy": {"samples": [{"t": {"": <iso>}}]}} and the same with a list value.
-Fix shape: descend only into a dict child, e.g. `child = node.get(k, node.get("*", {}));
-child if isinstance(child, dict) else {}`, applied in both arms, plus a finite_boundary row that
-drives a "" key at an instant leaf through a real loader. The finder's store_fuzz does not
-generate this shape (accuracy, N=100: load_exc=0 at both ends), so the regression is visible
-only to my probe.
+Class (fix-review.md 6). The rule: every reader of `_tries()`. Its output is `_bound_instants` (store.py:680)
+and `_fields` (via stored_fields, which feeds admitted and off_domain). Both now descend only
+through `_child`, and `_scalar_domain` receives only a node. Nothing else in custom_components/ or
+tools/replay walks a DOMAINS pattern (grep: stored_fields|_tries|DOMAINS[|.split("/")). No seam is left open.
+The pre-existing "~" variant at the base is closed in the same guard, so nothing is owed for filing.
 
-Not this PR's defect, owed elsewhere: at the BASE, a literal "~" key holding an instant string,
-{"accuracy": {"lead_sigma": {"~": <iso>}}}, already raises the same AttributeError and drops the
-store. The fixer may close it in the same guard (one line, same seam). If it stays out of scope,
-the orchestrator files it.
+The dropped ledger pin (store.py:_fields GUARD_OFF 7642fc84) is earned. Its recorded `old` line,
+`if key not in node:`, no longer exists in the tree (git grep is empty). The replacement line, store.py:537, is
+killed by tests/finite_boundary.py (my mb), so removing the pin hides nothing. The site
+is now unpinned and named in the body for mutation-autofix.
 
-## Everything else checked (it passes, and carries once the defect is fixed)
+Finder harnesses at ee964f0db (ev/r2_finder_harnesses.txt), with the same blobs as round 1:
+- snapshot_bound: 0/0/0, control 0, --perturb 0.
+- future_clamp_seams: instant_leaves=55 flagged_leaves=0 pairs=0.
+- load_prelude: raising_seams=0.
+- store_report_equiv: pairs=36279 mismatches=0, and --perturb gives 1764, so forward-carry (1) holds after the _fields change.
 
-Finder harnesses at base 52f698905 and head (ev/finder_harnesses.txt; blobs 59047d6a0201,
-ffd0633baec0, cf8f195ddb83 from b202335e2, 5fe6f3a067b6 from 532d8d09d, all matching the body):
-- snapshot_bound.py: base snapshot_ahead_warnings=5, ring_instants_changed_vs_disk=5; head 0, 0.
-  control_accuracy_* is 0 at both ends. `--perturb` reads 0 at both.
-- future_clamp_seams.py: base instant_leaves=55 flagged_leaves=7 pairs=2; head 55/0/0. The head's
-  zero is vacuous by construction (the enumerator reads the accuracy store at 0 h), and the body
-  says so. I checked the companion directly (below).
-- load_prelude.py: base raising_seams=1; head 0. `--perturb` reads 0 at the base, the fix's effect.
-- store_report_equiv.py: head mismatches=0, `--perturb` 1764. It cannot run at the base
-  (no store.quarantines), as the body says. Forward-carry (1) holds.
-- store_fuzz.py 100 _accuracy: base log_gt3=100 (snapshot "ahead of the clock" WARNINGs); head ok=100, all zeros.
+## Main-merge delta ee964f0db..8755e99dd
 
-Lead semantics (rev_probe.py, probe A): at the head a due 10 h ahead is kept at 10.0 h, and a due
-30 h ahead is bounded to 24.0 h, the same as the base. samples/#/t and evidence_since 1-2 h ahead now
-load at 0.0 h (base: kept). This is the claimed tightening. I checked the writers: promises/*/start
-is solve_time (accuracy.plan_promise), so no legitimately future instant loses its lead.
+- 8755e99dd is a merge of b22590b18 (a5de7df1f plus ee964f0db) with origin/main 994695e06.
+  `git merge-tree --write-tree ee964f0db 994695e06` gives rc=0 and tree 6d3bc5553200, which is byte-identical
+  to the head's tree. That makes it a pure automatic merge with no hand resolution.
+- No file this PR touches differs between ee964f0db and the head. Main's own delta touches no
+  custom_components/, tests/finite_boundary.py, tests/features.py, tests/hastub or
+  structure_budgets.json file. It touches only 31 mutation-ledger `reason` strings (host-path scrubs). So every
+  round-2 figure above holds at the head unchanged.
+- `git merge-tree --write-tree origin/main 8755e99dd` gives rc=0.
+- VERSION, manifest.json, RELEASE_NOTES.md and tests/golden/ are untouched (three-dot).
+- The closing keyword is unchanged since round 1: "Closes #2224" in prose, and closingIssuesReferences is [2224].
 
-Mutation proof (reviewer-run, tests/finite_boundary.py, about 4 minutes each; ev/fb_*.txt):
-- head: ALL 88 PASSED.
-- m0 null (a comment on `import hashlib`): ALL 88 PASSED.
-- m1 (`limit = bound`, the declaration ignored): 1 FAIL, lead_lost=['accuracy (writer round trip)', 'snapshots (writer round trip)'].
-- m2 (my own: the digest is recorded in a `finally`, so a failed save is skipped as written): 1 FAIL, save counts [1, 3, 0] (want [1, 3, 1]).
-I did not re-run M2-M5 or features.py. The bot's 19 killed_by pins record CI's mutation lane killing them.
+## Checks at 8755e99dd (check-runs API; ev/r2_checkruns.txt)
 
-Closing: the body has "Closes #2224." and "Part of" for #2232, #2236 and #2238. closingIssuesReferences
-is [2224], as expected and as the roster's `fixes` requires.
-VERSION, manifest.json, RELEASE_NOTES.md, tests/golden/ and both claim files are untouched (three-dot).
-tests/structure_budgets.json: five rows move, and every one moves down (class_excess_loc 18468->18382,
-coordinator_attrs 151->148, coordinator_multiassigned_attrs 118->115, max_class_loc 8635->8553,
-seam_cut_total 752->720). There are no raises.
-Not re-derived by me: archscore dS +1.3265, closure select counts, and ci_predict. These are cited from
-the body and CI, never re-run here (fix-review.md 11).
-Checks (ev/checkruns.txt): at 8508252635, `mutation` concluded failure, which is the unpinned-sites
-trigger the body hands to mutation-autofix (answered by naming). At a5de7df1f, fast, coverage, mutation
-and CodeQL analysis were still in progress when I read them, so I take no position on them.
-Body staleness: `## Head` names 8508252635, and the head is now a5de7df1f (a bot carry). The body
-re-take is owed with the fix.
-Architecture (fixer.md 17): the shape matches the architect note. The store owns the load prelude, the
-digest and the report rules, and the coordinator only calls them. No breach found apart from the defect above.
+`mutation` concluded failure: `MUTATION TABLE REFUSED -- ... 3 of them added by this diff`. The 3 are
+store.py:514 GUARD_OFF, 516 RETURN_DEL and 537 GUARD_OFF (ev/r2_mutation_job.log). The body's
+`## Unpinned sites` names all three for mutation-autofix, and 537's killer is measured (my mb above).
+That is the same answered-by-naming trigger as round 1 (850825263 -> bot pin a5de7df1f). A bot
+`ci: pin killed mutants` commit on top carries this verdict (fix-review.md 12, #1667).
+
+## Bot pin 8755e99dd..417ec846 (github-actions[bot], "ci: pin killed mutants")
+
+It adds exactly 3 files under tests/mutation_ledger/killed_by/store.py/, and they are the 3 red sites above:
+_child GUARD_OFF 8c460066 (killed_by tests/debug_collect.py), _child RETURN_DEL 4a8a66af
+(tests/debug_collect.py), and _fields GUARD_OFF 72779c4e (tests/finite_boundary.py, matching my mb).
+It touches no other path, so every figure above holds at 417ec846.
+
+## Checks at 417ec846 (check-runs API, all concluded; ev/r2_checkruns_417ec846.txt)
+
+38 success, 28 skipped, 0 failure, 0 in progress. Among the successes are fast (3.14), closures, coverage,
+coverage-ratchet, typing, briefs, nightly-status, pr-contract, hassfest and mutation.
+The green mutation is a real pass, not an empty one. Its log (ev/r2_mutation_117628078276.log) reads
+"4327 unpinned site(s) ... 4341 at the ratchet base 994695e06", with no ADDED UNPINNED and no INCONCLUSIVE.
+Workflow runs: Governance and one Hassfest run are `action_required`. They are held for run approval
+(hpo-runs) on the bot push, have not run, and are not red. That approval is the orchestrator's to give before merge.
+No red check is left unanswered at this head.
+
+Not re-derived by me: archscore dS, closure select counts and ci_predict. These are cited from the body and CI.

@@ -1,0 +1,18 @@
+== r2
+ALL 89 FINITE BOUNDARY CHECKS PASSED
+== m6
+  FAIL a stored "" or "~" key is data, not a step into the declaration: the store and an embedding one still load  [lost=['"" key at an instant leaf in accuracy: the store was dropped', '"" key at an instant leaf in snapshots: the store was dropped', '"" key h
+1 of 89 FINITE BOUNDARY CHECKS FAILED
+== m6b
+  FAIL a stored "" or "~" key is data, not a step into the declaration: the store and an embedding one still load  [lost=['"" key at an instant leaf in accuracy: the store was dropped', '"" key at an instant leaf in snapshots: the store was dropped', '"" key h
+1 of 89 FINITE BOUNDARY CHECKS FAILED
+== ma
+  FAIL an instant inside its store's lead survives the load (a lead is not lost)  [lead_lost=['accuracy (writer round trip)', 'snapshots (writer round trip)']]
+  FAIL every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)  [stores=['accuracy', 'away', 'boost', 'debug', 'dhw_draws', 'dhw_legionella', 'dhw_profile', 'energy', 'ledge
+  FAIL the healthy rich seed round-trips unchanged through every loader and saver (null control)  [changed=['ledger', 'snapshots:snapshots/0/taken_at~', 'snapshots:snapshots/0/taken_at', 'snapshots:snapshots/0/healthy~', 'snapshots:snapshots/0/healthy', 'snaps
+  FAIL no stored field substituted just outside its declared domain is held live, and no one bad grid cell costs its neighbours (class P1, card C1)  [refused=76]
+4 of 89 FINITE BOUNDARY CHECKS FAILED
+== mb
+  FAIL quarantines() is the next load's scrub, keys included; a foreign key declares nothing  [wrong=[] foreign=['x', 'y/0']]
+  FAIL a planted undeclared field is refused (the coverage check's own control)  [control=['zz_planted']]
+2 of 89 FINITE BOUNDARY CHECKS FAILED

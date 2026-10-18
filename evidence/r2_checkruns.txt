@@ -1,0 +1,42 @@
+completed	success	Analyze (actions)	2026-10-18T07:53:00Z
+completed	success	Analyze (javascript-typescript)	2026-10-18T07:53:00Z
+completed	success	Analyze (python)	2026-10-18T07:53:00Z
+completed	success	CodeQL	2026-10-18T07:53:38Z
+completed	success	arch-score	2026-10-18T07:52:59Z
+completed	success	arch-score	2026-10-18T07:53:00Z
+completed	success	briefs	2026-10-18T07:52:59Z
+completed	success	browser	2026-10-18T07:53:17Z
+completed	success	budget-raise-gate	2026-10-18T07:52:59Z
+completed	success	budget-raise-gate	2026-10-18T07:53:00Z
+completed	success	closure-scope	2026-10-18T07:53:00Z
+completed	success	closures	2026-10-18T08:13:45Z
+completed	skipped	closures-autofix	2026-10-18T08:23:11Z
+completed	success	composed-proof	2026-10-18T08:23:14Z
+completed	success	coverage	2026-10-18T07:53:17Z
+completed	success	coverage-ratchet	2026-10-18T08:13:45Z
+completed	success	delivery-status	2026-10-18T07:53:00Z
+completed	skipped	delivery-status-publish	2026-10-18T07:52:57Z
+completed	success	env-matrix	2026-10-18T07:53:00Z
+in_progress	null	fast (3.14)	2026-10-18T07:53:16Z
+completed	success	graders-head-copy	2026-10-18T08:13:45Z
+completed	success	hassfest	2026-10-18T07:53:00Z
+completed	success	instrument-self-tests	2026-10-18T07:53:00Z
+completed	failure	mutation	2026-10-18T07:53:00Z
+completed	success	mutation-autofix	2026-10-18T08:24:58Z
+completed	skipped	mutation-ledger	2026-10-18T07:52:57Z
+completed	skipped	mutation-ledger-push	2026-10-18T07:52:58Z
+completed	skipped	mutation-nightly	2026-10-18T07:52:57Z
+completed	success	mutation-pin-plan	2026-10-18T07:53:41Z
+completed	success	mutation-pins (1)	2026-10-18T07:54:01Z
+completed	skipped	nightly-ha	2026-10-18T07:53:14Z
+completed	success	nightly-status	2026-10-18T07:53:00Z
+completed	success	policy-docs	2026-10-18T07:53:00Z
+completed	success	pr-contract	2026-10-18T07:53:00Z
+completed	success	pr-contract	2026-10-18T07:53:31Z
+completed	skipped	recheck-gate	2026-10-18T07:53:06Z
+completed	skipped	record	2026-10-18T07:52:57Z
+completed	skipped	record-autofix	2026-10-18T07:52:57Z
+completed	skipped	slow	2026-10-18T07:52:57Z
+completed	success	typing	2026-10-18T07:52:59Z
+completed	success	validate-hacs	2026-10-18T07:53:00Z
+completed	success	wave-script	2026-10-18T07:53:00Z

@@ -1,0 +1,66 @@
+completed	success	Analyze (actions)	2026-10-18T08:25:25Z	2026-10-18T08:26:18Z
+completed	success	Analyze (actions)	2026-10-18T08:25:28Z	2026-10-18T08:26:17Z
+completed	success	Analyze (javascript-typescript)	2026-10-18T08:25:25Z	2026-10-18T08:26:46Z
+completed	success	Analyze (javascript-typescript)	2026-10-18T08:25:27Z	2026-10-18T08:26:44Z
+completed	success	Analyze (python)	2026-10-18T08:25:27Z	2026-10-18T08:41:25Z
+completed	success	Analyze (python)	2026-10-18T08:26:12Z	2026-10-18T08:51:47Z
+completed	success	CodeQL	2026-10-18T08:26:07Z	2026-10-18T08:26:09Z
+completed	success	arch-score	2026-10-18T08:25:28Z	2026-10-18T08:26:02Z
+completed	success	briefs	2026-10-18T08:25:28Z	2026-10-18T08:25:53Z
+completed	success	briefs	2026-10-18T08:25:32Z	2026-10-18T08:25:59Z
+completed	success	browser	2026-10-18T08:25:40Z	2026-10-18T08:29:34Z
+completed	success	browser	2026-10-18T08:25:48Z	2026-10-18T08:29:21Z
+completed	success	budget-raise-gate	2026-10-18T08:25:30Z	2026-10-18T08:25:46Z
+completed	skipped	ci-ratchet	2026-10-18T08:59:39Z	2026-10-18T08:59:39Z
+completed	skipped	ci-ratchet	2026-10-18T09:04:59Z	2026-10-18T09:04:58Z
+completed	skipped	claims-autofix	2026-10-18T08:57:03Z	2026-10-18T08:57:03Z
+completed	skipped	claims-autofix	2026-10-18T08:57:58Z	2026-10-18T08:57:58Z
+completed	success	closure-scope	2026-10-18T08:25:21Z	2026-10-18T08:25:37Z
+completed	success	closure-scope	2026-10-18T08:25:28Z	2026-10-18T08:25:45Z
+completed	success	closures	2026-10-18T08:41:36Z	2026-10-18T08:59:39Z
+completed	success	closures	2026-10-18T08:47:06Z	2026-10-18T09:04:58Z
+completed	skipped	closures-autofix	2026-10-18T08:59:39Z	2026-10-18T08:59:39Z
+completed	skipped	closures-autofix	2026-10-18T09:04:59Z	2026-10-18T09:04:58Z
+completed	success	composed-proof	2026-10-18T08:59:42Z	2026-10-18T08:59:58Z
+completed	skipped	composed-proof	2026-10-18T09:04:59Z	2026-10-18T09:04:58Z
+completed	success	coverage	2026-10-18T08:25:40Z	2026-10-18T08:45:50Z
+completed	success	coverage	2026-10-18T08:25:48Z	2026-10-18T08:40:40Z
+completed	success	coverage-ratchet	2026-10-18T08:41:23Z	2026-10-18T08:41:34Z
+completed	success	coverage-ratchet	2026-10-18T08:47:09Z	2026-10-18T08:47:19Z
+completed	success	fast (3.14)	2026-10-18T08:25:48Z	2026-10-18T08:57:03Z
+completed	success	fast (3.14)	2026-10-18T08:26:13Z	2026-10-18T08:57:57Z
+completed	success	graders-head-copy	2026-10-18T08:42:58Z	2026-10-18T08:43:11Z
+completed	skipped	graders-head-copy	2026-10-18T08:45:51Z	2026-10-18T08:45:50Z
+completed	success	hassfest	2026-10-18T08:25:23Z	2026-10-18T08:25:47Z
+completed	success	lane-proofs	2026-10-18T08:57:06Z	2026-10-18T08:57:14Z
+completed	skipped	lane-proofs	2026-10-18T08:57:58Z	2026-10-18T08:57:58Z
+completed	success	mutation	2026-10-18T08:25:29Z	2026-10-18T09:05:44Z
+completed	success	mutation	2026-10-18T08:25:31Z	2026-10-18T09:10:26Z
+completed	skipped	mutation-autofix	2026-10-18T09:05:45Z	2026-10-18T09:05:45Z
+completed	skipped	mutation-autofix	2026-10-18T09:10:27Z	2026-10-18T09:10:27Z
+completed	skipped	mutation-ledger	2026-10-18T08:25:26Z	2026-10-18T08:25:26Z
+completed	skipped	mutation-ledger	2026-10-18T08:25:29Z	2026-10-18T08:25:29Z
+completed	skipped	mutation-ledger-push	2026-10-18T08:25:26Z	2026-10-18T08:25:26Z
+completed	skipped	mutation-ledger-push	2026-10-18T08:25:29Z	2026-10-18T08:25:29Z
+completed	skipped	mutation-nightly	2026-10-18T08:25:26Z	2026-10-18T08:25:26Z
+completed	skipped	mutation-nightly	2026-10-18T08:25:29Z	2026-10-18T08:25:29Z
+completed	skipped	mutation-pin-plan	2026-10-18T09:05:45Z	2026-10-18T09:05:44Z
+completed	skipped	mutation-pin-plan	2026-10-18T09:10:27Z	2026-10-18T09:10:27Z
+completed	skipped	mutation-pins	2026-10-18T09:05:45Z	2026-10-18T09:05:44Z
+completed	skipped	mutation-pins	2026-10-18T09:10:27Z	2026-10-18T09:10:27Z
+completed	skipped	nightly-ha	2026-10-18T08:25:45Z	2026-10-18T08:25:45Z
+completed	success	nightly-ha (2025.2.0)	2026-10-18T08:25:40Z	2026-10-18T08:27:57Z
+completed	success	nightly-ha (stable)	2026-10-18T08:25:40Z	2026-10-18T08:28:04Z
+completed	skipped	nightly-status	2026-10-18T08:25:19Z	2026-10-18T08:25:18Z
+completed	success	nightly-status	2026-10-18T08:25:29Z	2026-10-18T08:25:38Z
+completed	success	pr-contract	2026-10-18T08:25:29Z	2026-10-18T08:25:54Z
+completed	success	recheck-gate	2026-10-18T08:25:21Z	2026-10-18T08:25:29Z
+completed	skipped	recheck-gate	2026-10-18T08:25:26Z	2026-10-18T08:25:26Z
+completed	skipped	record-autofix	2026-10-18T08:25:19Z	2026-10-18T08:25:18Z
+completed	skipped	record-autofix	2026-10-18T08:25:26Z	2026-10-18T08:25:26Z
+completed	skipped	slow	2026-10-18T08:25:26Z	2026-10-18T08:25:26Z
+completed	skipped	slow	2026-10-18T08:25:29Z	2026-10-18T08:25:29Z
+completed	success	typing	2026-10-18T08:25:29Z	2026-10-18T08:26:46Z
+completed	success	typing	2026-10-18T08:25:32Z	2026-10-18T08:27:00Z
+completed	success	validate-hacs	2026-10-18T08:25:24Z	2026-10-18T08:26:15Z
+completed	success	validate-hacs	2026-10-18T08:25:29Z	2026-10-18T08:26:24Z
