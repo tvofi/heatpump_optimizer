@@ -15,6 +15,7 @@
  "max_method_loc": 373,
  "methods_over_150": 17,
  "methods_over_200": 9,
+ "name_kept_members": 38,
  "recorded_at": "e5f7e169d64b93d4ae117eb07c68ecef6d47aea6",
  "seam_cut_total": 720
 }

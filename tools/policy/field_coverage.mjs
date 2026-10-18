@@ -380,16 +380,30 @@ function registryRun(report) {
 // counts; its printed count must rise by exactly that one. A count that does not
 // move is BLIND, and an instrument whose count line cannot be read is REFUSED,
 // never a pass: the unreadable output is the silent zero itself.
+// A count that moves is not yet a barrier: `gate` names the budget row that
+// must refuse the planted member, and a census whose instrument stays green on
+// that row is UNGATED. A printed count nobody gates rose 124 -> 152 across
+// v6.7.14..v7.0.0 with the ratchet green (R10-N-structure-blind).
 const CENSUSES = [
   {
     name: 'structure.py dead_methods',
+    gate: 'dead_methods',
     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusPlant:\n    def _planted_dead_method(self):\n        return 1\n' },
     read: (out) => /^  dead_methods = (\d+)\b/m.exec(out)?.[1],
   },
   {
     name: 'structure.py dead_top_level_symbols',
+    gate: 'dead_top_level_symbols',
     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef _planted_dead_function():\n    return 1\n' },
     read: (out) => /^RESULT dead_top_level_symbols=(\d+)\b/m.exec(out)?.[1],
+  },
+  {
+    // A live class whose as_dict only an untyped load reaches: other classes
+    // define as_dict, so the census can keep it by name only.
+    name: 'structure.py name_kept_members',
+    gate: 'name_kept_members',
+    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusKept:\n    def as_dict(self):\n        return {}\n\n\n(lambda x: (x.as_dict(), _CensusKept))\n' },
+    read: (out) => /^RESULT name_kept_members=(\d+)\b/m.exec(out)?.[1],
   },
 ]
 // The copy of the tree an instrument runs on: only what structure.py reads.
@@ -401,25 +415,30 @@ function censusTree() {
   fs.cpSync(path.join(ROOT, 'custom_components', 'heatpump_optimizer'), path.join(dir, 'custom_components', 'heatpump_optimizer'), { recursive: true, filter: (src) => !src.includes('__pycache__') })
   return dir
 }
+// `{ n, gated }`: the printed count, and whether the run refused on the census's row.
 function censusCount(c, dir) {
   const r = spawnSync('python3', ['tests/structure.py'], { cwd: dir, encoding: 'utf8' })
-  const n = c.read(`${r.stdout}\n${r.stderr}`)
-  return n === undefined ? null : Number(n)
+  const out = `${r.stdout}\n${r.stderr}`
+  const n = c.read(out)
+  return n === undefined ? null : { n: Number(n), gated: r.status !== 0 && out.split('\n').some((l) => l.startsWith(`FAIL ${c.gate} `)) }
 }
 function censusRun(report, censuses = CENSUSES, tree = censusTree, count = censusCount) {
   let dir = null
   try {
     dir = tree()
     for (const c of censuses) {
+      if (typeof c.gate !== 'string' || !c.gate) { report.refused.push(`census ${c.name}: names no budget row (\`gate\`) that refuses a rise`); continue }
       const base = count(c, dir)
       if (base === null) { report.refused.push(`census ${c.name}: its count line cannot be read at the unplanted tree`); continue }
+      if (base.gated) { report.refused.push(`census ${c.name}: already refused on ${c.gate} unplanted, so nothing is measured`); continue }
       const f = path.join(dir, c.plant.file); const was = fs.readFileSync(f, 'utf8')
       fs.writeFileSync(f, was + c.plant.add)
       const planted = count(c, dir)
       fs.writeFileSync(f, was)
       if (planted === null) report.refused.push(`census ${c.name}: its count line cannot be read once a member is planted`)
-      else if (planted === base + 1) report.read.push(`census ${c.name}: ${base} -> ${planted} with one planted member`)
-      else report.blind.push(`census ${c.name}: one planted member moved the count ${base} -> ${planted}, not by one`)
+      else if (planted.n !== base.n + 1) report.blind.push(`census ${c.name}: one planted member moved the count ${base.n} -> ${planted.n}, not by one`)
+      else if (!planted.gated) report.blind.push(`census ${c.name}: UNGATED, ${base.n} -> ${planted.n} with one planted member and no FAIL on ${c.gate}`)
+      else report.read.push(`census ${c.name}: ${base.n} -> ${planted.n} with one planted member, refused on ${c.gate}`)
     }
   } finally { if (dir) fs.rmSync(dir, { recursive: true, force: true }) }
 }
@@ -458,16 +477,23 @@ async function selfTest() {
   t('the UNCHECKED pattern matches every field the token cannot see', RULESET_TOKEN_HIDDEN.length > 0 && RULESET_TOKEN_HIDDEN.every((f) => TOKEN_HIDDEN_SKIP_RE.test(hiddenLine(f))))
   t('and refuses the same line for any other field (pinned to bypass_actors)', !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('dismiss_stale_reviews_on_push')) && !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('rules')))
   // The census arm, driven on a synthetic tree and counter so no real instrument runs.
-  const synth = (counter) => { const rr = fresh(); censusRun(rr, [{ name: 'probe', plant: { file: 'f.txt', add: 'x' }, read: () => '0' }], () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'census-st-')); fs.writeFileSync(path.join(d, 'f.txt'), ''); return d }, counter); return rr }
-  const lenCount = (c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length
+  const synth = (counter, gate = 'probe_row') => { const rr = fresh(); censusRun(rr, [{ name: 'probe', gate, plant: { file: 'f.txt', add: 'x' }, read: () => '0' }], () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'census-st-')); fs.writeFileSync(path.join(d, 'f.txt'), ''); return d }, counter); return rr }
+  const len = (d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length
+  const lenCount = (c, d) => ({ n: len(d), gated: len(d) > 0 })
   r = synth(lenCount)
-  t('a census whose count rises by one for one planted member is read', r.read.length === 1 && !r.blind.length && !r.refused.length)
-  r = synth(() => 0)
+  t('a census whose count rises by one for one planted member, refused on its row, is read', r.read.length === 1 && !r.blind.length && !r.refused.length)
+  r = synth(() => ({ n: 0, gated: false }))
   t('a count that never moves is BLIND (the silent zero)', r.blind.length === 1)
-  r = synth((c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length * 2)
+  r = synth((c, d) => ({ n: len(d) * 2, gated: len(d) > 0 }))
   t('a count that moves by the wrong amount is BLIND', r.blind.length === 1)
   r = synth(() => null)
   t('a count line that cannot be read is REFUSED, never a pass', r.refused.length === 1)
+  r = synth((c, d) => ({ n: len(d), gated: false }))
+  t('a count that moves while its row never refuses is UNGATED, BLIND (R10-N-structure-blind)', r.blind.length === 1 && /UNGATED/.test(r.blind[0]) && !r.read.length)
+  r = synth(lenCount, '')
+  t('a census naming no gate row is REFUSED', r.refused.length === 1 && !r.read.length)
+  r = synth(() => ({ n: 0, gated: true }))
+  t('a census already refused unplanted is REFUSED, not read', r.refused.length === 1 && !r.read.length)
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
