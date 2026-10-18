@@ -104,7 +104,9 @@ BLOCK_HEADING = re.compile(r"\bblock", re.I)
 
 CARRY = re.compile(r"(?<![\w-])Carry:")
 ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
-CODE_SPAN = re.compile(r"(`+)[^\n]*?\1")
+# a code span as CommonMark closes one: a backtick run closes only on a run of
+# exactly its own length, on the same line
+CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)[^\n]*?(?<!`)\1(?!`)")
 GROUP_TOK = re.compile(r"\A[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\Z")
 ISSUE_TOK = re.compile(r"\A#(\d+)\Z")
 BRIEF_TOK = re.compile(r"\AO(\d+)(?:-[a-z0-9][a-z0-9-]*)?\Z")
