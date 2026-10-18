@@ -1,0 +1,1705 @@
+RESULT mutant=M0 failed=0 verdict=baseline
+RESULT mutant=I-split failed=114 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL ... and no other issue (null control)
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL an out-of-scope lead in another section is a finding; a figure is not
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL in a blocked verdict, only the non-blocking item is a finding
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a thematic break is not an item
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a numbered, bolded lead reads
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: LEAD reads 'Residual:'
+     FAIL items: LEAD reads 'Distinct finding:'
+     FAIL items: LEAD reads 'Not fixed here:'
+     FAIL items: LEAD reads 'Known-open:'
+     FAIL items: LEAD reads 'Follow-up:'
+     FAIL items: LEAD reads 'Non-blocking:'
+     FAIL items: LEAD reads 'Not blocking:'
+     FAIL items: LEAD reads 'Caveat:'
+     FAIL items: LEAD reads 'Observation:'
+     FAIL items: LEAD reads 'Deferred:'
+     FAIL items: LEAD reads 'Advisory:'
+     FAIL items: LEAD reads 'Minor:'
+     FAIL items: LEAD reads 'A follow-up:'
+     FAIL items: LEAD reads 'An observation:'
+     FAIL items: LEAD reads 'One caveat:'
+     FAIL items: LEAD reads 'Two follow-ups:'
+     FAIL items: LEAD reads 'Three caveats:'
+     FAIL items: NONBLOCK reads 'not blocking' mid-sentence
+     FAIL items: NONBLOCK reads 'not a block' mid-sentence
+     FAIL items: NONBLOCK reads 'neither blocks' mid-sentence
+     FAIL items: NONBLOCK reads 'does not block' mid-sentence
+     FAIL items: NONBLOCK reads 'not owed here' mid-sentence
+     FAIL items: NONBLOCK reads 'owed to the record' mid-sentence
+     FAIL items: NONBLOCK reads 'minor' mid-sentence
+     FAIL items: NONBLOCK reads 'advisory' mid-sentence
+     FAIL items: NONBLOCK reads 'a secondary note' mid-sentence
+     FAIL items: NONBLOCK reads 'deferred' mid-sentence
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a verdict naming a short SHA is read
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-fence failed=1 verdict=killed
+     FAIL items: a fence indented under a bullet still fences
+RESULT mutant=I-fence-tilde failed=1 verdict=killed
+     FAIL items: a `~~~` fence fences
+RESULT mutant=I-fence-off failed=4 verdict=killed
+     FAIL fenced code is not an item
+     FAIL items: a fence indented under a bullet still fences
+     FAIL items: a `~~~` fence fences
+     FAIL items: a fence line is not an item
+RESULT mutant=I-fence-keep failed=1 verdict=killed
+     FAIL items: a fence line is not an item
+RESULT mutant=I-fenced failed=4 verdict=killed
+     FAIL fenced code is not an item
+     FAIL items: a fence indented under a bullet still fences
+     FAIL items: a `~~~` fence fences
+     FAIL items: a fence line is not an item
+RESULT mutant=I-comment failed=2 verdict=killed
+     FAIL items: an HTML comment is not an item
+     FAIL items: an indented HTML comment is not an item
+RESULT mutant=I-comment-ws failed=1 verdict=killed
+     FAIL items: an indented HTML comment is not an item
+RESULT mutant=I-flush-strip failed=1 verdict=killed
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=I-flush-empty failed=77 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL dismissed with a reason is a destination
+     FAIL `none` sections carry no finding
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL an item routed by reference from the body counts as routed
+     FAIL `n/a: <reason>` and the attribution trailer are not findings
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a fence line is not an item
+     FAIL items: an HTML comment is not an item
+     FAIL items: an indented HTML comment is not an item
+     FAIL items: a thematic break is not an item
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: TRAILER reads 'Co-Authored-By: x'
+     FAIL items: TRAILER reads 'bus: verdict/1 at abc'
+     FAIL items: TRAILER reads 'Evidence: ev/x'
+     FAIL items: TRAILER reads 'RESULT x=1'
+     FAIL items: TRAILER reads 'n/a'
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=I-flush-sep failed=2 verdict=killed
+     FAIL items: a thematic break is not an item
+     FAIL items: each table row is an item, its separator none
+RESULT mutant=I-heading failed=72 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL ... and no other issue (null control)
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a thematic break is not an item
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a lead inside the block is owed, not a note
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=I-heading-ws failed=1 verdict=killed
+     FAIL items: an indented `#` line is not a heading
+RESULT mutant=I-heading-cont failed=77 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL dismissed with a reason is a destination
+     FAIL `none` sections carry no finding
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL an item routed by reference from the body counts as routed
+     FAIL `n/a: <reason>` and the attribution trailer are not findings
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a fence line is not an item
+     FAIL items: an HTML comment is not an item
+     FAIL items: an indented HTML comment is not an item
+     FAIL items: a thematic break is not an item
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: TRAILER reads 'Co-Authored-By: x'
+     FAIL items: TRAILER reads 'bus: verdict/1 at abc'
+     FAIL items: TRAILER reads 'Evidence: ev/x'
+     FAIL items: TRAILER reads 'RESULT x=1'
+     FAIL items: TRAILER reads 'n/a'
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=I-blank failed=1 verdict=killed
+     FAIL items: a whitespace-only line ends a paragraph
+RESULT mutant=I-blank-para failed=3 verdict=killed
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: a non-bullet ends a verdict's lead
+RESULT mutant=I-blank-bullet failed=5 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-blank-cont failed=2 verdict=killed
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+RESULT mutant=I-table failed=1 verdict=killed
+     FAIL items: each table row is an item, its separator none
+RESULT mutant=I-table-off failed=1 verdict=killed
+     FAIL items: each table row is an item, its separator none
+RESULT mutant=I-table-cont failed=1 verdict=killed
+     FAIL items: each table row is an item, its separator none
+RESULT mutant=I-bullet failed=8 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: a numbered list item is a bullet
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-fr-sec failed=1 verdict=killed
+     FAIL items: a Friction-shaped line starts an item only under Friction
+RESULT mutant=I-fr-lower failed=2 verdict=killed
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL items: a section name reads in any case
+RESULT mutant=I-fr-entry failed=4 verdict=killed
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+RESULT mutant=I-fr-indent failed=1 verdict=killed
+     FAIL items: an indented Friction-shaped line continues the item
+RESULT mutant=I-starts failed=13 verdict=killed
+     FAIL a bare dismissed is refused
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: a section name reads in any case
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: a numbered list item is a bullet
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-para-blank failed=5 verdict=killed
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+RESULT mutant=I-para-ix failed=5 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-para-indent failed=2 verdict=killed
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+RESULT mutant=I-para-tab failed=1 verdict=killed
+     FAIL items: a tab-indented line after a bullet's blank continues it
+RESULT mutant=I-kind-none failed=4 verdict=killed
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a non-bullet ends a verdict's lead
+RESULT mutant=I-blocked-word failed=8 verdict=killed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+RESULT mutant=I-blocked-ix failed=2 verdict=killed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a blocked verdict reads with two spaces before its word
+RESULT mutant=I-blocked-ws failed=1 verdict=killed
+     FAIL items: a blocked verdict reads with two spaces before its word
+RESULT mutant=I-first failed=19 verdict=killed
+     FAIL an out-of-scope lead in another section is a finding; a figure is not
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: a numbered, bolded lead reads
+     FAIL items: LEAD reads 'Distinct finding:'
+     FAIL items: LEAD reads 'Not fixed here:'
+     FAIL items: LEAD reads 'Known-open:'
+     FAIL items: LEAD reads 'Follow-up:'
+     FAIL items: LEAD reads 'Non-blocking:'
+     FAIL items: LEAD reads 'Not blocking:'
+     FAIL items: LEAD reads 'Caveat:'
+     FAIL items: LEAD reads 'Observation:'
+     FAIL items: LEAD reads 'Deferred:'
+     FAIL items: LEAD reads 'Advisory:'
+     FAIL items: LEAD reads 'Minor:'
+     FAIL items: LEAD reads 'A follow-up:'
+     FAIL items: LEAD reads 'An observation:'
+     FAIL items: LEAD reads 'One caveat:'
+     FAIL items: LEAD reads 'Two follow-ups:'
+     FAIL items: LEAD reads 'Three caveats:'
+RESULT mutant=I-first-num failed=1 verdict=killed
+     FAIL items: a numbered, bolded lead reads
+RESULT mutant=I-first-emph failed=1 verdict=killed
+     FAIL items: a numbered, bolded lead reads
+RESULT mutant=I-lead-reset failed=1 verdict=killed
+     FAIL items: a non-bullet ends a verdict's lead
+RESULT mutant=I-inh-flag failed=5 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-trailer failed=5 verdict=killed
+     FAIL `n/a: <reason>` and the attribution trailer are not findings
+     FAIL items: TRAILER reads 'Co-Authored-By: x'
+     FAIL items: TRAILER reads 'bus: verdict/1 at abc'
+     FAIL items: TRAILER reads 'Evidence: ev/x'
+     FAIL items: TRAILER reads 'RESULT x=1'
+RESULT mutant=I-verdict-line failed=1 verdict=killed
+     FAIL items: a verdict's own first line is not a finding
+RESULT mutant=I-verdict failed=17 verdict=killed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: in a blocked verdict a lead inside the block is owed, not a note
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: NONBLOCK reads 'not blocking' mid-sentence
+     FAIL items: NONBLOCK reads 'not a block' mid-sentence
+     FAIL items: NONBLOCK reads 'neither blocks' mid-sentence
+     FAIL items: NONBLOCK reads 'does not block' mid-sentence
+     FAIL items: NONBLOCK reads 'not owed here' mid-sentence
+     FAIL items: NONBLOCK reads 'owed to the record' mid-sentence
+     FAIL items: NONBLOCK reads 'minor' mid-sentence
+     FAIL items: NONBLOCK reads 'advisory' mid-sentence
+     FAIL items: NONBLOCK reads 'a secondary note' mid-sentence
+     FAIL items: NONBLOCK reads 'deferred' mid-sentence
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: a verdict naming a short SHA is read
+RESULT mutant=I-bsec-block failed=12 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-bsec-nonblock failed=2 verdict=killed
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+RESULT mutant=I-nsec failed=2 verdict=killed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a blocked verdict reads with two spaces before its word
+RESULT mutant=I-nsec-b failed=6 verdict=killed
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+RESULT mutant=I-why-nb failed=14 verdict=killed
+     FAIL in a blocked verdict, only the non-blocking item is a finding
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: NONBLOCK reads 'not blocking' mid-sentence
+     FAIL items: NONBLOCK reads 'not a block' mid-sentence
+     FAIL items: NONBLOCK reads 'neither blocks' mid-sentence
+     FAIL items: NONBLOCK reads 'does not block' mid-sentence
+     FAIL items: NONBLOCK reads 'not owed here' mid-sentence
+     FAIL items: NONBLOCK reads 'owed to the record' mid-sentence
+     FAIL items: NONBLOCK reads 'minor' mid-sentence
+     FAIL items: NONBLOCK reads 'advisory' mid-sentence
+     FAIL items: NONBLOCK reads 'a secondary note' mid-sentence
+     FAIL items: NONBLOCK reads 'deferred' mid-sentence
+     FAIL items: a verdict naming a short SHA is read
+RESULT mutant=I-why-block failed=1 verdict=killed
+     FAIL items: in a blocked verdict a lead inside the block is owed, not a note
+RESULT mutant=I-why-note failed=8 verdict=killed
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+RESULT mutant=I-why-vlead failed=2 verdict=killed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a blocked verdict reads with two spaces before its word
+RESULT mutant=I-why-vinh failed=4 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL a verdict after a blank line is still read
+RESULT mutant=I-carry-sec failed=62 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL ... and no other issue (null control)
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a thematic break is not an item
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=I-carry-lower failed=62 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL ... and no other issue (null control)
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a thematic break is not an item
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=I-none failed=3 verdict=killed
+     FAIL `none` sections carry no finding
+     FAIL `n/a: <reason>` and the attribution trailer are not findings
+     FAIL items: TRAILER reads 'n/a'
+RESULT mutant=I-bsec failed=1 verdict=killed
+     FAIL items: a section heading that leads makes each item a finding
+RESULT mutant=I-blead failed=25 verdict=killed
+     FAIL an out-of-scope lead in another section is a finding; a figure is not
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a numbered, bolded lead reads
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: LEAD reads 'Residual:'
+     FAIL items: LEAD reads 'Distinct finding:'
+     FAIL items: LEAD reads 'Not fixed here:'
+     FAIL items: LEAD reads 'Known-open:'
+     FAIL items: LEAD reads 'Follow-up:'
+     FAIL items: LEAD reads 'Non-blocking:'
+     FAIL items: LEAD reads 'Not blocking:'
+     FAIL items: LEAD reads 'Caveat:'
+     FAIL items: LEAD reads 'Observation:'
+     FAIL items: LEAD reads 'Deferred:'
+     FAIL items: LEAD reads 'Advisory:'
+     FAIL items: LEAD reads 'Minor:'
+     FAIL items: LEAD reads 'A follow-up:'
+     FAIL items: LEAD reads 'An observation:'
+     FAIL items: LEAD reads 'One caveat:'
+     FAIL items: LEAD reads 'Two follow-ups:'
+     FAIL items: LEAD reads 'Three caveats:'
+RESULT mutant=I-binh failed=1 verdict=killed
+     FAIL items: a lead paragraph's bullets inherit it
+RESULT mutant=I-lead-para failed=1 verdict=killed
+     FAIL a bare dismissed is refused
+RESULT mutant=I-lead-colon failed=5 verdict=killed
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: a Friction-shaped line starts an item only under Friction
+RESULT mutant=I-lead-flag failed=1 verdict=killed
+     FAIL items: a paragraph ending `:` that is no finding leads nothing
+RESULT mutant=I-id-ws failed=1 verdict=killed
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=I-id-len failed=8 verdict=killed
+     FAIL an item routed by reference from the body counts as routed
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same line with the paren form routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=M13 failed=4 verdict=killed
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+RESULT mutant=S-span-hi failed=1 verdict=killed
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+RESULT mutant=S-span-lo failed=0 verdict=equivalent
+RESULT mutant=M16 failed=1 verdict=killed
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+RESULT mutant=S-next-last failed=32 verdict=killed
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL a bare dismissed is refused
+     FAIL an item routed by reference from the body counts as routed
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL items: a thematic break is not an item
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=M15b failed=1 verdict=killed
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+RESULT mutant=S-skip failed=4 verdict=killed
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+RESULT mutant=S-lines failed=10 verdict=killed
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+RESULT mutant=S-segs failed=57 verdict=killed
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL ... and no other issue (null control)
+     FAIL dismissed with a reason is a destination
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same line with the paren form routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL items: a thematic break is not an item
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)
+     FAIL carry_dests stops at prose
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=S-spans failed=4 verdict=killed
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+RESULT mutant=M15 failed=3 verdict=killed
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+RESULT mutant=R-found failed=51 verdict=killed
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL ... and no other issue (null control)
+     FAIL dismissed with a reason is a destination
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL items: a thematic break is not an item
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)
+     FAIL carry_dests stops at prose
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=R-extend failed=1 verdict=killed
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+RESULT mutant=R-seg failed=1 verdict=killed
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=R-dests failed=4 verdict=killed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+     FAIL a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)
+     FAIL carry_dests stops at prose
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=D-maxsplit failed=5 verdict=killed
+     FAIL dismissed with a reason is a destination
+     FAIL a bare dismissed is refused
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=D-after failed=57 verdict=killed
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL ... and no other issue (null control)
+     FAIL dismissed with a reason is a destination
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same line with the paren form routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL items: a thematic break is not an item
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)
+     FAIL carry_dests stops at prose
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=D-rest-ws failed=5 verdict=killed
+     FAIL dismissed with a reason is a destination
+     FAIL a bare dismissed is refused
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=D-rest-strip failed=1 verdict=killed
+     FAIL grammar: a bolded `dismissed:` reads
+RESULT mutant=D-dism-I failed=1 verdict=killed
+     FAIL grammar: `Dismissed:` reads in any case
+RESULT mutant=D-dm failed=5 verdict=killed
+     FAIL dismissed with a reason is a destination
+     FAIL a bare dismissed is refused
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=D-dism-off failed=5 verdict=killed
+     FAIL dismissed with a reason is a destination
+     FAIL a bare dismissed is refused
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL carry_dests reads dismissed whole
+RESULT mutant=D-split-punct failed=4 verdict=killed
+     FAIL every destination of a list must hold
+     FAIL the same line with the paren form routes it (null control)
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-split-and failed=1 verdict=killed
+     FAIL grammar: `and` separates destinations
+RESULT mutant=D-split-ws failed=12 verdict=killed
+     FAIL an item routed by reference from the body counts as routed
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL items: each table row is an item, its separator none
+     FAIL carry_dests stops at prose
+RESULT mutant=D-tok-strip failed=2 verdict=killed
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-empty failed=1 verdict=killed
+     FAIL grammar: a space before the list's comma separates
+RESULT mutant=D-item failed=1 verdict=killed
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-hex failed=1 verdict=killed
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-hex-arg failed=1 verdict=killed
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-group failed=40 verdict=killed
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same line with the paren form routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL items: a thematic break is not an item
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)
+     FAIL carry_dests stops at prose
+RESULT mutant=D-issue failed=11 verdict=killed
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL ... and no other issue (null control)
+     FAIL every destination of a list must hold
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-brief failed=5 verdict=killed
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief named in full that does not exist is a bad destination
+RESULT mutant=D-skip failed=2 verdict=killed
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-next failed=4 verdict=killed
+     FAIL every destination of a list must hold
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D-break failed=1 verdict=killed
+     FAIL grammar: prose ends the destinations: a token after it is not one
+RESULT mutant=A-body-none failed=1 verdict=killed
+     FAIL a null body and a null comment (gh's empty body) read as no finding
+RESULT mutant=A-comment-none failed=1 verdict=killed
+     FAIL a null body and a null comment (gh's empty body) read as no finding
+RESULT mutant=A-body-key failed=26 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL in a blocked verdict, only the non-blocking item is a finding
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: NONBLOCK reads 'not blocking' mid-sentence
+     FAIL items: NONBLOCK reads 'not a block' mid-sentence
+     FAIL items: NONBLOCK reads 'neither blocks' mid-sentence
+     FAIL items: NONBLOCK reads 'does not block' mid-sentence
+     FAIL items: NONBLOCK reads 'not owed here' mid-sentence
+     FAIL items: NONBLOCK reads 'owed to the record' mid-sentence
+     FAIL items: NONBLOCK reads 'minor' mid-sentence
+     FAIL items: NONBLOCK reads 'advisory' mid-sentence
+     FAIL items: NONBLOCK reads 'a secondary note' mid-sentence
+     FAIL items: NONBLOCK reads 'deferred' mid-sentence
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: a verdict naming a short SHA is read
+     FAIL a verdict after a blank line is still read
+RESULT mutant=A-verdict failed=1 verdict=killed
+     FAIL a comment that is not a `Fix review:` verdict is not read
+RESULT mutant=A-named failed=7 verdict=killed
+     FAIL an item routed by reference from the body counts as routed
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same line with the paren form routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+RESULT mutant=A-extend failed=1 verdict=killed
+     FAIL grammar: two items naming one id: each destination must hold
+RESULT mutant=A-lstrip failed=1 verdict=killed
+     FAIL a verdict after a blank line is still read
+RESULT mutant=A-flagged failed=127 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an issue a live group lists is a destination
+     FAIL an issue with a carry file is a destination
+     FAIL an O-brief that exists is a destination
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief owns the issues its file name carries
+     FAIL dismissed with a reason is a destination
+     FAIL `none` sections carry no finding
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL fenced code is not an item
+     FAIL an out-of-scope lead in another section is a finding; a figure is not
+     FAIL a body word mid-sentence is not a lead (no over-fire)
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL in a blocked verdict, only the non-blocking item is a finding
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL `n/a: <reason>` and the attribution trailer are not findings
+     FAIL a comment that is not a `Fix review:` verdict is not read
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a fence indented under a bullet still fences
+     FAIL items: a `~~~` fence fences
+     FAIL items: a fence line is not an item
+     FAIL items: an HTML comment is not an item
+     FAIL items: an indented HTML comment is not an item
+     FAIL items: a thematic break is not an item
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a numbered, bolded lead reads
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a paragraph ending `:` that is no finding leads nothing
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: a verdict's own first line is not a finding
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a lead inside the block is owed, not a note
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: LEAD reads 'Residual:'
+     FAIL items: LEAD reads 'Distinct finding:'
+     FAIL items: LEAD reads 'Not fixed here:'
+     FAIL items: LEAD reads 'Known-open:'
+     FAIL items: LEAD reads 'Follow-up:'
+     FAIL items: LEAD reads 'Non-blocking:'
+     FAIL items: LEAD reads 'Not blocking:'
+     FAIL items: LEAD reads 'Caveat:'
+     FAIL items: LEAD reads 'Observation:'
+     FAIL items: LEAD reads 'Deferred:'
+     FAIL items: LEAD reads 'Advisory:'
+     FAIL items: LEAD reads 'Minor:'
+     FAIL items: LEAD reads 'A follow-up:'
+     FAIL items: LEAD reads 'An observation:'
+     FAIL items: LEAD reads 'One caveat:'
+     FAIL items: LEAD reads 'Two follow-ups:'
+     FAIL items: LEAD reads 'Three caveats:'
+     FAIL items: NONBLOCK reads 'not blocking' mid-sentence
+     FAIL items: NONBLOCK reads 'not a block' mid-sentence
+     FAIL items: NONBLOCK reads 'neither blocks' mid-sentence
+     FAIL items: NONBLOCK reads 'does not block' mid-sentence
+     FAIL items: NONBLOCK reads 'not owed here' mid-sentence
+     FAIL items: NONBLOCK reads 'owed to the record' mid-sentence
+     FAIL items: NONBLOCK reads 'minor' mid-sentence
+     FAIL items: NONBLOCK reads 'advisory' mid-sentence
+     FAIL items: NONBLOCK reads 'a secondary note' mid-sentence
+     FAIL items: NONBLOCK reads 'deferred' mid-sentence
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: TRAILER reads 'Co-Authored-By: x'
+     FAIL items: TRAILER reads 'bus: verdict/1 at abc'
+     FAIL items: TRAILER reads 'Evidence: ev/x'
+     FAIL items: TRAILER reads 'RESULT x=1'
+     FAIL items: TRAILER reads 'n/a'
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a verdict naming a short SHA is read
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+     FAIL a verdict after a blank line is still read
+RESULT mutant=A-union failed=1 verdict=killed
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+RESULT mutant=A-union-off failed=7 verdict=killed
+     FAIL an item routed by reference from the body counts as routed
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL the same line with the paren form routes it (null control)
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+RESULT mutant=A-bad failed=16 verdict=killed
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL ... and no other issue (null control)
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=A-note failed=1 verdict=killed
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+RESULT mutant=A-status-u failed=72 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+     FAIL an out-of-scope lead in another section is a finding; a figure is not
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a section name reads in any case
+     FAIL items: a numbered, bolded lead reads
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a merge verdict a residual heading is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL items: LEAD reads 'Residual:'
+     FAIL items: LEAD reads 'Distinct finding:'
+     FAIL items: LEAD reads 'Not fixed here:'
+     FAIL items: LEAD reads 'Known-open:'
+     FAIL items: LEAD reads 'Follow-up:'
+     FAIL items: LEAD reads 'Non-blocking:'
+     FAIL items: LEAD reads 'Not blocking:'
+     FAIL items: LEAD reads 'Caveat:'
+     FAIL items: LEAD reads 'Observation:'
+     FAIL items: LEAD reads 'Deferred:'
+     FAIL items: LEAD reads 'Advisory:'
+     FAIL items: LEAD reads 'Minor:'
+     FAIL items: LEAD reads 'A follow-up:'
+     FAIL items: LEAD reads 'An observation:'
+     FAIL items: LEAD reads 'One caveat:'
+     FAIL items: LEAD reads 'Two follow-ups:'
+     FAIL items: LEAD reads 'Three caveats:'
+     FAIL items: NONBLOCK reads 'not blocking' mid-sentence
+     FAIL items: NONBLOCK reads 'not a block' mid-sentence
+     FAIL items: NONBLOCK reads 'neither blocks' mid-sentence
+     FAIL items: NONBLOCK reads 'does not block' mid-sentence
+     FAIL items: NONBLOCK reads 'not owed here' mid-sentence
+     FAIL items: NONBLOCK reads 'owed to the record' mid-sentence
+     FAIL items: NONBLOCK reads 'minor' mid-sentence
+     FAIL items: NONBLOCK reads 'advisory' mid-sentence
+     FAIL items: NONBLOCK reads 'a secondary note' mid-sentence
+     FAIL items: NONBLOCK reads 'deferred' mid-sentence
+     FAIL items: NOTE_HEADING reads 'Owed'
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: a verdict naming a short SHA is read
+     FAIL items: a numbered list item is a bullet
+RESULT mutant=A-status-b failed=16 verdict=killed
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL ... and no other issue (null control)
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=L-key failed=1 verdict=killed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+RESULT mutant=L-carry failed=1 verdict=killed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+RESULT mutant=P-head-ws failed=1 verdict=killed
+     FAIL items: `#2404` opening a line is no heading
+RESULT mutant=P-head-close failed=1 verdict=killed
+     FAIL items: a heading's closing hashes are not its name
+RESULT mutant=P-tsep failed=2 verdict=killed
+     FAIL items: a thematic break is not an item
+     FAIL items: each table row is an item, its separator none
+RESULT mutant=P-fentry failed=1 verdict=killed
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+RESULT mutant=P-verdict-sha failed=1 verdict=killed
+     FAIL items: a verdict naming a short SHA is read
+RESULT mutant=P-block failed=1 verdict=killed
+     FAIL items: in a blocked verdict a lead inside the block is owed, not a note
+RESULT mutant=P-carry-look failed=2 verdict=killed
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+RESULT mutant=P-carry-dash failed=1 verdict=killed
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+RESULT mutant=M14 failed=3 verdict=killed
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+RESULT mutant=P-ref-open failed=1 verdict=killed
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+RESULT mutant=P-ref-close failed=1 verdict=killed
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+RESULT mutant=P-span-pre failed=1 verdict=killed
+     FAIL grammar: an unmatched double backtick opens no span
+RESULT mutant=P-span-open failed=1 verdict=killed
+     FAIL grammar: an unmatched double backtick opens no span
+RESULT mutant=P-span-body failed=1 verdict=killed
+     FAIL grammar: a code span may cross a line ending
+RESULT mutant=P-span-close failed=1 verdict=killed
+     FAIL grammar: a longer backtick run does not close a span
+RESULT mutant=P-span-post failed=1 verdict=killed
+     FAIL grammar: a longer backtick run does not close a span
+RESULT mutant=P-span-run failed=3 verdict=killed
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+RESULT mutant=P-group-dash failed=1 verdict=killed
+     FAIL grammar: one capitalised word is not a group
+RESULT mutant=P-group-end failed=1 verdict=killed
+     FAIL grammar: a group token ends at the word
+RESULT mutant=P-issue-end failed=1 verdict=killed
+     FAIL grammar: an issue token ends at the word
+RESULT mutant=P-brief-name failed=2 verdict=killed
+     FAIL an O-brief named in full is a destination
+     FAIL an O-brief named in full that does not exist is a bad destination
+RESULT mutant=P-brief-end failed=1 verdict=killed
+     FAIL grammar: a brief token ends at the word
+RESULT mutant=V-BULLET-[-*+] failed=7 verdict=killed
+     FAIL a verdict's non-blocking lead flags its bullets, not itself and not ## Verified
+     FAIL an item routed by reference from the body counts as routed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: a non-bullet ends a verdict's lead
+     FAIL items: a blocked verdict reads with two spaces before its word
+     FAIL a verdict after a blank line is still read
+RESULT mutant=V-BULLET-\d+[.)] failed=1 verdict=killed
+     FAIL items: a numbered list item is a bullet
+RESULT mutant=V-CARRY_SECTIONS-forward-carry failed=1 verdict=killed
+     FAIL a Forward-carry that starts `none` and records an observation is a finding (L05)
+RESULT mutant=V-CARRY_SECTIONS-friction failed=61 verdict=killed
+     FAIL a planted body with an unrouted Friction finding refuses
+     FAIL the same body with a Carry: to a live group passes (null control)
+     FAIL an invented group name is a bad destination
+     FAIL a done group is a bad destination
+     FAIL an issue only a done group lists has no owner
+     FAIL an issue no group lists has no owner (the L20 shape)
+     FAIL with gh reads, a closed issue is a bad destination
+     FAIL an O-brief that does not exist is a bad destination
+     FAIL without a briefs dir an O-brief passes UNVERIFIED
+     FAIL an O-brief named in full that does not exist is a bad destination
+     FAIL ... and no other issue (null control)
+     FAIL a bare dismissed is refused
+     FAIL every destination of a list must hold
+     FAIL an unbulleted Friction line is its own item (one routed, one not)
+     FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+     FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+     FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+     FAIL the same line with the paren form routes it (null control)
+     FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+     FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+     FAIL a backticked example `Carry:` in a finding's prose does not route it
+     FAIL the same finding with a plain marker routes (null control)
+     FAIL grammar: a `Carry:` right after a closing backtick is a marker
+     FAIL grammar: an unmatched double backtick opens no span
+     FAIL grammar: a longer backtick run does not close a span
+     FAIL grammar: a double-backtick span closes only on a double run
+     FAIL grammar: a code span may cross a line ending
+     FAIL grammar: a word glued to `Carry:` is not a marker
+     FAIL grammar: a hyphen glued to `Carry:` is not a marker
+     FAIL grammar: a segment ends at its line: an id on the next line routes nothing
+     FAIL grammar: a segment ends at the next `Carry:`: its id is not the first marker's
+     FAIL grammar: two markers naming one id in one item: each destination must hold
+     FAIL grammar: two items naming one id: each destination must hold
+     FAIL grammar: an item's own marker and a reference to it: each destination must hold
+     FAIL grammar: a bolded `dismissed:` reads
+     FAIL grammar: `Dismissed:` reads in any case
+     FAIL grammar: `and` separates destinations
+     FAIL grammar: a destination ending a sentence reads
+     FAIL grammar: a space before the list's comma separates
+     FAIL grammar: `(item <id>)` inside the destinations does not end them
+     FAIL grammar: prose ends the destinations: a token after it is not one
+     FAIL grammar: `item <id>)` without its open paren routes nothing
+     FAIL grammar: `(item <id>` without its close paren routes nothing
+     FAIL grammar: one capitalised word is not a group
+     FAIL grammar: a group token ends at the word
+     FAIL grammar: an issue token ends at the word
+     FAIL grammar: a brief token ends at the word
+     FAIL items: a thematic break is not an item
+     FAIL items: an indented line after a bullet's blank continues it
+     FAIL items: a tab-indented line after a bullet's blank continues it
+     FAIL items: each table row is an item, its separator none
+     FAIL items: a section name reads in any case
+     FAIL items: under Friction an unshaped unindented line continues the item
+     FAIL items: an indented Friction-shaped line continues the item
+     FAIL items: an indented `#` line is not a heading
+     FAIL items: a CRLF body reads as its LF twin
+     FAIL items: `#2404` opening a line is no heading
+     FAIL items: a heading's closing hashes are not its name
+     FAIL items: under Friction a `word:` line without the kind's colon continues the item
+     FAIL items: a numbered list item is a bullet
+     FAIL an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)
+RESULT mutant=V-NONE_ITEM-none failed=1 verdict=killed
+     FAIL `none` sections carry no finding
+RESULT mutant=V-NONE_ITEM-n/a failed=1 verdict=killed
+     FAIL items: TRAILER reads 'n/a'
+RESULT mutant=V-NONE_ITEM-^\W*(?:none|n/a)\W*$ failed=2 verdict=killed
+     FAIL `none` sections carry no finding
+     FAIL items: TRAILER reads 'n/a'
+RESULT mutant=V-NONE_ITEM-^\W*n/a\s*: failed=1 verdict=killed
+     FAIL `n/a: <reason>` and the attribution trailer are not findings
+RESULT mutant=V-TRAILER-\U0001f916 failed=1 verdict=killed
+     FAIL `n/a: <reason>` and the attribution trailer are not findings
+RESULT mutant=V-TRAILER-Co-Authored-By failed=1 verdict=killed
+     FAIL items: TRAILER reads 'Co-Authored-By: x'
+RESULT mutant=V-TRAILER-bus: failed=1 verdict=killed
+     FAIL items: TRAILER reads 'bus: verdict/1 at abc'
+RESULT mutant=V-TRAILER-Evidence: failed=1 verdict=killed
+     FAIL items: TRAILER reads 'Evidence: ev/x'
+RESULT mutant=V-TRAILER-RESULT\b failed=1 verdict=killed
+     FAIL items: TRAILER reads 'RESULT x=1'
+RESULT mutant=V-NONBLOCK-non-?blocking failed=2 verdict=killed
+     FAIL items: a heading saying it is not the block is a note section
+     FAIL items: in a blocked verdict a non-blocking heading is a note section
+RESULT mutant=V-NONBLOCK-not blocking failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'not blocking' mid-sentence
+RESULT mutant=V-NONBLOCK-not a block failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'not a block' mid-sentence
+RESULT mutant=V-NONBLOCK-neither blocks? failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'neither blocks' mid-sentence
+RESULT mutant=V-NONBLOCK-does not block failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'does not block' mid-sentence
+RESULT mutant=V-NONBLOCK-not owed here failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'not owed here' mid-sentence
+RESULT mutant=V-NONBLOCK-owed to the record failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'owed to the record' mid-sentence
+RESULT mutant=V-NONBLOCK-\bminor\b failed=2 verdict=killed
+     FAIL items: NONBLOCK reads 'minor' mid-sentence
+     FAIL items: a verdict naming a short SHA is read
+RESULT mutant=V-NONBLOCK-advisory failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'advisory' mid-sentence
+RESULT mutant=V-NONBLOCK-secondary note failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'a secondary note' mid-sentence
+RESULT mutant=V-NONBLOCK-\bdeferred\b failed=1 verdict=killed
+     FAIL items: NONBLOCK reads 'deferred' mid-sentence
+RESULT mutant=V-LEAD-a failed=1 verdict=killed
+     FAIL items: LEAD reads 'A follow-up:'
+RESULT mutant=V-LEAD-an failed=1 verdict=killed
+     FAIL items: LEAD reads 'An observation:'
+RESULT mutant=V-LEAD-one failed=1 verdict=killed
+     FAIL items: LEAD reads 'One caveat:'
+RESULT mutant=V-LEAD-two failed=1 verdict=killed
+     FAIL items: LEAD reads 'Two follow-ups:'
+RESULT mutant=V-LEAD-three failed=1 verdict=killed
+     FAIL items: LEAD reads 'Three caveats:'
+RESULT mutant=V-LEAD-out of scope failed=9 verdict=killed
+     FAIL an out-of-scope lead in another section is a finding; a figure is not
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a numbered, bolded lead reads
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a lead paragraph's bullets inherit it
+RESULT mutant=V-LEAD-residuals?\b failed=1 verdict=killed
+     FAIL items: LEAD reads 'Residual:'
+RESULT mutant=V-LEAD-distinct finding failed=1 verdict=killed
+     FAIL items: LEAD reads 'Distinct finding:'
+RESULT mutant=V-LEAD-not fixed here failed=1 verdict=killed
+     FAIL items: LEAD reads 'Not fixed here:'
+RESULT mutant=V-LEAD-known[- ]open failed=1 verdict=killed
+     FAIL items: LEAD reads 'Known-open:'
+RESULT mutant=V-LEAD-follow-?up failed=3 verdict=killed
+     FAIL items: LEAD reads 'Follow-up:'
+     FAIL items: LEAD reads 'A follow-up:'
+     FAIL items: LEAD reads 'Two follow-ups:'
+RESULT mutant=V-LEAD-non-?blocking failed=1 verdict=killed
+     FAIL items: LEAD reads 'Non-blocking:'
+RESULT mutant=V-LEAD-not blocking failed=1 verdict=killed
+     FAIL items: LEAD reads 'Not blocking:'
+RESULT mutant=V-LEAD-caveat failed=3 verdict=killed
+     FAIL items: LEAD reads 'Caveat:'
+     FAIL items: LEAD reads 'One caveat:'
+     FAIL items: LEAD reads 'Three caveats:'
+RESULT mutant=V-LEAD-observation failed=2 verdict=killed
+     FAIL items: LEAD reads 'Observation:'
+     FAIL items: LEAD reads 'An observation:'
+RESULT mutant=V-LEAD-deferred failed=1 verdict=killed
+     FAIL items: LEAD reads 'Deferred:'
+RESULT mutant=V-LEAD-advisory failed=1 verdict=killed
+     FAIL items: LEAD reads 'Advisory:'
+RESULT mutant=V-LEAD-minor\b failed=1 verdict=killed
+     FAIL items: LEAD reads 'Minor:'
+RESULT mutant=V-LEAD-(?:(?:a|an|one|two|three)\s+)?(?:out of scope|residuals?\b|distinct finding|not fixed here|known[- ]open|follow-?up|non-?blocking|not blocking|caveat|observation|deferred|advisory|minor\b) failed=26 verdict=killed
+     FAIL an out-of-scope lead in another section is a finding; a figure is not
+     FAIL items: a whitespace-only line ends a paragraph
+     FAIL items: a blank line ends a paragraph
+     FAIL items: an unindented line after a bullet's blank is a paragraph
+     FAIL items: an unindented line right after a bullet continues it
+     FAIL items: a Friction-shaped line starts an item only under Friction
+     FAIL items: a numbered, bolded lead reads
+     FAIL items: a section heading that leads makes each item a finding
+     FAIL items: a lead paragraph's bullets inherit it
+     FAIL items: LEAD reads 'Residual:'
+     FAIL items: LEAD reads 'Distinct finding:'
+     FAIL items: LEAD reads 'Not fixed here:'
+     FAIL items: LEAD reads 'Known-open:'
+     FAIL items: LEAD reads 'Follow-up:'
+     FAIL items: LEAD reads 'Non-blocking:'
+     FAIL items: LEAD reads 'Not blocking:'
+     FAIL items: LEAD reads 'Caveat:'
+     FAIL items: LEAD reads 'Observation:'
+     FAIL items: LEAD reads 'Deferred:'
+     FAIL items: LEAD reads 'Advisory:'
+     FAIL items: LEAD reads 'Minor:'
+     FAIL items: LEAD reads 'A follow-up:'
+     FAIL items: LEAD reads 'An observation:'
+     FAIL items: LEAD reads 'One caveat:'
+     FAIL items: LEAD reads 'Two follow-ups:'
+     FAIL items: LEAD reads 'Three caveats:'
+RESULT mutant=V-LEAD-(?:[\w-]+\s+){1,3}residuals?\s*: failed=2 verdict=killed
+     FAIL a blocked verdict: a residual heading is the block; a residual lead and a minor note are not
+     FAIL items: a blocked verdict reads with two spaces before its word
+RESULT mutant=V-NOTE_HEADING- failed=1 verdict=killed
+     FAIL items: in a merge verdict a residual heading is a note section
+RESULT mutant=V-NOTE_HEADING-residual failed=1 verdict=killed
+     FAIL items: in a merge verdict a residual heading is a note section
+RESULT mutant=V-NOTE_HEADING-\bowed\b failed=1 verdict=killed
+     FAIL items: NOTE_HEADING reads 'Owed'
+RESULT mutant=V-NOTE_HEADING-instrument findings failed=1 verdict=killed
+     FAIL items: NOTE_HEADING reads 'Instrument findings'
+RESULT mutant=V-NOTE_HEADING-out of scope failed=1 verdict=killed
+     FAIL items: NOTE_HEADING reads 'Out of scope'
+RESULT mutant=V-NOTE_HEADING-follow-?up failed=1 verdict=killed
+     FAIL items: NOTE_HEADING reads 'Follow-up'
+RESULT mutant=V-NOTE_HEADING-^carry\b failed=1 verdict=killed
+     FAIL items: NOTE_HEADING reads 'Carry forward'
+RESULT mutant=V-LEDGER_FINDING-FINDING failed=1 verdict=killed
+     FAIL a ledger FINDING: with no Carry: is unrouted
+RESULT mutant=V-LEDGER_FINDING-LESSON failed=1 verdict=killed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+RESULT sites=152 unmapped=0 mutants=190 survived=0
+
+real	0m15.410s
+user	0m11.735s
+sys	0m2.269s

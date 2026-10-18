@@ -1,0 +1,4 @@
+  FAIL (probe, expected) threw: deliberate
+  pair merge-subject-pr: 4 readers, 808 items, 2 divergent
+  DIVERGENT     merge-subject-pr "Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)": stamp.py pr_from_subject="2401"  delivery_status.py subject_number="2401"  policy_lint.mjs resolvePrFromCommit (gap recovery)=null  policy_lint.mjs enumerateMerges (offline subject mode)=null
+  DIVERGENT     merge-subject-pr "Merge pull request #2379 (R10-SENSOR-PAYLOAD)": stamp.py pr_from_subject="2379"  delivery_status.py subject_number="2379"  policy_lint.mjs resolvePrFromCommit (gap recovery)=null  policy_lint.mjs enumerateMerges (offline subject mode)=null

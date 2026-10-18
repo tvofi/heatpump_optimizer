@@ -1,0 +1,2 @@
+RESULT rows_caught=34 of=35
+RESULT last20_hits=76 on_a_row=46 on_no_row=30

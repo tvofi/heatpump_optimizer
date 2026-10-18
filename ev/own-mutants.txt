@@ -1,0 +1,28 @@
+RESULT mutant=D1-dismiss-1word rc=0 'carry_audit self-test: 144 checks, 0 failed' SURVIVED
+RESULT mutant=D2-closed-issue rc=1 'carry_audit self-test: 144 checks, 1 failed' killed
+    FAIL with gh reads, a closed issue is a bad destination
+RESULT mutant=D3-done-group rc=1 'carry_audit self-test: 144 checks, 1 failed' killed
+    FAIL a done group is a bad destination
+RESULT mutant=D4-missing-brief rc=1 'carry_audit self-test: 144 checks, 2 failed' killed
+    FAIL an O-brief that does not exist is a bad destination
+    FAIL an O-brief named in full that does not exist is a bad destination
+RESULT mutant=D5-owned-done-group rc=1 'carry_audit self-test: 144 checks, 1 failed' killed
+    FAIL an issue only a done group lists has no owner
+RESULT mutant=D6-bad-as-routed rc=1 'carry_audit self-test: 144 checks, 16 failed' killed
+    FAIL an invented group name is a bad destination
+    FAIL a done group is a bad destination
+RESULT mutant=D7-break-continue rc=1 'carry_audit self-test: 144 checks, 1 failed' killed
+    FAIL grammar: prose ends the destinations: a token after it is not one
+RESULT mutant=D8-item-word rc=1 'carry_audit self-test: 144 checks, 1 failed' killed
+    FAIL grammar: `(item <id>)` inside the destinations does not end them
+RESULT mutant=D9-unowned-issue rc=1 'carry_audit self-test: 144 checks, 7 failed' killed
+    FAIL an issue only a done group lists has no owner
+    FAIL an issue no group lists has no owner (the L20 shape)
+RESULT mutant=D10-unknown-group rc=1 'carry_audit self-test: 144 checks, 4 failed' killed
+    FAIL an invented group name is a bad destination
+    FAIL grammar: two markers naming one id in one item: each destination must hold
+RESULT mutant=D11-refs-not-merged rc=1 'carry_audit self-test: 144 checks, 1 failed' killed
+    FAIL grammar: an item's own marker and a reference to it: each destination must hold
+RESULT mutant=D12-brief-owns-issue rc=1 'carry_audit self-test: 144 checks, 1 failed' killed
+    FAIL an O-brief owns the issues its file name carries
+RESULT mutant=D13-carry-file-issue rc=0 'carry_audit self-test: 144 checks, 0 failed' SURVIVED
