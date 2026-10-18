@@ -417,6 +417,40 @@ def plan():
         on={"fix": "a3_card_clone_copies_control"},
     )
 
+    # 6f shape_copies (gate-only): one rule implemented by N functions (item 6, ARCH-s2 / ARCH2-s3)
+    clock = ("def _clock(raw: int | None) -> str | None:\n"
+             "    \"\"\"``hour*256+minute`` as ``HH:MM``; None when either part is impossible.\"\"\"\n"
+             "    if raw is None or raw < 0:\n"
+             "        return None\n"
+             "    hour, minute = divmod(raw, 256)\n"
+             "    if hour > 23 or minute > 59:\n"
+             "        return None\n"
+             "    return f\"{hour:02d}:{minute:02d}\"\n")
+
+    def clock_copy(respell=False):
+        def edit(w):
+            assert _p(w, "modbus_prefill.py").read_text().count(clock) == 1
+            body = clock.replace("def _clock(raw", "def _register_clock(word").replace("raw", "word")
+            if respell:
+                body = body.replace("word < 0", "0 > word")
+            append(w, "dhw_schedule.py", "\n\n" + body + "\n\nassert _register_clock\n")
+        return edit
+
+    P["shape_copies"] = dict(
+        control=("dhw_schedule gains a copy of modbus_prefill._clock under another name, its parameter renamed",
+                 clock_copy()),
+        fix=("[on top of control] the copy goes", lambda w: (lambda p: p.write_text(
+            p.read_text().split("\n\ndef _register_clock(")[0] + "\n"))(_p(w, "dhw_schedule.py"))),
+        null=("drift.Cusum._note's parameter renamed (its own name; the census numbers it)",
+              lambda w: rename_in_func(w, "drift.py", "_note", "when", "moment", cls="Cusum")),
+        on={"fix": "a3_shape_copies_control"},
+    )
+    P["shape_copies_respelled"] = dict(
+        control=("as shape_copies' control, one comparison of the copy re-spelled (``0 > word``): the rule is "
+                 "still written twice, and the census reads it as distinct -- why the counter carries no weight",
+                 clock_copy(respell=True)),
+    )
+
     # 7 public_surface
     P["public_surface"] = dict(
         control=("a new public helper in tariff.py nothing imports",
