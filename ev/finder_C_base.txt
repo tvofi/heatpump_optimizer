@@ -1,0 +1,9 @@
+RESULT overlays=0 count
+Architecture score: dS +0.0000 NULL
+RESULT delta_S=+0.0000 weighted_log2
+RESULT admissible=1 bool
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+RESULT thread_factor=0.984
+RESULT load1=2.93
+RESULT swapins=unmeasured
