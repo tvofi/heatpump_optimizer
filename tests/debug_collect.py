@@ -1144,13 +1144,13 @@ R.check(
     _secret_drop == ["bob123456", "abc123456", "42"], str(_secret_drop),
 )
 _shape_drop: list = []
-_kept = replay_doc._keep_keys(
+_shape_cut = replay_doc._keep_keys(
     {"x_entities": ["sensor.a", "https://nas.example.se/cam"]}, frozenset({"x_entities"}),
     _shape_drop, replay_doc._entry_shape)
 R.check(
     "a value its shape cut down has what was cut recorded for the leak check",
-    _kept == {"x_entities": ["sensor.a"]} and _shape_drop == ["https://nas.example.se/cam"],
-    f"{_kept} dropped={_shape_drop}",
+    _shape_cut == {"x_entities": ["sensor.a"]} and _shape_drop == ["https://nas.example.se/cam"],
+    f"{_shape_cut} dropped={_shape_drop}",
 )
 _series_in = [{"start": "2026-10-18T00:00:00+00:00", "value": 1.2, "note": "spot"},
               "junk", {"start": "2026-10-18T01:00:00+00:00"},
