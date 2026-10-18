@@ -1,0 +1,524 @@
+
+=== 1. workflow display names (quoted), outside the workflow that owns them
+--- "Tests": 13
+.github/workflows/pr-contract-rerun.yml:32:    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+tests/ci_ratchet.py:177:        if r.get("name") != "Tests" or r.get("status") != "completed":
+tools/audit/seat/proof_watch.py:418:                {"name": "Tests", "status": "completed", "conclusion": "success",
+tools/audit/seat/proof_watch.py:421:            self.required = "Tests"
+tools/audit/seat/proof_watch.py:579:    f.checks.append({"name": "Tests", "status": "completed", "conclusion": "failure",
+tools/audit/seat/proof_watch.py:586:        st("REQUIRED RED" in str(e) and "Tests" in str(e), True, "(g) the red context is named")
+tools/audit/seat/proof_watch.py:653:                json.dumps({"name": "Tests", "status": "in_progress",
+tools/release/stamp.py:173:TESTS_WORKFLOW = "Tests"
+tools/release/stamp.py:810:        {"id": 11, "name": "Tests", "path": ".github/workflows/tests.yml",
+tools/release/stamp.py:814:        {"id": 13, "name": "Tests", "path": ".github/workflows/tests.yml",
+tools/release/stamp.py:824:        {"id": 21, "name": "Tests", "status": "completed", "conclusion": "failure"}]})
+tools/release/stamp.py:828:        {"id": 31, "name": "Tests", "status": "queued", "conclusion": None}]})
+tools/release/stamp.py:835:        {"workflow_runs": [{"id": i, "name": "Tests", "status": "completed", "conclusion": "success"}
+--- "Governance": 1
+.github/workflows/pr-contract-rerun.yml:32:    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+--- "CodeQL": 1
+.github/workflows/pr-contract-rerun.yml:32:    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+--- "Hassfest": 1
+.github/workflows/pr-contract-rerun.yml:32:    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+--- "Validate": 1
+.github/workflows/pr-contract-rerun.yml:32:    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+--- "PR contract": 1
+tests/entities.py:28532:    if sorted(wr.get("workflows") or []) != [w for w in watched if w != "PR contract"] \
+--- "Architecture score": 1
+.github/workflows/pr-contract-rerun.yml:32:    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+--- "Budget raise gate": 2
+.github/workflows/budget-raise-gate-rerun.yml:31:    workflows: ["Budget raise gate"]
+.github/workflows/pr-contract-rerun.yml:32:    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+--- "PR contract re-run": 0
+--- "Budget raise gate re-run": 0
+
+=== 2. workflow files named by path or basename (dispatch lists, readers)
+--- tests.yml: files 51
+      .claude/workflows/web-decomp-stage.js
+      .claude/workflows/web-fix-wave.js
+      .claude/workflows/web-fragments.md
+      .claude/workflows/web-stamp.js
+      .claude/workflows/web-triage.js
+      .github/CODEOWNERS
+      .github/workflows/arch-score.yml
+      .github/workflows/codeql.yml
+      .github/workflows/governance.yml
+      .github/workflows/hassfest.yml
+      .github/workflows/merge-main.yml
+      .github/workflows/pr-contract.yml
+      .github/workflows/release.yml
+      .github/workflows/tests.yml
+      .github/workflows/validate.yml
+      dev/governance/config/cfr_exclusions.json
+      dev/governance/config/policy_budgets.json
+      dev/governance/decisions/0011-app-authored-identity.md
+      dev/governance/rules/ci-autofix.md
+      dev/governance/rules/defect-root-cause.md
+      dev/programme/HANDOVER.md
+      tests/README.md
+      tests/card.mjs
+      tests/closure.py
+      tests/closures.json
+      tests/entities.py
+      tests/env_drift.py
+      tests/lane_skip.py
+      tests/mutation_table.py
+      tests/nightly_ha.py
+      tests/nightly_status.py
+      tests/run.sh
+      tests/stress.py
+      tests/typing_ruler.py
+      tools/audit/merge_throughput.py
+      tools/audit/round4/D11/governance_cost.py
+      tools/audit/seat/a1_dispatch_arms.sh
+      tools/audit/seat/autofix_statuses.sh
+      tools/audit/seat/merge_train.py
+      tools/audit/seat/record_row.py
+      tools/audit/seat/ref_privacy.py
+      tools/coverage/composed_proof.sh
+      tools/policy/brief_lint.mjs
+      tools/policy/budget_raise_gate.py
+      tools/policy/counts.mjs
+      tools/policy/policy_lint.mjs
+      tools/pr/cancel_superseded.py
+      tools/pr/contract_rerun.py
+      tools/pr/merge_main_bot.py
+      tools/pr/prepr.sh
+      tools/release/stamp.py
+--- governance.yml: files 26
+      .github/workflows/pr-contract.yml
+      .github/workflows/release.yml
+      .github/workflows/tests.yml
+      dev/governance/config/cfr_exclusions.json
+      dev/governance/decisions/0002-self-witnessed-proxy-assertion.md
+      dev/governance/decisions/0004-an-assertion-can-be-correct-and-never-run.md
+      dev/governance/rules/defect-root-cause.md
+      tests/closure.py
+      tests/closures.json
+      tests/delivery_status.py
+      tests/entities.py
+      tests/run.sh
+      tools/audit/fold_ledger.py
+      tools/audit/merge_fastpath.py
+      tools/audit/round4/D11/governance_cost.py
+      tools/audit/seat/INSTRUMENTS.md
+      tools/audit/seat/merge_train.py
+      tools/policy/check-wave-script.mjs
+      tools/policy/counts.mjs
+      tools/policy/friction_issues.mjs
+      tools/policy/policy_lint.mjs
+      tools/policy/policy_lint_envmatrix.mjs
+      tools/policy/policy_lint_mutants.mjs
+      tools/policy/record-predicate/sweep.mjs
+      tools/pr/contract_rerun.py
+      tools/pr/prepr.sh
+--- codeql.yml: files 9
+      .github/CODEOWNERS
+      .github/workflows/codeql.yml
+      .github/workflows/merge-main.yml
+      .github/workflows/tests.yml
+      tests/closure.py
+      tests/closures.json
+      tests/entities.py
+      tools/audit/seat/merge_train.py
+      tools/pr/codeql_scope.py
+--- hassfest.yml: files 6
+      .github/workflows/merge-main.yml
+      .github/workflows/tests.yml
+      tests/closure.py
+      tests/closures.json
+      tests/entities.py
+      tools/audit/seat/merge_train.py
+--- validate.yml: files 6
+      .github/workflows/merge-main.yml
+      .github/workflows/tests.yml
+      tests/closure.py
+      tests/closures.json
+      tests/entities.py
+      tools/audit/seat/merge_train.py
+--- pr-contract.yml: files 10
+      .github/workflows/budget-raise-gate.yml
+      .github/workflows/governance.yml
+      .github/workflows/pr-contract-rerun.yml
+      tests/closures.json
+      tests/entities.py
+      tools/audit/round4/D11/governance_cost.py
+      tools/audit/seat/merge_train.py
+      tools/audit/seat/tmp_paths.py
+      tools/pr/contract_rerun.py
+      tools/pr/prepr.sh
+--- arch-score.yml: files 5
+      tests/arch_score.py
+      tests/closures.json
+      tests/entities.py
+      tools/audit/archscore/ABOUT.md
+      tools/audit/archscore/gate.py
+--- budget-raise-gate.yml: files 9
+      .github/workflows/arch-score.yml
+      .github/workflows/budget-raise-gate-rerun.yml
+      dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md
+      tests/closures.json
+      tests/entities.py
+      tools/audit/round4/D11/governance_cost.py
+      tools/audit/seat/merge_train.py
+      tools/policy/budget_raise_gate.py
+      tools/pr/prepr.sh
+--- pr-contract-rerun.yml: files 4
+      tests/closures.json
+      tests/entities.py
+      tools/pr/contract_rerun.py
+      tools/pr/prepr.sh
+--- budget-raise-gate-rerun.yml: files 6
+      .github/workflows/pr-contract-rerun.yml
+      dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md
+      tests/closures.json
+      tests/entities.py
+      tools/audit/round4/D11/governance_cost.py
+      tools/policy/budget_raise_gate.py
+
+=== 3. gh workflow run / dispatch sites
+.github/workflows/merge-main.yml:101:              gh workflow run "$wf" --ref "$branch" \
+.github/workflows/tests.yml:3071:          gh workflow run tests.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3072:          gh workflow run hassfest.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3073:          gh workflow run validate.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3077:            gh workflow run codeql.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3341:          gh workflow run tests.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3342:          gh workflow run hassfest.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3343:          gh workflow run validate.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3347:            gh workflow run codeql.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3630:          gh workflow run tests.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3631:          gh workflow run hassfest.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3632:          gh workflow run validate.yml --ref "$HEAD_REF"
+.github/workflows/tests.yml:3636:            gh workflow run codeql.yml --ref "$HEAD_REF"
+tests/entities.py:20189:_AF_DISPATCHED = {"tests.yml", "hassfest.yml", "validate.yml", "codeql.yml"}
+tests/entities.py:20195:    return set(re.findall(r"gh workflow run (\S+)", live))
+tests/entities.py:20205:        len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
+tests/entities.py:20220:    "without the trigger `gh workflow run codeql.yml` is refused with 422",
+tests/nightly_status.py:209:    "    gh workflow run tests.yml --ref main",
+tools/audit/seat/merge_train.py:290:DISPATCH = (("tests.yml", ("-f", "recheck=true")), ("governance.yml", ()), ("codeql.yml", ()),
+
+=== 4. non-Tests required check names as quoted literals, outside .github/workflows
+--- 'hassfest': 4
+tests/entities.py:24597:# here (#558 D5 turned `hassfest` red on exactly this).
+tools/policy/fixtures/policy-rot/required-contexts.md:10:`hassfest` was the one member of the 18-context required set that had none.
+tools/policy/fixtures/required-contexts.json:42:    "hassfest",
+tools/policy/fixtures/required-contexts.json:89:                "context": "hassfest"
+--- 'validate-hacs': 2
+tools/policy/fixtures/required-contexts.json:47:    "validate-hacs",
+tools/policy/fixtures/required-contexts.json:92:                "context": "validate-hacs"
+--- 'policy-docs': 42
+dev/governance/config/corpus_excluded.json:3: "_why_data_not_source": "These entries must be DATA and not a hardcoded block inside .claude/workflows/policy_lint.mjs. The 
+dev/governance/decisions/0002-self-witnessed-proxy-assertion.md:212:ask. The lane runs in `governance.yml`'s `policy-docs` job and as step 3a of
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:66:  (`pr-contract`, `policy-docs`, `env-matrix`, `wave-script`, `briefs`)
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:93:**Bootstrapping.** `policy-docs` runs the base's `codeowners_gap.py --check`,
+dev/programme/HANDOVER.md:515:    Graduated: `policy-docs`'s `[budgets]`. Trap 17 on a budget.
+tests/entities.py:26653:      # The pathspec governance.yml's `policy-docs` restores from the base.
+tests/entities.py:26838:    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", '"$PINNED" -- ') != [],
+tests/entities.py:27639:# body edit re-created `policy-docs`, `env-matrix` and `wave-script` as skipped
+tests/entities.py:27686:    _EDITED_NULL == (True, {"policy-docs", "pr-contract"}),
+tests/entities.py:29690:# `policy-docs` 2; at the pull-request head `delivery-status` 4 -- so the pairs
+tests/entities.py:29705:    (("record", "policy-docs"), ("delivery-status",), 2),
+tests/entities.py:29712:    "fast (3.14)": [0.032, 0.0], "policy-docs": [0.065, 0.0],
+tests/entities.py:30419:        "parameters": {"required_status_checks": [{"context": "policy-docs"}]},
+tests/entities.py:30445:           "parameters": {"required_status_checks": [{"context": "policy-docs"}]}}
+tests/entities.py:30473:# failed `--pr-body` while `policy-docs` -- the acceptance -- stayed green: the
+tests/entities.py:30479:# the test reads the exit status the `policy-docs` context runs, not a model of
+tests/entities.py:30517:# The `policy-docs` job checks out no `ref:`, so every step in it ran the pull
+tests/entities.py:30523:# `_GOV_JOBS` pin above is set-level, so a step can leave `policy-docs` without
+tests/entities.py:30536:_GOV_PD = _workflow_job(Path(_GOV_WF).read_text(), "policy-docs")
+tests/entities.py:30538:    "`policy-docs` restores its graders from the base commit before it grades",
+tools/audit/merge_fastpath.py:36:    """The pin reader `policy-docs` runs, so the grader set is the one CI pins."""
+tools/audit/round4/D11/governance_cost.py:61:GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
+tools/audit/seat/merge_train.py:2467:                "approved": [], "gc": 0, "ci_red": "policy-docs", "after_merge": {}, "target": base,
+tools/audit/seat/merge_train.py:2481:                for i, n in ((11, R0), (12, "policy-docs"))]
+tools/audit/seat/merge_train.py:2791:           setup=lambda w: w.update(ci_red="policy-docs", red={w["heads"][1], w["heads"][2]}))
+--- 'wave-script': 13
+.claude/workflows/audit-verify.js:47:// per label; keep the labels. `wave-script` grades with the base's copy of that
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:66:  (`pr-contract`, `policy-docs`, `env-matrix`, `wave-script`, `briefs`)
+tests/entities.py:27639:# body edit re-created `policy-docs`, `env-matrix` and `wave-script` as skipped
+tools/audit/round4/D11/governance_cost.py:61:GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
+tools/policy/check-wave-script.mjs:18:// It is now wired into CI as the `wave-script` job in .github/workflows/
+tools/policy/check-wave-script.mjs:1131:// find driver, one file over. `wave-script` grades a pull request with the
+tools/policy/fixtures/required-contexts.json:48:    "wave-script"
+tools/policy/fixtures/required-contexts.json:98:                "context": "wave-script"
+tools/pr/prepr.sh:2527:# --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
+tools/pr/prepr.sh:2543:# --- 3f5. the register check (class R-register), which `wave-script` runs on the
+tools/pr/prepr.sh:2598:# one where it did. CI's `wave-script` job is unconditional, so nothing shipped
+tools/pr/prepr.sh:2612:  step "wave-script" $? "$(tail -1 /tmp/prepr-wave.$$)"
+tools/pr/prepr.sh:2615:  say skip "wave-script" "no change to the script, the checker, the rosters, the briefs or a pinned path"
+--- 'pr-contract': 91
+.claude/skills/steward/SKILL.md:106:`pr-contract` runs on `synchronize` and reads the body as it stood at push time.
+.claude/skills/steward/SKILL.md:131:`pr-contract` accepts it; fix `## Head` only if red.
+.github/PULL_REQUEST_TEMPLATE.md:1:<!-- The headings below are what `pr-contract` requires: each is content or an
+.github/PULL_REQUEST_TEMPLATE.md:22:name the instrument rather than restate what it prints. `pr-contract` refuses a
+CLAUDE.md:60:(never `push.sh`, never `tvofi`); `pr-contract` refuses any other author.
+dev/governance/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md:64:trail instead**, and that half is mechanical: `pr-contract` requires the body's
+dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md:87:  `pr-contract` instead — **was the owner's open question and is now answered**:
+dev/governance/decisions/0007-after-this-session-owner-approval-per-pull-request.md:14:`pr-contract`?
+dev/governance/decisions/0007-after-this-session-owner-approval-per-pull-request.md:33:**The ruleset and `pr-contract` are the floor, not the substitute.** They were
+dev/governance/decisions/0007-after-this-session-owner-approval-per-pull-request.md:35:alternative to approval: `pr-contract` refuses a body without an `## Approval`
+dev/governance/decisions/0007-after-this-session-owner-approval-per-pull-request.md:41:`pr-contract` runs today. **When this decision was taken the ruleset did not
+dev/governance/decisions/0007-after-this-session-owner-approval-per-pull-request.md:96:unchanged: a policy merge needs a reader who is not its author. `pr-contract`'s
+dev/governance/decisions/0008-a-seat-identity-distinct-from-the-owner.md:105:- `pr-contract`'s `## Approval` section and the verdict comment stay: they
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:238:- `pr-contract`'s `## Approval` section and the verdict comment stay: they
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:66:  (`pr-contract`, `policy-docs`, `env-matrix`, `wave-script`, `briefs`)
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:123:- An instrument's own self-test now fails a non-required job; `pr-contract`
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:206:  blocks nothing by itself: `pr-contract` makes the body answer it, and the
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:228:    only by answering it in the body, which `pr-contract` requires, and by
+dev/governance/dimensions/D11.md:63:     from a seat other than the author; a first `pr-contract` run at that
+dev/governance/roles/fix-review.md:55:    only once the head's workflows all concluded and a `pr-contract` run started after
+dev/programme/HANDOVER.md:93:  grant from the fact that one existed. The ruleset and `pr-contract` are the
+dev/programme/HANDOVER.md:655:39. **`prepr.sh` gates `## Head` against the LOCAL head and `pr-contract` gates
+dev/programme/HANDOVER.md:657:    file must push twice and one `pr-contract` run necessarily fails on the
+dev/programme/HANDOVER.md:669:    body genuinely stale at the head, which is what `pr-contract` is for, and
+tests/closure.py:364:    # `pr-contract` job's required set, in the governance workflow rather than
+--- 'env-matrix': 13
+dev/governance/decisions/0004-an-assertion-can-be-correct-and-never-run.md:70:`.claude/workflows/policy_lint_envmatrix.mjs`, run by the `env-matrix` job.
+dev/governance/decisions/0004-an-assertion-can-be-correct-and-never-run.md:90:**Cost test.** Measured at #639's head: **15 s** for the `env-matrix` job in
+dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md:12:> `env-matrix` existed on `main`. This grant has lapsed with its session; ADR
+dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md:152:and the `env-matrix` and `record` checks do not exist there until `08` and `07`
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:66:  (`pr-contract`, `policy-docs`, `env-matrix`, `wave-script`, `briefs`)
+tests/entities.py:27639:# body edit re-created `policy-docs`, `env-matrix` and `wave-script` as skipped
+tests/entities.py:29689:# merge commit `record` 30, `mutation` 4, `env-matrix` 2, `fast (3.14)` 1,
+tests/entities.py:29701:    (("record", "mutation", "env-matrix"), (), 1),
+tests/entities.py:29704:    (("record", "env-matrix", "fast (3.14)"), (), 1),
+tests/entities.py:29711:    "record": [0.968, 0.0], "mutation": [0.129, 0.0], "env-matrix": [0.065, 0.0],
+tools/audit/round4/D11/governance_cost.py:61:GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
+tools/policy/fixtures/required-contexts.json:40:    "env-matrix",
+tools/policy/fixtures/required-contexts.json:104:                "context": "env-matrix"
+--- 'Analyze (actions)': 2
+tools/policy/fixtures/required-contexts.json:32:    "Analyze (actions)",
+tools/policy/fixtures/required-contexts.json:107:                "context": "Analyze (actions)"
+--- 'Analyze (javascript-typescript)': 2
+tools/policy/fixtures/required-contexts.json:33:    "Analyze (javascript-typescript)",
+tools/policy/fixtures/required-contexts.json:110:                "context": "Analyze (javascript-typescript)"
+--- 'Analyze (python)': 3
+tools/policy/fixtures/required-contexts.json:34:    "Analyze (python)",
+tools/policy/fixtures/required-contexts.json:113:                "context": "Analyze (python)"
+tools/pr/codeql_scope.py:15:paid `Analyze (python)`'s 23-26 minutes, its critical path, for an analysis
+--- 'budget-raise-gate': 20
+.github/CODEOWNERS:66:# cannot tell the two apart. The required context `budget-raise-gate` can: it
+CLAUDE.md:31:   the owner's approving review at its head: `budget-raise-gate` (0013).
+dev/governance/decisions/0011-app-authored-identity.md:163:(`budget-raise-gate` grades `tests/mutation_budgets.json`, which the write set
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:141:- **The required context `budget-raise-gate`** (`.github/workflows/budget-raise-gate.yml`,
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:244:`tvofi`. Until then `budget-raise-gate` dropped every review under the
+tests/entities.py:27668:                      "budget-raise-gate.yml": ["budget-raise-gate"],
+tests/entities.py:28132:    job = jobs.get("budget-raise-gate") or {}
+tests/entities.py:28139:    if list(jobs) != ["budget-raise-gate"]:
+tests/mutation_table.py:1325:# tests/mutation_budgets.json, the file `budget-raise-gate` grades; every row
+tools/audit/round4/D11/governance_cost.py:63:       "instrument-self-tests", "budget-raise-gate", "rerun-stale-verdict",
+tools/audit/seat/merge_train.py:286:PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
+tools/audit/seat/orchestrator_tick.py:120:PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
+tools/audit/seat/orchestrator_tick.py:2428:                     runs_at={H1: [run_obj("budget-raise-gate",
+tools/policy/budget_raise_gate.py:10:`budget-raise-gate` enforces it.
+tools/policy/budget_raise_gate.py:585:# Both events write a `budget-raise-gate` check run at the head. When the owner
+tools/policy/fixtures/policy-rot/prepr/budget-answered.md:19:`budget-raise-gate`: this diff raises a structure budget, so the gate is red
+tools/policy/fixtures/required-contexts.json:37:    "budget-raise-gate",
+tools/policy/fixtures/required-contexts.json:119:                "context": "budget-raise-gate",
+tools/pr/prepr.sh:615:  # value). Step 7's `body_line` passes `budget-raise-gate` when the diff
+tools/pr/prepr.sh:1504:  case "$got" in *'budget-raise-gate'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming budget-raise-gate";; *) st 0 1 "an
+--- 'arch-score': 6
+.github/PULL_REQUEST_TEMPLATE.md:23:command that does not resolve, and never re-runs one. Required check `arch-score`:
+tests/arch_score.py:4:The score (tools/audit/archscore/) is a review trigger; the required check `arch-score` grades other
+tests/arch_score.py:132:    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "arch-score.yml").read_text())["jobs"]["arch-score"]["steps"]
+tests/entities.py:27671:                      "arch-score.yml": ["arch-score"]},
+tests/run.sh:513:  # the red-team games that must stay closed. The required check `arch-score`
+tools/audit/archscore/ABOUT.md:7:Since R9-EG-A4 (#1774, tvofi's decision R3-6) it is a required check: `arch-score`
+
+=== 5. required-context lists and counts
+.github/CODEOWNERS:19:# that produce or implement the checks `main-protect-checks` requires carried no
+.github/workflows/governance.yml:174:      # GITHUB_TOKEN: the required-contexts class reads the live ruleset through
+.github/workflows/governance.yml:587:      # clone, and the required-contexts class needs credentials to look at the
+CLAUDE.md:70:review, which `main-protect-checks`'s code-owner rule requires (0009 step 6). Every
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:280:> implement the checks `main-protect-checks` requires carried a code owner, so
+dev/governance/decisions/0011-app-authored-identity.md:141:- The App's bypass on `main-protect-checks` (23698884) lets its push skip the
+dev/governance/decisions/0011-app-authored-identity.md:152:and 23698884, recorded in `.claude/workflows/fixtures/required-contexts.json`),
+dev/governance/decisions/0011-app-authored-identity.md:157:remove it). A ruleset read cannot prove the 23698884 bypass admits the push
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:164:- Adding the context to `main-protect-checks` is a ruleset change, and the
+dev/governance/roles/nudge.md:57:Required checks are the contexts in ruleset `main-protect-checks`. Read that ruleset every turn. The id last used to open it was 23698884
+dev/governance/roles/nudge.md:101:Each turn, read the required contexts from ruleset `main-protect-checks`, as step 4 says. For every open pull request, take the latest c
+dev/programme/HANDOVER.md:99:  deletion and non-fast-forward. **`main-protect-checks`, id `23698884`**
+dev/programme/HANDOVER.md:114:  `main-protect-checks` drops the required checks, the review rule and the
+dev/programme/HANDOVER.md:313:  read the contexts from the `main-protect-checks` ruleset endpoint, never a
+dev/programme/HANDOVER.md:811:  deploy key's bypass, on the *other* ruleset 23698884), the required-contexts
+dev/programme/HANDOVER.md:812:  fixture does not cover it (by design it records only 23698884, so `counts.mjs`'s
+dev/programme/HANDOVER.md:818:  2026-10-02: tvofi added the same App to 23698884 as well (fixture re-recorded);
+tests/closure.py:686:    "tools/policy/fixtures/required-contexts.json",
+tests/closures.json:1540:   "tools/policy/fixtures/required-contexts.json",
+tests/entities.py:9094:# emitters, single- and two-zone, and all seventeen positions of the area-
+tests/entities.py:27701:    ".claude/workflows/fixtures/required-contexts.json",
+tests/entities.py:27702:    "tools/policy/fixtures/required-contexts.json") if Path(p).is_file()).read_text())["contexts"]
+tests/features.py:55475:# the gate: seventeen beyond the D3 findings never evaluated False, because
+tools/audit/seat/bus.sh:115:# paths still needs tvofi's own approving review (`main-protect-checks`'s
+tools/audit/seat/ci-watch.sh:12:# a9ba0b88/#2070: 30 check-runs, none pending, the same 5 of the 17 required
+tools/audit/seat/ci-watch.sh:27:RULESET=main-protect-checks
+tools/audit/seat/ci-watch.sh:57:  # The 17 required contexts of ruleset main-protect-checks, read from the API
+tools/audit/seat/ci-watch.sh:62:  REQ17='Analyze (actions)
+tools/audit/seat/ci-watch.sh:96:    printf '%s\n' "$REQ17" > "$1/required"
+tools/audit/seat/ci-watch.sh:97:    printf '23698884\n' > "$1/ruleset-id"
+tools/audit/seat/ci-watch.sh:126:$REQ17
+tools/audit/seat/ci-watch.sh:150:$REQ17
+tools/audit/seat/ci-watch.sh:177:  printf '%s\n' "$REQ17" > "$F/required"; printf '23698884\n' > "$F/ruleset-id"
+tools/audit/seat/merge_train.py:104:                 for every required context of `main-protect-checks` less
+tools/audit/seat/merge_train.py:285:RULESET = "main-protect-checks"
+tools/audit/seat/merge_train.py:286:PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
+tools/audit/seat/merge_train.py:465:    # a9ba0b88/#2070: 4 dispatched runs each, the same 5 of the 17 required
+tools/audit/seat/merge_train.py:466:    # contexts of main-protect-checks absent). The autofix job's approve step
+tools/audit/seat/orchestrator_tick.py:118:RULESET = "main-protect-checks"
+tools/audit/seat/orchestrator_tick.py:120:PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
+tools/audit/seat/proof_watch.py:445:                return 0, "23698884\n"
+tools/policy/counts.mjs:154:  seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, 'twenty-one': 21,
+tools/policy/counts.mjs:287:    const fixture = JSON.parse(read('.claude/workflows/fixtures/required-contexts.json'))
+tools/policy/counts.mjs:368:          check: 'required-contexts',
+tools/policy/counts.mjs:389:export const TOKEN_HIDDEN_SKIP_RE = /^\s*skip\s+required-contexts\s+ruleset \d+ field `(bypass_actors)` is absent from the live read \(this to
+tools/policy/counts.mjs:421:// `main-protect-checks` 23698884 -- gave byte-identical output for a boundary
+tools/policy/counts.mjs:438:      check: 'required-contexts',
+tools/policy/counts.mjs:447:      check: 'required-contexts',
+tools/policy/counts.mjs:458:      check: 'required-contexts',
+tools/policy/counts.mjs:467:      check: 'required-contexts',
+tools/policy/counts.mjs:478:    out.push({ severity: 'error', check: 'required-contexts', where: fixtureRel, message: 'records no `ruleset_objects`, so no ruleset field b
+tools/policy/counts.mjs:486:    for (const k of unread) console.log(`  skip     required-contexts     ruleset ${id} field \`${k}\` is absent from the live read (this toke
+tools/policy/counts.mjs:492:      out.push({ severity: 'error', check: 'required-contexts', where: fixtureRel, message: `ruleset ${id} field \`${k}\` is ${got[k] ?? '(abs
+tools/policy/field_coverage.mjs:29:// UNCHECKED skip `required-contexts` prints and refuses nothing. Once loaded,
+tools/policy/field_coverage.mjs:144:const rel = '.claude/workflows/fixtures/required-contexts.json'
+tools/policy/field_coverage.mjs:151:const RULESET = {
+tools/policy/field_coverage.mjs:153:  check: 'counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts)',
+tools/policy/field_coverage.mjs:154:  artifact: 'the live main-protect-checks ruleset object',
+tools/policy/field_coverage.mjs:206:function ruleFixture() { return JSON.parse(fs.readFileSync(at('.claude/workflows/fixtures/required-contexts.json'), 'utf8')) }
+tools/policy/field_coverage.mjs:322:  'check required-contexts': { arm: 'ruleset' },
+tools/policy/field_coverage.mjs:453:  const hiddenLine = (f) => `  skip  required-contexts  ruleset 23698884 field \`${f}\` is absent from the live read (this token canno
+tools/policy/fixtures/policy-rot/required-contexts.md:1:# Rot fixture: required-contexts
+tools/policy/fixtures/policy-rot/required-contexts.md:3:The three literal shapes the required-contexts class reads, one finding each,
+tools/policy/fixtures/required-contexts.json:4:    "required-contexts class in policy_lint.mjs (#957). The linter asks the",
+tools/policy/fixtures/required-contexts.json:23:    "against a ruleset that supplies none), while `main-protect-checks`",
+tools/policy/fixtures/required-contexts.json:24:    "23698884 carries the required contexts, the `pull_request` review rule and",
+tools/policy/fixtures/required-contexts.json:29:    23698884
+tools/policy/fixtures/required-contexts.json:51:    "23698884": {
+tools/policy/fixtures/required-contexts.json:52:      "id": 23698884,
+tools/policy/fixtures/required-contexts.json:157:  "_ruleset_objects": "Each ruleset object as the API returns it, less RULESET_VOLATILE (counts.mjs), recorded by hand fr
+tools/policy/policy_lint.mjs:830:// reported seventeen extra findings, all `tools/audit/round2/**`: sixteen
+tools/policy/policy_lint.mjs:831:// through the generic names `REPORT.md` and `BASELINE.md`, and a seventeenth --
+tools/policy/policy_lint.mjs:1052:const REQUIRED_CONTEXT_FIXTURE = '.claude/workflows/fixtures/required-contexts.json'
+tools/policy/policy_lint.mjs:1067:      check: 'required-contexts',
+tools/policy/policy_lint.mjs:1078:      check: 'required-contexts',
+tools/policy/policy_lint.mjs:1088:    console.log(`  skip     required-contexts     the GitHub API is unreachable (${liveRequiredContextsWhy()}); the live required-contex
+tools/policy/policy_lint.mjs:2086:// in-file precedent is `required-contexts`' skip line). `mergedPRsFromWindow`
+tools/policy/policy_lint.mjs:2101:// words the required-contexts skip uses. Pure over its `why` so the acceptance
+tools/policy/policy_lint.mjs:3529:  { name: 'required-contexts', fn: 'requiredContextsOverTree', what: 'the corpus\'s required-context literals and recorded shape match t
+tools/policy/policy_lint.mjs:4842:    console.log('\nFIXTURE VACUOUS: a required-contexts source is not back at its production default; the wired check would read an inje
+tools/policy/policy_lint.mjs:4847:  const rcRot = '.claude/workflows/fixtures/policy-rot/required-contexts.md'
+tools/policy/policy_lint.mjs:4850:    console.log(`\nFIXTURE VACUOUS: ${rcRot} is missing; the literal shapes of the required-contexts check are deletable in silence`)
+tools/policy/policy_lint.mjs:4858:  if (lit.found.length !== 3 || !lit.found.every((f) => f.check === 'required-contexts')) {
+tools/policy/policy_lint.mjs:4859:    console.log(`\nFIXTURE VACUOUS: the required-contexts literal scan produced ${lit.found.length} finding(s) on the rot fixture, 3 req
+tools/policy/policy_lint.mjs:4863:    console.log('\nFIXTURE VACUOUS: no required-contexts finding names the live count it checked against, so a comparison against a cons
+tools/policy/policy_lint.mjs:4871:    console.log('\nFIXTURE OVER-FIRES: a required-contexts finding landed on a table or per-PR row, which is a dated record, not a live 
+tools/policy/policy_lint.mjs:4892:  // from `main-protect-checks` 23698884), leaving the check blind to the exact
+tools/policy/policy_lint.mjs:4948:  if (unread.found.length || !unread.said.some((l) => /^\s*skip\s+required-contexts\b/.test(l) && l.includes('`bypass_actors`') && l.inc
+tools/policy/policy_lint.mjs:4995:    console.log(`\nFIXTURE OVER-FIRES: the required-contexts check reported ${equal.found.length} finding(s) with the live set equal to 
+tools/policy/policy_lint.mjs:5000:    console.log(`\nFIXTURE OVER-FIRES: an unreachable API produced ${dead.found.length} required-contexts finding(s); policy-docs is its
+tools/policy/policy_lint.mjs:5003:  if (!dead.said.some((l) => l.includes('skip') && l.includes('required-contexts') && l.includes('UNCHECKED'))) {
+tools/pr/app_approve.sh:10:# WHY THIS EXISTS. Since decision 0009 step 6, the `main-protect-checks`
+tools/release/stamp.py:40:     the deploy-key tag push is `main-protect-checks`'s only bypass, so a stamp was the
+tools/release/stamp.py:86:instead of to origin (#954): `main-protect-checks`'s only bypass is that key (decision
+tools/release/stamp.py:1567:# deploy-key tag push is `main-protect-checks`'s only bypass, so a stamp taken over a
+tools/release/stamp.py:1900:    # reads, and the tag push below is `main-protect-checks`'s only bypass, so this run
+
+=== 6. structural pins in tests/entities.py keyed on a workflow file
+     32 
+15350:    cannot widen the box's concurrency by exporting one variable. The owner arm
+25447:    "concurrency` tells a seat nothing about what is waiting on it, and the "
+27653:    return "edited" in types, set((doc.get("jobs") or {}).keys())
+27738:                 "github.event.action": "edited"}
+27751:    f"skippable under `pull_request: edited`: {_RC_SKIPPED} -- a skipped run "
+27770:# workflow a pull request starts declares one top-level `concurrency:`; each
+27782:# `cancel-in-progress` says, which a serialised file still meets while an
+27787:# `cancel-in-progress` says. Main's FULL push gate must never be the run
+27808:_CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
+27823:# How each workflow that lists `pull_request: edited` keeps its same-SHA
+27833:    return "edited" in ((pr or {}).get("types") or [])
+27841:    cc = doc.get("concurrency")
+27843:        return [f"{name}: no top-level concurrency"]
+27859:            cancel = _cc_value(cc.get("cancel-in-progress"), older)
+27863:                out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
+27880:    not _CC_FOUND and any(_cc_problems(n, {**d, "concurrency": None})
+27885:            "concurrency": {"group": "${{ github.workflow }}-${{ github.ref }}",
+27886:                            "cancel-in-progress": True}}
+27901:_CC_PC_CC = (_PC_DOC.get("concurrency") or {})
+27902:_CC_TS_CC = (_TS_DOC.get("concurrency") or {})
+27906:    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[0]) == "False"
+27907:    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[1]) == "False"
+27911:    f"cancel={_cc_value(_CC_PC_CC.get('cancel-in-progress'), _CC_PC_TWIN[0])!r}",
+27918:    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[0]) == "True"
+27919:    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[1]) == "True"
+27923:    f"cancel={_cc_value(_CC_TS_CC.get('cancel-in-progress'), _CC_TS_SUPERSEDE[0])!r}",
+27925:_PC_CANCEL_TRUE = {**_PC_DOC, "concurrency": {
+27926:    **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": True}}
+27929:    any("cancel-in-progress" in p for p in _cc_problems("pr-contract.yml",
+27931:    and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
+27932:        **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
+27937:_BRG_CC = (_BRG_DOC.get("concurrency") or {})
+27944:    and _cc_value(_BRG_CC.get("cancel-in-progress"), _CC_BRG_TWIN[0]) == "False"
+27951:    f"cancel={_cc_value(_BRG_CC.get('cancel-in-progress'), _CC_BRG_TWIN[0])!r}",
+27960:    "cancel-in-progress": "${{ github.event_name == 'pull_request' && "
+27962:_BRG_OLD = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": _BRG_OLD_CC})
+27963:_BRG_SERIAL = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": {
+27964:    **_BRG_OLD_CC, "cancel-in-progress": False}})
+27969:    any("cancel-in-progress" in p for p in _BRG_OLD)
+28001:# producing job must be in a workflow that lists `merge_group` and must run
+28014:        if "merge_group" not in ([_on] if isinstance(_on, str) else list(_on)):
+28015:            out.append(f"{_ctx}: {_prod[0]} does not list merge_group")
+28017:                       {"github.event_name": "merge_group"}) is not True:
+28018:            out.append(f"{_ctx}: {_prod[0]}'s {_prod[1]} does not run on merge_group")
+28031:    "and tests.yml without merge_group is refused for each context it produces "
+28144:            "dismissed", "edited", "submitted"]:
+28146:    if "edited" not in ((on.get("pull_request") or {}).get("types") or []):
+32520:    for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+33370:# than passing slowly. The design choice is concurrency, not a figure: the
+36326:    if not (doc.get("concurrency") or {}).get("group"):
+36327:        out.append("no concurrency group")
+36328:    if (doc.get("concurrency") or {}).get("cancel-in-progress") is not False:
+36329:        out.append("cancel-in-progress is not false: a newer run would cancel "
+
+=== 7. workflow_call / uses: ./ today
+
+=== 8. app-held run approval sites (HPO_RUNS) and loop-guard subjects
+.github/workflows/merge-main.yml:18:# GitHub holds `action_required`; those are dispatched and then approved as
+.github/workflows/merge-main.yml:106:      # The pull_request runs a GITHUB_TOKEN push creates wait action_required
+.github/workflows/merge-main.yml:113:          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+.github/workflows/merge-main.yml:118:            echo "::notice::HPO_RUNS_PEM or HPO_RUNS_APPID is not set; leaving action_required runs for a human (
+.github/workflows/merge-main.yml:160:              "$API/repos/$REPO/actions/runs?branch=$1&status=action_required&per_page=100" \
+.github/workflows/tests.yml:3083:      # GITHUB_TOKEN push's pull_request runs were held action_required for a
+.github/workflows/tests.yml:3092:      # Approve them as a dedicated Actions-only App -- HPO_RUNS_PEM /
+.github/workflows/tests.yml:3107:          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+.github/workflows/tests.yml:3112:            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+.github/workflows/tests.yml:3116:            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+.github/workflows/tests.yml:3162:          # until one action_required run sits at the pushed SHA the push
+.github/workflows/tests.yml:3169:              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+.github/workflows/tests.yml:3182:          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the pus
+.github/workflows/tests.yml:3185:              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+.github/workflows/tests.yml:3191:            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+.github/workflows/tests.yml:3201:              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+.github/workflows/tests.yml:3209:            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+.github/workflows/tests.yml:3354:      # action_required for a human; measured 2026-10-09 at two bot heads, no
+.github/workflows/tests.yml:3369:          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+.github/workflows/tests.yml:3374:            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+.github/workflows/tests.yml:3378:            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+.github/workflows/tests.yml:3424:          # until one action_required run sits at the pushed SHA the push
+.github/workflows/tests.yml:3431:              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+.github/workflows/tests.yml:3444:          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the pus
+.github/workflows/tests.yml:3447:              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+.github/workflows/tests.yml:3453:            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+.github/workflows/tests.yml:3463:              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+.github/workflows/tests.yml:3471:            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+.github/workflows/tests.yml:3643:      # action_required for a human; measured 2026-10-09 at two bot heads, no
+.github/workflows/tests.yml:3658:          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+.github/workflows/tests.yml:3663:            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+.github/workflows/tests.yml:3667:            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+.github/workflows/tests.yml:3713:          # until one action_required run sits at the pushed SHA the push
+.github/workflows/tests.yml:3720:              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+.github/workflows/tests.yml:3733:          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the pus
+.github/workflows/tests.yml:3736:              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+.github/workflows/tests.yml:3742:            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+.github/workflows/tests.yml:3752:              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+.github/workflows/tests.yml:3760:            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+tests/entities.py:20169:# A GITHUB_TOKEN push's `pull_request` runs are held `action_required` with

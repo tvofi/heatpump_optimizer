@@ -1,0 +1,29 @@
+arch-score: arch-score | Contents: read, Metadata: read, PullRequests: read,  | secrets Actions
+budget-raise-gate: budget-raise-gate | Contents: read, Issues: read, Metadata: read, PullRequests: read,  | secrets Actions
+codeql: Analyze (actions) | Contents: read, Metadata: read, SecurityEvents: write,  | secrets Actions
+codeql: Analyze (javascript-typescript) | Contents: read, Metadata: read, SecurityEvents: write,  | secrets Actions
+codeql: Analyze (python) | Contents: read, Metadata: read, SecurityEvents: write,  | secrets Actions
+codeql: cancel-superseded | Actions: write, Contents: read, Metadata: read, PullRequests: read,  | secrets Actions
+codeql: scope | Contents: read, Metadata: read,  | secrets Actions
+governance: delivery-status | Contents: read, Metadata: read,  | secrets Actions
+governance: env-matrix | Contents: read, Metadata: read,  | secrets Actions
+governance: instrument-self-tests | Contents: read, Metadata: read,  | secrets Actions
+governance: policy-docs | Contents: read, Metadata: read,  | secrets Actions
+governance: wave-script | Contents: read, Metadata: read,  | secrets Actions
+hassfest: hassfest | Contents: read, Metadata: read,  | secrets Actions
+pr-contract: pr-contract | Checks: read, Contents: read, Metadata: read, PullRequests: read,  | secrets Actions
+tests: briefs | Contents: read, Metadata: read,  | secrets Actions
+tests: browser | Contents: read, Metadata: read,  | secrets Actions
+tests: cancel-superseded | Actions: write, Contents: read, Metadata: read, PullRequests: read,  | secrets Actions
+tests: closure-scope | Contents: read, Metadata: read,  | secrets Actions
+tests: closures | Actions: read, Contents: read, Metadata: read,  | secrets Actions
+tests: composed-proof | Contents: read, Metadata: read,  | secrets Actions
+tests: coverage | Contents: read, Metadata: read,  | secrets Actions
+tests: coverage-ratchet | Contents: read, Metadata: read,  | secrets Actions
+tests: fast (3.14) | Contents: read, Metadata: read,  | secrets Actions
+tests: graders-head-copy | Contents: read, Metadata: read,  | secrets Actions
+tests: lane-proofs | Contents: read, Metadata: read,  | secrets Actions
+tests: mutation | Contents: read, Metadata: read,  | secrets Actions
+tests: nightly-status | Actions: read, Contents: read, Metadata: read,  | secrets Actions
+tests: typing | Contents: read, Metadata: read,  | secrets Actions
+validate: validate-hacs | Contents: read, Metadata: read,  | secrets Actions

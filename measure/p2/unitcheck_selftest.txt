@@ -1,0 +1,33 @@
+### hassfest (39164766828)
+null (prefixed copy):
+  UNITCHECK steps 3->3 perms 1->1 rc 0
+perturbation, one step dropped:
+  LOST   step  hassfest | Checkout
+  UNITCHECK steps 3->2 perms 1->1 rc 1
+perturbation, one grant widened:
+  LOST   perm  hassfest | Contents: read,Metadata: read
+  GAINED perm  hassfest | Contents: read,Metadata: read,Contents: write
+  UNITCHECK steps 3->3 perms 1->1 rc 1
+SELF-TEST ok
+### governance (39164766859)
+null (prefixed copy):
+  UNITCHECK steps 53->53 perms 5->5 rc 0
+perturbation, one step dropped:
+  LOST   step  policy-docs | Run actions/checkout@<sha>
+  UNITCHECK steps 53->52 perms 5->5 rc 1
+perturbation, one grant widened:
+  LOST   perm  policy-docs | Contents: read,Metadata: read
+  GAINED perm  policy-docs | Contents: read,Metadata: read,Contents: write
+  UNITCHECK steps 53->53 perms 5->5 rc 1
+SELF-TEST ok
+### pr-contract (39163307482)
+null (prefixed copy):
+  UNITCHECK steps 11->11 perms 1->1 rc 0
+perturbation, one step dropped:
+  LOST   step  pr-contract | Run actions/checkout@<sha>
+  UNITCHECK steps 11->10 perms 1->1 rc 1
+perturbation, one grant widened:
+  LOST   perm  pr-contract | Checks: read,Contents: read,Metadata: read,PullRequests: read
+  GAINED perm  pr-contract | Checks: read,Contents: read,Metadata: read,PullRequests: read,Contents: write
+  UNITCHECK steps 11->11 perms 1->1 rc 1
+SELF-TEST ok

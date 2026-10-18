@@ -1,0 +1,81 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 117785286948,
+      "run_id": 39164766895,
+      "workflow_name": "Architecture score",
+      "head_branch": "fix/r10-roster-carry-policy",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39164766895",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbIzZJA",
+      "head_sha": "928a672753558ca6f88f45f806d9aa9b04440c36",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117785286948",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39164766895/job/117785286948",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:45:35Z",
+      "started_at": "2026-10-18T20:45:38Z",
+      "completed_at": "2026-10-18T20:46:42Z",
+      "name": "arch-score",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:45:39Z",
+          "completed_at": "2026-10-18T20:45:40Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:45:40Z",
+          "completed_at": "2026-10-18T20:45:51Z"
+        },
+        {
+          "name": "Name the pull request and read its body",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:45:51Z",
+          "completed_at": "2026-10-18T20:45:53Z"
+        },
+        {
+          "name": "Score the change, and refuse an unexplained rise",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:45:53Z",
+          "completed_at": "2026-10-18T20:46:40Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:46:40Z",
+          "completed_at": "2026-10-18T20:46:40Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:46:40Z",
+          "completed_at": "2026-10-18T20:46:40Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117785286948",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126937,
+      "runner_name": "GitHub Actions 1000126937",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

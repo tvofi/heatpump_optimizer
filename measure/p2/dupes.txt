@@ -1,0 +1,6 @@
+0e238c3042: Tests pr=['success'] dispatch=['success']; CodeQL pr=['success'] dispatch=['success']; Hassfest pr=['success'] dispatch=['success']; Validate pr=['success'] dispatch=['success']
+3aba8f1eb2: Tests pr=['success'] dispatch=['success']; CodeQL pr=['success'] dispatch=['success']; Hassfest pr=['success'] dispatch=['success']; Validate pr=['success'] dispatch=['success']
+74d66b3554: Tests pr=['failure'] dispatch=['failure']; CodeQL pr=['success'] dispatch=['success']; Hassfest pr=['success'] dispatch=['success']; Validate pr=['success'] dispatch=['success']
+acf14d8f22: Tests pr=['success'] dispatch=['success']; CodeQL pr=['success'] dispatch=['success']; Hassfest pr=['success'] dispatch=['success']; Validate pr=['success'] dispatch=['success']
+
+heads 22; heads where a workflow's code ran twice (dispatch + pull_request): {'Tests': 4, 'CodeQL': 4, 'Hassfest': 4, 'Validate': 4}; action_required runs seen: 0

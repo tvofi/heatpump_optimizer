@@ -1,0 +1,101 @@
+Review item 11: every file the review seat's reader survey finds, against the revised corpus.
+
+  cat DESIGN-P1.md DESIGN-P2.md RESPONSE.md measure/p1/readers.md measure/p2/readers2.txt > corpus.txt
+  sh <review>/tools/readers_diff.sh corpus.txt      (from a full checkout of origin/main at 07a09406)
+
+The survey prints every tracked file outside .github/workflows naming a check, job or
+workflow name as a quoted literal or a workflow path, and whether the corpus names the
+file. Result: 384 files; 119 named by the revised corpus; 265 not named. Of those 265:
+
+243 are the historical record or generated text: dev/archive/**, dev/audit/rca/**,
+dev/audit/rounds/**, dev/programme/{delivery,register,rosters,plan*,carries,round9}/**,
+handoff/**, RELEASE_NOTES.md, .cursor/rules/*.mdc (generated from dev/governance/rules
+by rules_sync.mjs, which the policy rows of both designs re-run). "Historical" is
+checked, not assumed: each of those files was grepped for as a path in .github/,
+tools/ and tests/ (closures.json and *.md excluded). 19 are referenced by code. Read:
+  - dev/audit/rounds/round4/D11/dora_keys.py (loaded by entities.py:29634): DORA keys
+    over a FIXED window (2026-09-08..12), "change failure rate ... Tests only"
+    (:327, failed_by_wf["Tests"]). Pinned to its window, so no change; a re-run over
+    a window after PR 2 must read "CI" (its gate job) where it reads "Tests". Noted
+    in DESIGN-P2.md section 9's harness rows by this line.
+  - dev/audit/rounds/round7-fix/governance/skipped_step_seams.py (a comment in
+    entities.py:27525): a baseline over 60 sampled governance.yml runs; pinned to
+    its sample. No change.
+  - dev/audit/rounds/round5/D11/seat-b/corpus_churn.py and the round5 D13
+    checkruns_*.json fixtures (tests/closure.py classification lists): read
+    governance.yml's window rule and saved check-run listings; governance.yml stays
+    a file; the fixtures are history. No change.
+  - round6 D13 fixtures reshaped.json / window_base.json, carry-201.json (entities.py
+    fixtures), the plan, register and rosters (read by delivery_status.py, the tick,
+    record_row.py, policy_lint.mjs, codeql_scope.py, prepare_baseline.sh): they carry
+    check names as recorded data or as plan rows, never as the name of a live check
+    a tool waits on. No change.
+
+The rest, each read by hand (origin/main), with its disposition:
+
+.claude/hooks/pre-edit.sh                     :97 a comment naming `policy-docs` as what an
+                                              edit would fail. The job id is unchanged (its
+                                              check becomes `governance / policy-docs`); a
+                                              comment only. No change.
+.claude/hooks/stop-selfcheck.sh               :56 `touches_policy '.github/workflows/governance.yml'`:
+                                              a self-test that a workflow edit triggers the
+                                              policy linter. governance.yml stays a file. No change.
+custom_components/heatpump_optimizer/presets.py  "fast"/"slow" are thermal-model keys, not CI
+                                              names. False positive.
+dev/audit/config/bugclasses.json              barrier prose naming "the Tests workflow" and
+                                              job names as they were when each class was
+                                              recorded. A register, not a reader. No change.
+dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py
+                                              reads governance.yml's `pr-contract` steps at a
+                                              pinned historical base B (git show B:...). Pinned
+                                              to history. No change.
+dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py
+                                              a docstring citing "tests.yml's recheck arm" for a
+                                              historical measurement. No change.
+dev/audit/harnesses/dual_path.py              R9-RO-2's map of base-restoring jobs as
+                                              "<file>:<job>" -> grading commands (:303-309).
+                                              Existing keys survive: the unit files stay, with
+                                              their job ids. PR 2 ADDS ci.yml:prelude, ci.yml:gate
+                                              (tools/ci/*.py) and gate-sweep.yml's job, which
+                                              restore programs from the base, so its `ci` mode
+                                              covers them. (DESIGN-P2.md section 9 carries this
+                                              under the restore-pattern rows; listed here so
+                                              the addition is not lost.)
+dev/audit/harnesses/r9_fr3_family_consumer.mjs  'mutation (family)' is a census key of a
+                                              verdict family, not a check name. False positive.
+dev/audit/harnesses/ux5_idle_codes_sites.py   docstring: "#2010's `mutation`". History. No change.
+dev/audit/harnesses/ux9_flow_unit_guard.py    comment: "the `mutation` job reported". History.
+dev/audit/waves/w5-g5-195-coverage/*          a wave's evidence scripts reading tests/closures.json
+                                              and mutation anchors. History. No change.
+tools/audit/archscore/metrics/common.py,
+tools/audit/archscore/planted/redteam/15_payload_cast.py
+                                              "typing" is the Python module. False positive.
+tools/audit/prepare_baseline.sh               reads tests/closures.json's closures (not a CI
+                                              name). W1's three phantom entries go by
+                                              `closure.py prune` in PR 1; the file shape is
+                                              unchanged. No change.
+tools/policy/figure_lint.mjs                  comments about how `pr-contract` invokes it
+                                              (no --at). The invocation is unchanged inside the
+                                              unit. No change.
+tools/policy/fixtures/figures/good.md         a fixture body holding an example gh api command
+                                              that selects .name=="pr-contract". Fixture text
+                                              that figure_lint resolves as a command, not a
+                                              reader of live checks. No change.
+tools/policy/fixtures/red-ancestry/{green,red}/*.json
+                                              saved check-run listings of two historical
+                                              commits (name "fast (3.14)") for policy_lint's
+                                              red-history check (#1144). The check is
+                                              name-agnostic: it compares a commit's failing
+                                              names with the body. The fixtures stay valid
+                                              for history; PR 2's U6 adds one prefixed fixture
+                                              (`tests / fast (3.14)`) so the new shape is
+                                              covered too.
+tools/pr/preflight.sh                         :146-148, a comment recounting a stale-corpus
+                                              incident ("reports `pr-contract` GREEN"). No change.
+
+Two live readers the survey's patterns cannot see, found while reading (both added to
+DESIGN-P2.md section 9): tools/audit/seat/autofix_statuses.sh:29 (lists
+actions/workflows/tests.yml/runs) and tools/audit/merge_throughput.py:13-20 ("A Tests
+workflow run with event=push on branch main"); and one for PR 1
+(DESIGN-P1.md 2(a)): dev/audit/harnesses/r10_replay_loopnorm.py:64-73 (tests.yml's
+`slow` job).

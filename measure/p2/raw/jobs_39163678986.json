@@ -1,0 +1,811 @@
+{
+  "total_count": 7,
+  "jobs": [
+    {
+      "id": 117782075575,
+      "run_id": 39163678986,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-roster-fastpath",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163678986",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbFvYtw",
+      "head_sha": "2d9f2000967579f577940a0eb4842d0a76867aec",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117782075575",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163678986/job/117782075575",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-18T20:31:17Z",
+      "started_at": "2026-10-18T20:31:19Z",
+      "completed_at": "2026-10-18T20:31:34Z",
+      "name": "delivery-status",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:31:20Z",
+          "completed_at": "2026-10-18T20:31:21Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:31:21Z",
+          "completed_at": "2026-10-18T20:31:31Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:31:31Z",
+          "completed_at": "2026-10-18T20:31:31Z"
+        },
+        {
+          "name": "Report what is pending and what is overdue a row",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 4,
+          "started_at": "2026-10-18T20:31:31Z",
+          "completed_at": "2026-10-18T20:31:32Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T20:31:32Z",
+          "completed_at": "2026-10-18T20:31:32Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:31:32Z",
+          "completed_at": "2026-10-18T20:31:33Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:31:33Z",
+          "completed_at": "2026-10-18T20:31:33Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117782075575",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126900,
+      "runner_name": "GitHub Actions 1000126900",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117782075755,
+      "run_id": 39163678986,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-roster-fastpath",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163678986",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbFvZaw",
+      "head_sha": "2d9f2000967579f577940a0eb4842d0a76867aec",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117782075755",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163678986/job/117782075755",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:31:17Z",
+      "started_at": "2026-10-18T20:31:20Z",
+      "completed_at": "2026-10-18T20:33:01Z",
+      "name": "policy-docs",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:31:21Z",
+          "completed_at": "2026-10-18T20:31:22Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:31:22Z",
+          "completed_at": "2026-10-18T20:31:33Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:31:33Z",
+          "completed_at": "2026-10-18T20:31:33Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:31:33Z",
+          "completed_at": "2026-10-18T20:31:34Z"
+        },
+        {
+          "name": "Refuse a Cursor rule that is not the generated form of its source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:31:34Z",
+          "completed_at": "2026-10-18T20:31:34Z"
+        },
+        {
+          "name": "Refuse a check script no CODEOWNERS pattern owns",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:31:34Z",
+          "completed_at": "2026-10-18T20:31:35Z"
+        },
+        {
+          "name": "Lint the policy corpus",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:31:35Z",
+          "completed_at": "2026-10-18T20:31:47Z"
+        },
+        {
+          "name": "Refuse a prompt fragment that has drifted from its canonical text",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:31:47Z",
+          "completed_at": "2026-10-18T20:31:48Z"
+        },
+        {
+          "name": "Report what the linter found",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:31:48Z",
+          "completed_at": "2026-10-18T20:31:59Z"
+        },
+        {
+          "name": "Refuse a hook that is missing, unwired, or fails its own self-test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T20:31:59Z",
+          "completed_at": "2026-10-18T20:32:01Z"
+        },
+        {
+          "name": "Refuse a governance check input field no check reads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T20:32:01Z",
+          "completed_at": "2026-10-18T20:32:58Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T20:32:58Z",
+          "completed_at": "2026-10-18T20:32:59Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-18T20:32:59Z",
+          "completed_at": "2026-10-18T20:32:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-18T20:32:59Z",
+          "completed_at": "2026-10-18T20:32:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117782075755",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126908,
+      "runner_name": "GitHub Actions 1000126908",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117782075855,
+      "run_id": 39163678986,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-roster-fastpath",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163678986",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbFvZzw",
+      "head_sha": "2d9f2000967579f577940a0eb4842d0a76867aec",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117782075855",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163678986/job/117782075855",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:31:17Z",
+      "started_at": "2026-10-18T20:31:20Z",
+      "completed_at": "2026-10-18T20:33:46Z",
+      "name": "env-matrix",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:31:21Z",
+          "completed_at": "2026-10-18T20:31:23Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:31:23Z",
+          "completed_at": "2026-10-18T20:31:33Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:31:33Z",
+          "completed_at": "2026-10-18T20:31:36Z"
+        },
+        {
+          "name": "Put origin/main where the matrix looks for it",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:31:36Z",
+          "completed_at": "2026-10-18T20:31:37Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:31:37Z",
+          "completed_at": "2026-10-18T20:31:37Z"
+        },
+        {
+          "name": "Require each declared environment shape to produce its declared outcome",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:31:37Z",
+          "completed_at": "2026-10-18T20:33:42Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T20:33:42Z",
+          "completed_at": "2026-10-18T20:33:42Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T20:33:42Z",
+          "completed_at": "2026-10-18T20:33:42Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T20:33:42Z",
+          "completed_at": "2026-10-18T20:33:42Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117782075855",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126911,
+      "runner_name": "GitHub Actions 1000126911",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117782075880,
+      "run_id": 39163678986,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-roster-fastpath",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163678986",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbFvZ6A",
+      "head_sha": "2d9f2000967579f577940a0eb4842d0a76867aec",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117782075880",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163678986/job/117782075880",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-18T20:31:17Z",
+      "started_at": "2026-10-18T20:31:20Z",
+      "completed_at": "2026-10-18T20:31:48Z",
+      "name": "wave-script",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:31:22Z",
+          "completed_at": "2026-10-18T20:31:22Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:31:22Z",
+          "completed_at": "2026-10-18T20:31:39Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:31:39Z",
+          "completed_at": "2026-10-18T20:31:39Z"
+        },
+        {
+          "name": "Restore the check source from the base commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:31:39Z",
+          "completed_at": "2026-10-18T20:31:39Z"
+        },
+        {
+          "name": "Drive the wave script's branching",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:31:39Z",
+          "completed_at": "2026-10-18T20:31:39Z"
+        },
+        {
+          "name": "Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:31:39Z",
+          "completed_at": "2026-10-18T20:31:40Z"
+        },
+        {
+          "name": "Refuse two readers of one concept that disagree",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 7,
+          "started_at": "2026-10-18T20:31:40Z",
+          "completed_at": "2026-10-18T20:31:45Z"
+        },
+        {
+          "name": "Show the agreement lane refusing each shape it exists to refuse",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-18T20:31:45Z",
+          "completed_at": "2026-10-18T20:31:45Z"
+        },
+        {
+          "name": "Check the bug-class register against the rounds in the tree",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-18T20:31:45Z",
+          "completed_at": "2026-10-18T20:31:45Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 16,
+          "started_at": "2026-10-18T20:31:45Z",
+          "completed_at": "2026-10-18T20:31:45Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-10-18T20:31:45Z",
+          "completed_at": "2026-10-18T20:31:45Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-18T20:31:45Z",
+          "completed_at": "2026-10-18T20:31:46Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-18T20:31:46Z",
+          "completed_at": "2026-10-18T20:31:46Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117782075880",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126910,
+      "runner_name": "GitHub Actions 1000126910",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117782075895,
+      "run_id": 39163678986,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-roster-fastpath",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163678986",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbFvZ9w",
+      "head_sha": "2d9f2000967579f577940a0eb4842d0a76867aec",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117782075895",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163678986/job/117782075895",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T20:31:17Z",
+      "started_at": "2026-10-18T20:31:20Z",
+      "completed_at": "2026-10-18T20:34:01Z",
+      "name": "instrument-self-tests",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:31:21Z",
+          "completed_at": "2026-10-18T20:31:22Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:31:22Z",
+          "completed_at": "2026-10-18T20:31:33Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:31:33Z",
+          "completed_at": "2026-10-18T20:31:33Z"
+        },
+        {
+          "name": "Refuse a corpus or record-mode check that survives its own deletion",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:31:33Z",
+          "completed_at": "2026-10-18T20:32:03Z"
+        },
+        {
+          "name": "Show the fragment check refusing its own perturbation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:32:03Z",
+          "completed_at": "2026-10-18T20:32:04Z"
+        },
+        {
+          "name": "Show the lane-skip decision refusing every unsafe skip",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:32:04Z",
+          "completed_at": "2026-10-18T20:32:04Z"
+        },
+        {
+          "name": "Show field coverage refusing each shape it exists to refuse",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:32:04Z",
+          "completed_at": "2026-10-18T20:32:08Z"
+        },
+        {
+          "name": "Show the comment poster refusing every body it cannot vouch for",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:32:08Z",
+          "completed_at": "2026-10-18T20:32:08Z"
+        },
+        {
+          "name": "Show the record-predicate sweep refusing its own perturbations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:32:08Z",
+          "completed_at": "2026-10-18T20:32:08Z"
+        },
+        {
+          "name": "Show the pre-PR self-check refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T20:32:08Z",
+          "completed_at": "2026-10-18T20:33:06Z"
+        },
+        {
+          "name": "Show the push script's decisions refusing their own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T20:33:06Z",
+          "completed_at": "2026-10-18T20:33:07Z"
+        },
+        {
+          "name": "Show the App push refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T20:33:07Z",
+          "completed_at": "2026-10-18T20:33:21Z"
+        },
+        {
+          "name": "Show the App approval refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T20:33:21Z",
+          "completed_at": "2026-10-18T20:33:32Z"
+        },
+        {
+          "name": "Show the merge-main bot refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T20:33:32Z",
+          "completed_at": "2026-10-18T20:33:32Z"
+        },
+        {
+          "name": "Show the superseded-run canceller refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T20:33:32Z",
+          "completed_at": "2026-10-18T20:33:32Z"
+        },
+        {
+          "name": "Show the App verdict poster refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T20:33:32Z",
+          "completed_at": "2026-10-18T20:33:35Z"
+        },
+        {
+          "name": "Show the verdict bus refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-18T20:33:35Z",
+          "completed_at": "2026-10-18T20:33:43Z"
+        },
+        {
+          "name": "Show the budget-raise gate refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-18T20:33:43Z",
+          "completed_at": "2026-10-18T20:33:45Z"
+        },
+        {
+          "name": "Show the contract re-run deciding its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-18T20:33:45Z",
+          "completed_at": "2026-10-18T20:33:45Z"
+        },
+        {
+          "name": "Show the CodeQL leg scope refusing every unsafe skip",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-18T20:33:45Z",
+          "completed_at": "2026-10-18T20:33:45Z"
+        },
+        {
+          "name": "Show the merge fast path refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T20:33:45Z",
+          "completed_at": "2026-10-18T20:33:45Z"
+        },
+        {
+          "name": "Refuse a temp or machine path in a tracked script or decision",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-18T20:33:45Z",
+          "completed_at": "2026-10-18T20:33:45Z"
+        },
+        {
+          "name": "Refuse a push that names the host, and an unregistered pusher",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-18T20:33:45Z",
+          "completed_at": "2026-10-18T20:33:46Z"
+        },
+        {
+          "name": "Render the sweep template, and the policy re-read predicate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-18T20:33:46Z",
+          "completed_at": "2026-10-18T20:33:47Z"
+        },
+        {
+          "name": "Refuse a throwaway git repository built without the shared helper",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-18T20:33:47Z",
+          "completed_at": "2026-10-18T20:33:47Z"
+        },
+        {
+          "name": "Show the merge train refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-18T20:33:47Z",
+          "completed_at": "2026-10-18T20:33:57Z"
+        },
+        {
+          "name": "Show the train launcher refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-18T20:33:57Z",
+          "completed_at": "2026-10-18T20:33:57Z"
+        },
+        {
+          "name": "Show the figure check refusing its own fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-10-18T20:33:57Z",
+          "completed_at": "2026-10-18T20:33:58Z"
+        },
+        {
+          "name": "Show the figure census pinning its counting rule",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-18T20:33:58Z",
+          "completed_at": "2026-10-18T20:33:58Z"
+        },
+        {
+          "name": "Show the pin rule refusing every probe and admitting its controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-18T20:33:58Z",
+          "completed_at": "2026-10-18T20:33:58Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 59,
+          "started_at": "2026-10-18T20:33:58Z",
+          "completed_at": "2026-10-18T20:33:58Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 60,
+          "started_at": "2026-10-18T20:33:58Z",
+          "completed_at": "2026-10-18T20:33:58Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 61,
+          "started_at": "2026-10-18T20:33:58Z",
+          "completed_at": "2026-10-18T20:33:58Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117782075895",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126909,
+      "runner_name": "GitHub Actions 1000126909",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117782076458,
+      "run_id": 39163678986,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-roster-fastpath",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163678986",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbFvcKg",
+      "head_sha": "2d9f2000967579f577940a0eb4842d0a76867aec",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117782076458",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163678986/job/117782076458",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T20:31:17Z",
+      "started_at": "2026-10-18T20:31:17Z",
+      "completed_at": "2026-10-18T20:31:17Z",
+      "name": "record",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117782076458",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 117782076571,
+      "run_id": 39163678986,
+      "workflow_name": "Governance",
+      "head_branch": "fix/r10-roster-fastpath",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39163678986",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbbFvcmw",
+      "head_sha": "2d9f2000967579f577940a0eb4842d0a76867aec",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117782076571",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39163678986/job/117782076571",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T20:31:17Z",
+      "started_at": "2026-10-18T20:31:17Z",
+      "completed_at": "2026-10-18T20:31:17Z",
+      "name": "delivery-status-publish",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117782076571",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

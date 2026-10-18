@@ -1,0 +1,7 @@
+heads 22; workflow runs per head: median 11.0, max 14
+distinct check names per head: median 43.0, max 46
+runs by event, all heads: {'workflow_dispatch': 16, 'pull_request': 218, 'pull_request_review': 7}
+extra runs beyond one per head (same workflow, same event):
+  Architecture score           pull_request         14
+  Budget raise gate            pull_request         14
+  PR contract                  pull_request         14

@@ -1,0 +1,81 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 117760980882,
+      "run_id": 39156534695,
+      "workflow_name": "Validate",
+      "head_branch": "record/autofix",
+      "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39156534695",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOT-9fds8AAAAbaxn3kg",
+      "head_sha": "0f145d4faea55973f637604e1eb618bf968a8a17",
+      "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/117760980882",
+      "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39156534695/job/117760980882",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T18:58:18Z",
+      "started_at": "2026-10-18T18:58:21Z",
+      "completed_at": "2026-10-18T18:59:10Z",
+      "name": "validate-hacs",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T18:58:22Z",
+          "completed_at": "2026-10-18T18:58:22Z"
+        },
+        {
+          "name": "Pull ghcr.io/hacs/action:main",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T18:58:22Z",
+          "completed_at": "2026-10-18T18:58:56Z"
+        },
+        {
+          "name": "Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T18:58:56Z",
+          "completed_at": "2026-10-18T18:58:59Z"
+        },
+        {
+          "name": "HACS validation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T18:58:59Z",
+          "completed_at": "2026-10-18T18:59:08Z"
+        },
+        {
+          "name": "Post Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T18:59:08Z",
+          "completed_at": "2026-10-18T18:59:09Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T18:59:09Z",
+          "completed_at": "2026-10-18T18:59:09Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/117760980882",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000126630,
+      "runner_name": "GitHub Actions 1000126630",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
