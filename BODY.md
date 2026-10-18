@@ -91,18 +91,33 @@ are pressed.
 
 ## Head
 
-`8100b5e559b8734825a013192170eb5ebf4342ce`, which merges `origin/main` `106af95a3` (2026-10-18 UTC;
-R10-CI-CONCURRENCY, touching no file in the solver, the thermal model or
-`tests/stress.py`) into the PR head `c3a25d2ae` (`875c4b415`, clean, the
-ledger driver on `tests/closures.json`) and adds five commits: the ftol cell
-and arm (`e4f5a41e2`), the `calls_floor` bound (`18b5c0c14`), the
-kernel-points trigger (`42d78852d`), the docstring nit kept line-neutral and
-the new harness's citation fixed (`ce3d3bc6d`), and the harness's canonical
-root walk (`8100b5e55`). Merge base `106af95a3`; 22 files over it. Every figure
-below was taken at this head, its worktree or an export of it (`git archive`,
-or `git ls-files` for the ftol mutants, taken at `e4f5a41e2`'s tree, whose
-`tests/optimality.py` and `optimizer.py` equal this head's), unless it names
-CI's run at `c3a25d2ae`.
+`2260b8b9058bc02f0673accb30dca76e94765b29`, which merges `origin/main` `07a09406a` (tip at 2026-10-18 19:50 UTC)
+into `8100b5e55`. `tests/entities.py` conflicted in two hunks: this branch's
+`cop_law_fork` registry entry and plant against main's `zone_setpoint_names`
+(D7-s2-54, #2379), inserted at the same anchors. Both sides were purely
+additive over the merge base (19 and 42 lines); the resolution is their
+union, read back with every line each side added present in the merged file
+(0 missing on either side, a multiset check over `git diff -U0` added lines)
+and 61 insertions, 0 deletions against the base. `tests/closures.json` merged
+by the ledger driver. Main's 106af95a3..07a09406a delta touches, among the
+files the harnesses below and `tests/optimality.py` / `tests/stress.py` read,
+only an unrelated new harness (`dev/audit/harnesses/archscore_shape_family_coverage.py`);
+no change to `optimizer.py` or `thermal_model.py` -- so the harness figures
+taken at `8100b5e55` carry; the gate, scope, structure, score, predict, P2
+sweep and stress figures are re-taken at this head. Merge base `07a09406a`; 22
+files over it.
+
+`8100b5e55` itself merged `origin/main` `106af95a3` (R10-CI-CONCURRENCY,
+touching no file in the solver, the thermal model or `tests/stress.py`) into
+the PR head `c3a25d2ae` (`875c4b415`, clean, the ledger driver on
+`tests/closures.json`) and added five commits: the ftol cell and arm
+(`e4f5a41e2`), the `calls_floor` bound (`18b5c0c14`), the kernel-points
+trigger (`42d78852d`), the docstring nit kept line-neutral and the new
+harness's citation fixed (`ce3d3bc6d`), and the harness's canonical root walk
+(`8100b5e55`). The harness figures below were taken at `8100b5e55`, its
+worktree or an export of it (`git archive`, or `git ls-files` for the ftol
+mutants, taken at `e4f5a41e2`'s tree, whose `tests/optimality.py` and
+`optimizer.py` equal this head's), unless they name CI's run at `c3a25d2ae`.
 
 ## Mutation proof
 
@@ -208,33 +223,28 @@ The unmutated export prints `ALL 10 FEATURES BLOCK PASSED`.
   before arm in every value.
 - `python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py`, each tree's
   own copy: `F3_cop_law_fork=3` before (seams `compute_cop`, `compute_cop_dhw`,
-  `_batch_cop`), `2` at the head (`compute_cop`, `_batch_cop`, the registered
-  owners); `--perturb` at the head `perturb.F3_cop_law_fork before=2 after=3
+  `_batch_cop`), `2` at this head (`compute_cop`, `_batch_cop`, the registered
+  owners); `--perturb` at this head `perturb.F3_cop_law_fork before=2 after=3
   moved=1`.
-- Scope, `python3 tests/closure.py select --diff 106af95a3`: `MODE: SCOPED --
-  28 script(s) run, 5 scoped out`. `env -u BASH_ENV GATE_SCOPE=auto
-  GOLDEN_MODE=drift GOLDEN_REF=106af95a3 ./tests/run.sh` at `42d78852d`: 26 of
-  the scoped and run-always scripts green, among them `optimality.py`
-  `ALL 84`, `features.py` `ALL 4179`, `entities.py` `ALL 2348`, `golden` via
+- Scope, `python3 tests/closure.py select --diff 07a09406a` at this head:
+  `MODE: SCOPED -- 28 script(s) run, 5 scoped out`. `env -u BASH_ENV
+  GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=07a09406a PYTHONPATH=tests/hastub
+  ./tests/run.sh` at this head: `30 TEST SCRIPT(S) PASSED; 4 SCOPED OUT AND NOT
+  RUN`, rc 0 -- among them `optimality.py` `ALL 84` (`stop-prod : cost 80.22`,
+  `stop-rule: cost 81.60`), `features.py` `ALL 4179`, `entities.py` `ALL 2350`
+  (2348 at `8100b5e55`; main's `zone_setpoint_names` entry adds two),
   `env_drift.py --all` ok, `card.mjs` and `card_drift.mjs` ok, `backtest.py`
-  `ALL 25`. Red were `structure.py` (`class_excess_loc` +1, the two-line
-  docstring, paid in `ce3d3bc6d`), `layout.py` (the new harness citing the
-  retired `tools/audit/README.md`, fixed in `ce3d3bc6d`), `harness_headers.py`
-  and `stress.py` (0 s each: `HPO_GATE_LOCK_LABEL` set to a label never taken,
-  `flock-wrap refused ... holds no lease`). Re-run directly at the following
-  heads: `stress.py` `ALL 113 STRESS CHECKS PASSED` at `ce3d3bc6d` (below);
-  at this head `harness_headers.py` `ALL 109 HARNESS HEADER CHECKS PASSED`
-  (after `8100b5e55`, which fixed its `every inlined walk matches the
-  canonical helper` refusal), `layout.py` rc 0 with `GUARD: 0 refusal(s)`,
-  `structure.py` `STRUCTURE RATCHET PASSED`, `entities.py` `ALL 2348 ENTITY
-  CHECKS PASSED`, `features.py` `ALL 4179 FEATURE CHECKS PASSED`,
-  `doc_claims.py` `ALL 169 checks PASSED`.
+  `ALL 25`, `structure.py` `STRUCTURE RATCHET PASSED`, `harness_headers.py`
+  `ALL 109`, `layout.py` `GUARD: 0 refusal(s)`, `doc_claims.py` `ALL 169`,
+  `stress.py` `ALL 113 STRESS CHECKS PASSED`. `env -u BASH_ENV
+  PYTHONPATH=tests/hastub python3 tests/entities.py` alone: `ALL 2350 ENTITY
+  CHECKS PASSED`, rc 0.
 - `python3 tools/policy/budget_raise_gate.py --self-test`: `239 checks, 0
-  failed`. `python3 tests/env_drift.py --claims-only 106af95a3`: `claims
+  failed`. `python3 tests/env_drift.py --claims-only 07a09406a`: `claims
   hygiene: ... ok`. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
-- `python3 tools/pr/ci_predict.py --base 106af95a3`: `CI PREDICT: no closures or
-  fast red predicted against 106af95a33f8 (a data-file read is not seen)`.
-- `python3 tools/audit/archscore/score.py --diff 106af95a3`: `Architecture
+- `python3 tools/pr/ci_predict.py --base 07a09406a`: `CI PREDICT: no closures or
+  fast red predicted against 07a09406a1cc (a data-file read is not seen)`.
+- `python3 tools/audit/archscore/score.py --diff 07a09406a`: `Architecture
   score: dS +0.0000 NULL`.
 
 ## Raise justification
@@ -266,7 +276,7 @@ Payments tried:
 
 No code payment exists: `tools/audit/archscore/` reads only
 `custom_components/`, and the entry is a JSON file under `tests/`.
-`python3 tools/audit/archscore/score.py --diff 106af95a3` at this head:
+`python3 tools/audit/archscore/score.py --diff 07a09406a` at this head:
 Architecture score: dS +0.0000 NULL
 
 `tools/policy/budget_raise_gate.py` is code-owned (`.github/CODEOWNERS`
@@ -329,6 +339,10 @@ tests/stress.py` at `ce3d3bc6d` (no file `stress.py` reads changed after it):
 `solver work: 18 of 54 ... 36 re-planned by this branch, 0 new here, 0
 dropped`, `production calls: 6 of 20 family members judged against
 106af95a3`, the same 36 scenarios, largest ratio 1.282 (light_new/winter), `ALL
+113 STRESS CHECKS PASSED`. Re-taken at this head by the scoped gate run above
+(`GOLDEN_REF=07a09406a`): `solver work: 18 of 54 ... 36 re-planned by this
+branch, 0 new here, 0 dropped`, `production calls: 6 of 20 family members
+judged against 07a09406a1cc`, the same 14 calls-family re-planned names, `ALL
 113 STRESS CHECKS PASSED`. The counts equal the override's floors exactly,
 zero headroom.
 
