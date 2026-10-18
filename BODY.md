@@ -14,19 +14,24 @@ R10-SAV-BASELINE. Closes #2255, the owner's savings items 1, 2 and 5 (tvofi, 202
 
 `predicted_savings` and `deferred_energy_cost` are settled at both ends of the horizon (`deferred_energy_cost` is end gap less start gap). One view of savings: `ledger.savings_months` for months, the plan's `predicted_savings` for the horizon. No second computation of either.
 
-**The flat-price null control does not read about 0, and this pull request does not redefine the baseline to make it.** On a flat price, with the plant equal to the model, the month row reads 10.83 % saved at the head and 43.66 % at the merge base. The cause is measured: the plan holds the house at a mean 18.79 °C (18.75 °C at the base) against a mean comfort target of 20.44 °C. That is comfort traded for money, which a thermostat at the comfort schedule cannot match, not a pricing or accounting error. The transient that made up most of the base figure is gone (booked thermostat energy 203.6 kWh at the base, 128.4 kWh at the head, plan 114.5 kWh). A comfort-matched baseline is carried to O13 (orchestrator's ruling, under the r10 owner grant). Carry: O13.
+**The flat-price null control does not read about 0, and this pull request does not redefine the baseline to make it.** On a flat price, with the plant equal to the model, the month row reads 10.83 % saved at the head and 43.66 % at the merge base. The transient that made up most of the base figure is gone: booked thermostat energy is 203.6 kWh at the base and 128.4 kWh at the head, against the plan's 114.5 kWh. The remaining 13.9 kWh gap has three terms. They were measured by the round-1 reviewer's probe, kept in the tree as `dev/audit/harnesses/r10_sav_null_terms.py` and re-run at the head:
+- (a) Comfort: 6.6 kWh, about 5 of the 10.83 points. That is a steady thermostat at the comfort target (128.4 kWh, equal to the booked baseline) less a steady one at the room the plan delivered (121.7 kWh). The plan holds a mean 18.79 °C against a mean target of 20.44 °C.
+- (b) COP timing: the plan's power-weighted COP is 17.27 % above the thermostat's. Over the window the outdoor temperature runs from -16 to -8 °C, and the plan buys its heat in the warmer hours. That is a real saving at a flat price, so a comfort-matched baseline must not cancel it.
+- (c) Unsettled stored heat: the plan ends the 2-day window holding 23.7 kWh_th more than it started with (room/slab 21.00/22.00 → 19.36/30.01), about 13.3 kWh_e at the steady COP. The month row does not settle it (`predicted_savings` does), and here it offsets (b).
+- The control is the `const` arm, with outdoor held at the window's mean. Timing reads +0.00 %, and the 15.6 kWh gap is comfort 5.1 plus a start drawdown of 10.1. The plan's thermal balance closes in both arms (240.0 = 240.0 and 200.9 = 200.9 kWh_th).
+- So "comfort traded for money", as round 1 had it, names only term (a). The carry below asks for an acceptance that separates the three terms, not a null of about 0.
 
-**A known limit of the start bound, measured.** `summer_dhw_only` reads -12.74 % predicted savings at the head (-3.17 % on main; -0.27 SEK on a 2.09 SEK reference). The summer house starts above the end's comfort caps, and the thermostat's space-heat cost over that horizon still exceeds the surplus, so the debit is not bounded away. Settled at the caps alone this fixture read 1.95 %, but that read the away-setback fixture at 60.71 %. Carried to O13 beside the comfort-matched baseline, since both turn on what the reference is credited with.
+**A known limit of the start bound, measured.** `summer_dhw_only` reads -12.74 % predicted savings at the head (-3.17 % on main; -0.27 SEK on a 2.09 SEK reference). The summer house starts above the end's comfort caps, and the thermostat's space-heat cost over that horizon still exceeds the surplus, so the debit is not bounded away. Settled at the caps alone this fixture read 1.95 %, but that read the away-setback fixture at 60.71 %. Carried with the null's terms below, since both turn on what the reference is credited with.
 
 ## Head
 
-d2220949d3e35b8fe3bfb6a24e981409154282b7
+9b9982e6c0b1d89dfc0cd9841c26aff322a36939
 
-Merge base dc8aa807f. Main-merge catch-ups: 3 (42e6dedb2, 3fb386d50, then dc8aa807f). None touched optimizer.py, ledger.py or the #2255 seams of coordinator.py; the third brought only delivery-row records. Where each figure was measured:
-- The harness arms: c1a6598ce. The production code it drives (`ledger.py`, `_compute_baseline_power`, the booked step) is unchanged since; the later commits touch only the start settlement's bound.
-- The mutation table and the site mutants: production code of e86c2085d, which is the head's. The site mutants were run with the head's `tests/features.py`. The head adds only checks after e86c2085d.
-- The golden drift with the claims: 09d3fe38f. Since then the production diff is the start bound's docstring and the main merges.
-- `tests/optimality.py` at the merge base and at be2cac624 (production code equal to the head's).
+Merge base 003c3731c. Main merges into this branch: 5 (42e6dedb2, 3fb386d50, dc8aa807f, 413944b67 by the orchestrator, then 003c3731c). Only 413944b67 (#2365, R10-PUMP-MODEL) touched production code: `thermal_model.py`, `pump_arbiter.py`, `plan_step.py` and `coordinator.py` outside the #2255 seams. None of the five touched `optimizer.py` or `ledger.py`. Where each figure was measured:
+- The harness arms (`r10_sav_baseline.py`, `r10_sav_null_terms.py` both arms) and the savings section (`ALL 33 ... PASSED`): at 7b4069789, after the last main merge. Every figure equals the round-1 figure.
+- The mutation table and the site mutants: production code of e86c2085d, which is the head's for `optimizer.py` and `ledger.py`. The round-1 reviewer re-ran the table at b7a34f98a: all 16 killed.
+- The golden drift with the claims: 09d3fe38f. CI's `env-matrix` was green at b7a34f98a.
+- `tests/optimality.py`: the merge base and be2cac624 on the arm64 seat, and CI's `fast (3.14)` at b7a34f98a (check-run 117692786859).
 
 ## Mutation proof
 
@@ -52,7 +57,7 @@ Merge base dc8aa807f. Main-merge catch-ups: 3 (42e6dedb2, 3fb386d50, then dc8aa8
 Three existing checks change, each because the fix changed what they measure:
 - `with a pending baseline both savings lines move` in `tests/features.py` now expects spot plus the grid fee (5.0 and 2.5 SEK where spot alone gave 4.0 and 2.0).
 - R9-F2.3 D2-s2-03's spy on `_deferred_energy_cost` kept the last call. The start settlement now calls that function after the end settlement, so the spy keeps the first call, the end's.
-- `tests/optimality.py`'s `_CERT_CLAIMS` loses the two #1294 entries the held baseline closed. Base gaps: summer_negative re-polish +5.04 %, ladder +9.96 %; winter_narrow ladder +0.70 %. Head: 0.0000 % for all three. The baseline energy seeds the solver's anchor starts, so a steady reference seeds better basins. `one|shoulder|winter_cold` stays claimed.
+- `tests/optimality.py`'s `_CERT_CLAIMS` loses `one|winter_narrow|shoulder`, which the held baseline closed: ladder +0.70 % at the base, 0.0000 % at the head on the arm64 seat and on CI's `fast (3.14)` (check-run 117692786859). `one|summer_negative|shoulder` stays claimed. The arm64 seat reaches its basin (obj 0.2548, 0.0000 %; base +5.04 % re-polish, +9.96 % ladder), but CI's linux lane does not (obj 0.3058, ladder +10.55 %). The gate's platform counts, so the claim's stale check fails on arm64 only; round 1 retired it on the arm64 figure, and CI's fast lane went red. `one|shoulder|winter_cold` stays claimed. The baseline energy seeds the solver's anchor starts, so a steady reference seeds better basins where the platform's line search reaches them.
 
 ## Null control
 
@@ -60,7 +65,7 @@ Three existing checks change, each because the fix changed what they measure:
 - transient: booked first step across four start states. Base 0.00, 6.00, 6.00, 0.00 kW (spread 6.00); head 2.06 kW for all four (spread 0.00).
 - cost: receipt total 15.0 SEK; row actual 3.0 at the base, 15.0 at the head.
 - coverage: 24 settled hours of 672; open-row scale 2.80 at the base, 28.00 at the head.
-- null (flat price, plant equal to the model, 2 days, re-plan hourly): base 43.66 % saved (thermostat 203.6 kWh, plan 114.7 kWh, house 18.75 °C mean against a 20.44 °C mean comfort target); head 10.83 % (thermostat 128.4 kWh, plan 114.5 kWh, house 18.79 °C against 20.44 °C). Reads `DEFECT` at both ends against its 3 % threshold. The residual is the comfort trade above, carried to O13.
+- null (flat price, plant equal to the model, 2 days, re-plan hourly): base 43.66 % saved (thermostat 203.6 kWh, plan 114.7 kWh, house 18.75 °C mean against a 20.44 °C mean comfort target); head 10.83 % (thermostat 128.4 kWh, plan 114.5 kWh, house 18.79 °C against 20.44 °C). Reads `DEFECT` at both ends against its 3 % threshold. The residual is the three terms above.
 
 The predicted-savings consequence of the held start, measured with the golden matrix (`GOLDEN_MODE=drift`). `savings_percentage` at main, then with the start settled at the caps alone, then uncapped, then with the bound this branch ships:
 - away_setback: 34.18, 60.71, 29.09, 29.09
@@ -73,6 +78,7 @@ The capped and uncapped arms were measured on a scratch tree. The shipped values
 ## Figures
 
 - `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_baseline.py`: every arm figure in `## Null control`, at c1a6598ce and at the merge base.
+- `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_null_terms.py` and the same with `const`: the residual's three terms and the control in the null-control paragraph (6.6 and 5.1 kWh comfort, +17.27 % and +0.00 % timing, 23.7 kWh_th stored, 13.3 kWh_e, 240.0 and 200.9 kWh_th balances), at 7b4069789. The probe is the round-1 reviewer's, kept verbatim but for the `const` switch.
 - `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_baseline_mutants.py .`: the mutation table, M0 to M16, failing counts and names as printed.
 - `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/golden.py`: before the claims, 50 unclaimed drifts, and the five `coord_*` captures byte-identical to main. With the claims, at 09d3fe38f: `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `NO STALE FIXTURE: 56 committed fixture(s)`. The 112 leaf values printed for the claimed fixtures are identical before (3832613b9) and after (09d3fe38f) the hot-water bound change. Not re-run after the second main merge (CI's `env_drift` re-checks it). The 50 claimed fixtures are each moved `baseline_cost`, with the direction per fixture in the claim line. Of these, 19 carry a suspended may-drift entry, each with its restore note. One fixture outside may-drift lands in another basin: `valve_storage_low_target`, plan cost 61.91 → 61.05 SEK, because `baseline_energy` seeds three solver starts.
 - `PYTHONPATH=tests/hastub python3 tests/structure.py`: against the merge base 3fb386d50, class_excess_loc 18368 → 18302, max_class_loc 8547 → 8544, seam_cut_total 720 → 719. All improved and recorded; the reasons are in the messages of commits c1a6598ce and 6b191f504.
@@ -120,12 +126,16 @@ Seams of the class: the savings figures have three producers, and each is dispos
 
 ## Red checks
 
-none
+- `pr-contract` (117692504964, 117692618046): `REFUSE 'Closes #2255' closes #2255; not in the intended list`. The orchestrator answers it by wiring 2255 into R10-SAV-BASELINE's `fixes` on the roster, so `Closes #2255` stays.
+- `fast (3.14)` (117692786859): `one|summer_negative|shoulder: no unclaimed gap above the bar`, 1 of 84. Answered by eeb607dd6, which keeps that claim (see above).
+- `mutation` (117692723200): `MUTATION TABLE REFUSED`, the 23 sites this diff adds (22 keys, `5326 CLAMP_DROP*2` counted twice). Answered under `## Unpinned sites`; mutation-autofix pins the killed ones.
 
 ## Forward-carry
 
-- O13, the comfort-matched baseline (orchestrator's brief): the flat-price residual and its measured cause above, and the `summer_dhw_only` start-bound limit.
-- R10-SCORES and R10-ADVISOR, roster `dev/programme/rosters/wave-r10-groups.json`, carry appended by the orchestrator: read the row semantics in "What R10-SCORES and R10-ADVISOR read after this".
+The carries go into the tree as roster carries appended by the orchestrator (`roster_edit append-carry`); the texts are in the seat's report.
+- The month row's flat-price null, its three terms, and the `summer_dhw_only` start-bound limit. These go to the group the orchestrator adds for the comfort-matched baseline. R10-ADVISOR's seam (the what-if and its card) does not own `_compute_baseline_power` or `ledger.py`.
+- R10-ADVISOR: its carried null ("savings about 0 on a flat-price profile"), restated so its acceptance separates comfort, COP timing and stored heat. The `const` arm of `r10_sav_null_terms.py` is the control.
+- R10-SCORES and R10-ADVISOR: the row semantics in "What R10-SCORES and R10-ADVISOR read after this".
 - The stamp (`tools/release/stamp.py` / web-stamp): restore the 19 suspended may-drift entries verbatim when the stamp empties the claim list. The obligation is written beside each entry in `tests/golden/claimed_drift.txt`, as R8-P3 did for `wood_coil`.
 
 ## Friction
