@@ -1,0 +1,85 @@
+RESULT mutant=M1 script=tests/debug_collect.py rc=1 fails=1 last="TypeError: 'NoneType' object is not subscriptable"
+     FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes  [{'generated_at': '2026-01
+RESULT mutant=M2 script=tests/debug_collect.py rc=1 fails=32 last='25 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes  [['inputs[0]: text outside
+     FAIL the replay half carries the entry's inputs and what it publishes, read through the recorder's history API: the state in force at the window's sta
+     FAIL the replay half drops the token, the friendly name and the tokenised picture, cuts the coordinate, and carries no person or calendar id anywhere 
+     FAIL the nightly leak probe capital_Latitude does not survive into the replay half, which is either written and passes check mode or refused with the 
+RESULT mutant=M3 script=tests/debug_collect.py rc=1 fails=9 last='2 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL a replay half that would take the download past the inline cap gives way to the newest shorter window that fits, and the bundle stays inline  [20
+     FAIL when no window fits the inline cap the replay half is empty, the manifest says so, and the rest of the bundle stays inline  [2026-01-12T00:00:00+
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+RESULT mutant=M4 script=tests/debug_collect.py rc=1 fails=8 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL a cycle row carries the release that wrote it, and the debug store admits it (#2209)  [{'t': '2026-01-12T00:00:00+00:00', 'mode': 'auto', 'solve_
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+RESULT mutant=M5 script=tests/debug_collect.py rc=1 fails=31 last='24 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes  [['entry.data.tibber_token
+     FAIL the replay half drops the token, the friendly name and the tokenised picture, cuts the coordinate, and carries no person or calendar id anywhere 
+     FAIL the nightly leak probe capital_Latitude does not survive into the replay half, which is either written and passes check mode or refused with the 
+     FAIL the nightly leak probe lat_lon_short does not survive into the replay half, which is either written and passes check mode or refused with the rea
+RESULT mutant=M6 script=tests/debug_collect.py rc=1 fails=9 last='2 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL a cycle row carries the release that wrote it, and the debug store admits it (#2209)  [{'t': '2026-01-12T00:00:00+00:00', 'mode': 'auto', 'solve_
+     FAIL a ring carrying its self-test results is inside the debug store's domain
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+RESULT mutant=M7 script=tests/debug_collect.py rc=1 fails=8 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL a replay half that would take the download past the inline cap gives way to the newest shorter window that fits, and the bundle stays inline  [ov
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+RESULT mutant=M8 script=tests/debug_collect.py rc=1 fails=9 last='2 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL with the Tibber source the replay half takes the price series from the Tibber price sensor, the export's own choice  [2026-01-12T00:00:00+00:00 .
+     FAIL with the Tibber source and no price sensor the replay half is refused as the export refuses, with the reason in the manifest  [2026-01-12T00:00:0
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+RESULT mutant=R1-leak-off script=tests/debug_collect.py rc=1 fails=8 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL replay_doc.seal refuses a document where a dropped credential survives elsewhere, and one whose sanitised form still breaks a rule, and writes a 
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+RESULT mutant=R2-violations-off script=tests/debug_collect.py rc=1 fails=8 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL replay_doc.seal refuses a document where a dropped credential survives elsewhere, and one whose sanitised form still breaks a rule, and writes a 
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+RESULT mutant=R3-no-recorder-guard script=tests/debug_collect.py rc=1 fails=0 last="AttributeError: 'FakeEntry' object has no attribute 'minor_version'"
+RESULT mutant=R4-headroom-0 script=tests/debug_collect.py rc=1 fails=9 last='2 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL a replay half that would take the download past the inline cap gives way to the newest shorter window that fits, and the bundle stays inline  [20
+     FAIL when no window fits the inline cap the replay half is empty, the manifest says so, and the rest of the bundle stays inline  [2026-01-12T00:00:00+
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+RESULT mutant=R5-span-30d script=tests/debug_collect.py rc=1 fails=8 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL a finished collection's replay window is its own week, and one with no start is the week before the download  [((datetime.datetime(2026, 1, 12, 0
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+RESULT mutant=R6-floor-7 script=tests/debug_collect.py rc=1 fails=8 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL replay_doc.seal refuses a document where a dropped credential survives elsewhere, and one whose sanitised form still breaks a rule, and writes a 
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+RESULT mutant=R7-manifest-recorder script=tests/debug_collect.py rc=0 fails=7 last='ALL 122 DEBUG COLLECT CHECKS PASSED'
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+     FAIL a16:debug_capped  [bundle 268034B against the 40000B cap; the download -1B]
+RESULT mutant=R7-manifest-recorder script=tests/ha_contract.py rc=0 fails=0 last='Authentication failed while fetching contract data: token refused'
+RESULT mutant=R7-manifest-recorder script=tests/entities.py rc=1 fails=47 last="Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected"
+     FAIL a3:roster  [1 registered, 81 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_
+     FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+     FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+     FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+RESULT mutant=R8-since-le script=tests/debug_collect.py rc=1 fails=8 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL the replay half carries the entry's inputs and what it publishes, read through the recorder's history API: the state in force at the window's sta
+     FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+     FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12560B]
+     FAIL a16:debug_inline  [TypeError('not serializable')]
+RESULT mutant=R9-private-ids-key script=tests/debug_collect.py rc=1 fails=31 last='24 of 122 DEBUG COLLECT CHECKS FAILED'
+     FAIL Download diagnostics fills the bundle's replay half with an hpo-replay/1 document that the export's check mode passes  [['inputs[0]: text outside
+     FAIL the replay half carries the entry's inputs and what it publishes, read through the recorder's history API: the state in force at the window's sta
+     FAIL the replay half drops the token, the friendly name and the tokenised picture, cuts the coordinate, and carries no person or calendar id anywhere 
+     FAIL the nightly leak probe capital_Latitude does not survive into the replay half, which is either written and passes check mode or refused with the 
+clean: yes
