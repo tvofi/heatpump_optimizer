@@ -10,7 +10,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
-   the test is vacuous and the PR is blocked.
+   the test is vacuous: `blocked <sha> mutation-vacuous: <mutant>`.
 2. Measure with the **finder's** harness, not the fixer's: at the baseline
    SHA and at the PR head, printing your own `RESULT` lines. A fixer who
    measures with a harness they wrote is measuring themselves. One flat by
@@ -32,7 +32,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
-   if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
+   if you had to build your own definition to check it, write that in the verdict.
 9. **When the finding has no committed harness, that is itself a finding**
    (#373's was a `grep` in the issue body, #258's a judge comment). A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one;
