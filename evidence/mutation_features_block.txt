@@ -1,0 +1,10 @@
+== m0
+ALL 3 FEATURES BLOCK PASSED
+== m1
+  FAIL D7-arch3-04: the plan's floor reaches planned_draw_runs as an argument -- a floorless reader is unaffected while step_duty runs  [floorless reads [False, False], duty 'idle']
+  FAIL D7-arch3-04: no module-state floor is left behind -- no setattr names it, and the reader carries no such attribute, so a raise between the reads has nothing to leave set  [setattr sites [352, 326], attr '<absent>', decorator True]
+2 of 3 FEATURES BLOCK FAILED
+== m2
+ALL 3 FEATURES BLOCK PASSED
+== m3
+ALL 3 FEATURES BLOCK PASSED
