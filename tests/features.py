@@ -58852,8 +58852,10 @@ R.check(
 # refuses if it finds none, or loses the open-window one), must measure from a
 # tracked level, and is driven -- on a live coordinator, its own construction
 # -- with a constant cold bias across the range the heat-loss learner folds (up
-# to its 1.0 K rejection), which must not trip it, and the same bias with a
-# window planted on top, which must.
+# to its 1.0 K rejection), which must leave it untripped at the end of the
+# fourth day, and the same bias with a window planted on top, which must trip
+# it. Only the end state is read: a sun-scaled bias can trip it while the
+# first days' sun slope converges, which this census does not refuse.
 import ast as _r10p5_ast  # noqa: E402
 import inspect as _r10p5_inspect  # noqa: E402
 
@@ -58909,9 +58911,9 @@ for _r10p5_name in _r10p5_cusums:
                 *_r10p5_trips,
             ))
 R.check(
-    "R10-P5: each measures from a tracked reference; a bias up to the "
-    "learner's rejection -- steady, or scaling with the heat put in or the "
-    "sun -- never trips it, and a window on top of it does",
+    "R10-P5: each measures from a tracked reference; four days of a bias up "
+    "to the learner's rejection -- steady, or scaling with the heat put in or "
+    "the sun -- leave it untripped, and a window on top of it trips it",
     bool(_r10p5_rows)
     and all(ref and not bias and window for _, _, _, ref, bias, window in _r10p5_rows),
     _r10p5_rows,
