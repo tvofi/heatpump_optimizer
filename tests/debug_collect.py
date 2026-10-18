@@ -857,7 +857,9 @@ def _replay_install(*, recorder=True, price_source=PRICE_SOURCE_ENTITY, tibber=(
     reg.add("sensor.hpo_plan", unique_id="p", config_entry_id="rp", platform=DOMAIN)
     for entity_id, home in tibber:
         reg.add(entity_id, unique_id=home, platform="tibber", translation_key="electricity_price")
-    hours = [T0 + timedelta(hours=h) for h in range(24)]
+    # A minute past each hour: upstream returns a state stamped exactly at the
+    # window's start in neither of its two queries.
+    hours = [T0 + timedelta(hours=h, minutes=1) for h in range(24)]
     attrs = {"unit_of_measurement": "°C", "friendly_name": "Anna's room",
              "entity_picture": "/api/camera?token=abcdef0123456789"}
     ha_history.record(hass, "sensor.indoor", [

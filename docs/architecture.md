@@ -181,7 +181,7 @@ custom_components/heatpump_optimizer/
 ├── debugger.py           # A week of cycle rows for one entry, kept across a
 │                         #   reload and carried by Download diagnostics
 ├── replay_doc.py         # The replay document's allowlist and sanitiser, one
-│                         #   copy for that bundle and tools/replay/export.py
+│                         #   copy for that bundle and the repository's export
 ├── diagnostics.py        # Redacted config-entry diagnostics, that bundle included
 ├── repairs.py            # Fix flows Home Assistant loads by name when the user clicks Fix
 │

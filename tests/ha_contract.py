@@ -289,10 +289,11 @@ INVENTORY: dict[str, Entry] = {
         "get_significant_states then reads"
     ),
     "homeassistant.components.recorder.history.get_significant_states": U(
-        "every state updated inside [start, end) and, with "
-        "include_start_time_state, the one in force at start, under its own "
-        "stamp; upstream's database read, its significance rule and its "
-        "minimal and compressed shapes are not modelled (#2271)"
+        "every state updated inside (start, end) and, with "
+        "include_start_time_state, the last one before start, stamped at "
+        "start: the window rule read at the floor's history/modern.py. "
+        "Upstream's database read, its significance rule and its minimal and "
+        "compressed shapes are not modelled (#2271)"
     ),
     # -- components.repairs -------------------------------------------------
     "homeassistant.components.repairs.RepairsFlow": H(
@@ -1991,7 +1992,8 @@ def _recorder_instance():
 
 @contract(
     "homeassistant.components.recorder.history.get_significant_states",
-    "the window's states, the one in force at its start first, and none after its end",
+    "the window's states, the one in force at its start first and stamped at it, "
+    "and none after its end",
     cite="components/recorder/history/modern.py -- get_significant_states, "
     "include_start_time_state",
     expect="stub",
@@ -2004,11 +2006,13 @@ def _history_window():
     hass = type("H", (), {})()
     hass.data = {}
     t = [datetime(2026, 1, 1, h, tzinfo=timezone.utc) for h in range(4)]
-    states = [type("S", (), {"state": str(i), "last_updated": at})() for i, at in enumerate(t)]
+    states = [type("S", (), {"state": str(i), "last_updated": at, "last_reported": at})()
+              for i, at in enumerate(t)]
     history.record(hass, "sensor.x", states)
-    got = history.get_significant_states(
-        hass, t[1] + timedelta(minutes=1), t[3], ["sensor.x", "sensor.y"])
+    start = t[1] + timedelta(minutes=1)
+    got = history.get_significant_states(hass, start, t[3], ["sensor.x", "sensor.y"])
     assert [s.state for s in got["sensor.x"]] == ["1", "2"] and "sensor.y" not in got
+    assert got["sensor.x"][0].last_updated == start and states[1].last_updated == t[1]
     bare = history.get_significant_states(
         hass, t[1] + timedelta(minutes=1), t[3], ["sensor.x"], include_start_time_state=False)
     assert [s.state for s in bare["sensor.x"]] == ["2"]

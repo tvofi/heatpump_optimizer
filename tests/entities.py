@@ -3799,7 +3799,15 @@ def _p2_registry(sources):
                  "early_cutoff.py::_cycle_guard":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
-                     "last heard from, which a re-reported 'on' resets"}),
+                     "last heard from, which a re-reported 'on' resets",
+                 # #2271: the replay half copies the recorder's rows, as the
+                 # export copies them out of SQLite; no age is decided there.
+                 "debugger.py::_since":
+                     "cuts a recorded history at the window's start by each "
+                     "row's own last_updated, the export's SQL window rule",
+                 "debugger.py::_record":
+                     "writes a recorded row's last_updated and last_reported "
+                     "verbatim, the export's row shape; nothing reads them as an age"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
