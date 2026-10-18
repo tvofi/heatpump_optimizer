@@ -168,7 +168,25 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   or head, a missing `ev/`, and a ref already relayed (a ledger of
   `<ref> <sha>` under the state directory, written only after `push-verdict`
   succeeded, so a re-pushed ref relays again). `--self-test` grades each
-  refusal against a clean ref, offline, with `push-verdict` stubbed.
+  refusal against a clean ref, offline, with `push-verdict` stubbed. It also
+  NORMALISES one shape and logs it (`normalised first line: A -> B`): a blocked
+  first line whose tail the reviewer wrapped, `blocked <head> [class: reason]`,
+  loses its one outer bracket pair in the relay's temp copy, which is lossless
+  and puts the line in `bus.sh`'s grammar (`blocked <head> <class>: <reason>`).
+  Chosen over refusing because the relay is the one place the verdict can be
+  repaired without a round trip to a cloud seat that has exited, and the
+  rewrite changes no word; a bracketed merge suffix, a nested bracket or a
+  class outside `[a-z-]+` is refused unchanged (stripping a merge suffix would
+  lose text). `cloud_dispatch.py`'s prompt now gives the unbracketed grammar.
+  `cloud_relay.sh --watch [--interval N] [--once]` is the orchestrator's poll
+  loop, tracked: every N seconds (default 120) it lists
+  `refs/heads/probe/rev-*` with `git ls-remote origin` and relays each ref+sha
+  once, taking the head and full nonce from the dispatch record (`$HPO_BUS_STATE`
+  or `~/.zcode/bus`, `pr head thread nonce`). A ref with no record is logged and
+  left for a later pass; a refused ref+sha goes to `<ledger>.refused` and is not
+  retried until it is pushed again, so one refusal does not repeat every
+  interval. Run it detached (`daemonize.py`); it uses ls-remote, not the REST
+  quota. `--once` is one pass.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.

@@ -91,7 +91,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree`) and read CI on this head from the check-runs API.\n"
             f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
-            f"exactly `Fix review: <merge|blocked> {head} [class: reason]` in the format the role file gives, "
+            f"exactly `Fix review: merge {head}` or `Fix review: blocked {head} <class>: <reason>` (no brackets; "
+            f"the class is lower-case letters and dashes), in the format the role file gives, "
             f"then a blank line, then `bus-nonce: {nonce}`; put the evidence in `ev/` beside it. Do NOT run "
             f"bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict "
             f"there (cloud_relay.sh). Return the verdict on a probe ref, and push nothing else: "
@@ -203,6 +204,8 @@ def self_test() -> int:
     msg = ccr["events"][0]["data"]["message"]["content"]
     check("the prompt names the head, the nonce and the probe return ref",
           head in msg and "abc123" in msg and "probe/rev-7-abc123" in msg and "bus-nonce: abc123" in msg)
+    check("the reviewer is given the unbracketed first-line grammar",
+          "blocked " + head + " <class>: <reason>" in msg and "[class: reason]" not in msg)
     check("the reviewer is told not to run bus.sh and the prompt runs no bus.sh push-verdict",
           "Do NOT run bus.sh" in msg and "push-verdict" not in msg and "refs/heads/review" not in msg)
     check("the source is the repo", ccr["session_context"]["sources"][0]["git_repository"]["url"]
