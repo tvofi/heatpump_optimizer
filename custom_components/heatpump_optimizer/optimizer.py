@@ -4539,7 +4539,7 @@ class HeatPumpOptimizer:
             caps=space_caps, humidity=h.humidity,
         ) - self._start_gap_cost(
             initial_state, weather, comfort_targets, prices, outdoor_temps,
-            space_caps, h.humidity, baseline_cost,
+            space_caps, h.humidity, baseline_cost,  # the space-only reference
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4827,7 +4827,7 @@ class HeatPumpOptimizer:
         ) - self._start_gap_cost(
             initial_state, weather, comfort_targets, prices, outdoor_temps,
             self._settlement_caps(outdoor_temps, humidity=h.humidity), h.humidity,
-            baseline_cost,
+            float(energy_cost_of(baseline_power)),
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -5300,7 +5300,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         caps: dict[str, float],
         humidity: np.ndarray | None,
-        baseline_cost: float,
+        space_baseline_cost: float,
     ) -> float:
         """The start's side of the stored-heat settlement (#2255), netted off the end's.
 
@@ -5310,8 +5310,9 @@ class HeatPumpOptimizer:
         the end's. The end's ``caps`` price heat above comfort at nothing,
         since nothing past the horizon uses it; at the start the plan coasts
         on that heat, so a pre-heated start is debited past the caps, by no
-        more than the thermostat would have bought (``baseline_cost``):
-        stored heat displaces purchases, and none where there are none.
+        more than the thermostat would have bought for space heat
+        (``space_baseline_cost``): stored house heat displaces space-heat
+        purchases only, and none where there are none (a summer house).
         """
         held = _thermostat_held_state(
             self.model, initial_state, weather,
@@ -5324,7 +5325,7 @@ class HeatPumpOptimizer:
             held, initial_state, prices, outdoor_temps, caps=None, humidity=humidity,
         )
         surplus_above_caps = max(0.0, capped - uncapped)
-        return capped - min(surplus_above_caps, max(0.0, baseline_cost))
+        return capped - min(surplus_above_caps, max(0.0, space_baseline_cost))
 
     def _stored_thermal_energy(
         self,
