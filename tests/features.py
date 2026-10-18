@@ -16938,6 +16938,16 @@ R.check(
     f"reference {_cg1._vent_cusum.reference}: a raw -10 seed would need "
     "thousands of samples to climb back, blinding the detector",
 )
+_cgw = _vent_coord()
+_feed_residual(_cgw, _CLEAN_DAY + [20.0] + [0.0] * 40, 81, _T4)
+R.check(
+    "a warm glitch moves the reference no further than the clip allows",
+    not _cgw._vent_cusum.tripped
+    and abs(_cgw._vent_cusum.reference[0]) < VENT_CUSUM_CLIP_C / 10.0,
+    f"stat {_cgw._vent_cusum.stat:.2f}, reference {_cgw._vent_cusum.reference}: "
+    "an unclipped +20 drags the level up and every clean sample after it "
+    "reads cold, a window that is not there",
+)
 _cr = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
 _cr.load(_cb._vent_cusum.as_dict())
 R.check(
