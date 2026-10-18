@@ -233,7 +233,6 @@ const SHARED_GRAMMARS = {
   "[^a-z0-9]+": "not-a-concept:two unrelated slug normalisers (entities.py prose, gen_device_fixtures.py ids)",
   "\\{(\\w+)\\}": "not-a-concept:the Python format-placeholder token",
   "[^:\\s]+:\\d+ [A-Z_]+": "identical:the mutation ledger line key, mutation_table.py and ledger_merge.py",
-  "@@ -\\S+ \\+(\\d+)": "identical:git's unified-diff hunk header, its new-side start line, read by mutation_table.py and ref_privacy.py over a git diff",
   "\"version\": \"[^\"]*\"": "not-a-concept:two audit probe scripts editing a manifest fixture",
   '\\(#(\\d+)\\)': 'pair:merge-subject-pr',
   'Merge pull request #(\\d+)\\b': 'pair:merge-subject-pr',
