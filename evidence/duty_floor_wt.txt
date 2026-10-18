@@ -1,9 +1,0 @@
-RESULT leaked_reads=0 count
-RESULT reader_calls=1449321 count
-RESULT null_leaked_reads=0 count
-RESULT null_reader_calls=1259062 count
-RESULT reflective_writes_pump_arbiter=0 count
-RESULT deliberate_thread_cpu_s=1.263
-RESULT thread_factor=1.001
-RESULT load1=95.42
-RESULT swapins=0

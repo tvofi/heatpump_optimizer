@@ -1,4 +1,0 @@
-== b0 : RESULT s3_82_floor_disagree=0 count (of 24686)
-== b0 --perturb: RESULT s3_82_floor_disagree=12344 count (of 24686)
-== m0 : RESULT s3_82_floor_disagree=0 count (of 24686)
-== m0 --perturb: RESULT s3_82_floor_disagree=12344 count (of 24686)
