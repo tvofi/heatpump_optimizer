@@ -1,55 +1,48 @@
-Fix review: blocked c75609c3a172cae8497086606abe25d7b84a6c08 tests-red: fast's tests/arch_score.py fails "null: a callback handed to a package function" (got 1, want 0), because the P18 fold C16b roots a callback a package function only returns; pr-contract also refuses `Closes #2259`
-bus-nonce: 0864ca92988fb69693386b6571e81c15
+Fix review: merge da688f50971bd31043383aeffca623d3b713c86b
+bus-nonce: 62444ef18f3cdcae7179c88536389af3
 
-PR #2401, R10-ARCHSCORE-COVERAGE part 5, review round 1. Reviewed from a detached worktree at `c75609c3a172cae8497086606abe25d7b84a6c08` (merge base `3fb386d50`). The role contract matched origin/main `63816b857` (the roles diff was empty). `merge-tree` against origin/main exits 0. Before pushing I re-read `refs/pull/2401/head`, and it was still `c75609c3a172cae8497086606abe25d7b84a6c08`. Load was high, so I ran targeted mutants and cheap checks only, and cite CI for the heavy lanes.
+PR #2401, R10-ARCHSCORE-COVERAGE part 5, review round 2 (round 1 `0283ca6b5`/`aae44320c` blocked at `c75609c3a`). I judged the delta from `c75609c3a` to `da688f50971bd31043383aeffca623d3b713c86b` from detached worktrees at that head and at its merge base `f1b21daab`.
 
-## Blocking
+- The fixer's commits are `473d1cf36` (C16b) and `dfaaf9e18` (companion, general limit).
+- The merges `9151f90af` and `da688f509` have empty remerge-diffs, and `merge-tree` against origin/main exits 0.
+- The roles contract matches main.
+- Before pushing I re-read `refs/pull/2401/head`, and it was still `da688f50971bd31043383aeffca623d3b713c86b`.
 
-1. **CI `fast (3.14)` is red on `tests/arch_score.py`. The cause is in this PR, and the body does not answer it.** The check-run (job `117678743499`, `fast_log.txt`) prints `1 of 254 ARCHITECTURE SCORE CHECKS FAILED`:
-   - `FAIL hub census: null: a callback handed to a package function reads 0 site(s), and 0 with C15 and C16 off  [got 1 (C15/C16 off: 0), base 0]`.
-   - The fixture there is `_register(self._on_package_callback)` with `def _register(cb): return cb`, and the call's result is discarded. That is the P18 F1 shape, `_pkg_wrap`, without the HA subscription.
-   - C16b (`hub_solve_writes._passes_on`) treats "returns the reference" as "passed on" whatever the caller does with the return value. So a reference nobody subscribes now becomes a hub root. The existing null control pins the opposite, and the PR does not touch `tests/arch_score.py`.
-   - Either C16b over-fires, and the pass needs to follow the returned value to a subscribing call (or rather, its consumer), or the semantics changed deliberately and the null control must change with a reason. The body says "CI has not run on this head", so the red is unanswered (step 11).
-   - All workflows at the head have concluded, and a `pr-contract` run (`117686903278`) started at 13:23, after this red concluded at 13:14.
-2. **`pr-contract` refuses `Closes #2259`.** Both runs print `REFUSE 'Closes #2259' closes #2259; not in the intended list` (`pr_contract_1323_log.txt`).
-   - The roster group `R10-ARCHSCORE-COVERAGE` has `fixes: [2228]` and `issues: [2228, 2235, 2259]`. Its brief says to use a closing keyword only for `fixes`, and "Part of" for the rest.
-   - The coordinator's brief for part 4 also said #2259 is closed by hand after p5. The body should say `Part of #2259`.
-3. **#2259 item 2's "duplicated spellings" in the card is not delivered, so it cannot be closed.** The issue says: "extend the vector to `www/*.js`, at least duplicated spellings, dead definitions and the card's own clone census". Part 4 delivers dead definitions and the 20-token clone census. Part 5's shape census reads Python only. My probe:
-   - I used the finder's census, ARCH2-s5 `card_shapes.mjs` at `3930b421a`, which states its perturbation: "any one of the shapes spelled once more anywhere moves its count and the total up by 1".
-   - I spelled three of its rules once more (a live-guard, a null test and a finite test), inline inside existing card methods. The finder's total reads 22 -> 25. `card_clone_copies` and `card_dead_definitions` read 108 -> 108 and 0 -> 0, and no other metric reads JS (`card_spellings.py`, `card_spellings_*.txt`; `node --check` passes).
-   - The card's docstring claim that "a rule spelled inline in several functions (the live-state guard, the finite-number test) joins its spellers" holds only where a 20-token window happens to match. A one-statement spelling is below the window.
-   - The delivery-table row "#2259 2, card coverage ... part 4" is therefore partial. Remedy: deliver it (for example, a card counterpart of C23's shape census for one-statement rules), or record it as not delivered and leave #2259 open with that item carried.
-4. **The companion harness has not landed** (step 9, `fixer.md` 18).
-   - `shape_family_coverage.py` (sha1 `a6e533f0…`, "in the seat's scratch") produces the body's item-6 figure: `joined=0` at the base and 26 at the head of ARCH-s2's 35 payload-guard implementations. M3's pin rests on it as well.
-   - A body figure a later seat must reproduce lands in `dev/audit/harnesses/`, and `tools/audit/seat/tmp_paths.py` must accept it.
-   - I could not re-derive 0 -> 26 without rebuilding it, so that figure is unverified by me (step 8).
-5. **Inherited from #2373, still open.** This branch carries part 4's code at `69c36cee5`. My #2373 round-3 plants still read IMPROVES here (`p4_open_plants_*.txt`):
-   - P6, a class attribute: `literal_clone_copies 186->182`.
-   - P7, a constant expression `12 * 2`: `186->182`.
+## Round-1 findings, each re-checked at this head
 
-   The R10-BRIEFS-FOLD carry on origin/main still says only "Unless #2373 closes them". It does not yet state the general limit that #2373's round-3 verdict asked for. Since part 4 lands through this PR, that carry is owed before this merges too.
+1. **The `tests/arch_score.py` red is fixed.**
+   - C16b now roots a returned callback only where `_consumed` finds the call's value handed on.
+   - I ran `hub_spellings()` alone (my `hub_only.py`, which is cheap): all nine hub cases are `ok`. That includes "null: a callback handed to a package function reads 0" and the new positive fixture "returns into a Home Assistant subscription (C16b) reads 1".
+   - My mutants pin both arms. M22 (a returned reference rooted always) fails the null control (`got 1`). M23 (the returned arm off) fails the positive fixture (`got 0`).
+   - CI's `fast (3.14)` at this head is green. The body's `## Red checks` answers the red, naming the cheaper detector (`hub_spellings`, which runs alone).
+2. **`Closes #2259` is fixed:** the body says `Part of #2259` and `Part of #2235`, `closingIssuesReferences` is `[]`, and `pr-contract` at this head is green.
+3. **#2259 item 2's "duplicated spellings" is now dispositioned honestly.**
+   - The delivery table marks it "not delivered" with my probe's figures, and it says both issues stay open.
+   - It is carried "to the orchestrator to route" as a card counterpart of C23, accepted by ARCH2-s5's `card_shapes.mjs` perturbation. Routing it is owed by the orchestrator (below).
+4. **The companion has landed** as `dev/audit/harnesses/archscore_shape_family_coverage.py`.
+   - I ran it myself on ref `554e2ecfa`. With the base instrument (`f1b21daab`, no `metrics/shapes.py`) it prints `implementations=35 joined=0 classes_spanned=0`. With the head instrument it prints `implementations=35 joined=26 classes_spanned=3`, which matches the body.
+   - Its `family()` equals `arch-s2/shape_payload_guard.py`'s once unparsed, except for the dropped type annotations.
+5. **The #2373 general limit is stated.**
+   - `ABOUT.md` now says C20/C21 fold spellings, not values. It names the class attribute and the constant expression (186 -> 182 each), and says a literal census is a floor.
+   - The superseding R10-BRIEFS-FOLD carry ("normalise a finite list of spellings ... credited only when the copies are actually gone from the source") is on the roster branch `handoff/audit-r10-roster` (PR #2384, open). It is not yet on origin/main.
 
-## What holds (re-derived by me)
+## Also checked
 
-- **Today's tree:**
-  - `shape_copies` reads 66 (`measure_*.txt`).
-  - `literal_clone_copies` 186, `card_clone_copies` 108, `card_dead_definitions` 0 and `hub_solve_writes` 41 match the four new `ci_budgets.json` rows and the unchanged hub row.
-- **Targeted mutants** (`mut_p5.sh`, `calibrate.py --only`):
-  - M0: the eight part-5 and hub cases each classify as recorded. `a3_shape_copies_control` is WORSENS (`shape_copies 87->88`), `_fix` NULL, `_null` NULL and `_respelled_control` NULL. `rt_45` is WORSENS and inadmissible, `rt_20b` NULL, and `a3_hub_event_write_control`/`_fix` are WORSENS/IMPROVES.
-  - M1 (no class formed, `len(v) > 999`): `a3_shape_copies_control` WORSENS -> NULL, as the body says.
-- **Gate-only calibration:** I accept the decision on the evidence the body gives (respelled control NULL, `ca711b56`). I did not re-run the corpus counterfactual.
-- **CI:** 45 check-runs, 28 success, 14 skipped and 3 failure. The failures are `fast (3.14)` and the two `pr-contract` runs above. `arch-score` (the lane that re-derives the full record) is green.
+- **Today's tree:** `shape_copies` reads 66, `card_clone_copies` 108, `card_dead_definitions` 0, `literal_clone_copies` 186 and `hub_solve_writes` 41. The four new `ci_budgets.json` rows match, and main's merged production changes move none of them.
+- **CI at this head:** 45 check-runs, 30 success and 15 skipped, none red. `arch-score`, `fast (3.14)`, `closures`, `pr-contract` and `budget-raise-gate` are all green.
 
-## Owed to tvofi at merge (mandate 6175172275)
+## Owed (not blocking)
 
-- `tests/ci_budgets.json` gains four new rows against the merge base: `archscore.card_clone_copies` 108, `archscore.card_dead_definitions` 0, `archscore.literal_clone_copies` 186 and `archscore.shape_copies` 66. Three come from part 4 and one from part 5.
-- `tools/audit/archscore/calibration/expected.json` gains 23 cases (part 4's 17, plus part 5's 5 and `rt_20b`), with no deletions.
+- **To the orchestrator, before or with this merge:**
+  - Land #2384, which carries the R10-BRIEFS-FOLD general-limit carry, so the destination holds it on main.
+  - Route #2259 item 2's card duplicated-spellings census, and the #2235 RCA, both carried in the body. #2259 and #2235 stay open, to be closed by hand.
+- **To tvofi at merge (mandate 6175172275):**
+  - `tests/ci_budgets.json` gains four new rows: `archscore.card_clone_copies` 108, `archscore.card_dead_definitions` 0, `archscore.literal_clone_copies` 186 and `archscore.shape_copies` 66.
+  - `tools/audit/archscore/calibration/expected.json` gains 23 cases (part 4's 17, part 5's 5 and `rt_20b`), with no deletions.
 
 ## Not verified by me
 
-- The full `--record`.
-- The corpus re-measure and the counterfactual arms.
-- The companion's 0 -> 26 (item 4).
-- M2-M4, M17-M21 and P18's plant script (also in scratch).
+- The full `--record` and the corpus re-measure, which are CI's `arch-score`, green.
+- The mutants M2-M4 and M17-M21.
 
-Evidence: ~/hpo-seats/r10s3/review-2401/evidence
+Evidence: ~/hpo-seats/r10s3/review-2401/evidence2

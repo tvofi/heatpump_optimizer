@@ -1,2 +1,0 @@
-RESULT base node_check=0 finder_shapes_total=22 card_clone_copies=108 card_dead_definitions=0
-RESULT P1_inline_spellings(n=3) node_check=0 finder_shapes_total=25 card_clone_copies=108 card_dead_definitions=0
