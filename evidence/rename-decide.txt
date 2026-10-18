@@ -1,0 +1,6 @@
+--- rename-default:
+codeql_scope: python: skip: all 1 changed file(s) are inert to the python extractor
+skip
+--- rename-norenames:
+codeql_scope: python: analyze: lib.py (.py) may be read by the python extractor
+analyze
