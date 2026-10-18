@@ -15,7 +15,6 @@ import asyncio
 import contextvars
 import copy
 import functools
-import hashlib
 import inspect
 import json
 import logging
@@ -25,7 +24,6 @@ import pickle
 import subprocess
 import sys
 import threading
-from weakref import WeakKeyDictionary
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
@@ -86,7 +84,7 @@ from .payload import (
     SpacePlan,
     ThermalView,
 )
-from .store import QuarantiningStore, admitted
+from .store import QuarantiningStore, admitted, load_mapping
 from .entry_config import EntryConfig
 from homeassistant.util import dt as dt_util
 
@@ -245,13 +243,12 @@ from .manual_plan import (
     ManualPlanError,
 )
 from .price_model import (
+    PriceShapeLearner,
     PriceShapeModel,
     TIBBER_API_URL,
     _raw_value,
     extend_price_series,
-    hourly_from_entries,
     pull_prices,
-    quarters_from_entries,
 )
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .tariff import CapacityTariff, PeakTracker
@@ -548,33 +545,10 @@ def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
     return i if now < starts[i] + span else None
 
 
-#: R10 N-log-flood (#2226): per coordinator, each persisting condition logged
-#: at WARNING and the text it was logged with. A side table on boost.py's
-#: precedent, so the latch costs the coordinator no attribute.
-_HELD_CONDITIONS: WeakKeyDictionary[Any, dict[str, str]] = WeakKeyDictionary()
-
-
-def _log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) -> bool:
-    """Whether condition ``key`` holds, logging only its transitions; returns ``active``.
-
-    A condition that persists (no forecast, no prices, a malformed option)
-    used to log WARNING on every cycle -- 48 a day, 192 for a tariff option
-    read four times a cycle. Now WARNING when it starts or its text changes,
-    DEBUG while it holds, INFO when it clears: the outage latches'
-    (``_tibber_fetch_failed``) shape, one helper instead of per-site counters.
-    """
-    held = _HELD_CONDITIONS.setdefault(owner, {})
-    if not active:
-        if held.pop(key, None) is not None:
-            _LOGGER.info("Resolved: %s", key.replace("_", " "))
-        return False
-    text = message % args if args else message
-    if held.get(key) == text:
-        _LOGGER.debug("Still: %s", text)
-    else:
-        held[key] = text
-        _LOGGER.warning("%s", text)
-    return True
+#: R10 N-log-flood (#2226): the transition latch lives in ``log_latch.py``, a
+#: leaf module, so the pump arbiter and the input reader can route a persisting
+#: condition through it without importing this module (which imports them all).
+from .log_latch import forget_held, log_held  # noqa: E402
 
 
 @functools.lru_cache(maxsize=8)
@@ -654,7 +628,7 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
     owns none of its state, and the failure branch it serves must stay one
     screen (#1644, D1-s4-02 moved its third caller into it).
     """
-    _LOGGER.error("Optimization failed: %s", err, exc_info=True)
+    log_held(coord, "solve_failure", True, "Optimization failed: %s", err, exc_info=err)
     coord._solve_failures += 1
     if coord._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
         # Exactly-at, not at-or-above: the issue is idempotent to
@@ -682,6 +656,23 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
             },
         )
 
+
+
+
+async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str | None:
+    """Write the valve target; ``None`` when written, else why it was not.
+
+    A failure is swallowed into the reason, so a balky valve never breaks
+    planning: an entity of a domain smart_write cannot command, or the write
+    raising.
+    """
+    try:
+        if await write_setpoint_c(hass, entity_id, target):
+            return None
+    except Exception as err:  # noqa: BLE001 - never break planning
+        return f"could not be commanded: {err}"
+    return (f"is a {entity_id.split('.', 1)[0]}; smart_write can command "
+            "number, input_number and climate entities")
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
@@ -3018,16 +3009,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _init_grid(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Price modelling, the capacity tariff and PV surplus."""
         # --- Unknown price horizon (item 7) --------------------------------
-        self._price_model = PriceShapeModel()
-        self._price_days_seen: set[str] = set()
+        self._price_learner = PriceShapeLearner()
         self._price_known_steps: int = 0
         self._price_model_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             PRICE_MODEL_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_price_model",
         )
-
-        self._price_qdays_seen: set[str] = set()
 
         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
         self._grid_fee_cache: "tuple[Any, GridFeeSchedule] | None" = None
@@ -3133,14 +3121,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
         self._accuracy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
-            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
-            lead=timedelta(hours=max(LEAD_BUCKETS)),
-        )
-        # Serialized form of the last payload each store accepted, keyed by
-        # store name. An every-cycle save that rewrites unchanged content is
-        # pure disk wear; a digest recorded only after a successful save means
-        # a failed write is retried on the next cycle rather than skipped.
-        self._store_digests: dict[str, str] = {}
+            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy"
+        )  # its promises' dues declare their own lead (store.DOMAINS, D1-s2-01)
 
         # --- Defrost derate (item 14) --------------------------------------
         self._defrost = DefrostDerate()
@@ -5824,6 +5806,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
                 ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
             self._solve_failures = 0
+            log_held(self, "solve_failure", False)  # a later failure spell warns again
             # T5 #16: file this plan's promises at each lead bucket, to be
             # scored when their moment arrives. Anchored to the instant
             # the trajectory was built from, not to "after the solve".
@@ -6041,6 +6024,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._release_registrations()
         await self._legionella.async_release_switch()
         await pump_arbiter.release(self)
+        forget_held(self.hass)  # the reader's and arbiter's latches re-warn after a reload
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -6665,7 +6649,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 try:
                     return float(lat), float(lon)
                 except (TypeError, ValueError):
-                    _log_held(self, "solar_location", True,
+                    log_held(self, "solar_location", True,
                               "Ignoring malformed solar location %s", location)
 
         lat = getattr(self.hass.config, "latitude", None)
@@ -6681,7 +6665,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         location = self._solar_location()
-        _log_held(self, "solar_coordinate", location is None,
+        log_held(self, "solar_coordinate", location is None,
                   "Open-Meteo solar is selected but no coordinate is available; "
                   "set one in the integration options or configure the Home "
                   "Assistant home location")
@@ -6730,7 +6714,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         curve there used to let the optimizer run and report a savings figure
         that no price data supported, so the caller skips the run instead.
         """
-        if _log_held(self, "no_prices", not self._prices,
+        if log_held(self, "no_prices", not self._prices,
                      "No electricity price data available; skipping optimization "
                      "until prices can be fetched"):
             return None
@@ -6746,7 +6730,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # span. The known series stops at the first step no entry covers, and
         # the learned prior fills the rest below.
         known = self._known_prices_for(step_starts)
-        if _log_held(self, "prices_uncovered", not known,  # #239
+        if log_held(self, "prices_uncovered", not known,  # #239
                      "No published prices cover the planning horizon; skipping"):
             return None
 
@@ -6808,7 +6792,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         as soon as the forecast is stale or starts at the *next* hour, and
         the whole horizon then reads a few hours out of phase.
         """
-        if _log_held(self, "no_weather_forecast", not self._weather_forecast,
+        if log_held(self, "no_weather_forecast", not self._weather_forecast,
                      "No weather forecast available — using current conditions. "
                      "Predictive optimization will be limited."):
             return (
@@ -7337,10 +7321,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if planned is not None:
             target = float(planned)
         kind = ctx._config.mixing_valve_write_target_kind
+        if log_held(self, "valve_flow_needs_two_zone",
+                    kind == mixing_valve.WRITE_TARGET_FLOW and not params.two_zone_enabled,
+                    "mixing_valve_write_target_kind=flow needs two-zone"):
+            return
         if kind == mixing_valve.WRITE_TARGET_FLOW:
-            if not params.two_zone_enabled:
-                _LOGGER.error("mixing_valve_write_target_kind=flow needs two-zone")
-                return
             outdoor = ctx._current_state.outdoor_temperature
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
         if (
@@ -7349,17 +7334,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             < MIXING_VALVE_WRITE_EPSILON
         ):
             return
-        try:
-            if not await write_setpoint_c(self.hass, entity_id, target):
-                _LOGGER.warning(
-                    "Valve write entity %s is a %s; smart_write can command "
-                    "number, input_number and climate entities",
-                    entity_id,
-                    entity_id.split(".", 1)[0],
-                )
-                return
-        except Exception as err:  # noqa: BLE001 - never break planning
-            _LOGGER.error("Error commanding valve target: %s", err)
+        # One latch for both failures: its text says which, and the next
+        # successful write clears it, so a valve that fails again warns again.
+        why = await _valve_write_problem(self.hass, entity_id, target)
+        if log_held(self, "valve_write", why is not None, "Valve write entity %s %s", entity_id, why):
             return
         _LOGGER.info(
             "Commanded mixing valve target %.1f °C via %s", target, entity_id
@@ -7396,15 +7374,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The action was cut from a plan whose horizon has slid out from
             # under it — its "cheap hour" may be the current peak. Stop
             # actuating, exactly as when no plan exists: the pump's own
-            # weather-compensated curve holds comfort until a solve succeeds.
-            # Fixed-rule modes (comfort/boost/off) carry no horizon and are
-            # unaffected.
-            _LOGGER.warning(
-                "Plan is %.0f minutes old after %d failed solves; holding "
-                "comfort on the pump's own curve instead of actuating it",
-                self._plan_age_minutes() or 0.0,
-                self._solve_failures,
-            )
+            # weather-compensated curve holds comfort until a solve succeeds;
+            # fixed-rule modes carry no horizon. DEBUG, not latched: age and
+            # failures change every cycle, so EVENT_PLAN_STALE announces it.
+            _LOGGER.debug("Plan is %.0f minutes old after %d failed solves; "
+                          "holding comfort on the pump's own curve instead of "
+                          "actuating it",
+                          self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
         # A cut-off holds the pump off for MIN_OFF across an early refresh.
@@ -7875,45 +7851,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_price_model(self) -> None:
         """Restore the learned diurnal price shape."""
-        try:
-            stored = await self._price_model_store.async_load()
-        except Exception as err:  # noqa: BLE001 - never block setup on storage
-            _LOGGER.debug("Could not load price model: %s", err)
+        stored = await load_mapping(self._price_model_store, "price model")
+        if stored is None:
             return
-        if not isinstance(stored, dict):
-            return
-        self._price_model = PriceShapeModel.from_dict(stored.get("model"))
-        days = stored.get("days_seen")
-        if isinstance(days, list):
-            self._price_days_seen = {str(d) for d in days}
-        qdays = stored.get("quarter_days_seen")
-        if isinstance(qdays, list):
-            self._price_qdays_seen = {str(d) for d in qdays}
+        self._price_learner.restore(stored)
 
     async def _async_save_price_model(self) -> None:
         store = self._price_model_store  # bound once: read twice below (D1-s2-52)
         try:
             await store.async_wait_for_read()
-            await store.async_save(
-                {
-                    "model": self._price_model.as_dict(),
-                    # Only recent days matter for de-duplication, and an
-                    # unbounded set would grow forever.
-                    "days_seen": sorted(self._price_days_seen)[-90:],
-                    "quarter_days_seen": sorted(self._price_qdays_seen)[-90:],
-                }
-            )
+            await store.async_save(self._price_learner.store_payload())
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist price model: %s", err)
 
     async def _async_load_ledger(self) -> None:
         """Restore the monthly ledger (T1)."""
-        try:
-            stored = await self._ledger_store.async_load()
-        except Exception as err:  # noqa: BLE001 - never block setup on storage
-            _LOGGER.debug("Could not load ledger: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._ledger_store, "ledger")
+        if stored is None:
             return
         self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
         # T6, all additive on the same payload: absent keys on a pre-T6
@@ -7973,12 +7927,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_accuracy(self) -> None:
         ctx = getattr(self, "_ctx", self)
-        try:
-            stored = await self._accuracy_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load accuracy history: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._accuracy_store, "accuracy history")
+        if stored is None:
             return
         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
         # Additive keys: an older store has none; an older build ignores extras.
@@ -7994,29 +7944,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._config.comfort_weight,
         )
         self._apply_comfort_weight()
-    async def _async_save_if_changed(
-        self, name: str, store: QuarantiningStore[dict[str, Any]], payload: dict[str, Any]
-    ) -> None:
-        """Write ``payload`` unless the store already holds exactly it.
-
-        Both callers run every cycle and most change nothing: a rewrite is
-        disk wear. The digest is remembered only after the store accepted
-        the payload, so a failed save is retried, not skipped as written.
-        """
-        digest = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, default=str).encode()
-        ).hexdigest()
-        if self._store_digests.get(name) == digest:
-            return
-        await store.async_save(payload)
-        self._store_digests[name] = digest
-
     async def _async_save_accuracy(self) -> None:
         try:
             await self._accuracy_store.async_wait_for_read()  # D1-s2-52
-            await self._async_save_if_changed(
-                "accuracy",
-                self._accuracy_store,
+            await self._accuracy_store.async_save_if_changed(
                 {
                     "accuracy": self._accuracy.as_dict(),
                     # v5.2.0: the tank's lead record, alongside the room's
@@ -8033,12 +7964,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not persist accuracy history: %s", err)
 
     async def _async_load_energy_totals(self) -> None:
-        try:
-            stored = await self._energy_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load energy totals: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._energy_store, "energy totals")
+        if stored is None:
             return
         for key in list(self._energy_totals):
             value = stored.get(key)
@@ -8059,9 +7986,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _async_save_energy_totals(self) -> None:
         try:
             await self._energy_store.async_wait_for_read()  # D1-s2-52
-            await self._async_save_if_changed(
-                "energy_totals",
-                self._energy_store,
+            await self._energy_store.async_save_if_changed(
                 {
                     **self._energy_totals,
                     # The accumulators' stated period ("since"): written once
@@ -8264,32 +8189,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Fold any newly complete price days into the learned shape."""
         if not getattr(self, "_ctx", self)._config.price_prior_enabled:
             return
-        days = hourly_from_entries(self._prices)
-        learned = False
-        for day, hours in days.items():
-            if day in self._price_days_seen:
-                continue
-            try:
-                when = datetime.fromisoformat(f"{day}T12:00:00")
-            except ValueError:
-                continue
-            if self._price_model.observe_day(when, hours):
-                self._price_days_seen.add(day)
-                learned = True
-        # The quarter refinement (#19) learns beside the hourly shape, from
-        # days that arrived at full 15-minute resolution only.
-        for day, quarters in quarters_from_entries(self._prices).items():
-            if day in self._price_qdays_seen:
-                continue
-            try:
-                when = datetime.fromisoformat(f"{day}T12:00:00")
-            except ValueError:
-                continue
-            if self._price_model.observe_day_quarters(when, quarters):
-                self._price_qdays_seen.add(day)
-                learned = True
-        if learned:
+        if self._price_learner.fold(self._prices):
             await self._async_save_price_model()
+
+    @property
+    def _price_model(self) -> PriceShapeModel:
+        """The learned shape, read-only: ``_price_learner`` owns it."""
+        return self._price_learner.model
 
     def _price_prior(self) -> PriceShapeModel | None:
         if not getattr(self, "_ctx", self)._config.price_prior_enabled:
@@ -9326,7 +9232,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._dhw_learner.apply_draws(draws)
         prices = learners.get("price_model")
         if isinstance(prices, dict):
-            self._price_model = PriceShapeModel.from_dict(prices)
+            self._price_learner.adopt_model(prices)
         # The accuracy tracker is deliberately NOT restored: it is the
         # evidence the drift alarm judges, not a learner. Restoring it
         # made the rollback erase its own justification — the next
@@ -9473,15 +9379,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_snapshots(self) -> None:
         try:
-            stored = await self._snapshot_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load learner snapshots: %s", err)
-            return
+            stored = await load_mapping(self._snapshot_store, "learner snapshots")
         finally:
             # Set even on failure: a lost store means an empty ring, and
             # the insurance must keep running rather than disarm forever.
             self._snapshots_loaded = True
-        if isinstance(stored, dict):
+        if stored is not None:
             self._snapshot_ring = SnapshotRing.from_dict(stored)
 
     async def _async_save_snapshots(self) -> None:
