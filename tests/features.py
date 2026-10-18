@@ -10973,6 +10973,12 @@ R.check(
     f"got {_nc.hass.services.calls} / {_mc.hass.services.calls} / "
     f"{_uc.hass.services.calls}",
 )
+R.check(
+    "#2351: a write the valve refused is not remembered as commanded, so the "
+    "next cycle retries it rather than skipping it as unchanged",
+    _uc._valve_commanded_target is None,
+    f"remembered {_uc._valve_commanded_target!r} after an uncommandable write",
+)
 
 # With a hold schedule in force the actuator follows *it*, not the fixed
 # recommendation -- otherwise the plan holds the tank on paper while the real
@@ -51996,6 +52002,29 @@ class _PaCoord:
 
 def _pa_run(coord, minutes):
     _pa_aio.run(_pa.apply(coord, _PA_T0 + timedelta(minutes=minutes)))
+
+
+# #2351: the misdeclared-indoor bound is strict. An indoor entity whose minimum
+# sits exactly SETPOINT_TOLERANCE above the room target can hold it (the write
+# is clamped up within tolerance); only one beyond that is a flow set-point
+# declared indoor, which is refused.
+_pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
+
+
+def _pa_bound_target(low):
+    _pa_bound.hass.states.get("number.water_set").attributes = {"min": low, "max": 63}
+    return _pa._space_target(
+        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space")
+
+
+_pa_bound_at = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE)
+_pa_bound_past = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE + 0.1)
+R.check(
+    "#2351: an indoor set-point whose minimum is exactly the tolerance above the "
+    "room target is written; one beyond it is refused as a declared flow set-point",
+    _pa_bound_at is not None and _pa_bound_past is None,
+    f"at tolerance -> {_pa_bound_at!r}, beyond -> {_pa_bound_past!r}",
+)
 
 
 def _pa_own(coord, signals):
