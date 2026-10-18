@@ -1,9 +1,0 @@
-head 6ffc3708d763dfcafb9faf5baf0de9b5cb541327
-SEGREGATES .github/workflows/arch-score.yml
-SEGREGATES .github/workflows/budget-raise-gate.yml
-SEGREGATES .github/workflows/codeql.yml
-SEGREGATES .github/workflows/governance.yml
-SEGREGATES .github/workflows/hassfest.yml
-SEGREGATES .github/workflows/pr-contract.yml
-SEGREGATES .github/workflows/tests.yml
-SEGREGATES .github/workflows/validate.yml
