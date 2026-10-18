@@ -697,9 +697,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 11 of 25; before you: R10-CURRENCY, R10-STORE; next: R10-TRUST-RELATIVE, R10-FREQ-DEFROST); optimizer.py (position 2 of 4; before you: R10-TARIFF; next: R10-SAV-REASONS, R10-SOLVER). Owning seam in this group: import edges only (no behaviour). Shape: move symbols to their leaf owners; re-export nothing. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-leaf-imports",
-    "commit": null,
+    "commit": "234087a5105dbf48de92473f3dc6aa17d7e006e2",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
