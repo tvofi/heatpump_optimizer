@@ -18,7 +18,8 @@ gate_model.gate, the function tools/ci/gate.py ports, and drives it three ways:
    applicable), an edit run carrying the code units (12(c)), a source at another
    base, a retarget, a cancelled-pending run and its replacement (running, red,
    green), an unreadable title, a held run, and an older run's gate re-judged (the
-   sweep). The full event-sequence replay with concurrency is gate_sim.py.
+   sweep), and revision 2's defer rule (a run only re-judging is not waited on;
+   one re-running a unit job is). The full event-sequence replay is gate_sim.py.
 """
 from __future__ import annotations
 
@@ -198,6 +199,17 @@ def main(raw: Path, reach_file: Path) -> int:
               [C, cancelled, code_run(1700, G.title("code", "7", "main"), red)], False)
     edit_case("... and the replacement completed green",
               [code_run(1500, G.title("code", "7", "main"), red), cancelled, code_run(1700, G.title("code", "7", "main"), green_jobs)], True)
+    # Revision 2, round-2 item N2: the defer rule waits only for a run that can still add a source.
+    judging = {**green_jobs, "gate": ("in_progress", None)}
+    edit_case("rev2: the code run is only re-judging (its gate attempt listed, every unit job done): not waited on",
+              [code_run(1500, G.title("code", "7", "main"), judging, "in_progress")], True)
+    edit_case("rev2: ... the same, its units red: not waited on, and its red units are read",
+              [code_run(1500, G.title("code", "7", "main"), {**red, "gate": ("in_progress", None)}, "in_progress")], False)
+    edit_case("rev2: ... a unit job re-running beside the listed gate (re-run failed jobs): deferred",
+              [code_run(1500, G.title("code", "7", "main"),
+                        {**judging, "tests / mutation": ("in_progress", None)}, "in_progress")], False)
+    edit_case("rev2: ... the run is in progress and its gate is not listed yet: deferred",
+              [code_run(1500, G.title("code", "7", "main"), green_jobs, "in_progress")], False)
     edit_case("edit run: an earlier run at the head has an unreadable title", [C, code_run(1600, "Tests", {})], False)
     edit_case("edit run: a held run at the head is neither waited for nor a source",
               [C, {**code_run(1600, G.title("code", "7", "main"), {}), "status": "action_required"}], True)

@@ -1,6 +1,7 @@
 """The gate predicate of DESIGN-P2.md section 4.1, revision 1: the reference
 implementation `tools/ci/gate.py` ports, line for line, and the function
 `gate_replay2.py` replays (review item 10). Pure: every input is passed in.
+Revision 2 changes one rule, the defer rule (`judging`, round-2 item N2).
 
 Nothing here is taken on the prelude's word. Applicability comes from the event
 (`github.event_name`, `github.event.action`, `github.event.changes.base`, the
@@ -43,17 +44,27 @@ def derive(ctx: dict) -> tuple[str, str, str]:
     return "code", "", ""                    # push
 
 
-def title(kind: str, pr: str, base: str) -> str:
-    """What ci.yml's `run-name:` renders at creation."""
-    return f"CI {kind} pr={pr or '-'} base={base or '-'}"
+def title(kind: str, pr: str, base: str, sha: str = "") -> str:
+    """What ci.yml's `run-name:` renders at creation. Revision 2 appends the run's
+    `github.sha` (round-2 item 5): on a pull_request run that is the test merge
+    commit, the `commit_sha` its code-scanning analyses carry, which pr-contract
+    must match for a code run it carries and which no other API returns."""
+    return f"CI {kind} pr={pr or '-'} base={base or '-'} sha={sha or '-'}"
 
 
 def parse_title(t: str) -> tuple[str, str, str] | None:
     p = t.split()
-    if len(p) != 4 or p[0] != "CI" or not p[2].startswith("pr=") or not p[3].startswith("base="):
+    if (len(p) != 5 or p[0] != "CI" or not p[2].startswith("pr=") or not p[3].startswith("base=")
+            or not p[4].startswith("sha=")):
         return None
     pr, base = p[2][3:], p[3][5:]
     return p[1], ("" if pr == "-" else pr), ("" if base == "-" else base)
+
+
+def title_sha(t: str) -> str:
+    """The `sha=` token of a title parse_title accepts ('' for '-')."""
+    v = t.split()[4][4:]
+    return "" if v == "-" else v
 
 
 def workset(kind: str, pr: str) -> set[str]:
@@ -64,21 +75,37 @@ def workset(kind: str, pr: str) -> set[str]:
     return set(CODE) | (set(BODY) if pr else set())
 
 
+def judging(run: dict) -> bool:
+    """Revision 2 (round-2 item N2): a run that can add no source is not waited on.
+    Its `gate` job is listed (the jobs API lists a job only once its needs, every
+    unit and pr-contract, have finished) and no listed job of a required unit, nor
+    the prelude, is unfinished (a human's "re-run failed jobs" re-runs a unit job
+    beside the gate, and that run IS still adding a source). Such a run is only
+    re-judging: a `gate` attempt of refresh or the sweep, or its own first gate. Two
+    re-judgements at one head therefore never defer on each other: each reads the
+    same completed sources and returns the same answer."""
+    jobs = run.get("jobs") or {}
+    return "gate" in jobs and all(st[0] == "completed" for k, st in jobs.items()
+                                  if k == "prelude" or k.split(" / ")[0] in REQUIRED)
+
+
 def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     """ctx: this run's github context. api: what gate.py reads at its own run time:
       prelude        {"conclusion", "kind", "pr"}
       jobs           {"<unit> / <name>": (status, conclusion)} of THIS run, latest attempts
       runs_at_head   [{"id", "title", "status", "jobs"}] every OTHER ci.yml run at the head
+                     (jobs: its latest attempt's, `filter=latest`, `gate` included)
       live_pr        {"head_sha", "base_ref", "state"} of the PR named, or None
       open_pr_heads  set of SHAs that head an open PR (only read on an unnamed dispatch)
       reaches_cc     the three-dot diff touches custom_components/ (git, in the gate job)
 
     A green result certifies the head's CURRENT state: every required unit's newest
     completed evaluation at this head and base is green, and no other run at the head
-    is still being judged. That is what lets a re-run of an older run's gate (the
-    refresh and sweep hooks, DESIGN-P2.md 4.3) converge on the newest verdict, so the
-    design holds whether the ruleset reads the newest `gate` or every `gate` at the
-    head (#2009's reading, tools/policy/budget_raise_gate.py:604).
+    can still add a source (`judging` above: revision 2, round-2 item N2). That is
+    what lets a re-run of an older run's gate (the refresh and sweep hooks,
+    DESIGN-P2.md 4.3) converge on the newest verdict, so the design holds whether
+    the ruleset reads the newest `gate` or every `gate` at the head (#2009's
+    reading, tools/policy/budget_raise_gate.py:604).
     """
     bad: list[str] = []
     kind, pr, base = derive(ctx)
@@ -107,7 +134,7 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
             return False, [f"PR {pr} could not be read"]
         judge_base = lp["base_ref"]
     others = [r for r in api["runs_at_head"] if r["id"] != ctx["run_id"]]
-    busy = sorted(r["id"] for r in others if r["status"] not in ("completed", "action_required"))
+    busy = sorted(r["id"] for r in others if r["status"] not in ("completed", "action_required") and not judging(r))
     if busy:
         return False, [f"run(s) {busy} at this head are still being judged; their gate decides"]
     required = {u: list(n) for u, n in CODE.items()}
@@ -117,7 +144,8 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         for u, n in BODY.items():
             if u != "arch-score" or api.get("reaches_cc"):
                 required[u] = list(n)
-    me = {"id": ctx["run_id"], "title": title(kind, pr, base), "status": "completed", "jobs": api["jobs"]}
+    me = {"id": ctx["run_id"], "title": title(kind, pr, base, ctx.get("sha", "")), "status": "completed",
+          "jobs": api["jobs"]}
     for unit, names in required.items():
         src = None
         for r in sorted(others + [me], key=lambda r: r["id"], reverse=True):

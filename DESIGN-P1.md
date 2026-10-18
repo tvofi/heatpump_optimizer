@@ -8,7 +8,10 @@ Measured 2026-10-18. Nothing in the repository was changed.
 the two-PR plan: phase 1, with section 2(c) replaced by phase 2's W1 (drop the C1
 composition, at its source; owner ruling D-4), plus the inert `ci.yml` stub. What
 changed and why is in `RESPONSE.md`, one section per review item; inline markers
-read *(rev1, item N)*. Paths: this design's measurements are under `measure/p1/`
+read *(rev1, item N)*. **Revision 2** (2026-10-18, answering the round-2 review
+`probe/design-ci-review2`, `d63cbe42`) changes one thing here, the static half of
+the per-unit null control (section 4, round-2 item N3, marked *(rev2, N3)*);
+everything else in this file is revision 1's. Paths: this design's measurements are under `measure/p1/`
 (cited below by bare file name, as before), phase 2's under `measure/p2/`, and
 revision 1's own instruments under `measure/rev/`. Owner rulings already made: D-1
 approve; D-4 drop C1 in PR 1 once the proof is shown covered (section 2(c) shows it).
@@ -536,15 +539,23 @@ before and after and compares, per job, one row for the job's own keys (`if`,
 `needs`, `permissions`, `environment`, `strategy`, `outputs`, `runs-on`, timeouts,
 `env`, `concurrency`, `name`, …) and one row per step keyed by name, hashing `run`,
 `uses`, `with`, `if`, `env`, `shell`, `id` and the rest; plus a file-level `|floor`
-row (top-level `permissions`/`env`/`defaults`) and a `|triggers` row. Every step
-counts whether or not a run executed it. A closed map lists the intended `renames`,
+row (top-level `permissions`/`env`/`defaults`) and a `|triggers` row. *(rev2, N3)*
+Each job also has a `<job>|order` row: the ordered list of the step keys both sides
+keep, after the map's renames and less its drops and gains, so a step moved before
+or after another is refused (order is semantic: a guard moved after what it guards,
+a restore after the program it restores) while an admitted drop or gain moves only
+its own row. Every step counts whether or not a run executed it. A closed map lists the intended `renames`,
 `dropped`, `gained` and `changed` rows; each admitted `changed` row is printed before
 and after, so the reviewer reads exactly the edits the map lets through. Its
 self-test (`measure/rev/unitcheck2_selftest.txt`, over main's `tests.yml`): the file
 against itself and a key-order reserialisation pass; the review's three plants (a
 job deleted, every conditional step of `fast` deleted, a `closures` step gutted)
 and a changed `if:`, a widened job grant and a widened file floor each fail; a
-mapped drop and a mapped change pass. `SELF-TEST ok (12/12)`.
+mapped drop and a mapped change pass. *(rev2, N3)* The round-2 plants Q1 (two
+`coverage` steps swapped) and Q1b (its restore step moved to the job's end) fail; the
+same swap admitted as `coverage|order` and a mapped step drop pass. `SELF-TEST ok
+(16/16)`; the round-2 seat's own `plant_unitcheck2.py`, run against it, refuses Q1,
+Q1b and its control Q2 (`measure/rev/n3_review_plants.txt`).
 
 For PR 1 BEFORE is main's `tests.yml`; AFTER is
 `tests.yml+nightly.yml+.github/actions/nightly-ha/action.yml` at the PR head, whose jobs the instrument merges into one mapping. The one id both workflow files hold,

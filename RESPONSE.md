@@ -1,5 +1,9 @@
 # Response to the design review: revision 1 of the combined CI design (R10-CI-LAYOUT)
 
+*Revision 2's response to the round-2 review is the second part of this file, under
+"Revision 2: the round-2 review": one `## Round-2 item <id>` section for each of
+N1, N2, 5, N3 and N4. The first part is revision 1's, unchanged.*
+
 Design-revision seat, 2026-10-18. Neither the designers nor the reviewer.
 
 **Inputs, read in full:**
@@ -498,3 +502,292 @@ assumed in either direction.
 
 Where a probe PR cannot read M-2 or M-3 decisively, PR 2 ships the safe side and
 re-measures inside the freeze (DESIGN-P2.md R-8).
+
+---
+
+# Revision 2: the round-2 review
+
+Design-revision seat (revision 2), 2026-10-18. Neither a designer, the revision-1
+author, nor a reviewer.
+
+**Inputs, read in full:** revision 1, `probe/design-ci-rev1` at `485ae940`; the
+round-2 review, `probe/design-ci-review2` at `d63cbe42` (`REVIEW.md`, `ev/`, `tools/`),
+verdict *revise*; the round-1 review, `probe/design-ci-review` at `f7b28312`; policy
+from `origin/main` at `89e33859`: `CLAUDE.md`, `judge.md`, `ci-autofix.md`,
+`gate-scoping.md`, `orchestrator.md`. Line citations new in revision 2 are at
+`89e33859`.
+
+**Scope.** Exactly the five items under the review's "What would turn this into
+approve": N1, N2, item 5, N3, N4. Everything else in revision 1 stands. Four changes
+outside those items' own text were forced by them, each named in its item below and
+in `DESIGN-P2.md`'s header:
+- the three concurrency lanes are withdrawn (N1);
+- the gate's defer rule changes (N2);
+- `run-name` gains a fifth token, `sha=` (item 5);
+- `DESIGN-P1.md` section 4 describes the new `|order` rows (N3).
+
+| item | resolved by | design sections | evidence (re-run here) |
+|---|---|---|---|
+| N1 | every run in its own run-id group; supersession by the tree's `cancel_superseded.py`; hooks act only at the live head; M-5 in U0; R-7 | P2 header, 0, 1, 2.1, 2.2, 2.3, 4.1, 4.3, 5, 9, 10 (U0), 11 | `gate_sim.txt` (rule applied to every layout; `runid` ablation) |
+| N2 | simulator fixed (gate attempts are jobs); `gate_model.judging`; three readings re-scored over 41 scenarios, both chain arms; the 50-attempt bound stated and enforced at 45 | P2 1, 4.1, 4.3, 4.4, 11 | `gate_sim.txt`, `gate_replay2.txt` |
+| 5 | the analyses route keyed on `ref=refs/pull/<N>/merge` and `commit_sha ==` the source run's `github.sha` (`sha=` in `run-name`); then the check plus `LAG_MAX`, which U6 measures | P2 1.6, 2.2, 3.2, 3.3, 4.3, 9, 10 (U6), 11 (R-10) | `codescan_lag.txt` |
+| N3 | a `<job>|order` row per job; Q1 and Q1b in the self-test | P1 4; P2 10 | `unitcheck2_selftest.txt` (16/16), `n3_review_plants.txt` |
+| N4 | `prepr.sh:935-938` and `entities.py:25883-25893` in section 9, with the filter both strings | P2 9, 11 (R-9) | read at `89e33859` |
+
+## Round-2 item N1
+
+**The review:** `refresh` and `gate-sweep.yml` re-run `gate` jobs; a re-run attempt
+re-enters its run's concurrency group with that run's `cancel-in-progress` (the
+tree's measurement, `R9-RC-PRCONTRACT.md:84-86`, read back by the review through the
+API); so in revision 1's per-PR lanes a re-run cancels a live run: deterministically
+after every retarget (C, R1) and on every second review (R7), and across heads in
+the sweep's race window. Required: re-runs never cancel live runs, by design and in
+the simulator; M-5; both in R-7.
+
+**What changed:**
+- **Every `ci.yml` run is in a group of its own**: `group: CI-${{ github.run_id }}`,
+  `cancel-in-progress: false` (DESIGN-P2.md 2.2). A re-run attempt has the same run
+  id, so it joins a group holding only its own run: there is nothing it can cancel,
+  whatever GitHub does with re-runs and groups. The same change removes round 1's
+  pending-slot hazard (item 1), since no run is ever pending behind another. This is
+  the review's suggested shape, and the tree's own "per-run" route for
+  `budget-raise-gate.yml` and `arch-score.yml` (`tests/entities.py:27823-27827`,
+  "a group per run, so no run ever cancels or queues another").
+- **Supersession is `cancel_superseded.py`, unchanged** (2.2, 4.3): from a non-bot
+  `pull_request` run at the PR's live head, it cancels older active runs on the branch
+  at a **different** head SHA, never a same-SHA run (R9-CI-2a). It therefore never
+  touches a gate attempt at the live head. The review suggested keying it on the
+  `display_title` lane too; that would bring back same-head cancellation, which is
+  exactly what re-runs run into, so it is not done. Cost: an old-base run after a
+  retarget, and an older edit or review run at the same head, now run to their end
+  (R-11). Their gates judge correctly (a run at an old base is no source; an older
+  verdict run is never the newest source). Verdict waits rise from 8.07 to 8.10
+  runner-hours over the 22 heads (`verdict_wait.txt`'s `naive` rows), and no retarget
+  was sampled.
+- **Both hooks act only at the PR's live head**, read when they act (2.1, 2.2, 4.3).
+  Across heads, a sweep that loses the race with a push re-runs a gate at the old
+  head, which nothing reads and which now cancels nothing.
+- **M-5** in U0 (DESIGN-P2.md 10): (a) on a throwaway twin with revision 1's lane and
+  `cancel-in-progress: true`, does a `gate` re-run cancel a newer run of the lane (the
+  platform rule, recorded); (b) on `ci.yml`, a `gate` re-run beside a newer in-flight
+  run at the head leaves it untouched (the design's control, must pass). **R-7** now
+  lists the re-run rule, with M-5 measuring it and the design depending on neither
+  answer.
+- **In the simulator** (`gate_sim.py`): the rule "a re-run attempt re-enters its run's
+  group with that run's `cancel-in-progress`" is applied to every layout. REV2 models
+  run-id groups and `cancel_superseded.py`'s rule. The review's scenarios R1-R7 and the
+  cross-head case XH (a push at -5, +1, +10, +19 and +25 s around the edit run's green
+  gate, the sweep firing at +20) are added, plus R8 (a review during a retarget's
+  code run: round 1's outside actor).
+
+**Evidence** (`python3 -I measure/rev/gate_sim.py`, `gate_sim.txt`):
+- revision 1 as written fails C, R1 and R7 on the re-run rule, as the review found;
+  132 runs over the 41 scenarios are cancelled by a re-run attempt;
+- revision 2: 0 runs cancelled by a re-run; C, R1, R7, R8 and all five XH rows agree
+  with the oracle under all three readings, in both chain arms;
+- the null control: revision 2 with revision 1's lanes put back (`runid` ablation)
+  agrees with the oracle on 30 of 34 unplanted scenarios under each reading. So the
+  run-id groups are load-bearing in the instrument.
+
+## Round-2 item N2
+
+**The review:** `gate_sim.py` finished a hook re-run twice (on the next tick), so two
+gates one sweep re-ran together never saw each other running. With faithful timing,
+revision 1's defer rule ("any other run at this head not completed → FAIL") made
+them fail each on the other. X1 and X3 (an edit and a review during the code run,
+the common path) then end red under all three readings. Required: fix the simulator;
+make concurrent re-judgements unable to defer on each other; re-score the three
+readings; state the 50-attempt bound and what `gate.py` does near it.
+
+**What changed:**
+- **The simulator.** A `gate` attempt, first or re-run, is now a job (DESIGN-P2.md
+  4.4): listed `in_progress` when it starts, reading the API 5 s later, completing at
+  15 s. `step_run` no longer touches a run whose current attempt is a re-run, so the
+  double finish is gone. Every read due in one tick sees the same state, which is the
+  review's FIXED+SNAP arm.
+- **The defer rule** (`gate_model.judging`; DESIGN-P2.md 4.1). A run is waited on only
+  if it can still add a source. A run whose `gate` job is listed, and none of whose
+  listed prelude or `<unit> / *` jobs is unfinished, is only re-judging, and is read
+  rather than waited on.
+  - Why it is sound: the jobs API lists a job only once it is queued, and `gate` needs
+    every unit and `pr-contract`, so a listed `gate` means every unit of that attempt
+    has finished.
+  - The second clause covers a person's "re-run failed jobs", where a unit job
+    re-runs beside the gate: that run is still adding a source and is waited on.
+  - Two re-judgements therefore read the same completed sources and give the same
+    answer, so neither can defer on the other.
+  - The review's other option (the sweep re-runs one gate at a time) was not taken: it
+    chains on a `workflow_run` per attempt, which is itself unmeasured, and still
+    leaves `refresh` racing the sweep.
+- **Re-scored** over 41 scenarios (revision 1's 22, the review's 12, X5, R8, S, S2) ×
+  three readings × both arms of "a re-run attempt's green completion fires the sweep
+  again" (`chain`, `nochain`; unmeasured).
+- **The attempt bound** (DESIGN-P2.md 4.3, 5, R-7).
+  - Each later run at a head adds at most two attempts to every older run there: one
+    from its `refresh`, one from the sweep its green gate fires. A chained sweep adds
+    none once the re-judgements agree, because it re-runs only completed red gates.
+  - So a run's attempts are at most `1 + 2 × (later runs at its head)`. Scenario S (20
+    edits at one head) reaches exactly 41. The 22 measured heads had at most 2 verdict
+    events each (`verdict_wait.txt`), so a run there reaches at most 5.
+  - GitHub fails the 51st attempt. `gate.py`'s hooks stop before it, and the last
+    attempts are `refresh`'s: the sweep never takes a run to attempt 45 and `refresh`
+    never past it. An exhausted run is therefore left red (fail closed: a push resets
+    it), never stale-green, and the hook prints the run and "push a new commit".
+  - S2 (25 edits) shows the cap: the run stops at 44. Newest-created and
+    newest-completed agree with the oracle. Every-suite is red, as designed, with no
+    false green.
+
+**Evidence** (`gate_sim.txt`, `gate_replay2.txt`):
+- **Revision 2, both arms: 41 of 41.**
+  - All 34 unplanted scenarios agree with the oracle under all three readings.
+  - All 6 plants are refused under all three readings.
+  - S2 ends as designed.
+  - The longest false-green window is 25 s, against revision 1's claimed 11 s. The
+    11 s was the double-finish artefact; the real figure is `refresh`'s 10 s plus
+    the gate job's 15 s.
+- **Revision 1 as written:** fails X1, X3, R4-R6 and X5 on the mutual defer, as well
+  as C, R1 and R7 (N1) and S, S2; 30 of 41 in all.
+- **Null controls:**
+  - revision 2 with revision 1's defer rule (`judging` ablation) agrees on 22 of 34
+    under each reading;
+  - without the sweep, every-suite agrees on 16 of 34;
+  - without `refresh`, the false-green window is 2048 s.
+  - So each element is load-bearing.
+- **`gate_replay2.py`: 32 of 32 rows `ok`.** Four new `rev2:` rows: a re-judging run
+  is read (pass on green units, FAIL on red ones); a run re-running a unit job, or not
+  yet at its gate, is waited on.
+- **Revision 1's claims that rested on the artefact are corrected in DESIGN-P2.md:**
+  "16/16 under each reading" (now 34/34 in revision 2) and the sweep ablation (9/16,
+  now 16/34).
+
+## Round-2 item 5
+
+**The review:** P2:545-546 polled `code-scanning/analyses?ref=<PR ref>&sha=<head>`. That
+endpoint has no `sha` parameter, and a PR's analyses are recorded on
+`refs/pull/<N>/merge` at the test merge commit. So the wait was satisfied by an
+earlier head's analysis, or never matched. On an edit run the SHA to match is the
+carried run's `github.sha`, and `check_writers.py` timed the check against job ends,
+not against listable analyses. Required: wait on the `CodeQL` check run (completed,
+`completed_at` after the newest `Analyze (*)` job's completion), or key the analyses
+query correctly and measure the lag from analysis to check in U6.
+
+**Measured first, which decided the choice** (`python3 -I measure/rev/codescan_lag.py
+measure/p2/raw`, `codescan_lag.txt`):
+- The code-scanning check concludes **5 to 8 s before the first uploading leg's job
+  ends**, at 17 of 17 heads. Its `completed_at` then does not move: it is earlier than
+  the last uploading leg's end at 17 of 17 heads, by up to 1561 s.
+- At the 5 heads where no leg uploaded (stand-downs, a cancelled run) there is no such
+  check.
+- The review's first option holds at **0 of 17** heads. As specified it would time out
+  and fail every `pr-contract` closed.
+
+**What changed** (DESIGN-P2.md 4.3, the wait in six steps):
+- **Keyed analyses query.**
+  - The source run S of the `codeql` unit (this run, or the code run 4.1 carries) and
+    the legs it uploaded (its "Perform CodeQL Analysis" steps that succeeded).
+  - The commit `M` is S's `github.sha`. The ref `R` is `refs/pull/<N>/merge` for a
+    `pull_request` S, else `refs/heads/<head_branch>`.
+  - Poll `analyses?ref=R&tool_name=CodeQL` until each uploaded leg has an entry with
+    `category == "/language:<leg>"` and `commit_sha == M`.
+  - No `sha=` query parameter is used anywhere, and `entities.py` pins that (section 9).
+- **The forced change: `run-name` gains `sha=${{ github.sha }}`** (2.2).
+  - No API returns a past run's `github.sha`: the runs API's `head_sha` is the PR head,
+    not the test merge. So the carried case has no other exact key.
+  - `gate_model.title`/`parse_title` take the fifth token. The gate does not read it.
+  - `gate_replay2.txt` and `gate_sim.txt` re-ran byte-identical across that change.
+- **Then the check, plus a measured delay.**
+  - The `CodeQL` check of app `github-advanced-security` at the head must be completed.
+  - Then the step waits until the newest matched analysis's `created_at` plus
+    `LAG_MAX` has passed. A delay is used because no field of the check says it has
+    absorbed a later analysis.
+  - `LAG_MAX` is U6's measurement: python-only planted finding, 5 s polls of both the
+    analyses list and the check over at least 3 pushes, twice the largest lag seen,
+    at least 30 s.
+  - The step still fails closed after 10 minutes, and the caller gains `actions: read`.
+- **R-10, new.** If U6 finds the check never reflects an analysis that lands after
+  the first, a red only the python leg finds reaches no red list. That is true of
+  today's tree too. The remedy changes what `pr-contract` enforces, which is the
+  owner's call.
+
+**Evidence:** `codescan_lag.txt` (above). The lag from analysis to check cannot be
+measured from saved data: the code-scanning API was not among the reads available to
+this seat, so U6 measures it, as the review asked.
+
+## Round-2 item N3
+
+**The review:** `unitcheck2.py`'s static half compares step rows as sets, so swapping
+two `coverage` steps (Q1) or moving the restore step to the job's end (Q1b) passed
+with rc 0. Required: hash the ordered list of step keys into each job row, and add Q1
+to the self-test.
+
+**What changed** (`measure/rev/unitcheck2.py`; DESIGN-P1.md 4, DESIGN-P2.md 10):
+- **Each job gets a `<job>|order` row**: the ordered list of the step keys both sides
+  keep, after the map's renames and less its drops and gains.
+- **Why a row of its own, not a hash inside the job row:** inside the job row, every
+  admitted step drop or gain would change the job row too. The map would then have to
+  admit the whole job row as `changed`, which would also let through an unrelated edit
+  to its `if:` or grant. As a row of its own it moves only on a real reordering, and
+  the map admits a reordering by naming `<job>|order`.
+- **An unmapped change prints the first differing position.**
+- **`DESIGN-P1.md` section 4 changes** because it describes the instrument and its
+  self-test count. This is forced; nothing else in P1 changes.
+
+**Evidence:** `unitcheck2_selftest.txt`, `SELF-TEST ok (16/16)`:
+- Q1 (the review's swap of "Key the per-script coverage" and "Restore the base's
+  per-script coverage") is refused;
+- Q1b (the restore step moved to the end) is refused;
+- Q1c (the same swap admitted as `coverage|order`) passes and is printed;
+- Q1d (a mapped step drop leaves the kept order unchanged) passes;
+- revision 1's 12 cases are unchanged.
+
+The review's own `tools/plant_unitcheck2.py`, run against revision 2's instrument
+(`n3_review_plants.txt`), gives Q1 rc 1, Q1b rc 1, its control Q2 rc 1 and the null
+rc 0.
+
+## Round-2 item N4
+
+**The review:** under the naming rule the contract's check is `pr-contract /
+pr-contract`. Two keyed readers of the old name were missing from section 9:
+- `tools/pr/prepr.sh:935-938`, `REDS_JQ`, which excludes only `.name !=
+  "pr-contract"`;
+- `tests/entities.py:25883-25893`, `_PC_EXCLUSION`, which pins that substring and
+  would keep passing on an exclusion that excludes nothing.
+
+**What changed** (DESIGN-P2.md 9, R-9):
+- **Two new rows.** `prepr.sh`'s `REDS_JQ` takes the same filter as `pr-contract.yml`:
+  `select(.name != "pr-contract / pr-contract" and .name != "gate")`. The
+  `_PC_EXCLUSION` pin checks both strings in `pr-contract.yml`'s `pr-contract` job and
+  in `REDS_JQ`.
+- **The `pr-contract.yml` row** now states the exact filter and cites its line (:253).
+- **R-9** names all three exclusions.
+
+**Evidence:** read at `89e33859`:
+- `prepr.sh:935-938` is the `REDS_JQ` definition, and `:967` is its one use;
+- `entities.py:25884` is `_PC_EXCLUSION = '.name != "pr-contract"'`, checked at
+  :25885-25893;
+- `.github/workflows/pr-contract.yml:253` is the third and last occurrence of that
+  string under `.github`, `tools` and `tests`.
+
+## Revision 2's instruments, re-run here
+
+| file | command | result |
+|---|---|---|
+| `measure/rev/gate_model.py` | imported by the two below | `judging` (N2); `title`/`parse_title` with `sha=` (item 5) |
+| `measure/rev/gate_sim.py` | `python3 -I measure/rev/gate_sim.py` | `GATE-SIM rc 0`; REV2 41/41 both arms; REV1 30/41 |
+| `measure/rev/gate_replay2.py` | `python3 -I measure/rev/gate_replay2.py measure/p2/raw measure/rev/reaches_cc.txt` | `GATE-REPLAY2 rc 0`; 32/32; history 22/22 unchanged |
+| `measure/rev/unitcheck2.py` | `… self-test measure/rev/fixtures/tests.yml measure/p1/raw 39158300302` | `SELF-TEST ok (16/16)` |
+| `measure/rev/n3_review_plants.txt` | the round-2 seat's `python3 -I tools/plant_unitcheck2.py <this ref>/measure/rev/unitcheck2.py <this ref>/measure/rev/fixtures/tests.yml` | Q1, Q1b, Q2 refused; null 0 |
+| `measure/rev/codescan_lag.py` | `python3 -I measure/rev/codescan_lag.py measure/p2/raw` | option 1 holds at 0 of 17 heads |
+
+The round-2 seat's `rerun_concurrency_sim.py` and `rerun_status_fix.py` subclass
+revision 1's `gate_sim.World` internals (`rerun_at`, the old `hooks`), so they do not
+run against the rewritten simulator. Their rules and scenarios are inside it, by name.
+
+## Still unmeasured after revision 2
+
+These are added to the list above:
+- **M-5:** does a re-run attempt join its run's group on `ci.yml`? The design no longer
+  depends on the answer.
+- **Does a re-run attempt's completion fire `workflow_run`?** Scored both ways.
+- **U6's `LAG_MAX`:** whether, and how fast, the code-scanning check reflects an
+  analysis that lands after the first (R-10).

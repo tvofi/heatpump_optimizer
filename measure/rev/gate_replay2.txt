@@ -51,6 +51,10 @@ heads 22: agree 22, differ by design 0, differ otherwise 0
   ok  edit run: a newer code run was cancelled pending, its replacement still running            gate FAIL  run(s) [1700] at this head are still being judged; their gate decides
   ok  ... and the replacement completed red: the newest evaluation wins                          gate FAIL  tests / closures: failure (run 1700)
   ok  ... and the replacement completed green                                                    gate pass  
+  ok  rev2: the code run is only re-judging (its gate attempt listed, every unit job done): not waited on gate pass  
+  ok  rev2: ... the same, its units red: not waited on, and its red units are read               gate FAIL  tests / closures: failure (run 1500)
+  ok  rev2: ... a unit job re-running beside the listed gate (re-run failed jobs): deferred      gate FAIL  run(s) [1500] at this head are still being judged; their gate decides
+  ok  rev2: ... the run is in progress and its gate is not listed yet: deferred                  gate FAIL  run(s) [1500] at this head are still being judged; their gate decides
   ok  edit run: an earlier run at the head has an unreadable title                               gate FAIL  run 1600: unreadable title 'Tests'
   ok  edit run: a held run at the head is neither waited for nor a source                        gate pass  
   ok  code run: hassfest skipped in the NEWEST run that owns it: never filled from an older one (12(c)) gate FAIL  hassfest / hassfest: SKIPPED (this run)

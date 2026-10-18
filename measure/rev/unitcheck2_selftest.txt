@@ -1,8 +1,8 @@
 null: the file against itself:
-  STATIC rows 220->220 lost 0 gained 0 changed 0 (mapped 0) rc 0
+  STATIC rows 247->247 lost 0 gained 0 changed 0 (mapped 0) rc 0
   -> ok (want rc 0)
 null: re-serialised (job order reversed, keys re-inserted):
-  STATIC rows 220->220 lost 0 gained 0 changed 0 (mapped 0) rc 0
+  STATIC rows 247->247 lost 0 gained 0 changed 0 (mapped 0) rc 0
   -> ok (want rc 0)
 P1 (review): job closures-autofix deleted:
   LOST     closures-autofix|
@@ -12,9 +12,10 @@ P1 (review): job closures-autofix deleted:
   LOST     closures-autofix|Push the merged closures
   LOST     closures-autofix|Report whether the repair happened
   LOST     closures-autofix|Restore the programs this job runs from the base commit
+  LOST     closures-autofix|order
   LOST     closures-autofix|uses:actions/checkout@<sha>
   LOST     closures-autofix|uses:actions/setup-python@<sha>
-  STATIC rows 220->211 lost 9 gained 0 changed 0 (mapped 0) rc 1
+  STATIC rows 247->237 lost 10 gained 0 changed 0 (mapped 0) rc 1
   -> ok (want rc 1)
 P2 (review): every conditional step of fast deleted (13 steps before):
   LOST     fast|Decide the gate scope
@@ -29,35 +30,54 @@ P2 (review): every conditional step of fast deleted (13 steps before):
   LOST     fast|uses:actions/checkout@<sha>
   LOST     fast|uses:actions/setup-node@<sha>
   LOST     fast|uses:actions/setup-python@<sha>
-  STATIC rows 220->208 lost 12 gained 0 changed 0 (mapped 0) rc 1
+  STATIC rows 247->235 lost 12 gained 0 changed 0 (mapped 0) rc 1
   -> ok (want rc 1)
 P3 (review): a closures step's body gutted under its old name:
   CHANGED  closures|Install pinned test dependencies  d3e1fbc9cb90 -> 80d4e7c6991d
-  STATIC rows 220->220 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
   -> ok (want rc 1)
 P4: a job's if: changed (browser runs on every event):
   CHANGED  browser|  667b45f3959b -> 1eb7e23ec9e6
-  STATIC rows 220->220 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
   -> ok (want rc 1)
 P5: a job's grant widened (nightly-status gets contents: write):
   CHANGED  nightly-status|  a4178943dcaf -> b16dbd3bc319
-  STATIC rows 220->220 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
   -> ok (want rc 1)
 P8: the top-level permission floor widened:
   CHANGED  |floor  b7f82fc3258e -> 49c43f081489
-  STATIC rows 220->220 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
   -> ok (want rc 1)
+Q1 (round 2): two coverage steps swapped ('Key the per-script coverage' <-> "Restore the base's per-script coverage"):
+  CHANGED  coverage|order  85858aa70889 -> fe12480e7962
+    first difference at step 2: before 'coverage|Key the per-script coverage', after "coverage|Restore the base's per-script coverage"
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  -> ok (want rc 1)
+Q1b (round 2): "Restore the base's per-script coverage" moved to the end of coverage:
+  CHANGED  coverage|order  85858aa70889 -> 413588da014f
+    first difference at step 3: before "coverage|Restore the base's per-script coverage", after "coverage|Check the restored coverage is main's push run's"
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  -> ok (want rc 1)
+Q1c: the Q1 swap admitted by the map as `coverage|order` passes and is printed:
+  CHANGED (mapped) coverage|order
+    before ["coverage|uses:actions/checkout@<sha>", "coverage|uses:actions/setup-python@<sha>", "coverage|Key the per-script coverage", "coverage|Restore the base's per-script coverage", "coverage|Check the restored coverage is main's push run's", "coverage|Install pinned test dependencies", "coverage|Install 
+    after  ["coverage|uses:actions/checkout@<sha>", "coverage|uses:actions/setup-python@<sha>", "coverage|Restore the base's per-script coverage", "coverage|Key the per-script coverage", "coverage|Check the restored coverage is main's push run's", "coverage|Install pinned test dependencies", "coverage|Install 
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 1) rc 0
+  -> ok (want rc 0)
+Q1d: a step dropped by the map leaves the kept steps' order unchanged:
+  STATIC rows 246->246 lost 0 gained 0 changed 0 (mapped 0) rc 0
+  -> ok (want rc 0)
 P6: a dropped job admitted by the map is not a defect:
-  STATIC rows 211->211 lost 0 gained 0 changed 0 (mapped 0) rc 0
+  STATIC rows 237->237 lost 0 gained 0 changed 0 (mapped 0) rc 0
   -> ok (want rc 0)
 P7: a gutted step admitted only as `changed` passes and is printed:
   CHANGED (mapped) closures|Install pinned test dependencies
     before {"if": "env.DOCS_ONLY_FAST != 'true'", "run": "pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt"}
     after  {"if": "env.DOCS_ONLY_FAST != 'true'", "run": "true"}
-  STATIC rows 220->220 lost 0 gained 0 changed 1 (mapped 1) rc 0
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 1) rc 0
   -> ok (want rc 0)
 runtime half: UNREAD permission headers refuse (exit 2)
   REFUSE   permission header UNREAD for: briefs, browser, closure-scope, closures, coverage, coverage-ratchet, fast (3.14), mutation, nightly-ha (2025.2.0), nightly-ha (stable), recheck-gate, typing
 runtime half: a dispatch BEFORE against a pull_request AFTER refuses (exit 2)
   REFUSE   event/sender: before [('workflow_dispatch', 'actions-bot')] after [('pull_request', 'app')] (each pair must match; P1 section 4)
-SELF-TEST ok (12/12)
+SELF-TEST ok (16/16)

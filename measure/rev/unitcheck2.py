@@ -12,7 +12,11 @@ its `if`, `needs`, `permissions`, `environment`, `strategy`, `outputs`, `runs-on
 `continue-on-error`, `concurrency` and `name`; and one row per step, keyed
 `<job>|<step name>` (an unnamed step: `run:<first line>` or `uses:<action>`; a
 repeated key gets `#2`, `#3`), hashing its `run`, `uses`, `with`, `if`, `env`,
-`shell`, `working-directory`, `id`, `continue-on-error` and `timeout-minutes`. It
+`shell`, `working-directory`, `id`, `continue-on-error` and `timeout-minutes`; and,
+revision 2 (round-2 item N3), one `<job>|order` row: the ORDERED list of the step
+keys both sides keep (after the map's renames, less its drops and gains), so a guard
+moved after what it guards, or a restore moved after the program it restores, is
+refused while an admitted drop or gain moves only its own row. It
 sees every step whether or not any run executed it: a deleted job, a deleted step
 that BEFORE skipped, and a body gutted under its old name all move it (the three
 plants the review seat put past phase 2's unitcheck). MAP.json is the closed list
@@ -30,8 +34,8 @@ never a match; and the two runs must have the same event and sender class
 (phase 1's own rule, P1 section 4), read from any saved runs listing in RAW, or it
 is exit 2.
 
-SELF-TEST plants, into a copy of BEFORE.yml, the review's three defects and three
-more, and shows the static half refusing each while the null and a key-order
+SELF-TEST plants, into a copy of BEFORE.yml, the review's three defects, three
+more, and round 2's step-order plants (Q1, Q1b; with their mapped and dropped nulls), and shows the static half refusing each while the null and a key-order
 reserialisation pass; then shows the runtime half refusing UNREAD and an event
 mismatch.
 """
@@ -85,6 +89,8 @@ def rows(doc: dict) -> dict[str, tuple[str, dict]]:
     for jid, job in (doc.get("jobs") or {}).items():
         body = {k: job.get(k) for k in JOB_KEYS if k in job}
         out[f"{jid}|"] = (h(body), body)
+        order: list[str] = []
+        out[f"{jid}|order"] = (h(order), order)          # filled below; static() compares the kept steps' order
         seen: dict[str, int] = {}
         for st in job.get("steps") or []:
             name = st.get("name") or (f"run:{str(st['run']).strip().splitlines()[0]}" if "run" in st
@@ -94,13 +100,28 @@ def rows(doc: dict) -> dict[str, tuple[str, dict]]:
             key = f"{jid}|{name}" + (f"#{seen[name]}" if seen[name] > 1 else "")
             body = {k: st.get(k) for k in STEP_KEYS if k in st}
             out[key] = (h(body), body)
+            order.append(key)
+        out[f"{jid}|order"] = (h(order), order)
     return out
 
 
 def static(before: dict, after: dict, m: dict, quiet=False) -> int:
     b, a = rows(before), rows(after)
     ren = m.get("renames", {})
-    b = {ren.get(k, k): v for k, v in b.items() if k not in set(m.get("dropped", []))}
+    dropped = set(m.get("dropped", []))
+    b = {ren.get(k, k): v for k, v in b.items() if k not in dropped}
+    for k, (hb, ob) in list(b.items()):                  # N3: the order of the steps both sides keep
+        if not k.endswith("|order"):
+            continue
+        new = ren.get(k[:-len("order")], k[:-len("order")]) + "order"
+        del b[k]
+        if new not in a:
+            b[new] = (hb, ob)
+            continue
+        kept = [ren.get(x, x) for x in ob if x not in dropped]
+        common = set(kept) & set(a[new][1])
+        sb, sa = [x for x in kept if x in common], [x for x in a[new][1] if x in common]
+        b[new], a = (h(sb), sb), {**a, new: (h(sa), sa)}
     rc = 0
     lost = sorted(set(b) - set(a))
     gained = sorted(k for k in set(a) - set(b) if k not in set(m.get("gained", [])))
@@ -116,6 +137,9 @@ def static(before: dict, after: dict, m: dict, quiet=False) -> int:
                            f"    after  {json.dumps(a[k][1], sort_keys=True)[:300]}")
         else:
             rc = 1; quiet or print(f"  CHANGED  {k}  {b[k][0]} -> {a[k][0]}")
+            if k.endswith("|order") and not quiet:
+                i = next(i for i, (x, y) in enumerate(zip(b[k][1], a[k][1])) if x != y)
+                print(f"    first difference at step {i}: before {b[k][1][i]!r}, after {a[k][1][i]!r}")
     print(f"  STATIC rows {len(b)}->{len(a)} lost {len(lost)} gained {len(gained)} "
           f"changed {len(changed)} (mapped {len(set(changed) & admitted)}) rc {rc}")
     return rc
@@ -232,11 +256,32 @@ def self_test(before_yml: Path, raw: Path, run_id: str) -> int:
     plant("P5: a job's grant widened (nightly-status gets contents: write)",
           lambda A: A["jobs"]["nightly-status"].setdefault("permissions", {}).update({"contents": "write"}), 1)
     plant("P8: the top-level permission floor widened", lambda A: A.update({"permissions": {"contents": "write"}}), 1)
+    def swap(job, i):
+        def f(A):
+            st = A["jobs"][job]["steps"]
+            st[i - 1], st[i] = st[i], st[i - 1]
+        return f
+
+    def to_end(job, i):
+        def f(A):
+            st = A["jobs"][job]["steps"]
+            st.append(st.pop(i))
+        return f
+
+    cov = B["jobs"]["coverage"]["steps"]
+    plant(f"Q1 (round 2): two coverage steps swapped ({cov[2].get('name')!r} <-> {cov[3].get('name')!r})",
+          swap("coverage", 3), 1)
+    plant(f"Q1b (round 2): {cov[3].get('name')!r} moved to the end of coverage", to_end("coverage", 3), 1)
+    plant("Q1c: the Q1 swap admitted by the map as `coverage|order` passes and is printed", swap("coverage", 3), 0,
+          {"changed": ["coverage|order"]})
+    plant("Q1d: a step dropped by the map leaves the kept steps' order unchanged",
+          lambda A: A["jobs"]["coverage"]["steps"].pop(2), 0,
+          {"dropped": [f"coverage|{cov[2]['name']}"]})
     plant("P6: a dropped job admitted by the map is not a defect", del_job("closures-autofix"), 0,
           {"dropped": [k for k in rows(B) if k.startswith("closures-autofix|")]})
     plant("P7: a gutted step admitted only as `changed` passes and is printed",
           gut("closures", first_run("closures")), 0,
-          {"changed": [next(k for k in rows(B) if k.startswith("closures|") and not k.endswith("|")
+          {"changed": [next(k for k in rows(B) if k.startswith("closures|") and not k.endswith(("|", "|order"))
                             and rows(B)[k][1].get("run"))]})
     print("runtime half: UNREAD permission headers refuse (exit 2)")
     rc_u = runtime(raw, run_id, run_id, set(), logs_b={}, logs_a={}, meta=([("x", "y")], [("x", "y")]))

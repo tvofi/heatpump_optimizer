@@ -1,51 +1,182 @@
-scenario                                                                     layout oracle newest-created newest-completed every-suite false-green s
-A  null: open, all green                                                     P2     pass   pass           pass             pass                    0
-A  null: open, all green                                                     REV1   pass   pass           pass             pass                    0  ok
-B  planted: prelude emits pr='' on a pull_request run                        P2     FAIL   pass           pass             pass                    0
-B  planted: prelude emits pr='' on a pull_request run                        REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (prelude says kind=code pr='', the event says kind=code pr='7')
-B2 planted: prelude concludes failure                                        P2     FAIL   pass           pass             pass                    0
-B2 planted: prelude concludes failure                                        REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (prelude: failure)
-B3 planted: prelude says kind=edit on a synchronize                          P2     FAIL   pass           pass             pass                    0
-B3 planted: prelude says kind=edit on a synchronize                          REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (prelude says kind=edit pr='7', the event says kind=code pr='7')
-B4 planted: a required unit given if:false on a code run                     P2     FAIL   pass           pass             pass                    0
-B4 planted: a required unit given if:false on a code run                     REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (hassfest / hassfest: SKIPPED (this run))
-C  retarget runs to completion, code green at the new base                   P2     pass   FAIL           FAIL             FAIL                    0
-C  retarget runs to completion, code green at the new base                   REV1   pass   pass           pass             pass                    0  ok
-C2 retarget, code RED at the new base                                        P2     FAIL   FAIL           FAIL             FAIL                 2048
-C2 retarget, code RED at the new base                                        REV1   FAIL   FAIL           FAIL             FAIL                   11  ok
-D  retarget queued behind a running code run, then a body edit (case D)      P2     FAIL   pass           pass             pass                 6952
-D  retarget queued behind a running code run, then a body edit (case D)      REV1   FAIL   FAIL           FAIL             FAIL                    0  ok
-D2 an edit's run is waiting when a retarget lands at the same head           P2     FAIL   FAIL           FAIL             FAIL                 2048
-D2 an edit's run is waiting when a retarget lands at the same head           REV1   FAIL   FAIL           FAIL             FAIL                    0  ok
-D3 the same, code green at the new base                                      P2     pass   FAIL           FAIL             FAIL                    0
-D3 the same, code green at the new base                                      REV1   pass   pass           pass             pass                    0  ok
-E  push while the old head runs, edit 2 s later (case E)                     P2     pass   FAIL           FAIL             FAIL                    0
-E  push while the old head runs, edit 2 s later (case E)                     REV1   pass   pass           pass             pass                    0  ok
-F  budget raise: red until the owner approves                                P2     pass   pass           pass             FAIL                    0
-F  budget raise: red until the owner approves                                REV1   pass   pass           pass             pass                    0  ok
-F2 approval arrives while the code run is in flight                          P2     pass   pass           pass             FAIL                    0
-F2 approval arrives while the code run is in flight                          REV1   pass   pass           pass             pass                    0  ok
-G  approval then dismissal                                                   P2     FAIL   FAIL           FAIL             FAIL                  108
-G  approval then dismissal                                                   REV1   FAIL   FAIL           FAIL             FAIL                   11  ok
-H  edit that breaks the contract, then a review 1 s later                    P2     FAIL   FAIL           FAIL             FAIL                  108
-H  edit that breaks the contract, then a review 1 s later                    REV1   FAIL   FAIL           FAIL             FAIL                   11  ok
-H2 two edits 1 s apart while code runs, the second fixes the body            P2     pass   pass           pass             pass                    0
-H2 two edits 1 s apart while code runs, the second fixes the body            REV1   pass   pass           pass             pass                    0  ok
-H3 two edits 1 s apart while code runs, the second breaks the body           P2     FAIL   FAIL           FAIL             FAIL                    0
-H3 two edits 1 s apart while code runs, the second breaks the body           REV1   FAIL   FAIL           FAIL             FAIL                    0  ok
-I  bot head: held pull_request run + dispatch -f pr -f base                  P2     pass   pass           pass             pass                    0
-I  bot head: held pull_request run + dispatch -f pr -f base                  REV1   pass   pass           pass             pass                    0  ok
-I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           P2     FAIL   pass           pass             pass                    0
-I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (this SHA heads an open PR: dispatch with -f pr=N -f base=REF)
-I3 bot head: dispatch names the wrong base                                   P2     FAIL   pass           pass             pass                    0
-I3 bot head: dispatch names the wrong base                                   REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (tests: no run at this head judged base 'main')
-I4 bot head, then a body edit carried onto the dispatch run                  P2     pass   pass           pass             pass                    0
-I4 bot head, then a body edit carried onto the dispatch run                  REV1   pass   pass           pass             pass                    0  ok
-K  D-2: arch-score red, diff misses custom_components/                       P2     pass   pass           pass             pass                    0
-K  D-2: arch-score red, diff misses custom_components/                       REV1   pass   pass           pass             pass                    0  ok
+scenario                                                                     layout      oracle newest-created newest-completed every-suite false-green s attempts
+A  null: open, all green                                                     P2          pass   pass           pass             pass                    0        1
+A  null: open, all green                                                     REV1/chain  pass   pass           pass             pass                    0        1  ok
+A  null: open, all green                                                     REV2/chain  pass   pass           pass             pass                    0        1  ok
+A  null: open, all green                                                     REV2/nochain pass   pass           pass             pass                    0        1  ok
+B  planted: prelude emits pr='' on a pull_request run                        P2          FAIL   pass           pass             pass                    0        1
+B  planted: prelude emits pr='' on a pull_request run                        REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude says kind=code pr='', the event says kind=code pr='7')
+B  planted: prelude emits pr='' on a pull_request run                        REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude says kind=code pr='', the event says kind=code pr='7')
+B  planted: prelude emits pr='' on a pull_request run                        REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude says kind=code pr='', the event says kind=code pr='7')
+B2 planted: prelude concludes failure                                        P2          FAIL   pass           pass             pass                    0        1
+B2 planted: prelude concludes failure                                        REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude: failure)
+B2 planted: prelude concludes failure                                        REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude: failure)
+B2 planted: prelude concludes failure                                        REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude: failure)
+B3 planted: prelude says kind=edit on a synchronize                          P2          FAIL   pass           pass             pass                    0        1
+B3 planted: prelude says kind=edit on a synchronize                          REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude says kind=edit pr='7', the event says kind=code pr='7')
+B3 planted: prelude says kind=edit on a synchronize                          REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude says kind=edit pr='7', the event says kind=code pr='7')
+B3 planted: prelude says kind=edit on a synchronize                          REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok  (prelude says kind=edit pr='7', the event says kind=code pr='7')
+B4 planted: a required unit given if:false on a code run                     P2          FAIL   pass           pass             pass                    0        1
+B4 planted: a required unit given if:false on a code run                     REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (hassfest / hassfest: SKIPPED (this run))
+B4 planted: a required unit given if:false on a code run                     REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (hassfest / hassfest: SKIPPED (this run))
+B4 planted: a required unit given if:false on a code run                     REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok  (hassfest / hassfest: SKIPPED (this run))
+C  retarget runs to completion, code green at the new base                   P2          pass   FAIL           FAIL             FAIL                    0        1
+C  retarget runs to completion, code green at the new base                   REV1/chain  pass   FAIL           FAIL             FAIL                    0        2  BAD  (tests / fast (3.14): cancelled (run 102))  [re-run of 101 cancels 102]
+C  retarget runs to completion, code green at the new base                   REV2/chain  pass   pass           pass             pass                    0        3  ok
+C  retarget runs to completion, code green at the new base                   REV2/nochain pass   pass           pass             pass                    0        3  ok
+C2 retarget, code RED at the new base                                        P2          FAIL   FAIL           FAIL             FAIL                 2048        1
+C2 retarget, code RED at the new base                                        REV1/chain  FAIL   FAIL           FAIL             FAIL                   25        2  ok  [re-run of 101 cancels 102]
+C2 retarget, code RED at the new base                                        REV2/chain  FAIL   FAIL           FAIL             FAIL                   25        2  ok
+C2 retarget, code RED at the new base                                        REV2/nochain FAIL   FAIL           FAIL             FAIL                   25        2  ok
+D  retarget queued behind a running code run, then a body edit (case D)      P2          FAIL   pass           pass             pass                 6952        1
+D  retarget queued behind a running code run, then a body edit (case D)      REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok
+D  retarget queued behind a running code run, then a body edit (case D)      REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok
+D  retarget queued behind a running code run, then a body edit (case D)      REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok
+D2 an edit's run is waiting when a retarget lands at the same head           P2          FAIL   FAIL           FAIL             FAIL                 2049        1
+D2 an edit's run is waiting when a retarget lands at the same head           REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok
+D2 an edit's run is waiting when a retarget lands at the same head           REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok
+D2 an edit's run is waiting when a retarget lands at the same head           REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok
+D3 the same, code green at the new base                                      P2          pass   FAIL           FAIL             FAIL                    0        1
+D3 the same, code green at the new base                                      REV1/chain  pass   pass           pass             pass                    0        2  ok
+D3 the same, code green at the new base                                      REV2/chain  pass   pass           pass             pass                    0        2  ok
+D3 the same, code green at the new base                                      REV2/nochain pass   pass           pass             pass                    0        2  ok
+E  push while the old head runs, edit 2 s later (case E)                     P2          pass   FAIL           FAIL             FAIL                    0        1
+E  push while the old head runs, edit 2 s later (case E)                     REV1/chain  pass   pass           pass             pass                    0        2  ok
+E  push while the old head runs, edit 2 s later (case E)                     REV2/chain  pass   pass           pass             pass                    0        2  ok
+E  push while the old head runs, edit 2 s later (case E)                     REV2/nochain pass   pass           pass             pass                    0        2  ok
+F  budget raise: red until the owner approves                                P2          pass   pass           pass             FAIL                    0        1
+F  budget raise: red until the owner approves                                REV1/chain  pass   pass           pass             pass                    0        2  ok
+F  budget raise: red until the owner approves                                REV2/chain  pass   pass           pass             pass                    0        2  ok
+F  budget raise: red until the owner approves                                REV2/nochain pass   pass           pass             pass                    0        2  ok
+F2 approval arrives while the code run is in flight                          P2          pass   pass           pass             FAIL                    0        1
+F2 approval arrives while the code run is in flight                          REV1/chain  pass   pass           pass             pass                    0        2  ok
+F2 approval arrives while the code run is in flight                          REV2/chain  pass   pass           pass             pass                    0        2  ok
+F2 approval arrives while the code run is in flight                          REV2/nochain pass   pass           pass             pass                    0        2  ok
+G  approval then dismissal                                                   P2          FAIL   FAIL           FAIL             FAIL                  109        1
+G  approval then dismissal                                                   REV1/chain  FAIL   FAIL           FAIL             FAIL                   25        3  ok  [re-run of 102 cancels 103]
+G  approval then dismissal                                                   REV2/chain  FAIL   FAIL           FAIL             FAIL                   25        3  ok
+G  approval then dismissal                                                   REV2/nochain FAIL   FAIL           FAIL             FAIL                   25        3  ok
+H  edit that breaks the contract, then a review 1 s later                    P2          FAIL   FAIL           FAIL             FAIL                  108        1
+H  edit that breaks the contract, then a review 1 s later                    REV1/chain  FAIL   FAIL           FAIL             FAIL                   25        2  ok
+H  edit that breaks the contract, then a review 1 s later                    REV2/chain  FAIL   FAIL           FAIL             FAIL                   25        2  ok
+H  edit that breaks the contract, then a review 1 s later                    REV2/nochain FAIL   FAIL           FAIL             FAIL                   25        2  ok
+H2 two edits 1 s apart while code runs, the second fixes the body            P2          pass   pass           pass             pass                    0        1
+H2 two edits 1 s apart while code runs, the second fixes the body            REV1/chain  pass   pass           pass             pass                    0        2  ok
+H2 two edits 1 s apart while code runs, the second fixes the body            REV2/chain  pass   pass           pass             pass                    0        2  ok
+H2 two edits 1 s apart while code runs, the second fixes the body            REV2/nochain pass   pass           pass             pass                    0        2  ok
+H3 two edits 1 s apart while code runs, the second breaks the body           P2          FAIL   FAIL           FAIL             FAIL                    0        1
+H3 two edits 1 s apart while code runs, the second breaks the body           REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok
+H3 two edits 1 s apart while code runs, the second breaks the body           REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok
+H3 two edits 1 s apart while code runs, the second breaks the body           REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok
+I  bot head: held pull_request run + dispatch -f pr -f base                  P2          pass   pass           pass             pass                    0        1
+I  bot head: held pull_request run + dispatch -f pr -f base                  REV1/chain  pass   pass           pass             pass                    0        1  ok
+I  bot head: held pull_request run + dispatch -f pr -f base                  REV2/chain  pass   pass           pass             pass                    0        1  ok
+I  bot head: held pull_request run + dispatch -f pr -f base                  REV2/nochain pass   pass           pass             pass                    0        1  ok
+I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           P2          FAIL   pass           pass             pass                    0        1
+I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (this SHA heads an open PR: dispatch with -f pr=N -f base=REF)
+I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (this SHA heads an open PR: dispatch with -f pr=N -f base=REF)
+I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok  (this SHA heads an open PR: dispatch with -f pr=N -f base=REF)
+I3 bot head: dispatch names the wrong base                                   P2          FAIL   pass           pass             pass                    0        1
+I3 bot head: dispatch names the wrong base                                   REV1/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (tests: no run at this head judged base 'main')
+I3 bot head: dispatch names the wrong base                                   REV2/chain  FAIL   FAIL           FAIL             FAIL                    0        1  ok  (tests: no run at this head judged base 'main')
+I3 bot head: dispatch names the wrong base                                   REV2/nochain FAIL   FAIL           FAIL             FAIL                    0        1  ok  (tests: no run at this head judged base 'main')
+I4 bot head, then a body edit carried onto the dispatch run                  P2          pass   pass           pass             pass                    0        1
+I4 bot head, then a body edit carried onto the dispatch run                  REV1/chain  pass   pass           pass             pass                    0        3  ok
+I4 bot head, then a body edit carried onto the dispatch run                  REV2/chain  pass   pass           pass             pass                    0        3  ok
+I4 bot head, then a body edit carried onto the dispatch run                  REV2/nochain pass   pass           pass             pass                    0        3  ok
+K  D-2: arch-score red, diff misses custom_components/                       P2          pass   pass           pass             pass                    0        1
+K  D-2: arch-score red, diff misses custom_components/                       REV1/chain  pass   pass           pass             pass                    0        1  ok
+K  D-2: arch-score red, diff misses custom_components/                       REV2/chain  pass   pass           pass             pass                    0        1  ok
+K  D-2: arch-score red, diff misses custom_components/                       REV2/nochain pass   pass           pass             pass                    0        1  ok
+R1 retarget after the code run is green (refresh re-runs C's gate)           P2          pass   FAIL           FAIL             FAIL                    0        1
+R1 retarget after the code run is green (refresh re-runs C's gate)           REV1/chain  pass   FAIL           FAIL             FAIL                    0        2  BAD  (tests / fast (3.14): cancelled (run 102))  [re-run of 101 cancels 102]
+R1 retarget after the code run is green (refresh re-runs C's gate)           REV2/chain  pass   pass           pass             pass                    0        3  ok
+R1 retarget after the code run is green (refresh re-runs C's gate)           REV2/nochain pass   pass           pass             pass                    0        3  ok
+R2 body edit after an earlier edit's gate is green, new body breaks the cont P2          FAIL   FAIL           FAIL             FAIL                  108        1
+R2 body edit after an earlier edit's gate is green, new body breaks the cont REV1/chain  FAIL   FAIL           FAIL             FAIL                   25        4  ok  [re-run of 102 cancels 103]
+R2 body edit after an earlier edit's gate is green, new body breaks the cont REV2/chain  FAIL   FAIL           FAIL             FAIL                   25        4  ok
+R2 body edit after an earlier edit's gate is green, new body breaks the cont REV2/nochain FAIL   FAIL           FAIL             FAIL                   25        4  ok
+R3 approval, then dismissal 300 s later (scenario G, spaced)                 P2          FAIL   FAIL           FAIL             FAIL                  108        1
+R3 approval, then dismissal 300 s later (scenario G, spaced)                 REV1/chain  FAIL   FAIL           FAIL             FAIL                   25        3  ok  [re-run of 102 cancels 103]
+R3 approval, then dismissal 300 s later (scenario G, spaced)                 REV2/chain  FAIL   FAIL           FAIL             FAIL                   25        3  ok
+R3 approval, then dismissal 300 s later (scenario G, spaced)                 REV2/nochain FAIL   FAIL           FAIL             FAIL                   25        3  ok
+R4 edit and review both land while the code run is in flight                 P2          pass   pass           pass             FAIL                    0        1
+R4 edit and review both land while the code run is in flight                 REV1/chain  pass   FAIL           FAIL             FAIL                    0        2  BAD  (run(s) [101] at this head are still being judged; their gate decides)
+R4 edit and review both land while the code run is in flight                 REV2/chain  pass   pass           pass             pass                    0        2  ok
+R4 edit and review both land while the code run is in flight                 REV2/nochain pass   pass           pass             pass                    0        2  ok
+R5 a body that breaks the contract, then an edit 300 s later that fixes it   P2          pass   pass           pass             FAIL                  108        1
+R5 a body that breaks the contract, then an edit 300 s later that fixes it   REV1/chain  pass   FAIL           FAIL             FAIL                   25        3  BAD  (run(s) [101] at this head are still being judged; their gate decides)
+R5 a body that breaks the contract, then an edit 300 s later that fixes it   REV2/chain  pass   pass           pass             pass                   25        3  ok
+R5 a body that breaks the contract, then an edit 300 s later that fixes it   REV2/nochain pass   pass           pass             pass                   25        3  ok
+R6 changes requested on a raise, then the owner approves 300 s later         P2          pass   pass           pass             FAIL                    0        1
+R6 changes requested on a raise, then the owner approves 300 s later         REV1/chain  pass   FAIL           FAIL             FAIL                    0        2  BAD  (run(s) [101] at this head are still being judged; their gate decides)
+R6 changes requested on a raise, then the owner approves 300 s later         REV2/chain  pass   pass           pass             pass                    0        2  ok
+R6 changes requested on a raise, then the owner approves 300 s later         REV2/nochain pass   pass           pass             pass                    0        2  ok
+R7 an approval, then a plain comment review 300 s later                      P2          pass   pass           pass             FAIL                    0        1
+R7 an approval, then a plain comment review 300 s later                      REV1/chain  pass   FAIL           FAIL             FAIL                    0        3  BAD  (run(s) [101] at this head are still being judged; their gate decides)  [re-run of 102 cancels 103]
+R7 an approval, then a plain comment review 300 s later                      REV2/chain  pass   pass           pass             pass                    0        4  ok
+R7 an approval, then a plain comment review 300 s later                      REV2/nochain pass   pass           pass             pass                    0        4  ok
+R8 a review lands during a retarget's code run (item 1's outside actor)      P2          pass   FAIL           FAIL             FAIL                    0        1
+R8 a review lands during a retarget's code run (item 1's outside actor)      REV1/chain  pass   pass           pass             pass                    0        3  ok  [re-run of 102 cancels 101]
+R8 a review lands during a retarget's code run (item 1's outside actor)      REV2/chain  pass   pass           pass             pass                    0        2  ok
+R8 a review lands during a retarget's code run (item 1's outside actor)      REV2/nochain pass   pass           pass             pass                    0        2  ok
+X1 edit and review 1 s apart, both during the code run                       P2          pass   pass           pass             FAIL                    0        1
+X1 edit and review 1 s apart, both during the code run                       REV1/chain  pass   FAIL           FAIL             FAIL                    0        2  BAD  (run(s) [101] at this head are still being judged; their gate decides)
+X1 edit and review 1 s apart, both during the code run                       REV2/chain  pass   pass           pass             pass                    0        2  ok
+X1 edit and review 1 s apart, both during the code run                       REV2/nochain pass   pass           pass             pass                    0        2  ok
+X3 edit, then review 600 s later, both during the code run                   P2          pass   pass           pass             FAIL                    0        1
+X3 edit, then review 600 s later, both during the code run                   REV1/chain  pass   FAIL           FAIL             FAIL                    0        2  BAD  (run(s) [101] at this head are still being judged; their gate decides)
+X3 edit, then review 600 s later, both during the code run                   REV2/chain  pass   pass           pass             pass                    0        2  ok
+X3 edit, then review 600 s later, both during the code run                   REV2/nochain pass   pass           pass             pass                    0        2  ok
+X4 two reviews 600 s apart during the code run (approve, approve)            P2          pass   pass           pass             FAIL                    0        1
+X4 two reviews 600 s apart during the code run (approve, approve)            REV1/chain  pass   pass           pass             pass                    0        2  ok
+X4 two reviews 600 s apart during the code run (approve, approve)            REV2/chain  pass   pass           pass             pass                    0        2  ok
+X4 two reviews 600 s apart during the code run (approve, approve)            REV2/nochain pass   pass           pass             pass                    0        2  ok
+X5 three edits and two reviews during the code run                           P2          pass   pass           pass             FAIL                    0        1
+X5 three edits and two reviews during the code run                           REV1/chain  pass   FAIL           FAIL             FAIL                    0        2  BAD  (run(s) [101] at this head are still being judged; their gate decides)
+X5 three edits and two reviews during the code run                           REV2/chain  pass   pass           pass             pass                    0        2  ok
+X5 three edits and two reviews during the code run                           REV2/nochain pass   pass           pass             pass                    0        2  ok
+XH push lands -5 s from the edit run's green gate (sweep at +20)             P2          pass   pass           pass             pass                    0        1
+XH push lands -5 s from the edit run's green gate (sweep at +20)             REV1/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands -5 s from the edit run's green gate (sweep at +20)             REV2/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands -5 s from the edit run's green gate (sweep at +20)             REV2/nochain pass   pass           pass             pass                    0        1  ok
+XH push lands +1 s from the edit run's green gate (sweep at +20)             P2          pass   pass           pass             pass                    0        1
+XH push lands +1 s from the edit run's green gate (sweep at +20)             REV1/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands +1 s from the edit run's green gate (sweep at +20)             REV2/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands +1 s from the edit run's green gate (sweep at +20)             REV2/nochain pass   pass           pass             pass                    0        1  ok
+XH push lands +10 s from the edit run's green gate (sweep at +20)            P2          pass   pass           pass             pass                    0        1
+XH push lands +10 s from the edit run's green gate (sweep at +20)            REV1/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands +10 s from the edit run's green gate (sweep at +20)            REV2/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands +10 s from the edit run's green gate (sweep at +20)            REV2/nochain pass   pass           pass             pass                    0        1  ok
+XH push lands +19 s from the edit run's green gate (sweep at +20)            P2          pass   pass           pass             pass                    0        1
+XH push lands +19 s from the edit run's green gate (sweep at +20)            REV1/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands +19 s from the edit run's green gate (sweep at +20)            REV2/chain  pass   pass           pass             pass                    0        1  ok
+XH push lands +19 s from the edit run's green gate (sweep at +20)            REV2/nochain pass   pass           pass             pass                    0        1  ok
+XH push lands +25 s from the edit run's green gate (sweep at +20)            P2          pass   pass           pass             pass                    0        1
+XH push lands +25 s from the edit run's green gate (sweep at +20)            REV1/chain  pass   pass           pass             pass                    0        2  ok
+XH push lands +25 s from the edit run's green gate (sweep at +20)            REV2/chain  pass   pass           pass             pass                    0        2  ok
+XH push lands +25 s from the edit run's green gate (sweep at +20)            REV2/nochain pass   pass           pass             pass                    0        2  ok
+S 20 edits at one head after the code run, 150 s apart (attempt bound)       P2          pass   pass           pass             pass                    0        1
+S 20 edits at one head after the code run, 150 s apart (attempt bound)       REV1/chain  pass   FAIL           FAIL             FAIL                    0       13  BAD  (arch-score / arch-score: cancelled (run 121))  [re-run of 102 cancels 103; re-run of 104 cancels 105; re-run of 104 cancels 102; re-run of 106 cancels 107; re-run of 10]
+S 20 edits at one head after the code run, 150 s apart (attempt bound)       REV2/chain  pass   pass           pass             pass                    0       41  ok
+S 20 edits at one head after the code run, 150 s apart (attempt bound)       REV2/nochain pass   pass           pass             pass                    0       41  ok
+S2 25 edits at one head after the code run, 150 s apart (attempt bound)      P2          pass   pass           pass             pass                    0        1
+S2 25 edits at one head after the code run, 150 s apart (attempt bound)      REV1/chain  pass   FAIL           FAIL             FAIL                    0       16  BAD  (run(s) [101] at this head are still being judged; their gate decides)  [re-run of 102 cancels 103; re-run of 104 cancels 105; re-run of 104 cancels 102; re-run of 106 cancels 107; re-run of 10]
+S2 25 edits at one head after the code run, 150 s apart (attempt bound)      REV2/chain  pass   pass           pass             FAIL                    0       44  ok
+S2 25 edits at one head after the code run, 150 s apart (attempt bound)      REV2/nochain pass   pass           pass             FAIL                    0       44  ok
 
-## the two hooks are load-bearing: revision 1 with one removed (unplanted scenarios)
-  without sweep   : agree newest-created 16/16, newest-completed 16/16, every-suite 9/16; longest false-green window 11 s
-  without refresh : agree newest-created 16/16, newest-completed 16/16, every-suite 16/16; longest false-green window 2048 s
+## totals
+  REV1/chain: BAD 11 of 41 ['C', 'R1', 'R4', 'R5', 'R6', 'R7', 'X1', 'X3', 'X5', 'S', 'S2']; most attempts of any run 13 (S2, past the cap: 16); longest false-green window 25 s; runs a re-run attempt cancelled (N1) 132
+  REV2/chain: BAD 0 of 41 []; most attempts of any run 41 (S2, past the cap: 44); longest false-green window 25 s; runs a re-run attempt cancelled (N1) 0
+  REV2/nochain: BAD 0 of 41 []; most attempts of any run 41 (S2, past the cap: 44); longest false-green window 25 s; runs a re-run attempt cancelled (N1) 0
+  P2 agrees with the oracle under newest-created: 28/34
+  P2 agrees with the oracle under newest-completed: 28/34
+  P2 agrees with the oracle under every-suite: 18/34
+  P2 planted defects refused under all three readings: 0 of 6
+
+## each revision-2 element is load-bearing: revision 2 with one removed (unplanted scenarios, chain arm)
+  without sweep   : agree newest-created 34/34, newest-completed 34/34, every-suite 16/34; longest false-green window 25 s
+  without refresh : agree newest-created 34/34, newest-completed 34/34, every-suite 34/34; longest false-green window 2048 s
+  without runid   : agree newest-created 30/34, newest-completed 30/34, every-suite 30/34; longest false-green window 25 s
+  without judging : agree newest-created 22/34, newest-completed 22/34, every-suite 22/34; longest false-green window 25 s
 
 GATE-SIM rc 0
