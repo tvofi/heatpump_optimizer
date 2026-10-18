@@ -1260,3 +1260,4 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    openHaLink falls back to the whole integration when the registry refuses
 
 ALL CARD CHECKS PASSED
+card rc=0
