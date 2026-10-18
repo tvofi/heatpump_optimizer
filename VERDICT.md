@@ -1,38 +1,48 @@
-Fix review: blocked 89d2b94654bf54b49d879e08caced815a75ea5f5 class-open: the JS twin of the changed-file list still detects renames: card_rig.mjs threeDotFiles (read by card_drift.mjs's claim gate) and card_browser.mjs gridScope, and RENAME_SITES skips *.mjs
-bus-nonce: 4e582de29d537bde3ef7d611a24e2746
+Fix review: blocked af391637b4446a6ad2cf283c0fda80dd0d3da7de class-open: the merged head fails its own census on main's tools/pr/codeql_scope.py:88 docstring (closure selftest 1 of 124 FAILED), and stamp.py merge_is_record_class, the twin of the policy_lint site fixed here, still detects renames
+bus-nonce: e638a91e7031eb8da8a999b9f5ca1c71
 
-Round 2. Reviewed from a detached worktree at `89d2b94654bf54b49d879e08caced815a75ea5f5`. The roles diff against main was empty. I judged the delta since round 1 (`a7d97f55b`): the fix commits `f658e418a` and `8212a3e61`, plus two merges. Evidence: `~/hpo-seats/r10s3/review-2406/evidence-r2/`.
+Round 3. Reviewed from a detached worktree at `af391637b4446a6ad2cf283c0fda80dd0d3da7de`. The roles diff against main was empty. I judged the delta since round 2 (`89d2b9465`): the fix commit `0a61981e0`, its merge `73d82db25`, and the main merge `af391637b`, which brings in #2405 (`55dc8d9c2`). Evidence: `~/hpo-seats/r10s3/review-2406/evidence-r3/`. Next round is the fourth: under `fixer.md`, that is a re-cut, not a repair.
 
-## The round-1 finding is fixed on the Python side, and the fix holds
+## Fixed since round 2, and pinned
 
-- RESULT producer: `closure.changed_between` (`--no-renames`) is the one list, and `changed_files`, lane_skip's main delta and all 6 `tests.yml` sites (1888 graders-head-copy, 2297 and 2308 closure-scope, 2465 and 2473 closures, 2751 composed-proof) consume it through `closure.py changed`. Each of those jobs runs `setup-python` before its call site. `closure-scope` concluded success on this head.
-- RESULT my round-1 probe on this head (a card file renamed onto `dev/programme/delivery/99999.md`): `closure.py changed` lists both paths, and lane_skip prints `typing -- RUN` and `browser -- RUN` (`evidence-r2/js-twin-probe.txt`). In round 1, the same shape of rename (the integration's `__init__.py`) skipped all three lanes.
-- RESULT self-tests at the head (`evidence-r2/r2-tests.txt`): lane_skip `54/54`, closure `ALL 122 ... PASSED`, `rename_sites()` returns `([], [])`, roster_lib 18/0 failed, tick 104/0, state_docs passed.
-- RESULT mutation, my re-run of MB8 (`--no-renames` dropped from `changed_between`): lane_skip `51/54` (the three `runs on a rename` pins) and closure `3 of 122 ... FAILED` (both sides, the 0-script scope, the census). This matches the body, so the pins are not vacuous.
-- RESULT merges: both merges in the range (`204da95e1`, `89d2b9465`) have trees equal to `git merge-tree --write-tree` of their parents, so no resolution was made by hand. `git merge-tree --write-tree origin/main(be2d3676e) HEAD` returns rc 0.
-- RESULT `8212a3e61`: it adds only a trailing comment marker, which the layout guard requires.
+- RESULT JS twin: `card_rig.mjs` `threeDotFiles`, `card_browser.mjs` `gridScope`, `stop-selfcheck.sh` (including `--cached`) and the two `policy_lint.mjs` diffs all carry `--no-renames`.
+- RESULT parity pin (`evidence-r3/parity-pin.txt`). I drove the predicate from `card.mjs:10792-10812`, copied verbatim, against this tree. The `card` lane needs a Home Assistant payload this box cannot build, so this is my own driver of their predicate.
+  - At the head: `PIN PASS`.
+  - With `--no-renames` dropped from `card_rig` alone: `PIN FAIL`.
+  - With both twins reverted together: `PIN FAIL`, because the pin also requires `--no-renames`.
+  - So the pin is not vacuous, and the two copies cannot drift together unseen.
+- RESULT census: with `--no-renames` dropped from `card_rig.mjs:838`, the census refuses `tests/card_rig.mjs:838` (`evidence-r3/r3-mutants.txt`). The globs now read `.mjs`. My own enumeration over `--name-only` found no diff call split across lines without a backslash (`evidence-r3/nameonly-r3.txt`).
+- RESULT owed steps (step 10): both now sit in `R10-TICK-DRIVERS.carry` at roster `97344315a`, on the `handoff/audit-r10-roster` tip. Each carries its control: two SHAs in the memo plus a roster-only regenerate, and the census plus codeql_scope's self-test. The fixer prompt reads `carry` from the group, so a later seat will see them. Not blocking, but note that the beat restart is an orchestrator action. It now waits behind a group gated `after: R10-REF-PRIVACY` whose `files` do not include `state_docs.py`. A post-merge beat item would reach it sooner.
+- RESULT merges: `73d82db25` and `af391637b` have trees equal to `git merge-tree --write-tree` of their parents. `git merge-tree --write-tree origin/main(55dc8d9c2) HEAD` returns rc 0.
 
-## Why it is blocked: class-open (step 6)
+## Blocking 1: the head is red on its own census (the resolution delta of the main merge)
 
-The body's class is "every lane and the gate read the files a diff changed from here", and the census is its rule. The census globs `.github/workflows/*.yml`, `tests/*.py|sh`, `tools/pr/*.py|sh` and `tools/audit/seat/*.py|sh`. So it never reads a `.mjs` file. Run over the whole tree, the same rule (rename-detecting `--name-only`, excluding plumbing, `ls-tree`, empty-tree and `--name-status` sites; `evidence-r2/nameonly-all.txt`) returns seams that are neither in the diff nor dispositioned in the body:
+`python3 tests/closure.py selftest` at the head gives `1 of 124 closure shrink pins FAILED`:
 
-1. **`tests/card_rig.mjs:838-839` `threeDotFiles`.** Its docstring calls it env_drift.py's `three_dot_files`, "same three commands in the same order". This PR gave the Python twin `--no-renames` and left the JS twin as it was. `card_drift.mjs:691` feeds it to `claimsAreThisBranchs`, the card claim gate. The probe renames the card file onto a delivery row: `card_rig.threeDotFiles` returns `["dev/programme/delivery/99999.md"]`, while `closure.py changed` returns both paths. The two claim judges now disagree on the same diff, and the JS one loses the claimable card path. The parity pin at `tests/card.mjs:10800-10803` (`threeDotFiles runs the sibling's three commands in order`) still asserts the old `diff --name-only REF...HEAD`, so it now pins the divergence.
-2. **`tests/card_browser.mjs:981` `gridScope`.** On the same probe it prints `P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of 1 changed file(s) is on the card surface ...)` while the card file is deleted. No workflow sets `HPO_BROWSER_SCOPE`, so CI runs the grid in full, and the opt-in `auto` mode is only reached locally. It is still a lane's own list with the round-1 shape.
-3. **`.claude/hooks/stop-selfcheck.sh:197-198`.** Its `CHANGED` list is the same porcelain shape, outside `RENAME_SITES`.
+```
+FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/pr/codeql_scope.py:88: """(changed_files, porcelain `git diff --name-only`) over a throwaway repo]
+```
 
-Remedy: give each one `--no-renames` (or delegate to `closure.py changed`), move the `card.mjs` parity pin with the twin, and widen `RENAME_SITES` to `tests/*.mjs`, `tools/policy/*.mjs` and `.claude/hooks/*.sh`. Either that, or have the body disposition each site by name. The residual sites inside the census are safe, and I checked each: `mutation_table.py:1524` refuses an `R` code (fails closed), `bus.sh:478` handles `R*`, `prepr.sh:1140` is a `git log` with deletions passing by design, and the rest are plumbing or `ls-tree`. One more gap in the census: it is line-based, so a `git diff \` with `--name-only` on the next line passes it. Say so in the body, or match across continuations.
+`tools/pr/codeql_scope.py` does not exist at `0a61981e0`. It arrived with #2405 in the main merge `af391637b`, and `tools/pr/*.py` has been in the census since round 2. The line is docstring prose, and the census skips only lines that open with `#`, `//`, `*` or `/*`. So the merge is textually clean and semantically red. `tests/run.sh:480` runs the selftest as `run_always`, so `fast (3.14)`, still in progress at 15:24Z, should go red on this head. The body's `ALL 124 closure shrink pins PASSED` and `closure.rename_sites(): ([], [])` were measured before the merge. At the head named in `## Head`, both figures are false (steps 7 and 8).
 
-## The owed steps are parked, not routed (step 10)
+Remedy: add a `RENAME_ALLOW` entry for the docstring, or tag it `# rename-null-control`, or have `codeql_scope.changed` delegate now, since #2405 has merged and that is the carried item. Then re-take the figures at the head. Before re-merging main, re-run the census: it now reads every `tools/pr/*.py` that main adds.
 
-The coordinator asked about the two items moved from `## Forward-carry` to `## Unpinned sites`:
-- **The state-docs beat restart (no `--roster-ref`).** Without it, the beat change does nothing on the live box. I found it in the PR body only. It is not in any roster group's brief on either `origin/main` or `origin/handoff/audit-r10-roster` (jq over `.groups[]` for these terms returned none), no issue carries it, and the orchestrator's out-of-tree `SEATS.md` does not have it.
-- **The `codeql_scope.changed` -> `closure.changed_between` delegation.** It sits in this body, in #2405's `## Forward-carry` prose, and as an `OWED` line in the orchestrator's out-of-tree `SEATS.md` (15:52Z). It is not in a roster brief, an issue, or anything a later seat reads.
+## Blocking 2: the class is still open at one twin (step 6)
 
-Under `finding-propagation.md`, a PR body is a record, not a delivery. Each item needs a destination a later seat reads: a roster group with its brief, or an issue. The body should name that destination in `## Forward-carry` instead of `none`. On its own, this would be `carry-missing`.
+`tools/release/stamp.py:1708` `merge_is_record_class` runs `git diff --name-only <sha>^1 <sha>` with renames on. Its comment (`stamp.py:1677`) and `policy_lint.mjs:2294` both name it the copy of `policy_lint.mjs` `mergeRecordClass`, which this round gave `--no-renames`. That is the round-2 shape again: one twin fixed, the other left. Probe on this head (local commit, never pushed: `git mv custom_components/heatpump_optimizer/__init__.py dev/programme/delivery/99999.md`; `evidence-r3/stamp-twin-probe.txt`):
+
+```
+stamp.merge_is_record_class: True
+policy_lint's command (--no-renames): custom_components/heatpump_optimizer/__init__.py dev/programme/delivery/99999.md
+stamp's command:                      dev/programme/delivery/99999.md
+```
+
+So the stamp reads a commit that deletes the integration's entry point as record-class, which exempts it from its row, while `policy_lint` reads the same commit as code. `tools/release/` is outside `RENAME_SITES`, which is why the census passed it. Remedy: give `stamp.py` `--no-renames`, add `tools/release/*.py` to `RENAME_SITES`, and if possible extend the existing copy check in `policy_lint` (`THE STAMP'S COPY`, `policy_lint.mjs:4381`) to compare the two commands. Every other residual I enumerated is plumbing, `ls-tree`, an empty-tree or `--name-status` site handled correctly, or audit evidence under `dev/audit/`.
 
 ## Other steps
 
-- RESULT checks (step 11; `evidence-r2/checkruns-r2.tsv`): 37 runs and no red in the range (`f658e418a`, `8212a3e61`, `204da95e1`, `89d2b9465`). `fast (3.14)`, `coverage` and `Analyze (python)` were still in progress at 14:58Z.
+- RESULT lane_skip self-test at head: `54/54`.
+- RESULT checks (step 11; `evidence-r3/checkruns-r3.tsv`): `instrument-self-tests` and `env-matrix` concluded success. `fast (3.14)`, `browser`, `coverage` and `Analyze (python)` were in progress at 15:24Z. Nothing was red yet, but Blocking 1 predicts `fast`.
 - RESULT version, claims and budgets: none of them is touched in the delta.
-- RESULT projection: corrected to 6.4, which matches my round-1 note.
-- RESULT head (step 12): `gh pr view` reported `89d2b94654bf54b49d879e08caced815a75ea5f5` when I wrote this.
+- Not blocking: `_RENAME_EXEMPT` still exempts `--cached`, which detects renames in the index. Today's `--cached` sites only count lines after a pinned restore. Say so in the body, or drop the exemption.
+- RESULT head (step 12): `gh pr view` reported `af391637b4446a6ad2cf283c0fda80dd0d3da7de` when I wrote this.

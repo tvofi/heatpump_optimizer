@@ -1,6 +1,0 @@
-probe on head 89d2b94654bf54b49d879e08caced815a75ea5f5: git mv custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js dev/programme/delivery/99999.md, local commit, never pushed
-card_rig.threeDotFiles: ["dev/programme/delivery/99999.md"]
-P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of 1 changed file(s) is on the card surface or in tests/plan_view.py's 85-file closure)
-closure.py changed:
-custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
-dev/programme/delivery/99999.md

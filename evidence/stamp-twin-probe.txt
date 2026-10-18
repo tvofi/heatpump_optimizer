@@ -1,0 +1,5 @@
+probe on head af391637b4446a6ad2cf283c0fda80dd0d3da7de: git mv custom_components/heatpump_optimizer/__init__.py dev/programme/delivery/99999.md, local commit, never pushed
+stamp.merge_is_record_class: True
+policy_lint mergeRecordClass's command (git diff --no-renames --name-only S^1 S): custom_components/heatpump_optimizer/__init__.py dev/programme/delivery/99999.md 
+stamp's command (git diff --name-only S^1 S): dev/programme/delivery/99999.md 
+rename_sites at head: ['tools/pr/codeql_scope.py:88: """(changed_files, porcelain `git diff --name-only`) over a throwaway repo'] []

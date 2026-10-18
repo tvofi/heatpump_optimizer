@@ -1,0 +1,11 @@
+head af391637b4446a6ad2cf283c0fda80dd0d3da7de
+  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/pr/codeql_scope.py:88: """(changed_files, porcelain `git diff --name-only`) over a throwaway repo]
+1 of 124 closure shrink pins FAILED
+-- at the fix commit 0a61981e0:
+codeql_scope.py absent at 0a61981e0
+
+def _rename_probe() -> tuple[list[str], list[str]]:
+    """(changed_files, porcelain `git diff --name-only`) over a throwaway repo
+    (tests/throwaway_git.py, the one way a tracked script builds one) whose
+    one commit is `git mv lib.py lib.md`."""
+lane_skip self-test: 54/54 pins passed
