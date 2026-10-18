@@ -7,7 +7,7 @@ by hand (``shape_payload_guard.py``: 35 implementations of one payload guard), e
 
 The SHAPE of a function is its body with its own names erased (counter C23): the docstring dropped, the
 function's parameters and the names it binds numbered by first use, every number one ``N`` and every string one
-``S`` (as the clone window reads strings), and a nested function its own shape (it is also its own unit), so a
+``S`` and ``mod.X`` reads as ``X`` (as the clone window reads both), and a nested function its own shape (it is also its own unit), so a
 decorator's wrapper is not every wrapper. Names it does not bind -- builtins, module globals, attributes -- stay:
 a getter of ``_x`` is not a getter of ``_y``. A function under MIN_NODES nodes is not a rule
 (``return self._x``).
@@ -68,16 +68,28 @@ def _bound(fn: ast.AST) -> set[str]:
     return out
 
 
+def module_aliases(tree: ast.Module) -> set[str]:
+    """Names a module binds to whole modules (``import x``, ``from . import m``), as ``tests/structure.py``'s
+    clone window reads them: ``const.X`` is the same logic as ``X``."""
+    out = set()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            out |= {(a.asname or a.name).split(".")[0] for a in n.names}
+        elif isinstance(n, ast.ImportFrom) and n.module is None:
+            out |= {a.asname or a.name for a in n.names}
+    return out
+
+
 class _Erase(ast.NodeTransformer):
-    def __init__(self, own: set[str], root: ast.AST):
-        self.own, self.num, self.root = own, {}, root
+    def __init__(self, own: set[str], root: ast.AST, modalias: frozenset[str] = frozenset()):
+        self.own, self.num, self.root, self.modalias = own, {}, root, modalias
 
     def _v(self, name: str) -> str:
         return f"v{self.num.setdefault(name, len(self.num))}"
 
     def visit_FunctionDef(self, n):
         if n is not self.root:  # its own unit; it stands here as its own shape, so a wrapper is not every wrapper
-            return ast.Expr(value=ast.Constant(value=f"F:{shape(n, floor=0)}"))
+            return ast.Expr(value=ast.Constant(value=f"F:{shape(n, floor=0, modalias=self.modalias)}"))
         self.generic_visit(n)
         return n
 
@@ -89,6 +101,12 @@ class _Erase(ast.NodeTransformer):
     def visit_arg(self, n):
         n.arg = self._v(n.arg) if ERASE else n.arg
         n.annotation = None
+        return n
+
+    def visit_Attribute(self, n):
+        self.generic_visit(n)
+        if ERASE and isinstance(n.value, ast.Name) and n.value.id in self.modalias and n.value.id not in self.own:
+            return ast.Name(id=n.attr, ctx=n.ctx)
         return n
 
     def visit_Name(self, n):
@@ -106,7 +124,7 @@ class _Erase(ast.NodeTransformer):
         return n
 
 
-def shape(fn: ast.AST, floor: int | None = None) -> str | None:
+def shape(fn: ast.AST, floor: int | None = None, modalias: frozenset[str] = frozenset()) -> str | None:
     """The shape key of one function, or None below ``floor`` nodes (default MIN_NODES)."""
     floor = MIN_NODES if floor is None else floor
     f = copy.deepcopy(fn)
@@ -118,7 +136,7 @@ def shape(fn: ast.AST, floor: int | None = None) -> str | None:
     if sum(1 for y in ast.walk(ast.Module(body=body, type_ignores=[])) if not isinstance(y, ast.expr_context)) \
             < floor:
         return None
-    e = _Erase(_bound(fn) if ERASE else set(), f)
+    e = _Erase(_bound(fn) if ERASE else set(), f, modalias)
     f.args = e.visit(f.args)
     f.body = [e.visit(s) for s in f.body]
     return ast.dump(ast.Module(body=f.body, type_ignores=[]))
@@ -129,10 +147,12 @@ def classes(root: Path) -> list[list[str]]:
     pkg = C.load(str(root))
     by: dict[str, list[str]] = defaultdict(list)
     for m, mod in pkg.mods.items():
+        aliases = frozenset(module_aliases(mod.tree))
+
         def walk(node, prefix):
             for c in ast.iter_child_nodes(node):
                 if isinstance(c, _FN):
-                    k = shape(c)
+                    k = shape(c, modalias=aliases)
                     if k is not None:
                         by[k].append(f"{m}:{prefix}{c.name}")
                     walk(c, f"{prefix}{c.name}.")

@@ -417,38 +417,32 @@ def plan():
         on={"fix": "a3_card_clone_copies_control"},
     )
 
-    # 6f shape_copies (gate-only): one rule implemented by N functions (item 6, ARCH-s2 / ARCH2-s3)
-    clock = ("def _clock(raw: int | None) -> str | None:\n"
-             "    \"\"\"``hour*256+minute`` as ``HH:MM``; None when either part is impossible.\"\"\"\n"
-             "    if raw is None or raw < 0:\n"
-             "        return None\n"
-             "    hour, minute = divmod(raw, 256)\n"
-             "    if hour > 23 or minute > 59:\n"
-             "        return None\n"
-             "    return f\"{hour:02d}:{minute:02d}\"\n")
-
-    def clock_copy(respell=False):
+    # 6f shape_copies (gate-only): one rule implemented by N functions (item 6, ARCH-s2 / ARCH2-s3). The rule
+    # planted is one statement, below the clone window, so duplication_copies does not see its copies.
+    def stored_or_copy(respell=False):
         def edit(w):
-            assert _p(w, "modbus_prefill.py").read_text().count(clock) == 1
-            body = clock.replace("def _clock(raw", "def _register_clock(word").replace("raw", "word")
-            if respell:
-                body = body.replace("word < 0", "0 > word")
-            append(w, "dhw_schedule.py", "\n\n" + body + "\n\nassert _register_clock\n")
+            ret = ("float(proposed[name] if name in proposed else stored.get(name, fallback))" if respell
+                   else "float(proposed.get(name, stored.get(name, fallback)))")
+            append(w, "presets.py", "\n\ndef _stored_or(proposed: dict, stored: dict, name: str, fallback: object) -> float:\n"
+                   f"    return {ret}\n\n\nassert _stored_or\n")
         return edit
 
     P["shape_copies"] = dict(
-        control=("dhw_schedule gains a copy of modbus_prefill._clock under another name, its parameter renamed",
-                 clock_copy()),
-        fix=("[on top of control] the copy goes", lambda w: (lambda p: p.write_text(
-            p.read_text().split("\n\ndef _register_clock(")[0] + "\n"))(_p(w, "dhw_schedule.py"))),
-        null=("drift.Cusum._note's parameter renamed (its own name; the census numbers it)",
-              lambda w: rename_in_func(w, "drift.py", "_note", "when", "moment", cls="Cusum")),
-        on={"fix": "a3_shape_copies_control"},
+        control=("presets gains a third copy of comfort_band.effective's one-statement rule, every name changed",
+                 stored_or_copy()),
+        fix=("config_flow's own _effective goes; it imports comfort_band.effective under that name",
+             lambda w: (lambda p: p.write_text(re.sub(
+                 r"\ndef _effective\(\n.*?\n    return float\(candidate\.get\(key, current\.get\(key, default\)\)\)\n",
+                 "\nfrom .comfort_band import effective as _effective  # noqa: E402\n", p.read_text(), count=1,
+                 flags=re.S)))(_p(w, "config_flow.py"))),
+        null=("comfort_band.effective's parameters renamed (its own names; the census numbers them)",
+              lambda w: [rename_in_func(w, "comfort_band.py", "effective", o, n)
+                         for o, n in (("candidate", "proposed"), ("current", "stored"))]),
     )
     P["shape_copies_respelled"] = dict(
-        control=("as shape_copies' control, one comparison of the copy re-spelled (``0 > word``): the rule is "
-                 "still written twice, and the census reads it as distinct -- why the counter carries no weight",
-                 clock_copy(respell=True)),
+        control=("as shape_copies' control, the copy's lookup re-spelled as a conditional (``x[k] if k in x else``): "
+                 "the rule is still written three times and the census reads it as distinct -- why it carries no weight",
+                 stored_or_copy(respell=True)),
     )
 
     # 7 public_surface
