@@ -1,0 +1,30 @@
+## AS-IS CHAIN
+  X1 edit and review both land while the code run is in flight   oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:pass, 102@2202:pass]
+  X3 edit, then review 600 s later, both during the code run     oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:pass, 102@2202:pass]
+  X4 two reviews 600 s apart during the code run (approve, appro oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 103@2064:pass, 101@2099:pass]
+  BAD rows: 0 of 19
+## AS-IS NOCHAIN
+  X1 edit and review both land while the code run is in flight   oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:pass, 102@2202:pass]
+  X3 edit, then review 600 s later, both during the code run     oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:pass, 102@2202:pass]
+  X4 two reviews 600 s apart during the code run (approve, appro oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 103@2064:pass, 101@2099:pass]
+  BAD rows: 0 of 19
+## FIXED CHAIN
+  X1 edit and review both land while the code run is in flight   oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:pass, 101@2237:pass]
+  X3 edit, then review 600 s later, both during the code run     oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:pass, 101@2237:pass]
+  X4 two reviews 600 s apart during the code run (approve, appro oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 103@2064:pass, 101@2099:pass]
+  BAD rows: 0 of 19
+## FIXED NOCHAIN
+  X1 edit and review both land while the code run is in flight   oracle pass created pass completed pass every FAIL  BAD  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:pass]
+  X3 edit, then review 600 s later, both during the code run     oracle pass created pass completed pass every FAIL  BAD  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:pass]
+  X4 two reviews 600 s apart during the code run (approve, appro oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 103@2064:pass, 101@2099:pass]
+  BAD rows: 2 of 19
+## FIXED+SNAP CHAIN
+  X1 edit and review both land while the code run is in flight   oracle pass created FAIL completed FAIL every FAIL  BAD  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:FAIL]
+  X3 edit, then review 600 s later, both during the code run     oracle pass created FAIL completed FAIL every FAIL  BAD  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:FAIL]
+  X4 two reviews 600 s apart during the code run (approve, appro oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 103@2064:pass, 101@2099:pass]
+  BAD rows: 2 of 19
+## FIXED+SNAP NOCHAIN
+  X1 edit and review both land while the code run is in flight   oracle pass created FAIL completed FAIL every FAIL  BAD  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:FAIL]
+  X3 edit, then review 600 s later, both during the code run     oracle pass created FAIL completed FAIL every FAIL  BAD  gates[101@2033:FAIL, 102@2136:FAIL, 103@2167:pass, 101@2202:FAIL, 102@2202:FAIL]
+  X4 two reviews 600 s apart during the code run (approve, appro oracle pass created pass completed pass every pass  ok  gates[101@2033:FAIL, 103@2064:pass, 101@2099:pass]
+  BAD rows: 2 of 19

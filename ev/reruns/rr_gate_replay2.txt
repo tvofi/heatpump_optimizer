@@ -1,0 +1,60 @@
+## 1. history: 22 heads, ruleset 23698884 against gate_model.gate
+head       RULESET  GATE     reaches_cc  class      reasons
+0e238c3042 FAIL     FAIL     False       agree      governance / wave-script: failure (this run); pr-contract / pr-contract: failure (this run)
+0f145d4fae FAIL     FAIL     None        agree      pr-contract / pr-contract: failure (this run); tests / closures: cancelled (this run)
+1450760447 pass     pass     None        agree      
+311e9de3e0 pass     pass     None        agree      
+319769bb4f pass     pass     None        agree      
+3aba8f1eb2 pass     pass     True        agree      
+4be8f4cfd0 pass     pass     False       agree      
+6c0218b0d5 FAIL     FAIL     False       agree      codeql / Analyze (javascript-typescript): cancelled (this run); governance / env-matrix: cancelled (this run); tests / b
+74d66b3554 FAIL     FAIL     True        agree      tests / mutation: failure (this run)
+7bda397d12 pass     pass     None        agree      
+87c579404d pass     pass     False       agree      
+8d4e8be01c pass     pass     None        agree      
+aa82837c57 FAIL     FAIL     True        agree      tests / mutation: failure (this run)
+acf14d8f22 pass     pass     True        agree      
+b0140e47bc FAIL     FAIL     False       agree      governance / wave-script: failure (this run); pr-contract / pr-contract: failure (this run)
+b54a2f2e55 FAIL     FAIL     False       agree      pr-contract / pr-contract: failure (this run)
+b931d0f44a pass     pass     True        agree      
+c3a25d2ae3 FAIL     FAIL     True        agree      budget-raise-gate / budget-raise-gate: failure (this run); tests / fast (3.14): failure (this run)
+c7bfbbe4f8 FAIL     FAIL     None        agree      codeql / Analyze (actions): ABSENT (this run); codeql / Analyze (javascript-typescript): ABSENT (this run); codeql / Ana
+c83ae12acc pass     pass     False       agree      
+d0afadd24e FAIL     FAIL     False       agree      codeql / Analyze (actions): ABSENT (this run); codeql / Analyze (javascript-typescript): ABSENT (this run); codeql / Ana
+d1becac2b3 FAIL     FAIL     False       agree      tests / fast (3.14): failure (this run)
+
+heads 22: agree 22, differ by design 0, differ otherwise 0
+
+## 2. perturbations of one green head (expected ruleset, expected gate)
+  ok  null: unchanged green head                                     ruleset pass gate pass  
+  ok  required job absent (closures)                                 ruleset FAIL gate FAIL  tests / closures: ABSENT (this run)
+  ok  required job pending (fast (3.14))                             ruleset FAIL gate FAIL  tests / fast (3.14): PENDING (this run)
+  ok  required job failed (mutation)                                 ruleset FAIL gate FAIL  tests / mutation: failure (this run)
+  ok  required job cancelled (typing)                                ruleset FAIL gate FAIL  tests / typing: cancelled (this run)
+  ok  required job skipped (fast (3.14))                             ruleset pass gate FAIL  tests / fast (3.14): SKIPPED (this run)
+  ok  browser skipped (4.2: no required job may skip)                ruleset pass gate FAIL  tests / browser: SKIPPED (this run)
+  ok  non-required red (delivery-status)                             ruleset pass gate pass  
+  ok  non-required red (nightly-status)                              ruleset pass gate pass  
+  ok  D-2: arch-score red, diff reaches custom_components/           ruleset pass gate FAIL  arch-score / arch-score: failure (this run)
+  ok  D-2: arch-score red, diff misses custom_components/            ruleset pass gate pass  
+  ok  D-2: arch-score absent, diff reaches custom_components/        ruleset pass gate FAIL  arch-score / arch-score: ABSENT (this run)
+  ok  item 2: prelude concluded failure                              ruleset pass gate FAIL  prelude: failure
+  ok  item 2: prelude emits pr='' on a pull_request run              ruleset pass gate FAIL  prelude says kind=code pr='', the event says kind=code pr='7'
+  ok  item 2: pr-contract and budget-raise-gate never ran            ruleset FAIL gate FAIL  budget-raise-gate / budget-raise-gate: ABSENT (this run); pr-contract / pr-contract: ABSENT (this run)
+
+## 3. event paths
+  ok  push: closure-scope absent (never runs on push), body units not applicable ruleset FAIL gate pass  
+  ok  push run as the umbrella writes it (closure-scope never runs, body rows skipped)           gate pass  
+  ok  edit run: code rows skipped HERE, carried from the code run (12(c): the carry wins)        gate pass  
+  ok  edit run: the only code run judged another base                                            gate FAIL  tests: no run at this head judged base 'main'; codeql: no run at this head judged base 'ma
+  ok  edit run after a retarget to release: its own body units judged main                       gate FAIL  tests: no run at this head judged base 'release'; codeql: no run at this head judged base 
+  ok  edit run: a newer code run was cancelled pending, its replacement still running            gate FAIL  run(s) [1700] at this head are still being judged; their gate decides
+  ok  ... and the replacement completed red: the newest evaluation wins                          gate FAIL  tests / closures: failure (run 1700)
+  ok  ... and the replacement completed green                                                    gate pass  
+  ok  edit run: an earlier run at the head has an unreadable title                               gate FAIL  run 1600: unreadable title 'Tests'
+  ok  edit run: a held run at the head is neither waited for nor a source                        gate pass  
+  ok  code run: hassfest skipped in the NEWEST run that owns it: never filled from an older one (12(c)) gate FAIL  hassfest / hassfest: SKIPPED (this run)
+  ok  an older code run's gate re-judged after a newer edit: still red, its code is red          gate FAIL  tests / closures: failure (this run)
+  ok  ... re-judged after a newer green code run at the same head: green (the sweep's case)      gate pass  
+
+GATE-REPLAY2 rc 0

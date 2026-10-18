@@ -1,0 +1,51 @@
+scenario                                                                     layout oracle newest-created newest-completed every-suite false-green s
+A  null: open, all green                                                     P2     pass   pass           pass             pass                    0
+A  null: open, all green                                                     REV1   pass   pass           pass             pass                    0  ok
+B  planted: prelude emits pr='' on a pull_request run                        P2     FAIL   pass           pass             pass                    0
+B  planted: prelude emits pr='' on a pull_request run                        REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (prelude says kind=code pr='', the event says kind=code pr='7')
+B2 planted: prelude concludes failure                                        P2     FAIL   pass           pass             pass                    0
+B2 planted: prelude concludes failure                                        REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (prelude: failure)
+B3 planted: prelude says kind=edit on a synchronize                          P2     FAIL   pass           pass             pass                    0
+B3 planted: prelude says kind=edit on a synchronize                          REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (prelude says kind=edit pr='7', the event says kind=code pr='7')
+B4 planted: a required unit given if:false on a code run                     P2     FAIL   pass           pass             pass                    0
+B4 planted: a required unit given if:false on a code run                     REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (hassfest / hassfest: SKIPPED (this run))
+C  retarget runs to completion, code green at the new base                   P2     pass   FAIL           FAIL             FAIL                    0
+C  retarget runs to completion, code green at the new base                   REV1   pass   pass           pass             pass                    0  ok
+C2 retarget, code RED at the new base                                        P2     FAIL   FAIL           FAIL             FAIL                 2048
+C2 retarget, code RED at the new base                                        REV1   FAIL   FAIL           FAIL             FAIL                   11  ok
+D  retarget queued behind a running code run, then a body edit (case D)      P2     FAIL   pass           pass             pass                 6952
+D  retarget queued behind a running code run, then a body edit (case D)      REV1   FAIL   FAIL           FAIL             FAIL                    0  ok
+D2 an edit's run is waiting when a retarget lands at the same head           P2     FAIL   FAIL           FAIL             FAIL                 2048
+D2 an edit's run is waiting when a retarget lands at the same head           REV1   FAIL   FAIL           FAIL             FAIL                    0  ok
+D3 the same, code green at the new base                                      P2     pass   FAIL           FAIL             FAIL                    0
+D3 the same, code green at the new base                                      REV1   pass   pass           pass             pass                    0  ok
+E  push while the old head runs, edit 2 s later (case E)                     P2     pass   FAIL           FAIL             FAIL                    0
+E  push while the old head runs, edit 2 s later (case E)                     REV1   pass   pass           pass             pass                    0  ok
+F  budget raise: red until the owner approves                                P2     pass   pass           pass             FAIL                    0
+F  budget raise: red until the owner approves                                REV1   pass   pass           pass             pass                    0  ok
+F2 approval arrives while the code run is in flight                          P2     pass   pass           pass             FAIL                    0
+F2 approval arrives while the code run is in flight                          REV1   pass   pass           pass             pass                    0  ok
+G  approval then dismissal                                                   P2     FAIL   FAIL           FAIL             FAIL                  108
+G  approval then dismissal                                                   REV1   FAIL   FAIL           FAIL             FAIL                   11  ok
+H  edit that breaks the contract, then a review 1 s later                    P2     FAIL   FAIL           FAIL             FAIL                  108
+H  edit that breaks the contract, then a review 1 s later                    REV1   FAIL   FAIL           FAIL             FAIL                   11  ok
+H2 two edits 1 s apart while code runs, the second fixes the body            P2     pass   pass           pass             pass                    0
+H2 two edits 1 s apart while code runs, the second fixes the body            REV1   pass   pass           pass             pass                    0  ok
+H3 two edits 1 s apart while code runs, the second breaks the body           P2     FAIL   FAIL           FAIL             FAIL                    0
+H3 two edits 1 s apart while code runs, the second breaks the body           REV1   FAIL   FAIL           FAIL             FAIL                    0  ok
+I  bot head: held pull_request run + dispatch -f pr -f base                  P2     pass   pass           pass             pass                    0
+I  bot head: held pull_request run + dispatch -f pr -f base                  REV1   pass   pass           pass             pass                    0  ok
+I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           P2     FAIL   pass           pass             pass                    0
+I2 bot head: held run + dispatch with NO pr (unnamed at a PR head)           REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (this SHA heads an open PR: dispatch with -f pr=N -f base=REF)
+I3 bot head: dispatch names the wrong base                                   P2     FAIL   pass           pass             pass                    0
+I3 bot head: dispatch names the wrong base                                   REV1   FAIL   FAIL           FAIL             FAIL                    0  ok  (tests: no run at this head judged base 'main')
+I4 bot head, then a body edit carried onto the dispatch run                  P2     pass   pass           pass             pass                    0
+I4 bot head, then a body edit carried onto the dispatch run                  REV1   pass   pass           pass             pass                    0  ok
+K  D-2: arch-score red, diff misses custom_components/                       P2     pass   pass           pass             pass                    0
+K  D-2: arch-score red, diff misses custom_components/                       REV1   pass   pass           pass             pass                    0  ok
+
+## the two hooks are load-bearing: revision 1 with one removed (unplanted scenarios)
+  without sweep   : agree newest-created 16/16, newest-completed 16/16, every-suite 9/16; longest false-green window 11 s
+  without refresh : agree newest-created 16/16, newest-completed 16/16, every-suite 16/16; longest false-green window 2048 s
+
+GATE-SIM rc 0

@@ -1,0 +1,51 @@
+## arm SIM
+  A  null: open, all green                                                   oracle pass created pass completed pass every pass fg     0  ok
+  C  retarget runs to completion, code green at the new base                 oracle pass created pass completed pass every pass fg     0  ok
+  C2 retarget, code RED at the new base                                      oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok
+  D  retarget queued behind a running code run, then a body edit (case D)    oracle FAIL created FAIL completed FAIL every FAIL fg     0  ok
+  D2 an edit's run is waiting when a retarget lands at the same head         oracle FAIL created FAIL completed FAIL every FAIL fg     0  ok
+  D3 the same, code green at the new base                                    oracle pass created pass completed pass every pass fg     0  ok
+  E  push while the old head runs, edit 2 s later (case E)                   oracle pass created pass completed pass every pass fg     0  ok
+  F  budget raise: red until the owner approves                              oracle pass created pass completed pass every pass fg     0  ok
+  F2 approval arrives while the code run is in flight                        oracle pass created pass completed pass every pass fg     0  ok
+  G  approval then dismissal                                                 oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok
+  H  edit that breaks the contract, then a review 1 s later                  oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok
+  H2 two edits 1 s apart while code runs, the second fixes the body          oracle pass created pass completed pass every pass fg     0  ok
+  H3 two edits 1 s apart while code runs, the second breaks the body         oracle FAIL created FAIL completed FAIL every FAIL fg     0  ok
+  I  bot head: held pull_request run + dispatch -f pr -f base                oracle pass created pass completed pass every pass fg     0  ok
+  I4 bot head, then a body edit carried onto the dispatch run                oracle pass created pass completed pass every pass fg     0  ok
+  K  D-2: arch-score red, diff misses custom_components/                     oracle pass created pass completed pass every pass fg     0  ok
+  R1 retarget after the code run is green (refresh re-runs C's gate)         oracle pass created pass completed pass every pass fg     0  ok
+  R2 body edit after an earlier edit's gate is green, new body breaks the co oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok
+  R3 approval, then dismissal 300 s later (scenario G, spaced)               oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok
+  R4 edit and review both land while the code run is in flight               oracle pass created pass completed pass every pass fg     0  ok
+  R5 a body that breaks the contract, then an edit 300 s later that fixes it oracle pass created pass completed pass every pass fg    11  ok
+  R6 changes requested on a raise, then the owner approves 300 s later       oracle pass created pass completed pass every pass fg     0  ok
+  R7 an approval, then a plain comment review 300 s later                    oracle pass created pass completed pass every pass fg     0  ok
+
+## arm GH
+  A  null: open, all green                                                   oracle pass created pass completed pass every pass fg     0  ok
+  C  retarget runs to completion, code green at the new base                 oracle pass created FAIL completed FAIL every FAIL fg     0  BAD  [re-run of 101 cancels 102]
+  C2 retarget, code RED at the new base                                      oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok  [re-run of 101 cancels 102]
+  D  retarget queued behind a running code run, then a body edit (case D)    oracle FAIL created FAIL completed FAIL every FAIL fg     0  ok
+  D2 an edit's run is waiting when a retarget lands at the same head         oracle FAIL created FAIL completed FAIL every FAIL fg     0  ok
+  D3 the same, code green at the new base                                    oracle pass created pass completed pass every pass fg     0  ok
+  E  push while the old head runs, edit 2 s later (case E)                   oracle pass created pass completed pass every pass fg     0  ok
+  F  budget raise: red until the owner approves                              oracle pass created pass completed pass every pass fg     0  ok
+  F2 approval arrives while the code run is in flight                        oracle pass created pass completed pass every pass fg     0  ok
+  G  approval then dismissal                                                 oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok  [re-run of 102 cancels 103]
+  H  edit that breaks the contract, then a review 1 s later                  oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok
+  H2 two edits 1 s apart while code runs, the second fixes the body          oracle pass created pass completed pass every pass fg     0  ok
+  H3 two edits 1 s apart while code runs, the second breaks the body         oracle FAIL created FAIL completed FAIL every FAIL fg     0  ok
+  I  bot head: held pull_request run + dispatch -f pr -f base                oracle pass created pass completed pass every pass fg     0  ok
+  I4 bot head, then a body edit carried onto the dispatch run                oracle pass created pass completed pass every pass fg     0  ok
+  K  D-2: arch-score red, diff misses custom_components/                     oracle pass created pass completed pass every pass fg     0  ok
+  R1 retarget after the code run is green (refresh re-runs C's gate)         oracle pass created FAIL completed FAIL every FAIL fg     0  BAD  [re-run of 101 cancels 102]
+  R2 body edit after an earlier edit's gate is green, new body breaks the co oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok  [re-run of 102 cancels 103]
+  R3 approval, then dismissal 300 s later (scenario G, spaced)               oracle FAIL created FAIL completed FAIL every FAIL fg    11  ok  [re-run of 102 cancels 103]
+  R4 edit and review both land while the code run is in flight               oracle pass created pass completed pass every pass fg     0  ok
+  R5 a body that breaks the contract, then an edit 300 s later that fixes it oracle pass created pass completed pass every pass fg    11  ok
+  R6 changes requested on a raise, then the owner approves 300 s later       oracle pass created pass completed pass every pass fg     0  ok
+  R7 an approval, then a plain comment review 300 s later                    oracle pass created FAIL completed FAIL every FAIL fg     0  BAD  [re-run of 102 cancels 103]
+
+RERUN-CONCURRENCY-SIM: BAD rows, revision's model 0, with re-runs in their group 3

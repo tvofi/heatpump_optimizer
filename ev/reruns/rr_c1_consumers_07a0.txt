@@ -1,0 +1,90 @@
+.github/workflows/tests.yml:728:    # beside the line set for tests/composed_closures.json's scripts, and the
+.github/workflows/tests.yml:730:    # `composed-proof` compares the two for free once a night. Off every
+.github/workflows/tests.yml:908:      # derived beside its line sets for tests/composed_closures.json's
+.github/workflows/tests.yml:919:          name: composed-closures
+.github/workflows/tests.yml:2584:      # read set from that one execution. composed-verify refuses on any
+.github/workflows/tests.yml:2595:          name: composed-closures
+.github/workflows/tests.yml:2606:          if ! OUT=$(python tests/closure.py composed-verify \
+.github/workflows/tests.yml:2710:      # gets the same tree-named upload for `composed-proof`'s free nightly
+.github/workflows/tests.yml:2730:        # step and `composed-proof` respectively.
+.github/workflows/tests.yml:2760:  #     driver tools/coverage/composed_proof.sh measures all three executions
+.github/workflows/tests.yml:2764:  # tests/composed_closures.json (that removal IS the refusal); it does not
+.github/workflows/tests.yml:2766:  composed-proof:
+.github/workflows/tests.yml:2792:            'tools/coverage/coverage_tree\.sh|tools/coverage/composed_proof\.sh|tests/closure\.py|tests/composed_closures\.json
+.github/workflows/tests.yml:2814:        run: tools/coverage/composed_proof.sh
+.github/workflows/tests.yml:2826:          name: composed-closures
+tests/closure.py:556:    "tools/coverage/composed_proof.sh",
+tests/closure.py:2529:COMPOSED = ROOT / "tests" / "composed_closures.json"
+tests/closure.py:2539:CHEAP_ARGV_OR_ENV = {
+tests/closure.py:2639:def composed_verify(expect_tree: str, in_dir: Path) -> int:
+tests/closure.py:2660:        if name in CHEAP_ARGV_OR_ENV:
+tests/closure.py:2663:                f"(CHEAP_ARGV_OR_ENV); remove it from {COMPOSED} or prove "
+tests/closure.py:2674:            # `composed-verify:` token and killed the cp (job 115038269065).
+tests/closure.py:2675:            print(f"composed-verify: {script} was not composed this run; "
+tests/closure.py:2694:            print(f"composed-verify: {p}", file=sys.stderr)
+tests/closure.py:2695:        print("composed-verify: consuming nothing; the closures lane "
+tests/closure.py:4274:            rc = composed_verify(tree, d)
+tests/closure.py:4275:        pin("composed-verify accepts a healthy record on the same tree",
+tests/closure.py:4280:    # `composed-verify:` and killed the consume step's cp (job
+tests/closure.py:4281:    # 115038269065: `cp: cannot stat '..._temp/composed/composed-verify:
+tests/closure.py:4294:                rc = composed_verify(tree, d)
+tests/closure.py:4296:            pin("composed-verify's stdout is exactly the script list; the "
+tests/closure.py:4299:                and "composed-verify:" not in val
+tests/closure.py:4328:                 "OUT": f"{script} composed-verify:"},
+tests/closure.py:4354:                rc = composed_verify(tree, d)
+tests/closure.py:4355:            pin(f"composed-verify refuses {label} and consumes nothing",
+tests/closure.py:4368:                rc = composed_verify(tree, d)
+tests/closure.py:4369:            pin("composed-verify refuses a never-compose script even with a "
+tests/closure.py:4370:                "healthy record", rc == 1 and "CHEAP_ARGV_OR_ENV" in err.getvalue(),
+tests/closure.py:4379:           or Path(s).name in CHEAP_ARGV_OR_ENV
+tests/closure.py:5006:    cv = sub.add_parser("composed-verify")
+tests/closure.py:5041:    if a.cmd == "composed-verify":
+tests/closure.py:5042:        return composed_verify(a.expect_tree, Path(a.in_dir))
+tests/closures.json:1424:   "tests/composed_closures.json",
+tests/closures.json:1530:   "tools/coverage/composed_proof.sh",
+tests/closures.json:3378:   "tools/coverage/composed_proof.sh",
+tests/composed_closures.json:4: "note": "C1 allow-list (round-9 heavy-script consolidation pre-study, dev/audit/rounds/round9/prestudy/heavy-script-consolidatio
+tests/derive_closures.sh:146:  # composed-verify`) is not re-recorded bare -- one instrumented execution
+tests/entities.py:33134:_COMPOSED_LIST = json.loads(Path("tests/composed_closures.json").read_text())
+tests/entities.py:33135:_COMPOSED_BAD = [
+tests/entities.py:33136:    s for s in _COMPOSED_LIST.get("scripts", [])
+tests/entities.py:33138:    or Path(s).name in _closure.CHEAP_ARGV_OR_ENV
+tests/entities.py:33143:    not _COMPOSED_BAD,
+tests/entities.py:33144:    f"bad entries: {_COMPOSED_BAD}",
+tests/entities.py:33146:# The proof driver: `composed-proof`'s self arm runs it, and it must drive
+tests/entities.py:33151:_CP_SH = Path("tools/coverage/composed_proof.sh").read_text()
+tests/entities.py:33153:    "the composed-proof driver measures through closure.py's own comparison",
+tests/entities.py:33159:# `composed-proof`'s first run died resolving `actions/checkout@<40-hex>`
+tests/entities.py:33184:    "runner resolves as a missing version (composed-proof, 2026-10-12)",
+tools/audit/seat/merge_train.py:1081:        # the 180-min composed-proof) must never hold a landing whose
+tools/audit/seat/merge_train.py:1282:        # composed-proof) must never hold a batch whose required set is green.
+tools/audit/seat/merge_train.py:2493:            # a non-required lane that never concludes (the composed-proof class)
+tools/audit/seat/merge_train.py:2494:            runs += [{"name": "composed-proof", "id": 16, "status": "in_progress", "started_at": "1",
+tools/audit/seat/merge_train.py:2952:          "head (the composed-proof class): the serial landing waits the required set only (R9-ADMIT-REQ)",
+tools/audit/seat/orchestrator_tick.py:2534:                 runs_at={H1: [run_obj("composed-proof", status="in_progress",
+tools/audit/seat/orchestrator_tick.py:2545:                 runs_at={H1: [run_obj("composed-proof", status="in_progress",
+tools/coverage/composed_proof.sh:4:# Run by the `composed-proof` job when a pull request changes the composition
+tools/coverage/composed_proof.sh:6:# tests/composed_closures.json, .github/workflows/tests.yml) -- the one head
+tools/coverage/composed_proof.sh:12:# For every script on tests/composed_closures.json's allow-list, at this
+tools/coverage/composed_proof.sh:32:W=$(mktemp -d "${TMPDIR:-/tmp}/hpo-composed-proof-XXXXXX")
+tools/coverage/composed_proof.sh:92:    echo "composed-proof: $s: equality is proven only for runs that ended (rc 0 under all three)"
+tools/coverage/composed_proof.sh:118:    print(f"composed-proof: {script}: the composed line set differs from "
+tools/coverage/composed_proof.sh:125:print(f"composed-proof: {script}: line sets byte-identical over "
+tools/coverage/composed_proof.sh:133:  echo "composed-proof: an equality broke; remove the script from tests/composed_closures.json until it is proven"
+tools/coverage/composed_proof.sh:136:echo "composed-proof: every allow-listed script proven at this head"
+tools/coverage/coverage_tree.sh:147:# COMPOSED CLOSURES (round-9 C1): a script on tests/composed_closures.json's
+tools/coverage/coverage_tree.sh:156:# composed-proof job's, when this file changes and nightly.
+tools/coverage/coverage_tree.sh:159:COMPOSED=$(env -u COVERAGE_PROCESS_START PYTHONPATH="$PWD/tests/hastub" \
+tools/coverage/coverage_tree.sh:191:    if printf '%s\n' "$COMPOSED" | grep -qxF "tests/$s.py"; then
+tools/coverage/coverage_tree.sh:216:      # reddened the composed-proof job from the proof script's own export
+--- files:
+.github/workflows/tests.yml
+tests/closure.py
+tests/closures.json
+tests/composed_closures.json
+tests/derive_closures.sh
+tests/entities.py
+tools/audit/seat/merge_train.py
+tools/audit/seat/orchestrator_tick.py
+tools/coverage/composed_proof.sh
+tools/coverage/coverage_tree.sh

@@ -1,0 +1,6 @@
+edit run's gate completes at t=2151; sweep acts 20 s later
+push H2 at gate-30s: oracle pass merge box created none completed none every none  ['re-run of 101 cancels 103']
+push H2 at gate-5s: oracle pass merge box created none completed none every none  ['re-run of 101 cancels 103']
+push H2 at gate+1s: oracle pass merge box created none completed none every none  ['re-run of 101 cancels 103']
+push H2 at gate+10s: oracle pass merge box created none completed none every none  ['re-run of 101 cancels 103']
+push H2 at gate+19s: oracle pass merge box created none completed none every none  ['re-run of 101 cancels 103']
