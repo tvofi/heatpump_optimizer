@@ -1,0 +1,13 @@
+RESULT implementations=6 count
+RESULT family__as_float=5 count
+RESULT family_round_if_not_none=1 count
+RESULT guard_families=2 count
+RESULT driven_sites=1 count
+RESULT distinct_answer_vectors=1 count
+probe                               0       True     '21.5'        nan       None   sites
+  1 x _as_float                   0.0       None       None       None       None   e.g. CurrentSetpointSensor
+RESULT disagreeing_probes=0 count
+RESULT disagreeing_probe_values=-
+RESULT thread_factor=0.216
+RESULT load1=156.34
+RESULT swapins=unmeasured

@@ -1,0 +1,4 @@
+measured head: aac8c5e80fdfe574597f7fad17f11a418ff3596f
+merge base: 99cf51c1a73a5a1a44577021399b7f1cfcab898d
+autofix head judged as delta: 7e79b6762824e2df766d465518c8ba19106c7918
+aac8c5e80fdfe574597f7fad17f11a418ff3596f
