@@ -16,7 +16,7 @@ What changes. Three score metrics at the floor weight. They guard no register cl
   - Dead definitions are top-level `function`/`class`/`const`/`let` names and class members that no other token names, less the browser, lit and Home Assistant hooks. D7-s3-02's `textWidth` was one.
   - Clones are functions sharing a 20-token window once their own names are numbered and their no-op statements dropped (C22).
 - **One JavaScript identifier grammar.** `prepr.sh`'s agreement lane refused the branch. The regex `[A-Za-z_$][\w$]*` was spelled in `tests/doc_claims.py`, `metrics/card.py` and attempt 44, and no entry registered it.
-  - The fix is structural: one owner, `card._IDENT` (`metrics/card.py:53`). `tests/doc_claims.py` imports it at module level, beside its other imports, and its `_tokens` is `set(_IDENT.findall(text))`. Attempt 44 reads `K._IDENT.fullmatch` and builds its declaration regex from `K._IDENT.pattern` (line 25). `git grep -nF '[A-Za-z_$][\w$]*' -- tools tests` prints one line, `metrics/card.py:53`. No registry entry is needed.
+  - The fix is structural: one owner, `card._IDENT` (`metrics/card.py:53`). `tests/doc_claims.py` imports it at module level, directly above its reader, and its `_tokens` is `set(_IDENT.findall(text))`. Attempt 44 reads `K._IDENT.fullmatch` and builds its declaration regex from `K._IDENT.pattern` (line 25). `git grep -nF '[A-Za-z_$][\w$]*' -- tools tests` prints one line, `metrics/card.py:53`. No registry entry is needed.
   - `tools/policy/agreement.mjs` is byte-identical to origin/main: CI's lane reads the registry from the base branch (#2366), so a branch line would not be read there.
   - `tests/doc_claims.py`'s closure gains the four archscore modules it now imports.
 - **The carry from R10-STRUCTURE-BLIND (#2340):** `metrics/common.py`'s `HA_CONVENTION_METHODS` and `is_ha_method` are deleted. Nothing read either, and the list had drifted from `tests/structure.py`'s.
@@ -47,13 +47,17 @@ The review blocked on two findings and noted one minor one. Each is repaired in 
 
    What the counters still do not see is stated in `ABOUT.md` ("What part 4's censuses do not see"). The orchestrator carried that residual to R10-BRIEFS-FOLD at `72b97a4a5`. This seat did not write the roster.
 2. **"No second spelling" was false.** Attempt 44 line 25 now builds its regex from `K._IDENT.pattern`. The grep above finds only the owner.
-3. **Minor.** `tests/doc_claims.py`'s per-call `sys.path.insert` is gone. `tools/audit` joins the module-level path tuple at the lowest priority, and `_IDENT` is imported there.
+3. **Minor.** `tests/doc_claims.py`'s per-call `sys.path.insert` is gone. `tools/audit` joins the module-level path tuple at the lowest priority. `_IDENT` is imported at module level, directly above its one reader `_tokens`, so lines 1 to 2019 equal origin/main's.
 
 ## Head
 
-`c8d1382a37ba330f1b999f9fbcba8e430e21df83`, on PR head `28d6a60bb`. `git merge-base origin/main HEAD` is `52f698905868c9140ed213ea542c44053fca7096`.
+`d41773bbf98ddaaa47a5ffd5c95cac7c3cb551dd`, on PR head `2183ab58f` (`update_pr` merged `c8d1382a3` and then origin/main `d569693ad`). `git merge-base origin/main HEAD` is `d569693ad41fa4f4f95a3d4bbec7cea94ed1df26`.
 
-The harness, the reviewer's plants and the scoped gate were taken at this head. Four sets were taken at `033998cb5`, whose instrument is this head's (`c8d1382a3` adds only `expected.json` rows): the calibration record, the round-1 mutants M8 to M12, the round-1 ablations and the corpus re-measure. Origin/main has moved 28 commits since the merge base. None of them touches `custom_components/`, `tools/audit/archscore/` or this diff's other files, and `git merge-tree` with origin/main exits 0, so the branch is not re-merged. The round-0 mutants M1 to M7 and the C20 to C22 ablations on attempts 42 to 44 were taken at `21dd4a3e5`. The round-1 metric changes are pinned by M8 to M10, and they leave today's values unchanged.
+`2183ab58feeeb4e062b81b557a7d7ecfa3428507` merges the authored code head `c8d1382a37ba330f1b999f9fbcba8e430e21df83` and then merges origin/main `d569693ad` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`d41773bbf` changes only `tests/doc_claims.py`: the `_IDENT` import moves from the top of the file to module level directly above `_tokens` (`## Red checks`). Between `52f698905` and `d569693ad`, origin/main touches nothing in `custom_components/`, `tools/audit/archscore/` or `tests/ci_budgets.json` (`git diff --stat` is empty). So the instrument figures below, taken at `c8d1382a3` and `033998cb5`, stand at this head. The scoped gate and today's values are re-taken here.
+
+The harness and the reviewer's plants were taken at `c8d1382a3`. Four sets were taken at `033998cb5`, whose instrument is this head's (`c8d1382a3` adds only `expected.json` rows): the calibration record, the round-1 mutants M8 to M12, the round-1 ablations and the corpus re-measure. The round-0 mutants M1 to M7 and the C20 to C22 ablations on attempts 42 to 44 were taken at `21dd4a3e5`. The round-1 metric changes are pinned by M8 to M10, and they leave today's values unchanged.
 
 ## Mutation proof
 
@@ -97,12 +101,12 @@ Ablation (`ARCHSCORE_ABLATE`). Each switch reopens its own attempt, and only tha
 - **Corpus.** In round 1, `calibrate.py --measure-corpus --only-metric literal_clone_copies,card` at `033998cb5` leaves `corpus_vectors.json` byte-identical (`git diff --quiet` exits 0). The two changed metrics read the same 87 trees the same. In round 0, `python3 tools/audit/archscore/calibrate.py --measure-corpus --jobs 4` ran every job, which is the precondition carried from #2340. It covered 87 trees, 67 `ok` and 20 `ERRORS`. The 20 are `_family_splits_error` and `_family_orphan_overrides_error` (`KeyError: 'entity'`) on history trees that have no `entity` module. They are stored in `origin/main`'s `corpus_vectors.json` too (`grep -c _family_splits_error` 20). `git diff --quiet -- tools/audit/archscore/calibration/corpus_vectors.json` exits 0: the re-measure is byte-identical.
 - **Calibration.** Round 1: `python3 tools/audit/archscore/calibrate.py --record` at `033998cb5`, the instrument of this head. It printed RECORD for exactly `rt_42b_literal_module_constant`, `rt_42c_literal_keyword_args` and `rt_44b_card_noop_split`, each GAME and NULL. The run printed `CALIBRATION 105/133 labelled cases classify as their label says`, `RED TEAM 80/80 attempts read NULL or inadmissible; IMPROVES: none` and `KNOWN-OPEN 1` (`rt_04zz1`, unchanged), and no `SENSITIVE` line. Round 0 recorded the twelve part-4 cases. `git diff origin/main -- tools/audit/archscore/calibration/expected.json` is 90 insertions and 0 deletions.
 - **Mutants and ablations.** The figures above come from `calibrate.py --only <the twelve or fifteen cases>`, with the mutant applied or `ARCHSCORE_ABLATE` set.
-- **Scoped gate**, every line below re-taken at `c8d1382a3`. `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 4 script(s) run, 29 scoped out`. It names four scripts:
+- **Scoped gate**, every line below re-taken at `d41773bbf` (`brief_lint.mjs`: `TOTAL: 0 error(s) across 47 file(s)`). `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 4 script(s) run, 29 scoped out`. It names four scripts:
   - `tests/arch_score.py`: it re-derives the calibration recorded above and runs on CI (heavy-script rule).
   - `tests/arch_score_head.py`: `ALL 16 ARCHITECTURE SCORE HEAD CHECKS PASSED`.
   - `tests/doc_claims.py`: `ALL 169 checks PASSED`.
   - `tests/entities.py`: `ALL 2346 ENTITY CHECKS PASSED`. Its ci-ratchet null control derives the three new rows at the values recorded.
-- **`run.sh`'s `run_always` scripts.** `tests/env_drift.py --claims-only 52f698905868c9140ed213ea542c44053fca7096` prints `claims hygiene: 52f698905868c9140ed213ea542c44053fca7096 ok`. `tests/closure.py selftest` prints `ALL 115 closure shrink pins PASSED`. `tests/harness_headers.py` prints `ALL 109 HARNESS HEADER CHECKS PASSED`. `tests/layout.py` prints `layout self-test: ok`. `python3 tools/audit/seat/tmp_paths.py --check` prints `0 refused`.
+- **`run.sh`'s `run_always` scripts.** `tests/env_drift.py --claims-only d569693ad41fa4f4f95a3d4bbec7cea94ed1df26` prints `claims hygiene: d569693ad41fa4f4f95a3d4bbec7cea94ed1df26 ok`. `tests/closure.py selftest` prints `ALL 115 closure shrink pins PASSED`. `tests/harness_headers.py` prints `ALL 109 HARNESS HEADER CHECKS PASSED`. `tests/layout.py` prints `layout self-test: ok`. `python3 tools/audit/seat/tmp_paths.py --check` prints `0 refused`.
 - **Agreement lane.** `node tools/policy/agreement.mjs --only discovery`, run with `tools/policy/agreement.mjs` equal to origin/main (`git diff --quiet origin/main -- tools/policy/agreement.mjs` exits 0), prints `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (not touched).
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL` (no package file changes).
@@ -133,7 +137,12 @@ n/a: no package file changes. The instrument change takes effect after merge (`A
 
 ## Red checks
 
-none at the handoff; CI has not run on this head. At round 0's head `28d6a60bb`, the review read all 45 check-runs as success, skipped or neutral.
+- **`briefs`** (check-run `117611794944`, failure at `2183ab58f`), and **`pr-contract`** (`117611899608`), which is red with it.
+  - Root cause: this branch's `from archscore.metrics.card import _IDENT` sat at the top of `tests/doc_claims.py`. It moved every line below it down by one.
+  - `dev/programme/carries/carry-1645.json` cites `tests/doc_claims.py:476` and `:565` for `check_initial_setup_menu` and `check_simulate_plan_fields`. Origin/main has them at 477 and 568, and the branch had them at 478 and 569. Locally, `node tools/policy/brief_lint.mjs` at `2183ab58f` printed `'check_simulate_plan_fields' not found near tests/doc_claims.py:476; found at line 569 instead` and `TOTAL: 1 error(s) across 47 file(s)`.
+  - Fix (`d41773bbf`): the import moves to module level directly above `_tokens`, so no cited line shifts. I did not edit the carry, which belongs to the R9 record.
+  - At `d41773bbf`, `brief_lint.mjs` prints `TOTAL: 0 error(s) across 47 file(s)` and `tests/doc_claims.py` prints `ALL 169 checks PASSED`.
+- No other check-run had concluded red at `2183ab58f` when read; `closures`, `fast (3.14)` and `Analyze (python)` were still in progress. CI has not run on `d41773bbf`.
 
 ## Forward-carry
 
@@ -143,6 +152,7 @@ none at the handoff; CI has not run on this head. At round 0's head `28d6a60bb`,
 ## Friction
 
 - R10-ARCHSCORE-COVERAGE-p4: unclear: the brief asks for one red-team attempt per counter, and each of this seat's attempts re-spelled its counter's own rule (float bounds, a local hop, renamed locals). Round 1 blocked on the neighbouring spellings: a module constant, a keyword argument and a no-op statement. An attempt set that covers a rule's neighbours, and not only the rule, would have found them.
+- R10-ARCHSCORE-COVERAGE-p4: unenforced: `prepr.sh` passed clean at `c8d1382a3`, and CI's `briefs` job went red on the same diff. `prepr.sh` step 3f runs `brief_lint.mjs` only when the diff touches a pinned path. Otherwise it prints `skip brief_lint no pinned path changed, so CI's briefs job reads this head's copy`, which leaves CI as the first reader of a line shift under a carry's citation. Here the shift was in `tests/doc_claims.py`. Running `brief_lint.mjs` unconditionally before a handoff would have caught it.
 - R10-ARCHSCORE-COVERAGE-p4: cost: the box ran at load 130 to 300 for this session. One `calibrate.py --record` took about 2.5 hours of wall time against about 40 minutes of CPU. A seat cannot shorten the full calibration, because `--record` with `--only` would overwrite `expected.json` with the subset.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
