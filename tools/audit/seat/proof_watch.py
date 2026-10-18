@@ -3,7 +3,7 @@
 
     python3 tools/audit/seat/proof_watch.py --pr N --head SHA --check NAME \
         [--repo OWNER/REPO] [--poll SECONDS] [--budget HOURS] \
-        [--dry-run] [--mode app|owner]
+        [--dry-run] [--mode app|owner [--mandate <#201 comment id>]]
     python3 tools/audit/seat/proof_watch.py --self-test
 
 WHY THIS EXISTS. Owner decision P8 (2026-10-12, the throughput pre-study): a
@@ -103,11 +103,13 @@ class Watcher:
 
     def __init__(self, repo: str, pr: int, sha: str, check: str,
                  poll: float = 300.0, budget_h: float = 6.0,
-                 dry: bool = False, mode: str = "app", state: Path = DEFAULT_STATE,
+                 dry: bool = False, mode: str = "app", mandate: int | None = None,
+                 state: Path = DEFAULT_STATE,
                  merge_script: Path | None = None, approve_script: Path | None = None,
                  run=None, sleep=time.sleep, clock=time.monotonic, say=print) -> None:
         self.repo, self.pr, self.sha, self.check = repo, pr, sha, check
         self.poll, self.budget_h, self.dry, self.mode = poll, budget_h, dry, mode
+        self.mandate = mandate
         self.state = state
         # The repo's own merge path and the approver's own gate, by path —
         # reused, never re-implemented (tests/README: one governance tool does
@@ -274,6 +276,8 @@ class Watcher:
 
     def do_merge(self, cid: int, evidence: str) -> str:
         argv = ["bash", str(self.merge_script), str(self.pr), self.sha, evidence, self.mode]
+        if self.mode == "owner":
+            argv += ["--mandate", str(self.mandate)]
         code, out = self.run(argv)
         if code:
             raise Abort(f"{self.merge_script} failed (rc={code}): {out.strip()[-400:]}")
@@ -346,6 +350,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--budget", type=float, default=6.0, help="hours before aborting (default %(default)s)")
     ap.add_argument("--mode", choices=("app", "owner"), default="app",
                     help="the merge identity merge_pr.sh is handed (default %(default)s)")
+    ap.add_argument("--mandate", type=int,
+                    help="owner mode: the #201 mandate comment id merge_pr.sh reads live")
     ap.add_argument("--dry-run", action="store_true", help="run every guard, touch nothing")
     a = ap.parse_args(argv)
     if a.self_test:
@@ -354,11 +360,15 @@ def main(argv: list[str] | None = None) -> int:
         if v is None:
             print(f"proof_watch: REFUSE: {flag} is required (or --self-test)", file=sys.stderr)
             return 2
+    if a.mode == "owner" and a.mandate is None:
+        # merge_pr.sh refuses owner mode without one; refuse now, not after the watch
+        print("proof_watch: REFUSE: --mode owner needs --mandate <#201 comment id>", file=sys.stderr)
+        return 2
     if not (len(a.head) == 40 and set(a.head) <= HEX):
         print(f"proof_watch: REFUSE: --head must be the full 40-hex SHA, got '{a.head}'", file=sys.stderr)
         return 2
     w = Watcher(repo=a.repo, pr=a.pr, sha=a.head, check=a.check, poll=a.poll,
-                budget_h=a.budget, dry=a.dry_run, mode=a.mode)
+                budget_h=a.budget, dry=a.dry_run, mode=a.mode, mandate=a.mandate)
     try:
         w.watch()
     except Abort as e:
@@ -459,9 +469,9 @@ def self_test() -> int:
         def clock(self):
             return self.now[0]
 
-        def watcher(self, dry=False, budget_h=1.0, out=None):
+        def watcher(self, dry=False, budget_h=1.0, out=None, mode="app", mandate=None):
             return Watcher(repo=REPO, pr=PR, sha=SHA, check=CHECK, poll=1.0,
-                           budget_h=budget_h, dry=dry, mode="app",
+                           budget_h=budget_h, dry=dry, mode=mode, mandate=mandate,
                            state=self.root / "state",
                            merge_script=self.merge, approve_script=self.approve,
                            run=self.run, sleep=self.sleep, clock=self.clock,
@@ -495,6 +505,18 @@ def self_test() -> int:
     st(f.merge_calls,
        [["bash", str(f.merge), str(PR), SHA, str(os.path.realpath(f.evidence)), "app"]],
        "(a2) the merge goes through merge_pr.sh with pr, pinned head, evidence and mode")
+    # (a3) owner mode hands merge_pr.sh the mandate id it reads live; launched
+    # without one, the watch refuses before it polls (the app arm above is the
+    # null: no --mandate reaches merge_pr.sh there).
+    f3 = Fixture(); cases.append(f3); f3.set_verdict()
+    try:
+        f3.watcher(out=[], mode="owner", mandate=6175172275).watch()
+    except Abort as e:
+        st(f"unexpected abort: {e}", "no abort", "(a3) the owner arm merges without aborting")
+    st([c[-3:] for c in f3.merge_calls], [["owner", "--mandate", "6175172275"]],
+       "(a3) owner mode passes --mandate <id> to merge_pr.sh")
+    st(main(["--pr", str(PR), "--head", SHA, "--check", CHECK, "--mode", "owner"]), 2,
+       "(a3) --mode owner without --mandate refuses at launch")
     merge_lines = [ln for ln in out if ln.startswith("PROOF-WATCH MERGE")]
     st(len(merge_lines), 1, "(a2) exactly one merge line")
     st(all(k in merge_lines[0] for k in (f"pr=#{PR}", f"head={SHA}", f"check={CHECK}",
