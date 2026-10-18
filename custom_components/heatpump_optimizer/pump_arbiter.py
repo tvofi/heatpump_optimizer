@@ -131,8 +131,7 @@ from collections import Counter, deque
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
-from functools import wraps
-from typing import Any, Callable, TypeGuard
+from typing import Any, TypeGuard
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -155,7 +154,9 @@ from .const import (
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .inputs import read_setpoint, setpoint_range_c, write_setpoint_c
+from .log_latch import log_held
 from .payload import CurrentAction
+from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
@@ -314,22 +315,6 @@ def duty_mode(config: Any) -> str:
     return EntryConfig.from_mapping(config).pump_duty_mode
 
 
-def _release_duty_floor(
-    fn: Callable[..., str | None],
-) -> Callable[..., str | None]:
-    """Drop the plan's modulation floor if ``step_duty`` raises between the reads."""
-    @wraps(fn)
-    def _wrapped(*args: Any, **kwargs: Any) -> str | None:
-        try:
-            return fn(*args, **kwargs)
-        finally:
-            setattr(planned_draw_runs, "modulation_floor", None)
-    return (
-        _wrapped
-    )
-
-
-@_release_duty_floor
 def step_duty(result: Any, now: datetime) -> str | None:
     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
 
@@ -342,19 +327,26 @@ def step_duty(result: Any, now: datetime) -> str | None:
     no space duty at all, so the arbiter wrote the pump's hot-water mode over
     it. A caller-supplied threshold is the shape that let them diverge, so the
     parameter is gone rather than defaulted.
+
+    The plan's own floor travels as that rule's ``modulation_floor`` ARGUMENT
+    (D7-arch3-04). It used to travel through an attribute on the function
+    object, set here and cleared by a decorator's ``finally`` so a later
+    floorless caller did not inherit it: one module-level slot for a per-plan
+    value, read by every caller that passed none. No production reader runs off
+    the loop, so the harm was the channel and the second piece of state that
+    kept it clean, not a live race.
     """
     stamps = list(getattr(result, "timestamps", None) or [])
     i = bisect.bisect_right(stamps, now) - 1
-    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):
+    # A step covers [stamp, stamp + one plan step): the last one ends where the
+    # next would start, the same half-open rule bisect gives every other step.
+    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
         return None
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
-    setattr(
-        planned_draw_runs, "modulation_floor",
-        getattr(result, "duty_floor_kw", None),
-    )
-    s_on = i < len(space) and planned_draw_runs(space[i])
-    d_on = i < len(dhw) and planned_draw_runs(dhw[i])
+    floor = getattr(result, "duty_floor_kw", None)
+    s_on = i < len(space) and planned_draw_runs(space[i], modulation_floor=floor)
+    d_on = i < len(dhw) and planned_draw_runs(dhw[i], modulation_floor=floor)
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
     )
@@ -414,21 +406,30 @@ def _planned_room(
     return points[i] if 0 <= i < len(points) else None
 
 
-def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | None) -> float | None:
+def _space_target(
+    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None
+) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
+    entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
+        log_held(inp.hass, f"space_target_flow_declared:{entity}", False)
         return _flow_target(inp, duty, now)
     room = _planned_room(result, now)
-    low = setpoint_range_c(inp.hass, _entities(inp.config)["space_setpoint"])[0]
-    if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
-        # An "indoor" entity that cannot hold the room target is a flow
-        # set-point declared as indoor: clamping 21 degC up to its minimum
-        # is the 25 degC this module must never write to a flow entity.
-        _LOGGER.warning(
-            "Pump duty: %s is declared an indoor set-point but its minimum is "
-            "%.1f degC; set its unit to Flow temperature. Not writing it.",
-            _entities(inp.config)["space_setpoint"], low,
-        )
+    low = setpoint_range_c(inp.hass, entity)[0]
+    # An "indoor" entity that cannot hold the room target is a flow
+    # set-point declared as indoor: clamping 21 degC up to its minimum is the
+    # 25 degC this module must never write to a flow entity. Latched on
+    # ``hass``, which outlives the per-pass ``ArbiterInputs`` snapshot, as
+    # ``inputs._age_gate`` is, and cleared on every pass that reads a
+    # holdable minimum or a flow unit, so a fixed misdeclaration that recurs
+    # warns again.
+    misdeclared = room is not None and low is not None and low > room + SETPOINT_TOLERANCE
+    if log_held(
+        inp.hass, f"space_target_flow_declared:{entity}", misdeclared,
+        "Pump duty: %s is declared an indoor set-point but its minimum is "
+        "%.1f degC; set its unit to Flow temperature. Not writing it.",
+        entity, low,
+    ):
         return None
     return _bounded(inp, "space_setpoint", room)
 
@@ -515,11 +516,6 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     return _bounded(inp, "space_setpoint", hold, FLOW_GATE_C)
 
 
-def _step_start(now: datetime) -> datetime:
-    """The 15-minute step start covering ``now``, on the solver's clock."""
-    return now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
-
-
 def _silent_rows(spec: Any) -> TypeGuard[str]:
     """Whether ``spec`` names a silent window the week can reach.
 
@@ -532,7 +528,9 @@ def _silent_rows(spec: Any) -> TypeGuard[str]:
     if not isinstance(spec, str) or not spec.strip():
         return False
     monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
-    actions = quiet_windows.step_actions(monday, 7 * 96, 0.25, spec, None)
+    actions = quiet_windows.step_actions(
+        monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None,
+    )
     return actions is not None
 
 
@@ -544,7 +542,7 @@ def _inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
     not a silent one.
     """
     actions = quiet_windows.step_actions(
-        _step_start(now), 1, 0.25, silent_spec, off_spec,
+        plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec,
     )
     return actions is not None and int(actions[0]) == quiet_windows.ACTION_SILENT
 
@@ -888,7 +886,7 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
 def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
     """Fold this pass into the current step's ledger row; close the last one."""
     held.last_duty = duty
-    start = now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    start = plan_step_start(now)
     tank = getattr(inp.state, "dhw_temperature", None)
     row = held.step
     if row is None or row["start"] != start:
