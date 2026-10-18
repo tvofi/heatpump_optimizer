@@ -15,7 +15,6 @@ import asyncio
 import contextvars
 import copy
 import functools
-import hashlib
 import inspect
 import json
 import logging
@@ -85,7 +84,7 @@ from .payload import (
     SpacePlan,
     ThermalView,
 )
-from .store import QuarantiningStore, admitted
+from .store import QuarantiningStore, admitted, load_mapping
 from .entry_config import EntryConfig
 from homeassistant.util import dt as dt_util
 
@@ -244,13 +243,12 @@ from .manual_plan import (
     ManualPlanError,
 )
 from .price_model import (
+    PriceShapeLearner,
     PriceShapeModel,
     TIBBER_API_URL,
     _raw_value,
     extend_price_series,
-    hourly_from_entries,
     pull_prices,
-    quarters_from_entries,
 )
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .tariff import CapacityTariff, PeakTracker
@@ -3011,16 +3009,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _init_grid(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Price modelling, the capacity tariff and PV surplus."""
         # --- Unknown price horizon (item 7) --------------------------------
-        self._price_model = PriceShapeModel()
-        self._price_days_seen: set[str] = set()
+        self._price_learner = PriceShapeLearner()
         self._price_known_steps: int = 0
         self._price_model_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             PRICE_MODEL_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_price_model",
         )
-
-        self._price_qdays_seen: set[str] = set()
 
         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
         self._grid_fee_cache: "tuple[Any, GridFeeSchedule] | None" = None
@@ -3126,14 +3121,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
         self._accuracy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
-            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
-            lead=timedelta(hours=max(LEAD_BUCKETS)),
-        )
-        # Serialized form of the last payload each store accepted, keyed by
-        # store name. An every-cycle save that rewrites unchanged content is
-        # pure disk wear; a digest recorded only after a successful save means
-        # a failed write is retried on the next cycle rather than skipped.
-        self._store_digests: dict[str, str] = {}
+            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy"
+        )  # its promises' dues declare their own lead (store.DOMAINS, D1-s2-01)
 
         # --- Defrost derate (item 14) --------------------------------------
         self._defrost = DefrostDerate()
@@ -7862,45 +7851,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_price_model(self) -> None:
         """Restore the learned diurnal price shape."""
-        try:
-            stored = await self._price_model_store.async_load()
-        except Exception as err:  # noqa: BLE001 - never block setup on storage
-            _LOGGER.debug("Could not load price model: %s", err)
+        stored = await load_mapping(self._price_model_store, "price model")
+        if stored is None:
             return
-        if not isinstance(stored, dict):
-            return
-        self._price_model = PriceShapeModel.from_dict(stored.get("model"))
-        days = stored.get("days_seen")
-        if isinstance(days, list):
-            self._price_days_seen = {str(d) for d in days}
-        qdays = stored.get("quarter_days_seen")
-        if isinstance(qdays, list):
-            self._price_qdays_seen = {str(d) for d in qdays}
+        self._price_learner.restore(stored)
 
     async def _async_save_price_model(self) -> None:
         store = self._price_model_store  # bound once: read twice below (D1-s2-52)
         try:
             await store.async_wait_for_read()
-            await store.async_save(
-                {
-                    "model": self._price_model.as_dict(),
-                    # Only recent days matter for de-duplication, and an
-                    # unbounded set would grow forever.
-                    "days_seen": sorted(self._price_days_seen)[-90:],
-                    "quarter_days_seen": sorted(self._price_qdays_seen)[-90:],
-                }
-            )
+            await store.async_save(self._price_learner.store_payload())
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist price model: %s", err)
 
     async def _async_load_ledger(self) -> None:
         """Restore the monthly ledger (T1)."""
-        try:
-            stored = await self._ledger_store.async_load()
-        except Exception as err:  # noqa: BLE001 - never block setup on storage
-            _LOGGER.debug("Could not load ledger: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._ledger_store, "ledger")
+        if stored is None:
             return
         self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
         # T6, all additive on the same payload: absent keys on a pre-T6
@@ -7960,12 +7927,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_accuracy(self) -> None:
         ctx = getattr(self, "_ctx", self)
-        try:
-            stored = await self._accuracy_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load accuracy history: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._accuracy_store, "accuracy history")
+        if stored is None:
             return
         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
         # Additive keys: an older store has none; an older build ignores extras.
@@ -7981,29 +7944,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._config.comfort_weight,
         )
         self._apply_comfort_weight()
-    async def _async_save_if_changed(
-        self, name: str, store: QuarantiningStore[dict[str, Any]], payload: dict[str, Any]
-    ) -> None:
-        """Write ``payload`` unless the store already holds exactly it.
-
-        Both callers run every cycle and most change nothing: a rewrite is
-        disk wear. The digest is remembered only after the store accepted
-        the payload, so a failed save is retried, not skipped as written.
-        """
-        digest = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, default=str).encode()
-        ).hexdigest()
-        if self._store_digests.get(name) == digest:
-            return
-        await store.async_save(payload)
-        self._store_digests[name] = digest
-
     async def _async_save_accuracy(self) -> None:
         try:
             await self._accuracy_store.async_wait_for_read()  # D1-s2-52
-            await self._async_save_if_changed(
-                "accuracy",
-                self._accuracy_store,
+            await self._accuracy_store.async_save_if_changed(
                 {
                     "accuracy": self._accuracy.as_dict(),
                     # v5.2.0: the tank's lead record, alongside the room's
@@ -8020,12 +7964,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not persist accuracy history: %s", err)
 
     async def _async_load_energy_totals(self) -> None:
-        try:
-            stored = await self._energy_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load energy totals: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._energy_store, "energy totals")
+        if stored is None:
             return
         for key in list(self._energy_totals):
             value = stored.get(key)
@@ -8046,9 +7986,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _async_save_energy_totals(self) -> None:
         try:
             await self._energy_store.async_wait_for_read()  # D1-s2-52
-            await self._async_save_if_changed(
-                "energy_totals",
-                self._energy_store,
+            await self._energy_store.async_save_if_changed(
                 {
                     **self._energy_totals,
                     # The accumulators' stated period ("since"): written once
@@ -8251,32 +8189,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Fold any newly complete price days into the learned shape."""
         if not getattr(self, "_ctx", self)._config.price_prior_enabled:
             return
-        days = hourly_from_entries(self._prices)
-        learned = False
-        for day, hours in days.items():
-            if day in self._price_days_seen:
-                continue
-            try:
-                when = datetime.fromisoformat(f"{day}T12:00:00")
-            except ValueError:
-                continue
-            if self._price_model.observe_day(when, hours):
-                self._price_days_seen.add(day)
-                learned = True
-        # The quarter refinement (#19) learns beside the hourly shape, from
-        # days that arrived at full 15-minute resolution only.
-        for day, quarters in quarters_from_entries(self._prices).items():
-            if day in self._price_qdays_seen:
-                continue
-            try:
-                when = datetime.fromisoformat(f"{day}T12:00:00")
-            except ValueError:
-                continue
-            if self._price_model.observe_day_quarters(when, quarters):
-                self._price_qdays_seen.add(day)
-                learned = True
-        if learned:
+        if self._price_learner.fold(self._prices):
             await self._async_save_price_model()
+
+    @property
+    def _price_model(self) -> PriceShapeModel:
+        """The learned shape, read-only: ``_price_learner`` owns it."""
+        return self._price_learner.model
 
     def _price_prior(self) -> PriceShapeModel | None:
         if not getattr(self, "_ctx", self)._config.price_prior_enabled:
@@ -9313,7 +9232,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._dhw_learner.apply_draws(draws)
         prices = learners.get("price_model")
         if isinstance(prices, dict):
-            self._price_model = PriceShapeModel.from_dict(prices)
+            self._price_learner.adopt_model(prices)
         # The accuracy tracker is deliberately NOT restored: it is the
         # evidence the drift alarm judges, not a learner. Restoring it
         # made the rollback erase its own justification — the next
@@ -9460,15 +9379,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_snapshots(self) -> None:
         try:
-            stored = await self._snapshot_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load learner snapshots: %s", err)
-            return
+            stored = await load_mapping(self._snapshot_store, "learner snapshots")
         finally:
             # Set even on failure: a lost store means an empty ring, and
             # the insurance must keep running rather than disarm forever.
             self._snapshots_loaded = True
-        if isinstance(stored, dict):
+        if stored is not None:
             self._snapshot_ring = SnapshotRing.from_dict(stored)
 
     async def _async_save_snapshots(self) -> None:
