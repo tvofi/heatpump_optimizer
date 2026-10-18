@@ -1,4 +1,2 @@
-merge_train self-test: 180 checks, 0 failed
-RESULT rows_caught=33 of=33
 RESULT rows_caught=34 of=35
 RESULT last20_hits=76 on_a_row=46 on_no_row=30
