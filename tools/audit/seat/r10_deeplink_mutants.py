@@ -72,10 +72,12 @@ Plants:
            the spellings the rows do name, expected red. They are the control
            R10-DEEPLINK-HANDLERS starts from: each goes red when the dynamic
            arm drives that handler.
-  RD4,RD5  the round-9 review's driven-press pair: RD4, expected GREEN, is a
-           form appended outside the shadow root and submitted by click()
-           inside a press the census drives; RD5, the same form in the shadow
-           root, is its red control.
+  RD4-RD6c the round-9 and round-10 reviews' driven-press plants: markup
+           appended outside the shadow root inside a press the census drives,
+           expected GREEN -- RD4 a form submitted by click(), RD6 an anchor
+           with a run-time-built href, click()ed. Their red controls put the
+           same element in the shadow root, placed and not submitted or
+           clicked: RD5 the form with its action, RD6c the anchor.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
@@ -352,10 +354,17 @@ PLANTS = {
     # The round-9 review's driven-press plants (#2345, review_plants9.py,
     # verbatim). RD4 is expected GREEN: a form appended to document.body,
     # outside the shadow root the census reads, and submitted by a button's
-    # click(), inside the advisor:settings press the census drives. RD5, the
-    # same form appended in the shadow root, is its red control.
+    # click(), inside the advisor:settings press the census drives. RD5, its
+    # red control, is the same form element and action appended in the shadow
+    # root, placed and not submitted.
     "RD4_form_ns_action_member_button_click_driven": after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P),
     "RD5_action_member_to_variable_on_rendered_form_driven": after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; root.appendChild(f); } catch (_e) {}' % P),
+    # The round-10 review's anchor (#2345, review_plants10.py, verbatim): RD6,
+    # expected GREEN, is an anchor whose href name is built at run time,
+    # appended to document.body and click()ed in the same driven press; RD6c,
+    # the same anchor appended in the shadow root and not clicked, is red.
+    "RD6_anchor_built_href_outside_root_click_driven": after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); document.body.appendChild(a); a.click(); } catch (_e) {}' % P),
+    "RD6c_anchor_built_href_in_root_driven_control": after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); root.appendChild(a); } catch (_e) {}' % P),
     "Y1_runtime_name_on_unresolved_selector_residual": attach("a.zz", 'a.setAttribute(["hr", "ef"].join(""), "%s");' % P),
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,
