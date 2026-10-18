@@ -506,7 +506,7 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
   # other reason -- network, auth, no such remote -- still dies below.
   git fetch -q --prune "$REMOTE" \
     "+refs/heads/main:$ns/main" \
-    "+refs/heads/handoff/*:$ns/handoff/*" \
+    "refs/heads/handoff/*:$ns/handoff/*" \
     "+refs/heads/handoff-body/*:$ns/handoff-body/*" \
     "+refs/heads/fix/*:$ns/fix/*" \
     || die "orphans: could not fetch the refs of $REMOTE (a shut fetch is not a clean zero)"
