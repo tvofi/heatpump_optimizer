@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_gap_energy_rate CMP_BOUND 6c88eaac",
+  "killed_by": "tests/entities.py",
+  "old": "    if rate is None or rate <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 994695e06c4c2b78d6420f82c322188317817f91: CMP_BOUND (`if rate is None or rate < 0.0:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}
