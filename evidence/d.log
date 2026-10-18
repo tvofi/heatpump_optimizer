@@ -1,9 +1,0 @@
-HEAD 2fe8d1ec16f3476473baa82b5dea8927435eff67
-RESULT mutant=RV1c_history_dot_back_control rc=1 fails=1
-    FAIL  no navigation token in the card's code outside navigateTo
-      10821: try { globalThis.history.back(); } catch (_e) {}
-RESULT mutant=RV5c_action_member_to_literal_control rc=1 fails=1
-    FAIL  no navigation token in the card's code outside navigateTo
-      10821: try { const f = document.createElement("div"); f.action = "/
-restored
-EXIT 0
