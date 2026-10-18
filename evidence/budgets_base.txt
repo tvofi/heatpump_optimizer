@@ -13,7 +13,7 @@ tools/audit/briefs/nudge.md                      115  115     3796  3814
 tools/audit/briefs/COMMON.md                     108  108     1597  1598 
 .claude/rules/finding-propagation.md             100  101     1329  1336 
 tools/audit/briefs/D11.md                         99  103     1497  1499 
-.claude/rules/ci-autofix.md                       91   96     1468  1469 
+.claude/rules/ci-autofix.md                       92   96     1468  1469 
 tools/audit/briefs/root-cause.md                  84   84      998   998 
 tools/audit/briefs/D13.md                         79   79     1149  1149 
 tools/audit/briefs/D12.md                         71   71      916   916 
