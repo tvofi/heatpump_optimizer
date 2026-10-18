@@ -207,8 +207,15 @@ requires, so a later change to `ci-autofix.md` cannot strand it.
 - Mutation proof. With `apply_inert`'s write disabled (`if added and False:`),
   `prepr.sh --self-test` prints `FAIL --apply-inert writes the predicted
   entry, and the prediction then clears (got 1, wanted 0)` and ends at 276
-  passed and 1 failed, rc=2. The unmutated head ends at 277 passed and 0
-  failed, rc=0.
+  passed and 1 failed, rc=2. The unmutated head ended at 277 passed and 0
+  failed, rc=0, in round 0.
+- Round 1, after the `pedge` arms. The unmutated head ends at 280 passed and
+  0 failed, rc=0. Removing `under_scoped`'s `pairs.add` (review mutant A)
+  prints `FAIL --apply-inert writes the import-edge arm's entry too, and the
+  prediction then clears (got 1, wanted 0)`, 279/1, rc=2. Restoring the old
+  step-line pointer prints `FAIL and 6d's step line names --apply-inert, not
+  ci-autofix.md's wait, when every red is an INERT READS (got 1, wanted 0)`,
+  279/1, rc=2.
 
 **Not landed, because it is policy and needs tvofi's approval.** This is a
 draft for `dev/governance/rules/ci-autofix.md`, to follow the sentence that
