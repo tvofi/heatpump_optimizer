@@ -1,0 +1,6 @@
+  FAIL PRS stuck sibling: ABSENT flagged under a stuck run
+  FAIL PRS stuck sibling: no WAITING under a stuck run
+  FAIL MAIN stuck sibling: ABSENT flagged under a stuck run
+  FAIL MAIN stuck sibling: no WAITING under a stuck run
+  FAIL split_absent: stuck -> absent
+orchestrator_tick self-test: 100 checks, 5 failed
