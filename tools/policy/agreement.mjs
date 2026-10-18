@@ -234,7 +234,6 @@ const SHARED_GRAMMARS = {
   "\\{(\\w+)\\}": "not-a-concept:the Python format-placeholder token",
   "[^:\\s]+:\\d+ [A-Z_]+": "identical:the mutation ledger line key, mutation_table.py and ledger_merge.py",
   "\"version\": \"[^\"]*\"": "not-a-concept:two audit probe scripts editing a manifest fixture",
-  "[A-Za-z_$][\\w$]*": "identical:the JavaScript identifier token, read by doc_claims.py's card-name census and the archscore card tokenizer (tools/audit/archscore/metrics/card.py _IDENT, which its red-team attempt imports)",
   '\\(#(\\d+)\\)': 'pair:merge-subject-pr',
   'Merge pull request #(\\d+)\\b': 'pair:merge-subject-pr',
 }

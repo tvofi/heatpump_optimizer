@@ -2020,7 +2020,11 @@ _TICKED_PRIVATE = re.compile(r"`(?:this\.)?(_[A-Za-z][\w$]*)(?:\(\))?`")
 
 
 def _tokens(text: str) -> set[str]:
-    return set(re.findall(r"[A-Za-z_$][\w$]*", text))
+    """The card's JavaScript identifiers: the archscore card tokenizer's one grammar (``card._IDENT``)."""
+    sys.path.insert(0, str(ROOT / "tools" / "audit"))
+    from archscore.metrics.card import _IDENT  # noqa: E402
+
+    return set(_IDENT.findall(text))
 
 
 def check_private_mentions() -> None:
