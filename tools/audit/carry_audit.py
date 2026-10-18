@@ -681,6 +681,22 @@ def _self_test() -> int:
     r = run(fr + f"\n## Red checks\n\n- `pr-contract`: answered. Carry: R10-LIVE (item {fid})\n")
     check("the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)",
           r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    r = run(fr + f"\n## Red checks\n\n- `pr-contract`: Carry: R10-LIVE, see the quoted UNROUTED line: "
+            f"body item {fid} stays owed.\n")
+    check("a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does",
+          r["u"] == 1 and len(r["rows"]) == 1)
+    r = run(fr + f"\n## Red checks\n\n- `pr-contract`: Carry: R10-LIVE, see the quoted UNROUTED line: "
+            f"(item {fid}) is routed here.\n")
+    check("the same line with the paren form routes it (null control)",
+          r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    r = run(fr + f"\n## Red checks\n\n- `pr-contract`: the refusal named (item {fid}) and stays owed;\n"
+            "  the repair itself is answered. Carry: R10-LIVE\n")
+    check("an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing",
+          r["u"] == 1 and len(r["rows"]) == 1)
+    r = run(fr + f"\n## Red checks\n\n- `pr-contract`: the refusal stays owed;\n"
+            f"  the repair itself is answered. Carry: R10-LIVE (item {fid})\n")
+    check("the same paragraph with the id inside the marker's segment routes it (null control)",
+          r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
     r = run(head + "## Friction\n\n- PULL_REQUEST_TEMPLATE.md: unenforced: its example "
             "`Carry: R10-LIVE` names a group a fixer copies unchecked.\n")
     check("a backticked example `Carry:` in a finding's prose does not route it", r["u"] == 1)
