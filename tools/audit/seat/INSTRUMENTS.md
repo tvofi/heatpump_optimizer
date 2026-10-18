@@ -256,7 +256,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `BLOCKED-UNFIXED: #N <head8>` for a blocked verdict at the current head with
   no `handoff/<topic>` tip committed after it. A verdict at a stale head prints
   neither; comments it cannot read print UNREADABLE. One comments read per
-  open PR per pass.
+  open PR per pass. A queue entry is unmerged only when its PR is in the open
+  set (one `gh pr list --state open` per pass, TRAIN and REPLAN alike), never
+  from a `pulls/<n>` `.state`, which reads `closed` for a merged PR: a queue
+  whose entries are all merged prints no train-not-alive line (2026-10-18, t16).
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
