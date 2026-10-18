@@ -5745,12 +5745,13 @@ function cmdRecord(findings, { measuredRecord = false } = {}) {
   const moved = after.filter((e) => before.has(e.key) && before.get(e.key) !== e.count)
   doc._comment =
     'Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.'
-  const at = recordedAtSha()
-  if (!at) {
+  // `sha`, not `at`: a local `at` shadowed the module's `at(path)` below.
+  const sha = recordedAtSha()
+  if (!sha) {
     console.log(`refusing to record: no merge base with origin/main, so ${KNOWN_BAD_FILE} would carry a provenance SHA nobody can resolve`)
     process.exit(2)
   }
-  doc.recorded_at = at
+  doc.recorded_at = sha
   doc.entries = after
   fs.writeFileSync(at(KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
   const total = [...counts.values()].reduce((a, b) => a + b, 0)

@@ -2,7 +2,7 @@
 description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
 paths:
   - "dev/governance/**"
-  - ".claude/workflows/*.json"
+  - "dev/programme/rosters/*.json"
 ---
 # Forward-carrying a finding
 
@@ -25,9 +25,8 @@ that has not started:
 - **removes an option it was expected to have** — a dependency will not install,
   a budget it was to spend has been spent, an interface is not available.
 
-Deliberately, no threshold of "importance" gates this. That adjective is the one
-a seat under time pressure argues its way out of, and the three effects above
-already carry the whole test: if it changes what a later stage must do, it is
+No threshold of "importance" gates this, the adjective a seat under time
+pressure argues its way out of: if it changes what a later stage must do, it is
 carried.
 
 ## A comment is not propagation
@@ -43,8 +42,7 @@ outcome — not derived at all, and the refused technique gets attempted again.
 
 - **Carry the control, not only the claim.** The next stage needs the
   measurement that separates the real thing from its imitation. A conclusion
-  without its control cannot be checked, and cannot be re-established after a
-  rebase.
+  without its control cannot be checked, or re-established after a rebase.
 - **State the precondition, not the opportunity.** "This lever gained N points"
   invites the next seat to reach for it. "This lever is legitimate only when X,
   demonstrated per case" is what keeps the next stage honest. Where a technique
@@ -55,15 +53,14 @@ outcome — not derived at all, and the refused technique gets attempted again.
 ## Where it goes
 
 - **Constrains one stage** → that stage's brief. **A stage's brief lives in two
-  places, and both must receive it**: a live group's `brief` string in
-  `.claude/workflows/wave-*-groups.json`, which the linter and the next
+  places, and both must receive it**: a live group's `brief` string in the
+  round's roster under `dev/programme/rosters/`, which the linter and the next
   session read; and any out-of-tree brief file a running
   session hands its seats. Carrying to the scratch copy alone leaves the tree
   unchanged, and the tree is what survives the session.
 - **Constrains every seat** → the **role contract** it belongs to under
-  `dev/governance/roles/` (`fixer.md`, `fix-review.md`, `judge.md`), **once**.
-  That is the in-tree file every seat of that role reads, so it is the
-  destination a reviewer can open. Do not copy it into each stage's brief:
+  `dev/governance/roles/` (`fixer.md`, `fix-review.md`, `judge.md`), **once**:
+  every seat of that role reads it. Do not copy it into each stage's brief:
   duplication goes stale unevenly, and a reader who finds two versions trusts
   neither.
 - **The stage has no live roster group** → its own `dev/programme/carries/carry-<N>.json`,
@@ -74,8 +71,8 @@ outcome — not derived at all, and the refused technique gets attempted again.
 - **A sibling seam in the same stage** — an open seam the enumeration rule returns
   (`fixer.md` step 8) — goes to **a new issue filed by the same pull request**, or a
   carry file under the branch above. The destinations this rule
-  names are stages that have not started, so a seam in the stage that is running has none:
-  that is how the fifth seam escaped #1345.
+  names are stages that have not started, so a seam in the stage that is running
+  has none (#1345's fifth seam).
 
 **While two copies disagree, the newer one is right and the other is the bug.**
 Say which is which in the carry, because a seat that finds its brief and the
@@ -84,17 +81,18 @@ request, so it is usually the newer one.
 
 ## Enforcement
 
-The producing PR does not merge until the carry is **in the tree**. Its body
-names the file and the stage that received it, so a reviewer opens the
-destination rather than taking the claim.
+The producing PR does not merge until the carry is **in the tree**; a roster
+carry, once on the round's roster branch `handoff/audit-r<N>-roster` (tvofi,
+2026-10-18), which lands on main at each stamp and before branch cleanup
+and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`
+prints anything. The body names the file, the stage and (a roster carry) the
+branch SHA: the reviewer opens that, not the claim.
 
 **Name a destination that exists.** A carry pointing at a file `git grep` cannot
 find is not a carry, and a rule that makes an unfindable destination a merge
-blocker is worse than no rule — the seat cannot comply and the reviewer cannot
-check.
+blocker is worse than no rule: the seat cannot comply, nor the reviewer check.
 
 **Verify the write landed, do not assume it.** A scripted edit that matches
-nothing reports success — `str.replace` and `sed` both do — and this rule was
-first landed with seven of nine carries missing for exactly that reason. Read
-the destination back: `brief_lint.mjs` does it for a roster and a carry file,
+nothing reports success — `str.replace` and `sed` both do; this rule first
+landed with seven of nine carries missing. Read the destination back: `brief_lint.mjs` does it for a roster and a carry file,
 and for a role contract nothing does.
