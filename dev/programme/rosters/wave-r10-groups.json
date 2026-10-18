@@ -2500,9 +2500,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "b,d,j merged in #2281 (49a98d739); a,c open",
+    "stage": "done",
     "branch": "handoff/r10-tick-orch",
-    "commit": "49a98d739",
+    "commit": "9a1ce39c3e901c814fceb015f09eec75f1a5ef5f",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
