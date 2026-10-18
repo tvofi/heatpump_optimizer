@@ -1043,6 +1043,26 @@ R.check(
     and none_fit["debug"]["manifest"]["replay"] == "over the inline cap at every window tried",
     str(none_fit["debug"].get("manifest", {}).get("replay")),
 )
+at_cap = asyncio.run(_replay_download(cap=whole_size))
+R.check(
+    "a download landing exactly on the inline cap keeps the whole window",
+    at_cap["debug"]["replay"] is not None
+    and at_cap["debug"]["replay"]["window"]["start"] == T0.isoformat(),
+    str(at_cap["debug"].get("manifest", {}).get("replay")),
+)
+R.check(
+    "a person or calendar id leaves a list as well as a value, at any depth",
+    debugger._public({"x": ["sensor.a", "calendar.family", "person.anna"],
+                      "y": {"z": "person.anna"}, "n": 3})
+    == {"x": ["sensor.a"], "y": {"z": None}, "n": 3},
+)
+_seen = T0 + timedelta(minutes=5)
+R.check(
+    "a recorded row carries last_reported only when it is later than last_updated",
+    debugger._record(_state("1", T0, reported=T0))[3] is None
+    and debugger._record(_state("1", T0, reported=_seen))[3] == _seen.isoformat()
+    and debugger._record(_state("1", T0))[3] is None,
+)
 later = debugger.replay_window(T0, T0 + timedelta(days=30))
 fresh = debugger.replay_window(None, T0)
 R.check(
@@ -1080,6 +1100,173 @@ R.check(
     replay_doc.conf_keys(vars(const_mod)) == CONF and len(CONF) > 50
     and {"heat_pump_capacity_limited_entity", "internal_gains_learning_enabled"} <= CONF,
     f"{len(replay_doc.conf_keys(vars(const_mod)))} against {len(CONF)}",
+)
+
+
+# -- replay_doc's rules, each at the inputs that separate its branches ----------
+# The download above drives the rules with one install; these drive the edges it
+# never reaches (a non-dict payload, a malformed series row, a refusal by
+# ``seal``), so a rule changed in the one shared copy fails here, in the gate,
+# and not only in the nightly lane's tests/replay.py.
+
+_D = replay_doc._DROP
+R.check(
+    "replay_doc.numeric admits a number or its spelling and nothing else",
+    [replay_doc.numeric(v) for v in ("1.5", 3, 2.5, "warm", None, ["1"])]
+    == [True, True, True, False, False, False],
+)
+R.check(
+    "replay_doc.json_decimal_places counts the JSON spelling's decimals, a string's as "
+    "written, and answers None for a bool, a word or a non-number",
+    [replay_doc.json_decimal_places(v) for v in
+     (True, 1.25, 3, "59.334591", "5", "north", None, [1.5])]
+    == [None, 2, 0, 6, 1, None, None, None],
+)
+_dropped: list = []
+_cleaned = replay_doc.clean_value(
+    {"api_key": "s3cret-value", "Bad Key": "x", "latitude": "north", "lat": "59.334591",
+     "longitude": 18.063240, "rows": ["auto", "https://nas.example.se/cam", 7], "on": True},
+    _dropped)
+R.check(
+    "replay_doc.clean_value drops a credential-named or malformed key, cuts a coordinate "
+    "or nulls one that is no number, recurses into lists, and records what it dropped",
+    _cleaned == {"latitude": None, "lat": 59.33, "longitude": 18.06,
+                 "rows": ["auto", None, 7], "on": True}
+    and _dropped == ["s3cret-value", "north", "https://nas.example.se/cam"],
+    f"{_cleaned} dropped={_dropped}",
+)
+_secret_drop: list = []
+replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob123456"},
+                        "token": ["abc123456", 42]}, _secret_drop)
+R.check(
+    "everything under a credential-named key is recorded for the leak check, in a nested "
+    "object or a list too, and a null or a bool under one is not",
+    _secret_drop == ["bob123456", "abc123456", "42"], str(_secret_drop),
+)
+_shape_drop: list = []
+_shape_cut = replay_doc._keep_keys(
+    {"x_entities": ["sensor.a", "https://nas.example.se/cam"]}, frozenset({"x_entities"}),
+    _shape_drop, replay_doc._entry_shape)
+R.check(
+    "a value its shape cut down has what was cut recorded for the leak check",
+    _shape_cut == {"x_entities": ["sensor.a"]} and _shape_drop == ["https://nas.example.se/cam"],
+    f"{_shape_cut} dropped={_shape_drop}",
+)
+_series_in = [{"start": "2026-10-18T00:00:00+00:00", "value": 1.2, "note": "spot"},
+              "junk", {"start": "2026-10-18T01:00:00+00:00"},
+              {"starts_at": "2026-10-18", "total": True},
+              {"end": "2026-10-18T02:00:00Z", "price": 3}]
+R.check(
+    "each attribute keeps only its shape: a number, a snake_case word, word-like "
+    "options, a series of time-and-number rows, an ISO time",
+    [replay_doc._number(v) for v in (None, 1.5, 2, True, "1")] == [None, 1.5, 2, _D, _D]
+    and [replay_doc._snake(v) for v in (None, "heat", "Heat Mode", 4)] == [None, "heat", _D, _D]
+    and [replay_doc._unit(v) for v in (None, "°C", "abcdefghijklmnop", "abcdefghijklmnopq", 3)]
+    == [None, "°C", "abcdefghijklmnop", _D, _D]
+    and replay_doc._options(None) is None and replay_doc._options("Eco") is _D
+    and replay_doc._options(["Eco", "Mode 2", "x@y", 5]) == ["Eco"]
+    and replay_doc._series(None) is None and replay_doc._series("x") is _D
+    and replay_doc._series(_series_in) == [
+        {"start": "2026-10-18T00:00:00+00:00", "value": 1.2},
+        {"end": "2026-10-18T02:00:00Z", "price": 3}]
+    and [replay_doc._time(v) for v in (None, "2026-10-18", "tomorrow", 5)]
+    == [None, "2026-10-18", _D, _D],
+    str(replay_doc._series(_series_in)),
+)
+R.check(
+    "an entry key naming entities holds entity ids only: a bad id leaves the list, "
+    "a single string or a name in an _entity key is refused, other keys pass as they are",
+    replay_doc._entry_shape("x_entities", ["sensor.a", "Bad", 3]) == ["sensor.a"]
+    and replay_doc._entry_shape("x_entities", "sensor.a") is _D
+    and replay_doc._entry_shape("x_entity", "Anna") is _D
+    and [replay_doc._entry_shape("x_entity", v) for v in (None, "", "sensor.a")]
+    == [None, "", "sensor.a"]
+    and replay_doc._entry_shape("mode", "Anna") == "Anna",
+)
+_bad = {"entry": {"data": {"not_a_conf_key": 1, "Bad Key": 2,
+                           "indoor_temp_entity": "Anna's room"}, "options": None},
+        "states": {"plainkey": [["t", "1", None, None]],
+                   "sensor.a": [["t", "1", "attrs", None], ["t", "1", {"colour": "red"}, None],
+                                ["t", "1", {"unit_of_measurement": 3}, None], "short"]},
+        "loc": {"Latitude": 59.334591, "lon": 18.06}}
+_found = replay_doc.violations(_bad, CONF)
+R.check(
+    "replay_doc.violations names each broken rule: a coordinate past two decimals, an "
+    "entry key outside the allowlist or malformed, an entity key holding a name, a "
+    "state key that is no entity id, attributes that are no object, outside the "
+    "allowlist or the wrong shape",
+    sorted(_found) == sorted([
+        "loc.Latitude=59.334591: 6 decimals",
+        "entry.data.not_a_conf_key: not an entry key of this integration",
+        "entry.data.Bad Key: not an entry key of this integration",
+        "entry.data.indoor_temp_entity: must hold entity ids only",
+        "states.plainkey: not an entity id",
+        "states.sensor.a[0]: attributes are not an object",
+        "states.sensor.a[1].colour: attribute outside the allowlist",
+        "states.sensor.a[2].unit_of_measurement: not the shape this attribute has",
+        "entry.data.indoor_temp_entity: text outside the allowlist",
+    ]) and replay_doc.violations(["auto", "https://nas.example.se/cam"]) == [
+        "[1]: text outside the allowlist"]
+    and "entry.data.not_a_conf_key: not an entry key of this integration"
+    not in replay_doc.violations({"entry": {"data": {"not_a_conf_key": 1}}})
+    and replay_doc.violations({"states": {"sensor.b": [["t", "1"]]}}) == [],
+    "; ".join(_found),
+)
+R.check(
+    "replay_doc.mapped_entities finds entity ids at any depth, in lists too",
+    replay_doc.mapped_entities({"a": ["sensor.x", {"b": "climate.y"}], "c": "Anna",
+                                "d": ("sensor.z",)}) == {"sensor.x", "climate.y"},
+)
+
+
+def _sealed(raw):
+    try:
+        return replay_doc.seal(raw, CONF)
+    except replay_doc.Refused as err:
+        return err
+
+
+def _raw_doc(token="secretvalue123", **states):
+    return replay_doc.document(
+        time_zone="UTC", window=("a", "b"), recorder_schema=None,
+        entry={"data": {"tibber_token": token}}, inputs=(), published=(),
+        price_series_entity=None, states=states)
+
+
+_leaked = _sealed(_raw_doc(**{"sensor.a": [["t", "secretvalue123", None, None]]}))
+# Six characters is the shortest dropped value the leak check looks for again.
+_leaked_six = _sealed(_raw_doc("abc123", **{"sensor.a": [["t", "abc123", None, None]]}))
+_short = _sealed(_raw_doc("abc12", **{"sensor.a": [["t", "abc12", None, None]]}))
+_unfit = _sealed(_raw_doc(plainkey=[["t", "1", None, None]]))
+_ok = _sealed(_raw_doc(**{"sensor.a": [["t", "1", None, None]]}))
+R.check(
+    "replay_doc.seal refuses a document where a dropped credential survives elsewhere, "
+    "and one whose sanitised form still breaks a rule, and writes a clean one",
+    isinstance(_leaked, replay_doc.Refused) and "1 dropped credential value(s)" in str(_leaked)
+    and isinstance(_leaked_six, replay_doc.Refused) and isinstance(_short, dict)
+    and isinstance(_unfit, replay_doc.Refused)
+    and "states.plainkey: not an entity id" in str(_unfit)
+    and isinstance(_ok, dict) and _ok["entry"]["data"] == {}
+    and _ok["states"] == {"sensor.a": [["t", "1", None, None]]},
+    f"{_leaked!r} {_unfit!r}",
+)
+_homes = [{"entity_id": f"sensor.price_{h}", "platform": "tibber", "unique_id": h,
+           "translation_key": "electricity_price"} for h in ("home1", "home2")]
+try:
+    _none_chosen = replay_doc.choose_price_entity({}, _homes, lambda e: True)
+except replay_doc.Refused as err:
+    _none_chosen = err
+R.check(
+    "with two live Tibber homes the entry's own price_entity decides, and without one "
+    "the choice is refused with both candidates listed",
+    replay_doc.choose_price_entity({"price_entity": "sensor.price_home2"}, _homes,
+                                   lambda e: True) == "sensor.price_home2"
+    and replay_doc.choose_price_entity({"price_entity": "sensor.price_home2"}, _homes,
+                                       lambda e: e.endswith("home1")) == "sensor.price_home1"
+    and isinstance(_none_chosen, replay_doc.Refused)
+    and "found 2 usable of 2" in str(_none_chosen)
+    and "sensor.price_home1, sensor.price_home2" in str(_none_chosen),
+    repr(_none_chosen),
 )
 
 

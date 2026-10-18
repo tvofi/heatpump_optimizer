@@ -37,7 +37,7 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 97
+records every read, so this lane's recorded closure is the package: all 98
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
@@ -46,7 +46,7 @@ images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
 R9-EG-B11's ``entry_config.py``, 91 until R9-UX-9's ``flow_meter.py``, 92
 until the live power clamp's ``draw_range.py``, 93 until the live-fix wave's
 ``early_cutoff.py``, 94 until R10-FAHRENHEIT's ``issues.py``, 95 until
-R10-N-log-flood's ``log_latch.py``, 96 until R10-DIAG-REPLAY's ``replay_doc.py``) -- one of the three closures in ``tests/closures.json`` that reach
+R10-N-log-flood's ``log_latch.py``, 96 until R10-PUMP-MODEL's ``plan_step.py``, 97 until R10-DIAG-REPLAY's ``replay_doc.py``) -- one of the three closures in ``tests/closures.json`` that reach
 every production file; the second is ``tests/arch_score_head.py``'s
 (R9-EG-A1), which measures today's tree with the architecture score and so
 must read all of it, and the third is ``tests/entities.py``'s (round 9),
