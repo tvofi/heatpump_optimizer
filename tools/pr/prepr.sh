@@ -2051,7 +2051,7 @@ PY
   # M2: body_push.sh runs the predictor over the code head before it pushes
   # the body, so the handoff itself refuses what open_pr.sh's prepr would.
   # Pushed to a throwaway bare repository, never to the clone's origin.
-  BPO=$(cd "$PDX/r" && git remote get-url origin); git init -q --bare "$PDX/bodies.git"
+  BPO=$(cd "$PDX/r" && git remote get-url origin); throwaway_git_init "$PDX/bodies.git" -q --bare
   (cd "$PDX/r" && git remote set-url origin "$PDX/bodies.git")
   printf 'body\n' > "$PDX/BODY.md"
   bpush() { (cd "$PDX/r" && git checkout -q -f "$1" && bash "$OLDPWD/tools/audit/seat/body_push.sh" "zz-$1" "$PDX/BODY.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' "refs/heads/handoff-body/zz-$1"); }
