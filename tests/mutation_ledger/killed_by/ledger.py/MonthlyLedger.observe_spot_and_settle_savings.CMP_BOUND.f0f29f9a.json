@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.observe_spot_and_settle_savings CMP_BOUND f0f29f9a",
+  "killed_by": "tests/entities.py",
+  "old": "        if dt > 0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 07a09406a1cc97076a6f28581f87f313b322a6b6: CMP_BOUND (`if dt >= 0:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}
