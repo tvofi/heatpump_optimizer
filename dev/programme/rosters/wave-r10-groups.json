@@ -89,7 +89,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 1 of 25; before you: none; next: R10-TARIFF, R10-FEEDS). Owning seam in this group: `_command_valve_target` and the set-point write path only; `_roll_month`'s monthly booking belongs to R10-TARIFF, which merges next on coordinator.py. Shape: route every set-point write through the inputs owner; no new state on the coordinator. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "done: merged #2285",
+    "stage": "done",
     "branch": "handoff/r10-fahrenheit",
     "commit": "19ff374e9298e64a19edb5217b38c1dc7e941c08",
     "last_step": null,
@@ -157,9 +157,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 3 of 25; before you: R10-FAHRENHEIT, R10-TARIFF; next: R10-RATIO-SITES, R10-VENT-DETECTOR). Owning seam in this group: the price and weather ingest methods named above. Shape: an age-bounded last-known holder plus a distinct failure value; no new coordinator attributes beyond one holder (coordinator_attrs is at zero headroom). Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "done: merged #2336",
+    "stage": "done",
     "branch": "handoff/r10-feeds",
-    "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
+    "commit": "d7b1712297030e4250487799d23212fb452a0f95",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -214,9 +214,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 4 of 25; before you: R10-TARIFF, R10-FEEDS; next: R10-VENT-DETECTOR, R10-NIGHT-FOLDS). Owning seam in this group: `_space_demand_kw` only. Shape: multiply by the learned ratio already stored. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-review: #2347 round 2",
+    "stage": "done",
     "branch": "handoff/r10-ratio-sites",
-    "commit": null,
+    "commit": "8c6d940b05b139f25091f1e9ec6e87ad90df083d",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -632,7 +632,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chains: coordinator.py (position 2 of 25; before you: R10-FAHRENHEIT; next: R10-FEEDS, R10-RATIO-SITES); optimizer.py (position 1 of 4; before you: none; next: R10-LEAF-IMPORTS, R10-SAV-REASONS). Owning seams in this group: the peak-day keyword arguments in optimizer.py, and `_roll_month`'s monthly booking in coordinator.py (the #2230 fix) and nothing else in coordinator.py. Shape: one billing record. Touch only the owning seams named here; a hunk outside them is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "done: merged #2282",
+    "stage": "done",
     "branch": "handoff/r10-tariff",
     "commit": "4c01a3dc2ba7420cd60bfbf798be9198e883ef74",
     "last_step": null,
@@ -802,7 +802,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 1 of 5; before you: none; next: R10-UX-SETUP, R10-ADVISOR). Owning seam in this group: the new link helper and its test only. Shape: one pure helper; the three call sites stay for their groups. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "done: merged #2283",
+    "stage": "done",
     "branch": "handoff/r10-deeplink",
     "commit": "07c5c7c3457566e7743efc0608ba0d14b30bfb43",
     "last_step": null,
@@ -861,9 +861,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-review: #2346 round 2",
+    "stage": "done",
     "branch": "handoff/r10-ux-setup",
-    "commit": null,
+    "commit": "9804c7700fcfecf521a5abc7fdfc2b3e3f297a7b",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -1249,7 +1249,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2329",
+    "stage": "done",
     "branch": "handoff/r10-registry-leak",
     "commit": "81ae048e8bbdf2335fe2016e987ec2739481f293",
     "last_step": null,
@@ -1471,7 +1471,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done (#2290 merged d8c13ac5b)",
+    "stage": "done",
     "branch": "handoff/r10-services-guard",
     "commit": "d8c13ac5bddfafad52ed385fca5a9d170608feba",
     "last_step": null,
@@ -2133,7 +2133,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done (#2284 merged 8747bbfc4; #2219 closed)",
+    "stage": "done",
     "branch": "handoff/r10-i1",
     "commit": "8747bbfc4d4628fa8419634792229fd15dcc21e2",
     "last_step": null,
@@ -2182,7 +2182,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2323",
+    "stage": "done",
     "branch": "handoff/r10-pre-edit-hook",
     "commit": "0570b86e9351dfeda88d630093cfe4d442a6d664",
     "last_step": null,
@@ -2235,7 +2235,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2294",
+    "stage": "done",
     "branch": "handoff/r10-policy-lint-stats",
     "commit": "98fe51b42b5c5e0fd0392fdc88f49f2a9fd12ac9",
     "last_step": null,
@@ -2284,7 +2284,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done (#2275 merged 74cf47b9c; #2225 CLOSED)",
+    "stage": "done",
     "branch": "handoff/r10-gate-yield",
     "commit": "74cf47b9c402c2c780cba13cf6e34655a2967a02",
     "last_step": null,
@@ -2336,7 +2336,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2289",
+    "stage": "done",
     "branch": "handoff/r10-stale-paths",
     "commit": "7215e39df7a122a319be0f6ab2d3e49853325b21",
     "last_step": null,
@@ -2388,9 +2388,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2340",
+    "stage": "done",
     "branch": "handoff/r10-structure-blind",
-    "commit": "97f419d0c59097e2fdbfc1539ec0474c83fc697a",
+    "commit": "8186403516ef8047cea5ef3c326221394487e9ba",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2605,7 +2605,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2305",
+    "stage": "done",
     "branch": "handoff/r10-tick-train",
     "commit": "dc6390b08e538f54f9574cf591f1191028cfc2ce",
     "last_step": null,
@@ -2653,9 +2653,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2341",
+    "stage": "done",
     "branch": "handoff/r10-prepr-cap",
-    "commit": null,
+    "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2821,9 +2821,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done",
     "branch": "handoff/r10-replay-loopnorm",
-    "commit": null,
+    "commit": "92accb2cff702c910d33ee1a276d38f5b482061c",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -3084,9 +3084,9 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "done: merged #2344",
+    "stage": "done",
     "branch": "handoff/r10-stale-paths-2",
-    "commit": null,
+    "commit": "81b7aa9ff976413ec98592045930647c0e0bac73",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
