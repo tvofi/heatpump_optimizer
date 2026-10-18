@@ -436,9 +436,13 @@ async function selfTest() {
   // `Merge origin/main into <branch>` is not main's, a hand subject on main is.
   const repo = fs.mkdtempSync(path.join(ROOT, '.agreement-git-'))
   try {
-    const env = { ...process.env, GIT_AUTHOR_NAME: 'p', GIT_AUTHOR_EMAIL: 'p@p', GIT_COMMITTER_NAME: 'p', GIT_COMMITTER_EMAIL: 'p@p' }
+    // Built by tests/throwaway_git.py, the one way a tracked script makes a
+    // throwaway repository (its --check refuses a raw one): auto-maintenance
+    // off in the environment it returns and in the repository's own config.
+    const env = JSON.parse(execFileSync('python3', ['-I', '-c',
+      'import json, sys; sys.path.insert(0, sys.argv[2]); from throwaway_git import throwaway_git_init; print(json.dumps(throwaway_git_init(sys.argv[1], "-q")))',
+      repo, path.dirname(at('tests/throwaway_git.py'))], { encoding: 'utf8' }))
     const rg = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', env })
-    rg(['init', '-q'])
     const T = execFileSync('git', ['mktree'], { cwd: repo, input: '', encoding: 'utf8', env }).trim()
     const ct = (msg, ...parents) => execFileSync('git', ['commit-tree', T, ...parents.flatMap((x) => ['-p', x]), '-m', msg], { cwd: repo, encoding: 'utf8', env }).trim()
     const c0 = ct('cutoff'); const side = ct('side', c0)
@@ -451,9 +455,14 @@ async function selfTest() {
     const m2 = ct('Merge pull request #2 (custom)', m1, side); const b3 = ct('Merge origin/main into fix/x', b2, m2)
     at_(b3, m2)
     const r3 = walk()
-    probes.push(['a hand subject on main is refused from a recarried branch, and only it', r3.length === 1 && r3[0].includes(m2.slice(0, 9))])
+    probes.push(['a hand subject on main is refused from a recarried branch, and only it', r3.length === 1 && r3[0].startsWith(`merge-subject-pr ${m2.slice(0, 9)} `)])
     at_(m2, m2)
-    probes.push(["a hand subject is refused on main's own push run", walk().length === 1])
+    const only = (r, sha) => r.length === 1 && r[0].startsWith(`merge-subject-pr ${sha.slice(0, 9)} `)
+    probes.push(["a hand subject is refused on main's own push run", only(walk(), m2)])
+    // With no origin/main ref the walk falls back to HEAD and judges every
+    // first-parent merge there, so a hand subject on HEAD's line is refused.
+    rg(['update-ref', '-d', 'refs/remotes/origin/main'])
+    probes.push(['with no origin/main ref the walk falls back to HEAD and refuses a hand subject there', only(walk(), m2)])
   } finally { fs.rmSync(repo, { recursive: true, force: true }) }
   const disc = (files, registry) => {
     const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
