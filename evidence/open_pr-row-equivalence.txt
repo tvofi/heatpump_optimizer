@@ -1,9 +1,0 @@
-6001735d5dcf37b18a3b04e98fe4fcc5161be0d7|tvofi <70032254+tvofi@users.noreply.github.com>|tvofi <70032254+tvofi@users.noreply.github.com>|record: the delivery row for #2400
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
-
-6001735d5dcf37b18a3b04e98fe4fcc5161be0d7|tvofi <70032254+tvofi@users.noreply.github.com>|tvofi <70032254+tvofi@users.noreply.github.com>|record: the delivery row for #2400
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
-
-RESULT open_pr-row-commit tree+author+committer+message identical=yes (commit ids differ only by the fixture base)

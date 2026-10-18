@@ -63,7 +63,7 @@
   ok   a handoff ref rewritten non-fast-forward after a run is still read, at its new tip
   ok   null control: an unreachable remote still refuses the orphans run
   ok   the shared delivery-row writer passes its self-test, at the ROW_DIR dispatch reads
+  ok   delivery_row.sh is the one seat script that defines write_row or commits a row
   ok   push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)
   ok   and proposes the same verdict with a clean first line (the null control)
-bus self-test: 67 checks, 0 failed
-bash tools/audit/seat/bus.sh --self-test  16.26s user 19.54s system 52% cpu 1:08.61 total
+bus self-test: 68 checks, 0 failed
