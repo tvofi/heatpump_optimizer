@@ -59,11 +59,12 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-for _extra in ("tests/hastub", "tests", "custom_components"):
+for _extra in ("tools/audit", "tests/hastub", "tests", "custom_components"):
     sys.path.insert(0, str(ROOT / _extra))
 
 from harness import Results  # noqa: E402
 from throwaway_git import throwaway_git_init  # noqa: E402
+from archscore.metrics.card import _IDENT  # noqa: E402
 
 R = Results("doc claims vs code facts (#1413)")
 
@@ -2021,9 +2022,6 @@ _TICKED_PRIVATE = re.compile(r"`(?:this\.)?(_[A-Za-z][\w$]*)(?:\(\))?`")
 
 def _tokens(text: str) -> set[str]:
     """The card's JavaScript identifiers: the archscore card tokenizer's one grammar (``card._IDENT``)."""
-    sys.path.insert(0, str(ROOT / "tools" / "audit"))
-    from archscore.metrics.card import _IDENT  # noqa: E402
-
     return set(_IDENT.findall(text))
 
 

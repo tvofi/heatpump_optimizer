@@ -22,7 +22,7 @@ for k, name in enumerate(sorted(members)):
             break
     body = src[start:i]
     params = [x.strip().split("=")[0].strip() for x in m.group(1).split(",") if x.strip()]
-    locals_ = set(params) | set(re.findall(r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)", body))
+    locals_ = set(params) | set(re.findall(rf"\b(?:const|let|var)\s+({K._IDENT.pattern})", body))
     for name2 in sorted(locals_):
         if K._IDENT.fullmatch(name2):
             body = re.sub(rf"(?<![\w$.]){re.escape(name2)}(?![\w$])", f"{name2}_f{k}", body)
