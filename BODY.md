@@ -5,11 +5,11 @@ Two test-only rows that reached handoff branches on 2026-10-16 but never main. P
 
 ## Head
 
-a0b54cf74374adb5cdab94964e6526bec1265db1 on origin/main 42e6dedb2 (2026-10-18).
+89ad03e2db1ca998da56b3f36414b96118744592 (merge of origin/main d79dd4952, 2026-10-18).
 
 ## Mutation proof
 
-- Hook: `_`-entry filter changed so any non-dict entry empties the parts list: `bash .claude/hooks/pre-edit.sh --self-test` gives `FAIL a non-object entry does not hide a heading beside it (got allow, wanted refuse)`, 21 passed 1 failed; restored, 22 passed 0 failed.
+- Hook: the `isinstance(e, dict)` filter in the edits loop changed so that any non-dict entry empties the parts list: `bash .claude/hooks/pre-edit.sh --self-test` gives `FAIL a non-object entry does not hide a heading beside it (got allow, wanted refuse)`, 21 passed 1 failed; restored, 22 passed 0 failed.
 - early_cutoff.py, three mutants, run on a slice of tests/features.py (early cut-off section only, 45 checks; full file left to CI per heavy-to-ci):
   - delete `held.wiring = None` in detach: FAIL "detach drops the room listener and clears the wiring...", FAIL "a room event after detach is a no-op...", and the pre-existing gc check also fails.
   - `if held.wiring is not None:` in `_changed` replaced by `if True:`: FAIL "a room event after detach is a no-op through the wiring guard, not a crash" (only the new check kills it).
