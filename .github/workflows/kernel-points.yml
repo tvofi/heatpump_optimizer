@@ -7,15 +7,20 @@ name: Kernel points
 # the three x86 kernels OpenBLAS can be forced to are points no dev box
 # reaches. dev/audit/harnesses/k1725_blas_kernel_gap.py prints them.
 #
-# On demand only, and never required: a manual dispatch, or the
-# `kernel-points` label on a pull request. It is not in the required set and
-# has no push trigger, so it costs nothing on an ordinary push and cannot hold
-# a merge; it exists to re-derive the bound when the solver's numerics move.
+# On demand only, and never required: a manual dispatch, the `kernel-points`
+# label put on a pull request, or a push to a pull request that carries it.
+# It is not in the required set and runs on no unlabelled push, so it costs
+# nothing on an ordinary pull request and cannot hold a merge; it exists to
+# re-derive the bound when the solver's numerics move. The push arm is what
+# makes the label a standing request: a `labeled` event runs the workflow at
+# the head of that moment, so a label put on before this file reached the
+# head -- #2368's, at 74f23814e -- or a head that moves after it, otherwise
+# gets no run, or a matrix of a tree that is no longer the pull request.
 
 on:
   workflow_dispatch:
   pull_request:
-    types: [labeled]
+    types: [labeled, synchronize]
 
 permissions:
   contents: read
@@ -29,7 +34,11 @@ concurrency:
 jobs:
   kernel-points:
     name: kernel-points (${{ matrix.coretype }})
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'kernel-points'
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.action == 'labeled' && github.event.label.name == 'kernel-points')
+      || (github.event.action == 'synchronize'
+          && contains(github.event.pull_request.labels.*.name, 'kernel-points'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
