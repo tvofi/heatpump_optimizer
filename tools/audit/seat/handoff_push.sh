@@ -33,7 +33,7 @@ git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
 T="origin/handoff/$TOPIC"
 git merge-base --is-ancestor "$CODE" "$T" || { echo "code head $CODE is not under $T"; exit 1; }
 CODE=$(git rev-parse "$CODE")
-git diff --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+git diff --no-renames --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
 # The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
 # transport commit above the code head, until no open handoff carries one.
 # The body is read from the sha origin ANSWERED for the ref, never FETCH_HEAD.
@@ -46,7 +46,7 @@ tip=$(git ls-remote origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null | awk 'N
 if [ -n "$tip" ] && git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then
   git show "$tip:BODY.md" > "$B" || { echo "no BODY.md at handoff-body/$TOPIC"; exit 1; }
 else
-bf=${BODYPATH:-$(git diff --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --name-only "$CODE" "$T")"; exit 1; }
+bf=${BODYPATH:-$(git diff --no-renames --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --no-renames --name-only "$CODE" "$T")"; exit 1; }  # layout:old=tools/audit/handoff (a transport root prepr.sh still reads)
 git show "${T}:${bf}" > "$B"
 fi
 python3 - "$B" <<'E'
