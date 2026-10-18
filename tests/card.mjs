@@ -11562,12 +11562,15 @@ check("without an indoor reading the corner now label is absent",
 // passes there too. Closing that is R10-DEEPLINK-HANDLERS's: drive those
 // handlers the way clicks are driven, so what they do is the dynamic arm's.
 // The gap is not confined to undriven handlers: the dynamic arm reads markup
-// in the card's shadow root only, so in ANY press, driven or not, a form
-// appended outside it (`document.body`) and submitted by a button's
-// `click()` passes both arms -- the driver's RD4, green, in the
-// advisor:settings press this census drives, beside its red control RD5, the
-// same form appended in the shadow root. That needs a document-level read or
-// a form-submit instrument, also R10-DEEPLINK-HANDLERS's.
+// in the card's shadow root only, so in ANY press, driven or not, any markup
+// appended outside it (`document.body`) whose navigation name no static row
+// refuses passes both arms. The driver's witnesses, green, in the
+// advisor:settings press this census drives: RD4, a form submitted by a
+// button's `click()`, and RD6, an anchor whose href name is built at run time,
+// `click()`ed. Their red controls put the same element in the shadow root:
+// RD5, the form with its action, placed and not submitted; RD6c, the anchor,
+// placed and not clicked. Closing it needs a document-level read, also
+// R10-DEEPLINK-HANDLERS's.
 // A write through a selector the stub DOM (tests/dom_stub.mjs) cannot
 // resolve, a tag.class pair such as `a.zz`, runs on no element even where a
 // press reaches it (Y1 is that witness, green; R7c is the same write on a
