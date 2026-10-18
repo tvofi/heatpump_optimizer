@@ -57,7 +57,7 @@ const out = {}
   // The finder's return schema: the first finder call's, then stop.
   let schema = null
   try { await run(find, { round: 10, baseline: 'b', repo: '/r', rotation, scopes, box: 'B1' }, async (p, o) => { if (o.label === 'prepare') return PREP; schema = o.schema; throw new Error('stop') }) } catch {}
-  if (perturb === '1') delete schema.properties.findings.items.properties.perturbation.properties
+  if (perturb === '1') delete schema.properties.findings.items.properties.perturbation.properties.expected_direction.enum
   out.schema = schema
   // The gather: what each reply carries, answered from the box files.
   const ask = (prompt, text) => {
