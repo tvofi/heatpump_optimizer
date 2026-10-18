@@ -37456,6 +37456,43 @@ R.check(
     f"{_hs_gap(1.0)!r} vs {_hs_capped - 1.0!r}",
 )
 
+# On the hot-water path the reference's cost includes the tank's, and house
+# heat displaces space-heat purchases only: the bound handed to the start
+# settlement is the space reference's cost, strictly below baseline_cost.
+import unittest.mock as _hs_mock
+
+_hd_cfg = _hb_house(two_zone=False, dhw=True)
+_hd_par = _HbParams.from_config(_hd_cfg)
+_hd_par.dhw_enabled = True
+_hd_opt = _HbOpt(_HbModel(_hd_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hd_bounds = []
+_hd_real = _hd_opt._start_gap_cost
+
+
+def _hd_record(*a):
+    _hd_bounds.append(a[-1])
+    return _hd_real(*a)
+
+
+with _hs_mock.patch.object(_hd_opt, "_start_gap_cost", _hd_record):
+    _hd_plan = _hd_opt.optimize(inputs=solve_inputs(
+        initial_state=_HbState(
+            room_temperature=21.0, slab_temperature=22.0,
+            outdoor_temperature=float(_hb_out[0]), dhw_temperature=50.0,
+            dhw_hours_since_legionella=20.0,
+        ),
+        prices=_hb_prices("winter_typical", _hb_t0), outdoor_temps=_hb_out,
+        wind_speeds=_hb_wind, precipitation=_hb_rain, solar_radiation=_hb_sol,
+        start_time=_hb_t0,
+    ))
+R.check(
+    "the hot-water path bounds the start debit by the space reference's cost, not the tank's",
+    len(_hd_bounds) == 1 and 0.0 < _hd_bounds[0] < float(_hd_plan.baseline_cost) - 0.01,
+    f"bounds {_hd_bounds} baseline_cost {_hd_plan.baseline_cost!r}",
+)
+
 import inspect as _sav_inspect
 from pathlib import Path as _SavPath
 from heatpump_optimizer.optimizer import (

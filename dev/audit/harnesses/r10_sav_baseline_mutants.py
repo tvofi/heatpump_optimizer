@@ -52,6 +52,8 @@ M = [
   "        return capped - min(surplus_above_caps, max(0.0, space_baseline_cost))", "        return capped - surplus_above_caps"),
  ("M11 start settled at the caps only", "optimizer.py",
   "        return capped - min(surplus_above_caps, max(0.0, space_baseline_cost))", "        return capped"),
+ ("M12 DHW path bounds the start by baseline_cost", "optimizer.py",
+  "            float(energy_cost_of(baseline_power)),\n", "            baseline_cost,\n"),
  ("M8 settled hours never folded", "ledger.py",
   "        if dt > 0:\n            self.observe_meta_mean(when, SETTLED_HOURS_META, dt)\n",
   "        if False:\n            self.observe_meta_mean(when, SETTLED_HOURS_META, dt)\n"),
