@@ -1,0 +1,50 @@
+== check=base, driver unmodified
+rc=0 186 passed, 0 failed
+  FAIL (probe, expected) threw: deliberate
+== check=base mutant: s/^const BUNDLE_DIMS = new Set(\[[^]]*\])/const BUNDLE_DIMS = new Set([])/  (changed lines: 1)
+rc=0 186 passed, 0 failed
+  FAIL (probe, expected) threw: deliberate
+== check=base mutant: s/^const BUNDLE_DIMS = new Set(\[[^]]*\])/const BUNDLE_DIMS = new Set(['D14'])/  (changed lines: 1)
+rc=0 186 passed, 0 failed
+  FAIL (probe, expected) threw: deliberate
+== check=base mutant: s/^const BUNDLE_DIMS = new Set(\[[^]]*\])/const BUNDLE_DIMS = new Set(['D15', 'D14'])/  (changed lines: 1)
+rc=0 186 passed, 0 failed
+  FAIL (probe, expected) threw: deliberate
+== check=base mutant: 41s/^if (\[debugBundle/if (false \&\& [debugBundle/  (changed lines: 1)
+rc=1 185 passed, 1 failed
+  FAIL a relative bundle path is refused before Prepare (declared) accepted
+  FAIL (probe, expected) threw: deliberate
+== check=base mutant: s/^const ROUND_DIR =/let ROUND_DIR =/  (changed lines: 1)
+rc=0 186 passed, 0 failed
+  FAIL (probe, expected) threw: deliberate
+== check=base mutant: s/^const CURRENT = \[/let CURRENT = [/  (changed lines: 1)
+rc=0 186 passed, 0 failed
+  FAIL (probe, expected) threw: deliberate
+== check=head, driver unmodified
+rc=0 187 passed, 0 failed
+  FAIL (probe, expected) threw: deliberate
+== check=head mutant: s/^const BUNDLE_DIMS = new Set(\[[^]]*\])/const BUNDLE_DIMS = new Set([])/  (changed lines: 1)
+rc=1 186 passed, 1 failed
+  FAIL once D15.md exists, its finders carry the named bundle and export, or are told to report every step unfinished (D15-s2, D15-s3, D15-s1) You are finder seat D15-s2 of audit round 9, dimension D15, on box B8 (a compute-heavy seat: at most three share this box). Work only in /w/D15-s2 (an export/worktree of baseline b; the earlier-round 
+  FAIL (probe, expected) threw: deliberate
+== check=head mutant: s/^const BUNDLE_DIMS = new Set(\[[^]]*\])/const BUNDLE_DIMS = new Set(['D14'])/  (changed lines: 1)
+rc=1 185 passed, 2 failed
+  FAIL once D15.md exists, its finders carry the named bundle and export, or are told to report every step unfinished (D15-s2, D15-s3, D15-s1) You are finder seat D15-s2 of audit round 9, dimension D15, on box B8 (a compute-heavy seat: at most three share this box). Work only in /w/D15-s2 (an export/worktree of baseline b; the earlier-round 
+  FAIL ...and no other finder is handed the bundle (null control) D14-s1, D14-s2, D14-s3
+  FAIL (probe, expected) threw: deliberate
+== check=head mutant: s/^const BUNDLE_DIMS = new Set(\[[^]]*\])/const BUNDLE_DIMS = new Set(['D15', 'D14'])/  (changed lines: 1)
+rc=1 186 passed, 1 failed
+  FAIL ...and no other finder is handed the bundle (null control) D14-s1, D14-s2, D14-s3
+  FAIL (probe, expected) threw: deliberate
+== check=head mutant: 41s/^if (\[debugBundle/if (false \&\& [debugBundle/  (changed lines: 1)
+rc=1 186 passed, 1 failed
+  FAIL a relative bundle path is refused before Prepare (D15 brief) accepted
+  FAIL (probe, expected) threw: deliberate
+== check=head mutant: s/^const ROUND_DIR =/let ROUND_DIR =/  (changed lines: 1)
+rc=1 186 passed, 1 failed
+  FAIL both drivers write where fold_ledger.py reads (not declared) audit-find.js declares no ROUND_DIR (an undeclared constant is a gap)
+  FAIL (probe, expected) threw: deliberate
+== check=head mutant: s/^const CURRENT = \[/let CURRENT = [/  (changed lines: 1)
+rc=1 186 passed, 1 failed
+  FAIL audit-find.js CURRENT is prepare_baseline.sh's CURRENT_PATHS (not both declared) CURRENT undeclared in audit-find.js (an undeclared list is a gap)
+  FAIL (probe, expected) threw: deliberate
