@@ -162,7 +162,7 @@
           "severity": "high",
           "claim": "With a EUR/kWh price feed on a SEK instance, coordinator.currency (all sensor units) is EUR but _narrative_view renders every cost line in SEK via resolve_currency(hass): 3/3 lines mislabelled; 0 under SEK-feed null control; 0 when resolve_currency is patched to the feed code.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py",
             "harness_path": "dev/audit/rounds/round10/D14/s2/p8_money_units.py",
             "value": 3,
             "unit": "count",
@@ -441,7 +441,7 @@
           "severity": "low",
           "claim": "The PreToolUse matcher includes MultiEdit, but the hook's program reads only top-level new_string, content and new_source. A MultiEdit whose edits[].new_string adds a '## v' heading to RELEASE_NOTES.md on a branch is allowed.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
             "harness_path": "dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py",
             "value": "refused_heading_payloads=2 (of 3); multiedit_refused=0; null_refused=0",
             "unit": "count",

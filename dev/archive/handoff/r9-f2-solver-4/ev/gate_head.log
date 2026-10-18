@@ -205,7 +205,7 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
 Optimization failed: injected L-BFGS-B blow-up
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5347, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5347, in async_run_optimization
     raise RuntimeError(
         f"solver returned a failed plan: {result.status}"
     )
@@ -230,23 +230,23 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   df_dx = [delf / delx for delf, delx in zip(df, dx)]
 System identification fit raised: Singular matrix
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 1617, in _finish
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 1617, in _finish
     self.result = self.identify_slab()
                   ~~~~~~~~~~~~~~~~~~^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 6091, in _wrapper
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 6091, in _wrapper
     return method(self, *args, **kwargs)
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 2170, in identify_slab
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 2170, in identify_slab
     return self._slab_outcome(
            ~~~~~~~~~~~~~~~~~~^
         best_x, rooms, error, slab_mass, slab_transfer, told_error
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 2205, in _slab_outcome
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 2205, in _slab_outcome
     profile_halfwidth = _slab_ua_profile_halfwidth(
         best_x, path_error, int(rooms.size), self.config.gains_prior_kw
     )
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 943, in _slab_ua_profile_halfwidth
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/sysid.py", line 943, in _slab_ua_profile_halfwidth
     cov = np.linalg.inv(jac.T @ jac) * sigma2
           ~~~~~~~~~~~~~^^^^^^^^^^^^^
   File "/usr/local/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
@@ -294,10 +294,10 @@ Valve write entity switch.valve is a switch; smart_write can command number, inp
 mixing_valve_write_target_kind=flow needs two-zone
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -333,34 +333,34 @@ Comfort miss (margin -0.20 °C) with curve bias -0.4 K applied; bias reset to 0
 Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 10043, in _roll_month
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 10043, in _roll_month
     reports[month] = self._freeze_month_report(month)
                      ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 18652, in _exploding_freeze
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 18652, in _exploding_freeze
     raise ValueError("D1-01: malformed month wedges the freezer")
 ValueError: D1-01: malformed month wedges the freezer
 Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
 Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+~/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
@@ -382,45 +382,45 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5114, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5114, in async_run_optimization
     tariff = self._capacity_tariff()
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 19732, in _tariff_boom
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 19732, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5114, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5114, in async_run_optimization
     tariff = self._capacity_tariff()
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 19732, in _tariff_boom
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 19732, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: stop after the peak settings
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5137, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5137, in async_run_optimization
     ctx._opt_config.baseline_load_kw = self._baseline_house_load(
                                        ~~~~~~~~~~~~~~~~~~~~~~~~~^
         len(prices)
         ^^^^^^^^^^^
     )
     ^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 19761, in _stop
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 19761, in _stop
     raise RuntimeError("stop after the peak settings")
 RuntimeError: stop after the peak settings
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: stop after the peak settings
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5137, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5137, in async_run_optimization
     ctx._opt_config.baseline_load_kw = self._baseline_house_load(
                                        ~~~~~~~~~~~~~~~~~~~~~~~~~^
         len(prices)
         ^^^^^^^^^^^
     )
     ^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 19761, in _stop
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 19761, in _stop
     raise RuntimeError("stop after the peak settings")
 RuntimeError: stop after the peak settings
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
@@ -430,60 +430,60 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5087, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5087, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 20217, in _g_boom
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 20217, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5087, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5087, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 20217, in _g_boom
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 20217, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5087, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5087, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 20217, in _g_boom
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 20217, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 4876, in _async_update_data
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 4876, in _async_update_data
     await self._fetch_tibber_prices()
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 22241, in _fr_fetch_raises
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 22241, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5013, in _async_first_refresh_light
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5013, in _async_first_refresh_light
     await self._fetch_tibber_prices()
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 22241, in _fr_fetch_raises
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 22241, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py:22799: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+~/fix-r9-f2-solver-4/tests/features.py:22799: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   cb()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 
@@ -2438,10 +2438,10 @@ Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at cur
 The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2462,55 +2462,55 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2535,46 +2535,46 @@ No electricity price data available; skipping optimization until prices can be f
 Not enough price data for optimization (got 0 steps)
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2584,9 +2584,9 @@ Pump scheduling skipped: sub-step exploded (first occurrence; repeats log at DEB
 Snapshot heartbeat skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
 Error updating Heat Pump Optimizer: sub-step exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 4876, in _async_update_data
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 4876, in _async_update_data
     await self._fetch_tibber_prices()
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 40444, in _boom
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 40444, in _boom
     raise RuntimeError("sub-step exploded")
 RuntimeError: sub-step exploded
 Wood tank probe stale or missing; falling back to the single-tank abstraction until it recovers
@@ -2610,24 +2610,24 @@ No weather forecast available — using current conditions. Predictive optimizat
 Quarantined 1 malformed snapshot(s) on load; the rest of the ring was kept
 Optimization failed: the solve is not the point here
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5298, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5298, in async_run_optimization
     result = await _await_optimize(
              ^^^^^^^^^^^^^^^^^^^^^^
     ...<35 lines>...
     )
     ^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 42790, in _g8_cyc_mid_solve
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 42790, in _g8_cyc_mid_solve
     raise RuntimeError("the solve is not the point here")
 RuntimeError: the solve is not the point here
 Optimization failed: the solve is not the point here
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5298, in async_run_optimization
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5298, in async_run_optimization
     result = await _await_optimize(
              ^^^^^^^^^^^^^^^^^^^^^^
     ...<35 lines>...
     )
     ^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/features.py", line 42790, in _g8_cyc_mid_solve
+  File "~/fix-r9-f2-solver-4/tests/features.py", line 42790, in _g8_cyc_mid_solve
     raise RuntimeError("the solve is not the point here")
 RuntimeError: the solve is not the point here
 Persisted quarter factors has a non-finite or unreadable bin; restarting it
@@ -4865,7 +4865,7 @@ Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit,
 Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
 Config entry version 8 is newer than the supported version 7; downgrade is not supported
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+~/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
@@ -7071,7 +7071,7 @@ closure: updated 1 closure(s) in /tmp/tmpq2eeepq4/closures.json
 ALL 1990 ENTITY CHECKS PASSED
 
 ########## python3 tests/doc_claims.py ##########
-/Users/timmalmstrom/fix-r9-f2-solver-4/tests/doc_claims.py:114: DeprecationWarning: 'maxsplit' is passed as positional argument
+~/fix-r9-f2-solver-4/tests/doc_claims.py:114: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
 
 === doc claims vs code facts (#1413) ===
@@ -7229,7 +7229,7 @@ RESULT doc_misrendered_lines=0 count
 ALL 7 wood-advisor checks PASSED
 
 ########## python3 tests/config_flow_steps.py ##########
-/Users/timmalmstrom/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+~/fix-r9-f2-solver-4/tests/harness.py:511: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 
@@ -8092,28 +8092,28 @@ Manual hot water plan could not be made safe in 3 rounds; releasing every forced
 Manual space plan could not be made safe in 3 rounds; releasing every forced-off slot on that channel and planning it freely
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
+  File "~/fix-r9-f2-solver-4/custom_components/heatpump_optimizer/coordinator.py", line 5953, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/Users/timmalmstrom/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/fix-r9-f2-solver-4/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub

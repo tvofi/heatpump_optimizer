@@ -294,7 +294,7 @@ edge-triggered and therefore consumed once.
 
 **A correction to my own brief, in this direction.** The brief states that
 `tools/audit/seat/undispatched.sh` "enumerates the inverse — PRs with no dispatch". That file does not
-exist: not in the tree at any path, not under `/tmp/r9-orch`, `/Users/timmalmstrom/hpo-orch`, or
+exist: not in the tree at any path, not under `/tmp/r9-orch`, `~/hpo-orch`, or
 `~/.local/state/hpo`; `grep -rn undispatched` over `tools/ tests/ .github/ .claude/ dev/` matches
 **only** `bus.sh`, where it is the **review** family's verdict. So the one level-triggered enumeration
 the programme believes it has is (i) pointed at the review family, not at handoffs, and (ii) not in
@@ -685,7 +685,7 @@ State plainly, because a limit reported is a limit priced:
 
 ## 8. Evidence index
 
-All under `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/amazing-engelbart-fa0a4f/rca-orphaned-handoff/`.
+All under `~/heatpump_optimizer/.claude/worktrees/amazing-engelbart-fa0a4f/rca-orphaned-handoff/`.
 
 | file | what it is |
 |---|---|

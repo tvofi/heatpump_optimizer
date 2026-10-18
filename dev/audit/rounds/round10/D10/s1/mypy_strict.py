@@ -5,7 +5,7 @@ Metric: mypy --strict errors over custom_components/heatpump_optimizer, in two a
   stub  -- against tests/hastub on MYPYPATH (the brief's arm), split into errors
            located in the integration vs in the stub itself.
 Command (from the export root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
     dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]
 Expected at 17f1c55fad1b: RESULT mypy_real_errors=0 (exact); stub arm ~513 total
   (exact for mypy 2.3.1), integration-located errors are stub-shape artefacts.

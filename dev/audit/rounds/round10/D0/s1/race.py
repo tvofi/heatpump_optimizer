@@ -11,7 +11,7 @@ Challengers (D0.M2): C1 production candidates + structured seeds (price-ranked b
   the production `_multi_start_minimize` itself (same jac path); C2 warm L-BFGS-B from the
   C1 best with maxiter 5000, maxfun 1e6, ftol 1e-12, gtol 1e-10, same batched jac;
   C3 = C2 with fd eps 1e-6.
-Command:  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+Command:  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
             dev/audit/rounds/round10/D0/s1/race.py [--prices a,b] [--weather a,b] [--tz 0,1]
             [--dhw 0|1] [--perturb-maxiter N] [--perturb-fd-eps E]
 Perturbation: --perturb-maxiter 2000 runs the production call at maxiter 2000 (gap must

@@ -24,7 +24,7 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
 Optimization failed: injected L-BFGS-B blow-up
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5735, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5735, in async_run_optimization
     raise RuntimeError(
         f"solver returned a failed plan: {result.status}"
     )
@@ -45,32 +45,32 @@ No weather forecast available — using current conditions. Predictive optimizat
 External heat override sensor.flue has not reported for 240 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
 External heat override sensor.flue has not reported for 600 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
 Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbage' (expected HH:MM-HH:MM)); that day keeps the default schedule
-/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/scipy/optimize/_numdiff.py:687: RuntimeWarning: invalid value encountered in divide
+~/.local/state/hpo/venv-ci/lib/python3.14/site-packages/scipy/optimize/_numdiff.py:687: RuntimeWarning: invalid value encountered in divide
   df_dx = [delf / delx for delf, delx in zip(df, dx)]
 System identification fit raised: Singular matrix
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 1717, in _finish
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 1717, in _finish
     self.result = self.identify_slab()
                   ~~~~~~~~~~~~~~~~~~^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 7265, in _wrapper
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 7265, in _wrapper
     return method(self, *args, **kwargs)
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 2263, in identify_slab
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 2263, in identify_slab
     return self._slab_outcome(
            ~~~~~~~~~~~~~~~~~~^
         best_x, rooms, error, slab_mass, slab_transfer, told_error
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 2298, in _slab_outcome
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 2298, in _slab_outcome
     profile_halfwidth = _slab_ua_profile_halfwidth(
         best_x, path_error, int(rooms.size), self.config.gains_prior_kw
     )
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 1003, in _slab_ua_profile_halfwidth
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/sysid.py", line 1003, in _slab_ua_profile_halfwidth
     cov = np.linalg.inv(jac.T @ jac) * sigma2
           ~~~~~~~~~~~~~^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
+  File "~/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
     ainv = _umath_linalg.inv(a, signature=signature)
-  File "/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 144, in _raise_linalgerror_singular
+  File "~/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 144, in _raise_linalgerror_singular
     raise LinAlgError("Singular matrix")
 numpy.linalg.LinAlgError: Singular matrix
 Persisted price shape has a non-finite or unreadable bin; restarting it
@@ -113,10 +113,10 @@ Valve write entity switch.valve is a switch; smart_write can command number, inp
 mixing_valve_write_target_kind=flow needs two-zone
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -163,19 +163,19 @@ Comfort miss (margin -0.20 °C) with curve bias -0.4 K applied; bias reset to 0
 Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -190,16 +190,16 @@ No electricity price data available; skipping optimization until prices can be f
 No electricity price data available; skipping optimization until prices can be fetched
 Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/ledger.py", line 429, in roll_receipts
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/ledger.py", line 429, in roll_receipts
     kept[month] = freeze(month)
                   ~~~~~~^^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 20457, in _exploding_freeze
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 20457, in _exploding_freeze
     raise ValueError("D1-01: malformed month wedges the freezer")
 ValueError: D1-01: malformed month wedges the freezer
 Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
 Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No electricity price data available; skipping optimization until prices can be fetched
@@ -223,27 +223,27 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5696, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5696, in async_run_optimization
     record = self._solve_record(solve_now, horizon)
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5576, in _solve_record
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5576, in _solve_record
     config, params, state = self._solve_hubs(n, banded=True)
                             ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5508, in _solve_hubs
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5508, in _solve_hubs
     tariff = self._capacity_tariff()
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 21561, in _tariff_boom
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 21561, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5696, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5696, in async_run_optimization
     record = self._solve_record(solve_now, horizon)
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5576, in _solve_record
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5576, in _solve_record
     config, params, state = self._solve_hubs(n, banded=True)
                             ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5508, in _solve_hubs
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5508, in _solve_hubs
     tariff = self._capacity_tariff()
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 21561, in _tariff_boom
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 21561, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
@@ -255,23 +255,23 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5668, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5668, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 22043, in _g_boom
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 22043, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5668, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5668, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 22043, in _g_boom
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 22043, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5668, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5668, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 22043, in _g_boom
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 22043, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it
@@ -2206,32 +2206,32 @@ RESULT bill_oracle_plan_cells=20 separating=14 count
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5327, in _async_update_data
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5327, in _async_update_data
     await self._fetch_tibber_prices()
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 24068, in _fr_fetch_raises
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 24068, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5470, in _async_first_refresh_light
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5470, in _async_first_refresh_light
     await self._fetch_tibber_prices()
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 24068, in _fr_fetch_raises
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 24068, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Tibber refused the token (HTTP 401); reauthentication started
@@ -2246,7 +2246,7 @@ Tibber refused the token (HTTP 401); reauthentication started
 Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py:24682: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py:24682: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   cb()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
@@ -2260,10 +2260,10 @@ Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at cur
 The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2303,55 +2303,55 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2380,46 +2380,46 @@ No electricity price data available; skipping optimization until prices can be f
 Not enough price data for optimization (got 0 steps)
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 6378, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2429,9 +2429,9 @@ Pump scheduling skipped: sub-step exploded (first occurrence; repeats log at DEB
 Snapshot heartbeat skipped: sub-step exploded (first occurrence; repeats log at DEBUG)
 Error updating Heat Pump Optimizer: sub-step exploded
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5327, in _async_update_data
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5327, in _async_update_data
     await self._fetch_tibber_prices()
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 43598, in _boom
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 43598, in _boom
     raise RuntimeError("sub-step exploded")
 RuntimeError: sub-step exploded
 Wood tank probe stale or missing; falling back to the single-tank abstraction until it recovers
@@ -2455,38 +2455,38 @@ No weather forecast available — using current conditions. Predictive optimizat
 Quarantined 1 malformed snapshot(s) on load; the rest of the ring was kept
 Optimization failed: the solve is not the point here
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5720, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5720, in async_run_optimization
     result = await _await_optimize(
              ^^^^^^^^^^^^^^^^^^^^^^
         self.hass, solve_optimizer, record.inputs
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 45870, in _g8_cyc_mid_solve
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 45870, in _g8_cyc_mid_solve
     raise RuntimeError("the solve is not the point here")
 RuntimeError: the solve is not the point here
 Optimization failed: the solve is not the point here
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5720, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5720, in async_run_optimization
     result = await _await_optimize(
              ^^^^^^^^^^^^^^^^^^^^^^
         self.hass, solve_optimizer, record.inputs
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 45870, in _g8_cyc_mid_solve
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 45870, in _g8_cyc_mid_solve
     raise RuntimeError("the solve is not the point here")
 RuntimeError: the solve is not the point here
 Optimization failed: the solve is not the point here
 Traceback (most recent call last):
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5720, in async_run_optimization
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/custom_components/heatpump_optimizer/coordinator.py", line 5720, in async_run_optimization
     result = await _await_optimize(
              ^^^^^^^^^^^^^^^^^^^^^^
         self.hass, solve_optimizer, record.inputs
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 45870, in _g8_cyc_mid_solve
+  File "<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/features.py", line 45870, in _g8_cyc_mid_solve
     raise RuntimeError("the solve is not the point here")
 RuntimeError: the solve is not the point here
 Persisted quarter factors has a non-finite or unreadable bin; restarting it
@@ -4383,7 +4383,7 @@ heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00
 heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
 heatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00
 heatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
-/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+~/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
   return _methods._mean(a, axis=axis, dtype=dtype,
 
   ok   VAT and surcharge are applied per row, and a bad row is dropped not zeroed

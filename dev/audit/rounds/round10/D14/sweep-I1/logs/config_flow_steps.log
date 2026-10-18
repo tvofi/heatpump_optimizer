@@ -5,7 +5,7 @@ Invalid per-day DHW window 'x' for dhw_windows_thu (Invalid window 'x' (expected
 Invalid per-day DHW window 'x' for dhw_windows_fri (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
 Invalid per-day DHW window 'x' for dhw_windows_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
 Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
-/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/laneD/audit-r10-sweep-I1/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+<scratchpad>/orch/laneD/audit-r10-sweep-I1/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 

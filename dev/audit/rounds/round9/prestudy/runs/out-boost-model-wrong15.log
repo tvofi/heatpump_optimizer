@@ -37,4 +37,4 @@ boost-interval errors: n=24 mean=-0.179 min=-0.337 max=-0.003
 non-boost errors:      n=743 mean=-0.017
 alarmed=False rolled_back=False hh_final=1.2309 cop_final=1.0000
 accuracy_drift issues raised: []
-written: /Users/timmalmstrom/hpo-seats/r9-diag-1/out/boost-model-wrong15.json
+written: ~/hpo-seats/r9-diag-1/out/boost-model-wrong15.json
