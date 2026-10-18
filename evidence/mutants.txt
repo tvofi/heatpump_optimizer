@@ -1,0 +1,6 @@
+RESULT mutant_70f837e7 script=tests/solar_alignment.py rc=1 killed=True ['  FAIL returns one irradiance value per step']
+RESULT mutant_80a0007e script=tests/solar_alignment.py rc=1 killed=True ["  FAIL that same irradiance is the optimizer's current-step solar  [got 0.0]", '1 CHECK(S) FAILED']
+RESULT mutant_96c9f042 script=tests/solar_alignment.py rc=1 killed=True ['  FAIL returns one irradiance value per step']
+RESULT mutant_83745963 script=tests/features.py rc=1 killed=True ['  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)', '  ok   the ratchet FAILS on an improvement instead of printing a note (#350)', '  ok   a pump command that FAILED is not remembered as done']
+RESULT mutant_da0bf41e script=tests/features.py rc=1 killed=True ['  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)', '  ok   the ratchet FAILS on an improvement instead of printing a note (#350)', '  ok   a pump command that FAILED is not remembered as done']
+restored clean

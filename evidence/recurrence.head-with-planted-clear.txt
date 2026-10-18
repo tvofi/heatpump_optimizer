@@ -1,0 +1,4 @@
+PLANTED-CLEAR RESULT future_stamp.hold=2 clear=0 recur=0 count
+PLANTED-CLEAR RESULT solve_failure.hold=1 clear=0 recur=1 count
+PLANTED-CLEAR RESULT space_target.hold=1 clear=0 recur=0 count
+PLANTED-CLEAR RESULT future_stamp_after_reload.warnings=0 count

@@ -1,0 +1,34 @@
+PROBE FAILED: 5 arm(s) flood: solve_failure, stale_plan, valve_mistyped, space_target_misdeclared, future_stamp
+RESULT control.floods=0 count
+RESULT no_weather_entity.floods=0 count
+  1x No weather entity configured. Plans continue on the last forecast, marked stale.
+  1x No weather forecast available — using current conditions. Predictive optimization will be limited.
+RESULT weather_fetch_fails.floods=0 count
+  1x No forecast data returned for weather.missing. Plans continue on the last forecast, marked stale.
+  1x No weather forecast available — using current conditions. Predictive optimization will be limited.
+RESULT open_meteo_no_coord.floods=0 count
+  1x Open-Meteo solar is selected but no coordinate is available; set one in the integration options or configure the Home Assistant home location
+RESULT open_meteo_bad_coord.floods=0 count
+  1x Ignoring malformed solar location {'latitude': 'x', 'longitude': 'y'}
+  1x Open-Meteo solar is selected but no coordinate is available; set one in the integration options or configure the Home Assistant home location
+RESULT no_prices.floods=0 count
+  1x No electricity price data available; skipping optimization until prices can be fetched
+RESULT bad_peak_months.floods=0 count
+  1x Invalid peak tariff months 'Smarch' (Unknown month 'smarch'); applying the tariff in every month
+RESULT bad_peak_hours.floods=0 count
+  1x Invalid peak tariff hours '#:#-xx' (Invalid minute in '#:#'); treating every hour as peak
+RESULT solve_failure.floods=1 count
+  4x Optimization failed: probe solve failure
+RESULT stale_plan.floods=2 count
+  4x Optimization failed: probe solve failure
+  4x Plan is # minutes old after # failed solves; holding comfort on the pump's own curve instead of actuating it
+RESULT valve_mistyped.floods=1 count
+  4x Valve write entity switch.valve is a switch; smart_write can command number, input_number and climate entities
+RESULT space_target_misdeclared.floods=1 count
+  4x Pump duty: number.space_setpoint is declared an indoor set-point but its minimum is #.# degC; set its unit to Flow temperature. Not writing it.
+RESULT future_stamp.floods=2 count
+  4x Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age #
+  4x Input outdoor_temp_entity (sensor.outdoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age #
+  1x No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+  1x No weather forecast available — using current conditions. Predictive optimization will be limited.
+rc=1

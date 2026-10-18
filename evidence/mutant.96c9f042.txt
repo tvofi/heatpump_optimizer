@@ -1,0 +1,8 @@
+== step alignment ==
+  FAIL returns one irradiance value per step
+No electricity price data available; skipping optimization until prices can be fetched
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-n-log-flood/wt/tests/solar_alignment.py", line 131, in <module>
+    abs(solar[0] - expected_first) < 1e-6,
+        ~~~~~^^^
+IndexError: index 0 is out of bounds for axis 0 with size 0
