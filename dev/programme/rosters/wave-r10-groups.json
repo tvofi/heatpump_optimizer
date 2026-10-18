@@ -499,7 +499,8 @@
     "R10-INPUT-STALENESS"
    ],
    "carry": [
-    "Null control: the reintroduce arm of the finder's harness reads 14 and the clean arm 0 (`dev/audit/rounds/round10/D14/s3/p8_replay_currency.py` at d23205d13); both must hold after the fix."
+    "Null control: the reintroduce arm of the finder's harness reads 14 and the clean arm 0 (`dev/audit/rounds/round10/D14/s3/p8_replay_currency.py` at d23205d13); both must hold after the fix.",
+    "From R10-FEEDS (#2336, finding sweep P33): coordinator._get_current_price() and _current_spot_price() now return float | None (None = no price, no relative). Every caller this group touches must handle None; call sites at origin/main 64b1f82a3: _current_action[\"price\"] (~5454), current_price attribute (~7661), diagnostics price/spot_price (~9871-9875), the relative-price read (~10839), price= (~10955). Verify each against None with a test through the production symbol (a feed with no price), and keep the FEEDS N-no-expiry barrier arms green (tests/entities.py). Re-take line numbers at your merge base."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 9 of 25; before you: R10-RATIO-ANCHOR, R10-INPUT-STALENESS; next: R10-STORE, R10-LEAF-IMPORTS). Owning seam in this group: `_narrative_view` money rendering. Shape: read the currency from one owner; delete the local precedence. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
