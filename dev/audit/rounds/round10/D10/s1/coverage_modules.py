@@ -7,11 +7,11 @@ script, combined here); RESULT modules_below_95 counts modules under the
 Silver bar (95 %), RESULT config_flow_percent is config_flow.py's.
 Command (from the export root; first produce the per-script data):
   W=$(mktemp -d); mkdir -p $W/site; \
-  /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python -m pip install -q --target $W/site coverage; \
-  W5P_WORK=$W PYTHON=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+  ~/.local/state/hpo/venv-ci/bin/python -m pip install -q --target $W/site coverage; \
+  W5P_WORK=$W PYTHON=~/.local/state/hpo/venv-ci/bin/python \
     bash tools/coverage/coverage_tree.sh fast; \
   W5P_WORK=$W bash tools/coverage/coverage_tree.sh e2e   # optional, e2e stage
-  PYTHONPATH=$W/site:tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+  PYTHONPATH=$W/site:tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
     dev/audit/rounds/round10/D10/s1/coverage_modules.py $W/out [--drop config_flow_steps]
 Expected at 17f1c55fad1b: see REPORT.md (stage fast; tolerance exact for the same
   script set). --drop <script> removes that script's data before the combine:

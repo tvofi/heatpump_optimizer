@@ -9,7 +9,7 @@ intervals: "cont" = optimizer._scoped_minimize calls given a callable jac
 (the two-zone continuation, _optimize_space_only.move_starts), else "rest".
 Key: heartbeat gaps on the loop thread; the solve is the production
 HeatPumpOptimizer.optimize built by tests/golden.py:make.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/gil.py [--perturb noyield|contyield]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/gil.py [--perturb noyield|contyield]
 Expected (17f1c55fad1b, Darwin arm64, loaded box): all wall numbers provisional.
 --perturb realsleep makes optimizer._gil_yield sleep 0.1 ms instead of
 sleep(0) (starvation share must fall if sleep(0) is not a handoff).

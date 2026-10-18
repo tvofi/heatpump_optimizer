@@ -323,7 +323,8 @@
    "carry": [
     "RCA `dev/audit/rca/R10-N-confounded-learner.md` at d23205d13; its countermeasure ships here.",
     "Null control: the flat-irradiance arm reads spread 0.0000 before and after.",
-    "Owed for the D2 dimension, not for you: step 5 tests learners under error in the other covariate; it lands in R10-BRIEFS-FOLD."
+    "Owed for the D2 dimension, not for you: step 5 tests learners under error in the other covariate; it lands in R10-BRIEFS-FOLD.",
+    "From R10-VENT-DETECTOR (#2241): `_async_learn_house_heat_loss` feeds the open-window CUSUM (`self._vent_cusum.update(now, float(residual), (previous_power * dt_h, (previous_state.solar_radiation or 0.0) * dt_h / 1000.0))`) before its `HOUSE_LOSS_MAX_RESIDUAL` rejection, and the detector measures each residual against a forgetting least-squares fit on that heat input and sun. A night-interval predicate must sit AFTER that call: gating the feed by daylight starves the detector by day (it force-releases after `VENT_CUSUM_STARVE_HOURS`) and hides from its fit the power and sun range the day spans. Control: `dev/audit/harnesses/r10_vent_bias_window.py` at the fold's merge base and head -- `false_share` stays 0.000 on the delivery 1.0 / UA 1.0 / no-window arm and the wide (300 W/K) planted windows keep `detect_h` finite on all 20 arms, as they do at this group's head. When the owner's bundle is re-measured after this group lands, report the vent freeze share (intervals `_learning_frozen` returns \"ventilation\") beside the UA figures."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 6 of 25; before you: R10-RATIO-SITES, R10-VENT-DETECTOR; next: R10-RATIO-ANCHOR, R10-INPUT-STALENESS). Owning seam in this group: the heat-loss fold methods named above. Shape: a night-interval predicate at the fold; no new learner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -439,7 +440,8 @@
    ],
    "carry": [
     "RCA `dev/audit/rca/R10-N-staleness.md` at d23205d13; its countermeasure ships here.",
-    "Null control: the finder's unbounded max-age arm reads 0 and 0; a polling source must still go stale on the bound it has today."
+    "Null control: the finder's unbounded max-age arm reads 0 and 0; a polling source must still go stale on the bound it has today.",
+    "From the R10-I5-DOCS sweep (finding sweep L01, found by I5-DOCS): custom_components/heatpump_optimizer/inputs.py ~line 357-360 documents _RANGE_KEYS as \"a climate entity's min_temp/max_temp (Home Assistant's ATTR_MIN_TEMP/ATTR_MAX_TEMP)\", naming two symbols the package no longer defines or imports. Rewrite the comment in the package's own terms (the _RANGE_KEYS and _NUMBER_RANGE_KEYS names) or drop the symbol names, with the grep as the check (git grep -n ATTR_MIN_TEMP custom_components returns nothing). inputs.py is not in this group's files: add it. Re-grep at your merge base; R10-ARCH-SHAPES (later) also holds inputs.py."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: const.py (position 1 of 2; before you: none; next: R10-HEAT-METER); coordinator.py (position 8 of 25; before you: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR; next: R10-CURRENCY, R10-STORE). Owning seam in this group: the max-age table and the freshness check that reads it. Shape: one freshness rule keyed on the source's reporting kind. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -498,7 +500,8 @@
     "R10-INPUT-STALENESS"
    ],
    "carry": [
-    "Null control: the reintroduce arm of the finder's harness reads 14 and the clean arm 0 (`dev/audit/rounds/round10/D14/s3/p8_replay_currency.py` at d23205d13); both must hold after the fix."
+    "Null control: the reintroduce arm of the finder's harness reads 14 and the clean arm 0 (`dev/audit/rounds/round10/D14/s3/p8_replay_currency.py` at d23205d13); both must hold after the fix.",
+    "From R10-FEEDS (#2336, finding sweep P33): coordinator._get_current_price() and _current_spot_price() now return float | None (None = no price, no relative). Every caller this group touches must handle None; call sites at origin/main 64b1f82a3: _current_action[\"price\"] (~5454), current_price attribute (~7661), diagnostics price/spot_price (~9871-9875), the relative-price read (~10839), price= (~10955). Verify each against None with a test through the production symbol (a feed with no price), and keep the FEEDS N-no-expiry barrier arms green (tests/entities.py). Re-take line numbers at your merge base."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 9 of 25; before you: R10-RATIO-ANCHOR, R10-INPUT-STALENESS; next: R10-STORE, R10-LEAF-IMPORTS). Owning seam in this group: `_narrative_view` money rendering. Shape: read the currency from one owner; delete the local precedence. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -570,9 +573,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 10 of 25; before you: R10-INPUT-STALENESS, R10-CURRENCY; next: R10-LEAF-IMPORTS, R10-TRUST-RELATIVE). Owning seam in this group: the store wiring (snapshot store, save digest, price-learner days). Shape: the store owns load, save and report rules; the coordinator only calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-store",
-    "commit": null,
+    "commit": "932f5d6019e5801b06165bb7926b39347d91d643",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -697,9 +700,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 11 of 25; before you: R10-CURRENCY, R10-STORE; next: R10-TRUST-RELATIVE, R10-FREQ-DEFROST); optimizer.py (position 2 of 4; before you: R10-TARIFF; next: R10-SAV-REASONS, R10-SOLVER). Owning seam in this group: import edges only (no behaviour). Shape: move symbols to their leaf owners; re-export nothing. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-leaf-imports",
-    "commit": null,
+    "commit": "234087a5105dbf48de92473f3dc6aa17d7e006e2",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -767,9 +770,7 @@
     2238,
     2253
    ],
-   "fixes": [
-    2253
-   ],
+   "fixes": [],
    "findings": [
     "ARCH2-s5-C2"
    ],
@@ -868,7 +869,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Owner-reported Setup-tab redesign (tvofi, 2026-10-14), in the product's design identity: the same tokens, typography, chips and table styles as Plan, Savings, Advisor and Health. Acceptance removes each of: the sketchy hand-drawn boxes and wobbly double borders; truncated labels (\"Stove or flu...\", \"Hot water temperat...\"; labels fit or wrap at every width); \"not configured\" rows in the same bold weight as live values (fold them into one muted \"N optional inputs not set -> Configure\" affordance per component, deep-linked through R10-DEEPLINK's helper); pipes crossing boxes and labels; inconsistent decimals (19.30 next to 20.8; one per-unit precision); unstyled topology chips. The layout works at phone width and in both themes. Fold in ARCH2-s5 C1 (the text-width owner) and C4 (empty state and finite owner) at 3930b421a, and the hot_water_pumps label (I5, #2222).\n\nForward-carried (finding-propagation.md): (1) The three D4 rows (D4-s1-01, D4-s3-01, D4-s3-02) were UNREPRODUCED by the judge (no browser on the box); they are not owed here. If the browser lane reproduces one on this tab, it folds in. (2) D4 lead, not owed: \"19%\" against \"19 %\". (3) Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so copy that points at a step must name it or link the option's entity. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.\n\nForward-carried precondition (finding-propagation.md): From R10-ARCHSCORE-COVERAGE part 4 (finding-propagation.md): tests/ci_budgets.json gains archscore.card_dead_definitions, which reads 1 for the card's unused textWidth helper (D7-s3-02), and archscore.card_clone_copies, the card's 20-token clone census. This group's ARCH2-s5 C1 and C4 folds delete or use textWidth, taking card_dead_definitions 1 -> 0, and the group re-measures card_clone_copies after those folds and lowers that row by what they remove, in the same pull request. Re-record each row and recorded_at, with the reason in the commit message."
+   "brief": "Owner-reported Setup-tab redesign (tvofi, 2026-10-14), in the product's design identity: the same tokens, typography, chips and table styles as Plan, Savings, Advisor and Health. Acceptance removes each of: the sketchy hand-drawn boxes and wobbly double borders; truncated labels (\"Stove or flu...\", \"Hot water temperat...\"; labels fit or wrap at every width); \"not configured\" rows in the same bold weight as live values (fold them into one muted \"N optional inputs not set -> Configure\" affordance per component, deep-linked through R10-DEEPLINK's helper); pipes crossing boxes and labels; inconsistent decimals (19.30 next to 20.8; one per-unit precision); unstyled topology chips. The layout works at phone width and in both themes. Fold in ARCH2-s5 C1 (the text-width owner) and C4 (empty state and finite owner) at 3930b421a, and the hot_water_pumps label (I5, #2222).\n\nForward-carried (finding-propagation.md): (1) The three D4 rows (D4-s1-01, D4-s3-01, D4-s3-02) were UNREPRODUCED by the judge (no browser on the box); they are not owed here. If the browser lane reproduces one on this tab, it folds in. (2) D4 lead, not owed: \"19%\" against \"19 %\". (3) Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 2 of 5; before you: R10-DEEPLINK; next: R10-ADVISOR, R10-SCORES). Owning seam in this group: the Setup tab renderer and its styles. Shape: tokens shared with the other tabs. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so copy that points at a step must name it or link the option's entity. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.\n\nForward-carried precondition (finding-propagation.md): From R10-ARCHSCORE-COVERAGE part 4 (finding-propagation.md): tests/ci_budgets.json gains archscore.card_dead_definitions, which reads 1 for the card's unused textWidth helper (D7-s3-02), and archscore.card_clone_copies, the card's 20-token clone census. This group's ARCH2-s5 C1 and C4 folds delete or use textWidth, taking card_dead_definitions 1 -> 0, and the group re-measures card_clone_copies after those folds and lowers that row by what they remove, in the same pull request. Re-record each row and recorded_at, with the reason in the commit message. R10-DEEPLINK-CENSUS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it, a new mention of a `NAV_SURFACE` member in the card's code outside `navigateTo` is red at once in the spellings the census's rows name, an identifier that carries the navigation primitive's name is refused too -- `b.open` on the Setup fold cost the origin/main merge a red head and is `b.foldOpen` now, so name a fold boolean `foldOpen`, not `open` -- a form built or submitted by name (`createElement(\"form\")`, an `action` written through `setAttribute`/`Reflect.set`/`Object.assign`, `.submit()`/`.requestSubmit()`) is red in those spellings, not only where a press reaches it -- but not in every written spelling: navigation written in a handler the census's dynamic arm does not drive (keydown, pointer, wheel, focus) is not covered, and the driver's RV1-RV7 (`history[\"back\"]()`, `history?.back()`, a destructured `back`, a `createElementNS` form, `.action = <variable>`, a quoted `\"action\"` key, a form submitted by a button's `click()`) are green witnesses of that, so write no navigation in such a handler until R10-DEEPLINK-HANDLERS drives them; and in ANY press, driven or not, any markup appended outside the card's shadow root (`document.body`) whose navigation name no static row refuses passes both arms too, because the census reads markup in the shadow root only -- the driver's RD4 (a form submitted by a button's `click()`) and RD6 (an anchor with a run-time-built href, `click()`ed) are those witnesses, green, beside their red controls RD5 and RD6c, the same elements placed in the shadow root and not submitted or clicked -- so append no markup outside the shadow root; the document-level read that closes it is R10-DEEPLINK-HANDLERS's brief -- and every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press drives it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
   },
   {
    "group": "R10-FREQ-DEFROST",
@@ -984,7 +985,9 @@
    "issues": [
     2255
    ],
-   "fixes": [],
+   "fixes": [
+    2255
+   ],
    "findings": [
     "owner items 1, 2, 5"
    ],
@@ -1093,6 +1096,7 @@
    "lane": "UI",
    "kind": "owner",
    "issues": [
+    2253,
     2257
    ],
    "fixes": [],
@@ -1142,7 +1146,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Owner-reported Advisor items: (6) the \"worth doing\" savings swing day to day; use a longer horizon, for example a 30-day rolling average. (7) \"Open settings\" does not deep-link to the specific config-flow step or option; convert it to R10-DEEPLINK's helper. (8) \"A degree cooler is cheaper about 140 SEK/month\" next to \"A degree warmer costs -266 SEK/month more\": a negative cost in a \"costs more\" sentence contradicts itself, and the plus/minus 1 degC deltas are non-monotonic. Add a convexity and monotonicity check across -1, 0 and +1 degC, use the same horizon as item 6, and write copy that cannot render a negative \"more\".\n\nForward-carried (finding-propagation.md): (1) Null control: savings about 0 on a flat-price profile. (2) The what-if delta is computed from noisy single solves; say in the pull request how the horizon removes the noise, with numbers.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 16 of 24; before you: R10-SAV-BASELINE, R10-SAV-REASONS; next: R10-SCORES, R10-LIVESTATE); heatpump-optimizer-card.js (position 3 of 5; before you: R10-DEEPLINK, R10-UX-SETUP; next: R10-SCORES, R10-UX-HEALTH). Owning seam in this group: the advisor what-if and its card section. Shape: a horizon-averaged delta with a sign check before render. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so ADVISOR item 7 must name the step in its copy or link the option's entity. This group deletes its own PENDING row advisor:settings in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture."
+   "brief": "Owner-reported Advisor items: (6) the \"worth doing\" savings swing day to day; use a longer horizon, for example a 30-day rolling average. (7) \"Open settings\" does not deep-link to the specific config-flow step or option; convert it to R10-DEEPLINK's helper. (8) \"A degree cooler is cheaper about 140 SEK/month\" next to \"A degree warmer costs -266 SEK/month more\": a negative cost in a \"costs more\" sentence contradicts itself, and the plus/minus 1 degC deltas are non-monotonic. Add a convexity and monotonicity check across -1, 0 and +1 degC, use the same horizon as item 6, and write copy that cannot render a negative \"more\".\n\nForward-carried (finding-propagation.md): (1) Null control: savings about 0 on a flat-price profile. (2) The what-if delta is computed from noisy single solves; say in the pull request how the horizon removes the noise, with numbers.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 16 of 24; before you: R10-SAV-BASELINE, R10-SAV-REASONS; next: R10-SCORES, R10-LIVESTATE); heatpump-optimizer-card.js (position 3 of 5; before you: R10-DEEPLINK, R10-UX-SETUP; next: R10-SCORES, R10-UX-HEALTH). Owning seam in this group: the advisor what-if and its card section. Shape: a horizon-averaged delta with a sign check before render. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step: haLink(\"options\") lands on the entry with it highlighted, and its Configure opens the flow, so ADVISOR item 7 must name the step in its copy or link the option's entity. This group deletes its own PENDING row advisor:settings in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture. R10-DEEPLINK-CENSUS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it, a new mention of a `NAV_SURFACE` member in the card's code outside `navigateTo` is red at once in the spellings the census's rows name, an identifier that carries the navigation primitive's name is refused too -- `b.open` on the Setup fold cost the origin/main merge a red head and is `b.foldOpen` now, so name a fold boolean `foldOpen`, not `open` -- a form built or submitted by name (`createElement(\"form\")`, an `action` written through `setAttribute`/`Reflect.set`/`Object.assign`, `.submit()`/`.requestSubmit()`) is red in those spellings, not only where a press reaches it -- but not in every written spelling: navigation written in a handler the census's dynamic arm does not drive (keydown, pointer, wheel, focus) is not covered, and the driver's RV1-RV7 (`history[\"back\"]()`, `history?.back()`, a destructured `back`, a `createElementNS` form, `.action = <variable>`, a quoted `\"action\"` key, a form submitted by a button's `click()`) are green witnesses of that, so write no navigation in such a handler until R10-DEEPLINK-HANDLERS drives them; and in ANY press, driven or not, any markup appended outside the card's shadow root (`document.body`) whose navigation name no static row refuses passes both arms too, because the census reads markup in the shadow root only -- the driver's RD4 (a form submitted by a button's `click()`) and RD6 (an anchor with a run-time-built href, `click()`ed) are those witnesses, green, beside their red controls RD5 and RD6c, the same elements placed in the shadow root and not submitted or clicked -- so append no markup outside the shadow root; the document-level read that closes it is R10-DEEPLINK-HANDLERS's brief -- and every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press drives it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
   },
   {
    "group": "R10-SCORES",
@@ -1202,7 +1206,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, because no evidence becomes 0 in the sensor or card; it must render a dash / N/A with a reason, and every score shares one rule, None means no evidence and is never 0. (2) The house score reads 0 on an averagely insulated house with new windows; it is the time constant (room thermal mass over heat-loss coefficient times the learned `house_heat_loss_scale`) mapped from 20-100 h to 0-100. Measure it on the owner's bundle stores; fix the envelope grade to use whole-house UA (both zones) and its confidence; show a dash while the heat-loss learner converges or drifts; once fixed it agrees with the Health tab's figure. (3) One message everywhere: the scores must not contradict Savings, Advisor and Health; one view model and a consistency test that walks every card surface for each score input. Start the card side from ARCH2-s5 patch C3 (reading rules) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Suspected causes to measure, not assume: the learned scale drifted about 2.6 times in autumn (the RESEED drift lead), two-zone UA ignored, and an uncalibrated absolute band. (2) R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them. (3) The card rendering of the dash states joins R10-UX-HEALTH. (4) From R10-RATIO-SITES (#2239), measured rather than suspected: the envelope score's loss term reads `thermal_params.heat_loss_coefficient` (coordinator.py:10403) times the learned `house_heat_loss_scale`. On a preset-configured two-zone house that coefficient is the configured zone total, and the learned lower-floor split the dynamics apply through `lower_floor_heat_loss_learned` is absent from it, so the graded time constant is inflated by (upper_floor_heat_loss + lower_floor_heat_loss x ratio) over (upper_floor_heat_loss + lower_floor_heat_loss) whenever the stored split has left 1; `_effective_house_heat_loss` is the model's own figure and is what the Health tab publishes. Re-measure both at the stored split and at split 1.0, the null arm where the two agree -- that arm is also what separates this from a scale-only drift.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+   "brief": "Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, because no evidence becomes 0 in the sensor or card; it must render a dash / N/A with a reason, and every score shares one rule, None means no evidence and is never 0. (2) The house score reads 0 on an averagely insulated house with new windows; it is the time constant (room thermal mass over heat-loss coefficient times the learned `house_heat_loss_scale`) mapped from 20-100 h to 0-100. Measure it on the owner's bundle stores; fix the envelope grade to use whole-house UA (both zones) and its confidence; show a dash while the heat-loss learner converges or drifts; once fixed it agrees with the Health tab's figure. (3) One message everywhere: the scores must not contradict Savings, Advisor and Health; one view model and a consistency test that walks every card surface for each score input. Start the card side from ARCH2-s5 patch C3 (reading rules) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Suspected causes to measure, not assume: the learned scale drifted about 2.6 times in autumn (the RESEED drift lead), two-zone UA ignored, and an uncalibrated absolute band. (2) R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them. (3) The card rendering of the dash states joins R10-UX-HEALTH. (4) From R10-RATIO-SITES (#2239), measured rather than suspected: the envelope score's loss term reads `thermal_params.heat_loss_coefficient` (coordinator.py:10281) times the learned `house_heat_loss_scale`. On a preset-configured two-zone house that coefficient is the configured zone total, and the learned lower-floor split the dynamics apply through `lower_floor_heat_loss_learned` is absent from it, so the graded time constant is inflated by (upper_floor_heat_loss + lower_floor_heat_loss x ratio) over (upper_floor_heat_loss + lower_floor_heat_loss) whenever the stored split has left 1; `_effective_house_heat_loss` is the model's own figure and is what the Health tab publishes. Re-measure both at the stored split and at split 1.0, the null arm where the two agree -- that arm is also what separates this from a scale-only drift.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge. R10-DEEPLINK-CENSUS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it, a new mention of a `NAV_SURFACE` member in the card's code outside `navigateTo` is red at once in the spellings the census's rows name, an identifier that carries the navigation primitive's name is refused too -- `b.open` on the Setup fold cost the origin/main merge a red head and is `b.foldOpen` now, so name a fold boolean `foldOpen`, not `open` -- a form built or submitted by name (`createElement(\"form\")`, an `action` written through `setAttribute`/`Reflect.set`/`Object.assign`, `.submit()`/`.requestSubmit()`) is red in those spellings, not only where a press reaches it -- but not in every written spelling: navigation written in a handler the census's dynamic arm does not drive (keydown, pointer, wheel, focus) is not covered, and the driver's RV1-RV7 (`history[\"back\"]()`, `history?.back()`, a destructured `back`, a `createElementNS` form, `.action = <variable>`, a quoted `\"action\"` key, a form submitted by a button's `click()`) are green witnesses of that, so write no navigation in such a handler until R10-DEEPLINK-HANDLERS drives them; and in ANY press, driven or not, any markup appended outside the card's shadow root (`document.body`) whose navigation name no static row refuses passes both arms too, because the census reads markup in the shadow root only -- the driver's RD4 (a form submitted by a button's `click()`) and RD6 (an anchor with a run-time-built href, `click()`ed) are those witnesses, green, beside their red controls RD5 and RD6c, the same elements placed in the shadow root and not submitted or clicked -- so append no markup outside the shadow root; the document-level read that closes it is R10-DEEPLINK-HANDLERS's brief -- and every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press drives it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
   },
   {
    "group": "R10-REGISTRY-LEAK",
@@ -1300,7 +1304,7 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done",
     "branch": "handoff/r10-pump-model",
     "commit": null,
     "last_step": null,
@@ -1370,7 +1374,8 @@
     "No golden drift was measured on the union; re-check with tests/golden.py at your merge base.",
     "Mutation-ledger re-key and a quiet-window stress re-take are owed.",
     "From R10-ARCHSCORE-COVERAGE part 2 (counter C16, finding-propagation.md): hub_solve_writes now roots at the coordinator's event callbacks, and tests/ci_budgets.json's archscore.hub_solve_writes was re-recorded 38 -> 41 for the three in-place hub writes it already counted. Those writes are _async_handle_ecl110_state_message's _current_state.ecl110_effective_displace and _current_state.ecl110_displace_command, and _on_power_event's _current_state.peak_guard_active. This group retires them in production (ARCH2-s2 P4, 'event readings published whole', event_hub_inplace_writes 3 -> 0). In the same pull request it lowers archscore.hub_solve_writes in tests/ci_budgets.json by 3, re-recording that row and recorded_at with the reason in the commit message, and removes the three event rows from tests/arch_score_head.py's CYCLE_HUB_WRITERS. Otherwise the head check's 'no stale row' guard reddens.",
-    "Precondition (from #2311's review): the hub_solve_writes 41 -> 38 lowering must be shown by dev/audit/rounds/round10/D7/arch2-s2/event_hub_writes.py reading 0 at this group's head (it roots by name and sees through a wrapper). The archscore counter can be lowered by wrapping a callback in a package helper that returns it, without changing the write; a drop the harness does not confirm is not earned."
+    "Precondition (from #2311's review): the hub_solve_writes 41 -> 38 lowering must be shown by dev/audit/rounds/round10/D7/arch2-s2/event_hub_writes.py reading 0 at this group's head (it roots by name and sees through a wrapper). The archscore counter can be lowered by wrapping a callback in a package helper that returns it, without changing the write; a drop the harness does not confirm is not earned.",
+    "From R10-LEAF-IMPORTS (#2371): accuracy.utc_shift is a second UTC owner beside the clock module; fold it into the one owner or state why it stays (#2371 r1/r2 review)."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 19 of 25; before you: R10-ADVISOR, R10-SCORES; next: R10-CONFIG-NOTICES, R10-PARAMS-OWNER). Owning seam in this group: `_current_state`, the away state, the event callbacks, the price-tile cursor. Shape: copy, then publish whole; no in-place writes to published state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1490,7 +1495,7 @@
     2259
    ],
    "fixes": [
-    2228
+    2259
    ],
    "findings": [
     "D7-s3-02",
@@ -1730,7 +1735,8 @@
     "A finite absurd reading (100 kW) still yields 6.0 after patch 03; a RANGE BOUND closes it, not only a finiteness check (CATCHUP-JUDGE.md at 33ffa7aa9). The finder's sign-blind perturbation is void; use the verifier's non-finite refusal arm.",
     "Patch 06 changes the pump arbiter's coercion answers (bool and string policy); state it in the pull request. Bool policy: True is not a number.",
     "Mutation-ledger re-key and a quiet-window stress re-take are owed.",
-    "From R10-TARIFF (#2282, finding-propagation.md): dhw_schedule.py spells the weekday cyclic-range wrap a second time, in _parse_day_selector and _format_day_selector, beside grid_fee.py's cyclic-range owner (D7-s2-59), which parse_day_range and parse_month_range now use. Today 0 of 49 ordered day pairs disagree. The control is the weekday range twins harness under dev/audit/harnesses (r10_weekday_range_twins.py), which exists once #2282 lands: --perturb reads 49 and --identity reads 0. This group routes _parse_day_selector's range through the owner, has _format_day_selector share it where a sound shape exists, and removes the two dhw_schedule dispositions from tests/entities.py's P2 fact for the cyclic-range wrap. Re-measure with the census at the merge base."
+    "From R10-TARIFF (#2282, finding-propagation.md): dhw_schedule.py spells the weekday cyclic-range wrap a second time, in _parse_day_selector and _format_day_selector, beside grid_fee.py's cyclic-range owner (D7-s2-59), which parse_day_range and parse_month_range now use. Today 0 of 49 ordered day pairs disagree. The control is the weekday range twins harness under dev/audit/harnesses (r10_weekday_range_twins.py), which exists once #2282 lands: --perturb reads 49 and --identity reads 0. This group routes _parse_day_selector's range through the owner, has _format_day_selector share it where a sound shape exists, and removes the two dhw_schedule dispositions from tests/entities.py's P2 fact for the cyclic-range wrap. Re-measure with the census at the merge base.",
+    "From R10-SENSOR-PAYLOAD (#2238 D8-s1-01, left open there): heating_now_while_off=1 at its head comes from active_now in coordinator._build_plan_views; the secondary 4 comes from the 0.05 kW threshold in _plan_slots. The DHW schedule sensor's fallback copies that threshold but never reaches this metric; move the fallback and _plan_slots' threshold together or D8-s1-02 reopens. Re-run the D8-s1-01 harness at your head."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 22 of 25; before you: R10-CONFIG-NOTICES, R10-PARAMS-OWNER; next: R10-LEARNER-ETA, R10-HEAT-METER). Owning seam in this group: the float coercion helpers only. Shape: call the one owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1918,6 +1924,7 @@
    "lane": "UI",
    "kind": "owner",
    "issues": [
+    2253,
     2263
    ],
    "fixes": [],
@@ -1958,7 +1965,8 @@
     "Item 6 (internal gains peaking around 03:00) is a LEAD to the D2 estimator seat and D15, not owed here unless a finder measures it as a learner artefact.",
     "Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.",
     "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step (haLink(\"options\") lands on the entry, and its Configure opens the flow). This group deletes its own PENDING rows health:settings and health:diagnostics in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.",
-    "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724) and the coordinator, 2026-10-15: frontend 20260826.7 has no URL filter for disabled-only entities. `_setFiltersFromUrl` in ha-config-entities.ts always sets `ha-filter-states: []`, so `?config_entry=` shows enabled and disabled entities together. Item 4 ('land on exactly the disabled entities') cannot be met by a URL. Either narrow the copy to 'this entry's entities, disabled included', or link a single disabled entity with haLink('entity'). Control: open the link in tests/card_browser.mjs and count the rows shown against the disabled set."
+    "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724) and the coordinator, 2026-10-15: frontend 20260826.7 has no URL filter for disabled-only entities. `_setFiltersFromUrl` in ha-config-entities.ts always sets `ha-filter-states: []`, so `?config_entry=` shows enabled and disabled entities together. Item 4 ('land on exactly the disabled entities') cannot be met by a URL. Either narrow the copy to 'this entry's entities, disabled included', or link a single disabled entity with haLink('entity'). Control: open the link in tests/card_browser.mjs and count the rows shown against the disabled set.",
+    "From the finding sweep (P08, P41; card test gaps with no owner): (1) #2283 review r2: dropping the render from openSetupSlot (R3) is unpinned, and was unpinned at base. Pin it with a card.mjs case that fails when the render is removed, or disposition it with the measured reason. (2) #2346 review r1: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js ~3741 `page ? L(page) : placeLabel(b.place)` (a place the backend adds ahead of the card) has no test: every place in qaTopologies/layoutCatalogTopo is in SETUP_CONFIGURE_PAGE. Add a topology with a place outside it, assert the label is the place's name and not undefined, and run the mutant that drops the fallback. Re-take line numbers at your merge base."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
@@ -1969,7 +1977,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Owner-reported Health tab (tvofi, 2026-10-14): (1) mixed casing, the integration's role labels next to the user's raw entity friendly names; every row shows the translated role label, and a check fails any input row whose label does not come from custom_components/heatpump_optimizer/strings.json. (2) The list fills only the left half on a wide screen; use a responsive grid. (3) The first row is clipped under the sticky header. (4) \"Show\" opens the integration's front page; it must land on exactly the disabled entities through R10-DEEPLINK's helper. (5) \"Not enough running history\" next to a confident \"Normal (COP scale 1.00)\": a learner without history reads not-yet-learned (render R10-LEARNER-ETA's progress and R10-COP-GATE's state, and R10-SCORES' dash rule). (7) \"Download diagnostics\" downloads nothing; download through Home Assistant's authenticated diagnostics endpoint for this config entry, and fall back to the integration page if the fetch is refused.\n\nForward-carried (finding-propagation.md): (1) Item 6 (internal gains peaking around 03:00) is a LEAD to the D2 estimator seat and D15, not owed here unless a finder measures it as a learner artefact. (2) Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step (haLink(\"options\") lands on the entry, and its Configure opens the flow). This group deletes its own PENDING rows health:settings and health:diagnostics in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724) and the coordinator, 2026-10-15: frontend 20260826.7 has no URL filter for disabled-only entities. `_setFiltersFromUrl` in ha-config-entities.ts always sets `ha-filter-states: []`, so `?config_entry=` shows enabled and disabled entities together. Item 4 ('land on exactly the disabled entities') cannot be met by a URL. Either narrow the copy to 'this entry's entities, disabled included', or link a single disabled entity with haLink('entity'). Control: open the link in tests/card_browser.mjs and count the rows shown against the disabled set."
+   "brief": "Owner-reported Health tab (tvofi, 2026-10-14): (1) mixed casing, the integration's role labels next to the user's raw entity friendly names; every row shows the translated role label, and a check fails any input row whose label does not come from custom_components/heatpump_optimizer/strings.json. (2) The list fills only the left half on a wide screen; use a responsive grid. (3) The first row is clipped under the sticky header. (4) \"Show\" opens the integration's front page; it must land on exactly the disabled entities through R10-DEEPLINK's helper. (5) \"Not enough running history\" next to a confident \"Normal (COP scale 1.00)\": a learner without history reads not-yet-learned (render R10-LEARNER-ETA's progress and R10-COP-GATE's state, and R10-SCORES' dash rule). (7) \"Download diagnostics\" downloads nothing; download through Home Assistant's authenticated diagnostics endpoint for this config entry, and fall back to the integration page if the fetch is refused.\n\nForward-carried (finding-propagation.md): (1) Item 6 (internal gains peaking around 03:00) is a LEAD to the D2 estimator seat and D15, not owed here unless a finder measures it as a learner artefact. (2) Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step (haLink(\"options\") lands on the entry, and its Configure opens the flow). This group deletes its own PENDING rows health:settings and health:diagnostics in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.\n- From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724) and the coordinator, 2026-10-15: frontend 20260826.7 has no URL filter for disabled-only entities. `_setFiltersFromUrl` in ha-config-entities.ts always sets `ha-filter-states: []`, so `?config_entry=` shows enabled and disabled entities together. Item 4 ('land on exactly the disabled entities') cannot be met by a URL. Either narrow the copy to 'this entry's entities, disabled included', or link a single disabled entity with haLink('entity'). Control: open the link in tests/card_browser.mjs and count the rows shown against the disabled set. R10-DEEPLINK-CENSUS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it, a new mention of a `NAV_SURFACE` member in the card's code outside `navigateTo` is red at once in the spellings the census's rows name, an identifier that carries the navigation primitive's name is refused too -- `b.open` on the Setup fold cost the origin/main merge a red head and is `b.foldOpen` now, so name a fold boolean `foldOpen`, not `open` -- a form built or submitted by name (`createElement(\"form\")`, an `action` written through `setAttribute`/`Reflect.set`/`Object.assign`, `.submit()`/`.requestSubmit()`) is red in those spellings, not only where a press reaches it -- but not in every written spelling: navigation written in a handler the census's dynamic arm does not drive (keydown, pointer, wheel, focus) is not covered, and the driver's RV1-RV7 (`history[\"back\"]()`, `history?.back()`, a destructured `back`, a `createElementNS` form, `.action = <variable>`, a quoted `\"action\"` key, a form submitted by a button's `click()`) are green witnesses of that, so write no navigation in such a handler until R10-DEEPLINK-HANDLERS drives them; and in ANY press, driven or not, any markup appended outside the card's shadow root (`document.body`) whose navigation name no static row refuses passes both arms too, because the census reads markup in the shadow root only -- the driver's RD4 (a form submitted by a button's `click()`) and RD6 (an anchor with a run-time-built href, `click()`ed) are those witnesses, green, beside their red controls RD5 and RD6c, the same elements placed in the shadow root and not submitted or clicked -- so append no markup outside the shadow root; the document-level read that closes it is R10-DEEPLINK-HANDLERS's brief -- and every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press drives it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
   },
   {
    "group": "R10-CONFIGFLOW-PAGES",
@@ -2501,9 +2509,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "b,d,j merged in #2281 (49a98d739); a,c open",
+    "stage": "done",
     "branch": "handoff/r10-tick-orch",
-    "commit": "49a98d739",
+    "commit": "9a1ce39c3e901c814fceb015f09eec75f1a5ef5f",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2701,9 +2709,9 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-d15-grader",
-    "commit": null,
+    "commit": "63d8154ce7dfba73aa6c7b83f2e76b8cc3282016",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -2770,7 +2778,10 @@
     "From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed.",
     "From R10-ARCHSCORE-COVERAGE part 3 (#2320): the D7 brief must state what the layering counters do not see \u2014 a private crossing spelled `getattr(_o, \"_x\"+suffix)`, `vars(_o)[\"_x\"]` or through a rebound alias (C18's class); C19's tripwire satisfied by one bare read; and `a3_private_cross_module_fix` being a pure private-to-public rename. The measurements live in `tools/audit/archscore/ABOUT.md` under \"What R10-ARCHSCORE-COVERAGE part 3 moved\", with the attempt ids; cite them and re-measure at your merge base.",
     "From #2275: web-fix-wave.js now teaches two block classes, root-cause-detectable and root-cause-unrecorded (both block and route to the root-cause seat). dev/governance/roles/fix-review.md step 11 must teach the same two words, because hand-run reviews read the contract, not the web-wave prompt. The next D13 bucketing (blocks_friction) and the D14 enumerator must place both words. fix-review.md is policy at zero headroom: pay for it within the cap.",
-    "From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them."
+    "From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them.",
+    "From R10-ARCHSCORE-COVERAGE part 4 (#2373 review): the new metrics literal_clone_copies and card_clone_copies score three non-improvements as IMPROVES: a selector spelled through separate module-level constants (184->180, +0.0315), positional args respelled as keywords (184->180, +0.0315), and do-nothing statements inserted into the card (card_clone_copies 108->98, +0.1388). Unless #2373 closes them, record them as known-open red-team attempts and do not credit such moves.",
+    "From #2311 (ARCHSCORE-COVERAGE part 2, finding sweep P19): archscore gains C15 and C16 (tools/audit/archscore/ABOUT.md counter table; C16 roots hub_solve_writes at coordinator event callbacks). The D7 M7/M8 fold may cite them beside C14, C1b and C6b. Also from #2311's review: the instrument still has an under-fire game (a helper returning a callback) and an over-fire precision note; ABOUT.md \"What it does not see\" lists them once ARCHSCORE-COVERAGE p5 lands (fold file), so cite ABOUT.md at your merge base rather than carrying counts.",
+    "From #2373 review r3 (R10-ARCHSCORE-COVERAGE p4, 2026-10-18), supersedes the \"Unless #2373 closes them\" clause of this group's earlier ARCHSCORE carry: `literal_clone_copies` and `card_clone_copies` normalise a finite list of spellings (ABOUT.md, part 4); any other indirection of the same value -- a class attribute (`_H.L0` read 186->182), a constant expression (`12 * 2` read 186->182), a spelling not listed there -- reads a copy as removed, so a drop in either is credited only when the copies are actually gone from the source, never on the metric alone. Control: re-plant both spellings at your merge base with tools/audit/archscore/score.py and confirm the drop is not credited."
    ],
    "architect_note": null,
    "resume": {
@@ -2924,7 +2935,8 @@
    ],
    "carry": [
     "The new fixture is a new tracked file: classify it.",
-    "D14-s3 (the nightly-replay seat) re-runs on the real day once it has landed."
+    "D14-s3 (the nightly-replay seat) re-runs on the real day once it has landed.",
+    "From R10-REPLAY-LOOPNORM (#2339, finding sweep P61): the replay loop figure is normalised by a pure-Python ruler (budget 0.426 -> 0.111) and the narrowing is a construction claim one box could not measure; the empirical series comparison was deferred to \"next week's timed runs\". Once this lane gates the nightly replay, read the loop_cpu_ratio series from the nightly runs, compare its spread to the pre-#2339 series, and record the comparison in the pull request. If the spread has not narrowed, report to the orchestrator BEFORE any budget raise (a raise needs tvofi)."
    ],
    "architect_note": null,
    "resume": {
@@ -3142,9 +3154,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done",
     "branch": "handoff/r10-ref-privacy",
-    "commit": null,
+    "commit": "a73f3320c53a",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -3153,6 +3165,54 @@
   },
   {
    "group": "R10-DEEPLINK-CENSUS",
+   "lane": "IN",
+   "kind": "defect",
+   "issues": [
+    2317
+   ],
+   "fixes": [],
+   "findings": [
+    "#2317"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tests/card.mjs",
+    "tools/audit/seat/r10_deeplink_mutants.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-DEEPLINK"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "done",
+    "branch": "handoff/r10-deeplink-census",
+    "commit": "f4955e15fc4b56bfc204087a0aee27d0893db7c0",
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+   },
+   "brief": "Split from the R10-DEEPLINK pull request (#2283) after its round-4 review (verdict on head 1826c67c3), as issue #2317: the deep-link builder and its own checks are sound, but the navigation census in tests/card.mjs does not hold every link the card can emit. The reviewer's planted cases each read rc=0 fails=0 at that head. K5: a bare open call (and the global-object and call-form spellings) on a row the census never renders; the token arm needs a dotted open. K1: the Navigation API navigate call is neither instrumented nor a token. K2: a form action with a submit button on a rendered page; the census reads only href. K3t: an Event, not a CustomEvent, built with a run-time more-info event name; the census hooks only CustomEvent. Proposed shape (the reviewer's): allow a known set rather than deny spellings. Render a fixture covering every row so nothing rests on the token arm alone, extend the reach check to every data-act handler, record any navigation-name read outside the known set per press, and read action and formaction beside href. Control: the reviewer's planted cases, each red at the fix. Touch the card script only where a fixture needs it, and then only after the orchestrator adds an after-edge, since the card script is a hot file.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
+  },
+  {
+   "group": "R10-DEEPLINK-HANDLERS",
    "lane": "IN",
    "kind": "defect",
    "issues": [
@@ -3187,19 +3247,340 @@
    "owner_gate": null,
    "rca": [],
    "after": [
-    "R10-DEEPLINK"
+    "R10-DEEPLINK-CENSUS"
    ],
    "carry": [],
    "architect_note": "",
+   "brief": "Split from R10-DEEPLINK-CENSUS by the orchestrator under the three-round rule (round 8 of #2345 found a third missed written spelling). Close #2317's remaining class: navigation written in a card handler the census's dynamic arm does not drive. Drive every keydown, pointer, wheel and focus handler the card registers, through the instrumented surface, the way clicks are driven today. Controls, green at #2345's head by design: the driver's RV1-RV7 plants (history[\"back\"](), history?.back(), destructured back, createElementNS form, .action = variable, Object.assign action, whole written form navigation) and Y1; each of RV1-RV3 and RV5-RV7 must go red once its handler is driven, and RV1c and RV5c must stay red. RV4 is different (#2345 round-9 review, RD4 vs RD5): a form appended to document.body, outside the card's shadow root, and submitted by a button's click() escapes BOTH arms even inside a press the census already drives (RD4 rc=0 fails=0; RD5, the same form in the shadow root, is red). The cause is that the dynamic arm reads the shadow root only, so ANY markup appended outside it escapes, not only a form (#2345 round-10 review: RD6, an <a> with a run-time-built href appended to document.body and click()ed, rc=0; RD6c, the same anchor in the shadow root, red). Driving handlers alone cannot close it, and a form-submit instrument cannot close RD6: the dynamic arm MUST read markup at the document level; RD4 and RD6 must go red, RD5 and RD6c stay red. Once the dynamic arm covers those handlers, drop the static arm to bare-name rows with no spelling list (fixer.md step 17; a spelling list is the shape #1874 refused). Re-measure every figure at your own merge base.",
    "resume": {
-    "stage": "in-review: #2345",
-    "branch": "handoff/r10-deeplink-census",
+    "stage": "planned",
+    "branch": "handoff/r10-deeplink-handlers",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "dispatch a fixer once every after group is done",
     "note": null
+   }
+  },
+  {
+   "group": "R10-ARCH-DOCS",
+   "lane": "DOCS",
+   "kind": "feature",
+   "issues": [
+    2395
+   ],
+   "fixes": [
+    2395
+   ],
+   "findings": [
+    "#2395"
+   ],
+   "class": "docs",
+   "severity": "medium",
+   "size": "L",
+   "wave": 27,
+   "files": [
+    "docs/architecture.md",
+    "README.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
    },
-   "brief": "Split from the R10-DEEPLINK pull request (#2283) after its round-4 review (verdict on head 1826c67c3), as issue #2317: the deep-link builder and its own checks are sound, but the navigation census in tests/card.mjs does not hold every link the card can emit. The reviewer's planted cases each read rc=0 fails=0 at that head. K5: a bare open call (and the global-object and call-form spellings) on a row the census never renders; the token arm needs a dotted open. K1: the Navigation API navigate call is neither instrumented nor a token. K2: a form action with a submit button on a rendered page; the census reads only href. K3t: an Event, not a CustomEvent, built with a run-time more-info event name; the census hooks only CustomEvent. Proposed shape (the reviewer's): allow a known set rather than deny spellings. Render a fixture covering every row so nothing rests on the token arm alone, extend the reach check to every data-act handler, record any navigation-name read outside the known set per press, and read action and formaction beside href. Control: the reviewer's planted cases, each red at the fix. Touch the card script only where a fixture needs it, and then only after the orchestrator adds an after-edge, since the card script is a hot file.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-VENT-DETECTOR",
+    "R10-NIGHT-FOLDS",
+    "R10-RATIO-ANCHOR",
+    "R10-INPUT-STALENESS",
+    "R10-CURRENCY",
+    "R10-TRUST-RELATIVE",
+    "R10-FREQ-DEFROST",
+    "R10-LOOP-CPU",
+    "R10-SAV-BASELINE",
+    "R10-SAV-REASONS",
+    "R10-ADVISOR",
+    "R10-SCORES",
+    "R10-PUMP-MODEL",
+    "R10-LIVESTATE",
+    "R10-CONFIG-NOTICES",
+    "R10-ARCHSCORE-COVERAGE",
+    "R10-PARAMS-OWNER",
+    "R10-SENSOR-PAYLOAD",
+    "R10-ARCH-SHAPES",
+    "R10-LEARNER-ETA",
+    "R10-HEAT-METER",
+    "R10-COP-GATE",
+    "R10-UX-HEALTH",
+    "R10-CONFIGFLOW-PAGES",
+    "R10-SOLVER",
+    "R10-I5-DOCS",
+    "R10-TICK-DRIVERS",
+    "R10-BRIEFS-FOLD",
+    "R10-DIAG-REPLAY",
+    "R10-REPLAY-LANE",
+    "R10-REPLAY-SCOPED",
+    "R10-TRAIN-HOLD",
+    "R10-DEEPLINK-HANDLERS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "R10-ARCH-DOCS, the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. Two deliverables: (1) docs/architecture.md, the architecture clearly, graphically and in words; (2) developer README/onboarding covering the agentic coding process, its requirements, and the CI shape. Every claim is checked against the tree at the stage's merge base. Diagrams render on GitHub (mermaid) or are committed SVGs generated in-tree, taking their visual language from what origin/main defines at that base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens), read from the tree, never hand-copied, light and dark. Seeds: branches fix/r10-arch-doc (4305cd109) and fix/r10-dev-onboard (0edd7fa66). Also fold finding P40 (committed card figures not compared to the card) and the harnesses README (O9). Issue #2395. Part of #201.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-arch-docs",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-RCA-FRICTION",
+   "lane": "RP",
+   "kind": "policy",
+   "issues": [
+    2331,
+    2353
+   ],
+   "fixes": [
+    2331
+   ],
+   "findings": [
+    "#2331",
+    "#2353"
+   ],
+   "class": "policy",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/governance/roles/fix-review.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "# Fixer brief O10-rca-friction: land the finished RCA for #2331 and #2353 (finding sweep L19)\nState found: the RCA is DONE but unpublished. Seat dir ~/hpo-seats/r10s3/rca-harness-friction (worktree wt/, branch rca/r10-harness-friction at d5e17d06b). The three commits (3145aeff detector, 99636a0e fix, d5e17d06 record) exist only on that local branch and on refs/remotes/origin/wip-sync/ext-wt-1e092393 (a snapshot ref, reachable from no handoff ref: the orphaned-handoff class). No handoff ref, no PR. Ledger line 24 (rcafric a8209d4ea54f9b5c3) shows it QUEUED since 10-17 and never resumed.\nWhat #2331 (key harness, 9 PRs) and #2353 (key class-open, 3 PRs) need: (1) push the three commits as handoff/r10-rca-harness-friction (tools/audit/seat/handoff_push.sh from a worktree that has the branch checked out) and the body via body_push.sh; (2) re-take the figures at the current merge base (origin/main moved: the window now has more merges; both issues' counts moved; #2353 is 4 in the window now); (3) check the detector still fires only on fix-review.md:29 at the new base (node tools/policy/check-wave-script.mjs, expect the planted failure at 3145aeff alone and rc 0 at the head); (4) the PR is policy (dev/governance/roles/fix-review.md step 6 spelling: blocked <sha> class-open: <seam>): put ## Approval in the body, \"tvofi approves at merge under mandate 6175172275\"; (5) closing keyword Closes #2331 only; #2353 is disposed by the RCA record and the orchestrator closes it by hand after merge. Part of #201.\nOrdering constraint: dev/governance/roles/fix-review.md is also edited by R10-BRIEFS-FOLD (step 11 root-cause words, not started): this RCA must merge BEFORE BRIEFS-FOLD, and the BRIEFS-FOLD fixer re-reads step 6. fix-review.md has zero headroom: the one-example edit is line-neutral. The refused fixer.md step-8 alignment in the RCA's section 6 goes to O10-policy-fixer-md.\nModel: sonnet (the work exists; this is publish + re-take). Identity: refs only (handoff/r10-rca-harness-friction + body_push.sh r10-rca-harness-friction).",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-rca-harness-friction",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-POLICY-FIXER-MD",
+   "lane": "RP",
+   "kind": "policy",
+   "issues": [
+    2378
+   ],
+   "fixes": [
+    2378
+   ],
+   "findings": [
+    "#2378"
+   ],
+   "class": "policy",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/governance/roles/fixer.md",
+    "dev/governance/roles/fix-review.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-RCA-FRICTION",
+    "R10-BRIEFS-FOLD"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "# Fixer brief O10-policy-fixer-md: dispose recurring friction #2378 (finding sweep L20, F-POL, P16, P23, P38). POLICY: tvofi approves at merge (mandate 6175172275); canon is dev/governance/roles/fixer.md and fix-review.md (.claude/rules, .cursor/rules regenerate); files sit at zero headroom, so every added line is paid by cutting text.\nIssue #2378 [policy] recurring friction: tools/audit/briefs/fixer.md (8 PRs in the window) is open with no roster group. Each line below is a Friction entry from a merged or open round-10 PR. Read them in the PR bodies; decide per line: wording fix, or a countermeasure in code, or refute with the count (the issue says a disposition names which of the two it changes).\n1. #2305: fixer.md step 2 offers \"pinned by mutation-autofix\" for an unpinned site; the CI mutation lane leaves out tools/, so for an instrument file that pins nothing. Reword: \"pinned by mutation-autofix\" only for custom_components/; tools/ needs an in-tree mutant harness.\n2. #2316 (fix-review.md step 6): the grammar names a seam, but a predicate's DOMAIN is the seam in some blocks; and the seat brief names handoff_push.sh as the push instrument while the PR update is the orchestrator's (contradiction: seats push refs only).\n3. #2344: step 3 says re-execute the finding's harness, but a fix review's harness lives only in verdict evidence; step 18 says a rerunnable harness lands in dev/audit/harnesses/. Say whether a reviewer's one-shot driver belongs in the tree (reviewer answer: no; step 18 binds what a later seat reruns).\n4. #2374: step 18 (harness in dev/audit/harnesses/) contradicts tests/harness_headers.py reading that directory (a new file is a predicted closures red only a Linux recording clears). #2376 (ci_predict --apply-inert) repairs the red; state that in step 18.\n5. #2345: three review rounds each found a written spelling; the spelling-row design is the step-17 shape (#1874). Add the lesson to step 17 only if a line is free.\n6. #2365: a fold that deletes a seam by name breaks every finder harness that drives that name (the shape slot floor harness; catchup arch-b/v2_s3.py imports the folded tariff._plateau_aware_day_max): say the finder's before/after reading exists only for the count arm, and who repairs a stale harness.\n7. #2366: \"every field of a commit a clone publishes\" (content, path names, modes, messages, identities) is the enumeration a mutation list lacked.\n8. #2368: a held branch cut from an older base carries stale copies of files its sibling changed; a re-applied delta must be diffed line by line against the sibling head (see the move-PR silent revert).\n9. #2373: red-team attempts re-spelled their own counter's rule; require attempts on the rule's neighbours.\n10. #2347: max_class_loc prices a docstring line like code on a hot class at zero headroom (structure.py rule, not policy; note only if a fix is out of reach).\n11. The RCA for #2331 also refused a step-8 alignment (its section 6): decide it here.\nFailing test first where a check can read the wording (check-wave-script.mjs reads contract examples; add an arm only if one line can be pinned). Ordering: after O10-rca-friction-2331-2353 (same dir, fix-review.md) and after R10-BRIEFS-FOLD's edits to fixer.md and fix-review.md are merged or in the same PR; do not run in parallel with BRIEFS-FOLD. Identity: refs only (handoff/r10-policy-fixer-md). Part of #201; Closes #2378 only if every line has a disposition.\nCARRY to O10-policy-fixer-md (policy seat; tvofi approves at merge). From O11, carry-forward enforcement.\n\nThe round-10 sweep's three findings O11's checks do not catch (L14, L15, L16) were written only in the\norchestrator's own ledger (the orchestrator ledger), as free prose (\"!\" lines and one \"LESSON:\").\nfinding-propagation.md's Carry: convention binds a ledger finding as well: a ledger line recording\na finding carries Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason> like a body or verdict item.\n\nO11 could not state this in finding-propagation.md: the file sits at its cap after O11's own text\n(100/101 lines, 1335/1336 tokens; node tools/policy/policy_lint.mjs --budgets). Proposed sentence,\nto go in the Enforcement section, paid for by a cut elsewhere in the same file or put in\ndev/governance/roles/orchestrator.md:\n\n  The same marker ends a finding the orchestrator records in its ledger; the ledger is out of\n  tree, so nothing reads it but the next session.\n\nControl: O11 built and dropped a ledger mode (LESSON/OWED/FINDING lines with no Carry:). Over\nthe orchestrator ledger it printed 31 lines and caught only L16 (l107); the rest were work-queue lines (\"REVIEWERS\nOWED\", \"PR OWED\"). A mechanical check therefore needs the marker first, then a key on it.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-policy-fixer-md",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-POLICY-GATE-SCOPING",
+   "lane": "RP",
+   "kind": "policy",
+   "issues": [
+    2381
+   ],
+   "fixes": [
+    2381
+   ],
+   "findings": [
+    "#2381"
+   ],
+   "class": "policy",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/governance/rules/gate-scoping.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-TICK-DRIVERS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "# Fixer brief O10-policy-gate-scoping: dispose recurring friction #2381 (finding sweep L21, P37). POLICY: tvofi approves at merge.\nIssue #2381 [policy] recurring friction: .claude/rules/gate-scoping.md (3 PRs). Files: dev/governance/rules/gate-scoping.md (canon; .claude/rules and .cursor/rules regenerate via rules_sync), tests/policy budgets if a cap row moves.\nFindings: (1) #2341: gate-scoping.md sits at its per-file cap of 61 lines with no headroom, so naming the lease pool cost a line-neutral rewrite that dropped the FIFO and expiry sentences from the prose (they live in gate_lock.py's docstring). Decide: restore the two sentences by cutting elsewhere, or record the cap raise with the owner's approval (a raise needs tvofi). (2) #2366: prepr.sh's agreement lane reads the branch's agreement.mjs while CI's restores the base's (also in the TICK-DRIVERS fold, L03): once that lands, gate-scoping.md's statement of which lanes prepr runs must say the lane reads the base's registry. (3) #2373/#2375: prepr step 3f (brief_lint only on pinned paths) and step 6b (opaque refusal) are scope statements gate-scoping.md should match after TICK-DRIVERS lands.\nFailing test first: the line-count/cap check the policy budgets already run (tests/policy budgets) must pass after the edit. Ordering: after R10-TICK-DRIVERS merges (it changes prepr behaviour this text describes). Identity: refs only (handoff/r10-policy-gate-scoping). Part of #201; Closes #2381 only with every line disposed.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-policy-gate-scoping",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-RCA-HEADMOVED",
+   "lane": "RP",
+   "kind": "study",
+   "issues": [
+    2389
+   ],
+   "fixes": [],
+   "findings": [
+    "#2389"
+   ],
+   "class": "study",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-RCA-FRICTION"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). Issue #2389: recurring friction, head-moved rework (9 PRs against the 3-instance threshold). ORDER: after O10-rca-friction-2331-2353 (same friction family; read its output first).\nContract: dev/governance/roles/root-cause.md + defect-root-cause.md. Reproduce from the 9 PRs' review threads (REST only): why heads moved after the handoff freeze (merge-main bot, autofix pins, fixer pushes, orchestrator recarry). Name the process state (a-d) with evidence; cost test with numbers (review-rounds lost per instance); countermeasure (e.g. carry predicate covering bot pin commits, as #2379's r3 showed) or a recorded refusal. Record in the R10-HEAD-MOVED record under the rca directory + the issue's Root cause section (draft as a file; orchestrator posts). Heavy lanes to CI. Push refs only.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-rca-headmoved",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-RCA-STRUCTURE-BLIND",
+   "lane": "RP",
+   "kind": "study",
+   "issues": [
+    2235
+   ],
+   "fixes": [],
+   "findings": [
+    "#2235"
+   ],
+   "class": "study",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/R10-STRUCTURE-BLIND.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "# O16 \u2014 round-10 RCA for the N-structure-blind class (#2235)\nRole: dev/governance/roles/root-cause.md. Policy: dev/governance/rules/defect-root-cause.md.\n#2235's own RCA: line says a round-10 root-cause analysis is owed for the N-structure-blind class. None exists in dev/audit/rca/ on origin/main (p5 fixer, 2026-10-18). R10-STRUCTURE-BLIND is marked done, so no roster group carries it.\nDeliver: dev/audit/rca/<id>.md, cited by rca in bugclasses.json; a Root cause section on #2235 (orchestrator posts). Then #2235 closes by hand: all 5 findings are delivered (#2340, #2293, #2373 via p5).\nIdentity: push refs via tools/audit/seat/bus.sh / body_push.sh; never open a PR. Scratch: ~/hpo-seats/r10s3/O16/.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-rca-structure-blind",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
   }
  ]
 }

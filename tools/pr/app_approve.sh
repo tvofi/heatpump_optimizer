@@ -359,6 +359,9 @@ else:
   while read -r tok; do
     tok=$(printf '%s' "$tok" | sed -e "s/^[([{\`\"']*//" -e "s/[]).,;:}\`\"']*\$//" -e 's:/*$::')
     [ -n "$tok" ] || continue
+    # A posted verdict names its evidence home-relative (`~/...`, bus.sh's
+    # home_rel, #2310): resolved here, against this machine's own $HOME.
+    case "$tok" in "~/"*) tok="$HOME/${tok#\~/}" ;; esac
     case "$tok" in
       /*/*) ;;   # at least two path components -- refuses the bare root too
       *) evwhy="$tok has fewer than two path components"; continue ;;
@@ -393,7 +396,7 @@ text = sys.stdin.read()
 # A path token starts only at line start, or right after whitespace or an
 # opening bracket/quote -- never mid-word (see the comment above this call).
 boundary = r"(?:(?<=[\s([{\x22\x27\x60])|^)"
-for m in re.finditer(boundary + r"(/[^\s\x60\x22]+)", text, re.MULTILINE):
+for m in re.finditer(boundary + r"(~?/[^\s\x60\x22]+)", text, re.MULTILINE):
     print(m.group(1))
 ')
   [ -n "$evdir" ] \
@@ -821,6 +824,16 @@ mkcase retired open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" seat-ret
 run retired o/r 7 "$SHA"; st $? 1 "REFUSE: a verdict from the retired seat account is outside the allowlist"
 st "$(grep -c "no 'Fix review:' verdict" "$W/retired/err")" 1 "read as no allowlisted verdict, its evidence dir notwithstanding"
 st "$(calls retired curl)" 0 "and nothing was minted or posted"
+# #2310: a home-relative evidence path resolves against this machine's $HOME
+# (here the scratch dir, so $EV is ~/evidence); a missing one is still refused.
+RH=$HOME
+mkcase evhome open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: ~/evidence")]"
+HOME=$W HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} run evhome o/r 7 "$SHA"
+st $? 0 "a verdict citing ~/-relative evidence is approved, ~ resolved against \$HOME at read time (#2310)"
+mkcase evhomegone open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: ~/no-such-review-dir")]"
+HOME=$W HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} run evhomegone o/r 7 "$SHA"
+st $? 1 "and one whose ~/-relative evidence does not exist is refused (the null control)"
+st "$(calls evhomegone curl)" 0 "and nothing was minted or posted"
 mkcase evmissing open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: /tmp/hpo-orch/fixer-identity/no-such-review-dir")]"
 run evmissing o/r 7 "$SHA"; st $? 1 "REFUSE: the verdict cites an evidence directory that does not exist"
 st "$(grep -c 'is not a directory that exists' "$W/evmissing/err")" 1 "naming the missing directory"

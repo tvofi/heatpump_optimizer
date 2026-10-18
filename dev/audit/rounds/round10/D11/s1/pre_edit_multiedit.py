@@ -1,7 +1,7 @@
 # Metric: count of probe payloads that write a new "## " version heading into
 #   RELEASE_NOTES.md off main and that .claude/hooks/pre-edit.sh lets through
 #   (exit 0) -- key: the hook's own exit status on the real script, end to end.
-# Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py
+# Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py
 # Expected: RESULT escaped_heading_writes=1 (MultiEdit), control_refused=1 (Edit); tolerance 0.
 #   --perturb (the hook also reads tool_input["edits"][*].new_string) -> escaped=0.
 # Baseline 17f1c55fad1b; machine: macOS arm64 (B6). Counts only; not contention-sensitive.

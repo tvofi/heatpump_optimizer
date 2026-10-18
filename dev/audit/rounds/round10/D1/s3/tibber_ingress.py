@@ -9,7 +9,7 @@ Metric (two RESULTs, key = the coordinator's own state after the real fetch):
                      starts_at cannot be parsed (96-row payload, startsAt absent),
                      and misplaced_steps = horizon steps _known_prices_for fills
                      from a row other than the one whose quarter it is.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 \
+Command: PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 \
          dev/audit/rounds/round10/D1/s3/tibber_ingress.py [--perturb]
 Expected (baseline): empty_ok_wipes=1, startless_rows=96, misplaced_steps>0 (exact).
 --perturb wraps price_model.prices_from_tibber_payload so an empty result or a row
