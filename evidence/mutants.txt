@@ -1,0 +1,35 @@
+M1 rc=1 KILLED sweep_render self-test: 19 checks, 2 failed
+    FAIL a home directory written in the template is refused
+    FAIL a home directory straddling template text and a value is refused
+M2 rc=1 KILLED sweep_render self-test: 20 checks, 1 failed
+    FAIL a home directory straddling template text and a value is refused
+M3 rc=1 KILLED sweep_render self-test: 20 checks, 1 failed
+    FAIL a cited instrument that is not in the tree is refused
+M4 rc=1 KILLED sweep_render self-test: 19 checks, 2 failed
+    FAIL an overlay key the table does not declare is refused as unknown
+    FAIL a sweep placeholder the table does not declare is refused as unknown
+M5 rc=1 KILLED sweep_render self-test: 20 checks, 1 failed
+    FAIL a declared placeholder the sweep never uses is refused
+M6 rc=1 KILLED sweep_render self-test: 20 checks, 1 failed
+    FAIL an omitted placeholder is refused as unfilled
+M7 rc=1 KILLED sweep_render self-test: 20 checks, 1 failed
+    FAIL a boolean value is refused
+M8 rc=1 KILLED policy_reread_check self-test: 14 checks, 1 failed
+    FAIL a stamp ahead of the clock is OWED
+M9 rc=1 KILLED policy_reread_check self-test: 14 checks, 1 failed
+    FAIL a stamp in the same second but before the compaction's fraction is OWED
+M10 rc=1 KILLED policy_reread_check self-test: 13 checks, 2 failed
+    FAIL a stamp between two compactions is OWED: the newest one binds (null control for OK)
+    FAIL a stamp in the same second but before the compaction's fraction is OWED
+M11 rc=1 KILLED policy_reread_check self-test: 14 checks, 1 failed
+    FAIL a quoted compact_boundary inside a message is not a compaction
+M12 rc=1 KILLED policy_reread_check self-test: 14 checks, 1 failed
+    FAIL a non-JSON line naming compact_boundary is OWED
+X1 rc=1 KILLED sweep_render self-test: 19 checks, 2 failed
+    FAIL a value holding {{ is refused (no second pass)
+    FAIL a value holding a newline is refused
+X2 rc=1 KILLED sweep_render self-test: 20 checks, 1 failed
+    FAIL a cited instrument that is not in the tree is refused
+X3 rc=1 KILLED policy_reread_check self-test: 14 checks, 1 failed
+    FAIL a compaction with an unreadable timestamp is OWED
+X4 rc=1 KILLED   ok   no stamp is OWED

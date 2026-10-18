@@ -1,0 +1,22 @@
+  ok   the tracked template renders from a complete overlay, every placeholder filled (null control)
+  ok   the tracked template cites only paths that exist
+  ok   the tracked template's sweep names no host
+  ok   a minimal template renders (null control for the refusals below)
+  ok   an omitted placeholder is refused as unfilled
+  ok   an empty value is refused as unfilled
+  ok   a boolean value is refused
+  ok   a null value is refused
+  ok   a value holding {{ is refused (no second pass)
+  ok   a value holding a newline is refused
+  ok   an overlay key the table does not declare is refused as unknown
+  ok   a sweep placeholder the table does not declare is refused as unknown
+  ok   a declared placeholder the sweep never uses is refused
+  ok   a repeated table row is refused
+  ok   a missing end marker is refused
+  ok   a non-object overlay is refused
+  ok   a home directory written in the template is refused
+  ok   the same home directory supplied by an overlay value renders (null control)
+  ok   a home directory straddling template text and a value is refused
+  ok   a cited instrument that is not in the tree is refused
+  ok   a cited instrument that exists passes, arguments and all (null control)
+sweep_render self-test: 21 checks, 0 failed
