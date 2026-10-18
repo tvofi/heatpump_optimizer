@@ -1,14 +1,31 @@
 R10-ARCHSCORE-COVERAGE, part 5 of 5: the shape census, calibrated and kept gate-only (roster item 6; ARCH-s2, ARCH2-s3).
 
-Closes #2235.
-Part of #2259.
+Closes #2259.
+Part of #2235.
 
-This is the group's last part. Parts 1 to 4 landed items 5, 4 and 7, 1, and 2 and 3. Of #2235's findings, this group delivered four:
-- D7-s3-51 and D7-s3-52 in part 1 (#2293);
-- D7-s1-83 in part 2 (#2311);
-- D7-s3-02 in part 4 (the card's dead-definition census).
+This is the group's last part. It completes #2259, the group's issue: every one of its seven items is delivered across parts 1 to 5. #2235 stays open. All five of its findings are delivered, but its body records a round-10 RCA as owed, and no part of this group delivers it.
 
-R10-STRUCTURE-BLIND (#2340) delivered D7-s1-01 and D7-s3-01. #2228, this group's one `fixes` issue, was closed by part 1. **Stacked on part 4:** this branch merges part 4's head `69c36cee5` (#2373, round 2), so until that merges, its diff against main includes part 4's. The part-5 delta alone is `git diff 69c36cee5...HEAD`. The diff is `tools/audit/archscore/` plus its registrations (`tests/closures.json`, `tests/ci_budgets.json`); `tests/structure.py` is not touched.
+| issue | item / finding | delivered by | state |
+|---|---|---|---|
+| #2259 | 1, layering and import closure (ARCH2-s4) | part 3, #2320 | merged `6627485ee` |
+| #2259 | 2, card coverage (ARCH2-s5) | part 4, #2373 | open; stacked here |
+| #2259 | 3, dict-literal clones (ARCH2-s5) | part 4, #2373 | open; stacked here |
+| #2259 | 4, hub alias through readers and rebinds (ARCH2-s1, D7-s1-83) | part 2, #2311 | merged `8f174c4ce` |
+| #2259 | 5, ARCH-s3's three holes | part 1, #2293 | merged `acfeaf8b4` |
+| #2259 | 6, shape census (ARCH-s2, ARCH2-s3) | part 5, this PR | this PR |
+| #2259 | 7, event-callback hub writes | part 2, #2311 | merged `8f174c4ce` |
+| #2235 | D7-s1-01 | R10-STRUCTURE-BLIND, #2340 | merged `818640351` |
+| #2235 | D7-s3-01 | R10-STRUCTURE-BLIND, #2340 | merged `818640351` |
+| #2235 | D7-s3-02 | part 4, #2373 (the card's dead-definition census) | open; stacked here |
+| #2235 | D7-s3-51 | part 1, #2293 | merged `acfeaf8b4` |
+| #2235 | D7-s3-52 | part 1, #2293 | merged `acfeaf8b4` |
+| #2235 | RCA owed (the issue's `RCA:` line: per_round, cross_round and barriered_any met) | none: not in this group's scope, and no roster group carries it | owed |
+
+The rows marked "stacked here" merge with this branch: it contains part 4's head. #2259's items come from its own body, and #2235's findings come from its `## Findings` table, both read at handoff. The PRs' states come from `gh pr view`. The RCA search covered `dev/audit/rca/` on origin/main and the roster: the only round-10 groups naming #2235 are this one and R10-STRUCTURE-BLIND (`fixes` [2235], stage `done`). #2228 was closed by part 1 (closed 2026-10-16).
+
+Carry: #2235's round-10 RCA for N-structure-blind goes to the orchestrator to route; it is not foldable into an instrument PR.
+
+**Stacked on part 4:** this branch merges part 4's head `69c36cee5` (#2373, round 2), so until that merges, its diff against main includes part 4's. The part-5 delta alone is `git diff 69c36cee5...HEAD`. The diff is `tools/audit/archscore/` plus its registrations (`tests/closures.json`, `tests/ci_budgets.json`); `tests/structure.py` is not touched.
 
 What changes. A census of N implementations of one rule, `shape_copies` (`metrics/shapes.py`, counter C23):
 - It counts the members of every class of two or more functions that share one SHAPE.
