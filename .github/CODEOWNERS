@@ -71,6 +71,10 @@
 /.claude/workflows/contract_rerun.py      @tvofi
 /tools/policy/budget_raise_gate.py        @tvofi
 /tools/pr/contract_rerun.py               @tvofi
+# The superseded-run canceller (R10-CI-CONCURRENCY): holds `actions: write` in
+# tests.yml/codeql.yml and runs as the pull request's own copy in governance's
+# self-test step, so only ownership covers it.
+/tools/pr/cancel_superseded.py            @tvofi
 # The merge fast path decides when a pull request merges without a fresh CI
 # run (round-9 process review item 2B); the orchestrator runs main's copy, and
 # its self-test cannot stop a pull request that weakens a class and its fixture
