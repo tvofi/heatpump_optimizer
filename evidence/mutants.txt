@@ -1,0 +1,12 @@
+head 6ffc3708d763dfcafb9faf5baf0de9b5cb541327
+RESULT mutant=branch_eq KILLED 19 checks, 1 failed
+RESULT mutant=events KILLED 19 checks, 1 failed
+RESULT mutant=active KILLED 19 checks, 1 failed
+RESULT mutant=sha_ne KILLED 19 checks, 2 failed
+RESULT mutant=id_lt KILLED 19 checks, 1 failed
+RESULT mutant=event_pr KILLED 19 checks, 1 failed
+RESULT mutant=bot KILLED 19 checks, 1 failed
+RESULT mutant=main KILLED 19 checks, 1 failed
+RESULT mutant=open KILLED 19 checks, 1 failed
+RESULT mutant=repo KILLED 19 checks, 1 failed
+RESULT mutant=live KILLED 19 checks, 1 failed
