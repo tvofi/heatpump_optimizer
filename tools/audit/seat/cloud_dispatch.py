@@ -24,8 +24,8 @@ message at `run`: a brief edited afterwards reaches no running seat.
 
 WHAT IT REFUSES (exit 2, nothing printed on stdout):
   * a head that is not exactly 40 lowercase hex digits;
-  * a reviewer with an empty bus nonce (the verdict push is unauthenticated
-    without it), or a reviewer with no --pr;
+  * a reviewer with an empty bus nonce (the relay matches the verdict to its
+    dispatch by it), or a reviewer with no --pr;
   * a fixer or probe with no --topic (the return refs are named by it);
   * a missing environment id, model or repository;
   * any home-directory path in the rendered text (ref_privacy.HOME_DIR, the
@@ -90,12 +90,16 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree`) and read CI on this head from the check-runs API.\n"
-            f"Output: write verdict.md, whose first line is exactly `Fix review: <merge|blocked> {head} "
-            f"[class: reason]` in the format the role file gives, and an evidence directory `ev` "
-            f"beside it, both under a fresh directory of your own. Then run `bash tools/audit/seat/bus.sh "
-            f"push-verdict {pr} <that verdict.md> <that ev>`. That pushes refs/heads/review/{pr}, "
-            "which is the return signal; push nothing else. Do not post comments, approve or merge; "
-            "the orchestrator confirms.")
+            f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
+            f"exactly `Fix review: <merge|blocked> {head} [class: reason]` in the format the role file gives, "
+            f"then a blank line, then `bus-nonce: {nonce}`; put the evidence in `ev/` beside it. Do NOT run "
+            f"bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict "
+            f"there (cloud_relay.sh). Return the verdict on a probe ref, and push nothing else: "
+            f"`R=$(git rev-parse --show-toplevel); cd $W && rm -rf pr && git init -q pr && cp -r verdict.md ev pr/ "
+            f"&& git -C pr add -A && git -C pr -c user.name=seat -c user.email=seat@users.noreply.github.com "
+            f"commit -qm \"verdict {pr} {head}\" && git -C $R fetch -q $W/pr HEAD && git -C $R push -q origin "
+            f"FETCH_HEAD:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}` (run from the checkout, `R` taken first). "
+            "That ref is the return signal. Do not post comments, approve or merge.")
     elif role == "fixer":
         body = (
             "Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, "
@@ -197,8 +201,10 @@ def self_test() -> int:
           set(ccr) == {"environment_id", "session_context", "events"} and len(ccr["events"]) == 1
           and set(ccr["session_context"]) == {"allowed_tools", "model", "sources"})
     msg = ccr["events"][0]["data"]["message"]["content"]
-    check("the prompt names the head, the nonce and the review ref",
-          head in msg and "abc123" in msg and "review/7" in msg)
+    check("the prompt names the head, the nonce and the probe return ref",
+          head in msg and "abc123" in msg and "probe/rev-7-abc123" in msg and "bus-nonce: abc123" in msg)
+    check("the reviewer is told not to run bus.sh and the prompt runs no bus.sh push-verdict",
+          "Do NOT run bus.sh" in msg and "push-verdict" not in msg and "refs/heads/review" not in msg)
     check("the source is the repo", ccr["session_context"]["sources"][0]["git_repository"]["url"]
           == "https://github.com/owner/name")
     check("a fixer renders and names both return refs",

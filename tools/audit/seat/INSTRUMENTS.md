@@ -140,8 +140,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   variables, not from a profile the seat sources, so the prompt says only
   that it is on `PATH`; the seat starts off `main` in a shallow clone
   (`git fetch --unshallow --tags origin` first); the return signal is a
-  pushed ref (`review/<pr>` for a reviewer, `handoff/<topic>` plus
-  `handoff-body/<topic>` for a fixer, `handoff-body/<topic>` for a probe),
+  pushed ref: `probe/rev-<pr>-<nonce first 8>` for a reviewer (see
+  `cloud_relay.sh`: a cloud reviewer never runs `bus.sh`, whose dispatch record
+  lives on the orchestrator's machine and refuses "unknown nonce" anywhere
+  else, and a seat may not write a record it did not mint), `handoff/<topic>`
+  plus `handoff-body/<topic>` for a fixer, `handoff-body/<topic>` for a probe,
   and a return push carries only the seat's own result tokens: a push
   carrying system-file dumps is refused; the session is reachable one way,
   by `SendMessage` to it, and nothing comes back on that channel. Refusal: a
@@ -150,6 +153,22 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   repository, and any home-directory path in the rendered text
   (`ref_privacy.HOME_DIR`, brief included). `--self-test` grades each
   refusal against a rendering that passes, offline.
+  Two measured traps when driving the runner: an update and a run fired in
+  parallel start the run on the PREVIOUS config, so a launch is update, wait
+  for it, then run, sequentially; and the container's `BASH_ENV` puts the venv
+  python ahead of the test stubs, so a cloud seat runs `tests/entities.py` (and
+  anything else resolving `homeassistant`) with `env -u BASH_ENV`.
+- `cloud_relay.sh` — the orchestrator's half of a cloud reviewer's return:
+  `cloud_relay.sh <pr> <nonce> <head40>` fetches
+  `probe/rev-<pr>-<nonce8>`, grades it, then runs `bus.sh push-verdict` locally,
+  where the dispatch record lives; `bus.sh confirm` follows as for any verdict.
+  When: a `probe/rev-*` ref appears after dispatching a cloud reviewer. Refusal:
+  a nonce that does not match the verdict's `bus-nonce:` line, a ref whose
+  commit subject (`verdict <pr> <head>`) or verdict first line names another PR
+  or head, a missing `ev/`, and a ref already relayed (a ledger of
+  `<ref> <sha>` under the state directory, written only after `push-verdict`
+  succeeded, so a re-pushed ref relays again). `--self-test` grades each
+  refusal against a clean ref, offline, with `push-verdict` stubbed.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
