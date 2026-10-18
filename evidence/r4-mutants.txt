@@ -1,0 +1,25 @@
+== M1: --no-renames dropped from stamp.py:1708
+ tools/release/stamp.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/release/stamp.py:1708: out = run("git", "diff", "--name-only", f"{sha}^1", sha)]
+1 of 124 closure shrink pins FAILED
+TOTAL: 0 error(s) across 41 policy file(s)
+FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames; the two commands must move together"]. The record-class carve-out is what ends the record-PR row recursion; unpinned, it widens to a bl
+== M2: --no-renames dropped from policy_lint mergeRecordClass
+ tools/policy/policy_lint.mjs | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+TOTAL: 0 error(s) across 41 policy file(s)
+  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/policy/policy_lint.mjs:2332: : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true }); tools/policy/policy_lint.mjs:4400: || !rcWired.includes("git(['diff', '--name-only', `${sha}^1`, String(sha)]")) {]
+1 of 124 closure shrink pins FAILED
+== M3: codeql_scope.changed_files back to a private git diff copy (with --no-renames)
+  FAIL the list is closure.changed_between's, not a copy (#2406): got 'raised CalledProcessError', want ['from-closure']
+codeql_scope self-test: 47 checks, 1 failed
+== P1: round-3 probe: rename __init__.py onto a delivery row, local commit never pushed
+stamp.merge_is_record_class: False
+codeql_scope.changed_files: ['custom_components/heatpump_optimizer/__init__.py', 'dev/programme/delivery/99999.md']
+== M2' --no-renames dropped from policy_lint.mjs:2332 only (the acceptance string untouched)
+-    : git(['diff', '--no-renames', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
++    : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
+policy_lint rc=0
+== baseline policy_lint rc
+rc=0

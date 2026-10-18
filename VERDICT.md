@@ -1,48 +1,35 @@
-Fix review: blocked af391637b4446a6ad2cf283c0fda80dd0d3da7de class-open: the merged head fails its own census on main's tools/pr/codeql_scope.py:88 docstring (closure selftest 1 of 124 FAILED), and stamp.py merge_is_record_class, the twin of the policy_lint site fixed here, still detects renames
-bus-nonce: e638a91e7031eb8da8a999b9f5ca1c71
+Fix review: blocked b965c4ab9a19b9470b88c5800580945b9507a388 mutation-vacuous: policy_lint's stamp-copy arm reads its own file for the mergeRecordClass command, so its needle at policy_lint.mjs:4400 matches itself; dropping --no-renames from policy_lint.mjs:2332 leaves policy_lint rc 0
+bus-nonce: 27d44383158f05429806a91df74e53bd
 
-Round 3. Reviewed from a detached worktree at `af391637b4446a6ad2cf283c0fda80dd0d3da7de`. The roles diff against main was empty. I judged the delta since round 2 (`89d2b9465`): the fix commit `0a61981e0`, its merge `73d82db25`, and the main merge `af391637b`, which brings in #2405 (`55dc8d9c2`). Evidence: `~/hpo-seats/r10s3/review-2406/evidence-r3/`. Next round is the fourth: under `fixer.md`, that is a re-cut, not a repair.
+**Round 4.** The fixer re-cut the body, as `fixer.md` requires from the fourth round. Reviewed from a fresh detached worktree at `b965c4ab9a19b9470b88c5800580945b9507a388`. The roles diff against main was empty. I judged the delta since round 3 (`af391637b`): the fix commit `dc6cda7a2`, its merge `9f0f7bde3`, and the main merge `b965c4ab9`, which brings in #2384 (`211c8290e`). Evidence: `~/hpo-seats/r10s3/review-2406/evidence-r4/`.
 
-## Fixed since round 2, and pinned
+## Round-3 blockers: both are fixed in the product, by my own probes
 
-- RESULT JS twin: `card_rig.mjs` `threeDotFiles`, `card_browser.mjs` `gridScope`, `stop-selfcheck.sh` (including `--cached`) and the two `policy_lint.mjs` diffs all carry `--no-renames`.
-- RESULT parity pin (`evidence-r3/parity-pin.txt`). I drove the predicate from `card.mjs:10792-10812`, copied verbatim, against this tree. The `card` lane needs a Home Assistant payload this box cannot build, so this is my own driver of their predicate.
-  - At the head: `PIN PASS`.
-  - With `--no-renames` dropped from `card_rig` alone: `PIN FAIL`.
-  - With both twins reverted together: `PIN FAIL`, because the pin also requires `--no-renames`.
-  - So the pin is not vacuous, and the two copies cannot drift together unseen.
-- RESULT census: with `--no-renames` dropped from `card_rig.mjs:838`, the census refuses `tests/card_rig.mjs:838` (`evidence-r3/r3-mutants.txt`). The globs now read `.mjs`. My own enumeration over `--name-only` found no diff call split across lines without a backslash (`evidence-r3/nameonly-r3.txt`).
-- RESULT owed steps (step 10): both now sit in `R10-TICK-DRIVERS.carry` at roster `97344315a`, on the `handoff/audit-r10-roster` tip. Each carries its control: two SHAs in the memo plus a roster-only regenerate, and the census plus codeql_scope's self-test. The fixer prompt reads `carry` from the group, so a later seat will see them. Not blocking, but note that the beat restart is an orchestrator action. It now waits behind a group gated `after: R10-REF-PRIVACY` whose `files` do not include `state_docs.py`. A post-merge beat item would reach it sooner.
-- RESULT merges: `73d82db25` and `af391637b` have trees equal to `git merge-tree --write-tree` of their parents. `git merge-tree --write-tree origin/main(55dc8d9c2) HEAD` returns rc 0.
+- **Blocker 1 (the census red on `codeql_scope.py:88`) is fixed.** At the head, `closure.py selftest` prints `ALL 124 closure shrink pins PASSED` and `closure.rename_sites()` returns `([], [])`. `codeql_scope.changed_files` delegates to `closure.changed_between`.
+  - My mutant M3 turns it back into a correct private `--no-renames` copy, and `codeql_scope --self-test` prints `47 checks, 1 failed` (`the list is closure.changed_between's, not a copy`).
+  - `python3 -I tools/pr/codeql_scope.py --self-test` also passes, so the import by path survives `-I`.
+  - CI's `scope` job concluded success on this head.
+- **Blocker 2 (`stamp.py:1708`) is fixed.** My round-3 probe, re-run on this head (local commit, never pushed, renaming `__init__.py` onto `dev/programme/delivery/99999.md`), gives `stamp.merge_is_record_class: False`. Round 3 gave `True`.
+  - `codeql_scope.changed_files` lists both paths.
+  - My mutant M1 drops the flag at `stamp.py:1708`. The census refuses `tools/release/stamp.py:1708`, and `policy_lint` prints `FIXTURE VACUOUS: ... must both diff with --no-renames`. The stamp half of the arm is live.
+- RESULT self-tests at head (`evidence-r4/r4-tests.txt`): `stamp.py --self-test` `RESULT stamp_self_test=pass`, `policy_lint` `TOTAL: 0 error(s) across 41 policy file(s)`, lane_skip `54/54`.
+- RESULT merges: every merge in `af391637b..b965c4ab9` has a tree equal to `git merge-tree --write-tree` of its parents, and that covers the 14 merges, #2384's own included. `git merge-tree --write-tree origin/main(5a41a5669) HEAD` returns rc 0.
 
-## Blocking 1: the head is red on its own census (the resolution delta of the main merge)
+## Blocking: the JS half of the new policy_lint arm cannot fail (step 1)
 
-`python3 tests/closure.py selftest` at the head gives `1 of 124 closure shrink pins FAILED`:
+`policy_lint.mjs:4398-4400` checks two things:
+- `stampSrc.includes(<the stamp command>)`, where `stampSrc` is `stamp.py`;
+- `rcWired.includes("git(['diff', '--no-renames', '--name-only', \`${sha}^1\`, String(sha)]")`, where `rcWired` is **the whole of `policy_lint.mjs`** (`:4374`).
 
-```
-FAIL no rename-detecting --name-only diff under RENAME_SITES  [tools/pr/codeql_scope.py:88: """(changed_files, porcelain `git diff --name-only`) over a throwaway repo]
-```
+That second needle is written out literally at `:4400`, inside the file being searched, so the second condition is always true.
 
-`tools/pr/codeql_scope.py` does not exist at `0a61981e0`. It arrived with #2405 in the main merge `af391637b`, and `tools/pr/*.py` has been in the census since round 2. The line is docstring prose, and the census skips only lines that open with `#`, `//`, `*` or `/*`. So the merge is textually clean and semantically red. `tests/run.sh:480` runs the selftest as `run_always`, so `fast (3.14)`, still in progress at 15:24Z, should go red on this head. The body's `ALL 124 closure shrink pins PASSED` and `closure.rename_sites(): ([], [])` were measured before the merge. At the head named in `## Head`, both figures are false (steps 7 and 8).
+My mutant M2' removes `'--no-renames', ` from `policy_lint.mjs:2332` only, leaving the needle alone. `node tools/policy/policy_lint.mjs` exits **0** with no `VACUOUS` line (`evidence-r4/r4-mutants.txt`). The census still refuses `tools/policy/policy_lint.mjs:2332`, so in practice the product is protected. But the body (line 16) credits the two twins as "held together by policy_lint's stamp-copy arm", and the arm's JS half is dead code that only looks like a check. This is the "a check reading its own source" shape.
 
-Remedy: add a `RENAME_ALLOW` entry for the docstring, or tag it `# rename-null-control`, or have `codeql_scope.changed` delegate now, since #2405 has merged and that is the carried item. Then re-take the figures at the head. Before re-merging main, re-run the census: it now reads every `tools/pr/*.py` that main adds.
-
-## Blocking 2: the class is still open at one twin (step 6)
-
-`tools/release/stamp.py:1708` `merge_is_record_class` runs `git diff --name-only <sha>^1 <sha>` with renames on. Its comment (`stamp.py:1677`) and `policy_lint.mjs:2294` both name it the copy of `policy_lint.mjs` `mergeRecordClass`, which this round gave `--no-renames`. That is the round-2 shape again: one twin fixed, the other left. Probe on this head (local commit, never pushed: `git mv custom_components/heatpump_optimizer/__init__.py dev/programme/delivery/99999.md`; `evidence-r3/stamp-twin-probe.txt`):
-
-```
-stamp.merge_is_record_class: True
-policy_lint's command (--no-renames): custom_components/heatpump_optimizer/__init__.py dev/programme/delivery/99999.md
-stamp's command:                      dev/programme/delivery/99999.md
-```
-
-So the stamp reads a commit that deletes the integration's entry point as record-class, which exempts it from its row, while `policy_lint` reads the same commit as code. `tools/release/` is outside `RENAME_SITES`, which is why the census passed it. Remedy: give `stamp.py` `--no-renames`, add `tools/release/*.py` to `RENAME_SITES`, and if possible extend the existing copy check in `policy_lint` (`THE STAMP'S COPY`, `policy_lint.mjs:4381`) to compare the two commands. Every other residual I enumerated is plumbing, `ls-tree`, an empty-tree or `--name-status` site handled correctly, or audit evidence under `dev/audit/`.
+Remedy, a few lines: search `mergeRecordClass`'s own body (`rcWired.slice(rcWired.indexOf('function mergeRecordClass'), ...)`, the way `rcBody` already slices `cmdRecordDispositions`) instead of the whole file. Then add the mutant M2' to the body. Or delete the JS half and change the body to say the census holds `:2332`.
 
 ## Other steps
 
-- RESULT lane_skip self-test at head: `54/54`.
-- RESULT checks (step 11; `evidence-r3/checkruns-r3.tsv`): `instrument-self-tests` and `env-matrix` concluded success. `fast (3.14)`, `browser`, `coverage` and `Analyze (python)` were in progress at 15:24Z. Nothing was red yet, but Blocking 1 predicts `fast`.
-- RESULT version, claims and budgets: none of them is touched in the delta.
-- Not blocking: `_RENAME_EXEMPT` still exempts `--cached`, which detects renames in the index. Today's `--cached` sites only count lines after a pinned restore. Say so in the body, or drop the exemption.
-- RESULT head (step 12): `gh pr view` reported `af391637b4446a6ad2cf283c0fda80dd0d3da7de` when I wrote this.
+- RESULT checks (step 11; `evidence-r4/checkruns-r4.tsv`): 38 runs. `scope`, `closure-scope`, `Analyze (actions)` and `Analyze (javascript-typescript)` concluded success, and nothing in the range is red. The `cancelled` runs belong to the superseded round-3 head `af391637b`. `fast (3.14)`, `coverage` and `Analyze (python)` were still in progress.
+- RESULT carry (step 10): the beat-restart carry stays on R10-TICK-DRIVERS. The body says the CodeQL delegation carry is done here, and it is, by M3. But that carry is still in `R10-TICK-DRIVERS.carry` on `origin/handoff/audit-r10-roster`. Dropping it is the orchestrator's roster edit at merge, or a later seat will redo finished work.
+- RESULT version, claims and budgets: none of them is touched in the delta. The roster diff in the range is #2384's, from main.
+- RESULT head (step 12): `gh pr view` reported `b965c4ab9a19b9470b88c5800580945b9507a388` when I wrote this.

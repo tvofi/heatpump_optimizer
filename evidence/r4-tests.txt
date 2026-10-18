@@ -1,0 +1,10 @@
+head b965c4ab9a19b9470b88c5800580945b9507a388
+ALL 124 closure shrink pins PASSED
+rename_sites ([], [])
+  ok   the list is closure.changed_between's, not a copy (#2406)
+codeql_scope self-test: 47 checks, 0 failed
+codeql_scope self-test: 47 checks, 0 failed
+  ok   register dry run: main calls it before returning from --dry-run
+RESULT stamp_self_test=pass
+TOTAL: 0 error(s) across 41 policy file(s)
+lane_skip self-test: 54/54 pins passed
