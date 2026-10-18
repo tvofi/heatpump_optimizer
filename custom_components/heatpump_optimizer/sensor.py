@@ -50,6 +50,7 @@ from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import (
     HeatPumpOptimizerEntity,
     commanded_power_kw,
+    effective_outdoor,
     payload_number,
     zone_setpoint_attributes,
 )
@@ -156,37 +157,6 @@ def _reading_ok(coordinator: Any, key: str) -> bool:
     data = getattr(coordinator, "data", None) or {}
     flags = data.get("reading_ok") or {}
     return bool(flags.get(key))
-
-
-def _effective_outdoor(coordinator: Any) -> tuple[float | None, str | None]:
-    """The best outdoor temperature available, and where it came from.
-
-    Three answers, in the order a user would want them:
-
-    * the outdoor thermometer, while it reads;
-    * otherwise the **forecast's current step** -- the number the plan beside
-      it was actually solved on. `ThermalState.outdoor_temperature`'s 5.0
-      constructor default is never overwritten without a thermometer, so an
-      install with a -5 °C forecast published "5.0 °C outdoors" with a
-      `TEMPERATURE` device class and long-term statistics behind it, and the
-      Estimated COP that reads it followed (3.32 against a real 2.62);
-    * ``None`` when there is neither, which is the one branch where the
-      default also reaches the optimizer's horizon.
-
-    Deliberately not an availability gate: an outdoor temperature the
-    integration is planning against is a real answer, and unavailability
-    would hide it. What changes is that the number is the forecast's rather
-    than a dataclass's, and the sensor says which.
-    """
-    data = getattr(coordinator, "data", None) or {}
-    if _reading_ok(coordinator, "outdoor_temperature"):
-        value = _as_float(data.get("outdoor_temperature"))
-        if value is not None:
-            return value, "outdoor_temp_entity"
-    forecast = _as_float(data.get("outdoor_forecast_temperature"))
-    if forecast is not None:
-        return forecast, "weather_forecast"
-    return None, None
 
 
 class _MeasuredStoreMixin(_SensorMixinBase):
@@ -692,7 +662,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
             # outdoor temperature", and without a thermometer the old
             # `data.get(..., 5.0)` read the constructor default while the
             # plan being priced beside it was solved at the forecast's −5 °C.
-            outdoor_temp, _source = _effective_outdoor(self.coordinator)
+            outdoor_temp, _source = effective_outdoor(self._data())
             if outdoor_temp is None:
                 return None
             cop = payload_number(self.coordinator.thermal_model.compute_cop(outdoor_temp))
@@ -747,7 +717,7 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
     @property
     def native_value(self) -> float | None:
         if self.coordinator.data:
-            val, _source = _effective_outdoor(self.coordinator)
+            val, _source = effective_outdoor(self._data())
             return round(val, 1) if val is not None else None
         return None
 
@@ -758,7 +728,7 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
         like corroboration until one owns up. ``weather_forecast`` here means
         there is no outdoor thermometer and this is the horizon's first step.
         """
-        _val, source = _effective_outdoor(self.coordinator)
+        _val, source = effective_outdoor(self._data())
         return {"source": source}
 
 

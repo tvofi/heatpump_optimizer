@@ -65,6 +65,43 @@ def commanded_power_kw(action: Any) -> float | None:
     return round(float(space) + float(dhw), 2)
 
 
+def effective_outdoor(data: Any) -> tuple[float | None, str | None]:
+    """The best outdoor temperature available, and where it came from.
+
+    Three answers, in the order a user would want them:
+
+    * the outdoor thermometer, while it reads;
+    * otherwise the **forecast's current step** -- the number the plan beside
+      it was actually solved on. `ThermalState.outdoor_temperature`'s 5.0
+      constructor default is never overwritten without a thermometer, so an
+      install with a -5 °C forecast published "5.0 °C outdoors" with a
+      `TEMPERATURE` device class and long-term statistics behind it, and the
+      Estimated COP that reads it followed (3.32 against a real 2.62);
+    * ``None`` when there is neither, which is the one branch where the
+      default also reaches the optimizer's horizon.
+
+    Both readers -- the Outdoor Temperature and Estimated COP sensors, and
+    the climate entity's ``outdoor_temperature`` attribute -- take it here;
+    the climate entity kept its own copy, unguarded, which answered ``None``
+    where a thermometer flagged OK published no number and the sensor fell
+    back to the forecast.
+
+    Deliberately not an availability gate: an outdoor temperature the
+    integration is planning against is a real answer, and unavailability
+    would hide it. What changes is that the number is the forecast's rather
+    than a dataclass's, and the sensor says which.
+    """
+    data = data or {}
+    if (data.get("reading_ok") or {}).get("outdoor_temperature"):
+        value = payload_number(data.get("outdoor_temperature"))
+        if value is not None:
+            return float(value), "outdoor_temp_entity"
+    forecast = payload_number(data.get("outdoor_forecast_temperature"))
+    if forecast is not None:
+        return float(forecast), "weather_forecast"
+    return None, None
+
+
 def zone_setpoint_attributes(action: Any) -> dict[str, Any]:
     """The current plan step's two-zone setpoints, under their published names.
 
