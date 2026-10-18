@@ -3878,6 +3878,22 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
+        # D2-s2-01 (R10-PUMP-MODEL): which law a price is taken from is decided
+        # once per plant, by the valve flag, in compute_cop. The flag is a
+        # SPACE-circuit fact -- it says whether a passed flow temperature is
+        # the supply the machine runs at -- and the hot-water tank forked it a
+        # second time, pricing one lift two ways (up to 1.4346 at outdoor 7 /
+        # tank 65). _batch_cop is an owner rather than a copy: its two branches
+        # ARE compute_cop's two, vectorized, and the pair must agree bit for
+        # bit (fixer.md step 15). The D14 P2 sweep counts this family as
+        # cop_law_fork: 3 seams at the finding's baseline, 2 here.
+        dict(fact="cop_law_fork", finding="D2-s2-01",
+             match=_p2_match_node(
+                 (ast.If, ast.IfExp), r"cop_flow_carnot",
+                 lambda n: "cop_flow_carnot" in ast.unparse(n.test)),
+             owners=["thermal_model.py::ThermalModel.compute_cop",
+                     "thermal_model.py::ThermalModel._batch_cop"],
+             dispositions={}),
         # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold):
         # which wall-clock step an instant falls in. The pump's step start is
         # _step_start's alone -- the ledger row, the silent-window lookup and
@@ -4054,6 +4070,9 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
+_P2_PLANTS["cop_law_fork"] = (
+    "\n\ndef _p2_plant(p):\n    if p.cop_flow_carnot:\n        return 1\n    return 0\n"
 )
 _P2_PLANTS["slot_floor_rule"] = (
     "\n\ndef _p2_plant(now):\n"
