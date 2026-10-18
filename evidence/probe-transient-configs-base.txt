@@ -1,0 +1,12 @@
+RESULT probe transient two_zone=False dhw=False weather=winter_cold prices=flat firsts=[0.0, 6.0, 6.0, 0.0] spread=6.00 DEFECT
+RESULT probe transient two_zone=False dhw=False weather=winter_cold prices=winter_narrow firsts=[0.0, 6.0, 6.0, 0.0] spread=6.00 DEFECT
+RESULT probe transient two_zone=False dhw=False weather=shoulder prices=flat firsts=[0.0, 0.0, 6.0, 0.0] spread=6.00 DEFECT
+RESULT probe transient two_zone=True dhw=False weather=winter_cold prices=flat firsts=[0.02, 5.84, 6.0, 0.02] spread=5.98 DEFECT
+RESULT probe transient two_zone=True dhw=False weather=winter_cold prices=winter_narrow firsts=[0.02, 5.84, 6.0, 0.02] spread=5.98 DEFECT
+RESULT probe transient two_zone=True dhw=False weather=shoulder prices=flat firsts=[0.01, 0.01, 6.0, 0.01] spread=5.99 DEFECT
+RESULT probe transient two_zone=False dhw=True weather=winter_cold prices=flat firsts=[0.38, 6.38, 6.38, 0.38] spread=6.00 DEFECT
+RESULT probe transient two_zone=False dhw=True weather=winter_cold prices=winter_narrow firsts=[0.38, 6.38, 6.38, 0.38] spread=6.00 DEFECT
+RESULT probe transient two_zone=False dhw=True weather=shoulder prices=flat firsts=[0.2, 0.2, 6.2, 0.2] spread=6.00 DEFECT
+RESULT probe transient two_zone=True dhw=True weather=winter_cold prices=flat firsts=[0.4, 6.21, 6.38, 0.4] spread=5.98 DEFECT
+RESULT probe transient two_zone=True dhw=True weather=winter_cold prices=winter_narrow firsts=[0.4, 6.21, 6.38, 0.4] spread=5.98 DEFECT
+RESULT probe transient two_zone=True dhw=True weather=shoulder prices=flat firsts=[0.21, 0.21, 6.2, 0.21] spread=5.99 DEFECT
