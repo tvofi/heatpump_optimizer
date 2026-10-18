@@ -3581,6 +3581,50 @@
     "next_step": "dispatch a fixer once every after group is done",
     "note": null
    }
+  },
+  {
+   "group": "R10-SAV-COMFORT",
+   "lane": "SV",
+   "kind": "owner",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "owner",
+   "severity": "medium",
+   "size": "M",
+   "wave": 16,
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/ledger.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-SAV-BASELINE"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-sav-comfort",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+   },
+   "brief": "Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. (1) The month row's comfort-matched null: the flat-price null must separate comfort, COP timing and stored heat, not be driven to 0. (2) The summer_dhw_only start-bound limit: the start-of-horizon settlement is capped by the thermostat's space-heat cost, which leaves summer_dhw_only negative. Seams: optimizer.py and ledger.py. The acceptance is the carried comfort text from R10-SAV-BASELINE, which you re-measure at your merge base. Part of #201."
   }
  ]
 }
