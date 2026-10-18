@@ -1,0 +1,11 @@
+head 860ca72cb48e90e56f8f50663be7bf63a135daaa (run history is not a function of the head; cache fetched 2026-10-18T17:17:28Z by the reviewer)
+RESULT tests nonmain_runs=483 completed_not_cancelled=351 superseded=44 wall_min=2614 tail_min=985 tail_ge_5min=26 same_sha_dup_heads=32 same_sha_dup_min=1296
+RESULT tests NULLCONTROL all_cancelled_superseded=0 same_sha_superseded=0 unique_sha_dup_heads=0 (all must be 0)
+RESULT validate nonmain_runs=483 completed_not_cancelled=424 superseded=0 wall_min=0 tail_min=0 tail_ge_5min=0 same_sha_dup_heads=33 same_sha_dup_min=36
+RESULT validate NULLCONTROL all_cancelled_superseded=0 same_sha_superseded=0 unique_sha_dup_heads=0 (all must be 0)
+RESULT hassfest nonmain_runs=483 completed_not_cancelled=428 superseded=0 wall_min=0 tail_min=0 tail_ge_5min=0 same_sha_dup_heads=31 same_sha_dup_min=25
+RESULT hassfest NULLCONTROL all_cancelled_superseded=0 same_sha_superseded=0 unique_sha_dup_heads=0 (all must be 0)
+RESULT governance nonmain_runs=462 completed_not_cancelled=390 superseded=0 wall_min=0 tail_min=0 tail_ge_5min=0 same_sha_dup_heads=0 same_sha_dup_min=0
+RESULT governance NULLCONTROL all_cancelled_superseded=0 same_sha_superseded=0 unique_sha_dup_heads=0 (all must be 0)
+RESULT codeql nonmain_runs=483 completed_not_cancelled=348 superseded=19 wall_min=450 tail_min=203 tail_ge_5min=16 same_sha_dup_heads=33 same_sha_dup_min=701
+RESULT codeql NULLCONTROL all_cancelled_superseded=0 same_sha_superseded=0 unique_sha_dup_heads=0 (all must be 0)
