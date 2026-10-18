@@ -732,23 +732,73 @@ def _scrub_mro_check() -> None:
 _NOT_NUMBERS = (True, "21.5")
 #: The state properties Home Assistant reads as a number.
 _NUMBER_STATES = ("native_value", "current_temperature", "target_temperature")
+#: Payload sections the healthy payload does not build (no solve has run, no
+#: month has settled), seeded so the entities reading them publish a number
+#: and the census reaches them. A sensor declaring ``_payload_path`` is
+#: seeded from that declaration instead, so a new one needs no row here.
+_NUMBER_STATE_SEEDS = {
+    "savings_months": [{"estimated": True, "savings_sek": 12.345}],
+    "current_action": {"setpoint": 21.456, "power": 1.234, "dhw_power": 0.321,
+                       "heat_pump_on": True},
+    "accuracy": {"temperature_mae": 0.432},
+    "pv": {"forecast_surplus_kwh": 3.21},
+    "dhw_draw_stats": {"mon": {"p90_kwh": 4.567}},
+}
+#: Number states with no payload leaf to substitute, each with its reason.
+_NUMBER_STATE_COMPUTED = {
+    "PredictedIndoorTempSensor": "predicted_next_room_temp off the coordinator's "
+    "own model, not a payload leaf; read through _as_float",
+}
+
+
+def _numbers_replaced(value, probe):
+    """``value`` with every int and float leaf replaced by ``probe``."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return probe
+    if isinstance(value, dict):
+        return {k: _numbers_replaced(v, probe) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_numbers_replaced(v, probe) for v in value]
+    return value
+
+
+def _seeded(healthy: dict, entities: list) -> dict:
+    """``healthy`` with _NUMBER_STATE_SEEDS merged in, and every declared
+    ``_payload_path`` holding a number (an integer for an integer count)."""
+    data = {**healthy}
+    for key, seed in _NUMBER_STATE_SEEDS.items():
+        base = data.get(key)
+        data[key] = {**base, **seed} if isinstance(base, dict) and isinstance(seed, dict) else seed
+    for ent in entities:
+        path = getattr(type(ent), "_payload_path", ())
+        if not path:
+            continue
+        node = data
+        for key in path[:-1]:
+            node[key] = dict(node.get(key) or {})
+            node = node[key]
+        if node.get(path[-1]) is None:
+            node[path[-1]] = 7 if getattr(type(ent), "_payload_types", ()) == (int,) else 21.456
+    return data
 
 
 def _number_state_arm() -> None:
     """Every entity whose state is a number publishes None, or the number it
-    published before, when every float in the payload is a bool or a numeric
+    published before, when every number in the payload is a bool or a numeric
     string (D7-s2-60, #2242): never the bool, never the text, never the text
     or the bool read as a number (``True`` as 1, ``'21.5'`` as 21.5), never a
     raise. "The number it published before" is a state that does not read
-    the substituted leaf -- an integer count, a figure off the model; a
-    healthy value that happens to equal the probe's reading (1.0) is the one
-    coincidence this oracle cannot see.
+    the substituted leaf; a seeded value that happens to equal the probe's
+    reading (1) is the one coincidence this oracle cannot see, so no seed is 1.
 
     The same input drives every sibling: the payload the publish sweep builds,
-    each float leaf replaced, on every entity of every platform. A state that
-    is not a number at the healthy payload is out of scope; the census refuses
-    a universe with no number state, and one in which the substitution never
-    reaches a published state (the arm is not vacuous)."""
+    seeded where no solve has run, each int and float leaf replaced, on every
+    entity of every platform. Its preconditions are asserted, not assumed: a
+    sensor whose state class or unit says it publishes a number and whose
+    seeded state is still not one is refused, unless _NUMBER_STATE_COMPUTED
+    names why it has no leaf; an entry there that the census reaches is stale."""
     coord, healthy, _opt = _publish_setup()
     import importlib
     import heatpump_optimizer as integration
@@ -758,14 +808,23 @@ def _number_state_arm() -> None:
 
     states = reached = 0
     bad: list[str] = []
+    unreached: set[str] = set()
     for platform in integration.PLATFORM_LIST:
         module = importlib.import_module(f"heatpump_optimizer.{platform}")
         entities: list = []
         coord.data = healthy
         asyncio.run(module.async_setup_entry(coord.hass, coord.entry, entities.extend))
+        seeded = _seeded(healthy, entities)
+        coord.data = seeded
         before = {id(e): _published(e) for e in entities}
+        for ent in entities:
+            numeric = (getattr(ent, "_attr_state_class", None) is not None
+                       or getattr(ent, "_attr_native_unit_of_measurement", None))
+            if numeric and "native_value" in before[id(ent)] \
+                    and not number(before[id(ent)]["native_value"]):
+                unreached.add(type(ent).__name__)
         for probe in _NOT_NUMBERS:
-            coord.data = _floats_poisoned(healthy, probe)
+            coord.data = _numbers_replaced(seeded, probe)
             for ent in entities:
                 after = _published(ent)
                 for name in _NUMBER_STATES:
@@ -779,14 +838,22 @@ def _number_state_arm() -> None:
                         bad.append(f"{type(ent).__name__}.{name}: {probe!r} -> {got!r}")
     coord.data = healthy
     R.check(
-        "every number state publishes None, never the bool or the text, from a bool or text payload (#2242)",
+        "every number state publishes None, never the bool or the text, from a "
+        "bool or text payload (#2242)",
         not bad and states > 0,
         f"states={states} bad={sorted(bad)}",
     )
     R.check(
         "the bool and text payloads reach a published number state (the arm is not vacuous)",
         reached > 0,
-        "no number state went to None when every float became a bool or text",
+        "no number state went to None when every number became a bool or text",
+    )
+    R.check(
+        "every number-state sensor publishes a number on the seeded payload, or "
+        "is named computed, and no computed entry is reached (the census's reach)",
+        unreached == set(_NUMBER_STATE_COMPUTED),
+        f"unreached-unnamed={sorted(unreached - set(_NUMBER_STATE_COMPUTED))} "
+        f"stale={sorted(set(_NUMBER_STATE_COMPUTED) - unreached)}",
     )
     print(f"RESULT number_states={states} count")
     print(f"RESULT number_state_escapes={len(bad)} count")
