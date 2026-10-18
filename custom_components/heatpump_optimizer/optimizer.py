@@ -5304,15 +5304,13 @@ class HeatPumpOptimizer:
     ) -> float:
         """The start's side of the stored-heat settlement (#2255), netted off the end's.
 
-        The thermostat starts held, the plan from the measured house, so they
-        begin with different stored heat as they end with different stored
-        heat; this values the start gap as ``_deferred_energy_cost`` values
-        the end's. The end's ``caps`` price heat above comfort at nothing,
-        since nothing past the horizon uses it; at the start the plan coasts
-        on that heat, so a pre-heated start is debited past the caps, by no
-        more than the thermostat would have bought for space heat
-        (``space_baseline_cost``): stored house heat displaces space-heat
-        purchases only, and none where there are none (a summer house).
+        The thermostat starts held and the plan measured, so they start with
+        different stored heat as they end with it; this values the start gap as
+        ``_deferred_energy_cost`` values the end's. The end's ``caps`` price heat
+        above comfort at nothing, since nothing past the horizon uses it; the
+        plan coasts on it, so a pre-heated start is debited past the caps, by no
+        more than the thermostat's space-heat cost (``space_baseline_cost``):
+        house heat displaces space-heat purchases only, none where there are none.
         """
         held = _thermostat_held_state(
             self.model, initial_state, weather,
