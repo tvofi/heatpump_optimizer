@@ -1043,6 +1043,26 @@ R.check(
     and none_fit["debug"]["manifest"]["replay"] == "over the inline cap at every window tried",
     str(none_fit["debug"].get("manifest", {}).get("replay")),
 )
+at_cap = asyncio.run(_replay_download(cap=whole_size))
+R.check(
+    "a download landing exactly on the inline cap keeps the whole window",
+    at_cap["debug"]["replay"] is not None
+    and at_cap["debug"]["replay"]["window"]["start"] == T0.isoformat(),
+    str(at_cap["debug"].get("manifest", {}).get("replay")),
+)
+R.check(
+    "a person or calendar id leaves a list as well as a value, at any depth",
+    debugger._public({"x": ["sensor.a", "calendar.family", "person.anna"],
+                      "y": {"z": "person.anna"}, "n": 3})
+    == {"x": ["sensor.a"], "y": {"z": None}, "n": 3},
+)
+_seen = T0 + timedelta(minutes=5)
+R.check(
+    "a recorded row carries last_reported only when it is later than last_updated",
+    debugger._record(_state("1", T0, reported=T0))[3] is None
+    and debugger._record(_state("1", T0, reported=_seen))[3] == _seen.isoformat()
+    and debugger._record(_state("1", T0))[3] is None,
+)
 later = debugger.replay_window(T0, T0 + timedelta(days=30))
 fresh = debugger.replay_window(None, T0)
 R.check(
@@ -1115,6 +1135,23 @@ R.check(
     and _dropped == ["s3cret-value", "north", "https://nas.example.se/cam"],
     f"{_cleaned} dropped={_dropped}",
 )
+_secret_drop: list = []
+replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob123456"},
+                        "token": ["abc123456", 42]}, _secret_drop)
+R.check(
+    "everything under a credential-named key is recorded for the leak check, in a nested "
+    "object or a list too, and a null or a bool under one is not",
+    _secret_drop == ["bob123456", "abc123456", "42"], str(_secret_drop),
+)
+_shape_drop: list = []
+_kept = replay_doc._keep_keys(
+    {"x_entities": ["sensor.a", "https://nas.example.se/cam"]}, frozenset({"x_entities"}),
+    _shape_drop, replay_doc._entry_shape)
+R.check(
+    "a value its shape cut down has what was cut recorded for the leak check",
+    _kept == {"x_entities": ["sensor.a"]} and _shape_drop == ["https://nas.example.se/cam"],
+    f"{_kept} dropped={_shape_drop}",
+)
 _series_in = [{"start": "2026-10-18T00:00:00+00:00", "value": 1.2, "note": "spot"},
               "junk", {"start": "2026-10-18T01:00:00+00:00"},
               {"starts_at": "2026-10-18", "total": True},
@@ -1124,8 +1161,8 @@ R.check(
     "options, a series of time-and-number rows, an ISO time",
     [replay_doc._number(v) for v in (None, 1.5, 2, True, "1")] == [None, 1.5, 2, _D, _D]
     and [replay_doc._snake(v) for v in (None, "heat", "Heat Mode", 4)] == [None, "heat", _D, _D]
-    and [replay_doc._unit(v) for v in (None, "°C", "a much too long unit", 3)]
-    == [None, "°C", _D, _D]
+    and [replay_doc._unit(v) for v in (None, "°C", "abcdefghijklmnop", "abcdefghijklmnopq", 3)]
+    == [None, "°C", "abcdefghijklmnop", _D, _D]
     and replay_doc._options(None) is None and replay_doc._options("Eco") is _D
     and replay_doc._options(["Eco", "Mode 2", "x@y", 5]) == ["Eco"]
     and replay_doc._series(None) is None and replay_doc._series("x") is _D
@@ -1171,7 +1208,8 @@ R.check(
     ]) and replay_doc.violations(["auto", "https://nas.example.se/cam"]) == [
         "[1]: text outside the allowlist"]
     and "entry.data.not_a_conf_key: not an entry key of this integration"
-    not in replay_doc.violations({"entry": {"data": {"not_a_conf_key": 1}}}),
+    not in replay_doc.violations({"entry": {"data": {"not_a_conf_key": 1}}})
+    and replay_doc.violations({"states": {"sensor.b": [["t", "1"]]}}) == [],
     "; ".join(_found),
 )
 R.check(
@@ -1188,20 +1226,24 @@ def _sealed(raw):
         return err
 
 
-def _raw_doc(**states):
+def _raw_doc(token="secretvalue123", **states):
     return replay_doc.document(
         time_zone="UTC", window=("a", "b"), recorder_schema=None,
-        entry={"data": {"tibber_token": "secretvalue123"}}, inputs=(), published=(),
+        entry={"data": {"tibber_token": token}}, inputs=(), published=(),
         price_series_entity=None, states=states)
 
 
 _leaked = _sealed(_raw_doc(**{"sensor.a": [["t", "secretvalue123", None, None]]}))
+# Six characters is the shortest dropped value the leak check looks for again.
+_leaked_six = _sealed(_raw_doc("abc123", **{"sensor.a": [["t", "abc123", None, None]]}))
+_short = _sealed(_raw_doc("abc12", **{"sensor.a": [["t", "abc12", None, None]]}))
 _unfit = _sealed(_raw_doc(plainkey=[["t", "1", None, None]]))
 _ok = _sealed(_raw_doc(**{"sensor.a": [["t", "1", None, None]]}))
 R.check(
     "replay_doc.seal refuses a document where a dropped credential survives elsewhere, "
     "and one whose sanitised form still breaks a rule, and writes a clean one",
     isinstance(_leaked, replay_doc.Refused) and "1 dropped credential value(s)" in str(_leaked)
+    and isinstance(_leaked_six, replay_doc.Refused) and isinstance(_short, dict)
     and isinstance(_unfit, replay_doc.Refused)
     and "states.plainkey: not an entity id" in str(_unfit)
     and isinstance(_ok, dict) and _ok["entry"]["data"] == {}

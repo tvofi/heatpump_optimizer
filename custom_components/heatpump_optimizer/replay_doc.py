@@ -344,9 +344,7 @@ def sanitise(raw: Json, conf: frozenset[str], dropped: list[str]) -> Json:
         for updated, state, attrs, reported in rows:
             if attrs is not None:
                 attrs = _keep_keys(attrs, ATTRIBUTE_KEYS, dropped, _attr_shape)
-            if isinstance(state, str) and not text_ok(state):
-                dropped.append(state)
-                state = None
+            # A state's text is judged by the closing ``clean_value``, as every string is.
             clean_rows.append([updated, state, attrs, reported])
         states[entity_id] = clean_rows
     out["states"] = states
