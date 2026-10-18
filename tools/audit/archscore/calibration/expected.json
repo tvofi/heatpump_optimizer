@@ -1284,6 +1284,18 @@
   "set": "redteam",
   "verdict": "NULL"
  },
+ "rt_42b_literal_module_constant": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42c_literal_keyword_args": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
  "rt_43_literal_local_hop": {
   "admissible": true,
   "label": "GAME",
@@ -1291,6 +1303,12 @@
   "verdict": "NULL"
  },
  "rt_44_card_rename_locals": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_44b_card_noop_split": {
   "admissible": true,
   "label": "GAME",
   "set": "redteam",

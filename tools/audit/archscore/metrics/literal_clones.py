@@ -14,9 +14,14 @@ and a decorator configures the definition it decorates; none is a spec, and each
 members, an occurrence whose enclosing spec is itself a clone being counted once, as the enclosing one.
 
 Normalisation, so that re-spelling one value is not a fix (counter C20): a number is its float value (``15``
-and ``15.0``), keyword arguments are in name order, and a dict's items in key order. A local bound once, in
-the same function, to a spec-shaped value reads as that value (counter C21), so hoisting a literal into a
-local does not hide its copy.
+and ``15.0``), a positional argument of a call to an in-package function (no ``*args``) is the keyword it
+binds, keyword arguments are in name order, and a dict's items in key order. A local bound once, in the same
+function, to a spec-shaped value reads as that value, and so does a module constant bound once to a literal
+(its own module's, or one imported by name from another package module) where the function does not bind the
+name itself (counter C21), so hoisting a literal into a local or a constant does not hide its copy.
+
+Not seen, and stated: a value computed at runtime, a constant bound twice, a callee outside the package (its
+signature is not read), and a call spelled through ``*args``/``**kwargs``.
 
 Headline ``literal_clone_copies``: the members of every clone class.
 """
@@ -38,9 +43,10 @@ _GENERICS = frozenset({"dict", "list", "tuple", "set", "frozenset", "type", "Cal
                        "Iterable", "Iterator", "MutableMapping", "Optional", "Union", "Final", "ClassVar",
                        "Literal", "Annotated"})
 _BUILTINS = frozenset(dir(builtins))
-#: Counter C20: numbers, keywords and dict items normalised. ``vector.py`` switches it off.
+#: Counter C20: numbers, keywords and dict items normalised, and a positional argument of an in-package callee
+#: read as the keyword it binds. ``vector.py`` switches it off.
 NORMALISE = True
-#: Counter C21: a local bound once to a spec reads as it. ``vector.py`` switches it off.
+#: Counter C21: a local, or a module constant, bound once to a spec reads as it. ``vector.py`` switches it off.
 INLINE_LOCALS = True
 
 
@@ -56,6 +62,49 @@ def _module_names(tree: ast.Module) -> set[str]:
                 if isinstance(t, ast.Name):
                     names.add(t.id)
     return names
+
+
+def _module_constants(pkg) -> dict[str, dict[str, ast.AST]]:
+    """C21 at module scope: per module, the names bound exactly once at its top level to a literal-only value
+    (no name inside it) and never rebound (no ``global`` of it anywhere in the module)."""
+    out: dict[str, dict[str, ast.AST]] = {}
+    for m, mod in pkg.mods.items():
+        bound: dict[str, list[ast.AST]] = defaultdict(list)
+        for st in mod.tree.body:
+            if isinstance(st, ast.Assign):
+                for t in st.targets:
+                    for y in ast.walk(t):
+                        if isinstance(y, ast.Name):
+                            bound[y.id].append(st.value if t is y else None)
+            elif isinstance(st, (ast.AnnAssign, ast.AugAssign)) and isinstance(st.target, ast.Name):
+                bound[st.target.id].append(st.value if isinstance(st, ast.AnnAssign) else None)
+        rebound = {n for y in ast.walk(mod.tree) if isinstance(y, ast.Global) for n in y.names}
+        out[m] = {k: v[0] for k, v in bound.items() if len(v) == 1 and v[0] is not None and k not in rebound
+                  and not any(isinstance(y, ast.Name) for y in ast.walk(v[0]))}
+    return out
+
+
+def _imported_constants(pkg, consts: dict[str, dict[str, ast.AST]], m: str) -> dict[str, ast.AST]:
+    """Module ``m``'s own constants plus the package constants it imports by name (``from .const import X``)."""
+    own = dict(consts.get(m, {}))
+    for local, imp in pkg.mods[m].imports.items():
+        if imp[0] == "sym" and local not in own:
+            r = pkg.resolve_name(imp[1], imp[2])
+            if r and r[0] == "var" and r[1][1] in consts.get(r[1][0], {}):
+                own[local] = consts[r[1][0]][r[1][1]]
+    return own
+
+
+def _signatures(pkg, m: str) -> dict[str, list[str]]:
+    """C20's positional binding: names callable in ``m`` that resolve to an in-package function taking no
+    ``*args``, with their positional parameter names in order."""
+    out: dict[str, list[str]] = {}
+    for name in {*pkg.mods[m].tops, *pkg.mods[m].imports}:
+        r = pkg.resolve_name(m, name)
+        fn = pkg.funcs.get(r[1]) if r and r[0] == "func" else None
+        if fn is not None and fn.cls is None and fn.node.args.vararg is None:
+            out[name] = [a.arg for a in (*fn.node.args.posonlyargs, *fn.node.args.args)]
+    return out
 
 
 def _type_nodes(tree: ast.Module) -> set[int]:
@@ -80,6 +129,9 @@ def _type_nodes(tree: ast.Module) -> set[int]:
 
 
 class _Normalise(ast.NodeTransformer):
+    def __init__(self, sigs: dict[str, list[str]] | None = None):
+        self.sigs = sigs or {}
+
     def visit_Constant(self, n):
         if NORMALISE and isinstance(n.value, (int, float)) and not isinstance(n.value, bool):
             return ast.Constant(value=float(n.value))
@@ -88,6 +140,11 @@ class _Normalise(ast.NodeTransformer):
     def visit_Call(self, n):
         self.generic_visit(n)
         if NORMALISE:
+            params = self.sigs.get(n.func.id) if isinstance(n.func, ast.Name) else None
+            if params is not None and len(n.args) <= len(params) \
+                    and not any(isinstance(a, ast.Starred) for a in n.args):
+                n.keywords = [ast.keyword(arg=p, value=a) for p, a in zip(params, n.args)] + n.keywords
+                n.args = []
             n.keywords = sorted(n.keywords, key=lambda k: k.arg or "")
         return n
 
@@ -122,9 +179,12 @@ def specs(root: Path) -> dict[str, list[tuple[str, int]]]:
     pkg = C.load(str(root))
     occ: dict[str, list[tuple[str, int, int]]] = defaultdict(list)
     parent: dict[int, str] = {}
+    consts = _module_constants(pkg) if INLINE_LOCALS else {}
     for m, mod in pkg.mods.items():
         known = _module_names(mod.tree) | _BUILTINS
         skip = _type_nodes(mod.tree)
+        mod_consts = _imported_constants(pkg, consts, m) if INLINE_LOCALS else {}
+        sigs = _signatures(pkg, m) if NORMALISE else {}
 
         def is_spec(e: ast.AST, locals_: dict[str, ast.AST]) -> bool:
             for y in ast.walk(e):
@@ -138,18 +198,23 @@ def specs(root: Path) -> dict[str, list[tuple[str, int]]]:
                   if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
         local_of: dict[int, dict[str, ast.AST]] = {}
         for fn, loc in scopes:
+            # a module constant reads as its value unless this function binds the name itself
+            a = fn.args
+            stored = {y.id for y in ast.walk(fn) if isinstance(y, ast.Name) and isinstance(y.ctx, ast.Store)} \
+                | {x.arg for x in (*a.posonlyargs, *a.args, *a.kwonlyargs, a.vararg, a.kwarg) if x is not None}
+            scope = {**{k: v for k, v in mod_consts.items() if k not in stored}, **loc}
             for y in ast.walk(fn):
-                local_of[id(y)] = loc  # innermost wins: functions nested later overwrite
+                local_of[id(y)] = scope  # innermost wins: functions nested later overwrite
         for x in ast.walk(mod.tree):
             if not isinstance(x, _KINDS) or id(x) in skip:
                 continue
-            loc = local_of.get(id(x), {})
+            loc = local_of.get(id(x), mod_consts)
             if not is_spec(x, loc) or sum(1 for y in ast.walk(x) if not isinstance(y, ast.expr_context)) < MIN_NODES:
                 continue
             form = copy.deepcopy(x)
             if loc:
                 form = _Inline(loc).visit(form)
-            key = ast.dump(_Normalise().visit(form))
+            key = ast.dump(_Normalise(sigs).visit(form))
             occ[key].append((m, x.lineno, id(x)))
             for y in ast.iter_child_nodes(x):
                 parent[id(y)] = key
