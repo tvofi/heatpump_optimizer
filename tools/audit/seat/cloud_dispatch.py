@@ -95,11 +95,13 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"the class is lower-case letters and dashes), in the format the role file gives, "
             f"then a blank line, then `bus-nonce: {nonce}`; put the evidence in `ev/` beside it. Do NOT run "
             f"bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict "
-            f"there (cloud_relay.sh). Return the verdict on a probe ref, and push nothing else: "
-            f"`R=$(git rev-parse --show-toplevel); cd $W && rm -rf pr && git init -q pr && cp -r verdict.md ev pr/ "
-            f"&& git -C pr add -A && git -C pr -c user.name=seat -c user.email=seat@users.noreply.github.com "
-            f"commit -qm \"verdict {pr} {head}\" && git -C $R fetch -q $W/pr HEAD && git -C $R push -q origin "
-            f"FETCH_HEAD:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}` (run from the checkout, `R` taken first). "
+            f"there (cloud_relay.sh). Return the verdict on a probe ref, and push nothing else; this builds one "
+            f"parentless commit with a private index and touches no branch of your checkout: "
+            f"`R=$(git rev-parse --show-toplevel); G=$(git rev-parse --absolute-git-dir); mkdir -p $W/pr && "
+            f"cp -r $W/verdict.md $W/ev $W/pr/ && cd $W/pr && T=$(GIT_DIR=$G GIT_INDEX_FILE=$W/idx GIT_WORK_TREE=$W/pr "
+            f"sh -c 'git add -A -f . && git write-tree') && C=$(GIT_DIR=$G git -c user.name=seat "
+            f"-c user.email=seat@users.noreply.github.com commit-tree $T -m \"verdict {pr} {head}\") && "
+            f"git -C $R push -q origin $C:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}`. "
             "That ref is the return signal. Do not post comments, approve or merge.")
     elif role == "fixer":
         body = (
@@ -206,6 +208,8 @@ def self_test() -> int:
           head in msg and "abc123" in msg and "probe/rev-7-abc123" in msg and "bus-nonce: abc123" in msg)
     check("the reviewer is given the unbracketed first-line grammar",
           "blocked " + head + " <class>: <reason>" in msg and "[class: reason]" not in msg)
+    check("the prompt builds no repository (throwaway_git.py --check refuses a raw init)",
+          re.search(r"git\s+ini[t]", msg) is None and "commit-tree" in msg)
     check("the reviewer is told not to run bus.sh and the prompt runs no bus.sh push-verdict",
           "Do NOT run bus.sh" in msg and "push-verdict" not in msg and "refs/heads/review" not in msg)
     check("the source is the repo", ccr["session_context"]["sources"][0]["git_repository"]["url"]

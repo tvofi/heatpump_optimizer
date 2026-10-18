@@ -135,13 +135,15 @@ watch() { # [--interval N] [--once]
 self_test() {
   local t ok=0 bad=0 c=0 h n stub
   t=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay_st.XXXXXX") || exit 1
-  git init -q --bare "$t/o.git"; git init -q "$t/w"; cd "$t/w" || exit 1
+  # Every scratch repository comes from the shared helper (tests/throwaway_git.sh, #2051).
+  . "$HERE/../../../tests/throwaway_git.sh" && throwaway_git_env || exit 1
+  throwaway_git_init "$t/o.git" -q --bare; throwaway_git_init "$t/w" -q; cd "$t/w" || exit 1
   git remote add origin "$t/o.git"
   h=0123456789abcdef0123456789abcdef01234567; n=0123456789abcdef0123456789abcdef
-  export HPO_STATE_DIR=$t/state GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.invalid
+  export HPO_STATE_DIR=$t/state
   stub=$t/stub.sh; printf '#!/bin/sh\necho "$1" >> "%s/pushed"\necho "review/$1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n' "$t" > "$stub"; chmod +x "$stub"; export HPO_RELAY_PUSH=$stub
   mk() { # mk <pr> <subject-head> <verdict-head> <nonce-in-verdict> : push a probe ref for nonce n
-    rm -rf "$t/pr"; git init -q "$t/pr"; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
     printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$3" "$4" > "$t/pr/verdict.md"
     git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict $1 $2"
     git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-$1-${n:0:8}"; }
@@ -163,7 +165,7 @@ self_test() {
   chk "a non-numeric PR is refused" 2 relay x $n $h
   # normalisation of a bracketed blocked tail
   bl() { # bl <first line>: push a probe ref for PR 9 with that first line
-    rm -rf "$t/pr"; git init -q "$t/pr"; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
     printf '%s\n\nbus-nonce: %s\n' "$1" "$n" > "$t/pr/verdict.md"
     git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict 9 $h"
     git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-9-${n:0:8}"; }
