@@ -195,6 +195,23 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   reads; two verdicts once sat relayed and unposted for 20 minutes. Confirm
   never runs after a refused relay or a failed `push-verdict`, and those write
   no line (the refusal is printed; `--watch` also keeps it in `.refused`).
+  `cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]` is the
+  orchestrator's whole beat as ONE entry point (it replaces the session-local
+  `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
+  (default every 120 s). A pass runs the handoff arm, then the relay arm above.
+  Handoff arm: for each OPEN pull request, topic = `headRefName` less `fix/` and
+  `-pr`; if `handoff-body/<topic>` and `handoff/<topic>` exist and the handoff is
+  not an ancestor of the PR head, it runs `update_pr.sh <branch> <code-sha>
+  <BODY.md> <issues>` (issues = the body's closing keywords), then
+  `approve_held_runs.sh` on the branch, then `bus.sh dispatch <pr> <new head>
+  cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
+  log (firing the cloud reviewer stays with the orchestrator). It only updates an
+  existing PR, so the open-PR soft cap is untouched (an update is not an open).
+  A handoff already inside its PR, or with no body ref, does nothing; a failed
+  update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
+  `OWED handoff-update`, and retried only when the handoff moves. Note the two
+  OWED shapes: `OWED reviewer-fire` carries no timestamp first, the others
+  (`OWED <utc> ...`) do.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
