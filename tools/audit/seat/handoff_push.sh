@@ -46,7 +46,7 @@ tip=$(git ls-remote origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null | awk 'N
 if [ -n "$tip" ] && git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then
   git show "$tip:BODY.md" > "$B" || { echo "no BODY.md at handoff-body/$TOPIC"; exit 1; }
 else
-bf=${BODYPATH:-$(git diff --no-renames --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --no-renames --name-only "$CODE" "$T")"; exit 1; }
+bf=${BODYPATH:-$(git diff --no-renames --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --no-renames --name-only "$CODE" "$T")"; exit 1; }  # layout:old=tools/audit/handoff (a transport root prepr.sh still reads)
 git show "${T}:${bf}" > "$B"
 fi
 python3 - "$B" <<'E'
