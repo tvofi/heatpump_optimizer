@@ -10,9 +10,21 @@ in both directions, and requires each one pressed.
 
 This pull request is narrowed to what that census pins (the orchestrator's
 split ruling on the round-8 review). It does not close every written
-navigation. **Residual, exactly:** navigation written in a handler the dynamic
-arm does not drive (keydown, pointer, wheel, focus) is covered only in the
-spellings the static rows name. The round-8 review's RV1-RV7 are the
+navigation. **Residual, exactly**, in two parts.
+
+1. **Undriven handlers.** Navigation written in a handler the dynamic arm does
+   not drive (keydown, pointer, wheel, focus) is covered only in the
+   spellings the static rows name.
+2. **A form outside the shadow root, in any press.** The dynamic arm reads
+   markup in the card's shadow root only. A form appended outside it
+   (`document.body`) and submitted by a button's `click()` therefore passes
+   both arms even inside a press the census drives. The round-9 review's
+   `RD4`, in the advisor:settings press, is that witness, green by design.
+   `RD5`, the same form appended in the shadow root, is its red control.
+   Closing this needs a document-level read or a form-submit instrument,
+   which is R10-DEEPLINK-HANDLERS's brief.
+
+For part 1: The round-8 review's RV1-RV7 are the
 witnesses, and the driver now carries them green by design beside the red
 controls RV1c and RV5c:
 
@@ -51,14 +63,20 @@ Part of #2317.
 
 ## Head
 
-`b678c7d16f97af2b954ed0123d606ea2f2fc8f39` is the code head every figure below was measured at. Its merge base
-with origin/main is `e5f7e169d64b93d4ae117eb07c68ecef6d47aea6`. It is the
-reviewed head `ee409c81d` plus two commits:
+`b7e2ee65400581ae7b7b87adb223f800fe853157` is the code head every figure below was measured at. Its merge base
+with origin/main is `52f698905868c9140ed213ea542c44053fca7096`. It is the
+round-8 reviewed head `ee409c81d` plus these commits, the round-9 reviewed
+head `e9e6b99b3` among them:
 
 - a merge of origin/main;
 - `b678c7d16`: the Residual paragraph, the driver docstring and the RV plants,
-  and the four carries. It changes comments, the driver and roster text only;
-  no census check changes.
+  and the four carries;
+- a merge of origin/main;
+- `b7e2ee654`: the form-outside-the-shadow-root case in the Residual
+  paragraph and the four carries, and `RD4`/`RD5` in the driver.
+
+Both commits change comments, the driver and roster text only; no census
+check changes.
 
 The driver docstring previously said X3-X13 alone are red and X7K1b red as a
 crash. Measured, only X1 and X2 alone are red, and X7K1b is red on `no press
@@ -79,9 +97,16 @@ navigateTo`: the same position in the spelling a row names is red, so each
 witness is one spelling away from a refusal. These were run in two detached
 worktrees at this head, as two halves of the same list.
 
+The round-9 driven-press pair, at this head: `python3
+tools/audit/seat/r10_deeplink_mutants.py
+RD4_form_ns_action_member_button_click_driven
+RD5_action_member_to_variable_on_rendered_form_driven` prints `RD4` `rc=0
+fails=0`, the residual's second part, and `RD5` `rc=1 fails=1` on `every link
+the census records from a press is one haLink builds for this entry`.
+
 The rows this pull request pins are the review's sample at `ee409c81d`, whose
 card, census and driver plants are this head's apart from the comments and
-added plants in `b678c7d16`:
+added plants in `b678c7d16` and `b7e2ee654`:
 
 - red: `V3`, `V8`, `V13`, `K1`, `K2`, `K3t`, `K5`, `Z2`, `Z3`, `T1c`, `T2c`,
   `R7c`, `X7K1b`, `X1K5b` and `X2`;
@@ -103,14 +128,14 @@ and 0 `FAIL` lines.
 
 - `node tests/card.mjs` at this head, after `PYTHONPATH=tests/hastub python3
   tests/plan_view.py`: `ALL CARD CHECKS PASSED`, 1257 `ok`, 0 `FAIL`.
-- `node tests/card_drift.mjs e5f7e169d64b93d4ae117eb07c68ecef6d47aea6`: `card_drift: identical in all 40 states`.
+- `node tests/card_drift.mjs 52f698905868c9140ed213ea542c44053fca7096`: `card_drift: identical in all 40 states`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tests/closure.py select --diff e5f7e169d --workdir <dir>`:
+- `python3 tests/closure.py select --diff 52f698905 --workdir <dir>`:
   `MODE: SCOPED -- 9 script(s) run, 24 scoped out`, which names `tests/card.mjs`,
   `tests/card_drift.mjs` and `tests/plan_view.py` (run here) among its nine. The other scripts it names are left to CI's required runs on
   this head.
 - Claim files, `VERSION`, the manifest version and the `RELEASE_NOTES.md`
-  heading are untouched: `git diff --stat e5f7e169d...HEAD --
+  heading are untouched: `git diff --stat 52f698905...HEAD --
   tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION
   custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md` prints
   nothing.
@@ -157,13 +182,18 @@ check-runs API.
   at their exact scope. They name the spellings the rows refuse, and say that
   navigation in a handler the dynamic arm does not drive is not covered
   (RV1-RV7). They also say to write none there until R10-DEEPLINK-HANDLERS
-  drives it.
-- **For the orchestrator to place in R10-DEEPLINK-HANDLERS's brief** (its
-  roster append is the orchestrator's):
+  drives it. In any press, they say a form appended outside the shadow root
+  and submitted by `click()` is not covered either (RD4 green beside RD5
+  red): append no form there. Each points to R10-DEEPLINK-HANDLERS's brief.
+- **R10-DEEPLINK-HANDLERS's brief**, on the orchestrator's roster branch
+  (`f51fe8a30`, which already names RV4's document-level read or form-submit
+  instrument). The constraint it carries:
   - Drive every keydown, pointer, wheel and focus handler the card registers,
     through the instrumented surface, as clicks are driven.
   - Its controls are the driver's RV1-RV7 and `Y1`, green at this head. Each
     of RV1-RV7 must go red when its handler is driven. RV1c and RV5c stay red.
+  - `RD4` must go red under the document-level read or form-submit
+    instrument. `RD5` stays red.
   - Then the static arm can drop to bare-name rows only, with no spelling
     list (fixer.md step 17, #1874).
 
