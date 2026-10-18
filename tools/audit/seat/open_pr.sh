@@ -21,6 +21,7 @@ if [ "${1:-}" = --self-test ]; then
   echo "open_pr self-test: 1 checks, $_f failed"; exit $_f
 fi
 set -eo pipefail; unset GIT_AUTHOR_NAME
+PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
 T=$1; C=$2; TITLE=$3; G=$4; shift 4; ISS="$*"
@@ -33,11 +34,10 @@ git show origin/handoff-body/$T:BODY.md > $D/body.md
 git worktree add -q -b $BR $WT $C
 cd $WT
 git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
-python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
-import sys
+PYTHONPATH="$PRT" python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
+import sys; from head_note import prefix
 p,H,C,M=sys.argv[1:5]; s=open(p).read()
-i=s.index('## Head\n\n')+len('## Head\n\n')
-if H!=C: s=s[:i]+"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C)+s[i:]
+if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C))
 open(p,'w').write(s)
 E0
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
@@ -50,11 +50,10 @@ git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com com
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 H=$(git rev-parse HEAD)
-python3 - $D/body.md $H $N $C <<'E'
-import sys
+PYTHONPATH="$PRT" python3 - $D/body.md $H $N $C <<'E'
+import sys; from head_note import prefix
 p,H,N,C=sys.argv[1:5]; s=open(p).read()
-i=s.index('## Head\n\n')+len('## Head\n\n')
-s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
 open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi

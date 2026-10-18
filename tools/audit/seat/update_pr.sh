@@ -3,6 +3,7 @@
 # prefix ## Head with what happened, push as hpo-author. Prints HEAD. Uses a private worktree
 # $HPO_STATE_DIR/pr/upd-<branch> (default ~/.local/state/hpo); PATH as open_pr.sh's.
 set -eo pipefail; unset GIT_AUTHOR_NAME; export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
+PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); P=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr; mkdir -p "$P"
 BR=$1; C=$2; B=$3; shift 3; ISS="$*"; R=tvofi/heatpump_optimizer
 WT=$P/upd-${BR//\//-}
@@ -18,12 +19,11 @@ OLD=$(git rev-parse HEAD)
 $G merge -q --no-edit origin/main
 M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 [ "$(git log -1 --format=%an)" = tvofi ] || { echo "author wrong"; exit 1; }
-python3 - $B $H "$NOTE" $M <<'E'
-import sys
+PYTHONPATH="$PRT" python3 - $B $H "$NOTE" $M <<'E'
+import sys; from head_note import prefix
 p,H,N,M=sys.argv[1:5]; s=open(p).read()
-i=s.index('## Head\n\n')+len('## Head\n\n')
 pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below) into this PR's previous head.\n\n"%M
-s=s[:i]+pre+s[i:]; open(p,'w').write(s)
+s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || { grep REFUSE $WT.log; exit 1; }
