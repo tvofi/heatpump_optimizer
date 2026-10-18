@@ -137,7 +137,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         if not self.coordinator.data:
             return None
         measured = payload_number(self._measured("upper_floor_temperature"))
-        if measured is not None:
+        if False:
             return float(measured)
         flags = self.coordinator.data.get("reading_ok") or {}
         if flags.get("upper_floor_temperature"):
