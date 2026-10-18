@@ -28,11 +28,10 @@ from heatpump_optimizer import (
     _plan_handovers,
     _take_fresh_handover,
 )
+from heatpump_optimizer.plan_step import PLAN_STEP_MINUTES, plan_step_start
 from heatpump_optimizer.coordinator import (
     FORECAST_STEP,
-    FORECAST_STEP_MINUTES,
     HeatPumpOptimizerCoordinator,
-    _solve_anchor,
     _utc_step_starts,
 )
 from heatpump_optimizer.manual_plan import ManualOverride, PIN_OFF, PIN_ON
@@ -82,7 +81,7 @@ dt_util.freeze(FROZEN)
 _data = {"tibber_token": "x", "weather_entity": "weather.home"}
 coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_data))
 
-anchor = _solve_anchor(dt_util.now())
+anchor = plan_step_start(dt_util.now())
 R.check(
     "12:07:33 floors to 12:00:00 with tz and date intact",
     anchor == datetime(2026, 8, 26, 12, 0, tzinfo=STHLM)
@@ -91,7 +90,7 @@ R.check(
 )
 R.check(
     "a boundary instant is its own anchor",
-    _solve_anchor(datetime(2026, 8, 26, 12, 45, tzinfo=STHLM))
+    plan_step_start(datetime(2026, 8, 26, 12, 45, tzinfo=STHLM))
     == datetime(2026, 8, 26, 12, 45, tzinfo=STHLM),
 )
 
@@ -385,7 +384,7 @@ for _label, _day in _DST_DAYS:
     _arrays = _c._forecast_arrays(_now)
     _labels = _utc_step_starts(_midnight, _n, FORECAST_STEP)
     _t0 = _labels[0].astimezone(UTC)
-    _real = [_t0 + timedelta(minutes=FORECAST_STEP_MINUTES * i) for i in range(_n)]
+    _real = [_t0 + timedelta(minutes=PLAN_STEP_MINUTES * i) for i in range(_n)]
     _expected = np.array([_price_for(r) for r in _real])
     _got = np.asarray(_priced[0] if _priced is not None else _arrays.prices)
     _mis[_label] = int(np.sum(_got != _expected))
@@ -528,7 +527,7 @@ def _plan_on(day: datetime):
         wind_speeds=np.asarray(arrays.wind_speeds),
         precipitation=np.asarray(arrays.precipitation),
         solar_radiation=np.asarray(arrays.solar_radiation),
-        start_time=_solve_anchor(now),
+        start_time=plan_step_start(now),
     ))
     dt_util.freeze(None)
     return res
@@ -1003,7 +1002,7 @@ for _label, _day in _DST_DAYS:
         dt_util.freeze(None)
     _q0 = _now.replace(minute=0).astimezone(UTC)
     _want = [
-        _price_for(_q0 + timedelta(minutes=FORECAST_STEP_MINUTES * i))
+        _price_for(_q0 + timedelta(minutes=PLAN_STEP_MINUTES * i))
         for i in range(len(_prices))
     ]
     _post[_label] = sum(1 for g, w in zip(_prices, _want) if g != w)
