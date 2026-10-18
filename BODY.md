@@ -1,223 +1,172 @@
-`tests/card.mjs`'s link census (R10-DEEPLINK, #2283) is the guard that every
-route out of the card goes through `haLink` and `navigateTo`. One declared
-surface (`NAV_SURFACE`) is read by two arms: a static arm that refuses a
-mention of any surface member in the card's code outside `navigateTo`, so it
-covers code no press reaches; and a dynamic arm that presses every element the
-shadow root wires to a click, records each instrumented surface member by
-name, and reads `href`/`action`/`formaction` off the markup after every press.
-A reach check compares the census's `ACTS` with every `act` branch the source
-dispatches, in both directions, and requires each one pressed.
+`tests/card.mjs`'s link census (R10-DEEPLINK, #2283) checks that the card's
+routes out go through `haLink` and `navigateTo`. One declared surface
+(`NAV_SURFACE`) is read by two arms. The static arm refuses the spellings of
+surface names that its rows name, anywhere in the card's code outside
+`navigateTo`. The dynamic arm presses every element the shadow root wires to a
+click, records each instrumented surface member by name, and reads
+`href`/`action`/`formaction` off the markup after every press. A reach check
+compares the census's `ACTS` with every `act` branch the source dispatches,
+in both directions, and requires each one pressed.
 
-This head closes what the last review (verdict on `e59b1fb54`) blocked on.
+This pull request is narrowed to what that census pins (the orchestrator's
+split ruling on the round-8 review). It does not close every written
+navigation. **Residual, exactly:** navigation written in a handler the dynamic
+arm does not drive (keydown, pointer, wheel, focus) is covered only in the
+spellings the static rows name. The round-8 review's RV1-RV7 are the
+witnesses, and the driver now carries them green by design beside the red
+controls RV1c and RV5c:
 
-- **A written programmatic form passed both arms.** `createElement("form")` +
-  `setAttribute("action", ...)` + `.submit()` in the chart's undriven keydown
-  handler read `rc=0 fails=0`. Four surface rows now name that form:
-  `createElement("form")`; `setAttribute` / `setAttributeNS` /
-  `createAttribute` at the `"action"` name position; `Reflect.set` /
-  `Object.assign` / the computed-key assignment `["action"] =`; and `.submit`,
-  `.requestSubmit`, `["submit"]` and `.submit.call(`. Each row is anchored to
-  the call or member access, not the word: `form` is the card's own loop
-  variable (`for (const form of forms)`) and `action` is the action entity's
-  name in a dozen places, so a bare token would refuse the card.
-- **The head was red on its own census.** The origin/main merge brought
-  R10-UX-SETUP's setup-fold boolean `b.open`, which the `open` token matched.
-  It is renamed `b.foldOpen`, not allowanced: an allowance keyed on `b.open`
-  blinds the property-access spelling at that site and makes the next fold
-  boolean on any other object a new exception (fixer.md step 14). The card is
-  a hot file and outside this group's `files`; the rename is the only card
-  change and is disclosed here for the orchestrator.
-- **Ported from this group's first design.** The 2026-10-16 snapshot
-  (`a3b1c00e2`, `d04c0c7e7`, never an ancestor of this branch) carried two
-  pieces that still apply: the plants `T1c`/`T2c` (a press that throws or
-  rejects only inside the census, which the card can detect by the census's
-  one-parameter `open`), and the stub-selector residual.
-- **The residual is now stated truthfully.** The census's Residual paragraph
-  said a run-time-built name is caught on every row a press drives. It is not
-  when the write goes through a selector the stub DOM (`tests/dom_stub.mjs`)
-  cannot resolve, a tag.class pair such as `a.zz`: the press reaches the
-  handler but the write runs on no element. The driver's `Y1` is that
-  witness and reads green; `R7c`, the same write on a selector the stub
-  resolves, reads red. Closing it needs the stub's selector engine, which is
-  outside this group's files; the paragraph says so and the orchestrator has
-  it as a report.
+- `history["back"]()`;
+- `history?.back()`;
+- a destructured `back`;
+- a `createElementNS` form, submitted by a button's `click()`;
+- `.action = <variable>`;
+- a quoted `"action"` key;
+- a bare `createElementNS` form.
 
-Closes #2317.
+A name built at run time in such a handler passes too. So does a write through
+a selector the stub DOM cannot resolve (`Y1`, green, beside `R7c`, red).
+Closing those is R10-DEEPLINK-HANDLERS's job: drive those handlers the way
+clicks are driven.
+
+What lands:
+
+- Static rows for `open` and its `.call`/`.apply`/computed-key/Reflect forms,
+  `history.<member>`, `createElement("form")`, and an `action` written through
+  `setAttribute`/`setAttributeNS`/`createAttribute`, `Reflect.set`,
+  `Object.assign` with a bare key, a computed key or a literal member write.
+  Also `.submit`, `.requestSubmit`, `["submit"]` and `.submit.call(`.
+- The click-driven dynamic arm and the reach check.
+- The driver's plants, including `T1c`/`T2c` (a press that throws or rejects
+  only inside the census), and the `F2` control repaired so it no longer
+  declares an act branch.
+- Two card renames, both behaviour-neutral, so the census's `open` name no
+  longer collides:
+  - the setup fold's `b.open` is `b.foldOpen`;
+  - `SlotModel.runsFrom`'s local accumulator `open` is `run` (`d3513acc8`).
+  The card is a hot file outside this group's `files`; these renames are the
+  only card changes.
+
+Part of #2317.
 
 ## Head
 
-`c6ef1959a6927f40d1d9e0058ade122c838960a6` is the code head. Every figure below was measured at it unless the
-figure names `778ae2565`, its parent. It is the round-7
-head `e59b1fb54` plus the round-8 commits (`2c766810b` the rename, `b0422e2b3`
-the four rows and their plants, `f1542b17d` the carry), a merge of origin/main
-`6e5753a4aca8b240559e8e11e8a68c7de988cd73` (`176db5f00`, one roster conflict
-resolved as main's R10-SCORES brief plus this group's carry), and `778ae2565`
-(the ported plants and the residual paragraph; comment and driver only), and
-`c6ef1959a` (the `F2` control repaired; driver only). The
-merge base with origin/main is `6e5753a4aca8`. The card, `tests/card.mjs` and
-the driver are byte-identical between `f1542b17d` and `176db5f00`:
-`git diff --stat f1542b17d 176db5f00 -- custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js tests/card.mjs tools/audit/seat/r10_deeplink_mutants.py`
-prints nothing.
+`b678c7d16f97af2b954ed0123d606ea2f2fc8f39` is the code head every figure below was measured at. Its merge base
+with origin/main is `e5f7e169d64b93d4ae117eb07c68ecef6d47aea6`. It is the
+reviewed head `ee409c81d` plus two commits:
+
+- a merge of origin/main;
+- `b678c7d16`: the Residual paragraph, the driver docstring and the RV plants,
+  and the four carries. It changes comments, the driver and roster text only;
+  no census check changes.
+
+The driver docstring previously said X3-X13 alone are red and X7K1b red as a
+crash. Measured, only X1 and X2 alone are red, and X7K1b is red on `no press
+throws`; the docstring now says so.
 
 ## Mutation proof
 
 Every plant is one mutation applied by
 `tools/audit/seat/r10_deeplink_mutants.py`, which restores the file byte for
-byte and refuses to start on a dirty tree. `V*` are the round-7 programmatic
-form in the chart's keydown handler (`V1` is the review's plant verbatim);
-`X*` delete one of this fix's own lines; `F*` are green controls; `T1c`/`T2c`
-are the ported plants; `Y1` is the residual's witness.
+byte and refuses to start on a dirty tree. At this head, the residual's
+witnesses and their controls:
 
-The full sweep at this head, all 109 plants, run in four detached worktrees at
-the head with their own `plan_view.py` payload (`python3
-tools/audit/seat/r10_deeplink_mutants.py <plant ...>`, the plant list split
-four ways):
+    python3 tools/audit/seat/r10_deeplink_mutants.py RV1_history_bracket_back_in_undriven_keydown RV2_history_optional_back_in_undriven_keydown RV3_history_destructure_in_undriven_keydown RV4_form_ns_action_member_button_click_in_undriven_keydown RV5_action_member_to_variable_in_undriven_keydown RV6_object_assign_quoted_action_key_in_undriven_keydown RV7_create_element_ns_form_in_undriven_keydown RV1c_history_dot_back_control RV5c_action_member_to_literal_control
 
-Measured at `778ae2565` (the driver's parent of this head; `c6ef1959a`
-changes only `F2`'s plant text). 109 plants: 76 `rc=1` each with at least one
-FAIL line, 33 `rc=0 fails=0`, and 0 crashes (`rc!=0` with no FAIL line). The
-33 green are exactly the plants written to be green:
+`RV1`-`RV7` each `rc=0 fails=0`, the residual. `RV1c` and `RV5c` each
+`rc=1 fails=1` on `no navigation token in the card's code outside
+navigateTo`: the same position in the spelling a row names is red, so each
+witness is one spelling away from a refusal. These were run in two detached
+worktrees at this head, as two halves of the same list.
 
-- every `X*` deletion run alone with no plant (`X3`-`X13`, `X10`-`X13`),
-  which moves no check because the card then holds nothing for the deleted
-  line to refuse;
-- every `X*` pair (`X4K3t`, `X5W1`, `X6Z`, `X6Z2`, `X8W3`, `X9Z3`, `X10V2`,
-  `X10V13`, `X11V3`, `X11V9`, `X11V12`, `X12V7`, `X12V8`, `X12V11`, `X13V4`,
-  `X13V5`, `X13V6`, `X13V10`): with that one line deleted the plant beside it
-  passes, so the line is what closes it;
-- the controls `F1`, `F3`, `F4`, and the residual witness `Y1`.
+The rows this pull request pins are the review's sample at `ee409c81d`, whose
+card, census and driver plants are this head's apart from the comments and
+added plants in `b678c7d16`:
 
-The 76 red include every class plant: `V1`-`V13` (each `rc=1 fails=1` on `no
-navigation token in the card's code outside navigateTo`), the issue's own
-`K1`/`K1b`/`K1c`, `K2`/`K2b`, `K3t`, `K5`/`K5b`/`K5c`/`K5r`, the round-5
-`Z`/`Z2`-`Z2d`/`Z3`/`Z3b`/`Z3d` and control `Z3c`, `T1c`/`T2c`, and `X1`,
-`X2`, `X1K5b`, `X3K2b`, `X7K1b`.
+- red: `V3`, `V8`, `V13`, `K1`, `K2`, `K3t`, `K5`, `Z2`, `Z3`, `T1c`, `T2c`,
+  `R7c`, `X7K1b`, `X1K5b` and `X2`;
+- green: `F1`-`F4`, `X12V8`, `X10V2`, `Y1`, `X3`, `X7` and `X8`.
 
-**One control was wrong, and is fixed here.** `F2` read `rc=1 fails=1` at
-`778ae2565`, on `the act set the census declares is the one the card's source
-dispatches` (source-only `action`): it was written `act === "action"`, the
-act-branch syntax the reach check reads, so it declared an act branch and was
-red on reach rather than on the action-through-member row it controls. The
-prior body's "F1-F4 each rc=0" was not true of `F2`. At this head `F2`
-compares the handler's own `key` and, with the row it controls and that row's
-plant, `python3 tools/audit/seat/r10_deeplink_mutants.py
-F2_action_as_an_object_assign_value_control
-X12V8_action_member_row_is_what_closes_V8
-V8_object_assign_action_in_undriven_keydown` prints `F2` `rc=0 fails=0`,
-`X12V8` `rc=0 fails=0` and `V8` `rc=1 fails=1`.
-
-**The ported plants and the residual**, `python3
-tools/audit/seat/r10_deeplink_mutants.py T1c_census_only_throw_on_press
-T2c_census_only_async_reject_on_press
-Y1_runtime_name_on_unresolved_selector_residual
-R7c_setAttribute_runtime_name`: `T1c` and `T2c` each `rc=1 fails=2` (`no
-navigation token in the card's code outside navigateTo`, `no press throws`);
-`Y1` `rc=0 fails=0`; `R7c` `rc=1 fails=1` (`every link the census records from
-a press is one haLink builds for this entry`). These four are from the sweep
-at `778ae2565` above.
+This seat's full 109-plant sweep at `778ae2565`, an ancestor whose card and
+census checks are this head's, read 76 red with a FAIL line and 33 green, with
+0 crashes. The 33 green are the X* deletions alone, the X* pairs, `F1`, `F3`,
+`F4` and `Y1`. `F2` read red there, and its repaired form is green in the
+review's sample.
 
 ## Null control
 
-`python3 tools/audit/seat/r10_deeplink_mutants.py --null` prints
-`RESULT mutant=NULL_no_plant rc=0 fails=0` at this head. `node tests/card.mjs` prints `ALL CARD CHECKS
-PASSED` with 1257 `ok` and 0 `FAIL` lines (`grep -c '^  ok  '`,
-`grep -c '^  FAIL'`). The false-positive control for the four form rows is the
-card's own source: the census is green at this head with
-`for (const form of forms)`, `sensor: "action"` and `w.action !== "off"` in
-the code the static arm scans, and `F1`-`F4` in the sweep are each the same
-words placed as values, an object key and an identifier prefix.
+`python3 tools/audit/seat/r10_deeplink_mutants.py --null` prints `RESULT mutant=NULL_no_plant rc=0 fails=0` at this head.
+`node tests/card.mjs` prints `ALL CARD CHECKS PASSED` with 1257 `ok` lines
+and 0 `FAIL` lines.
 
 ## Figures
 
-The card-reading scripts ran at `778ae2565`, whose card, census and
-`tests/` are this head's (`c6ef1959a` touches only the driver), after `PYTHONPATH=tests/hastub python3
-tests/plan_view.py`, except where another tree is named.
-
-- `node tests/card.mjs`: `ALL CARD CHECKS PASSED`, 1257 `ok`, 0 `FAIL`.
-- `node tests/card_drift.mjs 6e5753a4aca8b240559e8e11e8a68c7de988cd73`:
-  `card_drift: identical in all 40 states`.
-- `python3 tests/closure.py select --diff 6e5753a4aca8 --workdir <dir>`:
-  `MODE: SCOPED -- 9 script(s) run, 24 scoped out` over 5 changed files (the
-  card, `tests/card.mjs`, the driver, `dev/programme/rosters/wave-r10-groups.json`
-  and `dev/programme/delivery/2345.md`). Every script it names was run here:
-- `PYTHONPATH=tests/hastub python3 tests/arch_score_head.py`: `ALL 16
-  ARCHITECTURE SCORE HEAD CHECKS PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py`: `ALL
-  DEPLOYMENT SHAPE CHECKS PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 169 checks PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2346 ENTITY CHECKS PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4155 FEATURE CHECKS PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `ALL 109 HARNESS
-  HEADER CHECKS PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/plan_view.py`: `plan reason codes,
-  price provenance and slot energy OK`.
-- `python3 tests/structure.py` at this head: `STRUCTURE RATCHET PASSED`, with
-  `max_method_loc 373 <= 373` and `seam_cut_total 752 <= 752`.
-- `python3 tools/audit/archscore/score.py --diff 6e5753a4aca8`:
-  `Architecture score: dS +0.0000 NULL` at this head.
-- `python3 tools/pr/ci_predict.py --base 6e5753a4aca8` at this head: `CI
-  PREDICT: no closures or fast red predicted against 6e5753a4aca8`.
+- `node tests/card.mjs` at this head, after `PYTHONPATH=tests/hastub python3
+  tests/plan_view.py`: `ALL CARD CHECKS PASSED`, 1257 `ok`, 0 `FAIL`.
+- `node tests/card_drift.mjs e5f7e169d64b93d4ae117eb07c68ecef6d47aea6`: `card_drift: identical in all 40 states`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 tests/closure.py select --diff e5f7e169d --workdir <dir>`:
+  `MODE: SCOPED -- 9 script(s) run, 24 scoped out`, which names `tests/card.mjs`,
+  `tests/card_drift.mjs` and `tests/plan_view.py` (run here) among its nine. The other scripts it names are left to CI's required runs on
+  this head.
 - Claim files, `VERSION`, the manifest version and the `RELEASE_NOTES.md`
-  heading are untouched: `git diff --stat 6e5753a4aca8...HEAD --
+  heading are untouched: `git diff --stat e5f7e169d...HEAD --
   tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION
   custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md` prints
   nothing.
 
 ## Red checks
 
-At the previous head `e59b1fb54`:
+These are the latest run per name at each earlier branch head, from the
+check-runs API.
 
-- `fast (3.14)`: `node tests/card.mjs` failed `no navigation token in the
-  card's code outside navigateTo` on the `b.open` lines the origin/main merge
-  brought in (job 117464541848). Closed here by the rename; `node
-  tests/card.mjs` is green at this head (above). The cheaper detector exists
-  and is `fixer.md` step 6's: re-run the scoped gate (`scope.run`, which names
-  `tests/card.mjs`) after any merge of origin/main and before the push; its
-  standing cost is one `card.mjs` run, about 30 s on CI's runner. The merge
-  `e59b1fb54` was pushed without that re-run; this head ran it after its own
-  merge (`176db5f00`).
-- `pr-contract`: refused the body because `fast (3.14)` was red and `## Red
-  checks` did not name it (job 117470593100). This section is the answer; no
-  cheaper detector beyond `tools/pr/prepr.sh`, which this body passed.
-- `wave-script`, red at the earlier head `1d45350ba` (job 117250605987,
-  latest run of that name at that commit): `AGREEMENT REFUSED`, `UNREGISTERED
-  "[A-Za-z_$][\w$]*" in tests/card.mjs, tests/doc_claims.py`. The census had
-  copied `tests/doc_claims.py`'s identifier grammar, so one grammar was written
-  twice and not registered. Commit `1fc6ce693` replaced it, and the check is
-  green at the later heads `485d0aa81` and `e59b1fb54`. At this head, `node
-  tools/policy/agreement.mjs --only discovery` prints `RESULT divergent=0
-  unregistered=0 dead=0 refused=0` and `AGREEMENT ok`. That command is the
-  cheaper detector: it exists, needs no build, and took 0.3 s here. Standing
-  cost: one run before each push of a change to a governance code file. It
-  was not run before `1d45350ba` was pushed.
-- `coverage-ratchet`, red at the earlier head `485d0aa81` (job 117397081517,
-  latest run of that name at that commit): `FAIL every module >= 95.0 %`, with
-  `coordinator.py`, `early_cutoff.py`, `sysid.py` and `price_model.py` below
-  the floor. The branch's three-dot diff at that head is
-  `dev/programme/rosters/wave-r10-groups.json`, `tests/card.mjs` and
-  `tools/audit/seat/r10_deeplink_mutants.py`, with no Python module among
-  them. So the red came from CI reusing a stale coverage base, not from this
-  diff. #2349 (`rca(coverage-base-reuse)`, `1138a4ef5`) is that class's
-  root-cause record and its floor re-validation backstop. It is not an
-  ancestor of `485d0aa81` and is an ancestor of this head, and the check is
-  green at `e59b1fb54`. No cheaper detector exists at this branch's level: no
-  local run of the branch's own files reproduces a base CI chose. The
-  countermeasure belongs to #2349's seat and has landed.
-- `delivery-status`: not a required context; its log lists overdue record
-  rows for other pull requests (#2335, #2323, #2311), none of them this diff's
-  (job 117464452564). No finding for this branch.
+- `fast (3.14)`, red at `e59b1fb54` (job 117464541848).
+  - **Failure:** `tests/card.mjs` failed on the `b.open` lines that an
+    origin/main merge brought in.
+  - **Fix:** closed by the `b.foldOpen` rename.
+  - **Cheaper detector:** the scoped gate, re-run after each main merge before
+    the push (`fixer.md` step 6). It costs one `card.mjs` run, about 30 s on
+    CI.
+- `pr-contract`, red at `e59b1fb54`, `485d0aa81` and `1d45350ba`.
+  - **Failure:** at `e59b1fb54` it refused a body that did not name `fast
+    (3.14)`.
+  - **Cheaper detector:** `tools/pr/prepr.sh`, which this body passes.
+- `wave-script`, red at `1d45350ba` (job 117250605987).
+  - **Failure:** `AGREEMENT REFUSED`. The census had copied
+    `tests/doc_claims.py`'s identifier grammar `[A-Za-z_$][\w$]*` unregistered.
+  - **Fix:** `1fc6ce693` replaced it.
+  - **Cheaper detector:** `node tools/policy/agreement.mjs --only discovery`,
+    0.3 s, before each push that touches a governance code file. It was not
+    run before that push.
+- `coverage-ratchet`, red at `485d0aa81` (job 117397081517).
+  - **Failure:** module floors on `coordinator.py`, `early_cutoff.py`,
+    `sysid.py` and `price_model.py`. None of these is in this branch's diff,
+    which at that head was the roster, `tests/card.mjs` and the driver. The
+    red came from CI reusing a stale coverage base.
+  - **Cheaper detector:** none at the branch's level. #2349 (`1138a4ef5`) is
+    that class's root cause and backstop, and it is an ancestor of this head.
+- `delivery-status`, red at `e59b1fb54` (job 117464452564).
+  - **Failure:** not a required context. It listed other pull requests'
+    overdue record rows.
+  - **Finding:** none for this branch.
 
 ## Forward-carry
 
-`dev/programme/rosters/wave-r10-groups.json`: the four stage briefs that add
-card rows or links -- R10-UX-SETUP, R10-ADVISOR, R10-SCORES and R10-UX-HEALTH
--- carry the census's refusals, including the two this round adds: an
-identifier carrying the navigation primitive's name is red (`b.open` is
-`b.foldOpen`), and a form built or submitted by name is red wherever it is
-written. In R10-SCORES the carry sits after main's newer item (4) from
-R10-RATIO-SITES, which the merge kept.
+- **`dev/programme/rosters/wave-r10-groups.json`, in this diff.** R10-UX-SETUP,
+  R10-ADVISOR, R10-SCORES and R10-UX-HEALTH each carry the census's refusals
+  at their exact scope. They name the spellings the rows refuse, and say that
+  navigation in a handler the dynamic arm does not drive is not covered
+  (RV1-RV7). They also say to write none there until R10-DEEPLINK-HANDLERS
+  drives it.
+- **For the orchestrator to place in R10-DEEPLINK-HANDLERS's brief** (its
+  roster append is the orchestrator's):
+  - Drive every keydown, pointer, wheel and focus handler the card registers,
+    through the instrumented surface, as clicks are driven.
+  - Its controls are the driver's RV1-RV7 and `Y1`, green at this head. Each
+    of RV1-RV7 must go red when its handler is driven. RV1c and RV5c stay red.
+  - Then the static arm can drop to bare-name rows only, with no spelling
+    list (fixer.md step 17, #1874).
 
 ## Friction
 
-- `finding-propagation.md: stale: R10-TICK (o), carried in this group's brief, says tools/audit/seat/train.sh line 182 resolves the checkout to the tools directory; train.sh now derives it with git rev-parse --show-toplevel and #2305 is merged, so nothing on this branch acts on it.`
-- `fixer.md: cost: a crashed seat left this group's newest commits (f1542b17d) only in a /private/tmp worktree and a wip-sync snapshot, with a planted mutation uncommitted in the card; the next seat had to compare three heads by ancestry before it could start.`
+- `fixer.md: cost: three review rounds each found a written spelling the static arm missed (open.call, the programmatic form, history["back"]); the spelling-row design was the step-17 shape the contract warns against, and only the split ruling stopped it.`
