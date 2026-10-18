@@ -109,7 +109,7 @@ The `D7-arch1-NN` ids from the brief do not match `finding.schema.json`'s id pat
 | `git commit dbabc395f` | 0 |
 | `git push origin audit/r10-arch-s1:refs/heads/handoff/audit-r10-arch-s1` | 0 |
 
-Files are in `dev/audit/rounds/round10/D7/arch-s1/` under `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/agent-ac59d365df4ac4763`:
+Files are in `dev/audit/rounds/round10/D7/arch-s1/` under `~/heatpump_optimizer/.claude/worktrees/agent-ac59d365df4ac4763`:
 - arch1_delta.py
 - P1_live_state_published_whole.patch
 - P2_away_override_published_whole.patch

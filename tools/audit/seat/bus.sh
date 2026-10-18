@@ -137,6 +137,12 @@ if [ -z "$POSTER" ]; then
 fi
 S=${HPO_BUS_STATE:-$HOME/.zcode/bus}
 die() { printf 'bus: REFUSE: %s\n' "$*" >&2; exit 1; }
+# A local path as a posted comment names it: under the home directory it is
+# `~/<rest>`, so a verdict comment never publishes the home path (#2310's
+# class); app_approve.sh resolves `~/` against its own $HOME at read time.
+home_rel() { # path -> the path, `~/`-relative when it is under $HOME (ref_privacy.py owns the rule)
+  python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" path "$1"
+}
 # THE POSTER GUARD -- the checkout requirement, enforced before any remote write.
 # Every subcommand that moves a ref eventually posts through $POSTER, and $POSTER
 # is derived from $ROOT, three levels above this file. A copy of bus.sh outside a
@@ -337,7 +343,7 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
   who=$(git log -1 --format=%B "$c" | sed -n 's/^bus-confirmed: //p' | head -n 1)
   body=$S/verdicts/$pr/$c.md
   { cat "$d/VERDICT.md"
-    printf '\nbus: verdict/%s at %s, confirmed from %s; evidence: %s/evidence\n' "$pr" "$c" "$who" "$d"
+    printf '\nbus: verdict/%s at %s, confirmed from %s; evidence: %s/evidence\n' "$pr" "$c" "$who" "$(home_rel "$d")"
   } > "$body"
   # Recorded BEFORE the post and withdrawn on a refusal: a kill between a
   # landed post and the record would otherwise post twice. A kill now leaves
@@ -630,7 +636,12 @@ P
   mkdir -p "$W/ap" "$W/fx" "$W/noid"
   openssl genrsa -out "$W/ap/identity-approver.pem" 2048 2>/dev/null
   openssl genrsa -out "$W/fx/identity-approver.pem" 2048 2>/dev/null
+  # HOME is the scratch directory, so the state dir is under it and a posted
+  # evidence path renders `~/`-relative (#2310); the seat interpreter keeps
+  # the state dir it had, which its shim resolves under the real home.
+  RH=$HOME
   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
+           HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
            HPO_IDENTITY_DIR=${BUS_ID:-$W/ap} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   seat() { BUS_ID=$W/noid run "$@"; }
   calls() { grep -c . "$W/calls"; }
@@ -753,8 +764,9 @@ P
   grep -q "^bus: verdict/7 at $v1, confirmed from cmsg_R (review/7 at $r1);" "$W/last"; expect "the posted body names the reviewer and the proposal" $?
   [ "$(head -n 1 "$W/last")" = "Fix review: merge $h1" ]; expect "the posted body keeps the reviewer's first line" $?
   ev=$(sed -n 's/^bus: .*; evidence: //p' "$W/last")
-  case $ev in /*) [ -d "$ev" ] && grep -rqF "$h1" "$ev" ;; *) false ;; esac
-  expect "the posted body cites an absolute evidence directory that names the head" $?
+  case $ev in "~/"*) [ -d "$W/${ev#\~/}" ] && grep -rqF "$h1" "$W/${ev#\~/}" ;; *) false ;; esac
+  expect "the posted body cites its evidence directory home-relative (~/), and it names the head (#2310)" $?
+  ! grep -qF "$W" "$W/last"; expect "and the posted body carries no home path at all" $?
   grep -q "^o/r 7 " "$W/calls"; expect "the poster is called with the repository and pull request" $?
   out=$(run watch --once --post); rc=$?
   [ $rc = 0 ] && ! echo "$out" | grep -q "^BUS refused" && [ "$(calls)" = 1 ]; expect "watch passes over a verdict it already posted" $?

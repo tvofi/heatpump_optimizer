@@ -10,7 +10,7 @@ coordinator's own state, as production code leaves it after
 HeatPumpOptimizerCoordinator.async_run_optimization.
 
 Command (repo root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
       dev/audit/rounds/round10/D9/s2/retained.py [--cycles 192] [--config coord_all_features]
 Perturbation: --cycles (96 -> 192): a bounded attribute keeps its slope near 0;
 an untrimmed one keeps a constant positive slope and its absolute size doubles.

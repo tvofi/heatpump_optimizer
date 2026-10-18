@@ -8,7 +8,7 @@ load.  Count key: the log records the production logger delivers.
 Also printed: tests that name the warning text (grep, the gap itself).
 
 Command (repo root, clean baseline tree):
-    PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
         dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]
 Expected: loaders_correct=2 (exact) and tests_naming_warning=0 (exact);
 with --mutate (the M26/M35 guard negation `if dropped:` -> `if not (dropped):`
