@@ -1522,6 +1522,7 @@
    "tools/policy/vendor/markdown-it.LICENSE",
    "tools/policy/vendor/markdown-it.min.js",
    "tools/pr/README.md",
+   "tools/pr/cancel_superseded.py",
    "tools/pr/preflight.sh",
    "tools/release/stamp.py",
    "tools/replay/dbg_bundle_gen.py",
@@ -4181,7 +4182,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 674.1
+   "seconds": 324.8
   },
   "tests/env_drift.py": {
    "rc": 0,
