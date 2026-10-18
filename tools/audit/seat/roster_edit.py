@@ -8,6 +8,8 @@
     python3 tools/audit/seat/roster_edit.py edit-brief  <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py append-carry <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py set-resume  <group> --field <stage|commit|branch|last_step|next_step|note> <text | @file>
+    python3 tools/audit/seat/roster_edit.py set-after   <group> <G1,G2,... | ->
+    python3 tools/audit/seat/roster_edit.py drop-carry  <group> <index | --match TEXT>
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
         [--roster-path PATH] [--worktree DIR] [--lint-cwd DIR] [--push]
         [--message MSG]
@@ -61,11 +63,20 @@ Ops (all group ids must exist, except append-group which must not):
                restarts from. stage and branch are non-null: an empty value
                is refused. commit demands a sha. An empty value for commit,
                last_step, next_step or note clears the field to null.
+  set-after    replaces the group's after-edges whole (`-` for none),
+               refusing an unknown group, a self-edge, a repeated edge and
+               a cycle in the resulting after-graph;
+  drop-carry   removes one carry entry by 0-based index or by the one entry
+               containing --match TEXT, refusing an absent carry, an index
+               out of range, no match and an ambiguous match; dropping the
+               last entry removes the key.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -217,6 +228,88 @@ def op_append_carry(roster, group, text):
     carry.append(entry)
 
 
+def op_set_after(roster, group, spec):
+    """Replace a group's after-edges whole: `G1,G2,...`, or `-` for none.
+    Each named group must exist, none may be the group itself or repeat, and
+    the resulting after-graph must stay acyclic -- the dispatch order a
+    replan rests on."""
+    g = _need(roster, group)
+    after = [] if spec == "-" else [a.strip() for a in spec.split(",")]
+    known = {x.get("group") for x in roster.get("groups", [])}
+    bad = [a for a in after if a not in known]
+    if bad:
+        raise Refuse(f"set-after: {group} after names no group: {bad}")
+    if group in after:
+        raise Refuse(f"set-after: {group} after itself is a self-edge")
+    dup = sorted({a for a in after if after.count(a) > 1})
+    if dup:
+        raise Refuse(f"set-after: duplicate edge in {group} after: {dup}")
+    edges = {x.get("group"): list(x.get("after") or [])
+             for x in roster.get("groups", [])}
+    edges[group] = after
+    cycle = _cycle(edges)
+    if cycle:
+        raise Refuse(f"set-after: {group} after {after} closes a cycle: "
+                     f"{' -> '.join(cycle)}")
+    g["after"] = after
+
+
+def _cycle(edges):
+    """One cycle of the after-graph as a node path (first node repeated at
+    the end), or None when the graph is a DAG."""
+    state = {}  # absent: unvisited; 1: on the DFS stack; 2: finished
+    for root in edges:
+        if root in state:
+            continue
+        stack, path = [(root, iter(edges.get(root, ())))], [root]
+        state[root] = 1
+        while stack:
+            node, it = stack[-1]
+            nxt = next(it, None)
+            if nxt is None:
+                state[node] = 2
+                stack.pop()
+                path.pop()
+            elif state.get(nxt) == 1:
+                return path[path.index(nxt):] + [nxt]
+            elif nxt not in state:
+                state[nxt] = 1
+                stack.append((nxt, iter(edges.get(nxt, ()))))
+                path.append(nxt)
+    return None
+
+
+def op_drop_carry(roster, group, index=None, match=None):
+    """The inverse of append-carry: drop one carry entry, by its 0-based
+    index (`jq '.carry[N]'`) or by the one entry containing `match`.
+    Dropping the last entry removes the key, so append-then-drop restores
+    the roster's bytes."""
+    g = _need(roster, group)
+    carry = g.get("carry") or []
+    if not carry:
+        raise Refuse(f"drop-carry: {group} carries nothing")
+    if match is not None:
+        hits = [i for i, c in enumerate(carry) if match in c]
+        if not hits:
+            raise Refuse(f"drop-carry: no carry entry matches {match!r} "
+                         f"in {group}")
+        if len(hits) > 1:
+            raise Refuse(f"drop-carry: {match!r} is ambiguous in {group}: "
+                         f"entries {hits} match; pass an index")
+        i = hits[0]
+    else:
+        try:
+            i = int(index)
+        except ValueError:
+            raise Refuse(f"drop-carry: index must be an integer: {index!r}")
+        if not 0 <= i < len(carry):
+            raise Refuse(f"drop-carry: index {i} out of range for {group} "
+                         f"({len(carry)} entries)")
+    del carry[i]
+    if not carry:
+        del g["carry"]
+
+
 def _need(roster, group):
     for g in roster.get("groups", []):
         if g.get("group") == group:
@@ -362,7 +455,8 @@ def main(argv=None) -> int:
             return _self_test()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
-                                  "edit-brief", "append-carry", "set-resume"))
+                                  "edit-brief", "append-carry", "set-resume",
+                                  "set-after", "drop-carry"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("--at-sha")
@@ -371,6 +465,8 @@ def main(argv=None) -> int:
                         "unwire-issue: issues (default) or fixes")
     p.add_argument("--value", dest="value_opt",
                    help="the value, for when a positional value does not fit")
+    p.add_argument("--match",
+                   help="drop-carry: drop the one carry entry containing it")
     p.add_argument("--checkout", default=".")
     p.add_argument("--roster-ref", default=None,
                    help="the base ref (default main)")
@@ -388,7 +484,14 @@ def main(argv=None) -> int:
     if a.value is not None and a.value_opt is not None:
         p.error("give the value positionally or with --value, not both")
     value = a.value_opt if a.value is None else a.value
-    if value is None or (value == "" and a.op != "set-resume"):
+    if a.match is not None and a.op != "drop-carry":
+        p.error("--match is a drop-carry flag")
+    if a.op == "drop-carry" and value is not None and a.match is not None:
+        p.error("drop-carry takes an index or --match, not both")
+    if a.op == "drop-carry" and value is None and a.match is None:
+        p.error("drop-carry needs an index or --match")
+    if a.match is None and (value is None
+                            or (value == "" and a.op != "set-resume")):
         p.error(f"{a.op} needs a value argument")
     if a.op == "set-resume" and not a.field:
         p.error("set-resume needs --field")
@@ -427,6 +530,10 @@ def main(argv=None) -> int:
             op_edit_brief(roster, a.group, value)
         elif a.op == "set-resume":
             op_set_resume(roster, a.group, a.field, value)
+        elif a.op == "set-after":
+            op_set_after(roster, a.group, value)
+        elif a.op == "drop-carry":
+            op_drop_carry(roster, a.group, value, a.match)
         else:
             op_append_carry(roster, a.group, value)
         path.write_text(dump(roster), encoding="utf-8")
@@ -574,12 +681,14 @@ def _self_test() -> int:
     throwaway_git_clone(origin, drv, "-q")
 
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
-             at_sha=None, field=None, value_opt=None):
+             at_sha=None, field=None, value_opt=None, match=None):
         args = [op, group]
         if value is not None:
             args += [value]
         if field:
             args += ["--field", field]
+        if match is not None:
+            args += ["--match", match]
         if value_opt is not None:
             args += ["--value", value_opt]
         if at_sha:
@@ -601,6 +710,15 @@ def _self_test() -> int:
             return call()
         except SystemExit as e:
             return e.code
+
+    def refuses(why, *args, **kw):
+        """rc 2 (or argparse's exit) AND the refusal names `why`: a bare rc
+        cannot tell this op's refusal from argparse refusing the op itself,
+        or one refusal from another that happens to fire first."""
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = sysrc(lambda: edit(*args, **kw))
+        return rc not in (0, None) and why in err.getvalue()
 
     def branch_roster(name="edit-1"):
         sha = run(["git", "-C", str(origin), "rev-parse",
@@ -719,6 +837,101 @@ def _self_test() -> int:
     check("set-resume unknown field refused",
           sysrc(lambda: edit("set-resume", "R9-A", "x", field="log")) == 2)
 
+    # set-after: a group's after-edges replaced whole, through the same
+    # load/modify/dump flow; every refusal leaves the remote branch where it
+    # was, and the resulting graph stays a DAG.
+    def tip(name="edit-1"):
+        return run(["git", "-C", str(origin), "rev-parse",
+                    f"refs/heads/{name}"]).strip()
+
+    def after_of(group):
+        return next(g for g in branch_roster()["groups"]
+                    if g["group"] == group).get("after")
+
+    check("set-after rc", edit("set-after", "R9-C", "R9-B,R9-F") == 0)
+    check("set-after round-trip", after_of("R9-C") == ["R9-B", "R9-F"])
+    check("set-after - clears the edges",
+          edit("set-after", "R9-C", "-") == 0 and after_of("R9-C") == [])
+    t0 = tip()
+    check("no-op set-after reports no change and commits nothing",
+          edit("set-after", "R9-B", "R9-A") == 0 and tip() == t0)
+    check("set-after unknown group refused",
+          refuses("no roster group", "set-after", "R9-ZZ", "R9-A"))
+    check("set-after unknown after-group refused",
+          refuses("after names no group", "set-after", "R9-B",
+                  "R9-A,R9-NOPE"))
+    check("set-after self-edge refused",
+          refuses("self-edge", "set-after", "R9-B", "R9-B"))
+    check("set-after duplicate edge refused",
+          refuses("duplicate edge", "set-after", "R9-C", "R9-A,R9-A"))
+    check("set-after direct cycle refused",
+          refuses("cycle", "set-after", "R9-A", "R9-B"))
+    check("set-after indirect cycle refused",
+          edit("set-after", "R9-C", "R9-B") == 0
+          and refuses("cycle", "set-after", "R9-A", "R9-C")
+          and after_of("R9-A") == [])
+    t0 = tip()
+    check("refused set-after moved nothing",
+          refuses("cycle", "set-after", "R9-A", "R9-B") and tip() == t0)
+    check("set-after names no op flag",
+          refuses("--match is a drop-carry flag", "set-after", "R9-B",
+                  "R9-A", match="x"))
+
+    # drop-carry: the inverse of append-carry, by index or by a unique match;
+    # dropping the last entry removes the key, so append-then-drop restores
+    # the roster's bytes exactly.
+    def carry_of(group):
+        return next(g for g in branch_roster()["groups"]
+                    if g["group"] == group).get("carry")
+
+    def bytes_at(name="edit-1"):
+        return run(["git", "-C", str(origin), "show",
+                    f"{tip(name)}:{FIXTURE_ROSTER}"])
+
+    check("drop-carry with no carry refused",
+          refuses("carries nothing", "drop-carry", "R9-B", "0")
+          and refuses("carries nothing", "drop-carry", "R9-B", None,
+                      match="alpha"))
+    check("drop-carry unknown group refused",
+          refuses("no roster group", "drop-carry", "R9-ZZ", "0"))
+    before_carry = bytes_at()
+    for text in ("alpha one", "alpha two", "beta"):
+        edit("append-carry", "R9-B", text)
+    check("drop-carry fixture carries three",
+          carry_of("R9-B") == ["alpha one", "alpha two", "beta"])
+    t0 = tip()
+    check("drop-carry ambiguous match refused",
+          refuses("ambiguous", "drop-carry", "R9-B", None, match="alpha"))
+    check("drop-carry absent match refused",
+          refuses("no carry entry matches", "drop-carry", "R9-B", None,
+                  match="gamma"))
+    check("drop-carry index past the end refused",
+          refuses("out of range", "drop-carry", "R9-B", "3"))
+    check("drop-carry negative index refused",
+          refuses("out of range", "drop-carry", "R9-B", "-1"))
+    check("drop-carry non-integer index refused",
+          refuses("index must be an integer", "drop-carry", "R9-B", "x"))
+    check("drop-carry index and --match together refused",
+          refuses("not both", "drop-carry", "R9-B", "0", match="beta"))
+    check("drop-carry neither index nor --match refused",
+          refuses("drop-carry needs an index or --match", "drop-carry",
+                  "R9-B", None))
+    check("--match on another op refused",
+          refuses("--match is a drop-carry flag", "set-stage", "R9-B",
+                  "done", match="x"))
+    check("refused drop-carry moved nothing", tip() == t0)
+    check("drop-carry by index drops that entry",
+          edit("drop-carry", "R9-B", "1") == 0
+          and carry_of("R9-B") == ["alpha one", "beta"])
+    check("drop-carry by match drops that entry",
+          edit("drop-carry", "R9-B", None, match="beta") == 0
+          and carry_of("R9-B") == ["alpha one"])
+    check("drop-carry of the last entry removes the key",
+          edit("drop-carry", "R9-B", None, match="alpha one") == 0
+          and carry_of("R9-B") is None)
+    check("append-carry then drop-carry is byte-identical",
+          bytes_at() == before_carry)
+
     # THE ROUND-TRIP REGRESSION. The roster's canonical bytes are indent=1,
     # ASCII-escaped, no trailing newline (the file at the fixplan ref). A dump
     # that does not reproduce them rewrites every line of the file on ANY edit
@@ -775,8 +988,16 @@ def _self_test() -> int:
                            "--lint-cwd", str(seed2), "--push"])) == 0)
     # The no-op path commits and pushes nothing, so the bytes are read from
     # the worktree the op wrote: they must be the roster's own, unchanged.
-    tip = (Path(tmp, "wt2") / FIXTURE_ROSTER).read_text(encoding="utf-8")
-    check("no-op set-resume is byte-identical", tip == canon)
+    wt2_bytes = (Path(tmp, "wt2") / FIXTURE_ROSTER).read_text(encoding="utf-8")
+    check("no-op set-resume is byte-identical", wt2_bytes == canon)
+    check("no-op set-after rc",
+          sysrc(lambda: main(["set-after", "R9-A", "-",
+                           "--checkout", str(drv2), "--roster-ref", "main",
+                           "--branch", "edit-byte",
+                           "--worktree", str(Path(tmp, "wt2")),
+                           "--lint-cwd", str(seed2), "--push"])) == 0)
+    wt2_bytes = (Path(tmp, "wt2") / FIXTURE_ROSTER).read_text(encoding="utf-8")
+    check("no-op set-after is byte-identical", wt2_bytes == canon)
 
     # the lint gate: a bad brief is refused BEFORE the push; the branch on the
     # remote stays where it was.
