@@ -55,9 +55,9 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import on the `from` form (27), on the plain dotted `import` with an alias (28) and with the full dotted read (29), through an absolute from-import's module binding (30), from the namespace ABOVE the package -- `import custom_components` aliased (32) and bare (35), `from custom_components import heatpump_optimizer` (33) and aliased (34) -- and as a constant-name `import_module` (26), by its `name` keyword (31), or through a module-level string constant (37), each of them runtime code. Ancestor and descendant are one predicate: the relation of a dotted name to the package's own path, at a dot boundary | 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 40 |
 | C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), from the namespace ABOVE the package (32 to 35), through an attribute or `getattr` chain rooted at one (36), and through a constant-name `import_module` (26), its `name`-keyword form (31) or a module-level string constant (37). A read that resolves to a module is also that module's EDGE, whether the name read off it is public or private -- which is what an import of an ancestor needs, since that statement loads no module of ours; the edge is added once, at the OUTERMOST point of the chain whose receiver resolves to a module, so a chain that walks past it still takes it (38, 39, 41) | 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
-| C20 a literal spec is normalised: numbers by value, keywords and dict items in order (`metrics/literal_clones.py`) | the copies of a selector re-spelled with float bounds | 42 |
-| C21 a local bound once to a spec reads as it | a selector's bound hoisted into a local | 43 |
-| C22 a card function's own names are numbered by first use (`metrics/card.py`) | the card's copied functions given renamed locals | 44 |
+| C20 a literal spec is normalised: numbers by value, an in-package callee's positionals as the keywords they bind, keywords and dict items in order (`metrics/literal_clones.py`) | the copies of a selector re-spelled with float bounds (42); its positionals respelled as keywords (42c, #2373 review) | 42, 42c |
+| C21 a local, or a module constant (own or imported by name), bound once to a spec reads as it | a selector's bound hoisted into a local (43) or into module constants (42b, #2373 review) | 43, 42b |
+| C22 a card function's own names are numbered by first use and its no-op statements dropped (`metrics/card.py`) | the card's copied functions given renamed locals (44); windows split by `void <n>;` (44b, #2373 review) | 44, 44b |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -238,6 +238,19 @@ widgets) reads 184 -> 132 on it at the merge base `6e5753a4a` (ARCH2-s5's `arch_
 gets `card_dead_definitions` (D7-s3-02's `textWidth` was its one; R10-UX-SETUP gave it callers, so today reads 0) and `card_clone_copies`, a 20-token window
 census; the window was calibrated on ARCH2-s5's four card patches, where 16 tokens read the finite-number owner (a
 dedupe) as one copy more. The shape census of N spellings of one rule is part 5's.
+
+The #2373 round-1 review planted three moves that read IMPROVES with nothing improved, and each is closed
+here with its attempt: three copies of a selector reading a bound from their own module constants (42b,
+C21 now folds a module constant bound once to a literal, its own module's or one imported by name), the
+same copies passing their positionals by keyword (42c, C20 binds a positional of an in-package callee to
+its parameter), and `void <n>;` after every second card `const`/`let` (44b, C22 drops a statement of
+literals, read identifiers and pure operators before windowing). Each read IMPROVES against the round-1
+instrument and reads NULL here; the counter's ablation reopens it.
+
+What part 4's censuses do not see, and no rule here closes: a value computed at runtime or a constant bound
+twice; a callee outside the package (its signature is not read) or a call through `*args`/`**kwargs`; a card
+no-op with an effect-shaped token (`if (0) {}`, `a.b;`, a call to an empty function) or a no-op inside a
+parenthesis; and a card copy re-spelled token by token below the 20-token window.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 

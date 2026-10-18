@@ -17,7 +17,7 @@ regular expression where an operand is expected.
                     calls by convention. D7-s3-02's ``textWidth`` was one.
   card_clone_copies       functions sharing a window of WINDOW consecutive tokens, after a function's
                     own identifiers (its parameters and ``const``/``let``/``var`` names) are numbered
-                    by first use (counter C22) and strings read ``S``: the copies (members of a clone class), as
+                    by first use and its no-op statements dropped (counter C22) and strings read ``S``: the copies (members of a clone class), as
                     ``duplication_copies`` counts Python's. A window crosses statement boundaries,
                     so a rule spelled inline in several functions (the live-state guard, the
                     finite-number test) joins its spellers.
@@ -34,8 +34,15 @@ from . import common as C
 #: Tokens per window. 20, calibrated on ARCH2-s5's four card patches (round 10): at 16 the finite-number
 #: owner (C4), a dedupe, read one copy more; at 20 no patch rises and their union reads 108 -> 101.
 WINDOW = 20
-#: Counter C22: a function's own names are numbered, so renaming them hides no copy. ``vector.py`` switches it off.
+#: Counter C22: a function's own names are numbered and its no-op statements dropped, so renaming its names or
+#: interleaving ``void 1;`` hides no copy. ``vector.py`` switches it off.
 OWN_NAMES = True
+#: Tokens a statement with no effect may hold: literals, identifiers read, and pure operators. A call (an
+#: identifier or ``)`` followed by ``(``), an assignment, a member access, ``new``/``await``/``delete`` or a
+#: keyword at its head gives it an effect, and it is kept.
+_PURE_OPS = frozenset("void typeof + - * / % ! ~ , ( ) && || ?? == === != !== < > <= >= & | ^ << >> >>> ** ? :".split())
+_HEADS = frozenset("if for while do switch try catch finally return throw break continue case default else const "
+                   "let var function class import export yield await new delete with debugger".split())
 #: Members the browser (custom elements), lit or Home Assistant's frontend call by name.
 HOOKS = frozenset({
     "constructor", "connectedCallback", "disconnectedCallback", "attributeChangedCallback",
@@ -246,6 +253,32 @@ def dead_definitions(toks: list[str]) -> list[str]:
     return sorted({d for d in definitions(toks) if d not in HOOKS and seen[d] <= 1})
 
 
+def drop_noops(body: list[str]) -> list[str]:
+    """``body`` without its no-op statements: a run that starts a statement (after ``;``, ``{`` or ``}``, outside
+    any parenthesis, so a ``for (..;..;..)`` header is kept), ends at ``;``, and holds only ``_PURE_OPS``,
+    literals and identifiers with no call -- ``void 1;``, ``"x";``, ``a + 1;``."""
+    out, i, depth, n = [], 0, 0, len(body)
+    while i < n:
+        t = body[i]
+        if depth == 0 and (not out or out[-1] in (";", "{", "}")) and t not in _HEADS:
+            j = i
+            while j < n and body[j] != ";" and body[j] not in ("{", "}"):
+                j += 1
+            run = body[i:j]
+            if run and j < n and body[j] == ";" and all(
+                    (x in _PURE_OPS or x in ("S", "R") or _NUM.fullmatch(x) or _IDENT.fullmatch(x))
+                    and x not in _HEADS for x in run) \
+                    and not any(run[k + 1] == "(" and (_IDENT.fullmatch(run[k]) or run[k] == ")")
+                                and run[k] not in _PURE_OPS for k in range(len(run) - 1)):
+                i = j + 1
+                continue
+        depth += t == "("
+        depth -= t == ")"
+        out.append(t)
+        i += 1
+    return out
+
+
 def _own_tokens(toks: list[str], fn: tuple[str, int, int, int], nested: list[tuple[int, int]]) -> list[str]:
     """A function's tokens from its parameters to its closing brace, each nested function's span one ``F``
     token (it is its own entry), and the function's own names numbered by first use."""
@@ -258,6 +291,8 @@ def _own_tokens(toks: list[str], fn: tuple[str, int, int, int], nested: list[tup
             body.append("F")
             j = b + 1
     body += toks[j:end + 1]
+    if OWN_NAMES:
+        body = drop_noops(body)
     own: set[str] = set()
     params_end = _matching(toks, start) - start if OWN_NAMES else -1
     for k, t in enumerate(body):
