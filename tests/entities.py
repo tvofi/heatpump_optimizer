@@ -24813,10 +24813,11 @@ _NS_OVERRIDES = sorted(
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly six jobs override the workflow's read-only floor, four of them "
-    "read-only",
-    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
-                      "closures-autofix", "mutation-autofix", "nightly-status"],
+    "exactly seven jobs override the workflow's read-only floor, the newest "
+    "(R10-CI-CONCURRENCY's cancel-superseded, `actions: write`) running the base's program",
+    _NS_OVERRIDES == ["cancel-superseded", "ci-ratchet", "claims-autofix",
+                      "closures", "closures-autofix", "mutation-autofix",
+                      "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -28312,9 +28313,9 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
         "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
 R.check(
     "and the same tests.yml with its restores and token hygiene undone is "
-    "refused on each of the three autofix jobs (null control)",
-    _PRW_SUBJECTS == ["tests.yml:claims-autofix", "tests.yml:closures-autofix",
-                      "tests.yml:mutation-autofix"],
+    "refused on each of the three autofix jobs and the cancel-superseded job (null control)",
+    _PRW_SUBJECTS == ["tests.yml:cancel-superseded", "tests.yml:claims-autofix",
+                      "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
 _PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(
