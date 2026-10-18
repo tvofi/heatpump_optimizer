@@ -1,0 +1,3 @@
+REFUSE tools/policy/agreement.mjs:441: rg(['init', '-q'])
+throwaway_git: 1 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+exit=1
