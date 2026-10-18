@@ -157,6 +157,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         footprint.READ_KW_KEYS = "C11" not in off
         C.FOLLOW_RETURNS = "C15" not in off
         hub_solve_writes.EVENT_ROOTS = "C16" not in off
+        hub_solve_writes.PASS_ON = "C16b" not in off
         layering.ALL_SCOPES = "C17" not in off
         layering.PRIVATE_ATTRS = "C18" not in off
         layering.UNUSED_IMPORTS = "C19" not in off

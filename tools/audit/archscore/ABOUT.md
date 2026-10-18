@@ -52,6 +52,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
 | C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
 | C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
+| C16b so is one handed to a package function that passes it on uncalled: returns it, closes over it, or hands it to code outside the package (`hub_solve_writes._passes_on`) | the meter callback handed to Home Assistant through `def _pkg_wrap(cb): return cb` (#2311 round-1 review, F1) | 20b |
 | C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import on the `from` form (27), on the plain dotted `import` with an alias (28) and with the full dotted read (29), through an absolute from-import's module binding (30), from the namespace ABOVE the package -- `import custom_components` aliased (32) and bare (35), `from custom_components import heatpump_optimizer` (33) and aliased (34) -- and as a constant-name `import_module` (26), by its `name` keyword (31), or through a module-level string constant (37), each of them runtime code. Ancestor and descendant are one predicate: the relation of a dotted name to the package's own path, at a dot boundary | 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 40 |
 | C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), from the namespace ABOVE the package (32 to 35), through an attribute or `getattr` chain rooted at one (36), and through a constant-name `import_module` (26), its `name`-keyword form (31) or a module-level string constant (37). A read that resolves to a module is also that module's EDGE, whether the name read off it is public or private -- which is what an import of an ancestor needs, since that statement loads no module of ours; the edge is added once, at the OUTERMOST point of the chain whose receiver resolves to a module, so a chain that walks past it still takes it (38, 39, 41) | 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
@@ -124,6 +125,17 @@ event writes `tests/arch_score_head.py` now lists as producers. C15 moves no cor
 every hub handle as a path. It closes the spellings the next refactor would use (attempt 19), and ARCH2-s1's
 `census_probe.py --tree proto` reads all three of its blind spellings as seen. Each counter carries a planted BAD and
 GOOD pair (`a3_hub_reader_*`, `a3_hub_event_write_*`) and an attempt; `ARCHSCORE_ABLATE=C15` or `C16` reopens its own.
+
+The #2311 review planted two moves on C16, and part 5 answers both. F1, under-fire, is closed by C16b: a
+callback handed to a package helper that returns it (`_pkg_wrap(self._on_power_event)`) read 41 -> 40 with the
+write unchanged, because a callback handed to a package function was never a root. Now a package function
+that passes its argument on uncalled -- returns it, a nested function or lambda over it, or hands it to a call
+outside the package, through any depth of package calls -- roots it. Today's tree still reads 41, and the plant
+reads 41 -> 41 (40 with `C16b` off). Attempt 20b. F2 is a precision note, not closed: a method reference handed
+to ANY call outside the package is a root, including one that never calls it (`_LOGGER.debug("%r",
+self.async_update_thermal_params)` reads 41 -> 48). The census cannot tell a subscription from a log argument,
+and it over-counts rather than misses the subscription. R10-LIVESTATE carries the 41 -> 38 control
+(`event_hub_writes.py`).
 
 ### What R10-ARCHSCORE-COVERAGE part 3 moved (layering: `layer_violations`, `private_cross_module`)
 
