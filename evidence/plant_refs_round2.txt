@@ -1,0 +1,8 @@
+P4-nul e649fe40b2972dfa6cc4486534c1f64e5fe7bfb3
+P7-utf16be 8a51e45a4a65afa568d0d7020e7843a7b948ff9b
+P8-utf32 43c91fcaebacfbf12a3559d0c19a515b525fdf40
+P9-gzip e9b8cd704820c15e7a7cacf9c3b336ffa796ca9e
+P10-base64 99564b8d77066ff6dde66b8d155009e17e4727a5
+P11-filename-dashed-home caa8fad1620844e24f3085f13dd32c40539ecdd1
+P12-nul-inside-path ede6ee110bd2ea5fb6a940e4c0dbb09ab20b9527
+P11-own-home-dashed 056294469cbecffe77986d06fefb0ff40a9b4662
