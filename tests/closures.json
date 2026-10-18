@@ -3339,6 +3339,7 @@
    "dev/audit/harnesses/ci_script_seconds.py",
    "dev/audit/harnesses/closing_keyword_ownership.py",
    "dev/audit/harnesses/cop_duty_floor.py",
+   "dev/audit/harnesses/d15_restart_gaps.py",
    "dev/audit/harnesses/d1_s3_02_queued_apply.py",
    "dev/audit/harnesses/d6_page_anchors.py",
    "dev/audit/harnesses/d907_kernel_band.py",
