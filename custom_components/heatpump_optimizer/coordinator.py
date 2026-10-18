@@ -501,7 +501,7 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
 
 
 #: Resolution the optimizer plans at, and therefore the resolution every
-#: forecast series is resampled to.
+#: forecast series is resampled to. (null control)
 FORECAST_STEP_MINUTES = 15
 
 
