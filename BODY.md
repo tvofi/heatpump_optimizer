@@ -4,7 +4,7 @@ Wires the cloud-seat dispatch shape into the operator guide: a new `tools/audit/
 
 ## Head
 
-Code head `0266d022ba0c337700130b20c72e645f4eb18275` on merge base `c8cc75ea90a3bb38dbc6b8dbb7d27d9cce74cdd0` (`origin/main` at 2026-10-18T17:00Z). Everything below was measured at it.
+Code head `7d5f979c2c4607424caf14ddbb078c6709165ee9` on merge base `c8cc75ea90a3bb38dbc6b8dbb7d27d9cce74cdd0` (`origin/main` at 2026-10-18T17:00Z). Everything below was measured at it.
 
 ## Mutation proof
 
