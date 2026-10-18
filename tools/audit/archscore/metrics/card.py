@@ -256,7 +256,11 @@ def dead_definitions(toks: list[str]) -> list[str]:
 def drop_noops(body: list[str]) -> list[str]:
     """``body`` without its no-op statements: a run that starts a statement (after ``;``, ``{`` or ``}``, outside
     any parenthesis, so a ``for (..;..;..)`` header is kept), ends at ``;``, and holds only ``_PURE_OPS``,
-    literals and identifiers with no call -- ``void 1;``, ``"x";``, ``a + 1;``."""
+    literals and identifiers with no call -- ``void 1;``, ``"x";``, ``a + 1;`` -- or nothing at all, the
+    empty statement ``;`` after a ``;`` or a ``{``. A ``;`` after ``}`` is kept: tokens cannot tell a block's
+    ``}`` (where it is an empty statement) from an object literal's or a function expression's (``x = {};``,
+    where it ends the statement). A ``;`` that is a statement's body (``if (x) ;``, ``else ;``) does not start
+    one and is kept."""
     out, i, depth, n = [], 0, 0, len(body)
     while i < n:
         t = body[i]
@@ -265,7 +269,7 @@ def drop_noops(body: list[str]) -> list[str]:
             while j < n and body[j] != ";" and body[j] not in ("{", "}"):
                 j += 1
             run = body[i:j]
-            if run and j < n and body[j] == ";" and all(
+            if j < n and body[j] == ";" and (run or out[-1:] != ["}"]) and all(
                     (x in _PURE_OPS or x in ("S", "R") or _NUM.fullmatch(x) or _IDENT.fullmatch(x))
                     and x not in _HEADS for x in run) \
                     and not any(run[k + 1] == "(" and (_IDENT.fullmatch(run[k]) or run[k] == ")")

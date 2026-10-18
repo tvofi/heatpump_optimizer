@@ -20,8 +20,12 @@ function, to a spec-shaped value reads as that value, and so does a module const
 (its own module's, or one imported by name from another package module) where the function does not bind the
 name itself (counter C21), so hoisting a literal into a local or a constant does not hide its copy.
 
-Not seen, and stated: a value computed at runtime, a constant bound twice, a callee outside the package (its
-signature is not read), and a call spelled through ``*args``/``**kwargs``.
+A module constant reads as its value whether it is read by name, imported by name (``from .m import X``), or
+read through a module binding (``from . import m``; ``m.X``, resolved by ``common.resolve_expr_static``).
+
+Not seen, and stated: a value computed at runtime, a constant bound twice, a constant read through an absolute
+import of the package (``import custom_components.<pkg>.m``, which the package index records as external), a
+callee outside the package (its signature is not read), and a call spelled through ``*args``/``**kwargs``.
 
 Headline ``literal_clone_copies``: the members of every clone class.
 """
@@ -93,6 +97,22 @@ def _imported_constants(pkg, consts: dict[str, dict[str, ast.AST]], m: str) -> d
             if r and r[0] == "var" and r[1][1] in consts.get(r[1][0], {}):
                 own[local] = consts[r[1][0]][r[1][1]]
     return own
+
+
+def _attr_constant(pkg, consts: dict[str, dict[str, ast.AST]], m: str, n: ast.Attribute,
+                   shadowed: frozenset | set) -> ast.AST | None:
+    """C21 through a module binding: ``_c.X`` (``from . import const as _c``), or a dotted chain of them, whose
+    receiver resolves to a package module and whose name is one of that module's constants. A root name the
+    function binds itself is its own, not the module."""
+    root = n
+    while isinstance(root, ast.Attribute):
+        root = root.value
+    if not isinstance(root, ast.Name) or root.id in shadowed:
+        return None
+    r = pkg.resolve_expr_static(m, n)
+    if r and r[0] == "var" and r[1][1] in consts.get(r[1][0], {}):
+        return consts[r[1][0]][r[1][1]]
+    return None
 
 
 def _signatures(pkg, m: str) -> dict[str, list[str]]:
@@ -204,16 +224,16 @@ def specs(root: Path) -> dict[str, list[tuple[str, int]]]:
                 | {x.arg for x in (*a.posonlyargs, *a.args, *a.kwonlyargs, a.vararg, a.kwarg) if x is not None}
             scope = {**{k: v for k, v in mod_consts.items() if k not in stored}, **loc}
             for y in ast.walk(fn):
-                local_of[id(y)] = scope  # innermost wins: functions nested later overwrite
+                local_of[id(y)] = (scope, stored)  # innermost wins: functions nested later overwrite
         for x in ast.walk(mod.tree):
             if not isinstance(x, _KINDS) or id(x) in skip:
                 continue
-            loc = local_of.get(id(x), mod_consts)
+            loc, shadowed = local_of.get(id(x), (mod_consts, frozenset()))
             if not is_spec(x, loc) or sum(1 for y in ast.walk(x) if not isinstance(y, ast.expr_context)) < MIN_NODES:
                 continue
             form = copy.deepcopy(x)
-            if loc:
-                form = _Inline(loc).visit(form)
+            if INLINE_LOCALS:
+                form = _Inline(loc, lambda a, m=m, sh=shadowed: _attr_constant(pkg, consts, m, a, sh)).visit(form)
             key = ast.dump(_Normalise(sigs).visit(form))
             occ[key].append((m, x.lineno, id(x)))
             for y in ast.iter_child_nodes(x):
@@ -228,11 +248,15 @@ def specs(root: Path) -> dict[str, list[tuple[str, int]]]:
 
 
 class _Inline(ast.NodeTransformer):
-    def __init__(self, loc: dict[str, ast.AST]):
-        self.loc = loc
+    def __init__(self, loc: dict[str, ast.AST], attr=None):
+        self.loc, self.attr = loc, attr
 
     def visit_Name(self, n):
         return copy.deepcopy(self.loc[n.id]) if n.id in self.loc else n
+
+    def visit_Attribute(self, n):
+        v = self.attr(n) if self.attr is not None else None
+        return copy.deepcopy(v) if v is not None else self.generic_visit(n)
 
 
 def measure(root: Path) -> dict:
