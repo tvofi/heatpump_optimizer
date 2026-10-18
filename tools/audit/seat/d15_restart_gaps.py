@@ -6,7 +6,7 @@ A restart gap is two consecutive ``cycle_rows[].t`` at least three
 ``data`` wrapper and the ``debug`` key are unwrapped) or a bare bundle, such
 as ``tools/replay/dbg_bundle_gen.py``'s.
 
-    PYTHONPATH=tests/hastub:custom_components python3 tools/audit/d15_restart_gaps.py --bundle B [--plant SECONDS]
+    PYTHONPATH=tests/hastub:custom_components python3 tools/audit/seat/d15_restart_gaps.py --bundle B [--plant SECONDS]
 
 ``--plant`` delays every row after the middle one, so the middle spacing
 becomes SECONDS: the perturbation. On the synthetic week (30 min cadence)
