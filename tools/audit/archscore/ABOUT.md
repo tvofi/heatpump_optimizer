@@ -58,6 +58,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C20 a literal spec is normalised: numbers by value, keywords and dict items in order (`metrics/literal_clones.py`) | the copies of a selector re-spelled with float bounds | 42 |
 | C21 a local bound once to a spec reads as it | a selector's bound hoisted into a local | 43 |
 | C22 a card function's own names are numbered by first use (`metrics/card.py`) | the card's copied functions given renamed locals | 44 |
+| C23 `shape_copies` (gate-only): a function's own names are numbered, numbers and strings abstracted (`metrics/shapes.py`) | a private helper copied into its importer with its names changed, the crossing read as gone | 45 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -238,6 +239,25 @@ widgets) reads 184 -> 132 on it at the merge base `6e5753a4a` (ARCH2-s5's `arch_
 gets `card_dead_definitions` (D7-s3-02's `textWidth` was its one; R10-UX-SETUP gave it callers, so today reads 0) and `card_clone_copies`, a 20-token window
 census; the window was calibrated on ARCH2-s5's four card patches, where 16 tokens read the finite-number owner (a
 dedupe) as one copy more. The shape census of N spellings of one rule is part 5's.
+
+### What R10-ARCHSCORE-COVERAGE part 5 moved (the shape census, item 6)
+
+`shape_copies` (`metrics/shapes.py`) counts the members of every class of two or more functions with one SHAPE:
+the body with the function's own names numbered and numbers and strings abstracted (counter C23), which is the
+clone window's normalisation applied to the whole function. It reads what the window cannot: a rule that is a
+whole function below two statements or 30 nodes. On ARCH-s2's own seam rule for the payload-number guard
+(`shape_payload_guard.py`'s `family()`, at its baseline `554e2ecfa`) it joins 26 of the 35 implementations into
+3 classes; the other 9 are spelled differently, which is what a census on spellings cannot see.
+
+Item 6 asked for it to be calibrated first and weighted only if not gameable. Calibrated, it is **gate-only, weight 0**:
+
+- Weighted at the floor, the one corpus commit it lowers is BAD (`ca711b56`, 69 -> 68), which would read IMPROVES.
+- One statement re-spelled leaves a class while the rule is still written twice: `a3_shape_copies_respelled_control`
+  (BAD) reads NULL. A weight would pay that move.
+- As a tripwire it moves no recorded verdict: of the 45 corpus commits it rises on five BAD, two NEUTRAL and one
+  GOOD (`0323c5b8`, 81 -> 83), each already inadmissible; it is flat on the rest. It refuses attempt 45, a private
+  helper copied into its importer under new names, which lowers `private_cross_module` and reads IMPROVES without C23.
+- Its GOOD plant (`a3_shape_copies_fix`, the copy removed) reads NULL: weight 0 pays no dedupe, by construction.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 
