@@ -1,0 +1,34 @@
+#### tree=base (52f698905); script=head's d15_restart_gaps.py copied out of tree (in this tree: 0 file); const DEFAULT_OPTIMIZATION_INTERVAL=DEFAULT_OPTIMIZATION_INTERVAL: Final = 30
+-- bundle=bundle.json plant=0: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=0 unit=count 
+-- bundle=bundle.json plant=3600: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=0 unit=count 
+-- bundle=bundle.json plant=5399: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=0 unit=count 
+-- bundle=bundle.json plant=5400: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=5400 
+-- bundle=bundle.json plant=12054: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=12054 
+-- bundle=bundle.json plant=21599: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=21599 
+-- bundle=bundle.json plant=21600: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=21600 
+-- bundle=wrapped.json plant=0: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=3600: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=5399: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=5400: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=12054: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=21599: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=21600: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=21600 
+-- onerow rc=2: REFUSED fewer than two cycle rows: no spacing to read RESULT rows=1 unit=count 
+#### tree=wt (c173d8f48); script=head's d15_restart_gaps.py copied out of tree (in this tree: 1 file); const DEFAULT_OPTIMIZATION_INTERVAL=DEFAULT_OPTIMIZATION_INTERVAL: Final = 30
+-- bundle=bundle.json plant=0: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=0 unit=count 
+-- bundle=bundle.json plant=3600: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=0 unit=count 
+-- bundle=bundle.json plant=5399: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=0 unit=count 
+-- bundle=bundle.json plant=5400: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=5400 
+-- bundle=bundle.json plant=12054: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=12054 
+-- bundle=bundle.json plant=21599: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=21599 
+-- bundle=bundle.json plant=21600: RESULT interval_s=1800 unit=s source=default RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=21600 
+-- bundle=wrapped.json plant=0: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=3600: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=5399: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=5400: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=12054: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=21599: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=0 unit=count 
+-- bundle=wrapped.json plant=21600: RESULT interval_s=7200 unit=s source=config RESULT restart_gaps=1 unit=count GAP from=2026-01-18T11:00:00+00:00 seconds=21600 
+-- onerow rc=2: REFUSED fewer than two cycle rows: no spacing to read RESULT rows=1 unit=count 
+MUTANT GAP_INTERVALS=2 plant=0: RESULT restart_gaps=0 unit=count
+MUTANT GAP_INTERVALS=2 plant=3600: RESULT restart_gaps=1 unit=count

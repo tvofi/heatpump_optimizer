@@ -1,0 +1,25 @@
+== predicate mutant: bundleDims=[] in head check, driver BUNDLE_DIMS=[]
+1	1	.claude/workflows/audit-find.js
+1	1	tools/policy/check-wave-script.mjs
+rc=0 187 passed, 0 failed
+== check mutant: dirGaps undefined -> [] (new undeclared control)
+1	1	tools/policy/check-wave-script.mjs
+rc=1 186 passed, 1 failed
+  FAIL ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268) passed
+== check mutant: curGaps undefined -> [] 
+1	1	tools/policy/check-wave-script.mjs
+rc=1 186 passed, 1 failed
+  FAIL ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268) passed
+== check mutant: null-control error clause dropped, driver throws on bundle args
+1	1	.claude/workflows/audit-find.js
+rc=1 185 passed, 2 failed
+  FAIL once D15.md exists, its finders carry the named bundle and export, or are told to report every step unfinished (D15-s2, D15-s3, D15-s1) no D15 finder
+  FAIL ...and no other finder is handed the bundle (null control) args.debug_bundle and args.debug_export are absolute paths outside every tree (dev/governance/
+== driver mutant: audit-verify.js ROUND_DIR undeclared
+1	1	.claude/workflows/audit-verify.js
+rc=1 186 passed, 1 failed
+  FAIL both drivers write where fold_ledger.py reads (dev/audit/rounds/round${round}) audit-find.js ROUND_DIR dev/audit/rounds/round${round} != audit-verify.js 
+== shell mutant: CURRENT_PATHS undeclared
+1	1	tools/audit/prepare_baseline.sh
+rc=1 186 passed, 1 failed
+  FAIL audit-find.js CURRENT is prepare_baseline.sh's CURRENT_PATHS (not both declared) CURRENT  CURRENT_PATHS undeclared in prepare_baseline.sh (an undeclared 

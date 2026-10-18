@@ -1,0 +1,44 @@
+$ node tools/policy/policy_lint.mjs
+
+TOTAL: 0 error(s) across 41 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+$ node tools/policy/policy_lint.mjs --budgets
+role record    ~7227 tokens, cap 7405 +band 500 = 7905
+role policy    ~9812 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+rc=0
+37:dev/governance/dimensions/D15.md                  36   37      689   690 
+$ node tools/policy/brief_lint.mjs
+  ERROR   [carry-990004.json] carry: issue 990004 already has a live roster group (wave-probe-groups.json PROBE-G1), whose `brief` is that stage's destination. Two destinations is the failure this file replaces: carry it to the group instead.
+  -- 1 error(s), 0 warning(s)
+
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+rc=0
+$ node tools/policy/rules_sync.mjs --check
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+$ python3 -I tools/audit/seat/tmp_paths.py --check
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 52f698905868
+rc=0
+$ python3 tests/structure.py
+  ok   methods_over_200 9 <= 9
+  ok   seam_cut_total 752 <= 752
+
+STRUCTURE RATCHET PASSED
+rc=0
+$ python3 tests/closure.py select --diff 52f698905868c9140ed213ea542c44053fca7096 --workdir /Users/timmalmstrom/hpo-seats/r10s3/review-2374/wt
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+rc=0
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+$ version/claims diff:
+       0
+dev/governance/dimensions/D15.md                  37   37      690   690 
+Architecture score: dS +0.0000 NULL

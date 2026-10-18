@@ -1,0 +1,16 @@
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:57:54.9497645Z  * [new branch]          handoff-body/pr-contract-closing-keyword -> origin/handoff-body/pr-contract-closing-keyword
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:57:54.9778105Z  * [new branch]          handoff/pr-contract-closing-keyword -> origin/handoff/pr-contract-closing-keyword
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:57:55.0540075Z  * [new tag]             archive/fix/ci-budget-rerecord -> archive/fix/ci-budget-rerecord
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:57:55.0585916Z  * [new tag]             archive/handoff-body/r9-ci-1-autofix-skip -> archive/handoff-body/r9-ci-1-autofix-skip
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:57:55.0865521Z  * [new tag]             archive/handoff/r9-ci-1-autofix-skip -> archive/handoff/r9-ci-1-autofix-skip
+pr-contract	Check the body against the contract	2026-10-18T03:58:02.7251825Z   record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: none
+pr-contract	Pre-flight the body for unmeasured claims	2026-10-18T03:58:02.8019470Z ^[[36;1m# closing keyword; never = a roster `issues` number no group names in^[[0m
+---
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:58:19.1272426Z  * [new branch]          handoff-body/pr-contract-closing-keyword -> origin/handoff-body/pr-contract-closing-keyword
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:58:19.1338104Z  * [new branch]          handoff/pr-contract-closing-keyword -> origin/handoff/pr-contract-closing-keyword
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:58:19.1612434Z  * [new tag]             archive/fix/ci-budget-rerecord -> archive/fix/ci-budget-rerecord
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:58:19.1629118Z  * [new tag]             archive/handoff-body/r9-ci-1-autofix-skip -> archive/handoff-body/r9-ci-1-autofix-skip
+pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-18T03:58:19.1733997Z  * [new tag]             archive/handoff/r9-ci-1-autofix-skip -> archive/handoff/r9-ci-1-autofix-skip
+pr-contract	Check the body against the contract	2026-10-18T03:58:27.0737690Z   record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: none
+pr-contract	Pre-flight the body for unmeasured claims	2026-10-18T03:58:27.1494993Z ^[[36;1m# closing keyword; never = a roster `issues` number no group names in^[[0m
+---
