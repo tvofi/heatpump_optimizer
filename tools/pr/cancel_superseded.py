@@ -165,7 +165,9 @@ def self_test() -> int:
           ids(runs=[_r(OLD, OLD_SHA, status="completed")]), [])
     check("a newer head's run (higher id) is never cancelled",
           ids(runs=[_r(NEW + 7, "c" * 40)]), [])
-    check("a run on main as the caller's branch cancels nothing", ids(branch="main"), [])
+    check("a caller on a branch named main cancels nothing, though main has older runs",
+          ids(branch="main", runs=[_r(OLD, OLD_SHA, branch="main"),
+                                   _r(OLD_DISPATCH, OLD_SHA, "workflow_dispatch", branch="main")]), [])
     # The live-head check: a run whose head is no longer the pull request's.
     check("stale head: a run that is not on the live head cancels nothing",
           ids(pr=_pr(sha="d" * 40)), [])
