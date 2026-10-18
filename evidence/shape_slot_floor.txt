@@ -1,0 +1,42 @@
+== b0 
+RESULT implementations=4 count
+    coordinator._solve_anchor:2285  now.replace(minute=now.minute // step * step, second=0, microsecond=0)
+    pump_arbiter._step_start:520  now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    pump_arbiter._observe:891  now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    tariff._window_slot:46  (midnight + timedelta, fold restored)
+RESULT driven=3 count
+RESULT probes=10 count
+RESULT disagreeing_probes=0 count
+RESULT disagreeing_probe_labels=-
+== b0 --perturb
+RESULT implementations=4 count
+    coordinator._solve_anchor:2285  now.replace(minute=now.minute // step * step, second=0, microsecond=0)
+    pump_arbiter._step_start:520  now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    pump_arbiter._observe:891  now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    tariff._window_slot:46  (midnight + timedelta, fold restored)
+  DISAGREE autumn 02:07 fold1: tariff._window_slot(.,15) -> 2026-10-25T02:00:00+02:00 fold=0 ts=1792886400 | coordinator._solve_anchor -> 2026-10-25T02:00:00+01:00 fold=1 ts=1792890000 | pump_arbiter._step_start -> 2026-10-25T02:00:00+01:00 fold=1 ts=1792890000
+  DISAGREE autumn 02:59:59.9 fold1: tariff._window_slot(.,15) -> 2026-10-25T02:45:00+02:00 fold=0 ts=1792889100 | coordinator._solve_anchor -> 2026-10-25T02:45:00+01:00 fold=1 ts=1792892700 | pump_arbiter._step_start -> 2026-10-25T02:45:00+01:00 fold=1 ts=1792892700
+RESULT driven=3 count
+RESULT probes=10 count
+RESULT disagreeing_probes=2 count
+RESULT disagreeing_probe_labels=autumn 02:07 fold1,autumn 02:59:59.9 fold1
+== m0 
+RESULT implementations=3 count
+    coordinator._solve_anchor:2285  now.replace(minute=now.minute // step * step, second=0, microsecond=0)
+    pump_arbiter._step_start:508  now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    tariff._window_slot:46  (midnight + timedelta, fold restored)
+RESULT driven=3 count
+RESULT probes=10 count
+RESULT disagreeing_probes=0 count
+RESULT disagreeing_probe_labels=-
+== m0 --perturb
+RESULT implementations=3 count
+    coordinator._solve_anchor:2285  now.replace(minute=now.minute // step * step, second=0, microsecond=0)
+    pump_arbiter._step_start:508  now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    tariff._window_slot:46  (midnight + timedelta, fold restored)
+  DISAGREE autumn 02:07 fold1: tariff._window_slot(.,15) -> 2026-10-25T02:00:00+02:00 fold=0 ts=1792886400 | coordinator._solve_anchor -> 2026-10-25T02:00:00+01:00 fold=1 ts=1792890000 | pump_arbiter._step_start -> 2026-10-25T02:00:00+01:00 fold=1 ts=1792890000
+  DISAGREE autumn 02:59:59.9 fold1: tariff._window_slot(.,15) -> 2026-10-25T02:45:00+02:00 fold=0 ts=1792889100 | coordinator._solve_anchor -> 2026-10-25T02:45:00+01:00 fold=1 ts=1792892700 | pump_arbiter._step_start -> 2026-10-25T02:45:00+01:00 fold=1 ts=1792892700
+RESULT driven=3 count
+RESULT probes=10 count
+RESULT disagreeing_probes=2 count
+RESULT disagreeing_probe_labels=autumn 02:07 fold1,autumn 02:59:59.9 fold1
