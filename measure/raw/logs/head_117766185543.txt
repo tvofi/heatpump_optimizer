@@ -1,0 +1,60 @@
+﻿2026-10-18T19:22:14.1048299Z Current runner version: '2.337.0'
+2026-10-18T19:22:14.1075765Z ##[group]Runner Image Provisioner
+2026-10-18T19:22:14.1076761Z Hosted Compute Agent
+2026-10-18T19:22:14.1077451Z Version: 20261012.601
+2026-10-18T19:22:14.1078267Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-18T19:22:14.1079153Z Build Date: 2026-10-12T17:48:21Z
+2026-10-18T19:22:14.1080129Z Worker ID: {d1f279e6-6f57-4f2c-9879-c099ea17c8ab}
+2026-10-18T19:22:14.1081200Z Region: eastus
+2026-10-18T19:22:14.1081868Z Cloud: Azure
+2026-10-18T19:22:14.1082633Z ##[endgroup]
+2026-10-18T19:22:14.1084271Z ##[group]Operating System
+2026-10-18T19:22:14.1085132Z Ubuntu
+2026-10-18T19:22:14.1085841Z 24.04.5
+2026-10-18T19:22:14.1086475Z LTS
+2026-10-18T19:22:14.1087193Z ##[endgroup]
+2026-10-18T19:22:14.1087953Z ##[group]Runner Image
+2026-10-18T19:22:14.1088731Z Image: ubuntu-24.04
+2026-10-18T19:22:14.1089542Z Version: 20261012.334.1
+2026-10-18T19:22:14.1091331Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-18T19:22:14.1093449Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-18T19:22:14.1094715Z ##[endgroup]
+2026-10-18T19:22:14.1096212Z ##[group]GITHUB_TOKEN Permissions
+2026-10-18T19:22:14.1098406Z Contents: read
+2026-10-18T19:22:14.1099208Z Metadata: read
+2026-10-18T19:22:14.1099912Z ##[endgroup]
+2026-10-18T19:22:14.1102426Z Secret source: Actions
+2026-10-18T19:22:14.1103486Z Cache mode: write
+2026-10-18T19:22:14.1104603Z Prepare workflow directory
+2026-10-18T19:22:14.1461134Z Prepare all required actions
+2026-10-18T19:22:14.1516070Z Getting action download info
+2026-10-18T19:22:14.3192966Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-18T19:22:14.4558980Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-18T19:22:14.6276707Z Download action repository 'actions/cache@caa296126883cff596d87d8935842f9db880ef25' (SHA:caa296126883cff596d87d8935842f9db880ef25)
+2026-10-18T19:22:14.9298235Z Complete job name: closure-scope
+2026-10-18T19:22:14.9903799Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-18T19:22:14.9904621Z with:
+2026-10-18T19:22:14.9904955Z   fetch-depth: 0
+2026-10-18T19:22:14.9905327Z   repository: tvofi/heatpump_optimizer
+2026-10-18T19:22:14.9908276Z   token: ***
+2026-10-18T19:22:14.9908633Z   ssh-strict: true
+2026-10-18T19:22:14.9908980Z   ssh-user: git
+2026-10-18T19:22:14.9909333Z   persist-credentials: true
+2026-10-18T19:22:14.9909711Z   clean: true
+2026-10-18T19:22:14.9910068Z   sparse-checkout-cone-mode: true
+2026-10-18T19:22:14.9910486Z   fetch-tags: false
+2026-10-18T19:22:14.9910988Z   show-progress: true
+2026-10-18T19:22:14.9911346Z   lfs: false
+2026-10-18T19:22:14.9911686Z   submodules: false
+2026-10-18T19:22:14.9912046Z   set-safe-directory: true
+2026-10-18T19:22:14.9912444Z   allow-unsafe-pr-checkout: false
+2026-10-18T19:22:14.9913036Z ##[endgroup]
+2026-10-18T19:22:15.0736832Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-18T19:22:15.0738718Z ##[group]Getting Git version info
+2026-10-18T19:22:15.0739406Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-18T19:22:15.0740427Z [command]/usr/bin/git version
+2026-10-18T19:22:15.0802504Z git version 2.55.0
+2026-10-18T19:22:15.0814755Z ##[endgroup]
+2026-10-18T19:22:15.0823340Z Temporarily overriding HOME='/home/runner/work/_temp/222743c0-9bea-4578-8a0d-63dbaf0bc632' before making global git config changes
+2026-10-18T19:22:15.0825143Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-18T19:22:15.0840216Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
