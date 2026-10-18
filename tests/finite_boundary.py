@@ -1289,6 +1289,46 @@ def _store_rules_arm(by_name) -> None:
     )
     print(f"RESULT store_non_mapping_raises={len(raised)} count")
 
+    # A stored key spelled like a trie declaration ("" holds a leaf's Domain,
+    # "~" a map key's) is data: one corrupt leaf so keyed must not raise out
+    # of the load and drop the whole store, here or in a store embedding it
+    # (#2375's review). store_fuzz never generates the shape.
+    iso = "2026-01-01T12:00:00+00:00"
+    acc_key, acc_healthy = by_name["accuracy"]
+    snap_key = by_name["snapshots"][0]
+    shapes = {
+        '"" key at an instant leaf': lambda a: a.__setitem__("samples", [{"t": {"": iso}}]),
+        '"" key holding a list': lambda a: a.__setitem__("samples", [{"t": {"": [iso]}}]),
+        '"~" key holding an instant': lambda a: a.__setitem__("lead_sigma", {"~": iso}),
+    }
+    lost = []
+    for label, corrupt in shapes.items():
+        doc = json.loads(json.dumps(acc_healthy))
+        corrupt(doc["accuracy"])
+        ring = {"snapshots": [{"taken_at": iso, "healthy": True,
+                               "learners": {"accuracy": doc["accuracy"]}}]}
+        for key, payload, kept in (
+            (acc_key, doc, lambda c: len(c._peak_tracker.peaks) == len(acc_healthy["peaks"]["peaks"])),
+            (snap_key, ring, lambda c: len(c._snapshot_ring.snapshots) == 1),
+        ):
+            _storage._DISK.clear()
+            _storage._DISK[key] = json.dumps(payload)
+            coord = _build_coord()
+            try:
+                asyncio.run(LOADERS[_store.store_name(key)](coord))
+            except Exception as exc:  # noqa: BLE001 - the escape is the finding
+                lost.append(f"{label} in {_store.store_name(key)}: {type(exc).__name__}")
+                continue
+            if not kept(coord):
+                lost.append(f"{label} in {_store.store_name(key)}: the store was dropped")
+    _storage._DISK.clear()
+    R.check(
+        'a stored "" or "~" key is data, not a step into the declaration: '
+        "the store and an embedding one still load",
+        not lost and len(acc_healthy["peaks"]["peaks"]) == 2,
+        f"lost={lost}",
+    )
+
     async def _digest_run() -> list:
         st = QuarantiningStore(None, 1, f"{const.DOMAIN}_{ENTRY_ID}_digest_probe")
         key = st._store_key
