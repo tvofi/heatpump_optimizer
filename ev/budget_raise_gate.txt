@@ -1,0 +1,12 @@
+Complete job name: budget-raise-gate
+ * [new branch]          handoff-body/r10-mandate-raise-rule -> origin/handoff-body/r10-mandate-raise-rule
+ * [new branch]          handoff/r10-mandate-raise-rule -> origin/handoff/r10-mandate-raise-rule
+ * [new tag]             archive/bus/approvals       -> archive/bus/approvals
+[36;1m# which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.[0m
+[36;1mtest -f .claude/workflows/budget_raise_gate.py || test -f tools/policy/budget_raise_gate.py[0m
+[36;1mif test -f .claude/workflows/budget_raise_gate.py; then[0m
+[36;1m  python3 -I .claude/workflows/budget_raise_gate.py \[0m
+[36;1m  python3 -I tools/policy/budget_raise_gate.py \[0m
+RAISE tests/stress_budgets.json: coverage_floor_override.calls_floor: None -> 6 (a pinned value the gate cannot sign as routine)
+RAISE tests/stress_budgets.json: coverage_floor_override.floor: override added at 18 (absent is the strict state)
+RESULT budget_raises=2 count

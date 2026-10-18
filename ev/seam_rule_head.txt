@@ -1,0 +1,12 @@
+166:def _flow_curve_values(config: Mapping[str, Any], cop_flow_carnot: bool) -> dict[str, Any]:
+181:        "flow_curve_cop": enabled and not cop_flow_carnot,
+398:    cop_flow_carnot: bool = False
+403:    #: with ``cop_flow_carnot``; a valve's tank temperature is the flow there.
+1057:        values["cop_flow_carnot"] = mixing_valve.is_throttling(
+1060:        values.update(_flow_curve_values(config, values["cop_flow_carnot"]))
+2042:        (``cop_flow_carnot``), where the tank temperature is the flow. On a
+2055:        if not self.params.cop_flow_carnot:
+2176:        ``cop_flow_carnot`` gate inside :meth:`compute_cop` makes the derate
+2206:        One law for both plants (D2-s2-01). ``cop_flow_carnot`` is a
+3352:        if flow_carnot_eligible and p.cop_flow_carnot:
+3376:        elif p.flow_curve_cop and not p.cop_flow_carnot:

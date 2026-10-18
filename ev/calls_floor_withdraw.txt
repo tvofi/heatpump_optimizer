@@ -1,0 +1,2 @@
+with calls_floor=10: (18, 10, 'r')  withdrawn: (18, 7, 'r')
+gate file_raises(withdraw 10): []

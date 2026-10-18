@@ -1,0 +1,4 @@
+STRUCTURE RATCHET PASSED
+budget_raise_gate self-test: 239 checks, 0 failed
+Architecture score: dS +0.0000 NULL
+claims hygiene: origin/main ok
