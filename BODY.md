@@ -1,0 +1,135 @@
+R10-SAV-BASELINE. Closes #2255, the owner's savings items 1, 2 and 5 (tvofi, 2026-10-14): September at 81 % saved against a plain thermostat, an October estimate with a baseline below the actual, and a receipt total that disagreed with the month table's Actual.
+
+**Item 1, the baseline.** The settlement books `baseline_power_schedule[i]` from the plan covering each interval. That figure was the thermostat's first step, and the thermostat started from the plan's measured house. So it booked the recovery transient: 6.00 kW (the clip) whenever the optimiser had left the house below target, and 0.00 kW at or above it. A month of such first steps is the transient's month, not a thermostat's. `_compute_baseline_power` now starts from `_thermostat_held_state`: zones at the step's comfort target, slab at the temperature that delivers that demand. The booked step is then the steady holding power whatever the plan did before. Starting the reference held while the plan starts measured leaves the two with different stored heat at the start, as they already differ at the end. `_start_gap_cost` settles the start gap the same way `_deferred_energy_cost` settles the end gap, and the caller nets it off. A pre-heated start is debited past the end's comfort caps, because the plan coasts on that heat, but by no more than the thermostat's space-heat cost over the horizon (on the hot-water path, the space reference's share of `baseline_cost`): stored house heat displaces only space-heat purchases that exist. Without the start settlement, a plan starting below band read as losing money for buying its own heat back.
+
+**Item 2, the open month.** It was scaled by the calendar day (`days / day-of-month`), so an install that settled 24 hours of February was scaled as if it had run ten days. It now scales by the month's hours over the hours it settled (`settled_hours`, a ledger meta folded on every settlement, priced or not). The capacity line is a whole-month figure (the running billed peak) and is not extrapolated.
+
+**Item 5, one cost source.** The receipt's total summed the billed lines; the table's Actual was `savings_actual`, a second accumulation that dropped every interval no plan covered and every line but spot. The row's `actual_sek` is now `MonthlyLedger.month_cost`, the same `billed_total` over the same lines the receipt adds. `savings_sek` is thermostat less plan over the covered intervals, both priced at spot plus the interval's grid fee. `baseline_sek` is the bill plus that saving, so the lines no thermostat model prices (capacity, wear, uncovered intervals) are held equal on both sides. `_contract_comparison` reads the ledger's `metered_energy` instead of adding spot and immersion itself.
+
+**What R10-SCORES and R10-ADVISOR read after this.** For each `savings_months` row:
+- `actual_sek` is the month's bill (the receipt total, every billed line).
+- `savings_sek` is thermostat minus plan over intervals a plan covered, at spot plus the grid fee.
+- `baseline_sek` is `actual_sek + savings_sek`.
+- The open row is scaled by the month's hours over its settled hours, with capacity unscaled.
+
+`predicted_savings` and `deferred_energy_cost` are settled at both ends of the horizon (`deferred_energy_cost` is end gap less start gap). One view of savings: `ledger.savings_months` for months, the plan's `predicted_savings` for the horizon. No second computation of either.
+
+**The flat-price null control does not read about 0, and this pull request does not redefine the baseline to make it.** On a flat price, with the plant equal to the model, the month row reads 10.83 % saved at the head and 43.66 % at the merge base. The cause is measured: the plan holds the house at a mean 18.79 °C (18.75 °C at the base) against a mean comfort target of 20.44 °C. That is comfort traded for money, which a thermostat at the comfort schedule cannot match, not a pricing or accounting error. The transient that made up most of the base figure is gone (booked thermostat energy 203.6 kWh at the base, 128.4 kWh at the head, plan 114.5 kWh). A comfort-matched baseline is carried to O13 (orchestrator's ruling, under the r10 owner grant). Carry: O13.
+
+**A known limit of the start bound, measured.** `summer_dhw_only` reads -12.74 % predicted savings at the head (-3.17 % on main; -0.27 SEK on a 2.09 SEK reference). The summer house starts above the end's comfort caps, and the thermostat's space-heat cost over that horizon still exceeds the surplus, so the debit is not bounded away. Settled at the caps alone this fixture read 1.95 %, but that read the away-setback fixture at 60.71 %. Carried to O13 beside the comfort-matched baseline, since both turn on what the reference is credited with.
+
+## Head
+
+d2220949d3e35b8fe3bfb6a24e981409154282b7
+
+Merge base dc8aa807f. Main-merge catch-ups: 3 (42e6dedb2, 3fb386d50, then dc8aa807f). None touched optimizer.py, ledger.py or the #2255 seams of coordinator.py; the third brought only delivery-row records. Where each figure was measured:
+- The harness arms: c1a6598ce. The production code it drives (`ledger.py`, `_compute_baseline_power`, the booked step) is unchanged since; the later commits touch only the start settlement's bound.
+- The mutation table and the site mutants: production code of e86c2085d, which is the head's. The site mutants were run with the head's `tests/features.py`. The head adds only checks after e86c2085d.
+- The golden drift with the claims: 09d3fe38f. Since then the production diff is the start bound's docstring and the main merges.
+- `tests/optimality.py` at the merge base and at be2cac624 (production code equal to the head's).
+
+## Mutation proof
+
+`dev/audit/harnesses/r10_sav_baseline_mutants.py` applies each mutant to a scratch copy of e86c2085d, runs the #2255 checks (the `3L-G7` savings section of `tests/features.py`), and restores. Every mutant replaces a predicate of the fix. All 16 are killed.
+- M0, unmutated: 0 failing.
+- M1, the thermostat starts from the plan's state (`state = initial_state`): 5 failing. `the booked thermostat step is independent of the plan's start state` (single-zone `[0.0, 6.0, 6.0, 0.0]`; two-zone, DHW), `the booked thermostat step is the steady holding power at target`, and `the predicted saving moves less with the start state than the plan's cost` (single-zone; two-zone, DHW).
+- M2, the held slab without its demand term: 4 failing. Both `independent of the plan's start state` checks (`[6.0, 6.0, 6.0, 6.0]`), `the steady holding power at target`, and `a start colder than the held house is settled at the caps, with no surplus to debit`.
+- M3, the row's actual from `savings_actual`: 5 failing. `open month scales the bill and the saving by one factor`, `a closed month is unscaled; nothing saved reads baseline == actual == bill`, `the closed month's actual is the receipt's total, not a second sum`, `the open month scales by the month's hours over the hours it settled`, `the capacity line is a month figure already and is not extrapolated`.
+- M4, the coverage factor back to the calendar day: 3 failing. `the open month scales by the month's hours over the hours it settled`, `the capacity line is a month figure already and is not extrapolated`, `a month that settled more hours than it has is never scaled down`.
+- M5, the saving priced at spot alone: 1 failing. `the saving prices both sides at spot plus the grid fee, covered intervals only`.
+- M6, capacity extrapolated: 2 failing. The first two of M4's three.
+- M7, metered energy without immersion: 1 failing. `the ledger's metered energy is spot plus immersion, the one energy figure`.
+- M8, settled hours never folded: 3 failing. The same three as M4.
+- M9, no start settlement on the space path: 1 failing. `the predicted saving moves less with the start state than the plan's cost (single-zone)` (savings `[17.87, 9.61, -0.21, 28.43]`).
+- M10, the start debit unbounded: 3 failing. `with a thermostat that buys nothing, the start is settled at the caps`, `between the two, the debit past the caps stops at the thermostat's cost`, `a negative thermostat cost (negative prices) never turns the debit into a credit`.
+- M11, the start settled at the caps only: 2 failing. `with demand to displace, the pre-heated start is debited past the caps`, `between the two, the debit past the caps stops at the thermostat's cost`.
+- M12, the hot-water path bounds the start by `baseline_cost`: 1 failing. `the hot-water path bounds the start debit by the space reference's cost, not the tank's`.
+- M13, the coverage factor without its floor of 1: 1 failing. `a month that settled more hours than it has is never scaled down`.
+- M14, a negative thermostat cost unclamped: 1 failing. `a negative thermostat cost (negative prices) never turns the debit into a credit`.
+- M15, the start surplus unclamped: 1 failing. `a start colder than the held house is settled at the caps, with no surplus to debit`.
+- M16, the held slab allowed below target: 1 failing. `with no demand at the held target the slab sits at the target, not below it`.
+
+Three existing checks change, each because the fix changed what they measure:
+- `with a pending baseline both savings lines move` in `tests/features.py` now expects spot plus the grid fee (5.0 and 2.5 SEK where spot alone gave 4.0 and 2.0).
+- R9-F2.3 D2-s2-03's spy on `_deferred_energy_cost` kept the last call. The start settlement now calls that function after the end settlement, so the spy keeps the first call, the end's.
+- `tests/optimality.py`'s `_CERT_CLAIMS` loses the two #1294 entries the held baseline closed. Base gaps: summer_negative re-polish +5.04 %, ladder +9.96 %; winter_narrow ladder +0.70 %. Head: 0.0000 % for all three. The baseline energy seeds the solver's anchor starts, so a steady reference seeds better basins. `one|shoulder|winter_cold` stays claimed.
+
+## Null control
+
+`dev/audit/harnesses/r10_sav_baseline.py` at the merge base 42e6dedb2 and at c1a6598ce. Four arms; base: 4 defect, head: 1 defect (`null`).
+- transient: booked first step across four start states. Base 0.00, 6.00, 6.00, 0.00 kW (spread 6.00); head 2.06 kW for all four (spread 0.00).
+- cost: receipt total 15.0 SEK; row actual 3.0 at the base, 15.0 at the head.
+- coverage: 24 settled hours of 672; open-row scale 2.80 at the base, 28.00 at the head.
+- null (flat price, plant equal to the model, 2 days, re-plan hourly): base 43.66 % saved (thermostat 203.6 kWh, plan 114.7 kWh, house 18.75 °C mean against a 20.44 °C mean comfort target); head 10.83 % (thermostat 128.4 kWh, plan 114.5 kWh, house 18.79 °C against 20.44 °C). Reads `DEFECT` at both ends against its 3 % threshold. The residual is the comfort trade above, carried to O13.
+
+The predicted-savings consequence of the held start, measured with the golden matrix (`GOLDEN_MODE=drift`). `savings_percentage` at main, then with the start settled at the caps alone, then uncapped, then with the bound this branch ships:
+- away_setback: 34.18, 60.71, 29.09, 29.09
+- start_above_band: 56.58, 61.03, 45.00, 45.00
+- summer_dhw_only: -3.17, 1.95, -12.74, -12.74
+- start_below_band: 23.73, 24.58, 24.58, 24.58
+
+The capped and uncapped arms were measured on a scratch tree. The shipped values are those claimed in `tests/golden/claimed_drift.txt`.
+
+## Figures
+
+- `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_baseline.py`: every arm figure in `## Null control`, at c1a6598ce and at the merge base.
+- `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_baseline_mutants.py .`: the mutation table, M0 to M16, failing counts and names as printed.
+- `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/golden.py`: before the claims, 50 unclaimed drifts, and the five `coord_*` captures byte-identical to main. With the claims, at 09d3fe38f: `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `NO STALE FIXTURE: 56 committed fixture(s)`. The 112 leaf values printed for the claimed fixtures are identical before (3832613b9) and after (09d3fe38f) the hot-water bound change. Not re-run after the second main merge (CI's `env_drift` re-checks it). The 50 claimed fixtures are each moved `baseline_cost`, with the direction per fixture in the claim line. Of these, 19 carry a suspended may-drift entry, each with its restore note. One fixture outside may-drift lands in another basin: `valve_storage_low_target`, plan cost 61.91 → 61.05 SEK, because `baseline_energy` seeds three solver starts.
+- `PYTHONPATH=tests/hastub python3 tests/structure.py`: against the merge base 3fb386d50, class_excess_loc 18368 → 18302, max_class_loc 8547 → 8544, seam_cut_total 720 → 719. All improved and recorded; the reasons are in the messages of commits c1a6598ce and 6b191f504.
+  - The payment is the thermostat reference's pure physics (`_floor_demand_at_target`, `_thermostat_held_state`, `_baseline_target`, `_thermostat_demand_single`, `_thermostat_demand_two_zone`). These read nothing of the optimiser but its model, so they left `HeatPumpOptimizer` for module scope, and the two demand functions now share one floor-demand helper.
+  - No raise.
+- `python3 tools/audit/archscore/score.py --diff 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8`: `Architecture score: dS +0.0006 IMPROVES` (coord_footprint 2506 → 2505).
+- `python3 tests/closure.py select --diff 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8 --workdir <dir>`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`
+  - Run locally green at 6b191f504 (17): `backtest`, `edge`, `validate`, `block_duty`, `manual_plan`, `plan_view`, `solar_alignment`, `wood_advisor`, `finite_boundary`, `guard_pins`, `boost_drift_replay`, `typing_ruler`, `doc_claims`, `deployment_shape`, `config_flow_steps`, `debug_collect`, `arch_score_head`; plus `golden` and `env_drift` through the drift run.
+  - Left to CI (tvofi 2026-10-07 and 2026-10-18): `features`, `entities`, `stress`, `optimality`, `structure`, `harness_headers`, `card.mjs`, `card_drift.mjs`. Locally, two `tests/features.py` blocks passed at d2220949d. The `3L-G7` savings section with the #2255 checks: `ALL 33 ... PASSED`. The R9-F2.3 block holding D2-s2-03: `ALL 22 ... PASSED`. The full script's last local run, at be2cac624, failed only the two D2-s2-03 checks the spy fix repairs.
+- `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused, 0 stale allow entries`.
+
+Seams of the class: the savings figures have three producers, and each is dispositioned here.
+- `ledger.savings_months`: closed in this diff.
+- `freeze_month_report` (the receipt): unchanged, now the same total.
+- `_contract_comparison`: closed in this diff, reads `metered_energy`.
+- The thermostat reference has one producer, `_compute_baseline_power`, for both the ledger's booked step and the plan's `baseline_cost`, closed in this diff; `tests/backtest.py`'s replay reads the same function and stays reconciled (green).
+- `_baseline_house_load`, named in the group's seams: audited. It is the non-pump house load used by the fuse caps and PV surplus, not a savings input, and it is unchanged.
+- narrative.py has no month summary. The month figures it might have carried are the ledger's (`month_summary`, `month_cost`), so it is unchanged.
+
+## Unpinned sites
+
+`ci_predict` lists 22 sites the diff adds with no pin. Each was mutated on a scratch copy of e86c2085d (`probe/sites.py`, the same section run as the table above). A crash counts as a kill, because features.py then exits non-zero; each crash's exception is quoted from that run. Killed sites are pinned by `mutation-autofix` when CI's mutation job records them.
+- custom_components/heatpump_optimizer/ledger.py:68 RETURN_DEL: killed (TypeError: None in the coverage division). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/ledger.py:186 CMP_BOUND: survivor, triaged equivalent. `dt >= 0` also folds a zero-length interval. `_coverage_factor` reads only the meta's `sum`, so adding 0.0 to it changes nothing. A zero `dt` is the only value the mutant admits.
+- custom_components/heatpump_optimizer/ledger.py:186 GUARD_OFF: killed, 3 failing (M8's three). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/ledger.py:242 BOOLOP: killed (TypeError: `math.isfinite` handed None). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/ledger.py:304 RETURN_DEL: killed (TypeError: None in a subtraction). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/ledger.py:314 CMP_BOUND: killed (ZeroDivisionError at zero settled hours). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/ledger.py:314 GUARD_OFF: killed, 3 failing. Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/ledger.py:315 CLAMP_DROP: killed by M13. Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/ledger.py:316 RETURN_DEL: killed (TypeError: the meta-less month's factor is None). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:278 BOOLOP: killed by the new edge check (IndexError past a one-step schedule). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:278 CMP_BOUND: killed by the same edge check (the same IndexError). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:278 GUARD_OFF: killed, 3 failing. Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:280 RETURN_DEL: killed, 1 failing (the edge check). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:298 GUARD_OFF: killed, 1 failing. `the held house at the booked power is a steady state of the plant model` sees the two-zone terms drift a single-zone room 0.06 K. Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:303 RETURN_DEL: killed, 1 failing (the same steady-state check: the deleted return falls through to the two-zone terms). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:309 RETURN_DEL: killed (TypeError: None compared with a float). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:322 GUARD_OFF: killed by the edge check (IndexError on the empty weather). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:324 BOOLOP: survivor, triaged equivalent up to the exception's type. With both series present both forms pass. With either one None, the original raises AssertionError and the mutant passes to the `float(...[0])` on line 327, which raises TypeError. No value differs, so no check can pin it.
+- custom_components/heatpump_optimizer/optimizer.py:335 CLAMP_DROP: killed by M16. Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:5325 CLAMP_DROP: killed by M15. Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:5326 CLAMP_DROP*2: killed by M10 (the outer `min`) and M14 (the inner `max`). Pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/optimizer.py:5326 RETURN_DEL: killed (TypeError: None in a subtraction). Pinned by mutation-autofix.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+- O13, the comfort-matched baseline (orchestrator's brief): the flat-price residual and its measured cause above, and the `summer_dhw_only` start-bound limit.
+- R10-SCORES and R10-ADVISOR, roster `dev/programme/rosters/wave-r10-groups.json`, carry appended by the orchestrator: read the row semantics in "What R10-SCORES and R10-ADVISOR read after this".
+- The stamp (`tools/release/stamp.py` / web-stamp): restore the 19 suspended may-drift entries verbatim when the stamp empties the claim list. The obligation is written beside each entry in `tests/golden/claimed_drift.txt`, as R8-P3 did for `wood_coil`.
+
+## Friction
+
+- golden-claims: cost: baseline_cost is a judged key that no may-drift entry can excuse, and a name cannot be both claimed and may-drift. Moving every plan fixture's reference therefore suspends 19 standing may-drift entries by hand, and their restore depends on whoever stamps reading a comment.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
