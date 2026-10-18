@@ -2747,10 +2747,18 @@ R.check(
     "_liquid_fraction" in _s2_mod_fns and "_liquid_fraction" not in _s2_cls_fns,
     f"module={'_liquid_fraction' in _s2_mod_fns} class={'_liquid_fraction' in _s2_cls_fns}",
 )
+# The solve's anchor left the class at S2 and left coordinator.py at
+# R10-PUMP-MODEL (#2365 review): it is the plan step's floor, which the pump
+# arbiter reads too, so one leaf module owns it -- plan_step.plan_step_start.
+import heatpump_optimizer.plan_step as _s2_plan_step  # noqa: E402
 R.check(
-    "_solve_anchor is a module-level FunctionDef, not a class method",
-    "_solve_anchor" in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns,
-    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
+    "the solve anchor is plan_step.plan_step_start, outside the coordinator "
+    "class and its module, and the coordinator reads that one function",
+    "_solve_anchor" not in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns
+    and "plan_step_start" not in _s2_cls_fns
+    and coordinator_module.plan_step_start is _s2_plan_step.plan_step_start,
+    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns} "
+    f"same={getattr(coordinator_module, 'plan_step_start', None) is _s2_plan_step.plan_step_start}",
 )
 
 # S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
@@ -3878,6 +3886,42 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
+        # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
+        # #2365's review): which plan step an instant falls in. One concern --
+        # the optimizer's plan step covering now -- read by the solve's anchor
+        # and by the pump arbiter's ledger row and silent-window lookup, so one
+        # owner on one width: plan_step.plan_step_start on PLAN_STEP_MINUTES.
+        # It was spelled three times: coordinator._solve_anchor on
+        # FORECAST_STEP_MINUTES, pump_arbiter._step_start on a literal 15, and
+        # _observe inline. The other hits are different rules, each driven
+        # against the owner on the same probes by
+        # dev/audit/harnesses/r10_slot_floor_twins.py, whose own precondition
+        # is that the driven set is the enumerated one.
+        dict(fact="slot_floor_rule", finding="D7-s3-8x-slotfloor",
+             match=_p2_match_node(
+                 (ast.BinOp,), r"\.minute",
+                 lambda n: isinstance(n.op, (ast.FloorDiv, ast.Mod))
+                 and ".minute" in ast.unparse(n)),
+             owners=["plan_step.py::plan_step_start"],
+             dispositions={
+                 "tariff.py::_window_slot":
+                     "the METERING window, a different rule: anchored at local "
+                     "midnight so a 90/120-minute DSO window advances the hour, "
+                     "with ``fold`` restored so the autumn hour's two passes "
+                     "keep two keys. Same reading only for windows that divide "
+                     "the hour -- the twins harness's --perturb (the fold "
+                     "dropped) reads 2 of 10 probes apart, and both are the "
+                     "autumn folds",
+                 "optimizer.py::HeatPumpOptimizer._window_offset_steps":
+                     "the metering window's PHASE, not its start: steps from "
+                     "now to the DSO's next boundary, the same modulo asked for "
+                     "a distance where tariff._window_slot's anchor is the "
+                     "instant itself",
+                 "price_model.py::PriceShapeModel.quarter_factor":
+                     "an index INTO a learned quarter-hour profile, not a "
+                     "floored instant: it returns a slot number between 0 and "
+                     "QUARTERS_PER_HOUR, and no datetime at all",
+             }),
     ]
 
 
@@ -4015,6 +4059,11 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
+_P2_PLANTS["slot_floor_rule"] = (
+    "\n\ndef _p2_plant(now):\n"
+    "    return now.replace(minute=now.minute - now.minute % 15,"
+    " second=0, microsecond=0)\n"
 )
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
