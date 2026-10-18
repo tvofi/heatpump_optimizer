@@ -18,7 +18,7 @@ After this merges, an open PR's `pr-contract` re-runs on its next push or body e
 
 ## Head
 
-`269a8dfd454aec568a67563ed97844f27184ffdd` (on #2404's head `5cf5786b9`, with origin/main merged in, 2026-10-18). Commits `71a7b6294` and `269a8dfd4` answer the review that blocked `5cf5786b9`. A marker's item id now counts only as `(item <id>)` inside that marker's own segment, so a quoted refusal (`UNROUTED body item <id>`) beside an unrelated marker routes nothing. A `Carry:` inside a code span is now a quoted example, never a marker. A span closes as CommonMark closes one: a backtick run closes only on a run of its own length. prepr's agreement lane refused the first copy, which was the same literal as `tests/entities.py`'s looser span. Each case has a self-test arm with its null control (M12, M13). The reviewer's three probes now read `0 routed, 1 unrouted`. This body passes on its own markers: its `## Red checks` quote of `cb97c3b2` routes nothing. The earlier commit `faf1bf1b1` repaired the two reds below.
+`cb398f3e38b1d6c3eacd3f74a9663a8f2706ad0e` (on #2404's head `354c84a96`, with origin/main `55dc8d9c2` merged in, 2026-10-18). Commits `71a7b6294` and `269a8dfd4` answer the first review, which blocked `5cf5786b9`. Commit `b3a121472` answers the second, which blocked `354c84a96` as mutation-vacuous: each half of the guard is now pinned on its own (M14, M15). A marker's item id now counts only as `(item <id>)` inside that marker's own segment, so a quoted refusal (`UNROUTED body item <id>`) beside an unrelated marker routes nothing. A `Carry:` inside a code span is now a quoted example, never a marker. A span closes as CommonMark closes one: a backtick run closes only on a run of its own length. prepr's agreement lane refused the first copy, which was the same literal as `tests/entities.py`'s looser span. Each case has a self-test arm with its null control (M12-M15). The reviewers' six probes now read `0 routed, 1 unrouted`. This body passes on its own markers: its `## Red checks` quote of `cb97c3b2` routes nothing. The earlier commit `faf1bf1b1` repaired the two reds below.
 
 ## Mutation proof
 
@@ -34,8 +34,10 @@ Each mutant was applied to `tools/audit/carry_audit.py` or `tools/audit/seat/que
 - M8: routing by `(item <id>)` ignored. Red: `an item routed by reference from the body counts as routed`.
 - M9: the trailer filter off. Red: `` `n/a: <reason>` and the attribution trailer are not findings ``.
 - M11: the ledger key matches nothing. Red: `a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not`.
-- M12: the id read anywhere in the item again (the pre-review parser). Red: `a quoted refusal beside an unrelated marker routes nothing (#2404's review)`.
+- M12: the id read anywhere in the item again (the pre-review parser, both guards off). Red: 3 checks, `a quoted refusal beside an unrelated marker routes nothing (#2404's review)` and the M14 and M15 arms.
 - M13: the code-span skip removed. Red: ``a backticked example `Carry:` in a finding's prose does not route it``.
+- M14: the paren form dropped (`ITEM_REF` back to a bare `item <id>`), segment scope kept. Red: ``a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does``.
+- M15: the segment scope dropped (the id read over the whole item text), paren form kept. Red: ``an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing``.
 - M10: `findings_gate` call deleted from `PreFlight.entry`. Red: 4 `queue_pre_flight` checks, including `a body whose Friction finding names no destination PARKs on findings`.
 
 ## Null control
@@ -49,7 +51,7 @@ Each mutant was applied to `tools/audit/carry_audit.py` or `tools/audit/seat/que
 
 ## Figures
 
-- `python3 -I tools/audit/carry_audit.py --self-test`: `carry_audit self-test: 39 checks, 0 failed`.
+- `python3 -I tools/audit/carry_audit.py --self-test`: `carry_audit self-test: 43 checks, 0 failed`.
 - `python3 tools/audit/seat/queue_pre_flight.py --self-test`: `queue_pre_flight self-test: 37 checks, 0 failed`.
 - `python3 tools/audit/seat/merge_train.py --self-test`: `merge_train self-test: 180 checks, 0 failed` (at the base too; before the fake's comments branch was added, head read 2 failed on the two `--pre-flight` checks).
 - `python3 dev/audit/harnesses/r10_carry_sweep_rows.py rows39`: `RESULT rows_caught=33 of=33`. These are the sweep's PR-text UNCARRIED rows; the other six (ledger L14-L16, issues L20/L21, roster L18) are below.
