@@ -37349,7 +37349,7 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
         horizon_hours=24, time_step_minutes=15, target_temp=21.0,
         min_temp=17.0, max_temp=23.0,
     ))
-    _hb_first = []
+    _hb_first, _hb_sav, _hb_cost = [], [], []
     for _hb_room, _hb_slab in ((21.0, 22.0), (20.0, 21.0), (19.0, 20.0), (22.0, 23.5)):
         _hb_plan = _hb_opt.optimize(inputs=solve_inputs(
             initial_state=_HbState(
@@ -37364,12 +37364,26 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
             solar_radiation=_hb_sol, start_time=_hb_t0,
         ))
         _hb_first.append(float(_hb_plan.baseline_power_schedule[0]))
+        _hb_sav.append(float(_hb_plan.predicted_savings))
+        _hb_cost.append(float(_hb_plan.predicted_cost))
     R.check(
         f"the booked thermostat step is independent of the plan's start state "
         f"({'two-zone, DHW' if _hb_two else 'single-zone'})",
         max(_hb_first) - min(_hb_first) < 1e-9
         and 0.0 < _hb_first[0] < float(_hb_par.max_electrical_power),
         repr(_hb_first),
+    )
+    # The plan starts from the measured house and the thermostat held, so
+    # the start's stored-heat gap is settled as the end's is: a plan that
+    # starts colder buys that heat back inside its horizon and must not read
+    # it as a loss. Without the start settlement the saving swung with the
+    # start more than the plan's own cost did (flat price, single-zone:
+    # -15.9 .. +12.8 against a cost spread of 31).
+    R.check(
+        f"the predicted saving moves less with the start state than the plan's cost "
+        f"({'two-zone, DHW' if _hb_two else 'single-zone'})",
+        max(_hb_sav) - min(_hb_sav) < 0.5 * (max(_hb_cost) - min(_hb_cost)),
+        f"savings {[round(v, 2) for v in _hb_sav]} cost {[round(v, 2) for v in _hb_cost]}",
     )
     if not _hb_two:
         # And it is the steady holding power, not merely a common one: the
