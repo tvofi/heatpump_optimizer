@@ -520,6 +520,7 @@ class Tick:
         self.body_staleness(S, prs)
         self.open_pr_cap(S, prs)
         self.verdict_levels(S, prs)
+        self.handoff_ahead(S, prs)
         for head, ns in sorted(by_head.items()):
             if len(ns) > 1:
                 self.line(S, "twin open PRs at one head "
@@ -568,27 +569,72 @@ class Tick:
                 return set(a.group(1).split()), int(i.group(1))
         return None
 
-    def _handoff_newer(self, branch: str, at: str) -> "bool | None":
-        """Is there a handoff/<topic> tip committed after `at`? The topic is the
-        branch less `fix/`, then less `-pr` (open_pr.sh's two spellings).
-        None: a read failed."""
+    def _handoff_refs(self) -> "dict[str, str] | None":
+        """origin's handoff/* and handoff-body/* tips, {ref name: sha}: one
+        ls-remote per pass. None: the read failed."""
+        if getattr(self, "_hrefs", False) is not False:
+            return self._hrefs
+        code, o = self.git(["ls-remote", "origin", "refs/heads/handoff/*",
+                            "refs/heads/handoff-body/*"])
+        self._hrefs = None if code else {
+            f[1][len("refs/heads/"):]: f[0] for f in (l.split() for l in o.splitlines())
+            if len(f) == 2 and f[1].startswith("refs/heads/")}
+        return self._hrefs
+
+    def _handoff_topic(self, branch: str) -> "tuple[str, str] | None":
+        """(topic, handoff tip) for a PR branch: the branch less `fix/`, then
+        less `-pr` (open_pr.sh's two spellings), the first origin holds;
+        ("", "") when neither; None when the refs are unread."""
+        refs = self._handoff_refs()
+        if refs is None:
+            return None
         t = branch[4:] if branch.startswith("fix/") else branch
         for topic in dict.fromkeys([t, t[:-3] if t.endswith("-pr") else t]):
-            code, o = self.git(["ls-remote", "origin", f"refs/heads/handoff/{topic}"])
-            if code:
-                return None
-            sha = o.split()[0] if o.split() else ""
-            if not sha:
+            if f"handoff/{topic}" in refs:
+                return topic, refs[f"handoff/{topic}"]
+        return "", ""
+
+    def _handoff_newer(self, branch: str, at: str) -> "bool | None":
+        """Is there a handoff/<topic> tip committed after `at`? None: a read failed."""
+        got = self._handoff_topic(branch)
+        if got is None:
+            return None
+        topic, sha = got
+        if not sha:
+            return False
+        if self.git(["fetch", "-q", "origin", f"refs/heads/handoff/{topic}"])[0]:
+            return None
+        code, ct = self.git(["log", "-1", "--format=%ct", sha])
+        try:
+            when = datetime.datetime.fromtimestamp(int(ct.strip()), datetime.timezone.utc)
+            return code == 0 and when > datetime.datetime.fromisoformat(at.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    def handoff_ahead(self, S: str, prs: list) -> None:
+        """HANDOFF-AHEAD: #N handoff/<topic> <sha8>, every pass (the round-10
+        orchestrator, 2026-10-18: four cloud fixer handoffs sat unapplied for
+        up to 1.5 h, because a cloud fixer pushes refs with no return signal):
+        an open PR whose handoff/<topic> tip is not an ancestor of its head,
+        with handoff-body/<topic> present (the protocol's statement that the
+        handoff is complete). A handoff already in its PR prints nothing."""
+        for pr in sorted(prs, key=lambda p: p["number"]):
+            n, head = pr["number"], pr.get("headRefOid") or ""
+            got = self._handoff_topic(pr.get("headRefName") or "")
+            if got is None:
+                self.unreadable(S, "handoff refs", "git ls-remote failed")
+                return
+            topic, tip = got
+            if not tip or f"handoff-body/{topic}" not in (self._hrefs or {}) or tip == head:
                 continue
             if self.git(["fetch", "-q", "origin", f"refs/heads/handoff/{topic}"])[0]:
-                return None
-            code, ct = self.git(["log", "-1", "--format=%ct", sha])
-            try:
-                when = datetime.datetime.fromtimestamp(int(ct.strip()), datetime.timezone.utc)
-                return code == 0 and when > datetime.datetime.fromisoformat(at.replace("Z", "+00:00"))
-            except ValueError:
-                return None
-        return False
+                self.unreadable(S, f"handoff/{topic} for #{n}", "git fetch failed")
+                continue
+            code, _ = self.git(["merge-base", "--is-ancestor", tip, head])
+            if code == 1:
+                self.line(S, f"HANDOFF-AHEAD: #{n} handoff/{topic} {tip[:8]}", flag=True)
+            elif code:
+                self.unreadable(S, f"ancestry of handoff/{topic} in #{n}", "git merge-base failed")
 
     def verdict_levels(self, S: str, prs: list) -> None:
         """Level lines every pass, state not events (the round-10 orchestrator,
@@ -1945,6 +1991,7 @@ def self_test() -> int:
         git.on(("rev-list", "--count", f"{handover}..origin/main"),
                out=str(behind_handover))
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
+        git.on(("ls-remote",), out="")  # no handoff refs unless an arm says
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
@@ -1975,6 +2022,8 @@ def self_test() -> int:
                 return 0, ""
             if argv[:1] == ["cat-file"]:
                 return 1, ""
+            if argv[:1] == ["ls-remote"]:
+                return 0, ""  # no handoff refs
             if argv[:2] == ["rev-list", "--count"]:
                 return 0, behind if "origin/main" in argv[2] and \
                     argv[2].startswith(H1) else "0"
@@ -2887,9 +2936,8 @@ def self_test() -> int:
                       "HTTP 502" if n in fail else json.dumps([cs])) for n, _, cs in specs]
             board = [pr_obj(n, heads[n], ms=ms) for n, ms, _ in specs]
             t = tick(prs=board, gh_extra=extra)
-            for topic, ct in (handoffs or {}).items():
-                t._git.on(("ls-remote", f"refs/heads/handoff/{topic}"), out=f"{'7' * 40}\trefs/heads/handoff/{topic}\n")
-            t._git.on(("ls-remote",), out="")
+            t._git.h.insert(0, (("ls-remote",), 0, "".join(
+                f"{'7' * 40}\trefs/heads/handoff/{topic}\n" for topic in (handoffs or {}))))
             t._git.on(("log", "-1", "--format=%ct"), out=str(int(min((handoffs or {"_": 0}).values()))))
             t.verdict_levels("PRS", board)
             return t.sections.get("PRS", []), heads
@@ -2932,6 +2980,38 @@ def self_test() -> int:
              any(l["text"] == f"BLOCKED-UNFIXED: #48 {h(48)[:8]}" for l in stale_fix)),
             ("comments it cannot read are UNREADABLE, never silence",
              any(l["flag"] and "UNREADABLE: verdicts on #49" in l["text"] for l in unread)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- HANDOFF-AHEAD (2026-10-18): a complete handoff its PR lacks ----
+        def ahead_board(specs, refs, behind_tips, ls_rc=0):  # [(n, branch, head)], {ref: sha}, tips not in their PR
+            t = tick(prs=[])
+            t._git.h.insert(0, (("ls-remote",), ls_rc, "".join(f"{v}\trefs/heads/{k}\n" for k, v in refs.items())))
+            t._git.h.insert(0, (lambda a: a[:2] == ["merge-base", "--is-ancestor"] and a[2] in behind_tips, 1, ""))
+            t.handoff_ahead("PRS", [{**pr_obj(n, hd), "headRefName": br} for n, br, hd in specs])
+            return t.sections.get("PRS", [])
+
+        T50, T51, T53, H54 = "5" * 40, "6" * 40, "8" * 40, "4" * 40
+        ah = ahead_board(
+            [(50, "fix/a50", H1), (51, "fix/a51", H1), (52, "fix/a52", H1), (53, "fix/a53-pr", H1), (54, "fix/a54", H54)],
+            {"handoff/a50": T50, "handoff-body/a50": V, "handoff/a51": T51, "handoff-body/a51": V,
+             "handoff/a52": T50, "handoff/a53": T53, "handoff-body/a53": V,
+             "handoff/a54": H54, "handoff-body/a54": V},
+            behind_tips={T50, T53, H54})
+        at = [l["text"] for l in ah]
+        ah_bad = ahead_board([(50, "fix/a50", H1)], {}, set(), ls_rc=128)
+        a, f = check("HANDOFF-AHEAD", [
+            ("a handoff tip not in its PR's head, its body present: flagged",
+             any(l["flag"] and l["text"] == f"HANDOFF-AHEAD: #50 handoff/a50 {T50[:8]}" for l in ah)),
+            ("null control: a handoff already merged into its PR prints nothing",
+             not any("#51" in x for x in at)),
+            ("no handoff-body/<topic>: not a complete handoff, nothing",
+             not any("#52" in x for x in at)),
+            ("a -pr branch reads handoff/<topic> less -pr",
+             f"HANDOFF-AHEAD: #53 handoff/a53 {T53[:8]}" in at),
+            ("a tip equal to the head prints nothing", not any("#54" in x for x in at)),
+            ("refs it cannot list are UNREADABLE",
+             any(l["flag"] and "UNREADABLE: handoff refs" in l["text"] for l in ah_bad)),
         ])
         total, failed = total + a, failed + f
 
