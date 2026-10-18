@@ -964,10 +964,10 @@ VENT_CUSUM_CLIP_C: Final = VENT_CUSUM_THRESHOLD_C / 2.0
 VENT_CUSUM_STARVE_HOURS: Final = 6.0
 #: #2241: time constant of the reference the ventilation CUSUM measures
 #: from. The detector folds the residual's departure from what it normally
-#: reads -- a level plus a slope on the interval's space-heating energy,
-#: fitted over this horizon -- so a model bias the learners have not yet
-#: removed (a steady cold residual, or one scaling with the heat put in, as
-#: a meter or COP error does) accumulates nothing and only a change does.
+#: reads -- a level plus slopes on the interval's heat input and sun, fitted
+#: over this horizon -- so a model bias the learners have not yet removed
+#: (steady, or scaling with the heat put in as a meter or COP error does, or
+#: with the sun as an aperture error does) folds nothing; only a change does.
 #: The fit must hold across the longest window an occupant leaves open
 #: (overnight, 8-12 h) while still following a bias that persists for days,
 #: which the heat-loss learner itself takes days to remove.
