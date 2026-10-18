@@ -382,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
               "commit on the reviewed head")
     if jobs:
         reds = sum(1 for j, _ in preds if j != "mutation")
-        who = ("`--apply-inert` repairs them" if inert == reds else
+        who = ("`--apply-inert` repairs them" if inert else
                f"`--apply-inert` repairs the {inert} INERT READS, the rest "
                f"is ci-autofix.md's" if inert else
                "who repairs which is ci-autofix.md's")
