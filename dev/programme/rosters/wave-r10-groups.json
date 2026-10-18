@@ -3489,6 +3489,51 @@
     "next_step": "dispatch a fixer once every after group is done",
     "note": null
    }
+  },
+  {
+   "group": "R10-RCA-HEADMOVED",
+   "lane": "RP",
+   "kind": "study",
+   "issues": [
+    2389
+   ],
+   "fixes": [],
+   "findings": [
+    "#2389"
+   ],
+   "class": "study",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-RCA-FRICTION"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). Issue #2389: recurring friction, head-moved rework (9 PRs against the 3-instance threshold). ORDER: after O10-rca-friction-2331-2353 (same friction family; read its output first).\nContract: dev/governance/roles/root-cause.md + defect-root-cause.md. Reproduce from the 9 PRs' review threads (REST only): why heads moved after the handoff freeze (merge-main bot, autofix pins, fixer pushes, orchestrator recarry). Name the process state (a-d) with evidence; cost test with numbers (review-rounds lost per instance); countermeasure (e.g. carry predicate covering bot pin commits, as #2379's r3 showed) or a recorded refusal. Record in the R10-HEAD-MOVED record under the rca directory + the issue's Root cause section (draft as a file; orchestrator posts). Heavy lanes to CI. Push refs only.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-rca-headmoved",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
   }
  ]
 }
