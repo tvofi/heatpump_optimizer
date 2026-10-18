@@ -7,7 +7,7 @@ Challenger = the real _multi_start_minimize on the captured objective with the
 production starts + production x + bang-bang starts (energy fractions
 0.25/0.5/0.75/1.0 of p_max on cheapest hours) at maxiter=1500, then a
 scipy L-BFGS-B polish (ftol 1e-12, maxfun 1e5). Key: the captured objective value.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/grid_race.py
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/grid_race.py
 Optional args: --maxiter N  (perturbation: production maxiter override)
 Baseline 17f1c55fad1b, machine: macOS arm64 (box B2). Expected: see REPORT.md, tolerance +-0.5 pp (BLAS).
 """

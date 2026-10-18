@@ -6,7 +6,7 @@ mutated production function returns a different value from the baseline one
 (0 = equivalent mutant, not a gap).  Count key: the production return value.
 
 Command (repo root):
-    PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+    PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
         dev/audit/rounds/round10/D3/s2/equiv_probe.py
 Expected: M30_differs=3 of 32 cells (exact); M14_differs=1 of 2 traces (exact).
 Baseline 17f1c55fad1b; machine tvofi macOS arm64, shared box B2.

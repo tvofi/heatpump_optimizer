@@ -8,7 +8,7 @@ wrapper of optimizer:_scoped_minimize. Key: captured objective value.
 Perturbation: --ftol F overrides the ftol that production passes to
 optimizer:_scoped_minimize (both the main run and _lbfgsb_restart); gap must fall
 toward 0 as F shrinks, and nfev rise.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py [--ftol 1e-9]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py [--ftol 1e-9]
 Baseline 17f1c55fad1b, macOS arm64 box B2. Expected (ftol default): see REPORT.md, +-0.3 pp.
 """
 import os

@@ -4,7 +4,7 @@ Metric: per gold rule, a count of violating sites keyed on the production
 module's own literals (translation keys raised/issued vs. the keys the
 catalogues strings.json / translations/en.json / translations/sv.json carry,
 icons.json coverage, device_info presence, diagnostics redaction set).
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s2/gold_rules.py
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s2/gold_rules.py
 Expected: every *_missing / *_mismatch RESULT = 0 (+-0). Baseline 17f1c55fad1b, macOS arm64 (B2).
 Perturbation: delete one key from strings.json "exceptions" -> exc_keys_missing_strings rises by 1.
 """

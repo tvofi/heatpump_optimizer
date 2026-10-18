@@ -67,7 +67,7 @@ baseline: 17f1c55fad1b
     "severity": "low",
     "claim": "Negating `if dropped:` in MonthlyLedger.from_dict (M35) or SnapshotRing.from_dict (M26) makes the loader silent when it really drops a record and logs 'Quarantined 0' on every clean load, yet every closure script run (cheap set, entities.py, features.py) still passes.",
     "evidence": {
-      "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
+      "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
       "harness_path": "dev/audit/rounds/round10/D3/s2/quarantine_warn.py",
       "value": "loaders_correct=2 of 2 at baseline, 0 of 2 mutated; tests_naming_warning=0; gate scripts failing under M26/M35 = 0",
       "unit": "count",

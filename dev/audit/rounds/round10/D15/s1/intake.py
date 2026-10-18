@@ -13,7 +13,7 @@ Metrics (one line each):
      Count key: the |store bias - rows bias| the stage-4 check gates on (< 0.05).
   M4 store_off_domain / store_sanitize_dirty / store_refused_version per store.
 Command (export root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
     dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> [--perturb dedupe]
 Perturbations: dedupe (M3 stage 4), unwrap (M3 wrapper), nonempty (M3 stage 2),
   boolkey (M2 credential rule), declare (M4 DOMAINS); each named finding's number moves.
