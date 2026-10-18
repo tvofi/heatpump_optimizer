@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-tick-orch-2/wt2/tools/audit/seat/orchestrator_tick.py", line 2747, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-tick-orch-2/wt2/tools/audit/seat/orchestrator_tick.py", line 2727, in main
+    return self_test()
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-tick-orch-2/wt2/tools/audit/seat/orchestrator_tick.py", line 2021, in self_test
+    t.split_absent(["closures"], inflight) == ([], ["closures"])),
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-tick-orch-2/wt2/tools/audit/seat/orchestrator_tick.py", line 341, in split_absent
+    live = any(
+           ^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-tick-orch-2/wt2/tools/audit/seat/orchestrator_tick.py", line 343, in <genexpr>
+    and not self.stuck(c.get("started_at"), med)
+            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-tick-orch-2/wt2/tools/audit/seat/orchestrator_tick.py", line 329, in stuck
+    return (self.now - st).total_seconds() / 60 > 2 * med
+                                                  ~~^~~~~
+TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'

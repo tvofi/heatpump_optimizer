@@ -1,4 +1,0 @@
-/Users/timmalmstrom/hpo-seats/r10s3/review-tick-orch-2/wt/tools/audit/seat/orchestrator_tick.py:1460: SyntaxWarning: "\+" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\+"? A raw string is also an option.
-  code, o = self.git(["grep", "-oh", "#[0-9]\+", "origin/main", "--",
-  FAIL compile clean: no SyntaxWarning on compile
-orchestrator_tick self-test: 93 checks, 1 failed

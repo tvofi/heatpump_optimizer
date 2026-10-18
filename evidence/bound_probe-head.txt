@@ -1,0 +1,15 @@
+RESULT live median at checkout: 54.825
+RESULT queued run, started_at null: WAITING
+RESULT queued run, started_at missing: WAITING
+RESULT in flight 100 min (< 2x median): WAITING
+RESULT in flight 115 min (> 2x median, legit slow sibling): ABSENT
+RESULT stale low median 10 -> 30 min sibling: ABSENT
+RESULT stale high median 600 -> 10 h sibling: WAITING
+RESULT median 0: ABSENT
+RESULT median as string '54': RAISES TypeError: '>' not supported between instances of 'float' and 'str'
+RESULT budgets JSON is a list: RAISES AttributeError: 'list' object has no attribute 'get'
+RESULT ETA reader {'critical_path_minutes': 54.8}: old=54.8 (unreadable=False) new=54.8 (unreadable=False)
+RESULT ETA reader {'critical_path_minutes': 0}: old=0 (unreadable=True) new=None (unreadable=True)
+RESULT ETA reader {}: old=None (unreadable=True) new=None (unreadable=True)
+RESULT ETA reader 'not json': old=None (unreadable=True) new=None (unreadable=True)
+RESULT ETA reader {'critical_path_minutes': None}: old=None (unreadable=True) new=None (unreadable=True)
