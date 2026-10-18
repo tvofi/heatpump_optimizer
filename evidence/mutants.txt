@@ -1,0 +1,26 @@
+### M1 policy_lint.mjs:2351 drop --no-renames
+ tools/policy/policy_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+TOTAL: 0 error(s) across 41 policy file(s)
+FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames in their own bodies; the two commands must move together","recordDiffParity refuses a tree whose only change drops the flag from a copy of the call OUTSIDE mergeRecordClass (nu
+rc=1
+### M2 stamp.py:1708 drop --no-renames
+ tools/release/stamp.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+TOTAL: 0 error(s) across 41 policy file(s)
+FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames in their own bodies; the two commands must move together","recordDiffParity refuses a tree whose only change drops the flag from a copy of the call OUTSIDE mergeRecordClass (nu
+rename_sites (['tools/release/stamp.py:1708: out = run("git", "diff", "--name-only", f"{sha}^1", sha)'], [])
+### M3 producer closure.py:2758 drop --no-renames
+ tests/closure.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the changed list keeps both sides of a rename onto a delivery row  [['dev/programme/delivery/99999.md']]
+  FAIL so the gate does not scope a deleted entry point to zero scripts  [scoped: 0 run]
+  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tests/closure.py:2758: out = subprocess.run(["git", "diff", "--name-only",]
+3 of 124 closure shrink pins FAILED
+  FAIL  browser runs on a rename from production onto a delivery row  -- ['dev/programme/delivery/99999.md']: every one of the 1 changed file(s) is a roster or a delivery row, which browser never read
+  FAIL  coverage runs on a rename from production onto a delivery row  -- ['dev/programme/delivery/99999.md']: every one of the 1 changed file(s) is a roster or a delivery row, which coverage never re
+  FAIL  typing runs on a rename from production onto a delivery row  -- ['dev/programme/delivery/99999.md']: every one of the 1 changed file(s) is a roster or a delivery row, which typing never reads
+lane_skip self-test: 51/54 pins passed
+  FAIL a rename lists its source too: lib.py -> lib.md lists both: got ['lib.md'], want ['lib.md', 'lib.py']
+  FAIL so the python leg analyzes the rename: got 'skip', want 'analyze'
+codeql_scope self-test: 47 checks, 2 failed
