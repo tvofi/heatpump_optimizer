@@ -251,6 +251,7 @@ from .price_model import (
     pull_prices,
 )
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
+from .plan_step import PLAN_STEP_MINUTES, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -496,13 +497,9 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
     return value if value is None or lo <= value <= hi else None
 
 
-#: Resolution the optimizer plans at, and therefore the resolution every
-#: forecast series is resampled to.
-FORECAST_STEP_MINUTES = 15
-
-
-#: One forecast step, as the clock ``drift.utc_step_starts`` walks.
-FORECAST_STEP = timedelta(minutes=FORECAST_STEP_MINUTES)
+#: One forecast step, as the clock ``drift.utc_step_starts`` walks; its
+#: width is the plan's (``plan_step.PLAN_STEP_MINUTES``).
+FORECAST_STEP = timedelta(minutes=PLAN_STEP_MINUTES)
 
 
 def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
@@ -2256,26 +2253,6 @@ def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
     return [r if r["temperature"] is not None else {**r, "temperature": 5.0} for r in rows]
 
 
-def _solve_anchor(now: datetime) -> datetime:
-    """``now`` floored onto the grid the forecast arrays are built on.
-
-    ``_forecast_arrays`` anchors every price and weather step at
-    ``midnight + FORECAST_STEP_MINUTES·k``, so a solve labelled with the
-    raw instant (12:07) published timestamps seven minutes off the
-    quarter its own arrays described — and pins, capacity-window
-    offsets, filed lead promises and every card timestamp inherited
-    that skew. The granularity is the forecast grid's, deliberately not
-    ``time_step_minutes``: if the two ever diverge the arrays disagree
-    first, and the anchor must follow the arrays. Wall-clock lookups
-    INTO the plan (``get_current_action``, ``_async_drive_pumps``) stay
-    on the raw clock — they ask what applies now, not where step 0 is.
-    """
-    step = int(FORECAST_STEP_MINUTES)
-    return now.replace(
-        minute=(now.minute // step) * step, second=0, microsecond=0
-    )
-
-
 def _liquid_fraction(
     precip_array: np.ndarray, snow_array: np.ndarray
 ) -> np.ndarray:
@@ -2443,7 +2420,7 @@ def _ecl110_legacy_payload(
     coordinator: a module-level helper handed ``self`` would keep every
     reference it moved -- ``tests/structure.py`` walks only class methods
     and matches ``self.<attr>``, so the seam metric would fall while the
-    coupling stood. Same rule as ``_solve_anchor`` and ``_liquid_fraction``.
+    coupling stood. Same rule as ``plan_step.plan_step_start`` and ``_liquid_fraction``.
     """
     return {
         "source": DOMAIN,
@@ -5728,7 +5705,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # would shift every array one step against the plan's own
             # timestamps — silently, and only a few times a day.
             now = dt_util.now()
-            solve_now = _solve_anchor(now)
+            solve_now = plan_step_start(now)
             horizon = self._forecast_arrays(now)
             prices = horizon.prices
 
@@ -6888,7 +6865,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._open_meteo is None or not self._open_meteo.available:
             return solar
 
-        step = timedelta(minutes=FORECAST_STEP_MINUTES)
+        step = timedelta(minutes=PLAN_STEP_MINUTES)
         aligned: list[float] = []
         missing = 0
         for i, step_start in enumerate(
@@ -6942,7 +6919,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             now = dt_util.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         step_offset = int(
-            _utc_age_seconds(now, midnight) / 60 / FORECAST_STEP_MINUTES
+            _utc_age_seconds(now, midnight) / 60 / PLAN_STEP_MINUTES
         )
 
         priced = self._price_series(n_steps, midnight, step_offset)
@@ -6966,7 +6943,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # snowfall has no entity fallback — no data reads as no snow.
         snowfall = [0.0] * n_steps
         if self._open_meteo is not None and self._open_meteo.available:
-            step = timedelta(minutes=FORECAST_STEP_MINUTES)
+            step = timedelta(minutes=PLAN_STEP_MINUTES)
             for i, step_start in enumerate(
                 utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
             ):
@@ -8130,7 +8107,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         override = self._manual_override
         if override is None or override.is_expired(
-            _solve_anchor(dt_util.now())
+            plan_step_start(dt_util.now())
         ):
             return None
         return {
@@ -8163,7 +8140,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # a raw-instant lattice counts slot edges differently and the
         # reported figure would disagree with the plan by one step.
         step_starts = self._horizon_step_starts(
-            _solve_anchor(dt_util.now()), getattr(self, "_ctx", self)._opt_config.n_steps
+            plan_step_start(dt_util.now()), getattr(self, "_ctx", self)._opt_config.n_steps
         )
         return {
             "expires_at": override.expires_at.isoformat(),
@@ -11045,7 +11022,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 len(horizon.prices), float(overrides["power_cap_kw"])
             )
         # One snap for slot stamps and the shadow solve (#463).
-        solve_at = _solve_anchor(now)
+        solve_at = plan_step_start(now)
         _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
             overrides, ctx._config, len(horizon.prices),
