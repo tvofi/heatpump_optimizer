@@ -28,7 +28,9 @@ What changes:
 
 ## Head
 
-`ba9653fa067c003bc19cbeed5177e3b1fbf71e05` on `r10-rca-structure-blind`. It merges `origin/main` `55dc8d9c2` into the authored head `bec623af494f75131610e27b1f711dde45dfcdc6` with no conflict. The merged commits touch `.github/`, `tools/pr/codeql_scope.py` and delivery rows only: no package file, no `tests/structure*`, nothing an instrument here reads. So every figure measured at `bec623af4` (on `f1b21daab`) holds. Re-taken on the merge: `tests/structure.py` passes, the plant harness reads `plant_refused=1 (name_kept_members)`, and `score.py --diff origin/main` reads `dS +0.0000 NULL`. Measured in a full clone (`git fetch --unshallow --tags origin`) with `/etc/profile.d/hpo-toolchain.sh` sourced, on 2026-10-18.
+The previous head `9951f224a9e652fb7323784e05d86b4b35f16e55` added one commit to `ba9653fa067c003bc19cbeed5177e3b1fbf71e05`, containing only this PR's own row, `dev/programme/delivery/2415.md`. The authored code head is still `ba9653fa067c003bc19cbeed5177e3b1fbf71e05`; review round 2 changes no file on this branch.
+
+`ba9653fa067c003bc19cbeed5177e3b1fbf71e05` on `fix/r10-rca-structure-blind` merges `origin/main` `55dc8d9c2` into the authored head `bec623af494f75131610e27b1f711dde45dfcdc6` with no conflict. Every `origin/main` commit merged since `55dc8d9c2` touches only `README.md`, `dev/programme/delivery/`, `dev/programme/rosters/wave-r10-groups.json` and `tools/audit/seat/` (`git diff --name-only 55dc8d9c2 origin/main`): no package file, no `tests/structure*`, no `tools/policy/`, no `dev/audit/config/`, nothing an instrument here reads. So every figure measured at `bec623af4` (on `f1b21daab`) holds. Re-taken on the `ba9653fa0` merge: `tests/structure.py` passes, the plant harness reads `plant_refused=1 (name_kept_members)`, and `score.py --diff origin/main` reads `dS +0.0000 NULL`. Measured in a full clone (`git fetch --unshallow --tags origin`) with `/etc/profile.d/hpo-toolchain.sh` sourced, on 2026-10-18. Review round 1 re-derived the ratchet, the plant arms at both ends, the census arm, the mutants and the RCA figures at `9951f224`.
 
 ## Mutation proof
 
@@ -73,7 +75,12 @@ Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --d
 
 ## Forward-carry
 
-- **Carry: #2259 item 2**, R10-ARCHSCORE-COVERAGE part 4 (#2373). When it merges, `card_dead_definitions` registers as a `field_coverage.mjs` census with the `arch-score` gate, and the ledger's "Not reached" entry for the card `.js` is struck (RCA §5.3).
+- **Carry: #2259 item 2, R10-ARCHSCORE-COVERAGE part 4 (#2373), as a precondition.** Destination: the R10-ARCHSCORE-COVERAGE group in `dev/programme/rosters/wave-r10-groups.json`, on the roster branch `handoff/audit-r10-roster` at `9a487b7320d72bbc16309121128c3c6bd3324e9e`. It is in both the group's `brief` (a "Forward-carried precondition from R10-RCA-STRUCTURE-BLIND" paragraph) and its `carry` list. Both were written with `tools/audit/seat/roster_edit.py` (`append-carry`, then `edit-brief`). The text says that part 4 is not delivered until:
+  - `card_dead_definitions` is registered in `tools/policy/field_coverage.mjs` CENSUSES, with its arch-score `gate` row and a plant of one unused top-level card function;
+  - its control holds: `--only census` reads `n -> n+1 ... refused on <row>`, and with the row uncapped it reads `UNGATED` and ends `FIELD COVERAGE REFUSED`;
+  - the card `.js` is struck from N-structure-blind's `barrier` "Not reached" clause in `dev/audit/config/bugclasses.json`, in the same pull request (RCA §5.3).
+  - Read back: `node tools/policy/brief_lint.mjs` on that roster, run in an `origin/main` checkout, prints `TOTAL: 0 error(s)`, rc=0. In the read-back roster, `field_coverage.mjs` appears in the group's `brief` and in its `carry`. Neither names it on `origin/main`.
+  - **Owed by the orchestrator before this PR merges:** the roster PR that lands `handoff/audit-r10-roster` on `main`, and relaying the carry to #2373's live seat.
 - **To the orchestrator:** whether the hint-keyed finder harness and the hard-coded D14 sweep enumerator fold as `beyond_finding` seams, or go to the D14 brief by `finding-propagation.md` (RCA §8, question 1).
 - **To tvofi**, both policy-shaped:
   - the sentence "a declared unmeasured shape is a gated count" in `fixer.md` or the D7 brief;
@@ -84,3 +91,4 @@ Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --d
 none
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
