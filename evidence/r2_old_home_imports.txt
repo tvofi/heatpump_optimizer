@@ -1,0 +1,5 @@
+dev/audit/rounds/round8/evidence/D2/s2_fee_dst.py 22 custom_components.heatpump_optimizer.coordinator _utc_step_starts
+dev/audit/rounds/round9/D2/s3/m4_probes.py 44 custom_components.heatpump_optimizer.coordinator _utc_step_starts
+tests/dst_checks.py 31 heatpump_optimizer.coordinator utc_step_starts
+tests/dst_checks.py 45 heatpump_optimizer.optimizer utc_step_starts
+RESULT old_home_imports= 4

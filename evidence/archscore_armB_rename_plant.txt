@@ -1,2 +1,0 @@
-Architecture score: dS +0.2630 IMPROVES
-  private_cross_module 17 -> 14  +0.2630
