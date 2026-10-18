@@ -16997,6 +16997,20 @@ R.check(
     and not _cw10.tripped,
     f"covariance {_cw10.reference_cov}",
 )
+# The prior weighs as one sample (REFERENCE_PRIOR_COV's own comment): with a
+# level-only fit and no time elapsed, the second sample's gain is P/(1+P),
+# so it moves the level exactly halfway and halves the variance. The numbers
+# are hand-computed, not read from the constant, so a changed prior weight
+# fails here (P = 2 moves the level two thirds of the way, to -0.1333).
+_cp1 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cp1.update(_T4, -0.4, ())
+_cp1.update(_T4, 0.0, ())
+R.check(
+    "the prior weighs as one sample: a second sample moves the level halfway",
+    abs(_cp1.reference[0] - (-0.2)) < 1e-12
+    and abs(_cp1.reference_cov[0] - 0.5) < 1e-12,
+    f"reference {_cp1.reference}, covariance {_cp1.reference_cov}",
+)
 _cov = [0.5, 0.0, 0.0, 0.5]
 _cr.load({"stat": 0.0, "reference": [True, 0.0], "reference_cov": _cov})
 _cr4 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
