@@ -2,7 +2,9 @@
 description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
 paths:
   - "dev/governance/**"
+  - ".claude/workflows/*.json"
   - "dev/programme/rosters/*.json"
+  - "dev/programme/carries/*.json"
 ---
 # Forward-carrying a finding
 
@@ -34,9 +36,9 @@ carried.
 **A PR comment, an issue comment, and the record are not propagation.** They
 record the finding; they do not deliver it. The test is **where the seat who needs this will be looking**: its own brief, the
 role contract under `dev/governance/roles/`, `CLAUDE.md`. It will not read the comments
-of a PR that merged stages before it started. A finding that lives only
-in the PR that produced it will be re-derived by the next stage, or — the usual
-outcome — not derived at all, and the refused technique gets attempted again.
+of a PR that merged stages before it started. A finding left only in its PR
+is re-derived by the next stage or, usually, not at all, and the refused
+technique is attempted again.
 
 ## What to write
 
@@ -53,11 +55,11 @@ outcome — not derived at all, and the refused technique gets attempted again.
 ## Where it goes
 
 - **Constrains one stage** → that stage's brief. **A stage's brief lives in two
-  places, and both must receive it**: a live group's `brief` string in the
-  round's roster under `dev/programme/rosters/`, which the linter and the next
-  session read; and any out-of-tree brief file a running
-  session hands its seats. Carrying to the scratch copy alone leaves the tree
-  unchanged, and the tree is what survives the session.
+  places, and both must receive it**: a live group's `brief` string in its
+  roster, the round's under `dev/programme/rosters/` or a web-fix-wave
+  `groupsFile` under `.claude/workflows/`, which the next session reads; and
+  any out-of-tree brief file a running session hands its seats. Carrying to the
+  scratch copy alone leaves unchanged the tree, which is what survives the session.
 - **Constrains every seat** → the **role contract** it belongs to under
   `dev/governance/roles/` (`fixer.md`, `fix-review.md`, `judge.md`), **once**:
   every seat of that role reads it. Do not copy it into each stage's brief:
@@ -70,19 +72,18 @@ outcome — not derived at all, and the refused technique gets attempted again.
   group covers, so no stage has two destinations.
 - **A sibling seam in the same stage** — an open seam the enumeration rule returns
   (`fixer.md` step 8) — goes to **a new issue filed by the same pull request**, or a
-  carry file under the branch above. The destinations this rule
-  names are stages that have not started, so a seam in the stage that is running
-  has none (#1345's fifth seam).
+  carry file under the branch above. This rule's other destinations are stages
+  not yet started, so a running stage's seam has none (#1345's fifth seam).
 
 **While two copies disagree, the newer one is right and the other is the bug.**
-Say which is which in the carry, because a seat that finds its brief and the
-roster in conflict must not have to guess; the out-of-tree copy needs no pull
-request, so it is usually the newer one.
+Say which is which in the carry, so a seat finding its brief and roster in
+conflict need not guess; the out-of-tree copy needs no pull request, so it is
+usually the newer.
 
 ## Enforcement
 
-The producing PR does not merge until the carry is **in the tree**; a roster
-carry, once on the round's roster branch `handoff/audit-r<N>-roster` (tvofi,
+The producing PR does not merge until the carry is **in the tree**; a carry to
+the round's roster, once on its branch `handoff/audit-r<N>-roster` (tvofi,
 2026-10-18), which lands on main at each stamp and before branch cleanup
 and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`
 prints anything. The body names the file, the stage and (a roster carry) the
@@ -94,5 +95,6 @@ blocker is worse than no rule: the seat cannot comply, nor the reviewer check.
 
 **Verify the write landed, do not assume it.** A scripted edit that matches
 nothing reports success — `str.replace` and `sed` both do; this rule first
-landed with seven of nine carries missing. Read the destination back: `brief_lint.mjs` does it for a roster and a carry file,
-and for a role contract nothing does.
+landed with seven of nine carries missing. Read the destination back:
+`brief_lint.mjs` does it for a roster and a carry file, and for a role contract
+nothing does.
