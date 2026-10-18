@@ -63958,6 +63958,58 @@ R.check(
     not _ec_freed("switch.hp", False),
 )
 
+# The #2329 release/detach path, asserted DIRECTLY rather than only through the
+# gc/weakref pair above -- that pair pins the drop but says nothing about what
+# detach clears, and nothing fires the listener's own callback after it. detach
+# must drop the listener AND the wiring that reaches the coordinator, and a room
+# event the listener would still have queued must be a no-op through _changed's
+# wiring guard, not a call on a None wiring.
+_ec_det = _EcCoord()
+_ec_det.arm()
+_ec_det_h = _ec.state_for(_ec_det)
+_ec_det_cb = [a for ids, a in _ec_det.hass.state_listeners if _EC_ROOM in ids][0]
+_ec.detach(_ec_det_h)
+_ec.detach(_ec_det_h)  # idempotent: a second detach must not raise
+R.check(
+    "detach drops the room listener and clears the wiring that reaches the coordinator",
+    _ec_det_h.unsub is None and _ec_det_h.wiring is None,
+    f"unsub={_ec_det_h.unsub!r} wiring={_ec_det_h.wiring!r}",
+)
+_ec_det.hass.services.calls.clear()
+try:
+    _ec_det_cb(_PaNS(data={"new_state": FakeState("30.0", unit="°C")}))
+    _ec_det_event = "ok"
+except AttributeError:
+    # The wiring guard gone: the callback reaches on_room_event with None wiring.
+    _ec_det_event = "AttributeError"
+R.check(
+    "a room event after detach is a no-op through the wiring guard, not a crash",
+    _ec_det_event == "ok" and _ec_det.hass.services.calls == [],
+    f"{_ec_det_event} {_ec_det.hass.services.calls}",
+)
+# Null control: an armed record that is NEVER detached still delivers the event
+# and cuts, so the guard above is doing work rather than passing vacuously.
+_ec_gd = _EcCoord()
+_ec_gd.arm()
+_ec_gd.room(22.0)
+R.check(
+    "null control: a record never detached still delivers the room event and cuts",
+    len(_ec_gd.offs()) == 1,
+    f"{_ec_gd.offs()}",
+)
+# allow_on's wiring guard: an early refresh after unload (a cut on record, the
+# wiring already dropped) must return the plan's own value, not read the wiring.
+_ec_aw = _ec.CutoffState(cut_at=_ec_dt.as_utc(_ec_dt.now()))
+try:
+    _ec_aw_on = _ec.allow_on(_ec_aw, True)
+except AttributeError:
+    _ec_aw_on = "AttributeError"
+R.check(
+    "allow_on returns the plan's value when the record carries no wiring (unloaded)",
+    _ec_aw_on is True and _ec.allow_on(_ec_aw, False) is False,
+    f"{_ec_aw_on!r}",
+)
+
 # The learners: a cut interval is one _learning_frozen reason, held for the
 # cycle that was cut and the one after it, then released.
 # Switch plus set-point and no meter: the unmetered tail freeze applies here.
