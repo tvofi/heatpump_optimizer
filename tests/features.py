@@ -37340,6 +37340,8 @@ from profiles import house as _hb_house, prices as _hb_prices, weather as _hb_we
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer as _HbOpt,
     OptimizationConfig as _HbCfg,
+    _floor_demand_at_target as _hb_floor_demand,
+    _thermostat_held_state as _hb_held_state,
 )
 from heatpump_optimizer.thermal_model import (
     ThermalModel as _HbModel,
@@ -37397,8 +37399,8 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
         # And it is the steady holding power, not merely a common one: the
         # slab-fed demand at the step's comfort target (midnight: the night
         # temperature) over this step's COP (no DHW, no external heat here).
-        _hb_q = _hb_opt._floor_demand_at_target(
-            _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0), float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
+        _hb_q = _hb_floor_demand(
+            _hb_opt.model, _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0), float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
             float(_hb_sol[0]),
         )
         _hb_cop = _hb_opt.model.compute_cop(float(_hb_out[0]))
@@ -37427,8 +37429,7 @@ _hs_px = np.asarray(_hb_prices("winter_typical", _hb_t0), dtype=float)
 _hs_caps = _hs_opt._settlement_caps(_hb_out)
 _hs_warm = _HbState(room_temperature=24.0, slab_temperature=26.0,
                     outdoor_temperature=float(_hb_out[0]))
-_hs_held = _hs_opt._thermostat_held_state(
-    _hs_warm, _hs_ws, _hs_opt._baseline_target(None, 0))
+_hs_held = _hb_held_state(_hs_opt.model, _hs_warm, _hs_ws, 21.0)
 _hs_capped = _hs_opt._deferred_energy_cost(
     _hs_held, _hs_warm, _hs_px, _hb_out, caps=_hs_caps)
 _hs_free = _hs_opt._deferred_energy_cost(_hs_held, _hs_warm, _hs_px, _hb_out, caps=None)

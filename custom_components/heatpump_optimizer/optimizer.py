@@ -273,6 +273,174 @@ def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
     return [float(v) for v in np.asarray(baseline_power, dtype=float)]
 
 
+def _baseline_target(comfort_targets: np.ndarray | None, i: int, default: float) -> float:
+    """The thermostat's setpoint at step ``i``: the comfort schedule's, else ``default``."""
+    if comfort_targets is not None and i < len(comfort_targets):
+        return float(comfort_targets[i])
+    return default
+
+
+def _floor_demand_at_target(
+    model: ThermalModel,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+) -> float:
+    """Thermal kW the slab-fed zone needs to sit at ``target``, zones equal.
+
+    Single-zone that is the room; two-zone the lower floor, whose inter-zone
+    exchange is zero with both floors at ``target`` (the two-zone demand adds
+    the exchange at the actual temperatures).
+    """
+    p = model.params
+    if not p.two_zone_enabled:
+        u_eff = model.effective_heat_loss_coefficient(
+            p.heat_loss_coefficient, wind_speed, precipitation
+        )
+        q_solar = model.compute_solar_gain(solar_radiation)
+        return u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
+    u_lower = model.effective_heat_loss_coefficient(
+        p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+    )
+    _, q_solar_lower = model.solar_gain_per_zone(solar_radiation)
+    q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
+    return u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower
+
+
+def _thermostat_held_state(
+    model: ThermalModel, state: ThermalState, weather: WeatherSeries, target: float
+) -> ThermalState:
+    """``state`` as a thermostat holding ``target`` all along would have it (#2255).
+
+    The zones at ``target`` and the slab at the temperature that delivers the
+    step's demand -- the cascade's own slab target with no pull-back -- so the
+    first step draws the steady holding power. Tanks and every other field
+    stay as measured; the thermostat does not own them.
+    """
+    if not len(weather.outdoor_temps):
+        return state
+    assert weather.wind_speeds is not None and weather.precipitation is not None
+    assert weather.solar_radiation is not None
+    q_floor = _floor_demand_at_target(
+        model, target, float(weather.outdoor_temps[0]), float(weather.wind_speeds[0]),
+        float(weather.precipitation[0]), float(weather.solar_radiation[0]),
+    )
+    return replace(
+        state,
+        room_temperature=target,
+        upper_floor_temperature=target,
+        lower_floor_temperature=target,
+        slab_temperature=target + max(0.0, q_floor) / model.params.slab_heat_transfer_floored,
+    )
+
+
+def _thermostat_demand_single(
+    model: ThermalModel,
+    state: ThermalState,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+    dt: float,
+) -> float:
+    """Thermal power a thermostat needs this step in the single-zone model."""
+    p = model.params
+    k_slab = p.slab_heat_transfer_floored
+
+    # Thermal power the room needs to sit at the setpoint.
+    q_demand = _floor_demand_at_target(
+        model, target, outdoor_temp, wind_speed, precipitation, solar_radiation
+    )
+    # Slab temperature that delivers exactly that, plus a pull-back term
+    # if the room has drifted away from the setpoint.
+    slab_target = (
+        target
+        + max(0.0, q_demand) / k_slab
+        + 2.0 * (target - state.room_temperature)
+    )
+
+    q_slab_to_room = k_slab * (state.slab_temperature - state.room_temperature)
+    # Replace what the slab gives up to the room, and move the slab to
+    # where it needs to be.
+    return q_slab_to_room + p.slab_thermal_mass * (
+        slab_target - state.slab_temperature
+    ) / dt
+
+
+def _thermostat_demand_two_zone(
+    model: ThermalModel,
+    state: ThermalState,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+    dt: float,
+) -> float:
+    """Thermal power a thermostat needs this step in the two-zone model.
+
+    The upper floor is fed directly by radiators while the lower floor is
+    fed through the slab, and the split between them is fixed by
+    ``radiator_power_fraction``. One control cannot hold both zones exactly,
+    which is also true of the real system being modelled, so the demand of
+    the two zones is summed the way an outdoor-reset curve on a single
+    mixing valve would.
+    """
+    p = model.params
+    k_slab = p.slab_heat_transfer_floored
+
+    u_upper = model.effective_heat_loss_coefficient(
+        p.upper_floor_heat_loss, wind_speed, precipitation
+    )
+    q_solar_upper, _ = model.solar_gain_per_zone(solar_radiation)
+    q_int_upper = p.internal_gains * p.upper_floor_area_ratio
+
+    t_upper = state.upper_floor_temperature
+    t_lower = state.lower_floor_temperature
+    q_inter = p.inter_zone_transfer * (t_lower - t_upper)
+
+    # Radiators reach the upper floor within the step, so its demand is
+    # met directly, including the pull-back on any drift.
+    q_upper = (
+        u_upper * (target - outdoor_temp)
+        - q_solar_upper
+        - q_int_upper
+        - q_inter
+        + p.upper_floor_thermal_mass * (target - t_upper) / dt
+    )
+    q_upper = max(0.0, q_upper)
+
+    # The lower floor is heated through the slab, so drive the slab to the
+    # temperature that sustains it and charge it over this step.
+    q_lower = _floor_demand_at_target(
+        model, target, outdoor_temp, wind_speed, precipitation, solar_radiation
+    ) + q_inter
+    slab_target = (
+        target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)
+    )
+    q_slab_to_lower = k_slab * (state.slab_temperature - t_lower)
+    q_floor = q_slab_to_lower + p.slab_thermal_mass * (
+        slab_target - state.slab_temperature
+    ) / dt
+    q_floor = max(0.0, q_floor)
+
+    # The heat pump makes one water temperature and the split between
+    # radiators and floor is fixed, so total output is sized to total
+    # demand the way an outdoor-reset curve does. The zones then settle at
+    # slightly different temperatures, which is what the real system does
+    # too, and inter-zone transfer pulls them back together.
+    thermal = q_upper + q_floor
+
+    # Replace what the buffer tank leaks so it does not sag over the day.
+    thermal += p.buffer_tank_heat_loss_coefficient * max(
+        0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
+    )
+    return thermal
+
+
 # The comfort penalty on breaching the user's minimum temperature is quadratic,
 # which means its gradient vanishes as the violation approaches zero: a 0.05 C
 # breach costs almost nothing while the electricity it saves is worth real
@@ -5035,20 +5203,21 @@ class HeatPumpOptimizer:
             coil_draws = None
 
         baseline_power = np.zeros(n_steps)
-        state = self._thermostat_held_state(
-            initial_state, weather, self._baseline_target(comfort_targets, 0)
+        state = _thermostat_held_state(
+            self.model, initial_state, weather,
+            _baseline_target(comfort_targets, 0, self.config.target_temp),
         )
 
         for i in range(n_steps):
-            target = self._baseline_target(comfort_targets, i)
+            target = _baseline_target(comfort_targets, i, self.config.target_temp)
             if p.two_zone_enabled:
-                required_thermal = self._baseline_thermal_demand_two_zone(
-                    state, target, outdoor_temps[i], wind_speeds[i],
+                required_thermal = _thermostat_demand_two_zone(
+                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
                     precipitation[i], solar_radiation[i], dt,
                 )
             else:
-                required_thermal = self._baseline_thermal_demand_single(
-                    state, target, outdoor_temps[i], wind_speeds[i],
+                required_thermal = _thermostat_demand_single(
+                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
                     precipitation[i], solar_radiation[i], dt,
                 )
 
@@ -5122,67 +5291,6 @@ class HeatPumpOptimizer:
 
         return baseline_power, state
 
-    def _baseline_target(self, comfort_targets: np.ndarray | None, i: int) -> float:
-        """The thermostat's setpoint at step ``i``: the comfort schedule's, else the target."""
-        if comfort_targets is not None and i < len(comfort_targets):
-            return float(comfort_targets[i])
-        return self.config.target_temp
-
-    def _floor_demand_at_target(
-        self,
-        target: float,
-        outdoor_temp: float,
-        wind_speed: float,
-        precipitation: float,
-        solar_radiation: float,
-    ) -> float:
-        """Thermal kW the slab-fed zone needs to sit at ``target``, zones equal.
-
-        Single-zone that is the room; two-zone the lower floor, whose
-        inter-zone exchange is zero when both floors are at ``target`` (the
-        two-zone demand adds the exchange at the actual temperatures).
-        """
-        p = self.model.params
-        if not p.two_zone_enabled:
-            u_eff = self.model.effective_heat_loss_coefficient(
-                p.heat_loss_coefficient, wind_speed, precipitation
-            )
-            q_solar = self.model.compute_solar_gain(solar_radiation)
-            return u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
-        u_lower = self.model.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
-        )
-        _, q_solar_lower = self.model.solar_gain_per_zone(solar_radiation)
-        q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
-        return u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower
-
-    def _thermostat_held_state(
-        self, state: ThermalState, weather: WeatherSeries, target: float
-    ) -> ThermalState:
-        """``state`` as a thermostat holding ``target`` all along would have it (#2255).
-
-        The zones at ``target`` and the slab at the temperature that delivers
-        the step's demand: the cascade's own slab target with no pull-back,
-        so the first step draws the steady holding power. Tanks and every
-        other field stay as measured; the thermostat does not own them.
-        """
-        if not len(weather.outdoor_temps):
-            return state
-        assert weather.wind_speeds is not None and weather.precipitation is not None
-        assert weather.solar_radiation is not None
-        q_floor = self._floor_demand_at_target(
-            target, float(weather.outdoor_temps[0]), float(weather.wind_speeds[0]),
-            float(weather.precipitation[0]), float(weather.solar_radiation[0]),
-        )
-        return replace(
-            state,
-            room_temperature=target,
-            upper_floor_temperature=target,
-            lower_floor_temperature=target,
-            slab_temperature=target
-            + max(0.0, q_floor) / self.model.params.slab_heat_transfer_floored,
-        )
-
     def _start_gap_cost(
         self,
         initial_state: ThermalState,
@@ -5194,31 +5302,20 @@ class HeatPumpOptimizer:
         humidity: np.ndarray | None,
         baseline_cost: float,
     ) -> float:
-        """The start's side of the stored-heat settlement (#2255).
+        """The start's side of the stored-heat settlement (#2255), netted off the end's.
 
-        The thermostat starts held (``_thermostat_held_state``) and the plan
-        from the measured house, so the two begin with different stored
-        heat, as they end with different stored heat. The end gap is charged
-        by ``_deferred_energy_cost``; this is the same valuation of the start
-        gap, which the caller nets off it: a plan starting colder than the
-        held house is not charged for buying that heat back inside its
-        horizon, nor credited for a pre-heated start. The tanks are
-        identical at the start (the held state keeps them as measured), so
-        the space stores alone are settled.
-
-        The end's ``caps`` value heat above what comfort calls for at
-        nothing, because nothing past the horizon uses it. At the start the
-        plan coasts on that heat inside the horizon, so a pre-heated start
-        is debited past the caps too -- but never by more than the
-        thermostat would have bought (``baseline_cost``): stored heat
-        displaces purchases, and a summer house holding passive warmth with
-        no demand to meet displaces none. Measured over the golden matrix:
-        capped alone read the away-setback fixture at 60.7 % (34.2 % when
-        both sides started alike), uncapped alone read a summer fixture at
-        -12.7 %.
+        The thermostat starts held, the plan from the measured house, so they
+        begin with different stored heat as they end with different stored
+        heat; this values the start gap as ``_deferred_energy_cost`` values
+        the end's. The end's ``caps`` price heat above comfort at nothing,
+        since nothing past the horizon uses it; at the start the plan coasts
+        on that heat, so a pre-heated start is debited past the caps, by no
+        more than the thermostat would have bought (``baseline_cost``):
+        stored heat displaces purchases, and none where there are none.
         """
-        held = self._thermostat_held_state(
-            initial_state, weather, self._baseline_target(comfort_targets, 0)
+        held = _thermostat_held_state(
+            self.model, initial_state, weather,
+            _baseline_target(comfort_targets, 0, self.config.target_temp),
         )
         capped = self._deferred_energy_cost(
             held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
@@ -5228,109 +5325,6 @@ class HeatPumpOptimizer:
         )
         surplus_above_caps = max(0.0, capped - uncapped)
         return capped - min(surplus_above_caps, max(0.0, baseline_cost))
-
-    def _baseline_thermal_demand_single(
-        self,
-        state: ThermalState,
-        target: float,
-        outdoor_temp: float,
-        wind_speed: float,
-        precipitation: float,
-        solar_radiation: float,
-        dt: float,
-    ) -> float:
-        """Thermal power a thermostat needs this step in the single-zone model."""
-        p = self.model.params
-        k_slab = p.slab_heat_transfer_floored
-
-        # Thermal power the room needs to sit at the setpoint.
-        q_demand = self._floor_demand_at_target(
-            target, outdoor_temp, wind_speed, precipitation, solar_radiation
-        )
-        # Slab temperature that delivers exactly that, plus a pull-back term
-        # if the room has drifted away from the setpoint.
-        slab_target = (
-            target
-            + max(0.0, q_demand) / k_slab
-            + 2.0 * (target - state.room_temperature)
-        )
-
-        q_slab_to_room = k_slab * (state.slab_temperature - state.room_temperature)
-        # Replace what the slab gives up to the room, and move the slab to
-        # where it needs to be.
-        return q_slab_to_room + p.slab_thermal_mass * (
-            slab_target - state.slab_temperature
-        ) / dt
-
-    def _baseline_thermal_demand_two_zone(
-        self,
-        state: ThermalState,
-        target: float,
-        outdoor_temp: float,
-        wind_speed: float,
-        precipitation: float,
-        solar_radiation: float,
-        dt: float,
-    ) -> float:
-        """Thermal power a thermostat needs this step in the two-zone model.
-
-        The upper floor is fed directly by radiators while the lower floor is
-        fed through the slab, and the split between them is fixed by
-        ``radiator_power_fraction``. One control cannot hold both zones exactly,
-        which is also true of the real system being modelled, so the demand of
-        the two zones is summed the way an outdoor-reset curve on a single
-        mixing valve would.
-        """
-        p = self.model.params
-        k_slab = p.slab_heat_transfer_floored
-
-        u_upper = self.model.effective_heat_loss_coefficient(
-            p.upper_floor_heat_loss, wind_speed, precipitation
-        )
-        q_solar_upper, _ = self.model.solar_gain_per_zone(solar_radiation)
-        q_int_upper = p.internal_gains * p.upper_floor_area_ratio
-
-        t_upper = state.upper_floor_temperature
-        t_lower = state.lower_floor_temperature
-        q_inter = p.inter_zone_transfer * (t_lower - t_upper)
-
-        # Radiators reach the upper floor within the step, so its demand is
-        # met directly, including the pull-back on any drift.
-        q_upper = (
-            u_upper * (target - outdoor_temp)
-            - q_solar_upper
-            - q_int_upper
-            - q_inter
-            + p.upper_floor_thermal_mass * (target - t_upper) / dt
-        )
-        q_upper = max(0.0, q_upper)
-
-        # The lower floor is heated through the slab, so drive the slab to the
-        # temperature that sustains it and charge it over this step.
-        q_lower = self._floor_demand_at_target(
-            target, outdoor_temp, wind_speed, precipitation, solar_radiation
-        ) + q_inter
-        slab_target = (
-            target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)
-        )
-        q_slab_to_lower = k_slab * (state.slab_temperature - t_lower)
-        q_floor = q_slab_to_lower + p.slab_thermal_mass * (
-            slab_target - state.slab_temperature
-        ) / dt
-        q_floor = max(0.0, q_floor)
-
-        # The heat pump makes one water temperature and the split between
-        # radiators and floor is fixed, so total output is sized to total
-        # demand the way an outdoor-reset curve does. The zones then settle at
-        # slightly different temperatures, which is what the real system does
-        # too, and inter-zone transfer pulls them back together.
-        thermal = q_upper + q_floor
-
-        # Replace what the buffer tank leaks so it does not sag over the day.
-        thermal += p.buffer_tank_heat_loss_coefficient * max(
-            0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
-        )
-        return thermal
 
     def _stored_thermal_energy(
         self,
