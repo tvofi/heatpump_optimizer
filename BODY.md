@@ -2,9 +2,9 @@
 
 What changes:
 - `tools/pr/ci_predict.py --apply-inert` writes each predicted INERT READS entry through `closure.write_closures`, then predicts again.
-- When any INERT READS is predicted, the predictor prints that route.
+- When any INERT READS is predicted, the predictor prints that route. When every predicted red is an INERT READS, 6d's step line names `--apply-inert` instead of ci-autofix.md.
 - The stale premise ("the autofix repaired none") is corrected in `ci_predict.py` and in `prepr.sh`'s 6d comment.
-- Three `prepr.sh --self-test` arms pin the apply, the table layout and a null control.
+- Six `prepr.sh --self-test` arms pin the apply on both INERT READS arms (the sibling glob, `pinert`, and the import edge, `pedge`), the table layout, the step line and a null control.
 
 The refusal stays. The bot's repair after the push costs a red `closures` run and a commit on the reviewed head.
 
@@ -14,11 +14,14 @@ Part of the R10 root-cause work for #2371.
 
 ## Head
 
-03128f922678b73b15d5faf4f11e468d55d3f40d. The self-tests ran at c101fe76639651712ffaf438fe32677926c8e40c. The two heads differ only in `dev/audit/rca/R10-RCA-INERT-PREDICT.md`.
+1e44fb2d14c4144c99061b868be4b8d970a0ef42. Round 1 of review: the import-edge arm is now pinned, the step line names the route, and origin/main `99cf51c1a` is merged.
 
 ## Mutation proof
 
-With `apply_inert`'s write disabled (`if added and False:`), `tools/pr/prepr.sh --self-test` prints `FAIL --apply-inert writes the predicted entry, and the prediction then clears (got 1, wanted 0)` and ends at `276 passed, 1 failed`, rc=2. The unmutated head ends at `277 passed, 0 failed`, rc=0.
+On this head, `tools/pr/prepr.sh --self-test` ends at `280 passed, 0 failed`, rc=0.
+- Review mutant A removes `under_scoped`'s `pairs.add`. The self-test prints `FAIL --apply-inert writes the import-edge arm's entry too, and the prediction then clears (got 1, wanted 0)` and ends 279/1, rc=2.
+- Restoring the old step-line pointer prints `FAIL and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS (got 1, wanted 0)` and ends 279/1, rc=2.
+- In round 0, disabling `apply_inert`'s write (`if added and False:`) printed `FAIL --apply-inert writes the predicted entry, and the prediction then clears (got 1, wanted 0)`, 276/1, rc=2. That code is unchanged since.
 
 ## Null control
 
@@ -26,7 +29,7 @@ At `origin/main` `52f698905`, `--apply-inert` on a diff that changes only the pr
 
 ## Figures
 
-- `prepr.sh --self-test`: 277 passed, 0 failed: `tools/pr/prepr.sh --self-test`
+- `prepr.sh --self-test`: 280 passed, 0 failed: `tools/pr/prepr.sh --self-test`
 - The 6d prediction on this head is quiet: `python3 tools/pr/ci_predict.py --base origin/main`
 - The class search counts are in the RCA's section 3. They were measured by the seat's `class_search.py`, which is not in the tree. The commit SHAs are listed there, so they can be re-derived with `git log -- tests/closures.json`.
 
