@@ -37408,6 +37408,53 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
             f"{_hb_first[0]!r} vs {max(0.0, _hb_q) / _hb_cop!r}",
         )
 
+# The start's settlement, at its two limits. A pre-heated start (24 C room,
+# above the 21 C cap the end settlement uses) carries heat the plan coasts
+# on inside the horizon, so it is debited past the caps -- but by no more
+# than the thermostat would have bought: with nothing to buy (a summer house
+# holding passive warmth) the debit stops at the capped gap.
+from heatpump_optimizer.thermal_model import WeatherSeries as _HbWS
+
+_hs_cfg = _hb_house(two_zone=False, dhw=False)
+_hs_par = _HbParams.from_config(_hs_cfg)
+_hs_par.dhw_enabled = False
+_hs_opt = _HbOpt(_HbModel(_hs_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hs_ws = _HbWS(outdoor_temps=_hb_out, wind_speeds=_hb_wind, precipitation=_hb_rain,
+               solar_radiation=_hb_sol)
+_hs_px = np.asarray(_hb_prices("winter_typical", _hb_t0), dtype=float)
+_hs_caps = _hs_opt._settlement_caps(_hb_out)
+_hs_warm = _HbState(room_temperature=24.0, slab_temperature=26.0,
+                    outdoor_temperature=float(_hb_out[0]))
+_hs_held = _hs_opt._thermostat_held_state(
+    _hs_warm, _hs_ws, _hs_opt._baseline_target(None, 0))
+_hs_capped = _hs_opt._deferred_energy_cost(
+    _hs_held, _hs_warm, _hs_px, _hb_out, caps=_hs_caps)
+_hs_free = _hs_opt._deferred_energy_cost(_hs_held, _hs_warm, _hs_px, _hb_out, caps=None)
+_hs_gap = lambda cost: _hs_opt._start_gap_cost(  # noqa: E731
+    _hs_warm, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, cost)
+R.check(
+    "precondition: the pre-heated start carries heat above the caps",
+    _hs_free < _hs_capped - 0.5,
+    f"capped {_hs_capped:.3f} uncapped {_hs_free:.3f}",
+)
+R.check(
+    "with a thermostat that buys nothing, the start is settled at the caps",
+    abs(_hs_gap(0.0) - _hs_capped) < 1e-9,
+    f"{_hs_gap(0.0)!r} vs capped {_hs_capped!r}",
+)
+R.check(
+    "with demand to displace, the pre-heated start is debited past the caps",
+    abs(_hs_gap(1e9) - _hs_free) < 1e-9,
+    f"{_hs_gap(1e9)!r} vs uncapped {_hs_free!r}",
+)
+R.check(
+    "between the two, the debit past the caps stops at the thermostat's cost",
+    abs(_hs_gap(1.0) - (_hs_capped - 1.0)) < 1e-9,
+    f"{_hs_gap(1.0)!r} vs {_hs_capped - 1.0!r}",
+)
+
 import inspect as _sav_inspect
 from pathlib import Path as _SavPath
 from heatpump_optimizer.optimizer import (
