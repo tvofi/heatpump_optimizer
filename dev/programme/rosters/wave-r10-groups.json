@@ -3144,9 +3144,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress: fixer dispatched",
+    "stage": "done",
     "branch": "handoff/r10-ref-privacy",
-    "commit": null,
+    "commit": "a73f3320c53a",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
