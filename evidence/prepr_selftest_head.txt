@@ -132,8 +132,10 @@
   ok   and is recorded with it (null control)
   ok   a Python script is recorded without strace
   ok   stress.py is left to CI: a push takes no gate lease
-tools/pr/prepr.sh: line 1741: slot: command not found
-  ok   0
+  ok   a `slot` script is recorded here, inside the slot this run holds (#2267)
+  ok   a backtick inside a double-quoted string is reported (null control)
+  ok   and an escaped one, a single-quoted one, a comment and a heredoc are not
+  ok   no script in tools/pr/ runs a command inside a double-quoted label
   ok   a row-only diff skips mutants (the arm the mutation rows redden)
   ok   and mutants's skip line names the disjointness
   ok   a row-only diff skips field coverage (the arm the mutation rows redden)
@@ -195,7 +197,7 @@ tools/pr/prepr.sh: line 1741: slot: command not found
   ok   body_push refuses the probe head (a new harness, no inert_reads line) and pushes no body (M2)
   ok   and pushes it once --apply-inert's entry is committed
   ok   body_push pushes a head the predictor is quiet on (null control)
-  FAIL and refuses a checkout with no predictor rather than passing it silently (got 1, wanted 0)
+  ok   and refuses a checkout with no predictor rather than passing it silently
   ok   6d stays quiet on a new selectable script: the derive plans its recording by construction (C1)
   ok   6d predicts ADDED UNPINNED for a guard the diff adds with no pin
   ok   and an unpinned site warns, never refuses: mutation-autofix may pin it after the push
@@ -296,4 +298,9 @@ AssertionError: queue-base
   ok   and takes it before the heavy steps begin
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
-286 passed, 1 failed
+290 passed, 0 failed
+
+real	1m57.175s
+user	1m29.571s
+sys	0m24.235s
+rc=0
