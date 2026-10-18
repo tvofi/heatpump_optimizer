@@ -50,14 +50,98 @@ def commanded_power_kw(action: Any) -> float | None:
     reports what the step asks of a pump it has already declared off. Only an
     explicit False gates -- an action that carries no ``heat_pump_on`` at all
     is a caller's partial dict, not a declaration, and publishes its ask.
+
+    A part that is not a number (``payload_number``: a bool or text) leaves
+    the ask unknown, ``None``; a missing DHW part is no DHW draw.
     """
     action = action or {}
-    space = action.get("power")
-    if space is None:
+    space = payload_number(action.get("power"))
+    raw_dhw = action.get("dhw_power")
+    dhw = 0.0 if raw_dhw is None else payload_number(raw_dhw)
+    if space is None or dhw is None:
         return None
     if action.get("heat_pump_on") is False:
         return 0.0
-    return round(float(space) + float(action.get("dhw_power") or 0.0), 2)
+    return round(float(space) + float(dhw), 2)
+
+
+def effective_outdoor(data: Any) -> tuple[float | None, str | None]:
+    """The best outdoor temperature available, and where it came from.
+
+    Three answers, in the order a user would want them:
+
+    * the outdoor thermometer, while it reads;
+    * otherwise the **forecast's current step** -- the number the plan beside
+      it was actually solved on. `ThermalState.outdoor_temperature`'s 5.0
+      constructor default is never overwritten without a thermometer, so an
+      install with a -5 °C forecast published "5.0 °C outdoors" with a
+      `TEMPERATURE` device class and long-term statistics behind it, and the
+      Estimated COP that reads it followed (3.32 against a real 2.62);
+    * ``None`` when there is neither, which is the one branch where the
+      default also reaches the optimizer's horizon.
+
+    Both readers -- the Outdoor Temperature and Estimated COP sensors, and
+    the climate entity's ``outdoor_temperature`` attribute -- take it here;
+    the climate entity kept its own copy, unguarded, which answered ``None``
+    where a thermometer flagged OK published no number and the sensor fell
+    back to the forecast.
+
+    Deliberately not an availability gate: an outdoor temperature the
+    integration is planning against is a real answer, and unavailability
+    would hide it. What changes is that the number is the forecast's rather
+    than a dataclass's, and the sensor says which.
+    """
+    data = data or {}
+    if (data.get("reading_ok") or {}).get("outdoor_temperature"):
+        value = payload_number(data.get("outdoor_temperature"))
+        if value is not None:
+            return float(value), "outdoor_temp_entity"
+    forecast = payload_number(data.get("outdoor_forecast_temperature"))
+    if forecast is not None:
+        return float(forecast), "weather_forecast"
+    return None, None
+
+
+def zone_setpoint_attributes(action: Any) -> dict[str, Any]:
+    """The current plan step's two-zone setpoints, under their published names.
+
+    The plan step names them ``upper_setpoint`` / ``lower_setpoint``; the
+    climate entity, Current Setpoint and Heat Pump Action publish them as
+    ``upper_floor_setpoint`` / ``lower_floor_setpoint``, and only when the
+    step carries them (a single-zone plan publishes neither). The renaming
+    was written three times (D7-s2-54); it lives here so they cannot drift.
+    """
+    action = action or {}
+    return {
+        published: action[planned]
+        for planned, published in (
+            ("upper_setpoint", "upper_floor_setpoint"),
+            ("lower_setpoint", "lower_floor_setpoint"),
+        )
+        if planned in action
+    }
+
+
+def payload_number(
+    value: Any, types: tuple[type[int | float], ...] = (int, float)
+) -> int | float | None:
+    """A payload value as the number a state publishes, or ``None``.
+
+    The value itself when it is one of ``types``; ``None`` for anything else.
+    A bool is not a number (the round-10 bool policy): ``True`` is an ``int``
+    to Python, and published as a temperature of 1 it is a reading nothing
+    made. Text is not a number either: a numeric string is its producer's bug,
+    which no entity parses on the producer's behalf. Each sensor's own guard
+    had drifted from this four ways (D7-s2-60), so every entity that publishes
+    a payload number reads it here. A numpy scalar is read as the Python
+    value it holds, the order ``_finite`` takes for the same reason: a
+    ``numpy.bool_`` is then a bool, and a ``numpy.int64`` an ``int``.
+    """
+    if isinstance(value, np.generic):
+        value = value.item()
+    if isinstance(value, bool) or not isinstance(value, types):
+        return None
+    return value
 
 
 def _finite(value: Any) -> Any:
@@ -135,13 +219,24 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
     )
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        """Wrap every subclass's published properties in the finite scrub."""
+        """Wrap every subclass's published properties in the finite scrub.
+
+        The property scrubbed is the one Home Assistant reads: resolved
+        through the MRO, so a mixin whose runtime base is ``object`` (the
+        sensor platform's) is scrubbed on each entity that inherits it, where
+        keying on the class's own ``__dict__`` let its value through (D7-s2-51).
+        Only Home Assistant's own defaults are left as they are: they read
+        the ``_attr_*`` the integration set, and belong to its state machinery.
+        """
         super().__init_subclass__(**kwargs)
         for name in HeatPumpOptimizerEntity._PUBLISHED:
-            prop = cls.__dict__.get(name)
+            prop = getattr(cls, name, None)
             if not isinstance(prop, property) or prop.fget is None:
                 continue
             if getattr(prop.fget, "_finite_scrubbed", False):
+                continue
+            owner = next(k for k in cls.__mro__ if name in vars(k))
+            if owner.__module__.partition(".")[0] == "homeassistant":
                 continue
 
             def scrubbed(
