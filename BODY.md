@@ -58,7 +58,7 @@ Each can be added after both land.
 
 ## Head
 
-`f658e418aa51611407f92497c6e9007dd9c52b7d`. It is four commits on origin/main `63816b857`: `a5de742c0`, `6eb3ec595`, the orchestrator's row `a7d97f55b`, and the round-2 fix `f658e418a`. `git fetch origin main` at 2026-10-18 13:40Z gives `413944b67`. `git merge-tree --write-tree origin/main HEAD` merges clean. Main's only new `--name-only` text is comments in `tests/entities.py`, which the census already passes.
+`8212a3e6198a52ed2a6b8a9d1c9e8d73e9301833`. It is five commits on origin/main `63816b857`: `a5de742c0`, `6eb3ec595`, the orchestrator's row `a7d97f55b`, the round-2 fix `f658e418a`, and `8212a3e61`. The last one answers the layout guard: the `--no-renames` edit put `handoff_push.sh:49` in the diff, and that line cites the retired `tools/audit/handoff/`. The path must stay matched, because `prepr.sh`'s `TRANSPORT_ROOTS` still reads it. So the line carries the guard's documented `layout:old=tools/audit/handoff` marker, and `python3 tests/layout.py --guard --base origin/main` prints `0 refusal(s)`. `git fetch origin main` at 2026-10-18 13:40Z gives `413944b67`. `git merge-tree --write-tree origin/main HEAD` merges clean. Main's only new `--name-only` text is comments in `tests/entities.py`, which the census already passes.
 
 ## Mutation proof
 
@@ -74,7 +74,7 @@ Each mutant edited one file in place in the worktree (committed first), ran the 
 - **MB6': the pattern's end anchor `\Z` dropped.** `47/50`: `<lane> runs on dev/programme/delivery/2380.md.bak`.
 - **MB6 SURVIVED: the `".." not in path` clause deleted** (`50/50`). The anchored pattern already refuses every `..` path, so the clause was dead. `6eb3ec595` removes it, and its pins stay, now on the pattern.
 
-**Round 2, at `f658e418a`:**
+**Round 2, at `f658e418a` (`8212a3e61` adds only a comment marker):**
 - **MB8: `--no-renames` dropped from `changed_between`, the producer.**
   - `python3 tests/closure.py selftest` prints `3 of 122 closure shrink pins FAILED`:
     - `the changed list keeps both sides of a rename onto a delivery row` (`['dev/programme/delivery/99999.md']`);
@@ -98,7 +98,8 @@ Each mutant edited one file in place in the worktree (committed first), ran the 
 
 ## Figures
 
-At `f658e418a`:
+At `f658e418a`; `8212a3e61` adds only a comment marker:
+- `python3 tests/layout.py --guard --base origin/main` at `8212a3e61`: `GUARD: 0 refusal(s)`; `--self-test`: `ok`.
 - `python3 tests/closure.py selftest`: `ALL 122 closure shrink pins PASSED`. The O17 section holds 7 of them. `closure.rename_sites()` gives `([], [])`.
 - `python3 tests/lane_skip.py self-test`: `54/54 pins passed`. Round 1 was 50.
 - `python3 tools/audit/seat/roster_lib.py --self-test`: `18 checks, 0 failed`.
@@ -123,6 +124,7 @@ At `f658e418a`:
 - **The roster-ref WARNING after a squash.** After each squash-merge to main, `default_roster_ref` notes that main carries roster changes the branch has not merged. It keeps noting that until main is merged back into `handoff/audit-r10-roster`. That is by design: the reader still reads the branch, and the note tells the reader that main may be ahead. It is noise on every tick in the window. Nothing pins how long it lasts.
 - **Owed step: the state-docs beat restart.** The orchestrator restarts the beat on this code after merge, with no `--roster-ref`, so it watches the round branch. Until then the running beat (`--watch-ref refs/heads/main`, default roster ref) keeps its old behaviour: a roster-only edit regenerates nothing.
 - **Owed after #2405 and this PR both land:** `codeql_scope.changed` delegates to `closure.changed_between`, so the list has one owner.
+- **The census's strictness.** Its prose exemptions are exact per-file strings. A docstring or message that later quotes a porcelain `--name-only` diff needs its own entry, or the closure self-test goes red on an inert line. The census errs strict on purpose. The orchestrator dispatches the beat restart and the `codeql_scope` delegation above after merge. The tick's unlanded-roster line is the coordinator's.
 
 ## Red checks
 
@@ -130,9 +132,8 @@ none
 
 ## Forward-carry
 
-- The beat restart and the `codeql_scope` delegation, above. Both are owed steps for the orchestrator to dispatch after merge.
-- The tick's unlanded-roster line is the coordinator's, in the tick seat.
+none
 
 ## Friction
 
-- The census's prose exemptions are exact per-file strings. A docstring or message that later quotes a porcelain `--name-only` diff needs its own entry, or the closure self-test goes red on an inert line. The census errs strict on purpose.
+none
