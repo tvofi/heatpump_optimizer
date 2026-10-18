@@ -49,7 +49,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from . import replay_doc
+from . import const, replay_doc
 from .accuracy import AccuracyTracker
 from .const import CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_instant
@@ -201,12 +201,6 @@ def _read_stores(folder: Path, keys: list[str]) -> dict[str, tuple[Any, Any]]:
         if isinstance(doc, dict):
             found[key] = (doc.get("version"), doc.get("data"))
     return found
-
-
-def _entry_keys() -> frozenset[str]:
-    """The entry allowlist: ``const.py``'s ``CONF_*`` names, read as the export reads
-    them (executor)."""
-    return replay_doc.conf_keys(Path(__file__).with_name("const.py").read_text(encoding="utf-8"))
 
 
 def _parsed(text: str) -> Any:
@@ -416,7 +410,8 @@ def _since(states: list[Any], start: datetime) -> list[Any]:
 
 
 def _record(state: Any) -> tuple[str, Any, dict[str, Any], str | None]:
-    reported = state.last_reported
+    # A recorder older than its ``last_reported_ts`` column (2024.3) has none.
+    reported = getattr(state, "last_reported", None)
     return (state.last_updated.isoformat(), state.state, dict(state.attributes),
             reported.isoformat() if reported and reported > state.last_updated else None)
 
@@ -637,13 +632,15 @@ class DebugCollector:
                             | set(wants["candidates"] or ()))
         try:
             instance = get_instance(self._hass)
+            # Nothing to read asks nothing: an empty list is not relied on upstream.
             history = await instance.async_add_executor_job(partial(
                 recorder_history.get_significant_states, self._hass, start, end, entity_ids,
-                include_start_time_state=True, significant_changes_only=False))
-            conf = await self._hass.async_add_executor_job(_entry_keys)
+                include_start_time_state=True, significant_changes_only=False,
+            )) if entity_ids else {}
             build = partial(replay_document, wants, registry, history,
                             time_zone=self._hass.config.time_zone,
-                            schema=instance.schema_version, conf=conf)
+                            schema=instance.schema_version,
+                            conf=replay_doc.conf_keys(vars(const)))
             return await self._hass.async_add_executor_job(
                 fit_replay, bundle, lambda since: build((since, end)), end, start)
         except replay_doc.Refused as err:

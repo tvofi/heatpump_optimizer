@@ -18,7 +18,11 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, cast
+
+#: A JSON object as the document holds it.
+Json = dict[str, Any]
 
 FORMAT = "hpo-replay/1"
 
@@ -74,7 +78,6 @@ SERIES_TIME_KEYS = frozenset({"start", "end", "starts_at"})
 SERIES_VALUE_KEYS = frozenset({"value", "price", "total"})
 LABEL = re.compile(r"^[A-Za-z\u00b0][A-Za-z0-9 _+\-./()\u00b0%\u00b2\u00b3]{0,39}$")
 ISO_TIME = re.compile(r"^\d{4}-\d\d-\d\d([T ][\d:.]+([+-]\d\d:\d\d|Z)?)?$")
-CONST_PATTERN = re.compile(r'^CONF_\w+: Final = "([a-z0-9_]+)"', re.M)
 
 # THE TIBBER PRICE SENSOR. With the Tibber source the integration fetches
 # prices itself, so the replay needs a recorded sensor whose state is the
@@ -97,12 +100,16 @@ class Refused(ValueError):
     """A document that may not be written, and why."""
 
 
-def conf_keys(const_text: str) -> frozenset[str]:
-    """The ``CONF_*`` values a ``const.py`` source declares: the entry allowlist."""
-    return frozenset(CONST_PATTERN.findall(const_text))
+def conf_keys(const: Mapping[str, object]) -> frozenset[str]:
+    """The entry allowlist: the string each ``CONF_*`` name of a loaded ``const``
+    module's namespace is bound to. The integration passes its own; the export
+    loads the installed ``const.py`` and passes that (#2271: the line pattern it
+    used before missed the two values wrapped onto a second line)."""
+    return frozenset(value for name, value in const.items()
+                     if name.startswith("CONF_") and isinstance(value, str))
 
 
-def tibber_price_candidates(registry: list[dict]) -> list[str]:
+def tibber_price_candidates(registry: list[Json]) -> list[str]:
     """The enabled Tibber price sensors in the entity registry, sorted."""
     return sorted(
         e["entity_id"] for e in registry
@@ -115,7 +122,7 @@ def tibber_price_candidates(registry: list[dict]) -> list[str]:
 
 
 def choose_price_entity(
-    config: dict, registry: list[dict], recorded: Callable[[str], bool]
+    config: Json, registry: list[Json], recorded: Callable[[str], bool]
 ) -> str:
     """The Tibber price sensor to build the replay's price series from.
 
@@ -126,8 +133,9 @@ def choose_price_entity(
     """
     candidates = tibber_price_candidates(registry)
     live = [c for c in candidates if recorded(c)]
-    if config.get("price_entity") in live:
-        return config["price_entity"]
+    chosen = config.get("price_entity")
+    if isinstance(chosen, str) and chosen in live:
+        return chosen
     if len(live) == 1:
         return live[0]
     listed = ", ".join(
@@ -141,9 +149,11 @@ def choose_price_entity(
 
 
 def numeric(state: object) -> bool:
+    if not isinstance(state, (str, int, float)):
+        return False
     try:
-        float(state)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
+        float(state)
+    except ValueError:
         return False
     return True
 def json_decimal_places(value: object) -> int | None:
@@ -188,7 +198,7 @@ def _is_coordinate(key: str) -> bool:
 def clean_value(node: object, dropped: list[str]) -> object:
     """``node`` with every unsafe string nulled, every unsafe key gone."""
     if isinstance(node, dict):
-        out = {}
+        out: Json = {}
         for key, value in node.items():
             if SECRET_KEY.search(str(key)) or not KEY.match(str(key)):
                 _collect_strings(value, dropped, bool(SECRET_KEY.search(str(key))))
@@ -267,7 +277,7 @@ def _time(value: object) -> object:
     return value if value is None or (isinstance(value, str) and ISO_TIME.match(value)) else _DROP
 
 
-ATTRIBUTE_SHAPES = {
+ATTRIBUTE_SHAPES: dict[str, Callable[[object], object]] = {
     **{k: _unit for k in ("unit_of_measurement", "temperature_unit",
                           "wind_speed_unit", "precipitation_unit")},
     **{k: _snake for k in ("device_class", "state_class", "hvac_action")},
@@ -297,8 +307,8 @@ def _entry_shape(key: str, value: object) -> object:
 
 
 def _keep_keys(section: object, allowed: frozenset[str], dropped: list[str],
-               shape=None) -> dict:
-    out = {}
+               shape: Callable[[str, object], object] | None = None) -> Json:
+    out: Json = {}
     for key, value in (section if isinstance(section, dict) else {}).items():
         secret = bool(SECRET_KEY.search(str(key)))
         shaped = _DROP if secret or key not in allowed else (
@@ -309,14 +319,15 @@ def _keep_keys(section: object, allowed: frozenset[str], dropped: list[str],
         if shaped != value:
             _collect_strings(value, dropped)
         out[key] = shaped
-    return clean_value(out, dropped)
+    return cast(Json, clean_value(out, dropped))  # a dict cleans to a dict
+
 
 
 def _attr_shape(key: str, value: object) -> object:
     return ATTRIBUTE_SHAPES[key](value)
 
 
-def sanitise(raw: dict, conf: frozenset[str], dropped: list[str]) -> dict:
+def sanitise(raw: Json, conf: frozenset[str], dropped: list[str]) -> Json:
     """The export payload cut down to the allowlist.
 
     ``dropped`` collects every string removed, so the caller can prove none
@@ -327,7 +338,7 @@ def sanitise(raw: dict, conf: frozenset[str], dropped: list[str]) -> dict:
     entry["data"] = _keep_keys(entry.get("data"), conf, dropped, _entry_shape)
     entry["options"] = _keep_keys(entry.get("options"), conf, dropped, _entry_shape)
     out["entry"] = entry
-    states = {}
+    states: Json = {}
     for entity_id, rows in raw["states"].items():
         clean_rows = []
         for updated, state, attrs, reported in rows:
@@ -339,7 +350,7 @@ def sanitise(raw: dict, conf: frozenset[str], dropped: list[str]) -> dict:
             clean_rows.append([updated, state, attrs, reported])
         states[entity_id] = clean_rows
     out["states"] = states
-    return clean_value(out, dropped)
+    return cast(Json, clean_value(out, dropped))  # a dict cleans to a dict
 
 
 def _collect_strings(node: object, into: list[str], secret: bool = False) -> None:
@@ -393,7 +404,7 @@ def violations(payload: object, conf: frozenset[str] | None = None) -> list[str]
         payload.get("states") or {})
 
 
-def _entry_violations(entry: dict, conf: frozenset[str] | None) -> list[str]:
+def _entry_violations(entry: Json, conf: frozenset[str] | None) -> list[str]:
     found = []
     for section in ("data", "options"):
         block = entry.get(section) or {}
@@ -405,14 +416,19 @@ def _entry_violations(entry: dict, conf: frozenset[str] | None) -> list[str]:
     return found
 
 
-def _state_violations(states: dict) -> list[str]:
+def _state_violations(states: Json) -> list[str]:
     found = []
     for entity_id, rows in states.items():
         if not ENTITY_ID.match(str(entity_id)):
             found.append(f"states.{entity_id}: not an entity id")
         for i, row in enumerate(rows if isinstance(rows, list) else []):
             attrs = row[2] if isinstance(row, list) and len(row) > 2 else None
-            for key in (attrs or {}):
+            if attrs is None:
+                continue
+            if not isinstance(attrs, dict):
+                found.append(f"states.{entity_id}[{i}]: attributes are not an object")
+                continue
+            for key in attrs:
                 if key not in ATTRIBUTE_KEYS:
                     found.append(f"states.{entity_id}[{i}].{key}: attribute outside the allowlist")
                 elif _attr_shape(key, attrs[key]) != attrs[key]:
@@ -437,14 +453,14 @@ def mapped_entities(node: object) -> set[str]:
     return found
 
 
-def state_rows(records: Iterable[tuple]) -> list[list]:
+def state_rows(records: Iterable[tuple[Any, Any, Any, Any]]) -> list[list[Any]]:
     """``[updated, state, attributes | None, reported | None]`` rows of
     ``(updated, state, attributes, reported)`` records, oldest first.
 
     Attributes are written only when they differ from the previous row's, so
     a thermometer's unchanged unit is not repeated a thousand times a day.
     """
-    rows: list[list] = []
+    rows: list[list[Any]] = []
     last_attrs: object = object()
     for updated, state, attrs, reported in records:
         row = [updated, state, None, reported]
@@ -457,9 +473,9 @@ def state_rows(records: Iterable[tuple]) -> list[list]:
 
 def document(
     *, time_zone: str, window: tuple[str, str], recorder_schema: int | None,
-    entry: dict, inputs: Iterable[str], published: Iterable[str],
-    price_series_entity: str | None, states: dict[str, list[list]],
-) -> dict:
+    entry: Json, inputs: Iterable[str], published: Iterable[str],
+    price_series_entity: str | None, states: dict[str, list[list[Any]]],
+) -> Json:
     """The unsanitised ``hpo-replay/1`` document; ``seal`` makes it writable."""
     return {
         "format": FORMAT,
@@ -479,7 +495,7 @@ def document(
     }
 
 
-def seal(raw: dict, conf: frozenset[str]) -> dict:
+def seal(raw: Json, conf: frozenset[str]) -> Json:
     """``raw`` sanitised, or ``Refused`` when a dropped value survives elsewhere in
     it or the result still breaks a rule."""
     dropped: list[str] = []

@@ -819,6 +819,7 @@ import types  # noqa: E402
 from homeassistant.components import recorder as ha_recorder  # noqa: E402
 from homeassistant.components.recorder import history as ha_history  # noqa: E402
 from homeassistant.helpers import entity_registry as er  # noqa: E402
+from heatpump_optimizer import const as const_mod  # noqa: E402
 from heatpump_optimizer import replay_doc  # noqa: E402
 from heatpump_optimizer.const import PRICE_SOURCE_ENTITY  # noqa: E402
 
@@ -1058,6 +1059,13 @@ R.check(
 R.check(
     "replay_doc's price-source literal is const's",
     replay_doc.PRICE_SOURCE_ENTITY == PRICE_SOURCE_ENTITY,
+)
+R.check(
+    "the download's entry allowlist is the one the export reads out of const.py, values "
+    "wrapped onto a second line included",
+    replay_doc.conf_keys(vars(const_mod)) == CONF and len(CONF) > 50
+    and {"heat_pump_capacity_limited_entity", "internal_gains_learning_enabled"} <= CONF,
+    f"{len(replay_doc.conf_keys(vars(const_mod)))} against {len(CONF)}",
 )
 
 

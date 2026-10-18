@@ -99,15 +99,19 @@ HERE = Path(__file__).resolve().parent
 _RULES = Path("custom_components") / DOMAIN / "replay_doc.py"
 
 
+def _load(path: Path, name: str):
+    """A module of the integration, loaded by path: the package's ``__init__``
+    imports Home Assistant, and this file runs without it."""
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _load_rules():
-    """The integration's ``replay_doc`` module, loaded by path: the package's
-    ``__init__`` imports Home Assistant, and this file runs without it."""
     for path in (HERE.parent.parent / _RULES, HERE / _RULES.name, Path("/config") / _RULES):
         if path.is_file():
-            spec = importlib.util.spec_from_file_location("hpo_replay_doc", path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            return module
+            return _load(path, "hpo_replay_doc")
     raise SystemExit(f"no {_RULES} found; copy it beside {Path(__file__).name}")
 
 
@@ -127,10 +131,10 @@ def choose_price_entity(config: dict, registry: list[dict], recorded) -> str:
 
 
 def entry_keys(*candidates: Path) -> frozenset[str]:
-    """The ``CONF_*`` values of the first ``const.py`` that exists; refuses if none."""
+    """``replay_doc.conf_keys`` of the first ``const.py`` that exists; refuses if none."""
     for path in candidates:
         if path.is_file():
-            keys = _doc.conf_keys(path.read_text())
+            keys = _doc.conf_keys(vars(_load(path, "hpo_replay_const")))
             if keys:
                 return keys
     raise SystemExit(
