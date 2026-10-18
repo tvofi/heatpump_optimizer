@@ -1,5 +1,5 @@
 {
- "class_excess_loc": 18382,
+ "class_excess_loc": 18368,
  "const_modules_over_50": 3,
  "coordinator_attrs": 148,
  "coordinator_multiassigned_attrs": 115,
@@ -11,7 +11,7 @@
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 45,
- "max_class_loc": 8553,
+ "max_class_loc": 8547,
  "max_method_loc": 373,
  "methods_over_150": 17,
  "methods_over_200": 9,

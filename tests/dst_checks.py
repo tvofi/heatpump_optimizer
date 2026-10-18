@@ -33,7 +33,7 @@ from heatpump_optimizer.coordinator import (
     FORECAST_STEP_MINUTES,
     HeatPumpOptimizerCoordinator,
     _solve_anchor,
-    _utc_step_starts,
+    utc_step_starts as _utc_step_starts,
 )
 from heatpump_optimizer.manual_plan import ManualOverride, PIN_OFF, PIN_ON
 from heatpump_optimizer.disinfection import DisinfectionSwitch
@@ -46,7 +46,7 @@ from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
     _Horizon,
-    _utc_step_starts as _opt_utc_step_starts,
+    utc_step_starts as _opt_utc_step_starts,
 )
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
@@ -428,7 +428,7 @@ R.check(
 )
 # #1741: one clock. The coordinator's bridge to the optimizer's horizon
 # (_horizon_step_starts) and _Horizon.timestamps both call the one
-# optimizer._utc_step_starts with the configured step, so they agree on both
+# drift.utc_step_starts with the configured step, so they agree on both
 # transition days by construction, not because the config surface only offers
 # whole-minute steps. A 7.5-minute step is the control the old two-clock pair
 # failed: its minute-rounding bridge walked 8-minute steps.
@@ -585,7 +585,7 @@ def _metered_factors(tariff: CapacityTariff, start: datetime, n: int) -> list[fl
     """The factor PRODUCTION assigns each window, over real UTC-walked instants.
 
     Nothing here re-implements the mask: the instants come from the
-    optimizer's own step clock (``_utc_step_starts``) and the factor is read
+    optimizer's own step clock (``drift.utc_step_starts``) and the factor is read
     back off ``PeakTracker`` after ``observe`` has attributed the window. That
     is exactly the quantity ``window_factors``' docstring promises the plan's
     cost term can never disagree with, so it is what the check compares to.
@@ -1923,7 +1923,7 @@ import heatpump_optimizer.wood_fuel as _wood_fuel  # noqa: E402
 from heatpump_optimizer.comfort_learning import ComfortLearner  # noqa: E402
 from heatpump_optimizer.drift import Cusum  # noqa: E402
 from heatpump_optimizer.external_heat import ExternalHeatConfig, ExternalHeatDetector  # noqa: E402
-from heatpump_optimizer.optimizer import REASON_LEGIONELLA  # noqa: E402
+from heatpump_optimizer.payload import REASON_LEGIONELLA  # noqa: E402
 
 _F60_LAST = datetime(2026, 10, 25, 2, 59, 30, tzinfo=STHLM)  # true 60 s, wall -3540 s
 _F60_NOW = datetime(2026, 10, 25, 2, 0, 30, tzinfo=STHLM, fold=1)
