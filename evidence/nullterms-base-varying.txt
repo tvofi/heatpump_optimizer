@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s3/review-2411/base/dev/audit/harnesses/r10_sav_null_terms.py", line 30, in <module>
+    from heatpump_optimizer.optimizer import _floor_demand_at_target
+ImportError: cannot import name '_floor_demand_at_target' from 'heatpump_optimizer.optimizer' (/Users/timmalmstrom/hpo-seats/r10s3/review-2411/base/custom_components/heatpump_optimizer/optimizer.py)

@@ -1,46 +1,62 @@
-Fix review: blocked b7a34f98aa6013a542e21d28a76bc5159fe7e14f claims: tests/optimality.py retires the one|summer_negative|shoulder cert claim, CI fast (3.14) measures ladder +10.55 % at this head; also carry-missing to O13 and the residual's cause misstated
+Fix review: merge 3b6e599df04ece95e9615addb19c86d9339328a3
 
-bus-nonce: 8d07421b422ab1400098fe357c7be0ff
-PR: #2411 (R10-SAV-BASELINE, #2255). Round 1 (no earlier verdict on the PR).
-Reviewed head: b7a34f98aa6013a542e21d28a76bc5159fe7e14f (still the head at writing). Merge base 413944b6772fa7f2f38cef7ea2f667a64d79251a.
-Evidence: ~/hpo-seats/r10s3/review-2411/evidence/
-Contract: dev/governance/roles/ diff merge-base...origin/main empty (current).
+bus-nonce: 1333f82e3d257a2e55e22c2ac90d2d1e
+PR: #2411 (R10-SAV-BASELINE, #2255). Round 2. Round 1 was comment 6251182230, blocked at b7a34f98a.
+Reviewed head: 3b6e599df04ece95e9615addb19c86d9339328a3, still the head at writing (17:02Z). Merge base 211c8290eda31038fcfe70cd526ab912cf92b103. origin/main 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0.
+Evidence: ~/hpo-seats/r10s3/review-2411/evidence-r2/
+Contract: the `dev/governance/roles/` diff from the merge base to origin/main is empty, so the contract is current.
 
-## What holds
+## Round 1's blocks, re-checked
 
-- Step 1, the mutation proof: `r10_sav_baseline_mutants.py` on a scratch copy of the head. M0 0 failing; M1 to M16 all killed (M1 6 failing, M2 5, M3 5, M4 3, M5 1, M6 2, M7 1, M8 3, M9 1, M10 3, M11 2, M12 1, M13 1, M14 1, M15 1, M16 1). M1 and M2 kill one more check each than the body's table (taken at e86c2085d). That is the steady-state check d2220949d adds, which matches the body's "the head adds only checks". `evidence/mutants-head.txt`.
-- Steps 2 and 3, the harness at both ends: `r10_sav_baseline.py` at the head and at the merge base 413944b67 (the harness copied into the base tree). Both print what the body quotes.
-  RESULT head transient spread 0.00 kW (2.06 kW x4); base 6.00 kW (0.00/6.00/6.00/0.00)
-  RESULT head cost row actual 15.0 = receipt 15.0; base 3.0 vs 15.0
-  RESULT head coverage scale 28.00; base 2.80
-  RESULT head null 10.83 % (thermostat 128.4 kWh, plan 114.5 kWh, room 18.79 vs target 20.44 C), DEFECT; base 43.66 % (203.6 / 114.7 kWh), DEFECT
-  Step 9: the finding had no committed harness (the owner's screenshot). Both harnesses are the fixer's own, and the body discloses that.
-- Step 5: pr-contract's version-edit step at this head prints "moves none of VERSION, the manifest version or a notes heading".
-- Step 7: the body names b7a34f98a as the head. That is the live head.
-- Step 13: `git merge-tree --write-tree origin/main HEAD` (main f1b21daab) exits 0 and prints nothing to stderr.
+- Item 0 (claims): fixed. CI's `fast (3.14)` at this head (117721570437, success) prints these lines:
+  RESULT ci cert one|summer_negative|shoulder obj 0.305809 ladder +10.5539% claimed=True; "no unclaimed gap" ok; "a recorded claim still has a gap (not stale)" ok
+  RESULT ci cert one|winter_narrow|shoulder ladder +0.0000% claimed=False; ok
+  The earlier fast reds at 36723a969 (117704407882, 117704447188) sit on b7a34f98a without eeb607dd6, which is not an ancestor. In both runs only `tests/optimality.py` failed (1 of 84). The `FAIL a3:*` lines in those logs are a self-test's negative controls.
+- Item 1 (carry-missing): fixed. All three carries are at `origin/handoff/audit-r10-roster` 97344315a, the branch where `roster_edit append-carry` lands carries by design, never main (`evidence-r2/roster-diff.txt`):
+  - New group R10-SAV-COMFORT (69f670ca8, a5f7df8f4). Its carry holds the three null terms, the `const`-arm control, an acceptance stated as a precondition (the const arm with stored heat settled reads about 0; the varying arm reads the timing term, not 0), and the `summer_dhw_only` limit (-12.74 % / -3.17 % / 1.95 % / away_setback 60.71 %).
+  - R10-ADVISOR gets the restated null with the `const` arm as its control, marked "restating carry (1)", plus the row semantics.
+  - R10-SCORES gets the row semantics.
+  R10-SAV-BASELINE's roster `fixes` is [2255] on main and on the roster branch.
+- Item 2 (the residual's cause): fixed. The body and the carries now state the three terms, not "comfort traded for money".
+- Item 3 (unanswered pr-contract): fixed. pr-contract is green at this head (117721379068, 117721492074). Its body check prints `record red-history 35 commit(s) ... fast (3.14), mutation, nightly-ha (stable)`, and the body answers all three.
 
-## Blocking
+## Measured at this head
 
-0. **claims: the retired optimality claim still has its gap on CI.** The body says the held baseline closed the two #1294 claims ("Head: 0.0000 % for all three", measured on the arm64 seat), and the diff deletes `one|summer_negative|shoulder` and `one|winter_narrow|shoulder` from `_CERT_CLAIMS`. CI's `fast (3.14)` (check-run 117692786859, concluded failure 14:11:11Z) runs `tests/optimality.py` at this head:
-   RESULT ci cert one|summer_negative|shoulder obj 0.305809 re-polish +0.0051% ladder +10.5544% claimed=False -> FAIL "no unclaimed gap above the bar" (bar 0.1000 %); "1 of 84 OPTIMALITY CHECKS FAILED"
-   RESULT ci cert one|winter_narrow|shoulder re-polish +0.0000% ladder +0.0000% (that retirement holds on CI)
-   The body's 0.0000 % for summer_negative does not survive CI's platform. The arm64 figure is not the gate's. That cell's claim must stay, or the gap has to close on CI's platform. `evidence/ci-fast-117692786859-optimality.txt`. This is also a red the body's `## Red checks: none` does not answer.
+- Step 2, the finder's harness. No committed harness existed for the finding (the owner's screenshot), and the body discloses `r10_sav_baseline.py` as the fixer's own. I ran it at the head and at the merge base, with the harness copied into the base tree:
+  RESULT head transient 2.06 kW x4, spread 0.00 SOUND; base 0.00/6.00/6.00/0.00, spread 6.00 DEFECT
+  RESULT head cost row actual 15.0 = receipt 15.0 SOUND; base 3.0 vs 15.0 DEFECT
+  RESULT head coverage scale 28.00 SOUND; base 2.80 DEFECT
+  RESULT head null 10.83 % (thermostat 128.4 kWh, plan 114.5 kWh, room 18.79 vs target 20.44 C) DEFECT; base 43.66 % (203.6 / 114.7) DEFECT
+  These are the body's figures exactly. The null stays DEFECT by design, and the body says so.
+- Step 3, `r10_sav_null_terms.py`, both arms, at the head:
+  RESULT varying: gap 13.9 = comfort 6.6 + (plan vs steady at delivered room) 7.2; timing +17.27 %; stored -23.7 kWh_th (-13.3 kWh_e); balance 240.0 = 240.0 kWh_th
+  RESULT const (outdoor -12.0 / -12.0 C): gap 15.6; comfort 5.1; drawdown 18.6 kWh_th = 10.1 kWh_e; timing +0.00 %; balance 200.9 = 200.9 kWh_th
+  These match the body. The probe does not run at the base: it imports `_floor_demand_at_target`, which this diff creates. It is a head-only decomposition, not a both-ends check.
+  - The const arm's +0.00 % timing holds by construction, because `compute_cop` reads only the outdoor temperature. It is a valid control for the timing term, not evidence about the other two.
+  - The const arm closes to 0.4 kWh: 5.1 + 10.1 = 15.2 against a gap of 15.6.
+  - Instrument nit, not blocking: the printed "power_weighted_cop" absolutes are Σp·cop / Σp·DT, so they are 1/DT = 4x too large (8.383 / 4 = 2.096). The ratio the body and the carries quote is unaffected.
+- Step 1, the mutation proof: production code is unchanged since round 1 (`git diff b7a34f98a HEAD -- custom_components/` is empty). Round 1's run of M0 to M16 at b7a34f98a (all killed) therefore covers this head. The head's `mutation` red (117721384169) is `MUTATION TABLE REFUSED -- 4321 unpinned ... 20 of them added by this diff`. Those are the 20 sites `## Unpinned sites` lists, counting 5326 CLAMP_DROP*2 twice. `mutation-pins (1)` and `(2)` were still running at writing. A pin commit they push carries this verdict under orchestrator.md section 11.
+- Step 6, other configurations (my own probe, `evidence-r2/transient_configs.py`, not the finder's): the transient arm across single- and two-zone houses, with and without DHW, in winter_cold (flat and winter_narrow prices) and shoulder (flat):
+  RESULT head 12/12 SOUND, spread 0.00 everywhere (booked step 0.37 to 3.04 kW)
+  RESULT base 12/12 DEFECT, spread 5.98 to 6.00 kW
+  - Class: the body lists the seams but names no mechanical rule. My own enumeration greps custom_components for `savings_actual|savings_sek|baseline_sek|actual_sek|_compute_baseline_power(|baseline_power_schedule|predicted_savings =|billed_total(` (`evidence-r2/class-enum-head.txt`, 38 hits). Its only producers are ledger.py and optimizer.py, both in the diff. sensor.py, notifier.py, payload.py and the card only read row fields. One booking path remains: `add_savings_settlement` is reached only through `settle_interval_savings`, which passes spot plus the fee.
+- Step 5: pr-contract prints "moves none of VERSION, the manifest version or a notes heading".
+- Step 7: the body names 3b6e599df as the head, and it is the live head.
+- Step 13: `git merge-tree --write-tree origin/main HEAD` (main 5a41a5669) exits 0 with empty stderr.
+- Check-runs at this head (`evidence-r2/checkruns-head-final.txt`): 33 success, 12 skipped, 1 failure (`mutation`, answered), 2 in progress (`mutation-pins (1)` and `(2)`). `closures`, `fast (3.14)`, `coverage` and `Analyze (python)` all concluded success.
 
-1. **carry-missing: O13 has no in-tree carry.** The body sends the flat-price residual and the `summer_dhw_only` start-bound limit to "O13 (orchestrator's brief)". O13 has no roster group. `git grep -w O13 origin/main` finds only a PNG, and no `dev/programme/carries/carry-<N>.json` exists for it. The one copy is `~/hpo-orch/r10s3/orch/briefs/O13-comfort-matched-baseline.md`, out of tree. `finding-propagation.md` says a stage with no live roster group needs its own carry file, and "the producing PR does not merge until the carry is in the tree". The out-of-tree brief also omits the `summer_dhw_only` limit (-12.74 % at head, -3.17 % on main), which the body says went "to O13 beside the comfort-matched baseline". The second carry is not in the tree either. At origin/main and at the orchestration worktree, the R10-SCORES and R10-ADVISOR roster briefs do not hold the row semantics ("carry appended by the orchestrator"); `test("actual_sek|baseline_sek|receipt total")` is false for both briefs.
+## Red checks (step 11)
 
-2. **The residual is not fully explained, and the carry states the wrong cause.** The body says the 10.83 % is "comfort traded for money ... not a pricing or accounting error", and the O13 brief inherits that premise ("drive the null to ~0" by matching comfort). I built my own instrument (`evidence/null_explain.py`, disclosed as the reviewer's, not the finder's). It replays the harness's null loop exactly and prices a steady thermostat both at the comfort target and at the room the plan delivered, with the production `_floor_demand_at_target` and `compute_cop`. The plan's thermal energy balance closes exactly (240.0 = 240.0 kWh_th), so the decomposition is not an approximation artefact.
-   RESULT probe steady thermostat at target 128.4 kWh = booked 128.4 kWh (the held baseline is exact)
-   RESULT probe steady at the delivered room 121.7 kWh: comfort gap 6.6 of the 13.9 kWh gap (about 5 of the 10.83 points)
-   RESULT probe power-weighted COP plan 2.096 vs thermostat 1.787 (+17.3 %): the plan runs in the warmer hours of winter_cold (outdoor -16 to -8 C), about 19.8 kWh_e
-   RESULT probe the plan ends with +23.7 kWh_th more stored heat than it started with (room 21.00/slab 22.00 -> 19.36/30.01), about -13.3 kWh_e that the 2-day month row does not settle
-   Control, the same loop at a constant outdoor temperature (`evidence/null_const_outdoor.py`): COP gain +0.00 %, gap 15.6 kWh = comfort 5.1 + start stored-heat drawdown 10.1 (net 18.6 kWh_th drawn from the 21/22 C start).
-   So the residual has three terms. (a) The comfort trade the body names, about half. (b) A COP-timing gain at a flat price. That is a real saving: a flat-price null is not about 0 while COP varies with outdoor temperature, so a comfort-matched baseline alone cannot reach 0 without hiding it. (c) The stored-heat change across the harness's 2-day window. Only predicted_savings settles that term; the month row does not. Here it offsets (b). The carry to O13, and R10-ADVISOR's own carried null ("savings about 0 on a flat-price profile"), must state the control that separates these terms: a constant-outdoor arm, or COP-flat, plus a window long enough, or settled at both ends, for (c). Otherwise O13 pursues an unattainable target. This finding changes a later stage, so it is carried, not noted.
-
-3. **pr-contract is red at this head, and the body's `## Red checks` says "none".** Both pr-contract runs (117692504964, 117692618046) print `REFUSE 'Closes #2255' closes #2255; not in the intended list`. The roster group has `fixes: []`, and its own brief says "a closing keyword only for those in `fixes`, and Part of for the rest". The roster and the issue body disagree here (#2255 asks for a closing keyword). Whether to add 2255 to `fixes` or rewrite to "Part of" is the orchestrator's call. But the red is unanswered in the body (step 11).
-   Other reds at this head: `mutation` (117692723200) is `MUTATION TABLE REFUSED -- 4324 unpinned site(s) against 4303 at the ratchet base, 23 of them added by this diff`. Those are the sites `## Unpinned sites` lists: 22 lines, with 5326 CLAMP_DROP*2 counted twice. They are answered there, and `mutation-pins (1-3)` were still running when I posted. When I posted, the head's workflows had not all concluded, and no pr-contract run had started after the fast red. So I do not post `root-cause-unanswered`. The fixer owes the body an answer for pr-contract and fast.
+All three reds across the range are answered in the body.
+- `nightly-ha (stable)` 117704407933 at 36723a969: the job log confirms the body's account.
+  - `FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']`.
+  - The positive control reads `a 600 ms spin read as 600.2 ms; dump names the spin: True; py-spy rc=0 names it: False`, and the only failing leg is `py-spy did not run: TimeoutExpired ... timed out after 30 seconds`.
+  - `run:all_checks_ran` reads 64 of 64. The runner is at fault, not this diff.
+- Finding for the orchestrator (not this PR's to fix; RCA owed): the body declines to file because "one timeout is not yet a recurrence". That premise is false. The same failure, with the same py-spy TimeoutExpired line, hit `fix/r10-sensor-payload` fe4d15d76 at 10:19Z (job 117649075688), 4.5 h earlier. That is two occurrences on two PRs in the 25 most recent failed runs of the workflow (`evidence-r2/nightly-scan/summary.txt`). The trigger is answered (a cheaper detector is named), so this does not block. But the measured frequency now meets the recurrence trigger, and the root cause should be dispatched: the py-spy leg's timeout fails the positive control instead of being reported as that leg's skip.
+- Minor: pr-contract 117704370126 (36723a969) is the same `Closes #2255` REFUSE. The body answers it by name but does not list its run id.
 
 ## Not verified by me
 
-- The golden drift with claims (50 claimed fixtures, 19 suspended may-drift entries), the structure rows and the archscore figure: cited from CI (env-matrix, arch-score and budget-raise-gate are green at this head), not re-run.
-- The `tests/optimality.py` figures: I did not re-run them locally. They are cited from CI's fast run (blocking item 0).
-- Step 6, other configurations: the null arm runs single-zone only. I ran no two-zone or zero-evidence null. The constant-outdoor arm above is the only extra configuration.
+- The golden drift with claims (50 fixtures, 19 suspended may-drift entries), the structure rows and the archscore figure. These are cited from CI and not re-run.
+- The `summer_dhw_only` and golden-matrix savings percentages. These are carried, not re-derived.
+- `mutation-pins (1)` and `(2)` had not concluded.
