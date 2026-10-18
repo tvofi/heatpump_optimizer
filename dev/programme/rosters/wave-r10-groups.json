@@ -2563,7 +2563,8 @@
    ],
    "carry": [
     "(e) and (h) are one class, workflow scripts trusting a large agent reply; fix the class, not the two sites.",
-    "R10-D15-GRADER and R10-BRIEFS-FOLD edit the wave-script check after you."
+    "R10-D15-GRADER and R10-BRIEFS-FOLD edit the wave-script check after you.",
+    "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat."
    ],
    "architect_note": null,
    "resume": {
