@@ -1,0 +1,35 @@
+=== M1
+RESULT divergent=3 unregistered=0 dead=0 refused=0 seconds=0.2
+SELF-TEST 23 of 23 probes held
+TOTAL: 0 error(s) across 41 policy file(s)
+FIXTURE VACUOUS: resolvePrFromCommit ["an empty API answer on a merge subject with a custom tail (`Merge pull request #N (title)`) did not recover the PR number, though stamp.py and delivery_status.py
+=== M2
+RESULT divergent=3 unregistered=0 dead=0 refused=0 seconds=0.2
+SELF-TEST 23 of 23 probes held
+=== M3
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+  FAIL a pair's guard runs with its pair
+SELF-TEST 22 of 23 probes held
+=== M4
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+  FAIL a hand-written merge subject is refused (#2379, 5756f2b1)
+SELF-TEST 22 of 23 probes held
+=== M5
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+  FAIL a merge call that passes --subject is refused
+  FAIL a merge call that passes commit_title is refused
+SELF-TEST 21 of 23 probes held
+=== M6
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+  FAIL merge-subject-pr's null guard covers a hand merge's custom tail, and not a subject naming no pull request
+SELF-TEST 22 of 23 probes held
+=== M7
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+  FAIL the runner's test merge at HEAD is skipped, and refused anywhere else
+SELF-TEST 22 of 23 probes held
+=== M8
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+  FAIL a hand-written merge subject is refused (#2379, 5756f2b1)
+  FAIL a title-only merge subject is refused
+  FAIL the runner's test merge at HEAD is skipped, and refused anywhere else
+SELF-TEST 20 of 23 probes held

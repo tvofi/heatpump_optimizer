@@ -1,0 +1,11 @@
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 51 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 808 items, 2 divergent
+  pair dead-member-liveness: 2 readers, 148 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 47 items, 0 divergent
+  pair entity-names: 2 readers, 121 items, 0 divergent
+  discovery: 333 governance code files, 1525 distinct grammars, 27 shared by two or more files
+  DIVERGENT     merge-subject-pr "Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)": stamp.py pr_from_subject="2401"  delivery_status.py subject_number="2401"  policy_lint.mjs resolvePrFromCommit (gap recovery)=null  policy_lint.mjs enumerateMerges (offline subject mode)=null
+  DIVERGENT     merge-subject-pr "Merge pull request #2379 (R10-SENSOR-PAYLOAD)": stamp.py pr_from_subject="2379"  delivery_status.py subject_number="2379"  policy_lint.mjs resolvePrFromCommit (gap recovery)=null  policy_lint.mjs enumerateMerges (offline subject mode)=null
+RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=0.1
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
