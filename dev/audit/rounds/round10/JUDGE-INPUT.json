@@ -7,7 +7,7 @@
   "severity": "low",
   "claim": "On the 80-cell grid (8 price x 5 weather x single/two-zone, DHW off, 24 h), production's _multi_start_minimize result is above the best feasible challenger on its own captured objective by more than 1e-3 relative in 26 cells and by more than 1e-2 in 2 cells (max 5.06e-2). Most of this is reached by C1, the same minimizer with structured seeds added.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
    "harness_path": "dev/audit/rounds/round10/D0/s1/race.py",
    "value": 26,
    "unit": "cells with gap_rel > 1e-3 (of 80)",
@@ -47,8 +47,8 @@
   },
   "panel": "contested",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py --perturb-maxiter 20"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py --perturb-maxiter 20"
   }
  },
  {
@@ -60,7 +60,7 @@
   "claim": "From the shipped x of the two-zone+DHW space solve, an ftol-1e-12 L-BFGS-B polish lowers the captured production objective by a winter mean 0.20 % (max 1.23 %, winter_moderate/winter_cold) against 0.079 % at flat prices, and that gap falls to 0.009 % when production's ftol is set to 1e-10.",
   "mechanism": "_multi_start_minimize main run and _lbfgsb_restart both pass ftol 1e-6 to _scoped_minimize; the relative stop ends descent at nit 47-135 while further descent of 0.1-1.3 objective units remains; maxiter is not binding (maxiter 50 and 1000 give identical plans).",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py",
    "harness_path": "dev/audit/rounds/round10/D0/s2/ftol_race.py",
    "value": 0.2025,
    "unit": "pct (winter mean polish gap, n=8, range 0..1.2344, drop-max mean 0.0551; flat mean 0.0787)",
@@ -90,8 +90,8 @@
   "provisional": false,
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py --ftol 1e"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/ftol_race.py --ftol 1e"
   }
  },
  {
@@ -333,7 +333,7 @@
   "claim": "An HTTP-200 Tibber response whose today and tomorrow lists are empty makes _fetch_tibber_prices replace a good 96-row _prices with 0 rows. It returns success with no UpdateFailed and clears the outage latch.",
   "mechanism": "prices_from_tibber_payload returns [] (a list, not a failure reason). pull_prices treats that as 'ok', and _fetch_tibber_prices assigns it to _prices and calls _tibber_fetch_recovered. The entity path (prices_from_entity_attributes) refuses the same no-rows case.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+   "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
    "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
    "value": 1,
    "unit": "count (empty_ok_wipes)",
@@ -363,8 +363,8 @@
   "proposed_fix_scope": "prices_from_tibber_payload returns a reason string when no row survives, so pull_prices falls back to the hourly query and then to 'fail'. This matches prices_from_entity_attributes.",
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py --perturb wraps"
+   "run": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py --perturb wraps"
   }
  },
  {
@@ -376,7 +376,7 @@
   "claim": "A Tibber response of 96 quarter-hour rows that lack startsAt is admitted whole with starts_at=''. _known_prices_for then falls back to positional hourly placement, so 95 of 96 horizon steps get the price of the wrong quarter.",
   "mechanism": "prices_from_tibber_payload defaults a missing start to '' instead of dropping the row; the entity path's _raw_start drops it. When no entry has a parseable timestamp, _known_prices_for repeats each entry 4 times from the first step.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+   "command": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
    "harness_path": "dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
    "value": 95,
    "unit": "count (misplaced_steps of 96; startless_rows=96)",
@@ -406,8 +406,8 @@
   "proposed_fix_scope": "Make the Tibber parser drop rows without a parseable start, as the entity path does. Retire the positional fallback in _known_prices_for, or log it once.",
   "panel": "contested",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py --perturb wraps"
+   "run": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/hpo-seats/r9fix-lanerunner/bin/python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py --perturb wraps"
   }
  },
  {
@@ -464,7 +464,7 @@
   "severity": "low",
   "claim": "The pre-edit hook checks only top-level new_string/content/new_source, so a MultiEdit whose edits[*].new_string adds a '## ' heading to RELEASE_NOTES.md on a non-main branch exits 0. The same text through Edit exits 2.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
    "harness_path": "dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
    "value": 1,
    "unit": "count",
@@ -501,8 +501,8 @@
    }
   ],
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py --perturb"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py --perturb"
   }
  },
  {
@@ -556,7 +556,7 @@
   "severity": "high",
   "claim": "pump_arbiter._write converts with temperature_from_c(value, state_unit(state)); a climate state has no unit_of_measurement so the conversion is identity and climate.set_temperature receives the degC number, interpreted by HA in the instance unit (degF). Space 21 degC is delivered as 21 degF (-6.1 degC), DHW 50 degC as 50 degF (10 degC). The read path setpoint_check._setpoint_and_unit already falls back to hass.config.units.temperature_unit; the write path does not.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
    "harness_path": "dev/audit/rounds/round10/D12/s3/surface_units.py",
    "value": 2,
    "unit": "cells of 6 (degF arm); null degC arm 0 of 6",
@@ -589,8 +589,8 @@
   "provisional": false,
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py --perturb"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s3/surface_units.py --perturb"
   }
  },
  {
@@ -690,7 +690,7 @@
   "severity": "high",
   "claim": "In the window v6.7.16..17f1c55fad1b, 37 of 124 blocked fix-review verdicts are root-cause-unanswered, a class whose fix the prompt calls sound, while the largest engineering class (harness) has 23.",
   "evidence": {
-   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json",
    "harness_path": "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
    "value": 37,
    "unit": "blocked verdicts (of 124)",
@@ -721,8 +721,8 @@
   "metric_definition_original": "Count of first-line 'Fix review: blocked <40hex> root-cause-unanswered:' verdicts across issue comments and reviews of the window's merged PRs, compared with the per-class counts of the engineering classes",
   "panel": "verified",
   "judge_batch": {
-   "run": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
-   "perturb": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json --perturb=verdict"
+   "run": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json",
+   "perturb": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json --perturb=verdict"
   }
  },
  {
@@ -733,7 +733,7 @@
   "severity": "medium",
   "claim": "statsHistogram's head-moved row reports 133 entries over 71 PRs while only 4 blocked verdicts carry head-moved, so the table cannot give the block-class count the D13 brief asks for.",
   "evidence": {
-   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
+   "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json",
    "harness_path": "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
    "value": "133 vs 4",
    "unit": "entries in PROD head-moved row vs blocked head-moved verdicts",
@@ -762,8 +762,8 @@
   "proposed_fix_scope": "Key rework bumps in their own histogram or row (e.g. rework:head-moved) so block-class rows count only blocked verdicts",
   "panel": "verified",
   "judge_batch": {
-   "run": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json",
-   "perturb": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs /private/tmp/claude-501/d13s2/window.json --perturb"
+   "run": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json",
+   "perturb": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <session-tmp>/d13s2/window.json --perturb"
   }
  },
  {
@@ -774,7 +774,7 @@
   "severity": "medium",
   "claim": "dev/audit/rounds/round4/D11/dora_keys.py imports d11lib from its own directory, but d11lib.py remains in tools/audit/round4/D11/ (ModuleNotFoundError); with the import fixed, its CFR_EXCLUSIONS names .claude/workflows/cfr_exclusions.json, which does not exist (registered artifact is dev/governance/config/cfr_exclusions.json), so load_exclusions raises FileNotFoundError. The instrument the D13 brief names as the M4 base cannot compute its metric.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py",
    "harness_path": "dev/audit/rounds/round10/D13/s3/d13_s3.py",
    "value": 0,
    "unit": "dora_keys_loads (1=imports and loads exclusions)",
@@ -807,7 +807,7 @@
   "title_original": "DORA base instrument dora_keys.py cannot run at baseline: d11lib import and exclusion-list path left behind by the R9 move",
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D13/s3/d13_s3.py"
   }
  },
  {
@@ -1004,7 +1004,7 @@
   "severity": "medium",
   "claim": "ingest compares the store-window bias to the last N cycle rows' accuracy_sample, but every row repeats the latest sample (192 tail rows = 78 distinct samples), so delta=0.115 C and bias-rederived fails; matched by sample t the delta is 0.000",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
    "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
    "value": "bias_delta_tail=0.115; bias_delta_by_t=0.0; ingest_fails_unwrapped=1",
    "unit": "celsius / count",
@@ -1037,8 +1037,8 @@
   "provisional": false,
   "panel": "contested",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb dedupe"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb dedupe"
   }
  },
  {
@@ -1049,7 +1049,7 @@
   "severity": "low",
   "claim": "stage 2 runs export.violations over bundle['replay'] or {} and passes on the empty dict; the live bundle's replay is null",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
    "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
    "value": "replay_clean_passed_on_absent_replay=1",
    "unit": "bool",
@@ -1081,8 +1081,8 @@
   "provisional": false,
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb nonempty"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb nonempty"
   }
  },
  {
@@ -1093,7 +1093,7 @@
   "severity": "low",
   "claim": "the Download diagnostics file nests hpo-debug/1 under data.debug; ingest reads the top level, so schema/manifest/rows/stores/bias fail",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
    "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
    "value": "ingest_fails_wrapped=6",
    "unit": "count",
@@ -1125,8 +1125,8 @@
   "provisional": false,
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb unwrap"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb unwrap"
   }
  },
  {
@@ -1137,7 +1137,7 @@
   "severity": "low",
   "claim": "export._walk reports 'a credential-named key carries a value' for diagnostics.tibber_reauth_started=False, since False is not in (None,'',[],{})",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
    "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
    "value": "bundle_credential_key_violations=1",
    "unit": "count",
@@ -1169,8 +1169,8 @@
   "provisional": false,
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb boolkey"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb boolkey"
   }
  },
  {
@@ -1181,7 +1181,7 @@
   "severity": "medium",
   "claim": "25 stored leaves in the real stores have no declaration in store.DOMAINS (pump_arbiter _SLOTS writes 'silent'; snapshot learners carry peak_tracker); synthetic bundle shows 0",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
    "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
    "value": "store_off_domain_fields=25",
    "unit": "count",
@@ -1215,8 +1215,8 @@
   "provisional": false,
   "panel": "contested",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb declare"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> --perturb declare"
   }
  },
  {
@@ -1603,7 +1603,7 @@
   "severity": "low",
   "claim": "Negating `if dropped:` in MonthlyLedger.from_dict (M35) or SnapshotRing.from_dict (M26) makes the loader silent when it really drops a record and logs 'Quarantined 0' on every clean load, yet every closure script run (cheap set, entities.py, features.py) still passes.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
    "harness_path": "dev/audit/rounds/round10/D3/s2/quarantine_warn.py",
    "value": "loaders_correct=2 of 2 at baseline, 0 of 2 mutated; tests_naming_warning=0; gate scripts failing under M26/M35 = 0",
    "unit": "count",
@@ -1640,8 +1640,8 @@
   "provisional": true,
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py --mutate"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D3/s2/quarantine_warn.py [--mutate]; gate side: dev/audit/rounds/round10/D3/s2/mutants.py run M26 M35 --scripts guard_pins.py,block_duty.py,debug_collect.py,wood_advisor.py,solar_alignment.py,manual_plan.py,config_flow_steps.py,plan_view.py,validate.py,entities.py,features.py --mutate"
   }
  },
  {
@@ -1776,7 +1776,7 @@
   "severity": "low",
   "claim": "Five places in the docs name a UI label that is not shown verbatim. docs/configuration.md:23 says 'Add integration \u2192 Heat Pump Optimizer', but the picker shows the manifest name 'Heat Pump Cost Optimizer', which contradicts README.md:281 and docs/setup.md:48. README.md:356, docs/configuration.md:43, :164 and docs/setup.md:70 name the menu button 'Enter thermal values directly (expert)', but strings.json config.step.building.menu_options.thermal is 'Enter thermal values directly'.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
    "harness_path": "dev/audit/rounds/round10/D5/s1/ui_labels.py",
    "value": 5,
    "unit": "count",
@@ -1809,8 +1809,8 @@
   "metric_definition_original": "Count of (doc, line, label) in README.md and docs/*.md where an 'Add integration \u2192 X' target differs from manifest.json name, or a bold or quoted label equals a strings.json menu_options value plus a parenthetical suffix the UI does not show",
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py --perturb"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py --perturb"
   }
  },
  {
@@ -1821,7 +1821,7 @@
   "severity": "low",
   "claim": "docs/dashboard-card.md tells the reader to compare the card's console banner with the installed version and shows the banner as v6.6.8. It says the release step keeps the two in step, but tools/release/stamp.py rewrites only CARD_VERSION in the card, which is now 7.0.0. The doc sample is never re-stamped and drifts with every release.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py",
    "harness_path": "dev/audit/rounds/round10/D5/s2/card_banner.py",
    "value": 1,
    "unit": "count",
@@ -1852,8 +1852,8 @@
   "proposed_fix_scope": "Replace the literal with a placeholder (vX.Y.Z), or have stamp.py rewrite the banner sample",
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py --perturb"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s2/card_banner.py --perturb"
   }
  },
  {
@@ -2124,7 +2124,7 @@
   "claim": "coordinator:_observe_frequency calls FrequencyMap.observe on 8 of 8 intervals where PumpSignals.defrosting is True, while _learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY) refuses the same interval for the COP learner on the same meter.",
   "mechanism": "_freq_fold_blocked refuses only cooling, distorted draw and ':'-shaped freeze reasons, so 'defrosting', 'pump_offline' and 'pump_fault' pass through to the kW-per-Hz map.",
   "evidence": {
-   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
+   "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
    "harness_path": "dev/audit/rounds/round10/D7/s2/learner_gates.py",
    "value": 8,
    "unit": "FrequencyMap.observe calls over 8 defrost intervals",
@@ -2153,8 +2153,8 @@
   "proposed_fix_scope": "_freq_fold_blocked: also refuse defrosting and the pump_signals freeze_reason values offline/fault, or document a named exemption",
   "panel": "verified",
   "judge_batch": {
-   "run": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
-   "perturb": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py --perturb"
+   "run": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
+   "perturb": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py --perturb"
   }
  },
  {

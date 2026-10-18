@@ -7,7 +7,7 @@ compare the documented numeric Default with the registry row's default (the valu
 the production marker renders: config_flow._field_marker with current={}), and the
 documented "a–b" Range with the NumberSelector min/max. Count key: the value the
 production marker/selector delivers, never the doc text alone.
-RUN: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/config_defaults.py [--perturb]
+RUN: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s2/config_defaults.py [--perturb]
 --perturb swaps _OPTION_FIELDS' target_temperature default to 99.0 in memory; default_false must rise by >=1.
 EXPECTED: see REPORT.md (exact counts, tolerance 0). BASELINE 17f1c55fad1b, machine: macOS arm64 seat box B2.
 """

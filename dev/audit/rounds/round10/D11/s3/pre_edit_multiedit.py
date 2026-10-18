@@ -10,7 +10,7 @@ Instrumented symbol: .claude/hooks/pre-edit.sh:decide (the HPO_PRE_EDIT_PY progr
 Perturbation: --perturb makes the one-line change of the `text = ...` join to also read
 `edits[].new_string`; refused_heading_payloads must rise 2 -> 3.
 Null control: a MultiEdit adding only a body line must be allowed in both arms (null_refused=0).
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py [--perturb]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py [--perturb]
 Expected: refused_heading_payloads=2 (perturbed: 3), multiedit_refused=0 (perturbed: 1), null_refused=0; tolerance 0 (count).
 Baseline: 17f1c55fad1b. Machine: macOS arm64 (B7).
 """

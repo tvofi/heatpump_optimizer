@@ -146,7 +146,7 @@ def main() -> int:
     ap.add_argument("--baseline", action="store_true")
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--only", default="")
-    ap.add_argument("--plandata", default="/private/tmp/claude-501/d3r4-plandata.json")
+    ap.add_argument("--plandata", default="<session-tmp>/d3r4-plandata.json")
     args = ap.parse_args()
     sys.stdout.reconfigure(line_buffering=True)
 
