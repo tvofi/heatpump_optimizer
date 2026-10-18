@@ -985,7 +985,9 @@
    "issues": [
     2255
    ],
-   "fixes": [],
+   "fixes": [
+    2255
+   ],
    "findings": [
     "owner items 1, 2, 5"
    ],
