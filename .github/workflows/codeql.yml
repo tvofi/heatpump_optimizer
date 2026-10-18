@@ -112,7 +112,10 @@ jobs:
           : > "$RUNNER_TEMP/changed.txt"
           if [ "$EVENT" = pull_request ]; then
             # Three dots: the pull request's own files, not main's since.
-            git diff --name-only "$BASE...$HEAD" > "$RUNNER_TEMP/changed.txt"
+            # `changed` lists both sides of a rename (git diff --no-renames):
+            # lib.py -> lib.md must reach the python leg as lib.py (#2405).
+            python3 -I tools/pr/codeql_scope.py changed --base "$BASE" \
+              --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
           fi
           for leg in actions javascript-typescript python; do
             word=$(python3 -I tools/pr/codeql_scope.py decide --language "$leg" \
