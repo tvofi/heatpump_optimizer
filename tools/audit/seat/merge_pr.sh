@@ -12,9 +12,7 @@ R=tvofi/heatpump_optimizer
 # The mandate's line when <comment-id> is in force now for a code-owned approval;
 # else the gate's own reason and a non-zero exit. Run from the repository root.
 mandate_in_force() {
-  local gate=.claude/workflows/budget_raise_gate.py
-  test -f $gate || gate=tools/policy/budget_raise_gate.py
-  python3 -I - "$gate" "$R" "$1" <<'PY'
+  python3 -I - tools/policy/budget_raise_gate.py "$R" "$1" <<'PY'
 import datetime, importlib.util, sys
 spec = importlib.util.spec_from_file_location("budget_raise_gate", sys.argv[1])
 g = importlib.util.module_from_spec(spec)
@@ -44,9 +42,7 @@ self_test() {
   cp "$0" "$st/repo/tools/audit/seat/merge_pr.sh"
   cp "$here/tools/audit/seat/ref_privacy.py" "$st/repo/tools/audit/seat/"
   mkdir -p "$st/repo/tests"; cp "$here/tests/layout.py" "$here/tests/layout.json" "$st/repo/tests/"  # the gate imports the move map
-  if test -f "$here/.claude/workflows/budget_raise_gate.py"; then
-    mkdir -p "$st/repo/.claude/workflows"; cp "$here/.claude/workflows/budget_raise_gate.py" "$st/repo/.claude/workflows/"
-  else cp "$here/tools/policy/budget_raise_gate.py" "$st/repo/tools/policy/"; fi
+  cp "$here/tools/policy/budget_raise_gate.py" "$st/repo/tools/policy/"
   printf '#!/bin/bash\necho "WRITE comment $*" >> "$ST/log"\n' > "$st/repo/tools/pr/app_comment.sh"
   git -C "$st/repo" init -q
   cat > "$st/bin/gh" <<'GH'
@@ -69,8 +65,7 @@ GH
     python3 -I - "$st/repo" "$1" "$2" "$3" > "$st/comment.json" <<'PY'
 import datetime, importlib.util, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
-p = next(q for q in (root / ".claude/workflows/budget_raise_gate.py", root / "tools/policy/budget_raise_gate.py") if q.is_file())
-spec = importlib.util.spec_from_file_location("g", p); g = importlib.util.module_from_spec(spec); spec.loader.exec_module(g)
+spec = importlib.util.spec_from_file_location("g", root / "tools/policy/budget_raise_gate.py"); g = importlib.util.module_from_spec(spec); spec.loader.exec_module(g)
 now = datetime.datetime.now(datetime.timezone.utc)
 iso = lambda m: (now + datetime.timedelta(minutes=int(m))).strftime("%Y-%m-%dT%H:%M:%SZ")
 print(json.dumps({"id": 4100000001, "created_at": iso(sys.argv[3]), "updated_at": iso(sys.argv[3]),
