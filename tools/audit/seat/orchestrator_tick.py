@@ -561,17 +561,15 @@ class Tick:
     VERDICT_BLOCKED = re.compile(r"^Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+$")
 
     def _verdict_authors(self) -> "tuple[set, int] | None":
-        """The approver App's identity off app_approve.sh, the gate that owns it
-        (proof_watch.py reads the same two lines); None when unreadable."""
+        """The approver App's identity off app_approve.sh, through
+        proof_watch.verdict_allowlist, its one reader; None when unreadable."""
+        pw = _module("proof_watch_tick", "tools/audit/seat/proof_watch.py")
+        if pw is None or not hasattr(pw, "verdict_allowlist"):
+            return None
         for rel in ("tools/pr/app_approve.sh", "tools/audit/app_approve.sh"):
-            try:
-                src = (ROOT / rel).read_text(encoding="utf-8")
-            except OSError:
-                continue
-            a = re.search(r'^VERDICT_AUTHORS="(.*)"$', src, re.M)
-            i = re.search(r"^VERDICT_AUTHOR_ID=(\d+)", src, re.M)
-            if a and i:
-                return set(a.group(1).split()), int(i.group(1))
+            got = pw.verdict_allowlist(ROOT / rel)
+            if got is not None:
+                return got
         return None
 
     def _handoff_newer(self, branch: str, at: str) -> "bool | None":
