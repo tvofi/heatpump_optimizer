@@ -836,7 +836,8 @@ def _state(value, at, attrs=None, reported=None):
                                  last_reported=reported)
 
 
-def _replay_install(*, recorder=True, price_source=PRICE_SOURCE_ENTITY, tibber=(), plant=None):
+def _replay_install(*, recorder=True, price_source=PRICE_SOURCE_ENTITY, tibber=(), plant=None,
+                    plant_entry=None, plant_state=None):
     """An entry reading two thermometers and a price entity, with a token, an exact
     coordinate and a family calendar in its config, a day of recorded states, and
     one entity it publishes."""
@@ -849,7 +850,7 @@ def _replay_install(*, recorder=True, price_source=PRICE_SOURCE_ENTITY, tibber=(
         "price_entity": "sensor.nordpool", "indoor_temp_entity": "sensor.indoor",
         "outdoor_temp_entity": "sensor.outdoor", "solar_location": {"latitude": 59.334591,
                                                                    "longitude": 18.063240},
-        "away_calendar": "calendar.family",
+        "away_calendar": "calendar.family", **(plant_entry or {}),
     }, options={CONF_DEBUG_COLLECT: True})
     reg = er.async_get(hass)
     reg.add("sensor.hpo_plan", unique_id="p", config_entry_id="rp", platform=DOMAIN)
@@ -859,7 +860,8 @@ def _replay_install(*, recorder=True, price_source=PRICE_SOURCE_ENTITY, tibber=(
     attrs = {"unit_of_measurement": "°C", "friendly_name": "Anna's room",
              "entity_picture": "/api/camera?token=abcdef0123456789"}
     ha_history.record(hass, "sensor.indoor", [
-        _state(str(20 + h % 3), at, {**attrs, **(plant or {})}) for h, at in enumerate(hours)])
+        _state(plant_state or str(20 + h % 3), at, {**attrs, **(plant or {})})
+        for h, at in enumerate(hours)])
     ha_history.record(hass, "sensor.outdoor", [_state("-3.5", T0 - timedelta(days=1), attrs)])
     ha_history.record(hass, "sensor.nordpool", [_state("1.25", at) for at in hours])
     ha_history.record(hass, "calendar.family", [_state("on", T0)])
@@ -960,24 +962,33 @@ R.check(
 )
 
 
-def _leak(values):
-    probe = asyncio.run(_replay_download(plant=values))
-    return probe["debug"], json.dumps(probe)
+def _leak(name, values):
+    """``values`` planted where ``tests/replay.py`` plants them: the entry, a recorded
+    state, or a recorded state's attributes."""
+    if name.startswith("entry_"):
+        return asyncio.run(_replay_download(plant_entry=values))["debug"]
+    if name.startswith("state_"):
+        return asyncio.run(_replay_download(plant_state=values["state"]))["debug"]
+    return asyncio.run(_replay_download(plant=values))["debug"]
 
 
 import replay as replay_lane  # noqa: E402
 
+probe_outcomes = {"written": 0, "refused": 0}
 for name, values in replay_lane.LEAK_PROBES.items():
-    if name.startswith(("entry_", "state_")):
-        continue
-    probed, probed_blob = _leak(values)
+    probed = _leak(name, values)
+    probed_blob = json.dumps(probed["replay"])
     texts = [t for t in replay_lane._probe_texts(values) if t in probed_blob]
+    probe_outcomes["refused" if probed["replay"] is None else "written"] += 1
     R.check(
-        f"the nightly leak probe {name}, planted in a recorded attribute, does not "
-        "survive into the download, and its replay half passes check mode",
-        not texts and (probed["replay"] is None or _check_download(probed["replay"]) == []),
+        f"the nightly leak probe {name} does not survive into the replay half, which "
+        "is either written and passes check mode or refused with the reason in the manifest",
+        not texts and (_check_download(probed["replay"]) == [] if probed["replay"] is not None
+                       else bool(probed["manifest"]["replay"])),
         f"survived={texts} manifest={probed['manifest'].get('replay')}",
     )
+print(f"RESULT leak_probes_through_download={len(replay_lane.LEAK_PROBES)} "
+      f"written={probe_outcomes['written']} refused={probe_outcomes['refused']} unit=count")
 
 refused = asyncio.run(_replay_download(recorder=False))
 R.check(
