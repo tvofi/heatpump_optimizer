@@ -1719,6 +1719,8 @@ def _self_test() -> int:
             a = " ".join(argv)
             if argv[:2] == ["git", "ls-tree"] and world.get("ls_fail"):
                 return 128, "fatal: not a tree object"
+            if argv[:2] == ["git", "show"] and world.get("show_fail") and argv[2].endswith("_budgets.json"):
+                return 128, "fatal: unable to read 0123abcd"
             got = budget_fixture(world.get("budgets"), argv, world.get("base", (0, "e" * 40 + "\n"))[1].strip())
             if got is not None:
                 return got
@@ -2323,6 +2325,11 @@ def _self_test() -> int:
                                mandate=mandate(NOW), pr_body=JUST), mandate=CB)
     check("fail closed: a tree that cannot be listed is a Stop", rc == 1 and not merged(calls)
           and not approved(calls) and "budget read failed" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, show_fail=True, reviews=[dict(owner_review(H0, NOW), id=RID)],
+                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("fail closed: a budget blob the tree lists but git cannot read is a Stop even under the "
+          "owner's approval -- never its error text read as an unparsable file the approval then holds",
+          rc == 1 and not merged(calls) and not approved(calls) and "budget read failed" in lines[-1])
     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
