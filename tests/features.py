@@ -16949,12 +16949,26 @@ R.check(
         for a, b in zip(_cr.reference_cov, _cb._vent_cusum.reference_cov)
     ),
 )
-_cov = [0.5, 0.0, 0.5]
+# Ten days at one power: the slope is unobservable, and forgetting alone
+# would inflate its covariance without bound until one sample at a new
+# power swung the fit. It stops at the prior's trace.
+from heatpump_optimizer.drift import REFERENCE_PRIOR_COV as _RPC  # noqa: E402
+
+_cw10 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+for _i in range(960):
+    _cw10.update(_T4 + timedelta(minutes=15 * _i), -0.2, (1.5, 0.0))
+R.check(
+    "days at one heat input cannot wind any coefficient's variance past its prior",
+    max(_cw10.reference_cov[::4]) <= _RPC + 1e-9
+    and not _cw10.tripped,
+    f"covariance {_cw10.reference_cov}",
+)
+_cov = [0.5, 0.0, 0.0, 0.5]
 _cr.load({"stat": 0.0, "reference": [True, 0.0], "reference_cov": _cov})
 _cr2 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
 _cr2.load({"stat": 0.0, "reference": [float("nan"), 0.0], "reference_cov": _cov})
 _cr3 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
-_cr3.load({"stat": 0.0, "reference": [-0.3, 0.0], "reference_cov": [0.5, 0.9, 0.5]})
+_cr3.load({"stat": 0.0, "reference": [-0.3, 0.0], "reference_cov": [0.5, 0.9, 0.9, 0.5]})
 R.check(
     "a corrupt reference loads as none, to be re-seeded, never as a number",
     _cr.reference is None and _cr2.reference is None and _cr3.reference is None,
@@ -58700,23 +58714,30 @@ R.check(
     "_vent_cusum" in _r10p5_cusums and _r10p5_cusums == sorted(_r10p5_gated),
     f"gated {sorted(_r10p5_gated)}, CUSUMs {_r10p5_cusums}",
 )
-# Two bias shapes: steady, and scaling with the interval's heat input (a
-# meter or COP error under an on/off schedule: 4 h at 1.5 kWh per interval,
-# 4 h off), the same mean. Two days of each, then the window.
+# Three bias shapes, each peaking at the bias: steady; scaling with the
+# interval's heat input (a meter or COP error under an on/off schedule: 4 h
+# at 1.5 kWh per interval, 4 h off); and scaling with the sun (an aperture
+# error, a 10 h day). Four days of each, then the window, at full heat and
+# no sun.
 _r10p5_biases = (0.1, 0.4, _r10p5_cmod.HOUSE_LOSS_MAX_RESIDUAL)
-_r10p5_on = [1.5 if (_i // 16) % 2 == 0 else 0.0 for _i in range(192)]
+_r10p5_on = [1.5 if (_i // 16) % 2 == 0 else 0.0 for _i in range(384)]
+_r10p5_sun = [0.15 if (_i % 96) < 40 else 0.0 for _i in range(384)]
 _r10p5_rows = []
 for _r10p5_name in _r10p5_cusums:
     for _r10p5_bias in _r10p5_biases:
-        for _r10p5_shape in ("steady", "power-scaled"):
+        for _r10p5_shape in ("steady", "heat-scaled", "sun-scaled"):
             _r10p5_trips = []
             for _r10p5_extra in ((), (-0.5,) * 4):
                 _r10p5_det = getattr(_vent_coord(), _r10p5_name)
-                for _i, _x in enumerate(_r10p5_on + [1.5] * len(_r10p5_extra)):
-                    _r = -_r10p5_bias * (_x / 0.75 if _r10p5_shape != "steady" else 1.0)
+                _xs = list(zip(_r10p5_on, _r10p5_sun)) + [(1.5, 0.0)] * len(_r10p5_extra)
+                for _i, (_x, _q) in enumerate(_xs):
+                    _r = -_r10p5_bias * {
+                        "steady": 1.0, "heat-scaled": _x / 1.5,
+                        "sun-scaled": _q / 0.15,
+                    }[_r10p5_shape]
                     if _i >= len(_r10p5_on):
                         _r += _r10p5_extra[_i - len(_r10p5_on)]
-                    _r10p5_det.update(_T4 + timedelta(minutes=15 * _i), _r, _x)
+                    _r10p5_det.update(_T4 + timedelta(minutes=15 * _i), _r, (_x, _q))
                 _r10p5_trips.append(_r10p5_det.tripped)
             _r10p5_rows.append((
                 _r10p5_name, _r10p5_bias, _r10p5_shape,
@@ -58725,8 +58746,8 @@ for _r10p5_name in _r10p5_cusums:
             ))
 R.check(
     "R10-P5: each measures from a tracked reference; a bias up to the "
-    "learner's rejection, steady or scaling with the heat put in, never "
-    "trips it, and a window on top of it does",
+    "learner's rejection -- steady, or scaling with the heat put in or the "
+    "sun -- never trips it, and a window on top of it does",
     bool(_r10p5_rows)
     and all(ref and not bias and window for _, _, _, ref, bias, window in _r10p5_rows),
     _r10p5_rows,

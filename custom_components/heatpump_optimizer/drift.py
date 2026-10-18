@@ -27,11 +27,12 @@ import numpy as np
 #: release lag grows with how long the condition lasted — an 8-hour open
 #: window would freeze learning for two extra days after it closed.
 STAT_CAP_FACTOR = 1.5
-#: The tracked reference's prior covariance (per unit residual variance,
-#: so the prior weighs as one sample: the first few samples are a plain
-#: least-squares fit), and the cap forgetting may inflate it back to while
-#: the regressor holds still -- without one, days at one power wind the
-#: slope's covariance up until a single sample can swing it.
+#: The tracked reference's prior variance per coefficient (per unit
+#: residual variance, so the prior weighs as one sample: the first few
+#: samples are a plain least-squares fit); forgetting may inflate each
+#: variance back to it and no further -- without the cap, days with a
+#: regressor held still wind its slope's variance up until a single
+#: sample can swing it.
 REFERENCE_PRIOR_COV = 1.0
 
 
@@ -113,25 +114,27 @@ class Cusum:
     #: Hours over which the reference tracks what the signal normally
     #: reads. None: the reference is zero, for a signal centred by
     #: construction. Set, the statistic folds the departure from
-    #: ``level + slope * regressor``, fitted by least squares that forget
-    #: over this time constant: a bias the signal carries for days -- one
-    #: that also scales with the regressor -- accumulates nothing, and only
-    #: a change does.
+    #: ``level + sum(slope_i * regressor_i)``, fitted by least squares that
+    #: forget over this time constant: a bias the signal carries for days
+    #: -- one that also scales with a regressor -- accumulates nothing, and
+    #: only a change does.
     reference_hours: float | None = None
-    #: The tracked ``[level, slope]`` (None until the first sample seeds
-    #: it) and its covariance ``[level-level, level-slope, slope-slope]``.
+    #: The tracked ``[level, *slopes]`` (None until the first sample seeds
+    #: it) and its covariance, row-major.
     reference: list[float] | None = None
     reference_cov: list[float] | None = None
 
-    def update(self, when: datetime, residual: float, regressor: float = 0.0) -> bool:
+    def update(
+        self, when: datetime, residual: float, regressors: tuple[float, ...] = ()
+    ) -> bool:
         """Fold one residual in; True when ``tripped`` changed.
 
-        ``regressor`` is what a bias of the signal may scale with; it is
-        read only by a tracked reference.
+        ``regressors`` are what a bias of the signal may scale with; only a
+        tracked reference reads them.
         """
-        if not (np.isfinite(residual) and np.isfinite(regressor)):
+        if not (np.isfinite(residual) and all(np.isfinite(x) for x in regressors)):
             return False
-        departure = self._departure(when, float(residual), float(regressor))
+        departure = self._departure(when, float(residual), regressors)
         self.last_fed = when
         signed = departure * (1 if self.side >= 0 else -1)
         self.stat = min(
@@ -155,43 +158,51 @@ class Cusum:
             return True
         return False
 
-    def _departure(self, when: datetime, value: float, regressor: float) -> float:
+    def _departure(
+        self, when: datetime, value: float, regressors: tuple[float, ...]
+    ) -> float:
         """``value`` less the reference, clipped; the reference then moves.
 
         The departure is taken against the reference BEFORE this sample
         moves it, so a change shows in full on the sample that carries it.
-        The first sample seeds the level, clipped, with no slope; each later
-        one is a recursive least-squares step on the clipped departure,
-        with forgetting over the elapsed time, so a glitch drags the fit no
-        further than it may push the statistic.
+        The first sample (or the first after the regressors change in
+        number) seeds the level, clipped, with no slopes; each later one is
+        a recursive least-squares step on the clipped departure, forgetting
+        over the elapsed time, so a glitch drags the fit no further than it
+        may push the statistic.
         """
         if self.reference_hours is None:
             return self._clipped(value)
-        if self.reference is None or self.reference_cov is None:
-            self.reference = [self._clipped(value), 0.0]
-            self.reference_cov = [REFERENCE_PRIOR_COV, 0.0, REFERENCE_PRIOR_COV]
+        u = np.array((1.0, *(float(x) for x in regressors)))
+        k = u.size
+        if (
+            self.reference is None or self.reference_cov is None
+            or len(self.reference) != k or len(self.reference_cov) != k * k
+        ):
+            self.reference = [self._clipped(value)] + [0.0] * (k - 1)
+            self.reference_cov = (np.eye(k) * REFERENCE_PRIOR_COV).ravel().tolist()
             return 0.0
-        (level, slope), (paa, pab, pbb) = self.reference, self.reference_cov
-        departure = self._clipped(value - level - slope * regressor)
+        theta = np.array(self.reference)
+        cov = np.array(self.reference_cov).reshape(k, k)
+        departure = self._clipped(value - float(theta @ u))
         gap_h = (
             max(0.0, utc_elapsed_seconds(when, self.last_fed) / 3600.0)
             if self.last_fed is not None
             else 0.0
         )
-        inflate = float(np.exp(gap_h / self.reference_hours))
-        if (paa + pbb) * inflate > 2.0 * REFERENCE_PRIOR_COV:
-            inflate = max(1.0, 2.0 * REFERENCE_PRIOR_COV / (paa + pbb))
-        paa, pab, pbb = paa * inflate, pab * inflate, pbb * inflate
-        ka, kb = paa + pab * regressor, pab + pbb * regressor
-        gain_den = 1.0 + ka + kb * regressor
-        ka, kb = ka / gain_den, kb / gain_den
-        self.reference = [level + ka * departure, slope + kb * departure]
-        # P - k (u' P), with u' P = (paa + pab x, pab + pbb x) = gain_den * k.
-        self.reference_cov = [
-            paa - ka * ka * gain_den,
-            pab - ka * kb * gain_den,
-            pbb - kb * kb * gain_den,
-        ]
+        # Forget, then hold each coefficient's variance at the prior's: a
+        # regressor that sits still (no sun for weeks) inflates only its own
+        # slope's, never the forgetting the others need. D P D, D diagonal,
+        # stays positive definite.
+        cov = cov * float(np.exp(gap_h / self.reference_hours))
+        shrink = np.sqrt(np.minimum(1.0, REFERENCE_PRIOR_COV / np.diag(cov)))
+        cov = cov * np.outer(shrink, shrink)
+        cov_u = cov @ u
+        gain = cov_u / (1.0 + float(u @ cov_u))
+        theta = theta + gain * departure
+        cov = cov - np.outer(gain, cov_u)
+        self.reference = theta.tolist()
+        self.reference_cov = ((cov + cov.T) / 2.0).ravel().tolist()
         return departure
 
     def _clipped(self, value: float) -> float:
@@ -267,20 +278,31 @@ class Cusum:
             self.last_fed = stored_instant(raw_fed)
         # A missing or corrupt reference re-seeds at the next sample: a
         # payload from before it existed loads exactly like a fresh one.
-        ref = _finite_floats(data.get("reference"), 2)
-        cov = _finite_floats(data.get("reference_cov"), 3)
-        if ref is not None and cov is not None and cov[0] > 0.0 and cov[2] > 0.0 \
-                and cov[1] * cov[1] < cov[0] * cov[2]:
+        ref = _finite_floats(data.get("reference"))
+        cov = _finite_floats(data.get("reference_cov"))
+        if ref and cov and len(cov) == len(ref) ** 2 and _positive_definite(cov, len(ref)):
             self.reference, self.reference_cov = ref, cov
         else:
             self.reference, self.reference_cov = None, None
 
 
-def _finite_floats(raw: Any, n: int) -> list[float] | None:
-    """``raw`` as ``n`` finite floats, or None (a bool is not a number)."""
-    if not isinstance(raw, list) or len(raw) != n:
+def _finite_floats(raw: Any) -> list[float] | None:
+    """``raw`` as a list of finite floats, or None (a bool is not a number)."""
+    if not isinstance(raw, list):
         return None
     if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in raw):
         return None
     vals = [float(v) for v in raw]
     return vals if all(np.isfinite(v) for v in vals) else None
+
+
+def _positive_definite(flat: list[float], k: int) -> bool:
+    """Whether ``flat`` is a symmetric positive-definite k x k matrix."""
+    m = np.array(flat).reshape(k, k)
+    if not np.allclose(m, m.T):
+        return False
+    try:
+        np.linalg.cholesky(m)
+    except np.linalg.LinAlgError:
+        return False
+    return True
