@@ -52,7 +52,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
 | C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
 | C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
-| C16b so is one handed to a package function that passes it on uncalled: returns it, closes over it, or hands it to code outside the package (`hub_solve_writes._passes_on`) | the meter callback handed to Home Assistant through `def _pkg_wrap(cb): return cb` (#2311 round-1 review, F1) | 20b |
+| C16b so is one handed to a package function that passes it on uncalled: hands it to code outside the package, or returns it (or a closure over it) into a call that does (`hub_solve_writes._passes_on`, `_consumed`) | the meter callback handed to Home Assistant through `def _pkg_wrap(cb): return cb` (#2311 round-1 review, F1) | 20b |
 | C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import on the `from` form (27), on the plain dotted `import` with an alias (28) and with the full dotted read (29), through an absolute from-import's module binding (30), from the namespace ABOVE the package -- `import custom_components` aliased (32) and bare (35), `from custom_components import heatpump_optimizer` (33) and aliased (34) -- and as a constant-name `import_module` (26), by its `name` keyword (31), or through a module-level string constant (37), each of them runtime code. Ancestor and descendant are one predicate: the relation of a dotted name to the package's own path, at a dot boundary | 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 40 |
 | C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), from the namespace ABOVE the package (32 to 35), through an attribute or `getattr` chain rooted at one (36), and through a constant-name `import_module` (26), its `name`-keyword form (31) or a module-level string constant (37). A read that resolves to a module is also that module's EDGE, whether the name read off it is public or private -- which is what an import of an ancestor needs, since that statement loads no module of ours; the edge is added once, at the OUTERMOST point of the chain whose receiver resolves to a module, so a chain that walks past it still takes it (38, 39, 41) | 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
@@ -129,8 +129,11 @@ GOOD pair (`a3_hub_reader_*`, `a3_hub_event_write_*`) and an attempt; `ARCHSCORE
 The #2311 review planted two moves on C16, and part 5 answers both. F1, under-fire, is closed by C16b: a
 callback handed to a package helper that returns it (`_pkg_wrap(self._on_power_event)`) read 41 -> 40 with the
 write unchanged, because a callback handed to a package function was never a root. Now a package function
-that passes its argument on uncalled -- returns it, a nested function or lambda over it, or hands it to a call
-outside the package, through any depth of package calls -- roots it. Today's tree still reads 41, and the plant
+that passes its argument on uncalled roots it: one that hands it to a call outside the package, through
+any depth of package calls, or one that returns it (or a nested function or lambda over it) into a call
+that hands the result on. A returned reference whose result is discarded is not a root (#2401 round-1
+review: `tests/arch_score.py`'s null control), and neither is one bound to a local and handed on later,
+since the census does not follow a local. Today's tree still reads 41, and the plant
 reads 41 -> 41 (40 with `C16b` off). Attempt 20b. F2 is a precision note, not closed: a method reference handed
 to ANY call outside the package is a root, including one that never calls it (`_LOGGER.debug("%r",
 self.async_update_thermal_params)` reads 41 -> 48). The census cannot tell a subscription from a log argument,
@@ -276,6 +279,15 @@ cannot tell a block's `}` from an object literal's or a function expression's, w
 statement; a callee outside the package (its signature is not read) or a call through `*args`/`**kwargs`; a card
 no-op with an effect-shaped token (`if (0) {}`, `a.b;`, a call to an empty function) or a no-op inside a
 parenthesis; and a card copy re-spelled token by token below the 20-token window.
+
+The general limit, which the #2373 round-3 review named: C20 and C21 fold SPELLINGS of a value the census
+knows how to read -- a number, a keyword, a local, a module constant by name or through a binding -- and
+not the value itself. Any other route to an equal value reads as a different spec, and two such routes are
+measured open: a class-attribute constant (`class _H: L0 = 24`, read `_H.L0`) and a constant expression of
+equal value (`12 * 2` for `24`), each reading `literal_clone_copies` 186 -> 182 with nothing deduplicated.
+Closing one more route closes that route only; evaluating every expression to its value is what would
+close the class, and it is not done here. A census over literal specs is a floor on the copies, not a count
+of them.
 
 ### What R10-ARCHSCORE-COVERAGE part 5 moved (the shape census, item 6)
 
