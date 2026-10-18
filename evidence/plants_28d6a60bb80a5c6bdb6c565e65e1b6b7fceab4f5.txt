@@ -1,0 +1,7 @@
+RESULT plant_base literal_clone_copies=184 card_clone_copies=108
+RESULT P1_module_alias literal_clone_copies=184->180
+RESULT P2_keyword_mix literal_clone_copies=184->180
+RESULT P3_card_noop_split inserted=685 node_check_rc=0 card_clone_copies=108->98 card_dead_definitions=0
+RESULT P1_module_alias delta_S=+0.0315 admissible=1 verdict=IMPROVES moved={'literal_clone_copies': (184, 180)}
+RESULT P2_keyword_mix delta_S=+0.0315 admissible=1 verdict=IMPROVES moved={'literal_clone_copies': (184, 180)}
+RESULT P3_card_noop_split delta_S=+0.1388 admissible=1 verdict=IMPROVES moved={'card_clone_copies': (108, 98)}
