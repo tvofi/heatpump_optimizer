@@ -1,0 +1,36 @@
+ok   null control: a ledger placing its survivor once, with nothing owed, passes
+ok   a judge survivor in no class is UNPLACED (a refuted verdict is not one)
+ok   a survivor in two classes is DOUBLE
+ok   a carried total that the instances do not derive is DRIFT
+ok   a status moved by a barrier PR leaves the carried trigger stale (DRIFT), and refresh clears it
+ok   three instances in one round with no barrier and no rca is OWED
+ok   an rca whose document is in the rca directory answers it
+ok   the same rca with its document missing is DANGLING and the class OWED
+ok   a barrier answers it
+ok   three over three consecutive rounds (1,1,1) met the cross-round arm
+ok   null control: three instances spread over rounds 1, 2 and 5 meet neither arm
+ok   five instances in an open class meet the total arm
+ok   a barriered class is owed from its first instance (barrier_any)
+ok   a cited rca that _rca does not index is UNKNOWN-RCA
+ok   a survivor placed in _unclassified with no reason is UNPLACED
+ok   null control: the same placement with a reason counts as placed
+ok   an in_tree_home that is an existing file outside the rca directory is DANGLING
+ok   an instance that is not R<n> <id> is UNPARSED
+ok   two ids minted in one round with one nearest are counted as one: 1 + 2 meets the trigger, in each
+ok   null control: different nearest classes are separate
+ok   fold appends each survivor and each beyond_finding seam, and not a refuted verdict or a judged-site seam
+ok   and recomputes the trigger it feeds: P1 now has three in round 2
+ok   folding the same round twice changes nothing (idempotent, byte for byte)
+ok   a survivor whose class the ledger lacks, with no nearest and differs, is refused
+ok   nearest without differs is refused
+ok   a nearest the ledger does not have is refused
+ok   an id that is not P<n>, I<n> or N-<name> is refused
+ok   a new class with nearest and differs is minted, marked, and lands in the schema enum before 'new'
+ok   a survivor with no class is refused
+ok   a sweep seam with no boolean beyond_finding is refused (the unit of count is a field, not a phrase)
+ok   a survivor already in another class is refused
+ok   a minted class reaches audit-find.js's CLASS_GUESS, the intake's third reader of the enum
+ok   and FINDING_REPORT, the schema with its $ref inlined: the finder's return schema carries the new enum
+ok   the lines outside the block are kept, and a second sync changes nothing (idempotent)
+ok   null control: a fold that mints nothing still writes the block from the unchanged enum
+ok   a workflow with no generated block is refused, never skipped
