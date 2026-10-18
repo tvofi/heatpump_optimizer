@@ -1,0 +1,18 @@
+APPLIED inert_reads tests/wood_advisor.py: tools/audit/seat/moved_paths.py
+CI PREDICT: no closures or fast red predicted against 9a1ce39c3e90 (a data-file read is not seen)
+rc=0
+diff --git a/tests/closures.json b/tests/closures.json
+index 06bffff40..14f6a7c52 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -4071,6 +4071,9 @@
+    "dev/programme/register/audit-2026-09.md",
+    "tools/audit/repo_root.mjs",
+    "tools/audit/repo_root.sh"
++  ],
++  "tests/wood_advisor.py": [
++   "tools/audit/seat/moved_paths.py"
+   ]
+  },
+  "recorded": {
+edge layout_errors []
