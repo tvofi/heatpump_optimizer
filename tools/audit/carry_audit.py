@@ -99,7 +99,7 @@ NOTE_HEADING = re.compile(NONBLOCK.pattern + r"|residual|\bowed\b|instrument fin
                           r"|out of scope|follow-?up|^carry\b", re.I)
 BLOCK_HEADING = re.compile(r"\bblock", re.I)
 
-CARRY = re.compile(r"(?<![\w-])Carry:\s*(.+)")
+CARRY = re.compile(r"(?<![\w-])Carry:")
 ITEM_REF = re.compile(r"\bitem\s+([0-9a-f]{8})\b")
 GROUP_TOK = re.compile(r"\A[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\Z")
 ISSUE_TOK = re.compile(r"\A#(\d+)\Z")
@@ -200,8 +200,12 @@ def items(text: str, verdict: bool) -> list[dict]:
 def carry_dests(text: str) -> list[str]:
     """The destination tokens of every `Carry:` in <text>; [] when none."""
     found = []
-    for m in CARRY.finditer(text):
-        rest = m.group(1).strip().strip("`*_")
+    starts = [m.start() for m in CARRY.finditer(text)]
+    for i, at in enumerate(starts):
+        # each `Carry:` up to the next one: a quoted marker earlier on the line
+        # must not swallow the real one after it
+        seg = text[at:starts[i + 1] if i + 1 < len(starts) else len(text)].split("\n", 1)[0]
+        rest = seg.split(":", 1)[1].strip().strip("`*_")
         dm = re.match(r"dismissed\s*:\s*(.*)", rest, re.I)
         if dm:
             found.append("dismissed:" + dm.group(1).strip().rstrip("`*_ "))
@@ -636,6 +640,9 @@ def _self_test() -> int:
     out = ledger_unrouted(led)
     check("a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed "
           "FINDING: are not", len(out) == 1 and out[0].startswith("LEDGER-UNROUTED l1:"))
+    check("a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)",
+          carry_dests("written `FINDING: x Carry: ...`, which the sweep reads. Carry: R10-LIVE")
+          == ["R10-LIVE"])
     check("carry_dests stops at prose", carry_dests("Carry: R10-LIVE because it owns x") == ["R10-LIVE"])
     check("carry_dests reads dismissed whole", carry_dests("Carry: dismissed: host load")
           == ["dismissed:host load"])
