@@ -483,7 +483,7 @@ class Tick:
         S = "PRS"
         code, o = self.gh(["pr", "list", "--repo", self.repo, "--limit", "200",
                            "--json", "number,headRefOid,headRefName,"
-                           "mergeStateStatus,title,createdAt,updatedAt"])
+                           "mergeStateStatus,title,createdAt,updatedAt,author"])
         if code:
             self.unreadable(S, "open pull requests", o.strip()[-120:])
             return
@@ -506,11 +506,36 @@ class Tick:
             self._files[n] = self._last_files
         self.owner_reviews(S, prs)
         self.body_staleness(S, prs)
+        self.open_pr_cap(S, prs)
         for head, ns in sorted(by_head.items()):
             if len(ns) > 1:
                 self.line(S, "twin open PRs at one head "
                           f"{head[:12]}: {', '.join('#' + str(x) for x in ns)}"
                           " (duplicate CI, ambiguous red)", flag=True)
+
+    def open_pr_cap(self, S: str, prs: list) -> None:
+        """Two level lines every pass (tvofi, 2026-10-18): the open-PR soft cap
+        open_pr.sh enforces, counted by pr_cap.py's own rule, and the counted
+        PRs whose three-dot diff touches the coordinator, against its cap of 2.
+        A diff one_pr could not read leaves the second count a floor: flagged."""
+        cap_mod = _module("pr_cap_tick", "tools/audit/seat/pr_cap.py")
+        if cap_mod is None:
+            self.unreadable(S, "open-PR cap", "tools/audit/seat/pr_cap.py absent")
+            return
+        counted, cap = cap_mod.counted(prs), cap_mod.cap_from_env()
+        if cap is None:
+            self.unreadable(S, "open-PR cap", f"{cap_mod.CAP_ENV} is not a positive integer")
+        else:
+            n = len(counted)
+            self.line(S, f"OPEN-PR CAP: {n}/{cap}" + (" (at the cap: open_pr.sh refuses; drain first)"
+                                                     if n >= cap else ""), flag=n >= cap)
+        files = getattr(self, "_files", {}) or {}
+        hit, unread = cap_mod.coordinator_prs({p["number"]: files.get(p["number"]) for p in counted})
+        k, kcap = len(hit), cap_mod.COORDINATOR_CAP
+        text = f"coordinator.py PRs: {k}/{kcap}" + (f" ({', '.join('#' + str(x) for x in hit)})" if hit else "")
+        if unread:
+            text += f"; diff UNREADABLE at {', '.join('#' + str(x) for x in unread)}, so at least {k}"
+        self.line(S, text, flag=k > kcap or bool(unread))
 
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
@@ -2665,6 +2690,60 @@ def self_test() -> int:
             ("a real declared-not-closed still flagged",
              any("closes mismatch" in x["text"] and "#205" in x["text"]
                  for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- the open-PR cap and the coordinator count (tvofi, 2026-10-18) ----
+        coord, row = "custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/1.md"
+        app, dep = {"login": "app/hpo-author", "is_bot": True}, {"login": "app/dependabot", "is_bot": True}
+
+        def cap_board(specs):  # [(n, title, author, files | None)] -> the PRS lines
+            heads = {n: f"{n:040x}" for n, *_ in specs}
+            t = tick(prs=[{**pr_obj(n, heads[n]), "title": ti, "author": au} for n, ti, au, _ in specs])
+            t.checkout = str(version)
+            base, fs = git_factory(), {heads[n]: f for n, _, _, f in specs}
+
+            def git(argv):
+                if argv[:1] == ["diff"]:
+                    f = fs.get(argv[-1])
+                    return (0, f) if f is not None else (1, "unreadable")
+                return base(argv)
+            t.git = git
+            t.prs(["tests"])
+            return t.sections["PRS"]
+
+        def one(lines, prefix):
+            hits = [l for l in lines if l["text"].startswith(prefix)]
+            return hits[0] if len(hits) == 1 else {"flag": None, "text": f"{len(hits)} lines"}
+
+        at = cap_board([(n, "t", app, f"{row} {coord}" if n < 3 else row) for n in range(6)])
+        below = cap_board([(n, "t", app, f"{row} {coord}" if n < 2 else row) for n in range(5)]
+                          + [(7, "record: rows", app, coord), (8, "bump", dep, coord)])
+        unread = cap_board([(1, "t", app, row), (2, "t", app, None)])
+        old_cap = os.environ.get("HPO_OPEN_PR_CAP")
+        os.environ["HPO_OPEN_PR_CAP"] = "x"
+        try:
+            badcap = cap_board([(1, "t", app, row)])
+        finally:
+            if old_cap is None:
+                os.environ.pop("HPO_OPEN_PR_CAP", None)
+            else:
+                os.environ["HPO_OPEN_PR_CAP"] = old_cap
+        a, f = check("open-PR cap", [
+            ("six counted: OPEN-PR CAP: 6/6, flagged",
+             one(at, "OPEN-PR CAP: ")["flag"] is True and one(at, "OPEN-PR CAP: ")["text"].startswith("OPEN-PR CAP: 6/6")),
+            ("five counted beside a record: and a bot PR: 5/6, not flagged",
+             one(below, "OPEN-PR CAP: ") == {"flag": False, "text": "OPEN-PR CAP: 5/6"}),
+            ("three counted PRs touch the coordinator: 3/2, flagged",
+             one(at, "coordinator.py PRs: ") == {"flag": True, "text": "coordinator.py PRs: 3/2 (#0, #1, #2)"}),
+            ("two counted touch it (the record and bot ones uncounted): 2/2, not flagged",
+             one(below, "coordinator.py PRs: ") == {"flag": False, "text": "coordinator.py PRs: 2/2 (#0, #1)"}),
+            ("a diff it cannot read flags the coordinator count as a floor",
+             one(unread, "coordinator.py PRs: ")["flag"] is True
+             and "UNREADABLE at #2, so at least 0" in one(unread, "coordinator.py PRs: ")["text"]),
+            ("an invalid HPO_OPEN_PR_CAP is UNREADABLE, never a count",
+             any(l["flag"] and "UNREADABLE: open-PR cap" in l["text"] for l in badcap)
+             and one(badcap, "OPEN-PR CAP: ")["flag"] is None),
         ])
         total, failed = total + a, failed + f
 

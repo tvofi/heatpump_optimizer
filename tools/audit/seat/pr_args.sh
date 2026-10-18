@@ -62,7 +62,8 @@ pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
 # ---- self-test -------------------------------------------------------------
 # One scratch origin (a plain repository: no push anywhere) and a clone of it
 # holding copies of the scripts, so the scripts' own `origin` is the scratch
-# one. Offline: `gh` is a stub, and app_push.sh is absent from the clone, so a
+# one. Offline: `gh` is a stub (its open list is $t/prs.json; $t/gh.fail makes
+# it fail), and app_push.sh is absent from the clone, so a
 # run that passes every check stops at its push, which pr_push_failed reports.
 pr_args_self_test() (
   local src t f=0 n=0 o m base code side body i
@@ -86,7 +87,8 @@ pr_args_self_test() (
     && git -C "$o" update-ref refs/heads/handoff-body/x "$body" \
     && git -C "$o" update-ref refs/heads/handoff-body/z "$body" \
     && throwaway_git_clone -q "$o" "$m" && mkdir -p "$t/bin" "$m/tools/audit/seat" \
-    && printf '#!/bin/sh\ncase "$1 $2" in "pr list") echo 5 ;; "pr view") echo "a title" ;; *) exit 99 ;; esac\n' > "$t/bin/gh" \
+    && printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh" \
+    && echo '[]' > "$t/prs.json" \
     && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
   export PATH="$t/bin:$PATH"; unset HANDOFF_TOPIC PR_N
   # run <mutant|-> <script> <args...>: copies of the scripts (less the mutant's
@@ -96,7 +98,7 @@ pr_args_self_test() (
     local mu=$1 sc=$2 g; shift 2; i=$((i + 1))
     # The last run's worktrees go, so a branch it checked out is free again.
     rm -rf "$t/s$((i - 1))"; git -C "$m" worktree prune
-    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh; do
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$mu" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$mu\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
@@ -132,6 +134,42 @@ pr_args_self_test() (
   touch "$t/s$((i + 1))/pr/x/wt/f" "$t/s$((i + 2))/pr/x/wt/f"
   arm "open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap" trap \
     "open_pr: STOPPED: line" open_pr.sh x "$code" T G
+  # The open-PR cap (pr_cap.py; tvofi, 2026-10-18): six counted open is the cap.
+  prs() { # <counted> [extra json objects]: the stub's open list
+    local k=0 j=""
+    while [ $k -lt "$1" ]; do j="$j{\"number\":$k,\"title\":\"t\",\"author\":{\"login\":\"app/hpo-author\",\"is_bot\":true}},"; k=$((k + 1)); done
+    printf '[%s%s]\n' "$j" "${2:-}" | sed 's/,]$/]/' > "$t/prs.json"
+  }
+  prs 6
+  arm "open_pr: six counted open pull requests refuse at the cap" cap \
+    "open_pr: REFUSE: open-PR cap: 6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)" \
+    open_pr.sh x "$code" T G
+  arm "open_pr: the cap is checked by the script itself (the call's lines)" capcall \
+    "open_pr: REFUSE: open-PR cap: 6 open >= 6" open_pr.sh x "$code" T G
+  touch "$t/gh.fail"
+  arm "open_pr: an open list gh cannot read refuses, never passes" capreadrc \
+    "open_pr: REFUSE: open-PR cap: the open pull requests could not be read (gh exited 1" open_pr.sh x "$code" T G
+  rm -f "$t/gh.fail"
+  # passes <name> <mutant> <expected text> <args...>: opens (stops only at the
+  # absent push), printing the text; the mutant refuses at the cap instead.
+  passes() {
+    local nm=$1 mu=$2 want=$3; shift 3
+    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" && ! grep -q 'REFUSE: open-PR cap' "$t/out" \
+      && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
+    ck "$nm" $?
+    run "$mu" open_pr.sh "$@"; grep -q 'REFUSE: open-PR cap' "$t/out"
+    ck "  mutant mut:$mu (its line deleted) refuses at the cap instead" $?
+  }
+  prs 6
+  passes "open_pr: --over-cap opens at the cap and logs its reason" overcap \
+    "open_pr: OVER-CAP: 6 open >= 6, overridden: the train is draining" \
+    --over-cap "the train is draining" x "$code" T G
+  prs 5 '{"number":90,"title":"record: rows","author":{"login":"app/hpo-author","is_bot":true}},{"number":91,"title":"bump","author":{"login":"app/dependabot","is_bot":true}}'
+  passes "open_pr: five counted open (a record: and a bot pull request beside them) opens" caprecord \
+    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+  passes "open_pr: the same board, the bot pull request uncounted" capbot \
+    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+  echo '[]' > "$t/prs.json"
   run - open_pr.sh x "$code" T G
   [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
     && [ "$(git -C "$t/s$i/pr/x/wt" rev-parse HEAD)" = "$code" ] \
@@ -149,6 +187,9 @@ pr_args_self_test() (
     update_pr.sh fix/x "$side" "$t/body.md"
   arm "update_pr: a branch whose topic has no handoff/<topic> refuses, naming the ref" noref \
     "update_pr: REFUSE: origin has no handoff/q" update_pr.sh fix/q "$code" "$t/body.md"
+  arm "update_pr: branch fix/x-pr, with no handoff/x-pr on origin, is checked against handoff/x" prtopic \
+    "update_pr: REFUSE: code sha $side is not an ancestor of origin/handoff/x ($code)" \
+    update_pr.sh fix/x-pr "$side" "$t/body.md"
   arm "update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap" trap \
     "update_pr: STOPPED: line" update_pr.sh fix/x-absent - "$t/body.md"
   for c in "$code" -; do
