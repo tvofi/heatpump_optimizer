@@ -448,27 +448,32 @@ def content_check(ref: str, root: Path = ROOT, ident: Identity | None = None):
 
 
 def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, str]]:
-    """(path, line, text) for every line `base..ref` adds that it does not also remove."""
-    out = subprocess.run(["git", "-c", "core.quotePath=false", "diff", "--no-color", "--no-ext-diff",
-                          "--no-renames", "--unified=0", base, ref], cwd=cwd, capture_output=True, text=True,
-                         errors="replace")
-    if out.returncode != 0:
-        raise RuntimeError(f"git diff {base[:12]} {ref} exited {out.returncode}: {out.stderr.strip()}")
-    added, removed, path, n = [], set(), None, 0
-    for line in out.stdout.splitlines():
-        if line.startswith("+++ "):
-            path = line[6:] if line.startswith("+++ b/") else None
-        elif line.startswith("--- "):
-            continue
-        elif line.startswith("@@"):
-            m = re.match(r"@@ -\S+ \+(\d+)", line)
-            n = int(m.group(1)) if m else 0
-        elif line.startswith("+") and path is not None:
-            added.append((path, n, line[1:]))
-            n += 1
-        elif line.startswith("-"):
-            removed.add(line[1:].strip())
-    return [(p, k, t) for p, k, t in added if t.strip() not in removed]
+    """(path, line, text) for every line of a file `base..ref` changes whose text the
+    file did not hold at `base`, less any text another changed file gave up (a move).
+    Judged by line text per file, not by hunk: a reordered line is not charged, and
+    no diff grammar is parsed here (the hunk header is mutation_table.py's to read)."""
+    def run(*a: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *a], cwd=cwd, capture_output=True)
+
+    names = run("diff", "--no-renames", "--name-only", "-z", base, ref)
+    if names.returncode != 0:
+        raise RuntimeError(f"git diff {base[:12]} {ref} exited {names.returncode}")
+
+    def lines(rev: str, path: str) -> list[str] | None:
+        got = run("show", f"{rev}:{path}")
+        if got.returncode != 0:
+            return []  # absent at that end: added or deleted whole
+        return None if b"\0" in got.stdout[:8000] else got.stdout.decode("utf-8", "replace").splitlines()
+
+    added, removed = [], set()
+    for path in filter(None, names.stdout.decode("utf-8", "replace").split("\0")):
+        old, new = lines(base, path), lines(ref, path)
+        if old is None or new is None:
+            continue  # binary at either end
+        was, now = {t.strip() for t in old}, {t.strip() for t in new}
+        removed |= was - now
+        added += [(path, n, t) for n, t in enumerate(new, 1) if t.strip() not in was]
+    return [(p, n, t) for p, n, t in added if t.strip() not in removed]
 
 
 def content_refusals(lines, ident: Identity | None = None) -> list[str]:
