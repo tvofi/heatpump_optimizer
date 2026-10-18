@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:store_name RETURN_DEL 40c19fa4",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return max(names, key=len) if names else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9a1ce39c3e901c814fceb015f09eec75f1a5ef5f: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
