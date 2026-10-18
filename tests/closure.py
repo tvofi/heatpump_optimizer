@@ -563,6 +563,11 @@ INERT_EXCEPT = (
     # being read, and check refuses the committed table before it compares
     # a recording (#357).
     "tools/pr/README.md",
+    # R10-CI-CONCURRENCY: tests/entities.py opens the cancel-superseded job's
+    # program (CI's recording at 72a3f1bbd, which closures-autofix could not
+    # merge: skip-merge-failed on this pair). Same route as the README above:
+    # the tools/pr/ prefix stays INERT, the file moves to the recorded closure.
+    "tools/pr/cancel_superseded.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
