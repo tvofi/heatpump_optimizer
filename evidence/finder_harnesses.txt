@@ -1,0 +1,82 @@
+=== base 52f698905868c9140ed213ea542c44053fca7096
+--- snapshot_bound 
+RESULT snapshot_ahead_warnings=5 count
+RESULT ring_instants_changed_vs_disk=5 count
+RESULT control_accuracy_instants_rewritten=0 count
+RESULT control_accuracy_ahead_warnings=0 count
+  paths=['snapshots/0/learners/accuracy/lead_pending/0/0', 'snapshots/0/learners/accuracy/lead_pending/1/0', 'snapshots/0/learners/accuracy/lead_pending/2/0', 'snapshots/0/learners/accuracy/lead_pending/3/0']
+RESULT thread_factor=1.180
+RESULT load1=169.04
+RESULT swapins=0
+--- snapshot_bound --perturb
+RESULT snapshot_ahead_warnings=0 count
+RESULT ring_instants_changed_vs_disk=0 count
+RESULT control_accuracy_instants_rewritten=0 count
+RESULT control_accuracy_ahead_warnings=0 count
+  paths=[]
+RESULT thread_factor=1.171
+RESULT load1=169.19
+RESULT swapins=0
+--- future_clamp_seams
+SEAM debug:rows/#/accuracy_sample/t host_lead=0h origin=accuracy origin_lead=24h site=debugger.py:83  FLAG
+SEAM debug:snapshots/#/t host_lead=0h origin=debug origin_lead=0h site=debugger.py:83
+RESULT live instant_leaves=55 flagged_leaves=7 flagged_host_origin_pairs=2 [('debug', 'accuracy'), ('snapshots', 'accuracy')]
+--- load_prelude 
+RESULT raising_seams=1 count
+RESULT thread_factor=1.000
+RESULT load1=176.63
+RESULT swapins=n/a (count; no timing RESULT)
+--- load_prelude --perturb
+RESULT raising_seams=0 count
+RESULT thread_factor=1.000
+RESULT load1=176.63
+RESULT swapins=n/a (count; no timing RESULT)
+--- store_report_equiv 
+    quarantines = store.quarantines
+                  ^^^^^^^^^^^^^^^^^
+AttributeError: module 'heatpump_optimizer.store' has no attribute 'quarantines'
+--- store_report_equiv --perturb
+    quarantines = store.quarantines
+                  ^^^^^^^^^^^^^^^^^
+AttributeError: module 'heatpump_optimizer.store' has no attribute 'quarantines'
+=== wt 8508252635106cb2748c15339c6d722c391bfddc
+--- snapshot_bound 
+RESULT snapshot_ahead_warnings=0 count
+RESULT ring_instants_changed_vs_disk=0 count
+RESULT control_accuracy_instants_rewritten=0 count
+RESULT control_accuracy_ahead_warnings=0 count
+  paths=[]
+RESULT thread_factor=1.164
+RESULT load1=181.18
+RESULT swapins=0
+--- snapshot_bound --perturb
+RESULT snapshot_ahead_warnings=0 count
+RESULT ring_instants_changed_vs_disk=0 count
+RESULT control_accuracy_instants_rewritten=0 count
+RESULT control_accuracy_ahead_warnings=0 count
+  paths=[]
+RESULT thread_factor=1.161
+RESULT load1=182.22
+RESULT swapins=0
+--- future_clamp_seams
+SEAM debug:rows/#/accuracy_sample/t host_lead=0h origin=accuracy origin_lead=0h site=debugger.py:81
+SEAM debug:snapshots/#/t host_lead=0h origin=debug origin_lead=0h site=debugger.py:81
+RESULT live instant_leaves=55 flagged_leaves=0 flagged_host_origin_pairs=0 []
+--- load_prelude 
+RESULT raising_seams=0 count
+RESULT thread_factor=1.000
+RESULT load1=182.84
+RESULT swapins=n/a (count; no timing RESULT)
+--- load_prelude --perturb
+RESULT raising_seams=0 count
+RESULT thread_factor=1.000
+RESULT load1=184.05
+RESULT swapins=n/a (count; no timing RESULT)
+--- store_report_equiv 
+RESULT mismatches=0 count
+RESULT thread_factor=1.000
+RESULT load1=185.11
+--- store_report_equiv --perturb
+RESULT mismatches=1764 count
+RESULT thread_factor=1.000
+RESULT load1=185.57

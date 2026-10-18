@@ -1,0 +1,22 @@
+=== base
+RESULT due_10h_kept_h=10.0
+RESULT due_30h_bounded_to_h=24.0
+RESULT sample_t_plus1h_loaded_as_h=1.0
+RESULT evidence_since_plus2h_loaded_as_h=2.0
+RESULT corrupt_tilde_key_instant_raises=1 AttributeError: 'Domain' object has no attribute 'get'
+RESULT corrupt_tilde_key_instant_load_mapping_none=1
+RESULT corrupt_empty_key_under_leaf_raises=0 
+RESULT corrupt_empty_key_under_leaf_load_mapping_none=0
+RESULT corrupt_empty_key_list_under_leaf_raises=0 
+RESULT corrupt_empty_key_list_under_leaf_load_mapping_none=0
+=== wt
+RESULT due_10h_kept_h=10.0
+RESULT due_30h_bounded_to_h=24.0
+RESULT sample_t_plus1h_loaded_as_h=0.0
+RESULT evidence_since_plus2h_loaded_as_h=0.0
+RESULT corrupt_tilde_key_instant_raises=1 AttributeError: 'Domain' object has no attribute 'get'
+RESULT corrupt_tilde_key_instant_load_mapping_none=1
+RESULT corrupt_empty_key_under_leaf_raises=1 AttributeError: 'Domain' object has no attribute 'get'
+RESULT corrupt_empty_key_under_leaf_load_mapping_none=1
+RESULT corrupt_empty_key_list_under_leaf_raises=1 AttributeError: 'Domain' object has no attribute 'get'
+RESULT corrupt_empty_key_list_under_leaf_load_mapping_none=1
