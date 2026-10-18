@@ -1,2 +1,0 @@
-RESULT P6_class_attr literal_clone_copies=186->182
-RESULT P7_constant_expr literal_clone_copies=186->182

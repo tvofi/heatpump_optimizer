@@ -1,47 +1,115 @@
-Fix review: blocked e14a378c12e5d292c1f564bc9100ecb0de39bd76 carry-missing: the round-2 spellings are closed, but the literal fold is open one spelling further (class attribute `_H.L0` reads 186->182, constant expression `12 * 2` reads 186->182), so the BRIEFS-FOLD carry must state the general limit; a roster carry alone unblocks, with no head move
-bus-nonce: 9e9e8d92e86061dc4ba446305b864999
+Fix review: merge e14a378c12e5d292c1f564bc9100ecb0de39bd76
 
-PR #2373, R10-ARCHSCORE-COVERAGE part 4. Review round 3 (round 1 `a19384631` blocked at `28d6a60bb`, round 2 `d21d3b132` blocked at `c06c9e84b`). I judged the delta from `c06c9e84b` to `e14a378c12e5d292c1f564bc9100ecb0de39bd76` from detached worktrees at that head. The delta is the fixer's `45da9204f` (repair), `c5dbc83da` (attempts 42d and 44c, row at 186) and `a70d4a3b6` (closures record), plus the merges `807c80dc5` and `e14a378c1`, whose remerge-diffs are empty. The box was at load ~90-190, so per heavy-to-ci I ran only targeted mutants and cheap checks, and cite CI for the heavy lanes.
+Reviewer note (moved off the first line by the orchestrator relay; original in ev/verdict.orig): carry: the round-3 carry-missing block is discharged by roster R10-BRIEFS-FOLD carry "From #2373 review r3" at main eae8c4ca4; head unmoved, CI 45/45 concluded none red, merges clean with origin/main c8cc75ea9
 
-## Round-2 items: both closed (re-derived by me at this head)
+bus-nonce: 4b065d9eea004cce6a617a3a50583568
 
-- **P4, bare `;`:** `card_clone_copies 108->108`.
-- **P5, `_c.X`:** `literal_clone_copies 186->186`. My script's label still says 184; the base reads 186.
-- **Round-1 plants:** 186->186, 186->186 and 108->108 (`r3_plants_*.txt`).
-- **Mutant M13** (`_Inline.visit_Attribute` never resolves): `rt_42d_literal_module_attr` NULL -> IMPROVES (+0.0337).
-- **Mutant M15** (`(run or out[-1:] != ["}"])` -> `run`): `rt_44c_card_empty_statement` NULL -> IMPROVES (+0.0844), and `rt_44b` stays NULL. Both match the body (`r3_mut_M13.txt`, `r3_mut_M15.txt`).
-- **Calibration** (`--only`, the 17 part-4 cases): every one classifies as recorded. `RED TEAM 8/8 attempts read NULL or inadmissible; IMPROVES: none` (`r3_calib_M0.txt`).
-- **Finder harness** (ARCH2-s5, `3930b421a`): F1 reads `delta_S=+0.4701`, `literal_clone_copies=186->134`, and C1-C4 read `delta_S=+1.0958`, `card_dead_definitions=1->0`, `card_clone_copies=108->101`. The perturbation reads 0 and the vector equals the baseline. The F1 shift from +0.4761 (184->132) is the disclosed `store.py` class, present at both ends.
-- **Today's tree:** 0 / 108 / 186, matching the rows. The two extra copies are `store.py:300-301` (the `Domain` bounds of `HOUSE_HEAT_LOSS_SCALE_*` and `LOWER_FLOOR_LOSS_RATIO_*`, both 0.3-3.0). That is the over-fire the body discloses as the cost of folding by value. I accept the trade-off: folding by identity would reopen round 1's P1.
-- **Corpus:** I ran my own spot-check of the 6 newest corpus trees. Live `literal_clone_copies`/`card_*` equal the stored vectors (`diff=0`, `r3_corpus_spot_*.txt`). None of the 87 corpus trees carries both `c.`-Domain bound pairs, which is consistent with the stored vectors not moving. I did not re-run the full corpus myself (heavy).
-- **Merge:** `merge-tree` against origin/main exits 0. The roles contract matches main.
+PR #2373, R10-ARCHSCORE-COVERAGE part 4. **Review round 4.** Earlier rounds:
+- round 1 (`a19384631`) blocked at `28d6a60bb`;
+- round 2 (`d21d3b132`) blocked at `c06c9e84b`;
+- round 3 blocked at this same head with `carry-missing`, and said a roster carry alone would unblock it, with no head move.
 
-## Why blocked
+The head has not moved since round 3, so the fixer made no repair this round. `fixer.md`'s rule that a re-cut is owed from the fourth round is therefore not triggered.
 
-Step 14, the diff's own move one spelling further, with nothing improved (`plants3_r3.py`, `r3_plants3_*.txt`). Three copies of `_number(1, 24, 1, slider=True)` read the bound through:
+This is a cloud reviewer seat. I measured from detached worktrees in `/tmp/seat/rev2373/{head,base,merged}`:
+- head: `e14a378c1`;
+- base: the merge base `42e6dedb2`;
+- merged: a probe commit of `git merge-tree` against origin/main `c8cc75ea9`.
 
-- **P6, a class attribute:** `class _RtH: L0 = 24 ...` read as `_RtH.L<i>`. Result: `literal_clone_copies 186->182`.
-- **P7, an equal constant expression:** `12 * 2`, `20 + 4`, `48 // 2`. Result: `186->182`.
+`git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current. Before writing this verdict I re-read `refs/pull/2373/head`, and it is still `e14a378c12e5d292c1f564bc9100ecb0de39bd76`.
 
-Neither is closed, and neither is in ABOUT's "What part 4's censuses do not see" list. P7 is not "a value computed at runtime": the AST holds a `BinOp` of literals.
+## The round-3 block: discharged (step 10)
 
-The BRIEFS-FOLD carry (roster `72b97a4a5`) names only the three round-1 moves and says "Unless #2373 closes them". So a brief-writer will read the class as closed.
+Round 3 asked for one thing: amend the R10-BRIEFS-FOLD carry to state the general limit, namely that a drop is credited only when the copies are actually gone from the source. That carry is now on origin/main.
 
-This is the third round in which the next spelling of a normalising census reads IMPROVES. A census of a finite list of spellings cannot be complete, so I am not asking for P6 and P7 to be closed. **Remedy (the orchestrator's, and the head need not move):** amend the R10-BRIEFS-FOLD carry to state the general limit. For example: "`literal_clone_copies` and `card_clone_copies` normalise a finite list of spellings (ABOUT.md, part 4); any other indirection of the same value -- a class attribute, a constant expression, a spelling not listed there -- reads a copy as removed, so a drop in either is credited only when the copies are actually gone from the source, never on the metric alone."
+- **Where it is:** `dev/programme/rosters/wave-r10-groups.json`, group `R10-BRIEFS-FOLD`, `carry[8]`. It was added by `eae8c4ca4` (`roster_edit append-carry R10-BRIEFS-FOLD`), and `ev/roster_carry_r3.txt` holds the text.
+- **It supersedes the stale clause.** It names `carry[6]`'s "Unless #2373 closes them" clause and replaces it.
+- **It states the general limit.** Both censuses normalise a finite list of spellings, and any other indirection of the same value reads as a removed copy. It gives both of round 3's figures.
+- **It is a precondition.** A drop is "credited only when the copies are actually gone from the source, never on the metric alone".
+- **It carries a control:** "re-plant both spellings at your merge base with tools/audit/archscore/score.py and confirm the drop is not credited".
+- **It reaches its stage in time.** The destination group is `resume.stage: not-started`, with `after: [R10-ARCHSCORE-COVERAGE, R10-D15-GRADER]`. The carry therefore lands before that stage's fixer is dispatched.
+- **Its figures are mine too.** My own plant script (`ev/plants_r4.py`, written by me and disclosed as mine; it is not the finder's) prints these at this head:
+  - `P6_class_attr literal_clone_copies=186->182`
+  - `P7_const_expr literal_clone_copies=186->182`
+  - `NULL_unchanged 186->186`
 
-With that carry at origin/main, a re-dispatch at this same head would be `merge` from me, provided the head's CI concludes green. Adding P6 and P7 to ABOUT's list is welcome but optional, and it would move the head.
+  Evidence: `ev/plants_r4_head.txt`. The carry quotes both figures, so they are verified.
+- **ABOUT.md gap.** ABOUT.md's not-seen list (lines 259-265) still does not name the class attribute or the constant expression. Round 3 called that addition optional, so it does not block. The carry's "a spelling not listed there" covers it.
 
-## Checks
+## Re-derived at this head (RESULT lines)
 
-All 45 check-runs at this head concluded: 30 success, 15 skipped, none red. That includes `arch-score` (both runs), `briefs`, `closures`, `fast (3.14)`, `pr-contract` and `budget-raise-gate` (`r3_check_runs_*.tsv`, read from the check-runs API).
+**Finder harness**, ARCH2-s5 `arch_delta.py` at `3930b421a`:
+- The harness sha1 is `4fa94bb4…`. All five patch sha1s equal the body's.
+- Run as `--base 9061fbd3d`, `PYTHONPATH=tests/hastub`, at both ends (`ev/finder_*_{base,head}.txt`).
+- Base:
+  - `F1 RESULT delta_S=+0.0000`, `admissible=1`.
+  - `C1-C4 RESULT delta_S=+0.0000`.
+- Head:
+  - `F1 RESULT delta_S=+0.4701`, `literal_clone_copies=186->134`.
+  - `C1-C4 RESULT delta_S=+1.0958`, `card_dead_definitions=1->0`, `card_clone_copies=108->101`.
+- Perturbation, all four runs: `perturbed_delta_S=+0.0000` and `perturbed_vector_equals_baseline=1`.
+- All of these equal the body's figures.
 
-## Owed to tvofi at merge (mandate 6175172275)
+**Today's tree** (`ev/measure3.py`):
+- At the head: `RESULT tree=head literal_clone_copies=186 card_dead_definitions=0 card_clone_copies=108`.
+- **On the merge with current origin/main `c8cc75ea9`**: `RESULT tree=merged ... 186 / 0 / 108`.
+  - Since the merge base, main has touched `coordinator.py`, `store.py`, `price_model.py` and six other package files.
+  - The merged tree still reads exactly the three new `tests/ci_budgets.json` rows, so main's forced-full `ci-ratchet` will not go red on merge.
 
-- `tests/ci_budgets.json` gains three new rows against the merge base `42e6dedb2`: `archscore.literal_clone_copies` 186, `archscore.card_dead_definitions` 0 and `archscore.card_clone_copies` 108. It also changes `reason` and sets `recorded_at` to `45da9204f`. No existing row moves.
-- `tools/audit/archscore/calibration/expected.json` gains 17 cases: the twelve from round 0, plus 42b, 42c, 44b, 42d and 44c. Nothing is deleted.
+**Mutation proof**, my own runner (`ev/mutate_r4.sh`):
+- It runs `calibrate.py --only` over the 17 part-4 cases (`ev/part4_ids.txt`).
+- **M0:** `RED TEAM 8/8 attempts read NULL or inadmissible; IMPROVES: none`, and no part-4 case MOVED.
+- **M10** (`drop_noops` not called):
+  - `rt_44b_card_noop_split` NULL -> IMPROVES (0.1557, equal to the body);
+  - `rt_44c_card_empty_statement` NULL -> IMPROVES (0.0844). This is expected: 44c's statement is also dropped by `drop_noops`.
+  - No other case moves.
+- Restored with `git checkout`, and the tree is clean.
+- The `MOVED ... now None` lines in both logs are the cases outside `--only`.
+
+**Cheap checks at the head** (`ev/cheap_checks_head.txt`, `ev/entities_head.txt`, `ev/arch_score_head.txt`):
+- `closure.py select --diff 42e6dedb2`: `MODE: SCOPED -- 4 script(s) run, 29 scoped out`.
+- `brief_lint.mjs`: `TOTAL: 0 error(s) across 47 file(s)`.
+- `tests/doc_claims.py`: `ALL 169 checks PASSED`.
+- `env -u BASH_ENV tests/entities.py`: `ALL 2346 ENTITY CHECKS PASSED`.
+- `tests/arch_score_head.py`: `ALL 16 ARCHITECTURE SCORE HEAD CHECKS PASSED`.
+- `env_drift.py --claims-only 42e6dedb2`: `claims hygiene ... ok`.
+- `score.py --diff`: `Architecture score: dS +0.0000 NULL`.
+- Agreement:
+  - `agreement.mjs` is byte-identical to main;
+  - the run prints `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`;
+  - the `_IDENT` grep finds `metrics/card.py:53` plus the other group's `r10_deeplink_mutants.py:217`, exactly as the body says.
+
+**Step 5:** `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (`git diff --quiet` rc 0).
+
+## Merge (step 13)
+
+`git merge-tree --write-tree origin/main e14a378c1` exits 0 with tree `3299efe96` (`ev/merge_tree.txt`). Its stderr carries `LEDGER-MERGE: resolved tests/closures.json`, merged as sets for three closures. It has no `MERGE-CLAIM` line, and the claim files are not in the diff.
+
+## CI (step 11)
+
+I read the head's own check-runs API (`ev/check_runs_head.tsv`):
+- 45 runs, all `completed`: 30 success and 15 skipped;
+- 0 non-success and non-skipped;
+- `pr-contract`, `briefs`, `arch-score`, `closures` and `budget-raise-gate` are among them.
+
+No red check is owed an answer at this head. The earlier red at `2183ab58f` (`briefs`, `pr-contract`) is answered in the body's `## Red checks`, as round 2 confirmed.
+
+## Owed to tvofi at merge (mandate 6175172275), not blocking
+
+- **`tests/ci_budgets.json`** gains three new rows against the merge base `42e6dedb2`:
+  - `archscore.literal_clone_copies` 186;
+  - `archscore.card_dead_definitions` 0;
+  - `archscore.card_clone_copies` 108.
+
+  No existing row moves.
+- **`calibration/expected.json`** gains 17 cases and deletes none.
 
 ## Not verified by me
 
-The full `--record`, the full corpus re-measure, M14 and M16, and the ablations. CI's `arch-score` covers the calibration.
+- The full `calibrate.py --record` and the full corpus re-measure, which are heavy and CI's to run. CI's `arch-score` is green at this head.
+- Mutants M1-M9 and M11-M16, and the ablations. I re-ran only M0 and M10 this round; rounds 1-3 re-ran M1, M3, M4, M7, M13 and M15.
+- The body's own figures taken at earlier SHAs (`45da9204f`, `033998cb5`, `21dd4a3e5`), beyond the ones re-derived above.
 
-Evidence: /Users/timmalmstrom/hpo-seats/r10s3/review-2373/evidence
+## Friction
+
+My first wait loop used `pgrep -f "<script>"`. It matched its own command line, so it never exited, and the mutant run started about 25 minutes late. A wait loop should key on a sentinel file, not on `pgrep -f` of a pattern it carries itself.

@@ -1,0 +1,12 @@
+  MODE: SCOPED -- 4 script(s) run, 29 scoped out.
+  A skipped script is a claim that no changed file is in its measured
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+ALL 169 checks PASSED
+claims hygiene: 42e6dedb27f36d180af04069ce652eca4b345378 ok
+Architecture score: dS +0.0000 NULL
+agreement_mjs_eq_main_rc=0
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.1
+AGREEMENT ok
+tools/audit/archscore/metrics/card.py:53:_IDENT = re.compile(r"[A-Za-z_$][\w$]*")
+tools/audit/seat/r10_deeplink_mutants.py:217:          r'  const IDENT = /[A-Za-z_$][\w$]*/g;')
+TOTAL: 0 error(s) across 47 file(s)

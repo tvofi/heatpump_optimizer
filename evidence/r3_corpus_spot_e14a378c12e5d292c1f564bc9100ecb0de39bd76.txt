@@ -1,7 +1,0 @@
-RESULT corpus 5b903344 live=(172, 0, 87) stored=(172, 0, 87) SAME
-RESULT corpus 3bae92d9 live=(172, 0, 87) stored=(172, 0, 87) SAME
-RESULT corpus d9d5e9f1 live=(172, 0, 87) stored=(172, 0, 87) SAME
-RESULT corpus c2a0448d live=(172, 0, 87) stored=(172, 0, 87) SAME
-RESULT corpus 4f8088e8 live=(172, 0, 87) stored=(172, 0, 87) SAME
-RESULT corpus 5395394d live=(172, 0, 87) stored=(172, 0, 87) SAME
-RESULT corpus_spot trees=6 diff=0

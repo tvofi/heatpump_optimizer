@@ -1,0 +1,4 @@
+RESULT plant_base literal_clone_copies=186
+RESULT P6_class_attr literal_clone_copies=186->182
+RESULT P7_const_expr literal_clone_copies=186->182
+RESULT NULL_unchanged literal_clone_copies=186->186
