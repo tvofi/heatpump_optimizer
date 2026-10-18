@@ -1,12 +1,30 @@
 Round 10, group `R10-PUMP-MODEL`: what channel the plan's modulation floor
-travels on, and where a datetime's step start is computed -- plus the P2 rule
+travels on, and who owns the plan step an instant falls in -- plus the P2 rule
 that holds the second. Part of #2232 and Part of #2238.
 
-The group's third finding, **D2-s2-01** (one hot-water lift law), is **not in
-this branch**. The owner-side ruling on it (#201 comment 6240984157, under
-mandate 6175172275) accepts the fix and returns four steps to this seat; it
-follows as its own branch, `handoff/r10-pump-model-d2`, cut from this head, so
-this pull request carries no golden or stress movement.
+The group's third finding, **D2-s2-01** (one hot-water lift law), follows on
+its own branch, `handoff/r10-pump-model-d2` (#2368), under the ruling in #201
+comment 6240984157; this pull request carries no golden or stress movement.
+
+**Round 2 (#2365 review, blocked at `b00c4a33a`).** Two repairs, both taken in
+this head:
+1. *mutation-vacuous*: the receiver half of D7-arch3-04 had no check of its
+   own. A new check sets the plan's floor on the real `planned_draw_runs` from
+   outside `pump_arbiter` and requires a floorless read to ignore it; the
+   mutant that restores only the receiver's fallback now fails it.
+2. *architecture*: the slot-floor registry entry called `coordinator._solve_anchor`
+   "the FORECAST GRID's anchor, not the plan step's". The production text says
+   otherwise -- `FORECAST_STEP_MINUTES` is "Resolution the optimizer plans at"
+   and `_step_start` was "on the solver's clock" -- so it was one concern on two
+   width sources, agreeing only while the two were equal. Taken: the sounder
+   fix (`fixer.md` step 17), one owner. The rejected alternative, an honest
+   twin entry plus a check that the two widths are one constant, keeps two
+   spellings of one concept and pins their agreement instead of removing the
+   second; one owner was possible because a leaf module both can import
+   exists without `pump_arbiter` importing `coordinator`.
+   Also corrected: `_step_start` had two readers (the ledger row at `_observe`
+   and the silent-window lookup at `_inside_silent`), not three; `step_duty`
+   indexes the plan by `bisect`.
 
 **D7-arch3-04** (#2232, hygiene, class N-shared-config).
 `pump_arbiter.step_duty` handed the plan's `duty_floor_kw` to
@@ -17,178 +35,174 @@ read whichever plan last wrote. The catch-up verifier measured no production
 reader off the loop (`in_optimize_floorless` 0 over 50 solves, `off_main_thread`
 0), so this is the channel and not a live race; the fix is the argument list,
 and the attribute, the decorator and the reader's fallback are gone rather than
-defaulted.
+defaulted -- each half now pinned on its own.
 
-**D7-s3-8x-slotfloor** (#2238, hygiene, class P2). `pump_arbiter._observe`
-spelled the 15-minute step start inline, byte for byte the expression
-`_step_start` already owns -- the ledger row, the silent-window lookup and the
-plan's step index all read that one. Folded.
+**D7-s3-8x-slotfloor** (#2238, hygiene, class P2). The plan step covering now
+is one concern: the optimizer plans at it, every forecast series is resampled
+to it, the solve's anchor labels it, and the pump arbiter keys its ledger row
+and its silent-window lookup on it. It was spelled three times --
+`coordinator._solve_anchor` on `FORECAST_STEP_MINUTES`,
+`pump_arbiter._step_start` on a literal 15, and `pump_arbiter._observe` inline.
+A new leaf module, `custom_components/heatpump_optimizer/plan_step.py`, owns
+`PLAN_STEP_MINUTES` and `plan_step_start`; `coordinator.py` and
+`pump_arbiter.py` import it, and `_solve_anchor`, `_step_start` and
+`FORECAST_STEP_MINUTES` are gone. `pump_arbiter`'s other plan-step widths read
+the same constant: the 0.25 h step and the 7 x 96-step week it hands
+`quiet_windows.step_actions`, and `step_duty`'s 15-minute expiry of the plan's
+last step. `LOG_STEPS = 96` stays a literal: it is the ledger's retention count,
+not a width.
 
 The slot-floor fact is registered in `tests/entities.py`'s P2 owners block with
-a planted sibling, and the seam rule behind it is landed and re-runnable:
-`dev/audit/harnesses/r10_slot_floor_twins.py` drives every seam its rule returns
-and refuses one it has not classified.
-
-**Merge with main.** `c4304bb1f` was cut from `92accb2cf`; `origin/main` was
-merged in at `6e5753a4a`. Its one conflict, `tests/features.py`, was resolved by
-union: main's R10-FEEDS and #2239 blocks sit ahead of this branch's
-`R10-PUMP-MODEL` section, so main's checks stay in the section they ran in on
-main. Read back: every line of main's `tests/features.py` is in the merged file
-(`diff <(sort main) <(sort merged) | grep -c '^<'` = 0), the only lines of this
-branch's side absent are exactly the 56 that main itself removed from the base
-(the two sets compared equal by `diff`), and `R.check(` counts 3747 at the base,
-3750 here, 3764 on main, 3767 merged (3747 + 3 + 17).
+one owner, `plan_step.py::plan_step_start`, and a planted sibling. The census
+behind it is landed and re-runnable: `dev/audit/harnesses/r10_slot_floor_twins.py`
+drives every seam its rule returns, drives the arbiter's ledger row as the
+floor's reader, refuses a seam it has not classified, and gains a `--widen` arm
+that widens the tree's one width source to 30 minutes.
 
 ## Head
 
-`03bffee33`, the merge commit every figure below was taken at, against the
-merge base `6e5753a4a` (`origin/main`'s tip was `bad6f7a51` at 2026-10-17 22:29
-UTC, which moves only record files this diff does not touch; no figure here is
-a function of main's tip). `thermal_model.py` is byte-identical at `6e5753a4a`
-and at the findings' baselines, and `pump_arbiter.py`'s two touched seams are
-unchanged since `554e2ecfa`, so each "before" arm is the tree the finding was
-measured on.
+`791fdba93`, the code head every figure below was taken at, against the merge
+base `e5f7e169d` (`origin/main`). `custom_components/`, `tests/features.py` and
+`tests/entities.py` are byte-identical between `6e5753a4a` and `e5f7e169d`, so a
+`git archive 6e5753a4a` export is the merge base's production tree; the
+previous head `b00c4a33a` is cited where an arm needs the tree this round
+repairs. This head merges `origin/main` at `a8786ce08`; main's side moved only
+`dev/programme/` records.
 
 ## Mutation proof
 
-Delete each fix's production half, re-run the check that pins it, restore. Each
-mutant ran in its own `git archive 03bffee33` export, so the worktree was never
-mutated.
+Each mutant ran in its own `git archive` export of the head; the worktree was
+never mutated. Block command: `python3 tools/audit/seat/features_block.py
+"R10-PUMP-MODEL -- the duty floor channel, the step-start fold"`, which prints
+`ALL 5 FEATURES BLOCK PASSED` at the head.
 
-**D7-arch3-04.** The channel has two halves -- `pump_arbiter`'s sender (the
-`setattr`, the decorator, the two calls without the argument) and
-`thermal_model`'s receiver (the `getattr` fallback). Both files restored to
-`6e5753a4a` in the export; `python3 tools/audit/seat/features_block.py
-"R10-PUMP-MODEL -- the duty floor channel, the step-start fold"` prints
-`2 of 3 FEATURES BLOCK FAILED`:
+**D7-arch3-04, the receiver alone** (m2: `thermal_model.py` at the merge base,
+its `getattr` fallback back, the sender still fixed): `1 of 5 FEATURES BLOCK
+FAILED`:
 
-    FAIL D7-arch3-04: the plan's floor reaches planned_draw_runs as an argument --
-      a floorless reader is unaffected while step_duty runs  [floorless reads
-      [False, False], duty 'idle']
-    FAIL D7-arch3-04: no module-state floor is left behind -- no setattr names it,
-      and the reader carries no such attribute, so a raise between the reads has
-      nothing to leave set  [setattr sites [352, 326], attr '<absent>',
-      decorator True]
+    FAIL D7-arch3-04: the reader has no channel -- a floor set on
+      planned_draw_runs from outside pump_arbiter does not reach a floorless
+      read  [floorless read with the attribute set: False; the same draw
+      against the floor passed as the argument: False]
 
-At the head the same block prints `ALL 3 FEATURES BLOCK PASSED`.
+**D7-arch3-04, both halves** (m1: `pump_arbiter.py` and `thermal_model.py`
+both at the merge base): `4 of 5 FEATURES BLOCK FAILED` -- all three
+D7-arch3-04 checks (`floorless reads [False, False], duty 'idle'`; `setattr
+sites [352, 326] ... decorator True`; the receiver check above), and the widen
+check, because the merge base's `pump_arbiter` keys its ledger on its own 15.
 
-**D7-s3-8x-slotfloor.** Line 879 of `_observe` put back to the inline
-`now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)`.
-`PYTHONPATH=tests/hastub python3 tests/entities.py` fails:
+**D7-s3-8x-slotfloor, a width of the arbiter's own** (m5: `_observe`'s ledger
+start back to `now.replace(minute=now.minute - now.minute % 15, ...)`): the
+block fails `the arbiter's ledger step and the solve's anchor are one function
+on one width -- widened to 30 minutes, both read the 30-minute step
+[(ledger, anchor, 30-min floor) minutes: [(15, 0, 0), (45, 30, 30)]]`, and
+`PYTHONPATH=tests/hastub python3 tests/entities.py` fails `P2 owners:
+slot_floor_rule ... [SEAM ['pump_arbiter.py:877 in _observe'] ...]` with the
+planted-sibling null-control check beside it.
 
-    FAIL P2 owners: slot_floor_rule is decided only by its owner or a
-      dispositioned site, its owner exists, no disposition is stale, the rule is
-      live  [SEAM ['pump_arbiter.py:879 in _observe'] OWNER-MISSING []
-      STALE-DISPOSITION [] DEAD-RULE False (hits=7)]
+**D7-s3-8x-slotfloor, a width of the anchor's own** (m6: `coordinator.py`
+defines its own `plan_step_start` on a literal 15 after the import): the block
+fails the same check (`[(0, 15, 0), (30, 45, 30)]`), and `tests/entities.py`
+fails `the solve anchor is plan_step.plan_step_start, outside the coordinator
+class and its module, and the coordinator reads that one function [module=False
+class=False same=False]` and `P2 owners: slot_floor_rule ... [SEAM
+['coordinator.py:261 in plan_step_start'] ...]`.
 
-and the planted-sibling null-control check fails with it (every fact's plant now
-also trips `slot_floor_rule`). `r10_slot_floor_twins.py` on the mutant reads
-`seams=6 folded_seams=0 driven=4`. The export also fails git- and
-handover-dependent checks (no `.git` in an archive); the unmutated export (M0)
-fails those same checks and neither `slot_floor_rule` line, so the two above are
-the mutant's.
+The unmutated export (M0) fails none of these lines.
 
 ## Null control
 
-- **D7-arch3-04.** The spy that reads for a floorless caller forwards the
-  attribute writes it sees, so the reading is the production channel's; the
-  check's `duty == "idle"` arm is the positive control that the plan's floor
-  still reaches the reader at the head. The finder's harness carries its own
-  null arm, `null_leaked_reads=0`, at both ends.
-- **D7-s3-8x-slotfloor.** The census drives the owner against itself
-  (`--identity`); the ledger comparison is driven over 24686 instants at both
-  ends and reads 0 disagreeing, with the 30-minute reference disagreeing on
-  12344 of 24686, so the comparison discriminates.
-- **The P2 plant.** `slot_floor_rule`'s planted sibling in `tests/entities.py`'s
-  null-control check fails its own fact and no other at the head.
+- **The receiver check** carries its positive arm: the same 0.5 kW draw against
+  the floor passed as the argument reads `False`, so the floorless `True` is
+  the channel's absence and not a reader that always answers `True`.
+- **The widen check** compares against an independent 30-minute floor computed
+  in the check, and the shipped 15-minute width is restored in a `finally`.
+- **The census**: `--identity` (the owner against itself) reads 0 of 10;
+  `--perturb` (the metering window's fold restore dropped) reads 2 of 10 at
+  every tree; `--widen` is the review's perturbation and reads the defect at
+  the base and not at the head (Figures).
+- **The ledger comparison** over 24686 instants reads 0 disagreeing against
+  `plan_step_start`, with the 30-minute reference disagreeing on exactly the
+  12344 it must.
+- **The P2 plant**: `slot_floor_rule`'s planted sibling fails its own fact and
+  no other at the head.
 
 ## Figures
 
-Each line names its instrument. The round-10 finder harnesses are out of the
-tree (`fixer.md` step 3); each ran from a `git archive` export of the base
-(`6e5753a4a`) and of the head (`03bffee33`), with cwd the export.
+The round-10 finder harnesses are out of the tree (`fixer.md` step 3); each ran
+from a `git archive` export with cwd the export, `$EXPORT` naming the export of
+the merge base (`6e5753a4a`'s production tree).
 
-- D7-arch3-04, `dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py`
-  (present at `6e5753a4a`), `PYTHONPATH=tests/hastub python3 <harness>`: base
-  `leaked_reads=140281` of `reader_calls=379083`, `null_leaked_reads=0`,
-  `reflective_writes_pump_arbiter=2`; head `leaked_reads=0` of `465296`,
-  `null_leaked_reads=0`, `reflective_writes_pump_arbiter=0`. The count is a
-  race, so the claim is > 0 against = 0, not its size (`load1` 93.20 / 95.76,
-  `thread_factor` 1.008 / 1.005).
+- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_slot_floor_twins.py
+  --root <tree>`, with `--widen`, `--perturb` and `--identity`:
+  - merge base: `seams=6 driven=5 disagreeing_probes=0` of 10; `--widen`
+    `disagreeing_probes=3` (`autumn 02:59:59.9 fold1`, `12:15 edge`,
+    `23:59:59.999`);
+  - previous head `03bffee33` (production identical to `b00c4a33a`): `seams=5
+    folded_seams=1 driven=4 disagreeing_probes=0`; `--widen` 3 of 10, the same
+    three probes;
+  - this head: `seams=4 folded_seams=3` (`coordinator._solve_anchor`,
+    `pump_arbiter._observe`, `pump_arbiter._step_start`) `driven=3
+    disagreeing_probes=0 unclassified_seams=0`; `--widen` 0 of 10; `--perturb`
+    2 of 10 (`autumn 02:07 fold1`, `autumn 02:59:59.9 fold1`); `--identity`
+    `driven=2` 0 of 10.
 - D7-s3-8x-slotfloor, `$EXPORT/dev/audit/rounds/round10/D7/arch2-s3/shape_slot_floor.py`
-  @ sha1 `a21a0766c7c657a1e5181ba18f4cc9274a227128` (`$EXPORT` is the export
-  above, with the harness placed at that path from the commit that added it,
-  `1d1974df4`; it is in neither tree),
-  `PYTHONPATH=tests/hastub python3 <harness> --root <export>`: base
-  `implementations=4 driven=3 disagreeing_probes=0` of 10, `--perturb` 2 of 10;
-  head `implementations=3 driven=3 disagreeing_probes=0`, `--perturb` 2 of 10.
-  The inline copy is the seam this diff folds, so the census reads the defect at
-  the base and not at the head -- the companion `fixer.md` step 3 asks for where
-  a fold leaves the driven comparison flat.
-- The finder's V2 arm for the fold, a scratch extraction of the `s3_82` arm of
-  `dev/audit/rounds/round10/catchup/arch-b/v2_s3.py` @ sha1
-  `15a8d534344df9ecaebce2e92282f7da721be2d5` (that file's other arms import
-  tariff twins R10-TARIFF folded): `s3_82_floor_disagree=0` of 24686 at both
-  ends, `--perturb` 12344 of 24686 at both ends. The fold moves no leaf.
-- `python3 dev/audit/harnesses/r10_slot_floor_twins.py` at the head: `seams=5
-  folded_seams=1 driven=3 disagreeing_probes=0` of 10, `unclassified_seams=0`;
-  `--perturb` (the fold dropped from `_window_slot`): `disagreeing_probes=2` of 10
-  (`autumn 02:07 fold1`, `autumn 02:59:59.9 fold1`); `--identity` (the owner
-  against itself): `driven=2 disagreeing_probes=0` of 10. On the mutant above:
-  `seams=6 folded_seams=0 driven=4`.
-- Scope, `python3 tests/closure.py select --diff 6e5753a4a`: `MODE: SCOPED -- 27
-  script(s) run, 6 scoped out` over 12 changed files. Run here:
-  `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 4158 FEATURE CHECKS
-  PASSED`; `tests/entities.py` `ALL 2347 ENTITY CHECKS PASSED`; `tests/guard_pins.py` `ALL 50 GUARD PIN CHECKS PASSED`;
-  `tests/doc_claims.py` `ALL 169 checks PASSED`; `tests/closure.py selftest`
-  `ALL 115 closure shrink pins PASSED`; `tests/env_drift.py` `NO UNCLAIMED
-  DRIFT: 5 scenario(s) checked against origin/main` and `NO STALE FIXTURE`.
-  `tests/harness_headers.py` printed `12 of 109 HARNESS HEADER CHECKS FAILED`
-  here, every one `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py`
-  with `printed=None`: the script's 900 s wall bound expired at host `load1`
-  above 370, and a wall overrun returns no stdout. Run alone at this head
-  (`PYTHONPATH=tests/hastub` and the three BLAS pins `run_bounded` sets), the
-  same harness printed 11 RESULT values, each equal to its header
-  (`shipped_presets_armed=3`, `shipped_presets_gate_named=0`,
-  `unridged_fitted_typical_s001=0` among them), in `real 711.21` / `user
-  191.19` at `load1=374.05` -- under its 480 CPU-s bound. CI's
-  `harness_headers.py` run is the figure.
-  The heavy scoped scripts (`stress.py`, `optimality.py`, `golden.py`,
-  `backtest.py` and the rest of `scope.run`) are CI's; this pull request's
-  check-runs are their figures.
-- `python3 tools/pr/ci_predict.py --base 6e5753a4a`: `CI PREDICT: no closures
-  or fast red predicted against 6e5753a4aca8`.
+  @ sha1 `a21a0766c7c657a1e5181ba18f4cc9274a227128` (placed in each export from
+  `1d1974df4`, the commit that added it; in neither tree): `implementations=4`
+  at the merge base, `3` at `03bffee33`, `2` at this head (`plan_step.plan_step_start`
+  and `tariff._window_slot`). Its driving arm calls `coordinator._solve_anchor`
+  by name and raises `AttributeError` at this head, where that seam is folded;
+  the landed census above is the companion that drives at both ends.
+- D7-arch3-04, `$EXPORT/dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py`,
+  `PYTHONPATH=tests/hastub python3 <harness>`: merge base `leaked_reads=140281`
+  of `reader_calls=379083`, `null_leaked_reads=0`,
+  `reflective_writes_pump_arbiter=2`; this head `leaked_reads=0` of `1433735`,
+  `null_leaked_reads=0`, `reflective_writes_pump_arbiter=0` (`load1` 153.09).
+  The count is a race, so the claim is > 0 against = 0, not its size.
+- Scope, `python3 tests/closure.py select --diff e5f7e169d`: `MODE: SCOPED -- 28 script(s) run, 5 scoped out` over 21 changed files. Run
+  here: `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 4160 FEATURE
+  CHECKS PASSED`; `tests/entities.py` `ALL 2347 ENTITY CHECKS PASSED`; `tests/doc_claims.py`
+  `ALL 169 checks PASSED`; `tests/guard_pins.py` `ALL 50 GUARD PIN CHECKS
+  PASSED`. `tests/dst_checks.py` prints `8 of 134 DST / QUARTER-GRID CHECKS
+  FAILED` here and the identical FAIL set at `b00c4a33a` (`diff` of the two
+  FAIL lists is empty), where CI's run was green: this machine's, not this
+  diff's; CI's run is the figure. The heavy scoped scripts are CI's.
+- `python3 tools/pr/ci_predict.py --base e5f7e169d`: `CI PREDICT: no closures or fast red predicted against e5f7e169d64b`, and `4 unpinned site(s) the diff adds` (`## Unpinned sites`).
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff 6e5753a4a`: `Architecture
-  score: dS +0.0000 NULL`, gate-only tripwire `reflective_writes 17 -> 15` (the
-  two `setattr` sites and the decorator).
+- `python3 tools/audit/archscore/score.py --diff e5f7e169d`: `Architecture score: dS +0.0000 NULL`, gate-only tripwire `reflective_writes 17 -> 15`;
+  `--diff b00c4a33a`: `Architecture score: dS +0.0000 NULL`.
 
 ## Red checks
 
-`none` on this branch so far.
+`none` on `b00c4a33a`'s check-runs (the reviewer's reading: 30 success, 15
+skipped, 0 failed). This head's are CI's.
 
 ## Forward-carry
 
-`none` -- nothing here narrows a later stage's technique, invalidates a figure it rests on, or removes an option it expected: both findings are closed in their own group, and D2-s2-01's ruling is carried by its own branch.
+`none` -- nothing here narrows a later stage's technique, invalidates a figure it rests on, or removes an option it expected: both findings are closed in their own group, and the D2 branch merges this head before it moves.
 
 ## Unpinned sites
 
-`prepr.sh` step 6d lists what the diff adds. The four `step_duty` sites (BOOLOP
-and CMP_BOUND at both call sites) were pinned by `python3
-tests/mutation_table.py --pin-killed` before the merge, each killed by
-`tests/features.py`; main touches neither `pump_arbiter.py` nor those ledger
-rows, so the merge moved no pin. A local `--scope changed` re-run here was
-`MUTATION TABLE INCONCLUSIVE` (its baseline timed out in `tests/env_drift.py`
-under host load), so the ledger's verdict at this head is CI's mutation check.
+`prepr.sh` step 6d lists what the diff adds; `python3 tools/pr/ci_predict.py`
+names four, each left for `mutation-autofix` to pin from CI's
+mutation drive (`ci-autofix.md`), the lane that drives the killing scripts --
+none is triaged here:
+- `custom_components/heatpump_optimizer/plan_step.py:41 RETURN_DEL`:
+  `plan_step_start`'s return, the new owner's one line; `tests/features.py`'s
+  ledger and widen checks read its value;
+- `custom_components/heatpump_optimizer/pump_arbiter.py:340 BOOLOP`,
+- `custom_components/heatpump_optimizer/pump_arbiter.py:340 CMP_BOUND*2` and
+- `custom_components/heatpump_optimizer/pump_arbiter.py:340 GUARD_OFF`:
+  `step_duty`'s expiry of the plan's last step, whose text now reads
+  `PLAN_STEP_MINUTES`; the arbiter section of `tests/features.py` killed the
+  BOOLOP and GUARD_OFF mutants of the same line under its old text.
+
+Three ledger rows are dropped because their lines are gone or
+rewritten: `_step_start RETURN_DEL 623e1957` (the function is folded into
+`plan_step_start`) and `step_duty BOOLOP 0d0efb52` / `GUARD_OFF 0d0efb52`
+(the expiry line now reads `PLAN_STEP_MINUTES`). Their sites are among the four above.
 
 ## Friction
 
-- `dev/governance/rules/finding-propagation.md: stale: catchup/arch-b/v2_s3.py,
-  the catch-up verifier's own V2 file for D7-s3-81/82/83, imports
-  tariff._plateau_aware_day_max, which the R10-TARIFF merge folded; the file
-  raises AttributeError before its s3_82 arm, so the arm this finding needs was
-  extracted into scratch and is cited by sha1 above.`
-- `dev/governance/roles/fixer.md: cost: the round-10 finder harnesses that are
-  not in the tree (shape_slot_floor.py) must be recovered from the commit that
-  added them before they can be re-run at a new merge base; a resumed seat has
-  no other copy.`
+- `dev/governance/roles/fixer.md: cost: a fold that deletes a seam by name breaks every finder harness that drives that name (shape_slot_floor.py, catchup v2_s3.py's 82 arm), so the before/after reading of the finder's own instrument exists only for its count arm; the landed census had to learn to read each tree's own names.`
+- `dev/governance/rules/finding-propagation.md: stale: catchup/arch-b/v2_s3.py imports tariff._plateau_aware_day_max, which R10-TARIFF folded, and its 82 arm calls pump_arbiter._step_start, which this head folds.`
