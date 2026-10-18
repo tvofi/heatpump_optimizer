@@ -1,0 +1,4 @@
+RESULT P4_card_empty_stmt inserted=685 node_check_rc=0 card_clone_copies=108->104
+RESULT P5_literal_module_attr literal_clone_copies=184->180
+RESULT P4_card_empty_stmt delta_S=+0.0539 admissible=1 verdict=IMPROVES moved={'card_clone_copies': (108, 104)}
+RESULT P5_literal_module_attr delta_S=+0.0315 admissible=1 verdict=IMPROVES moved={'literal_clone_copies': (184, 180)}

@@ -1,0 +1,12 @@
+RESULT overlays=0 count
+Architecture score: dS +0.4761 IMPROVES
+  literal_clone_copies 184 -> 132  +0.4761
+RESULT delta_S=+0.4761 weighted_log2
+RESULT admissible=1 bool
+RESULT literal_clone_copies=184->132 count
+RESULT term_literal_clone_copies=+0.4761 weighted_log2
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+RESULT thread_factor=0.307
+RESULT load1=117.25
+RESULT swapins=29505139
