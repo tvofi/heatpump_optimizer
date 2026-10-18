@@ -1,0 +1,40 @@
+diff --git a/custom_components/heatpump_optimizer/legionella.py b/custom_components/heatpump_optimizer/legionella.py
+index 7d3bdd3b8..cf9beff3b 100644
+--- a/custom_components/heatpump_optimizer/legionella.py
++++ b/custom_components/heatpump_optimizer/legionella.py
+@@ -34,7 +34,8 @@ from .const import (
+ from .drift import stored_instant
+ from .disinfection import DisinfectionSwitch
+ from .entry_config import EntryConfig
+-from .payload import REASON_LEGIONELLA, CurrentAction
++from .payload import CurrentAction
++from .optimizer import REASON_LEGIONELLA
+ from .issues import create_issue
+ from .thermal_model import ThermalParameters
+ 
+diff --git a/custom_components/heatpump_optimizer/quiet_windows.py b/custom_components/heatpump_optimizer/quiet_windows.py
+index 7ef28a0e1..03924faa4 100644
+--- a/custom_components/heatpump_optimizer/quiet_windows.py
++++ b/custom_components/heatpump_optimizer/quiet_windows.py
+@@ -82,7 +82,7 @@ from .dhw_schedule import (
+ )
+ from .inputs import normalize_power_kw
+ from .modbus_prefill import night_mode_write_ids, package_prefix
+-from .drift import utc_step_starts
++from .optimizer import utc_step_starts
+ 
+ #: The per-step action codes, as one int8 array element per step.
+ ACTION_NONE: Final = 0
+diff --git a/custom_components/heatpump_optimizer/silent_mode.py b/custom_components/heatpump_optimizer/silent_mode.py
+index b645198f1..eb5332fcf 100644
+--- a/custom_components/heatpump_optimizer/silent_mode.py
++++ b/custom_components/heatpump_optimizer/silent_mode.py
+@@ -52,7 +52,7 @@ from .dhw_schedule import (
+     windows_for_day,
+ )
+ from .entry_config import EntryConfig
+-from .drift import utc_step_starts
++from .optimizer import utc_step_starts
+ 
+ 
+ def caps(

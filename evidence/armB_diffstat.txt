@@ -1,0 +1,6 @@
+ custom_components/heatpump_optimizer/accuracy.py      |  2 +-
+ custom_components/heatpump_optimizer/coordinator.py   | 12 ++++++------
+ custom_components/heatpump_optimizer/optimizer.py     |  8 ++++----
+ custom_components/heatpump_optimizer/quiet_windows.py |  6 +++---
+ custom_components/heatpump_optimizer/silent_mode.py   |  6 +++---
+ 5 files changed, 17 insertions(+), 17 deletions(-)

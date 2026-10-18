@@ -1,0 +1,2 @@
+IN: binary_sensor button climate coordinator datetime diagnostics optimizer sensor services switch
+RESULT modules=76 solver_in=10 scipy_in=11 import_failures=0

@@ -1,0 +1,4 @@
+ custom_components/heatpump_optimizer/legionella.py    | 3 ++-
+ custom_components/heatpump_optimizer/quiet_windows.py | 2 +-
+ custom_components/heatpump_optimizer/silent_mode.py   | 2 +-
+ 3 files changed, 4 insertions(+), 3 deletions(-)
