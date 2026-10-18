@@ -1,0 +1,8 @@
+RESULT PRS  A unrelated lane in flight, closures never queued: ABSENT flag=True
+RESULT MAIN A unrelated lane in flight, closures never queued: ABSENT flag=True
+RESULT PRS  B everything settled, closures never queued: ABSENT flag=True
+RESULT MAIN B everything settled, closures never queued: ABSENT flag=True
+RESULT PRS  C needs-gated: coverage queued, closures no run: ABSENT flag=True
+RESULT MAIN C needs-gated: coverage queued, closures no run: ABSENT flag=True
+RESULT PRS  D closures itself queued (has a check run): none flag=False
+RESULT MAIN D closures itself queued (has a check run): none flag=False

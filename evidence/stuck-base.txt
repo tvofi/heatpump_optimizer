@@ -1,0 +1,3 @@
+RESULT line: required contexts (main-protect-checks): 2 read live
+RESULT FLAG: main aaaaaaaaaaaa: required contexts ABSENT: closures
+RESULT line: main aaaaaaaaaaaa green (1 context(s) concluded green)

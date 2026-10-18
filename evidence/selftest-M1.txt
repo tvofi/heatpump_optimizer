@@ -1,0 +1,4 @@
+  FAIL PRS needs-gated job: waiting named, unflagged
+  FAIL PRS needs-gated job: not reported ABSENT while a run is in flight
+  FAIL split_absent: in flight -> waiting
+orchestrator_tick self-test: 93 checks, 3 failed
