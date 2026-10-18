@@ -1,0 +1,26 @@
+== runtime_closure tree=base
+RESULT store: pkg_modules=20 solver=out scipy=out import_ms=434.5
+RESULT notifier: pkg_modules=21 solver=out scipy=out import_ms=428.2
+RESULT legionella: pkg_modules=29 solver=IN scipy=IN import_ms=979.2
+RESULT debugger: pkg_modules=21 solver=out scipy=out import_ms=548.8
+RESULT setpoint_check: pkg_modules=24 solver=IN scipy=IN import_ms=818.6
+RESULT repairs: pkg_modules=25 solver=IN scipy=IN import_ms=744.7
+RESULT silent_mode: pkg_modules=21 solver=IN scipy=IN import_ms=802.0
+RESULT quiet_windows: pkg_modules=22 solver=IN scipy=IN import_ms=864.6
+RESULT const: pkg_modules=6 solver=out scipy=out import_ms=200.7
+RESULT solver_in_count=5 of 9
+RESULT thread_factor=1.000
+RESULT load1=40.71
+== runtime_closure tree=wt
+RESULT store: pkg_modules=20 solver=out scipy=out import_ms=468.5
+RESULT notifier: pkg_modules=21 solver=out scipy=out import_ms=443.8
+RESULT legionella: pkg_modules=22 solver=out scipy=out import_ms=447.8
+RESULT debugger: pkg_modules=21 solver=out scipy=out import_ms=409.9
+RESULT setpoint_check: pkg_modules=15 solver=out scipy=out import_ms=250.3
+RESULT repairs: pkg_modules=16 solver=out scipy=out import_ms=226.5
+RESULT silent_mode: pkg_modules=9 solver=out scipy=out import_ms=180.9
+RESULT quiet_windows: pkg_modules=13 solver=out scipy=out import_ms=218.6
+RESULT const: pkg_modules=6 solver=out scipy=out import_ms=143.0
+RESULT solver_in_count=0 of 9
+RESULT thread_factor=1.000
+RESULT load1=38.53
