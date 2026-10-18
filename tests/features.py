@@ -25619,7 +25619,7 @@ R.section("Plan reason codes: the fall-through is neutral (v5.1.7)")
 # "Pre-heating before colder weather". The card renders exactly that sentence,
 # which is what an owner read on a mild afternoon and reported as the
 # optimizer chasing weather it had never been shown.
-from heatpump_optimizer.optimizer import (  # noqa: E402
+from heatpump_optimizer.payload import (  # noqa: E402
     REASON_CHEAP_PRICE as _R_CHEAP,
     REASON_COMFORT_FLOOR as _R_FLOOR,
     REASON_IDLE as _R_IDLE,
@@ -25628,6 +25628,8 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_SCHEDULED as _R_SCHED,
     REASON_SOLAR_SURPLUS as _R_SURPLUS,
     REASON_TERMINAL_VALUE as _R_TERMINAL,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
     classify_space_steps as _classify,
     slab_settlement_cap as _slab_cap,
 )
@@ -57475,9 +57477,21 @@ for _leaf in ("store", "silent_mode", "quiet_windows", "legionella"):
         f"rc={_leaf_run.returncode} loaded={_leaf_run.stdout.strip()} {_leaf_run.stderr[-300:]}",
     )
 _leaf_opt_src = _leaf_ast.parse(_leaf_Path(_leaf_opt.__file__).read_text())
+# Any binding of a REASON_ name in optimizer.py, at any depth and in any form
+# (plain, annotated, augmented, walrus, a for/with target, a def or class, an
+# import from elsewhere), save the one ``from .payload import``: the review's
+# M6 was an annotated redefinition the Assign-only walk passed.
 _leaf_own = sorted(
-    t.id for n in _leaf_opt_src.body if isinstance(n, _leaf_ast.Assign)
-    for t in n.targets if isinstance(t, _leaf_ast.Name) and t.id.startswith("REASON_")
+    {n.id for n in _leaf_ast.walk(_leaf_opt_src)
+     if isinstance(n, _leaf_ast.Name) and isinstance(n.ctx, _leaf_ast.Store)
+     and n.id.startswith("REASON_")}
+    | {n.name for n in _leaf_ast.walk(_leaf_opt_src)
+       if isinstance(n, (_leaf_ast.FunctionDef, _leaf_ast.AsyncFunctionDef, _leaf_ast.ClassDef))
+       and n.name.startswith("REASON_")}
+    | {(a.asname or a.name) for n in _leaf_ast.walk(_leaf_opt_src)
+       if isinstance(n, (_leaf_ast.Import, _leaf_ast.ImportFrom))
+       and not (isinstance(n, _leaf_ast.ImportFrom) and n.level == 1 and n.module == "payload")
+       for a in n.names if (a.asname or a.name).startswith("REASON_")}
 )
 _leaf_used = sorted(k for k in vars(_leaf_opt) if k.startswith("REASON_"))
 R.check(
@@ -60237,13 +60251,15 @@ R.check(
 
 # R9-UX-5 (#1795): exact idle sub-codes, the what-if's setback, the published
 # floor, and the comfort event's cause.
-from heatpump_optimizer.optimizer import (  # noqa: E402
+from heatpump_optimizer.payload import (  # noqa: E402
     REASON_IDLE as _UX5_IDLE,
     REASON_IDLE_COASTING as _UX5_COAST,
     REASON_IDLE_DEARER as _UX5_DEAR,
     REASON_IDLE_FUSE as _UX5_FUSE,
     REASON_IDLE_OTHER as _UX5_OTHER,
     REASON_IDLE_SOLAR as _UX5_SOLAR,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
     IdleContext as _Ux5Idle,
     classify_dhw_steps as _ux5_dhw,
     classify_space_steps as _ux5_space,
