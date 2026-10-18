@@ -301,8 +301,6 @@ class FakeConfig:
     # What a Swedish install has configured; also what the golden coordinator
     # fixtures pin as the published currency leaf.
     currency = "SEK"
-    # Upstream's default when the instance configures none.
-    time_zone = "UTC"
 
     def __init__(self) -> None:
         # The domains whose ``async_setup`` has run on this instance, as
@@ -470,7 +468,6 @@ class FakeEntry:
         self.options = dict(options or {})
         self.entry_id = entry_id
         self.version = 1
-        self.minor_version = 1
         self.domain = "heatpump_optimizer"
         self.title = "Heat Pump Optimizer"
         # What a pre-guard entry carries: nothing. The flow's duplicate guard

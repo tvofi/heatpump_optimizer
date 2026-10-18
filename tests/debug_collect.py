@@ -852,6 +852,7 @@ def _replay_install(*, recorder=True, price_source=PRICE_SOURCE_ENTITY, tibber=(
                                                                    "longitude": 18.063240},
         "away_calendar": "calendar.family", **(plant_entry or {}),
     }, options={CONF_DEBUG_COLLECT: True})
+    entry.minor_version = 1  # a real entry carries one; harness.FakeEntry does not
     reg = er.async_get(hass)
     reg.add("sensor.hpo_plan", unique_id="p", config_entry_id="rp", platform=DOMAIN)
     for entity_id, home in tibber:
