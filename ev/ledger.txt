@@ -1,0 +1,3 @@
+fold_ledger: 42 classes, 734 instances, 121 in-tree judge survivors (rounds [8, 10]), 112 rca entries
+fold_ledger: 0 violation(s)
+rc=0
