@@ -607,7 +607,7 @@ def window_factors(
         return None
     window = max(1, int(tariff.window_minutes))
     slot0 = _window_slot(start_time, window)
-    # Walk the windows in UTC and convert back — ``optimizer._utc_step_starts``'
+    # Walk the windows in UTC and convert back — ``drift.utc_step_starts``'
     # rule, and for its reason (#243, #777). ``timedelta`` on an aware datetime
     # is wall-clock arithmetic: across the autumn fold it emits the repeated
     # hour once and across the spring gap the hour that never happens, so every

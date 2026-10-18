@@ -12,7 +12,7 @@ is a measurement rather than an argument, so it is committed rather than quoted.
 METRIC: `live_tracker_mismatch_<day>_<wm>min` = the number of horizon windows i
 where `window_factors(mask, midnight, n, dt)[i]` differs from the factor
 PRODUCTION ITSELF ASSIGNED that window -- `PeakTracker.observe` driven over
-`optimizer._utc_step_starts` instants, then `tracker._window_factor` read back.
+`drift.utc_step_starts` instants, then `tracker._window_factor` read back.
 `pre777` re-creates the old production expression (`slot0 + timedelta(...)`)
 inline, as a DIAGNOSTIC only; nothing here asserts against it.
 
@@ -76,7 +76,7 @@ from zoneinfo import ZoneInfo
 
 import d2lib  # noqa: F401  -- thread pin + sys.path, must be first
 
-from heatpump_optimizer.optimizer import _utc_step_starts
+from heatpump_optimizer.drift import utc_step_starts as _utc_step_starts
 from heatpump_optimizer.tariff import (
     CapacityTariff,
     PeakTracker,
