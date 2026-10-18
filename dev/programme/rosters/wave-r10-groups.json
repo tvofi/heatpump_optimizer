@@ -3199,6 +3199,56 @@
     "note": null
    },
    "brief": "Split from the R10-DEEPLINK pull request (#2283) after its round-4 review (verdict on head 1826c67c3), as issue #2317: the deep-link builder and its own checks are sound, but the navigation census in tests/card.mjs does not hold every link the card can emit. The reviewer's planted cases each read rc=0 fails=0 at that head. K5: a bare open call (and the global-object and call-form spellings) on a row the census never renders; the token arm needs a dotted open. K1: the Navigation API navigate call is neither instrumented nor a token. K2: a form action with a submit button on a rendered page; the census reads only href. K3t: an Event, not a CustomEvent, built with a run-time more-info event name; the census hooks only CustomEvent. Proposed shape (the reviewer's): allow a known set rather than deny spellings. Render a fixture covering every row so nothing rests on the token arm alone, extend the reach check to every data-act handler, record any navigation-name read outside the known set per press, and read action and formaction beside href. Control: the reviewer's planted cases, each red at the fix. Touch the card script only where a fixture needs it, and then only after the orchestrator adds an after-edge, since the card script is a hot file.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nForward-carried precondition (finding-propagation.md): R10-TICK (o), from the orchestrator, 2026-10-15T19:00Z: tools/audit/seat/train.sh line 182 sets the checkout with dirname of $0 followed by ../.., which resolves to the tools directory, not the repo root. Without --checkout it fails because python3 cannot open merge_train.py under a doubled tools directory. Fix it to ../../.. and add a self-test that launches without --checkout."
+  },
+  {
+   "group": "R10-DEEPLINK-HANDLERS",
+   "lane": "IN",
+   "kind": "defect",
+   "issues": [
+    2317
+   ],
+   "fixes": [
+    2317
+   ],
+   "findings": [
+    "#2317"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tests/card.mjs",
+    "tools/audit/seat/r10_deeplink_mutants.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-DEEPLINK-CENSUS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Split from R10-DEEPLINK-CENSUS by the orchestrator under the three-round rule (round 8 of #2345 found a third missed written spelling). Close #2317's remaining class: navigation written in a card handler the census's dynamic arm does not drive. Drive every keydown, pointer, wheel and focus handler the card registers, through the instrumented surface, the way clicks are driven today. Controls, green at #2345's head by design: the driver's RV1-RV7 plants (history[\"back\"](), history?.back(), destructured back, createElementNS form, .action = variable, Object.assign action, whole written form navigation) and Y1; each of RV1-RV7 must go red once its handler is driven, and RV1c and RV5c must stay red. Once the dynamic arm covers those handlers, drop the static arm to bare-name rows with no spelling list (fixer.md step 17; a spelling list is the shape #1874 refused). Re-measure every figure at your own merge base.",
+   "resume": {
+    "stage": "planned",
+    "branch": "handoff/r10-deeplink-handlers",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
   }
  ]
 }
