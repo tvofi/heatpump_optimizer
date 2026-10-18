@@ -1,0 +1,44 @@
+== twins 
+RESULT seams=4 count
+    optimizer.HeatPumpOptimizer._window_offset_steps
+    plan_step.plan_step_start
+    price_model.PriceShapeModel.quarter_factor
+    tariff._window_slot
+RESULT folded_seams=3 count
+    folded coordinator._solve_anchor
+    folded pump_arbiter._observe
+    folded pump_arbiter._step_start
+RESULT driven=3 count
+RESULT probes=10 count
+RESULT disagreeing_probes=0 count
+RESULT disagreeing_probe_labels=-
+RESULT unclassified_seams=0 count
+rc=0
+== twins --perturb
+RESULT seams=4 count
+    optimizer.HeatPumpOptimizer._window_offset_steps
+    plan_step.plan_step_start
+    price_model.PriceShapeModel.quarter_factor
+    tariff._window_slot
+RESULT folded_seams=3 count
+    folded coordinator._solve_anchor
+    folded pump_arbiter._observe
+    folded pump_arbiter._step_start
+RESULT driven=3 count
+RESULT probes=10 count
+RESULT disagreeing_probes=2 count
+RESULT disagreeing_probe_labels=autumn 02:07 fold1,autumn 02:59:59.9 fold1
+RESULT unclassified_seams=0 count
+rc=0
+== twins --identity
+RESULT seams=4 count
+    optimizer.HeatPumpOptimizer._window_offset_steps
+    plan_step.plan_step_start
+    price_model.PriceShapeModel.quarter_factor
+    tariff._window_slot
+RESULT driven=2 count
+RESULT probes=10 count
+RESULT disagreeing_probes=0 count
+RESULT disagreeing_probe_labels=-
+RESULT unclassified_seams=0 count
+rc=0

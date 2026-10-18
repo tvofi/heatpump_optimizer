@@ -1,0 +1,4 @@
+RESULT leaked_reads=0 count
+RESULT null_leaked_reads=0 count
+RESULT reflective_writes_pump_arbiter=0 count
+RESULT load1=24.12

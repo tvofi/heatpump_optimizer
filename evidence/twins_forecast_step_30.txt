@@ -1,3 +1,0 @@
-RESULT driven=3 count
-RESULT disagreeing_probes=3 count
-RESULT disagreeing_probe_labels=autumn 02:59:59.9 fold1,12:15 edge,23:59:59.999
