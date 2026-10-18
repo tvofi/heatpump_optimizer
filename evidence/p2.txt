@@ -1,0 +1,9 @@
+== base
+SEAM F3_cop_law_fork thermal_model:compute_cop:2018  not self.params.cop_flow_carnot
+SEAM F3_cop_law_fork thermal_model:compute_cop_dhw:2192  self.params.cop_flow_carnot
+SEAM F3_cop_law_fork thermal_model:_batch_cop:3317  flow_carnot_eligible and p.cop_flow_carnot
+== head
+SEAM F3_cop_law_fork thermal_model:compute_cop:2018  not self.params.cop_flow_carnot
+SEAM F3_cop_law_fork thermal_model:_batch_cop:3317  p.flow_curve_cop and (not p.cop_flow_carnot)
+RESULT F3_cop_law_fork=2 count
+RESULT perturb.F3_cop_law_fork before=2 after=3 moved=1
