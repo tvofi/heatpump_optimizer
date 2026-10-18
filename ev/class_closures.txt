@@ -1,0 +1,34 @@
+## class-seam rule (body): grep -cE reply schemas with required and no types
+-- base
+.claude/workflows/audit-find.js:3
+.claude/workflows/audit-fix.js:2
+.claude/workflows/audit-verify.js:9
+.claude/workflows/audit-wave.js:0
+.claude/workflows/web-decomp-stage.js:4
+.claude/workflows/web-fix-wave.js:1
+.claude/workflows/web-stamp.js:3
+.claude/workflows/web-triage.js:0
+-- head
+.claude/workflows/audit-find.js:0
+.claude/workflows/audit-fix.js:2
+.claude/workflows/audit-verify.js:0
+.claude/workflows/audit-wave.js:0
+.claude/workflows/web-decomp-stage.js:4
+.claude/workflows/web-fix-wave.js:1
+.claude/workflows/web-stamp.js:3
+.claude/workflows/web-triage.js:0
+## closures.json three-dot
+diff --git a/tests/closures.json b/tests/closures.json
+index 58c3e9322..90f670421 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3417,6 +3417,7 @@
+    "dev/audit/harnesses/r10_slot_floor_twins.py",
+    "dev/audit/harnesses/r10_stats_window.mjs",
+    "dev/audit/harnesses/r10_structure_blind.py",
++   "dev/audit/harnesses/r10_tick_drivers.py",
+    "dev/audit/harnesses/r10_tick_train_mutants.sh",
+    "dev/audit/harnesses/r10_tick_which_roster.py",
+    "dev/audit/harnesses/r10_weekday_range_twins.py",
+## archscore
+Architecture score: dS +0.0000 NULL
