@@ -432,7 +432,7 @@ def _space_target(
     # ``inputs._age_gate`` is, and cleared on every pass that reads a
     # holdable minimum or a flow unit, so a fixed misdeclaration that recurs
     # warns again.
-    misdeclared = room is not None and low is not None and low > room + SETPOINT_TOLERANCE
+    misdeclared = room is not None and low is not None and low >= room + SETPOINT_TOLERANCE
     if log_held(
         inp.hass, f"space_target_flow_declared:{entity}", misdeclared,
         "Pump duty: %s is declared an indoor set-point but its minimum is "
