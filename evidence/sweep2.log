@@ -1,0 +1,19 @@
+HEAD ee409c81d7861741f2288491c69cb805c218e24c
+RESULT mutant=R7c_setAttribute_runtime_name rc=1 fails=1
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      plan:dlg-tab -> href /config/integrations/integration/heatpump_optimizer; setup:dlg-tab -> href /config/integrations/integration/heatpump_optimizer; savings:dlg-tab -> href /config/integrations/integr
+RESULT mutant=T1c_census_only_throw_on_press rc=1 fails=2
+    FAIL  no navigation token in the card's code outside navigateTo
+      9401: navigateTo(SETTINGS_PATH); if (globalThis.open.length === 1)
+    FAIL  no press throws
+      advisor:settings: census-only boom; advisor:settings: census-only boom; advisor:settings: census-only boom; advisor:settings: census-only boom; health:diagnostics: census-only boom; health:settings: c
+RESULT mutant=T2c_census_only_async_reject_on_press rc=1 fails=2
+    FAIL  no navigation token in the card's code outside navigateTo
+      9401: navigateTo(SETTINGS_PATH); if (globalThis.open.length === 1)
+    FAIL  no press throws
+      advisor:settings: census-only reject; advisor:settings: census-only reject; advisor:settings: census-only reject; advisor:settings: census-only reject; health:diagnostics: census-only reject; health:s
+RESULT mutant=F1_action_as_a_setattribute_value_control rc=0 fails=0
+RESULT mutant=F3_action_as_an_object_key_control rc=0 fails=0
+RESULT mutant=F4_submit_as_an_identifier_prefix_control rc=0 fails=0
+restored
+EXIT 0

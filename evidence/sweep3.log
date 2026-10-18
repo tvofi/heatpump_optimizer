@@ -1,0 +1,27 @@
+HEAD ee409c81d7861741f2288491c69cb805c218e24c
+RESULT mutant=K1_navigation_api_in_try rc=1 fails=2
+    FAIL  no navigation token in the card's code outside navigateTo
+      9401: navigateTo(SETTINGS_PATH); try { globalThis.navigation.navig
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      advisor:settings -> navigation /config/entities; advisor:settings -> navigation /config/entities; advisor:settings -> navigation /config/entities; advisor:settings -> navigation /config/entities; heal
+RESULT mutant=K2_form_action_rendered rc=1 fails=2
+    FAIL  no navigation token in the card's code outside navigateTo
+      9115: <form action="/config/entities"><button type="submit">go</bu
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      plan:dlg-tab -> action /config/entities; setup:dlg-tab -> action /config/entities; savings:dlg-tab -> action /config/entities; advisor:dlg-tab -> action /config/entities; health:render -> action /conf
+RESULT mutant=K3t_event_runtime_more_info rc=1 fails=1
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      advisor:settings -> event hass-more-info:{}; advisor:settings -> event hass-more-info:{}; advisor:settings -> event hass-more-info:{}; advisor:settings -> event hass-more-info:{}; health:diagnostics -
+RESULT mutant=K5_bare_open_on_dismiss rc=1 fails=2
+    FAIL  no navigation token in the card's code outside navigateTo
+      9397: open("/config/entities", "_self");
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      advisor:dismiss_feedback -> open /config/entities
+RESULT mutant=Z2_open_call_in_undriven_keydown rc=1 fails=1
+    FAIL  no navigation token in the card's code outside navigateTo
+      10821: globalThis.open.call(globalThis, "/config/entities", "_self"
+RESULT mutant=Z3_navigate_to_space_in_undriven_keydown rc=1 fails=1
+    FAIL  the census reached every navigateTo and openHaLink mention
+      pressed plan=42 setup=35 savings=10 advisor=32 health=24; sites 9401,10821,12309; unreached 10821
+restored
+EXIT 0
