@@ -10,7 +10,7 @@ Key: bytes of json.dumps(value, default=str, separators=(",", ":")) per attribut
 key, as delivered by the entity's extra_state_attributes property.
 
 Command (repo root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
       dev/audit/rounds/round10/D9/s2/payload.py [--config coord_all_features] [--horizon-hours 48]
 Perturbation: --drop-unrecorded-guard
 (treats every _unrecorded_attributes as empty) must raise recorded_bytes_per_cycle

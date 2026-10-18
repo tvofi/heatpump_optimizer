@@ -6,7 +6,7 @@ coordinator._narrative_view()["lines"]), count those naming a currency other tha
 feed's declared one (currency.declared_currency of the price entity's unit).
 Count key: the currency token in the value the production seam delivers (the rendered line,
 the attribute value), never the instance label we configure.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py [--perturb]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D14/s2/p8_money_units.py [--perturb]
 Expected at 17f1c55fad1b: mismatch_eur_feed_on_sek=N_LINES (>=1, every narrative line), coordinator_unit_mismatch=0,
   null control (SEK feed on SEK instance) mismatch=0. --perturb (coordinator.resolve_currency -> feed code,
   i.e. narrative follows coordinator.currency) moves mismatch to 0.  Tolerance: exact (counts).

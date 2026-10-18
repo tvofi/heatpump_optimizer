@@ -1,5 +1,5 @@
 NULL:
 RESULT seams=0 LEN=0 DROP=0 KEEP=0
 PERTURBED (one line):
-SEAM LEN /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpuu_8o014/clean.py:3 f
+SEAM LEN <tmp>/tmpuu_8o014/clean.py:3 f
 RESULT seams=1 LEN=1 DROP=0 KEEP=0
