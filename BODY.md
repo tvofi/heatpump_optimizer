@@ -25,9 +25,9 @@ R10-SAV-BASELINE. Closes #2255, the owner's savings items 1, 2 and 5 (tvofi, 202
 
 ## Head
 
-9b9982e6c0b1d89dfc0cd9841c26aff322a36939
+f5ad054550cea2e572133f4a5693de5c13d5c293
 
-Merge base 003c3731c. Main merges into this branch: 5 (42e6dedb2, 3fb386d50, dc8aa807f, 413944b67 by the orchestrator, then 003c3731c). Only 413944b67 (#2365, R10-PUMP-MODEL) touched production code: `thermal_model.py`, `pump_arbiter.py`, `plan_step.py` and `coordinator.py` outside the #2255 seams. None of the five touched `optimizer.py` or `ledger.py`. Where each figure was measured:
+Merge base 55dc8d9c2. Main merges into this branch: 6 (42e6dedb2, 3fb386d50, dc8aa807f, 413944b67 by the orchestrator, 003c3731c, then 55dc8d9c2; the last brought only CodeQL scoping and delivery rows). Only 413944b67 (#2365, R10-PUMP-MODEL) touched production code: `thermal_model.py`, `pump_arbiter.py`, `plan_step.py` and `coordinator.py` outside the #2255 seams. None of the five touched `optimizer.py` or `ledger.py`. Where each figure was measured:
 - The harness arms (`r10_sav_baseline.py`, `r10_sav_null_terms.py` both arms) and the savings section (`ALL 33 ... PASSED`): at 7b4069789, after the last main merge. Every figure equals the round-1 figure.
 - The mutation table and the site mutants: production code of e86c2085d, which is the head's for `optimizer.py` and `ledger.py`. The round-1 reviewer re-ran the table at b7a34f98a: all 16 killed.
 - The golden drift with the claims: 09d3fe38f. CI's `env-matrix` was green at b7a34f98a.
@@ -100,7 +100,7 @@ Seams of the class: the savings figures have three producers, and each is dispos
 
 ## Unpinned sites
 
-`ci_predict` lists 22 sites the diff adds with no pin. Each was mutated on a scratch copy of e86c2085d (`probe/sites.py`, the same section run as the table above). A crash counts as a kill, because features.py then exits non-zero; each crash's exception is quoted from that run. Killed sites are pinned by `mutation-autofix` when CI's mutation job records them.
+`ci_predict` listed 22 sites the diff adds with no pin; at this head it lists 19, because mutation-autofix pinned ledger.py:315 CLAMP_DROP, optimizer.py:280 RETURN_DEL and optimizer.py:335 CLAMP_DROP at 36723a969. Each was mutated on a scratch copy of e86c2085d (`probe/sites.py`, the same section run as the table above). A crash counts as a kill, because features.py then exits non-zero; each crash's exception is quoted from that run. Killed sites are pinned by `mutation-autofix` when CI's mutation job records them.
 - custom_components/heatpump_optimizer/ledger.py:68 RETURN_DEL: killed (TypeError: None in the coverage division). Pinned by mutation-autofix.
 - custom_components/heatpump_optimizer/ledger.py:186 CMP_BOUND: survivor, triaged equivalent. `dt >= 0` also folds a zero-length interval. `_coverage_factor` reads only the meta's `sum`, so adding 0.0 to it changes nothing. A zero `dt` is the only value the mutant admits.
 - custom_components/heatpump_optimizer/ledger.py:186 GUARD_OFF: killed, 3 failing (M8's three). Pinned by mutation-autofix.
@@ -126,9 +126,11 @@ Seams of the class: the savings figures have three producers, and each is dispos
 
 ## Red checks
 
-- `pr-contract` (117692504964, 117692618046): `REFUSE 'Closes #2255' closes #2255; not in the intended list`. The orchestrator answers it by wiring 2255 into R10-SAV-BASELINE's `fixes` on the roster, so `Closes #2255` stays.
-- `fast (3.14)` (117692786859): `one|summer_negative|shoulder: no unclaimed gap above the bar`, 1 of 84. Answered by eeb607dd6, which keeps that claim (see above).
-- `mutation` (117692723200): `MUTATION TABLE REFUSED`, the 23 sites this diff adds (22 keys, `5326 CLAMP_DROP*2` counted twice). Answered under `## Unpinned sites`; mutation-autofix pins the killed ones.
+Every failed check run on the PR branch's pushed commits (the ancestry of `fix/r10-sav-baseline` from the merge base). Each has its answer.
+- `pr-contract` (117692504964, 117692618046, 117704466268): `REFUSE 'Closes #2255' closes #2255; not in the intended list`. The orchestrator answers it by wiring 2255 into R10-SAV-BASELINE's `fixes` on the roster, so `Closes #2255` stays.
+- `fast (3.14)` at b7a34f98a (117692786859) and at 36723a969 (117704407882, 117704447188): `tests/optimality.py`, `one|summer_negative|shoulder: no unclaimed gap above the bar` (ladder +10.55 %, `claimed=False`), 1 of 84. This diff caused it: round 1 retired that claim on the arm64 figure. Answered by eeb607dd6, which keeps the claim. This head carries it.
+- `mutation` at 62f3704f7 (117691643842), b7a34f98a (117692723200) and 36723a969 (117704368238, 117704375789): `MUTATION TABLE REFUSED`, the sites this diff adds (23, then 20 once 36723a969 pinned three). This diff's, by design. Every site is answered under `## Unpinned sites`. mutation-autofix pinned `_coverage_factor` CLAMP_DROP, `_baseline_target` RETURN_DEL and `_thermostat_held_state` CLAMP_DROP at 36723a969, and this head merges that commit (aba674bca). The two survivors are triaged there.
+- `nightly-ha (stable)` at 36723a969 (117704407933): `FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']`. This is the runner, not this diff. The heartbeat's positive control spins the event loop for 600 ms on purpose, reads it as 600.2 ms, and the loop's own dump names the spin (`dump names the spin: True`). Only the py-spy leg failed: `py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 30 seconds`. `run:exit_status` is that failure's container exit. The other 62 checks passed, among them the entity, payload, plan and reload arms. `nightly-ha (2025.2.0)` (117704407742) passed on the same commit. The diff touches no heartbeat, py-spy or container code. The answer is a re-run at the new head. A cheaper detector would be the py-spy leg's own timeout reported as a skip of that leg, not a FAIL of the positive control. I have not filed that, because one timeout is not yet a recurrence.
 
 ## Forward-carry
 
