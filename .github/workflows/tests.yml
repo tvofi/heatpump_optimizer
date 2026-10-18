@@ -1885,7 +1885,7 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
           for g in coverage_ratchet delivery_status; do
             if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
               echo "$g=true" >> "$GITHUB_OUTPUT"
@@ -2294,7 +2294,7 @@ jobs:
             git fetch --quiet origin main || true
             MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
             if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
-              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+              python tests/closure.py changed --base "$MB" --head "$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
             else
               : > "$RUNNER_TEMP/changed.txt"
             fi
@@ -2305,7 +2305,7 @@ jobs:
             # widening this change beyond the closures arm it is for.
             echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
           else
-            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+            python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
             # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
             # outside custom_components/, MEASURED by `closure.py record` over a
             # real run of the lane (run 37764931838, both images, the same 37
@@ -2462,7 +2462,7 @@ jobs:
             git fetch --quiet origin main || true
             MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
             if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
-              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+              python tests/closure.py changed --base "$MB" --head "$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
             else
               : > "$RUNNER_TEMP/changed.txt"
             fi
@@ -2470,7 +2470,7 @@ jobs:
           else
             BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
             HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
-            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+            python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
           fi
           cat "$RUNNER_TEMP/changed.txt"
           python tests/closure.py affected \
@@ -2748,7 +2748,7 @@ jobs:
             exit 0
           fi
           BASE="${{ github.event.pull_request.base.sha }}"
-          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
           if grep -qxE \
             'tools/coverage/coverage_tree\.sh|tools/coverage/composed_proof\.sh|tests/closure\.py|tests/composed_closures\.json|\.github/workflows/tests\.yml' \
             "$RUNNER_TEMP/changed.txt"; then

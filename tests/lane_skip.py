@@ -281,8 +281,7 @@ def _decide_cmd(lane: str, diff_ref: str, state_file: str | None,
             plan = dict(plan, reason=(plan.get("reason") + "; "
                                       "recorded base is not an ancestor"))
         else:
-            main_delta = [l for l in _git("diff", "--name-only",
-                                          prev_base, base).splitlines() if l]
+            main_delta = closure.changed_between(prev_base, base, dots="..")
 
     decision = decide(lane, prev_base=prev_base, base=base,
                       main_delta=main_delta, plan=plan, payload=payload,
@@ -457,6 +456,20 @@ def self_test() -> int:
         r = d0(lane, [])
         pin(f"{lane} runs on an empty diff list", r["decision"] == "run",
             r["reason"])
+    # #2406 round 1: a rename onto a delivery row must list its source, or
+    # the lanes skip a deleted production file.  The list comes from the
+    # one producer (closure.changed_between) over a real throwaway repo.
+    import closure
+    listed, porcelain = closure._rename_probe_lists(
+        "dev/programme/delivery/99999.md")
+    for lane in RECORD_INERT_LANES:
+        r = d0(lane, listed)
+        pin(f"{lane} runs on a rename from production onto a delivery row",
+            r["decision"] == "run", f"{listed}: {r['reason']}")
+    r = d0("browser", porcelain)
+    pin("the rename-detecting porcelain list would skip (null control)",
+        r["decision"] == "skip" and r.get("level") == 0,
+        f"{porcelain}: {r['reason']}")
     r = d0("fast", roster)
     pin("fast never skips at level 0: it holds the run_always lines",
         r["decision"] == "run", r["reason"])

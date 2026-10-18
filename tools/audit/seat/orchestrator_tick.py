@@ -367,7 +367,7 @@ class Tick:
         code, o = self.git(["merge-base", "origin/main", head])
         if code:
             return None
-        code, o = self.git(["diff", "--name-only", o.strip(), head])
+        code, o = self.git(["diff", "--no-renames", "--name-only", o.strip(), head])
         return o.split() if code == 0 else None
 
     @staticmethod
@@ -1805,7 +1805,7 @@ def self_test() -> int:
         git.on(("fetch",), out="")
         git.on(("merge-base", "--is-ancestor"), rc=0)
         git.on(("merge-base", "origin/main"), out=V)
-        git.on(("diff", "--name-only"), out=kw.pop("files", "dev/programme/delivery/9.md"))
+        git.on(("diff", "--no-renames", "--name-only"), out=kw.pop("files", "dev/programme/delivery/9.md"))
         git.on(("grep",), rc=0 if grep_rows else 1, out=grep_rows or "")
         git.on(f"origin/main:{PLAN}", out=plan_text)
         git.on(("show", "-s"), out=head_commit_at or iso(NOW - datetime.timedelta(hours=2)))
