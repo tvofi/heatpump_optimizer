@@ -1,15 +1,16 @@
 R10-CI-CONCURRENCY. A newer App push does not cancel an older run that was bot-sent (an approved autofix head) or dispatched: those get a group of their own by run id, so the newer run's group has nothing to cancel. The older run finishes for a head nobody reads. This adds a live-head cancel job to `tests.yml` and `codeql.yml`, run by the App-sent `pull_request` run only; the `concurrency:` expression is unchanged. Option 1 of the pre-study (`handoff-body/r10-ci-concurrency` before this body; harness `dev/audit/harnesses/superseded_runs.py`).
 
-**`.github/workflows/**` is changed (tests.yml, codeql.yml, governance.yml): it needs tvofi's review at merge.**
+**`.github/workflows/**` is changed (tests.yml, codeql.yml, governance.yml) and `.github/CODEOWNERS` gains one line (`/tools/pr/cancel_superseded.py @tvofi`, which `codeowners_gap` required because governance runs the PR's own copy of the script): both need tvofi's review at merge. CODEOWNERS is policy-adjacent.**
 
 ## Head
 
-`bfee9706080889008ec3b4ed1a9bdc2bcbe5806f` (code head of `handoff/r10-ci-concurrency`, based on origin/main `f4955e15f`). Measured 2026-10-18.
+`a5849788bb9a67461fc74ee3231215a2c295b74e` (code head of `handoff/r10-ci-concurrency`, origin/main `f00e1d85b` merged in). Measured 2026-10-18.
 
 What changed:
 - `tools/pr/cancel_superseded.py` (new, one owner, `--self-test`). Cancels nothing unless: the caller is a `pull_request` run whose sender is not `github-actions[bot]`; the branch is not `main`; the PR is open, same-repo, and its head right now is the caller's head SHA (the live-head check); then only runs on that branch of event `pull_request`/`workflow_dispatch`, queued/in progress/waiting, at a different head SHA and a lower run id. Unreadable answers cancel nothing; always exit 0 (an optimisation, never a gate).
 - `tests.yml`, `codeql.yml`: job `cancel-superseded` (`actions: write` on that job alone, `fetch-depth: 2`, `persist-credentials: false`), restoring the program from the pinned base sha and running it under `-I` (D11-s1-03); until the base carries the file it only prints a notice.
 - `governance.yml`: `instrument-self-tests` runs the self-test on every PR.
+- `.github/CODEOWNERS`: owns the script (`codeowners_gap.py`: `uncovered_files` 1 -> 0). `tests/closures.json`: the new harness recorded as an INERT READ of `tests/harness_headers.py` (`tools/pr/ci_predict.py --apply-inert`).
 - `tests/entities.py`: the permission-override pin and the undone-copy pin list the new job (7 jobs override the floor; the D11-s1-03 null control now refuses 4 jobs).
 
 Not changed: the `concurrency:` blocks, `pr-contract.yml`, `budget-raise-gate.yml`, `arch-score.yml` (cancel false on purpose), `approve_held_runs.sh`, the dispatch and approve steps.
