@@ -1,0 +1,18 @@
+-- full overlay (seat_root a home dir, supplied by overlay)
+sweep_render: wrote 19 lines to p.txt
+rc=0
+-- tick_log removed
+sweep_render: REFUSED unfilled: the overlay omits `tick_log`
+rc=1
+-- template copy citing a removed instrument
+sweep_render: REFUSED citation: `tools/audit/seat/bus_gone.sh` cited and not in the tree
+rc=1
+-- template copy with a home dir in step 7
+sweep_render: REFUSED host-path: rendered line 19 names a home directory no overlay value supplied
+rc=1
+-- CI-shape: tracked template cites removed instrument -> self-test
+  FAIL the tracked template renders from a complete overlay, every placeholder filled (null control)
+  FAIL the tracked template cites only paths that exist
+sweep_render self-test: 19 checks, 2 failed
+rc=1
+restored

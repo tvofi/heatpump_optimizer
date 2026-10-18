@@ -1,0 +1,3 @@
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.

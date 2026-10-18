@@ -1,0 +1,10 @@
+== tests/harness_headers.py
+ALL 109 HARNESS HEADER CHECKS PASSED
+== tests/closure.py selftest
+ALL 115 closure shrink pins PASSED
+== tests/layout.py
+layout self-test: ok
+== tests/structure.py
+STRUCTURE RATCHET PASSED
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since c8cc75ea90a3
+ref_privacy --check at HEAD: 17 file(s) with a push site, 9 guarded, 557 line(s) added since c8cc75ea90a3 judged, 0 refused
