@@ -24,8 +24,8 @@
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "New row only (R10-ARCHSCORE-COVERAGE part 5): archscore.shape_copies 66, the gate-only key the shape census adds to the score vector, at the value vector.measure derives on the tree; a derived key with no row is refused as growth. No existing row moves. Previous: part 4's new rows (literal_clone_copies 184, card_dead_definitions 0, card_clone_copies 108).",
- "recorded_at": "4b17a54193b06f75973d3d874dc1a3f4ad1db554",
+ "reason": "New row only (R10-ARCHSCORE-COVERAGE part 5): archscore.shape_copies 66, the gate-only key the shape census adds to the score vector, at the value vector.measure derives at 2a68c32a3; a derived key with no row is refused as growth. No existing row moves. Previous: part 4's new rows (literal_clone_copies 184, card_dead_definitions 0, card_clone_copies 108).",
+ "recorded_at": "2a68c32a3dcd93f1eed3041ba4c83b71afcac989",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 68
 }
