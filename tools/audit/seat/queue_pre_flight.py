@@ -52,6 +52,11 @@ train's order:
              the head (the train refuses to mandate-approve a budget change, so
              the review must already sit there), read by budget_raise_gate's own
              `approval` -- the gate's raise reading, mandate citation included.
+  findings   every finding item the body and its `Fix review:` verdicts record
+             names a valid destination (`Carry:`, finding-propagation.md), read
+             by tools/audit/carry_audit.py against origin/main's roster; an
+             O-brief is checked in $HPO_BRIEFS_DIR when set. This is where a
+             verdict's non-blocking notes are read before they merge unowned.
 
 `--checkout` names the checkout the train will run from (default: this tree's
 root), because the worktree namespace it competes with is that checkout's.
@@ -65,12 +70,16 @@ import argparse
 import datetime
 import json
 import re
+import sys
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 
 import merge_train as mt  # noqa: E402  (same directory; the train's own words)
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import carry_audit as ca  # noqa: E402  (tools/audit/: the one parser of `Carry:`)
 
 # The one status line a delivery row carries while its pull request is open
 # (record_row.py writes `— **open**,` / `— **merged `<sha7>`**,`).
@@ -82,8 +91,9 @@ class PreFlight:
 
     def __init__(self, repo: str, train: "mt.Train | None" = None,
                  checkout: Path = ROOT, bot_cured: bool = False,
-                 free_holders: bool = False) -> None:
+                 free_holders: bool = False, dests: "ca.Dests | None" = None) -> None:
         self.repo = repo
+        self.dests = dests  # carry_audit's destinations; read from origin/main on first use
         self.checkout = checkout
         # The train's own pre-flight (`merge_train.py --pre-flight`) passes
         # what it now cures itself: a bot tip (batch routes it serial, whose
@@ -152,7 +162,44 @@ class PreFlight:
         budgets = [f for f in files if f.endswith("_budgets.json")]
         if budgets and (why := self.budget_gate(pr, h, budgets)):
             return "PARK", "policy", why
+        if why := self.findings_gate(pr):
+            return "PARK", "findings", why
         return "PASS", "", ""
+
+    def findings_gate(self, pr: int) -> str:
+        """'' when every finding item of the body and its `Fix review:`
+        verdicts is routed to a valid destination (carry_audit.audit), else
+        the refusal naming the count and the first item. Fail-closed: a body,
+        comment or roster read that fails refuses."""
+        code, body = self.t.run(["gh", "api", f"repos/{self.repo}/pulls/{pr}", "--jq", '.body // ""'])
+        if code:
+            return f"the body could not be read: {body.strip()[-160:]}"
+        code, o = self.t.run(["gh", "api", "--paginate", "--slurp",
+                              f"repos/{self.repo}/issues/{pr}/comments?per_page=100"])
+        try:
+            if code:
+                raise ValueError(o.strip()[-160:])
+            comments = [c for page in json.loads(o) for c in page]
+        except (ValueError, TypeError) as e:
+            return f"the comments could not be read: {e}"
+        if not ca.finding_rows(body, comments)[0]:
+            return ""  # nothing to route: the roster is not read
+        try:
+            if self.dests is None:
+                self.dests = ca.load_dests(self.checkout, "origin/main", issue_state=self.issue_state)
+        except (ca.roster_lib.RosterNotFound, ValueError) as e:
+            return f"the roster could not be read: {str(e)[:160]}"
+        bad = [r for r in ca.audit(body, comments, self.dests)["rows"] if r["status"] != "routed"]
+        if not bad:
+            return ""
+        r = bad[0]
+        what = "; ".join(r["bad"]) if r["status"] == "bad" else re.sub(r"\s+", " ", r["text"])[:100]
+        return (f"{len(bad)} finding item(s) with no valid `Carry:` (carry_audit.py pr {pr}); first: "
+                f"{r['where']} item {r['id']} ({r['status']}): {what}")
+
+    def issue_state(self, n: int) -> "str | None":
+        code, o = self.t.run(["gh", "api", f"repos/{self.repo}/issues/{n}", "--jq", ".state"])
+        return o.strip() or None if not code else None
 
     def row_stale(self, pr: int, h: str, row: str) -> str:
         """R9-ROW-STALE: '' when the row's status line agrees with the open
@@ -315,6 +362,12 @@ def _self_test() -> int:
                     else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
                 return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and "/issues/7/comments" in a:
+                if world.get("comments_fail"):
+                    return 1, "gh: HTTP 502"
+                return 0, json.dumps([world.get("comments", [])])
+            if argv[:2] == ["gh", "api"] and a.endswith("/pulls/7 --jq .body // \"\""):
+                return 0, world.get("body", "")
             return 0, ""
         return run
 
@@ -324,6 +377,9 @@ def _self_test() -> int:
     def go(world: "dict | None" = None, verdict: str = H0, **opts) -> "tuple[str, str, str]":
         w = dict(world or {})
         with tempfile.TemporaryDirectory() as d:
+            opts.setdefault("dests", ca.Dests({"groups": [
+                {"group": "R10-LIVE", "issues": [], "fixes": [], "resume": {"stage": "planned"}},
+                {"group": "R10-OVER", "issues": [], "fixes": [], "resume": {"stage": "done"}}]}, set()))
             pf = PreFlight("o/r", train=mt.Train("o/r", Path(d), None, "", (), 1,
                                                  run=fake(w)), checkout=Path(d), **opts)
             return pf.entry({"pr": 7, "verdict": verdict, "branch": "fix/x"})
@@ -393,6 +449,19 @@ def _self_test() -> int:
               "thread": [revoke()]})[:2] == ("PARK", "policy"))
     check("a budget head whose reviews cannot be read PARKS, fail-closed",
           go({**BUD, "reviews_fail": True, "mandate": mandate(NOW)})[:2] == ("PARK", "policy"))
+    FR = "## Head\n\nx\n\n## Friction\n\n- fixer.md: unclear: a disposition pins nothing."
+    check("a body whose Friction finding names no destination PARKs on findings",
+          go({"body": FR})[:2] == ("PARK", "findings") and "unrouted" in go({"body": FR})[2])
+    check("... the same body with `Carry:` to a live group passes (null control)",
+          go({"body": FR + " Carry: R10-LIVE"}) == ("PASS", "", ""))
+    check("... and with `Carry:` to a done group PARKs, naming it",
+          go({"body": FR + " Carry: R10-OVER"})[:2] == ("PARK", "findings")
+          and "R10-OVER is done" in go({"body": FR + " Carry: R10-OVER"})[2])
+    NOTE = [{"id": 9, "body": "Fix review: merge " + H0 + "\n\nNon-blocking observation: x re-books."}]
+    check("a verdict's non-blocking note with no destination PARKs on findings",
+          go({"comments": NOTE})[:2] == ("PARK", "findings") and "review 9" in go({"comments": NOTE})[2])
+    check("comments that cannot be read PARK, fail-closed",
+          go({"comments_fail": True})[:2] == ("PARK", "findings"))
     check("a merge base that cannot be read PARKS, named as the failure",
           go({"no_base": True})[:2] == ("PARK", "files"))
     check("a diff that cannot be read PARKS, named as the failure",

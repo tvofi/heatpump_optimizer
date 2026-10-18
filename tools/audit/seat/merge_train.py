@@ -1724,6 +1724,8 @@ def _self_test() -> int:
                 return 0, world.get("preflight", "  clean    no refusal")
             if "state,mergeCommit" in a:
                 return 0, world["merge"].pop(0) if world.get("merge") else "MERGED " + "d" * 40
+            if argv[:2] == ["gh", "api"] and re.search(r"/issues/\d+/comments", a):  # pre-flight's findings read
+                return 0, json.dumps([world.get("verdict_comments", [])])
             return 0, ""
         return run, calls
 

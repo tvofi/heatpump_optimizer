@@ -32,11 +32,11 @@ carried.
 ## A comment is not propagation
 
 **A PR comment, an issue comment, and the record are not propagation.** They
-record the finding; they do not deliver it. The test is **where the seat who needs this will be looking**: its own brief, the
-role contract under `dev/governance/roles/`, `CLAUDE.md`. It will not read the comments
-of a PR that merged stages before it started. A finding that lives only
-in the PR that produced it will be re-derived by the next stage, or — the usual
-outcome — not derived at all, and the refused technique gets attempted again.
+record the finding; they do not deliver it. The test is **where the seat who
+needs this will be looking**: its own brief, the role contract under
+`dev/governance/roles/`, `CLAUDE.md`. A finding that lives only in the PR that
+produced it will be re-derived by the next stage, or — the usual outcome — not
+derived at all, and the refused technique gets attempted again.
 
 ## What to write
 
@@ -54,8 +54,8 @@ outcome — not derived at all, and the refused technique gets attempted again.
 ## Where it goes
 
 - **Constrains one stage** → that stage's brief. **A stage's brief lives in two
-  places, and both must receive it**: a live group's `brief` string in
-  `.claude/workflows/wave-*-groups.json`, which the linter and the next
+  places, and both must receive it**: a live group's `brief` string in the
+  roster under `dev/programme/rosters/`, which the linter and the next
   session read; and any out-of-tree brief file a running
   session hands its seats. Carrying to the scratch copy alone leaves the tree
   unchanged, and the tree is what survives the session.
@@ -70,11 +70,11 @@ outcome — not derived at all, and the refused technique gets attempted again.
   at `resume.stage: done` is not a destination: nothing dispatches or lints it.
   `brief_lint.mjs` states the fields and refuses a carry at an issue a live
   group covers, so no stage has two destinations.
-- **A sibling seam in the same stage** — an open seam the enumeration rule returns
-  (`fixer.md` step 8) — goes to **a new issue filed by the same pull request**, or a
-  carry file under the branch above. The destinations this rule
-  names are stages that have not started, so a seam in the stage that is running has none:
-  that is how the fifth seam escaped #1345.
+- **A sibling seam in the same stage** — an open seam the enumeration rule
+  returns (`fixer.md` step 8) — goes to **a new issue filed by the same pull
+  request**, or a carry file under the branch above. The destinations this rule
+  names are stages that have not started, so a seam in the running stage has
+  none: that is how the fifth seam escaped #1345.
 
 **While two copies disagree, the newer one is right and the other is the bug.**
 Say which is which in the carry, because a seat that finds its brief and the
@@ -83,17 +83,17 @@ request, so it is usually the newer one.
 
 ## Enforcement
 
-The producing PR does not merge until the carry is **in the tree**. Its body
-names the file and the stage that received it, so a reviewer opens the
-destination rather than taking the claim.
+The producing PR does not merge until the carry is **in the tree**. **Every
+finding a body or a `Fix review:` verdict records names its destination**, so a
+reviewer opens it rather than taking the claim: each `## Friction` and
+`## Forward-carry` line, non-blocking note, residual or out-of-scope item
+carries `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`.
+`tools/audit/carry_audit.py` refuses a missing marker and a destination gone or
+done — a roster group not live, an issue no live group, carry file or
+O-brief owns: `pr-contract` on the body, the train's pre-flight on verdicts.
 
-**Name a destination that exists.** A carry pointing at a file `git grep` cannot
-find is not a carry, and a rule that makes an unfindable destination a merge
-blocker is worse than no rule — the seat cannot comply and the reviewer cannot
-check.
-
-**Verify the write landed, do not assume it.** A scripted edit that matches
-nothing reports success — `str.replace` and `sed` both do — and this rule was
-first landed with seven of nine carries missing for exactly that reason. Read
-the destination back: `brief_lint.mjs` does it for a roster and a carry file,
-and for a role contract nothing does.
+**Verify the write landed.** A scripted edit matching nothing reports
+success — `str.replace` and `sed` both do; this rule first landed with seven of
+nine carries missing that way. Read the destination back:
+`brief_lint.mjs` does it for a roster and a carry file, and for a role
+contract nothing does.
