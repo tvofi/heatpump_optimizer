@@ -201,7 +201,12 @@ function check(name, cond, detail) {
 //
 // A member is a way out, not a spelling: `open` is here once, and the census
 // catches it qualified, bare, bracketed or built at run time because all four
-// resolve the same name on the global object.
+// resolve the same name on the global object. Where the member's own word is
+// also the card's vocabulary -- `form` is a suffix loop variable and `action`
+// is an entity's name -- the row is anchored to the call or member access that
+// makes it a form navigation (createElement, setAttribute, Reflect.set,
+// Object.assign, .submit), so the census refuses the spelling without
+// refusing the word.
 const NAV_SURFACE = [
   { what: "an anchor's href", re: /href/ },
   { what: "the location object", re: /\blocation\b/ },
@@ -226,6 +231,35 @@ const NAV_SURFACE = [
   { what: "a form", re: /<form\b/ },
   { what: "a form's action", re: /(?<![\w-])action\s*=\s*["'`]/ },
   { what: "a submit button's formaction", re: /formaction/ },
+  // A form BUILT AND SUBMITTED by name -- the same members the three markup
+  // rows above name, reached through the DOM API instead. The round-7 review's
+  // plant (#2345) wrote `createElement("form")`, `setAttribute("action", ...)`
+  // and `.submit()`, and the markup rows do not match any of them. Each row is
+  // anchored to the call or member access that makes the word a form
+  // navigation rather than the word: `form` alone is the card's own suffix
+  // loop variable (`for (const form of forms)`), and `action` alone is the
+  // action entity's name in a dozen places, so a bare token for either would
+  // refuse the card. The `\bopen\b` collision the origin/main merge caused is
+  // the same mistake from the other side, and is why these are anchored.
+  //
+  // The action rows key on the NAME POSITION of the call -- the first argument
+  // of setAttribute, createAttribute and `["action"] =`, the second of
+  // setAttributeNS, Reflect.set, Object.assign and `{ action: ... }` -- so a
+  // value on the same line that merely equals the string `"action"` (an
+  // `aria-label` built from `sensor === "action"`) is not a name and stays
+  // green; the driver's F* plants are that control.
+  { what: "a form created by name", re: /\bcreateElement\s*\(\s*["'`]form["'`]/ },
+  { what: "a form's action written through an attribute",
+    re: /(?:\bsetAttribute\s*\(\s*["'`]action["'`]|\bsetAttributeNS\s*\([^,]*,\s*["'`]action["'`]|\bcreateAttribute\s*\(\s*["'`]action["'`])/ },
+  { what: "a form's action written through a member",
+    re: /(?:\bReflect\.set\s*\([^,]*,\s*["'`]action["'`]|\bObject\.assign\s*\([^,]*,\s*\{[^}]*\baction\s*:|\[\s*["'`]action["'`]\s*\]\s*=)/ },
+  // A submit is a member of the form, never a bare word: `.submit(`,
+  // `.submit.call(` (the indirect spelling the `open` member's round found),
+  // `.requestSubmit(`, and the computed key `["submit"]` are the written forms.
+  // A name BUILT at run time (`["sub", "mit"]`) is the residual the census
+  // states, not this row's.
+  { what: "a form submitted by name",
+    re: /(?:\.\s*(?:submit|requestSubmit)\b|\[\s*["'`](?:submit|requestSubmit)["'`]\s*\])/ },
   { what: "HA's more-info event", re: /hass-more-info/ },
   { what: "HA's action event", re: /hass-action/ },
 ];
@@ -11513,11 +11547,20 @@ check("without an indoor reading the corner now label is absent",
 // each walked through that gap: a bare `open(` on a row nothing rendered, the
 // Navigation API, a form's `action`, and an `Event`-built `hass-more-info`.
 //
-// Residual, stated because it is the one thing neither arm reaches: a surface
-// name BUILT at run time is a dynamic-arm matter, so it is caught on every row
-// this census drives, and only code no press reaches -- a pointer, wheel or
-// keyboard handler, which no click gets to -- can carry one past both arms.
-// The static arm still refuses that surface's names wherever they are written.
+// Residual, stated because neither arm reaches it: a surface name BUILT at
+// run time is a dynamic-arm matter, so it is caught where a press makes the
+// write happen. Two kinds of code can carry one past both arms: code no press
+// reaches -- a pointer, wheel or keyboard handler, which no click gets to --
+// and a write through a selector the stub DOM (tests/dom_stub.mjs) cannot
+// resolve, a tag.class pair such as `a.zz`, which the press reaches but which
+// runs on no element (the driver's Y1 is that witness, green; R7c is the same
+// write on a selector the stub resolves, red).
+// The static arm still refuses that surface's names wherever they are written,
+// the written form spellings included: `createElement("form")`, an `action`
+// written through setAttribute, Reflect.set or Object.assign, and `.submit` /
+// `.requestSubmit` are refused by name in that same unreached handler (#2345's
+// round-7 plant), because a written spelling is the static arm's and not the
+// residual's.
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
