@@ -10,7 +10,8 @@ conclusion the merge rule already accepts, measured on an isolated probe,
 both arms (dev/programme/HANDOVER.md's ruleset notes) -- but only when a
 fresh run provably cannot change the answer.
 
-Two levels, because they have different safety arguments.
+Two levels, because they have different safety arguments -- and a Level 0
+(O17) that needs no recorded run at all, stated beside RECORD_INERT_LANES.
 
 LEVEL 1 -- the identical-base case, no closures involved. A lane's last green
 run for this diff is recorded with the commit it was based on (the merge
@@ -70,6 +71,7 @@ import argparse
 import datetime as _dt
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -85,6 +87,26 @@ ROOT = Path(__file__).resolve().parent.parent
 # (coverage_tree.sh reads W5P_SCOPE from the same `closure.py select` plan),
 # so a script whose inputs did not move cannot move either lane's verdict.
 CLOSURE_LANES = ("fast", "coverage")
+
+# LEVEL 0 -- the programme-record diff (O17, tvofi 2026-10-18). A pull
+# request whose every file is a roster under dev/programme/rosters/ or a
+# canonical delivery row dev/programme/delivery/<N>.md changes nothing these
+# lanes read: tests/closures.json records no script reading either path, the
+# browser rig reads the card and its tests, and typing checks .py files. So
+# their verdict on the merge commit is main's, and they skip with no proof.
+# `fast` is not among them: it keeps the scoped suite and the run_always
+# lines. A path that only resembles a record (a `..` segment, a suffix, a
+# non-numeric row) is not one, and an empty list is never a skip.
+RECORD_INERT_LANES = ("browser", "coverage", "typing")
+_RECORD_PATH = re.compile(
+    r"\Adev/programme/(?:rosters/wave-r[0-9]+-groups\.json"
+    r"|delivery/[0-9]+\.md)\Z")
+
+
+def is_record_file(path: str) -> bool:
+    """A canonical programme-record path: a round roster or a delivery row."""
+    return bool(_RECORD_PATH.match(path)) and ".." not in path.split("/")
+
 
 # The state is one small JSON file per (lane, branch, diff), restored from
 # actions/cache by the workflow before this runs. The cache's eviction policy
@@ -109,15 +131,22 @@ def _skip(level: int, reason: str, **extra: object) -> dict:
 
 
 def decide(lane: str, *, prev_base: str | None, base: str,
-           main_delta: list[str], plan: dict, payload: dict) -> dict:
+           main_delta: list[str], plan: dict, payload: dict,
+           diff_files: list[str] | None = None) -> dict:
     """One lane's skip decision. Pure: every input is data a test can forge.
 
     ``prev_base`` is the commit the recorded green run was based on (None
     when no state was restored); ``base`` is this run's merge base;
     ``main_delta`` is what changed between the two (empty when they are the
     same commit); ``plan`` is the `closure.select` plan for this pull
-    request's three-dot diff; ``payload`` is the committed closures table.
+    request's three-dot diff; ``payload`` is the committed closures table;
+    ``diff_files`` is that diff's file list, which Level 0 reads.
     """
+    if lane in RECORD_INERT_LANES and diff_files \
+            and all(is_record_file(f) for f in diff_files):
+        return _skip(0, f"every one of the {len(diff_files)} changed file(s) "
+                        f"is a roster or a delivery row, which {lane} never "
+                        f"reads", prev_base=prev_base, base=base)
     if prev_base is None:
         return _run("no recorded green run for this lane and diff",
                     prev_base=None, base=base)
@@ -255,7 +284,8 @@ def _decide_cmd(lane: str, diff_ref: str, state_file: str | None,
                                           prev_base, base).splitlines() if l]
 
     decision = decide(lane, prev_base=prev_base, base=base,
-                      main_delta=main_delta, plan=plan, payload=payload)
+                      main_delta=main_delta, plan=plan, payload=payload,
+                      diff_files=files)
 
     out = Path(workdir)
     out.mkdir(parents=True, exist_ok=True)
@@ -271,7 +301,8 @@ def _decide_cmd(lane: str, diff_ref: str, state_file: str | None,
     (out / "state.json").write_text(json.dumps(
         new_state(lane, base, diff_hash)) + "\n")
 
-    level = f" (level {decision['level']})" if decision.get("level") else ""
+    level = (f" (level {decision['level']})"
+             if decision.get("level") is not None else "")
     print("########## lane skip ##########")
     print(f"  LANE: {lane} -- {decision['decision'].upper()}{level}")
     print(f"  base: {base}" + (f" (recorded green: {decision.get('prev_base')})"
@@ -397,6 +428,45 @@ def self_test() -> int:
     pin("browser runs when the base moves",
         r["decision"] == "run", r["reason"])
 
+    # -- Level 0, the programme-record diff (O17) --------------------------
+    roster = ["dev/programme/rosters/wave-r10-groups.json",
+              "dev/programme/delivery/2380.md"]
+
+    def d0(lane, files, prev=None):
+        return decide(lane, prev_base=prev, base=BASE, main_delta=[],
+                      plan=plan, payload=payload, diff_files=files)
+    for lane in RECORD_INERT_LANES:
+        r = d0(lane, roster)
+        pin(f"{lane} skips a roster-and-row diff at level 0 with no proof",
+            r["decision"] == "skip" and r.get("level") == 0, r["reason"])
+        r = d0(lane, ["dev/programme/delivery/2391.md"])
+        pin(f"{lane} skips a row-only diff at level 0",
+            r["decision"] == "skip" and r.get("level") == 0, r["reason"])
+        r = d0(lane, roster + ["tools/audit/seat/roster_lib.py"])
+        pin(f"{lane} runs when one non-record file joins (null control)",
+            r["decision"] == "run", r["reason"])
+        for odd in ("dev/programme/delivery/notes.md",
+                    "dev/programme/delivery/2380.md.bak",
+                    "dev/programme/carries/carry-2232.json",
+                    "dev/programme/HANDOVER.md",
+                    "dev/programme/rosters/../../../tests/run.sh"):
+            r = d0(lane, [odd])
+            pin(f"{lane} runs on {odd}: not a canonical record path",
+                r["decision"] == "run", r["reason"])
+        r = d0(lane, [])
+        pin(f"{lane} runs on an empty diff list", r["decision"] == "run",
+            r["reason"])
+    r = d0("fast", roster)
+    pin("fast never skips at level 0: it holds the run_always lines",
+        r["decision"] == "run", r["reason"])
+    r = d0("fast", roster, prev=BASE)
+    pin("fast still takes level 1 on a record diff",
+        r["decision"] == "skip" and r.get("level") == 1, r["reason"])
+    r = decide("browser", prev_base=None, base=BASE, main_delta=[],
+               plan=plan, payload=payload)
+    pin("no diff list given is no level 0 (the old call shape)",
+        r["decision"] == "run", r["reason"])
+
     # -- State reading -----------------------------------------------------
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "state.json"
@@ -430,7 +500,7 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     dec = sub.add_parser("decide", help="one lane's skip decision, from git")
     dec.add_argument("--lane", required=True,
-                     help="the lane deciding: fast, coverage, browser")
+                     help="the lane deciding: fast, coverage, browser, typing")
     dec.add_argument("--diff-ref", default="origin/main",
                      help="the ref the three-dot diff is taken against "
                           "(fast's GOLDEN_REF)")
