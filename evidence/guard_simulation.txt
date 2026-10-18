@@ -1,0 +1,24 @@
+=== Merge pull request #2423 from tvofi/fix/r10-merge-subject-pr
+Merge pull request #2423 from tvofi/fix/r10-merge-subject-pr 07a09406a1cc97076a6f28581f87f313b322a6b6 58dbe46a0eff6d217378ecd3bccc331eb20867a1
+  pair merge-subject-pr: 4 readers, 814 items, 0 divergent
+  merge-subject guard: 1 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+=== R10-MERGE-SUBJECT: one merge-subject grammar across readers; subject guard (#2423)
+R10-MERGE-SUBJECT: one merge-subject grammar across readers; subject guard (#2423) 07a09406a1cc97076a6f28581f87f313b322a6b6 58dbe46a0eff6d217378ecd3bccc331eb20867a1
+  pair merge-subject-pr: 4 readers, 814 items, 0 divergent
+  merge-subject guard: 1 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+=== Merge pull request #2423 (R10-MERGE-SUBJECT)
+Merge pull request #2423 (R10-MERGE-SUBJECT) 07a09406a1cc97076a6f28581f87f313b322a6b6 58dbe46a0eff6d217378ecd3bccc331eb20867a1
+  pair merge-subject-pr: 4 readers, 814 items, 0 divergent
+  merge-subject guard: 1 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
+  REFUSED       merge-subject-pr b4c40c21c "Merge pull request #2423 (R10-MERGE-SUBJECT)": a merge commit whose subject is not GitHub's template. Merge through merge_train.py or merge_pr.sh, which pass no --subject; history cannot be rewritten, so the readers must now read it
+RESULT divergent=0 unregistered=0 dead=0 refused=1 seconds=0.2
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+=== Merge branch 'fix/r10-merge-subject-pr'
+Merge branch 'fix/r10-merge-subject-pr' 07a09406a1cc97076a6f28581f87f313b322a6b6 58dbe46a0eff6d217378ecd3bccc331eb20867a1
+  pair merge-subject-pr: 4 readers, 814 items, 0 divergent
+  merge-subject guard: 1 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
+  REFUSED       merge-subject-pr 0934347f6 "Merge branch 'fix/r10-merge-subject-pr'": a merge commit whose subject is not GitHub's template. Merge through merge_train.py or merge_pr.sh, which pass no --subject; history cannot be rewritten, so the readers must now read it
+RESULT divergent=0 unregistered=0 dead=0 refused=1 seconds=0.2
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
