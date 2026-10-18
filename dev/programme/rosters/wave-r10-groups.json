@@ -3614,7 +3614,9 @@
    "after": [
     "R10-SAV-BASELINE"
    ],
-   "carry": [],
+   "carry": [
+    "From R10-SAV-BASELINE (#2255, PR #2411): the month row's flat-price null reads 10.83 % saved at that head (43.66 % at its base) by `dev/audit/harnesses/r10_sav_baseline.py`. `dev/audit/harnesses/r10_sav_null_terms.py` splits the 13.9 kWh gap (booked thermostat 128.4, plan 114.5) into three terms, and the acceptance must separate them, not drive the null to 0. (a) Comfort: 6.6 kWh, about 5 of the 10.83 points; the plan holds 18.79 \u00b0C against a 20.44 \u00b0C mean target; a comfort-matched baseline or a priced comfort shortfall answers it. (b) COP timing: power-weighted COP +17.27 % at a flat price, because the plan heats in the warmer hours; this is a real saving and must survive. (c) Stored heat: +23.7 kWh_th (about 13.3 kWh_e) left unsettled by the 2-day window; the month row does not settle it, `predicted_savings` does. Control: the harness's `const` arm (outdoor at the window mean) reads timing +0.00 % and gap 15.6 = comfort 5.1 + start drawdown 10.1. Acceptance: with comfort matched, the `const` arm with stored heat settled at both ends (or a window long enough) reads about 0, and the varying-outdoor arm reads the timing term, not 0. Second limit: the start-of-horizon settlement is capped by the thermostat's space-heat cost, and that leaves `summer_dhw_only` at -12.74 % predicted savings (-3.17 % on main; -0.27 SEK on a 2.09 SEK reference), because the summer house starts above the end's comfort caps. Settled at the caps alone it read 1.95 %, but `away_setback` then read 60.71 %. Re-measure both at your merge base."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started",
