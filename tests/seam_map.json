@@ -223,7 +223,6 @@
   "coordinator._fold_flow_lift": "core",
   "coordinator._freq_fold_blocked": "core",
   "coordinator._interval_measured_heat_kw": "learning",
-  "coordinator._log_held": "fetch",
   "coordinator._note_solve_failure": "core",
   "coordinator._power_windows": "views",
   "coordinator._replay_interval": "learning",
