@@ -25,7 +25,11 @@ O17 item 2(i), from the roster-cost pre-study the orchestrator accepted on 2026-
 
 ## Head
 
-`accf001301f78db3a82c21a637ee2eeb98d2c0b7`: round 1's reviewed head `fbba2ccb5` (the authored `54a69b23a` plus the orchestrator's delivery-row commit), plus `accf00130`, the rename fix. Merge base origin/main `63816b857`. Every figure below was re-taken at `accf00130`.
+`5359dd13858896c40d60e16aa42880f10c4188a0`: round 1's reviewed head `fbba2ccb5` (the authored `54a69b23a` plus the orchestrator's delivery-row commit), then two commits:
+- `accf00130`, the rename fix;
+- `5359dd138`, which makes the rename probe build its repository through `tests/throwaway_git.py`. At `accf00130`, `python3 tests/throwaway_git.py --check` refused it: `REFUSE tools/pr/codeql_scope.py:97: git("init", "-q")`.
+
+Merge base origin/main `63816b857`. Every figure below was re-taken at `5359dd138`.
 
 ## Mutation proof
 
@@ -51,6 +55,7 @@ Each mutant deletes the predicate line and the `return` under it from `decide` i
 - `python3 -I tools/pr/codeql_scope.py --self-test` at the head: `codeql_scope self-test: 46 checks, 0 failed`.
 - `python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: base 85/44/0, head 86/45/0 (surface, owned, uncovered).
 - `python3 tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`.
+- `python3 tests/throwaway_git.py --check`: `0 raw git init or clone site(s) refused` at the head, and 1 at `accf00130` (`--ref accf00130...`).
 - `node tools/policy/policy_lint.mjs` at the head: `TOTAL: 0 error(s) across 41 policy file(s)`.
 - **Gate scope.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out`: `tests/entities.py` and `tests/harness_headers.py`. `harness_headers.py` ran locally (`ALL 109 HARNESS HEADER CHECKS PASSED`). `entities.py` is left to CI under the owner's heavy-scripts rule (load average 91 when measured).
 - **PROJECTION, not a measurement.** For a roster or record PR after this merges, the python leg goes from 23.5 min (#2380 `cdbca726`, check-runs API, `completed_at - started_at`) and 26.1 min (the newest record head) to the length of one echo step, and its time to green loses that critical path.
