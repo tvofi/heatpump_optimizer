@@ -3256,6 +3256,88 @@
     "next_step": "dispatch a fixer once every after group is done",
     "note": null
    }
+  },
+  {
+   "group": "R10-ARCH-DOCS",
+   "lane": "DOCS",
+   "kind": "feature",
+   "issues": [
+    2395
+   ],
+   "fixes": [
+    2395
+   ],
+   "findings": [
+    "#2395"
+   ],
+   "class": "docs",
+   "severity": "medium",
+   "size": "L",
+   "wave": 27,
+   "files": [
+    "docs/architecture.md",
+    "README.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-VENT-DETECTOR",
+    "R10-NIGHT-FOLDS",
+    "R10-RATIO-ANCHOR",
+    "R10-INPUT-STALENESS",
+    "R10-CURRENCY",
+    "R10-TRUST-RELATIVE",
+    "R10-FREQ-DEFROST",
+    "R10-LOOP-CPU",
+    "R10-SAV-BASELINE",
+    "R10-SAV-REASONS",
+    "R10-ADVISOR",
+    "R10-SCORES",
+    "R10-PUMP-MODEL",
+    "R10-LIVESTATE",
+    "R10-CONFIG-NOTICES",
+    "R10-ARCHSCORE-COVERAGE",
+    "R10-PARAMS-OWNER",
+    "R10-SENSOR-PAYLOAD",
+    "R10-ARCH-SHAPES",
+    "R10-LEARNER-ETA",
+    "R10-HEAT-METER",
+    "R10-COP-GATE",
+    "R10-UX-HEALTH",
+    "R10-CONFIGFLOW-PAGES",
+    "R10-SOLVER",
+    "R10-I5-DOCS",
+    "R10-TICK-DRIVERS",
+    "R10-BRIEFS-FOLD",
+    "R10-DIAG-REPLAY",
+    "R10-REPLAY-LANE",
+    "R10-REPLAY-SCOPED",
+    "R10-TRAIN-HOLD",
+    "R10-DEEPLINK-HANDLERS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "R10-ARCH-DOCS, the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. Two deliverables: (1) docs/architecture.md, the architecture clearly, graphically and in words; (2) developer README/onboarding covering the agentic coding process, its requirements, and the CI shape. Every claim is checked against the tree at the stage's merge base. Diagrams render on GitHub (mermaid) or are committed SVGs generated in-tree, taking their visual language from what origin/main defines at that base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens), read from the tree, never hand-copied, light and dark. Seeds: branches fix/r10-arch-doc (4305cd109) and fix/r10-dev-onboard (0edd7fa66). Also fold finding P40 (committed card figures not compared to the card) and the harnesses README (O9). Issue #2395. Part of #201.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-arch-docs",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": null
+   }
   }
  ]
 }
