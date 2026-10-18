@@ -169,7 +169,7 @@
           "severity": "medium",
           "claim": "ingest compares the store-window bias to the last N cycle rows' accuracy_sample, but every row repeats the latest sample (192 tail rows = 78 distinct samples), so delta=0.115 C and bias-rederived fails; matched by sample t the delta is 0.000",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
             "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
             "value": "bias_delta_tail=0.115; bias_delta_by_t=0.0; ingest_fails_unwrapped=1",
             "unit": "celsius / count",
@@ -205,7 +205,7 @@
           "severity": "low",
           "claim": "stage 2 runs export.violations over bundle['replay'] or {} and passes on the empty dict; the live bundle's replay is null",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
             "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
             "value": "replay_clean_passed_on_absent_replay=1",
             "unit": "bool",
@@ -241,7 +241,7 @@
           "severity": "low",
           "claim": "the Download diagnostics file nests hpo-debug/1 under data.debug; ingest reads the top level, so schema/manifest/rows/stores/bias fail",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
             "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
             "value": "ingest_fails_wrapped=6",
             "unit": "count",
@@ -277,7 +277,7 @@
           "severity": "low",
           "claim": "export._walk reports 'a credential-named key carries a value' for diagnostics.tibber_reauth_started=False, since False is not in (None,'',[],{})",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
             "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
             "value": "bundle_credential_key_violations=1",
             "unit": "count",
@@ -313,7 +313,7 @@
           "severity": "medium",
           "claim": "25 stored leaves in the real stores have no declaration in store.DOMAINS (pump_arbiter _SLOTS writes 'silent'; snapshot learners carry peak_tracker); synthetic bundle shows 0",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json>",
             "harness_path": "dev/audit/rounds/round10/D15/s1/intake.py",
             "value": "store_off_domain_fields=25",
             "unit": "count",

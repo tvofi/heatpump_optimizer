@@ -11,7 +11,7 @@ Metrics:
    inline), i.e. the work that stays on the loop. Ratio to
    tests/stress.py:reference_solve thread CPU.
 Key: counts keyed on the production seam _multi_start_minimize entries.
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py [--cycles N] [--perturb noshadow]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py [--cycles N] [--perturb noshadow]
 Expected (17f1c55fad1b, Darwin arm64): counts exact; CPU provisional +-30%.
 Perturbation: --cycles 2 doubles the per-run total (per-cycle count stable);
 --perturb noshadow stubs coordinator method async_run_what_if_shadow-family

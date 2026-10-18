@@ -53,7 +53,7 @@ baseline: 17f1c55fad1b
 [
   {
     "claim": "All 20 Bronze rules and the 8 measured Silver rules hold at baseline. The two coverage rows (config-flow-test-coverage, test-coverage) are measured by coverage_modules.py.",
-    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/rules.py [--perturb]",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/rules.py [--perturb]",
     "value": "rules_todo=0 at baseline; 3 under --perturb (unique_id nulled on one sensor, switch PARALLEL_UPDATES deleted, _loaded_coordinators returns [])"
   },
   {
@@ -83,7 +83,7 @@ baseline: 17f1c55fad1b
   },
   {
     "claim": "strict-typing: mypy --strict is clean against real Home Assistant. The 416 stub-arm errors (no-untyped-call 201, attr-defined 137, misc 36, ...) are stub-shape artefacts, a harness gap in tests/hastub and not an integration defect.",
-    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]",
+    "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]",
     "value": "mypy_real_errors=0 over 76 files (1 under --perturb); stub arm 416"
   }
 ]

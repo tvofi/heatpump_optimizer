@@ -25,7 +25,7 @@ METRIC (one line each):
                  Count key: the check-run `name` GitHub delivered.
 
 COMMAND (from the export root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
       dev/audit/rounds/round10/D13/s3/d13_s3.py
 EXPECTED at baseline 17f1c55fad1b (tolerance exact; counts and GitHub-reported
 durations over a closed window; see REPORT.md for the figures).

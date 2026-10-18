@@ -128,22 +128,22 @@
       "non_findings": [
         {
           "claim": "Every cell of the DHW x zones x wood x PV x valve(none/smart_read) grid passes the M4 bar: setup completes, the plan publishes with status optimal, no entity raises, and no absent plant is invented",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --verbose",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --verbose",
           "value": "cells_total=32 cells_failing=0 (cycle 0, entity 0, invented 0)"
         },
         {
           "claim": "Omitting any one of 24 optional entity slots from the fully mapped plant leaves it usable",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --sweep --verbose",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --sweep --verbose",
           "value": "cells_total=25 cells_failing=0 present_plant_entities_available=297"
         },
         {
           "claim": "The invent detector is live: removing the DHW gate entity.has_hot_water makes the no-DHW cell fail",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb has_hot_water",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb has_hot_water",
           "value": "cells_invented 0 -> 1 (sensor.dhw_schedule, sensor.dhw_heating_plan available)"
         },
         {
           "claim": "The coordinator data dict carries ThermalState defaults (dhw_temperature=55.0, buffer_tank_temperature=40.0) on a no-DHW, no-buffer plant, but no entity publishes them. This is a harness gap: the --perturb reading_ok arm does not move, because DHWEntityMixin gates the entity as well",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb reading_ok",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D12/s2/cells.py --only 'dhw=0,zones=0,wood=0,pv=0,valve=0' --perturb reading_ok",
           "value": "cells_invented=0 under perturbation (double-gated)"
         }
       ],
@@ -190,7 +190,7 @@
           "claim": "coordinator:_observe_frequency calls FrequencyMap.observe on 8 of 8 intervals where PumpSignals.defrosting is True, while _learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY) refuses the same interval for the COP learner on the same meter.",
           "mechanism": "_freq_fold_blocked refuses only cooling, distorted draw and ':'-shaped freeze reasons, so 'defrosting', 'pump_offline' and 'pump_fault' pass through to the kW-per-Hz map.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D7/s2/learner_gates.py",
             "harness_path": "dev/audit/rounds/round10/D7/s2/learner_gates.py",
             "value": 8,
             "unit": "FrequencyMap.observe calls over 8 defrost intervals",
@@ -481,17 +481,17 @@
       "non_findings": [
         {
           "claim": "No declared family is split in the en or sv display-name sort of the constructed entity set, in any of 5 coordinator scenarios",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
           "value": "split_en=0 split_sv=0 (positive control --control: 5/5)"
         },
         {
           "claim": "Same holds over the enabled-by-default subset",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py --enabled",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py --enabled",
           "value": "split_en=0 split_sv=0; 53-61 entities per cell"
         },
         {
           "claim": "Every constructed entity has en and sv names; no duplicate en display names",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
           "value": "untranslated=0 dup_name_en=0"
         },
         {
@@ -501,7 +501,7 @@
         },
         {
           "claim": "lifetime family is split in sensor entity_id sort, but by declared design (const.py override comment: ids untouched)",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D8/s2/order.py",
           "value": "id_split=5 (one per cell, all lifetime)"
         },
         {
