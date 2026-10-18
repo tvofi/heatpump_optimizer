@@ -1,0 +1,86 @@
+== e3a6f0729dbb5053bd92a5fb8168b3e74edbaa65
+      2 success	pr-contract
+      2 success	budget-raise-gate
+      2 success	arch-score
+      1 success	wave-script
+      1 success	validate-hacs
+      1 success	typing
+      1 success	policy-docs
+      1 success	nightly-status
+      1 success	mutation
+      1 success	lane-proofs
+      1 success	instrument-self-tests
+      1 success	hassfest
+      1 success	graders-head-copy
+      1 success	fast (3.14)
+      1 success	env-matrix
+      1 success	delivery-status
+      1 success	coverage-ratchet
+      1 success	coverage
+      1 success	composed-proof
+      1 success	closures
+      1 success	closure-scope
+      1 success	browser
+      1 success	briefs
+      1 success	CodeQL
+      1 success	Analyze (python)
+      1 success	Analyze (javascript-typescript)
+      1 success	Analyze (actions)
+      1 skipped	slow
+      1 skipped	record-autofix
+      1 skipped	record
+      1 skipped	recheck-gate
+      1 skipped	nightly-ha
+      1 skipped	mutation-pins
+      1 skipped	mutation-pin-plan
+      1 skipped	mutation-nightly
+      1 skipped	mutation-ledger-push
+      1 skipped	mutation-ledger
+      1 skipped	mutation-autofix
+      1 skipped	delivery-status-publish
+      1 skipped	closures-autofix
+      1 skipped	claims-autofix
+      1 skipped	ci-ratchet
+== 36b4a1cf4e33b7f343c99e41e49e14a2b050547a
+      2 success	pr-contract
+      2 success	budget-raise-gate
+      2 success	arch-score
+      1 success	wave-script
+      1 success	validate-hacs
+      1 success	typing
+      1 success	policy-docs
+      1 success	nightly-status
+      1 success	mutation
+      1 success	instrument-self-tests
+      1 success	hassfest
+      1 success	graders-head-copy
+      1 success	env-matrix
+      1 success	delivery-status
+      1 success	coverage-ratchet
+      1 success	coverage
+      1 success	closure-scope
+      1 success	browser
+      1 success	briefs
+      1 success	Analyze (javascript-typescript)
+      1 success	Analyze (actions)
+      1 skipped	slow
+      1 skipped	record-autofix
+      1 skipped	record
+      1 skipped	recheck-gate
+      1 skipped	nightly-ha
+      1 skipped	mutation-pins
+      1 skipped	mutation-pin-plan
+      1 skipped	mutation-nightly
+      1 skipped	mutation-ledger-push
+      1 skipped	mutation-ledger
+      1 skipped	mutation-autofix
+      1 skipped	delivery-status-publish
+      1 neutral	CodeQL
+      1 cancelled	lane-proofs
+      1 cancelled	fast (3.14)
+      1 cancelled	composed-proof
+      1 cancelled	closures-autofix
+      1 cancelled	closures
+      1 cancelled	claims-autofix
+      1 cancelled	ci-ratchet
+      1 cancelled	Analyze (python)
