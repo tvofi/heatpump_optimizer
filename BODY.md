@@ -95,7 +95,7 @@ All figures are at head `357fe0fca` unless a line says otherwise.
 
 ## Red checks
 
-none
+- **`wave-script`**, red at `928a672753558ca6f88f45f806d9aa9b04440c36`. That head is the script's merge of origin/main `07a09406a` into this PR. The red is main's, inherited: `wave-script` is red at `07a09406a` itself (run 39158144006). The failing step is the agreement lane. `merge-subject-pr` is `divergent=2` on the main merges `Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)` and `Merge pull request #2379 (R10-SENSOR-PAYLOAD)`. For that subject shape, `stamp.py` and `delivery_status.py` read the PR number, and `policy_lint.mjs`'s `resolvePrFromCommit` and `enumerateMerges` read null. This diff touches none of those readers, and at the authored code head `357fe0fca` the lane read `divergent=0` before main gained the two merges. Answer to the trigger: no cheaper detector exists, because the agreement lane is the detector and it went red on main's first push carrying the shape. The fix belongs on main: the orchestrator teaches the null readers the parenthesised subject, or keeps that subject shape off main. This PR does not carry that fix.
 
 ## Forward-carry
 
