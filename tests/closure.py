@@ -2786,6 +2786,7 @@ RENAME_SITES = (".github/workflows/*.yml", "tests/*.py", "tests/*.sh",
                 "tools/pr/*.py", "tools/pr/*.sh", "tools/pr/*.mjs",
                 "tools/policy/*.mjs", "tools/policy/*.js",
                 "tools/audit/seat/*.py", "tools/audit/seat/*.sh",
+                "tools/release/*.py",
                 ".claude/hooks/*.sh", ".claude/hooks/*.mjs")
 _DIFF_CALL = re.compile(r"""git diff|["']diff["']\s*,""")
 #: A `--name-only` diff that cannot meet a rename, or is one on purpose.
