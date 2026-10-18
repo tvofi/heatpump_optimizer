@@ -1,0 +1,16 @@
+RESULT overlays=0 count
+Architecture score: dS +1.0958 IMPROVES
+  card_dead_definitions 1 -> 0  +1.0000
+  card_clone_copies 108 -> 101  +0.0958
+RESULT delta_S=+1.0958 weighted_log2
+RESULT admissible=1 bool
+RESULT card_dead_definitions=1->0 count
+RESULT card_clone_copies=108->101 count
+RESULT term_card_dead_definitions=+1.0000 weighted_log2
+RESULT term_card_clone_copies=+0.0958 weighted_log2
+RESULT perturbed_delta_S=+0.0000 weighted_log2
+RESULT perturbed_vector_equals_baseline=1 bool
+RESULT thread_factor=0.524
+RESULT load1=101.57
+RESULT swapins=29231819
+exit=0

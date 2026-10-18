@@ -1,0 +1,3 @@
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+AGREEMENT ok
+agreement.mjs vs origin/main diff rc=0
