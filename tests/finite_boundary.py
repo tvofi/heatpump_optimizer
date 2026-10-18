@@ -875,6 +875,55 @@ def _number_state_arm() -> None:
         "adds two numbers (#2242)",
         not wrong, f"{wrong}",
     )
+    _owner_pins()
+
+
+def _owner_pins() -> None:
+    """Sites of this group's owners that the census cannot single out, each
+    driven alone through the production symbol (#2379 round 1: they
+    survived every driver). Each row is (what, got, want)."""
+    import types as _types
+    from heatpump_optimizer import climate, sensor
+    from heatpump_optimizer.entity import payload_number, zone_setpoint_attributes
+
+    def climate_temp(data):
+        ent = object.__new__(climate.HeatPumpOptimizerClimate)
+        ent.coordinator = _types.SimpleNamespace(data=data, last_update_success=True)
+        return climate.HeatPumpOptimizerClimate.current_temperature.fget(ent)
+
+    def starts(lifetime):
+        ent = object.__new__(sensor.CompressorStartsSensor)
+        ent.coordinator = _types.SimpleNamespace(
+            data={"insight": {"compressor_starts": {"lifetime": lifetime}}},
+            last_update_success=True)
+        return sensor.CompressorStartsSensor.native_value.fget(ent)
+
+    ok = {"upper_floor_temperature": True}
+    rows = [
+        # The upper-floor thermometer wins over the payload's indoor copy.
+        ("climate current_temperature reads the measured upper floor first",
+         climate_temp({"reading_ok": ok, "upper_floor_temperature": 20.5,
+                       "indoor_temperature": 19.0}), 20.5),
+        ("climate current_temperature falls back to the indoor copy",
+         climate_temp({"reading_ok": ok, "upper_floor_temperature": True,
+                       "indoor_temperature": 19.0}), 19.0),
+        # A numpy integer is the int it holds; a numpy bool is still a bool.
+        ("payload_number reads numpy.int64(7) as 7", payload_number(np.int64(7)), 7),
+        ("payload_number refuses numpy.bool_(True)", payload_number(np.bool_(True)), None),
+        # A published zero price is not a price: the contract's is used.
+        ("_gap_energy_rate falls back to the contract price at a zero spot price",
+         sensor._gap_energy_rate({"current_price": 0.0}, {"contract_fixed_price": 0.8}), 0.8),
+        ("_gap_energy_rate keeps a positive spot price (control)",
+         sensor._gap_energy_rate({"current_price": 0.5}, {"contract_fixed_price": 0.8}), 0.5),
+        ("zone_setpoint_attributes keeps upper and lower apart",
+         zone_setpoint_attributes({"upper_setpoint": 21.0, "lower_setpoint": 19.0}),
+         {"upper_floor_setpoint": 21.0, "lower_floor_setpoint": 19.0}),
+        ("Compressor Starts publishes an integer count", starts(5), 5),
+        ("Compressor Starts refuses a float count", starts(5.0), None),
+    ]
+    for what, got, want in rows:
+        R.check(f"{what} (#2379)", got == want and type(got) is type(want),
+                f"got {got!r}, want {want!r}")
 
 
 # ---------------------------------------------------------------------------
