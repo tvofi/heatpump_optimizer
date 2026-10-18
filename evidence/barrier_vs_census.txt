@@ -1,0 +1,4 @@
+RESULT census_seams=64 allowed_total=64
+RESULT seams_not_on_list=0 {}
+RESULT list_not_in_census=0 {}
+RESULT reasons=4 ['the latch itself, or latched by a guard ', "once per event by the function's own sta", 'not reached per cycle: load, restore, mi', 'one record per failed call, an event and']

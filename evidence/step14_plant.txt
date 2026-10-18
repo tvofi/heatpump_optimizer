@@ -1,0 +1,3 @@
+RESULT base private_cross_module=17 layer_violations=22 public_surface=625 log_latch=None
+RESULT head private_cross_module=17 layer_violations=22 public_surface=625 log_latch={'public': 1, 'cross_used': 1}
+RESULT renamed private_cross_module=20 layer_violations=22 public_surface=625 log_latch=None

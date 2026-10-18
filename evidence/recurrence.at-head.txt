@@ -1,0 +1,10 @@
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+Input outdoor_temp_entity (sensor.outdoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+RESULT future_stamp.hold=2 clear=0 recur=0 count
+RESULT solve_failure.hold=1 clear=0 recur=0 count
+  solve_failures_after=2
+RESULT space_target.hold=1 clear=0 recur=0 count
+RESULT future_stamp_after_reload.warnings=0 count
+rc=0
