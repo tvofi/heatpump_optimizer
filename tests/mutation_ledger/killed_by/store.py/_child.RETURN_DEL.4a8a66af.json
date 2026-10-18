@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_child RETURN_DEL 4a8a66af",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return child if isinstance(child, dict) else {}",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 994695e06c4c2b78d6420f82c322188317817f91: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
