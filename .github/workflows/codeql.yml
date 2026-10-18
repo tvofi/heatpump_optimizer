@@ -35,7 +35,11 @@ name: CodeQL
 # No paths-ignore or exclude: the default-setup configuration carried none
 # (the API response has no such fields -- it analyzed the whole repository),
 # and no other workflow in this repository filters paths, so adding one here
-# would silently narrow the finding set the other direction.
+# would silently narrow the finding set the other direction. A path filter
+# would also stop a required `Analyze` context from reporting at all. What
+# narrows instead is a pull request's leg whose diff that leg cannot read: the
+# `scope` job's tools/pr/codeql_scope.py (O17) says `skip`, the leg's steps
+# skip and its context reports success. Every other event analyzes.
 #
 # Default setup analyzed the default branch only, so `push` fires on main and
 # not on master, unlike hassfest/validate.
@@ -132,8 +136,50 @@ jobs:
             echo "::notice::the base (or its commit) has no tools/pr/cancel_superseded.py yet; cancelling nothing"
           fi
 
+  # Which legs may skip (O17). Read-only and credential-free: it reads the
+  # three-dot diff and runs the code-owned decision, nothing else. A failure
+  # here leaves the outputs empty, and every leg reads empty as analyze.
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      actions: ${{ steps.decide.outputs.actions }}
+      javascript-typescript: ${{ steps.decide.outputs.javascript-typescript }}
+      python: ${{ steps.decide.outputs.python }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/changed.txt"
+          if [ "$EVENT" = pull_request ]; then
+            # Three dots: the pull request's own files, not main's since.
+            # `changed` lists both sides of a rename (git diff --no-renames):
+            # lib.py -> lib.md must reach the python leg as lib.py (#2405).
+            python3 -I tools/pr/codeql_scope.py changed --base "$BASE" \
+              --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+          fi
+          for leg in actions javascript-typescript python; do
+            word=$(python3 -I tools/pr/codeql_scope.py decide --language "$leg" \
+              --event "$EVENT" --files-from "$RUNNER_TEMP/changed.txt")
+            echo "$leg=$word" >> "$GITHUB_OUTPUT"
+          done
+
   analyze:
     name: Analyze (${{ matrix.language }})
+    needs: scope
+    # Runs whatever `scope` concluded: a failed or skipped scope must not skip
+    # a required context through `needs`, so the steps below decide.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # One language failing must not cancel the others: each leg is its own
@@ -143,7 +189,14 @@ jobs:
       matrix:
         language: [actions, javascript-typescript, python]
     steps:
+      # Only an explicit `skip` skips; empty (a failed scope) analyzes.
+      - name: Say what scope decided for this leg
+        env:
+          WORD: ${{ needs.scope.outputs[matrix.language] }}
+        run: |
+          echo "codeql scope for ${{ matrix.language }}: ${WORD:-analyze (no decision)}"
       - name: Checkout repository
+        if: needs.scope.outputs[matrix.language] != 'skip'
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         # This job holds `security-events: write`; nothing it runs needs git
         # credentials, so none is left on disk (D11-s1-03's pin).
@@ -153,12 +206,14 @@ jobs:
       # build-mode is left at its default: none of the three languages above
       # is compiled, so no build step runs between init and analyze.
       - name: Initialize CodeQL
+        if: needs.scope.outputs[matrix.language] != 'skip'
         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
 
       - name: Perform CodeQL Analysis
+        if: needs.scope.outputs[matrix.language] != 'skip'
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           category: "/language:${{ matrix.language }}"

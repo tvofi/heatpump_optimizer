@@ -378,6 +378,15 @@ jobs:
           if test -f .claude/workflows/contract_rerun.py; then python3 .claude/workflows/contract_rerun.py --self-test; else python3 tools/pr/contract_rerun.py --self-test; fi| tee "$RUNNER_TEMP/crr-self-test.txt"
           grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
 
+      # Which CodeQL legs a pull request may skip (O17): every skip arm against
+      # its analyze null control, and every non-pull_request event analyzing.
+      # The tally line must say 0 failed.
+      - name: Show the CodeQL leg scope refusing every unsafe skip
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/codeql_scope.py --self-test | tee "$RUNNER_TEMP/cqs-self-test.txt"
+          grep -Eq '^codeql_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cqs-self-test.txt"
+
       # The merge fast path (round-9 process review item 2B): each refusal class
       # against its null control, through the gate's own `closure.select`. The
       # orchestrator runs it by hand before a merge; nothing else would notice
