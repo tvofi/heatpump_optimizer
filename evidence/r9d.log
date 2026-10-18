@@ -1,4 +1,0 @@
-HEAD e9e6b99b30de85eebba6a1a77507a0179f36f5ad
-RESULT mutant=Y1_runtime_name_on_unresolved_selector_residual rc=0 fails=0
-restored
-EXIT 0
