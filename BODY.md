@@ -33,34 +33,38 @@ O17 item 1 (tooling) and item 2(ii), from the roster-cost pre-study the orchestr
 
 ## Head
 
-`dc6cda7a2003d095e2901fc396d8fa0838054818`: the reviewed head `af391637b` plus one commit. origin/main is `55dc8d9c2` (#2405), and it is the merge base, so the branch is current.
+`ddb2725f593bbab8c7c70dfb6161f23a1b890cee`: the reviewed head `b965c4ab9` plus one commit. The merge base is `211c8290e`. origin/main `5a41a5669` adds only two delivery rows past it, and `git merge-tree --write-tree origin/main HEAD` merges clean.
 
 ## Mutation proof
 
-Each mutant edits one file in place over a committed tree, runs the named check, and is restored with `git checkout --`. Rounds 1 to 3 are as reviewed: MB5, MB8, MB11 to MB14.
+Each mutant edits one file in place over a committed tree, runs the named check, and is restored with `git checkout --`. Rounds 1 to 3 are as reviewed: MB5, MB8, MB11 to MB14. MB16 to MB18 are as in round 4.
 
-**This round:**
-- **MB15: `--no-renames` dropped from `stamp.py` `merge_is_record_class`.** The census refuses `tools/release/stamp.py:1708`. `node tools/policy/policy_lint.mjs` exits 1 with `FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames; ..."]`.
+**Rounds 4 and 5:**
+- **MB15: `--no-renames` dropped from `stamp.py` `merge_is_record_class`.** The census refuses `tools/release/stamp.py:1708`. `node tools/policy/policy_lint.mjs` exits 1 with `FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames in their own bodies; ..."]` (re-run at `ddb2725f5`).
 - **MB16: the same edit with `tools/release/*.py` dropped from the census.** The census gives `([], [])`, so the new glob is what reads the stamp.
 - **MB17: `codeql_scope.changed_files` reverted to its own porcelain diff.** `codeql_scope.py --self-test` fails `a rename lists its source too` and `so the python leg analyzes the rename`.
 - **MB18: `codeql_scope.changed_files` as a correct private `--no-renames` copy.** It prints `47 checks, 1 failed`: `the list is closure.changed_between's, not a copy`.
+- **Round 4 BLOCKED as mutation-vacuous.** The parity check searched all of `policy_lint.mjs` for `mergeRecordClass`'s command, and the check spells that command out, so it always found itself. `recordDiffParity` now reads only the body of `mergeRecordClass` and of `stamp.py`'s `merge_is_record_class`.
+- **MB19: `--no-renames` dropped from `mergeRecordClass`'s real call.** This is the reviewer's mutant. `node tools/policy/policy_lint.mjs` exits 1 with `FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames in their own bodies; ..."]`. At round 4's head the same edit gave rc 0.
+- **MB20: `recordDiffParity` reverted to searching the whole file**, the round-4 shape. It exits 1 with `FIXTURE VACUOUS: recordClassPaths ["recordDiffParity passes mergeRecordClass with --no-renames dropped from its own call (the needle found itself)"]`. The fixture arm drives that mutant on every run, so the slice is pinned by policy_lint itself and not only by this table.
 
 ## Null control
 
 - The rename probes (`closure._rename_probe_lists`, and codeql_scope's `git mv lib.py lib.md`) read the same commit two ways. Porcelain lists the destination alone, and the producer lists both sides.
 - Over a planted root, the census refuses exactly the porcelain line in each of `x.py`, `y.mjs` and a split `z.sh`. It passes the `--no-renames` twin beside each one.
 - MB16 is the census's own control: the stamp's porcelain line passes until `tools/release/` is read.
+- In policy_lint's fixture arm, the flag is also dropped from the arm's own copy of the call, which sits outside `mergeRecordClass`. `recordDiffParity` must still pass, or the arm refuses with `(null control)`. At the head it passes.
 
 ## Figures
 
-All at `dc6cda7a2`:
+All re-taken at `ddb2725f5`:
 - `python3 tests/closure.py selftest`: `ALL 124 closure shrink pins PASSED`.
 - `closure.rename_sites()`: `([], [])`.
 - `python3 tests/lane_skip.py self-test`: `54/54 pins passed`.
 - `python3 -I tools/pr/codeql_scope.py --self-test`: `47 checks, 0 failed`. The same run under `python3.11 -I` gives `47 checks, 0 failed`; the scope job has no setup-python.
 - `roster_lib.py --self-test`: `18 checks, 0 failed`. `orchestrator_tick.py --self-test`: `104 checks, 0 failed`. `state_docs.py --self-test`: `all checks passed`.
 - `python3 tools/release/stamp.py --self-test`: `RESULT stamp_self_test=pass`.
-- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 41 policy file(s)`, no `VACUOUS`.
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 41 policy file(s)` and `FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes`, with no `VACUOUS`.
 - `python3 tests/layout.py --guard --base origin/main`: `GUARD: 0 refusal(s)`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 tests/throwaway_git.py --check`: `0 ... refused`.
