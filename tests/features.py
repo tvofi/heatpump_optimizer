@@ -57457,6 +57457,7 @@ R.check(
 import ast as _leaf_ast  # noqa: E402
 import os as _leaf_os  # noqa: E402
 import subprocess as _leaf_sp  # noqa: E402
+from pathlib import Path as _leaf_Path  # noqa: E402
 from heatpump_optimizer import optimizer as _leaf_opt, payload as _leaf_payload  # noqa: E402
 
 _leaf_env = {**_leaf_os.environ, "PYTHONPATH": _leaf_os.pathsep.join(p for p in sys.path if p)}
@@ -57473,7 +57474,7 @@ for _leaf in ("store", "silent_mode", "quiet_windows", "legionella"):
         _leaf_run.returncode == 0 and _leaf_run.stdout.strip() == "[]",
         f"rc={_leaf_run.returncode} loaded={_leaf_run.stdout.strip()} {_leaf_run.stderr[-300:]}",
     )
-_leaf_opt_src = _leaf_ast.parse(_Path(_leaf_opt.__file__).read_text())
+_leaf_opt_src = _leaf_ast.parse(_leaf_Path(_leaf_opt.__file__).read_text())
 _leaf_own = sorted(
     t.id for n in _leaf_opt_src.body if isinstance(n, _leaf_ast.Assign)
     for t in n.targets if isinstance(t, _leaf_ast.Name) and t.id.startswith("REASON_")
