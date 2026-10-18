@@ -1,0 +1,9 @@
+RESULT survivor_valve_GUARD_OFF features.py rc=1 killed=True ['FAIL #2351: a write the valve refused is not remembered as commanded, so the next cycle retries it rather than skipping it as unchanged  [remembered 23.5 after ']
+RESULT survivor_valve_GUARD_OFF probe.py rc=1 killed=True ['RESULT recur_valve_write.hold=0 clear=0 recur=0 count', 'PROBE FAILED: 1 arm(s) flood or never re-warn: recur_valve_write']
+RESULT survivor_space_CMP_BOUND features.py rc=1 killed=True ['FAIL #2351: an indoor set-point whose minimum is exactly the tolerance above the room target is written; one beyond it is refused as a declared flow set-point  ']
+RESULT survivor_space_CMP_BOUND probe.py rc=0 killed=False []
+RESULT own_flowunit_clear_DEL features.py rc=0 killed=False []
+RESULT own_flowunit_clear_DEL probe.py rc=0 killed=False []
+RESULT own_forget_held_DEL features.py rc=0 killed=False []
+RESULT own_forget_held_DEL probe.py rc=1 killed=True ['RESULT recur_reload.hold=2 clear=0 recur=0 count', 'PROBE FAILED: 1 arm(s) flood or never re-warn: recur_reload']
+restored: clean
