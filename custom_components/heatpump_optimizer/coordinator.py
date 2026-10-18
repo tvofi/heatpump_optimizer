@@ -1278,10 +1278,13 @@ HOUSE_LOSS_MAX_STEP = 0.05
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
 # Symmetric bound on how far one sample's Newton target may sit from the
-# *current* estimate before it is clipped. Centred on the current value,
-# zero-mean noise has zero-mean effect after clipping; rejecting or clamping
-# against fixed global bounds does not have that property, because the
-# midpoint of a fixed range is not the current estimate.
+# *current* estimate before it is clipped, as a fraction of that estimate.
+# Centred on the current value, zero-mean noise has zero-mean effect after
+# clipping; rejecting or clamping against fixed global bounds does not have
+# that property, because the midpoint of a fixed range is not the current
+# estimate. A fraction rather than a multiplier offset (#2252), so the bound
+# in UA is the same whether the learned value sits in the settings or in
+# the multiplier.
 _LEARNER_TRUST_REGION = 0.5
 
 

@@ -16934,13 +16934,35 @@ R.check(
     abs((_cold[1] - 1.0) - _HL_ALPHA * _HL_TR) < 1e-12,
     f"moved {_cold[1] - 1.0}, EWMA step {_HL_ALPHA * _HL_TR}",
 )
+# #2252 (STUDY R10-RESEED): the trust region is a fraction of the current
+# estimate, not a fixed multiplier offset. A fixed offset is a step of
+# base_u * trust_region in UA, so it grew with learned/prior: the same house
+# learned differently depending on how its UA was split between the
+# configured nameplate and the multiplier, and moving the learned value into
+# the settings (a reseed) changed nothing but the step size. Relative, the
+# saturated step is current_u * trust_region in UA whatever the split.
+_off = _newton(2.0, 0.2, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+R.check(
+    "the trust region saturates at a fraction of the current estimate",
+    abs(_off[0] - 2.0 * (1.0 + _HL_TR)) < 1e-12,
+    f"target {_off[0]}, bound {2.0 * (1.0 + _HL_TR)}",
+)
+_reseeded = _newton(1.0, 0.2 * 2.0, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+R.check(
+    "and a saturated step in UA does not depend on the prior/multiplier split",
+    abs(_off[1] * 0.2 - _reseeded[1] * 0.4) < 1e-12,
+    f"UA {_off[1] * 0.2!r} at (0.2, 2.0), {_reseeded[1] * 0.4!r} at (0.4, 1.0)",
+)
 # Where the EWMA would outrun it the rate limit binds instead, and it is a
-# fraction of the *current* estimate, not a fixed offset.
-_small = _newton(0.1, 0.2, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+# fraction of the *current* estimate, not a fixed offset. At the shipped
+# constants the relative trust region already holds a step to
+# alpha * trust_region of the estimate, inside the limit, so the limit is
+# driven here with a walk wide enough to reach it.
+_small = _newton(0.1, 0.2, 8.0, -5.0, 10.0, 0.5, **{**_STEP_KW, "alpha": 1.0})
 R.check(
     "and the rate limit caps it at a fraction of the current estimate",
     abs(_small[1] - (0.1 + 0.1 * _HL_STEP)) < 1e-12
-    and 0.1 * _HL_STEP < _HL_ALPHA * _HL_TR,
+    and 0.1 * _HL_STEP < 0.1 * _HL_TR,
     f"moved {_small[1] - 0.1}, cap {0.1 * _HL_STEP}",
 )
 

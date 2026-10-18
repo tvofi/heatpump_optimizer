@@ -1931,9 +1931,11 @@ def learner_newton_step(
     target = (current_u + delta_u) / base_u
     if not np.isfinite(target):
         return None
-    target = float(
-        np.clip(target, current - trust_region, current + trust_region)
-    )
+    # A fraction of the current estimate, so the bound in UA is
+    # ``current_u * trust_region`` however UA splits into base and multiplier
+    # (#2252: a fixed offset made a reseed change the step size alone).
+    reach = current * trust_region
+    target = float(np.clip(target, current - reach, current + reach))
 
     # The EWMA and the rate limit below are what decide how fast genuine
     # signal moves the estimate; the trust region only keeps noise even.
