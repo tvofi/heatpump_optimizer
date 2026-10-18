@@ -1,8 +1,0 @@
--    "+refs/heads/main:$ns/main" \
--    "+refs/heads/handoff/*:$ns/handoff/*" \
--    "+refs/heads/handoff-body/*:$ns/handoff-body/*" \
--    "+refs/heads/fix/*:$ns/fix/*" \
-+    "refs/heads/main:$ns/main" \
-+    "refs/heads/handoff/*:$ns/handoff/*" \
-+    "refs/heads/handoff-body/*:$ns/handoff-body/*" \
-+    "refs/heads/fix/*:$ns/fix/*" \
