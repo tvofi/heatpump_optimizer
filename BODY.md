@@ -15,7 +15,10 @@ What changes. Three score metrics at the floor weight. They guard no register cl
 - **`card_dead_definitions`** and **`card_clone_copies`** (`metrics/card.py`, item 2). The card (`www/*.js`) is the largest UI surface, and before this part every metric read Python only. It is read by a stdlib tokenizer, never a parser, so each rule is stated on tokens.
   - Dead definitions are top-level `function`/`class`/`const`/`let` names and class members that no other token names, less the browser, lit and Home Assistant hooks. D7-s3-02's `textWidth` was one.
   - Clones are functions sharing a 20-token window once their own names are numbered (C22).
-- **The agreement lane.** The JavaScript identifier grammar `[A-Za-z_$][\w$]*` was shared by `tests/doc_claims.py`, `metrics/card.py` and attempt 44, and was unregistered, so `prepr.sh` refused the branch. Attempt 44 now reads `card._IDENT`, so there is one copy fewer. `tools/policy/agreement.mjs`'s `SHARED_GRAMMARS` now records the two remaining readers as one concept. This is the one line outside `tools/audit/archscore/` and the registration files. `node tools/policy/agreement.mjs` reads `unregistered=0`, and `--self-test` reads `13 of 13`.
+- **One JavaScript identifier grammar.** `prepr.sh`'s agreement lane refused the branch. The regex `[A-Za-z_$][\w$]*` was spelled in `tests/doc_claims.py`, `metrics/card.py` and attempt 44, and no entry registered it.
+  - The fix is structural: one owner, `card._IDENT`. Attempt 44 and `tests/doc_claims.py`'s card-token reader both import it, so no second spelling exists and no registry entry is needed.
+  - `tools/policy/agreement.mjs` is byte-identical to origin/main: CI's lane reads the registry from the base branch (#2366), so a branch line would not be read there.
+  - `tests/doc_claims.py`'s closure gains the four archscore modules it now imports.
 - **The carry from R10-STRUCTURE-BLIND (#2340):** `metrics/common.py`'s `HA_CONVENTION_METHODS` and `is_ha_method` are deleted. Nothing read either, and the list had drifted from `tests/structure.py`'s.
 
 Calibration: each metric has a planted BAD, GOOD and NULL case (`a3_literal_clone_copies_*`, `a3_card_dead_definitions_*`, `a3_card_clone_copies_*`), and each counter has a red-team attempt:
@@ -32,7 +35,13 @@ Alternatives considered:
 
 ## Head
 
-`6dae14c46b36db5e136f845543cc9030c38ce54d`. Origin/main `6e5753a4a` is merged in, and `git merge-base origin/main HEAD` is `6e5753a4aca8b240559e8e11e8a68c7de988cd73`. The figures below were taken at `21dd4a3e5`. The one commit since then, `6dae14c46`, changes attempt 44's identifier test to read `card._IDENT` and registers that grammar. At this head, `calibrate.py --only rt_44_card_rename_locals` reads NULL again, and the scoped-gate selection is the same three scripts.
+`94522163e091b1f14ccb8ba5c4d0bad1cfce6ae7`. Origin/main `6e5753a4a` is merged in, and `git merge-base origin/main HEAD` is `6e5753a4aca8b240559e8e11e8a68c7de988cd73`.
+
+The calibration, corpus, harness and mutant figures were taken at `21dd4a3e5`. The two commits since then change no metric module:
+- `6dae14c46`: attempt 44 reads `card._IDENT`. At that commit, `calibrate.py --only rt_44_card_rename_locals` reads NULL again.
+- `94522163e`: `tests/doc_claims.py` reads it too, and the registry line is dropped.
+
+The scoped-gate lines below are re-taken at this head.
 
 ## Mutation proof
 
@@ -42,6 +51,7 @@ Each mutant was applied in place on the committed head, run, and restored with `
 - **M2**, the dead test `seen[d] <= 1` becomes `<= 0`. The same two cases move.
 - **M3**, the window union never joins (`len(owners) > 999`). `rt_44_card_rename_locals`'s own locator refuses: it finds no clone class to rename. Run without it, `a3_card_clone_copies_control` reads WORSENS -> NULL and `_fix` IMPROVES -> NULL (`mut_M3b`).
 - **M4**, `is_spec` returns False. MOVED: `a3_literal_clone_copies_fix` IMPROVES -> NULL. The control stays WORSENS through its other terms, `dead_members` and `unread_private_globals`.
+- **M7**, `tests/doc_claims.py`'s `_tokens` returns an empty set instead of `_IDENT.findall`. `tests/doc_claims.py` fails `every backticked private name in the card names something that exists` (`1 of 169 checks FAILED`), so the new import site is load-bearing.
 - **M5**, maximal members off: every occurrence counts, nested ones included. **M6**, decorators read as specs (the `9d94f8fe7` exclusion undone). No planted case moves their verdict. Both are pinned by value instead: `literal_clones.measure` on today's tree reads 184 at M0, 218 under M5 and 190 under M6, and the `archscore.literal_clone_copies` row of 184 refuses either as growth.
 
 Ablation (`ARCHSCORE_ABLATE`). Each switch reopens its own attempt, and only that one:
@@ -67,11 +77,13 @@ Ablation (`ARCHSCORE_ABLATE`). Each switch reopens its own attempt, and only tha
 - **Corpus.** `python3 tools/audit/archscore/calibrate.py --measure-corpus --jobs 4`, every job, which is the precondition carried from #2340. It covered 87 trees, 67 `ok` and 20 `ERRORS`. The 20 are `_family_splits_error` and `_family_orphan_overrides_error` (`KeyError: 'entity'`) on history trees that have no `entity` module. They are stored in `origin/main`'s `corpus_vectors.json` too (`grep -c _family_splits_error` 20). `git diff --quiet -- tools/audit/archscore/calibration/corpus_vectors.json` exits 0: the re-measure is byte-identical.
 - **Calibration.** `python3 tools/audit/archscore/calibrate.py --record --jobs 4` at `210b1f1e5`, the same instrument as this head. It printed RECORD for exactly the twelve part-4 cases. `git diff origin/main -- tools/audit/archscore/calibration/expected.json` is 72 insertions and 0 deletions. The run printed `CALIBRATION 105/133 labelled cases classify as their label says`, `RED TEAM 77/77 attempts read NULL or inadmissible; IMPROVES: none` and `KNOWN-OPEN 1` (`rt_04zz1`, unchanged), and no `SENSITIVE` line.
 - **Mutants and ablations.** The figures above come from `calibrate.py --only <the twelve cases>`, with the mutant applied or `ARCHSCORE_ABLATE` set.
-- **Scoped gate.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 3 script(s) run, 30 scoped out` and names `tests/arch_score.py`, `tests/arch_score_head.py` and `tests/entities.py`.
+- **Scoped gate.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` at this head prints `MODE: SCOPED -- 4 script(s) run, 29 scoped out`. It names four scripts:
+  - `tests/arch_score.py`: it re-derives the calibration recorded above and runs on CI (heavy-script rule).
   - `tests/arch_score_head.py`: `ALL 16 ARCHITECTURE SCORE HEAD CHECKS PASSED`.
-  - `tests/entities.py`: `ALL 2346 ENTITY CHECKS PASSED`; its ci-ratchet null control derives the three new rows at the values recorded.
-  - `tests/arch_score.py` re-derives the calibration recorded above and runs on CI (heavy-script rule).
-  - `run.sh`'s `run_always` scripts: `tests/env_drift.py --claims-only 6e5753a4aca8b240559e8e11e8a68c7de988cd73` (`claims hygiene: ... ok`), `tests/closure.py selftest` (`ALL 115 closure shrink pins PASSED`), `tests/harness_headers.py` (`ALL 109 HARNESS HEADER CHECKS PASSED`), `tests/layout.py` (`layout self-test: ok`). `python3 tools/audit/seat/tmp_paths.py --check`: `0 refused`.
+  - `tests/doc_claims.py`: `ALL 169 checks PASSED`. Its output equals the base worktree's output except for the script's own path in one warning line.
+  - `tests/entities.py`: `ALL 2346 ENTITY CHECKS PASSED`. Its ci-ratchet null control derives the three new rows at the values recorded.
+- **`run.sh`'s `run_always` scripts.** `tests/env_drift.py --claims-only 6e5753a4aca8b240559e8e11e8a68c7de988cd73` prints `claims hygiene: ... ok`. `tests/closure.py selftest` prints `ALL 115 closure shrink pins PASSED`. `tests/harness_headers.py` prints `ALL 109 HARNESS HEADER CHECKS PASSED`. `tests/layout.py` prints `layout self-test: ok`. `python3 tools/audit/seat/tmp_paths.py --check` prints `0 refused`.
+- **Agreement lane.** `node tools/policy/agreement.mjs --only discovery`, run with `tools/policy/agreement.mjs` equal to origin/main (`git diff --quiet origin/main -- tools/policy/agreement.mjs` exits 0), prints `unregistered=0` and `AGREEMENT ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (not touched).
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL` (no package file changes).
 
