@@ -1,0 +1,292 @@
+{
+ "group": "R10-TICK-DRIVERS",
+ "lane": "IN",
+ "kind": "instrument",
+ "issues": [
+  2265
+ ],
+ "fixes": [],
+ "findings": [
+  "R10-TICK e, g, h, i"
+ ],
+ "class": "instrument",
+ "severity": "medium",
+ "size": "M",
+ "wave": 2,
+ "files": [
+  ".claude/workflows/audit-find.js",
+  ".claude/workflows/audit-verify.js",
+  "tools/audit/fold_ledger.py",
+  "tools/policy/agreement.mjs",
+  "tools/pr/ci_predict.py",
+  "tools/audit/seat/body_push.sh"
+ ],
+ "hot_files": [],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "code-owned: audit-find.js, audit-verify.js, fold_ledger.py",
+ "rca": [],
+ "after": [
+  "R10-REF-PRIVACY"
+ ],
+ "carry": [
+  "(e) and (h) are one class, workflow scripts trusting a large agent reply; fix the class, not the two sites.",
+  "R10-D15-GRADER and R10-BRIEFS-FOLD edit the wave-script check after you.",
+  "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat.",
+  "From R10-ROSTER-FASTPATH (#2406): after #2405 and #2406 both merge, make tools/pr/codeql_scope.py's changed subcommand delegate to tests/closure.py changed_between, so CodeQL's list has one owner. Keep its rename probe. Check: python3 tests/closure.py selftest still passes its census (which reads tools/pr/*.py), and python3 tools/pr/codeql_scope.py --self-test still prints 0 failed."
+ ],
+ "architect_note": null,
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-tick-drivers",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every `after` group is done",
+  "note": null
+ },
+ "brief": "Round-driver repairs patched only in scratch clones this round; tools live in the repository. (e) The intake gather returned all 45 reports from one agent and the reply was cut off; gather per box in parallel. (g) The finder report schema lacks the finding schema's enums and types, so 35 of 44 box findings were rejected on form; derive it from dev/audit/config/finding.schema.json. (h) The verify workflow's register read must accept findings returned as a JSON string. (i) tools/audit/fold_ledger.py must also write the class guess list in the find workflow (`CLASS_GUESS`, the third reader of the class enum).\n\nForward-carried (finding-propagation.md): (1) (e) and (h) are one class, workflow scripts trusting a large agent reply; fix the class, not the two sites. (2) R10-D15-GRADER and R10-BRIEFS-FOLD edit the wave-script check after you.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is t
+{
+ "group": "R10-D15-GRADER",
+ "lane": "IN",
+ "kind": "instrument",
+ "issues": [
+  2268
+ ],
+ "fixes": [],
+ "findings": [
+  "#2214/#2209 review follow-ups"
+ ],
+ "class": "instrument",
+ "severity": "low",
+ "size": "S",
+ "wave": 3,
+ "files": [
+  "tools/policy/check-wave-script.mjs",
+  "dev/governance/dimensions/D15.md"
+ ],
+ "hot_files": [],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "policy: dev/governance/dimensions/D15.md",
+ "rca": [],
+ "after": [
+  "R10-TICK-DRIVERS"
+ ],
+ "carry": [],
+ "architect_note": null,
+ "resume": {
+  "stage": "done",
+  "branch": "handoff/r10-d15-grader",
+  "commit": "63d8154ce7dfba73aa6c7b83f2e76b8cc3282016",
+  "last_step": null,
+  "next_step": "dispatch a fixer once every `after` group is done",
+  "note": null
+ },
+ "brief": "(a) Re-key the three bundle pins in tools/policy/check-wave-script.mjs on D15's brief existing, not on the bundle-dimensions declaration in the find workflow: today an empty declaration passes. (b) Give D15's M1 a gap threshold for restart detection (the owner's bundle had a 12054 s gap at an upgrade).\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: dev/governance/dimensions/D15.md. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+}
+{
+ "group": "R10-REF-PRIVACY",
+ "lane": "IN",
+ "kind": "instrument",
+ "issues": [
+  2310
+ ],
+ "fixes": [
+  2310
+ ],
+ "findings": [
+  "#2310"
+ ],
+ "class": "instrument",
+ "severity": "medium",
+ "size": "S",
+ "wave": 1,
+ "files": [
+  "tools/audit/seat/ref_privacy.py",
+  "tools/audit/seat/wt_sync.sh",
+  "tools/audit/seat/body_push.sh",
+  "tools/audit/seat/bus.sh",
+  "tools/audit/seat/state_docs.py",
+  "tools/audit/seat/roster_edit.py",
+  "tools/pr/app_push.sh",
+  "tools/pr/push.sh",
+  "tools/release/stamp.py",
+  ".github/workflows/governance.yml",
+  "tests/closure.py",
+  "tests/closures.json"
+ ],
+ "hot_files": [],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "code-owned: governance.yml, closure.py and stamp.py, approved under mandate 6175172275",
+ "rca": [],
+ "after": [],
+ "carry": [],
+ "architect_note": "",
+ "resume": {
+  "stage": "done",
+  "branch": "handoff/r10-ref-privacy",
+  "commit": "a73f3320c53a",
+  "last_step": null,
+  "next_step": "dispatch a fixer once every `after` group is done",
+  "note": null
+ },
+ "brief": "Owner-reported (tvofi, 2026-10-16, issue #2310): tools/audit/seat/wt_sync.sh builds the remote sync ref name from the worktree's absolute path, stripping only the home-directory prefix. A worktree outside the home directory, such as a session scratch directory under the system temp root, keeps the home directory name in the slug, so the remote ref name and its snapshot commit message published the local account name. Measured 2026-10-16: 70 remote sync refs matched the account name; all were re-created with commit messages carrying no path and the originals deleted, so the remote now returns 0 matching refs. The sync loop is stopped until the fix lands. Owed: (1) the slug never derives from an absolute path: name it from the worktree's position under the known roots, or a stable hash, never a host path. (2) A refusal before every push an instrument makes under tools/ whose ref name or commit message contains the home directory, the account name or an absolute host path, with a self-test arm that plants one. (3) Enumerate every instrument that computes a ref name or commit message from a path, as a command, and disposition each. The shared tests/closure.py, governance.yml and stamp.py are code-owned, so the pull request needs tvofi's approving review, given under the mandate. This group has no after-edges (its pull request is already in review); R10-TICK-ORCH, R10-TICK-DRIVERS and R10-REPLAY-SCOPED, which share files with it, run after it.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/role
+{
+ "group": "R10-ARCH-DOCS",
+ "lane": "DOCS",
+ "kind": "feature",
+ "issues": [
+  2395
+ ],
+ "fixes": [
+  2395
+ ],
+ "findings": [
+  "#2395"
+ ],
+ "class": "docs",
+ "severity": "medium",
+ "size": "L",
+ "wave": 27,
+ "files": [
+  "docs/architecture.md",
+  "README.md"
+ ],
+ "hot_files": [],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "after": [
+  "R10-VENT-DETECTOR",
+  "R10-NIGHT-FOLDS",
+  "R10-RATIO-ANCHOR",
+  "R10-INPUT-STALENESS",
+  "R10-CURRENCY",
+  "R10-TRUST-RELATIVE",
+  "R10-FREQ-DEFROST",
+  "R10-LOOP-CPU",
+  "R10-SAV-BASELINE",
+  "R10-SAV-REASONS",
+  "R10-ADVISOR",
+  "R10-SCORES",
+  "R10-PUMP-MODEL",
+  "R10-LIVESTATE",
+  "R10-CONFIG-NOTICES",
+  "R10-ARCHSCORE-COVERAGE",
+  "R10-PARAMS-OWNER",
+  "R10-SENSOR-PAYLOAD",
+  "R10-ARCH-SHAPES",
+  "R10-LEARNER-ETA",
+  "R10-HEAT-METER",
+  "R10-COP-GATE",
+  "R10-UX-HEALTH",
+  "R10-CONFIGFLOW-PAGES",
+  "R10-SOLVER",
+  "R10-I5-DOCS",
+  "R10-TICK-DRIVERS",
+  "R10-BRIEFS-FOLD",
+  "R10-DIAG-REPLAY",
+  "R10-REPLAY-LANE",
+  "R10-REPLAY-SCOPED",
+  "R10-TRAIN-HOLD",
+  "R10-DEEPLINK-HANDLERS"
+ ],
+ "carry": [],
+ "architect_note": "",
+ "brief": "R10-ARCH-DOCS, the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. Two deliverables: (1) docs/architecture.md, the architecture clearly, graphically and in words; (2) developer README/onboarding covering the agentic coding process, its requirements, and the CI shape. Every claim is checked against the tree at the stage's merge base. Diagrams render on GitHub (mermaid) or are committed SVGs generated in-tree, taking their visual language from what origin/main defines at that base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens), read from the tree, never hand-copied, light and dark. Seeds: branches fix/r10-arch-doc (4305cd109) and fix/r10-dev-onboard (0edd7fa66). Also fold finding P40 (committed card figures not compared to the card) and the harnesses README (O9). Issue #2395. Part of #201.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-arch-docs",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": null
+ }
+}
+{
+ "group": "R10-POLICY-GATE-SCOPING",
+ "lane": "RP",
+ "kind": "policy",
+ "issues": [
+  2381
+ ],
+ "fixes": [
+  2381
+ ],
+ "findings": [
+  "#2381"
+ ],
+ "class": "policy",
+ "severity": "medium",
+ "size": "S",
+ "wave": 1,
+ "files": [
+  "dev/governance/rules/gate-scoping.md"
+ ],
+ "hot_files": [],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "after": [
+  "R10-TICK-DRIVERS"
+ ],
+ "carry": [],
+ "architect_note": "",
+ "brief": "# Fixer brief O10-policy-gate-scoping: dispose recurring friction #2381 (finding sweep L21, P37). POLICY: tvofi approves at merge.\nIssue #2381 [policy] recurring friction: .claude/rules/gate-scoping.md (3 PRs). Files: dev/governance/rules/gate-scoping.md (canon; .claude/rules and .cursor/rules regenerate via rules_sync), tests/policy budgets if a cap row moves.\nFindings: (1) #2341: gate-scoping.md sits at its per-file cap of 61 lines with no headroom, so naming the lease pool cost a line-neutral rewrite that dropped the FIFO and expiry sentences from the prose (they live in gate_lock.py's docstring). Decide: restore the two sentences by cutting elsewhere, or record the cap raise with the owner's approval (a raise needs tvofi). (2) #2366: prepr.sh's agreement lane reads the branch's agreement.mjs while CI's restores the base's (also in the TICK-DRIVERS fold, L03): once that lands, gate-scoping.md's statement of which lanes prepr runs must say the lane reads the base's registry. (3) #2373/#2375: prepr step 3f (brief_lint only on pinned paths) and step 6b (opaque refusal) are scope statements gate-scoping.md should match after TICK-DRIVERS lands.\nFailing test first: the line-count/cap check the policy budgets already run (tests/policy budgets) must pass after the edit. Ordering: after R10-TICK-DRIVERS merges (it changes prepr behaviour this text describes). Identity: refs only (handoff/r10-policy-gate-scoping). Part of #201; Closes #2381 only with every line disposed.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-policy-gate-scoping",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": null
+ }
+}
