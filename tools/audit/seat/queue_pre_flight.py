@@ -29,9 +29,10 @@ train's order:
   head       the pull request is open and its head reads (the train reads the
              head at step 1; a closed pull request is a defect the queue file
              carries, so FAIL, not PARK);
-  bot tip    `Train.bot_tip` -- a GITHUB_TOKEN tip fires no pull_request run, so
-             the head settles green and unmergeable; only an App push (the
-             train's recarry) cures it (R9-RC-AUTOFIX-GOVERNANCE). The train's
+  bot tip    `Train.bot_tip` -- a GITHUB_TOKEN tip's pull_request runs are held
+             action_required, so until one is approved the head can settle
+             green and unmergeable; the train cures it by an App push (its
+             recarry) (R9-RC-AUTOFIX-GOVERNANCE). The train's
              own `--pre-flight` passes it (`bot_cured`): the batch routes it
              serial, where its recarry once main moved is that push;
   carry      `app_approve.sh --carry <verdict> <head>`, the train's own step 3 /
