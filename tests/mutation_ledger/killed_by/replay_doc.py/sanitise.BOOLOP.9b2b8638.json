@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:sanitise BOOLOP 9b2b8638",
+  "killed_by": "tests/debug_collect.py",
+  "old": "            if isinstance(state, str) and not text_ok(state):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: BOOLOP (`if isinstance(state, str) or not text_ok(state):`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
