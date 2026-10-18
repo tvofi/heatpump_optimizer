@@ -187,6 +187,17 @@ const PAIRS = [
     },
   },
   {
+    concept: 'budget-raise',
+    what: "whether a diff is a budget raise: budget_raise_gate.py raises_between (the budget-raise-gate check) against merge_train.py Train.raise_hold (the train's approve hold; queue_pre_flight.py calls the same method), R10-TRAIN-RAISE-HOLD (#2401: the train keyed on the `*_budgets.json` path). merge_fastpath.py file_class's path routing to SERIAL is not this concept: it routes, and raise_hold decides there",
+    async corpus() {
+      return Object.keys(py('budget_raise')).sort().map((k) => [k, k])
+    },
+    async readers() {
+      const rows = py('budget_raise')
+      return { 'budget_raise_gate.py raises_between': (k) => rows[k].gate, 'merge_train.py Train.raise_hold': (k) => rows[k].train }
+    },
+  },
+  {
     concept: 'entity-names',
     what: "the display name of each entity key: strings.json (what tests/entities.py's entity-name resolver reads for the contiguity check) against translations/en.json (what the archscore family_splits enumerator reads); hassfest never compares the two files' values. R9-F7.5 carry-in, route A",
     async corpus() {
