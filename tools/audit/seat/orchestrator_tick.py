@@ -310,6 +310,40 @@ class Tick:
     def latest(runs: list[dict]) -> dict:
         return {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
 
+    def critical_median(self) -> "float | None":
+        """The recorded critical-path median in minutes (tests/ci_budgets.json,
+        the one measured baseline), or None when unreadable. One reader for the
+        ETA lane check and for the WAITING bound below."""
+        try:
+            return json.loads((Path(self.checkout) / CI_BUDGETS).read_text()
+                              ).get("critical_path_minutes") or None
+        except (OSError, ValueError):
+            return None
+
+    def stuck(self, started, med) -> bool:
+        """A lane pending past 2x the median: the ETA check's own threshold."""
+        try:
+            st = datetime.datetime.fromisoformat(str(started).replace("Z", "+00:00"))
+        except ValueError:
+            return False
+        return (self.now - st).total_seconds() / 60 > 2 * med
+
+    def split_absent(self, absent: list[str], latest: dict) -> "tuple[list[str], list[str]]":
+        """(waiting, absent): a required job with no check run yet is only
+        ABSENT once nothing at the sha is still in flight. While a run is in
+        flight the job may be gated on its `needs` (closures waits on coverage
+        in the Tests workflow), and "absent" would send a re-dispatch for work
+        that is queued behind a sibling. The wait is bounded by the ETA check's
+        threshold: a run in flight past 2x the critical-path median is stuck
+        and no longer explains the missing job, and an unreadable median cannot
+        bound it, so both read ABSENT."""
+        med = self.critical_median()
+        live = med is not None and any(
+            c.get("status") != "completed"
+            and not self.stuck(c.get("started_at"), med)
+            for c in latest.values())
+        return (list(absent), []) if live else ([], list(absent))
+
     @staticmethod
     def judge(runs_by_name: dict) -> tuple[list[str], list[str], list[str]]:
         """(green, running, red): lowercase conclusions, latest-run-wins,
@@ -495,6 +529,11 @@ class Tick:
             elif required is not None:
                 absent = [r for r in required
                           if r not in latest and r not in PR_ONLY]
+                waiting, absent = self.split_absent(absent, latest)
+                if waiting:
+                    self.line(S, f"#{n}: required contexts not started yet "
+                                 f"(WAITING on needs; a run is in flight): "
+                                 f"{', '.join(waiting)}")
                 if absent:
                     self.line(S, f"#{n}: required contexts ABSENT at head: "
                                  f"{', '.join(absent)} (settled? re-dispatch)",
@@ -861,6 +900,11 @@ class Tick:
             green, _, red = self.judge(latest)
             if req is not None:
                 absent = [r for r in req if r not in latest and r not in PR_ONLY]
+                waiting, absent = self.split_absent(absent, latest)
+                if waiting:
+                    self.line(S, f"main {tip[:12]}: required contexts not "
+                                 "started yet (WAITING on needs; a run is in "
+                                 f"flight): {', '.join(waiting)}")
                 if absent:
                     self.line(S, f"main {tip[:12]}: required contexts ABSENT: "
                                  f"{', '.join(absent)}", flag=True)
@@ -1437,7 +1481,7 @@ class Tick:
         if not open_issues:
             return
         rows = set()
-        code, o = self.git(["grep", "-oh", "#[0-9]\+", "origin/main", "--",
+        code, o = self.git(["grep", "-oh", r"#[0-9]\+", "origin/main", "--",
                             ROW_DIR.rstrip("/")])
         if code == 0:
             rows = {int(x) for x in re.findall(r"#(\d+)", o)}
@@ -1512,12 +1556,7 @@ class Tick:
                     self.line(S, f"train beat fresh ({age / 60:.0f}m old)")
         pending = getattr(self, "_pending", None)
         if pending:
-            try:
-                med = json.loads(
-                    (Path(self.checkout) / CI_BUDGETS).read_text()
-                ).get("critical_path_minutes")
-            except (OSError, ValueError):
-                med = None
+            med = self.critical_median()
             if not med:
                 self.unreadable(S, "critical_path_minutes",
                                 f"{CI_BUDGETS} unreadable at the checkout")
@@ -1907,6 +1946,91 @@ def self_test() -> int:
             ("absent required flagged (14)", any("#14" in x["text"]
                                                  and "ABSENT" in x["text"]
                                                  for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # R10-TICK a: a required job gated on its `needs` has no check run
+        # yet; with a sibling in flight (not stuck) it is WAITING, not ABSENT,
+        # on the PRS arm and on the MAIN arm. A run in flight past 2x the
+        # critical-path median is stuck and explains nothing: ABSENT again.
+        (version / "tests").mkdir(exist_ok=True)
+        (version / "tests" / "ci_budgets.json").write_text(
+            json.dumps({"critical_path_minutes": 61.0}))
+        fresh_run = NOW - datetime.timedelta(minutes=10)
+        stuck_run = NOW - datetime.timedelta(hours=10)
+
+        def lines(t, section):
+            return [x["text"] for x in t.sections.get(section, [])]
+
+        def gated(started, arm):
+            runs = [run_obj("coverage", status="in_progress", conclusion=None,
+                            started=started), run_obj("tests")]
+            t = tick(prs=[pr_obj(17, H1)], runs_at={H1: runs},
+                     required_names=("tests", "closures"),
+                     checkout=str(version))
+            t.git = git_factory(files="custom_components/x.py")
+            if arm == "PRS":
+                t.prs(["tests", "closures"])
+            else:
+                t.main()
+            return t, lines(t, arm)
+
+        for arm in ("PRS", "MAIN"):
+            t, ls = gated(fresh_run, arm)
+            a, f = check(f"{arm} needs-gated job", [
+                ("waiting named, unflagged", any(
+                    "WAITING" in l and "closures" in l for l in ls)
+                    and not any("ABSENT" in x["text"] for x in t.findings)),
+            ])
+            total, failed = total + a, failed + f
+            t, ls = gated(stuck_run, arm)
+            a, f = check(f"{arm} stuck sibling", [
+                ("ABSENT flagged under a stuck run", any(
+                    "ABSENT" in x["text"] and "closures" in x["text"]
+                    for x in t.findings)),
+                ("no WAITING under a stuck run", not any(
+                    "WAITING" in l for l in ls)),
+            ])
+            total, failed = total + a, failed + f
+        t = tick(prs=[], runs_at={H1: [run_obj("tests")]},
+                 required_names=("tests", "closures"), checkout=str(version))
+        t.git = git_factory()
+        t.main()
+        a, f = check("MAIN settled null control", [
+            ("settled + missing -> ABSENT flagged", any(
+                "ABSENT" in x["text"] and "closures" in x["text"]
+                for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+        t = tick(checkout=str(version))
+        inflight = {"c": {"status": "queued", "started_at": iso(fresh_run)}}
+        stuck_f = {"c": {"status": "queued", "started_at": iso(stuck_run)}}
+        done = {"c": {"status": "completed"}}
+        a, f = check("split_absent", [
+            ("in flight -> waiting",
+             t.split_absent(["closures"], inflight) == (["closures"], [])),
+            ("settled -> absent (null control)",
+             t.split_absent(["closures"], done) == ([], ["closures"])),
+            ("stuck -> absent",
+             t.split_absent(["closures"], stuck_f) == ([], ["closures"])),
+        ])
+        total, failed = total + a, failed + f
+        t.checkout = str(tmp / "no-budgets")
+        a, f = check("split_absent unbounded", [
+            ("unreadable median -> absent",
+             t.split_absent(["closures"], inflight) == ([], ["closures"])),
+        ])
+        total, failed = total + a, failed + f
+
+        # R10-TICK c: no invalid-escape SyntaxWarning when this file compiles
+        import warnings
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            compile(Path(__file__).read_text(encoding="utf-8"), __file__, "exec")
+        a, f = check("compile clean", [
+            ("no SyntaxWarning on compile", not any(
+                issubclass(w_.category, (SyntaxWarning, DeprecationWarning))
+                for w_ in caught)),
         ])
         total, failed = total + a, failed + f
 

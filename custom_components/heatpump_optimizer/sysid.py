@@ -416,7 +416,14 @@ class SysIdResult:
     completed: bool = False
     #: Time constant of the room, hours.
     time_constant_hours: float | None = None
-    #: Heat loss coefficient, kW/°C.
+    #: Heat loss coefficient, kW/°C, on the CONFIGURED zone total the learned
+    #: scale multiplies -- the base :func:`_zone_heat_loss` defines, which a
+    #: two-zone fit's scale divides into and :func:`adoption_decision` divides
+    #: by. NOT the model's effective UA: ``lower_floor_heat_loss_learned``
+    #: carries the learned lower-floor split too, so a two-zone house whose
+    #: split has left 1 reads BELOW the effective UA its own dynamics use. The
+    #: effective figure has its own published surface,
+    #: ``house_heat_loss_effective``.
     heat_loss_kw_per_c: float | None = None
     #: Effective thermal capacity, kWh/°C.
     thermal_mass_kwh_per_c: float | None = None
