@@ -1,5 +1,0 @@
-HEAD e9e6b99b30de85eebba6a1a77507a0179f36f5ad
-RESULT mutant=RD1_history_bracket_back_driven rc=1 fails=1
-    FAIL  every link the census records from a press is one haLink builds for this entry
-      advisor:settings -> history back; advisor:settings -> history back; advisor:settings -> history back; advisor:settings -> history back; health:diagnostics -> history back; health:settings -> history b
-restored
