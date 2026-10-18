@@ -1,9 +1,0 @@
-RESULT card_dead_definitions=0 dead=[]
-RESULT card_clone_copies=108
-RESULT literal_clone_copies=186 classes=71
-RESULT plant_base literal_clone_copies=186 card_clone_copies=108
-RESULT P1_module_alias literal_clone_copies=186->186
-RESULT P2_keyword_mix literal_clone_copies=186->186
-RESULT P3_card_noop_split inserted=685 node_check_rc=0 card_clone_copies=108->108 card_dead_definitions=0
-RESULT P4_card_empty_stmt inserted=685 node_check_rc=0 card_clone_copies=108->108
-RESULT P5_literal_module_attr literal_clone_copies=184->186

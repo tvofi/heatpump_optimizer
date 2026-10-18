@@ -47,23 +47,28 @@ c2a0448d                                     corpus   GOOD     WORSENS   n      
 a3_literal_clone_copies_control              planted  BAD      WORSENS   n      -0.1014  dead_members 14->15; literal_clone_copies 172->173; unread_private_globals 0->1
 a3_literal_clone_copies_fix                  planted  GOOD     IMPROVES  y       0.0337  literal_clone_copies+0.034
 a3_literal_clone_copies_null                 planted  NULL     NULL      y       0.0000  
-a3_card_dead_definitions_control             planted  BAD      NULL      y       0.0000  
-a3_card_dead_definitions_fix                 planted  GOOD     NULL      y       0.0000  
+a3_card_dead_definitions_control             planted  BAD      WORSENS   n      -1.0000  card_dead_definitions 0->1
+a3_card_dead_definitions_fix                 planted  GOOD     IMPROVES  y       1.0000  card_dead_definitions+1.000
 a3_card_dead_definitions_null                planted  NULL     NULL      y       0.0000  
 a3_card_clone_copies_control                 planted  BAD      WORSENS   n      -0.0324  card_clone_copies 87->89
 a3_card_clone_copies_fix                     planted  GOOD     IMPROVES  y       0.0324  card_clone_copies+0.032
 a3_card_clone_copies_null                    planted  NULL     NULL      y       0.0000  
 rt_42_literal_respelled                      redteam  GAME     NULL      y       0.0000  
+rt_42b_literal_module_constant               redteam  GAME     NULL      y       0.0000  
+rt_42c_literal_keyword_args                  redteam  GAME     NULL      y       0.0000  
+rt_42d_literal_module_attr                   redteam  GAME     NULL      y       0.0000  
 rt_43_literal_local_hop                      redteam  GAME     NULL      y       0.0000  
 rt_44_card_rename_locals                     redteam  GAME     NULL      y       0.0000  
-  planted  GOOD       2/3   blind  1  wrong-way  0
-  planted  BAD        2/3   blind  1  wrong-way  0
+rt_44b_card_noop_split                       redteam  GAME     IMPROVES  y       0.1557  card_clone_copies+0.156
+rt_44c_card_empty_statement                  redteam  GAME     IMPROVES  y       0.0844  card_clone_copies+0.084
+  planted  GOOD       3/3   blind  0  wrong-way  0
+  planted  BAD        3/3   blind  0  wrong-way  0
   planted  NULL       3/3   blind  0  wrong-way  0
   corpus   GOOD       8/24  blind  7  wrong-way  9
   corpus   BAD       11/14  blind  3  wrong-way  0
   corpus   NEUTRAL    7/7   blind  0  wrong-way  0
-  CALIBRATION 33/54 labelled cases classify as their label says
-  RED TEAM 3/3 attempts read NULL or inadmissible; IMPROVES: none
+  CALIBRATION 35/54 labelled cases classify as their label says
+  RED TEAM 6/8 attempts read NULL or inadmissible; IMPROVES: rt_44b_card_noop_split, rt_44c_card_empty_statement
 weights.json sha256 2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978
 MOVED a1_B1_copy_cross_module: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a1_B1c_copy_same_module_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
@@ -96,8 +101,6 @@ MOVED a1_N2_docstring: recorded {'admissible': True, 'label': 'NULL', 'set': 'pl
 MOVED a1_N3_seam_relabel: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
 MOVED a1_N4_const_namespace_import: recorded {'admissible': False, 'label': 'NULL', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a1_N5_annotated_return: recorded {'admissible': False, 'label': 'NULL', 'set': 'planted', 'verdict': 'WORSENS'} now None
-MOVED a3_card_dead_definitions_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now {'set': 'planted', 'label': 'BAD', 'verdict': 'NULL', 'admissible': True}
-MOVED a3_card_dead_definitions_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now {'set': 'planted', 'label': 'GOOD', 'verdict': 'NULL', 'admissible': True}
 MOVED a3_dead_by_reachability_control: recorded {'admissible': False, 'label': 'BAD', 'set': 'planted', 'verdict': 'WORSENS'} now None
 MOVED a3_dead_by_reachability_fix: recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now None
 MOVED a3_dead_by_reachability_null: recorded {'admissible': True, 'label': 'NULL', 'set': 'planted', 'verdict': 'NULL'} now None
@@ -222,4 +225,6 @@ MOVED rt_38_layer_parent_ns_public: recorded {'admissible': True, 'label': 'GAME
 MOVED rt_39_layer_parent_ns_public_pair: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_40_layer_module_const_ann: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_41_layer_chain_past_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_44b_card_noop_split: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_44c_card_empty_statement: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
 calibration moved on 157 case(s)

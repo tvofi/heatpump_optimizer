@@ -1,4 +1,3 @@
-head=e14a378c12e5d292c1f564bc9100ecb0de39bd76
 case                                         set      label    verdict   adm         dS  rises / top terms
 8827452e                                     corpus   BAD      WORSENS   n      -1.4871  hub_solve_writes 15->16; untyped_payload_keys 37->38; coord_footprint 264->304
 5f6ada5e                                     corpus   BAD      WORSENS   n     -16.1013  hub_solve_writes 23->41; shared_inplace_writes 1->3; duplication_copies 27->28
@@ -227,4 +226,3 @@ MOVED rt_39_layer_parent_ns_public_pair: recorded {'admissible': True, 'label': 
 MOVED rt_40_layer_module_const_ann: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 MOVED rt_41_layer_chain_past_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
 calibration moved on 155 case(s)
-exit=1
