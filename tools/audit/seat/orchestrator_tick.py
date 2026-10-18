@@ -507,6 +507,7 @@ class Tick:
         self.owner_reviews(S, prs)
         self.body_staleness(S, prs)
         self.open_pr_cap(S, prs)
+        self.verdict_levels(S, prs)
         for head, ns in sorted(by_head.items()):
             if len(ns) > 1:
                 self.line(S, "twin open PRs at one head "
@@ -536,6 +537,88 @@ class Tick:
         if unread:
             text += f"; diff UNREADABLE at {', '.join('#' + str(x) for x in unread)}, so at least {k}"
         self.line(S, text, flag=k > kcap or bool(unread))
+
+    #: The verdict grammar, bus.sh's verdict_sha (app_comment.sh's two patterns).
+    VERDICT_MERGE = re.compile(r"^Fix review: merge ([0-9a-f]{40})$")
+    VERDICT_BLOCKED = re.compile(r"^Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+$")
+
+    def _verdict_authors(self) -> "tuple[set, int] | None":
+        """The approver App's identity off app_approve.sh, the gate that owns it
+        (proof_watch.py reads the same two lines); None when unreadable."""
+        for rel in ("tools/pr/app_approve.sh", "tools/audit/app_approve.sh"):
+            try:
+                src = (ROOT / rel).read_text(encoding="utf-8")
+            except OSError:
+                continue
+            a = re.search(r'^VERDICT_AUTHORS="(.*)"$', src, re.M)
+            i = re.search(r"^VERDICT_AUTHOR_ID=(\d+)", src, re.M)
+            if a and i:
+                return set(a.group(1).split()), int(i.group(1))
+        return None
+
+    def _handoff_newer(self, branch: str, at: str) -> "bool | None":
+        """Is there a handoff/<topic> tip committed after `at`? The topic is the
+        branch less `fix/`, then less `-pr` (open_pr.sh's two spellings).
+        None: a read failed."""
+        t = branch[4:] if branch.startswith("fix/") else branch
+        for topic in dict.fromkeys([t, t[:-3] if t.endswith("-pr") else t]):
+            code, o = self.git(["ls-remote", "origin", f"refs/heads/handoff/{topic}"])
+            if code:
+                return None
+            sha = o.split()[0] if o.split() else ""
+            if not sha:
+                continue
+            if self.git(["fetch", "-q", "origin", f"refs/heads/handoff/{topic}"])[0]:
+                return None
+            code, ct = self.git(["log", "-1", "--format=%ct", sha])
+            try:
+                when = datetime.datetime.fromtimestamp(int(ct.strip()), datetime.timezone.utc)
+                return code == 0 and when > datetime.datetime.fromisoformat(at.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+        return False
+
+    def verdict_levels(self, S: str, prs: list) -> None:
+        """Level lines every pass, state not events (the round-10 orchestrator,
+        2026-10-18: #2401 sat merge-ready and #2399 sat blocked, unacted, because
+        only events reached it). From the approver App's newest `Fix review:`:
+          MERGE-READY: #N <head8>      merge at the current head, CLEAN or UNSTABLE;
+          BLOCKED-UNFIXED: #N <head8>  blocked at the current head, and no
+                                       handoff/<topic> tip committed after it.
+        A verdict at an older head prints neither line."""
+        allow = self._verdict_authors()
+        if allow is None:
+            self.unreadable(S, "verdict levels", "no VERDICT_AUTHORS in app_approve.sh")
+            return
+        authors, vid = allow
+        for pr in sorted(prs, key=lambda p: p["number"]):
+            n, head = pr["number"], pr.get("headRefOid") or ""
+            code, o = self.gh(["api", "--paginate", "--slurp",
+                               f"repos/{self.repo}/issues/{n}/comments?per_page=100"])
+            try:
+                cs = [c for page in json.loads(o) for c in page] if code == 0 else None
+            except (ValueError, TypeError):
+                cs = None
+            if cs is None:
+                self.unreadable(S, f"verdicts on #{n}", o.strip()[-100:])
+                continue
+            vs = [c for c in cs if (c.get("user") or {}).get("login") in authors
+                  and (c.get("user") or {}).get("id") == vid
+                  and (c.get("body") or "").startswith("Fix review:")]
+            if not vs:
+                continue
+            v = max(vs, key=lambda c: (c.get("created_at") or "", c.get("id") or 0))
+            first = (v.get("body") or "").split("\n", 1)[0].rstrip("\r")
+            m, b = self.VERDICT_MERGE.match(first), self.VERDICT_BLOCKED.match(first)
+            ms = (pr.get("mergeStateStatus") or "").upper()
+            if m and m.group(1) == head and ms in ("CLEAN", "UNSTABLE"):
+                self.line(S, f"MERGE-READY: #{n} {head[:8]}", flag=True)
+            elif b and b.group(1) == head:
+                newer = self._handoff_newer(pr.get("headRefName") or "", v.get("created_at") or "")
+                if newer is None:
+                    self.unreadable(S, f"handoff ref for blocked #{n}", "git read failed")
+                elif not newer:
+                    self.line(S, f"BLOCKED-UNFIXED: #{n} {head[:8]}", flag=True)
 
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
@@ -1821,6 +1904,8 @@ def self_test() -> int:
         else:
             gh.on("updatedAt", out='{"data":{"repository":{}}}')
         gh.on("issues?state=open", out=open_issues)
+        # A pull request's own comments (verdict_levels): none, unless an arm says.
+        gh.on(lambda argv: any(x.endswith("/comments?per_page=100") for x in argv), out="[]")
         git = Stub()
         git.on(("fetch",), out="")
         git.on(("merge-base", "--is-ancestor"), rc=0)
@@ -2744,6 +2829,67 @@ def self_test() -> int:
             ("an invalid HPO_OPEN_PR_CAP is UNREADABLE, never a count",
              any(l["flag"] and "UNREADABLE: open-PR cap" in l["text"] for l in badcap)
              and one(badcap, "OPEN-PR CAP: ")["flag"] is None),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- verdict levels: MERGE-READY / BLOCKED-UNFIXED (2026-10-18) ----
+        apr = {"login": "hpo-approver[bot]", "id": 330097732, "type": "Bot"}
+        old_h, vt = "9" * 40, iso(NOW - datetime.timedelta(hours=1))
+
+        def vc(cid, body, at=vt, user=apr):
+            return {"id": cid, "user": user, "created_at": at, "body": body}
+
+        def vboard(specs, handoffs=None, fail=()):  # [(n, ms, [comments])], {topic: commit-epoch}
+            heads = {n: f"{n:040x}" for n, *_ in specs}
+            extra = [((f"issues/{n}/comments?per_page=100",), 1 if n in fail else 0,
+                      "HTTP 502" if n in fail else json.dumps([cs])) for n, _, cs in specs]
+            board = [pr_obj(n, heads[n], ms=ms) for n, ms, _ in specs]
+            t = tick(prs=board, gh_extra=extra)
+            for topic, ct in (handoffs or {}).items():
+                t._git.on(("ls-remote", f"refs/heads/handoff/{topic}"), out=f"{'7' * 40}\trefs/heads/handoff/{topic}\n")
+            t._git.on(("ls-remote",), out="")
+            t._git.on(("log", "-1", "--format=%ct"), out=str(int(min((handoffs or {"_": 0}).values()))))
+            t.verdict_levels("PRS", board)
+            return t.sections.get("PRS", []), heads
+
+        h = lambda n: f"{n:040x}"
+        lines, heads = vboard([
+            (40, "CLEAN", [vc(1, f"Fix review: merge {h(40)}\n\nRESULT ok")]),
+            (41, "CLEAN", [vc(2, f"Fix review: merge {old_h}")]),
+            (42, "DIRTY", [vc(3, f"Fix review: merge {h(42)}")]),
+            (43, "UNSTABLE", [vc(4, f"Fix review: blocked {h(43)} harness: x", at=iso(NOW - datetime.timedelta(hours=3))),
+                              vc(5, f"Fix review: merge {h(43)}")]),
+            (44, "BLOCKED", [vc(6, f"Fix review: blocked {h(44)} harness: class open")]),
+            (45, "CLEAN", [vc(7, f"Fix review: merge {h(45)}", user={"login": "tvofi", "id": 1, "type": "User"})]),
+            (46, "BLOCKED", [vc(8, f"Fix review: blocked {old_h} harness: x")]),
+        ])
+        txt = [l["text"] for l in lines]
+        fixed, _ = vboard([(47, "BLOCKED", [vc(9, f"Fix review: blocked {h(47)} harness: x")])],
+                          handoffs={"47": int((NOW - datetime.timedelta(minutes=10)).timestamp())})
+        stale_fix, _ = vboard([(48, "BLOCKED", [vc(10, f"Fix review: blocked {h(48)} harness: x")])],
+                              handoffs={"48": int((NOW - datetime.timedelta(hours=2)).timestamp())})
+        unread, _ = vboard([(49, "CLEAN", [])], fail=(49,))
+        a, f = check("verdict levels", [
+            ("a merge verdict at the current head, CLEAN: MERGE-READY, flagged",
+             any(l["flag"] and l["text"] == f"MERGE-READY: #40 {h(40)[:8]}" for l in lines)),
+            ("null control: a merge verdict at a stale head prints no MERGE-READY",
+             not any(x.startswith("MERGE-READY: #41") for x in txt)),
+            ("a merge verdict at the head while DIRTY prints none",
+             not any(x.startswith("MERGE-READY: #42") for x in txt)),
+            ("the newest verdict wins, and UNSTABLE is merge-ready",
+             f"MERGE-READY: #43 {h(43)[:8]}" in txt and not any(x.startswith("BLOCKED-UNFIXED: #43") for x in txt)),
+            ("blocked at the head with no handoff ref: BLOCKED-UNFIXED, flagged",
+             any(l["flag"] and l["text"] == f"BLOCKED-UNFIXED: #44 {h(44)[:8]}" for l in lines)),
+            ("a verdict not from the approver App is ignored",
+             not any("#45" in x for x in txt)),
+            ("null control: blocked at a stale head prints no BLOCKED-UNFIXED",
+             not any("#46" in x for x in txt)),
+            ("a handoff tip committed after the blocked verdict: no BLOCKED-UNFIXED",
+             not any(l["text"].startswith("BLOCKED-UNFIXED") for l in fixed)),
+            ("a handoff tip committed before it still prints BLOCKED-UNFIXED",
+             any(l["text"] == f"BLOCKED-UNFIXED: #48 {h(48)[:8]}" for l in stale_fix)),
+            ("comments it cannot read are UNREADABLE, never silence",
+             any(l["flag"] and "UNREADABLE: verdicts on #49" in l["text"] for l in unread)),
         ])
         total, failed = total + a, failed + f
 
