@@ -37322,6 +37322,56 @@ R.check(
     repr(_ren.savings_months(_feb10)),
 )
 
+# Item 1: the settlement books the plan's thermostat baseline at the step
+# covering the interval. A thermostat that ran all along does not care where
+# the optimiser left the house, so step 0 must not depend on the plan's start
+# state. Started from that state it was all-or-nothing: the clip (max power)
+# whenever the house sat below target, 0 kW above it -- September's 81 % and
+# October's negative month. Both topologies, the DHW path on the two-zone one.
+from profiles import house as _hb_house, prices as _hb_prices, weather as _hb_weather
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer as _HbOpt,
+    OptimizationConfig as _HbCfg,
+)
+from heatpump_optimizer.thermal_model import (
+    ThermalModel as _HbModel,
+    ThermalParameters as _HbParams,
+    ThermalState as _HbState,
+)
+
+_hb_t0 = _SavDT(2026, 1, 15, 0, 0)
+_hb_out, _hb_wind, _hb_rain, _hb_sol = _hb_weather("winter_cold", _hb_t0)
+for _hb_two, _hb_dhw in ((False, False), (True, True)):
+    _hb_cfg = _hb_house(two_zone=_hb_two, dhw=_hb_dhw)
+    _hb_par = _HbParams.from_config(_hb_cfg)
+    _hb_par.dhw_enabled = _hb_dhw
+    _hb_opt = _HbOpt(_HbModel(_hb_par), _HbCfg(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+        min_temp=17.0, max_temp=23.0,
+    ))
+    _hb_first = []
+    for _hb_room, _hb_slab in ((21.0, 22.0), (20.0, 21.0), (19.0, 20.0), (22.0, 23.5)):
+        _hb_plan = _hb_opt.optimize(inputs=solve_inputs(
+            initial_state=_HbState(
+                room_temperature=_hb_room, slab_temperature=_hb_slab,
+                outdoor_temperature=float(_hb_out[0]),
+                upper_floor_temperature=_hb_room, lower_floor_temperature=_hb_room,
+                dhw_temperature=52.0, dhw_hours_since_legionella=20.0,
+                buffer_tank_temperature=40.0,
+            ),
+            prices=_hb_prices("flat", _hb_t0), outdoor_temps=_hb_out,
+            wind_speeds=_hb_wind, precipitation=_hb_rain,
+            solar_radiation=_hb_sol, start_time=_hb_t0,
+        ))
+        _hb_first.append(float(_hb_plan.baseline_power_schedule[0]))
+    R.check(
+        f"the booked thermostat step is independent of the plan's start state "
+        f"({'two-zone, DHW' if _hb_two else 'single-zone'})",
+        max(_hb_first) - min(_hb_first) < 1e-9
+        and 0.0 < _hb_first[0] < float(_hb_par.max_electrical_power),
+        repr(_hb_first),
+    )
+
 import inspect as _sav_inspect
 from pathlib import Path as _SavPath
 from heatpump_optimizer.optimizer import (

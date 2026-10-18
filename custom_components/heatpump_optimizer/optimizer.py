@@ -44,7 +44,7 @@ import importlib
 import logging
 import math
 import time as _time_mod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta, timezone
 from collections.abc import Mapping
 from typing import Any, Callable, Iterable
@@ -5021,6 +5021,14 @@ class HeatPumpOptimizer:
         temperature that sustains the setpoint, with a proportional term that
         pulls the room back if it has drifted.
 
+        The thermostat starts from the state it would have kept, not from
+        ``initial_state`` (``_thermostat_held_state``, #2255): a thermostat
+        running all along never inherits the optimiser's coasted or
+        pre-heated house. Started from that state, its first step was the
+        recovery transient -- the clip whenever the house sat below target,
+        0 kW above it -- and the settlement books the first step of every
+        plan, so the month's baseline was the transient's.
+
         Returns the power schedule and the final state, the latter so the
         caller can account for the thermal energy left stored at the end of the
         horizon. ``coil_draws`` (the hot-water path's raw draws) runs the
@@ -5045,14 +5053,12 @@ class HeatPumpOptimizer:
             coil_draws = None
 
         baseline_power = np.zeros(n_steps)
-        state = initial_state
+        state = self._thermostat_held_state(
+            initial_state, weather, self._baseline_target(comfort_targets, 0)
+        )
 
         for i in range(n_steps):
-            target = (
-                float(comfort_targets[i])
-                if comfort_targets is not None and i < len(comfort_targets)
-                else self.config.target_temp
-            )
+            target = self._baseline_target(comfort_targets, i)
             if p.two_zone_enabled:
                 required_thermal = self._baseline_thermal_demand_two_zone(
                     state, target, outdoor_temps[i], wind_speeds[i],
@@ -5134,6 +5140,67 @@ class HeatPumpOptimizer:
 
         return baseline_power, state
 
+    def _baseline_target(self, comfort_targets: np.ndarray | None, i: int) -> float:
+        """The thermostat's setpoint at step ``i``: the comfort schedule's, else the target."""
+        if comfort_targets is not None and i < len(comfort_targets):
+            return float(comfort_targets[i])
+        return self.config.target_temp
+
+    def _floor_demand_at_target(
+        self,
+        target: float,
+        outdoor_temp: float,
+        wind_speed: float,
+        precipitation: float,
+        solar_radiation: float,
+    ) -> float:
+        """Thermal kW the slab-fed zone needs to sit at ``target``, zones equal.
+
+        Single-zone that is the room; two-zone the lower floor, whose
+        inter-zone exchange is zero when both floors are at ``target`` (the
+        two-zone demand adds the exchange at the actual temperatures).
+        """
+        p = self.model.params
+        if not p.two_zone_enabled:
+            u_eff = self.model.effective_heat_loss_coefficient(
+                p.heat_loss_coefficient, wind_speed, precipitation
+            )
+            q_solar = self.model.compute_solar_gain(solar_radiation)
+            return u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
+        u_lower = self.model.effective_heat_loss_coefficient(
+            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+        )
+        _, q_solar_lower = self.model.solar_gain_per_zone(solar_radiation)
+        q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
+        return u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower
+
+    def _thermostat_held_state(
+        self, state: ThermalState, weather: WeatherSeries, target: float
+    ) -> ThermalState:
+        """``state`` as a thermostat holding ``target`` all along would have it (#2255).
+
+        The zones at ``target`` and the slab at the temperature that delivers
+        the step's demand: the cascade's own slab target with no pull-back,
+        so the first step draws the steady holding power. Tanks and every
+        other field stay as measured; the thermostat does not own them.
+        """
+        if not len(weather.outdoor_temps):
+            return state
+        assert weather.wind_speeds is not None and weather.precipitation is not None
+        assert weather.solar_radiation is not None
+        q_floor = self._floor_demand_at_target(
+            target, float(weather.outdoor_temps[0]), float(weather.wind_speeds[0]),
+            float(weather.precipitation[0]), float(weather.solar_radiation[0]),
+        )
+        return replace(
+            state,
+            room_temperature=target,
+            upper_floor_temperature=target,
+            lower_floor_temperature=target,
+            slab_temperature=target
+            + max(0.0, q_floor) / self.model.params.slab_heat_transfer_floored,
+        )
+
     def _baseline_thermal_demand_single(
         self,
         state: ThermalState,
@@ -5148,13 +5215,10 @@ class HeatPumpOptimizer:
         p = self.model.params
         k_slab = p.slab_heat_transfer_floored
 
-        u_eff = self.model.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
-        )
-        q_solar = self.model.compute_solar_gain(solar_radiation)
-
         # Thermal power the room needs to sit at the setpoint.
-        q_demand = u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
+        q_demand = self._floor_demand_at_target(
+            target, outdoor_temp, wind_speed, precipitation, solar_radiation
+        )
         # Slab temperature that delivers exactly that, plus a pull-back term
         # if the room has drifted away from the setpoint.
         slab_target = (
@@ -5195,13 +5259,8 @@ class HeatPumpOptimizer:
         u_upper = self.model.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss, wind_speed, precipitation
         )
-        u_lower = self.model.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
-        )
-        q_solar_upper, q_solar_lower = self.model.solar_gain_per_zone(solar_radiation)
-        area_ratio = p.upper_floor_area_ratio
-        q_int_upper = p.internal_gains * area_ratio
-        q_int_lower = p.internal_gains * (1.0 - area_ratio)
+        q_solar_upper, _ = self.model.solar_gain_per_zone(solar_radiation)
+        q_int_upper = p.internal_gains * p.upper_floor_area_ratio
 
         t_upper = state.upper_floor_temperature
         t_lower = state.lower_floor_temperature
@@ -5220,9 +5279,9 @@ class HeatPumpOptimizer:
 
         # The lower floor is heated through the slab, so drive the slab to the
         # temperature that sustains it and charge it over this step.
-        q_lower = (
-            u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower + q_inter
-        )
+        q_lower = self._floor_demand_at_target(
+            target, outdoor_temp, wind_speed, precipitation, solar_radiation
+        ) + q_inter
         slab_target = (
             target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)
         )
