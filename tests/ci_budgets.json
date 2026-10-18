@@ -13,7 +13,7 @@
  "archscore.hub_solve_writes": 41,
  "archscore.import_cycle_modules": 0,
  "archscore.layer_violations": 22,
- "archscore.literal_clone_copies": 184,
+ "archscore.literal_clone_copies": 186,
  "archscore.params_over_10": 12,
  "archscore.private_cross_module": 17,
  "archscore.public_unused": 1,
@@ -24,7 +24,7 @@
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "New row only (R10-ARCHSCORE-COVERAGE part 5): archscore.shape_copies 66, the gate-only key the shape census adds to the score vector, at the value vector.measure derives at 2a68c32a3; a derived key with no row is refused as growth. No existing row moves. Previous: part 4's new rows (literal_clone_copies 184, card_dead_definitions 0, card_clone_copies 108).",
+ "reason": "New row only (R10-ARCHSCORE-COVERAGE part 5): archscore.shape_copies 66, the gate-only key the shape census adds to the score vector, at the value vector.measure derives at 2a68c32a3; a derived key with no row is refused as growth. Stacked on part 4, whose rows are literal_clone_copies 186, card_dead_definitions 0 and card_clone_copies 108 (derived at 45da9204f). No existing row moves. Previous: part 4's new rows (literal_clone_copies 184, card_dead_definitions 0, card_clone_copies 108).",
  "recorded_at": "2a68c32a3dcd93f1eed3041ba4c83b71afcac989",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 68

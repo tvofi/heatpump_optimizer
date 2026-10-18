@@ -28,7 +28,7 @@ C17 every import the runtime runs is a layering edge -- a function-scope one, an
 C19 ``unused_boundary_imports``, gate-only: no module climbs a layer by an unread import  ``metrics/layering``
 C20 literal specs normalised, an in-package callee's positionals bound; C21 a local or module constant bound once
     to a spec reads as it  ``metrics/literal_clones``
-C22 a card function's own names numbered and its no-op statements dropped  ``metrics/card``
+C22 a card function's own names numbered and its no-op and empty statements dropped  ``metrics/card``
 C23 ``shape_copies``, gate-only: a function's own names numbered, numbers and strings abstracted  ``metrics/shapes``
 """
 from __future__ import annotations

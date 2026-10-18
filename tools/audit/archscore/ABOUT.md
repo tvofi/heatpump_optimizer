@@ -56,8 +56,8 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), from the namespace ABOVE the package (32 to 35), through an attribute or `getattr` chain rooted at one (36), and through a constant-name `import_module` (26), its `name`-keyword form (31) or a module-level string constant (37). A read that resolves to a module is also that module's EDGE, whether the name read off it is public or private -- which is what an import of an ancestor needs, since that statement loads no module of ours; the edge is added once, at the OUTERMOST point of the chain whose receiver resolves to a module, so a chain that walks past it still takes it (38, 39, 41) | 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
 | C20 a literal spec is normalised: numbers by value, an in-package callee's positionals as the keywords they bind, keywords and dict items in order (`metrics/literal_clones.py`) | the copies of a selector re-spelled with float bounds (42); its positionals respelled as keywords (42c, #2373 review) | 42, 42c |
-| C21 a local, or a module constant (own or imported by name), bound once to a spec reads as it | a selector's bound hoisted into a local (43) or into module constants (42b, #2373 review) | 43, 42b |
-| C22 a card function's own names are numbered by first use and its no-op statements dropped (`metrics/card.py`) | the card's copied functions given renamed locals (44); windows split by `void <n>;` (44b, #2373 review) | 44, 44b |
+| C21 a local, or a module constant (own, imported by name, or read through a module binding `m.X`), bound once to a spec reads as it | a selector's bound hoisted into a local (43), into module constants (42b, #2373 review), or into another module's constants read as `_c.X` (42d, #2373 round-2 review) | 43, 42b, 42d |
+| C22 a card function's own names are numbered by first use and its no-op and empty statements dropped (`metrics/card.py`) | the card's copied functions given renamed locals (44); windows split by `void <n>;` (44b, #2373 review) or by a lone `;` (44c, #2373 round-2 review) | 44, 44b, 44c |
 | C23 `shape_copies` (gate-only): a function's own names are numbered, numbers, strings and `mod.X` abstracted as the clone window does (`metrics/shapes.py`) | a below-window rule copied with every name changed (`a3_shape_copies_control`); a private helper copied into its importer (also refused by `duplication_copies`) | 45 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
@@ -235,7 +235,7 @@ What it does not see, and no rule here closes:
 Three score metrics at the floor weight. `literal_clone_copies` (`metrics/literal_clones.py`) counts the copies of
 a declaration spelled as a call or literal more than once -- a selector, a schema, a record -- which sits inside one
 statement and so outside `duplication_copies`' windows: ARCH2-s5's F1 (the setup wizard reading its options-registry
-widgets) reads 184 -> 132 on it at the merge base `6e5753a4a` (ARCH2-s5's `arch_delta.py`, base `9061fbd3d`). The card (`www/*.js`, read by a tokenizer in `metrics/card.py`, never a parser)
+widgets) reads 186 -> 134 on it (ARCH2-s5's `arch_delta.py`, base `9061fbd3d`, with the round-2 instrument; 184 -> 132 before the module-binding fold). The card (`www/*.js`, read by a tokenizer in `metrics/card.py`, never a parser)
 gets `card_dead_definitions` (D7-s3-02's `textWidth` was its one; R10-UX-SETUP gave it callers, so today reads 0) and `card_clone_copies`, a 20-token window
 census; the window was calibrated on ARCH2-s5's four card patches, where 16 tokens read the finite-number owner (a
 dedupe) as one copy more. The shape census of N spellings of one rule is part 5's.
@@ -248,8 +248,20 @@ its parameter), and `void <n>;` after every second card `const`/`let` (44b, C22 
 literals, read identifiers and pure operators before windowing). Each read IMPROVES against the round-1
 instrument and reads NULL here; the counter's ablation reopens it.
 
+The round-2 review planted the next spelling of two of those classes, and both are closed with their attempt
+too: the copies reading their bound through a module binding, `from . import const as _c` and `_c.X` (42d, C21
+resolves an attribute read through `common.resolve_expr_static` to the module's constant, unless the function
+binds the root name itself), and a lone `;` after every second card `const`/`let` (44c, C22 drops an empty
+statement after a `;` or a `{`). Folding by value has a cost on honest code: two declarations that read
+different constants of equal value read as one spec. Today that is `store.py`'s `Domain` bounds for
+`house_heat_loss_scale` and `lower_floor_loss_ratio` (both 0.3 to 3.0 through `c.`), which count as one class of
+two in `literal_clone_copies`.
+
 What part 4's censuses do not see, and no rule here closes: a value computed at runtime or a constant bound
-twice; a callee outside the package (its signature is not read) or a call through `*args`/`**kwargs`; a card
+twice; a constant read through an absolute import of the package (`import custom_components.<pkg>.m`, which
+the package index records as external); a card empty statement after a `}` (`if (x) {..};`), since tokens
+cannot tell a block's `}` from an object literal's or a function expression's, where the `;` ends the
+statement; a callee outside the package (its signature is not read) or a call through `*args`/`**kwargs`; a card
 no-op with an effect-shaped token (`if (0) {}`, `a.b;`, a call to an empty function) or a no-op inside a
 parenthesis; and a card copy re-spelled token by token below the 20-token window.
 
