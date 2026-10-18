@@ -37472,13 +37472,18 @@ R.check(
 _hs_cold = _HbState(room_temperature=19.0, slab_temperature=20.0,
                     outdoor_temperature=float(_hb_out[0]))
 _hs_cold_held = _hb_held_state(_hs_opt.model, _hs_cold, _hs_ws, 21.0)
+# Caps that bind on the HELD slab (the cap below it, the cold start under
+# it): the capped gap is then smaller than the uncapped one, and that
+# difference is no surplus of the plan's to debit or credit.
+_hs_tight = {**_hs_caps, "slab": 21.5}
 _hs_cold_capped = _hs_opt._deferred_energy_cost(
-    _hs_cold_held, _hs_cold, _hs_px, _hb_out, caps=_hs_caps)
+    _hs_cold_held, _hs_cold, _hs_px, _hb_out, caps=_hs_tight)
 R.check(
     "a start colder than the held house is settled at the caps, with no surplus to debit",
-    abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, 1e9)
-        - _hs_cold_capped) < 1e-9,
-    f"capped {_hs_cold_capped!r}",
+    _hs_cold_held.slab_temperature > 21.5
+    and abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_tight, None, 1e9)
+            - _hs_cold_capped) < 1e-9,
+    f"held slab {_hs_cold_held.slab_temperature!r} capped {_hs_cold_capped!r}",
 )
 _hs_sun = _hb_weather("summer_warm", _SavDT(2026, 7, 15, 12, 0))
 _hs_sun_held = _hb_held_state(
