@@ -436,7 +436,10 @@ PY
 # UNDER-SCOPED and INERT READS, entities' unclassified file and
 # a STALE PIN the diff itself stales (a stale pin main carries only warns),
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
-# the handoff while the autofix jobs repaired none of them; those refuse. The
+# the handoff while the autofix jobs repaired none of them; those refuse. For
+# INERT READS that premise lapsed (#2049, #2129: the bot now repairs it after a
+# red run), and it still refuses because the bot's repair lands on the
+# reviewed head; `ci_predict.py --apply-inert` is the pre-push repair. The
 # `mutation` sites the diff adds are a WARNING, never a refusal: ci-autofix.md
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
@@ -2035,6 +2038,8 @@ PY
     && $G add -A && $G commit -qm pfunc \
     && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
     && $G add -A && $G commit -qm pinert \
+    && $G checkout -q -b pedge origin/main && echo "import tools.audit.seat.moved_paths  # planted" >> tests/wood_advisor.py \
+    && $G commit -qam pedge \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
     && $G add -A && $G commit -qm plane \
     && $G checkout -q -b pmainred origin/main && echo "# planted on main" > tests/zz_main_unrecorded_check.py \
@@ -2058,6 +2063,27 @@ PY
   st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
   got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
+  got=$(cd "$PDX/r" && git checkout -q pinert \
+    && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert 2>&1; echo "rc=$?")
+  grep -q '^APPLIED inert_reads tests/harness_headers.py: dev/audit/harnesses/zz_planted.py$' <<<"$got" \
+    && grep -q '^rc=0$' <<<"$got"
+  st $? 0 "--apply-inert writes the predicted entry, and the prediction then clears"
+  (cd "$PDX/r" && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure;p=closure.CLOSURES;sys.exit(len(closure.layout_errors(json.loads(p.read_text()),p.read_text())))")
+  st $? 0 "and it writes the table in the layout closure.layout_errors accepts"
+  got=$(cd "$PDX/r" && git checkout -q -f pnull && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert >/dev/null 2>&1; git status --porcelain -- tests/closures.json)
+  st "$got" "" "--apply-inert leaves the table byte-identical where nothing is predicted (null control)"
+  got=$(cd "$PDX/r" && git checkout -q pinert && predict_line origin/main 2>/dev/null)
+  grep -q 'repair before the handoff; `--apply-inert` repairs them$' <<<"$got" && ! grep -q "ci-autofix.md's" <<<"$got"
+  st $? 0 "and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS"
+  got=$(predict_at pedge); grep -q 'PREDICT closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "6d refuses an INERT READS a new top-level import adds (the import-edge arm)"
+  got=$(cd "$PDX/r" && git checkout -q pedge \
+    && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert 2>&1; echo "rc=$?")
+  grep -q '^APPLIED inert_reads tests/wood_advisor.py: tools/audit/seat/moved_paths.py$' <<<"$got" \
+    && grep -q '^rc=0$' <<<"$got"
+  st $? 0 "--apply-inert writes the import-edge arm's entry too, and the prediction then clears"
+  (cd "$PDX/r" && git checkout -q -f pnull)
   # Round-9 C1: the full arm derives its recording set from the tree
   # (`lane-plan --all-scripts`), so a new selectable script owes no lane
   # edit and no lane edit can drop a recording -- the NO RECORDING class is
