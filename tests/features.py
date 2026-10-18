@@ -57498,7 +57498,7 @@ R.check(
     "R10-LEAF-IMPORTS: the payload owns every reason code the optimizer writes",
     bool(_leaf_used) and not _leaf_own
     and all(getattr(_leaf_payload, k, None) is getattr(_leaf_opt, k) for k in _leaf_used),
-    f"optimizer assigns {_leaf_own}; binds {len(_leaf_used)}, "
+    f"optimizer binds {_leaf_own} outside its payload import; imports {len(_leaf_used)}, "
     f"payload lacks {[k for k in _leaf_used if not hasattr(_leaf_payload, k)]}",
 )
 
