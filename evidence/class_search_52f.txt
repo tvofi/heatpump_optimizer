@@ -1,0 +1,61 @@
+2026-10-01T23:04:19+00:00 dfb57a515 hand tvofi 5 gate: record run_always scripts' INERT reads so the merge fa tests/harness_headers.py<-DISCLAIMER.md ; tests/harness_headers.py<-LICENSE ; tests/harness_headers.py<-docs/audit-2026-08.md
+2026-10-02T02:23:03+00:00 c590bbafe hand tvofi 1 closures: record tests/entities.py's INERT read of LICENSE ( tests/entities.py<-LICENSE
+2026-10-03T00:18:40+02:00 61ac08eb2 hand tvofi 1 R9-WEB-3 round 2: doc_claims.py's inert read of docs/site/do tests/doc_claims.py<-docs/site/docs.css
+2026-10-04T10:54:05+02:00 1ef3784ca hand Tvofi2 1 closures: restore entities.py's inert LICENSE from CI's Linu tests/entities.py<-LICENSE
+2026-10-04T23:02:07+02:00 b5db049b6 hand tvofi 3 closures(R9-FR-10): record entities.py's reads of the record tests/entities.py<-.claude/workflows/figure_lint.mjs ; tests/entities.py<-tools/audit/seat/record_row.py ; tests/entities.py<-tools/audit/seat/roster_lib.py
+2026-10-06T02:29:37+02:00 709ab2758 hand tvofi 1 closures(R9-RO-2b): file entities.py's inert read of codeown tests/entities.py<-tools/audit/round6/D11/fix/codeowners_gap.py
+2026-10-06T17:00:28+02:00 bc0f17ddb hand tvofi 1 Lift governance and the programme record under dev/. tests/harness_headers.py<-dev/programme/register/audit-2026-09.md
+2026-10-06T17:28:15+02:00 3b0a39216 hand tvofi 1 fix(ro): move the instruments into tools/policy, tools/pr, t tests/entities.py<-tools/policy/figure_lint.mjs
+2026-10-06T20:39:08+02:00 c62b0da55 hand tvofi 521 Record the header scan's inert reads. tests/harness_headers.py<-tools/audit/ci-version-edit/pr_contract_shapes.py ; tests/harness_headers.py<-tools/audit/ci-version-edit/recheck_stamp_forgery.py ; tests/harness_headers.py<-tools/audit/harnesses/d1_s3_02_queued_apply.py
+2026-10-06T21:06:09+02:00 86bdf0cf0 hand tvofi 1 Walk scale_writer_seams up to the manifest. tests/harness_headers.py<-tools/audit/harnesses/scale_writer_seams.py
+2026-10-06T23:48:04+02:00 1e8b9b179 hand tvofi 2 Record the two header-scan inert reads the closure omitted. tests/harness_headers.py<-tools/audit/round9/SW1/forced_off_equiv.py ; tests/harness_headers.py<-tools/audit/round9/SW1/quiet_survivor_equiv.py
+2026-10-07T02:16:10+02:00 0e9473a88 hand tvofi 8 fix(ro): record the policy scripts entities.py opens tests/entities.py<-tools/policy/agreement.mjs ; tests/entities.py<-tools/policy/check-wave-script.mjs ; tests/entities.py<-tools/policy/field_coverage.mjs
+2026-10-07T02:33:48+02:00 5d6a4e43e hand tvofi 8 Record the eight policy scripts entities.py opens. tests/entities.py<-tools/policy/agreement.mjs ; tests/entities.py<-tools/policy/check-wave-script.mjs ; tests/entities.py<-tools/policy/field_coverage.mjs
+2026-10-07T05:26:42+02:00 de46d8da9 hand tvofi 523 fix(R9-RO-8): move audit evidence one segment under dev/audi tests/entities.py<-dev/audit/rounds/round6/D11/fix/codeowners_gap.py ; tests/harness_headers.py<-dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py ; tests/harness_headers.py<-dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py
+2026-10-07T15:48:03+02:00 042b66fa1 hand tvofi 1 closures: record harness_headers.py's read of eg_b7_seam_hub tests/harness_headers.py<-tools/audit/harnesses/eg_b7_seam_hubs.py
+2026-10-07T17:50:53+02:00 60c000524 hand tvofi 1 fix(R9-RO-8): record eg_b7_seam_hubs.py's inert read at the  tests/harness_headers.py<-dev/audit/harnesses/eg_b7_seam_hubs.py
+2026-10-07T18:45:13+02:00 baa6c237f hand tvofi 2 test(boost_drift_replay): guard the fork by behaviour; recor tests/harness_headers.py<-tools/audit/harnesses/boost_replay_fork_parity.py ; tests/harness_headers.py<-tools/audit/harnesses/ci_script_seconds.py
+2026-10-07T22:06:55+02:00 c79b4bddd hand tvofi 1 closures(R9-UX-5): list the moved ux5 harness in harness_hea tests/harness_headers.py<-dev/audit/harnesses/ux5_idle_codes.py
+2026-10-07T22:45:52+02:00 523e57284 hand tvofi 1 test(R9-EG-A4): classify the new files beside their siblings tests/harness_headers.py<-dev/audit/harnesses/eg_a4_wave_deltas.py
+2026-10-08T00:52:38+02:00 2cd998f65 hand tvofi 1 closures: debug_collect from CI's Linux recording (305f5eed) tests/harness_headers.py<-dev/audit/harnesses/r9_dbg2_selftest_price.py
+2026-10-08T06:18:06+02:00 cf0bba2ba hand tvofi 1 closures: merge CI's harness_headers.py recording for main's tests/harness_headers.py<-dev/audit/harnesses/r9_ro12_batch_mutants.sh
+2026-10-08T08:27:27+00:00 6ddb8c4c4 bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/harnesses/git_auto_maintenance_race.sh
+2026-10-08T09:24:23+00:00 8fb1b717d bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/harnesses/git_auto_maintenance_race.sh
+2026-10-08T10:23:55+00:00 de81043a3 bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/harnesses/git_auto_maintenance_race.sh
+2026-10-08T10:53:05+00:00 285b175fd bot github-actions[bot] 2 ci: re-record closures tests/harness_headers.py<-dev/audit/harnesses/git_auto_maintenance_race.sh ; tests/harness_headers.py<-dev/audit/harnesses/throwaway_git_sites.sh
+2026-10-08T10:59:50+00:00 217f7cefe bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/harnesses/git_auto_maintenance_race.sh
+2026-10-08T11:24:16+02:00 b416093e9 hand tvofi 1 fix: inert_reads entry for git_auto_maintenance_race.sh (mai tests/harness_headers.py<-dev/audit/harnesses/git_auto_maintenance_race.sh
+2026-10-08T12:43:04+02:00 918a8c306 hand tvofi 1 fix(R9-CI-2b): tests/closures.json in a layout GitHub merges tests/harness_headers.py<-dev/audit/harnesses/r9_ci2b_closures_merge.py
+2026-10-08T15:38:48+02:00 75a6aee4f hand tvofi 1 harness: ux5_idle_codes_sites.py, the idle_codes sites' prob tests/harness_headers.py<-dev/audit/harnesses/ux5_idle_codes_sites.py
+2026-10-08T15:59:12+02:00 387128bb3 hand tvofi 1 closures: list the new harness among harness_headers.py's in tests/harness_headers.py<-dev/audit/harnesses/eg_b11_equiv_6840.py
+2026-10-08T16:30:29+02:00 ba83063e7 hand tvofi 1 audit: land the R9-UX-9 flow-unit probe as a tracked harness tests/harness_headers.py<-dev/audit/harnesses/ux9_flow_unit_guard.py
+2026-10-09T01:54:30+02:00 fbc9400a9 hand tvofi 1 closures: list the new harness among harness_headers.py's in tests/harness_headers.py<-dev/audit/harnesses/cop_duty_floor.py
+2026-10-09T02:29:18+02:00 b731ef6b3 hand tvofi 1 closures: list the moved harness among harness_headers.py's  tests/harness_headers.py<-dev/audit/harnesses/early_cutoff_closed_loop.py
+2026-10-09T02:41:49+02:00 e408b9a28 hand Tvofi2 1 draw_range: synthetic shapes only; harness under dev/audit;  tests/harness_headers.py<-dev/audit/harnesses/draw_range_evidence.py
+2026-10-09T19:32:28+02:00 eed6aee87 hand tvofi 1 feat(R9-UX-10): the flow meter's measured heat into the mode tests/harness_headers.py<-dev/audit/harnesses/ux10_flow_into_model.py
+2026-10-10T14:02:49+02:00 be7dc8be1 hand tvofi 1 test(R9-RC-BLAS-KERNEL-RED): record the harness the header c tests/harness_headers.py<-dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py
+2026-10-10T16:53:03+00:00 fa851d7ea bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/rounds/round9/prestudy/boost_drift_refit.py
+2026-10-10T17:44:57+00:00 cce999733 bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/rounds/round9/prestudy/boost_drift_refit.py
+2026-10-10T18:36:27+00:00 cfa9fb9aa bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/rounds/round9/prestudy/boost_drift_refit.py
+2026-10-10T19:34:19+02:00 fdb05e622 hand tvofi 1 fix(closures): list the round-9 pre-study refit in harness_h tests/harness_headers.py<-dev/audit/rounds/round9/prestudy/boost_drift_refit.py
+2026-10-11T10:29:04+02:00 476dac6e0 hand fixer 1 feat(round-9): C1 composed closures, C2 proof consume, CI ra tests/entities.py<-tools/coverage/composed_proof.sh
+2026-10-11T11:33:09+02:00 c90c52099 hand fixer 1 closures: add main's boost_drift_refit prestudy read to harn tests/harness_headers.py<-dev/audit/rounds/round9/prestudy/boost_drift_refit.py
+2026-10-12T19:22:34+00:00 36ca97b6b bot github-actions[bot] 1 ci: re-record closures tests/harness_headers.py<-dev/audit/rounds/round9/prestudy/replay-experiments.py
+2026-10-14T23:14:54+02:00 d7bfeb0dd hand tvofi 1 closures: list the new harness among harness_headers.py's in tests/harness_headers.py<-dev/audit/harnesses/r10_2205_replay_cost_arms.py
+2026-10-15T10:23:50+00:00 c013415cf bot github-actions[bot] 177 ci: re-record closures tests/harness_headers.py<-dev/audit/rounds/round10/D0/leads/tail_floor_own_bounds.py ; tests/harness_headers.py<-dev/audit/rounds/round10/D0/s1/race.py ; tests/harness_headers.py<-dev/audit/rounds/round10/D0/s2/ftol_race.py
+2026-10-15T12:58:29+00:00 e1ac127d3 bot github-actions[bot] 28 ci: re-record closures tests/harness_headers.py<-dev/audit/rounds/round10/catchup/arch-a/v2_census_blind.py ; tests/harness_headers.py<-dev/audit/rounds/round10/catchup/arch-a/v2_duty_floor_reach.py ; tests/harness_headers.py<-dev/audit/rounds/round10/catchup/arch-a/v2_event_root_blind.py
+2026-10-15T17:14:23+02:00 9b3fd503f hand tvofi 1 closures: harness_headers reads the new r10_tick_which_roste tests/harness_headers.py<-dev/audit/harnesses/r10_tick_which_roster.py
+2026-10-15T17:37:45+02:00 29a782100 hand tvofi 2 closures: list the two new R10-TARIFF harnesses as tests/har tests/harness_headers.py<-dev/audit/harnesses/r10_month_last_window_billed.py ; tests/harness_headers.py<-dev/audit/harnesses/r10_weekday_range_twins.py
+2026-10-15T17:53:32+02:00 665f903c2 hand tvofi 3 chore(closures): list the three R10-I1 harnesses in harness_ tests/harness_headers.py<-dev/audit/harnesses/r10_i1_action_guards.py ; tests/harness_headers.py<-dev/audit/harnesses/r10_i1_solve_cpu_2x.py ; tests/harness_headers.py<-dev/audit/harnesses/r10_i1_sweep_guards.py
+2026-10-15T18:23:31+02:00 3c459205a hand tvofi 1 closures: issues.py joins 22 closures; the new harness is an tests/harness_headers.py<-dev/audit/harnesses/r10_fahrenheit_setpoints.py
+2026-10-15T18:54:04+02:00 0461329ce hand tvofi 1 closures: corpus_churn.py is read by the cited-program arm,  tests/entities.py<-dev/audit/rounds/round5/D11/seat-b/corpus_churn.py
+2026-10-15T19:42:42+02:00 8dcce67d5 hand tvofi 1 fix(R10-POLICY-LINT-STATS): one definition per --stats row,  tests/harness_headers.py<-dev/audit/harnesses/r10_stats_window.mjs
+2026-10-15T20:03:24+02:00 2f69def8e hand tvofi 1 chore(closures): classify the three red-team attempts and th tests/harness_headers.py<-dev/audit/harnesses/r10_archscore_any_spellings.py
+2026-10-16T00:52:27+02:00 a46805de2 hand tvofi 1 chore(closures): list r10_tick_train_mutants.sh in harness_h tests/harness_headers.py<-dev/audit/harnesses/r10_tick_train_mutants.sh
+2026-10-16T05:24:06+02:00 d5b85a501 hand tvofi 1 audit(D6): land the page-anchor harness the brief cites (fix tests/harness_headers.py<-dev/audit/harnesses/d6_page_anchors.py
+2026-10-16T05:45:33+02:00 9a29820c2 hand tvofi 1 test(early_cutoff): pin the once-per-record unload hook; lis tests/harness_headers.py<-dev/audit/harnesses/r10_registry_leak.py
+2026-10-16T17:56:20+02:00 c4209f9db hand tvofi 1 chore(closures): list the seam census as an inert read of ha tests/harness_headers.py<-dev/audit/harnesses/archscore_layering_seam_census.py
+2026-10-16T18:23:12+02:00 540ede178 hand tvofi 1 closures: harness_headers reads the new harness (INERT READS tests/harness_headers.py<-dev/audit/harnesses/r10_structure_blind.py
+2026-10-16T19:33:10+02:00 9d20cc2d6 hand tvofi 1 fix(replay): normalise the loop figure by a pure-Python refe tests/harness_headers.py<-dev/audit/harnesses/r10_replay_loopnorm.py
+2026-10-17T01:59:22+02:00 2f7aafdc8 hand tvofi 1 record(closures): tests/harness_headers.py opens the new rul tests/harness_headers.py<-dev/audit/harnesses/closing_keyword_ownership.py
+TOTAL 60 bot 11 hand 49
