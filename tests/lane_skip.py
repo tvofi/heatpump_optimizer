@@ -95,8 +95,9 @@ CLOSURE_LANES = ("fast", "coverage")
 # browser rig reads the card and its tests, and typing checks .py files. So
 # their verdict on the merge commit is main's, and they skip with no proof.
 # `fast` is not among them: it keeps the scoped suite and the run_always
-# lines. A path that only resembles a record (a `..` segment, a suffix, a
-# non-numeric row) is not one, and an empty list is never a skip.
+# lines. The match is anchored and exact, so a path that only resembles a
+# record (a `..` segment, a suffix, a non-numeric row) is not one, and an
+# empty list is never a skip.
 RECORD_INERT_LANES = ("browser", "coverage", "typing")
 _RECORD_PATH = re.compile(
     r"\Adev/programme/(?:rosters/wave-r[0-9]+-groups\.json"
@@ -105,7 +106,7 @@ _RECORD_PATH = re.compile(
 
 def is_record_file(path: str) -> bool:
     """A canonical programme-record path: a round roster or a delivery row."""
-    return bool(_RECORD_PATH.match(path)) and ".." not in path.split("/")
+    return bool(_RECORD_PATH.match(path))
 
 
 # The state is one small JSON file per (lane, branch, diff), restored from
