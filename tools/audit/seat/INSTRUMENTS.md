@@ -109,9 +109,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   channel, or an orchestrator collecting several lanes' verdicts at once.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
-  and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push
-  fires no `pull_request` run, so the governance family never reports at such
-  a head and it sits unmergeable looking green (R9-RC-AUTOFIX-GOVERNANCE).
+  and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
+  `pull_request` runs are held `action_required`, so until one is approved the
+  governance family does not report at such a head and it sits unmergeable
+  looking green (R9-RC-AUTOFIX-GOVERNANCE).
   When: a long fix wave where red-on-main or a fresh failure must interrupt
   work. Refusal: state already seen prints nothing — the exit-1 report is the
   alert, not the log; an unreadable ruleset alerts BLIND once rather than
@@ -131,6 +132,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   round 9 re-derived the wrapper in /tmp four times before this existed.
   Refusal: `--log` is mandatory and a non-existent `--cwd` aborts; no lock or
   pid bookkeeping — the printed pid and `kill` are the stop story.
+- `delivery_row.sh` — the one seat-script writer of a PR's own `**open**`
+  row on its branch, sourced by `open_pr.sh`, `update_pr.sh` and
+  `handoff_push.sh`: `commit_row` commits it as tvofi, `ensure_row` adds it
+  only when the head lacks it. `record_row.py` is the other row writer, for
+  the record beat's rows and its own PRs. When: never by hand; the openers
+  call it. Refusal: none; `ensure_row` adds nothing to a head that carries
+  the row, and `bus.sh --self-test` runs its self-test and refuses a seat
+  script with its own `write_row` or row commit.
 - `failure_logs.sh` — answers why a PR's newest red at its live head is red:
   latest failing check-runs (grouped by name, newest `started_at` wins, so
   red-then-green is not read as a failure) -> `details_url` -> job log ->
@@ -140,7 +149,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   with the count over readable logs beside the unread one; no error-marker
   match falls back to the log's tail, never a silent zero.
 - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
-  `hpo-author` with body, title and its own delivery row. When: only where
+  `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
+  its update path adds a row a refused earlier push left out). When: only where
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
@@ -226,6 +236,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
   but the gantt's grammar checks run in `--self-test`, not at render time.
+- `policy_reread_check.py` — says whether a session owes a policy re-read:
+  OK when `--stamp`'s instant is later than the newest compaction in
+  `--transcript` (a JSON line whose `subtype` is `compact_boundary`), else
+  OWED; `--write-stamp` records a finished re-read in the format the check
+  reads. When: the sweep's step 0 (`sweep_template.md`), after every
+  compaction. Refusal: it fails closed -- no stamp, an unparseable one, one
+  ahead of the clock, an unreadable transcript, or a line naming the marker
+  that is not JSON each print OWED, never OK. `--self-test` drives both arms.
 - `proof_watch.py` — watches one named check-run at one pinned head of one
   pull request and, once it completes `success` beside green required contexts
   and a valid merge verdict at that exact head, merges through `merge_pr.sh`.
@@ -302,7 +320,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   unwritten — archive before regenerating.
 - `roster_edit.py` — the safe roster edit: every op loads the whole roster,
   validates, and dumps with the file's own formatting; ops `set-stage`
-  (with `--at-sha`), `wire-issue`, `append-group`, `edit-brief`,
+  (with `--at-sha`), `wire-issue [--field fixes|issues]`, `unwire-issue <group> <N> [--field
+  fixes|issues]` (refuses an absent N), `append-group`, `edit-brief`,
   `append-carry`, and `set-resume <group> --field
   <stage|commit|branch|last_step|next_step|note>` for the resume free-text
   fields a session restarts from. When: any roster change — never a string
@@ -378,6 +397,22 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--once` is one pass and returns that pass's code; without `--tip-file` a
   `--once` caller regenerates every time, so give it one to keep the loop's
   memo on disk. `--self-test` drives all three arms offline.
+- `sweep_render.py` — renders the orchestrator sweep from
+  `sweep_template.md` and a session's JSON overlay (stdout or `--out`). The
+  template's `## Placeholders` table is the one registry of names. When: a
+  session or round sets up its recurring sweep -- render it, never hand-copy
+  the last session's prompt; the overlay stays out of the tree. Refusal: an
+  unfilled, empty or non-scalar value, an undeclared placeholder or overlay
+  key, a declared name the sweep never uses, a cited `tools/`, `tests/`,
+  `dev/` or `.github/` path that is not in the tree, and a home directory
+  (`ref_privacy.py`'s `HOME_DIR`) in the rendered text that no overlay value
+  supplied -- each exits 1 and writes nothing. `--self-test` renders the
+  tracked template and drives every refusal beside its null control.
+- `sweep_template.md` — the orchestrator's recurring sweep, steps in order,
+  each naming the instrument it runs by tree path and the rule file
+  (`orchestrator.md`, `nudge.md`, `CLAUDE.md`) it carries out; a usage guide
+  that restates no policy. When: read through `sweep_render.py`. Refusal: none
+  of its own -- the renderer's.
 - `tmp_paths.py` — refuses a tracked script, workflow or decision record that
   depends on a temp or machine path (`--check`, `--self-test`). When: after
   touching anything under `tools/`, `tests/`, `.claude/`, or before pushing.
@@ -388,10 +423,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `tests/mutation_ledger/` line the diff adds (a triage citing a probe no
   other seat can run); main's stock is not charged.
 - `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
-  origin/main (merge), prefixes ## Head with what happened, pushes as
+  origin/main (merge), adds the PR's own delivery row when the head lacks
+  it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
   `hpo-author`. When: updating a PR after review prep or a main merge.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
-  silently.
+  silently; no open PR at the branch stops before any push.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
   `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is

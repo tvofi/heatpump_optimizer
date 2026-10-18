@@ -51,6 +51,7 @@ from archscore.metrics import (  # noqa: E402
     layering,
     literal_clones,
     public_surface,
+    shapes,
     shared_inplace_writes,
     untyped_payload_keys,
 )
@@ -79,7 +80,7 @@ SCORE_METRICS = {
 }
 # Weight 0: must not rise, never counted. They retire when the role engine reads these spellings.
 GATE_ONLY = ("reflective_writes", "computed_attr_access", "family_orphan_overrides", "unread_private_globals",
-             "unused_boundary_imports")
+             "unused_boundary_imports", "shape_copies")
 
 
 def ablated() -> set[str]:
@@ -156,12 +157,14 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         footprint.READ_KW_KEYS = "C11" not in off
         C.FOLLOW_RETURNS = "C15" not in off
         hub_solve_writes.EVENT_ROOTS = "C16" not in off
+        hub_solve_writes.PASS_ON = "C16b" not in off
         layering.ALL_SCOPES = "C17" not in off
         layering.PRIVATE_ATTRS = "C18" not in off
         layering.UNUSED_IMPORTS = "C19" not in off
         literal_clones.NORMALISE = "C20" not in off
         literal_clones.INLINE_LOCALS = "C21" not in off
         card.OWN_NAMES = "C22" not in off
+        shapes.ERASE = "C23" not in off
         jobs = {
             "structure": lambda: structure_rows(flat),
             "hub_solve_writes": lambda: hub_solve_writes.measure(flat)["value"],
@@ -173,6 +176,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
             "layering": lambda: layering.measure(flat),
             "literal_clone_copies": lambda: literal_clones.measure(flat)["value"],
             "card": lambda: card.measure(flat),
+            "shape_copies": lambda: shapes.measure(flat)["shape_copies"],
         }
         ts = K.trees(flat)
         tripwires = {
