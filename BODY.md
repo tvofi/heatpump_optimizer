@@ -7,12 +7,13 @@ O17 item 2(i), from the roster-cost pre-study the orchestrator accepted on 2026-
 **What it fixes.** A pull request whose diff is a roster or a delivery row paid CodeQL's python leg, 23-26 minutes and its critical path, for an analysis of no python file. Measured in the pre-study: #2380 at `cdbca726` spent 23.5 of its 54.1 runner-minutes and 24.6 min to green on `Analyze (python)`, and the newest record PR head spent 26 min there. 76 of the 144 PRs merged since 2026-10-14 contain no `.py`, `.js` or `.yml` file.
 
 **The change.**
-- A new `scope` job in `codeql.yml`, `permissions: contents: read`, no credentials on disk. It diffs the PR three-dot and runs `tools/pr/codeql_scope.py decide` once per leg.
+- A new `scope` job in `codeql.yml`, `permissions: contents: read`, no credentials on disk. It builds the PR's three-dot file list with `tools/pr/codeql_scope.py changed`, then runs `decide` once per leg.
 - `analyze` now `needs: scope` with `if: ${{ !cancelled() }}`, so a failed scope never skips a required context through `needs`. Its checkout, init and analyze steps run unless that leg's output is exactly `skip`; empty (a failed or skipped scope) analyzes. A skipped leg's job concludes `success`, which the merge rule accepts.
-- The decision is fail-closed in every arm:
+- The decision is fail-closed in every arm below. Round 1's head (`fbba2ccb5`) was not: its list came from porcelain `git diff --name-only`, which detects renames and prints only the destination. So `git mv lib.py lib.md` listed `lib.md` alone and the python leg skipped a tree that had lost a module; likewise `.js` to `.md` and `action.yml` to `.md`. The reviewer found this; the body's earlier "fail-closed in every arm" was false for renames.
   - Only `pull_request` may skip. `push`, `schedule`, `merge_group` and `workflow_dispatch` always analyze, so main keeps a full analysis of every merged tree.
   - A leg skips only when every changed file's suffix is on that leg's INERT allow-list (prose and raster files, plus `.json` for python and actions only, since the javascript-typescript extractor reads JSON).
   - Any file under `.github/` analyzes every leg. An empty or unreadable list analyzes.
+  - **The list keeps both sides of every rename.** `changed` runs `git diff --no-renames --name-only BASE...HEAD`, so a renamed module reaches its leg by its old suffix. A git failure exits 2, the step fails under `set -e`, and every leg reads empty and analyzes.
 - `governance.yml`'s `instrument-self-tests` runs its self-test and greps the `0 failed` tally, as it does for `contract_rerun.py`. `CODEOWNERS` owns the script.
 
 **Alternatives considered.**
@@ -24,28 +25,30 @@ O17 item 2(i), from the roster-cost pre-study the orchestrator accepted on 2026-
 
 ## Head
 
-`54a69b23a2a03f64ee8504e9a37ff2d5490ca9ff`, one commit on origin/main `63816b857` (`git merge origin/main` at 2026-10-18 12:50Z reported up to date).
+`accf001301f78db3a82c21a637ee2eeb98d2c0b7`: round 1's reviewed head `fbba2ccb5` (the authored `54a69b23a` plus the orchestrator's delivery-row commit), plus `accf00130`, the rename fix. Merge base origin/main `63816b857`. Every figure below was re-taken at `accf00130`.
 
 ## Mutation proof
 
-Each mutant deletes the predicate line and the `return` under it from `decide` in a scratch copy outside the worktree (a three-line script that deletes an exact line and the next one), then runs `python3 -I <copy> --self-test`. The unmutated head prints `codeql_scope self-test: 42 checks, 0 failed`.
+Each mutant deletes the predicate line and the `return` under it from `decide` in a scratch copy outside the worktree (a three-line script that deletes an exact line and the next one), then runs `python3 -I <copy> --self-test`. The unmutated head prints `codeql_scope self-test: 46 checks, 0 failed`.
 
-- **Event guard** (`if event != "pull_request":`): `42 checks, 15 failed`. Among them are `event push analyzes actions on an inert diff` and `event schedule analyzes actions on an inert diff`.
-- **Suffix allow-list** (`if suffix not in INERT[language]:`, so every leg always skips): `42 checks, 10 failed`. Among them are `a .py file analyzes python (null control)`, `a .mjs file analyzes javascript-typescript (null control)` and `a roster PR analyzes javascript-typescript: its extractor reads .json`.
-- **`.github/` force** (`if f.startswith(FORCE_PREFIXES):`): `42 checks, 3 failed`, the three `a .md under .github/ analyzes <leg>`.
-- **Empty list** (`if not files:`): `42 checks, 2 failed`, `an empty file list analyzes` and `a blank-lines-only file list analyzes`.
-- **Failing first.** The self-test run with `decide` patched to today's behaviour (always `analyze`) prints `42 checks, 7 failed`. Among them are `a roster PR skips python` and `a record PR (one .md row) skips python`.
+- **Rename detection back on** (`"--no-renames"` deleted from `changed_files`): `46 checks, 2 failed`, `a rename lists its source too: lib.py -> lib.md lists both` (got `['lib.md']`) and `so the python leg analyzes the rename` (got `skip`).
+- **Event guard** (`if event != "pull_request":`): `46 checks, 15 failed`. Among them are `event push analyzes actions on an inert diff` and `event schedule analyzes actions on an inert diff`.
+- **Suffix allow-list** (`if suffix not in INERT[language]:`, so every leg always skips): `46 checks, 11 failed`. Among them are `a .py file analyzes python (null control)`, `a .mjs file analyzes javascript-typescript (null control)` and `a roster PR analyzes javascript-typescript: its extractor reads .json`.
+- **`.github/` force** (`if f.startswith(FORCE_PREFIXES):`): `46 checks, 3 failed`, the three `a .md under .github/ analyzes <leg>`.
+- **Empty list** (`if not files:`): `46 checks, 2 failed`, `an empty file list analyzes` and `a blank-lines-only file list analyzes`.
+- **Failing first.** For the rename arm, the self-test's null control drives round 1's form, porcelain `git diff --name-only`, over the same throwaway `git mv lib.py lib.md` commit. It lists `['lib.md']`, and `decide` over that list returns `skip`. For the skip arms (round 0), the self-test run with `decide` patched to always `analyze` printed `42 checks, 7 failed`. Among them are `a roster PR skips python` and `a record PR (one .md row) skips python`.
 - **CODEOWNERS.** With the new `CODEOWNERS` line removed, `python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check` exits 1 with `UNCOVERED tools/pr/codeql_scope.py` and `uncovered_files=1`.
 
 ## Null control
 
 - **The unmodified tree** (origin/main `63816b857`): `codeowners_gap.py --check` reads `enforcement_surface_files=85`, `covered_by_an_owner=44`, `uncovered_files=0`. At the head it reads 86, 45 and 0, and the one added file is `COVERED tools/pr/codeql_scope.py`.
+- **The rename probe's own control**: the porcelain form lists only `lib.md`, so the `--no-renames` arm is not vacuous.
 - **Inside the self-test.** Every skip arm has an analyze twin one file away: the roster plus `roster_lib.py`, a row plus `brief_lint.mjs`, a row plus `.github/workflows/codeql.yml`, and the same inert row under each non-PR event.
 - **This PR's own head** is the workflow-level null control. Its diff touches `.github/`, so all three legs must log `codeql scope for <leg>: analyze` and run in full. That is to be read from this head's CodeQL run, not predicted here.
 
 ## Figures
 
-- `python3 -I tools/pr/codeql_scope.py --self-test` at the head: `codeql_scope self-test: 42 checks, 0 failed`.
+- `python3 -I tools/pr/codeql_scope.py --self-test` at the head: `codeql_scope self-test: 46 checks, 0 failed`.
 - `python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: base 85/44/0, head 86/45/0 (surface, owned, uncovered).
 - `python3 tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`.
 - `node tools/policy/policy_lint.mjs` at the head: `TOTAL: 0 error(s) across 41 policy file(s)`.
@@ -58,15 +61,15 @@ Each mutant deletes the predicate line and the `return` under it from `decide` i
 
 ## Unpinned sites
 
-The workflow wiring (the `scope` outputs and the three step `if:`s) is pinned by no local check, since no tool drives a workflow file offline. Its proof is this head's CodeQL run (every leg analyzes: the `.github/` arm) and the first roster or record head after merge (python skips and reports `success`).
+The list is now built in the script and pinned by the rename arm. The workflow calls `changed`, so no flag lives in YAML. What stays unpinned is the wiring (the `scope` outputs and the three step `if:`s), since no tool drives a workflow file offline. Its proof is this head's CodeQL run (every leg analyzes: the `.github/` arm) and the first roster or record head after merge (python skips and reports `success`).
 
 ## Red checks
 
-none
+none. At round 1's head `fbba2ccb5`, the check-runs API (`commits/<sha>/check-runs`) lists 28 success, 13 skipped and 2 in progress (`closures`, `Analyze (python)`), with no failure. The authored head `54a69b23a` has only `cancelled` runs, superseded by concurrency.
 
 ## Forward-carry
 
-none. The remaining CodeQL-free lanes are O17 item 2(ii), built in `handoff/r10-roster-fastpath`, the coordinator's own split.
+none. The same rename class reaches the gate's own changed-file list (`tests/closure.py` `changed_files`, the `closure-scope` and `closures` diffs in `tests.yml`, and `lane_skip.py`'s main delta). Per the coordinator, it is fixed in `handoff/r10-roster-fastpath` (#2406) as one `--no-renames` producer. Once this merges, `codeql_scope.changed` becomes a consumer of that producer, not a second copy.
 
 ## Friction
 
