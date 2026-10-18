@@ -10973,6 +10973,12 @@ R.check(
     f"got {_nc.hass.services.calls} / {_mc.hass.services.calls} / "
     f"{_uc.hass.services.calls}",
 )
+R.check(
+    "#2351: a write the valve refused is not remembered as commanded, so the "
+    "next cycle retries it rather than skipping it as unchanged",
+    _uc._valve_commanded_target is None,
+    f"remembered {_uc._valve_commanded_target!r} after an uncommandable write",
+)
 
 # With a hold schedule in force the actuator follows *it*, not the fixed
 # recommendation -- otherwise the plan holds the tank on paper while the real
@@ -52027,6 +52033,29 @@ def _pa_run(coord, minutes):
     _pa_aio.run(_pa.apply(coord, _PA_T0 + timedelta(minutes=minutes)))
 
 
+# #2351: the misdeclared-indoor bound is strict. An indoor entity whose minimum
+# sits exactly SETPOINT_TOLERANCE above the room target can hold it (the write
+# is clamped up within tolerance); only one beyond that is a flow set-point
+# declared indoor, which is refused.
+_pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
+
+
+def _pa_bound_target(low):
+    _pa_bound.hass.states.get("number.water_set").attributes = {"min": low, "max": 63}
+    return _pa._space_target(
+        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space")
+
+
+_pa_bound_at = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE)
+_pa_bound_past = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE + 0.1)
+R.check(
+    "#2351: an indoor set-point whose minimum is exactly the tolerance above the "
+    "room target is written; one beyond it is refused as a declared flow set-point",
+    _pa_bound_at is not None and _pa_bound_past is None,
+    f"at tolerance -> {_pa_bound_at!r}, beyond -> {_pa_bound_past!r}",
+)
+
+
 def _pa_own(coord, signals):
     held = _pa.own(coord, signals)
     return _pa_aio.run(held) if _pa_aio.iscoroutine(held) else held
@@ -64059,7 +64088,7 @@ def _fd_coord():
 
 
 class _FdLog(_fd_logging.Handler):
-    """Every record the coordinator module logs, as (level, message)."""
+    """Every record the package logs, as (level, message)."""
 
     def __init__(self):
         super().__init__(_fd_logging.DEBUG)
@@ -64074,7 +64103,12 @@ class _FdLog(_fd_logging.Handler):
 
 def _fd_logged(fn):
     log = _FdLog()
-    logger = _fd_logging.getLogger(_fd_cm.__name__)
+    # Rooted at the package, not at the coordinator module: the transition
+    # latch lives in log_latch.py and logs through its own logger, and a
+    # handler on the coordinator's module logger never sees a child module's
+    # records. The child loggers carry no level of their own, so the package
+    # logger's DEBUG is what admits the latch's DEBUG rows here.
+    logger = _fd_logging.getLogger(_fd_cm.__name__.rsplit(".", 1)[0])
     old = logger.level
     logger.addHandler(log)
     logger.setLevel(_fd_logging.DEBUG)
@@ -64272,8 +64306,8 @@ _fd_latch_owner = _fd_coord()
 
 def _fd_latch_run():
     for active in (True, True, True, True, False, False, True):
-        _fd_cm._log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
-    _fd_cm._log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
+        _fd_cm.log_held(_fd_latch_owner, "probe_condition", active, "Probe %s", "held")
+    _fd_cm.log_held(_fd_latch_owner, "probe_condition", True, "Probe %s", "changed")
 
 
 _fd_latch = _fd_logged(_fd_latch_run)
@@ -64311,6 +64345,107 @@ R.check(
     "log each WARNING once (it was 4, and 16 for a tariff option)",
     set(_fd_flood_counts.values()) == {1},
     repr(_fd_flood_counts),
+)
+
+# R10 round 3 (#2351): the stale-plan hold is reached only while stale, and
+# its text renders the age and the failed-solve count -- both advance every
+# cycle -- so no transition latch can hold it: a stable key would drop what the
+# line exists to report, and the latch's clear path never runs from a branch
+# taken only while stale. The per-cycle detail is DEBUG and the notifier's
+# EVENT_PLAN_STALE is the once-per-occurrence signal (the "UX-4 plan stale"
+# check above fires it once with the age and stays quiet on repeats).
+_fd_stale = _fd_coord()
+_fd_stale._mode = "auto"
+_fd_stale._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+_fd_stale_interval = _fd_stale.effective_config.optimization_interval
+
+
+def _fd_stale_run():
+    _fd_stale._last_optimization = _fd_dt.now() - timedelta(minutes=400)
+    for _ in range(4):
+        # Production cadence: the next cycle runs one solve interval later
+        # (the stamp is fixed, so the age grows) and that cycle's failed
+        # solve increments the count the message renders.
+        _fd_stale._last_optimization -= timedelta(minutes=_fd_stale_interval)
+        _fd_stale._solve_failures += 1
+        _fd_asyncio.run(_fd_stale._apply_action())
+
+
+_fd_stale_log = _fd_logged(_fd_stale_run)
+R.check(
+    "#2226/#2351: the stale-plan hold logs its advancing age and failure count "
+    "at DEBUG, so a persisting stale plan never warns every cycle",
+    _fd_stale_log.count("WARNING", "Plan is") == 0
+    # null control: the line still runs on every pass, so a deletion is not
+    # what read zero WARNINGs
+    and _fd_stale_log.count("DEBUG", "Plan is") == 4,
+    repr(_fd_stale_log.rows),
+)
+
+# The latch's precondition is a long-lived, weak-referenceable owner. A
+# snapshot built with ``hass=None`` (tests/features.py and tests/block_duty.py
+# both build ``ArbiterInputs`` that way) has none: it must log the condition
+# every call rather than raise into a cycle.
+_fd_ownerless_errors = []
+
+
+def _fd_ownerless_run():
+    for _ in range(4):
+        try:
+            _fd_cm.log_held(
+                None, "ownerless_condition", True, "Probe %s", "ownerless")
+        except Exception as err:  # noqa: BLE001 - the guard is what is probed
+            _fd_ownerless_errors.append(f"{type(err).__name__}: {err}")
+
+
+_fd_ownerless_log = _fd_logged(_fd_ownerless_run)
+R.check(
+    "#2351: a None owner is logged every call and never raises -- no stable "
+    "key means no transition to hold, not a cycle-ending exception",
+    not _fd_ownerless_errors
+    and _fd_ownerless_log.count("WARNING", "Probe ownerless") == 4,
+    f"errors={_fd_ownerless_errors!r} rows={_fd_ownerless_log.rows!r}",
+)
+
+# R10 round 6 (#2351): a failed solve starts as an ERROR carrying its
+# traceback (the pre-latch level), repeats at DEBUG, and the clearing call the
+# success path makes lets the next failure spell ERROR again. forget_held, run
+# at shutdown, drops a hass-owned condition so a reloaded entry reports it.
+_fd_sf = _fd_coord()
+_fd_sf_tb = []
+
+
+class _FdTraceback(_fd_logging.Handler):
+    def emit(self, record):
+        if "Optimization failed" in record.getMessage():
+            _fd_sf_tb.append((record.levelname, record.exc_info is not None))
+
+
+def _fd_sf_run():
+    tb = _FdTraceback(_fd_logging.DEBUG)
+    logger = _fd_logging.getLogger(_fd_cm.__name__.rsplit(".", 1)[0])
+    logger.addHandler(tb)
+    try:
+        for _ in range(2):
+            _fd_cm._note_solve_failure(_fd_sf, RuntimeError("fd solve"))
+        _fd_cm.log_held(_fd_sf, "solve_failure", False)
+        _fd_cm._note_solve_failure(_fd_sf, RuntimeError("fd solve"))
+        _fd_cm.log_held(_fd_sf.hass, "fd_hass_condition", True, "Probe %s", "hass-owned")
+        _fd_cm.forget_held(_fd_sf.hass)
+        _fd_cm.log_held(_fd_sf.hass, "fd_hass_condition", True, "Probe %s", "hass-owned")
+    finally:
+        logger.removeHandler(tb)
+
+
+_fd_sf_log = _fd_logged(_fd_sf_run)
+R.check(
+    "#2351: a failed solve ERRORs with its traceback once per spell, DEBUGs on "
+    "repeats, ERRORs again after the success path clears it; forget_held re-arms",
+    _fd_sf_tb[:1] == [("ERROR", True)]
+    and _fd_sf_log.count("ERROR", "Optimization failed") == 2
+    and _fd_sf_log.count("DEBUG", "Optimization failed") == 1
+    and _fd_sf_log.count("WARNING", "Probe hass-owned") == 2,
+    f"tracebacks={_fd_sf_tb!r} rows={_fd_sf_log.rows!r}",
 )
 
 # -- the consumers of an unknown price (#2229's distinct failure value) ------

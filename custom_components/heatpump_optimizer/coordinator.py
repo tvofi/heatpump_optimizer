@@ -25,7 +25,6 @@ import pickle
 import subprocess
 import sys
 import threading
-from weakref import WeakKeyDictionary
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
@@ -545,33 +544,10 @@ def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
     return i if now < starts[i] + span else None
 
 
-#: R10 N-log-flood (#2226): per coordinator, each persisting condition logged
-#: at WARNING and the text it was logged with. A side table on boost.py's
-#: precedent, so the latch costs the coordinator no attribute.
-_HELD_CONDITIONS: WeakKeyDictionary[Any, dict[str, str]] = WeakKeyDictionary()
-
-
-def _log_held(owner: Any, key: str, active: bool, message: str = "", *args: Any) -> bool:
-    """Whether condition ``key`` holds, logging only its transitions; returns ``active``.
-
-    A condition that persists (no forecast, no prices, a malformed option)
-    used to log WARNING on every cycle -- 48 a day, 192 for a tariff option
-    read four times a cycle. Now WARNING when it starts or its text changes,
-    DEBUG while it holds, INFO when it clears: the outage latches'
-    (``_tibber_fetch_failed``) shape, one helper instead of per-site counters.
-    """
-    held = _HELD_CONDITIONS.setdefault(owner, {})
-    if not active:
-        if held.pop(key, None) is not None:
-            _LOGGER.info("Resolved: %s", key.replace("_", " "))
-        return False
-    text = message % args if args else message
-    if held.get(key) == text:
-        _LOGGER.debug("Still: %s", text)
-    else:
-        held[key] = text
-        _LOGGER.warning("%s", text)
-    return True
+#: R10 N-log-flood (#2226): the transition latch lives in ``log_latch.py``, a
+#: leaf module, so the pump arbiter and the input reader can route a persisting
+#: condition through it without importing this module (which imports them all).
+from .log_latch import forget_held, log_held  # noqa: E402
 
 
 @functools.lru_cache(maxsize=8)
@@ -651,7 +627,7 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
     owns none of its state, and the failure branch it serves must stay one
     screen (#1644, D1-s4-02 moved its third caller into it).
     """
-    _LOGGER.error("Optimization failed: %s", err, exc_info=True)
+    log_held(coord, "solve_failure", True, "Optimization failed: %s", err, exc_info=err)
     coord._solve_failures += 1
     if coord._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
         # Exactly-at, not at-or-above: the issue is idempotent to
@@ -679,6 +655,23 @@ def _note_solve_failure(coord: "HeatPumpOptimizerCoordinator", err: Exception) -
             },
         )
 
+
+
+
+async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str | None:
+    """Write the valve target; ``None`` when written, else why it was not.
+
+    A failure is swallowed into the reason, so a balky valve never breaks
+    planning: an entity of a domain smart_write cannot command, or the write
+    raising.
+    """
+    try:
+        if await write_setpoint_c(hass, entity_id, target):
+            return None
+    except Exception as err:  # noqa: BLE001 - never break planning
+        return f"could not be commanded: {err}"
+    return (f"is a {entity_id.split('.', 1)[0]}; smart_write can command "
+            "number, input_number and climate entities")
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
@@ -5801,6 +5794,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
                 ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
             self._solve_failures = 0
+            log_held(self, "solve_failure", False)  # a later failure spell warns again
             # T5 #16: file this plan's promises at each lead bucket, to be
             # scored when their moment arrives. Anchored to the instant
             # the trajectory was built from, not to "after the solve".
@@ -6018,6 +6012,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._release_registrations()
         await self._legionella.async_release_switch()
         await pump_arbiter.release(self)
+        forget_held(self.hass)  # the reader's and arbiter's latches re-warn after a reload
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -6642,7 +6637,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 try:
                     return float(lat), float(lon)
                 except (TypeError, ValueError):
-                    _log_held(self, "solar_location", True,
+                    log_held(self, "solar_location", True,
                               "Ignoring malformed solar location %s", location)
 
         lat = getattr(self.hass.config, "latitude", None)
@@ -6658,7 +6653,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         location = self._solar_location()
-        _log_held(self, "solar_coordinate", location is None,
+        log_held(self, "solar_coordinate", location is None,
                   "Open-Meteo solar is selected but no coordinate is available; "
                   "set one in the integration options or configure the Home "
                   "Assistant home location")
@@ -6707,7 +6702,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         curve there used to let the optimizer run and report a savings figure
         that no price data supported, so the caller skips the run instead.
         """
-        if _log_held(self, "no_prices", not self._prices,
+        if log_held(self, "no_prices", not self._prices,
                      "No electricity price data available; skipping optimization "
                      "until prices can be fetched"):
             return None
@@ -6723,7 +6718,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # span. The known series stops at the first step no entry covers, and
         # the learned prior fills the rest below.
         known = self._known_prices_for(step_starts)
-        if _log_held(self, "prices_uncovered", not known,  # #239
+        if log_held(self, "prices_uncovered", not known,  # #239
                      "No published prices cover the planning horizon; skipping"):
             return None
 
@@ -6785,7 +6780,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         as soon as the forecast is stale or starts at the *next* hour, and
         the whole horizon then reads a few hours out of phase.
         """
-        if _log_held(self, "no_weather_forecast", not self._weather_forecast,
+        if log_held(self, "no_weather_forecast", not self._weather_forecast,
                      "No weather forecast available — using current conditions. "
                      "Predictive optimization will be limited."):
             return (
@@ -7314,10 +7309,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if planned is not None:
             target = float(planned)
         kind = ctx._config.mixing_valve_write_target_kind
+        if log_held(self, "valve_flow_needs_two_zone",
+                    kind == mixing_valve.WRITE_TARGET_FLOW and not params.two_zone_enabled,
+                    "mixing_valve_write_target_kind=flow needs two-zone"):
+            return
         if kind == mixing_valve.WRITE_TARGET_FLOW:
-            if not params.two_zone_enabled:
-                _LOGGER.error("mixing_valve_write_target_kind=flow needs two-zone")
-                return
             outdoor = ctx._current_state.outdoor_temperature
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
         if (
@@ -7326,17 +7322,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             < MIXING_VALVE_WRITE_EPSILON
         ):
             return
-        try:
-            if not await write_setpoint_c(self.hass, entity_id, target):
-                _LOGGER.warning(
-                    "Valve write entity %s is a %s; smart_write can command "
-                    "number, input_number and climate entities",
-                    entity_id,
-                    entity_id.split(".", 1)[0],
-                )
-                return
-        except Exception as err:  # noqa: BLE001 - never break planning
-            _LOGGER.error("Error commanding valve target: %s", err)
+        # One latch for both failures: its text says which, and the next
+        # successful write clears it, so a valve that fails again warns again.
+        why = await _valve_write_problem(self.hass, entity_id, target)
+        if log_held(self, "valve_write", why is not None, "Valve write entity %s %s", entity_id, why):
             return
         _LOGGER.info(
             "Commanded mixing valve target %.1f °C via %s", target, entity_id
@@ -7373,15 +7362,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The action was cut from a plan whose horizon has slid out from
             # under it — its "cheap hour" may be the current peak. Stop
             # actuating, exactly as when no plan exists: the pump's own
-            # weather-compensated curve holds comfort until a solve succeeds.
-            # Fixed-rule modes (comfort/boost/off) carry no horizon and are
-            # unaffected.
-            _LOGGER.warning(
-                "Plan is %.0f minutes old after %d failed solves; holding "
-                "comfort on the pump's own curve instead of actuating it",
-                self._plan_age_minutes() or 0.0,
-                self._solve_failures,
-            )
+            # weather-compensated curve holds comfort until a solve succeeds;
+            # fixed-rule modes carry no horizon. DEBUG, not latched: age and
+            # failures change every cycle, so EVENT_PLAN_STALE announces it.
+            _LOGGER.debug("Plan is %.0f minutes old after %d failed solves; "
+                          "holding comfort on the pump's own curve instead of "
+                          "actuating it",
+                          self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
         # A cut-off holds the pump off for MIN_OFF across an early refresh.
