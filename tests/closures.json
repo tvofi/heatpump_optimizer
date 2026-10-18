@@ -3349,6 +3349,7 @@
    "dev/audit/harnesses/r9_ro12_batch_mutants.sh",
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
+   "dev/audit/harnesses/superseded_runs.py",
    "dev/audit/harnesses/thermal_parity.py",
    "dev/audit/harnesses/throwaway_git_sites.sh",
    "dev/audit/harnesses/ux10_flow_into_model.py",
