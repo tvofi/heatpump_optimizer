@@ -857,6 +857,24 @@ def _number_state_arm() -> None:
     )
     print(f"RESULT number_states={states} count")
     print(f"RESULT number_state_escapes={len(bad)} count")
+    # The census substitutes every leaf at once, so a part of a composed
+    # number (the step's space and DHW ask) is masked by its sibling's guard:
+    # each part is pinned alone here, beside its healthy control.
+    from heatpump_optimizer.entity import commanded_power_kw
+    parts = {
+        "space True": ({"power": True, "dhw_power": 0.5}, None),
+        "space text": ({"power": "1.5", "dhw_power": 0.5}, None),
+        "dhw True": ({"power": 1.5, "dhw_power": True}, None),
+        "dhw text": ({"power": 1.5, "dhw_power": "0.5"}, None),
+        "healthy (control)": ({"power": 1.5, "dhw_power": 0.5}, 2.0),
+    }
+    wrong = {k: got for k, (action, want) in parts.items()
+             if (got := commanded_power_kw(action)) != want}
+    R.check(
+        "commanded_power_kw refuses a bool or text part on either channel, and "
+        "adds two numbers (#2242)",
+        not wrong, f"{wrong}",
+    )
 
 
 # ---------------------------------------------------------------------------
