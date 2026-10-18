@@ -144,6 +144,7 @@ def arm_null(days: int = 2, replan: int = 4) -> bool:
     state = _state(21.0, 22.0, float(out[0]))
     led = MonthlyLedger()
     plan = None
+    rooms, targets, kwh_plan, kwh_base = [], [], 0.0, 0.0
     for k in range(total):
         now = START + timedelta(hours=k * DT)
         if k % replan == 0:
@@ -155,6 +156,9 @@ def arm_null(days: int = 2, replan: int = 4) -> bool:
         o = k % replan
         power = float(plan.power_schedule[o])
         pending = {"baseline_kw": float(plan.baseline_power_schedule[o])}
+        targets.append(opt.config.get_comfort_temp((now.hour + now.minute / 60.0), when=now))
+        kwh_plan += power * DT
+        kwh_base += pending["baseline_kw"] * DT
         led.observe_spot_and_settle_savings(now, float(pr[k]), pending, power * DT, DT)
         led.add(now, "spot", kwh=power * DT, sek=power * DT * float(pr[k]))
         room, slab, up, lo, _, _, _ = model.simulate_trajectory(
@@ -166,6 +170,11 @@ def arm_null(days: int = 2, replan: int = 4) -> bool:
         state = _state(float(room[-1]), float(slab[-1]), float(out[k]))
         state.upper_floor_temperature = float(up[-1])
         state.lower_floor_temperature = float(lo[-1])
+        rooms.append(state.room_temperature)
+    print(
+        f"null: plan kWh {kwh_plan:.1f} vs booked thermostat kWh {kwh_base:.1f}; "
+        f"plan mean room {np.mean(rooms):.2f} C vs mean comfort target {np.mean(targets):.2f} C"
+    )
     row = led.savings_months(datetime(2026, 2, 1, 0, 0))[0]
     print(
         f"null: flat price, {days} days, re-plan every {replan * DT:.2f} h: "

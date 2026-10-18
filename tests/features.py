@@ -37371,6 +37371,20 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
         and 0.0 < _hb_first[0] < float(_hb_par.max_electrical_power),
         repr(_hb_first),
     )
+    if not _hb_two:
+        # And it is the steady holding power, not merely a common one: the
+        # slab-fed demand at the step's comfort target (midnight: the night
+        # temperature) over this step's COP (no DHW, no external heat here).
+        _hb_q = _hb_opt._floor_demand_at_target(
+            _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0), float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
+            float(_hb_sol[0]),
+        )
+        _hb_cop = _hb_opt.model.compute_cop(float(_hb_out[0]))
+        R.check(
+            "the booked thermostat step is the steady holding power at target",
+            abs(_hb_first[0] - max(0.0, _hb_q) / _hb_cop) < 1e-9,
+            f"{_hb_first[0]!r} vs {max(0.0, _hb_q) / _hb_cop!r}",
+        )
 
 import inspect as _sav_inspect
 from pathlib import Path as _SavPath
