@@ -64,7 +64,6 @@ for _extra in ("tools/audit", "tests/hastub", "tests", "custom_components"):
 
 from harness import Results  # noqa: E402
 from throwaway_git import throwaway_git_init  # noqa: E402
-from archscore.metrics.card import _IDENT  # noqa: E402
 
 R = Results("doc claims vs code facts (#1413)")
 
@@ -2018,6 +2017,10 @@ def check_entity_prose() -> None:
 
 CARD = PKG / "www" / "heatpump-optimizer-card.js"
 _TICKED_PRIVATE = re.compile(r"`(?:this\.)?(_[A-Za-z][\w$]*)(?:\(\))?`")
+
+
+# Module level, beside its one reader: an import at the top would shift every line below it, and carries cite them.
+from archscore.metrics.card import _IDENT  # noqa: E402
 
 
 def _tokens(text: str) -> set[str]:
