@@ -119,7 +119,7 @@ def items(text: str, verdict: bool) -> list[dict]:
     {"id", "section", "text", "flagged"} (every item; `flagged` marks the
     finding-shaped ones)."""
     lines, fenced = [], False
-    for ln in text.replace("\r\n", "\n").split("\n"):
+    for ln in text.split("\n"):
         if ln.lstrip().startswith(("```", "~~~")):  # a fence, as tests/doc_claims.py reads one
             fenced = not fenced
             continue
@@ -142,10 +142,10 @@ def items(text: str, verdict: bool) -> list[dict]:
             section = h.group(2)
             continue
         if not ln.strip():
-            if kind == "table" or kind == "para":
+            if kind == "para":
                 flush()
             elif kind == "bullet":
-                cur.append(ln)
+                cur.append("")
             continue
         if ln.lstrip().startswith("|"):
             flush()
@@ -154,11 +154,11 @@ def items(text: str, verdict: bool) -> list[dict]:
             flush()
             continue
         starts = bool(BULLET.match(ln)) or (
-            section.strip().lower() == "friction" and FRICTION_ENTRY.match(ln) and not ln.startswith("  "))
+            section.lower() == "friction" and FRICTION_ENTRY.match(ln) and not ln.startswith("  "))
         if starts:
             flush()
             kind, cur = "bullet", [ln]
-        elif kind == "bullet" and cur and not cur[-1].strip() and not ln.startswith((" ", "\t")):
+        elif cur[-1:] == [""] and not ln.startswith((" ", "\t")):  # a bullet's blank, then no indent
             flush()
             kind, cur = "para", [ln]
         else:
@@ -168,14 +168,14 @@ def items(text: str, verdict: bool) -> list[dict]:
     flush()
 
     lead_flag = False
-    blocked_verdict = verdict and text.lstrip().split(None, 3)[2:3] == ["blocked"]
+    blocked_verdict = text.split(None, 3)[2:3] == ["blocked"]  # read only for a verdict
     for it in out:
-        sec = it["section"].strip()
+        sec = it["section"]
         t = it["text"]
         first = re.sub(r"^[\s>*_`-]*(?:\d+[.)]\s*)?[*_`]*", "", t)
         if it["kind"] != "bullet":
             lead_flag = False
-        inherited = lead_flag and it["kind"] == "bullet"
+        inherited = lead_flag  # a non-bullet has just reset it
         why = ""
         if TRAILER.match(first) or VERDICT.match(first):
             pass
@@ -196,7 +196,7 @@ def items(text: str, verdict: bool) -> list[dict]:
         flagged = bool(why)
         it["why"] = why
         it["lead"] = False
-        if it["kind"] == "para" and t.rstrip().endswith(":") and flagged:
+        if it["kind"] == "para" and t.endswith(":") and flagged:
             lead_flag, it["lead"] = True, True  # a lead: its bullets carry
             flagged = False
         it["flagged"] = flagged
@@ -583,6 +583,9 @@ def _self_test() -> int:
         res["b"] = sum(r["status"] == "bad" for r in res["rows"])
         return res
 
+    def first_id(res: dict) -> str:  # a mutant that reads no row fails checks, never crashes them
+        return res["rows"][0]["id"] if res["rows"] else "-"
+
     head = "## Head\n\nabc\n\n"
     plant = head + "## Friction\n\n- fixer.md: unclear: step 2 offers a disposition that pins nothing.\n"
     r = run(plant)
@@ -611,7 +614,7 @@ def _self_test() -> int:
     check("an O-brief that does not exist is a bad destination", r["b"] == 1)
     r = run(plant.rstrip() + " Carry: O99\n", d=Dci)
     check("without a briefs dir an O-brief passes UNVERIFIED", r["b"] == 0
-          and any("UNVERIFIED" in n for n in r["rows"][0]["notes"]))
+          and any("UNVERIFIED" in n for x in r["rows"] for n in x["notes"]))
     r = run(plant.rstrip() + " Carry: O7-same-sha\n")
     check("an O-brief named in full is a destination", r["u"] == 0 and r["b"] == 0)
     r = run(plant.rstrip() + " Carry: O7-other\n")
@@ -647,7 +650,7 @@ def _self_test() -> int:
     r = run(head, [v])
     check("a verdict's non-blocking lead flags its bullets, not itself and not ## Verified",
           len(r["rows"]) == 2 and r["u"] == 2)
-    vid = r["rows"][0]["id"] if r["rows"] else ""
+    vid = first_id(r)
     r = run(head + f"## Forward-carry\n\n- the prose duplicate. Carry: R10-LIVE (item {vid})\n", [v])
     check("an item routed by reference from the body counts as routed", r["u"] == 1 and r["b"] == 0)
     v2 = {"id": 43, "body": "Fix review: blocked " + "b" * 40 + "\n\n## Why blocked\n\n"
@@ -672,8 +675,9 @@ def _self_test() -> int:
     out = ledger_unrouted(led)
     check("a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed "
           "FINDING: are not", len(out) == 1 and out[0].startswith("LEDGER-UNROUTED l1:"))
+    check("a ledger FINDING: with no Carry: is unrouted", len(ledger_unrouted("== FINDING: x.\n")) == 1)
     fr = head + "## Friction\n\n- carry_audit.py: unenforced: nothing reads the ledger key at merge.\n"
-    fid = run(fr)["rows"][0]["id"]
+    fid = first_id(run(fr))
     r = run(fr + f"\n## Red checks\n\n- `pr-contract`: it printed `UNROUTED body item {fid} (## Friction)`; "
             "the fold names Carry: R10-LIVE as its example.\n")
     check("a quoted refusal beside an unrelated marker routes nothing (#2404's review)",
@@ -708,7 +712,7 @@ def _self_test() -> int:
     # each row kills alone, so no predicate is pinned only with another.
     P = plant.rstrip()
     rc = fr + "\n## Red checks\n\n- `pr-contract`: "
-    pid = run(P + " Carry: R10-LIVE\n")["rows"][0]["id"]
+    pid = first_id(run(P + " Carry: R10-LIVE\n"))
     grammar = [
         ("a `Carry:` right after a closing backtick is a marker", P + " see `x`Carry: R10-LIVE\n", "routed"),
         ("an unmatched double backtick opens no span", P + " the `` run. Carry: R10-LIVE `z`\n", "routed"),
@@ -748,6 +752,111 @@ def _self_test() -> int:
     for name, text, want in grammar:
         got = sorted(x["status"] for x in run(text)["rows"])
         check(f"grammar: {name}", got == [want])
+    # The same for what an item is and when it is a finding: each row's
+    # (why, status) pairs, sorted.
+    def verdict_of(word: str, rest: str) -> list:
+        return [{"id": 48, "body": f"Fix review: {word} {'d' * 40}\n\n{rest}"}]
+    U, R_ = "unrouted", "routed"
+    item_grammar = [
+        ("a fence indented under a bullet still fences",
+         head + "## Figures\n\n  ```\n## Friction\n- a: unclear: fenced\n  ```\n", (), []),
+        ("a `~~~` fence fences", head + "## Figures\n\n~~~\n## Friction\n- a: unclear: fenced\n~~~\n", (), []),
+        ("a fence line is not an item", head + "## Friction\n\n```\nx\n```\n", (), []),
+        ("an HTML comment is not an item", head + "## Friction\n\n<!-- template note -->\n", (), []),
+        ("an indented HTML comment is not an item", head + "## Friction\n\n  <!-- note -->\n", (), []),
+        ("a thematic break is not an item", head + "## Friction\n\n- a: unclear: x. Carry: R10-LIVE\n\n---\n", (),
+         [("section", R_)]),
+        ("a whitespace-only line ends a paragraph",
+         head + "## Figures\n\nOut of scope: x. Carry: R10-LIVE\n   \nOut of scope: y.\n", (),
+         [("lead", R_), ("lead", U)]),
+        ("a blank line ends a paragraph",
+         head + "## Figures\n\nOut of scope: x. Carry: R10-LIVE\n\nOut of scope: y.\n", (),
+         [("lead", R_), ("lead", U)]),
+        ("an indented line after a bullet's blank continues it",
+         head + "## Friction\n\n- a: unclear: x.\n\n  more of a. Carry: R10-LIVE\n", (), [("section", R_)]),
+        ("a tab-indented line after a bullet's blank continues it",
+         head + "## Friction\n\n- a: unclear: x.\n\n\tmore of a. Carry: R10-LIVE\n", (), [("section", R_)]),
+        ("an unindented line after a bullet's blank is a paragraph",
+         head + "## Figures\n\n- a figure.\n\nOut of scope: x.\n", (), [("lead", U)]),
+        ("an unindented line right after a bullet continues it",
+         head + "## Figures\n\n- Out of scope: x\ncontinued. Carry: R10-LIVE\n", (), [("lead", R_)]),
+        ("each table row is an item, its separator none",
+         head + "## Friction\n\n  | a: unclear: x | Carry: R10-LIVE |\n  |---|---|\n  | b: unclear: y | - |\n", (),
+         [("section", R_), ("section", U)]),
+        ("a Friction-shaped line starts an item only under Friction",
+         head + "## Figures\n\nOut of scope: a.\nfixer.md: unclear: b. Carry: R10-LIVE\n", (), [("lead", R_)]),
+        ("a section name reads in any case",
+         head + "## FRICTION\n\nfixer.md: unclear: one.\ngate-scoping.md: cost: two. Carry: R10-LIVE\n", (),
+         [("section", R_), ("section", U)]),
+        ("under Friction an unshaped unindented line continues the item",
+         head + "## Friction\n\n- a: unclear: x\ncontinued. Carry: R10-LIVE\n", (), [("section", R_)]),
+        ("an indented Friction-shaped line continues the item",
+         head + "## Friction\n\n- a: unclear: x\n  b.md: cost: y. Carry: R10-LIVE\n", (), [("section", R_)]),
+        ("an indented `#` line is not a heading",
+         head + "## Friction\n\n- a: unclear: x\n  # a quoted shell comment. Carry: R10-LIVE\n", (),
+         [("section", R_)]),
+        ("a numbered, bolded lead reads", head + "## Figures\n\n1. **Out of scope:** x.\n", (), [("lead", U)]),
+        ("a section heading that leads makes each item a finding",
+         head + "## Out of scope\n\n- the tracked-file scrub.\n", (), [("section", U)]),
+        ("a lead paragraph's bullets inherit it",
+         head + "## Figures\n\nOut of scope:\n- a.\n- b. Carry: R10-LIVE\n", (), [("under lead", R_), ("under lead", U)]),
+        ("a paragraph ending `:` that is no finding leads nothing",
+         head + "## Figures\n\nThe figures:\n- a figure.\n", (), []),
+        ("a CRLF body reads as its LF twin",
+         (head + "## Friction\n\n- a: unclear: x\n  more.\n\n- b: cost: y. Carry: R10-LIVE\n").replace("\n", "\r\n"),
+         (), [("section", R_), ("section", U)]),
+        ("a non-bullet ends a verdict's lead", head,
+         verdict_of("merge", "Non-blocking notes:\n- (a) x.\n\nThe check passed.\n\n- a later verified bullet.\n"),
+         [("under lead", U)]),
+        ("a verdict's own first line is not a finding", head,
+         [{"id": 48, "body": f"Fix review: merge {'d' * 40} with one minor note\n\n## Verified\n\n- x.\n"}], []),
+        ("a heading saying it is not the block is a note section", head,
+         verdict_of("merge", "## Non-blocking\n\n- a re-booking.\n"), [("section", U)]),
+        ("in a merge verdict a residual heading is a note section", head,
+         verdict_of("merge", "## Residuals\n\n- the body over-claims.\n"), [("section", U)]),
+        ("in a blocked verdict a lead inside the block is owed, not a note", head,
+         verdict_of("blocked", "## Block\n\n- Residual: the census misses one.\n"), []),
+        ("in a blocked verdict a non-blocking heading is a note section", head,
+         verdict_of("blocked", "## Non-blocking notes\n\n- a re-booking.\n"), [("section", U)]),
+        ("a blocked verdict reads with two spaces before its word", head,
+         [{"id": 49, "body": v3["body"].replace("Fix review: blocked", "Fix review:  blocked")}],
+         [("lead", U), ("non-blocking", U)]),
+    ]
+    # Each word of the vocabulary regexes, alone: the harness removes one
+    # alternative at a time.
+    item_grammar += [(f"LEAD reads {w!r}", head + f"## Figures\n\n- {w} x.\n", (), [("lead", U)])
+                     for w in ("Residual:", "Distinct finding:", "Not fixed here:", "Known-open:", "Follow-up:",
+                               "Non-blocking:", "Not blocking:", "Caveat:", "Observation:", "Deferred:",
+                               "Advisory:", "Minor:", "A follow-up:", "An observation:", "One caveat:",
+                               "Two follow-ups:", "Three caveats:")]
+    item_grammar += [(f"NONBLOCK reads {w!r} mid-sentence", head,
+                      verdict_of("merge", f"## Verified\n\n- the check is {w} here.\n"), [("non-blocking", U)])
+                     for w in ("not blocking", "not a block", "neither blocks", "does not block", "not owed here",
+                               "owed to the record", "minor", "advisory", "a secondary note", "deferred")]
+    item_grammar += [(f"NOTE_HEADING reads {w!r}", head, verdict_of("merge", f"## {w}\n\n- a re-booking.\n"),
+                      [("section", U)])
+                     for w in ("Owed", "Instrument findings", "Out of scope", "Follow-up", "Carry forward")]
+    item_grammar += [(f"TRAILER reads {w!r}", head + f"## Friction\n\n{w}\n", (), [])
+                     for w in ("Co-Authored-By: x", "bus: verdict/1 at abc", "Evidence: ev/x", "RESULT x=1", "n/a")]
+    item_grammar += [
+        ("`#2404` opening a line is no heading",
+         head + "## Friction\n\n- a: unclear: x\n#2404's review found it. Carry: R10-LIVE\n", (), [("section", R_)]),
+        ("a heading's closing hashes are not its name", head + "## Friction ##\n\n- a: unclear: x.\n", (),
+         [("section", U)]),
+        ("under Friction a `word:` line without the kind's colon continues the item",
+         head + "## Friction\n\n- a: unclear: x\nNote: this continues it. Carry: R10-LIVE\n", (), [("section", R_)]),
+        ("a verdict naming a short SHA is read", head,
+         [{"id": 50, "body": "Fix review: merge abc1234\n\n## Verified\n\n- a minor note.\n"}], [("non-blocking", U)]),
+    ]
+    item_grammar += [("a numbered list item is a bullet",
+                      head + "## Friction\n\n1. a: unclear: x.\n2. b: cost: y. Carry: R10-LIVE\n", (),
+                      [("section", R_), ("section", U)])]
+    for name, text, comments, want in item_grammar:
+        got = sorted((x["why"], x["status"]) for x in run(text, comments)["rows"])
+        check(f"items: {name}", got == sorted(want))
+    check("an item's id is the sha1 of its whitespace-collapsed text, 8 hex (printed and quoted)",
+          [x["id"] for x in run(head + "## Friction\n\n- a: unclear:   x\n  more.\n\n- b.\n")["rows"]]
+          == ["af08778d", "85fdb5d3"])
     vr = {"id": 46, "body": "\n" + v["body"]}
     check("a verdict after a blank line is still read", len(run(head, [vr])["rows"]) == 2)
     try:

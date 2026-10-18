@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""O11 (#2404): every predicate of carry_audit.py's marker parser dies alone.
+"""O11 (#2404): every predicate of carry_audit.py's parser dies alone.
 
 Written by the O11 fixer, round 5. Rounds 2 and 3 of #2404's review each found
 a guard whose halves survived one at a time (the paren form and the segment
 scope; then the segment's next-marker and line-end cuts), killed only when
-reverted together. This drive enumerates the class rather than the instance:
+reverted together. This drive enumerates the class rather than the instance,
+over the whole parser: what an item is and when it is a finding (`items()`),
+the marker grammar, the routing, and the ledger key.
 
   SITES    the census, read from the file's own AST: every predicate of the
            parser functions (PARSER) -- test, boolean operand, comparison,
            slice, cut or match call, continue and break (sites()) -- and each
            regex constant (PATTERNS).
-  MUTANTS  single-site perturbations, each a one-occurrence replacement. A
-           regex alternative, quantifier or anchor is its own mutant.
+  MUTANTS  single-site perturbations, each a one-occurrence replacement, and
+           one per alternative of each PATTERNS regex and element of a
+           PATTERNS tuple, generated (alternatives()). A quantifier or anchor
+           is its own written mutant.
 
 A site no mutant changes prints `UNMAPPED`; a mutant the self-test does not
 kill prints `SURVIVED`, unless EQUIVALENT names why no input tells it apart.
@@ -19,10 +23,10 @@ Each mutant is applied alone, `carry_audit.py --self-test` run, and the file
 restored byte for byte; the drive refuses a dirty file. Metric:
 
   RESULT mutant=<name> failed=<n> verdict=killed|SURVIVED|CRASHED|equivalent
+  RESULT sites=<n> unmapped=<n> mutants=<n> survived=<n>
 
 A mutant that kills only by crashing the self-test (failed=-1, no FAIL line)
 counts as a survivor: no check named what it broke.
-  RESULT sites=<n> unmapped=<n> mutants=<n> survived=<n>
 
 Expected at the fixing head: unmapped=0 survived=0. Null control: M0, the file
 unmutated, must print failed=0, and a mutant whose pattern is not found aborts.
@@ -54,10 +58,80 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 REL = "tools/audit/carry_audit.py"
 F = ROOT / REL
-PARSER = ("carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit")
-PATTERNS = ("CARRY", "ITEM_REF", "CODE_SPAN", "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK")
+PARSER = ("items", "carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit",
+          "ledger_unrouted")
+PATTERNS = ("HEADING", "BULLET", "TABLE_SEP", "FRICTION_ENTRY", "VERDICT", "CARRY_SECTIONS", "NONE_ITEM",
+            "TRAILER", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
+            "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING")
 
 MUTANTS = [
+    # items(): the lines read
+    ("I-split", '    for ln in text.split("\\n"):', '    for ln in [text]:'),
+    ("I-fence", '        if ln.lstrip().startswith(("```", "~~~")):', '        if ln.startswith(("```", "~~~")):'),
+    ("I-fence-tilde", 'startswith(("```", "~~~")):', 'startswith(("```",)):'),
+    ("I-fence-off", "            fenced = not fenced\n            continue", "            continue"),
+    ("I-fence-keep", "            fenced = not fenced\n            continue", "            fenced = not fenced"),
+    ("I-fenced", "        if not fenced and not ln.lstrip()", "        if not ln.lstrip()"),
+    ("I-comment", ' and not ln.lstrip().startswith("<!--"):', ":"),
+    ("I-comment-ws", 'not ln.lstrip().startswith("<!--")', 'not ln.startswith("<!--")'),
+    # items(): flush
+    ("I-flush-strip", '        body = "\\n".join(cur).strip()', '        body = "\\n".join(cur)'),
+    ("I-flush-empty", "        if body and not TABLE_SEP", "        if not TABLE_SEP"),
+    ("I-flush-sep", "        if body and not TABLE_SEP.match(body):", "        if body:"),
+    # items(): the line loop
+    ("I-heading", "        if h:\n", "        if False:\n"),
+    ("I-heading-ws", "        h = HEADING.match(ln)", "        h = HEADING.match(ln.lstrip())"),
+    ("I-heading-cont", "            section = h.group(2)\n            continue", "            section = h.group(2)"),
+    ("I-blank", "        if not ln.strip():", "        if not ln:"),
+    ("I-blank-para", '            if kind == "para":\n                flush()', '            if False:\n                flush()'),
+    ("I-blank-bullet", '            elif kind == "bullet":\n                cur.append("")', '            elif False:\n                cur.append("")'),
+    ("I-blank-cont", '                cur.append("")\n            continue', '                cur.append("")\n            pass'),
+    ("I-table", '        if ln.lstrip().startswith("|"):', '        if ln.startswith("|"):'),
+    ("I-table-off", '        if ln.lstrip().startswith("|"):', "        if False:"),
+    ("I-table-cont", '            cur = [ln]\n            flush()\n            continue', '            cur = [ln]\n            flush()'),
+    ("I-bullet", "        starts = bool(BULLET.match(ln)) or (", "        starts = False or ("),
+    ("I-fr-sec", 'section.lower() == "friction" and FRICTION', 'True and FRICTION'),
+    ("I-fr-lower", 'section.lower() == "friction"', 'section == "friction"'),
+    ("I-fr-entry", ' and FRICTION_ENTRY.match(ln) and not ln.startswith("  "))', ' and not ln.startswith("  "))'),
+    ("I-fr-indent", ' and not ln.startswith("  "))', ")"),
+    ("I-starts", "        if starts:\n", "        if False:\n"),
+    ("I-para-blank", '        elif cur[-1:] == [""] and not', '        elif True and not'),
+    ("I-para-ix", '        elif cur[-1:] == [""] and not', '        elif cur[:1] == [""] and not'),
+    ("I-para-indent", ' and not ln.startswith((" ", "\\t")):', ':'),
+    ("I-para-tab", 'not ln.startswith((" ", "\\t")):', 'not ln.startswith((" ",)):'),
+    ("I-kind-none", '            if kind is None:\n                kind = "para"', '            if False:\n                kind = "para"'),
+    # items(): classification
+    ("I-blocked-word", 'split(None, 3)[2:3] == ["blocked"]', 'split(None, 3)[2:3] == ["merge"]'),
+    ("I-blocked-ix", 'split(None, 3)[2:3] == ["blocked"]', 'split(None, 3)[1:2] == ["blocked"]'),
+    ("I-blocked-ws", 'text.split(None, 3)', 'text.split(" ", 3)'),
+    ("I-first", '        first = re.sub(r"^[\\s>*_`-]*(?:\\d+[.)]\\s*)?[*_`]*", "", t)', '        first = t'),
+    ("I-first-num", '(?:\\d+[.)]\\s*)?[*_`]*", "", t)', '[*_`]*", "", t)'),
+    ("I-first-emph", '(?:\\d+[.)]\\s*)?[*_`]*", "", t)', '(?:\\d+[.)]\\s*)?", "", t)'),
+    ("I-lead-reset", '        if it["kind"] != "bullet":\n            lead_flag = False', '        if False:\n            lead_flag = False'),
+    ("I-inh-flag", "        inherited = lead_flag  #", "        inherited = False  #"),
+    ("I-trailer", "        if TRAILER.match(first) or VERDICT.match(first):", "        if VERDICT.match(first):"),
+    ("I-verdict-line", "        if TRAILER.match(first) or VERDICT.match(first):", "        if TRAILER.match(first):"),
+    ("I-verdict", "        elif verdict:\n", "        elif False:\n"),
+    ("I-bsec-block", "            block_sec = BLOCK_HEADING.search(sec) and not", "            block_sec = True and not"),
+    ("I-bsec-nonblock", " and not NONBLOCK.search(sec)\n", "\n"),
+    ("I-nsec", "NONBLOCK.search(sec) if blocked_verdict else NOTE_HEADING.search(sec)", "NOTE_HEADING.search(sec)"),
+    ("I-nsec-b", "NONBLOCK.search(sec) if blocked_verdict else NOTE_HEADING.search(sec)", "NONBLOCK.search(sec)"),
+    ("I-why-nb", 'why = ("non-blocking" if NONBLOCK.search(t) else', 'why = ("non-blocking" if False else'),
+    ("I-why-block", '"" if block_sec\n', '"" if False\n'),
+    ("I-why-note", '"section" if note_sec else "lead" if LEAD.match(first)\n                   else "under', '"section" if False else "lead" if LEAD.match(first)\n                   else "under'),
+    ("I-why-vlead", 'else "lead" if LEAD.match(first)\n                   else "under lead" if inherited else "")\n        elif', 'else "lead" if False\n                   else "under lead" if inherited else "")\n        elif'),
+    ("I-why-vinh", 'else "under lead" if inherited else "")\n        elif', 'else "under lead" if False else "")\n        elif'),
+    ("I-carry-sec", "        elif sec.lower() in CARRY_SECTIONS:", "        elif False:"),
+    ("I-carry-lower", "        elif sec.lower() in CARRY_SECTIONS:", "        elif sec in CARRY_SECTIONS:"),
+    ("I-none", '            why = "" if NONE_ITEM.match(t) else "section"', '            why = "section"'),
+    ("I-bsec", '            why = ("section" if LEAD.search(sec) else', '            why = ("section" if False else'),
+    ("I-blead", '"lead" if LEAD.match(first)\n                   else "under lead" if inherited else "")\n        flagged', '"lead" if False\n                   else "under lead" if inherited else "")\n        flagged'),
+    ("I-binh", 'else "under lead" if inherited else "")\n        flagged', 'else "under lead" if False else "")\n        flagged'),
+    ("I-lead-para", '        if it["kind"] == "para" and t.endswith', '        if t.endswith'),
+    ("I-lead-colon", ' and t.endswith(":") and flagged:', ' and flagged:'),
+    ("I-lead-flag", ' and t.endswith(":") and flagged:', ' and t.endswith(":"):'),
+    ("I-id-ws", 'hashlib.sha1(re.sub(r"\\s+", " ", t).encode()).hexdigest()[:8]', 'hashlib.sha1(t.encode()).hexdigest()[:8]'),
+    ("I-id-len", ".hexdigest()[:8]", ".hexdigest()[:7]"),
     # carry_segments: the span skip and its bounds, the next-marker and line-end cuts
     ("M13", "        if any(a <= at < b for a, b in spans):", "        if False:"),
     ("S-span-hi", "a <= at < b for", "a <= at <= b for"),
@@ -90,7 +164,8 @@ MUTANTS = [
     ("D-tok-strip", '        tok = tok.strip("`*_().:")', "        tok = tok"),
     ("D-empty", "        if not tok or tok.lower()", "        if tok.lower()"),
     ("D-item", 'or tok.lower() == "item" or', "or"),
-    ("D-hex", ' or re.fullmatch(r"[0-9a-f]{8}", tok):', ":"),
+    ("D-hex", " or re.fullmatch(", " or 0 and re.fullmatch("),
+    ("D-hex-arg", '", tok):\n            continue', '", tok[1:]):\n            continue'),
     ("D-group", "        if GROUP_TOK.match(tok) or ISSUE_TOK", "        if ISSUE_TOK"),
     ("D-issue", "GROUP_TOK.match(tok) or ISSUE_TOK.match(tok) or BRIEF", "GROUP_TOK.match(tok) or BRIEF"),
     ("D-brief", " or BRIEF_TOK.match(tok):\n", ":\n"),
@@ -112,7 +187,17 @@ MUTANTS = [
     ("A-note", '(f"{tok}: {note}" if note else tok)', "(tok)"),
     ("A-status-u", 'r["status"] = "unrouted" if not r["dests"] else', 'r["status"] = "unrouted" if False else'),
     ("A-status-b", '("bad" if bad else "routed")', '("routed")'),
-    # the patterns: each alternative, anchor and quantifier
+    # ledger_unrouted: the key and the marker
+    ("L-key", "            if LEDGER_FINDING.search(ln) and not carry_dests(ln)]", "            if not carry_dests(ln)]"),
+    ("L-carry", "            if LEDGER_FINDING.search(ln) and not carry_dests(ln)]", "            if LEDGER_FINDING.search(ln)]"),
+    # the patterns: each anchor and quantifier (alternatives are generated)
+    ("P-head-ws", 'HEADING = re.compile(r"^(#{1,6})\\s+', 'HEADING = re.compile(r"^(#{1,6})\\s*'),
+    ("P-head-close", '(.*?)\\s*#*\\s*$")', '(.*?)\\s*$")'),
+    ("P-tsep", 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{3,}")', 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{4,}")'),
+    ("P-fentry", '`?[A-Za-z0-9_./#-]+`?\\s*:\\s*`?[a-z-]+`?\\s*:")', '`?[A-Za-z0-9_./#-]+`?\\s*:")'),
+    ("P-verdict-sha", '[0-9a-f]{7,40}\\b")', '[0-9a-f]{40}\\b")'),
+    ("P-block", 'BLOCK_HEADING = re.compile(r"\\bblock", re.I)', 'BLOCK_HEADING = re.compile(r"\\bblocked", re.I)'),
+    # the patterns: the marker grammar's anchors and quantifiers
     ("P-carry-look", 'CARRY = re.compile(r"(?<![\\w-])Carry:")', 'CARRY = re.compile(r"Carry:")'),
     ("P-carry-dash", 'CARRY = re.compile(r"(?<![\\w-])Carry:")', 'CARRY = re.compile(r"(?<![\\w])Carry:")'),
     ("M14", 'ITEM_REF = re.compile(r"\\(item\\s+([0-9a-f]{8})\\)")', 'ITEM_REF = re.compile(r"\\bitem\\s+([0-9a-f]{8})\\b")'),
@@ -130,14 +215,62 @@ MUTANTS = [
     ("P-brief-name", 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?\\Z")', 'BRIEF_TOK = re.compile(r"\\AO(\\d+)\\Z")'),
     ("P-brief-end", 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?\\Z")', 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?")'),
 ]
+
+
+def alternatives(src: str) -> list[tuple[str, str, str]]:
+    """One mutant per alternative of every PATTERNS regex, at any depth, and
+    per element of a PATTERNS tuple: that alternative (or element) removed
+    with one separator. Named `V-<PATTERN>-<alternative>`."""
+    out = []
+    for node in ast.parse(src).body:
+        if not (isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in PATTERNS):
+            continue
+        name, seg = node.targets[0].id, ast.get_source_segment(src, node)
+        if isinstance(node.value, ast.Tuple):
+            for e in node.value.elts:
+                lit = ast.get_source_segment(src, e)
+                new = seg.replace(lit + ", ", "", 1) if lit + ", " in seg else seg.replace(", " + lit, "", 1)
+                out.append((f"V-{name}-{e.value}", seg, new))
+            continue
+        # the literal pieces of one pattern, joined: a group may span two of them
+        pos = [m.start(1) + k for m in re.finditer(r'r"((?:[^"\\]|\\.)*)"', seg) for k in range(len(m.group(1)))]
+        lit = "".join(seg[k] for k in pos)
+        stack, i, cls = [[0, []]], 0, False
+        spans = []
+        while i < len(lit):
+            c = lit[i]
+            if c == "\\":
+                i += 2
+                continue
+            if cls:
+                cls = c != "]"
+            elif c == "[":
+                cls = True
+            elif c == "(":
+                k = re.match(r"\((?:\?(?:[:=!]|<[=!]))?", lit[i:])
+                stack.append([i + len(k.group(0)), []])
+            elif c == ")":
+                st, seps = stack.pop()
+                spans += list(zip([st] + [x + 1 for x in seps], seps + [i])) if seps else []
+            elif c == "|":
+                stack[-1][1].append(i)
+            i += 1
+        st, seps = stack[0]
+        spans += list(zip([st] + [x + 1 for x in seps], seps + [len(lit)])) if seps else []
+        for a, b in spans:
+            a2, b2 = (a, b + 1) if b < len(lit) and lit[b] == "|" else (a - 1, b)
+            gone = set(pos[a2:b2])
+            out.append((f"V-{name}-{lit[a:b]}", seg, "".join(ch for k, ch in enumerate(seg) if k not in gone)))
+    return out
+
+
 EQUIVALENT = {
-    # A Carry: at a span's first character is impossible: that character is a backtick.
     "S-span-lo": "a span opens on a backtick, so no `Carry:` starts at a span's first offset",
-    # gh returns a string body, and `items()` would raise on None, as the head's `or ""` avoids.
 }
 
 
-CUTS = {"split", "strip", "rstrip", "lstrip", "lower", "get", "match", "fullmatch", "findall", "finditer"}
+CUTS = {"sub", "split", "strip", "rstrip", "lstrip", "lower", "get", "match", "fullmatch", "findall", "finditer"}
 
 
 def sites(src: str) -> list[tuple[int, int, str]]:
@@ -145,7 +278,8 @@ def sites(src: str) -> list[tuple[int, int, str]]:
     in PARSER, each `if`/conditional test, boolean operand (a trailing constant
     default, `x or ""`, is one site with its operand), comparison, slice or
     index (a string key is a field read, not one), cut or match call,
-    `continue` and `break`, outside f-strings (a label, not a predicate); and
+    `continue` and `break`, outside f-strings and annotations (a label or a
+    type, not a predicate); and
     each PATTERNS line."""
     tree = ast.parse(src)
     offs = [0]
@@ -164,7 +298,8 @@ def sites(src: str) -> list[tuple[int, int, str]]:
 
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name in PARSER:
-            fmt = {id(x) for j in ast.walk(node) if isinstance(j, ast.JoinedStr) for x in ast.walk(j)}
+            fmt = {id(x) for j in ast.walk(node) for x in ast.walk(j) if isinstance(j, ast.JoinedStr)
+                   or isinstance(j, ast.AnnAssign) and any(x is y for y in ast.walk(j.annotation))}
             for s in (x for st in node.body for x in ast.walk(st) if id(x) not in fmt):
                 if isinstance(s, (ast.If, ast.IfExp)):
                     add(s.test, node.name, "test")
@@ -227,7 +362,7 @@ def main(argv: list[str]) -> int:
         return 2
     survived, spans = [], []
     try:
-        for name, old, new in MUTANTS:
+        for name, old, new in MUTANTS + alternatives(src):
             if src.count(old) != 1:
                 print(f"PATTERN NOT FOUND ONCE {name}: {old!r}")
                 return 2
@@ -251,7 +386,7 @@ def main(argv: list[str]) -> int:
     unmapped = [lab for a, b, lab in census if not any(x < b and a < y for x, y in spans)]
     for lab in unmapped:
         print(f"UNMAPPED {lab}")
-    print(f"RESULT sites={len(census)} unmapped={len(unmapped)} mutants={len(MUTANTS)} "
+    print(f"RESULT sites={len(census)} unmapped={len(unmapped)} mutants={len(spans)} "
           f"survived={len(survived)}")
     return 1 if survived or unmapped else 0
 
