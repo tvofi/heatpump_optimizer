@@ -1,103 +1,101 @@
-Fix review: blocked acf14d8f2267718203d9dc1b313bc8c3e9f0bc8d carry-missing: not carried to R10-BRIEFS-FOLD
+Fix review: merge 5c2bfcb1ebb683fe0576e7dccf71ab67ddaddc39
 
-bus-nonce: b930fe4abb89d68c115bbd433edf87af
+bus-nonce: 519dcc2fd420f363fd64510c64cce2a5
 
 ## Round
 
-Round 1. No earlier `Fix review:` comment or review is on #2399: the issue-comment and review lists are both empty.
+Round 2. The only earlier verdict is round 1 (issue comment 6253921423, hpo-approver): `blocked acf14d8f carry-missing: not carried to R10-BRIEFS-FOLD`. Nothing else in round 1 blocked. Round 1 also raised the CodeQL alert as needing a decision before merge.
 
 ## Head
 
-I measured `acf14d8f2267718203d9dc1b313bc8c3e9f0bc8d` (`ev/HEAD`). It was still the PR head when I finished. The body names `b931d0f44` as head. `acf14d8f` is github-actions' `ci: merge main` of `106af95a3` into `b931d0f44`. Its tree equals `git merge-tree --write-tree b931d0f44 106af95a3`, so the merge is clean with no hand resolution. The PR's own three-dot delta over `custom_components tests tools/replay docs` at `acf14d8f` equals the one at the handoff code `f32ad027`, apart from hunk offsets. The only path added is `dev/programme/delivery/2399.md`. The body's figures therefore describe this head, and I re-took them here.
+I measured `5c2bfcb1ebb683fe0576e7dccf71ab67ddaddc39` (`ev/HEAD`). It was still the PR head when I wrote this, and origin/main was still `07a09406`. The body names this SHA.
 
-I checked `dev/governance/roles/` against origin/main: the diff is empty, so my copy of the contract is current.
+The head's parents are `acf14d8f` (round 1) and `ff914f548`. `ff914f548`'s parent is `22b9b6cf`, which merges origin/main `07a09406` into `acf14d8f`. `git diff ff914f548 5c2bfcb1` is empty, so the head's tree is the authored code head. The only authored change since round 1 is `22b9b6cf..ff914f548`, which touches `tests/debug_collect.py` alone:
+- it adds `_unrecorded`;
+- it changes the detail (third) argument of three `R.check` calls;
+- it changes no check condition.
 
-## Blocking: forward-carry (step 10)
+The contract is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
 
-The body's `## Forward-carry` names the D15 change and points it at the `R10-BRIEFS-FOLD` brief in `dev/programme/rosters/wave-r10-groups.json`. Two things change: a row now carries `version`, which invalidates M1's "integration_version is the download's", and "While the download's `replay` is null" is retired. The text is in the PR body only.
+## Round-1 blocker: forward-carry (step 10), now present
 
-At origin/main `5756f2b1`:
-- The R10-BRIEFS-FOLD group's JSON contains none of `2399`, `DIAG-REPLAY`, `restart-gap` or `row carrying`. Its stage is `not-started`, so the group is live.
-- `dev/governance/dimensions/D15.md` still says, at line 10, "While the download's `replay` is null (until R10-DIAG-REPLAY)". At line 20 it still says "`integration_version` is the download's, not each row's".
+- `origin/handoff/audit-r10-roster` is at `2020978559ef37e9e22ae0926a5f685622da65f5`, `roster_edit append-carry R10-BRIEFS-FOLD: #2399 D15 forward-carry`.
+- Group `R10-BRIEFS-FOLD` is `resume.stage: not-started`, so it is a live destination. It has 10 `carry` entries. The last is byte-identical to the body's `> From R10-DIAG-REPLAY (#2399 ...` quote (`ev/carry_last.txt`, `ev/pr_body.md`; Python equality True).
+- The carry includes the control (the "a cycle row carries the release that wrote it" check going red with the stamp removed, which my M4 reproduces). It states the precondition and asks for a re-measure at the D15 baseline.
+- `node tools/policy/brief_lint.mjs` on that roster, run from an origin/main `07a09406` worktree: `TOTAL: 0 error(s) across 1 file(s)`.
+- **Merge precondition for the orchestrator.** #2417's current head `c83ae12acc07` (`fix/audit-r10-roster`) does **not** contain `2020978`. It is not an ancestor, and the roster at that head has 0 matches for the carry. The dispatch says the carry lands with #2417, so #2417 must first be brought up to `handoff/audit-r10-roster` ≥ `2020978`, and #2417 must merge before #2399 (`finding-propagation.md`: "does not merge until the carry is in the tree"). This verdict's `merge` depends on that order.
 
-The finding is measured with a control: M4 below turns "a cycle row carries the release that wrote it" red. `finding-propagation.md` says "The producing PR does not merge until the carry is in the tree", so this PR is blocked.
+## Mutation proof (step 1): my own runner, `ev/mut.py`, `ev/mutants.*.txt`
 
-The fixer's seat may not write the roster. The orchestrator can clear this by putting the body's quoted carry text into R10-BRIEFS-FOLD's `brief` with `roster_edit.py`, and `brief_lint.mjs` reads it back. The branch needs no change. Re-review only that the carry landed: nothing else in this verdict depends on it.
+Each mutant is applied to a `git archive` copy, then `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` runs. Every replacement matched exactly once.
 
-## CodeQL: a real alert, not the tools-evidence class
+At the head:
 
-- Check run 117752117325 (github-advanced-security) reports "1 new alert including 1 high severity security vulnerability". Its one annotation is `py/clear-text-logging-sensitive-data` at `tests/harness.py:50`, the `R.check` FAIL print (`ev/codeql_annotations.json`).
-- This is **not** the tools-evidence class. `codeql-triage-poll.sh` handles only the three audit-evidence harness paths under `dev/audit/rounds/...`, under the 2026-09-29 mandate. This alert is in `tests/`, newly reached by this diff, and no mandate covers dismissing it.
-- The source is test data, not a production leak. I could not read the SARIF threadFlow: the code-scanning alerts and analyses APIs return 403 to this seat too. So, like the body, I cannot confirm the source, only infer it. The label "sensitive data (secret)" is CodeQL's `secret|trusted` name heuristic. The only new `secret`-named value that reaches a check's `detail` is `str(_secret_drop)` at `tests/debug_collect.py:1144` (`ev/codeql_source_candidate.txt`), which holds the test literals `bob123456` and `abc123456`. `SECRET_KEY`, `SECRET_TEXT` and `secret` in `replay_doc.py` only moved, from `tools/replay/export.py`, and CodeQL was green at `33dfae1e`, which already carried them.
-- Under step 11 the red is answered: the body names the check, the cheaper detector (a local CodeQL CLI run) and its standing cost (about 16 minutes per push plus the install).
-- It still needs a decision before merge. One option is to dismiss it as used-in-tests, which needs someone with code-scanning access. The other is the #2163 pattern (`R9-CODEQL-SARIF-FIRST.md`): make that check's `detail` constant text. That cuts the modeled path and is not a rename. The body rejected only a rename, so the constant-detail fix remains open.
-- The CodeQL check completed at 18:19:08Z. This head's `Analyze (python)` jobs finished later, at 18:35 and 18:45 (green), and no newer CodeQL check run was posted.
+    RESULT mutant=M0 rc=0 ALL 122 DEBUG COLLECT CHECKS PASSED
+    RESULT mutant=M1 rc=1 TypeError (replay half missing)
+    RESULT mutant=M2 rc=1 25 of 122 FAILED
+    RESULT mutant=M3 rc=1 2 of 122 FAILED
+    RESULT mutant=M4 rc=1 1 of 122 FAILED
+    RESULT mutant=M5 rc=1 24 of 122 FAILED
+    RESULT mutant=M6 rc=1 2 of 122 FAILED
+    RESULT mutant=M7 rc=1 1 of 122 FAILED
+    RESULT mutant=M8 rc=1 2 of 122 FAILED
+    RESULT mutant=MA rc=1 2 of 122 FAILED  credential-bearing FAIL lines=0
+    RESULT mutant=MB rc=1 1 of 122 FAILED  credential-bearing FAIL lines=0
+    RESULT mutant=MC rc=1 2 of 122 FAILED  credential-bearing FAIL lines=0
+    RESULT mutant=MD rc=1 1 of 122 FAILED  credential-bearing FAIL lines=0
+    RESULT mutant=R1 seal floor 6->7      rc=1 1 of 122 FAILED
+    RESULT mutant=R2 seal violations off  rc=1 1 of 122 FAILED
+
+Every count matches the body's table. No mutant at the head prints a planted credential (`s3cret-value`, `bob123456`, `abc123456`, `secretvalue123`) in any FAIL line.
+
+## Null control (step 3), at `22b9b6cf`, the merge before the fix
+
+    RESULT mutant=M0 rc=0 ALL 122 PASSED
+    RESULT mutant=MA rc=1 2 FAILED  credential-bearing FAIL lines=1
+    RESULT mutant=MB rc=1 1 FAILED  credential-bearing FAIL lines=1
+    RESULT mutant=MC rc=1 2 FAILED  credential-bearing FAIL lines=2
+    RESULT mutant=MD rc=1 1 FAILED  credential-bearing FAIL lines=1
+
+These match the body: the failure counts are the same (2, 1, 2, 1), the leaks are 1, 1, 2, 1 before the fix and 0 at the head. The fix therefore cuts the echo without weakening any check.
+
+I did **not** run the CodeQL CLI myself. The body's "1 alert → 0 alerts" is the fixer's own local measurement and is not re-derived here. CI's `CodeQL` check at this head is `neutral`, titled "1 configuration not found" ("cannot determine the alerts introduced by this pull request"), so CI has not confirmed 0 alerts either. My value-level run above is the independent evidence that no check detail echoes a planted credential. The census rule (an AST walk over sensitive names) is the fixer's instrument. I did not rebuild it. Its value-level complement is the MA–MD runs above, which I did reproduce.
+
+## Figures (step 8): re-taken at the head and at `07a09406` (`ev/figures.txt`, `ev/cheap-checks.txt`)
+
+All of these match the body:
+- `debug_collect`: 122/122, `RESULT leak_probes_through_download=21 written=21 refused=0 unit=count`.
+- Synthetic day: `IDENTICAL`.
+- `export.py --check`: `0 violation(s)`.
+- `entry_keys`: 214 at the base, 216 at the head.
+- `sanitiser_checks`: `56 0` at both ends.
+- Package files: 97 at the base, 98 at the head.
+- D6: `arch_modules_on_disk=80`, `arch_map_listed=80`, `arch_map_missing=0`, `ha_module_level_importers=28`, `claims_true=123`, `claims_false=0`.
+- `Architecture score: dS +0.0000 NULL`.
+- `closure.py select`: `MODE: SCOPED -- 31 script(s) run, 2 scoped out.` with `--diff 07a09406`, and `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` with `--diff 22b9b6cf`.
+- `STRUCTURE RATCHET PASSED`, `ALL 109 HARNESS HEADER CHECKS PASSED`, `claims hygiene: 07a09406... ok`, `ALL 96 contracts PASSED`, and `tmp_paths: 0 refused`.
+
+## Steps 4, 5, 13, 14
+
+- Neither claim file and no `*_budgets.json` is touched. `VERSION` and `RELEASE_NOTES.md` are untouched. The manifest diff only adds `recorder` to `after_dependencies`.
+- `git merge-tree --write-tree origin/main 5c2bfcb1` exits 0, tree `8c9a7477`. Main equals the merge base, so no driver was invoked (`ev/merge-tree.txt`).
+- No number moved this round: the authored delta is test-detail text only, and dS is NULL.
 
 ## CI at this head (check-runs API, every run: `ev/check-runs.tsv`)
 
-- Red: `CodeQL` only.
-- Green: `fast (3.14)` ×2, `mutation` ×2, `coverage-ratchet` ×2, `coverage`, `hassfest`, `validate-hacs`, `typing`, `nightly-ha` (both), `arch-score`, `budget-raise-gate`, `pr-contract` (18:17:42, before CodeQL concluded), `delivery-status`, `nightly-status`, `scope`, `closure-scope`, `briefs` and the rest.
-- Still running: `closures` ×2.
-- I read the `mutation` log (job 117751634850): `MUTATION TABLE PASSED`, with this diff's sites evaluated, for example `debugger.py:368 GUARD_OFF -- killed by tests/debug_collect.py`. It did not print INCONCLUSIVE.
+Green:
+- `mutation`. I read the log: `MUTATION TABLE PASSED`, not INCONCLUSIVE, and 4217 unpinned equals the ratchet base.
+- `coverage-ratchet`, and the other completed lanes.
 
-## Merge with origin/main
+Neutral: `CodeQL`, as above.
 
-`git merge-tree --write-tree origin/main acf14d8f` at main `5756f2b1` exits 0, tree `c00813d2`. The ledger driver printed `LEDGER-MERGE: resolved tests/closures.json`. No claim file conflicts (`ev/merge-tree.txt`).
+Still running when I wrote this: `Analyze (python)`, `fast (3.14)` and `closures`. Not every workflow has concluded, so step 11 does not allow a `root-cause-unanswered` verdict yet in any case.
 
-## Mutation proof (step 1), own runner at the head (`ev/mutants.txt`)
+Red, and main's, not this PR's:
+- **`wave-script`** (117790959649): `DIVERGENT merge-subject-pr` on "Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)" and "#2379 (R10-SENSOR-PAYLOAD)", with `AGREEMENT REFUSED`. That is exactly the line the dispatch names. `wave-script` is also `failure` on main at `5756f2b1`. The diff touches none of the readers (`stamp.py`, `delivery_status.py`, `policy_lint.mjs`). The fix is in flight as R10-MERGE-SUBJECT.
+- **`pr-contract`** (×2, the later one 117791718734): its only ERROR is "check `wave-script` is red and `## Red checks` does not name it". This is the same cause as `wave-script`. It clears when R10-MERGE-SUBJECT lands and the contract re-runs, or when the body names `wave-script`.
+- **`delivery-status`**: `OVERDUE` on rows for #2413, #2412 and #2407 (record batches), not on this PR's row. It is not a required context.
 
-The unmutated run prints `ALL 122 DEBUG COLLECT CHECKS PASSED` (`ev/debug_collect.head.txt`).
+## Step 15
 
-The body's M1–M8 all fail:
-
-    RESULT mutant=M1 rc=1  (TypeError after "Download diagnostics fills the bundle's replay half..." FAIL)
-    RESULT mutant=M2 rc=1  25 of 122 FAILED
-    RESULT mutant=M3 rc=1  2 of 122 FAILED
-    RESULT mutant=M4 rc=1  1 of 122 FAILED  (a cycle row carries the release...)
-    RESULT mutant=M5 rc=1  24 of 122 FAILED
-    RESULT mutant=M6 rc=1  2 of 122 FAILED
-    RESULT mutant=M7 rc=1  1 of 122 FAILED
-    RESULT mutant=M8 rc=1  2 of 122 FAILED
-
-These counts match the body's table: M2=25, M5=24, M3, M6 and M8 two each, M4 and M7 one each.
-
-My own mutants:
-
-    RESULT mutant=R1 seal leak test off            rc=1  1 FAILED
-    RESULT mutant=R2 seal violations test off      rc=1  1 FAILED
-    RESULT mutant=R3 no-recorder guard removed     rc=1  (crash: FakeEntry has no minor_version)
-    RESULT mutant=R4 DOWNLOAD_HEADROOM dropped     rc=1  2 FAILED
-    RESULT mutant=R5 replay window 5x REPLAY_SPAN  rc=1  1 FAILED
-    RESULT mutant=R6 seal floor 6 -> 7             rc=1  1 FAILED
-    RESULT mutant=R8 _since < -> <=                rc=1  1 FAILED
-    RESULT mutant=R9 _public skipped on entry      rc=1  24 FAILED
-    RESULT mutant=R7 manifest drops "recorder"     debug_collect rc=0, ha_contract rc=0, entities unchanged
-
-R7 is not caught by the local suite. `entities.py` fails 1 of 2347 at the unmutated head too: the pre-existing graders-head-copy check the body names (`ev/entities.head.txt`). The detector for R7 is CI's `hassfest`, which checks the declared dependencies and is green at this head. This is an observation and does not block.
-
-## Figures (step 8), re-taken at this head and at merge base `106af95a` (`ev/figures.*.txt`)
-
-All of these match the body:
-- `debug_collect`: 122/122, `RESULT leak_probes_through_download=21 written=21 refused=0`.
-- Synthetic day: `IDENTICAL`.
-- `export.py --check`: `0 violation(s)`.
-- `entry_keys`: 214 at the merge base, 216 at the head.
-- `sanitiser_checks`: `56 0` at both ends.
-- Package files: 97 at the merge base, 98 at the head.
-- `STRUCTURE RATCHET PASSED`; `ha_contract` `ALL 96 contracts PASSED`; `doc_claims` `ALL 169 checks PASSED`.
-- D6: `arch_modules_on_disk=80`, `arch_map_listed=80`, `arch_map_missing=0`, `ha_module_level_importers=28`, `claims_true=123`, `claims_false=0`.
-- `closure.py select --diff 106af95a`: `MODE: SCOPED -- 31 script(s) run, 2 scoped out.`
-- `env_drift --claims-only`: `claims hygiene: origin/main ok`.
-
-Not re-derived:
-- Coverage at 83 % → 100 %. CI's `coverage-ratchet` is green at this head, which covers the per-module floor.
-- The 44 ledger rows and `PIN KILLED: 10 pinned`. CI's `mutation` passes; I did not re-run the table, by step 11.
-- The conf-keys mutant `216 against 214` (body: not re-run since `aaa61a95`). The 214→216 figure itself re-derives.
-
-## Other steps
-
-- Step 5: `VERSION`, `RELEASE_NOTES.md` and the manifest `version` (7.0.0) are untouched. The manifest diff adds `recorder` to `after_dependencies` only.
-- Step 4: neither claim file and no `*_budgets.json` is touched.
-- Step 9, harness: the "finder" is the owner's design (#2271 and the roster brief). Every design item has a check: shared module (export loads it by path), recorder history in the executor, 7-day window, inline cap, shared Tibber choice, `--check` on a generated download, planted-credential null control, `LEAK_PROBES`, A10, and the per-row version stamp. I found no `design-trace-missing`.
-- Step 14: the closures, ledger and D6 counts move with the new module and checks. Architecture score: `dS +0.0000 NULL`, no raise. `replay_doc.py` is classified in 14 closures.
-- Closing: the roster's `fixes` is `[]`, so "Part of #2271" is correct.
+The added lines are a test-local helper in the shape of `seal`'s own refusal. There is no architectural concern.

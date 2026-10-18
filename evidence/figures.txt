@@ -1,0 +1,29 @@
+wrote /tmp/tmp.JO0eJRhmzX: 9 entities, 1017 rows
+IDENTICAL
+tests/replay/synthetic-dhw-only.json: 0 violation(s)
+/tmp/seat/rev2399/base entry_keys=214
+/tmp/seat/rev2399/base sanitiser=  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+56 0
+/tmp/seat/rev2399/base pkgfiles=97
+/tmp/seat/rev2399/wt entry_keys=216
+/tmp/seat/rev2399/wt sanitiser=  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+56 0
+/tmp/seat/rev2399/wt pkgfiles=98
+RESULT claims_extracted=125 claims
+RESULT claims_checked=125 claims
+RESULT claims_true=123 claims
+RESULT claims_false=0 claims
+RESULT claims_stale=0 claims
+RESULT claims_unverifiable=2 claims
+RESULT arch_modules_on_disk=80 modules
+RESULT arch_map_listed=80 modules
+RESULT arch_map_missing=0 modules
+RESULT ha_module_level_importers=28 modules
+RESULT config_defaults_compared=89 rows
+RESULT config_ranges_compared=91 rows
+RESULT thread_factor=1.0
+RESULT load1=1.23
+RESULT swapins=0
+Architecture score: dS +0.0000 NULL
+  MODE: SCOPED -- 31 script(s) run, 2 scoped out.
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
