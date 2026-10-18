@@ -260,6 +260,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   set (one `gh pr list --state open` per pass, TRAIN and REPLAN alike), never
   from a `pulls/<n>` `.state`, which reads `closed` for a merged PR: a queue
   whose entries are all merged prints no train-not-alive line (2026-10-18, t16).
+  `OWED: <line>` prints every pass for each OWED entry in `cloud_relay.sh`'s
+  log (its default, `$HPO_STATE_DIR/cloud-relay.log`) with no later POSTED for
+  the same PR; no log yet prints no OWED. Its driver is `tick_loop.sh`.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
@@ -390,6 +393,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
   hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
   both. `--self-test` drives the recipe and the shim export.
+- `tick_loop.sh` — the tick's driver loop (tvofi approved, 2026-10-18): each
+  pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
+  and said so before), then `orchestrator_tick.py` with the given args,
+  writing the board whole to `--out` (default `$HPO_STATE_DIR/tick.txt`) and
+  one `TICK-PASS <utc> relay=<ok|rc=N|absent> tick=<rc>` line to stdout.
+  When: run detached (`daemonize.py`) in place of a seat looping the tick;
+  `--once` makes one pass, `--interval` defaults to 300 s. Refusal: a
+  non-numeric `--interval` or an unknown option; a failing relay pass or tick
+  is reported and the loop goes on. `--self-test` drives it over stubs.
 - `train.sh` — one invocation shape for `merge_train.py batch`: the seat
   venv first on PATH — an absent venv refuses (naming `seat_venv.sh` to
   build it), it never falls back to ambient python, which on 3.11 refuses
