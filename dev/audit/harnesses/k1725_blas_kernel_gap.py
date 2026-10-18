@@ -86,6 +86,7 @@ import numpy as np  # noqa: E402
 
 from profiles import DT, N, house, prices, solve_inputs, weather  # noqa: E402
 from heatpump_optimizer import optimizer as optm  # noqa: E402
+from heatpump_optimizer.thermal_model import WeatherSeries  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer, OptimizationConfig)
 from heatpump_optimizer.thermal_model import (  # noqa: E402
@@ -147,7 +148,7 @@ def dhw_setup(start=datetime(2026, 1, 15)):
 
 
 def score(m, pw, st, ot, wi, ra, so, pr, min_t=16.5):
-    room, _, _, _, _, _, _ = m.simulate_trajectory(st, pw, ot, wi, ra, so, DT)
+    room, _, _, _, _, _, _ = m.simulate_trajectory(st, pw, WeatherSeries(outdoor_temps=ot, wind_speeds=wi, precipitation=ra, solar_radiation=so), dt_hours=DT)
     return (float(np.sum(pr * pw * DT)),
             float(np.maximum(0, min_t - room[1:]).sum()))
 
