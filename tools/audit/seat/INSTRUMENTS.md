@@ -156,8 +156,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   from the roster's after-edges. Refusal: none to speak of — read the output
   before pasting it, it is generated text.
 - `merge_pr.sh` — merges one PR after its evidence checks. When: a single
-  verdicted PR; for more than one, `merge_train.py` below. Refusal: a verdict
-  or head mismatch stops the merge before the merge API call.
+  verdicted PR; for more than one, `merge_train.py` below. `owner` mode takes
+  `--mandate <#201 comment id>` and reads it live through
+  `budget_raise_gate.py`'s own reader, scope `code-owned` or `all`. Refusal: a
+  missing verdict, a moved head, and in `owner` mode a missing, expired,
+  revoked, edited or out-of-scope mandate, each before any GitHub write; a
+  verdict or head mismatch stops the merge before the merge API call.
+  `--self-test` drives those refusals offline.
 - `merge_train.py` — lands a queue of verdicted PRs one at a time: re-carry
   CI, wait for green at the exact head, evidence-gated approval,
   `--match-head-commit`. When: any merge queue — queued PRs merge through

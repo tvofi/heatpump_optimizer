@@ -445,6 +445,15 @@ jobs:
       - name: Show the train launcher refusing its own fixtures
         run: bash tools/audit/seat/train.sh --self-test
 
+      # The single-PR merger (tools/audit/seat/merge_pr.sh): owner mode reads the
+      # mandate live through budget_raise_gate.py and refuses before any GitHub
+      # write. The tally line must say 0 failed, as above.
+      - name: Show the single-PR merger refusing its own fixtures
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/merge_pr.sh --self-test | tee "$RUNNER_TEMP/mpr-self-test.txt"
+          grep -Eq '^merge_pr self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mpr-self-test.txt"
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi
