@@ -250,6 +250,7 @@ Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit,
   ok   P2 owners: plan_running_rule is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
   ok   P2 owners: peak_tie_rule is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
   ok   P2 owners: cyclic_range_wrap is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: zone_setpoint_names is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
   ok   P2 owners: slot_floor_rule is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
   ok   P2 owners: every census a shapeless fact rests on is still in its script
   ok   and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
@@ -274,6 +275,7 @@ Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit,
 -- P6: every read has a producer (round-9 class barrier)
   ok   the payload carries the optimizer's own horizon, so the plan sensors publish 12 h for a 12 h plan rather than a constant 24 (D14-s1-02)
   ok   every coordinator.data key a platform reads is one production writes (P6 K)
+  ok   a declared _payload_path naming an unwritten key is a P6 K seam (null control)
   ok   every entity id a blueprint, the card or the package names is one a platform builds (P6 B)
   ok   every getattr/hasattr probe names what production or upstream defines (P6 G)
   ok   every error code a flow can return is in that flow's error table, in every catalogue (P6 E)
@@ -1406,17 +1408,17 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   a live agent between commands keeps the lock
   ok   a crashed hold lets take('successor') steal
   ok   a lease whose named owner process is gone is stolen (#1143)
-gate_lock: waiting for the lease held by other until 2026-10-18 18:19:47.575360+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-18 20:34:58.282589+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits
   ok   the heavy-slot capacity is the cap unless the owner raises it (#2267)
 lease class: dispatched=36 (floor 30) lease=['tests/harness_headers.py', 'tests/stress.py'] slot=10 none=24 unleased_but_heavy=[]
   ok   every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)
-gate_lock: waiting for the lease held by h until 2026-10-18 18:19:48.216837+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-18 18:19:48.216837+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-18 18:19:48.216837+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-18 18:19:49.927822+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-18 20:34:58.995544+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-18 20:34:58.995544+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-18 20:34:58.995544+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-18 20:35:00.707647+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-18 18:19:50.632633+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-18 20:35:01.414706+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
   ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
   ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
@@ -1425,7 +1427,7 @@ gate_lock: waiting for the lease held by h until 2026-10-18 18:19:50.632633+00:0
   ok   the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second
   ok   a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)
   ok   run.sh's lane_stress waits for the lease and its other scripts do not
-gate_lock: waiting for the lease held by seat until 2026-10-18 18:20:04.579400+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-18 20:35:15.447992+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   a seat label never taken fails at once; a held one re-queues behind a waiter
@@ -1439,8 +1441,8 @@ gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE
   ok   the widening rule itself leaves the card out
   ok   while still widening to the rest of the integration
   ok   the widening rule leaves the quality-scale register out too
-  baseline worktree add failed on baseline-455-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
-  baseline worktree add failed on baseline-455-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-444-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-444-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
   ok   a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
   ok   a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
   ok   concurrent gate instances name distinct baseline worktrees (#2119)
@@ -1562,7 +1564,7 @@ gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
-  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'set_mode__dup', 'simulate_plan__dup']; missing=[]]
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_manual_plan__dup', 'run_optimization__dup', 'set_thermal_parameters__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 13; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1694,7 +1696,7 @@ gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /tmp/tmp8zc73k96/closures.json
+closure: updated 1 closure(s) in /tmp/tmpbyocqpgh/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1715,7 +1717,7 @@ closure: updated 1 closure(s) in /tmp/tmp8zc73k96/closures.json
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /tmp/closure-inert-nd1hli8_/closures.json
+closure: updated 1 closure(s) in /tmp/closure-inert-sh683alc/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1892,7 +1894,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs 8bb45c78764bb55078c45d14e6e6d3cdb9fa843c
+  DRIFT wood_coil: 1 leaves moved vs 929f4fb9508a84b108c604fdb93e9c5de1889f09
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2108,7 +2110,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   every job driving a history-reading script checks out the history
   ok   the nightly reporter is wired into a job that runs on pull requests
   ok   and passes it no argument that would pin its answer
-  ok   exactly six jobs override the workflow's read-only floor, four of them read-only
+  ok   exactly seven jobs override the workflow's read-only floor, the newest (R10-CI-CONCURRENCY's cancel-superseded, `actions: write`) running the base's program
   ok   and the nightly reporter's own widening is read-only
   ok   the reporter watches exactly the lanes a pull request cannot see
   ok   the reporter separates failed, passed, still-running and never-ran
@@ -2173,13 +2175,13 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   and the pin reads the job's own lines, not its name (null controls)
   ok   tests.yml's record-autofix finds its own open pull request by head=<owner>:record/autofix
   ok   and the lookup pin refuses the repository-form filter (null control)
-  FAIL every pinned grader given a token runs its own copy under the Actions token on the pull request  [seams=['.claude/workflows/budget_raise_gate.py', '.claude/workflows/contract_rerun.py', '.claude/workflows/field_coverage.mjs', '.claude/workflows/policy_lint.mjs', '.claude/workflows/policy_lint_envmatrix.mjs', 'tests/nightly_status.py'] unarmed=['.claude/workflows/field_coverage.mjs', '.claude/workflows/policy_lint.mjs'] stale exemptions=[] arm mismatch=graders-head-copy.steps[2].run ('set -euo pipefail\npython tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"\nfor g in coverage_ratchet delivery_status; do\n  if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then\n    echo "$g=true" >> "$GITHUB_OUTPUT"\n    echo "tests/$g.py changed: its own copy runs below"\n  else\n    echo "$g=false" >> "$GITHUB_OUTPUT"\n  fi\ndone\n# The pathspec governance.yml\'s `policy-docs` restores from the base.\nif git diff --quiet "$BASE"..."$HEAD" -- \\\n    \'.claude/workflows/*.mjs\' \\\n    \'.claude/workflows/*.py\' \\\n    \'.claude/workflows/vendor\' \\\n    \'tools/audit/*.sh\' \\\n    \'tools/audit/record-predicate\' \\\n    \'tools/audit/round6/D11/fix/codeowners_gap.py\' \\\n    \'tools/policy/*.mjs\' \\\n    \'tools/policy/*.py\' \\\n    \'tools/pr/*.py\' \\\n    \'tools/policy/vendor\' \\\n    \'tools/pr/*.sh\' \\\n    \'tools/seat/*.sh\' \\\n    \'tools/coverage/*.sh\' \\\n    \'dev/audit/*.sh\' \\\n    \'tools/policy/record-predicate\' \\\n    \'dev/audit/rounds/round6/D11/fix/codeowners_gap.py\' \\\n    \'tests/layout.py\'; then\n  echo "governance=false" >> "$GITHUB_OUTPUT"\nelse\n  echo "governance=true" >> "$GITHUB_OUTPUT"\n  echo "a pinned governance grader changed: its own copy runs below"\nfi\n' != 'set -euo pipefail\ngit diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"\nfor g in coverage_ratchet delivery_status; do\n  if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then\n    echo "$g=true" >> "$GITHUB_OUTPUT"\n    echo "tests/$g.py changed: its own copy runs below"\n  else\n    echo "$g=false" >> "$GITHUB_OUTPUT"\n  fi\ndone\n# The pathspec governance.yml\'s `policy-docs` restores from the base.\nif git diff --quiet "$BASE"..."$HEAD" -- \\\n    \'.claude/workflows/*.mjs\' \\\n    \'.claude/workflows/*.py\' \\\n    \'.claude/workflows/vendor\' \\\n    \'tools/audit/*.sh\' \\\n    \'tools/audit/record-predicate\' \\\n    \'tools/audit/round6/D11/fix/codeowners_gap.py\' \\\n    \'tools/policy/*.mjs\' \\\n    \'tools/policy/*.py\' \\\n    \'tools/pr/*.py\' \\\n    \'tools/policy/vendor\' \\\n    \'tools/pr/*.sh\' \\\n    \'tools/seat/*.sh\' \\\n    \'tools/coverage/*.sh\' \\\n    \'dev/audit/*.sh\' \\\n    \'tools/policy/record-predicate\' \\\n    \'dev/audit/rounds/round6/D11/fix/codeowners_gap.py\' \\\n    \'tests/layout.py\'; then\n  echo "governance=false" >> "$GITHUB_OUTPUT"\nelse\n  echo "governance=true" >> "$GITHUB_OUTPUT"\n  echo "a pinned governance grader changed: its own copy runs below"\nfi\n'): arm the grader in graders-head-copy and in _PT_JOB_CANON together, or give it a reason in _PT_EXEMPT]
+  ok   every pinned grader given a token runs its own copy under the Actions token on the pull request
   ok   and the arm fires on exactly the pathspec policy-docs restores from the base
-  FAIL and any edit to the arm's job, or to what reaches it, disarms it (null control)  [mismatch at head: graders-head-copy.steps[2].run ('set -euo pipefail\npython tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"\nfor g in coverage_ratchet delivery_status; do\n  if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then\n    echo "$g=true" >> "$GITHUB_OUTPUT"\n    echo "tests/$g.py changed: its own copy runs below"\n  else\n    echo "$g=false" >> "$GITHUB_OUTPUT"\n  fi\ndone\n# The pathspec governance.yml\'s `policy-docs` restores from the base.\nif git diff --quiet "$BASE"..."$HEAD" -- \\\n    \'.claude/workflows/*.mjs\' \\\n    \'.claude/workflows/*.py\' \\\n    \'.claude/workflows/vendor\' \\\n    \'tools/audit/*.sh\' \\\n    \'tools/audit/record-predicate\' \\\n    \'tools/audit/round6/D11/fix/codeowners_gap.py\' \\\n    \'tools/policy/*.mjs\' \\\n    \'tools/policy/*.py\' \\\n    \'tools/pr/*.py\' \\\n    \'tools/policy/vendor\' \\\n    \'tools/pr/*.sh\' \\\n    \'tools/seat/*.sh\' \\\n    \'tools/coverage/*.sh\' \\\n    \'dev/audit/*.sh\' \\\n    \'tools/policy/record-predicate\' \\\n    \'dev/audit/rounds/round6/D11/fix/codeowners_gap.py\' \\\n    \'tests/layout.py\'; then\n  echo "governance=false" >> "$GITHUB_OUTPUT"\nelse\n  echo "governance=true" >> "$GITHUB_OUTPUT"\n  echo "a pinned governance grader changed: its own copy runs below"\nfi\n' != 'set -euo pipefail\ngit diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"\nfor g in coverage_ratchet delivery_status; do\n  if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then\n    echo "$g=true" >> "$GITHUB_OUTPUT"\n    echo "tests/$g.py changed: its own copy runs below"\n  else\n    echo "$g=false" >> "$GITHUB_OUTPUT"\n  fi\ndone\n# The pathspec governance.yml\'s `policy-docs` restores from the base.\nif git diff --quiet "$BASE"..."$HEAD" -- \\\n    \'.claude/workflows/*.mjs\' \\\n    \'.claude/workflows/*.py\' \\\n    \'.claude/workflows/vendor\' \\\n    \'tools/audit/*.sh\' \\\n    \'tools/audit/record-predicate\' \\\n    \'tools/audit/round6/D11/fix/codeowners_gap.py\' \\\n    \'tools/policy/*.mjs\' \\\n    \'tools/policy/*.py\' \\\n    \'tools/pr/*.py\' \\\n    \'tools/policy/vendor\' \\\n    \'tools/pr/*.sh\' \\\n    \'tools/seat/*.sh\' \\\n    \'tools/coverage/*.sh\' \\\n    \'dev/audit/*.sh\' \\\n    \'tools/policy/record-predicate\' \\\n    \'dev/audit/rounds/round6/D11/fix/codeowners_gap.py\' \\\n    \'tests/layout.py\'; then\n  echo "governance=false" >> "$GITHUB_OUTPUT"\nelse\n  echo "governance=true" >> "$GITHUB_OUTPUT"\n  echo "a pinned governance grader changed: its own copy runs below"\nfi\n'); still armed under: []]
+  ok   and any edit to the arm's job, or to what reaches it, disarms it (null control)
   ok   and the arm's trigger fires on a restored path and only there
   ok   and a trigger whose firing branch writes false is refused (null control)
   ok   the delivery_status stubs are owner-executable and neither group nor world accessible
-  FAIL graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE  [cases={'shared-1': 0, 'head-only': 0, 'base-only': 0, 'shared-0': 0, 'head-crash': 0, 'head-overdue': 0, 'shared-overdue': 0}; dropping the exit comparison makes a shared 1 red (1), exiting 0 always makes a head-only 1 green (0), and dropping the OVERDUE line makes a head-only OVERDUE green (0)]
+  ok   graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE
   ok   a `## Friction` opening with `none` that then carries a malformed entry is refused
   ok   frictionEntries reads the entries after a leading `none`, not an empty section
   ok   and `none` alone stays zero entries while a stray entry is refused (null controls)
@@ -2223,7 +2225,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   the gate's stale-verdict re-run fires on a passing review run only, holds `actions: write` and nothing it does not use, and runs the default branch's program
   ok   and the same file checking out the pull request's head is refused (null control)
   ok   no job holding a write grant on pull_request runs the pull request's own program or leaves its token on disk (D11-s1-03)
-  ok   and the same tests.yml with its restores and token hygiene undone is refused on each of the three autofix jobs (null control)
+  ok   and the same tests.yml with its restores and token hygiene undone is refused on each of the three autofix jobs and the cancel-superseded job (null control)
   ok   and a report run from the working tree after the push step's pull is refused on each of the three autofix jobs, though the program was restored (null control)
   ok   and an indented `import a, b` names both modules (null control: the finder's reader missed mutation_table this way)
   ok   every base-restoring step names each file it restores at the path tests/layout.json moves it to, listed so that a PINNED holding either path restores and one holding neither fails
@@ -2640,5 +2642,5 @@ Accuracy store: ignoring non-list 'samples' field (str); the other learned field
   ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
   ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held
 
-3 of 2347 ENTITY CHECKS FAILED
-rc=1
+ALL 2349 ENTITY CHECKS PASSED
+rc=0
