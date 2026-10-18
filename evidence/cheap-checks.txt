@@ -1,0 +1,26 @@
+HEAD 834990ca265eb7dbb24165d7148159cb09ce8728  origin/main 64b1f82a3958a1701755bf60973c592078cd0a12
+== merge-tree
+rc=0
+== commits on main since merge base
+64b1f82a Merge pull request #2385 from tvofi/record/autofix
+aac1b589 Merge pull request #2376 from tvofi/fix/r10-rca-inert-predict
+ee0f1448 ci: record delivery rows
+c5f1bbe1 ci: record delivery rows
+9b2251dc Merge remote-tracking branch 'origin/main' into fix/r10-rca-inert-predict
+c09d61dc Merge pull request #2383 from tvofi/record/autofix
+f4955e15 Merge pull request #2345 from tvofi/fix/r10-deeplink-census-pr
+d2dd36fa ci: record delivery rows
+6cc99007 ci: record delivery rows
+45bd0ee0 Merge commit '1e44fb2d14c4144c99061b868be4b8d970a0ef42' into fix/r10-rca-inert-predict
+== structure
+STRUCTURE RATCHET PASSED
+== harness_headers
+ModuleNotFoundError: No module named 'homeassistant'
+== entities
+1 of 2346 ENTITY CHECKS FAILED
+== tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 234087a5105d
+== gate scope
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+== bash -n
+ok

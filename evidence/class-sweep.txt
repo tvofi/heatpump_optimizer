@@ -1,0 +1,7 @@
+HEAD 834990ca265eb7dbb24165d7148159cb09ce8728
+== dq_backticks tools/pr/*.sh (head)
+rc-empty=0
+== dq_backticks tools/audit/**/*.sh (head)
+21
+== baseline tools/pr/prepr.sh at merge-base 234087a5
+/tmp/claude-0/-home-user-heatpump-optimizer/0d8f01db-4d59-5b96-a47b-aff6377e4900/scratchpad/prepr.base.sh:1738: st "$(closure_lane tests/entities.py 1)" record 0 "a `slot` script is recorded here, inside the slot this run holds (#2267)"

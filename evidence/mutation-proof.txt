@@ -1,0 +1,22 @@
+HEAD 834990ca265eb7dbb24165d7148159cb09ce8728
+== M1: restore bare backticks (keep the 0 dropped)
+  st "$(closure_lane tests/entities.py 1)" record "a `slot` script is recorded here, inside the slot this run holds (#2267)"
+/tmp/claude-0/-home-user-heatpump-optimizer/0d8f01db-4d59-5b96-a47b-aff6377e4900/scratchpad/m1/tools/pr/prepr.sh:1774: st "$(closure_lane tests/entities.py 1)" record "a `slot` script is recorded here, inside the slot this run holds (#2267)"
+  FAIL no script in tools/pr/ runs a command inside a double-quoted label (got 1, wanted 0)
+-- M1 row, evaluated as the shell evaluates it:
+/bin/bash: line 37: slot: command not found
+  ok   a  script is recorded here, inside the slot this run holds (#2267)
+== M2: put the stray 0 back (keep backticks escaped)
+  st "$(closure_lane tests/entities.py 1)" record 0 "a \`slot\` script is recorded here, inside the slot this run holds (#2267)"
+  ok   0
+== baseline line (merge-base 1738: both defects)
+/bin/bash: line 42: slot: command not found
+  ok   0
+== head line
+  ok   a `slot` script is recorded here, inside the slot this run holds (#2267)
+== restored: dq over tools/pr/*.sh
+  ok   no script in tools/pr/ runs a command inside a double-quoted label
+== planted at three other sites (escaped backticks un-escaped)
+tools/pr/app_push.sh:772 -> /tmp/claude-0/-home-user-heatpump-optimizer/0d8f01db-4d59-5b96-a47b-aff6377e4900/scratchpad/plant.sh:772: noted() { grep -c "^`$SHA` merges 
+tools/pr/push.sh:294 -> /tmp/claude-0/-home-user-heatpump-optimizer/0d8f01db-4d59-5b96-a47b-aff6377e4900/scratchpad/plant.sh:294: say ok "body" "#$1 now carries thi
+tools/pr/preflight.sh:284 -> /tmp/claude-0/-home-user-heatpump-optimizer/0d8f01db-4d59-5b96-a47b-aff6377e4900/scratchpad/plant.sh:284: [ "$age" -ge 24 ] && say check "po

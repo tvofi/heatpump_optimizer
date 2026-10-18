@@ -1,0 +1,10 @@
+HEAD 834990ca265eb7dbb24165d7148159cb09ce8728
+== ci_predict at head (line present)
+CI PREDICT: no closures or fast red predicted against 234087a5105d (a data-file read is not seen)
+rc=0
+== ci_predict with the line removed
+PREDICT closures INERT READS tests/harness_headers.py: dev/audit/harnesses/d15_restart_gaps.py (a new file beside 41 it lists)
+CI PREDICT: 1 predicted red(s) on closures against 234087a5105d -- repair before the handoff; who repairs which is ci-autofix.md's
+rc=1
+== closure.py check on the committed table (phantom/structure) with the line removed
+restored HEAD 834990ca265eb7dbb24165d7148159cb09ce8728

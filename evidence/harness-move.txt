@@ -1,0 +1,27 @@
+HEAD 834990ca265eb7dbb24165d7148159cb09ce8728
+== git grep d15_restart_gaps
+dev/audit/harnesses/d15_restart_gaps.py:9:    PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/d15_restart_gaps.py --bundle B [--plant SECONDS]
+dev/programme/delivery/2386.md:1:- [#2386](https://github.com/tvofi/heatpump_optimizer/pull/2386) — **open**, R10-TOOLS-O1: prepr label quoting + d15_restart_gaps to harnesses (R10-TOOLS-O1)
+tests/closures.json:3315:   "dev/audit/harnesses/d15_restart_gaps.py",
+== old path gone
+0
+== rename similarity
+ {tools/audit/seat => dev/audit/harnesses}/d15_restart_gaps.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-    PYTHONPATH=tests/hastub:custom_components python3 tools/audit/seat/d15_restart_gaps.py --bundle B [--plant SECONDS]
++    PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/d15_restart_gaps.py --bundle B [--plant SECONDS]
+bundle=/tmp/claude-0/-home-user-heatpump-optimizer/0d8f01db-4d59-5b96-a47b-aff6377e4900/scratchpad/bundle/bundle.json
+-- plant 0
+RESULT max_spacing_s=1800 unit=s
+RESULT restart_gaps=0 unit=count
+-- plant 3600
+RESULT max_spacing_s=3600 unit=s
+RESULT restart_gaps=0 unit=count
+-- plant 5400
+RESULT max_spacing_s=5400 unit=s
+RESULT restart_gaps=1 unit=count
+-- plant 12054
+RESULT max_spacing_s=12054 unit=s
+RESULT restart_gaps=1 unit=count
+== release files
+(empty = untouched)
