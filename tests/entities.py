@@ -36602,12 +36602,12 @@ def _r10_unlatched_logs(sources):
 
 #: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
 #: disposition (dev/audit/rounds/round10/sweep-N-log-flood.md) less the
-#: instances this barrier's PR routed through ``coordinator._log_held``.
+#: instances routed through ``log_latch.log_held``.
 _R10_LOG_ALLOWED_BY_REASON = {
     "the latch itself, or latched by a guard the static rule cannot read "
     "(an outage counter, a transition notice, a once-per-attempt spacing, "
     "an lru_cache parsing an option once per distinct text)": {
-        ("coordinator.py", "_log_held"): 1, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("log_latch.py", "log_held"): 2, ("coordinator.py", "_tibber_fetch_failed"): 1,
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
@@ -36649,14 +36649,6 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
         ("pump_arbiter.py", "switch_supply"): 1,
     },
-    "OWED, a distinct finding: unlatched and reached every cycle or solve "
-    "under a condition that can persist; a runtime probe is owed (the R10 "
-    "sweep's static-only five, and the solver's per-failed-solve reports)": {
-        ("coordinator.py", "_apply_action"): 1, ("coordinator.py", "_command_valve_target"): 3,
-        ("coordinator.py", "_note_solve_failure"): 1, ("pump_arbiter.py", "_space_target"): 1,
-        ("inputs.py", "_age_gate"): 1, ("optimizer.py", "optimize"): 1,
-        ("optimizer.py", "_solve_space"): 1, ("optimizer.py", "_optimize_space_only"): 1,
-    },
 }
 _R10_LOG_ALLOWED = {k: n for group in _R10_LOG_ALLOWED_BY_REASON.values() for k, n in group.items()}
 
@@ -36676,9 +36668,12 @@ _r10_log_planted = _r10_unlatched_logs({
 })
 R.check(
     "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
-    "with its exact count -- a persisting condition goes through _log_held",
+    "with its exact count -- a persisting condition goes through log_held",
     not _r10_log_verdict(_r10_log_found)
-    and sum(_r10_log_found.values()) >= 70
+    # Non-vacuity: the enumerator read the whole package, not a stub. It drops
+    # as sites get latched (74 unlatched before this PR's ten, 65 after: the
+    # latch itself logs a start at WARNING, or at ERROR with a traceback).
+    and sum(_r10_log_found.values()) >= 60
     # null control: a latched warning is not a site; perturbation: an unlatched
     # one, and a second site inside a listed function, are each refused
     and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
