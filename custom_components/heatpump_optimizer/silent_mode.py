@@ -26,7 +26,7 @@ Three properties are the contract, and ``tests/features.py`` pins each:
   nameplate, the capacity envelope's floor, so a derate can trim the plan but
   never starve the house on the cold night it matters most.
 * **The solver's clock.** Steps are walked in UTC and read in the start's own
-  zone, through the optimizer's ``_utc_step_starts``, so a window caps the real
+  zone, through ``drift.utc_step_starts``, so a window caps the real
   hours on a DST night and lines up with the step hours the solve itself uses.
 
 Kept free of Home Assistant imports so it can be unit-tested directly, like
@@ -52,7 +52,7 @@ from .dhw_schedule import (
     windows_for_day,
 )
 from .entry_config import EntryConfig
-from .optimizer import _utc_step_starts
+from .drift import utc_step_starts
 
 
 def caps(
@@ -77,7 +77,7 @@ def caps(
         return None
     cap = max(float(fraction), CAPACITY_FLOOR_FRACTION) * float(p_max)
     out = np.full(n_steps, float(p_max), dtype=float)
-    for i, step in enumerate(_utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))):
+    for i, step in enumerate(utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))):
         day = windows_for_day(weekly, step.weekday(), windows)
         if hour_in_windows(step.hour + step.minute / 60.0, day):
             out[i] = cap
