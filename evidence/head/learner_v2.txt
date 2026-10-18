@@ -1,0 +1,22 @@
+RESULT two_zone=True
+RESULT ID01.seed1.sun1.ua_bias k0.5=-0.1007 k1.0=-0.0075 k2.0=+0.1846  slope=+0.1902 spread=0.2853  vent_prod_k1=0.000
+RESULT ID01.seed1.sun0.ua_bias k0.5=-0.0077 k1.0=-0.0077 k2.0=-0.0077  slope=+0.0000 spread=0.0000  vent_prod_k1=0.000
+RESULT ID01.seed2.sun1.ua_bias k0.5=-0.0686 k1.0=+0.0105 k2.0=+0.1498  slope=+0.1456 spread=0.2185  vent_prod_k1=0.000
+RESULT ID01.seed2.sun0.ua_bias k0.5=+0.0108 k1.0=+0.0108 k2.0=+0.0108  slope=+0.0000 spread=0.0000  vent_prod_k1=0.000
+RESULT ID02.seed1.g1.0.ua1.0 prod: vent_share=0.000 ua_bias=-0.0077 | patched: vent_share=0.000 ua_bias=-0.0077
+RESULT ID02.seed1.g0.9.ua1.0 prod: vent_share=0.000 ua_bias=+0.0326 | patched: vent_share=0.000 ua_bias=+0.0326
+RESULT ID02.seed1.g0.8.ua1.0 prod: vent_share=0.000 ua_bias=+0.0827 | patched: vent_share=0.000 ua_bias=+0.0827
+RESULT ID02.seed1.g0.6.ua1.0 prod: vent_share=0.000 ua_bias=+0.2360 | patched: vent_share=0.000 ua_bias=+0.2360
+RESULT ID02.seed1.g0.4.ua1.0 prod: vent_share=0.000 ua_bias=+0.5462 | patched: vent_share=0.000 ua_bias=+0.5462
+RESULT ID02.seed1.g1.0.ua1.3 prod: vent_share=0.000 ua_bias=-0.0066 | patched: vent_share=0.000 ua_bias=-0.0066
+RESULT ID02.seed1.g1.0.ua1.6 prod: vent_share=0.000 ua_bias=-0.0040 | patched: vent_share=0.000 ua_bias=-0.0040
+RESULT ID02.seed2.g1.0.ua1.0 prod: vent_share=0.000 ua_bias=+0.0108 | patched: vent_share=0.000 ua_bias=+0.0108
+RESULT ID02.seed2.g0.9.ua1.0 prod: vent_share=0.000 ua_bias=+0.0518 | patched: vent_share=0.000 ua_bias=+0.0518
+RESULT ID02.seed2.g0.8.ua1.0 prod: vent_share=0.000 ua_bias=+0.1025 | patched: vent_share=0.000 ua_bias=+0.1025
+RESULT ID02.seed2.g0.6.ua1.0 prod: vent_share=0.000 ua_bias=+0.2548 | patched: vent_share=0.000 ua_bias=+0.2548
+RESULT ID02.seed2.g0.4.ua1.0 prod: vent_share=0.000 ua_bias=+0.5600 | patched: vent_share=0.000 ua_bias=+0.5600
+RESULT ID02.seed2.g1.0.ua1.3 prod: vent_share=0.000 ua_bias=+0.0073 | patched: vent_share=0.000 ua_bias=+0.0073
+RESULT ID02.seed2.g1.0.ua1.6 prod: vent_share=0.000 ua_bias=+0.0053 | patched: vent_share=0.000 ua_bias=+0.0053
+RESULT thread_factor=1.000
+RESULT load1=1.98
+rc=0
