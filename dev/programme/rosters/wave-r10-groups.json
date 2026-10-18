@@ -2702,9 +2702,9 @@
    "carry": [],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-d15-grader",
-    "commit": null,
+    "commit": "63d8154ce7dfba73aa6c7b83f2e76b8cc3282016",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
