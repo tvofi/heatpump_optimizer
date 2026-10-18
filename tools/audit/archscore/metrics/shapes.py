@@ -15,12 +15,13 @@ a getter of ``_x`` is not a getter of ``_y``. A function under MIN_NODES nodes i
   shape_copies   members of every shape class of two or more functions (as ``duplication_copies`` counts)
 
 GATE ONLY (weight 0), by calibration, as item 6 requires. Weighted, it would be gamed: one statement re-spelled
-(``raw < 0`` as ``0 > raw``) leaves the class while the rule is still written twice -- the planted
+(a lookup written as a conditional) leaves the class while the rule is still written again -- the planted
 ``a3_shape_copies_respelled_control`` is that BAD edit and reads NULL -- and on the corpus its one fall is a BAD
 commit (``ca711b56``), so a weight would credit a defect. As a tripwire it costs nothing: on the 45 labelled
-corpus commits it rises on five BAD and two NEUTRAL commits and one GOOD (``0323c5b8``), every one already
-inadmissible, so it moves no recorded verdict; and it closes attempt 45, a ``duplication_copies`` class collapsed
-below the window, which read IMPROVES without it. ``ABOUT.md`` carries the measurement.
+corpus commits it rises on five BAD, two NEUTRAL and two GOOD commits (``0323c5b8``, ``56cb0027``), every one
+already inadmissible, so it moves no recorded verdict. What it refuses that nothing else does is a new copy of a
+rule below the clone window: ``a3_shape_copies_control``, a third copy of a one-statement rule with every name
+changed, reads WORSENS only through it (C23 off, it reads NULL). ``ABOUT.md`` carries the measurement.
 """
 from __future__ import annotations
 

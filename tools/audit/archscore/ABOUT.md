@@ -58,7 +58,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C20 a literal spec is normalised: numbers by value, keywords and dict items in order (`metrics/literal_clones.py`) | the copies of a selector re-spelled with float bounds | 42 |
 | C21 a local bound once to a spec reads as it | a selector's bound hoisted into a local | 43 |
 | C22 a card function's own names are numbered by first use (`metrics/card.py`) | the card's copied functions given renamed locals | 44 |
-| C23 `shape_copies` (gate-only): a function's own names are numbered, numbers and strings abstracted (`metrics/shapes.py`) | a private helper copied into its importer with its names changed, the crossing read as gone | 45 |
+| C23 `shape_copies` (gate-only): a function's own names are numbered, numbers, strings and `mod.X` abstracted as the clone window does (`metrics/shapes.py`) | a below-window rule copied with every name changed (`a3_shape_copies_control`); a private helper copied into its importer (also refused by `duplication_copies`) | 45 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -254,10 +254,16 @@ Item 6 asked for it to be calibrated first and weighted only if not gameable. Ca
 - Weighted at the floor, the one corpus commit it lowers is BAD (`ca711b56`, 69 -> 68), which would read IMPROVES.
 - One statement re-spelled leaves a class while the rule is still written twice: `a3_shape_copies_respelled_control`
   (BAD) reads NULL. A weight would pay that move.
-- As a tripwire it moves no recorded verdict: of the 45 corpus commits it rises on five BAD, two NEUTRAL and one
-  GOOD (`0323c5b8`, 81 -> 83), each already inadmissible; it is flat on the rest. It refuses attempt 45, a private
-  helper copied into its importer under new names, which lowers `private_cross_module` and reads IMPROVES without C23.
-- Its GOOD plant (`a3_shape_copies_fix`, the copy removed) reads NULL: weight 0 pays no dedupe, by construction.
+- As a tripwire it moves no recorded verdict: of the 45 corpus commits it rises on five BAD, two NEUTRAL and two
+  GOOD (`0323c5b8` 81 -> 83, `56cb0027` 84 -> 86), each already inadmissible; it is flat on the rest.
+- What it refuses that nothing else does is a new copy below the clone window: `a3_shape_copies_control` (a third
+  copy of `comfort_band.effective`'s one-statement rule in `presets.py`, every name changed) reads WORSENS through
+  `shape_copies` alone, and NULL with C23 off. Its GOOD plant (`a3_shape_copies_fix`: `config_flow` imports
+  `comfort_band.effective` instead of its own copy) reads NULL: weight 0 pays no dedupe, by construction.
+- Attempt 45 (a private helper copied into its importer under new names, which lowers `private_cross_module`) is
+  refused, but by `duplication_copies` as well: every private crossing on the pin is two to four statements, at the
+  clone window, so C23 is not what closes it, and the ablation does not reopen it. No scored metric on the pin can
+  be paid with a copy below the window; when one can, that is this counter's attempt to add.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 
