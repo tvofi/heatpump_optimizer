@@ -2595,8 +2595,8 @@ def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
     ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
     every comparison against NaN is False -- ``current > nan`` never fires and
     ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
-    that this script printed as ``ok cut_views 110 <= nan`` (a row since folded
-    into seam_cut_total). Infinity passes by arithmetic. The other spellings fail differently per script and none of
+    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
+    by arithmetic. The other spellings fail differently per script and none of
     them says why: a string crashed one comparison and ``float()``-coerced in
     another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
 
