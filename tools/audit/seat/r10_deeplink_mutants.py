@@ -31,53 +31,46 @@ Plants:
            a computed key, `Reflect.apply`, `.call` on the reach side, a
            newline before the paren). Z3c is the control: the standard spelling
            in the same position is red on reach.
-  V1-V13   the round-7 review's written programmatic form (#2345) and this
-           fix's isolating variants of it: createElement("form") (V2, and V13
-           with the tag's upper case), the action written through setAttribute
-           (V3), createAttribute (V9), setAttributeNS (V12), Reflect.set (V7),
-           Object.assign (V8) and a computed key (V11), and a submit by name
-           (V4), computed key (V5), requestSubmit (V6) and indirect .call
-           (V10). V1 is the review's plant verbatim. Each is wrapped in the
-           try its own handler has, so a stub missing `submit` cannot kill it
-           by a crash -- a crash is rc=1 with no FAIL line, i.e. no census arm
-           ran.
+  V1-V13   the round-7 review's written programmatic form (#2345) and its
+           isolating variants: createElement("form") (V2, V13 upper case), an
+           action written through setAttribute (V3), createAttribute (V9),
+           setAttributeNS (V12), Reflect.set (V7), Object.assign (V8) or a
+           computed key (V11), and a submit by name (V4), computed key (V5),
+           requestSubmit (V6) or .call (V10). Since R10-DEEPLINK-HANDLERS the
+           keydown they sit in is driven, so each is the dynamic arm's except
+           the submits, which the bare `submit` / `requestSubmit` names
+           refuse. V9 is GREEN there: an attribute node built and attached to
+           nothing names no way out, and only the retired spelling row
+           refused it.
   T1c,T2c  a press that throws, or rejects, only inside the census (the card
            detects the census's one-parameter open).
   Y1       the residual's witness, expected GREEN: a run-time name written
            through a selector the stub DOM cannot resolve (see the census's
            Residual paragraph).
   F1-F4    the CONTROLS that must stay GREEN (rc=0 fails=0): the same words as
-           values or as a key on a legitimate object (`sensor === "action"`
-           inside a setAttribute value, `key === "action"` inside an
-           Object.assign value, `{ action: "off" }`), and an identifier that
-           begins with `submit`. They are what shows the new rows key on the
-           name position rather than the word.
+           values or as a key on a legitimate object, and an identifier that
+           begins with `submit`.
   X*       this fix's own lines, each mutated where a plant it closes sits
-           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z, X6Z2, X9Z3, X10V2,
-           X10V13, X11V3, X11V9, X11V12, X12V7, X12V8, X12V11, X13V4, X13V5,
-           X13V6, X13V10): if the
-           mutant alone leaves the plant green, the plant's catch DEPENDS on
-           that line, and a fix line whose removal changes no check is a line
-           this census does not need. X1 and X2 alone are red: each makes
-           the line's own check fire on an otherwise unmodified card. Every
-           other X alone (X3-X13) reads rc=0 fails=0 -- with the line gone the
-           card holds nothing for it to refuse -- and is read paired with the
-           plant beside it, which then goes green. X7K1b is red on `no press
-           throws`: without the surface member the plant's navigate call
-           throws inside the census, and the member is what records it as a
-           navigation instead.
-  RV1-RV7  the round-8 review's written spellings in the undriven keydown
-           handler, expected GREEN (rc=0 fails=0): the residual's witnesses
-           (the census's Residual paragraph). RV1c and RV5c are their controls,
-           the spellings the rows do name, expected red. They are the control
-           R10-DEEPLINK-HANDLERS starts from: each goes red when the dynamic
-           arm drives that handler.
-  RD4-RD6c the round-9 and round-10 reviews' driven-press plants: markup
-           appended outside the shadow root inside a press the census drives,
-           expected GREEN -- RD4 a form submitted by click(), RD6 an anchor
-           with a run-time-built href, click()ed. Their red controls put the
-           same element in the shadow root, placed and not submitted or
-           clicked: RD5 the form with its action, RD6c the anchor.
+           beside it: if the mutant alone leaves the plant green, the plant's
+           catch DEPENDS on that line. Read each alone and paired; the body
+           of the pull request that added a line records both verdicts.
+  RV1-RV7  the round-8 review's written spellings in the chart's keydown
+           handler, which R10-DEEPLINK-HANDLERS drives: expected RED, each on
+           the dynamic arm. RV1c and RV5c, their controls, stay red.
+  RD4-RD6c markup appended outside the shadow root inside a driven press
+           (rounds 9 and 10): RD4 a form submitted by click(), RD6 an anchor
+           with a run-time-built href, click()ed -- expected RED under the
+           document-level read; RD5 and RD6c, the same elements in the shadow
+           root, stay red.
+  RD7      a detached anchor, never appended, built href, click()ed: RED, the
+           read covers every element the document made.
+  RD8      the residual's stub-fidelity witness, expected GREEN: markup with a
+           built name inserted through insertAdjacentHTML, which the stub does
+           not implement.
+  AL1,KD1, navigation reached only with every modifier held (AL1), under one
+  FT1,ON1  key literal (KD1), in a handler a drive registers (FT1, the slot
+           menu's Escape), and a handler wired as an `on<event>` property
+           (ON1): each RED, and each green beside the X line that closes it.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
@@ -196,8 +189,11 @@ V13_KEYDOWN_CREATE_FORM_UPPER = card(
 # not one. Expected rc=0 fails=0 -- the opposite verdict from every other
 # plant in this file, and the reason the rows are anchored.
 F1_KEYDOWN_ACTION_AS_A_VALUE = card(
-    KEYDOWN, '      try { const d = document.createElement("div"); d.setAttribute("aria-label", sensor === "action" ? "a" : "b"); } catch (_e) {}\n' + KEYDOWN)
-# F2 compares the handler's own `key`, not `act`: `act === "x"` is the act-
+    KEYDOWN, '      try { const d = document.createElement("div"); d.setAttribute("aria-label", key === "action" ? "a" : "b"); } catch (_e) {}\n' + KEYDOWN)
+# F1 and F2 compare the handler's own `key`: F1 once read `sensor`, a name
+# not bound in that handler, which is a read of an unbound global the census
+# refuses by name once the handler is driven (R10-DEEPLINK-HANDLERS). F2 also
+# compares `key`, not `act`: `act === "x"` is the act-
 # branch syntax the reach check reads, so a control written on `act` declares
 # an act branch and is red on reach, not on the form rows it controls.
 F2_KEYDOWN_ACTION_AS_AN_OBJECT_VALUE = card(
@@ -220,32 +216,46 @@ X1 = test('    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =
 X3 = test('  for (const at of ["href", "action", "formaction"]) {', '  for (const at of ["href"]) {')
 X4 = test('    if (typeof type === "string" && !EVENT_TYPES.has(type)) {', '    if (false) {')
 X5 = test('      unknown.add(name);\n      return uninstrumented(name);', '      return undefined;')
-X6 = test('  { what: "the open member, named", re: /\\bopen\\b/, exact: true },',
-          '  { what: "the open member, named", re: /(?!)open/, exact: true },')
+X6 = test('  { what: "the open member", name: "open", exact: true },',
+          '  { what: "the open member", name: "(?!)open", exact: true },')
 # The reach rule enumerates every mention of a link function; the pre-fix form
 # enumerated the `name(` call-site spelling, which a space before the paren
 # escaped. X9 is that old enumeration, so Z3 must go green under it.
 X9 = test('  const LINK_NAME = /\\b(navigateTo|openHaLink)\\b/;',
           '  const LINK_NAME = /\\b(navigateTo|openHaLink)\\(/;')
-# The round-7 fix's four new surface rows, one mutant each: X10 the form
-# created by name, X11 its action written through an attribute, X12 its action
-# written through a member or a computed key, X13 a submit by name. Each is
-# run alone (green: it moves no check by itself) and paired with every plant
-# its row is the only closure of -- if the pair is green, the row is what
-# closes that plant.
-X10 = test(r'''  { what: "a form created by name", re: /\bcreateElement\s*\(\s*["'`]form["'`]/ },
-''', "")
-X11 = test(r'''  { what: "a form's action written through an attribute",
-    re: /(?:\bsetAttribute\s*\(\s*["'`]action["'`]|\bsetAttributeNS\s*\([^,]*,\s*["'`]action["'`]|\bcreateAttribute\s*\(\s*["'`]action["'`])/ },
-''', "")
-X12 = test(r'''  { what: "a form's action written through a member",
-    re: /(?:\bReflect\.set\s*\([^,]*,\s*["'`]action["'`]|\bObject\.assign\s*\([^,]*,\s*\{[^}]*\baction\s*:|\[\s*["'`]action["'`]\s*\]\s*=)/ },
-''', "")
-X13 = test(r'''  { what: "a form submitted by name",
-    re: /(?:\.\s*(?:submit|requestSubmit)\b|\[\s*["'`](?:submit|requestSubmit)["'`]\s*\])/ },
-''', "")
 X7 = test('  sink.navigation.navigate = (u) => { left.push(["navigation", String(u)]); return null; };',
           '  sink.navigation.navigate = undefined;')
+
+
+# R10-DEEPLINK-HANDLERS (#2317): the handler drive and the document-level read.
+ESCAPE = '      const origin = this.menuOrigin;'
+RD7 = after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); a.click(); } catch (_e) {}' % P)
+AL1 = kd('if (ev.ctrlKey) { try { globalThis.history.back(); } catch (_e) {} }')
+KD1 = kd('if (key === "Delete") { try { globalThis.history.back(); } catch (_e) {} }')
+FT1 = card(ESCAPE, '      try { globalThis.history.back(); } catch (_e) {}\n' + ESCAPE)
+ON1 = card(LOOP, '  for (const b of root.querySelectorAll(".adv-act")) b.onkeydown = () => null;\n' + LOOP)
+RV1 = kd('try { globalThis.history["back"](); } catch (_e) {}')
+X14 = test('    [document.head, document.body, c, ...made].forEach(walk);',
+           '    [c, ...made].forEach(walk);')
+X15 = test('    ...["plan", "setup", "savings", "advisor", "health"].map((page) => ({ page })),\n', '')
+RD9 = after_nav('try { document.body.innerHTML += `<a ${["hr", "ef"].join("")}="%s">x</a>`; } catch (_e) {}' % P)
+UL1 = card("function healthPageHtml(host) {",
+           'function unreachedListener(host) { host.addEventListener("keydown", () => null); }\n\nfunction healthPageHtml(host) {')
+X16 = test('  document.createElement = (t) => { const n = saved.createElement(t); made.push(n); return n; };',
+           '  document.createElement = saved.createElement;')
+X17 = test('  for (const v of FIXTURES) {', '  for (const v of FIXTURES.filter((f) => !f.name)) {')
+X18 = test('      saved.findAll.call(this, one.trim().replace(', '      saved.findAll.call(this, sel, out); break; saved.findAll.call(this, one.trim().replace(')
+X19 = test('  Node.prototype.setAttributeNS = function (_ns, q, v) { this.setAttribute(String(q).split(":").pop(), v); };', '')
+X20 = test('          if (VARY.some((f) => reads.has(f))) await', '          if (false) await')
+X21 = test('        const keys = base.has("key") || base.has("code") ? [undefined, ...KEYS] : [undefined];',
+           '        const keys = [undefined];')
+X22 = test('      for (let j = 0; j < (first.has("target") ? nt : 1); j++) {', '      for (let j = 0; j < 1; j++) {')
+X23 = test('      if (f.type === "click" || !(isDoc(f.on) || madeNow.has(f.on))) continue;', '      continue;')
+X24 = test('    inline.size === 0, [...inline].join(", "));', '    true, [...inline].join(", "));')
+X25 = test('    .filter(([l]) => /\\baddEventListener\\s*\\(/.test(l)).map(([, i]) => i + 1);',
+           '    .filter(([l]) => /\\baddEventListener\\s*\\(/.test(l)).map(([, i]) => i + 1).filter((i) => driven.has(i));')
+RD4 = after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P)
+RD6 = after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); document.body.appendChild(a); a.click(); } catch (_e) {}' % P)
 
 
 PLANTS = {
@@ -339,10 +349,11 @@ PLANTS = {
     # dynamic arm sees nothing, and the static arm refuses only a written
     # name. R7c is the same write on a selector the stub resolves (red).
     # The round-8 review's written spellings (#2345, the reviewer's
-    # review_plants.py, verbatim), expected GREEN: navigation written in the
-    # undriven keydown handler in a spelling no static row names. RV1c and
-    # RV5c, the spellings the rows do name in the same position, are red.
-    "RV1_history_bracket_back_in_undriven_keydown": kd('try { globalThis.history["back"](); } catch (_e) {}'),
+    # review_plants.py, verbatim), green at #2345's head, where the keydown
+    # handler was undriven and no static row named the spelling. Expected RED
+    # since R10-DEEPLINK-HANDLERS drives that handler. RV1c and RV5c, the
+    # spellings #2345's rows named in the same position, stay red.
+    "RV1_history_bracket_back_in_undriven_keydown": RV1,
     "RV2_history_optional_back_in_undriven_keydown": kd('try { globalThis.history?.back(); } catch (_e) {}'),
     "RV3_history_destructure_in_undriven_keydown": kd('try { const { back } = globalThis.history; back.call(globalThis.history); } catch (_e) {}'),
     "RV4_form_ns_action_member_button_click_in_undriven_keydown": kd('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P),
@@ -352,19 +363,40 @@ PLANTS = {
     "RV1c_history_dot_back_control": kd('try { globalThis.history.back(); } catch (_e) {}'),
     "RV5c_action_member_to_literal_control": kd('try { const f = document.createElement("div"); f.action = "%s"; } catch (_e) {}' % P),
     # The round-9 review's driven-press plants (#2345, review_plants9.py,
-    # verbatim). RD4 is expected GREEN: a form appended to document.body,
-    # outside the shadow root the census reads, and submitted by a button's
-    # click(), inside the advisor:settings press the census drives. RD5, its
-    # red control, is the same form element and action appended in the shadow
-    # root, placed and not submitted.
-    "RD4_form_ns_action_member_button_click_driven": after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P),
+    # verbatim). RD4, green at #2345's head: a form appended to document.body,
+    # outside the shadow root that census read, and submitted by a button's
+    # click(), inside the advisor:settings press it drove; expected RED under
+    # the document-level read. RD5, its red control, is the same form element
+    # and action appended in the shadow root, placed and not submitted.
+    "RD4_form_ns_action_member_button_click_driven": RD4,
     "RD5_action_member_to_variable_on_rendered_form_driven": after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; root.appendChild(f); } catch (_e) {}' % P),
     # The round-10 review's anchor (#2345, review_plants10.py, verbatim): RD6,
-    # expected GREEN, is an anchor whose href name is built at run time,
-    # appended to document.body and click()ed in the same driven press; RD6c,
-    # the same anchor appended in the shadow root and not clicked, is red.
-    "RD6_anchor_built_href_outside_root_click_driven": after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); document.body.appendChild(a); a.click(); } catch (_e) {}' % P),
+    # green at #2345's head and RED under the document-level read, is an
+    # anchor whose href name is built at run time, appended to document.body
+    # and click()ed in the same driven press; RD6c, the same anchor appended
+    # in the shadow root and not clicked, is red.
+    "RD6_anchor_built_href_outside_root_click_driven": RD6,
     "RD6c_anchor_built_href_in_root_driven_control": after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); root.appendChild(a); } catch (_e) {}' % P),
+    # R10-DEEPLINK-HANDLERS (#2317). RD7: a detached anchor, never appended,
+    # with a run-time-built href, click()ed in a driven press -- a browser
+    # navigates by it, and the read covers every element the document made.
+    # RD8, expected GREEN: markup inserted through a DOM member the stub does
+    # not implement (insertAdjacentHTML) with a built name -- the residual's
+    # stub-fidelity witness, beside Y1. AL1, KD1, FT1: navigation reached only
+    # at the far end of the event's fields (ctrlKey), under one key literal,
+    # and in a handler a drive registers (the slot menu's Escape). ON1: a
+    # handler wired as an `on<event>` property, which no registration records.
+    "RD7_detached_anchor_built_href_click_driven": RD7,
+    "RD8_insert_adjacent_html_built_href_driven_residual": after_nav('try { const d = root.querySelector(".adv-act"); d.insertAdjacentHTML("afterend", `<a ${["hr", "ef"].join("")}="%s">x</a>`); } catch (_e) {}' % P),
+    "AL1_history_back_under_ctrl_in_keydown": AL1,
+    "KD1_history_back_under_delete_in_keydown": KD1,
+    "FT1_history_back_in_slot_menu_escape": FT1,
+    "ON1_inline_keydown_property": ON1,
+    # RD9: markup with a built href written into document.body's innerHTML in
+    # a driven press -- no factory made it, so only the body read sees it.
+    # UL1: an addEventListener site no fixture renders.
+    "RD9_body_inner_html_built_href_driven": RD9,
+    "UL1_listener_site_no_fixture_renders": UL1,
     "Y1_runtime_name_on_unresolved_selector_residual": attach("a.zz", 'a.setAttribute(["hr", "ef"].join(""), "%s");' % P),
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,
@@ -390,22 +422,31 @@ PLANTS = {
     "X7K1b_surface_member_names_the_primitive_K1b": X7 + K1B,
     "X8_ascii_grammar": X8,
     "X8W3_grammar_line_is_what_closes_W3": X8 + W3,
-    "X10_create_form_row_dropped": X10,
-    "X10V2_create_form_row_is_what_closes_V2": X10 + V2_KEYDOWN_CREATE_FORM,
-    "X10V13_create_form_row_is_what_closes_V13": X10 + V13_KEYDOWN_CREATE_FORM_UPPER,
-    "X11_action_attribute_row_dropped": X11,
-    "X11V3_action_attribute_row_is_what_closes_V3": X11 + V3_KEYDOWN_SET_ATTRIBUTE_ACTION,
-    "X11V9_action_attribute_row_is_what_closes_V9": X11 + V9_KEYDOWN_CREATE_ATTRIBUTE_ACTION,
-    "X11V12_action_attribute_row_is_what_closes_V12": X11 + V12_KEYDOWN_SET_ATTRIBUTE_NS_ACTION,
-    "X12_action_member_row_dropped": X12,
-    "X12V7_action_member_row_is_what_closes_V7": X12 + V7_KEYDOWN_REFLECT_ACTION,
-    "X12V8_action_member_row_is_what_closes_V8": X12 + V8_KEYDOWN_OBJECT_ASSIGN_ACTION,
-    "X12V11_action_member_row_is_what_closes_V11": X12 + V11_KEYDOWN_BRACKET_ACTION,
-    "X13_submit_row_dropped": X13,
-    "X13V4_submit_row_is_what_closes_V4": X13 + V4_KEYDOWN_SUBMIT,
-    "X13V5_submit_row_is_what_closes_V5": X13 + V5_KEYDOWN_SUBMIT_BRACKET,
-    "X13V6_submit_row_is_what_closes_V6": X13 + V6_KEYDOWN_REQUEST_SUBMIT,
-    "X13V10_submit_row_is_what_closes_V10": X13 + V10_KEYDOWN_SUBMIT_CALL,
+    # This fix's own lines (R10-DEEPLINK-HANDLERS), alone and with the plant
+    # each one closes.
+    "X14_read_shadow_root_only": X14,
+    "X14RD9_document_read_is_what_closes_RD9": X14 + RD9,
+    "X16RD4_made_tracking_also_closes_RD4": X16 + RD4,
+    "X15_no_handler_drive": X15,
+    "X15RV1_handler_drive_is_what_closes_RV1": X15 + RV1,
+    "X16_made_untracked": X16,
+    "X16RD7_made_tracking_is_what_closes_RD7": X16 + RD7,
+    "X17_no_variants": X17,
+    "X18_selector_engine_unshimmed": X18,
+    "X19_no_set_attribute_ns": X19,
+    "X19V12_set_attribute_ns_is_what_closes_V12": X19 + V12_KEYDOWN_SET_ATTRIBUTE_NS_ACTION,
+    "X20_no_alt_drive": X20,
+    "X20AL1_alt_drive_is_what_closes_AL1": X20 + AL1,
+    "X21_no_key_drive": X21,
+    "X21KD1_key_drive_is_what_closes_KD1": X21 + KD1,
+    "X22_own_target_only": X22,
+    "X22RV1_targets_are_what_close_RV1": X22 + RV1,
+    "X23_no_follow_through": X23,
+    "X23FT1_follow_through_is_what_closes_FT1": X23 + FT1,
+    "X24_inline_check_off": X24,
+    "X24ON1_inline_check_is_what_closes_ON1": X24 + ON1,
+    "X25_reach_counts_driven_sites_only": X25,
+    "X25UL1_reach_line_is_what_closes_UL1": X25 + UL1,
 }
 
 

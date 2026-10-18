@@ -199,76 +199,44 @@ function check(name, cond, detail) {
 // a bare `open(`, the Navigation API, a form's `action` and an `Event`-built
 // more-info each passing both arms.
 //
-// A member is a way out, not a spelling: `open` is here once, and the census
-// catches it qualified, bare, bracketed or built at run time because all four
-// resolve the same name on the global object. Where the member's own word is
-// also the card's vocabulary -- `form` is a suffix loop variable and `action`
-// is an entity's name -- the row is anchored to the call or member access that
-// makes it a form navigation (createElement, setAttribute, Reflect.set,
-// Object.assign, .submit), so the census refuses the spelling without
-// refusing the word.
+// A row is a NAME, never a spelling. The dynamic arm drives every handler the
+// card registers and reads the whole document after each drive, so what code
+// a render or a drive reaches DOES is that arm's to see, whatever spelling
+// wrote it; the static arm is for code neither reaches, and it refuses a name
+// wherever the card writes it -- in code or in a string, qualified, bare,
+// bracketed or handed on -- because every written spelling of a member
+// mentions its name. The earlier form of this list anchored rows to the calls
+// and member accesses around a name (`history.<member>`, `createElement(
+// "form")`, `setAttribute("action", ...)`, `.submit(`), and three review
+// rounds each found a written spelling it missed (#2345): the shape #1874
+// refused. A name the card's own vocabulary also uses -- `history` is its
+// prose and its recorder API path, `form` a suffix loop variable, `action` an
+// entity's name, `back`/`go`/`forward` locals -- has no row: it cannot be
+// refused without refusing the card, and the dynamic arm records every one
+// of those members by name when a drive reaches it. A name BUILT at run time
+// names nothing here either, and is the dynamic arm's on every drive.
 const NAV_SURFACE = [
-  { what: "an anchor's href", re: /href/ },
-  { what: "the location object", re: /\blocation\b/ },
-  // The history object: any `history.<member>` reference, bare or qualified.
-  // The word alone cannot be the token -- "history" is the card's own prose
-  // and its recorder API path (`history/period/...`), and a token that refuses
-  // those refuses the tree; requiring a member name after it is what tells the
-  // object from the word.
-  { what: "the history object", re: /history\s*\.[A-Za-z_$]/ },
-  // The `open` member NAMED. Every way of invoking a global by name mentions
-  // the name: a bare call, a qualified call, an indirect one (`open.call(`,
-  // `open.apply(`, `open.bind(`), a value handed to `Reflect.apply`, or a
-  // computed key (`this["open"]`). Enumerating invocation spellings is what
-  // let the round-5 review's written `globalThis.open.call(...)` pass -- the
-  // qualified token wanted `open(` and the bare token refused a dot-prefixed
-  // `open` -- so the token is the name itself, in code or in a string. A name
-  // BUILT at run time (`"op" + "en"`) names nothing here and is the dynamic
-  // arm's, on every row it drives. The card's own dialog uses are removed
-  // before this list is applied (see the scan below).
-  { what: "the open member, named", re: /\bopen\b/, exact: true },
-  { what: "the Navigation API", re: /\bnavigation\b/ },
-  { what: "a form", re: /<form\b/ },
-  { what: "a form's action", re: /(?<![\w-])action\s*=\s*["'`]/ },
-  { what: "a submit button's formaction", re: /formaction/ },
-  // A form BUILT AND SUBMITTED by name -- the same members the three markup
-  // rows above name, reached through the DOM API instead. The round-7 review's
-  // plant (#2345) wrote `createElement("form")`, `setAttribute("action", ...)`
-  // and `.submit()`, and the markup rows do not match any of them. Each row is
-  // anchored to the call or member access that makes the word a form
-  // navigation rather than the word: `form` alone is the card's own suffix
-  // loop variable (`for (const form of forms)`), and `action` alone is the
-  // action entity's name in a dozen places, so a bare token for either would
-  // refuse the card. The `\bopen\b` collision the origin/main merge caused is
-  // the same mistake from the other side, and is why these are anchored.
-  //
-  // The action rows key on the NAME POSITION of the call -- the first argument
-  // of setAttribute, createAttribute and `["action"] =`, the second of
-  // setAttributeNS, Reflect.set, Object.assign and `{ action: ... }` -- so a
-  // value on the same line that merely equals the string `"action"` (an
-  // `aria-label` built from `sensor === "action"`) is not a name and stays
-  // green; the driver's F* plants are that control.
-  { what: "a form created by name", re: /\bcreateElement\s*\(\s*["'`]form["'`]/ },
-  { what: "a form's action written through an attribute",
-    re: /(?:\bsetAttribute\s*\(\s*["'`]action["'`]|\bsetAttributeNS\s*\([^,]*,\s*["'`]action["'`]|\bcreateAttribute\s*\(\s*["'`]action["'`])/ },
-  { what: "a form's action written through a member",
-    re: /(?:\bReflect\.set\s*\([^,]*,\s*["'`]action["'`]|\bObject\.assign\s*\([^,]*,\s*\{[^}]*\baction\s*:|\[\s*["'`]action["'`]\s*\]\s*=)/ },
-  // A submit is a member of the form, never a bare word: `.submit(`,
-  // `.submit.call(` (the indirect spelling the `open` member's round found),
-  // `.requestSubmit(`, and the computed key `["submit"]` are the written forms.
-  // A name BUILT at run time (`["sub", "mit"]`) is the residual the census
-  // states, not this row's.
-  { what: "a form submitted by name",
-    re: /(?:\.\s*(?:submit|requestSubmit)\b|\[\s*["'`](?:submit|requestSubmit)["'`]\s*\])/ },
-  { what: "HA's more-info event", re: /hass-more-info/ },
-  { what: "HA's action event", re: /hass-action/ },
+  { what: "an anchor's href", name: "href" },
+  { what: "the location object", name: "location" },
+  { what: "the history object's state writers", name: "pushState", exact: true },
+  { what: "the history object's state writers", name: "replaceState", exact: true },
+  // The card's own dialog uses of `open` are removed before this list is
+  // applied (see the scan below).
+  { what: "the open member", name: "open", exact: true },
+  { what: "the Navigation API", name: "navigation" },
+  { what: "a submit button's formaction", name: "formaction" },
+  { what: "a form's submit", name: "submit", exact: true },
+  { what: "a form's submit", name: "requestSubmit", exact: true },
+  { what: "HA's more-info event", name: "hass-more-info" },
+  { what: "HA's action event", name: "hass-action" },
 ];
-// The markup-facing members are matched case-insensitively (`HREF`, `<FORM`);
-// `open` is an IdentifierName and JS is case-sensitive, so prose that opens
+// The markup-facing names are matched case-insensitively (`HREF`); a JS
+// member is an IdentifierName and JS is case-sensitive, so prose that opens
 // with "Open" ("Open settings") cannot resolve the global and is not a mention
-// of it. `exact` keeps that one token case-sensitive.
-const navUnion = (entries, flags) =>
-  entries.length ? new RegExp(entries.map((m) => `(?:${m.re.source})`).join("|"), flags) : null;
+// of it. `exact` keeps those case-sensitive. A name is bounded by what cannot
+// continue it, so `hreflang` or `opened` is not a mention.
+const navUnion = (entries, flags) => entries.length
+  ? new RegExp(entries.map((m) => `(?<![\\w$-])${m.name}(?![\\w$-])`).join("|"), flags) : null;
 const NAV_TOKEN = navUnion(NAV_SURFACE.filter((m) => !m.exact), "i");
 const NAV_EXACT = navUnion(NAV_SURFACE.filter((m) => m.exact), "");
 const namesSurface = (l) => NAV_TOKEN.test(l) || (NAV_EXACT !== null && NAV_EXACT.test(l));
@@ -11523,58 +11491,55 @@ check("without an indoor reading the corner now label is absent",
 // `navigateTo`'s body the card's code may not name a member of the surface.
 // It reads the source, so it also covers code no press reaches.
 //
-// Dynamic: one fresh card per press, on every page, pressing every element the
-// shadow root wires to a click -- the dialog's own head, close button and tabs
-// included, which the earlier form of this census left out -- plus the chart
-// gesture that opens the slot menu. Each surface member is instrumented to
-// RECORD a use, never to throw: the history object (pushState, replaceState,
-// back, forward, go), open, the location setter and its href / assign /
-// replace, the Navigation API, a CustomEvent or plain Event built with a name
-// the card does not write as a literal, and `href`, `action` and `formaction`
-// read off the markup after every press. Each member is installed by NAME, so
-// a spelling that builds the name reaches the same instrument. Any global
-// name the card's code mentions that neither the global nor `window` binds is
-// refused BY NAME rather than returned as `undefined`, which is what makes
-// this arm allow-based: the realm's own names and the instrumented surface are
-// the whole allow list. Each recorded link must be a path haLink builds for
-// this entry, and no press may throw.
+// Dynamic: one fresh card per drive. Every element the document wires a click
+// to is pressed on every page -- the dialog's own head, close button and tabs
+// included -- plus the chart gesture that opens the slot menu; and every OTHER
+// handler the card registers, of every type (keydown, pointer, wheel, touch,
+// mouse, change, input, the dialog's close), is driven the same way, with
+// fixture variants for what the five pages do not render (the what-if panel,
+// the picker, the layout editor, the card's config editor). Each surface
+// member is instrumented to RECORD a use, never to throw: the history object
+// (pushState, replaceState, back, forward, go), open, the location setter and
+// its href / assign / replace, the Navigation API, a CustomEvent or plain
+// Event built with a name the card does not write as a literal, and `href`,
+// `action`, `formaction` and any form read off the WHOLE document after every
+// drive -- its head and body, the card host and every shadow root, and every
+// element the document's factories made, attached or not. Each member is installed by
+// NAME, so a spelling that builds the name reaches the same instrument. Any
+// global name the card's code mentions that neither the global nor `window`
+// binds is refused BY NAME rather than returned as `undefined`, which is what
+// makes this arm allow-based: the realm's own names and the instrumented
+// surface are the whole allow list. Each recorded link must be a path haLink
+// builds for this entry, and no drive may throw.
 //
 // Reach: the census asserts its own coverage rather than resting on the two
 // arms. ACTS is every `act` branch the card's source can dispatch; it is
 // compared with the source in both directions and every declared branch must
 // have been pressed, so a row that stops being rendered is a red reach check
-// and not a token arm's job. The #2283 round-4 review's four plants (#2317)
-// each walked through that gap: a bare `open(` on a row nothing rendered, the
-// Navigation API, a form's `action`, and an `Event`-built `hass-more-info`.
+// and not a token arm's job. Every navigateTo / openHaLink mention must have
+// been reached, and every addEventListener call site must have registered a
+// listener a drive reached, so a handler no fixture renders is refused by
+// line; a handler wired as an `on<event>` property or attribute, which no
+// registration records, is refused outright. The #2283 round-4 review's four
+// plants (#2317) each walked through the act gap; the #2345 round-8 to
+// round-10 plants (RV1-RV7, RD4, RD6) through the undriven handlers and the
+// shadow-root-only read this replaces.
 //
-// Residual, stated because neither arm reaches it. The dynamic arm drives
-// clicks only, so navigation in a handler it does not drive -- keydown,
-// pointer, wheel, focus -- rests on the static arm alone, and the static arm
-// refuses only the spellings its rows name: `open` and its `.call` / `.apply`
-// / computed-key / Reflect forms, `history.<member>`, `createElement("form")`,
-// an `action` written through setAttribute, Reflect.set, Object.assign with a
-// bare key, a computed key or a literal member write, and `.submit` /
-// `.requestSubmit`. Other written spellings pass both arms there:
-// `history["back"]()`, `history?.back()`, a destructured `back`, a
-// `createElementNS` form, `.action = <variable>`, a quoted `"action"` key,
-// and a form submitted by a button's `click()` -- the driver's RV1-RV7, green
-// by design beside the red controls RV1c and RV5c. A name BUILT at run time
-// passes there too. Closing that is R10-DEEPLINK-HANDLERS's: drive those
-// handlers the way clicks are driven, so what they do is the dynamic arm's.
-// The gap is not confined to undriven handlers: the dynamic arm reads markup
-// in the card's shadow root only, so in ANY press, driven or not, any markup
-// appended outside it (`document.body`) whose navigation name no static row
-// refuses passes both arms. The driver's witnesses, green, in the
-// advisor:settings press this census drives: RD4, a form submitted by a
-// button's `click()`, and RD6, an anchor whose href name is built at run time,
-// `click()`ed. Their red controls put the same element in the shadow root:
-// RD5, the form with its action, placed and not submitted; RD6c, the anchor,
-// placed and not clicked. Closing it needs a document-level read, also
-// R10-DEEPLINK-HANDLERS's.
-// A write through a selector the stub DOM (tests/dom_stub.mjs) cannot
-// resolve, a tag.class pair such as `a.zz`, runs on no element even where a
-// press reaches it (Y1 is that witness, green; R7c is the same write on a
-// selector the stub resolves, red).
+// Residual, stated because neither arm reaches it:
+//   - code no render or drive executes -- a branch behind state no fixture
+//     sets, or behind an event field the drive does not set (it drives each
+//     handler at both ends of the fields it reads, once per key literal the
+//     card compares with, on one target per distinct `data-*` key set, and
+//     on the first fixture that renders its registration site);
+//     there the static arm refuses only the names it lists, so a `history`
+//     member other than the two writers, a form's `action`, or a name BUILT
+//     at run time passes;
+//   - markup written through a DOM member the stub (tests/dom_stub.mjs) does
+//     not implement -- `insertAdjacentHTML`, `outerHTML`, `cloneNode` --
+//     runs on no element, so the read sees nothing (RD8, green), and so does
+//     a write through a selector the stub cannot resolve, a tag.class pair
+//     such as `a.zz` (Y1, green; R7c is the same write on a selector the stub
+//     resolves, red). A written name in either is the static arm's.
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
@@ -11622,42 +11587,81 @@ check("without an indoor reading the corner now label is absent",
     }
     throw new Error(`not found: ${JSON.stringify(msg)}`);
   };
+  // The elements the document's factories made and the listeners registered,
+  // each counted from the latest open.
+  let made = [];
+  const regs = [];
+  let regAt = 0;
   // The loop below presses `dismiss_feedback`, and the card remembers that
   // dismissal per browser; without clearing it every later render would be
   // missing the row, so each fresh card starts from an undismissed one.
-  const open = (page) => {
+  // A fixture variant (`v`, below) renders what the default config and
+  // states do not -- the what-if panel, the picker, the layout editor, the
+  // card's own config editor -- so the handlers they register can be driven.
+  const open = (page, v = {}) => {
     for (const k of Object.keys(store)) if (/dismiss/.test(k)) delete store[k];
+    made = [];
+    regAt = regs.length;
+    if (v.make) return v.make();
     const c = new Card();
-    c.setConfig({ type: "custom:heatpump-optimizer-card" });
-    c.hass = { states: states(), callService: async () => {}, callWS };
+    c.setConfig({ type: "custom:heatpump-optimizer-card", ...(v.config || {}) });
+    const st = states();
+    if (v.patch) v.patch(st);
+    c.hass = { states: st, callService: async () => {}, callWS };
     c._onCardClick({});
     c.dialog.page = page;
     c._render();
+    if (v.prep) v.prep(c);
     return c;
   };
-  // Every element the shadow root wires a click to, the card itself and the
-  // dialog's head included: a row this misses is a row nothing presses.
-  const pressables = (c) => {
+  // The document the card lives in, read WHOLE: its head and body, the card
+  // host with its light children, every shadow root under any of them, and
+  // every element the document's factories made since the card was opened,
+  // attached or not -- a detached anchor's `click()` navigates in a browser
+  // (RD7). The earlier form of this census read the card's shadow root alone,
+  // so markup appended to `document.body` escaped it even in a press it drove
+  // (RD4, RD6): what is read is the document, not the card's own subtree.
+  const docNodes = (c) => {
     const out = [];
+    const seen = new Set();
     const walk = (n) => {
-      if (n._listeners && (n._listeners.click || []).length) out.push(n);
+      if (!n || typeof n !== "object" || seen.has(n)) return;
+      seen.add(n);
+      out.push(n);
       (n.children || []).forEach(walk);
+      if (n.shadowRoot) walk(n.shadowRoot);
     };
-    walk(c.shadowRoot);
+    [document.head, document.body, c, ...made].forEach(walk);
     return out;
   };
-  // The three attributes a browser navigates an element with: an anchor's
-  // `href`, a form's `action`, a submit button's `formaction`.
+  // Every element the document wires a click to, the card itself and the
+  // dialog's head included: a row this misses is a row nothing presses.
+  const pressables = (c) => docNodes(c).filter((n) => n._listeners && (n._listeners.click || []).length);
+  // A handler wired as an `on<event>` property or attribute is one no
+  // registration records and so one nothing drives; the card wires none, and
+  // one that appears is refused here rather than passing both arms.
+  const inline = new Set();
   const anchors = (c) => {
     const out = [];
-    const walk = (n) => {
+    for (const n of [ctx.window, document, ...docNodes(c)]) {
+      for (const k of Object.keys(n)) {
+        if (/^on[a-z]+$/.test(k) && (typeof n[k] === "function" || (typeof n[k] === "string" && n[k]))) {
+          inline.add(`${n.tagName || (n === document ? "document" : "window")}.${k}`);
+        }
+      }
+    }
+    // The three attributes a browser navigates an element with -- an anchor's
+    // `href`, a form's `action`, a submit button's `formaction` -- and the
+    // form itself.
+    for (const n of docNodes(c)) {
+      // A form is a way out whether or not it names an action: submitted, one
+      // with none navigates to the document's own URL.
+      if (n.tagName === "FORM") out.push(["form", String(n.action || n.getAttribute("action") || "(this page)")]);
       for (const at of ["href", "action", "formaction"]) {
         const v = (typeof n.getAttribute === "function" && n.getAttribute(at)) || n[at];
         if (typeof v === "string" && v) out.push([at, v]);
       }
-      (n.children || []).forEach(walk);
-    };
-    walk(c.shadowRoot);
+    }
     return out;
   };
   const built = new Set([haLink("options", ENTRY), haLink("entities", ENTRY),
@@ -11719,11 +11723,49 @@ check("without an indoor reading the corner now label is absent",
   ctx.Event = class extends saved.Event {
     constructor(type, o) { super(type, o); recordEvent(type, o); }
   };
-  // Which source line each navigateTo / openHaLink call came from.
-  const callerLine = () => {
-    const m = /evalmachine[^:]*:(\d+):\d+/.exec((new Error().stack || "").split("\n")[3] || "");
+  // Which source line each navigateTo / openHaLink call -- and each
+  // addEventListener registration -- came from.
+  const callerLine = (depth = 3) => {
+    const m = /evalmachine[^:]*:(\d+):\d+/.exec((new Error().stack || "").split("\n")[depth] || "");
     return m ? Number(m[1]) : -1;
   };
+  // Every listener the card registers, on any element, the window or the
+  // document, recorded with its type and the source line that registered it,
+  // so the drive below can reach each one and the reach check can name a site
+  // that registered nothing. Every element the document's factories make is
+  // recorded too: the document-level read covers it, attached or not.
+  const track = (orig) => function (type, f, o) {
+    regs.push({ on: this, type, f, line: callerLine(3) });
+    return orig.call(this, type, f, o);
+  };
+  saved.nodeAdd = Node.prototype.addEventListener;
+  saved.winAdd = ctx.window.addEventListener;
+  saved.docAdd = document.addEventListener;
+  saved.createElement = document.createElement;
+  saved.createElementNS = document.createElementNS;
+  // The stub's selector engine (tests/dom_stub.mjs) answers one compound
+  // selector with a quoted attribute value. The card also writes a selector
+  // LIST (`.wi-quiet-days, .wi-quiet-action`) and an unquoted value
+  // (`input[type=time]`), both plain CSS, and a handler wired through either
+  // was wired to nothing in the stub, so no drive could reach it. For the
+  // census's span the engine answers both; restored with the rest below.
+  // ...and has no setAttributeNS, so an attribute written through it was a
+  // TypeError a handler's own try swallowed, and the document-level read saw
+  // nothing. A browser's sets the attribute its local name names -- an
+  // `xlink:href` is an `href` an svg anchor navigates by.
+  saved.setNS = Node.prototype.setAttributeNS;
+  Node.prototype.setAttributeNS = function (_ns, q, v) { this.setAttribute(String(q).split(":").pop(), v); };
+  saved.findAll = Node.prototype._findAll;
+  Node.prototype._findAll = function (sel, out) {
+    for (const one of String(sel).split(",")) {
+      saved.findAll.call(this, one.trim().replace(/\[([\w-]+)=([^"\]\s]+)\]/g, '[$1="$2"]'), out);
+    }
+  };
+  Node.prototype.addEventListener = track(saved.nodeAdd);
+  ctx.window.addEventListener = track(saved.winAdd);
+  document.addEventListener = track(saved.docAdd);
+  document.createElement = (t) => { const n = saved.createElement(t); made.push(n); return n; };
+  document.createElementNS = (ns, t) => { const n = saved.createElementNS(ns, t); made.push(n); return n; };
   const hits = new Set();
   ctx.navigateTo = (path) => { hits.add(callerLine()); return saved.navigateTo(path); };
   ctx.openHaLink = (...a) => { hits.add(callerLine()); return saved.openHaLink(...a); };
@@ -11781,6 +11823,8 @@ check("without an indoor reading the corner now label is absent",
     .filter((n) => !REALM.has(n) && !KEYWORDS.has(n));
   for (const n of watched) { watch(ctx, n); watch(ctx.window, n); }
 
+  // Which addEventListener sites registered a listener the census drove.
+  const driven = new Set();
   const seen = {};
   const wrong = [];
   const threw = [];
@@ -11799,6 +11843,7 @@ check("without an indoor reading the corner now label is absent",
       const el = pressables(c)[i];
       const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
       if (el.dataset && el.dataset.act) pressed.add(el.dataset.act);
+      for (const r of regs.slice(regAt)) if (r.on === el && r.type === "click") driven.add(r.line);
       left = [];
       try {
         await Promise.all((el._listeners.click || []).map((f) => f({
@@ -11827,6 +11872,7 @@ check("without an indoor reading the corner now label is absent",
     if (!row || !row.dataset.act || !(menu._listeners.click || []).length) continue;
     const key = `plan:slot_menu:${row.dataset.act}`;
     pressed.add(row.dataset.act);
+    for (const r of regs.slice(regAt)) if (r.on === menu && r.type === "click") driven.add(r.line);
     try {
       await Promise.all((menu._listeners.click || []).map((f) => f({
         stopPropagation() {}, preventDefault() {}, detail: 1, target: row, currentTarget: menu })));
@@ -11836,6 +11882,166 @@ check("without an indoor reading the corner now label is absent",
       if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
     }
   }
+  // Every OTHER handler the card registers -- keydown, pointer, wheel, touch,
+  // mouse, change, input, the dialog's close, the chart's contextmenu, and a
+  // click on a fixture the press loop above does not render -- driven the way clicks
+  // are: one fresh card per handler, per target and per key, through the same
+  // instrumented surface and the same document-level read. Navigation written in a handler no press reached rested on the
+  // static arm alone, which refuses only the spellings its rows name (RV1-RV7,
+  // #2345 round 8); driven, what the handler does is this arm's. A handler is
+  // driven with its own element as the target and with one descendant per
+  // distinct `data-*` key set, which is what the card's delegated handlers
+  // dispatch on (the chart's keydown reads `data-channel` off the target);
+  // a keydown once per key literal the card's source compares a key with.
+  // What a handler registers on the window, the document or an element the
+  // document made -- a gesture's move and up, the slot menu's Escape -- is
+  // driven once in the same card, so a gesture is followed through.
+  const KEYS = [...new Set([...code.matchAll(/(?:\bev\.key|(?<![.\w$])key)\s*[!=]==?\s*"([^"]*)"/g)]
+    .map((m) => m[1]))];
+  // The event, at one end of its fields or (`alt`) at the other: no modifier
+  // or every one, the primary button or the secondary, a wheel down or up, a
+  // mouse or a touch, a click's detail 1 or the keyboard's 0.
+  const mkEv = (type, on, target, key, alt = false) => ({ type, key, code: key, target, currentTarget: on,
+    detail: alt ? 0 : 1, clientX: 300, clientY: 120, pointerId: 1, pointerType: alt ? "touch" : "mouse",
+    isPrimary: !alt, button: alt ? 2 : 0, buttons: alt ? 2 : 1, deltaX: alt ? 100 : 0, deltaY: alt ? -100 : 100,
+    deltaMode: 0, ctrlKey: alt, shiftKey: alt, altKey: alt, metaKey: alt,
+    touches: [{ clientX: 300, clientY: 120 }], changedTouches: [{ clientX: 300, clientY: 120 }],
+    preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {} });
+  const VARY = ["detail", "pointerType", "isPrimary", "button", "buttons", "deltaX", "deltaY",
+    "ctrlKey", "shiftKey", "altKey", "metaKey"];
+  const isDoc = (on) => on === ctx.window || on === document;
+  // The handlers a fresh card holds: registered since it was opened, on the
+  // window, the document or an element the document still holds -- a
+  // listener on an element a re-render threw away is one no event reaches.
+  const handlers = (c, types) => {
+    const live = new Set(docNodes(c));
+    return regs.slice(regAt).filter((r) => types(r) && (isDoc(r.on) || live.has(r.on)));
+  };
+  const targetsOf = (on) => {
+    if (isDoc(on)) return [on];
+    const out = [on];
+    const sigs = new Set();
+    const walk = (n) => {
+      for (const k of n.children || []) {
+        const sig = Object.keys(k.dataset || {}).sort().join(",");
+        if (sig && !sigs.has(sig)) { sigs.add(sig); out.push(k); }
+        walk(k);
+      }
+    };
+    walk(on);
+    return out;
+  };
+  let drives = 0;
+  // The event a handler is driven with records which of its fields the
+  // handler read: one that never reads `target` is driven on its own element
+  // alone, one that never reads `key` once rather than once per key, and one
+  // that reads none of VARY at one end of the event's fields only.
+  const probe = (ev, reads) => new Proxy(ev, { get: (t, k) => { reads.add(k); return t[k]; } });
+  const label = (on) => (isDoc(on) ? (on === document ? "document" : "window")
+    : (on.dataset && on.dataset.act) || on.className || on.tagName);
+  const driveOne = async (page, v, types, i, j, k, alt = false) => {
+    const c = open(page, v);
+    const r = handlers(c, types)[i];
+    const key = `${v.name || page}:${r.type}:${label(r.on)}#${i}/${j}${k === undefined ? "" : `:${k}`}${alt ? "~alt" : ""}`;
+    const reads = new Set();
+    left = [];
+    drives++;
+    const mark = regs.length;
+    const run = async (name, h, ev) => {
+      driven.add(h.line);
+      try { await h.f.call(h.on, probe(ev, reads)); } catch (err) { threw.push(`${name}: ${(err && err.message) || err}`); }
+    };
+    await run(key, r, mkEv(r.type, r.on, targetsOf(r.on)[j], k, alt));
+    const madeNow = new Set(made);
+    for (const f of regs.slice(mark)) {
+      if (f.type === "click" || !(isDoc(f.on) || madeNow.has(f.on))) continue;
+      for (const fk of f.type === "keydown" ? KEYS : [undefined]) {
+        await run(`${key} then ${f.type}${fk === undefined ? "" : `:${fk}`}`, f, mkEv(f.type, f.on, f.on, fk, alt));
+      }
+    }
+    for (const [via, path] of [...left, ...anchors(c)]) {
+      (seen[key] ||= new Set()).add(`${via} ${path}`);
+      if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
+    }
+    return reads;
+  };
+  // Drive every handler `types` admits on one fixture, each from a fresh card.
+  const driveAll = async (page, v, types) => {
+    const hs = handlers(open(page, v), types);
+    for (let i = 0; i < hs.length; i++) {
+      const nt = targetsOf(hs[i].on).length;
+      const first = await driveOne(page, v, types, i, 0, undefined);
+      for (let j = 0; j < (first.has("target") ? nt : 1); j++) {
+        const base = j === 0 ? first : await driveOne(page, v, types, i, j, undefined);
+        const keys = base.has("key") || base.has("code") ? [undefined, ...KEYS] : [undefined];
+        for (const k of keys) {
+          const reads = k === undefined ? base : await driveOne(page, v, types, i, j, k);
+          if (VARY.some((f) => reads.has(f))) await driveOne(page, v, types, i, j, k, true);
+        }
+      }
+    }
+  };
+  // The five pages, then the fixtures they do not render. Each is driven for
+  // the handlers registered from a SITE no earlier drive reached -- every
+  // element that site wired on that fixture, clicks included where the press
+  // loop above did not reach the site -- so a site is driven on the first
+  // fixture that renders it, not once per page that repeats it. The variants
+  // render every site the pages do; the pages lead because they are the
+  // cheaper render, not because a verdict needs them.
+  const press = (c, sel) => {
+    const el = c.shadowRoot.querySelector(sel);
+    for (const f of (el && el._listeners.click) || []) f(mkEv("click", el, el));
+  };
+  const FIXTURES = [
+    ...["plan", "setup", "savings", "advisor", "health"].map((page) => ({ page })),
+    { name: "plan+what_if", page: "plan", config: { what_if: true },
+      patch: (s) => {
+        const sp = s[DEFAULT_SPACE].attributes;
+        Object.assign(sp, { day_start_hour: 7, day_end_hour: 22,
+          quiet_silent_windows_spec: "22:00-06:00", quiet_off_windows_spec: "14:00-15:00",
+          silent_mode_power_fraction: 0.8,
+          wood_fuel: { cheaper: false, show_whatif: true, ready: true, slots: [] } });
+        s[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30, 17:00-22:00";
+        s[DEFAULT_DHW].attributes.dhw_windows_spec = "06:00-08:30, 17:00-22:00";
+        sp.manual_override = { active: true, expires_at: plan.space_plan.forecast.at(-1).t,
+          space_slots: [], dhw_slots: [], released_space: [], released_dhw: [] };
+        s["switch.heat_pump_optimizer_away"] = { state: "on", attributes: {} };
+        s["datetime.heat_pump_optimizer_away_return"] = { state: "unknown", attributes: {} };
+        s["binary_sensor.heat_pump_optimizer_away_mode"] = { state: "off", attributes: { source: "none" } };
+      },
+      // Zoomed, so the view-reset hint renders; a wood window added, so its
+      // row's controls do.
+      prep: (c) => { c.view.zoom(0.25); c._render(); press(c, ".wi-add-wood"); } },
+    { name: "advisor+rows", page: "advisor",
+      patch: (s) => {
+        s[DEFAULT_SPACE].attributes.sensor_advisor = { basis: "history", candidates: [
+          { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+            spread_c: 4.13, parameters: ["buffer_cooling_rate"], priced: true },
+          { key: "outdoor_temp_entity", label: "Outdoor temperature",
+            priced: false, reason: "weather_backed" }] };
+      } },
+    { name: "setup+picker", page: "setup", prep: (c) => press(c, ".setup-hit") },
+    { name: "setup+layout", page: "setup", prep: (c) => press(c, ".layout-edit-toggle") },
+    { name: "editor", make: () => {
+      // The rig's createElement makes a plain stub node, not the registered
+      // class, so the editor is built from its constructor.
+      const e = new (ctx.customElements.get("heatpump-optimizer-card-editor"))();
+      e.hass = { states: states(), language: "en" };
+      e.setConfig(Card.getStubConfig());
+      return e;
+    } },
+  ];
+  for (const v of FIXTURES) {
+    const fresh = new Set(driven);
+    await driveAll(v.page, v, (r) => !fresh.has(r.line));
+  }
+  Node.prototype.addEventListener = saved.nodeAdd;
+  Node.prototype._findAll = saved.findAll;
+  if (saved.setNS) Node.prototype.setAttributeNS = saved.setNS; else delete Node.prototype.setAttributeNS;
+  ctx.window.addEventListener = saved.winAdd;
+  document.addEventListener = saved.docAdd;
+  document.createElement = saved.createElement;
+  document.createElementNS = saved.createElementNS;
   ctx.history = saved.history; ctx.window.history = saved.wHistory;
   ctx.open = saved.open; ctx.window.open = saved.wOpen;
   delete ctx.location; delete ctx.window.location;
@@ -11899,6 +12105,18 @@ check("without an indoor reading the corner now label is absent",
   check("the census reached every navigateTo and openHaLink mention",
     sites.length > 0 && unreached.length === 0,
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
+  // Every addEventListener site in the card's code registered a listener the
+  // census drove, a click it pressed or a handler of any other type: a site
+  // no fixture renders is a handler nothing drives, and is refused by line
+  // rather than passing both arms unseen.
+  const listenSites = srcLines.map((l, i) => [l, i])
+    .filter(([l]) => /\baddEventListener\s*\(/.test(l)).map(([, i]) => i + 1);
+  const undriven = listenSites.filter((i) => !driven.has(i));
+  check("the census drove a listener from every addEventListener site in the card",
+    listenSites.length > 0 && undriven.length === 0,
+    `${drives} drives over ${listenSites.length} sites; undriven ${undriven.join(",")}`);
+  check("the card wires no handler outside addEventListener",
+    inline.size === 0, [...inline].join(", "));
   check("no press throws",
     threw.length === 0, threw.join("; "));
   check("every link the census records from a press is one haLink builds for this entry",
