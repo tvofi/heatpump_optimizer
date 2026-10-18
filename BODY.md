@@ -29,7 +29,7 @@ Alternatives considered:
 
 ## Head
 
-03c0766bf5c373dc06de4f26101fe6bd366b9e11 (merge base 64b1f82a3958, origin/main's tip on 2026-10-18).
+d95f44314fff38b6eddf514ad80e883052bbfaec: the first head 03c0766bf, plus db9267d4 (the instrument-self-tests repair below), plus a merge of origin/main at d79dd49529d7 (git merge, 2026-10-18). The merge touched one of this change's files, `tests/closures.json`, which the ledger merge driver resolved. `--apply-inert`'s `r10_tick_drivers.py` entry survives it (`grep -c r10_tick_drivers tests/closures.json` prints 1), and `ci_predict.py --base origin/main` prints `no closures or fast red predicted against d79dd49529d7`. The figures below were taken at 03c0766bf and re-run after the merge where they read this branch: `prepr.sh --self-test` `287 passed, 0 failed`, `check-wave-script.mjs` `197 passed, 0 failed`, `fold_ledger.py --self-test` with no FAIL, `tests/structure.py` `STRUCTURE RATCHET PASSED`, and the gate `MODE: SCOPED -- 1 script(s) run, 32 scoped out` (tests/entities.py).
 
 ## Mutation proof
 
@@ -91,7 +91,7 @@ All at head 03c0766b unless marked base (64b1f82a3958, a detached worktree of or
   The bodies go to a throwaway bare repository, never to a remote.
 - **The RCA's demonstration, on this branch itself.** Before the inert entry, `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` printed `PREDICT closures INERT READS tests/harness_headers.py: dev/audit/harnesses/r10_tick_drivers.py (a new file beside 41 it lists)` and rc 1, which `body_push.sh` refuses. `--apply-inert` printed `APPLIED inert_reads tests/harness_headers.py: dev/audit/harnesses/r10_tick_drivers.py`. The predictor at the head prints `no closures or fast red predicted`.
 - **Gate.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, the script being `tests/entities.py`.
-  - `PYTHONPATH=tests/hastub python3 tests/entities.py` (seat venv) prints `1 of 2346 ENTITY CHECKS FAILED`. The one failure is `graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, ...`, and the same run at origin/main prints the identical failure with the same count. It is not this diff's (see Red checks).
+  - `PYTHONPATH=tests/hastub python3 tests/entities.py` (seat venv) prints `ALL 2346 ENTITY CHECKS PASSED` at the merged head. At 03c0766bf it printed `1 of 2346 ENTITY CHECKS FAILED`, the same `graders-head-copy` failure that origin/main 64b1f82a3958 printed (see Red checks).
   - run_always: `tests/closure.py selftest` `ALL 115 closure shrink pins PASSED`; `tests/layout.py` `layout self-test: ok`; `tests/env_drift.py --claims-only origin/main` `claims hygiene: origin/main ok`; `tests/harness_headers.py` `ALL 109 HARNESS HEADER CHECKS PASSED`.
   - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL`.
   - `python3 -I tools/audit/seat/ref_privacy.py --self-test`: `66 checks, 0 failed`. `--check`: `0 refused`. `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`.
@@ -99,7 +99,12 @@ All at head 03c0766b unless marked base (64b1f82a3958, a detached worktree of or
 
 ## Red checks
 
-none. `tests/entities.py`'s one local failure (`graders-head-copy's delivery_status step ...`) fails identically at origin/main 64b1f82a3958 on this seat, with the same `1 of 2346`. No check of this branch went red.
+- **instrument-self-tests** (job 117649560197, head 03c0766bf). It went red on `REFUSE tools/pr/prepr.sh:2054: BPO=$(cd "$PDX/r" && git remote get-url origin); git init -q --bare "$PDX/bodies.git"` and `throwaway_git: 1 raw git init or clone site(s) refused`. The cause is in this change: the new M2 self-test arms built their bare repository with a raw `git init`, not through `tests/throwaway_git.sh`'s helper as every other `prepr.sh` site does.
+  - Repair, db9267d4: `throwaway_git_init "$PDX/bodies.git" -q --bare`. `python3 -I tests/throwaway_git.py --check` now prints `0 raw git init or clone site(s) refused`, and `prepr.sh --self-test` still ends at `287 passed, 0 failed`.
+  - The cheaper detector is `python3 -I tests/throwaway_git.py --check`, a tree scan that takes seconds, together with its `--self-test` (`44 checks, 0 failed`).
+  - `prepr.sh` does not run it. Step 7 runs `tools/audit/seat/tmp_paths.py --self-test` and `--check`, and no `throwaway_git.py`. That is the gap that let this red reach CI. Closing it is a one-line `prepr.sh` addition beside the `tmp_paths.py` call, at a standing cost of seconds per prepr run. It is not taken here: the orchestrator ruled that no new findings go into #2390.
+- **pr-contract** (job 117650396148, head 03c0766bf), red. Its log could not be read from this seat: the log blob host is refused by the session proxy, and the job's only annotation is `Process completed with exit code 1`. The cause on record is the orchestrator's: the body's `## Red checks` read `none` while instrument-self-tests was red. This section now names that check. pr-contract re-runs on the new head and body.
+- `tests/entities.py` at 03c0766bf had one local failure (`graders-head-copy's delivery_status step ...`), which failed identically at origin/main 64b1f82a3958. After the merge of d79dd49529d7, the head prints `ALL 2346 ENTITY CHECKS PASSED`.
 
 ## Unpinned sites
 
