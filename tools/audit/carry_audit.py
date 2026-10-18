@@ -43,6 +43,7 @@ A DESTINATION (`Dests.check`):
   dismissed: a reason of two words or more.
 An item is also routed by a `Carry:` elsewhere in the body or a later verdict
 that names its id -- `Carry: R10-X (item 1a2b3c4d)`; every refusal prints it.
+Every marker naming an item adds its destinations, and each must hold.
 The id counts only inside that marker's own segment, so a quoted refusal
 (`UNROUTED body item <id>`) beside a marker routes nothing. A `Carry:` inside
 a code span is a quoted example, never a marker.
@@ -105,8 +106,8 @@ BLOCK_HEADING = re.compile(r"\bblock", re.I)
 CARRY = re.compile(r"(?<![\w-])Carry:")
 ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
 # a code span as CommonMark closes one: a backtick run closes only on a run of
-# exactly its own length, on the same line
-CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)[^\n]*?(?<!`)\1(?!`)")
+# exactly its own length, on its line or a later one of the same item
+CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)")
 GROUP_TOK = re.compile(r"\A[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\Z")
 ISSUE_TOK = re.compile(r"\A#(\d+)\Z")
 BRIEF_TOK = re.compile(r"\AO(\d+)(?:-[a-z0-9][a-z0-9-]*)?\Z")
@@ -220,14 +221,14 @@ def carry_segments(text: str) -> list[str]:
 
 def carry_refs(text: str) -> "tuple[list[str], dict[str, list[str]]]":
     """The destinations of <text>'s markers, and each item id a marker names
-    with that marker's destinations: an id counts only as `(item <id>)` inside
-    the segment of a marker that names a destination."""
+    with every destination the markers naming it name: an id counts only as
+    `(item <id>)` inside a marker's own segment."""
     found, refs = [], {}
     for seg in carry_segments(text):
         ds = seg_dests(seg)
         found += ds
-        for ref in ITEM_REF.findall(seg) if ds else []:
-            refs.setdefault(ref, ds)
+        for ref in ITEM_REF.findall(seg):
+            refs.setdefault(ref, []).extend(ds)
     return found, refs
 
 
@@ -241,7 +242,7 @@ def seg_dests(seg: str) -> list[str]:
     rest = seg.split(":", 1)[1].strip().strip("`*_")
     dm = re.match(r"dismissed\s*:\s*(.*)", rest, re.I)
     if dm:
-        return ["dismissed:" + dm.group(1).strip().rstrip("`*_ ")]
+        return ["dismissed:" + dm.group(1)]
     found = []
     for tok in re.split(r"[,;|/]\s*|\s+and\s+|\s+", rest):
         tok = tok.strip("`*_().:")
@@ -343,7 +344,7 @@ def finding_rows(body: str, comments: list[dict]) -> "tuple[list[dict], dict]":
         for it in items(text, verdict):
             ds, named = carry_refs(it["text"])
             for ref, rds in named.items():
-                refs.setdefault(ref, rds)
+                refs.setdefault(ref, []).extend(rds)
             if it["flagged"]:
                 rows.append({"where": where, **it, "dests": ds})
     return rows, refs
@@ -354,8 +355,7 @@ def audit(body: str, comments: list[dict], dests: Dests) -> dict:
     disposition: routed (with its destinations), unrouted, or bad."""
     rows, refs = finding_rows(body, comments)
     for r in rows:
-        if not r["dests"] and r["id"] in refs:
-            r["dests"], r["via"] = refs[r["id"]], "item ref"
+        r["dests"] = r["dests"] + refs.get(r["id"], [])
         bad, notes = [], []
         for tok in r["dests"]:
             ok, note = dests.check(tok)
@@ -647,7 +647,7 @@ def _self_test() -> int:
     r = run(head, [v])
     check("a verdict's non-blocking lead flags its bullets, not itself and not ## Verified",
           len(r["rows"]) == 2 and r["u"] == 2)
-    vid = r["rows"][0]["id"]
+    vid = r["rows"][0]["id"] if r["rows"] else ""
     r = run(head + f"## Forward-carry\n\n- the prose duplicate. Carry: R10-LIVE (item {vid})\n", [v])
     check("an item routed by reference from the body counts as routed", r["u"] == 1 and r["b"] == 0)
     v2 = {"id": 43, "body": "Fix review: blocked " + "b" * 40 + "\n\n## Why blocked\n\n"
@@ -703,6 +703,58 @@ def _self_test() -> int:
     r = run(head + "## Friction\n\n- PULL_REQUEST_TEMPLATE.md: unenforced: its example "
             "`Carry: R10-LIVE` names a group a fixer copies unchecked. Carry: R10-LIVE\n")
     check("the same finding with a plain marker routes (null control)", r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    # One row per boundary of the marker grammar, each with the status it must
+    # read: dev/audit/harnesses/r10_carry_parser_mutants.py names the mutant
+    # each row kills alone, so no predicate is pinned only with another.
+    P = plant.rstrip()
+    rc = fr + "\n## Red checks\n\n- `pr-contract`: "
+    pid = run(P + " Carry: R10-LIVE\n")["rows"][0]["id"]
+    grammar = [
+        ("a `Carry:` right after a closing backtick is a marker", P + " see `x`Carry: R10-LIVE\n", "routed"),
+        ("an unmatched double backtick opens no span", P + " the `` run. Carry: R10-LIVE `z`\n", "routed"),
+        ("a longer backtick run does not close a span", P + " `a``Carry: R10-LIVE`\n", "unrouted"),
+        ("a double-backtick span closes only on a double run", P + " ``a`Carry: R10-LIVE``\n", "unrouted"),
+        ("a code span may cross a line ending", P + " `an example\n  Carry: R10-LIVE` reads.\n", "unrouted"),
+        ("a word glued to `Carry:` is not a marker", P + " see PreCarry: R10-LIVE\n", "unrouted"),
+        ("a hyphen glued to `Carry:` is not a marker", P + " see pre-Carry: R10-LIVE\n", "unrouted"),
+        ("a segment ends at its line: an id on the next line routes nothing",
+         rc + f"Carry: R10-LIVE\n  The refusal it printed, (item {fid}), stays owed.\n", "unrouted"),
+        ("a segment ends at the next `Carry:`: its id is not the first marker's",
+         rc + f"Carry: R10-LIVE; the friction item stays owed, Carry: (item {fid})\n", "unrouted"),
+        ("two markers naming one id in one item: each destination must hold",
+         rc + f"Carry: R10-LIVE (item {fid}); Carry: R10-INVENTED (item {fid})\n", "bad"),
+        ("two items naming one id: each destination must hold",
+         rc + f"Carry: R10-LIVE (item {fid})\n- `fast`: Carry: R10-INVENTED (item {fid})\n", "bad"),
+        ("an item's own marker and a reference to it: each destination must hold",
+         P + f" Carry: R10-LIVE\n\n## Red checks\n\n- Carry: R10-INVENTED (item {pid})\n", "bad"),
+        ("a bolded `dismissed:` reads", P + " Carry: **dismissed: host load**\n", "routed"),
+        ("`Dismissed:` reads in any case", P + " Carry: Dismissed: host load, not a defect\n", "routed"),
+        ("`and` separates destinations", P + " Carry: R10-LIVE and #999\n", "bad"),
+        ("a destination ending a sentence reads", P + " Carry: R10-LIVE.\n", "routed"),
+        ("a space before the list's comma separates", P + " Carry: R10-LIVE , #999\n", "bad"),
+        ("`(item <id>)` inside the destinations does not end them",
+         P + " Carry: R10-LIVE (item 0123abcd), #999\n", "bad"),
+        ("prose ends the destinations: a token after it is not one",
+         P + " Carry: R10-LIVE because it owns #999\n", "routed"),
+        ("`item <id>)` without its open paren routes nothing", rc + f"Carry: R10-LIVE, item {fid}) owed.\n",
+         "unrouted"),
+        ("`(item <id>` without its close paren routes nothing", rc + f"Carry: R10-LIVE, (item {fid} owed.\n",
+         "unrouted"),
+        ("one capitalised word is not a group", P + " Carry: TODO\n", "unrouted"),
+        ("a group token ends at the word", P + " Carry: R10-LIVE's\n", "unrouted"),
+        ("an issue token ends at the word", P + " Carry: #100's\n", "unrouted"),
+        ("a brief token ends at the word", P + " Carry: O7's\n", "unrouted"),
+    ]
+    for name, text, want in grammar:
+        got = sorted(x["status"] for x in run(text)["rows"])
+        check(f"grammar: {name}", got == [want])
+    vr = {"id": 46, "body": "\n" + v["body"]}
+    check("a verdict after a blank line is still read", len(run(head, [vr])["rows"]) == 2)
+    try:
+        nulls = run(None, [{"id": 47, "body": None}])["rows"]
+    except (AttributeError, TypeError):
+        nulls = None
+    check("a null body and a null comment (gh's empty body) read as no finding", nulls == [])
     check("a quoted `Carry: ...` earlier on a line does not hide the real one after it (#2404's body)",
           carry_dests("written `FINDING: x Carry: ...`, which the sweep reads. Carry: R10-LIVE")
           == ["R10-LIVE"])
