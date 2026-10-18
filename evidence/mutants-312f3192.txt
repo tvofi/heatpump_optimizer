@@ -1,0 +1,20 @@
+== M14
+FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+carry_audit self-test: 43 checks, 1 failed
+== M15
+FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+carry_audit self-test: 43 checks, 1 failed
+== M12
+FAIL a quoted refusal beside an unrelated marker routes nothing (#2404's review)
+FAIL a bare `item <id>` after a marker on its line routes nothing; only `(item <id>)` does
+FAIL an `(item <id>)` outside the marker's segment, in the same paragraph, routes nothing
+carry_audit self-test: 43 checks, 3 failed
+== M13
+FAIL a backticked example `Carry:` in a finding's prose does not route it
+carry_audit self-test: 43 checks, 1 failed
+== M15b
+carry_audit self-test: 43 checks, 0 failed
+== M16_greedy
+carry_audit self-test: 43 checks, 0 failed
+== M17_dests_guard
+carry_audit self-test: 43 checks, 0 failed
