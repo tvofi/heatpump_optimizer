@@ -1,35 +1,67 @@
-Fix review: blocked b965c4ab9a19b9470b88c5800580945b9507a388 mutation-vacuous: policy_lint's stamp-copy arm reads its own file for the mergeRecordClass command, so its needle at policy_lint.mjs:4400 matches itself; dropping --no-renames from policy_lint.mjs:2332 leaves policy_lint rc 0
-bus-nonce: 27d44383158f05429806a91df74e53bd
+Fix review: blocked d1becac2b30830c9fb20bda298056cc8577fb793 red-at-head: tests/entities.py fails 2 graders-head-copy checks at the head (fast (3.14)), and the one-literal _PT_JOB_CANON fix the body names does not clear them; with it applied, 2 other checks fail because the harness executes the step in a planted repo that has no tests/closure.py
 
-**Round 4.** The fixer re-cut the body, as `fixer.md` requires from the fourth round. Reviewed from a fresh detached worktree at `b965c4ab9a19b9470b88c5800580945b9507a388`. The roles diff against main was empty. I judged the delta since round 3 (`af391637b`): the fix commit `dc6cda7a2`, its merge `9f0f7bde3`, and the main merge `b965c4ab9`, which brings in #2384 (`211c8290e`). Evidence: `~/hpo-seats/r10s3/review-2406/evidence-r4/`.
+bus-nonce: 826ac479f990c738b66ad301abf29bca
 
-## Round-3 blockers: both are fixed in the product, by my own probes
+**Round 5.** This is the fifth `Fix review:` verdict on #2406. The earlier four blocked at `a7d97f55b`, `89d2b9465`, `af391637b` and `b965c4ab9`.
 
-- **Blocker 1 (the census red on `codeql_scope.py:88`) is fixed.** At the head, `closure.py selftest` prints `ALL 124 closure shrink pins PASSED` and `closure.rename_sites()` returns `([], [])`. `codeql_scope.changed_files` delegates to `closure.changed_between`.
-  - My mutant M3 turns it back into a correct private `--no-renames` copy, and `codeql_scope --self-test` prints `47 checks, 1 failed` (`the list is closure.changed_between's, not a copy`).
-  - `python3 -I tools/pr/codeql_scope.py --self-test` also passes, so the import by path survives `-I`.
-  - CI's `scope` job concluded success on this head.
-- **Blocker 2 (`stamp.py:1708`) is fixed.** My round-3 probe, re-run on this head (local commit, never pushed, renaming `__init__.py` onto `dev/programme/delivery/99999.md`), gives `stamp.merge_is_record_class: False`. Round 3 gave `True`.
-  - `codeql_scope.changed_files` lists both paths.
-  - My mutant M1 drops the flag at `stamp.py:1708`. The census refuses `tools/release/stamp.py:1708`, and `policy_lint` prints `FIXTURE VACUOUS: ... must both diff with --no-renames`. The stamp half of the arm is live.
-- RESULT self-tests at head (`evidence-r4/r4-tests.txt`): `stamp.py --self-test` `RESULT stamp_self_test=pass`, `policy_lint` `TOTAL: 0 error(s) across 41 policy file(s)`, lane_skip `54/54`.
-- RESULT merges: every merge in `af391637b..b965c4ab9` has a tree equal to `git merge-tree --write-tree` of its parents, and that covers the 14 merges, #2384's own included. `git merge-tree --write-tree origin/main(5a41a5669) HEAD` returns rc 0.
+I reviewed from a detached worktree at `d1becac2b30830c9fb20bda298056cc8577fb793`. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` was empty, so my copy of the contract is current. The evidence is in `ev/` beside this file, and `ev/HEAD` holds the head I measured.
 
-## Blocking: the JS half of the new policy_lint arm cannot fail (step 1)
+## Round-4 blocker: fixed, and pinned
 
-`policy_lint.mjs:4398-4400` checks two things:
-- `stampSrc.includes(<the stamp command>)`, where `stampSrc` is `stamp.py`;
-- `rcWired.includes("git(['diff', '--no-renames', '--name-only', \`${sha}^1\`, String(sha)]")`, where `rcWired` is **the whole of `policy_lint.mjs`** (`:4374`).
+- **The finding.** `recordDiffParity` now reads only the bodies of `mergeRecordClass` and `merge_is_record_class`.
+- **M1** (`ev/mutants.txt`). I dropped `'--no-renames', ` from `policy_lint.mjs:2351`, which is `mergeRecordClass`'s real call. This is round 4's M2' and the body's MB19. `policy_lint` exits 1 with `FIXTURE VACUOUS: recordClassPaths`. Round 4's run of the same mutant exited 0, so the arm is live now.
+- **M2.** I dropped the flag at `stamp.py:1708`. `policy_lint` reports `FIXTURE VACUOUS`, and `closure.rename_sites()` names `tools/release/stamp.py:1708`. This matches the body's MB15.
+- **M3**, my own mutant. I dropped `--no-renames` from the producer at `tests/closure.py:2758`. The results:
+  - closure selftest: `3 of 124 ... FAILED` (both sides, the 0-script scope, the census);
+  - lane_skip: `51/54` (the three `runs on a rename` pins);
+  - codeql_scope: `47 checks, 2 failed`.
+  - So the producer pins are not vacuous.
 
-That second needle is written out literally at `:4400`, inside the file being searched, so the second condition is always true.
+## Body figures re-taken at this head
 
-My mutant M2' removes `'--no-renames', ` from `policy_lint.mjs:2332` only, leaving the needle alone. `node tools/policy/policy_lint.mjs` exits **0** with no `VACUOUS` line (`evidence-r4/r4-mutants.txt`). The census still refuses `tools/policy/policy_lint.mjs:2332`, so in practice the product is protected. But the body (line 16) credits the two twins as "held together by policy_lint's stamp-copy arm", and the arm's JS half is dead code that only looks like a check. This is the "a check reading its own source" shape.
+The body took its figures at `a9a26cc41`. The tree differs from this head only by main's `c8cc75ea9` content. Results are in `ev/selftests-head.txt`, and each matches the body:
 
-Remedy, a few lines: search `mergeRecordClass`'s own body (`rcWired.slice(rcWired.indexOf('function mergeRecordClass'), ...)`, the way `rcBody` already slices `cmdRecordDispositions`) instead of the whole file. Then add the mutant M2' to the body. Or delete the JS half and change the body to say the census holds `:2332`.
+| check | result at the head |
+|---|---|
+| closure selftest | `ALL 124 closure shrink pins PASSED` |
+| lane_skip | `54/54` |
+| codeql_scope `-I` | `47 checks, 0 failed` |
+| roster_lib | `18/0` |
+| orchestrator_tick | `104/0` |
+| state_docs | all passed |
+| stamp | `RESULT stamp_self_test=pass` |
+| policy_lint | `TOTAL: 0 error(s) across 41 policy file(s)`, `FIXTURE ok`, no VACUOUS |
+| structure | `STRUCTURE RATCHET PASSED` |
+
+## Blocking: the head is red on its own pin, and the remedy the body names does not close it
+
+The body's `## Red checks` says `fast (3.14)` is this PR's and still red at the head. It leaves the fix to the orchestrator and calls it "the one-line canonical literal in `_PT_JOB_CANON`".
+
+I re-measured both halves of that claim. Each run is `PYTHONPATH=tests/hastub python3 tests/entities.py` on Python 3.14.7.
+
+- **At the head** (`ev/entities-head.txt`): `3 of 2347 ENTITY CHECKS FAILED`. The three failures are:
+  - `every pinned grader given a token runs its own copy ...` (`arm mismatch=graders-head-copy.steps[2].run`);
+  - `and any edit to the arm's job ... disarms it (null control)`;
+  - the `delivery_status` step-case row.
+- **Null control at the merge base `c8cc75ea9`** (`ev/entities-base-c8cc75ea9.txt`): `1 of 2347`. The only failure is the `delivery_status` step-case row, so that row fails on this box regardless of the PR. The two `graders-head-copy` failures are this PR's, which agrees with the body.
+- **The body's remedy, applied locally and never pushed** (`ev/canon-probe.diff`, `ev/entities-head-canonprobe.txt`): I changed `tests/entities.py:26601` to `python tests/closure.py changed --base "$BASE" --head "$HEAD"`. The result is still `3 of 2347 FAILED`.
+  - The arm-mismatch pair now passes.
+  - Two new checks fail: `and the arm's trigger fires on a restored path and only there` (`planted diff -> governance: {... 'outputs=[]' ...}`) and `and a trigger whose firing branch writes false is refused (null control)`.
+  - The harness executes the step's script in a planted throwaway repo. That repo has no `tests/closure.py`, so under `set -euo pipefail` the new first line exits before any output is written.
+
+So the fix is not one line. The planted repo that `entities.py` builds for the trigger check must carry, or stub, `tests/closure.py changed` alongside the canon literal. The alternative is for the step to keep a self-contained `git diff --no-renames --name-only`. The census allows that and the harness can execute it.
+
+I did not post the `fast (3.14)` conclusion from CI because it was still `in_progress` when I wrote this (job 117746495595). My local run reproduces the failure the body itself predicts. Step 11's red-check answer is present in the body. This block is on the product being red, not on an unanswered trigger. The body's `## Red checks` remedy and its `## Friction` line should be corrected with the finding above.
 
 ## Other steps
 
-- RESULT checks (step 11; `evidence-r4/checkruns-r4.tsv`): 38 runs. `scope`, `closure-scope`, `Analyze (actions)` and `Analyze (javascript-typescript)` concluded success, and nothing in the range is red. The `cancelled` runs belong to the superseded round-3 head `af391637b`. `fast (3.14)`, `coverage` and `Analyze (python)` were still in progress.
-- RESULT carry (step 10): the beat-restart carry stays on R10-TICK-DRIVERS. The body says the CodeQL delegation carry is done here, and it is, by M3. But that carry is still in `R10-TICK-DRIVERS.carry` on `origin/handoff/audit-r10-roster`. Dropping it is the orchestrator's roster edit at merge, or a later seat will redo finished work.
-- RESULT version, claims and budgets: none of them is touched in the delta. The roster diff in the range is #2384's, from main.
-- RESULT head (step 12): `gh pr view` reported `b965c4ab9a19b9470b88c5800580945b9507a388` when I wrote this.
+- **Merges** (`ev/merges.txt`): `a9a26cc41`, `26962be40` and `d1becac2b` each have a tree equal to `git merge-tree --write-tree` of their parents, so none was resolved by hand. `git merge-tree --write-tree origin/main(106af95a3) d1becac2b` returns rc 0, and `LEDGER-MERGE: resolved tests/closures.json` appears on stderr (`ev/merge-tree.txt`).
+- **Checks** (step 11, from the check-runs API on this head):
+  - 38 runs, with no `failure` yet.
+  - `fast (3.14)` and `closures` are `in_progress`.
+  - `typing`, `browser`, `coverage`, `scope`, `closure-scope`, `graders-head-copy`, `pr-contract` and the three CodeQL analyses concluded success.
+- **Version** (step 5): `VERSION`, the manifest and the `RELEASE_NOTES.md` heading are not in the diff.
+- **Claims and budgets** (steps 4, 14): neither claim file nor any golden fixture is in the diff. `tests/closures.json` moved only through the bot's `ci: re-record closures` commit (`f95578604`), which `closures-autofix` produced from the measured `UNDER-SCOPED` read.
+- **Forward-carry** (step 10): the beat restart is still on `R10-TICK-DRIVERS`, as round 4 found. The CodeQL-delegation carry is done in this PR, and the orchestrator still has to drop it from the roster at merge.
+- **Head** (steps 7, 12): `refs/pull/2406/head` is `d1becac2b30830c9fb20bda298056cc8577fb793` when I write this. That is the head named in the body's `## Head`.
+- **Rounds:** this is the fifth. Under `fixer.md`, a repair this late owes a re-cut. The product half (rename-safe lists, Level 0, the parity arm) holds by M1 to M3. What remains is the `entities.py` pin.
