@@ -1,0 +1,24 @@
+  ok   VERSION on a branch is refused
+  ok   VERSION on main is allowed (the stamp runs there)
+  ok   the manifest on a branch is refused
+  ok   a generated Cursor rule is refused
+  ok   and on main too -- generation is not branch-dependent
+  ok   a new RELEASE_NOTES heading on a branch is refused
+  ok   a body line under an existing heading is allowed
+  ok   a MultiEdit that writes a new RELEASE_NOTES heading is refused
+  ok   a heading in a LATER edit is refused (one value per line, not one joined line)
+  ok   a MultiEdit body line is allowed (null control)
+  ok   a malformed edits value fails OPEN
+  FAIL a non-object entry does not hide a heading beside it (got allow, wanted refuse)
+  ok   non-object edits entries fail OPEN
+  ok   the SOURCE rule is allowed (null control)
+  ok   ordinary production code is allowed (null control)
+  ok   a path outside the repository is not ours to judge
+  ok   an unparseable payload fails OPEN
+  ok   a payload with no path fails OPEN
+  ok   a payload whose tool_input is not an object fails OPEN
+  ok   END TO END: a generated Cursor rule exits 2
+  ok   END TO END: production code exits 0 (null control)
+  ok   END TO END: a git that cannot answer fails OPEN, not as not-main
+
+21 passed, 1 failed

@@ -1,0 +1,39 @@
+diff --git a/.claude/hooks/pre-edit.sh b/.claude/hooks/pre-edit.sh
+index 7b42fe8a4..e13e67144 100755
+--- a/.claude/hooks/pre-edit.sh
++++ b/.claude/hooks/pre-edit.sh
+@@ -73,8 +73,16 @@ SELF_TEST=0
+ # if rel == "RELEASE_NOTES.md" and branch != "main":
+ #     # Only the HEADING is stamped; a branch may add body lines under an
+ #     # existing one. So this reads what is being written rather than the path.
+-#     text = " ".join(str(v) for k, v in ti.items()
+-#                     if k in ("new_string", "content", "new_source"))
++#     # Edit, Write and NotebookEdit carry the text at the top level; MultiEdit
++#     # carries it in edits[*].new_string. One entry per line, so a heading in a
++#     # later edit is still at the start of a line. A malformed edits value is
++#     # skipped, which fails open.
++#     parts = [str(v) for k, v in ti.items()
++#              if k in ("new_string", "content", "new_source")]
++#     edits = ti.get("edits")
++#     if isinstance(edits, list):
++#         parts += [str(e.get("new_string", "")) for e in edits if isinstance(e, dict)]
++#     text = "\n".join(parts)
+ #     if any(l.lstrip().startswith("## ") for l in text.splitlines()):
+ #         print("RELEASE_NOTES.md's version heading is written by "
+ #               "tools/release/stamp.py after the merge, and this branch is "
+@@ -126,6 +134,15 @@ if [ "$SELF_TEST" = 1 ]; then
+   st refuse main    "{\"tool_input\":{\"file_path\":\"$R/.cursor/rules/gate-scoping.mdc\"}}"            "and on main too -- generation is not branch-dependent"
+   st refuse feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"new_string\":\"## v9.9.9\\n\"}}" "a new RELEASE_NOTES heading on a branch is refused"
+   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"new_string\":\"- a body line\\n\"}}" "a body line under an existing heading is allowed"
++  # MultiEdit carries its text in tool_input.edits[*].new_string, which the
++  # Edit/Write fields do not name; the matcher admits it, so the heading rule
++  # must read it (round-10 D11-s1-01: one of sixteen seams escaped).
++  st refuse feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[{\"old_string\":\"x\",\"new_string\":\"## v9.9.9\\n\"}]}}" "a MultiEdit that writes a new RELEASE_NOTES heading is refused"
++  st refuse feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[{\"old_string\":\"a\",\"new_string\":\"- body\"},{\"old_string\":\"b\",\"new_string\":\"## v9.9.9\\n\"}]}}" "a heading in a LATER edit is refused (one value per line, not one joined line)"
++  st allow  feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[{\"old_string\":\"x\",\"new_string\":\"- a body line\\n\"}]}}" "a MultiEdit body line is allowed (null control)"
++  st allow  feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":\"not a list\"}}" "a malformed edits value fails OPEN"
++  st refuse feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[7,{\"new_string\":\"## v9.9.9\\n\"}]}}" "a non-object entry does not hide a heading beside it"
++  st allow  feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[7,null,{\"new_string\":5}]}}" "non-object edits entries fail OPEN"
+   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/.claude/rules/gate-scoping.md\"}}"             "the SOURCE rule is allowed (null control)"
+   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/custom_components/heatpump_optimizer/const.py\"}}" "ordinary production code is allowed (null control)"
+   st allow  feature '{"tool_input":{"file_path":"/etc/passwd"}}'                                        "a path outside the repository is not ours to judge"
