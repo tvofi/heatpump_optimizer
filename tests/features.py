@@ -16891,11 +16891,14 @@ R.check(
 # duplication table named both call sites. It now lives once in
 # thermal_model. The replay below is the null control for that move: the
 # same warm residuals through the real learner must land on the same scale.
+# Each saturates the trust region, which since #2252 is a fraction of the
+# current estimate: ten of them compound to (1 - alpha * trust_region) ** 10
+# (the fixed offset before it summed to 1 - 10 * alpha * trust_region, 0.9).
 _eq = _vent_coord()
 _feed_residual(_eq, 0.4, 10, _T4)
 R.check(
     "the extracted Newton step leaves the learned scale unchanged",
-    abs(_eq._house_heat_loss_scale - 0.8999999999999999) < 1e-12,
+    abs(_eq._house_heat_loss_scale - 0.99 ** 10) < 1e-12,
     f"scale {_eq._house_heat_loss_scale!r}",
 )
 
