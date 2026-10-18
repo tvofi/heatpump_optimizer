@@ -179,6 +179,30 @@ At the previous head `e59b1fb54`:
 - `pr-contract`: refused the body because `fast (3.14)` was red and `## Red
   checks` did not name it (job 117470593100). This section is the answer; no
   cheaper detector beyond `tools/pr/prepr.sh`, which this body passed.
+- `wave-script`, red at the earlier head `1d45350ba` (job 117250605987,
+  latest run of that name at that commit): `AGREEMENT REFUSED`, `UNREGISTERED
+  "[A-Za-z_$][\w$]*" in tests/card.mjs, tests/doc_claims.py`. The census had
+  copied `tests/doc_claims.py`'s identifier grammar, so one grammar was written
+  twice and not registered. Commit `1fc6ce693` replaced it, and the check is
+  green at the later heads `485d0aa81` and `e59b1fb54`. At this head, `node
+  tools/policy/agreement.mjs --only discovery` prints `RESULT divergent=0
+  unregistered=0 dead=0 refused=0` and `AGREEMENT ok`. That command is the
+  cheaper detector: it exists, needs no build, and took 0.3 s here. Standing
+  cost: one run before each push of a change to a governance code file. It
+  was not run before `1d45350ba` was pushed.
+- `coverage-ratchet`, red at the earlier head `485d0aa81` (job 117397081517,
+  latest run of that name at that commit): `FAIL every module >= 95.0 %`, with
+  `coordinator.py`, `early_cutoff.py`, `sysid.py` and `price_model.py` below
+  the floor. The branch's three-dot diff at that head is
+  `dev/programme/rosters/wave-r10-groups.json`, `tests/card.mjs` and
+  `tools/audit/seat/r10_deeplink_mutants.py`, with no Python module among
+  them. So the red came from CI reusing a stale coverage base, not from this
+  diff. #2349 (`rca(coverage-base-reuse)`, `1138a4ef5`) is that class's
+  root-cause record and its floor re-validation backstop. It is not an
+  ancestor of `485d0aa81` and is an ancestor of this head, and the check is
+  green at `e59b1fb54`. No cheaper detector exists at this branch's level: no
+  local run of the branch's own files reproduces a base CI chose. The
+  countermeasure belongs to #2349's seat and has landed.
 - `delivery-status`: not a required context; its log lists overdue record
   rows for other pull requests (#2335, #2323, #2311), none of them this diff's
   (job 117464452564). No finding for this branch.
