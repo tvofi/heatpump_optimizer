@@ -64642,6 +64642,21 @@ R.check(
     and not hasattr(_rp_coord, "_solve_anchor"),
     f"(ledger, anchor, 30-min floor) minutes: {_rp_widths}",
 )
+# The plan's last step is half-open like every other (#2365, the pin drive's
+# survivor): bisect hands step i the instants [stamps[i], stamps[i+1]), so the
+# last step must end at stamps[-1] + one plan step, not one instant after it.
+# Probed on either side of that edge, so a comparison turned either way fails.
+_rp_edge = _RP_T0 + timedelta(minutes=_rp_ps.PLAN_STEP_MINUTES)
+_rp_edge_reads = [
+    _rp_pa.step_duty(_rp_plan, _rp_edge - timedelta(microseconds=1)),
+    _rp_pa.step_duty(_rp_plan, _rp_edge),
+]
+R.check(
+    "D7-s3-8x-slotfloor: the plan's last step covers [stamp, stamp + one plan "
+    "step) -- live a microsecond before the edge, expired at it",
+    _rp_edge_reads[0] is not None and _rp_edge_reads[1] is None,
+    f"duty just before the edge {_rp_edge_reads[0]!r}, at the edge {_rp_edge_reads[1]!r}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))
