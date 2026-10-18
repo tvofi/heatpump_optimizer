@@ -1,0 +1,14 @@
+transient: start room 21.0 slab 22.0: booked baseline step 0 = 2.06 kW
+transient: start room 20.0 slab 21.0: booked baseline step 0 = 2.06 kW
+transient: start room 19.0 slab 20.0: booked baseline step 0 = 2.06 kW
+transient: start room 22.0 slab 23.5: booked baseline step 0 = 2.06 kW
+transient: spread of the booked step across start states = 0.00 kW
+transient: SOUND
+cost: receipt total_sek = 15.0; row actual_sek = 15.0
+cost: SOUND
+coverage: 24 settled hours of 672; open-row scale = 28.00 (month hours / settled = 28.00)
+coverage: SOUND
+null: plan kWh 114.5 vs booked thermostat kWh 128.4; plan mean room 18.79 C vs mean comfort target 20.44 C
+null: flat price, 2 days, re-plan every 1.00 h: baseline 154.1 actual 137.41 saved 16.69 (10.83238932735682 %)
+null: DEFECT
+arms run 4, defect 1: null
