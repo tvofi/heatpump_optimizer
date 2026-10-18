@@ -573,9 +573,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 10 of 25; before you: R10-INPUT-STALENESS, R10-CURRENCY; next: R10-LEAF-IMPORTS, R10-TRUST-RELATIVE). Owning seam in this group: the store wiring (snapshot store, save digest, price-learner days). Shape: the store owns load, save and report rules; the coordinator only calls it. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-store",
-    "commit": null,
+    "commit": "932f5d6019e5801b06165bb7926b39347d91d643",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
