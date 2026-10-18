@@ -1,0 +1,16 @@
+reject	accuracy.py	abs(residual)>X@673
+freeze	coordinator.py	_learning_frozen:_tail_freeze(self)@6405
+freeze	coordinator.py	_learning_frozen:'external_heat_source'@6334
+freeze	coordinator.py	_learning_frozen:signals.freeze_reason@6349
+freeze	coordinator.py	_learning_frozen:'defrosting'@6357
+freeze	coordinator.py	_learning_frozen:'ventilation'@6394
+freeze	coordinator.py	_learning_frozen:boost.FREEZE_REASON@6404
+freeze	coordinator.py	_learning_frozen:f'{reading.problem}:{key}'@6389
+adopt	coordinator.py	_adopt_system_identification@10864
+reject	coordinator.py	abs(residual)>X@5121
+reject	coordinator.py	abs(residual)>X@5239
+cusum-INSTANCE	coordinator.py	_vent_cusum@2746 fed_residual=True gates_learning=True
+cusum	coordinator.py	_cop_health_cusum@2965 fed_residual=False gates_learning=False
+adopt	sysid.py	adoption_decision@1203
+SEAMS 14 INSTANCE_CANDIDATES 1
+rc=0
