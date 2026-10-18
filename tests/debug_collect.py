@@ -1110,6 +1110,20 @@ R.check(
 # and not only in the nightly lane's tests/replay.py.
 
 _D = replay_doc._DROP
+
+
+def _unrecorded(want: list, got: list) -> str:
+    """A leak check's detail: which expected values, by position, were not recorded,
+    and how many were recorded beyond them.
+
+    Like ``seal``'s refusal it counts and never echoes a value: one expected under a
+    credential key is a credential, and a check's detail is a CI log.
+    """
+    missing = [i for i, w in enumerate(want) if w not in got]
+    extra = sum(1 for g in got if g not in want)
+    return f"expected value(s) {missing} not recorded; {extra} recorded beyond them"
+
+
 R.check(
     "replay_doc.numeric admits a number or its spelling and nothing else",
     [replay_doc.numeric(v) for v in ("1.5", 3, 2.5, "warm", None, ["1"])]
@@ -1133,7 +1147,8 @@ R.check(
     _cleaned == {"latitude": None, "lat": 59.33, "longitude": 18.06,
                  "rows": ["auto", None, 7], "on": True}
     and _dropped == ["s3cret-value", "north", "https://nas.example.se/cam"],
-    f"{_cleaned} dropped={_dropped}",
+    f"kept keys {sorted(_cleaned)}; "
+    + _unrecorded(["s3cret-value", "north", "https://nas.example.se/cam"], _dropped),
 )
 _secret_drop: list = []
 replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob123456"},
@@ -1141,7 +1156,8 @@ replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob
 R.check(
     "everything under a credential-named key is recorded for the leak check, in a nested "
     "object or a list too, and a null or a bool under one is not",
-    _secret_drop == ["bob123456", "abc123456", "42"], str(_secret_drop),
+    _secret_drop == ["bob123456", "abc123456", "42"],
+    _unrecorded(["bob123456", "abc123456", "42"], _secret_drop),
 )
 _shape_drop: list = []
 _shape_cut = replay_doc._keep_keys(
@@ -1248,7 +1264,8 @@ R.check(
     and "states.plainkey: not an entity id" in str(_unfit)
     and isinstance(_ok, dict) and _ok["entry"]["data"] == {}
     and _ok["states"] == {"sensor.a": [["t", "1", None, None]]},
-    f"{_leaked!r} {_unfit!r}",
+    f"{_leaked if isinstance(_leaked, replay_doc.Refused) else type(_leaked).__name__} "
+    f"{_unfit!r}",
 )
 _homes = [{"entity_id": f"sensor.price_{h}", "platform": "tibber", "unique_id": h,
            "translation_key": "electricity_price"} for h in ("home1", "home2")]

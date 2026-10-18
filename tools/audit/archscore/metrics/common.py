@@ -57,17 +57,6 @@ HA_CONVENTION_NAMES = frozenset({
     "async_redact_data", "async_get_engine", "async_get_config_flow_dialect",
     "async_create_fix_flow", "CONFIG_SCHEMA", "PARALLEL_UPDATES", "PLATFORMS",
 })
-HA_CONVENTION_METHODS = frozenset({
-    "_async_update_data", "async_press", "async_set_hvac_mode",
-    "async_set_preset_mode", "async_set_temperature", "async_set_value",
-    "async_turn_on", "async_turn_off", "is_on", "current_temperature",
-    "hvac_action", "native_value", "extra_state_attributes",
-    "async_get_options_flow",
-})
-
-
-def is_ha_method(name: str) -> bool:
-    return name in HA_CONVENTION_METHODS or name.startswith("async_step_")
 
 
 # ---------------------------------------------------------------------------

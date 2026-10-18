@@ -423,6 +423,18 @@ jobs:
           python3 -I tools/audit/seat/ref_privacy.py --self-test
           python3 -I tools/audit/seat/ref_privacy.py --check
 
+      # The orchestrator sweep's renderer and its policy re-read predicate.
+      # The renderer's self-test renders the tracked template, so a step that
+      # cites an instrument the tree no longer has reddens here, not in the
+      # next session's sweep. Here for tmp_paths.py's reason.
+      - name: Render the sweep template, and the policy re-read predicate
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/sweep_render.py --self-test | tee "$RUNNER_TEMP/sr-self-test.txt"
+          grep -Eq '^sweep_render self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sr-self-test.txt"
+          python3 -I tools/audit/seat/policy_reread_check.py --self-test | tee "$RUNNER_TEMP/prc-self-test.txt"
+          grep -Eq '^policy_reread_check self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prc-self-test.txt"
+
       # A throwaway git repository built without the shared helper
       # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
       # even a tiny repository, and it outlives the temporary directory. The

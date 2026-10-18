@@ -3894,6 +3894,15 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
+        # D7-s2-54 (R10-SENSOR-PAYLOAD): the plan step's zone setpoints are
+        # published under one pair of names by zone_setpoint_attributes; the
+        # climate entity, Current Setpoint and Heat Pump Action each spelled
+        # the renaming before it.
+        dict(fact="zone_setpoint_names", finding="D7-s2-54",
+             match=_p2_match_node(
+                 (ast.Constant,), r"_floor_setpoint",
+                 lambda n: n.value in ("upper_floor_setpoint", "lower_floor_setpoint")),
+             owners=["entity.py::zone_setpoint_attributes"], dispositions={}),
         # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
         # #2365's review): which plan step an instant falls in. One concern --
         # the optimizer's plan step covering now -- read by the solve's anchor
@@ -3949,6 +3958,16 @@ _P2_CENSUSES = {
     # _loaded_entries's, consulted by every action before it can return.
     "service_entries_resolved_first": (
         "tests/features.py", "every action resolves its config entries before it returns"),
+    # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
+    # payload_number's -- every number state driven with a bool and a text
+    # payload publishes neither, nor reads either as a number.
+    "payload_number_published": (
+        "tests/finite_boundary.py",
+        "every number state publishes None, never the bool or the text, from a "),
+    # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
+    # runtime-object mixin's included.
+    "finite_scrub_resolves_mro": (
+        "tests/finite_boundary.py", "a package mixin with runtime base object"),
 }
 
 
@@ -4067,6 +4086,9 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
+_P2_PLANTS["zone_setpoint_names"] = (
+    "\n\ndef _p2_plant(action):\n    return {\"upper_floor_setpoint\": action[\"upper_setpoint\"]}\n"
 )
 _P2_PLANTS["slot_floor_rule"] = (
     "\n\ndef _p2_plant(now):\n"
@@ -4631,6 +4653,17 @@ def _p6_arm_k(walks, declared=None):
     for name, nodes in walks.items():
         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
             continue
+        # A sensor declaring its state's payload path (sensor._PayloadNumberMixin)
+        # reads the path's first key off the payload: a declaration, not a
+        # ``.get`` call, so the walk below would not see it.
+        for n in nodes:
+            if isinstance(n, ast.Assign) and any(
+                    isinstance(t, ast.Name) and t.id == "_payload_path" for t in n.targets) \
+                    and isinstance(n.value, ast.Tuple) and n.value.elts \
+                    and (key := _p6_lit(n.value.elts[0])):
+                reads += 1
+                if key not in produced:
+                    seams.add(f"{name}:{n.lineno} {key}")
         fns = [n for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
         accessors = {
             fn.name for fn in fns
@@ -4961,6 +4994,15 @@ R.check(
     "every coordinator.data key a platform reads is one production writes (P6 K)",
     _p6_k_reads > 0 and not _p6_k,
     f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
+)
+# Null control for the declared-path read: a sensor naming a key no
+# producer writes in its ``_payload_path`` is a seam.
+_p6_k_plant = {**_P6_WALKS, "sensor.py": _P6_WALKS["sensor.py"] + list(ast.walk(ast.parse(
+    "class _P6Plant:\n    _payload_path = (\"p6_no_such_key\", \"leaf\")\n")))}
+R.check(
+    "a declared _payload_path naming an unwritten key is a P6 K seam (null control)",
+    any(seam.endswith(" p6_no_such_key") for seam in _p6_arm_k(_p6_k_plant)[1]),
+    "the planted declaration was not read",
 )
 R.check(
     "every entity id a blueprint, the card or the package names is one a platform "
