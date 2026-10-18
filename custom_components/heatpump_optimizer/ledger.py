@@ -183,7 +183,7 @@ class MonthlyLedger:
         not: the open month's estimate scales by how much of the month was
         settled, not by the calendar day (#2255 item 2).
         """
-        if dt > 0:
+        if dt >= 0:
             self.observe_meta_mean(when, SETTLED_HOURS_META, dt)
         self.observe_meta_mean(when, "spot_price", spot)
         self.settle_interval_savings(when, pending, actual_kwh, spot, dt)
