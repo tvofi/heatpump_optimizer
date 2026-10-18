@@ -990,8 +990,9 @@ await block('the scoped round driver', async () => {
     }
     const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
     let out, error = ''
-    try { out = await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
-    return { out, error, calls, labels: calls.map((c) => c.label) }
+    const logs = []
+    try { out = await fn(agent, (m) => logs.push(m), () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
+    return { out, error, logs, calls, labels: calls.map((c) => c.label) }
   }
   const isFinder = (l) => /^D\d+-s\d+$/.test(l)
   const base = { round: 9, baseline: 'b', repo: '/r', rotation: ledger, scopes }
@@ -1057,6 +1058,13 @@ await block('the scoped round driver', async () => {
   const strFind = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: J([{ id: 'D1-s2-01', scope: 'D1-s2', class_guess: 'P3', step: 'D1.M1', severity: 'low', title: 't' }]) } : {}) })
   t("a finder report whose findings came back as JSON text is read as its findings, not as none",
     /"id":"D1-s2-01"/.test(strFind.calls.find((c) => c.label === 'intake')?.prompt ?? ''), strFind.error || 'D1-s2-01 not registered')
+  // The arm the case above is the null control for: the same findings cut off
+  // mid-text are refused with the field named, and the seat is not reported,
+  // never one that returned no findings.
+  const cutFind = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: J([{ id: 'D1-s2-01', scope: 'D1-s2', class_guess: 'P3', step: 'D1.M1', severity: 'low', title: 't' }]).slice(0, 25) } : {}) })
+  t('...and one whose findings came back cut off is a seat not reported, refused with the field named, and intake does not run',
+    J(cutFind.out?.missing ?? null) === J(['D1-s2']) && !cutFind.labels.includes('intake') && cutFind.logs.some((m) => /^D1-s2's report: findings: .*does not parse.*not reported$/.test(m)),
+    J({ missing: cutFind.out?.missing, error: cutFind.error, intake: cutFind.labels.includes('intake'), logs: cutFind.logs.filter((m) => m.includes('D1-s2')) }))
   const noBox = `B${Object.keys(D.BOXES).length + 1}`
   t(`an unknown box is refused (${noBox})`, !D.BOXES[noBox] && /is not one of/.test((await drive({ ...base, box: noBox })).error), `${noBox} accepted`)
   const both = await drive({ ...base, box: 'B1', from: 'intake' })
