@@ -24,7 +24,7 @@ for k, name in enumerate(sorted(members)):
     params = [x.strip().split("=")[0].strip() for x in m.group(1).split(",") if x.strip()]
     locals_ = set(params) | set(re.findall(r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)", body))
     for name2 in sorted(locals_):
-        if re.fullmatch(r"[A-Za-z_$][\w$]*", name2):
+        if K._IDENT.fullmatch(name2):
             body = re.sub(rf"(?<![\w$.]){re.escape(name2)}(?![\w$])", f"{name2}_f{k}", body)
     src = src[:start] + body + src[i:]
     done += 1
