@@ -1,0 +1,11 @@
+P-property-attr-load rc=1 FAIL name_kept_members 39 > 38 (+1)|
+ tools/policy/field_coverage.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a count that moves while its row never refuses is UNGATED, BLIND (R10-N-structure-blind)
+FIELD COVERAGE SELF-TEST: 1 FAILED
+  FAIL a census already refused unplanted is REFUSED, not read
+FIELD COVERAGE SELF-TEST: 1 FAILED
+  FAIL a census naming no gate row is REFUSED
+FIELD COVERAGE SELF-TEST: 1 FAILED
+  BLIND    census structure.py name_kept_members: UNGATED, 38 -> 39 with one planted member and no FAIL on name_kept_members
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
