@@ -1,3 +1,7 @@
+## Head
+
+abc
+
 ## Friction
 
-- carry_audit.py: unenforced: nothing reads the ledger key at merge.
+- fixer.md: unclear: step 2 offers a disposition that pins nothing.

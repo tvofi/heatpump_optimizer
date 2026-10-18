@@ -1,32 +1,34 @@
-Fix review: blocked 354c84a963cb04cb68141cb394c0c4415a85b250 mutation-vacuous: each half of the item-ref guard survives alone; the self-test kills only the two reverted together (M12)
+Fix review: blocked 312f319238841bf545df92ba98777c93bbc5fde4 mutation-vacuous: the segment's two boundaries (cut at the next Carry:, cut at the line end) each survive alone; 43 checks pass while a planted body misroutes
 
-bus-nonce: ad2798604bc28247b08a9d5f788b884b
-Round: second review of #2404. Round 1 blocked 5cf5786b9 (review/2404 dd663f18c) on the item-ref over-fire. This round judges the delta 5cf5786b9..354c84a96: commits 71a7b6294 and 269a8dfd4, plus two main merges that touch delivery rows only.
-Reviewed head: 354c84a963cb04cb68141cb394c0c4415a85b250 (still the head when posted). Role contract current.
-Evidence: ~/hpo-seats/r10s3/review-2404/ev2
+bus-nonce: de1a6e03ea09bf800f463669f801a516
+Round: third review of #2404. Round 1 blocked 5cf5786b9 (item-ref over-fire), round 2 blocked 354c84a96 (mutation-vacuous: paren form and segment scope each unpinned). This round judges the delta 354c84a96..312f31923: authored commit b3a121472 (two self-test arms plus null controls, M14 and M15) and the main merges cb398f3e3 and 312f31923. The main merge is a clean automatic merge: `git merge-tree --write-tree b3a121472 55dc8d9c2` gives the tree of cb398f3e3 exactly, and 312f31923's tree equals cb398f3e3's, so the resolution delta is empty.
+Reviewed head: 312f319238841bf545df92ba98777c93bbc5fde4 (still the PR head when written). Role contract current (empty `git diff $(merge-base)...origin/main -- dev/governance/roles/`).
+Next round is the fourth: by fix-review.md's last line, fixer.md owes a re-cut, not a repair.
 
 ## Block
 
-The round-1 finding is fixed: all three of my probes now read `0 routed, 1 unrouted`. The repair has two independent guards. The body states both: an id counts "only as `(item <id>)` inside that marker's own segment". The self-test pins only their conjunction. M12 reverts both guards at once (the pre-review parser), so it is killed. Remove either guard alone and all 39 checks still pass, while a planted body misroutes (`ev2/mutants-354c84a9....txt`):
+Round 2's finding is fixed: M14 (paren form dropped) and M15 (`ITEM_REF.findall(text)`, segment scope dropped) are each killed by 1 check now. The same class is still open one level down, though. The body defines the guard as an id counting only "inside that marker's own segment". `carry_segments` bounds a segment in two ways: it cuts at the next `Carry:`, and it cuts at the line end. Neither cut is pinned on its own (`ev/mutants-312f3192.txt`):
 
-- Mutant A, the paren form dropped (`ITEM_REF` back to `\bitem\s+([0-9a-f]{8})\b`) with segment scope kept: 39 checks, 0 failed. `ev2/p-segbare.md` (a marker line `Carry: R10-TICK-DRIVERS, see the quoted UNROUTED line: body item <id> stays owed.`) goes to `1 routed`. At the head it is `0 routed`.
-- Mutant B, segment scope dropped (`ITEM_REF.findall(text)` in `carry_refs`) with the paren form kept: 39 checks, 0 failed. `ev2/p-parenprose.md` (prose `the refusal named (item <id>) and is owed here ... Carry: R10-TICK-DRIVERS`) goes to `1 routed`. At the head it is `0 routed`.
+- M15b, the line-end cut dropped (`.split("\n", 1)[0]` removed): 43 checks, 0 failed. `ev/p-nextline.md` has a marker line `Carry: R10-TICK-DRIVERS` and, on the next line of the same bullet, `The refusal it printed, (item f60b9acb), stays owed in this PR.` At the head it gives `0 routed, 1 unrouted`. Under the mutant it gives `1 routed`. Null control `ev/p-nextline-null.md` (the id inside the marker) gives `1 routed` at both.
+- M16, the next-`Carry:` cut dropped (`text[at:]`, the line-end cut kept): 43 checks, 0 failed. `ev/p-twomarkers.md` (`Carry: R10-TICK-DRIVERS; the friction item is Carry: R10-INVENTED (item f60b9acb)`) gives `1 bad destination` at the head. Under the mutant the first segment swallows the second marker's id, so it gives `1 routed`: a bad destination is laundered through an unrelated marker. Round 1's "greedy" mutant was killed only because it also reverted the destination parse, so it never isolated this cut.
 
-Each guard covers a case the other does not. Neither is pinned on its own, so either can be lost in a later edit without a red. Repair: add two self-test arms built on these two probes, one per guard, each with its null control (`Carry: R10-LIVE (item <id>)` still routes). Then name them as mutants beside M12 and M13. M13 (code-span skip) is killed as claimed: with the skip removed, 1 check fails.
+Repair: two self-test arms built on these two probes, each with its null control, named as mutants beside M14 and M15. Better, given that this is round 3 on one function: a single table-driven arm that perturbs each boundary of a segment (paren, segment start, next marker, line end, code span).
+
+Not a block: M17 (`if ds else []` dropped) leaves `ev/p-nodest.md` and `ev/p-twomarkers.md` unchanged. An id under a marker with no destination maps to `[]`, which still reads unrouted. So I judge it an equivalent mutant.
 
 ## Verified
 
-RESULT carry_audit_selftest=39 failed=0 (head)
+RESULT carry_audit_selftest=43 failed=0 (head)
 RESULT queue_pre_flight_selftest=37 failed=0; merge_train_selftest=180 failed=0
-RESULT round1_probes probe-unrouted=0/1 probe-quoted=0/1 probe-backtick=0/1 (routed/items)
-RESULT body_check="5 routed, 0 unrouted, 0 bad" (live body; its Red-checks quote of cb97c3b2 no longer routes anything)
-RESULT mutant_M13_span_skip_removed=killed (`a backticked example Carry: ... does not route it`)
-RESULT mutant_A_paren_form_dropped=survived; mutant_B_segment_scope_dropped=survived
+RESULT mutant_M14_paren_dropped=killed (1 failed); mutant_M15_segment_scope_dropped=killed (1 failed); mutant_M12_both=killed (3 failed); mutant_M13_span_skip_removed=killed (1 failed)
+RESULT mutant_M15b_line_cut_dropped=survived; mutant_M16_next_marker_cut_dropped=survived; mutant_M17_dests_guard_dropped=survived (equivalent on probes)
 RESULT rows39 rows_caught=33 of=33
-RESULT last20 rows_caught=34 of=35; last20_hits=76 on_a_row=46 on_no_row=30 (unchanged from round 1)
-RESULT merge_tree_vs_origin_main=clean
-RESULT check_runs_head=45 completed, 0 failure/cancelled (closures 117708987163, pr-contract 117706700576 and 117706605865, instrument-self-tests 117706607247 all success)
+RESULT last20 rows_caught=34 of=35; last20_hits=76 on_a_row=46 on_no_row=30 (unchanged)
+RESULT merge_tree_vs_origin_main=clean (exit 0; origin/main c8cc75ea9)
+RESULT check_runs_head=46 completed: 31 success, 15 skipped, 0 failure
+RESULT version_manifest_notes=untouched
 
-- Step 11: the delta's commits 71a7b6294, 58be98660 and 269a8dfd4 have no check-runs of their own, and the head has no red. Nothing in this round owes a root-cause answer.
-- Step 5 and 14: no VERSION or manifest change. The delta's only metric-adjacent files are two `dev/programme/delivery/` rows, both from main merges.
-- Note, not a block: the code-span skip fails closed. The PR template shows the marker as a code span (`` `Carry: <dest>` ``, and line 38 puts the whole Friction line in one span). A fixer who copies that shape literally writes a backticked marker, which is now refused as unrouted. The refusal is loud, so nothing passes wrongly. It can be cheaper to say so in the template or the refusal text. This is the same file the body's Friction line routes to its cap item (O10-policy-fixer-md). Carry: O10-policy-fixer-md
+- Step 11: b3a121472 and cb398f3e3 have no check-runs of their own, and the head has no red. Nothing in this round owes a root-cause answer.
+- Step 9: `r10_carry_sweep_rows.py` is still the fixer's own instrument. The round-10 sweep has no committed harness, as rounds 1 and 2 recorded. I built the probes under `ev/` myself.
+- Step 14: the delta moves no budget, closure or claim file. The only other files are main's (codeql, delivery rows).
+- I did not re-run the figures the delta leaves untouched: policy_lint, field_coverage, agreement and structure. CI is green on them at this head.
