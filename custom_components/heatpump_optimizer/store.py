@@ -569,7 +569,7 @@ def off_domain(key: str, payload: Any) -> list[str]:
 
 def quarantines(payload: Any) -> bool:
     """Whether the next load would scrub a poisoned leaf of ``payload`` (``_sanitize``)."""
-    return _sanitize(payload) != payload
+    return bool(_sanitize(payload) != payload)
 
 
 def store_name(key: str) -> str | None:
