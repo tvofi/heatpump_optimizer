@@ -226,6 +226,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
   but the gantt's grammar checks run in `--self-test`, not at render time.
+- `policy_reread_check.py` — says whether a session owes a policy re-read:
+  OK when `--stamp`'s instant is later than the newest compaction in
+  `--transcript` (a JSON line whose `subtype` is `compact_boundary`), else
+  OWED; `--write-stamp` records a finished re-read in the format the check
+  reads. When: the sweep's step 0 (`sweep_template.md`), after every
+  compaction. Refusal: it fails closed -- no stamp, an unparseable one, one
+  ahead of the clock, an unreadable transcript, or a line naming the marker
+  that is not JSON each print OWED, never OK. `--self-test` drives both arms.
 - `proof_watch.py` — watches one named check-run at one pinned head of one
   pull request and, once it completes `success` beside green required contexts
   and a valid merge verdict at that exact head, merges through `merge_pr.sh`.
@@ -378,6 +386,22 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--once` is one pass and returns that pass's code; without `--tip-file` a
   `--once` caller regenerates every time, so give it one to keep the loop's
   memo on disk. `--self-test` drives all three arms offline.
+- `sweep_render.py` — renders the orchestrator sweep from
+  `sweep_template.md` and a session's JSON overlay (stdout or `--out`). The
+  template's `## Placeholders` table is the one registry of names. When: a
+  session or round sets up its recurring sweep -- render it, never hand-copy
+  the last session's prompt; the overlay stays out of the tree. Refusal: an
+  unfilled, empty or non-scalar value, an undeclared placeholder or overlay
+  key, a declared name the sweep never uses, a cited `tools/`, `tests/`,
+  `dev/` or `.github/` path that is not in the tree, and a home directory
+  (`ref_privacy.py`'s `HOME_DIR`) in the rendered text that no overlay value
+  supplied -- each exits 1 and writes nothing. `--self-test` renders the
+  tracked template and drives every refusal beside its null control.
+- `sweep_template.md` — the orchestrator's recurring sweep, steps in order,
+  each naming the instrument it runs by tree path and the rule file
+  (`orchestrator.md`, `nudge.md`, `CLAUDE.md`) it carries out; a usage guide
+  that restates no policy. When: read through `sweep_render.py`. Refusal: none
+  of its own -- the renderer's.
 - `tmp_paths.py` — refuses a tracked script, workflow or decision record that
   depends on a temp or machine path (`--check`, `--self-test`). When: after
   touching anything under `tools/`, `tests/`, `.claude/`, or before pushing.
