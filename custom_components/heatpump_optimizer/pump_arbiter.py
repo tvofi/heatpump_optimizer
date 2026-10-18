@@ -339,7 +339,7 @@ def step_duty(result: Any, now: datetime) -> str | None:
     i = bisect.bisect_right(stamps, now) - 1
     # A step covers [stamp, stamp + one plan step): the last one ends where the
     # next would start, the same half-open rule bisect gives every other step.
-    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
+    if i <= 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
         return None
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
