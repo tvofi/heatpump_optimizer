@@ -1,0 +1,32 @@
+== baseline
+ref_privacy self-test: 66 checks, 0 failed
+== mutant name_arm_dropped
+  FAIL a file added under a dash-mangled home is refused by its name, never echoing it (round 3): ['nul.bin:2: host-path in an added line of a tracked file; rewrite it wi
+  FAIL an ordinary new path passes by name and content (the null control): ['nul.bin:2: host-path in an added line of a tracked file; rewrite it with `ref_privacy.py scru
+  FAIL a NUL-bearing file naming no host passes (the null control), and nothing else is charged: ['nul.bin:2: host-path in an added line of a tracked file; rewrite it wit
+ref_privacy self-test: 66 checks, 3 failed
+  dirty after restore: 0
+== mutant name_predicate_off
+  FAIL a file added under a dash-mangled home is refused by its name, never echoing it (round 3): ['nul.bin:2: host-path in an added line of a tracked file; rewrite it wi
+  FAIL an ordinary new path passes by name and content (the null control): ['nul.bin:2: host-path in an added line of a tracked file; rewrite it with `ref_privacy.py scru
+  FAIL a NUL-bearing file naming no host passes (the null control), and nothing else is charged: ['nul.bin:2: host-path in an added line of a tracked file; rewrite it wit
+ref_privacy self-test: 66 checks, 3 failed
+  dirty after restore: 0
+== mutant names_filter_all
+  FAIL a file added under a dash-mangled home is refused by its name, never echoing it (round 3): ['nul.bin:2: host-path in an added line of a tracked file; rewrite it wi
+  FAIL an ordinary new path passes by name and content (the null control): ['nul.bin:2: host-path in an added line of a tracked file; rewrite it with `ref_privacy.py scru
+  FAIL a NUL-bearing file naming no host passes (the null control), and nothing else is charged: ['nul.bin:2: host-path in an added line of a tracked file; rewrite it wit
+ref_privacy self-test: 66 checks, 3 failed
+  dirty after restore: 0
+== mutant blob_nul_branch
+  FAIL a NUL-bearing file adding a host line is refused: binary content is judged (round 2): ['added path #6 of `git diff --name-only --diff-filter=A`: account-name, host
+  FAIL and so is UTF-16 text naming one, its NULs dropped: ['added path #6 of `git diff --name-only --diff-filter=A`: account-name, host-path in the name of a file the di
+  FAIL a NUL-bearing file naming no host passes (the null control), and nothing else is charged: ['added path #6 of `git diff --name-only --diff-filter=A`: account-name, 
+ref_privacy self-test: 66 checks, 3 failed
+  dirty after restore: 0
+== mutant stock_filter
+  FAIL main's stock line in a changed file is not charged (the null control): ['added path #6 of `git diff --name-only --diff-filter=A`: account-name, host-path in the na
+  FAIL a NUL-bearing file naming no host passes (the null control), and nothing else is charged: ['added path #6 of `git diff --name-only --diff-filter=A`: account-name, 
+  FAIL the scrubbed tree's diff is refused nothing (scrub is the remedy): ['keep.log:1: home-directory, account-name, host-path in an added line of a tracked file; rewrit
+ref_privacy self-test: 66 checks, 3 failed
+  dirty after restore: 0
