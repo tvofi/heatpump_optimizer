@@ -1,8 +1,0 @@
-head: 6f6aa4e48d6871cf5cb926c9ac53a521468ae58a
-delta 98d33ce032e8958419accb7fa91fa9661b494521..6f6aa4e48d6871cf5cb926c9ac53a521468ae58a:
-A	tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temperature.GUARD_OFF.d1cf25b6.json
-A	tests/mutation_ledger/killed_by/entity.py/payload_number.GUARD_OFF.6821a53f.json
-A	tests/mutation_ledger/killed_by/sensor.py/_gap_energy_rate.CMP_BOUND.6c88eaac.json
-6f6aa4e48d6871cf5cb926c9ac53a521468ae58a github-actions[bot] ci: pin killed mutants
-check-runs at head: 72 total, 0 not success/skipped
-r2 evidence: /Users/timmalmstrom/hpo-seats/r10s3/review-2379/evidence-r2

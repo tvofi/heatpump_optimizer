@@ -1,0 +1,61 @@
+c8cc75ea9 Merge pull request #2400 from tvofi/fix/r10-bus-orphans-force
+acd9c2fa9 Merge pull request #2403 from tvofi/fix/r10-roster-unwire-pr
+fd0f5d945 Merge remote-tracking branch 'origin/main' into fix/r10-bus-orphans-force
+5a41a5669 Merge pull request #2414 from tvofi/record/autofix
+211c8290e Merge pull request #2384 from tvofi/fix/audit-r10-roster
+edc448428 Merge remote-tracking branch 'origin/main' into fix/r10-bus-orphans-force
+b35bb9f48 ci: record delivery rows
+f754e2c13 ci: record delivery rows
+faf04b0ef Merge commit '47313f3a98f4173ccb6f8ec80d859a85ba4eadff' into fix/audit-r10-roster
+47313f3a9 roster: R10-SAV-BASELINE fixes [2255] (hand edit; roster_edit has no fixes op, O18 owes one)
+0d11a7bd6 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster
+f8f56fa71 Merge commit '94929f74abc8408a3e516ba96b828135337b4f03' into fix/audit-r10-roster
+94929f74a roster_edit edit-brief R10-RCA-STRUCTURE-BLIND: home-relative paths
+e850afc6e roster_edit edit-brief R10-RCA-FRICTION: home-relative paths
+ca9632470 Merge remote-tracking branch 'origin/main' into fix/r10-bus-orphans-force
+4505870d7 Merge commit '9f3ae9fe35801b13a1471be3d2e97fe20860b106' into fix/r10-bus-orphans-force
+789b67eec roster: R10-PUMP-MODEL done (#2365 merged)
+dee3ff67a roster: re-pin R10-SCORES coordinator.py cite 10304 -> 10281 (moved by #2365)
+0942893c2 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster
+ee79e53de Merge commit '07ba56db12032cb3412e56c97f9ea9f812ed8c55' into fix/audit-r10-roster
+f7025a5c6 record: the delivery row for #2403
+9e3934dde Merge remote-tracking branch 'origin/main' into fix/r10-roster-unwire-pr
+9f3ae9fe3 seat tools: handoff_push.sh writes its row through delivery_row.sh; fixture stages nothing else
+4805c627e Merge remote-tracking branch 'origin/main' into seat/r10-bus-orphans-force-r2
+07ba56db1 roster_edit append-group R10-RCA-STRUCTURE-BLIND (tools/audit/seat/roster_edit.py)
+3e933c13f roster_edit append-group R10-RCA-HEADMOVED (tools/audit/seat/roster_edit.py)
+c98b49df1 roster_edit append-group R10-POLICY-GATE-SCOPING (tools/audit/seat/roster_edit.py)
+4243fa7ca roster_edit append-group R10-POLICY-FIXER-MD (tools/audit/seat/roster_edit.py)
+92ae8ecfd roster_edit append-group R10-RCA-FRICTION (tools/audit/seat/roster_edit.py)
+da2876558 roster_edit wire-issue R10-ARCHSCORE-COVERAGE (tools/audit/seat/roster_edit.py)
+7f096fa75 roster_edit: wire-issue --field fixes
+3b4c0fabf record: the delivery row for #2400
+21cb9efa6 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster
+dfb39b3bf Merge commit '0fd18f115efe78bb9d6323931d22c473834b5e97' into fix/audit-r10-roster
+ba0ad2d31 Merge remote-tracking branch 'origin/main' into fix/r10-bus-orphans-force
+e73f506d1 seat tools: orphans reads rewritten refs; update_pr adds a missing delivery row
+bc3b12642 roster_edit: unwire-issue removes an issue from a group's issues or fixes
+0fd18f115 roster_edit append-group R10-ARCH-DOCS (tools/audit/seat/roster_edit.py)
+c34ef0b80 roster_edit wire-issue R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+eae8c4ca4 roster_edit append-carry R10-BRIEFS-FOLD (tools/audit/seat/roster_edit.py)
+de33dc428 roster_edit set-stage R10-STORE (tools/audit/seat/roster_edit.py)
+2631ed7b3 roster_edit unwire-issue R10-DEEPLINK-CENSUS (tools/audit/seat/roster_edit.py)
+9172f159b roster_edit wire-issue R10-ADVISOR (tools/audit/seat/roster_edit.py)
+7ba23e76a roster_edit unwire-issue R10-DEEPLINK (tools/audit/seat/roster_edit.py)
+5f62f52f0 roster_edit edit-brief R10-SCORES (tools/audit/seat/roster_edit.py)
+8443071c9 roster_edit unwire-issue R10-ARCHSCORE-COVERAGE (tools/audit/seat/roster_edit.py)
+6a1ad8ede roster_edit edit-brief R10-SCORES (tools/audit/seat/roster_edit.py)
+a80d0c67b Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster
+9c3af65b9 Merge commit 'db7429225c6fb41f9f163f59bdc8252dfe664468' into fix/audit-r10-roster
+db7429225 Merge origin/main into roster branch (carry #2345/#2346/#2347 roster hunks)
+86727a909 roster_edit append-carry R10-NIGHT-FOLDS (tools/audit/seat/roster_edit.py)
+9b17407d4 roster_edit append-carry R10-CURRENCY (tools/audit/seat/roster_edit.py)
+2eea46a48 roster_edit append-carry R10-REPLAY-LANE (tools/audit/seat/roster_edit.py)
+648f21fa7 roster_edit append-carry R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+920f82e4f roster_edit append-carry R10-BRIEFS-FOLD (tools/audit/seat/roster_edit.py)
+ee824fc05 roster_edit append-carry R10-INPUT-STALENESS (tools/audit/seat/roster_edit.py)
+b29cd8d23 roster: R10-DEEPLINK-CENSUS done (merged f4955e15f)
+822f80bf8 roster: R10-LEAF-IMPORTS done (merged 234087a51)
+d0acb3f5b record: the delivery row for #2384
+0ae19a514 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster
+6883a65aa roster: R10-REF-PRIVACY done (#2366)

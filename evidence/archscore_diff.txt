@@ -1,0 +1,9 @@
+Architecture score: dS +7.4577 IMPROVES
+  shared_inplace_writes 22 -> 19  +1.0975
+  duplication_copies 64 -> 41  +5.6249
+  coord_footprint 2547 -> 2499  +0.0274
+  coordinator_multiassigned_attrs 118 -> 115  +0.0368
+  layer_violations 22 -> 19  +0.2016
+  private_cross_module 17 -> 12  +0.4695
+  reflective_writes 17 -> 15  (gate only)
+rc=0
