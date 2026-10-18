@@ -1,0 +1,98 @@
+.claude/hooks/stop-selfcheck.sh:197:CHANGED=$(git diff --name-only "$BASE"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null
+.claude/hooks/stop-selfcheck.sh:198:          git diff --cached --name-only 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
+.github/workflows/budget-raise-gate-rerun.yml:62:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/budget-raise-gate.yml:80:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/budget-raise-gate.yml:87:          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+.github/workflows/governance.yml:137:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/governance.yml:157:          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+.github/workflows/governance.yml:508:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/governance.yml:549:          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+.github/workflows/governance.yml:605:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/governance.yml:636:          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+.github/workflows/pr-contract-rerun.yml:61:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/pr-contract.yml:97:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/pr-contract.yml:117:          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+.github/workflows/tests.yml:556:          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+.github/workflows/tests.yml:576:          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+dev/archive/experiments/ledger-layout/demo_merge.py:145:        conflicted = git("diff", "--name-only", "--diff-filter=U",
+dev/audit/harnesses/dual_path.py:223:    files = [f for f in git(ROOT, "ls-tree", "-r", "--name-only", head).split("\n")
+dev/audit/harnesses/dual_path.py:288:                for f in filter(None, git(repo, "ls-tree", "-r", "--name-only", pinned[arm]).split("\n")):
+dev/audit/harnesses/dual_path.py:326:        files = [f for f in git(tree, "ls-tree", "-r", "--name-only", base).split("\n")
+dev/audit/harnesses/r10_structure_blind.py:140:    out = subprocess.run(["git", "-C", str(ROOT), "ls-tree", "-r", "--name-only", REF, rel],
+dev/audit/harnesses/r10_tick_which_roster.py:119:                touched = sh(["git", "-C", str(tmp / wt), "diff", "--name-only",
+dev/audit/rca/bugclasses/replay.sh:21:  f=$(git diff --name-only --diff-filter=U | grep bugclasses.json)
+dev/audit/rca/bugclasses/replay.sh:22:  path=$(git ls-tree -r --name-only "$m" | grep -E '(^tools/audit|^dev/audit/config)/bugclasses.json$')
+dev/audit/rca/bugclasses/scan.sh:11:    if [ -n "$(git diff --name-only $b $side -- tools/audit/bugclasses.json dev/audit/config/bugclasses.json)" ]; then touched=$((touched+1)); fi
+dev/audit/rca/bugclasses/scan.sh:15:  out=$(git merge-tree --write-tree --name-only $p1 $p2 2>&1); rc=$?
+dev/audit/rounds/round10/intake/intake.py:172:            ls = git(repo, "ls-tree", "-r", "--name-only", ref, f"{root}/{dim}/{key}/", check=False)
+dev/audit/rounds/round3/D11/approval_gate.py:167:        files = git("show", "--first-parent", "--name-only", "--format=", sha).split()
+dev/audit/rounds/round6/D11/fix/codeowners_gap.py:270:RESTORE = re.compile(r"""git (?:checkout|diff --name-only -z "\$\(git hash-object -t tree /dev/null\)")\s+"?\$\{?PINNED\}?"?\s+--\s+((?:\\?\s*'[^']+'\s*)+)(?:>\s*"?(\$RUNNER_TEMP/[\w.-]+))?""")
+dev/audit/rounds/round6/D11/fix/codeowners_gap.py:818:    listed = ('git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\\n'
+dev/audit/rounds/round8/evidence/D11/s1_stop_hook_states.py:14:which unions `git diff BASE...HEAD` and `git diff --name-only` (worktree vs
+dev/audit/rounds/round8/evidence/D11/s1_stop_hook_states.py:23:unions `git diff --cached --name-only` (one-line edit). Expected: blind_states
+dev/audit/rounds/round8/evidence/D11/s1_stop_hook_states.py:41:OLD = 'CHANGED=$(git diff --name-only "$BASE"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null)'
+dev/audit/rounds/round8/evidence/D11/s1_stop_hook_states.py:42:NEW = 'CHANGED=$(git diff --name-only "$BASE"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null; git diff --cached --name-only 2>/dev/null)'
+dev/audit/rounds/round8/evidence/D11/v1_stop_index.py:21:--name-only 2>/dev/null` appended, in a temp copy. Expected: blind states drop
+dev/audit/rounds/round8/evidence/D11/v1_stop_index.py:39:LINE = 'CHANGED=$(git diff --name-only "$BASE"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null)'
+dev/audit/rounds/round8/evidence/D11/v1_stop_index.py:94:        text = text.replace(LINE, LINE[:-1] + "; git diff --cached --name-only 2>/dev/null)")
+dev/audit/rounds/round9/D11/s1/approvals_at_head.py:123:    for f in _git("diff", "--name-only", approved, head).split():
+dev/audit/rounds/round9/D11/s1/direct_push_detectors.py:82:        files = set(subprocess.run(["git", "show", "--format=", "--name-only", s],
+dev/audit/rounds/round9/D14/s2/i4_roster.py:102:                               subprocess.run(["git", "ls-tree", "-r", "--name-only", ref, "tools/audit/briefs/"],
+dev/audit/rounds/round9/D14/s2/p2_facts.py:155:    files = subprocess.run(["git", "ls-tree", "--name-only", f"{ref}:{PKG}"], capture_output=True, text=True, check=True).stdout.split()
+dev/audit/rounds/round9/D14/s3/p3_floors.py:170:        names = subprocess.run(["git", "ls-tree", "--name-only", ref, PKG + "/"],
+tests/card.mjs:10795:      if (a[1] === "--name-only" && a[2] === "REF...HEAD") return "docs/HANDOVER.md\n";
+tests/card.mjs:10796:      if (a[1] === "--name-only" && a[2] === "HEAD") return " \ndocs/HANDOVER.md\n";
+tests/card.mjs:10802:      && asked[0] === "diff --name-only REF...HEAD"
+tests/card.mjs:10803:      && asked[1] === "diff --name-only HEAD"
+tests/card_browser.mjs:981:    files = git("diff", "--name-only", `${git("merge-base", base, "HEAD")}...HEAD`).split("\n").filter(Boolean);
+tests/card_rig.mjs:838:    ["diff", "--name-only", `${ref}...HEAD`],
+tests/card_rig.mjs:839:    ["diff", "--name-only", "HEAD"],
+tests/closure.py:1227:    --name-only HEAD` -- which tests/card_rig.mjs's threeDotFiles and
+tests/closure.py:2793:    ("tests/entities.py", 'git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"',  # rename-null-control
+tests/closure.py:2796:    ("tools/audit/seat/merge_train.py", "the `git diff --name-only h0..h` delta names no branch-own file",  # rename-null-control
+tests/closure.py:2798:    ("tools/audit/seat/ref_privacy.py", "of `git diff --name-only --diff-filter=A`:",  # rename-null-control
+tests/closure.py:2805:    """(refusals, stale allow entries): every rename-detecting `--name-only`
+tests/closure.py:2813:                if line.strip().startswith("#") or "--name-only" not in line \
+tests/closure.py:2845:        porcelain = run("diff", "--name-only", f"{base}...HEAD").split()  # rename-null-control
+tests/closure.py:2861:    pin("no rename-detecting --name-only diff under RENAME_SITES",
+tests/closure.py:2868:            'a = run(["git", "diff", "--name-only", "b...h"])\n'  # rename-null-control
+tests/closure.py:2873:        bad_t == ['tests/x.py:1: a = run(["git", "diff", "--name-only", "b...h"])'], str(bad_t))  # rename-null-control
+tests/entities.py:26601:      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+tests/entities.py:28347:    r'git (checkout|diff --name-only -z "\$\(git hash-object -t tree /dev/null\)") "\$PINNED" -- (.*)')
+tests/entities.py:28426:_TWP_LIST = ('git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\',
+tests/layout.py:396:    return [p for p in git(root, "ls-tree", "-r", "-z", "--name-only", rev).decode().split("\0") if p]
+tests/layout.py:410:               "-M", "--name-status", "-z").decode().split("\0")
+tests/mutation_table.py:1524:    for line in git("diff", "--name-status", "origin/main", "HEAD").splitlines():
+tools/audit/check_scopes.py:109:    tree = set(subprocess.check_output(["git", "-C", a.repo, "ls-tree", "-r", "--name-only", a.ref], text=True).split())
+tools/audit/merge_fastpath.py:80:            for p in git("ls-tree", "--name-only", f"{rev}:.github/workflows").split()
+tools/audit/seat/bus.sh:478:$(git diff --name-status "$mb" "$tip")
+tools/audit/seat/bus.sh:512:  main_basenames=$LF"$(git ls-tree -r --name-only "$main" | sed 's#.*/##')"$LF
+tools/audit/seat/merge_train.py:166:h, the `git diff --name-only h0..h` delta names no branch-own file (a clean
+tools/audit/seat/merge_train.py:2469:        units = g(L, "ls-tree", "-r", "--name-only", sha, "units/")[1].split()
+tools/audit/seat/merge_train.py:2627:            w["proof_names"] = [g(w["L"], "ls-tree", "--name-only", sha)[1].split() for _, sha in w["pushed"]]
+tools/audit/seat/orchestrator_tick.py:845:                code, o = self.git(["ls-tree", "--name-only", ref,
+tools/audit/seat/ref_privacy.py:462:        raise RuntimeError(f"git diff --diff-filter=A {base[:12]} {ref} exited {got.returncode}")
+tools/audit/seat/ref_privacy.py:473:            out.append(f"added path #{i} of `git diff --name-only --diff-filter=A`: {', '.join(why)} in the name of a file the diff adds; rename it")
+tools/audit/seat/roster_lib.py:101:        r = _git(repo, "ls-tree", "--name-only", ref, ROSTERS_DIR + "/")
+tools/audit/seat/roster_lib.py:161:    code, o = git(["ls-tree", "--name-only", MAIN_REF, ROSTERS_DIR + "/"])
+tools/audit/seat/row_position.py:13:    head H (`git log --diff-filter=A`).
+tools/audit/seat/row_position.py:52:    return sh("git", "log", "--diff-filter=A", "--format=%H", "-1", head,
+tools/audit/seat/state_docs.py:436:            changed = run(["git", "diff-tree", "-r", "--name-only", prev,
+tools/audit/seat/state_docs.py:449:            names = run(["git", "ls-tree", "-r", "--name-only", tree],
+tools/audit/seat/state_docs.py:555:        names = git("-C", str(bare), "ls-tree", "-r", "--name-only",
+tools/audit/seat/state_docs.py:586:                                         "--name-only", "HEAD"))
+tools/audit/seat/state_docs.py:737:                                 "--name-only", state_tip()).split())
+tools/merge/ledger_merge.py:590:        staged = g("diff", "--name-only", "--diff-filter=U").stdout.strip()
+tools/merge/ledger_merge.py:934:            r = git(*pre, "merge-tree", "--write-tree", "--name-only",
+tools/policy/brief_lint.mjs:133:  const out = git(['ls-tree', '-r', '--name-only', ref], { allowFail: true })
+tools/policy/budget_raise_gate.py:567:    tree = {sha: set(_git("ls-tree", "-r", "--name-only", sha).splitlines()) for sha in (mb, head)}
+tools/policy/policy_lint.mjs:183:  const out = git(['ls-tree', '-r', '--name-only', ref], { allowFail: true })
+tools/policy/policy_lint.mjs:2332:    : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
+tools/policy/policy_lint.mjs:3896:  const pathsDerive = runBlocks.filter((b) => /git diff/.test(b) && /--name-only/.test(b)).join('\n')
+tools/policy/policy_lint.mjs:6031:  const moved = git(['diff', '--name-only', tree, sha, '--', '.', ...drivers], { allowFail: true, quiet: true }).trim()
+tools/policy/record-predicate/row_files_replay.py:98:        r = git("merge-tree", "--write-tree", "--name-only", branch, main)
+tools/pr/app_push.sh:827:st "$(git -C "$R/wt" merge-base --is-ancestor evil origin/main && echo ancestor)$(git -C "$R/wt" ls-tree --name-only HEAD | grep -c evil.py)" ancestor1 "real git (review of #2069): parent 2 is a merged branch's intermediate commit, an ancestor of origin/main, and HEAD carries its evil.py"
+tools/pr/merge_main_bot.py:111:    r = git(repo, *cfg, "merge-tree", "--write-tree", "--name-only", "--no-messages",
+tools/pr/prepr.sh:161:  if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
+tools/pr/prepr.sh:1140:  out=$(git log --full-history -c --diff-filter=ACMRT --name-only \
+tools/release/stamp.py:1708:        out = run("git", "diff", "--name-only", f"{sha}^1", sha)

@@ -1,0 +1,16 @@
+head 89d2b94654bf54b49d879e08caced815a75ea5f5
+lane_skip self-test: 54/54 pins passed
+ALL 122 closure shrink pins PASSED
+rename_sites ([], [])
+roster_lib self-test: 18 checks, 0 failed
+orchestrator_tick self-test: 104 checks, 0 failed
+state_docs self-test: all checks passed
+== MB8' --no-renames dropped from changed_between
+  FAIL  browser runs on a rename from production onto a delivery row  -- ['dev/programme/delivery/99999.md']: every one of the 1 changed file(s) is a roster or a delivery row, which browser never reads
+  FAIL  coverage runs on a rename from production onto a delivery row  -- ['dev/programme/delivery/99999.md']: every one of the 1 changed file(s) is a roster or a delivery row, which coverage never reads
+  FAIL  typing runs on a rename from production onto a delivery row  -- ['dev/programme/delivery/99999.md']: every one of the 1 changed file(s) is a roster or a delivery row, which typing never reads
+lane_skip self-test: 51/54 pins passed
+  FAIL the changed list keeps both sides of a rename onto a delivery row  [['dev/programme/delivery/99999.md']]
+  FAIL so the gate does not scope a deleted entry point to zero scripts  [scoped: 0 run]
+  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tests/closure.py:2758: out = subprocess.run(["git", "diff", "--name-only",]
+3 of 122 closure shrink pins FAILED
