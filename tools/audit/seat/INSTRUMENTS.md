@@ -247,7 +247,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   PRS (tvofi, 2026-10-18): `OPEN-PR CAP: N/CAP`, counted by `pr_cap.py`'s
   rule and flagged at or over the cap `open_pr.sh` refuses at, and
   `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
-  touches the coordinator, flagged over 2 or when a diff is unreadable.
+  touches the coordinator, flagged over 2 or when a diff is unreadable. Also
+  level lines every pass from the approver App's newest `Fix review:` on
+  each open PR (the identity off `app_approve.sh`, the grammar `bus.sh`'s;
+  the round-10 orchestrator, 2026-10-18): `MERGE-READY: #N <head8>` for a
+  merge verdict at the current head on a CLEAN or UNSTABLE PR, and
+  `BLOCKED-UNFIXED: #N <head8>` for a blocked verdict at the current head with
+  no `handoff/<topic>` tip committed after it. A verdict at a stale head prints
+  neither; comments it cannot read print UNREADABLE. One comments read per
+  open PR per pass.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
