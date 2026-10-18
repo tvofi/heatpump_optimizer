@@ -790,13 +790,14 @@ def self_test() -> int:
                                   text=True).stdout.strip()
         stock = "stock log line from " + fake_home + "/old\n"
         Path(td, "rec.log").write_text("clean\n" + stock)
-        Path(td, "keep.log").write_text(stock)
+        kept = "kept stock line from " + fake_home + "/kept\n"  # no other file gives it up
+        Path(td, "keep.log").write_text(kept)
         g("add", "-A"); g("commit", "-q", "-m", "base")
         base = g("rev-parse", "HEAD")
         Path(td, "rec.log").write_text("clean\n" + "File " + scratch + "/x.py\n")
         Path(td, "moved.log").write_text(stock)  # moved out of rec.log, not added
         Path(td, "other.log").write_text("ran at " + under("home", "someone", "w") + "\n")
-        Path(td, "keep.log").write_text(stock + "edited\n")  # a changed file keeping main's stock line
+        Path(td, "keep.log").write_text(kept + "edited\n")  # a changed file keeping main's stock line
         Path(td, "nul.bin").write_bytes(b"bin\0\nran at " + under("Users", "someone", "w").encode() + b"\n")
         Path(td, "u16.txt").write_bytes(("ran at " + under("Users", "someone", "w") + "\n").encode("utf-16-le"))
         Path(td, "clean.bin").write_bytes(b"\x89PNG\0\0\x01ran at ~/w\n\0")
