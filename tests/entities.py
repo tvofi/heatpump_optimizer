@@ -2747,10 +2747,18 @@ R.check(
     "_liquid_fraction" in _s2_mod_fns and "_liquid_fraction" not in _s2_cls_fns,
     f"module={'_liquid_fraction' in _s2_mod_fns} class={'_liquid_fraction' in _s2_cls_fns}",
 )
+# The solve's anchor left the class at S2 and left coordinator.py at
+# R10-PUMP-MODEL (#2365 review): it is the plan step's floor, which the pump
+# arbiter reads too, so one leaf module owns it -- plan_step.plan_step_start.
+import heatpump_optimizer.plan_step as _s2_plan_step  # noqa: E402
 R.check(
-    "_solve_anchor is a module-level FunctionDef, not a class method",
-    "_solve_anchor" in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns,
-    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
+    "the solve anchor is plan_step.plan_step_start, outside the coordinator "
+    "class and its module, and the coordinator reads that one function",
+    "_solve_anchor" not in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns
+    and "plan_step_start" not in _s2_cls_fns
+    and coordinator_module.plan_step_start is _s2_plan_step.plan_step_start,
+    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns} "
+    f"same={getattr(coordinator_module, 'plan_step_start', None) is _s2_plan_step.plan_step_start}",
 )
 
 # S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
@@ -3894,12 +3902,15 @@ def _p2_registry(sources):
              owners=["thermal_model.py::ThermalModel.compute_cop",
                      "thermal_model.py::ThermalModel._batch_cop"],
              dispositions={}),
-        # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold):
-        # which wall-clock step an instant falls in. The pump's step start is
-        # _step_start's alone -- the ledger row, the silent-window lookup and
-        # the step index all read it -- and _observe spelled the same
-        # arithmetic inline. The other two hits are different anchors, not
-        # copies: each is driven against the owner on the same probes by
+        # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
+        # #2365's review): which plan step an instant falls in. One concern --
+        # the optimizer's plan step covering now -- read by the solve's anchor
+        # and by the pump arbiter's ledger row and silent-window lookup, so one
+        # owner on one width: plan_step.plan_step_start on PLAN_STEP_MINUTES.
+        # It was spelled three times: coordinator._solve_anchor on
+        # FORECAST_STEP_MINUTES, pump_arbiter._step_start on a literal 15, and
+        # _observe inline. The other hits are different rules, each driven
+        # against the owner on the same probes by
         # dev/audit/harnesses/r10_slot_floor_twins.py, whose own precondition
         # is that the driven set is the enumerated one.
         dict(fact="slot_floor_rule", finding="D7-s3-8x-slotfloor",
@@ -3907,14 +3918,8 @@ def _p2_registry(sources):
                  (ast.BinOp,), r"\.minute",
                  lambda n: isinstance(n.op, (ast.FloorDiv, ast.Mod))
                  and ".minute" in ast.unparse(n)),
-             owners=["pump_arbiter.py::_step_start"],
+             owners=["plan_step.py::plan_step_start"],
              dispositions={
-                 "coordinator.py::_solve_anchor":
-                     "the FORECAST GRID's anchor, not the plan step's: it "
-                     "floors by FORECAST_STEP_MINUTES because the arrays it "
-                     "labels are built there, and its docstring says it must "
-                     "follow the arrays rather than time_step_minutes; "
-                     "r10_slot_floor_twins.py reads 0 of 10 probes disagreeing",
                  "tariff.py::_window_slot":
                      "the METERING window, a different rule: anchored at local "
                      "midnight so a 90/120-minute DSO window advances the hour, "

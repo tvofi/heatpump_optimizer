@@ -199,7 +199,7 @@
           "severity": "medium",
           "claim": "A synthetic exact 2x CPU regression of HeatPumpOptimizer.optimize that lies outside the simulate_step/simulate_trajectory_batch/simulate_dhw_step seams trips none of the gate's verdicts (work_over_verdict on both count channels, kernel_cost_over_verdict, scenario_verdict, global ratio) on any of 5 sweep scenarios, because the only solve-wide CPU check uses SCENARIO_BUDGET_FACTOR=3.0 > DETECTION_TARGET=2.0.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
             "harness_path": "dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
             "value": "flagged_solve_arm=0 of 5 (solve CPU x2.015 median, range 1.89-2.21; counts 1.000x; kernel 0.91-1.09x)",
             "unit": "scenarios flagged",

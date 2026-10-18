@@ -4,7 +4,7 @@ Metric: per rule, a count from the integration (AST/grep over the package, a
 stub-driven setup through every platform's real async_setup_entry, or a
 documentation lookup); status done when the count meets the rule's bar.
 Command (from the export root):
-  PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python \
+  PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python \
     dev/audit/rounds/round10/D10/s1/rules.py [--perturb]
 Expected: RESULT rules_todo=0 count (exact) at baseline 17f1c55fad1b;
   --perturb nulls sensor.OptimizationModeSensor's unique id and drops one platform's

@@ -7,7 +7,7 @@ optimizer:_multi_start_minimize call is replaced by the augmented challenger
 tests/rolling.py:run_rolling (exec'd up to its test body), REPLAN 2 h, plant_error 1.0.
 Key: history['cost'] summed. Gap_pct = (prod - chal)/prod.
 --arm ftol: the 'chal' arm is production with ftol 1e-10 (the D0-s2-01 fix candidate).
-Command: PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/mpc_mask.py [--maxiter N]
+Command: PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s2/mpc_mask.py [--maxiter N]
 Baseline 17f1c55fad1b, macOS arm64 box B2. Expected: see REPORT.md, tolerance +-0.5 pp.
 """
 import os

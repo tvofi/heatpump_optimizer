@@ -139,10 +139,10 @@ def _solve_record_now(coord):
     """The record a solve started now would plan with (#1736): what the
     solve's tail -- the fuse advisor, the price tiles -- is handed."""
     from homeassistant.util import dt as _rec_dt
-    from heatpump_optimizer.coordinator import _solve_anchor
+    from heatpump_optimizer.plan_step import plan_step_start
 
     now = _rec_dt.now()
-    return coord._solve_record(_solve_anchor(now), coord._forecast_arrays(now))
+    return coord._solve_record(plan_step_start(now), coord._forecast_arrays(now))
 
 
 def _dhw_planner(opt):
@@ -37946,7 +37946,7 @@ async def _g9_fake_await(hass, optimizer, inputs):
 
 
 _g9_now = dt_util.now().replace(minute=0, second=0, microsecond=0)
-_g9_anchor = _coord_mod._solve_anchor(_g9_now)
+_g9_anchor = _coord_mod.plan_step_start(_g9_now)
 _g9_slot = {
     "start": (_g9_anchor + _g9_td(hours=1)).isoformat(),
     "end": (_g9_anchor + _g9_td(hours=3)).isoformat(),
@@ -64491,6 +64491,8 @@ import dataclasses as _rp_dc  # noqa: E402
 from types import SimpleNamespace as _RP_NS  # noqa: E402
 from zoneinfo import ZoneInfo as _RP_Zone  # noqa: E402
 
+from heatpump_optimizer import coordinator as _rp_coord  # noqa: E402
+from heatpump_optimizer import plan_step as _rp_ps  # noqa: E402
 from heatpump_optimizer import pump_arbiter as _rp_pa  # noqa: E402
 from heatpump_optimizer import thermal_model as _rp_tm  # noqa: E402
 
@@ -64627,11 +64629,30 @@ R.check(
     f"attr {getattr(_rp_tm.planned_draw_runs, 'modulation_floor', '<absent>')!r}, "
     f"decorator {hasattr(_rp_pa, '_release_duty_floor')}",
 )
+# The RECEIVER half, on its own (#2365 review): the check above scans only
+# pump_arbiter for a setattr, so a reader that still consulted the attribute
+# would be re-opened by one setattr from any other module and stay green. Set
+# the plan's floor on the real reader from here, then ask it floorless: a
+# reader with no channel reads the 0.5 kW draw as running whatever is set.
+_rp_real.modulation_floor = _rp_plan.duty_floor_kw
+try:
+    _rp_receiver = _rp_tm.planned_draw_runs(0.5)
+finally:
+    _rp_real.__dict__.pop("modulation_floor", None)
+R.check(
+    "D7-arch3-04: the reader has no channel -- a floor set on planned_draw_runs "
+    "from outside pump_arbiter does not reach a floorless read",
+    _rp_receiver is True and _rp_tm.planned_draw_runs(0.5, modulation_floor=_rp_plan.duty_floor_kw) is False,
+    f"floorless read with the attribute set: {_rp_receiver!r}; the same draw "
+    f"against the floor passed as the argument: "
+    f"{_rp_tm.planned_draw_runs(0.5, modulation_floor=_rp_plan.duty_floor_kw)!r}",
+)
 
 
-# --- D7-s3-8x-slotfloor: the ledger key is _step_start's --------------------
+# --- D7-s3-8x-slotfloor: the ledger key is the plan step's -------------------
 # The fold is behaviour-preserving by construction (the inline expression and
-# _step_start are the same arithmetic), so this arm reads FLAT at both ends --
+# plan_step.plan_step_start are the same arithmetic at today's 15-minute
+# width), so this arm reads FLAT at both ends --
 # it is the guard that the fold did not change the key, driven through the
 # production _observe, over every instant of the autumn-DST day in both folds.
 # Its null control is the reference floor widened to 30 minutes, which must
@@ -64658,7 +64679,7 @@ _rp_instants = [
         _rp_dst + timedelta(seconds=7 * i) for i in range(24 * 3600 // 7 + 1)
     )
 ]
-_rp_key_agrees = [_rp_ledger_key(now, _rp_pa._step_start) for now in _rp_instants]
+_rp_key_agrees = [_rp_ledger_key(now, _rp_ps.plan_step_start) for now in _rp_instants]
 # The control that the comparison reads the instant it is handed at all: the
 # same drive against a 30-minute floor, which is the same rule exactly on the
 # instants whose minute falls in the first half of a half hour -- so a
@@ -64673,15 +64694,67 @@ _rp_key_null_agrees = sum(
 )
 _rp_key_null_expected = sum(1 for now in _rp_instants if now.minute % 30 < 15)
 R.check(
-    "D7-s3-8x-slotfloor: the ledger row's start is _step_start(now), fold and all, "
+    "D7-s3-8x-slotfloor: the ledger row's start is plan_step_start(now), fold and all, "
     "on every instant of the autumn-DST day in both folds -- and a 30-minute "
     "reference agrees on exactly the instants it must, so it is not vacuous",
     all(_rp_key_agrees)
     and _rp_key_null_agrees == _rp_key_null_expected
     and 0 < _rp_key_null_expected < len(_rp_instants),
-    f"{sum(_rp_key_agrees)} of {len(_rp_instants)} agree with _step_start; the "
+    f"{sum(_rp_key_agrees)} of {len(_rp_instants)} agree with plan_step_start; the "
     f"30-minute reference agrees on {_rp_key_null_agrees} against "
     f"{_rp_key_null_expected} expected",
+)
+# One owner, one width (#2365 review). The solve's anchor and the arbiter's
+# ledger step are the same concern -- the optimizer's plan step covering now
+# -- and used to be spelled twice on two width sources (a literal 15 here,
+# FORECAST_STEP_MINUTES there), agreeing only while the two were equal. Widen
+# the one constant to 30 for the drive: both sides must follow it, so a width
+# a reader spells for itself reads 15 where this reads 30.
+_rp_widths = []
+_rp_saved = _rp_ps.PLAN_STEP_MINUTES
+_rp_ps.PLAN_STEP_MINUTES = 30
+try:
+    for _rp_now in (
+        datetime(2026, 1, 15, 12, 20, tzinfo=timezone.utc),
+        datetime(2026, 1, 15, 12, 50, 59, 999999, tzinfo=timezone.utc),
+    ):
+        _rp_held = _rp_pa.ArbiterState()
+        _rp_pa._observe(
+            _rp_held,
+            _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
+            None, _rp_now,
+        )
+        _rp_widths.append((
+            _rp_held.step["start"].minute,
+            _rp_coord.plan_step_start(_rp_now).minute,
+            _rp_now.minute - _rp_now.minute % 30,
+        ))
+finally:
+    _rp_ps.PLAN_STEP_MINUTES = _rp_saved
+R.check(
+    "D7-s3-8x-slotfloor: the arbiter's ledger step and the solve's anchor are "
+    "one function on one width -- widened to 30 minutes, both read the 30-minute "
+    "step",
+    all(a == c == e for a, c, e in _rp_widths)
+    and _rp_pa.plan_step_start is _rp_coord.plan_step_start is _rp_ps.plan_step_start
+    and not hasattr(_rp_pa, "_step_start")
+    and not hasattr(_rp_coord, "_solve_anchor"),
+    f"(ledger, anchor, 30-min floor) minutes: {_rp_widths}",
+)
+# The plan's last step is half-open like every other (#2365, the pin drive's
+# survivor): bisect hands step i the instants [stamps[i], stamps[i+1]), so the
+# last step must end at stamps[-1] + one plan step, not one instant after it.
+# Probed on either side of that edge, so a comparison turned either way fails.
+_rp_edge = _RP_T0 + timedelta(minutes=_rp_ps.PLAN_STEP_MINUTES)
+_rp_edge_reads = [
+    _rp_pa.step_duty(_rp_plan, _rp_edge - timedelta(microseconds=1)),
+    _rp_pa.step_duty(_rp_plan, _rp_edge),
+]
+R.check(
+    "D7-s3-8x-slotfloor: the plan's last step covers [stamp, stamp + one plan "
+    "step) -- live a microsecond before the edge, expired at it",
+    _rp_edge_reads[0] is not None and _rp_edge_reads[1] is None,
+    f"duty just before the edge {_rp_edge_reads[0]!r}, at the edge {_rp_edge_reads[1]!r}",
 )
 
 
