@@ -177,7 +177,7 @@ LEASE_MINUTES = 90.0
 COLD_LEASE_MINUTES = 30.0
 COLD_RAIL_C = -10.0
 #: The floor of a flow set-point gate when the entity declares no minimum;
-#: the GCHV water set-points accept 25 degC and up.
+#: the GCHV water set-points accept 25 degC and up. (null control)
 FLOW_GATE_C = 25.0
 #: The floor of the hot-water gate on a transport with no heating-only mode.
 DHW_GATE_C = 30.0
