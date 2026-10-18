@@ -1,4 +1,4 @@
-/Users/timmalmstrom/fix-r9-f2-solver-4/tools/audit/handoff/r9-f2-solver-4/mutation_proof.py:192: SyntaxWarning: 'return' in a 'finally' block
+~/fix-r9-f2-solver-4/tools/audit/handoff/r9-f2-solver-4/mutation_proof.py:192: SyntaxWarning: 'return' in a 'finally' block
   return 2
 === M0 healthy arm: /usr/local/bin/python3 tools/audit/handoff/r9-f2-solver-4/run_block.py rc=0 failed=0
     summary: ALL 8 R9-F2.4 BLOCK CHECKS PASSED

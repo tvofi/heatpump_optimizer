@@ -2,8 +2,10 @@
 """Name a local path for publication, and refuse a push that would publish the host.
 
     python3 -I tools/audit/seat/ref_privacy.py slug <path> [--root NAME=DIR]...
+    python3 -I tools/audit/seat/ref_privacy.py path <path>      (~/-relative for a posted text)
     python3 -I tools/audit/seat/ref_privacy.py guard --ref <ref> [--message <text>]...
                                                      [--commits <rev> [-C <dir>]]
+    python3 -I tools/audit/seat/ref_privacy.py scrub [--write] <file>...  (this host's spans, in place)
     python3 -I tools/audit/seat/ref_privacy.py --check [--ref <commit>]
     python3 -I tools/audit/seat/ref_privacy.py --self-test
 
@@ -78,6 +80,12 @@ into. A file with a site and no entry, a `guarded` entry that does not call this
 module, and an entry whose file has no site are each refused, so the registry
 cannot rot into an exemption.
 
+CONTENT. `--check` also judges every line a diff adds to a tracked file since
+the merge base with origin/main, with the classes above (round 4: the records
+under dev/ and the ledger had published the home path in 128 files). A line the same diff
+removes elsewhere is a move and is not charged; main's stock is not charged.
+`scrub --write <file>...` is the remedy: this host's spans, rewritten in place.
+
 WHAT IT DOES NOT CATCH. A push built across lines whose `push` line opens
 with neither a push option, `origin` nor a variable; a `gh api` ref write
 whose path and field sit on different lines; a commit written through the
@@ -85,8 +93,15 @@ Contents API (`gh api .../contents/<path>` with a `message` field), whose
 message the guard never sees; a push through another wrapper
 name or a git variable not named GIT; a guarded
 file that gains a second, unguarded push (the registry is keyed on the file:
-review owns the site); file CONTENT a push publishes (the guard reads ref names,
-messages and commit identities only); text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
+review owns the site); file content a push publishes outside a tracked diff --
+a bus ref's evidence tree, a handoff body -- (the guard reads ref names,
+messages and commit identities; CONTENT reads tracked diffs); on a runner, an
+account name standing alone, since a runner knows only its own; compressed
+content (a .gz or .zip blob is judged as its compressed bytes, which spell no
+path); text in an encoding neither ASCII-compatible nor UTF-16; base64 (a path
+inside an encoded run, as a .har or an HTML report embeds one, is judged as the
+encoded text, which spells no path; no decoder is run, since decoding every
+base64-looking run is not sound); text encoded twice or JSON-escaped (`\\/Users\\/<x>`);
 and another machine's account name, unless it sits in a `/Users/`, `/home/` or
 `Users-` shape.
 """
@@ -229,6 +244,29 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> 
         if why:
             return f"{', '.join(why)} in {where}"
     return None
+
+
+#: The classes a comment body is judged on: this host's own identity, and any
+#: session temp root. A comment may quote another home (a planted fixture's
+#: home under another account), so the generic host-path class is a ref-name rule only.
+BODY_CLASSES = ("home-directory", "account-name", "uid", "scratch-root")
+
+
+def body_refusal(text: str, ident: Identity | None = None) -> str | None:
+    """Why posting this comment or review body would publish this host, or None."""
+    why = [c for c in leaks(text, ident or Identity.of_host()) if c in BODY_CLASSES]
+    return f"{', '.join(why)} in the body" if why else None
+
+
+def home_relative(path: str, home: str | None = None) -> str:
+    """A local path as a posted text names it: `~/<rest>` under the home
+    directory (as written or resolved), else unchanged. A reader resolves `~`
+    against its own $HOME (app_approve.sh's evidence gate)."""
+    home = os.environ.get("HOME", "") if home is None else home
+    for h in dict.fromkeys((home.rstrip("/"), os.path.realpath(home).rstrip("/") if home else "")):
+        if h and (path == h or path.startswith(h + "/")):
+            return "~" + path[len(h):]
+    return path
 
 
 def slug(path: str, roots=(), ident: Identity | None = None) -> str:
@@ -381,18 +419,141 @@ def check(ref: str) -> int:
                               text=True, check=True).stdout
 
     bad = registry_refusals(found, text_of)
+    base, added, refused = content_check(ref)
+    bad += refused
     for line in bad:
         print(f"ref_privacy: REFUSE {line}", file=sys.stderr)
     guarded = sum(1 for p in found if PUSHERS.get(p, ("",))[0] == GUARDED)
     print(f"ref_privacy --check at {ref}: {len(found)} file(s) with a push site, {guarded} guarded, "
-          f"{len(bad)} refused")
+          f"{len(added)} line(s) added since {(base or 'nothing')[:12]} judged, {len(bad)} refused")
     return 1 if bad else 0
+
+
+# ---------------------------------------------------------------------------
+# Tracked content: what a diff adds is judged like a ref name (#2310's third
+# part). A tracked record publishes on every clone, so a home path in an
+# evidence log is the 70 refs' leak with a longer life. Only lines a diff ADDS
+# are judged, against the merge base with origin/main (tmp_paths.ledger_base,
+# its one owner): main's stock is not charged to every branch, and a line the
+# same diff removes is a move, not an addition. The classes are CLASSES: on a
+# runner the identity is a public account, so the host-path and scratch-root
+# shapes are what judge there; on a seat its own home, name and uid join them.
+# The remedy is `scrub`, which rewrites only this host's spans.
+
+def content_check(ref: str, root: Path = ROOT, ident: Identity | None = None):
+    """(base, added lines, refusals) for `ref` against tmp_paths.ledger_base: what --check runs."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import tmp_paths
+    base = tmp_paths.ledger_base(ref, root)
+    if base is None:
+        print(f"ref_privacy: content SKIP -- no merge base with origin/main and no parent of {ref}")
+        return None, [], []
+    added = added_lines(base, ref, root)
+    return base, added, name_refusals(added_names(base, ref, root), ident) + content_refusals(added, ident)
+
+
+def added_names(base: str, ref: str, cwd: Path = ROOT) -> list[str]:
+    """Every path `ref` holds that `base` did not: an added, renamed or copied file's name
+    (round 3). A name publishes on every clone as surely as content: #2310 began as the
+    dash-mangled home of a project directory, `-Users-<name>-...`, in a ref name."""
+    got = subprocess.run(["git", "diff", "--no-renames", "--name-only", "--diff-filter=A", "-z", base, ref],
+                         cwd=cwd, capture_output=True)
+    if got.returncode != 0:
+        raise RuntimeError(f"git diff --diff-filter=A {base[:12]} {ref} exited {got.returncode}")
+    return [p for p in got.stdout.decode("utf-8", "replace").split("\0") if p]
+
+
+def name_refusals(paths, ident: Identity | None = None) -> list[str]:
+    """One refusal per added path whose NAME would publish a host, judged like a ref name."""
+    ident = ident or Identity.of_host()
+    out = []
+    for i, path in enumerate(paths, 1):
+        why = leaks(path, ident)
+        if why:
+            out.append(f"added path #{i} of `git diff --name-only --diff-filter=A`: {', '.join(why)} in the name of a file the diff adds; rename it")
+    return out
+
+
+def blob_text(data: bytes) -> str:
+    """A blob as the content check reads it. Text is UTF-8 (undecodable bytes
+    replaced). A blob holding a NUL byte has its NULs dropped and every other
+    byte kept one-for-one (Latin-1), so the ASCII a binary carries -- a path in
+    an image's metadata, or UTF-16 text, whose ASCII is every other byte -- reads
+    as the guard's classes see it. A segment between two newlines is a "line"."""
+    if b"\0" in data:
+        return data.replace(b"\0", b"").decode("latin-1")
+    return data.decode("utf-8", "replace")
+
+
+def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, str]]:
+    """(path, line, text) for every line of a file `base..ref` changes whose text the
+    file did not hold at `base`, less any text another changed file gave up (a move).
+    Judged by line text per file, not by hunk: a reordered line is not charged, and
+    no diff grammar is parsed here (the hunk header is mutation_table.py's to read).
+    A blob holding a NUL byte (an image, a UTF-16 capture, any binary) is judged
+    too, as `blob_text` renders it: binary content is not skipped (round 2)."""
+    def run(*a: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *a], cwd=cwd, capture_output=True)
+
+    names = run("diff", "--no-renames", "--name-only", "-z", base, ref)
+    if names.returncode != 0:
+        raise RuntimeError(f"git diff {base[:12]} {ref} exited {names.returncode}")
+
+    def lines(rev: str, path: str) -> list[str]:
+        got = run("show", f"{rev}:{path}")
+        return blob_text(got.stdout).splitlines() if got.returncode == 0 else []  # absent: added or deleted whole
+
+    added, removed = [], set()
+    for path in filter(None, names.stdout.decode("utf-8", "replace").split("\0")):
+        old, new = lines(base, path), lines(ref, path)
+        was, now = {t.strip() for t in old}, {t.strip() for t in new}
+        removed |= was - now
+        added += [(path, n, t) for n, t in enumerate(new, 1) if t.strip() not in was]
+    return [(p, n, t) for p, n, t in added if t.strip() not in removed]
+
+
+def content_refusals(lines, ident: Identity | None = None) -> list[str]:
+    """One refusal per added line that would publish a host: where and which class, never the text."""
+    ident = ident or Identity.of_host()
+    out = []
+    for path, n, text in lines:
+        why = leaks(text, ident)
+        if why:
+            out.append(f"{path}:{n}: {', '.join(why)} in an added line of a tracked file; "
+                       f"rewrite it with `ref_privacy.py scrub --write {path}` or drop the path")
+    return out
+
+
+#: macOS's per-user temp root, built rather than spelled: the content check
+#: reads this file like any other, and a spelled path is what it refuses.
+MAC_TEMP = "/".join(("", "var", "folders"))
+TMP_ROOT = "/".join(("", "tmp"))
+
+
+def scrub(text: str, ident: Identity) -> str:
+    """`text` with this host's spans rewritten in place, each to a fixed placeholder:
+    a session scratchpad under the host's temp root to `<scratchpad>`, any other
+    path under that root to `<session-tmp>`, a macOS per-user temp to `<tmp>`, the
+    home directory to `~`, and a remaining account name to `<owner-home>`. Line
+    breaks are untouched, so a line count and every line number survive."""
+    if ident.uid is not None:
+        root = rf"(?:/private)?{TMP_ROOT}/claude-{ident.uid}(?![0-9])"
+        text = re.sub(root + r"/[^/\s\"'`]+/[^/\s\"'`]+/scratchpad(?![\w-])", "<scratchpad>", text)
+        text = re.sub(root, "<session-tmp>", text)
+    text = re.sub(r"(?:/private)?" + MAC_TEMP + r"/[\w-]+/[\w-]+/T(?![\w-])", "<tmp>", text)
+    for h in sorted(ident.homes, key=len, reverse=True):
+        text = re.sub(re.escape(h) + r"(?![\w.-])", "~", text, flags=re.IGNORECASE)
+    for nm in ident.names:
+        text = re.sub(r"(?<![A-Za-z0-9])" + re.escape(nm) + r"(?![A-Za-z0-9])", "<owner-home>", text,
+                      flags=re.IGNORECASE)
+    return text
 
 
 # ---------------------------------------------------------------------------
 # Self-test: synthetic identity only; the host's own name is never planted.
 
 def self_test() -> int:
+    import inspect
     import tempfile
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_env, throwaway_git_init
@@ -470,6 +631,15 @@ def self_test() -> int:
     ok("a noreply address passes, even naming the account (the null control)",
        email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
        and email_leaks("noreply@anthropic.com", fid) == [])
+    bodyleak = "evidence: " + fake_home + "/.zcode/bus/verdicts/7/abc/evidence"
+    ok("a comment body naming this host's home is refused (the bus evidence line)",
+       (body_refusal(bodyleak, fid) or "").startswith("home-directory, account-name"), str(body_refusal(bodyleak, fid)))
+    ok("and the same line home-relative passes, as does a quoted other home (the null control)",
+       body_refusal("evidence: ~/.zcode/bus/verdicts/7/abc/evidence", fid) is None
+       and body_refusal("planted " + under("Users", "someone", "y"), fid) is None)
+    ok("home_relative: under the home is ~/<rest>; outside it, or a sibling sharing its prefix, unchanged",
+       home_relative(fake_home + "/.zcode/bus/x", fake_home) == "~/.zcode/bus/x"
+       and home_relative("/srv/x", fake_home) == "/srv/x" and home_relative(fake_home + "s/x", fake_home) == fake_home + "s/x")
     host = Identity.of_host()
     ok("the host identity reads a home and a hostname, and judges no public account",
        bool(host.homes) and bool(host.hosts) and not set(host.names) & PUBLIC_ACCOUNTS)
@@ -635,6 +805,76 @@ def self_test() -> int:
     ok("a guarded entry that calls no guard is refused",
        any("guarded.sh: registered guarded" in b for b in registry_refusals(found, texts.__getitem__, reg)))
 
+    # Tracked content (round 4): a diff adding a line that names a host is
+    # refused, by where and class; the planted text is built, never spelled.
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q", "-b", "main")
+
+        def g(*a: str) -> str:
+            return subprocess.run(["git", *a], cwd=td, env=env, check=True, capture_output=True,
+                                  text=True).stdout.strip()
+        stock = "stock log line from " + fake_home + "/old\n"
+        Path(td, "rec.log").write_text("clean\n" + stock)
+        kept = "kept stock line from " + fake_home + "/kept\n"  # no other file gives it up
+        Path(td, "keep.log").write_text(kept)
+        g("add", "-A"); g("commit", "-q", "-m", "base")
+        base = g("rev-parse", "HEAD")
+        Path(td, "rec.log").write_text("clean\n" + "File " + scratch + "/x.py\n")
+        Path(td, "moved.log").write_text(stock)  # moved out of rec.log, not added
+        Path(td, "other.log").write_text("ran at " + under("home", "someone", "w") + "\n")
+        Path(td, "keep.log").write_text(kept + "edited\n")  # a changed file keeping main's stock line
+        Path(td, "nul.bin").write_bytes(b"bin\0\nran at " + under("Users", "someone", "w").encode() + b"\n")
+        Path(td, "u16.txt").write_bytes(("ran at " + under("Users", "someone", "w") + "\n").encode("utf-16-le"))
+        Path(td, "clean.bin").write_bytes(b"\x89PNG\0\0\x01ran at ~/w\n\0")
+        os.makedirs(Path(td, "rounds", f"-Users-{fake_name}-proj"))
+        Path(td, "rounds", f"-Users-{fake_name}-proj", "x.log").write_text("ok\n")  # the leak is the NAME
+        os.makedirs(Path(td, "fresh"))
+        Path(td, "fresh", "ok.log").write_text("ok\n")
+        g("add", "-A"); g("commit", "-q", "-m", "plant")
+        g("update-ref", "refs/remotes/origin/main", base)
+        got_base, _, bad = content_check("HEAD", Path(td), fid)
+        ok("--check's content arm judges the diff from the merge base with origin/main", got_base == base)
+        ok("and check() runs it (a pin by text: check() itself needs the real tree's pushers)",
+           "content_check(ref)" in inspect.getsource(check))
+        ok("a diff adding a line naming the host's scratch path is refused, by line and class",
+           any(b.startswith("rec.log:2: account-name, uid, scratch-root, host-path") for b in bad), str(bad))
+        ok("and one naming another machine's home, by the host-path shape a runner can see",
+           any(b.startswith("other.log:1: host-path") for b in bad), str(bad))
+        ok("the refusal never echoes the planted text", not any(fake_name in b for b in bad), str(bad))
+        ok("a line the diff moves from another file is not charged (the null control)",
+           not any(b.startswith("moved.log:") for b in bad), str(bad))
+        ok("main's stock line in a changed file is not charged (the null control)",
+           not any(b.startswith("keep.log:") for b in bad), str(bad))
+        ok("a NUL-bearing file adding a host line is refused: binary content is judged (round 2)",
+           any(b.startswith("nul.bin:") for b in bad), str(bad))
+        ok("and so is UTF-16 text naming one, its NULs dropped",
+           any(b.startswith("u16.txt:") for b in bad), str(bad))
+        ok("a file added under a dash-mangled home is refused by its name, never echoing it (round 3)",
+           any(b.startswith("added path #") and "account-name, host-path in the name" in b
+               and fake_name not in b for b in bad), str(bad))
+        ok("an ordinary new path passes by name and content (the null control)",
+           not any(b.startswith("fresh/") for b in bad) and sum("in the name" in b for b in bad) == 1, str(bad))
+        ok("a NUL-bearing file naming no host passes (the null control), and nothing else is charged",
+           not any(b.startswith("clean.bin:") for b in bad) and len(bad) == 5, str(bad))
+        Path(td, "rec.log").write_text("clean\n" + scrub(stock + "File " + scratch + "/x.py\n", fid))
+        for f in ("moved.log", "other.log", "nul.bin", "u16.txt", f"rounds/-Users-{fake_name}-proj/x.log"):
+            Path(td, f).unlink()
+        g("add", "-A"); g("commit", "-q", "-m", "scrubbed")
+        ok("the scrubbed tree's diff is refused nothing (scrub is the remedy)",
+           content_refusals(added_lines(base, "HEAD", Path(td)), fid) == [],
+           str(content_refusals(added_lines(base, "HEAD", Path(td)), fid)))
+    planted = (scratch + "/a.log and " + fake_home + "/x and EXAMPLEUSER and "
+               + under("private", "var", "folders", "ab", "cd0", "T", "t1") + " and "
+               + under("tmp", "claude-4242", "d13", "w.json") + "\n")
+    clean = scrub(planted, fid)
+    ok("scrub leaves no leak class under the planted identity, and keeps the line count",
+       leaks(clean, fid) == [] and clean.count("\n") == planted.count("\n"), clean)
+    ok("scrub's placeholders, in order: scratchpad, home, account, temp, session temp",
+       clean == "<scratchpad>/fix-1/a.log and ~/x and <owner-home> and <tmp>/t1 and <session-tmp>/d13/w.json\n", clean)
+    ok("scrub leaves another account's home and a public one alone (the null control)",
+       scrub(under("home", "runner", "w") + " " + under("Users", "someone"), fid)
+       == under("home", "runner", "w") + " " + under("Users", "someone"))
+
     print(f"ref_privacy self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -645,6 +885,21 @@ def main(argv: list[str]) -> int:
     if argv[:1] == ["--check"]:
         ref = argv[argv.index("--ref") + 1] if "--ref" in argv else "HEAD"
         return check(ref)
+    if argv[:1] == ["scrub"] and len(argv) >= 2:
+        write, paths = "--write" in argv[1:], [a for a in argv[1:] if a != "--write"]
+        ident, changed = Identity.of_host(), 0
+        for f in paths:
+            text = Path(f).read_text(encoding="utf-8", errors="surrogateescape")
+            new = scrub(text, ident)
+            if new != text:
+                changed += 1
+                if write:
+                    Path(f).write_text(new, encoding="utf-8", errors="surrogateescape")
+        print(f"ref_privacy scrub: {changed} of {len(paths)} file(s) {'rewritten' if write else 'would change'}")
+        return 0
+    if argv[:1] == ["path"] and len(argv) == 2:
+        print(home_relative(argv[1]))
+        return 0
     if argv[:1] == ["slug"] and len(argv) >= 2:
         roots, rest = [], argv[2:]
         while rest[:1] == ["--root"] and len(rest) >= 2 and "=" in rest[1]:

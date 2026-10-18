@@ -43,7 +43,7 @@
           "severity": "low",
           "claim": "On the 80-cell grid (8 price x 5 weather x single/two-zone, DHW off, 24 h), production's _multi_start_minimize result is above the best feasible challenger on its own captured objective by more than 1e-3 relative in 26 cells and by more than 1e-2 in 2 cells (max 5.06e-2). Most of this is reached by C1, the same minimizer with structured seeds added.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D0/s1/race.py",
             "harness_path": "dev/audit/rounds/round10/D0/s1/race.py",
             "value": 26,
             "unit": "cells with gap_rel > 1e-3 (of 80)",
@@ -314,7 +314,7 @@
           "severity": "medium",
           "claim": "_optimize_space_only.move_starts runs L-BFGS-B with a callable jac that evaluates float(objective(x)) as f0 plus a scalar fun. Each gradient costs 96 batch rows + 2 scalar horizons = 288 SSE, against 97 for the fused value-and-gradient the main loop uses. Across a 6-cell two-zone no-DHW grid, fusing removes 13.5-31.1% of total solve SSE, or 13.5-29.2% after dropping the largest cell. The flat-price cell removes 29.2%, so the cost does not depend on prices. The iterate path is unchanged: main gradient counts are identical in both arms.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py --scenarios tz:winter_typical:winter_cold,tz:winter_extreme:winter_cold,tz:shoulder:shoulder,tz:winter_typical:winter_mild,tz:summer_typical:summer_cool,tz:flat:winter_cold [--perturb fuse]",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py --scenarios tz:winter_typical:winter_cold,tz:winter_extreme:winter_cold,tz:shoulder:shoulder,tz:winter_typical:winter_mild,tz:summer_typical:summer_cool,tz:flat:winter_cold [--perturb fuse]",
             "harness_path": "dev/audit/rounds/round10/D9/s1/sse_grad.py",
             "value": "cont sse_per_grad 192 in the jac + 96 in cont_fun per grad (288 total); with fuse 97. winter_two_zone_no_dhw total SSE 62121 -> 53717",
             "unit": "simulate-step-equivalents per gradient",
@@ -350,7 +350,7 @@
           "severity": "low",
           "claim": "On the #511 in-process fallback, the solve runs on an executor thread. During a two-zone solve the event-loop heartbeat's max gap is 87-124 ms and the starvation share is 0.70-0.89. The idle null control in the same session shows 14-21 ms and 0.08-0.17. Removing _gil_yield barely changes the gap, while a real 0.1 ms sleep cuts it to about 30 ms. So the per-evaluation sleep(0) does not act as a GIL handoff.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/gil.py --scenarios idle,winter_single_dhw,winter_two_zone_dhw,shoulder_two_zone [--perturb realsleep|noyield]",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/gil.py --scenarios idle,winter_single_dhw,winter_two_zone_dhw,shoulder_two_zone [--perturb realsleep|noyield]",
             "harness_path": "dev/audit/rounds/round10/D9/s1/gil.py",
             "value": "max gap winter_two_zone_dhw 123.9 ms, shoulder_two_zone 86.6 ms (idle 14.1); realsleep: 29.4 / 32.1 ms",
             "unit": "ms",
@@ -382,17 +382,17 @@
       "non_findings": [
         {
           "claim": "The main multi-start gradient costs exactly 97 SSE per gradient with no scalar steps and no scipy approx_derivative fallback. This holds on the default two-zone DHW, single-zone, fuse_guard (capped/zero-range bounds) and tariff scenarios.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/sse_grad.py",
           "value": "main.sse_per_grad=97.00 and scalar_per_grad=0.00 on all 7 scenarios"
         },
         {
           "claim": "A plain cycle runs only the main solve: 2 _multi_start_minimize entries with DHW (space solve plus the _co_optimize re-solve) and 1 space-only. No shadow, what-if or diagnose solve ran in these configs.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
           "value": "solves[optimize_in_process<-async_run_optimization]=2 (dhw, all_features) / 1 (space_only) per cycle"
         },
         {
           "claim": "Loop-thread work per cycle, excluding offloaded jobs, is small (provisional).",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D9/s1/cycle.py",
           "value": "7.6-12.1 ms thread CPU = 0.16-0.25 reference_solve after the first cycle (53.9 ms warm-up)"
         }
       ],
@@ -437,7 +437,7 @@
           "severity": "low",
           "claim": "Five places in the docs name a UI label that is not shown verbatim. docs/configuration.md:23 says 'Add integration \u2192 Heat Pump Optimizer', but the picker shows the manifest name 'Heat Pump Cost Optimizer', which contradicts README.md:281 and docs/setup.md:48. README.md:356, docs/configuration.md:43, :164 and docs/setup.md:70 name the menu button 'Enter thermal values directly (expert)', but strings.json config.step.building.menu_options.thermal is 'Enter thermal values directly'.",
           "evidence": {
-            "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
+            "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D5/s1/ui_labels.py",
             "harness_path": "dev/audit/rounds/round10/D5/s1/ui_labels.py",
             "value": 5,
             "unit": "count",
@@ -525,7 +525,7 @@
       "non_findings": [
         {
           "claim": "The README's entity counts hold: 81 total, 62 sensors, 6 binary sensors and 5 buttons.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s1/claims.py",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D6/s1/claims.py",
           "value": "entities_total=81, sensors_total=62. With --perturb the counts fall to 80 and 61."
         },
         {
@@ -581,7 +581,7 @@
       "non_findings": [
         {
           "claim": "All 20 Bronze rules and the 8 measured Silver rules hold at baseline. The two coverage rows (config-flow-test-coverage, test-coverage) are measured by coverage_modules.py.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/rules.py [--perturb]",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/rules.py [--perturb]",
           "value": "rules_todo=0 at baseline; 3 under --perturb (unique_id nulled on one sensor, switch PARALLEL_UPDATES deleted, _loaded_coordinators returns [])"
         },
         {
@@ -611,7 +611,7 @@
         },
         {
           "claim": "strict-typing: mypy --strict is clean against real Home Assistant. The 416 stub-arm errors (no-untyped-call 201, attr-defined 137, misc 36, ...) are stub-shape artefacts, a harness gap in tests/hastub and not an integration defect.",
-          "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]",
+          "command": "PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python dev/audit/rounds/round10/D10/s1/mypy_strict.py [--perturb]",
           "value": "mypy_real_errors=0 over 76 files (1 under --perturb); stub arm 416"
         }
       ],

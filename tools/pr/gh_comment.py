@@ -130,6 +130,17 @@ def read_body(path: str) -> str:
     return body
 
 
+def privacy_check(body: str, ident=None) -> None:
+    """Refuse a body that names this host: its home, account name, uid or a
+    session temp root (#2310's class; a verdict's evidence line carried the
+    home path). ref_privacy.py owns the classes; the text is not echoed."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "audit", "seat"))
+    import ref_privacy
+    why = ref_privacy.body_refusal(body, ident)
+    if why:
+        die(f"{why} would publish this host (#2310); post it home-relative (~/...) or without the path")
+
+
 def positive_int(value: str, what: str) -> int:
     try:
         n = int(value)
@@ -377,6 +388,20 @@ def self_test() -> int:
     os.symlink(wrote("scratchpad/seat/own.md", healthy), os.path.join(tmp, "link2.md"))
     check("arm5_accepts_link_to_seat_file", not in_shared_root(os.path.join(tmp, "link2.md")))
 
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "audit", "seat"))
+    import ref_privacy
+    fid = ref_privacy.Identity.made({"/" + "/".join(("Users", "exampleuser"))}, {"exampleuser"}, 4242)
+    hit, why = refuses(lambda: privacy_check("evidence: /" + "/".join(("Users", "exampleuser", ".zcode", "bus")), fid))
+    check("arm_privacy_refuses_a_body_naming_the_home (#2310)", hit and "exampleuser" not in why)
+    hit, _ = refuses(lambda: privacy_check("evidence: ~/.zcode/bus/verdicts/7", fid))
+    check("arm_privacy_passes_the_home_relative_body (null control)", not hit)
+    body_f = os.path.join(tmp, "seat", "leak.md")
+    os.makedirs(os.path.dirname(body_f), exist_ok=True)
+    with open(body_f, "w", encoding="utf-8") as fh:
+        fh.write("evidence: " + os.path.realpath(os.environ.get("HOME", "/")) + "/x\n")
+    hit, _ = refuses(lambda: run(["post", "--repo", "o/r", "--issue", "7", "--body-file", body_f, "--dry-run"]))
+    check("arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)", hit)
+
     hit, _ = refuses(lambda: positive_int("not-a-number", "--comment"))
     check("arm4_refuses_non_integer_id", hit)
 
@@ -411,6 +436,8 @@ def run(argv: list[str] | None = None) -> int:
         die(f"{a.action} needs --body-file")
 
     body = read_body(a.body_file)
+    if a.action in ("post", "patch"):
+        privacy_check(body)
     print(f"OK body_file={a.body_file} chars={len(body)} sha={short_sha(body)}")
 
     if a.action == "verify":

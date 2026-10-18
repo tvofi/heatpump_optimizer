@@ -152,7 +152,7 @@
    "entities.py": {
     "rc": 1,
     "wall": 106.2,
-    "tail": "ation is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTraceback (most recent call last):\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2-lane2/tests/entities.py\", line 23370, in <module>\n    and _dhw_plan_count.extra_state_attributes[\"slot_count\"] == 2,\n        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\nKeyError: 'slot_count'\n"
+    "tail": "ation is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTraceback (most recent call last):\n  File \"<scratchpad>/orch/audit-r10-D3-s2-lane2/tests/entities.py\", line 23370, in <module>\n    and _dhw_plan_count.extra_state_attributes[\"slot_count\"] == 2,\n        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\nKeyError: 'slot_count'\n"
    }
   },
   "closure": [
@@ -275,7 +275,7 @@
    "entities.py": {
     "rc": 1,
     "wall": 21.1,
-    "tail": "atchpad/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/entity.py\", line 151, in scrubbed\n    return _finite(_fget(self))\n                   ~~~~~^^^^^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/climate.py\", line 280, in extra_state_attributes\n    attrs[\"upper_floor_setpoint\"] = action[\"upper_setpoint\"]\n                                    ~~~~~~^^^^^^^^^^^^^^^^^^\nKeyError: 'upper_setpoint'\n"
+    "tail": "atchpad/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/entity.py\", line 151, in scrubbed\n    return _finite(_fget(self))\n                   ~~~~~^^^^^^\n  File \"<scratchpad>/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/climate.py\", line 280, in extra_state_attributes\n    attrs[\"upper_floor_setpoint\"] = action[\"upper_setpoint\"]\n                                    ~~~~~~^^^^^^^^^^^^^^^^^^\nKeyError: 'upper_setpoint'\n"
    }
   },
   "closure": [
@@ -312,7 +312,7 @@
    "features.py": {
     "rc": 1,
     "wall": 563.1,
-    "tail": " bounded to 2026-06-01 12:00:00\nheatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\n/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice\n  return _methods._mean(a, axis=axis, dtype=dtype,\n"
+    "tail": " bounded to 2026-06-01 12:00:00\nheatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00\nheatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00\n~/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice\n  return _methods._mean(a, axis=axis, dtype=dtype,\n"
    }
   },
   "closure": [
@@ -505,7 +505,7 @@
    "entities.py": {
     "rc": 1,
     "wall": 19.9,
-    "tail": "ptimizer/services.py\", line 556, in _loaded_coordinators\n    for entry in _loaded_entries(hass, target_entry)\n                 ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-round-10-audit-programme-de1185/ab673435-c91c-44f8-bd8e-6fa54b531db8/scratchpad/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/services.py\", line 520, in _loaded_entries\n    raise ServiceValidationError(\n    ...<5 lines>...\n    )\nhomeassistant.exceptions.ServiceValidationError: No Heat Pump Optimizer config entry has the id None\n"
+    "tail": "ptimizer/services.py\", line 556, in _loaded_coordinators\n    for entry in _loaded_entries(hass, target_entry)\n                 ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"<scratchpad>/orch/audit-r10-D3-s2-lane2/custom_components/heatpump_optimizer/services.py\", line 520, in _loaded_entries\n    raise ServiceValidationError(\n    ...<5 lines>...\n    )\nhomeassistant.exceptions.ServiceValidationError: No Heat Pump Optimizer config entry has the id None\n"
    }
   },
   "closure": [
