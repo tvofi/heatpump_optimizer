@@ -1,0 +1,8 @@
+RESULT plant=P11-dashed-synthetic code=head rc=1 1240 line(s) added since 9a1ce39c3e90 judged, 1 refused
+    ref_privacy: REFUSE added path #1 of `git diff --name-only --diff-filter=A`: host-path in the name of a file the diff adds
+RESULT plant=P11-own-home-dashed code=head rc=1 1240 line(s) added since 9a1ce39c3e90 judged, 1 refused
+    ref_privacy: REFUSE added path #1 of `git diff --name-only --diff-filter=A`: account-name, host-path in the name of a file the diff adds
+RESULT plant=P11-rename-into-dashed code=head rc=1 1239 line(s) added since 9a1ce39c3e90 judged, 1 refused
+    ref_privacy: REFUSE added path #1 of `git diff --name-only --diff-filter=A`: host-path in the name of a file the diff adds
+RESULT plant=P11-null-clean-name code=head rc=0 1240 line(s) added since 9a1ce39c3e90 judged, 0 refused
+RESULT plant=none (the head) rc=0 1239 line(s) added since 9a1ce39c3e90 judged, 0 refused

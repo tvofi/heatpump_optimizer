@@ -1,51 +1,48 @@
-Fix review: blocked e98c0dcd654a6cbd838ccfea54b8e303c5886303 harness: class-open tracked-path-names: the content arm judges what a file holds but never its name, so a diff adding a file under a dash-mangled home (the -Users-<name>- shape #2310 began with, and this host's own) passes, and WHAT IT DOES NOT CATCH does not name it
+Fix review: merge 60308ef8ff6e0a7e6ec5792f203e32ca7c653721
 
-bus-nonce: e98d0d400f3b0a72b3c4de77100687ca
+bus-nonce: d2d60624902ec83236d3c5364e3cb657
 
-Round 2: a delta review of `ec773d944..e98c0dcd6`. The only code change is in `tools/audit/seat/ref_privacy.py` (`blob_text`, the binary skip removed, four self-test arms, a docstring entry). I reviewed from a fresh detached worktree at `e98c0dcd654a6cbd838ccfea54b8e303c5886303`, which was the live head when this was written. The merge base is `811df3cf3`, and `git merge-tree --write-tree origin/main <head>` returns rc 0. The host's account name, home and uid are written below as <account>, <home> and <uid>.
+Round 3. This is a delta review of `e98c0dcd6..60308ef8f`, done from a fresh detached worktree at the head. The authored code head is `e73c683a1`. The merge base is `9a1ce39c3`, and `git merge-tree --write-tree origin/main <head>` returns rc 0. The PR's own code change in this delta is `tools/audit/seat/ref_privacy.py` only: `added_names` and `name_refusals` wired into `content_check`, two new self-test arms with one arm amended, and base64 declared. `orchestrator_tick.py` arrived with the main merge: it is not in `git diff 9a1ce39c3...<head>`. The host's account name, home and uid are written below as <account>, <home> and <uid>.
 
-## Round 1's block is answered
+## Round 2's block is answered
 
-Binary content is now judged. All of these were run with the head code and `--check --ref <plant>` (evidence: plants_round2.txt):
+Planted commits on the head, run as `--check --ref <plant>` with head code (evidence: plants_round3.txt):
 
-    RESULT plant=P4  NUL-bearing file, host line              rc=1 REFUSE dev/audit/nul.log:2 host-path
-    RESULT plant=P7  UTF-16BE host line                       rc=1 REFUSE dev/audit/u16be.log:1 host-path
-    RESULT plant=P8  UTF-32LE host line                       rc=1 REFUSE dev/audit/u32.log:1 host-path
-    RESULT plant=P12 a NUL byte inside the host path itself   rc=1 REFUSE dev/audit/nulmid.log:2 host-path
-    RESULT plant=none (the head itself)                       rc=0 1213 line(s) judged, 0 refused
+    RESULT plant=P11 new file under a synthetic account's dash-mangled home            rc=1 REFUSE added path #1: host-path in the name
+    RESULT plant=P11-own new file under this host's dash-mangled home                  rc=1 REFUSE added path #1: account-name, host-path in the name
+    RESULT plant=P11-rename an existing file renamed into a dash-mangled directory    rc=1 REFUSE added path #1: host-path in the name
+    RESULT plant=P11-null a new file under an ordinary name                            rc=0 0 refused (null control)
+    RESULT plant=none (the head itself)                                                rc=0 1239 line(s) judged, 0 refused
 
-Mutants, each restored to a clean tree (evidence: mutation_round2.txt; baseline `64 checks, 0 failed`):
+A refusal names the path by its index, never by its text: neither the planted name nor <account> appears in the output.
 
-    RESULT mutant blob_text NUL branch -> return ""           64 checks, 3 failed (NUL file, UTF-16, null control)
-    RESULT mutant stock filter `not in was` dropped           64 checks, 3 failed (keep.log null control, clean.bin, scrubbed tree)
-    RESULT mutant NULs kept (decode latin-1 undropped)        64 checks, 2 failed (my extra: UTF-16, null control)
-    RESULT mutant content_refusals why=[]                     64 checks, 5 failed
-    RESULT mutant move rule -> return added                   64 checks, 2 failed
+Mutants, each restored to a clean tree; baseline `66 checks, 0 failed` (evidence: mutation_round3.txt):
 
-Both mutants that survived round 1 are now killed.
+    RESULT mutant name arm dropped from content_check           3 failed
+    RESULT mutant name_refusals predicate why=[]                3 failed (my extra)
+    RESULT mutant --diff-filter=A -> X (no names enumerated)     3 failed (my extra)
+    RESULT mutant blob_text NUL branch -> return ""              3 failed (round 2's, still killed)
+    RESULT mutant stock filter `not in was` dropped              3 failed (round 2's, still killed)
 
-## The new blocking finding: tracked path names are not judged
+base64 is now listed in WHAT IT DOES NOT CATCH, with its reason. Gzip and zip were already listed there.
 
-`added_lines` reads blob contents only. The name of a file a diff adds is never passed to `leaks`.
+## Figures
 
-    RESULT plant=P11 new file dev/audit/rounds/<dash-mangled home of a synthetic account>-proj/x.log (content "ok")       rc=0 0 refused
-    RESULT plant=P11-own new file dev/audit/rounds/<home with / as ->-heatpump-optimizer/memory/x.md  rc=0 0 refused
+Re-derived under the body's own commands (evidence: counts_round3.txt):
 
-The second plant is the shape of a Claude project directory, `-Users-<account>-...`, copied into the tree. Its name carries this host's account name and the dash-mangled home. `ref_privacy.leaks` refuses exactly that string as a ref name (account-name, host-path), and `tmp_paths.py --check --ref <plant>` also returns rc 0, so nothing in the tree refuses it. A path name publishes on every clone just as content does (the docstring's own CONTENT rationale), and this was #2310's original shape. Neither the docstring's WHAT IT DOES NOT CATCH nor the body names it. No tracked name carries the account today: 0 at `811df3cf3`, 0 at the head, and 0 names in the `Users-<x>` / `tmp-claude-<n>` shape at the head. So nothing leaked; the claim is wider than the check. The fix is cheap: judge each path in `names` that is absent at the base with `leaks`, report it by class without echoing the path, and add a self-test arm with its null control (a clean new name passes).
+    RESULT ref=9a1ce39c3 account_files=128 uid_tmproot_files=13 vfolders_files=5
+    RESULT ref=60308ef8f account_files=0   uid_tmproot_files=2  vfolders_files=1
 
-Also declare, or judge, base64. `RESULT plant=P10 a JSON field holding base64 of a host line: rc=0 0 refused`. The docstring's "text encoded twice" covers URL-encoding, not base64, and embedded base64 bodies are common in .har files and HTML reports. A declaration is enough here, because decoding every base64-looking run is not obviously sound. Gzip is declared and evades as stated (`RESULT plant=P9 rc=0`).
+These match the body: 128 to 0, 13 to 2, 5 to 1, with B = `9a1ce39c3`. The kept files are the round-1 fixture pair and the guard's own pattern, unchanged. The body now builds the uid with `$(id -u)`: it contains no `claude-<uid>`, no bare <uid> and no <account>. No tracked path name at the head carries <account> or the `Users-<x>` shape. The body's `## Head` names `60308ef8f` and code head `e73c683a1`.
 
-## Body corrections
+## Carried from rounds 1 and 2 (files unchanged since)
 
-- nudge.md: the body now says "four path spans (4 lines, each `<home>/...` to `~/...`)". `git diff --word-diff=porcelain 811df3cf3 <head> -- dev/governance/roles/nudge.md` shows 4 added spans, and no rule text changes. tvofi's approving review is still owed.
-- The figures are re-taken at `811df3cf3`, which is the merge base. I re-derived them under the body's commands: `RESULT ref=811df3cf3 account_files=128 uid_tmproot_files=13 vfolders_files=5` and `RESULT ref=e98c0dcd6 account_files=0 uid_tmproot_files=2 vfolders_files=1`. Diff shape: 139 files, 1255 insertions, 981 deletions, and only the four code files plus the delivery row differ in added and removed counts. All of these match the body.
-- Observation, not blocking: the body's Figures line spells this host's uid in its command and its parenthesis. `ref_privacy.body_refusal` refuses that as the uid class. The body was posted through a path `gh_comment.py` does not guard. Writing `claude-$(id -u)` instead would publish nothing.
+- The `bus.sh`, `app_approve.sh` and `gh_comment.py` reverts all fail their self-tests.
+- No scrubbed file is cited by hash: 399 prefixes, 0 hits.
+- Every scrubbed record kept its line count.
+- The `nudge.md` change is four path spans, with no rule text changed. tvofi's approving review at the head is still required before merge (code-owned, policy) and is the orchestrator's to obtain.
+- `VERSION`, the manifest version and the notes heading are untouched.
 
-## CI (check-runs at the head, latest per name; evidence: check_runs_round2.tsv)
+## CI (check-runs at the head, latest per name)
 
-42 names: 27 success, 15 skipped, none failed or cancelled. `instrument-self-tests` success (117569507667), `wave-script` success (117569507647), `pr-contract` success (117569627554), `mutation` success (117569508248), `arch-score` success (117569507521). I re-ran no heavy script.
-
-## Not verified
-
-- I did not re-run the gate or the mutation table. CI's runs are cited instead.
-- The round-1 checks on the files the delta did not touch (`bus.sh`, `app_approve.sh`, `gh_comment.py`, the scrub's hash and line-count checks) carry over unchanged. The delta does not touch those files.
+42 names: 25 success, 15 skipped, 1 neutral (CodeQL), 1 in progress (Analyze (python)), none failed or cancelled. `instrument-self-tests` success (117587774316), `wave-script` success (117587774332), `pr-contract` success (117587865582), `mutation` success (117587774655), `arch-score` success (117587774226). There was no failed or cancelled run at this head. `closures` success (117588770095), awaited before posting. I re-ran no heavy script.
