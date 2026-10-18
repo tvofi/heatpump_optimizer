@@ -1,0 +1,17 @@
+## M1 revert .cursor/rules/ci-autofix.mdc to base
+
+RULES-SYNC: 1 file(s) out of date. Run without --check.
+rc=0
+## M2 drop 'App push' from bot_refusal
+ tools/audit/seat/merge_train.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
+merge_train self-test: 180 checks, 1 failed
+## M3 drop GITHUB_TOKEN from bot_refusal
+  FAIL a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
+  FAIL ... and with nothing merged before it, main never moved: no recarry is possible and it is refused as before, [BOT-HEAD] (null control)
+merge_train self-test: 180 checks, 2 failed
+?? scope.json
+?? scope.run
+?? scope.skip
+?? scope.txt

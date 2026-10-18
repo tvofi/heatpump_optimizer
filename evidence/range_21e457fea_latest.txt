@@ -1,0 +1,9 @@
+pr-contract|success|2026-10-18T12:07:52Z
+validate-hacs|success|2026-10-18T12:07:15Z
+pr-contract|success|2026-10-18T12:07:12Z
+env-matrix|success|2026-10-18T12:07:12Z
+arch-score|success|2026-10-18T12:07:10Z
+arch-score|success|2026-10-18T12:07:09Z
+nightly-ha|skipped|2026-10-18T10:58:46Z
+mutation-nightly|skipped|2026-10-18T10:58:25Z
+nightly-status|failure|2026-10-18T10:58:27Z

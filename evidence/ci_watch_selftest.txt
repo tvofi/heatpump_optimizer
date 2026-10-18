@@ -1,0 +1,4 @@
+  ok   W6 an unreadable ruleset alerts BLIND once, then is quiet until it can read again
+  ok   W7 zero runs at a mergeable head still alerts STALLED (v2 behaviour kept)
+ci-watch self-test: 8 checks, 0 failed
+rc=0
