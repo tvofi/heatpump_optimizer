@@ -11,3 +11,4 @@ RESULT typed_name_kept=38 count
 RESULT typed_dead_methods=0 count
 RESULT typed_refused=0 count
 RESULT row_in_budgets=True
+rc=0

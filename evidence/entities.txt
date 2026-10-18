@@ -1,4 +1,0 @@
-  ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held
-
-ALL 2347 ENTITY CHECKS PASSED
-entities rc=0

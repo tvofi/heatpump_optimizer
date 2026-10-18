@@ -1,6 +1,0 @@
-M1-row-dropped rc=1 FAIL name_kept_members: in the budget table but never measured -- re-record|
-M2-hardcoded0 rc=2 ########## 1 metric(s) IMPROVED and not yet recorded ##########|1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED|
-custom_components/heatpump_optimizer/manual_plan.py:1
-custom_components/heatpump_optimizer/coordinator.py:1
-P-disk-plant-coordinator-to_dict rc=1 FAIL name_kept_members 39 > 38 (+1)|
-M3 rc=1 3 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
