@@ -1705,7 +1705,7 @@ def merge_is_record_class(sha: str, runner=None) -> bool:
     which leaves it under the ordinary row bar -- the fail-closed direction."""
     run = runner or sh
     try:
-        out = run("git", "diff", "--name-only", f"{sha}^1", sha)
+        out = run("git", "diff", "--no-renames", "--name-only", f"{sha}^1", sha)
     except subprocess.CalledProcessError:
         return False
     return record_class_paths(out.splitlines())

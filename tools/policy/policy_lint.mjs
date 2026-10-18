@@ -4394,6 +4394,12 @@ function assertAcceptance(derived) {
       break
     }
   }
+  // The two diffs that feed the predicates must both list a rename's source
+  // (#2406): a rename onto a delivery row is otherwise record-class.
+  if (!stampSrc.includes('run("git", "diff", "--no-renames", "--name-only", f"{sha}^1", sha)')
+      || !rcWired.includes("git(['diff', '--no-renames', '--name-only', `${sha}^1`, String(sha)]")) {
+    rcFail.push("the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames; the two commands must move together")
+  }
   if (rcFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordClassPaths ${JSON.stringify(rcFail)}. The record-class carve-out is what ends the record-PR row recursion; unpinned, it widens to a blanket exemption (any path set passes) or narrows to nothing (the recursion returns) with the mode's other counts unchanged.`)
     return 1
