@@ -58,12 +58,20 @@ Plants:
            X13V6, X13V10): if the
            mutant alone leaves the plant green, the plant's catch DEPENDS on
            that line, and a fix line whose removal changes no check is a line
-           this census does not need. X1, X2, X3, X4, X5, X6, X9, X10, X11,
-           X12 and X13 alone are
-           the detector demonstrations -- the check each line carries is red
-           without it. X7 and X7K1b are the other shape: with the surface
-           member gone the plant is red only as a crash, which is what the
-           member replaces.
+           this census does not need. X1 and X2 alone are red: each makes
+           the line's own check fire on an otherwise unmodified card. Every
+           other X alone (X3-X13) reads rc=0 fails=0 -- with the line gone the
+           card holds nothing for it to refuse -- and is read paired with the
+           plant beside it, which then goes green. X7K1b is red on `no press
+           throws`: without the surface member the plant's navigate call
+           throws inside the census, and the member is what records it as a
+           navigation instead.
+  RV1-RV7  the round-8 review's written spellings in the undriven keydown
+           handler, expected GREEN (rc=0 fails=0): the residual's witnesses
+           (the census's Residual paragraph). RV1c and RV5c are their controls,
+           the spellings the rows do name, expected red. They are the control
+           R10-DEEPLINK-HANDLERS starts from: each goes red when the dynamic
+           arm drives that handler.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
@@ -99,6 +107,11 @@ def card(old, new):
     return [(CARD, old, new)]
 
 
+def kd(stmt):
+    """One statement at the head of the chart's keydown handler, which no census press reaches."""
+    return card(KEYDOWN, "      " + stmt + "\n" + KEYDOWN)
+
+
 def test(old, new):
     return [(TEST, old, new)]
 
@@ -123,7 +136,7 @@ Z2_KEYDOWN_OPEN_CALL = card(
 # CLASS the review's spelling belongs to rather than that one spelling: an
 # `.apply`, a computed string key, a function value handed to `Reflect.apply`,
 # and the same on the reach side. Each must be refused by the census's name
-# rules wherever it is written.
+# rules in that unreached handler.
 Z2B_KEYDOWN_OPEN_APPLY = card(
     KEYDOWN, '      globalThis.open.apply(globalThis, ["/config/entities", "_self"]);\n' + KEYDOWN)
 Z2C_KEYDOWN_OPEN_BRACKET = card(
@@ -319,6 +332,19 @@ PLANTS = {
     # handler a press does reach. The write runs on no element, so the
     # dynamic arm sees nothing, and the static arm refuses only a written
     # name. R7c is the same write on a selector the stub resolves (red).
+    # The round-8 review's written spellings (#2345, the reviewer's
+    # review_plants.py, verbatim), expected GREEN: navigation written in the
+    # undriven keydown handler in a spelling no static row names. RV1c and
+    # RV5c, the spellings the rows do name in the same position, are red.
+    "RV1_history_bracket_back_in_undriven_keydown": kd('try { globalThis.history["back"](); } catch (_e) {}'),
+    "RV2_history_optional_back_in_undriven_keydown": kd('try { globalThis.history?.back(); } catch (_e) {}'),
+    "RV3_history_destructure_in_undriven_keydown": kd('try { const { back } = globalThis.history; back.call(globalThis.history); } catch (_e) {}'),
+    "RV4_form_ns_action_member_button_click_in_undriven_keydown": kd('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P),
+    "RV5_action_member_to_variable_in_undriven_keydown": kd('try { const u = "%s"; const f = document.createElement("div"); f.action = u; } catch (_e) {}' % P),
+    "RV6_object_assign_quoted_action_key_in_undriven_keydown": kd('try { const f = document.createElement("div"); Object.assign(f, { "action": "%s" }); } catch (_e) {}' % P),
+    "RV7_create_element_ns_form_in_undriven_keydown": kd('try { const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); root.appendChild(f); } catch (_e) {}'),
+    "RV1c_history_dot_back_control": kd('try { globalThis.history.back(); } catch (_e) {}'),
+    "RV5c_action_member_to_literal_control": kd('try { const f = document.createElement("div"); f.action = "%s"; } catch (_e) {}' % P),
     "Y1_runtime_name_on_unresolved_selector_residual": attach("a.zz", 'a.setAttribute(["hr", "ef"].join(""), "%s");' % P),
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,

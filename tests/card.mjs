@@ -11547,20 +11547,24 @@ check("without an indoor reading the corner now label is absent",
 // each walked through that gap: a bare `open(` on a row nothing rendered, the
 // Navigation API, a form's `action`, and an `Event`-built `hass-more-info`.
 //
-// Residual, stated because neither arm reaches it: a surface name BUILT at
-// run time is a dynamic-arm matter, so it is caught where a press makes the
-// write happen. Two kinds of code can carry one past both arms: code no press
-// reaches -- a pointer, wheel or keyboard handler, which no click gets to --
-// and a write through a selector the stub DOM (tests/dom_stub.mjs) cannot
-// resolve, a tag.class pair such as `a.zz`, which the press reaches but which
-// runs on no element (the driver's Y1 is that witness, green; R7c is the same
-// write on a selector the stub resolves, red).
-// The static arm still refuses that surface's names wherever they are written,
-// the written form spellings included: `createElement("form")`, an `action`
-// written through setAttribute, Reflect.set or Object.assign, and `.submit` /
-// `.requestSubmit` are refused by name in that same unreached handler (#2345's
-// round-7 plant), because a written spelling is the static arm's and not the
-// residual's.
+// Residual, stated because neither arm reaches it. The dynamic arm drives
+// clicks only, so navigation in a handler it does not drive -- keydown,
+// pointer, wheel, focus -- rests on the static arm alone, and the static arm
+// refuses only the spellings its rows name: `open` and its `.call` / `.apply`
+// / computed-key / Reflect forms, `history.<member>`, `createElement("form")`,
+// an `action` written through setAttribute, Reflect.set, Object.assign with a
+// bare key, a computed key or a literal member write, and `.submit` /
+// `.requestSubmit`. Other written spellings pass both arms there:
+// `history["back"]()`, `history?.back()`, a destructured `back`, a
+// `createElementNS` form, `.action = <variable>`, a quoted `"action"` key,
+// and a form submitted by a button's `click()` -- the driver's RV1-RV7, green
+// by design beside the red controls RV1c and RV5c. A name BUILT at run time
+// passes there too. Closing that is R10-DEEPLINK-HANDLERS's: drive those
+// handlers the way clicks are driven, so what they do is the dynamic arm's.
+// A write through a selector the stub DOM (tests/dom_stub.mjs) cannot
+// resolve, a tag.class pair such as `a.zz`, runs on no element even where a
+// press reaches it (Y1 is that witness, green; R7c is the same write on a
+// selector the stub resolves, red).
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
