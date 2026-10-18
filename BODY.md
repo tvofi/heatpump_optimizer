@@ -19,14 +19,31 @@ Part of #2232, Part of #2236 and Part of #2238. Each of those issues covers a wh
 
 ## Head
 
-`766b5eb46eb21892f8d87a3853269a679ff5e4f9`. Three commits sit on the fork `6e5753a4a`:
+`ee964f0dbf0edf4f7b7195aad7c349ba34fb971d`. This head answers round 1's blocked verdict (review commit `7f6ee976c`). It is the reviewed head `a5de7df1f` plus two commits:
+- `36f0f5cbe`: the trie-walk fix and its test rows (see `### Round 1` below).
+- `ee964f0db`: drops the one ledger pin whose line that fix rewrote (`store.py:_fields GUARD_OFF 7642fc84`, `if key not in node:`).
+
+`a5de7df1f` is `850825263` (the orchestrator's delivery row) plus the bot's `ci: pin killed mutants`. That commit adds 19 `killed_by` pins and no production line. Below that is the orchestrator's merge `af091b5df` of main `52f698905`; it needed no resolution, and `git diff --stat af091b5df^1 af091b5df -- custom_components tests tools` prints nothing.
+
+The authored commits under those are:
 - `40ad33528`: the fix.
-- `558d113d0`: `quarantines` returns a `bool` (the typing ruler's `no-any-return`), and the five mutation-ledger pins whose lines this branch rewrote are dropped.
-- `766b5eb46`: records the structure rows this branch improved.
+- `558d113d0`: `quarantines` returns a `bool`, and five stale pins are dropped.
+- `766b5eb46`: the structure record.
+- `e11222c5c`: my merge of main `e5f7e169d`.
 
-There is one merge of origin/main, `e11222c5c` at main `e5f7e169d`. It needed no resolution, and main's delta touches no file in this diff (`git diff --stat HEAD^1 HEAD -- custom_components tests/finite_boundary.py tests/features.py tests/mutation_ledger` prints nothing). Main-merge catch-up count: 1.
+Main-merge catch-up count: 2 (`e11222c5c`, `af091b5df`). origin/main has moved since, by record rows only; the reviewer measured `git merge-tree --write-tree origin/main HEAD` at rc=0, so this head does not merge main a third time.
 
-Every figure below was taken three-dot against merge base `e5f7e169d` (main's tip at 2026-10-18).
+Round 0's figures were taken three-dot against `e5f7e169d`. Main's delta since touches no code, so they stand. Round 1's are taken against merge base `52f698905`.
+
+### Round 1: the blocked defect and its fix
+
+**The defect.** The new instant walk descended `node.get(k, node.get("*", {}))`. A `DOMAINS` trie keeps a leaf's `Domain` under `""` and a map key's under `"~"`, so a stored key spelled `""` reached a `Domain` and the next `.get` raised out of `QuarantiningStore.async_load`. `load_mapping` then dropped the whole store: every accuracy sample, lead and promise, or the whole snapshot ring, lost to one corrupt leaf. `_fields` (the off-domain report on every load) had the same descent for `"~"` at the base, so a literal `"~"` key holding an instant already dropped the store before this branch.
+
+**The fix.** Both walks now descend through `store._child`, which returns the stored key's own node or the wildcard's, and only a node, never a declaration. `_fields` treats a key whose entry is not a node as a data key, checked against the map-key domain like any other. This closes the pre-existing `"~"` variant in the same guard rather than filing it.
+
+**Alternatives.**
+- A `try/except AttributeError` around the walk loses: it would drop the bound or the report for the whole store on one key, and hide the next shape.
+- Renaming the trie's sentinel keys loses: it would move `_tries`, `_scalar_domain` and every alias, for no gain over refusing to descend into a non-node.
 
 ## Mutation proof
 
@@ -40,6 +57,11 @@ Each mutant is applied to a detached copy at the head by `mutate.sh` (scratch), 
 - M3b, the digest's skip removed: the same check fails with `[save counts [2, 4, 1] (want [1, 3, 1])]`.
 - M4, `quarantines` returns `False`: rc=1, `FAIL quarantines() is the next load's scrub, keys included; a foreign key declares nothing [wrong=['non-finite leaf', 'poisoned key'] ...]`.
 - M5, `PriceShapeLearner.fold` no longer marks a day seen: `tests/features.py` rc=1 with 4 FAIL. These are `a complete hourly day is folded into the shape and persisted once`, `the same prices on the next refresh are folded in again zero times`, `a 15-minute day trains the hourly shape and the quarter factors both`, and `the quarter seen-set has its own skip, checked separately from the hourly one`.
+
+Round 1, at `36f0f5cbe` in a detached copy (`mutate2.sh`, scratch), `tests/finite_boundary.py`:
+- M0', a comment-only edit (null): rc=0, 0 FAIL.
+- M6, `_child` restored to the old descent (`return node.get(key, node.get(wildcard, {}))`): rc=1. It fails `FAIL a stored "" or "~" key is data, not a step into the declaration: the store and an embedding one still load`. All six cells are lost: the three shapes (`""` at an instant leaf, `""` holding a list, `"~"` holding an instant), each in the accuracy store and in the snapshot ring embedding it, read "the store was dropped".
+- M6b, `_child` accepting any non-`None` entry (a `Domain` included): the same FAIL, with the same six cells.
 
 ## Null control
 
@@ -79,6 +101,13 @@ Standing scripts:
   Each row moved for the reason that commit message states. `functions_cc_over_15` stays at 31: the first cut of `_bound_instants` measured cc 16 against the base's 14, and the walk was simplified to 14 (`getattr` over the declaration, a read-only empty default) rather than raising a budget.
 - `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `19 unpinned site(s) the diff adds` and `no closures or fast red predicted against e5f7e169d64b`.
 
+Round 1 figures:
+- The reviewer's probe, `PYTHONPATH=tests/hastub:. python3 <review-2375>/ev/rev_probe.py` (the reviewer's instrument), at `36f0f5cbe` reads 0 on all six corrupt rows: `corrupt_empty_key_under_leaf_raises`, `corrupt_empty_key_list_under_leaf_raises`, `corrupt_tilde_key_instant_raises` and each one's `_load_mapping_none`. The verdict recorded the reviewed head `a5de7df1f` at 1, 1, 1 for the `_raises` rows and the base at 0, 0, 1.
+- The same run's lead rows are unchanged from the verdict's head: `due_10h_kept_h=10.0`, `due_30h_bounded_to_h=24.0`, `sample_t_plus1h_loaded_as_h=0.0`, `evidence_since_plus2h_loaded_as_h=0.0`.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at `36f0f5cbe` named one `STALE PIN` (`store.py:_fields GUARD_OFF 7642fc84`), dropped in `ee964f0db`. It also names 3 unpinned sites the round adds; they are listed under `## Unpinned sites`.
+- `python3 tests/structure.py` at `36f0f5cbe`: `STRUCTURE RATCHET PASSED`. `_bound_instants` stays at cc 14.
+- `GATE_SCOPE=auto GOLDEN_MODE=drift bash tests/run.sh`, started at `36f0f5cbe`, with `ee964f0db` (the ledger file deletion) committed while it ran: `MODE: SCOPED -- 23 script(s) run, 10 scoped out.`, then `25 TEST SCRIPT(S) PASSED; 9 SCOPED OUT AND NOT RUN`, rc=0. It shows `ALL 2346 ENTITY CHECKS PASSED`, `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main` and `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`.
+
 ## Architecture score
 
 `Architecture score: dS +1.3265 IMPROVES` (see `## Figures`). No gate metric rose:
@@ -110,6 +139,10 @@ Each site is left to `mutation-autofix` (`ci-autofix.md`: killed unpinned mutant
 - custom_components/heatpump_optimizer/store.py:578 RETURN_DEL: mutation-autofix; expected killer (forecast, not measured) `tests/finite_boundary.py` `a store key names its DOMAINS entry, and a foreign key names none`.
 - custom_components/heatpump_optimizer/store.py:746 GUARD_OFF: mutation-autofix; killer measured by M3b.
 
+- custom_components/heatpump_optimizer/store.py:514 GUARD_OFF (`if not isinstance(child, dict):`): mutation-autofix; killer measured by M6b (the same condition weakened).
+- custom_components/heatpump_optimizer/store.py:516 RETURN_DEL (`return child if isinstance(child, dict) else {}`): mutation-autofix; expected killer (forecast) every `tests/finite_boundary.py` load, since a `None` node fails the walk.
+- custom_components/heatpump_optimizer/store.py:537 GUARD_OFF (`if not isinstance(node.get(key), dict):`): mutation-autofix; expected killer (forecast) `tests/finite_boundary.py`'s domain arm (an undeclared key goes unreported).
+
 ## Red checks
 
 Locally, before this head, three scripts failed at the first commit `40ad33528`; each is answered in a later commit:
@@ -117,7 +150,9 @@ Locally, before this head, three scripts failed at the first commit `40ad33528`;
 - `tests/typing_ruler.py`: `by_code[no-any-return] 0 -> 1`, from `quarantines` returning `!=` of `Any`; fixed in `558d113d0`. **Cheaper detector:** the ruler is the detector, run in the scoped gate; nothing cheaper exists for a mypy count.
 - `tests/entities.py`: the mutation-table selftest refused five ledger dispositions naming lines this branch rewrote. They are dropped in `558d113d0`, and the new sites are listed above. **Cheaper detector:** `mutation_table.completeness_problems(load_budgets(), inventory())`, source-only, seconds. It is the same rule the ledger refusal runs, so no new detector is owed.
 
-No CI check has run on this branch yet.
+CI, from the check-runs API (latest run per name): at `850825263`, `mutation` failed on the 19 unpinned sites listed under `## Unpinned sites`. `mutation-autofix` answered it with `a5de7df1f` (`ci: pin killed mutants`, 19 `killed_by` pins), and at `a5de7df1f` no check is red. **Cheaper detector:** `tools/pr/ci_predict.py`, which predicted the same 19 sites before the push; `ci-autofix.md` assigns their repair to the bot, so nothing more is owed.
+
+Round 1: the blocked verdict's defect is a review finding, not a red check. Its cheaper detector is a `tests/finite_boundary.py` row that drives every trie-sentinel spelling of a stored key (`""`, `"~"`) through a real loader and an embedding one. That row now exists, and costs one load per shape and store. `store_fuzz` never generates the shape.
 
 ## Forward-carry
 
@@ -126,3 +161,4 @@ No CI check has run on this branch yet.
 ## Friction
 
 - `fixer.md: cost: the scoped gate took about 45 minutes under a load average of about 165 on this seat (arch_score.py alone ran more than 13 minutes), so every catch-up merge's re-execution of steps 2-8 costs the better part of an hour of wall clock.`
+- `prepr.sh: unclear: step 6b refused "failed while being recorded: tests/entities.py (exit 1)" at ee964f0db under a load average of about 190. A direct `tests/entities.py` run at the same head read `ALL 2346 ENTITY CHECKS PASSED`, a direct `derive_closures.sh --record-only` of it read `done tests/entities.py (exit 0)`, and the next prepr read `scoped recordings are covered`. The refusal names no cause beyond the exit code, so a transient failure reads like a script defect.`
