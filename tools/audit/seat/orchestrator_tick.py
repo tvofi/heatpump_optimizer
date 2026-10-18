@@ -387,6 +387,28 @@ class Tick:
                 return None
         return out
 
+    def _open_numbers(self) -> "set[int] | None":
+        """The open pull requests' numbers: one `gh pr list` per tick, shared by
+        TRAIN and REPLAN. A queue entry is unmerged only when its PR is in this
+        set -- never from a `pulls/<n>` `.state`, which reads `closed` for a
+        merged PR and never `merged` (2026-10-18: three merged entries, one
+        merged outside the train, were reported as a dead train's queue).
+        None: the read failed, and is reported."""
+        if getattr(self, "_open_set", False) is not False:
+            return self._open_set
+        code, o = self.gh(["pr", "list", "--repo", self.repo, "--state", "open",
+                           "--limit", "200", "--json", "number"])
+        try:
+            got = {int(p["number"]) for p in json.loads(o)} if code == 0 else None
+        except (ValueError, TypeError, KeyError):
+            got = None
+        if got is None or len(got) >= 200:
+            self.unreadable("TRAIN", "the open pull requests",
+                            "200 or more, may be truncated" if got else o.strip()[-100:])
+            got = None
+        self._open_set = got
+        return got
+
     # -------------------------------------------------------------- TRAIN
     @staticmethod
     def _seat_procs(entries: list, needle: str, python_only: bool) -> list:
@@ -417,41 +439,31 @@ class Tick:
                 self.line(S, f"{len(live)} live merge_train processes -- a merge "
                              "race (two trains interleave); kill all but one",
                           flag=True)
-        else:
-            self.line(S, "train not alive")
-            if self.queues and (q := self._queue()):
-                self.line(S, "a nonempty queue file and no live train is a dead "
-                         "train (see the queue line below)")
         preprs = self._seat_procs(self.proc("prepr.sh"), "prepr.sh",
                                   python_only=False)
         self.line(S, f"prepr slots: {len(preprs)} running (cap 4)"
                   + ("" if len(preprs) < 4 else " -- do not start a fifth"),
                   flag=len(preprs) >= 4)
-        queue = self._queue()
+        queue, open_ = self._queue(), 0
         if queue is not None:
             if not queue:
                 self.line(S, "queue empty" if self.queues else "no --queue given")
-            stale, open_ = [], 0
-            for item in queue:
-                pr = item.get("pr")
-                code, o = self.gh(["api", f"repos/{self.repo}/pulls/{pr}",
-                                   "--jq", ".state"])
-                if code:
-                    self.unreadable(S, f"state of queued #{pr}", o.strip()[-100:])
-                    open_ += 1
-                    continue
-                if o.strip() == "merged":
-                    stale.append(pr)
-                else:
-                    open_ += 1
+            # An entry is unmerged only when its PR is OPEN; a set it cannot
+            # read counts every entry unmerged, so a dead train is never hidden.
+            ok = self._open_numbers() if queue else set()
+            stale = [i.get("pr") for i in queue if ok is not None and i.get("pr") not in ok]
+            open_ = len(queue) - len(stale)
             if stale:
-                self.line(S, "stale queue entries (already MERGED, drop them): "
-                          + ", ".join("#" + str(p) for p in stale), flag=True)
+                self.line(S, "stale queue entries (not OPEN: merged or closed, "
+                          "drop them): " + ", ".join("#" + str(p) for p in stale),
+                          flag=True)
             if open_:
                 self.line(S, f"queue holds {open_} unmerged entr(y/ies)"
                           + ("" if live
-                             else " -- and no train is running: load one or merge"),
+                             else " -- train not alive: a dead train; load one or merge"),
                           flag=not live)
+        if not live and queue is not None and not open_:
+            self.line(S, "no train running (the queue holds no OPEN entry)")
         if not self.train_log:
             self.line(S, "no --train-log given: train state unread")
             return
@@ -1457,11 +1469,10 @@ class Tick:
                 self.unreadable(S, f"head of queued #{pr}", h.strip()[-80:])
                 continue
             heads[pr] = h.strip()
-            code, st = self.gh(["api", f"repos/{self.repo}/pulls/{pr}",
-                                "--jq", ".state"])
-            state = st.strip() if code == 0 else ""
-            if state == "merged":
-                self.line(S, f"#{pr} MERGED -- prune it from the queue", flag=True)
+            open_set = self._open_numbers()
+            if open_set is not None and pr not in open_set:
+                self.line(S, f"#{pr} not OPEN (merged or closed) -- prune it "
+                             "from the queue", flag=True)
                 pruned += 1
             elif item.get("verdict") and heads[pr] != item["verdict"]:
                 self.line(S, f"#{pr} QUEUED-STALE: pinned verdict "
@@ -1994,6 +2005,37 @@ def self_test() -> int:
                                                for x in t.findings)),
             ("unmerged entry counted", any("holds 1 unmerged" in l["text"]
                                            for l in t.sections["TRAIN"])),
+        ])
+        total, failed = total + a, failed + f
+        # The t16 shape (2026-10-18): every queued PR merged, one outside the
+        # train. REST reads `closed` for a merged PR, so the stub says so; the
+        # open set (one `gh pr list`) holds only PRs the queue does not name.
+        q16 = tmp / "q16.json"
+        q16.write_text(json.dumps([{"pr": p, "verdict": V} for p in (2379, 2394, 2416)]))
+        t = tick(prs=[pr_obj(2420, H1)], queue=str(q16),
+                 states={p: ("closed", H2) for p in (2379, 2394, 2416)})
+        t.train()
+        tl = [l["text"] for l in t.sections["TRAIN"]]
+        t_bad = tick(prs=[], queue=str(q16), gh_extra=[(("pr", "list"), 1, "HTTP 502")])
+        t_bad.train()
+        t_rp = tick(prs=[pr_obj(2394, H1)], queue=str(q16),
+                    states={p: ("closed", H2) for p in (2379, 2394, 2416)})
+        t_rp.replan()
+        a, f = check("TRAIN queue: OPEN is the only unmerged", [
+            ("null control: a queue whose entries are all merged prints no train-not-alive line",
+             not any("train not alive" in x or "unmerged" in x for x in tl)),
+            ("and says no train runs with no OPEN entry, unflagged",
+             "no train running (the queue holds no OPEN entry)" in tl),
+            ("and flags the three entries to drop",
+             any("stale queue entries" in x["text"] and "#2379, #2394, #2416" in x["text"]
+                 for x in t.findings)),
+            ("an open set it cannot read counts every entry unmerged, and says so",
+             any("holds 3 unmerged" in l["text"] and "train not alive" in l["text"] and l["flag"]
+                 for l in t_bad.sections["TRAIN"])
+             and any("UNREADABLE: the open pull requests" in x["text"] for x in t_bad.findings)),
+            ("REPLAN: a queued PR not OPEN is to prune; an OPEN one is not",
+             any("#2379 not OPEN" in x["text"] for x in t_rp.findings)
+             and not any("#2394 not OPEN" in x["text"] for x in t_rp.findings)),
         ])
         total, failed = total + a, failed + f
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
