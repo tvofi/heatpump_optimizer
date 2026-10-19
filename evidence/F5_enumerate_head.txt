@@ -1,0 +1,12 @@
+SEAM A | tests/structure.py | measure:max_cc | guarded | table cc_scores; threshold siblings ['functions_cc_over_25', 'functions_cc_over_15']
+SEAM A | tests/structure.py | measure:max_class_loc | instance | table god_classes; threshold siblings none
+SEAM A | tests/structure.py | measure:max_method_loc | guarded | table monsters; threshold siblings ['methods_over_200', 'methods_over_150']
+SEAM B | tests/structure.py | dead_members:name_kept | instance | name-kept members; probe namekept_sentinel.py NOPROD + namekept_receivers.py typed_hits=0
+SEAM B | tests/structure.py | HA_CONVENTION_NAMES | guarded | convention-named defs outside HA-loaded modules: 0
+SEAM C | custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | dead_top_level_symbols(py only) | instance | structure.py rglob('*.py'); card_dead_fn.sh static-dead=1 (textWidth)
+SEAM D | tools/audit/archscore/metrics/common.py | is_coord_annotation | guarded | Protocols ['_BoostCoord', '_SetbackConfig', '_SetbackThermal', '_AwayCoord', '_ShowFormParent', '_Horizon', '_PlannerConfig', 'Named']; coordinator stand-ins all end in Coord; misses=0
+SEAM D | tools/audit/archscore/metrics/untyped_payload_keys.py | annotation_members | not applicable | unparse used for display only
+SEAM D | tools/audit/archscore/metrics/untyped_payload_keys.py | is_any | instance | payload_any_spellings.py: Any|None, Optional[Any], 'Any', alias read 0 of 6
+SEAM E | tools/audit/archscore/metrics/untyped_payload_keys.py | Flow.returned_keys (census seed) | instance | payload_census_coverage.py blind_keys=10 (AwayView)
+RESULT seams=10
+RESULT instances=5

@@ -1,0 +1,12 @@
+== C1_ungated_branch_removed
+rc=1
+  FAIL a count that moves while its row never refuses is UNGATED, BLIND (R10-N-structure-blind)
+FIELD COVERAGE SELF-TEST: 1 FAILED
+== C2_nogate_branch_removed
+rc=1
+  FAIL a census naming no gate row is REFUSED
+FIELD COVERAGE SELF-TEST: 1 FAILED
+== C3_redunplanted_branch_removed
+rc=1
+  FAIL a census already refused unplanted is REFUSED, not read
+FIELD COVERAGE SELF-TEST: 1 FAILED

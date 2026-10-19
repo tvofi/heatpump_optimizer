@@ -1,0 +1,21 @@
+== range fa16596c3..913ce1ff5
+      9 dev/programme/delivery
+== custom_components in diff
+0
+== DEFAULT_ROSTER_REF
+rc=1
+== card_dead_definitions on main in tools/policy dev/audit/config
+rc=1
+== 45ecca4f9..HEAD touches authored files?
+dev/audit/config/bugclasses.json
+== #2373 vs main
+ 414 files changed, 2115 insertions(+), 13652 deletions(-)
+== bugclasses 45ecca4f9..HEAD
+ dev/audit/config/bugclasses.json | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+5b6bebde2 Merge origin/main into r10-rca-structure-blind
+1a4c7ef56 audit(rca): R10-RCA-TRAIN-RAISE-HOLD, the budget-raise agreement pair, and the live replay
+== #2373 merged with main
+tree=LEDGER-MERGE: resolved tests/closures.json main_tree=a76f4c26d976dc80d8a1d348a9037964ef65a915
+rc=0
+2373-merged tree=a76f4c26d976dc80d8a1d348a9037964ef65a915 main tree=a76f4c26d976dc80d8a1d348a9037964ef65a915
