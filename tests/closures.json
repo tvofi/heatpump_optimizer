@@ -3421,6 +3421,7 @@
    "dev/audit/harnesses/r10_slot_floor_twins.py",
    "dev/audit/harnesses/r10_stats_window.mjs",
    "dev/audit/harnesses/r10_structure_blind.py",
+   "dev/audit/harnesses/r10_tick_drivers.py",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",
    "dev/audit/harnesses/r10_tick_which_roster.py",
    "dev/audit/harnesses/r10_weekday_range_twins.py",
