@@ -1,0 +1,10 @@
+dup ids []
+R10-SAV-COMFORT missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 534
+R10-MUTATION-ANCHOR missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 3530
+R10-N-LOG-FLOOD missing [] extra [] after-unresolved [] carry-types set() brief-len 1904
+R10-POLICY-LINT-FAMILY missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 2862
+R10-DEAD-RATE-LIMIT missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 2157
+R10-MERGE-SUBJECT-HARDEN missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 1883
+R10-CI-LAYOUT missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 4268
+R10-OPENPR-SILENT missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 77
+R10-STAMP missing [] extra [] after-unresolved [] carry-types {'str'} brief-len 133

@@ -1,44 +1,58 @@
-Fix review: blocked c83ae12acc074a16af424879b09b151d07726e52 carry-stale: R10-TICK-DRIVERS gains the codeql_scope -> closure.changed_between delegation carry that #2406's round-4 review (6252146172) and #2406's own body say is done in #2406 and must be dropped; #2406's head d1becac2b already delegates, so the carry dispatches finished work
+Fix review: merge 954a7b20ffb30279adb8f57c650b3d1455c68c63
 
-bus-nonce: d2409544ec4698f4b72b59b961e051f1
+bus-nonce: 31d0869a526c8eb220323a60e284a857
 
-PR: #2417 (R10-ROSTER). Round 1 (no earlier `Fix review:` comment on the PR).
-Reviewed head: c83ae12acc074a16af424879b09b151d07726e52 (the PR's head when read; `ev/HEAD`). Merge base c8cc75ea90a3bb38dbc6b8dbb7d27d9cce74cdd0. origin/main 106af95a33f89f88f948ea9c49c4632fe74b9416.
-Contract: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current (`ev/roles-diff-lines.txt`).
-Reviewer: a cloud seat with no access to the out-of-tree briefs or bus evidence under `~/hpo-*`. Every check below was read from the tree, the check-runs API or the source review comments.
+PR: #2417 (R10-ROSTER). **Round 2.** Round 1 (comment 6253477740) blocked c83ae12ac on carry-stale.
+Reviewed head: 954a7b20ffb30279adb8f57c650b3d1455c68c63 (`ev/HEAD`). It was still the head when I re-read it before writing this. Merge base 2ddfa503269c. origin/main fa424fd91a04.
+Reviewer: a cloud seat with no access to out-of-tree evidence. Everything below was read from the tree, the check-runs API, or the PR bodies.
 
-## Blocking: carry-stale (step 10, finding-propagation.md)
+## Contract currency
+`git diff <merge-base>...origin/main -- dev/governance/roles/` is **not empty** (`ev/roles-diff-lines.txt`). origin/main's fa424fd9 (#2408) reworded fix-review.md steps 9 and 10. I reviewed against origin/main's copy. Step 10's new wording (open the roster carry at the body's `handoff/audit-r<N>-roster` SHA) is the one applied below.
 
-The second carry this PR appends to R10-TICK-DRIVERS reads: "From R10-ROSTER-FASTPATH (#2406): after #2405 and #2406 both merge, make tools/pr/codeql_scope.py's changed subcommand delegate to tests/closure.py changed_between ...".
-- That carry matches #2406's round-3 review (6251656756), but round 3 is not the latest review. #2406's round-4 review (6252146172, step 10) says: "The body says the CodeQL delegation carry is done here, and it is, by M3. But that carry is still in `R10-TICK-DRIVERS.carry` ... Dropping it is the orchestrator's roster edit at merge, or a later seat will redo finished work."
-- #2406's current body says the same thing in `## Forward-carry`: "The CodeQL delegation carry is done in this PR, so the orchestrator drops it from that group."
-- Measured: at #2406's head d1becac2b (origin/fix/r10-roster-fastpath), `tools/pr/codeql_scope.py:93` is `return _closure().changed_between(base, head, cwd=cwd, env=env)` (`ev/codeql_scope-at-2406-d1becac2b.txt`). The carry's own precondition ("after #2405 and #2406 both merge") is therefore the state in which its work is already done.
-- So this carry contradicts the newest review it came from. It would dispatch the R10-TICK-DRIVERS seat to repeat the work #2406 lands. Remedy: drop that carry from R10-TICK-DRIVERS (roster_edit.py), or restate it as a check that the delegation landed with #2406. Then cite #2406's round-4 review as the source.
+## Round 1's block: settled
+- The CodeQL-delegation carry (roster line 2569) is still in R10-TICK-DRIVERS' `carry`.
+- That group is now `resume.stage: done`, with commit a96f4be4ac0a. That commit is on main and is #2390's merge, so nothing dispatches the carry.
+- #2406's current body explicitly dismisses the carry, because the work is done in its diff. It also moves the beat restart to R10-STAMP. R10-STAMP's second carry holds that restart, with its control: the memo holds two SHAs, and a roster-only commit regenerates within one beat.
+- The stale entry is inert, so the carry-stale risk (dispatching finished work) no longer holds.
 
 ## What holds
-
-- Carries in the roster at this head (step 10; `ev/three-dot.diff`). Every destination the body names exists at this head, every group is at `resume.stage: not-started`, and every carry comes from #2411 or #2406:
-  - R10-SAV-COMFORT (new group, `after: R10-SAV-BASELINE`): one carry. It matches #2411's round-1 item 2 and round-2 review figure for figure: null 10.83 % head / 43.66 % base; gap 13.9 kWh (128.4 / 114.5); comfort 6.6 kWh, about 5 points; room 18.79 vs 20.44 C; timing +17.27 %; stored +23.7 kWh_th / about 13.3 kWh_e; `const` arm timing +0.00 %, gap 15.6 = 5.1 + 10.1; summer_dhw_only -12.74 % / -3.17 %, 1.95 % at the caps, away_setback 60.71 %.
-    - It carries its control (the `const` arm), states the acceptance as a precondition (comfort matched, `const` arm settled reads about 0, the varying arm reads the timing term, not 0), and gives a re-measure instruction.
-    - It closes round-1's carry-missing for O13 with an in-tree destination.
-  - R10-ADVISOR: the restated null, which carries the `const` arm as its control and stored-heat settlement as its precondition, plus the row semantics. Both match #2411 round 1 items 1 and 2.
-  - R10-SCORES: the row semantics. This matches round 1 item 1 ("the R10-SCORES and R10-ADVISOR roster briefs do not hold the row semantics").
-  - R10-TICK-DRIVERS, first carry: the state-docs beat restart. It carries its control (the memo holds two SHAs, and a roster-only commit regenerates within one beat) and its precondition (after #2406 merges). This matches #2406 round 2 and round 3.
-- `node tools/policy/brief_lint.mjs` (the default run, at the head): rc 0, `TOTAL: 0 error(s) across 47 file(s)`. Its ERROR lines all come from `tools/policy/fixtures/*`, the negative controls it expects (`ev/brief_lint.txt`).
-  - Instrument finding, not this PR's (the same code is on main): the default run never reads `dev/programme/rosters/`. `workflowFiles` lists only `.claude/workflows` and `dev/programme/carries`, so the default rc 0 says nothing about `wave-r10-groups.json`. `brief-citations.md` also still names `.claude/workflows/wave-*-groups.json` as the roster path.
-  - Run on the roster by name, `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json` gives rc 0 and `TOTAL: 0 error(s) across 1 file(s)` at the head, the same as at the merge base. The one warning (R10-RCA-FRICTION, `fix-review.md:29`, no anchor) is present at both ends (`ev/brief_lint_r10_head.*`, `ev/brief_lint_r10_base.*`).
-  - CI's `briefs` job is green.
-- Step 13: `git merge-tree --write-tree origin/main(106af95a3) c83ae12ac` exits 0 with empty stderr (tree a115167503ac). There are no `MERGE-CLAIM` lines because neither claim file is touched (`ev/merge-tree.*`).
-- Step 11: the check-runs API at this head shows 43 runs, all completed: 26 success, 16 skipped, 1 neutral (CodeQL) and 0 failures (`ev/checkruns-head.txt`). The body's `## Red checks: none` holds at the head. pr-contract is green.
-- Step 5: `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (`ev/version-untouched.txt` is empty). Steps 1 to 4, 6, 14 and 15: n/a. The diff is roster state plus this PR's delivery row, with no production, test, budget, closure or claim file.
-- Step 7: the body names c83ae12ac as the head, and it is the head.
+- **Verbatim carries.** The head's `dev/programme/rosters/wave-r10-groups.json` is byte-identical to `origin/handoff/audit-r10-roster` at 73bb15fe8f5bf05ec3568927118a8d678dd8b99f (`ev/roster-vs-handoff-73bb15fe.diffstat` is empty). The roster branch changes only that file against its main base, and the head carries it exactly.
+- **Nothing dropped against either parent.**
+  - Against main, at an object level (`ev/roster-mb.json` vs `ev/roster-head.json`): 63 groups become 72. No group is removed, no top-level key changes, and no carry entry is lost from any group.
+  - The 8 textual `-` lines are trailing-comma rewrites of last array elements, plus two replaced fields. R10-ARCHSCORE-COVERAGE's brief is a pure insertion of the #2415 precondition paragraph (difflib shows one `insert` opcode and no deletion). R10-TICK-DRIVERS' `resume` goes from not-started to done.
+  - Against the roster parent: the roster is identical, as above.
+- **Groups listed in the body: all 9 present and well-formed** (`ev/wellformed.txt`).
+  - The 9 groups: R10-SAV-COMFORT, R10-MUTATION-ANCHOR, R10-N-LOG-FLOOD, R10-POLICY-LINT-FAMILY, R10-DEAD-RATE-LIMIT, R10-MERGE-SUBJECT-HARDEN, R10-CI-LAYOUT, R10-OPENPR-SILENT, R10-STAMP.
+  - Every one has exactly main's group key set: no key missing, no extra key. There are no duplicate ids, every `after` resolves to a group in the roster, and every carry is a string.
+  - `plan_table.py --roster-file` rc 0, and all 9 groups appear in its output. `roster_lib.py --self-test`: 14 checks, 0 failed.
+- **Carry counts match the body exactly.**
+  - New groups: SAV-COMFORT 1, MUTATION-ANCHOR 1, POLICY-LINT-FAMILY 3, DEAD-RATE-LIMIT 2, MERGE-SUBJECT-HARDEN 2, CI-LAYOUT 3, OPENPR-SILENT 1, STAMP 2. N-LOG-FLOOD has 0, and the body lists none for it.
+  - Existing groups: ADVISOR +2, SCORES +1, ARCHSCORE-COVERAGE +1 and its brief, TICK-DRIVERS +2 and its resume, BRIEFS-FOLD +2.
+- **The carries #2404 and #2406 route to.**
+  - R10-OPENPR-SILENT holds the weekly/closure carry-sweep carry, moved from R10-TICK-DRIVERS, with its precondition on #2404.
+  - R10-STAMP holds the 19 may-drift restores and the beat restart.
+  - Both groups resolve in the tree's roster once this merges.
+- **Lint at 0.** These results are the same at the head (`wt`) and on the merged tree with origin/main fa424fd9 (`wtm`, commit in `ev/merged-commit.txt`):
+  - `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json`: rc 0, `TOTAL: 0 error(s) across 1 file(s)`. There is one WARNING (R10-RCA-FRICTION, `fix-review.md:29` no anchor), which is pre-existing on main.
+  - The default `brief_lint.mjs`: rc 0, with `CARRY ok`.
+  - `node tools/policy/policy_lint.mjs`: rc 0, `TOTAL: 0 error(s) across 41 policy file(s)`, with no VACUOUS.
+- **No host path added.** The `~/`, `/home/`, `/Users/` and `/tmp/` matches are 2 lines at both ends (`ev/hostpaths-*.txt`). They are in R10-RCA-FRICTION and R10-RCA-STRUCTURE-BLIND, which are already on main, and the diff adds none.
+- **Step 13.** `git merge-tree --write-tree origin/main(fa424fd9) 954a7b20` exits 0, giving tree 4d441dd1f8d2. stderr is empty, with no MERGE-CLAIM lines, because no claim file is touched (`ev/merge-tree.*`).
+- **Step 11.** The check-runs API at the head shows 41 runs and 0 failures. One is neutral (CodeQL) and one is still in progress (coverage); the rest are success or skipped (`ev/checkruns-head.txt`). pr-contract (both runs), briefs, policy-docs, wave-script and delivery-status are success. The body's `Red checks: none` holds.
+- **Step 7.** The body names 954a7b20 as the head, and its merge chain is exact:
+  - 954a7b20 = 491693ee + main 2ddfa503.
+  - 491693ee = c83ae12ac + 669074c2.
+  - 669074c2 = 4a00b97f + main 06c6f3cf.
+  - 4a00b97f = c83ae12ac + roster 73bb15fe.
+- **Step 5.** VERSION, the manifest and RELEASE_NOTES are untouched (`ev/version-untouched.txt` is empty). The diff is the roster plus `dev/programme/delivery/2417.md` (one open row).
+- **N/A steps.** Steps 1–4, 6, 14 and 15 do not apply: there is no production, test, budget, closure or claim change.
 
 ## Not blocking
-
-- The R10-SAV-COMFORT carry writes "gap 15.6 = comfort 5.1 + start drawdown 10.1". The parts sum to 15.2. #2411's round-2 review noted that the `const` arm closes only to 0.4 kWh. The carry should say "about" or name the 0.4 kWh residual.
-- #2406's round 3 notes that the beat restart is an orchestrator action gated behind R10-TICK-DRIVERS's `after: R10-REF-PRIVACY`. A post-merge beat item would reach it sooner. That is not carried here.
-- `origin/handoff/audit-r10-roster` has moved past 97344315a (9a487b732, R10-ARCHSCORE-COVERAGE for #2415). Those commits are not in this PR's head and were not reviewed.
+- The body's roster-tip SHA `73bb15fe8f5bf05ec3568927118a8d678dd8b99` has 39 hex digits; the final `f` is missing. It still resolves as an abbreviation.
+- The head does not contain origin/main fa424fd9 (#2408): it is 9 commits behind. The merge is clean, and the lints pass on the merged tree with #2408's `policy_lint.mjs`, so a main merge is optional.
+- R10-TICK-DRIVERS shows `stage: done` but keeps `next_step: dispatch a fixer once every after group is done`. Its two #2406 entries also remain in a done group. Both are cosmetic, and `roster_edit.py` has no carry-removal verb (#2406's body).
+- The body does not mention round 1's block or how it was settled. Its settlement lives in the roster branch and #2406's body.
 
 ## Not verified by me
-
-- No figure in the carries was re-measured. They are checked against the source review comments, not re-derived (step 8). The harnesses' evidence directories are out of tree.
+- No figure inside any carry was re-derived. They are checked as verbatim copies of the roster branch, not against their source measurements (step 8).
+- `carry_audit.py`'s BAD-DEST resolution was not run: the tool is not on main (it lands with #2404).
