@@ -61665,7 +61665,7 @@ _pp_mid = _pp_flow(8.5, 3.0, 14.0, 55.0, 35.0)
 _pp_idle = _pp_flow(0.0, 3.0, 14.0, 55.0, 35.0)
 _pp_cfg = _pp_flow(8.5, 3.0, 14.0, 48.0, 35.0)
 R.check(
-    "the heating flow is the ceiling at full power and the inlet at p_min, and a configured ceiling moves it",
+    "the heating flow is the ceiling at full power and the floor set-point at p_min, and a configured ceiling moves it",
     _pp_full == 55.0 and _pp_min == 35.0 and _pp_idle == 55.0
     and 35.0 < _pp_mid < 55.0 and _pp_cfg < _pp_mid
     and _PP_FLOW_DEFAULT == 55.0,
@@ -61727,6 +61727,110 @@ R.check(
     "a curve under the rated hold still holds 35 when the ceiling is configured",
     _pp_low == _pa.FLOW_HOLD_C,
     f"{_pp_low}",
+)
+
+# --- R10-SETPOINT-POWER: the set-point is a power command (tvofi, 2026-10-19)
+# The modulation floor's flow sits FLOW_MIN_LIFT_K above the measured water
+# the pump heats, read from whichever sensors are configured, in the
+# precedence the arbiter documents. The order below is spelled out, not read
+# from FLOW_INLET_KEYS: a rung dropped or reordered there fails the cells
+# that depend on it.
+from itertools import combinations as _sp_combos  # noqa: E402
+
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_BUFFER_TANK_TEMP_ENTITY as _SP_TANK,
+    CONF_FLOOR_RETURN_TEMP_ENTITY as _SP_FLOOR,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY as _SP_PUMP_RETURN,
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY as _SP_PUMP_SUPPLY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY as _SP_VALVE,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    FLOW_MIN_LIFT_K as _SP_LIFT,
+    modulation_floor_flow_c as _sp_floor_of,
+)
+
+_SP_ORDER = (_SP_PUMP_RETURN, _SP_TANK, _SP_FLOOR, _SP_VALVE)
+#: Synthetic readings, distinct per slot so a wrong rung reads as a wrong
+#: number; the pump's supply is hot, as a running pump's is.
+_SP_READ = {
+    _SP_PUMP_RETURN: 22.0, _SP_TANK: 24.0, _SP_FLOOR: 26.0, _SP_VALVE: 31.0,
+    _SP_PUMP_SUPPLY: 52.0,
+}
+
+
+def _sp_write(kw, slots, stale=()):
+    """What the arbiter writes for a space step at ``kw`` with ``slots`` set."""
+    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"}
+    states = {"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}
+    for key in slots:
+        config[key] = f"sensor.sp_{key}"
+        states[config[key]] = FakeState(
+            str(_SP_READ[key]), unit="°C",
+            last_updated=minutes_ago(24 * 60) if key in stale else None,
+        )
+    return _pa._flow_target(
+        _PaNS(
+            config=config,
+            hass=FakeHass(states),
+            # The state's own fields are the 40 degC default and no return:
+            # a resolver reading them, not the sensors, fails every cell.
+            state=_PaNS(
+                outdoor_temperature=0.0, buffer_tank_temperature=40.0,
+                floor_return_temperature=None,
+            ),
+            thermal=_PaNS(params=None),
+            params=_PaNS(min_electrical_power=1.5, max_electrical_power=5.5),
+            plan=_PaNS(timestamps=[_PA_T0], power_schedule=[kw]),
+        ),
+        "space",
+        _PA_T0,
+    )
+
+
+_sp_cells = [
+    combo for size in range(len(_SP_ORDER) + 1)
+    for combo in _sp_combos(_SP_ORDER, size)
+]
+_sp_wrong = []
+for _sp_slots in _sp_cells:
+    _sp_anchor = next((_SP_READ[k] for k in _SP_ORDER if k in _sp_slots), None)
+    _sp_want = _pa.FLOW_HOLD_C if _sp_anchor is None else _sp_anchor + _SP_LIFT
+    _sp_min = _sp_write(1.5, _sp_slots)
+    _sp_full = _sp_write(5.5, _sp_slots)
+    if _sp_min != _sp_want or _sp_full != 48.0 or (
+        _sp_anchor is not None and not _sp_min > _sp_anchor
+    ):
+        _sp_wrong.append((_sp_slots, _sp_min, _sp_full, _sp_want))
+R.check(
+    "every combination of inlet sensors writes the first rung's reading plus the lift "
+    "at the modulation floor, and the ceiling at full power",
+    len(_sp_cells) == 16 and not _sp_wrong and _SP_LIFT > 0.0,
+    f"{len(_sp_cells)} cells, wrong {_sp_wrong}",
+)
+R.check(
+    "a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote",
+    _sp_write(1.5, (_SP_TANK,)) == 24.0 + _SP_LIFT
+    and _sp_write(1.5, (_SP_TANK,)) != _pa.FLOW_HOLD_C,
+    f"{_sp_write(1.5, (_SP_TANK,))}",
+)
+R.check(
+    "null control: no inlet sensor keeps today's rated hold, and the pump's outgoing "
+    "temperature alone is not a rung",
+    _sp_write(1.5, ()) == _pa.FLOW_HOLD_C
+    and _sp_write(1.5, (_SP_PUMP_SUPPLY,)) == _pa.FLOW_HOLD_C
+    and _sp_write(5.5, (_SP_PUMP_SUPPLY,)) == 48.0,
+    f"{_sp_write(1.5, ())} {_sp_write(1.5, (_SP_PUMP_SUPPLY,))}",
+)
+R.check(
+    "a stale rung falls to the next fresh one",
+    _sp_write(1.5, (_SP_PUMP_RETURN, _SP_TANK), stale=(_SP_PUMP_RETURN,))
+    == _SP_READ[_SP_TANK] + _SP_LIFT,
+    f"{_sp_write(1.5, (_SP_PUMP_RETURN, _SP_TANK), stale=(_SP_PUMP_RETURN,))}",
+)
+R.check(
+    "the floor helper refuses an unmeasured inlet rather than guessing one",
+    _sp_floor_of(None) is None and _sp_floor_of(float("nan")) is None
+    and _sp_floor_of(30.0) == 30.0 + _SP_LIFT,
 )
 
 R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")

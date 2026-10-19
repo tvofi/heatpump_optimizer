@@ -1443,30 +1443,54 @@ def _span_when(left: float | None, right: float | None, ready: bool) -> float:
     )
 
 
+#: The flow set-point's lift over the measured water the pump heats, at
+#: the modulation floor, in kelvin: the 5 K supply-over-return spread a
+#: heat-pump condenser is rated at (EN 14511, W35 at 30/35 °C). The pump's
+#: own water thermostat holds its supply at the set-point, so a set-point
+#: at the inlet commands no heat at all; this one commands at least the
+#: floor, whose spread is below the rated one.
+FLOW_MIN_LIFT_K = 5.0
+
+
+def modulation_floor_flow_c(inlet_c: Any) -> float | None:
+    """The flow set-point for the modulation floor, °C, or ``None``.
+
+    The measured inlet (the buffer tank behind a mixing valve, else the
+    return) plus :data:`FLOW_MIN_LIFT_K`. The set-point is a power
+    command (tvofi, 2026-10-19): the system water behind it rises slowly,
+    so a set-point anchored anywhere but the water it heats commands a
+    power the plan never booked. ``None`` for an unmeasured inlet.
+    """
+    inlet = _optional_float(inlet_c)
+    return None if inlet is None else inlet + FLOW_MIN_LIFT_K
+
+
 def flow_setpoint_for_level(
     planned_kw: Any,
     p_min: Any,
     p_max: Any,
     heat_c: float,
-    inlet_c: float,
+    floor_c: float,
 ) -> float:
     """Heating flow for one planned level, °C.
 
-    Full modulation holds ``heat_c``. A positive level below it moves
-    toward ``inlet_c``, so the pump's own water thermostat can realize a
-    lower output; a fixed heating flow never cycles. A non-positive level
-    is not a partial — a boost over an idle plan still holds ``heat_c``.
-    A missing or fixed band keeps ``heat_c``, which is the historical
-    constant.
+    Full modulation holds ``heat_c``, so full power still writes the
+    configured ceiling. A positive level below it slides toward
+    ``floor_c``, the set-point that commands the modulation floor
+    (:func:`modulation_floor_flow_c`), so the pump's own water thermostat
+    can realize a lower output; a fixed heating flow never cycles. A
+    non-positive level is not a partial — a boost over an idle plan still
+    holds ``heat_c``. A missing or fixed band keeps ``heat_c``, which is
+    the historical constant.
     """
     heat = float(heat_c)
     planned = _optional_float(planned_kw)
     lo = _optional_float(p_min)
     hi = _optional_float(p_max)
-    inlet = _optional_float(inlet_c)
+    floor = _optional_float(floor_c)
     ready = all((
         planned is not None, lo is not None, hi is not None,
-        inlet is not None, math.isfinite(heat),
+        floor is not None, math.isfinite(heat),
     ))
     band = _span_when(hi, lo, ready)
     wide = all((
@@ -1489,7 +1513,7 @@ def flow_setpoint_for_level(
         ) else raw
     )
     low = (
-        inlet if inlet is not None and inlet < (
+        floor if floor is not None and floor < (
             heat
         ) else heat
     )

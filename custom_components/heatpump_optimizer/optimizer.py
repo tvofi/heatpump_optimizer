@@ -2220,6 +2220,9 @@ class HeatPumpOptimizer:
     #: 0.5 for the continuation ``_optimize_space_only`` runs on its first
     #: start -- see there.
     _floor_l1_scale = 1.0
+    #: True while :meth:`_with_relaxed_start` scores the duty-cycle reading
+    #: on an install whose levels ship rounded -- see there.
+    _levels_relaxed = False
 
     def __init__(
         self,
@@ -3556,6 +3559,54 @@ class HeatPumpOptimizer:
         )
         return result
 
+    def _scores_rounded(self) -> bool:
+        """Whether the objective scores the levels that ship rounded."""
+        return self.config.clamp_planned_levels and not self._levels_relaxed
+
+    def _with_relaxed_start(
+        self,
+        cands: list[np.ndarray],
+        maxiter: int,
+        objective: Callable[..., float],
+        objective_batch: Callable[..., np.ndarray],
+        bounds: list[tuple[float, float]],
+        first: int,
+        args: tuple[Any, ...] = (),
+    ) -> list[np.ndarray]:
+        """``cands`` plus the first structural start refined unrounded.
+
+        On an install whose levels ship projected onto ``{0} ∪ [p_min,
+        p_max]`` the objective scores the projection, so it is flat
+        between 0 and ``p_min``: a start descending into that band stalls
+        there with a zero gradient, and the plan books the floor all day
+        whatever the price spread. One L-BFGS-B run scoring the
+        duty-cycle reading instead -- no flat band -- carries the guess to
+        where heat is cheap; the result rides as one more candidate, which
+        the multi-start refines and ranks on the rounded objective like
+        every other. So what ships is still scored as it ships, and a
+        plan the relaxed run cannot beat ships unchanged. Alternatives
+        that lost: smoothing the projection itself scores a level the
+        install does not deliver; moving the start in place, as the
+        two-zone continuation does, re-plans flat-price days through
+        another basin. Identity on an install that can duty-cycle.
+        """
+        if not self.config.clamp_planned_levels or first >= len(cands):
+            return cands
+        self._levels_relaxed = True
+        try:
+            moved = _scoped_minimize(
+                objective, cands[first], args=args, method="L-BFGS-B",
+                bounds=bounds,
+                jac=(lambda x, *a: _batch_fd_gradient(
+                    objective_batch, a, x, float(objective(x, *a)), 1e-4,
+                    bounds,
+                )) if _bounds_supported_by_batch(bounds) else None,
+                options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+            )
+        finally:
+            self._levels_relaxed = False
+        return [*cands, np.asarray(moved.x, dtype=float)]
+
     def _warm_start_starts(self, n_steps: int) -> tuple[np.ndarray, ...] | None:
         """The caller's previous plan as one extra candidate (#1295).
 
@@ -3899,6 +3950,15 @@ class HeatPumpOptimizer:
             res = _multi_start_minimize(
                 objective, starts, bounds, args=(dhw_plan,), maxiter=300,
                 batch_objective=objective_batch,
+                # The relaxed candidate is structural too: the initial
+                # solve's alone, for the reason the seeds above are.
+                move_starts=lambda cands, maxiter: (
+                    cands if warm_start is not None
+                    else self._with_relaxed_start(
+                        cands, maxiter, objective, objective_batch, bounds,
+                        len(h.extra_starts or ()), (dhw_plan,),
+                    )
+                ),
             )
             power = np.clip(res.x, 0.0, headroom)
             return (
@@ -4269,7 +4329,7 @@ class HeatPumpOptimizer:
         ) -> float:
             """Compute the total cost with predictive weather anticipation."""
             space_power, dhw_plan_power = _realize_draw(
-                self.config.clamp_planned_levels, space_power, dhw_plan_power,
+                self._scores_rounded(), space_power, dhw_plan_power,
                 self.model.params.min_electrical_power, self.model.params.max_electrical_power,
             )
             room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
@@ -4340,7 +4400,7 @@ class HeatPumpOptimizer:
             silently.
             """
             space_matrix, dhw_plan_power = _realize_draw(
-                self.config.clamp_planned_levels, space_matrix, dhw_plan_power,
+                self._scores_rounded(), space_matrix, dhw_plan_power,
                 self.model.params.min_electrical_power, self.model.params.max_electrical_power,
             )
             traj = self.model.simulate_trajectory_batch(
@@ -4472,9 +4532,12 @@ class HeatPumpOptimizer:
             L-BFGS-B run inside the multi-start's own budget: it moves a
             start, it is not one.
             """
+            first = len(h.extra_starts or ())
+            cands = self._with_relaxed_start(
+                cands, maxiter, objective, objective_batch, bounds, first,
+            )
             if not self.model.params.two_zone_enabled:
                 return cands
-            first = len(h.extra_starts or ())
             self._floor_l1_scale = 0.5
             try:
                 cands[first] = np.asarray(_scoped_minimize(
