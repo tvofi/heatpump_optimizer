@@ -47,7 +47,7 @@ delivery_row self-test: 5 checks, 0 failed
   ok     mutant mut:prtopic (its line deleted) fails that arm
   ok   update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap
   ok     mutant mut:trap (its line deleted) fails that arm
-  FAIL null control: update_pr with code sha '1ab0363' passes every check, and its failed push names its log
+  FAIL null control: update_pr with code sha '648d5ec' passes every check, and its failed push names its log
   FAIL null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   pr_cap.py --self-test: its tally says 0 failed
 pr_args self-test: 46 checks, 2 failed
