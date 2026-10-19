@@ -22571,6 +22571,42 @@ R.check(
     _stc_ok,
     _stc_detail,
 )
+# The same composition for the coverage rule, on THIS tree's own claim file
+# (v7.0.1's refusal): the stamp deletes every claim, so every may-drift entry
+# a branch suspended for one must come back in the stamp commit, and the
+# stamp's self-check refuses MAY-DRIFT UNCOVERED otherwise -- after the
+# stamp seat has run, when no branch can fix it (at the old VERSION the
+# claim is live, and a name cannot be both). Pinned here, a branch that
+# suspends an entry in a form `restore_suspended` cannot read goes red on
+# its own pull request instead of on the next stamp.
+try:
+    _stcov_version = Path("VERSION").read_text().strip()
+    _stcov_next = _stamp.bump(_stcov_version, "patch")
+    _stcov_after, _, _ = _stamp.rewrite_claims(
+        Path(_env_drift.CLAIM_FILE).read_text(), _stcov_next, "t")
+    _stcov_decl, _stcov_claims = _env_drift._parse_claims(_stcov_after)
+    # env_drift's own reader, on the stamped text, not a second parser.
+    with tempfile.TemporaryDirectory() as _stcov_dir:
+        _stcov_path = Path(_stcov_dir) / _env_drift.CLAIM_FILE
+        _stcov_path.parent.mkdir(parents=True)
+        _stcov_path.write_text(_stcov_after)
+        _stcov_md = _env_drift._may_drift(_stcov_dir)
+    _stcov_problem = (
+        _env_drift.may_drift_coverage_error(
+            _stcov_md, _stcov_claims, _stcov_decl, _stcov_next)
+        or _env_drift.may_drift_error(_stcov_md, _stcov_claims)
+    )
+    _stcov_ok = _stcov_problem is None and not _stcov_claims
+    _stcov_detail = f"claims={sorted(_stcov_claims)} problem={_stcov_problem!r}"
+except Exception as _stcov_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stcov_ok = False
+    _stcov_detail = f"{type(_stcov_exc).__name__}: {_stcov_exc}"
+R.check(
+    "the claim file stamp.py would write from this tree covers every allowed "
+    "may-drift name -- each suspended entry restored with the claims deleted",
+    _stcov_ok,
+    _stcov_detail,
+)
 R.check(
     "stamp.py is no longer INERT: closure.py must classify it",
     not _closure.is_inert("tools/release/stamp.py"),

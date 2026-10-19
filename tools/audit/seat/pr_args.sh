@@ -65,6 +65,9 @@ pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
 # one. Offline: `gh` is a stub (its open list is $t/prs.json; $t/gh.fail makes
 # it fail), and app_push.sh is absent from the clone, so a
 # run that passes every check stops at its push, which pr_push_failed reports.
+# The clone also carries tools/pr/head_note.py, which open_pr.sh and
+# update_pr.sh resolve (`PRT`) before their first check: without it every run
+# stopped in the ERR trap there, and 25 arms failed (#2444's CI, after #2442).
 pr_args_self_test() (
   local src t f=0 n=0 o m base code side body i
   src=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -86,7 +89,8 @@ pr_args_self_test() (
          "$(git -C "$o" hash-object -w "$t/body.md")" | git -C "$o" mktree)" -m "body: x") \
     && git -C "$o" update-ref refs/heads/handoff-body/x "$body" \
     && git -C "$o" update-ref refs/heads/handoff-body/z "$body" \
-    && throwaway_git_clone -q "$o" "$m" && mkdir -p "$t/bin" "$m/tools/audit/seat" \
+    && throwaway_git_clone -q "$o" "$m" && mkdir -p "$t/bin" "$m/tools/audit/seat" "$m/tools/pr" \
+    && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
     && printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh" \
     && echo '[]' > "$t/prs.json" \
     && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
