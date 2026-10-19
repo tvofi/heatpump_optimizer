@@ -408,7 +408,12 @@ const ciRatchet = (job) => ({
   refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`  GREW  ${gate}: `)),
 })
 // The count ci_ratchet prints on a row, graded or not.
-const ratchetRow = (key) => (out) => new RegExp(`^  (?:ok|GREW)\\s+${key.replace(/\./g, '\\.')}: (\\d+) \\(budget `, 'm').exec(out)?.[1]
+// No RegExp is built from the key: a row is read by comparing its key as a string.
+const RATCHET_LINE = /^  (?:ok|GREW)\s+(\S+): (\d+) \(budget /
+const ratchetRow = (key) => (out) => {
+  for (const l of out.split('\n')) { const m = RATCHET_LINE.exec(l); if (m && m[1] === key) return m[2] }
+  return undefined
+}
 const CENSUSES = [
   {
     name: 'structure.py dead_methods',
@@ -565,6 +570,8 @@ async function selfTest() {
   const ratchet = ciRatchet('card'); const row = ratchetRow('archscore.card_dead_definitions')
   t('the ci-ratchet reader refuses on its own row only', ratchet.refuses('  GREW  archscore.card_dead_definitions: 1 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  ok    archscore.card_dead_definitions: 0 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  GREW  archscore.card_dead_definitions_x: 1 (budget 0)', 'archscore.card_dead_definitions'))
   t('the ci-ratchet row reader reads its own row only', row('  ok    archscore.card_dead_definitions: 3 (budget 4)') === '3' && row('  GREW  archscore.card_dead_definitions: 5 (budget 4)') === '5' && row('  ok    archscore.card_dead_definitionsX: 3 (budget 4)') === undefined && row('  ?     archscore.card_dead_definitions: not derived this run') === undefined)
+  const meta = ratchetRow('archscore.a\\d+'); const dotted = ratchetRow('archscore.a.b')
+  t('a row key holding regex metacharacters or a backslash matches only literally', meta('  ok    archscore.a\\d+: 7 (budget 9)') === '7' && meta('  ok    archscore.a12: 7 (budget 9)') === undefined && meta('  ok    archscore.a\\dd: 7 (budget 9)') === undefined && dotted('  ok    archscore.aXb: 7 (budget 9)') === undefined && dotted('  ok    archscore.a.b: 7 (budget 9)') === '7')
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
