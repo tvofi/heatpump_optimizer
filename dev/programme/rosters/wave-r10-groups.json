@@ -3834,7 +3834,8 @@
    ],
    "carry": [
     "Re-measure at your merge base that the rate limit cannot bind with an arm where it WOULD bind on the pre-R10-TRUST-RELATIVE base (the null control), before deleting anything: a limit that binds in one reachable state is not dead.",
-    "The constant is imported by tests/entities.py and tests/features.py and by the facade list in .claude/workflows/web-decomp-stage.js; deleting it changes those readers in the same pull request."
+    "The constant is imported by tests/entities.py and tests/features.py and by the facade list in .claude/workflows/web-decomp-stage.js; deleting it changes those readers in the same pull request.",
+    "Source: #2435 Forward-carry. The rate limit in `learner_newton_step` (`max_step_fraction`, `HOUSE_LOSS_MAX_STEP` = 0.05) can no longer bind at the shipped constants: a saturated move is at most `alpha * trust_region` = 0.02 x 0.5 = 1 % of the estimate."
    ],
    "architect_note": null,
    "resume": {
