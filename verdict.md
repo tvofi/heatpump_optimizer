@@ -27,4 +27,4 @@ M2, M3 reproduce the body exactly; unmutated passes. Reviewer's own: a clip at 0
 - `git grep -ln max_step_fraction` at head: only the new harness and the roster. Four callers updated as body says.
 - Forward-carry: body says none; acceptable on substance, but unrouted (blocker above).
 - Architecture: added lines are deletions plus docstrings; no breach.
-- Full tests/features.py: not cited (CI's heavy run; local run still going at write time).
+- Full tests/features.py at head, run locally: ALL 4220 FEATURE CHECKS PASSED (ev/features.txt), matching the body.
