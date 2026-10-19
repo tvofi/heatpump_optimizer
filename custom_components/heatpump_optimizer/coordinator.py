@@ -10080,13 +10080,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         shifting, and this is the proof, either way.
         """
         month = month or month_key(dt_util.now())
-        spot_line = self._ledger.line(month, "spot")
-        # The immersion line is spot-priced energy carved out of "spot"
-        # for visibility (#11); the settlement is over ALL metered kWh,
-        # so it folds back in here.
-        imm_line = self._ledger.line(month, "immersion")
-        kwh = spot_line["kwh"] + imm_line["kwh"]
-        spot_cost = spot_line["sek"] + imm_line["sek"]
+        # The settlement is over ALL metered kWh, the immersion carve-out
+        # (#11) included: the ledger's one energy figure (#2255).
+        energy = self._ledger.metered_energy(month)
+        kwh, spot_cost = energy["kwh"], energy["sek"]
         out: ContractComparison = {
             "month": month,
             "kwh": round(kwh, 3),
