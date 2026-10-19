@@ -1,0 +1,2 @@
+custom_components/heatpump_optimizer/thermal_model.py:1938:    target = float(np.clip(target, current - reach, current + reach))
+custom_components/heatpump_optimizer/thermal_model.py:1944:    updated = float(np.clip(updated, current - max_step, current + max_step))
