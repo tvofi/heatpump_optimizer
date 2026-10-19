@@ -1,0 +1,3 @@
+dev/governance/config/policy_known_bad.json
+  ERROR   [known-bad] dev/governance/config/policy_known_bad.json: 6 occurrence(s) of a recorded defect, 1 recorded: duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from CLAUDE.md:N. State an obligation once . The list may only shrink; fix the new one.
+TOTAL: 1 error(s) across 41 policy file(s)
