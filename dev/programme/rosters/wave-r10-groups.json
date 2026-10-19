@@ -4462,6 +4462,49 @@
     "next_step": "recarry",
     "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "hot_files": [
+    ".github/workflows/pr-contract-rerun.yml"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "code-owned .github/workflows: mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-FOLLOWER-DEBOUNCE",
+   "findings": [],
+   "wave": 2,
+   "files": [
+    ".github/workflows/pr-contract-rerun.yml"
+   ],
+   "brief": "Ordered by tvofi 2026-10-19 ahead of R10-CI-LAYOUT: the stale-contract follower (pr-contract-rerun.yml, workflow_run on 8 workflows) fires once per completed workflow per PR head, 435 of the first 1000 listed runs on 2026-10-19, and drains the Actions installation API quota (GitHubRatelimitException in validate-hacs, arch-score, env-matrix). Debounce it to one effective re-run per PR head: a concurrency group keyed on the head SHA with cancel-in-progress, plus an early exit when another watched workflow on that head is still queued or in progress, so that only the last completion re-runs pr-contract and the budget gate. Controls: the re-run still happens after the final workflow completes (an unchanged freshness guarantee); a head with one watched workflow still re-runs; the call count per head is measured before and after. R10-CI-LAYOUT later replaces this follower; record that in its brief.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-follower-debounce",
+    "commit": null,
+    "last_step": "dispatch",
+    "next_step": "fixer",
+    "note": "tvofi 2026-10-19 ~15:05Z: do it now as a small fix."
+   }
   }
  ]
 }
