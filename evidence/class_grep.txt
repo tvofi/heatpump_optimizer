@@ -1,0 +1,11 @@
+== origin/main
+origin/main:tools/audit/seat/handoff_push.sh:69:i=s.index('## Head\n\n')+len('## Head\n\n')
+origin/main:tools/audit/seat/handoff_push.sh:89:i=s.index('## Head\n\n')+len('## Head\n\n')
+origin/main:tools/audit/seat/handoff_push.sh:105:i=s.index('## Head\n\n')+len('## Head\n\n')
+origin/main:tools/audit/seat/open_pr.sh:39:i=s.index('## Head\n\n')+len('## Head\n\n')
+origin/main:tools/audit/seat/open_pr.sh:52:i=s.index('## Head\n\n')+len('## Head\n\n')
+origin/main:tools/audit/seat/update_pr.sh:53:i=s.index('## Head\n\n')+len('## Head\n\n')
+origin/main:tools/pr/app_push.sh:344:i = s.index('\n', s.index('## Head')) + 1
+== b9f201f90efbb39422319426a7839c036b7b46af
+b9f201f90efbb39422319426a7839c036b7b46af:tools/pr/head_note.py:11:preamble (`app_push.sh --recarry`, `s.index('## Head')`): the section named
+b9f201f90efbb39422319426a7839c036b7b46af:tools/pr/head_note.py:61:    st(prefix(prefix(quoted, "N1"), "N2").split("## Head\n\n")[1].split("\n\n")[:3], ["N2", "N1", "`a0`"],
