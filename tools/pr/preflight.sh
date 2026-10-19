@@ -227,8 +227,8 @@ fi
 if [ -n "$why" ]; then
   say check "policy corpus -- NOT compared: $why"
 else
-  moved=$(git diff --name-only "$base...refs/remotes/origin/main" 2>/dev/null)
-  mine=$(git diff --name-only "$base...HEAD" 2>/dev/null)
+  moved=$(git diff --no-renames --name-only "$base...refs/remotes/origin/main" 2>/dev/null)
+  mine=$(git diff --no-renames --name-only "$base...HEAD" 2>/dev/null)
   pol=$(printf '%s\n%s\n' "$moved" "$mine" | sed '/^$/d' | sort -u | corpus_filter "$root")
   moved=$(inter "$moved" "$pol")
   mine=$(inter "$mine" "$pol")

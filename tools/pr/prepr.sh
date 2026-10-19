@@ -504,7 +504,7 @@ claims_line() { # rc 0 holds, 1 refused
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
   local cw kind s v left="" strace=0 r=0 rp=""
   cw=$(mktemp -d)
-  if git diff --name-only "$1"...HEAD > "$cw/changed.txt"; then
+  if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt"; then
     python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
     kind=$(cat "$cw/aff/affected.case" 2>/dev/null)
   else
@@ -1109,7 +1109,7 @@ version_edit() { # main ref, head -> prints the stamp-owned items the range move
   local names manifest notes out
   git rev-parse --verify --quiet "$1^{commit}" >/dev/null || return 2
   git rev-parse --verify --quiet "$2^{commit}" >/dev/null || return 2
-  names=$(git diff --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
+  names=$(git diff --no-renames --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
   manifest=$(git diff --text --no-textconv "$1...$2" -- custom_components/heatpump_optimizer/manifest.json 2>/dev/null) || return 2
   notes=$(git diff --text --no-textconv "$1...$2" -- RELEASE_NOTES.md 2>/dev/null) || return 2
   out=$(stamp_paths "$names" "$manifest" "$notes")
@@ -2519,7 +2519,7 @@ rm -f /tmp/prepr-owners.$$
 # pull request with the base's copy of it; the graders that run below only on
 # their own inputs (brief_lint here, the wave script in step 4) run on this
 # head's copy instead, since a pinned path can be any grader's data (#1637).
-git diff --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
+git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
 PIN_TOUCHED=1
 pinned_touched /tmp/prepr-changed.$$ "$(pinned_paths .github/workflows/*.yml)" && PIN_TOUCHED=0
 rm -f /tmp/prepr-changed.$$
@@ -2606,7 +2606,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # --- 3h. the self-test, when this diff can move one of its rows (`selftest_owed`).
 # CI's `governance` job runs it on every pull request; this is the cheaper
 # detector. A diff that cannot be listed is treated as owing it.
-if ! git diff --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
+if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
   if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; else bash tools/pr/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; fi
   step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
@@ -2658,7 +2658,7 @@ step "no version edit" $? "$STAMPED"
 # --- 6. claim files byte-identical to origin/main.
 # A branch that claims nothing does not touch them at all, and one that does not
 # touch them cannot collide with another branch's claim (#570).
-CLAIMS=$(git diff --name-only origin/main...HEAD -- \
+CLAIMS=$(git diff --no-renames --name-only origin/main...HEAD -- \
   tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt | tr '\n' ' ')
 if [ -n "${CLAIMS// /}" ]; then
   say check "claim files" "$CLAIMS changed -- intended only if this branch claims drift"
