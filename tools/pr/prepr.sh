@@ -697,13 +697,22 @@ PY
 
 # Step 7's whole body: the predicted budget red, then the body check fed it.
 # rc 0 the body answers, 1 refused.
-body_line() { # body file, head sha, title, paths file, merge base, head
+#
+# AN UNPINNED SITE STEP 6D LISTED IS A RED `mutation` (R10-PREPR-UNPINNED-RED,
+# found on #2435): `mutation` fails on a mutant no pin kills, and the autofix
+# job may pin it only after the push, so the reviewed head carries that red.
+# The optional seventh argument is the file step 6d wrote the unpinned sites
+# to; when it holds one, `mutation` rides `--red` like `budget-raise-gate`, and
+# a body whose `## Red checks` does not name it is refused here rather than by
+# `pr-contract` after the push. Absent or empty, nothing is fed (the null arm).
+body_line() { # body file, head sha, title, paths file, merge base, head, [unpinned-sites file]
   local raised r out reds=()
   raised=$(raise_red "$5" "$6"); r=$?
   case "$r" in
     4) reds=(budget-raise-gate) ;;
     1) printf 'REFUSE: %s' "$raised"; return 1 ;;
   esac
+  [ -n "${7:-}" ] && [ -s "$7" ] && reds+=(mutation)
   out=$(mktemp)
   body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
@@ -726,6 +735,22 @@ copies_line() { # tree root, changed-paths file -> one line; rc 0 clean, 1 a cop
   out=$(cd "$1" && PYTHONPATH=tests/hastub python3 tests/closure.py no-copies 2>&1); r=$?
   if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
   echo "$(printf '%s\n' "$out" | grep -m1 '^COPY-CLAIMED' || printf '%s\n' "$out" | tail -1) ($(printf '%s\n' "$out" | grep -c '^COPY-CLAIMED') in all) -- import the production symbol instead (tests/README.md), or the closures job refuses it"
+  return 1
+}
+
+# THE RAW-GIT CHECK IS CI'S OWN COMMAND (R10-PREPR-UNPINNED-RED, folded in from
+# R10-CI-LAYOUT's carry). governance.yml runs `tests/throwaway_git.py --check`,
+# which refuses a raw `git init` or `git clone` in a tracked script -- a
+# repository git >= 2.54 may repack after the temporary directory is removed --
+# and no local path ran it, so an instrument self-test building one with a raw
+# `git init` reddened only after the push. It greps the COMMITTED tree at HEAD
+# (`git grep`), so an uncommitted site is invisible to it here as to CI.
+throwaway_line() { # tree root -> one line; rc 0 clean, 1 refused, 3 skipped
+  local out r
+  [ -f "$1/tests/throwaway_git.py" ] || { echo "no tests/throwaway_git.py under $1, so the raw-git check was not run"; return 3; }
+  out=$(cd "$1" && python3 -I tests/throwaway_git.py --check 2>&1); r=$?
+  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+  echo "$(printf '%s\n' "$out" | grep -m1 '^REFUSE\|^STALE ALLOW' || printf '%s\n' "$out" | tail -1) -- build it with tests/throwaway_git.py (throwaway_git_init / throwaway_git_clone, or the .sh twin), or governance.yml refuses it"
   return 1
 }
 
@@ -1513,6 +1538,29 @@ EOS
   got=$(bl nogate raise unnamed-red.md)
   case "$got" in *'carries no budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
   st "${got%%:*}" 0 "and the body check still runs, fed nothing (skip, never refuse)"
+  # The mutation arm (R10-PREPR-UNPINNED-RED): an unpinned site step 6d listed
+  # makes `mutation` a red the body must name. Plant: a site file holding one
+  # key and a body silent on it. Null controls: the same site with the body
+  # naming it, and an empty and an absent site file with the silent body.
+  printf 'custom_components/heatpump_optimizer/away.py:12 CONST\n' > "$BR/unpinned-sites.txt"
+  : > "$BR/no-sites.txt"
+  blm() { # base, head, body, sites file -> "<rc>:$line"
+    local out r
+    out=$(GIT_DIR="$BR/.git" body_line "$DABS/$3" "$ZERO" '' "$DABS/paths-nonpolicy.txt" "$1" "$2" ${4:+"$4"})
+    r=$?
+    echo "$r:$out"
+  }
+  got=$(blm base docs unnamed-red.md "$BR/unpinned-sites.txt")
+  st "${got%%:*}" 1 "an unpinned site with a body whose ## Red checks omits mutation is refused before the push"
+  case "$got" in *'`mutation`'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming mutation";; *) st 0 1 "and the refusal is the red gate's own, naming mutation";; esac
+  got=$(blm base docs mutation-answered.md "$BR/unpinned-sites.txt")
+  st "${got%%:*}" 0 "the same unpinned site with a body naming mutation passes (null control)"
+  got=$(blm base docs unnamed-red.md "$BR/no-sites.txt")
+  st "${got%%:*}" 0 "a diff with no unpinned site is unaffected by the silent body (null control)"
+  got=$(blm base docs unnamed-red.md)
+  st "${got%%:*}" 0 "and so is a caller passing no site file (null control)"
+  got=$(blm base raise mutation-answered.md "$BR/unpinned-sites.txt")
+  st "${got%%:*}" 1 "an unpinned site does not answer a budget raise: both reds are owed"
   rm -rf "${BR:?}"
 
   # Step 6c, driven through `copies_line` -- the function the step calls --
@@ -1579,6 +1627,26 @@ EOS
   st "$r" 3 "a tree with no tests/layout.py skips, never refuses"
   rm -rf "${LR:?}"
 
+  # The raw-git check, driven through `throwaway_line` over a shared clone of
+  # THIS tree (so the check's allow-list finds the files it names and no entry
+  # reads stale): a raw `git init` committed into an instrument self-test is the
+  # plant; the unplanted clone is the null control.
+  TG=$(mktemp -d)
+  throwaway_git_clone -q --shared . "$TG/r" >/dev/null 2>&1
+  tg() { git -C "$TG/r" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+  got=$(throwaway_line "$TG/r"); r=$?
+  st "$r" 0 "a tree with no raw git init passes the raw-git check (null control)"
+  case "$got" in *'0 raw git init or clone site(s) refused'*) st 1 1 "and the ok line is the check's own, so it ran";; *) st 0 1 "and the ok line is the check's own, so it ran";; esac
+  printf '#!/bin/bash\n# an instrument self-test\ngit init -q "$T"\n' > "$TG/r/tools/audit/probe_selftest.sh"
+  tg add -A >/dev/null 2>&1; tg commit -qm raw >/dev/null 2>&1
+  got=$(throwaway_line "$TG/r"); r=$?
+  st "$r" 1 "a raw git init in an instrument self-test is refused"
+  case "$got" in *'REFUSE tools/audit/probe_selftest.sh:3'*'throwaway_git_init'*) st 1 1 "and the refusal names the file, the line and the helper";; *) st 0 1 "and the refusal names the file, the line and the helper";; esac
+  rm -f "$TG/r/tests/throwaway_git.py"
+  got=$(throwaway_line "$TG/r"); r=$?
+  st "$r" 3 "a tree with no tests/throwaway_git.py skips, never refuses"
+  rm -rf "${TG:?}"
+
   # The call site. Driving the two functions above does not pin that a step
   # calls them: the #1591 self-test drove a helper while the step kept calling
   # the old one. The main flow is the text after this self-test returns.
@@ -1589,6 +1657,10 @@ EOS
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
   case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
+  case "$flow" in *'throwaway_line "'*) true ;; *) false ;; esac
+  st $? 0 "the raw-git step calls throwaway_line, so a raw git init is refused before the push"
+  case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
+  st $? 0 "the pr-body step hands body_line the unpinned-site file, so mutation reaches the red check before the push"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
@@ -2729,6 +2801,15 @@ case $? in
   *) step "layout guard" 1 "$MOVED_LINE" ;;
 esac
 
+# --- 6f. no raw git init/clone: governance.yml's `throwaway_git.py --check`;
+# `throwaway_line` above. Reads the committed tree at HEAD.
+THROWAWAY_LINE=$(throwaway_line "$PWD")
+case $? in
+  3) say skip "throwaway git" "$THROWAWAY_LINE" ;;
+  0) step "throwaway git" 0 "$THROWAWAY_LINE" ;;
+  *) step "throwaway git" 1 "$THROWAWAY_LINE" ;;
+esac
+
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
 if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
@@ -2754,7 +2835,7 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
     # body_line feeds `--red budget-raise-gate` when the diff raises a budget
     # leaf, then runs this same body_check. A base with no gate skips that
     # name and still runs the check.
-    body_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$BASE" HEAD \
+    body_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$BASE" HEAD "$UNPINNED_SITES" \
       >/tmp/prepr-body.$$ 2>&1
     step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
     rm -f /tmp/prepr-body.$$
