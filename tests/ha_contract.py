@@ -265,6 +265,36 @@ INVENTORY: dict[str, Entry] = {
     "homeassistant.components.mqtt.async_subscribe": S(
         "accepts and discards; nothing here subscribes"
     ),
+    # -- components.recorder ------------------------------------------------
+    "homeassistant.components.recorder.DATA_INSTANCE": H(
+        "the hass.data key upstream's get_instance reads (recorder/util.py)"
+    ),
+    "homeassistant.components.recorder.Recorder": S(
+        "the two members the debug bundle's replay half reads: the schema "
+        "version, and async_add_executor_job, run inline where upstream runs "
+        "it in the recorder's database executor (#2271)",
+        absent=("engine", "async_db_ready", "async_block_till_done"),
+    ),
+    "homeassistant.components.recorder.get_instance": U(
+        "hass.data[DATA_INSTANCE], a KeyError when no recorder is set up, as "
+        "upstream's recorder/util.py; the nightly container loads no recorder, "
+        "so the real one is never compared"
+    ),
+    "homeassistant.components.recorder.install": H(
+        "a test-facing setup with no upstream counterpart: the instance on "
+        "hass.data and 'recorder' in hass.config.components"
+    ),
+    "homeassistant.components.recorder.history.record": H(
+        "a test-facing writer with no upstream counterpart: the states "
+        "get_significant_states then reads"
+    ),
+    "homeassistant.components.recorder.history.get_significant_states": U(
+        "every state updated inside (start, end) and, with "
+        "include_start_time_state, the last one before start, stamped at "
+        "start: the window rule read at the floor's history/modern.py. "
+        "Upstream's database read, its significance rule and its minimal and "
+        "compressed shapes are not modelled (#2271)"
+    ),
     # -- components.repairs -------------------------------------------------
     "homeassistant.components.repairs.RepairsFlow": H(
         "the three result builders return their kwargs; no flow manager exists here"
@@ -507,8 +537,10 @@ INVENTORY: dict[str, Entry] = {
         "old way is unchanged. Upstream distinguishes the user's override "
         "(device_class, unit_of_measurement) from the integration's "
         "(original_device_class, and the unit on the state); the stub holds "
-        "both as plain fields and resolves neither",
-        absent=("disabled_by", "capabilities", "entity_category"),
+        "both as plain fields and resolves neither. disabled_by (#2271), "
+        "which the replay half's Tibber price-sensor choice reads, is a plain "
+        "field defaulting to None",
+        absent=("capabilities", "entity_category"),
     ),
     "homeassistant.helpers.entity_registry.EntityRegistry": S(
         "a dict of entries plus a test-facing add(); upstream's creation path, "
@@ -751,6 +783,10 @@ UNMODELLED = {
 # drop the stub has started reading fails too, as ``absent`` does.
 DROPPED: dict[str, tuple] = {
     "homeassistant.components.mqtt.async_publish": ("a", "k"),
+    "homeassistant.components.recorder.history.get_significant_states": (
+        "filters", "significant_changes_only", "minimal_response", "no_attributes",
+        "compressed_state_format",
+    ),
     "homeassistant.components.mqtt.async_subscribe": ("a", "k"),
     "homeassistant.config_entries.ConfigFlow": ("raise_on_progress", "reload_on_update"),
     "homeassistant.helpers.aiohttp_client.async_get_clientsession": ("hass", "verify_ssl"),
@@ -1934,6 +1970,52 @@ def _confirm_repair_flow():
     assert shown["type"] == "form" and shown["step_id"] == "confirm"
     created = asyncio.run(flow.async_step_confirm({}))
     assert created["type"] == "create_entry"
+
+
+# -- components.recorder (#2271) ---------------------------------------------
+
+@contract(
+    "homeassistant.components.recorder.get_instance",
+    "no recorder set up is a KeyError, and a set-up one is the instance on hass.data",
+    cite="components/recorder/util.py -- get_instance returns hass.data[DATA_INSTANCE]",
+    expect="stub",
+)
+def _recorder_instance():
+    from homeassistant.components import recorder
+
+    hass = type("H", (), {})()
+    hass.data, hass.config = {}, type("C", (), {"components": set()})()
+    assert raises(lambda: recorder.get_instance(hass))
+    instance = recorder.install(hass)
+    assert recorder.get_instance(hass) is instance and "recorder" in hass.config.components
+
+
+@contract(
+    "homeassistant.components.recorder.history.get_significant_states",
+    "the window's states, the one in force at its start first and stamped at it, "
+    "and none after its end",
+    cite="components/recorder/history/modern.py -- get_significant_states, "
+    "include_start_time_state",
+    expect="stub",
+)
+def _history_window():
+    from datetime import datetime, timedelta, timezone
+
+    from homeassistant.components.recorder import history
+
+    hass = type("H", (), {})()
+    hass.data = {}
+    t = [datetime(2026, 1, 1, h, tzinfo=timezone.utc) for h in range(4)]
+    states = [type("S", (), {"state": str(i), "last_updated": at, "last_reported": at})()
+              for i, at in enumerate(t)]
+    history.record(hass, "sensor.x", states)
+    start = t[1] + timedelta(minutes=1)
+    got = history.get_significant_states(hass, start, t[3], ["sensor.x", "sensor.y"])
+    assert [s.state for s in got["sensor.x"]] == ["1", "2"] and "sensor.y" not in got
+    assert got["sensor.x"][0].last_updated == start and states[1].last_updated == t[1]
+    bare = history.get_significant_states(
+        hass, t[1] + timedelta(minutes=1), t[3], ["sensor.x"], include_start_time_state=False)
+    assert [s.state for s in bare["sensor.x"]] == ["2"]
 
 
 # -- helpers.entity_registry.async_entries_for_config_entry ------------------

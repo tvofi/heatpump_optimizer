@@ -473,6 +473,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"rows/#/{k}": _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
         **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
         "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
+        # #2271: the release that wrote the row (#2209's forward-carry).
+        "rows/#/version": _TEXT,
         "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
         # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
         "self_tests": _TEXT,

@@ -44,6 +44,7 @@ class _Coord:
         self.prices = ()
         self.optimization_running = False
         self.data = None
+        self.integration_version = None
         for key, value in kw.items():
             setattr(self, key, value)
 
@@ -84,6 +85,14 @@ R.check(
     "a cycle row omits fields the cycle did not carry",
     bare == {"t": T0.isoformat(), "mode": "auto", "solve_failures": 0, "prices_rows": 0},
     str(bare),
+)
+stamped = debugger.cycle_row(_coord(integration_version="7.0.0"), {"mode": "auto"}, T0, None)
+R.check(
+    "a cycle row carries the release that wrote it, and the debug store admits it (#2209)",
+    stamped.get("version") == "7.0.0"
+    and debugger._repair({**stamped}, "rows", NEEDS) == stamped
+    and debugger._repair({**stamped, "version": 7}, "rows", NEEDS) is None,
+    str(stamped),
 )
 good = _row(prices_rows=5)
 R.check(
@@ -766,7 +775,8 @@ async def _near_cap():
         debugger._COLLECTORS.pop(coord)
         rest = _ha_download(await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry))
         debugger._COLLECTORS[coord] = collector
-        bundle = await collector.async_bundle(coord, diagnostics_mod._coordinator_snapshot(coord))
+        bundle = await collector.async_bundle(
+            coord, diagnostics_mod._coordinator_snapshot(coord), entry)
         debugger.DOWNLOAD_HEADROOM_BYTES = rest
         debugger.INLINE_CAP_BYTES = debugger.download_bytes(bundle) + rest
         payload = await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
@@ -800,8 +810,484 @@ R.check(
     str(big)[:300],
 )
 
-# -- the nightly lane's judge of the same two downloads (A16) ----------------
+# -- the replay half (#2271): the export's document, from the recorder -------
+import ast  # noqa: E402
+import importlib.util  # noqa: E402
+import re  # noqa: E402
+import types  # noqa: E402
+
+from homeassistant.components import recorder as ha_recorder  # noqa: E402
+from homeassistant.components.recorder import history as ha_history  # noqa: E402
+from homeassistant.helpers import entity_registry as er  # noqa: E402
+from heatpump_optimizer import const as const_mod  # noqa: E402
+from heatpump_optimizer import replay_doc  # noqa: E402
+from heatpump_optimizer.const import PRICE_SOURCE_ENTITY  # noqa: E402
+
+_export_spec = importlib.util.spec_from_file_location(
+    "hpo_export_under_test", Path("tools/replay/export.py"))
+export = importlib.util.module_from_spec(_export_spec)
+_export_spec.loader.exec_module(export)
+CONF = export.entry_keys(*export.default_const_paths())
+TOKEN = "tibber-secret-0123456789abcdef"
+
+
+def _state(value, at, attrs=None, reported=None):
+    return types.SimpleNamespace(state=value, attributes=dict(attrs or {}), last_updated=at,
+                                 last_reported=reported)
+
+
+def _replay_install(*, recorder=True, price_source=PRICE_SOURCE_ENTITY, tibber=(), plant=None,
+                    plant_entry=None, plant_state=None):
+    """An entry reading two thermometers and a price entity, with a token, an exact
+    coordinate and a family calendar in its config, a day of recorded states, and
+    one entity it publishes."""
+    hass = _disk_hass(tempfile.gettempdir())
+    hass.config.time_zone = "Europe/Stockholm"
+    if recorder:
+        ha_recorder.install(hass)
+    entry = FakeEntry(entry_id="rp", data={
+        "tibber_token": TOKEN, "price_source": price_source,
+        "price_entity": "sensor.nordpool", "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor", "solar_location": {"latitude": 59.334591,
+                                                                   "longitude": 18.063240},
+        "away_calendar": "calendar.family", **(plant_entry or {}),
+    }, options={CONF_DEBUG_COLLECT: True})
+    entry.minor_version = 1  # a real entry carries one; harness.FakeEntry does not
+    reg = er.async_get(hass)
+    reg.add("sensor.hpo_plan", unique_id="p", config_entry_id="rp", platform=DOMAIN)
+    for entity_id, home in tibber:
+        reg.add(entity_id, unique_id=home, platform="tibber", translation_key="electricity_price")
+    # A minute past each hour: upstream returns a state stamped exactly at the
+    # window's start in neither of its two queries.
+    hours = [T0 + timedelta(hours=h, minutes=1) for h in range(24)]
+    attrs = {"unit_of_measurement": "°C", "friendly_name": "Anna's room",
+             "entity_picture": "/api/camera?token=abcdef0123456789"}
+    ha_history.record(hass, "sensor.indoor", [
+        _state(plant_state or str(20 + h % 3), at, {**attrs, **(plant or {})})
+        for h, at in enumerate(hours)])
+    ha_history.record(hass, "sensor.outdoor", [_state("-3.5", T0 - timedelta(days=1), attrs)])
+    ha_history.record(hass, "sensor.nordpool", [_state("1.25", at) for at in hours])
+    ha_history.record(hass, "calendar.family", [_state("on", T0)])
+    ha_history.record(hass, "sensor.hpo_plan", [_state("auto", at) for at in hours])
+    for entity_id, _home in tibber:
+        ha_history.record(hass, entity_id, [_state("0.9", at) for at in hours])
+    coord = FakeCoordinator()
+    coord.integration_version = "7.0.0"
+    entry.runtime_data = coord
+    collector = debugger.DebugCollector(hass, "rp", lambda c: c.close())
+    collector.started_at = T0
+    collector.rows = [_row()]
+    debugger._COLLECTORS[coord] = collector
+    return hass, entry, coord, collector
+
+
+async def _replay_download(cap=None, raw=False, **kw):
+    """The download, or with ``raw`` the bundle as the cap measures it, before the
+    download's own redaction."""
+    hass, entry, coord, collector = _replay_install(**kw)
+    dt_util.freeze(T0 + timedelta(days=1))
+    saved = debugger.INLINE_CAP_BYTES
+    debugger.INLINE_CAP_BYTES = saved if cap is None else cap
+    try:
+        if raw:
+            return await collector.async_bundle(
+                coord, diagnostics_mod._coordinator_snapshot(coord), entry)
+        return await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
+    finally:
+        debugger.INLINE_CAP_BYTES = saved
+        debugger._COLLECTORS.pop(coord, None)
+        dt_util.freeze(None)
+
+
+def _check_download(replay):
+    """``tests/replay.py``'s check mode -- ``export.check_file`` -- on the replay half
+    as the download carries it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp, "replay.json")
+        path.write_text(json.dumps(replay))
+        return export.check_file(path, CONF)
+
+
+download = asyncio.run(_replay_download())
+replay = download["debug"]["replay"]
+blob = json.dumps(download)
+R.check(
+    "Download diagnostics fills the bundle's replay half with an hpo-replay/1 document "
+    "that the export's check mode passes",
+    isinstance(replay, dict) and replay["format"] == replay_doc.FORMAT
+    and _check_download(replay) == [],
+    str(_check_download(replay) if isinstance(replay, dict) else download["debug"]["manifest"]),
+)
+R.check(
+    "the replay half carries the entry's inputs and what it publishes, read through the "
+    "recorder's history API: the state in force at the window's start, then the window",
+    set(replay["states"]) == {"sensor.indoor", "sensor.outdoor", "sensor.nordpool",
+                              "sensor.hpo_plan"}
+    and replay["published"] == ["sensor.hpo_plan"]
+    and replay["price_series_entity"] is None
+    and [row[1] for row in replay["states"]["sensor.outdoor"]] == ["-3.5"]
+    and len(replay["states"]["sensor.indoor"]) == 24
+    and replay["recorder_schema"] == ha_recorder.Recorder.schema_version
+    and replay["time_zone"] == "Europe/Stockholm",
+    str({k: replay.get(k) for k in ("published", "price_series_entity", "window")}),
+)
+R.check(
+    "the replay half's window is the collection's: from its start to the download",
+    replay["window"] == {"start": T0.isoformat(), "end": (T0 + timedelta(days=1)).isoformat()}
+    and download["debug"]["manifest"]["replay"] == (
+        f"{T0.isoformat()} .. {(T0 + timedelta(days=1)).isoformat()}"),
+    str(replay["window"]),
+)
+R.check(
+    "the replay half drops the token, the friendly name and the tokenised picture, "
+    "cuts the coordinate, and carries no person or calendar id anywhere",
+    TOKEN not in blob and "Anna" not in blob and "abcdef0123456789" not in blob
+    and "59.334591" not in blob and "calendar.family" not in blob
+    and replay["entry"]["data"].get("away_calendar") is None,
+    str(replay["entry"]),
+)
 import nightly_ha  # noqa: E402
+
+a10 = nightly_ha.Checks()
+nightly_ha.check_a10_payload(a10, download, (TOKEN,))
+R.check(
+    "nightly_ha's A10 rule passes the whole download the replay half rides in",
+    not a10.failures(), str(a10.results),
+)
+planted = json.loads(json.dumps(replay))
+planted["states"]["sensor.indoor"][0][2] = {"access_token": TOKEN}
+planted_found = export.violations(planted, CONF)
+R.check(
+    "the null control: a credential planted back into the generated replay half is "
+    "refused by the same check",
+    bool(planted_found) and _check_download(planted) != [],
+    "; ".join(planted_found[:2]),
+)
+
+
+def _leak(name, values):
+    """``values`` planted where ``tests/replay.py`` plants them: the entry, a recorded
+    state, or a recorded state's attributes."""
+    if name.startswith("entry_"):
+        return asyncio.run(_replay_download(plant_entry=values))["debug"]
+    if name.startswith("state_"):
+        return asyncio.run(_replay_download(plant_state=values["state"]))["debug"]
+    return asyncio.run(_replay_download(plant=values))["debug"]
+
+
+import replay as replay_lane  # noqa: E402
+
+probe_outcomes = {"written": 0, "refused": 0}
+for name, values in replay_lane.LEAK_PROBES.items():
+    probed = _leak(name, values)
+    probed_blob = json.dumps(probed["replay"])
+    texts = [t for t in replay_lane._probe_texts(values) if t in probed_blob]
+    probe_outcomes["refused" if probed["replay"] is None else "written"] += 1
+    R.check(
+        f"the nightly leak probe {name} does not survive into the replay half, which "
+        "is either written and passes check mode or refused with the reason in the manifest",
+        not texts and (_check_download(probed["replay"]) == [] if probed["replay"] is not None
+                       else bool(probed["manifest"]["replay"])),
+        f"survived={texts} manifest={probed['manifest'].get('replay')}",
+    )
+print(f"RESULT leak_probes_through_download={len(replay_lane.LEAK_PROBES)} "
+      f"written={probe_outcomes['written']} refused={probe_outcomes['refused']} unit=count")
+
+refused = asyncio.run(_replay_download(recorder=False))
+R.check(
+    "with no recorder set up the replay half is empty and the manifest says why",
+    refused["debug"]["replay"] is None
+    and refused["debug"]["manifest"]["replay"] == "no recorder is set up",
+    str(refused["debug"]["manifest"].get("replay")),
+)
+tibber = asyncio.run(_replay_download(
+    price_source="tibber", tibber=[("sensor.electricity_price_home", "96a14971")]))
+R.check(
+    "with the Tibber source the replay half takes the price series from the Tibber "
+    "price sensor, the export's own choice",
+    tibber["debug"]["replay"]["price_series_entity"] == "sensor.electricity_price_home"
+    and "sensor.electricity_price_home" in tibber["debug"]["replay"]["states"],
+    str(tibber["debug"]["manifest"].get("replay")),
+)
+no_price = asyncio.run(_replay_download(price_source="tibber"))
+R.check(
+    "with the Tibber source and no price sensor the replay half is refused as the export "
+    "refuses, with the reason in the manifest",
+    no_price["debug"]["replay"] is None
+    and "Tibber price source needs a recorded price sensor"
+    in no_price["debug"]["manifest"]["replay"],
+    str(no_price["debug"]["manifest"].get("replay")),
+)
+whole = asyncio.run(_replay_download(raw=True))
+whole_size = debugger.download_bytes(whole) + debugger.DOWNLOAD_HEADROOM_BYTES
+short = asyncio.run(_replay_download(cap=whole_size - 1))
+R.check(
+    "a replay half that would take the download past the inline cap gives way to the "
+    "newest shorter window that fits, and the bundle stays inline",
+    "inline" not in short["debug"] and short["debug"]["replay"] is not None
+    and short["debug"]["replay"]["window"]["start"] == (T0 + timedelta(hours=18)).isoformat()
+    and len(short["debug"]["replay"]["states"]["sensor.indoor"]) == 7
+    and debugger.download_bytes(short["debug"]) + debugger.DOWNLOAD_HEADROOM_BYTES
+    <= whole_size - 1,
+    str(short["debug"].get("manifest", {}).get("replay")),
+)
+bare_size = debugger.download_bytes({**whole, "replay": None,
+                                     "manifest": {**whole["manifest"],
+                                                  "replay": "over the inline cap at every "
+                                                  "window tried"}})
+none_fit = asyncio.run(_replay_download(cap=bare_size + debugger.DOWNLOAD_HEADROOM_BYTES + 10))
+R.check(
+    "when no window fits the inline cap the replay half is empty, the manifest says so, "
+    "and the rest of the bundle stays inline",
+    "inline" not in none_fit["debug"] and none_fit["debug"]["replay"] is None
+    and none_fit["debug"]["manifest"]["replay"] == "over the inline cap at every window tried",
+    str(none_fit["debug"].get("manifest", {}).get("replay")),
+)
+at_cap = asyncio.run(_replay_download(cap=whole_size))
+R.check(
+    "a download landing exactly on the inline cap keeps the whole window",
+    at_cap["debug"]["replay"] is not None
+    and at_cap["debug"]["replay"]["window"]["start"] == T0.isoformat(),
+    str(at_cap["debug"].get("manifest", {}).get("replay")),
+)
+R.check(
+    "a person or calendar id leaves a list as well as a value, at any depth",
+    debugger._public({"x": ["sensor.a", "calendar.family", "person.anna"],
+                      "y": {"z": "person.anna"}, "n": 3})
+    == {"x": ["sensor.a"], "y": {"z": None}, "n": 3},
+)
+_seen = T0 + timedelta(minutes=5)
+R.check(
+    "a recorded row carries last_reported only when it is later than last_updated",
+    debugger._record(_state("1", T0, reported=T0))[3] is None
+    and debugger._record(_state("1", T0, reported=_seen))[3] == _seen.isoformat()
+    and debugger._record(_state("1", T0))[3] is None,
+)
+later = debugger.replay_window(T0, T0 + timedelta(days=30))
+fresh = debugger.replay_window(None, T0)
+R.check(
+    "a finished collection's replay window is its own week, and one with no start is "
+    "the week before the download",
+    later == (T0, T0 + debugger.COLLECT_SPAN) and fresh == (T0 - debugger.REPLAY_SPAN, T0)
+    and debugger.REPLAY_SPAN == timedelta(days=7),
+    str((later, fresh)),
+)
+R.check(
+    "one copy of the rules: the export's allowlist, sanitiser and violations are the "
+    "integration's replay_doc, loaded from the package's own file",
+    Path(export._doc.__file__).resolve() == Path(replay_doc.__file__).resolve()
+    and export.violations.__code__.co_filename == replay_doc.violations.__code__.co_filename
+    and not re.search(r"^def (violations|sanitise|text_ok|clean_value|tibber_price_candidates)\b",
+                      Path("tools/replay/export.py").read_text(), re.M),
+)
+_tree = ast.parse(Path(replay_doc.__file__).read_text())
+_imports = {(n.module if isinstance(n, ast.ImportFrom) else a.name).split(".")[0]
+            for n in ast.walk(_tree) if isinstance(n, (ast.Import, ast.ImportFrom))
+            for a in n.names} | {"." for n in ast.walk(_tree)
+                                 if isinstance(n, ast.ImportFrom) and n.level}
+R.check(
+    "replay_doc imports the standard library alone, so the export loads it by path "
+    "inside the Home Assistant container",
+    _imports <= set(sys.stdlib_module_names) | {"__future__"}, str(sorted(_imports)),
+)
+R.check(
+    "replay_doc's price-source literal is const's",
+    replay_doc.PRICE_SOURCE_ENTITY == PRICE_SOURCE_ENTITY,
+)
+R.check(
+    "the download's entry allowlist is the one the export reads out of const.py, values "
+    "wrapped onto a second line included",
+    replay_doc.conf_keys(vars(const_mod)) == CONF and len(CONF) > 50
+    and {"heat_pump_capacity_limited_entity", "internal_gains_learning_enabled"} <= CONF,
+    f"{len(replay_doc.conf_keys(vars(const_mod)))} against {len(CONF)}",
+)
+
+
+# -- replay_doc's rules, each at the inputs that separate its branches ----------
+# The download above drives the rules with one install; these drive the edges it
+# never reaches (a non-dict payload, a malformed series row, a refusal by
+# ``seal``), so a rule changed in the one shared copy fails here, in the gate,
+# and not only in the nightly lane's tests/replay.py.
+
+_D = replay_doc._DROP
+
+
+def _unrecorded(want: list, got: list) -> str:
+    """A leak check's detail: which expected values, by position, were not recorded,
+    and how many were recorded beyond them.
+
+    Like ``seal``'s refusal it counts and never echoes a value: one expected under a
+    credential key is a credential, and a check's detail is a CI log.
+    """
+    missing = [i for i, w in enumerate(want) if w not in got]
+    extra = sum(1 for g in got if g not in want)
+    return f"expected value(s) {missing} not recorded; {extra} recorded beyond them"
+
+
+R.check(
+    "replay_doc.numeric admits a number or its spelling and nothing else",
+    [replay_doc.numeric(v) for v in ("1.5", 3, 2.5, "warm", None, ["1"])]
+    == [True, True, True, False, False, False],
+)
+R.check(
+    "replay_doc.json_decimal_places counts the JSON spelling's decimals, a string's as "
+    "written, and answers None for a bool, a word or a non-number",
+    [replay_doc.json_decimal_places(v) for v in
+     (True, 1.25, 3, "59.334591", "5", "north", None, [1.5])]
+    == [None, 2, 0, 6, 1, None, None, None],
+)
+_dropped: list = []
+_cleaned = replay_doc.clean_value(
+    {"api_key": "s3cret-value", "Bad Key": "x", "latitude": "north", "lat": "59.334591",
+     "longitude": 18.063240, "rows": ["auto", "https://nas.example.se/cam", 7], "on": True},
+    _dropped)
+R.check(
+    "replay_doc.clean_value drops a credential-named or malformed key, cuts a coordinate "
+    "or nulls one that is no number, recurses into lists, and records what it dropped",
+    _cleaned == {"latitude": None, "lat": 59.33, "longitude": 18.06,
+                 "rows": ["auto", None, 7], "on": True}
+    and _dropped == ["s3cret-value", "north", "https://nas.example.se/cam"],
+    f"kept keys {sorted(_cleaned)}; "
+    + _unrecorded(["s3cret-value", "north", "https://nas.example.se/cam"], _dropped),
+)
+_secret_drop: list = []
+replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob123456"},
+                        "token": ["abc123456", 42]}, _secret_drop)
+R.check(
+    "everything under a credential-named key is recorded for the leak check, in a nested "
+    "object or a list too, and a null or a bool under one is not",
+    _secret_drop == ["bob123456", "abc123456", "42"],
+    _unrecorded(["bob123456", "abc123456", "42"], _secret_drop),
+)
+_shape_drop: list = []
+_shape_cut = replay_doc._keep_keys(
+    {"x_entities": ["sensor.a", "https://nas.example.se/cam"]}, frozenset({"x_entities"}),
+    _shape_drop, replay_doc._entry_shape)
+R.check(
+    "a value its shape cut down has what was cut recorded for the leak check",
+    _shape_cut == {"x_entities": ["sensor.a"]} and _shape_drop == ["https://nas.example.se/cam"],
+    f"{_shape_cut} dropped={_shape_drop}",
+)
+_series_in = [{"start": "2026-10-18T00:00:00+00:00", "value": 1.2, "note": "spot"},
+              "junk", {"start": "2026-10-18T01:00:00+00:00"},
+              {"starts_at": "2026-10-18", "total": True},
+              {"end": "2026-10-18T02:00:00Z", "price": 3}]
+R.check(
+    "each attribute keeps only its shape: a number, a snake_case word, word-like "
+    "options, a series of time-and-number rows, an ISO time",
+    [replay_doc._number(v) for v in (None, 1.5, 2, True, "1")] == [None, 1.5, 2, _D, _D]
+    and [replay_doc._snake(v) for v in (None, "heat", "Heat Mode", 4)] == [None, "heat", _D, _D]
+    and [replay_doc._unit(v) for v in (None, "°C", "abcdefghijklmnop", "abcdefghijklmnopq", 3)]
+    == [None, "°C", "abcdefghijklmnop", _D, _D]
+    and replay_doc._options(None) is None and replay_doc._options("Eco") is _D
+    and replay_doc._options(["Eco", "Mode 2", "x@y", 5]) == ["Eco"]
+    and replay_doc._series(None) is None and replay_doc._series("x") is _D
+    and replay_doc._series(_series_in) == [
+        {"start": "2026-10-18T00:00:00+00:00", "value": 1.2},
+        {"end": "2026-10-18T02:00:00Z", "price": 3}]
+    and [replay_doc._time(v) for v in (None, "2026-10-18", "tomorrow", 5)]
+    == [None, "2026-10-18", _D, _D],
+    str(replay_doc._series(_series_in)),
+)
+R.check(
+    "an entry key naming entities holds entity ids only: a bad id leaves the list, "
+    "a single string or a name in an _entity key is refused, other keys pass as they are",
+    replay_doc._entry_shape("x_entities", ["sensor.a", "Bad", 3]) == ["sensor.a"]
+    and replay_doc._entry_shape("x_entities", "sensor.a") is _D
+    and replay_doc._entry_shape("x_entity", "Anna") is _D
+    and [replay_doc._entry_shape("x_entity", v) for v in (None, "", "sensor.a")]
+    == [None, "", "sensor.a"]
+    and replay_doc._entry_shape("mode", "Anna") == "Anna",
+)
+_bad = {"entry": {"data": {"not_a_conf_key": 1, "Bad Key": 2,
+                           "indoor_temp_entity": "Anna's room"}, "options": None},
+        "states": {"plainkey": [["t", "1", None, None]],
+                   "sensor.a": [["t", "1", "attrs", None], ["t", "1", {"colour": "red"}, None],
+                                ["t", "1", {"unit_of_measurement": 3}, None], "short"]},
+        "loc": {"Latitude": 59.334591, "lon": 18.06}}
+_found = replay_doc.violations(_bad, CONF)
+R.check(
+    "replay_doc.violations names each broken rule: a coordinate past two decimals, an "
+    "entry key outside the allowlist or malformed, an entity key holding a name, a "
+    "state key that is no entity id, attributes that are no object, outside the "
+    "allowlist or the wrong shape",
+    sorted(_found) == sorted([
+        "loc.Latitude=59.334591: 6 decimals",
+        "entry.data.not_a_conf_key: not an entry key of this integration",
+        "entry.data.Bad Key: not an entry key of this integration",
+        "entry.data.indoor_temp_entity: must hold entity ids only",
+        "states.plainkey: not an entity id",
+        "states.sensor.a[0]: attributes are not an object",
+        "states.sensor.a[1].colour: attribute outside the allowlist",
+        "states.sensor.a[2].unit_of_measurement: not the shape this attribute has",
+        "entry.data.indoor_temp_entity: text outside the allowlist",
+    ]) and replay_doc.violations(["auto", "https://nas.example.se/cam"]) == [
+        "[1]: text outside the allowlist"]
+    and "entry.data.not_a_conf_key: not an entry key of this integration"
+    not in replay_doc.violations({"entry": {"data": {"not_a_conf_key": 1}}})
+    and replay_doc.violations({"states": {"sensor.b": [["t", "1"]]}}) == [],
+    "; ".join(_found),
+)
+R.check(
+    "replay_doc.mapped_entities finds entity ids at any depth, in lists too",
+    replay_doc.mapped_entities({"a": ["sensor.x", {"b": "climate.y"}], "c": "Anna",
+                                "d": ("sensor.z",)}) == {"sensor.x", "climate.y"},
+)
+
+
+def _sealed(raw):
+    try:
+        return replay_doc.seal(raw, CONF)
+    except replay_doc.Refused as err:
+        return err
+
+
+def _raw_doc(token="secretvalue123", **states):
+    return replay_doc.document(
+        time_zone="UTC", window=("a", "b"), recorder_schema=None,
+        entry={"data": {"tibber_token": token}}, inputs=(), published=(),
+        price_series_entity=None, states=states)
+
+
+_leaked = _sealed(_raw_doc(**{"sensor.a": [["t", "secretvalue123", None, None]]}))
+# Six characters is the shortest dropped value the leak check looks for again.
+_leaked_six = _sealed(_raw_doc("abc123", **{"sensor.a": [["t", "abc123", None, None]]}))
+_short = _sealed(_raw_doc("abc12", **{"sensor.a": [["t", "abc12", None, None]]}))
+_unfit = _sealed(_raw_doc(plainkey=[["t", "1", None, None]]))
+_ok = _sealed(_raw_doc(**{"sensor.a": [["t", "1", None, None]]}))
+R.check(
+    "replay_doc.seal refuses a document where a dropped credential survives elsewhere, "
+    "and one whose sanitised form still breaks a rule, and writes a clean one",
+    isinstance(_leaked, replay_doc.Refused) and "1 dropped credential value(s)" in str(_leaked)
+    and isinstance(_leaked_six, replay_doc.Refused) and isinstance(_short, dict)
+    and isinstance(_unfit, replay_doc.Refused)
+    and "states.plainkey: not an entity id" in str(_unfit)
+    and isinstance(_ok, dict) and _ok["entry"]["data"] == {}
+    and _ok["states"] == {"sensor.a": [["t", "1", None, None]]},
+    f"{_leaked if isinstance(_leaked, replay_doc.Refused) else type(_leaked).__name__} "
+    f"{_unfit!r}",
+)
+_homes = [{"entity_id": f"sensor.price_{h}", "platform": "tibber", "unique_id": h,
+           "translation_key": "electricity_price"} for h in ("home1", "home2")]
+try:
+    _none_chosen = replay_doc.choose_price_entity({}, _homes, lambda e: True)
+except replay_doc.Refused as err:
+    _none_chosen = err
+R.check(
+    "with two live Tibber homes the entry's own price_entity decides, and without one "
+    "the choice is refused with both candidates listed",
+    replay_doc.choose_price_entity({"price_entity": "sensor.price_home2"}, _homes,
+                                   lambda e: True) == "sensor.price_home2"
+    and replay_doc.choose_price_entity({"price_entity": "sensor.price_home2"}, _homes,
+                                       lambda e: e.endswith("home1")) == "sensor.price_home1"
+    and isinstance(_none_chosen, replay_doc.Refused)
+    and "found 2 usable of 2" in str(_none_chosen)
+    and "sensor.price_home1, sensor.price_home2" in str(_none_chosen),
+    repr(_none_chosen),
+)
+
+
+# -- the nightly lane's judge of the same two downloads (A16) ----------------
 
 
 def _a16(inline_payload, capped_payload,
