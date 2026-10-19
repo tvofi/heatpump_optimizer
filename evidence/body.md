@@ -22,7 +22,7 @@ So every recarry of a body that quotes `## Head` above the heading misplaces its
 
 ## Head
 
-`bef08da499276ead55f0f8457479f116fa730e85`, the merge of origin/main `768bfc0c3` into the previous authored head `4b2f770e0` (the one conflict resolution is described under Merge with main). It is a descendant of both, and origin/main's tip is its merge-base (read 2026-10-19T06:55Z). Every figure below was taken at this head unless marked base. The mutation proofs were re-taken at this head.
+`b9f201f90efbb39422319426a7839c036b7b46af`. It is the code head `bef08da499276ead55f0f8457479f116fa730e85` plus two commits, neither touching a fix path: `0378873ab` merges origin/main `c3530277` (its only resolution is a set-merge of `tests/closures.json`), and `b9f201f90` adds this PR's delivery row `dev/programme/delivery/2442.md`. **Carry note:** every figure and mutation proof below was taken at `bef08da49` and stands at `b9f201f90`, because `git diff --stat bef08da4 b9f201f9 -- <the fix paths>` is empty (rc 0) over `tools/pr/head_note.py`, `tools/pr/app_push.sh`, the three seat scripts, `dev/audit/harnesses/r10_recarry_head.py` and `INSTRUMENTS.md`. The whole `git diff --stat bef08da4 b9f201f9` is `29 files changed, 2168 insertions(+), 97 deletions(-)`, all of it main's own work arriving through the merge (rules, `carry_audit.py`, `merge_train.py`, `structure.py`, delivery rows); this PR's net change against main `c3530277` is the nine files `git diff --stat c3530277 b9f201f9` lists: the six fix files, the harness, one `closures.json` line and the row.
 
 ## Mutation proof
 
@@ -63,12 +63,21 @@ Each mutant was applied to `tools/pr/head_note.py` at this head, then `bash tool
 
 ## Red checks
 
-none. No check has run on this head.
+Every red at `b9f201f9` is the Actions installation rate limit or its fallout, none a test failure of this diff (logs read with `gh api repos/tvofi/heatpump_optimizer/actions/jobs/<id>/logs`):
+
+- **arch-score** (jobs 117951683598, 117951684531, 08:00Z): `gh: API rate limit exceeded for installation.`
+- **validate-hacs** (117951684074, 08:00:43Z): `aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for installation.`
+- **env-matrix** (117951686230, 08:01:52Z): `FAIL  pr / nothing skipped in a full clone  --  skip     required-contexts     the GitHub API is unreachable`.
+- **nightly-status** (117951876334, 08:00:39Z, not required): `NIGHTLY UNREADABLE: ... HTTP 403 from https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39106988523/jobs?per_page=100 (rate limit exhausted)`.
+- **pr-contract** (117951683530 at 08:00Z and 117953084773 at 08:04Z rate-limited before reading the body; 117962608686 at 08:29Z failed on the previous body, which named `bef08da49` as the head). This body names `b9f201f9`.
+
+A re-run of the rate-limited checks is the repair; no code change is owed.
 
 ## Unpinned sites
 
 Every changed line is under `tools/` or `dev/audit/`, outside the mutation inventory.
 
+- `r10_recarry_head.py` and the app_push arms are this fixer's own instruments; no finder harness was committed for the group.
 - `head_note.py` is pinned by its self-test (M1 to M3) and the app_push arms.
 - `app_push.sh`'s call is pinned by the double, single and no-heading arms.
 - The six seat-script call sites are pinned by no CI check: those scripts drive `gh` and `app_push.sh` against GitHub. `dev/audit/harnesses/r10_recarry_head.py` extracts and runs each heredoc offline. M1 and M2 turn its rows red, and base reads `fenced=unnamed`. It is a re-runnable harness, not a gate; wiring it into `instrument-self-tests` was left out of this group's scope.

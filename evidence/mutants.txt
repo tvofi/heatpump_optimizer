@@ -1,0 +1,5 @@
+Mutants on tools/pr/head_note.py at b9f201f9 (app_push self-test / head_note self-test / count of harness rows containing "unnamed"), each restored with git checkout:
+M1 line29 -> elif "## Head" in line:          135 checks, 4 failed / 6 checks, 5 failed / 6
+M2 line28 fence = not fence -> pass           135 checks, 1 failed / 6 checks, 1 failed / 6
+M3 line34 return min(nxt,len(body)) -> pos    135 checks, 4 failed / 6 checks, 5 failed / 6
+M6 (reviewer) heading title check -> True     135 checks, 1 failed / 6 checks, 1 failed / 0  (self-tests catch; harness bodies have no other h2 before Head)
