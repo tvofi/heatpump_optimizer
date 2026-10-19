@@ -1,0 +1,41 @@
+refs/remotes/origin/handoff/audit-r10-roster 2026-10-19T03:31:52+02:00: refs/remotes/origin/handoff/audit-r10-roster:.claude/workflows/web-fix-wave.js
+refs/remotes/origin/handoff/audit-r10-roster:dev/governance/decisions/0010-merge-commits-on-main.md
+refs/remotes/origin/handoff/audit-r10-roster:dev/governance/dimensions/D15.md
+refs/remotes/origin/wip-sync/ext-proto-3a3dc18d 2026-10-19T03:17:06+02:00: refs/remotes/origin/wip-sync/ext-proto-3a3dc18d:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-base-2277c1b3 2026-10-19T03:16:56+02:00: refs/remotes/origin/wip-sync/ext-base-2277c1b3:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-561236b2 2026-10-19T03:16:46+02:00: refs/remotes/origin/wip-sync/ext-wt-561236b2:dev/programme/rosters/wave-r10-groups.json
+refs/remotes/origin/wip-sync/ext-wt-561236b2:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-74a912dc 2026-10-19T03:16:34+02:00: refs/remotes/origin/wip-sync/ext-wt-74a912dc:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-50713812 2026-10-19T03:16:23+02:00: refs/remotes/origin/wip-sync/ext-wt-50713812:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-3d1eb7ec 2026-10-19T03:16:13+02:00: refs/remotes/origin/wip-sync/ext-wt-3d1eb7ec:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-4b3ae5a0 2026-10-19T03:16:03+02:00: refs/remotes/origin/wip-sync/ext-wt-4b3ae5a0:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-d81ed3b9 2026-10-19T03:15:39+02:00: refs/remotes/origin/wip-sync/ext-wt-d81ed3b9:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-MS-44be4989 2026-10-19T03:15:31+02:00: refs/remotes/origin/wip-sync/ext-MS-44be4989:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-MP-9c5839af 2026-10-19T03:15:22+02:00: refs/remotes/origin/wip-sync/ext-MP-9c5839af:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-MB19-1280ab98 2026-10-19T03:15:11+02:00: refs/remotes/origin/wip-sync/ext-MB19-1280ab98:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-MB17-8066d281 2026-10-19T03:14:58+02:00: refs/remotes/origin/wip-sync/ext-MB17-8066d281:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-MB15-c2a12d04 2026-10-19T03:14:43+02:00: refs/remotes/origin/wip-sync/ext-MB15-c2a12d04:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-M3-3f402533 2026-10-19T03:14:33+02:00: refs/remotes/origin/wip-sync/ext-M3-3f402533:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-M1-387aedc0 2026-10-19T03:14:24+02:00: refs/remotes/origin/wip-sync/ext-M1-387aedc0:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-3ed1ceac 2026-10-19T03:14:15+02:00: refs/remotes/origin/wip-sync/ext-wt-3ed1ceac:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-mut-3783452e 2026-10-19T03:14:03+02:00: refs/remotes/origin/wip-sync/ext-mut-3783452e:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-base-2ddf8132 2026-10-19T03:13:52+02:00: refs/remotes/origin/wip-sync/ext-base-2ddf8132:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-2d38a43a 2026-10-19T03:13:39+02:00: refs/remotes/origin/wip-sync/ext-wt-2d38a43a:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-base-4e361afd 2026-10-19T03:13:31+02:00: refs/remotes/origin/wip-sync/ext-base-4e361afd:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-59bcc64e 2026-10-19T03:13:19+02:00: refs/remotes/origin/wip-sync/ext-wt-59bcc64e:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-orch-wt-5d79a4e1 2026-10-19T03:13:10+02:00: refs/remotes/origin/wip-sync/ext-orch-wt-5d79a4e1:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-2390-5dc9d243 2026-10-19T03:12:36+02:00: refs/remotes/origin/wip-sync/ext-2390-5dc9d243:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-r3-before-0537034e 2026-10-19T03:12:22+02:00: refs/remotes/origin/wip-sync/ext-r3-before-0537034e:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-wt-7ebcf12d 2026-10-19T03:11:38+02:00: refs/remotes/origin/wip-sync/ext-wt-7ebcf12d:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w1-4a5f7e20 2026-10-19T03:11:13+02:00: refs/remotes/origin/wip-sync/ext-w1-4a5f7e20:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/fix/r10-tick-drivers 2026-10-19T03:11:12+02:00: refs/remotes/origin/fix/r10-tick-drivers:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w3-5525a299 2026-10-19T03:11:03+02:00: refs/remotes/origin/wip-sync/ext-w3-5525a299:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w2-91e84113 2026-10-19T03:10:54+02:00: refs/remotes/origin/wip-sync/ext-w2-91e84113:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w1-278958ad 2026-10-19T03:10:46+02:00: refs/remotes/origin/wip-sync/ext-w1-278958ad:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w0-3c9c7f92 2026-10-19T03:10:39+02:00: refs/remotes/origin/wip-sync/ext-w0-3c9c7f92:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w3-9b572d88 2026-10-19T03:10:28+02:00: refs/remotes/origin/wip-sync/ext-w3-9b572d88:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w2-45b0ae3e 2026-10-19T03:10:17+02:00: refs/remotes/origin/wip-sync/ext-w2-45b0ae3e:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w1-2f98cfb0 2026-10-19T03:10:06+02:00: refs/remotes/origin/wip-sync/ext-w1-2f98cfb0:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-w0-ad2ab26f 2026-10-19T03:09:56+02:00: refs/remotes/origin/wip-sync/ext-w0-ad2ab26f:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-measured4-95f9de6c 2026-10-19T03:09:45+02:00: refs/remotes/origin/wip-sync/ext-measured4-95f9de6c:dev/programme/rosters/wave-r9-groups.json
+refs/remotes/origin/wip-sync/ext-measured3-5bb40070 2026-10-19T03:09:36+02:00: refs/remotes/origin/wip-sync/ext-measured3-5bb40070:dev/programme/rosters/wave-r9-groups.json
