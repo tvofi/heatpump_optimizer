@@ -325,7 +325,7 @@ class MonthlyLedger:
         settled = float(entry["sum"]) if isinstance(entry, dict) else 0.0
         folds = int(entry["count"]) if isinstance(entry, dict) else 0
         spot_folds = int(spot["count"]) if isinstance(spot, dict) else 0
-        if settled > 0 and folds >= spot_folds:
+        if settled > 0 and spot_folds <= folds:
             return max(1.0, month_hours(now) / settled)
         return pro_rata_factor(now)
 
