@@ -4380,6 +4380,51 @@
     "next_step": "fixer",
     "note": null
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-MERGE-PR-MANDATE",
+   "findings": [],
+   "wave": 3,
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/audit/seat/INSTRUMENTS.md",
+    "tools/audit/seat/merge_pr.sh",
+    "tools/audit/seat/proof_watch.py",
+    "tools/policy/budget_raise_gate.py"
+   ],
+   "brief": "merge_pr.sh reads the mandate live through tools/policy/budget_raise_gate.py and refuses before any GitHub write without one; proof_watch owner mode hands it the mandate id. Handoff 6219325c (cloud fixer, 2026-10-18) has no PR and conflicts with main: recarry onto main, re-take the body, then open. Touches governance.yml, so sequence against R10-SEAT-SELFTESTS-CI and the CI-LAYOUT plan.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-merge-pr-mandate",
+    "commit": "6219325ca20928f82c80880b1ed7fadf3e1c93b2",
+    "last_step": "fixer",
+    "next_step": "recarry",
+    "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
+   }
   }
  ]
 }
