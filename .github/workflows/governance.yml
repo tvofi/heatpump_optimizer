@@ -696,6 +696,20 @@ jobs:
           python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
           grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
 
+      # The carry check (tools/audit/carry_audit.py; finding-propagation.md's
+      # `Carry:` marker): a planted unrouted finding refuses and its routed twin
+      # passes, an invented or done group, an unowned or closed issue, a missing
+      # O-brief and a bare `dismissed:` each refuse; and the train's pre-flight
+      # (queue_pre_flight.py), whose `findings` step reads a verdict's notes with
+      # it before a merge. Both tally lines must say 0 failed, as above.
+      - name: Show the carry check and the queue pre-flight refusing their own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/carry_audit.py --self-test | tee "$RUNNER_TEMP/ca-self-test.txt"
+          grep -Eq '^carry_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ca-self-test.txt"
+          python3 tools/audit/seat/queue_pre_flight.py --self-test | tee "$RUNNER_TEMP/qpf-self-test.txt"
+          grep -Eq '^queue_pre_flight self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/qpf-self-test.txt"
+
       # The train launcher (tools/audit/seat/train.sh): missing arguments, a
       # live pidfile on the state dir, and an unknown argument each refuse.
       - name: Show the train launcher refusing its own fixtures
