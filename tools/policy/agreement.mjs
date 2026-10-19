@@ -49,7 +49,28 @@ function constFromSource(rel, name) {
   return new Function(`return ${m[1]}`)()
 }
 const load = (rel) => import(pathToFileURL(at(rel)).href)
+// The same for a generated object literal that is one line of JSON.
+function jsonConstFromSource(rel, name) {
+  const src = rd(rel)
+  const i = src.indexOf(`\nconst ${name} = {`)
+  if (i < 0) throw new Error(`${rel}: no top-level const ${name} object`)
+  const start = src.indexOf('{', i)
+  return JSON.parse(src.slice(start, src.indexOf('\n', start)))
+}
 
+
+// A JSON schema with every {"$ref": "#/definitions/x"} replaced by x, and
+// definitions and $schema dropped: the form fold_ledger.py sync writes.
+function inlineRefs(o, defs = o.definitions ?? {}) {
+  if (Array.isArray(o)) return o.map((x) => inlineRefs(x, defs))
+  if (!o || typeof o !== 'object') return o
+  if (Object.keys(o).length === 1 && typeof o.$ref === 'string') {
+    const d = defs[o.$ref.split('/').pop()]
+    if (!d) throw new Error(`a $ref this reader cannot follow: ${o.$ref}`)
+    return inlineRefs(d, defs)
+  }
+  return Object.fromEntries(Object.entries(o).filter(([k]) => k !== '$schema' && k !== 'definitions').map(([k, v]) => [k, inlineRefs(v, defs)]))
+}
 
 const CC = 'custom_components/heatpump_optimizer'
 function entityLeaves(rel) {
@@ -205,6 +226,27 @@ const PAIRS = [
         'bugclasses.json ids + "new"': (id) => ledger.has(id),
         'finding.schema.json enum': (id) => schemaEnum.has(id),
         'audit-find.js CLASS_GUESS (intake)': (id) => intake.test(id),
+      }
+    },
+  },
+  {
+    // R10-TICK (g): the finder was handed a hand-kept return schema without the
+    // file's enums and types, so intake rejected 35 of 44 round-10 box
+    // findings on form. fold_ledger.py sync writes the driver's copy; this
+    // compares every leaf of the two, so a hand edit of either side is refused.
+    concept: 'finder-report-form',
+    what: "the form a finder's report must take: finding.schema.json ($refs inlined, intake's validator) against audit-find.js FINDING_REPORT (the finder's return schema)",
+    async corpus() {
+      const leaves = (o, pre, out) => { if (o && typeof o === 'object') { for (const [k, v] of Object.entries(o)) leaves(v, `${pre}/${k}`, out) } else out.add(pre); return out }
+      const paths = leaves(inlineRefs(JSON.parse(rd('dev/audit/config/finding.schema.json'))), '', new Set())
+      leaves(jsonConstFromSource('.claude/workflows/audit-find.js', 'FINDING_REPORT'), '', paths)
+      return [...paths].sort().map((p) => [p, p])
+    },
+    async readers() {
+      const at_ = (o) => (p) => { let x = o; for (const k of p.split('/').slice(1)) x = x == null ? undefined : x[k]; return x === undefined ? null : x }
+      return {
+        'finding.schema.json, $refs inlined': at_(inlineRefs(JSON.parse(rd('dev/audit/config/finding.schema.json')))),
+        'audit-find.js FINDING_REPORT': at_(jsonConstFromSource('.claude/workflows/audit-find.js', 'FINDING_REPORT')),
       }
     },
   },
