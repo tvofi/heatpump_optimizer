@@ -3583,9 +3583,9 @@
    "architect_note": "",
    "brief": "# O16 \u2014 round-10 RCA for the N-structure-blind class (#2235)\nRole: dev/governance/roles/root-cause.md. Policy: dev/governance/rules/defect-root-cause.md.\n#2235's own RCA: line says a round-10 root-cause analysis is owed for the N-structure-blind class. None exists in dev/audit/rca/ on origin/main (p5 fixer, 2026-10-18). R10-STRUCTURE-BLIND is marked done, so no roster group carries it.\nDeliver: dev/audit/rca/<id>.md, cited by rca in bugclasses.json; a Root cause section on #2235 (orchestrator posts). Then #2235 closes by hand: all 5 findings are delivered (#2340, #2293, #2373 via p5).\nIdentity: push refs via tools/audit/seat/bus.sh / body_push.sh; never open a PR. Scratch: ~/hpo-seats/r10s3/O16/.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-rca-structure-blind",
-    "commit": null,
+    "commit": "f0a4acac7984",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": null
