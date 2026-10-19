@@ -1,0 +1,9 @@
+check-runs on 4c9dc5d92 (read 2026-10-19 ~12:27Z, 38 runs):
+pr-contract failure (job 118057609688 and 118057416570): carry_audit.py check --body:
+  UNROUTED body item 33e3834c (## Forward-carry) "none: the finding changes no later stage's work..."
+  UNROUTED body item 6a94fe97 (## Friction) "- fixer-brief: stale: ..."
+  UNROUTED body item 2bee4fc0 (## Friction) "- fixer-handoff: contradiction: ..."
+  CARRY-AUDIT: 3 finding item(s): 0 routed, 3 unrouted, 0 bad destination(s)
+nightly-status failure: not this PR's (diff does not reach what it reads).
+in_progress at read: browser, typing, coverage, fast (3.14), mutation, instrument-self-tests, env-matrix, policy-docs, Analyze (python/js).
+success: briefs, closure-scope, scope, budget-raise-gate x2, arch-score x2, hassfest, validate-hacs, delivery-status, wave-script, Analyze (actions).
