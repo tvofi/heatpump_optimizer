@@ -464,9 +464,9 @@ jobs:
       # The push and merge drivers (handoff_push, open_pr, update_pr,
       # merge_pr) run their stubbed self-tests, never a push. The tally line
       # must name 0 failures, as above; `!cancelled()` reports every step
-      # rather than the first red. queue_pre_flight.py runs without -I, as
-      # merge_train.py does: it imports merge_train from its own directory,
-      # which -I leaves off sys.path. Here for tmp_paths.py's reason.
+      # rather than the first red. queue_pre_flight.py has no step here: the
+      # carry check's step below runs it (#2404). Here for tmp_paths.py's
+      # reason.
       - name: Refuse a self-testing seat instrument that no step runs
         run: |
           set -o pipefail
@@ -593,13 +593,6 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"
           grep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"
-
-      - name: Show the queue pre-flight refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 tools/audit/seat/queue_pre_flight.py --self-test | tee "$RUNNER_TEMP/queue-pre-flight-self-test.txt"
-          grep -Eq '^queue_pre_flight self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/queue-pre-flight-self-test.txt"
 
       - name: Show the record-row generator refusing its own fixtures
         if: ${{ !cancelled() }}
