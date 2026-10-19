@@ -156,7 +156,9 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
-from .inputs import InputReader, read_setpoint, setpoint_range_c, write_setpoint_c
+from .inputs import (
+    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
+)
 from .log_latch import log_held
 from .payload import CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
@@ -169,6 +171,7 @@ from .thermal_model import (
     modulation_floor_flow_c,
     on_threshold_kw,
     planned_draw_runs,
+    probe_install,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -389,15 +392,33 @@ def _option_for(state: Any, key: str) -> str | None:
 
 
 def _bounded(
-    inp: ArbiterInputs, slot: str, value: float | None, floor: float = -1e9
+    inp: ArbiterInputs,
+    slot: str,
+    value: float | None,
+    floor: float = -1e9,
+    *,
+    rounding: str = "nearest",
+    lo: float | None = None,
+    hi: float | None = None,
 ) -> float | None:
-    """``value`` (degC) inside the slot entity's own range, on a half degree."""
+    """``value`` (degC) inside the slot entity's own range, on its step.
+
+    ``quantise_setpoint_c`` rounds it in the entity's unit: ``rounding``
+    for the value itself, ``lo`` (a heating floor) up and ``hi`` (a
+    ceiling) down, the entity's own minimum up and maximum down.
+    """
     if value is None or _slot_state(inp, slot) is None:
         return None
-    low, high = setpoint_range_c(inp.hass, _entities(inp.config)[slot])
+    entity = _entities(inp.config)[slot]
+    low, high = setpoint_range_c(inp.hass, entity)
     value = max(value, floor, low if low is not None else floor)
     value = min(value, high) if high is not None else value
-    return round(value * 2.0) / 2.0
+    lows = [v for v in (lo, low) if v is not None]
+    highs = [v for v in (hi, high) if v is not None]
+    return quantise_setpoint_c(
+        inp.hass, entity, value, rounding=rounding,
+        lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
+    )
 
 
 def _planned_room(
@@ -513,6 +534,49 @@ def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
     )
 
 
+def _gate_c(inp: ArbiterInputs) -> float | None:
+    """The flow set-point a step that does not heat writes, °C."""
+    return _bounded(inp, "space_setpoint", FLOW_GATE_C, FLOW_GATE_C, rounding="down")
+
+
+@dataclass(frozen=True)
+class FlowCommand:
+    """The space flow set-point the arbiter holds, beside its two ends, °C."""
+
+    written_c: float
+    gate_c: float
+    ceiling_c: float
+
+
+def flow_command(coord: Any) -> FlowCommand | None:
+    """What the held flow set-point commands, or ``None``.
+
+    ``None`` unless the arbiter drives the pump through a flow set-point
+    (Control, the flow unit, the optimizer not off) and holds a written
+    value whose entity range reads, on an install whose plan does not write
+    the compressor's power itself. Everywhere else the metered draw is the
+    pump's own choice, or the plan's frequency echo, not a response capped
+    by a set-point this module wrote -- the distinction ``draw_range``'s
+    censoring guard keys on.
+    """
+    inp = coord.arbiter_inputs()
+    written = state_for(coord).written.get("space_setpoint")
+    if (
+        written is None or inp.mode == MODE_OFF or not _flow_unit(inp.config)
+        or duty_mode(inp.config) != DUTY_CONTROL
+        or probe_install(inp.config).plan_writes_power()
+    ):
+        return None
+    gate = _gate_c(inp)
+    ceiling = _bounded(
+        inp, "space_setpoint", configured_flow_heat_c(inp.config, FLOW_HEAT_C), FLOW_GATE_C,
+        rounding="down",
+    )
+    if gate is None or ceiling is None or not isinstance(written[0], (int, float)):
+        return None
+    return FlowCommand(float(written[0]), gate, ceiling)
+
+
 def _or_hold(floor_c: float | None) -> float:
     return FLOW_HOLD_C if floor_c is None else floor_c
 
@@ -536,20 +600,18 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     """
     if duty in ("space", "both"):
         p_min, p_max = _band_kw(inp)
+        heat_c = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
+        floor_c = _or_hold(modulation_floor_flow_c(_flow_inlet_c(inp), _gate_c(inp)))
         return _bounded(
             inp,
             "space_setpoint",
-            flow_setpoint_for_level(
-                _step_kw(inp.plan, now),
-                p_min,
-                p_max,
-                configured_flow_heat_c(inp.config, FLOW_HEAT_C),
-                _or_hold(modulation_floor_flow_c(_flow_inlet_c(inp))),
-            ),
+            flow_setpoint_for_level(_step_kw(inp.plan, now), p_min, p_max, heat_c, floor_c),
             FLOW_GATE_C,
+            lo=min(floor_c, heat_c),
+            hi=heat_c,
         )
     if duty is not None:
-        return _bounded(inp, "space_setpoint", FLOW_GATE_C, FLOW_GATE_C)
+        return _gate_c(inp)
     outdoor = float(inp.state.outdoor_temperature)
     curve = inp.thermal.curve_flow_temp(outdoor)
     ceiling = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
@@ -634,14 +696,14 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "space":
         if _option_for(mode_state, pump_mode.MODE_HEAT):
             return PumpCommand(pump_mode.MODE_HEAT, dhw, space, silent)
-        return PumpCommand(both, _bounded(inp, "dhw_setpoint", DHW_GATE_C), space, silent)
+        return PumpCommand(both, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
     if duty != "dhw":
         return PumpCommand(both, dhw, space, silent)
     if _option_for(mode_state, pump_mode.MODE_DHW):
         return PumpCommand(pump_mode.MODE_DHW, dhw, space, silent)
     if _flow_unit(inp.config):
         return PumpCommand(both, dhw, space, silent)
-    return PumpCommand(both, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0), silent)
+    return PumpCommand(both, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
 
 
 def dhw_gated(coord: Any, reading: float | None) -> bool:
