@@ -1,0 +1,28 @@
+# rerun: pyc invalidated by mtime bump around each run (python3 -I ignores PYTHONDONTWRITEBYTECODE; first M3/clean2 pass read a stale roster_lib pyc)
+RESULT clean rc=0 last=orchestrator_tick self-test: 150 checks, 0 failed
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT M1 rc=1 last=AttributeError: module 'roster_lib_tick' has no attribute 'DEFAULT_ROSTER_REF'
+ tools/audit/seat/roster_lib.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT M2 rc=0 last=orchestrator_tick self-test: 150 checks, 0 failed
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+index 7f49217ef..12e8f52fc 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -3394,8 +3394,8 @@ def self_test() -> int:
+         ])
+         total, failed = total + a, failed + f
+ 
+-    print(f"orchestrator_tick self-test: {total} checks, {failed} failed")
+-    return 1 if failed else 0
++    print(f"orchestrator_tick self-test: {total} checks, {failed+1} failed")
++    return 0
+ 
+ 
+ def main() -> int:
+RESULT M3 rc=1 last=orchestrator_tick self-test: 150 checks, 1 failed
+ tools/audit/seat/orchestrator_tick.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+RESULT M4_zero_checks_exit0 rc=1 last=orchestrator_tick self-test: 0 checks, 0 failed
+RESULT clean2 rc=0 last=orchestrator_tick self-test: 150 checks, 0 failed

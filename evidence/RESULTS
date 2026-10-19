@@ -1,0 +1,11 @@
+RESULT clean rc=0 last=orchestrator_tick self-test: 150 checks, 0 failed
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT M1 rc=1 last=AttributeError: module 'roster_lib_tick' has no attribute 'DEFAULT_ROSTER_REF'
+ tools/audit/seat/roster_lib.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT M2 rc=1 last=AttributeError: module 'roster_lib_tick' has no attribute 'default_roster_ref'. Did you mean: 'default_roster_reX'?
+ tools/audit/seat/orchestrator_tick.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+RESULT M3 rc=1 last=AttributeError: module 'roster_lib_tick' has no attribute 'default_roster_ref'. Did you mean: 'default_roster_reX'?
+RESULT clean2 rc=1 last=AttributeError: module 'roster_lib_tick' has no attribute 'default_roster_ref'. Did you mean: 'default_roster_reX'?
