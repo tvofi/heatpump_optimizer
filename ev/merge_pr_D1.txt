@@ -1,0 +1,2 @@
+  FAIL a draft refuses without --ready, naming the flag (rc=0: )
+merge_pr self-test: 12 checks, 1 failed

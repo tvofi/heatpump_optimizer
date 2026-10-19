@@ -1,0 +1,82 @@
+== M0 baseline
+   merge_train self-test: 189 checks, 0 failed
+   queue_pre_flight self-test: 36 checks, 0 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+== P1
+   merge_train self-test: 189 checks, 2 failed
+       FAIL #2401's shape: a budget file that only gains rows is no raise -- the ordinary mandate approval is posted and the entry merges, with no owner review and no raise justification owed
+       FAIL ... and with #2401's own reviews (a mandated owner approval at the head, a body with no raise justification) it still merges: the justification is a raise's alone
+   queue_pre_flight self-test: 36 checks, 2 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+       FAIL #2401's shape: a budget file that only gains rows passes with no owner review
+       FAIL ... and reads no body: the justification is read on the raise branch only
+== J1
+   merge_train self-test: 189 checks, 2 failed
+       FAIL #2209's shape MUTATION (the gate's own justification): a mandated approval at the head whose body lacks the raise justification's payment line is not the owner's -- it stops exactly as today, as budget-raise-gate would refuse it
+       FAIL a planted raise whose mandated approval sits at the head but whose body is deficient stops, naming the raise and BOTH missing lines
+   queue_pre_flight self-test: 36 checks, 2 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+       FAIL a planted raise whose mandated approval sits at the head but whose body is deficient PARKS, naming both missing lines (approve's own Stop)
+       FAIL a planted raise whose body cannot be read PARKS, fail-closed
+== W1
+   merge_train self-test: 189 checks, 3 failed
+       FAIL a planted raise whose mandated approval sits at the head but whose body is deficient stops, naming the raise and BOTH missing lines
+       FAIL a planted raise with no owner review stops, and the Stop carries the gate's why
+       FAIL a planted raise approved while its mandate was in force, the mandate expired before the merge, stops: the mandate is judged AT THE MERGE, not at the review
+   queue_pre_flight self-test: 36 checks, 0 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+== H1
+   merge_train self-test: 189 checks, 4 failed
+       FAIL #2209's shape (approval-carry on): the owner's approval GitHub re-anchored to the recarried head is the owner's at that head -- the budget entry lands with nothing re-posted
+       FAIL #2209's shape (approval-carry off): the owner's approval GitHub re-anchored to the recarried head is the owner's at that head -- the budget entry lands with nothing re-posted
+       FAIL approval-carry with no recarry of this invocation (the head never moved) does not carry: the owner's approval already at the head is the owner's, and nothing is re-posted
+       FAIL a planted raise with a healthy body under the mandate in force lands as the owner's, nothing re-posted
+   queue_pre_flight self-test: 36 checks, 0 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+== U1
+   merge_train self-test: 189 checks, 1 failed
+       FAIL fail closed: a budget path the diff names that neither tree holds is a Stop, never a no-raise
+   queue_pre_flight self-test: 36 checks, 0 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+== R1
+   merge_train self-test: 189 checks, 1 failed
+       FAIL fail closed: a budget blob the tree lists but git cannot read is a Stop even under the owner's approval -- never its error text read as an unparsable file the approval then holds
+   queue_pre_flight self-test: 36 checks, 0 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+== T1
+   merge_train self-test: 189 checks, 1 failed
+       FAIL a planted raise approved while its mandate was in force, the mandate expired before the merge, stops: the mandate is judged AT THE MERGE, not at the review
+   queue_pre_flight self-test: 36 checks, 0 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+== B1
+   merge_train self-test: 189 checks, 0 failed
+   queue_pre_flight self-test: 36 checks, 1 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+       FAIL ... and reads no body: the justification is read on the raise branch only
+== Q1
+   merge_train self-test: 189 checks, 0 failed
+   queue_pre_flight self-test: 36 checks, 3 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+       FAIL a budget raise without the owner's review at its head PARKS, named as the raise with the gate's why
+       FAIL a budget raise whose mandate was revoked PARKS
+       FAIL a planted raise whose mandated approval sits at the head but whose body is deficient PARKS, naming both missing lines (approve's own Stop)

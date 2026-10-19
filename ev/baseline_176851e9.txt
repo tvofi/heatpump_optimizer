@@ -1,0 +1,3 @@
+merge_train self-test: 180 checks, 0 failed
+queue_pre_flight self-test: 32 checks, 0 failed
+budget_raise_gate self-test: 235 checks, 0 failed

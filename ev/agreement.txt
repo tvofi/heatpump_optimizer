@@ -1,0 +1,4 @@
+  pair merge-subject-pr: 4 readers, 820 items, 0 divergent
+  merge-subject guard: 5 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
+  pair budget-raise: 2 readers, 56 items, 0 divergent
+AGREEMENT ok

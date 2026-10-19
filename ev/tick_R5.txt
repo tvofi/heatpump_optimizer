@@ -1,0 +1,19 @@
+== R5: merge_train self-test: 189 checks, 17 failed
+       FAIL code-owned with a budget RAISE is not mandate-approved
+       FAIL approval-carry fires: the clean recarry's head gets the owner's approval re-posted with the carry line, and the entry merges
+       FAIL #2209's shape MUTATION (the mandate re-read at the merge): a re-anchored approval under an expired mandate stops exactly as today
+       FAIL #2209's shape MUTATION (the gate's own justification): a mandated approval at the head whose body lacks the raise justification's payment line is not the owner's -- it stops exactly as today, as budget-raise-gate would refuse it
+       FAIL approval-carry across a main-moved recovery: the owner's approval at the FIRST head carries to the second recarry's head, its delta read from that first head
+       FAIL approval-carry from the MIDDLE of the carry chain: an approval re-anchored to the first recarry's head carries to the second's, its delta read from that middle head
+       FAIL approval-carry MUTATION (the diff-empty check): a recarry delta naming a branch-own file is a conflict resolution, and it stops exactly as today
+       FAIL approval-carry MUTATION (the mandate in-force check): a mandate expired before the merge re-reads as none, and it stops exactly as today
+       FAIL approval-carry with no owner APPROVED review at h0 behaves as today
+       FAIL approval-carry with the owner's approval on another commit does not carry
+       FAIL approval-carry with an owner review citing no mandate does not carry
+       FAIL approval-carry FLAG OFF: the same qualifying world stops exactly as today -- the default train is byte-identical
+       FAIL ... and with no owner approval at that head it stops exactly as today (null control)
+       FAIL approval-carry whose re-post fails the byte-identical read-back is a Stop, not a pass
+       FAIL a planted raise whose mandated approval sits at the head but whose body is deficient stops, naming the raise and BOTH missing lines
+       FAIL a planted raise with no owner review stops, and the Stop carries the gate's why
+       FAIL a planted raise approved while its mandate was in force, the mandate expired before the merge, stops: the mandate is judged AT THE MERGE, not at the review
+rc=0

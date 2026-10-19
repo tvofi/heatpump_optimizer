@@ -1,0 +1,30 @@
+== python3 tools/audit/seat/merge_train.py --self-test
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 189 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/queue_pre_flight.py --self-test
+  ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+  ok   the mandate reader the budget arm reads is in the tree
+queue_pre_flight self-test: 36 checks, 0 failed
+rc=0
+== python3 tools/policy/budget_raise_gate.py --self-test
+NONE: 1 pull_request run(s) at hhhhhhhhhhhh, none red; nothing is stale
+  ok   rerun: nothing stale posts nothing (null control)
+budget_raise_gate self-test: 235 checks, 0 failed
+rc=0
+== bash tools/audit/seat/merge_pr.sh --self-test
+  ok   the owner body declares an agent and cites exactly the mandate given
+  ok   no mandate date is written into this script
+merge_pr self-test: 12 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/proof_watch.py --self-test
+ok   (l) a pending required context waits a poll, then merges when it lands
+ok   (l) the wait polls at the configured cadence
+proof_watch self-test: 34 checks, 0 failed
+rc=0
+== node tools/policy/agreement.mjs --self-test
+  ok   an entry that no longer spans two files is DEAD
+  ok   a disposition of no known kind is refused
+SELF-TEST 27 of 27 probes held
+rc=0

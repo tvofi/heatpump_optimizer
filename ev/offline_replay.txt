@@ -1,0 +1,9 @@
+#2401 head 311e9de3e0c6 base 176851e950a8
+  path : RAISE (tests/ci_budgets.json)
+  gate : 0 raise(s): 
+#2373 head e14a378c12e5 base 42e6dedb27f3
+  path : RAISE (tests/ci_budgets.json)
+  gate : 0 raise(s): 
+#2368 head 86258e159d6e base 07a09406a1cc
+  path : RAISE (tests/stress_budgets.json)
+  gate : 2 raise(s): tests/stress_budgets.json: coverage_floor_override.calls_floor: None -> 6 (a pinned value the gate cannot sign as routine); tests/stress_budgets.json: coverage_floor_override.floor: override added at 18 (absent is the strict state)
