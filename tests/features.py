@@ -61740,7 +61740,7 @@ _pp_mid = _pp_flow(8.5, 3.0, 14.0, 55.0, 35.0)
 _pp_idle = _pp_flow(0.0, 3.0, 14.0, 55.0, 35.0)
 _pp_cfg = _pp_flow(8.5, 3.0, 14.0, 48.0, 35.0)
 R.check(
-    "the heating flow is the ceiling at full power and the inlet at p_min, and a configured ceiling moves it",
+    "the heating flow is the ceiling at full power and the floor set-point at p_min, and a configured ceiling moves it",
     _pp_full == 55.0 and _pp_min == 35.0 and _pp_idle == 55.0
     and 35.0 < _pp_mid < 55.0 and _pp_cfg < _pp_mid
     and _PP_FLOW_DEFAULT == 55.0,
@@ -61802,6 +61802,260 @@ R.check(
     "a curve under the rated hold still holds 35 when the ceiling is configured",
     _pp_low == _pa.FLOW_HOLD_C,
     f"{_pp_low}",
+)
+
+# --- R10-SETPOINT-POWER: the set-point is a power command (tvofi, 2026-10-19)
+# The modulation floor's flow sits FLOW_MIN_LIFT_K above the measured water
+# the pump heats, read from whichever sensors are configured, in the
+# precedence the arbiter documents. The order below is spelled out, not read
+# from FLOW_INLET_KEYS: a rung dropped or reordered there fails the cells
+# that depend on it.
+from itertools import combinations as _sp_combos  # noqa: E402
+
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_BUFFER_TANK_TEMP_ENTITY as _SP_TANK,
+    CONF_FLOOR_RETURN_TEMP_ENTITY as _SP_FLOOR,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY as _SP_PUMP_RETURN,
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY as _SP_PUMP_SUPPLY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY as _SP_VALVE,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    FLOW_MIN_LIFT_K as _SP_LIFT,
+    modulation_floor_flow_c as _sp_floor_of,
+)
+
+_SP_ORDER = (_SP_PUMP_RETURN, _SP_TANK, _SP_FLOOR, _SP_VALVE)
+#: Synthetic readings, distinct per slot so a wrong rung reads as a wrong
+#: number; the pump's supply is hot, as a running pump's is.
+_SP_READ = {
+    _SP_PUMP_RETURN: 22.0, _SP_TANK: 24.0, _SP_FLOOR: 26.0, _SP_VALVE: 31.0,
+    _SP_PUMP_SUPPLY: 52.0,
+}
+
+
+def _sp_write(kw, slots, stale=()):
+    """What the arbiter writes for a space step at ``kw`` with ``slots`` set."""
+    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"}
+    states = {"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}
+    for key in slots:
+        config[key] = f"sensor.sp_{key}"
+        states[config[key]] = FakeState(
+            str(_SP_READ[key]), unit="°C",
+            last_updated=minutes_ago(24 * 60) if key in stale else None,
+        )
+    return _pa._flow_target(
+        _PaNS(
+            config=config,
+            hass=FakeHass(states),
+            # The state's own fields are the 40 degC default and no return:
+            # a resolver reading them, not the sensors, fails every cell.
+            state=_PaNS(
+                outdoor_temperature=0.0, buffer_tank_temperature=40.0,
+                floor_return_temperature=None,
+            ),
+            thermal=_PaNS(params=None),
+            params=_PaNS(min_electrical_power=1.5, max_electrical_power=5.5),
+            plan=_PaNS(timestamps=[_PA_T0], power_schedule=[kw]),
+        ),
+        "space",
+        _PA_T0,
+    )
+
+
+_sp_cells = [
+    combo for size in range(len(_SP_ORDER) + 1)
+    for combo in _sp_combos(_SP_ORDER, size)
+]
+_sp_wrong = []
+for _sp_slots in _sp_cells:
+    _sp_anchor = next((_SP_READ[k] for k in _SP_ORDER if k in _sp_slots), None)
+    _sp_want = _pa.FLOW_HOLD_C if _sp_anchor is None else _sp_anchor + _SP_LIFT
+    _sp_min = _sp_write(1.5, _sp_slots)
+    _sp_full = _sp_write(5.5, _sp_slots)
+    if _sp_min != _sp_want or _sp_full != 48.0 or (
+        _sp_anchor is not None and not _sp_min > _sp_anchor
+    ):
+        _sp_wrong.append((_sp_slots, _sp_min, _sp_full, _sp_want))
+R.check(
+    "every combination of inlet sensors writes the first rung's reading plus the lift "
+    "at the modulation floor, and the ceiling at full power",
+    len(_sp_cells) == 16 and not _sp_wrong and _SP_LIFT > 0.0,
+    f"{len(_sp_cells)} cells, wrong {_sp_wrong}",
+)
+R.check(
+    "a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote",
+    _sp_write(1.5, (_SP_TANK,)) == 29.0
+    and _sp_write(1.5, (_SP_TANK,)) != _pa.FLOW_HOLD_C,
+    f"{_sp_write(1.5, (_SP_TANK,))}",
+)
+R.check(
+    "null control: no inlet sensor keeps today's rated hold, and the pump's outgoing "
+    "temperature alone is not a rung",
+    _sp_write(1.5, ()) == _pa.FLOW_HOLD_C
+    and _sp_write(1.5, (_SP_PUMP_SUPPLY,)) == _pa.FLOW_HOLD_C
+    and _sp_write(5.5, (_SP_PUMP_SUPPLY,)) == 48.0,
+    f"{_sp_write(1.5, ())} {_sp_write(1.5, (_SP_PUMP_SUPPLY,))}",
+)
+R.check(
+    "a stale rung falls to the next fresh one",
+    _sp_write(1.5, (_SP_PUMP_RETURN, _SP_TANK), stale=(_SP_PUMP_RETURN,))
+    == _SP_READ[_SP_TANK] + _SP_LIFT,
+    f"{_sp_write(1.5, (_SP_PUMP_RETURN, _SP_TANK), stale=(_SP_PUMP_RETURN,))}",
+)
+R.check(
+    "the floor helper refuses an unmeasured inlet rather than guessing one",
+    _sp_floor_of(None) is None and _sp_floor_of(float("nan")) is None
+    and _sp_floor_of(30.0) == 30.0 + _SP_LIFT,
+)
+
+# The objective scores the rounded levels a clamped install ships, so it is
+# flat between 0 and p_min and a start descending into that band stalls
+# there. The relaxed candidate (``_relaxed_starts``) is the fix; the
+# control arm is the same solve with it removed, which is the mutant. A
+# synthetic 750 L buffered install behind a valve, space-only and with hot
+# water, so both solve paths carry it. The rounded objective is non-convex
+# and L-BFGS-B's path differs by architecture (``fixer.md`` step 15): which
+# cells the candidate wins, and whether the control arm also leaves the band,
+# moved between arm64 and CI's x86_64. So the checks pin what the mechanism
+# guarantees on every platform -- a strictly lower objective where it wins,
+# never a higher one, and a plan that books above the floor -- not a cell's
+# basin.
+import heatpump_optimizer.optimizer as _sp_opt_mod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _SpOpt,
+    OptimizationConfig as _SpCfg,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _SpTM,
+    ThermalParameters as _SpTP,
+    ThermalState as _SpTS,
+)
+
+_SP_STEPS = np.arange(96)
+_SP_SPREAD = 1.3 + 0.9 * np.sin(2 * np.pi * (_SP_STEPS - 30) / 96.0)
+_SP_FLAT = np.full(96, float(_SP_SPREAD.mean()))
+_SP_CHEAP = np.argsort(_SP_SPREAD, kind="stable")[:24]
+
+
+def _sp_solve(prices, dhw, loss, relaxed=True, out_mean=2.0):
+    params = _SpTP()
+    params.mixing_valve_mode = "manual"
+    params.buffer_tank_volume = 750.0
+    params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
+    params.dhw_enabled, params.house_heat_loss_scale = dhw, loss
+    opt = _SpOpt(_SpTM(params), _SpCfg(clamp_planned_levels=True))
+    kept = _sp_opt_mod._relaxed_starts
+    if not relaxed:
+        _sp_opt_mod._relaxed_starts = lambda _opt, *a: a[-2]
+    try:
+        result = _sp_run(opt, prices, out_mean)
+    finally:
+        _sp_opt_mod._relaxed_starts = kept
+    return np.asarray(result.power_schedule, float), float(result.objective_value)
+
+
+def _sp_run(opt, prices, out_mean):
+    outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (_SP_STEPS - 50) / 96.0)
+    return opt.optimize(inputs=solve_inputs(
+        initial_state=_SpTS(
+            room_temperature=20.5, upper_floor_temperature=20.5,
+            lower_floor_temperature=20.5, slab_temperature=21.0,
+            outdoor_temperature=float(outdoor[0]),
+            buffer_tank_temperature=30.0, dhw_temperature=50.0,
+        ),
+        prices=prices, outdoor_temps=outdoor,
+        start_time=datetime(2026, 1, 10, tzinfo=UTC),
+    ))
+
+
+def _sp_above_min_kwh(plan):
+    """kWh booked above p_min in the 24 cheapest steps."""
+    return float(np.clip(plan[_SP_CHEAP] - 1.5, 0.0, None).sum() * 0.25)
+
+
+def _sp_pair(prices, dhw, loss, out_mean=2.0):
+    """(fix, control) for one cell, each ``(plan, objective)``."""
+    return tuple(
+        _sp_solve(prices, dhw, loss, relaxed, out_mean) for relaxed in (True, False)
+    )
+
+
+(_sp_fix, _sp_fix_obj), (_sp_ctl, _sp_ctl_obj) = _sp_pair(_SP_SPREAD, False, 1.0)
+R.check(
+    "a buffered rounded install with price spread books above the floor in the cheapest "
+    "steps, and its own objective scores the plan lower than the solve without the "
+    "relaxed start",
+    _sp_above_min_kwh(_sp_fix) > 1.0 and _sp_fix_obj < _sp_ctl_obj - 0.5,
+    f"above-min kWh {_sp_above_min_kwh(_sp_fix):.2f} (control "
+    f"{_sp_above_min_kwh(_sp_ctl):.2f}), objective {_sp_fix_obj:.3f} vs {_sp_ctl_obj:.3f}",
+)
+# Four hot-water cells: heat-loss scale 0.6/1.0 by outdoor mean -4/+2 degC.
+_sp_dhw_cells = {
+    (loss, out): _sp_pair(_SP_SPREAD, True, loss, out)
+    for loss in (0.6, 1.0) for out in (-4.0, 2.0)
+}
+_sp_dhw_delta = {
+    cell: fix[1] - ctl[1] for cell, (fix, ctl) in _sp_dhw_cells.items()
+}
+R.check(
+    "with hot water on, the space solve around the hot-water plan carries the relaxed "
+    "start: it lowers the objective in at least one of four cells and raises it in none",
+    sum(d < -0.1 for d in _sp_dhw_delta.values()) >= 1
+    and all(d <= 1e-9 for d in _sp_dhw_delta.values()),
+    f"objective deltas {({k: round(v, 3) for k, v in _sp_dhw_delta.items()})}",
+)
+# Plan identity at flat prices is NOT asserted: the band traps flat-price
+# solves too, so the candidate moves some flat plans, each to a lower
+# objective (the census in dev/audit/harnesses/r10_setpoint_power.py).
+_sp_flat = {
+    dhw: _sp_pair(_SP_FLAT, dhw, loss) for dhw, loss in ((False, 1.0), (True, 0.6))
+}
+R.check(
+    "flat-price null control: at flat prices the relaxed start never ships a plan its "
+    "own objective scores worse, on either path",
+    all(fix[1] <= ctl[1] + 1e-9 for fix, ctl in _sp_flat.values()),
+    f"{({k: (round(f[1], 3), round(c[1], 3)) for k, (f, c) in _sp_flat.items()})}",
+)
+
+# The two helpers at the edges the solves above do not reach: an install that
+# can duty-cycle, a start index past the last (the warm pass), and the flag the
+# relaxed run scores under. A quadratic stands in for the objective.
+_sp_clamped = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=True))
+_sp_free = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=False))
+_sp_rounded_seen = []
+
+
+def _sp_quad(x, *_args):
+    _sp_rounded_seen.append(_sp_opt_mod._scores_rounded(_sp_clamped))
+    return float(np.sum((np.asarray(x, float) - 1.0) ** 2))
+
+
+def _sp_quad_batch(rows, *_args):
+    return np.array([_sp_quad(row) for row in np.atleast_2d(rows)])
+
+
+_SP_BOUNDS = [(0.0, 2.0)] * 3
+_sp_moved = _sp_opt_mod._relaxed_starts(
+    _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
+)
+R.check(
+    "a clamped install gains one candidate, refined while the objective scores the "
+    "duty-cycle reading, and rounds again after",
+    len(_sp_moved) == 2 and np.allclose(_sp_moved[1], 1.0, atol=1e-3)
+    and _sp_rounded_seen and not any(_sp_rounded_seen)
+    and _sp_opt_mod._scores_rounded(_sp_clamped) is True,
+    f"{len(_sp_moved)} {_sp_moved[-1]} seen {set(_sp_rounded_seen)}",
+)
+R.check(
+    "an install that can duty-cycle gains none and never scores rounded; a start past "
+    "the last (the warm pass) adds none",
+    len(_sp_opt_mod._relaxed_starts(
+        _sp_free, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
+    )) == 1
+    and _sp_opt_mod._scores_rounded(_sp_free) is False
+    and len(_sp_opt_mod._relaxed_starts(
+        _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 1, (), [np.zeros(3)], 50,
+    )) == 1,
 )
 
 R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")

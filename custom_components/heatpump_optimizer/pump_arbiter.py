@@ -126,7 +126,6 @@ from __future__ import annotations
 import asyncio
 import bisect
 import logging
-import math
 from collections import Counter, deque
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
@@ -144,6 +143,10 @@ from homeassistant.util import dt as dt_util
 
 from . import boost, issues, pump_mode, quiet_windows
 from .const import (
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
     DOMAIN,
     MODE_AUTO,
     MODE_BOOST,
@@ -153,7 +156,7 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
-from .inputs import read_setpoint, setpoint_range_c, write_setpoint_c
+from .inputs import InputReader, read_setpoint, setpoint_range_c, write_setpoint_c
 from .log_latch import log_held
 from .payload import CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
@@ -163,6 +166,7 @@ from .store import QuarantiningStore, load_mapping
 from .thermal_model import (
     configured_flow_heat_c,
     flow_setpoint_for_level,
+    modulation_floor_flow_c,
     on_threshold_kw,
     planned_draw_runs,
 )
@@ -465,17 +469,52 @@ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
     )
 
 
-def _flow_inlet_c(inp: ArbiterInputs) -> float:
-    """Floor-return temperature, else the rated hold flow."""
-    value = getattr(inp.state, "floor_return_temperature", None)
-    finite = tuple(
-        float(item) for item in (value,)
-        if isinstance(item, (int, float))
-        if math.isfinite(item)
+#: The sensors that measure the water the pump heats, best first: the
+#: set-point is a power command (tvofi, 2026-10-19), so its floor sits a
+#: lift above that water. One precedence for every plant, because what a
+#: slot measures follows the plant (tvofi asked for every combination):
+#:
+#: * pump-loop return -- the condenser's own inlet on any plant;
+#: * buffer tank -- with a buffer, with or without a mixing valve, the
+#:   pump heats the tank;
+#: * floor return -- on a direct-to-radiator plant the pump's inlet; behind
+#:   a buffer, the mixed circuit's return, below the tank, so the floor
+#:   errs toward less power;
+#: * valve outlet -- house-side supply, at or above the floor return and,
+#:   on a wood topology, mixed with the wood tank, so the last rung.
+#:
+#: The pump's outgoing temperature is not a rung: it is the set-point's own
+#: controlled variable, and a floor anchored on it would chase itself. No
+#: rung read leaves the rated :data:`FLOW_HOLD_C`, today's default.
+FLOW_INLET_KEYS = (
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
+)
+
+
+def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
+    """The first fresh reading of :data:`FLOW_INLET_KEYS`, °C, or ``None``.
+
+    Read through :class:`~.inputs.InputReader`, so a stale, implausible or
+    unconfigured slot is absent rather than guessed, and a slot left unset
+    falls to the next rung.
+    """
+    cfg = EntryConfig.from_mapping(inp.config)
+    reader = InputReader(
+        inp.hass, dict(inp.config or {}),
+        enabled=cfg.staleness_watchdog_enabled,
+        scale=cfg.staleness_max_age_scale,
     )
-    return (
-        finite[0] if finite else FLOW_HOLD_C
+    readings = (reader.read(key) for key in FLOW_INLET_KEYS)
+    return next(
+        (reading.value for reading in readings if reading.ok), None
     )
+
+
+def _or_hold(floor_c: float | None) -> float:
+    return FLOW_HOLD_C if floor_c is None else floor_c
 
 
 def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float | None:
@@ -486,9 +525,11 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     it runs 22-26 degC and a pump told to hold it barely heats (tvofi,
     2026-09-26). A step that heats writes a flow that follows the planned
     level: :data:`FLOW_HEAT_C` (or the configured ceiling) at full power,
-    toward the return temperature at the modulation floor, so the pump's
-    own water thermostat can realize a lower level. A fixed 55 °C never
-    cycles, and a sub-minimum slot then delivers the modulation floor. A
+    sliding to the measured inlet plus a minimum lift at the modulation
+    floor, so the pump's own water thermostat can realize a lower level.
+    With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`. A
+    fixed 55 °C never cycles, and a sub-minimum slot then delivers the
+    modulation floor. A
     step that does not heat writes the gate. The fallback leaves the pump
     on its own, so it holds the rated :data:`FLOW_HOLD_C`, or the curve
     where that is higher.
@@ -503,7 +544,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
                 p_min,
                 p_max,
                 configured_flow_heat_c(inp.config, FLOW_HEAT_C),
-                _flow_inlet_c(inp),
+                _or_hold(modulation_floor_flow_c(_flow_inlet_c(inp))),
             ),
             FLOW_GATE_C,
         )
