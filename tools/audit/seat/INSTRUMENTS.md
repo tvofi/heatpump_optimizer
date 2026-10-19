@@ -45,7 +45,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   perturbed-scope `--self-test` is the null control.
 - `fold_ledger.py` — folds a round's JUDGE.json and sweeps into
   `bugclasses.json`, and checks the register against the judges. When: after a
-  judge lands, and before quoting the bugclass register as current state.
+  judge lands, and before quoting the bugclass register as current state;
+  `sync` after any hand edit of `finding.schema.json`, which rewrites
+  `audit-find.js`'s generated CLASS_GUESS and FINDING_REPORT (fold runs it).
   Refusal: `check` refuses a register that drifted from its judges — re-quote
   the register, not a memory of it.
 - `judge_batch.py` — re-runs every finding's harness, perturbation and null
@@ -97,7 +99,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `handoff-body/<topic>` (plus RESUME.md), parentless first commit,
   fast-forwards after. When: every fixer handoff — the body must never enter
   the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
-  fetch that half-failed leaves a parentless commit the push refuses as a
+  head `tools/pr/ci_predict.py` predicts a closures or `fast` red on, or a
+  checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
+  before anything is pushed, with each arm's repair printed; a fetch that
+  half-failed leaves a parentless commit the push refuses as a
   non-fast-forward — a rewrite is never forced through.
 - `autofix_statuses.sh` — re-derives what `mutation-autofix` and
   `closures-autofix` answered on recent pull-request runs, from their job
