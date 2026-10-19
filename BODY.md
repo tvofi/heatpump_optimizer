@@ -35,7 +35,9 @@ The pre-study measured the cost of that wait: 14 roster-only PRs merged in round
 
 ## Head
 
-`357fe0fca9d484a761c75cd7e09ab8a0f01e7cf4` is the authored code head. It adds two commits to the previous head `e3a6f0729dbb5053bd92a5fb8168b3e74edbaa65`: the roster-home fix with its policy_lint arm, and a change that makes the arm judge each file at the path `locate()` reads. Below them, `36b4a1cf4e33b7f343c99e41e49e14a2b050547a` is one commit on origin/main `63816b857`, and `e3a6f0729` added only this PR's own row. `git merge-tree --write-tree origin/main 357fe0fca` (origin/main `07a09406a`, 2026-10-18T19:37Z) exits 0 with tree `3d846f25284c`.
+`0fd1f3e4f217ff1e20ddc491428747afdf2fdf44` is this PR's code head. It is a merge of origin/main `06c6f3cf2589cd37fa9fe56cc5ebeef709dc8d3b` (read 2026-10-19T02:17Z) into the previous handoff head `357fe0fca9d484a761c75cd7e09ab8a0f01e7cf4`. The merge was automatic: no conflict, no resolution, and no file this PR authored changed. The red PR head `928a672753558ca6f88f45f806d9aa9b04440c36` was the orchestrator's earlier merge of an older main into `357fe0fca`; this head supersedes it.
+
+`357fe0fca` is the authored code head, two commits on `e3a6f0729dbb5053bd92a5fb8168b3e74edbaa65`: the roster-home fix with its policy_lint arm, and the change that makes the arm judge each file at the path `locate()` reads. `git merge-tree --write-tree origin/main HEAD` (origin/main `06c6f3cf2`, 2026-10-19T02:17Z) exits 0 with tree `40fb19fd78d7`.
 
 ## Approval
 
@@ -43,9 +45,9 @@ Owed: tvofi's approval of this policy change before it merges (`CLAUDE.md`; the 
 
 ## Mutation proof
 
-Each mutant was applied to the head tree, run, and restored with `git checkout`. The new check runs as `node tools/policy/policy_lint.mjs`.
-- **M1, the previous head's globs** (`dev/governance/**`, `dev/programme/rosters/*.json`): rc=1, `TOTAL: 10 error(s)`. The arm names `.claude/workflows/wave-3l-groups.json` and `.claude/workflows/carry-1921.json`, the two files the review named, and the 8 carries under `dev/programme/carries/`. So the test fails on the old code.
-- **M2, origin/main's globs** (`dev/governance/**`, `.claude/workflows/*.json`): rc=1, `TOTAL: 10 error(s)`. These are `dev/programme/rosters/wave-r9-groups.json`, `wave-r10-groups.json` and the 8 carries under `dev/programme/carries/`. Main never bound the round roster or the carries directory. `trackedFiles()` spells 4 of those carries at their pre-move `.claude/workflows/` names, which main's glob matches. The harness opens them at `dev/programme/carries/`, though, so the arm judges the path `locate()` reads. A first version of the arm, which tested both spellings, read 6 here.
+Each mutant was applied to the head tree `0fd1f3e4f`, run, and restored with `git checkout` (`git status --short` empty after each). All four were re-run at this head after the merge, because `policy_lint.mjs` changed on main (#2423). The new check runs as `node tools/policy/policy_lint.mjs`.
+- **M1, the `.claude/workflows/*.json` glob deleted from the head's globs** (the dropped glob that first-head review caught): rc=1, `TOTAL: 2 error(s)`. The arm names `.claude/workflows/wave-3l-groups.json` and `.claude/workflows/carry-1921.json`. So the test fails on the old code.
+- **M2, the two added globs deleted** (`dev/programme/rosters/*.json` and `dev/programme/carries/*.json`; origin/main's globs): rc=1, `TOTAL: 10 error(s)`. These are `dev/programme/rosters/wave-r9-groups.json`, `wave-r10-groups.json` and the 8 carries under `dev/programme/carries/`. Main never bound the round roster or the carries directory. The arm judges the path `locate()` reads, so the 4 carries that `trackedFiles()` spells at their pre-move `.claude/workflows/` names are read at `dev/programme/carries/`.
 - **M3, the arm's predicate made dead** (`continue` added after the binding test): `TOTAL: 0 error(s)` and `FIXTURE VACUOUS: the rule-binding 'unbound carry home' arm produced []`, rc=1. Killed by the acceptance fixture.
 - **M4, the archive and fixture exclusion deleted:** `FIXTURE OVER-FIRES: rule-binding produced 2 finding(s)`, and on the real tree `TOTAL: 47 error(s)` (5 archived rosters, 37 archived carries and 5 linter fixtures), rc=1. Killed.
 - **Caps.** The first draft of the round-1 head, the rule text added with nothing paid, measured `.claude/rules/finding-propagation.md 104 lines / ~1408 tokens` against caps 101 and 1336 (`node tools/policy/policy_lint.mjs --budgets`). The same draft measured orchestrator.md at 322 and ~4576 against 319 and 4513, and fix-review.md at 141 and ~2460 against 140 and 2451. In this round, the second roster home and the two globs with no rewording paid measured 100 lines / ~1338 tokens against 1336. That figure is the second iteration, after three of the four rewordings.
@@ -72,16 +74,16 @@ The arm's control is M1 and M2 above: the arm reads 10 errors on each set of glo
 
 ## Figures
 
-All figures are at head `357fe0fca` unless a line says otherwise.
-- `node tools/policy/policy_lint.mjs --budgets`: finding-propagation 100 lines (cap 101) and ~1336 tokens (cap 1336); orchestrator.md 319/319 and ~4513/4513; fix-review.md 140/140 and ~2451/2451; corpus ~61137 (base ~61130; cap 61026 plus band 500).
-- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 41 policy file(s)`, then `FIXTURE ok: 92 error(s) hold 244 pins across 12 check classes`, rc=0.
+All figures are at head `0fd1f3e4f217ff1e20ddc491428747afdf2fdf44`, re-taken after the merge of origin/main `06c6f3cf2`, unless a line says otherwise.
+- `node tools/policy/policy_lint.mjs --budgets`: finding-propagation 100 lines (cap 101) and ~1336 tokens (cap 1336); orchestrator.md 319/319 and ~4513/4513; fix-review.md 140/140 and ~2451/2451; corpus ~61137 (cap 61026 plus band 500).
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 41 policy file(s)`, then `FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes`, rc=0.
 - `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`, and `ruleBindingOverTree` is in its corpus list, rc=0.
 - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
 - `node tools/policy/brief_lint.mjs`: rc=0, `CARRY ok`.
 - `python3 -I tools/policy/agreement_py.py --out J; node tools/policy/agreement.mjs --py-json J`: `RESULT divergent=0 unregistered=0 dead=0 refused=0`, rc=0.
 - `node tools/policy/field_coverage.mjs`: `RESULT ... blind=0 dead=0 refused=0`, `FIELD COVERAGE ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2346 ENTITY CHECKS PASSED`, rc=0.
+- `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2349 ENTITY CHECKS PASSED`, rc=0.
 - **Gate scope.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out` (`tests/entities.py`, run above).
 - **The class's seams.** The rule that lists them is `git ls-files | grep -E '(^|/)(wave-[^/]*-groups|carry-[0-9]+)\.json$'`, which is the arm's own walk. At the head it returns 59 files. Their dispositions:
   - 3 rosters and 9 carries are live: `.claude/workflows/` holds 1 of each, `dev/programme/rosters/` holds 2 and `dev/programme/carries/` holds 8. All are bound in this diff, and the arm reads 0.
@@ -95,7 +97,11 @@ All figures are at head `357fe0fca` unless a line says otherwise.
 
 ## Red checks
 
-- **`wave-script`**, red at `928a672753558ca6f88f45f806d9aa9b04440c36`. That head is the script's merge of origin/main `07a09406a` into this PR. The red is main's, inherited: `wave-script` is red at `07a09406a` itself (run 39158144006). The failing step is the agreement lane. `merge-subject-pr` is `divergent=2` on the main merges `Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)` and `Merge pull request #2379 (R10-SENSOR-PAYLOAD)`. For that subject shape, `stamp.py` and `delivery_status.py` read the PR number, and `policy_lint.mjs`'s `resolvePrFromCommit` and `enumerateMerges` read null. This diff touches none of those readers, and at the authored code head `357fe0fca` the lane read `divergent=0` before main gained the two merges. Answer to the trigger: no cheaper detector exists, because the agreement lane is the detector and it went red on main's first push carrying the shape. The fix belongs on main: the orchestrator teaches the null readers the parenthesised subject, or keeps that subject shape off main. This PR does not carry that fix.
+These are the reds on the PR head `928a672753558ca6f88f45f806d9aa9b04440c36`, read from the check-runs API (`failure_logs.sh 2408`). Exactly two were red there, `wave-script` and `delivery-status`. `pr-contract` was green at that head, so no pr-contract red is owed an answer. Both reds are inherited from main and cleared by the main merge in this head:
+- **`wave-script`** (run 39164766859, the agreement lane). `merge-subject-pr` read `divergent=2` on main's merges `Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)` and `Merge pull request #2379 (R10-SENSOR-PAYLOAD)`: `stamp.py` and `delivery_status.py` read the PR number, and `policy_lint.mjs`'s `resolvePrFromCommit` read null. Cause: main's merge subject shape outran one reader. Cleared by main's #2423 (one merge-subject grammar across readers) and #2424 (the guard), both merged into this head. At this head `python3 -I tools/policy/agreement_py.py --out J; node tools/policy/agreement.mjs --py-json J` prints `RESULT divergent=0 unregistered=0 dead=0 refused=0`, rc=0. This diff touches none of those readers. The detector is the agreement lane itself, which went red on main's first push carrying the shape; no cheaper one exists.
+- **`delivery-status`** (not a required context). It read `DELIVERY STATUS OVERDUE — 126 rowed, 8 pending, 3 overdue` against main `07a09406a`: rows for #2413, #2412 and #2407 sat 14 to 17 commits behind. Cause: main's row backlog, not this diff, whose only delivery file is its own row `2408.md`. Cleared by main's later record merges (`record: delivery rows` #2425 and the rows for #2420, #2423, #2424). At this head `python -I -S tests/delivery_status.py --check` prints `DELIVERY STATUS OK — 138 rowed, 2 pending, 0 overdue`. The two pending, #2425 and #2390, are the ordinary batch state.
+
+Whether CI at this head is green is read after the orchestrator remerges; this body claims only the two local re-runs above.
 
 ## Forward-carry
 
@@ -104,3 +110,4 @@ none. This change is itself the rule text the next round's orchestrator reads.
 ## Friction
 
 finding-propagation: stale: the rule named only `.claude/workflows/wave-*-groups.json` as a roster's home. The round's roster lives under `dev/programme/rosters/` (`roster_lib.py`), and no glob bound it or `dev/programme/carries/`. No check measured whether every live roster or carry is bound, and this PR's own first head dropped a live home with every check green.
+
