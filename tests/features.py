@@ -16802,41 +16802,63 @@ def _vent_coord(**cfg):
     return c
 
 
-def _feed_residual(c, residual, n, start):
+def _feed_residual(c, residual, n, start, sun=None):
     """Replay exactly ``n`` half-hour intervals of one residual.
 
-    Successive runs must start >2 h after the previous one ended: the
-    learner's max-interval guard then skips call 0, which only re-seeds
-    the baseline, so calls 1..n each feed one residual.
+    ``residual`` is one value for every interval, or a list of ``n``, one
+    per interval; ``sun``, if given, is a list of ``n`` irradiances (W/m²),
+    the state each interval starts from. Successive runs must start >2 h
+    after the previous one ended: the learner's max-interval guard then
+    skips call 0, which only re-seeds the baseline, so calls 1..n each feed
+    one residual.
     """
     import homeassistant.util.dt as _dt_mod
 
     observed = c._current_state.room_temperature
+    per = list(residual) if isinstance(residual, list) else [residual] * n
+    assert len(per) == n, (len(per), n)
+    assert sun is None or len(sun) == n, (len(sun), n)
+    now_r = [0.0]
 
     def _sim(prev, power, outdoor, **kw):
-        return _dc_replace(prev, room_temperature=observed - residual)
+        return _dc_replace(prev, room_temperature=observed - now_r[0])
 
     c._thermal_model.simulate_step = _sim
     real_now = _dt_mod.now
     try:
         for i in range(n + 1):
+            now_r[0] = per[max(i - 1, 0)]
+            if sun is not None:
+                c._current_state.solar_radiation = sun[min(i, n - 1)]
             _dt_mod.now = lambda i=i: start + timedelta(minutes=30 * i)
             _asyncio.run(c._async_learn_house_heat_loss())
     finally:
         _dt_mod.now = real_now
 
 
-_cv = _vent_coord()
-_feed_residual(_cv, -0.4, 3, _T4)
+#: A clean day ahead of a step: the detector folds the departure from the
+#: residual's own level (#2241), so a step reads as a change only once that
+#: level has been seen.
+_CLEAN_DAY = [0.0] * 40
+
+
+_cv3 = _vent_coord()
+_feed_residual(_cv3, _CLEAN_DAY + [-0.4] * 3, 43, _T4)
 R.check(
-    "three cold intervals are not yet a window",
-    not _cv._vent_cusum.tripped,
-    f"stat {_cv._vent_cusum.stat:.2f}",
+    "three cold intervals after a clean day are not yet a window",
+    not _cv3._vent_cusum.tripped,
+    f"stat {_cv3._vent_cusum.stat:.2f}",
 )
-_feed_residual(_cv, -0.4, 1, _T4 + timedelta(hours=4))
+_cv = _vent_coord()
+_feed_residual(_cv, _CLEAN_DAY + [-0.4] * 4, 44, _T4)
 R.check(
     "the fourth trips the detector through the real learner",
-    _cv._vent_cusum.tripped and _cv._vent_cusum.evidence,
+    _cv._vent_cusum.tripped
+    and _cv._vent_cusum.evidence
+    and _cv._vent_cusum.evidence[-1].startswith(
+        (_T4 + timedelta(minutes=30 * 44)).isoformat(timespec="seconds")
+    ),
+    f"evidence {_cv._vent_cusum.evidence}",
 )
 R.check(
     "a tripped detector freezes every learner with reason ventilation",
@@ -16860,7 +16882,7 @@ R.check(
 )
 
 _cw = _vent_coord()
-_feed_residual(_cw, 0.4, 10, _T4)
+_feed_residual(_cw, _CLEAN_DAY + [0.4] * 10, 50, _T4)
 R.check(
     "ten warm intervals never look like a window",
     not _cw._vent_cusum.tripped and _cw._vent_cusum.stat == 0.0,
@@ -16873,16 +16895,171 @@ R.check(
     abs(VENT_CUSUM_CLIP_C - VENT_CUSUM_THRESHOLD_C / 2.0) < 1e-12,
 )
 _cg = _vent_coord()
-_feed_residual(_cg, -10.0, 1, _T4)
+_feed_residual(_cg, _CLEAN_DAY + [-10.0], 41, _T4)
 R.check(
     "one glitched -10 °C reading cannot trip the detector alone",
-    not _cg._vent_cusum.tripped,
+    not _cg._vent_cusum.tripped and _cg._vent_cusum.stat > 0.0,
     f"stat {_cg._vent_cusum.stat:.2f}: clipped to {VENT_CUSUM_CLIP_C}",
 )
-_feed_residual(_cg, -10.0, 2, _T4 + timedelta(hours=4))
+_cg3 = _vent_coord()
+_feed_residual(_cg3, _CLEAN_DAY + [-10.0] * 3, 43, _T4)
 R.check(
     "but a third consecutive one is a window, not a glitch",
-    _cg._vent_cusum.tripped,
+    _cg3._vent_cusum.tripped,
+)
+
+# --- #2241 (D2-s3-72): a persistent model bias is not a window ----------------
+# The detector reads the heat-loss replay residual, so a model the learners
+# have not yet corrected -- a meter or COP off by 2x on an unmetered install
+# replays commanded power, a UA prior far off -- shows as a STEADY cold
+# residual. Referenced at zero, the CUSUM read it as a window that never
+# closed, and the freeze it raised stopped the very learner that would have
+# removed the bias, so it self-latched (98 % of intervals on the catch-up
+# verifier's two-zone house at delivery 0.4). It now folds the departure
+# from the residual's own persistent level: a bias moves both alike.
+_cb = _vent_coord()
+_feed_residual(_cb, -0.4, 40, _T4)
+R.check(
+    "a steady cold residual from the first sample on is a bias, not a window",
+    not _cb._vent_cusum.tripped and _cb._learning_frozen() is None,
+    f"stat {_cb._vent_cusum.stat:.2f}, reference {getattr(_cb._vent_cusum, 'reference', None)}",
+)
+_feed_residual(_cb, -1.0, 4, _T4 + timedelta(days=1))
+R.check(
+    "and a window opening on top of that bias still trips",
+    _cb._vent_cusum.tripped and _cb._learning_frozen() == "ventilation",
+    f"stat {_cb._vent_cusum.stat:.2f}, reference {getattr(_cb._vent_cusum, 'reference', None)}",
+)
+_cl = _vent_coord()
+_cl._vent_cusum.load(
+    {"stat": 1.8, "tripped": True, "evidence": [], "last_fed": _T4.isoformat()}
+)
+_feed_residual(_cl, -0.4, 40, _T4 + timedelta(hours=3))
+R.check(
+    "a detector latched on a bias releases once the bias is its level",
+    not _cl._vent_cusum.tripped and _cl._learning_frozen() is None,
+    f"stat {_cl._vent_cusum.stat:.2f}: a pre-#2241 payload loads with no "
+    "level, seeds it at the next sample and decays",
+)
+_cg1 = _vent_coord()
+_feed_residual(_cg1, [-10.0] + [0.0] * 6, 7, _T4)
+R.check(
+    "a glitch on the very first sample seeds the reference clipped, not raw",
+    abs(_cg1._vent_cusum.reference[0]) < VENT_CUSUM_CLIP_C,
+    f"reference {_cg1._vent_cusum.reference}: a raw -10 seed would need "
+    "thousands of samples to climb back, blinding the detector",
+)
+_cgw = _vent_coord()
+_feed_residual(_cgw, _CLEAN_DAY + [20.0] + [0.0] * 40, 81, _T4)
+R.check(
+    "a warm glitch moves the reference no further than the clip allows",
+    not _cgw._vent_cusum.tripped
+    and abs(_cgw._vent_cusum.reference[0]) < VENT_CUSUM_CLIP_C / 10.0,
+    f"stat {_cgw._vent_cusum.stat:.2f}, reference {_cgw._vent_cusum.reference}: "
+    "an unclipped +20 drags the level up and every clean sample after it "
+    "reads cold, a window that is not there",
+)
+# The feed's sun regressor, through the real learner: an aperture error
+# reads cold by day in proportion to the sun and not at all by night, which
+# a fit on level and heat alone takes for a window opening every morning.
+# Four days of a 10 h day at 600 W/m², reading 0.4 K cold at full sun; the
+# fitted sun slope is per kWh/m² of the interval.
+_SUN_DAYS = [600.0 if (_i % 48) < 20 else 0.0 for _i in range(192)]
+_csun = _vent_coord()
+_feed_residual(_csun, [-0.4 * _q / 600.0 for _q in _SUN_DAYS], 192, _T4, sun=_SUN_DAYS)
+_csun_slope = -0.4 / (600.0 * 0.5 / 1000.0)
+R.check(
+    "a bias scaling with the sun never trips the detector: the feed passes "
+    "the interval's sun in kWh/m², and the fit learns its slope",
+    not _csun._vent_cusum.evidence
+    and abs(_csun._vent_cusum.reference[2] - _csun_slope) < 0.25 * abs(_csun_slope),
+    f"evidence {_csun._vent_cusum.evidence}, reference {_csun._vent_cusum.reference} "
+    f"(sun slope {_csun_slope:.2f} K per kWh/m²)",
+)
+_csn = _vent_coord()
+_csn_err = None
+try:
+    _feed_residual(_csn, _CLEAN_DAY, 40, _T4, sun=[None] * 40)
+except TypeError as _e:
+    _csn_err = _e
+R.check(
+    "an unknown irradiance feeds the detector as no sun",
+    _csn_err is None and _csn._vent_cusum.last_fed is not None
+    and _csn._vent_cusum.reference is not None
+    and _csn._vent_cusum.reference[2] == 0.0,
+    f"error {_csn_err!r}, reference {_csn._vent_cusum.reference}",
+)
+_cr = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr.load(_cb._vent_cusum.as_dict())
+R.check(
+    "the reference survives a store round trip",
+    _cr.reference is not None
+    and all(abs(a - b) < 1e-5 for a, b in zip(_cr.reference, _cb._vent_cusum.reference))
+    and all(
+        abs(a - b) < 1e-8
+        for a, b in zip(_cr.reference_cov, _cb._vent_cusum.reference_cov)
+    ),
+)
+_cs1 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cs1.update(_T4, -0.5, (1.0, 0.0))
+_cs1b = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cs1b.load(_cs1.as_dict())
+R.check(
+    "the seeding sample folds nothing, and a fit at its seed round-trips",
+    _cs1.stat == 0.0 and _cs1b.reference == _cs1.reference
+    and _cs1b.reference_cov == _cs1.reference_cov,
+    f"stat {_cs1.stat}, reference {_cs1b.reference} / {_cs1.reference}",
+)
+_cs1_before = (_cs1.stat, list(_cs1.reference), _cs1.last_fed)
+_cs1.update(_T4 + timedelta(minutes=15), -0.5, (float("nan"), 0.0))
+_cs1.update(_T4 + timedelta(minutes=30), float("inf"), (1.0, 0.0))
+R.check(
+    "a non-finite residual or regressor feeds nothing, not even the fit",
+    (_cs1.stat, _cs1.reference, _cs1.last_fed) == _cs1_before,
+    f"{(_cs1.stat, _cs1.reference, _cs1.last_fed)} vs {_cs1_before}",
+)
+# Ten days at one power: the slope is unobservable, and forgetting alone
+# would inflate its covariance without bound until one sample at a new
+# power swung the fit. It stops at the prior's trace.
+from heatpump_optimizer.drift import REFERENCE_PRIOR_COV as _RPC  # noqa: E402
+
+_cw10 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+for _i in range(960):
+    _cw10.update(_T4 + timedelta(minutes=15 * _i), -0.2, (1.5, 0.0))
+R.check(
+    "days at one heat input cannot wind any coefficient's variance past its prior",
+    max(_cw10.reference_cov[::4]) <= _RPC + 1e-9
+    and not _cw10.tripped,
+    f"covariance {_cw10.reference_cov}",
+)
+# The prior weighs as one sample (REFERENCE_PRIOR_COV's own comment): with a
+# level-only fit and no time elapsed, the second sample's gain is P/(1+P),
+# so it moves the level exactly halfway and halves the variance. The numbers
+# are hand-computed, not read from the constant, so a changed prior weight
+# fails here (P = 2 moves the level two thirds of the way, to -0.1333).
+_cp1 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cp1.update(_T4, -0.4, ())
+_cp1.update(_T4, 0.0, ())
+R.check(
+    "the prior weighs as one sample: a second sample moves the level halfway",
+    abs(_cp1.reference[0] - (-0.2)) < 1e-12
+    and abs(_cp1.reference_cov[0] - 0.5) < 1e-12,
+    f"reference {_cp1.reference}, covariance {_cp1.reference_cov}",
+)
+_cov = [0.5, 0.0, 0.0, 0.5]
+_cr.load({"stat": 0.0, "reference": [True, 0.0], "reference_cov": _cov})
+_cr4 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr4.load({"stat": 0.0, "reference": [-0.3, 0.0], "reference_cov": [0.5, 0.1, -0.1, 0.5]})
+_cr2 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr2.load({"stat": 0.0, "reference": [float("nan"), 0.0], "reference_cov": _cov})
+_cr3 = Cusum(threshold=1.2, drift=0.08, side=-1, clip=0.6, reference_hours=24.0)
+_cr3.load({"stat": 0.0, "reference": [-0.3, 0.0], "reference_cov": [0.5, 0.9, 0.9, 0.5]})
+R.check(
+    "a corrupt reference loads as none, to be re-seeded, never as a number",
+    _cr.reference is None and _cr2.reference is None and _cr3.reference is None
+    and _cr4.reference is None,
+    "a bool, a NaN, and covariances no fit can have (not positive definite; "
+    "not symmetric)",
 )
 
 # --- #193 S7: one bounded Newton step behind both heat-loss learners ---------
@@ -59027,6 +59204,81 @@ R.check(
     sum(a for _, a, _ in _r9p5_live) >= 6
     and all(w for _, a, w in _r9p5_live if a),
     [(n, a) for n, a, _ in _r9p5_live],
+)
+
+# -- R10-P5 (#2241, D2-s3-72): a learning freeze is not raised by the bias it -----
+# would stop the learners removing. The open-window CUSUM read the heat-loss
+# replay residual against zero, so a model bias tripped it and the freeze
+# self-latched. The barrier the round-10 P5 sweep proposed, as a census: every
+# CUSUM whose trip ``_learning_frozen`` reads is found in the source (the scan
+# refuses if it finds none, or loses the open-window one), must measure from a
+# tracked level, and is driven -- on a live coordinator, its own construction
+# -- with a constant cold bias across the range the heat-loss learner folds (up
+# to its 1.0 K rejection), which must leave it untripped at the end of the
+# fourth day, and the same bias with a window planted on top, which must trip
+# it. Only the end state is read: a sun-scaled bias can trip it while the
+# first days' sun slope converges, which this census does not refuse.
+import ast as _r10p5_ast  # noqa: E402
+import inspect as _r10p5_inspect  # noqa: E402
+
+from heatpump_optimizer import coordinator as _r10p5_cmod  # noqa: E402
+
+_r10p5_tree = _r10p5_ast.parse(_r10p5_inspect.getsource(_r10p5_cmod))
+_r10p5_gated = {
+    a.value.attr
+    for f in _r10p5_ast.walk(_r10p5_tree)
+    if isinstance(f, _r10p5_ast.FunctionDef) and f.name == "_learning_frozen"
+    for a in _r10p5_ast.walk(f)
+    if isinstance(a, _r10p5_ast.Attribute) and a.attr == "tripped"
+    and isinstance(a.value, _r10p5_ast.Attribute)
+}
+_r10p5_coord = _vent_coord()
+_r10p5_cusums = sorted(
+    n for n in _r10p5_gated if isinstance(getattr(_r10p5_coord, n, None), Cusum)
+)
+R.check(
+    "R10-P5: the census finds every CUSUM a learning freeze reads, the "
+    "open-window one among them",
+    "_vent_cusum" in _r10p5_cusums and _r10p5_cusums == sorted(_r10p5_gated),
+    f"gated {sorted(_r10p5_gated)}, CUSUMs {_r10p5_cusums}",
+)
+# Three bias shapes, each peaking at the bias: steady; scaling with the
+# interval's heat input (a meter or COP error under an on/off schedule: 4 h
+# at 1.5 kWh per interval, 4 h off); and scaling with the sun (an aperture
+# error, a 10 h day). Four days of each, then the window, at full heat and
+# no sun.
+_r10p5_biases = (0.1, 0.4, _r10p5_cmod.HOUSE_LOSS_MAX_RESIDUAL)
+_r10p5_on = [1.5 if (_i // 16) % 2 == 0 else 0.0 for _i in range(384)]
+_r10p5_sun = [0.15 if (_i % 96) < 40 else 0.0 for _i in range(384)]
+_r10p5_rows = []
+for _r10p5_name in _r10p5_cusums:
+    for _r10p5_bias in _r10p5_biases:
+        for _r10p5_shape in ("steady", "heat-scaled", "sun-scaled"):
+            _r10p5_trips = []
+            for _r10p5_extra in ((), (-0.5,) * 4):
+                _r10p5_det = getattr(_vent_coord(), _r10p5_name)
+                _xs = list(zip(_r10p5_on, _r10p5_sun)) + [(1.5, 0.0)] * len(_r10p5_extra)
+                for _i, (_x, _q) in enumerate(_xs):
+                    _r = -_r10p5_bias * {
+                        "steady": 1.0, "heat-scaled": _x / 1.5,
+                        "sun-scaled": _q / 0.15,
+                    }[_r10p5_shape]
+                    if _i >= len(_r10p5_on):
+                        _r += _r10p5_extra[_i - len(_r10p5_on)]
+                    _r10p5_det.update(_T4 + timedelta(minutes=15 * _i), _r, (_x, _q))
+                _r10p5_trips.append(_r10p5_det.tripped)
+            _r10p5_rows.append((
+                _r10p5_name, _r10p5_bias, _r10p5_shape,
+                getattr(_r10p5_coord, _r10p5_name).reference_hours is not None,
+                *_r10p5_trips,
+            ))
+R.check(
+    "R10-P5: each measures from a tracked reference; four days of a bias up "
+    "to the learner's rejection -- steady, or scaling with the heat put in or "
+    "the sun -- leave it untripped, and a window on top of it trips it",
+    bool(_r10p5_rows)
+    and all(ref and not bias and window for _, _, _, ref, bias, window in _r10p5_rows),
+    _r10p5_rows,
 )
 
 # R9-EG-B9 (#1752, #1753): the boost overlay acts on a copy of the plan's
