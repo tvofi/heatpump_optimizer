@@ -312,6 +312,18 @@ class Tick:
         return r.returncode, [l.strip() for l in r.stdout.splitlines()
                               if l.strip()]
 
+    def _roster_ref(self, S: str, rl) -> str:
+        """The ref this tick reads the roster at: --roster-ref, else
+        roster_lib's `default_roster_ref` (O17: the round's roster branch,
+        else main) through the tick's own git, its note printed in `S`. One
+        answer for PLAN and CARRY."""
+        if self.roster_ref:
+            return self.roster_ref
+        ref, note = rl.default_roster_ref(self.git)
+        if note:
+            self.line(S, f"roster ref: {note}", flag=note.startswith("WARNING"))
+        return ref
+
     def carry_run(self, argv: list[str]) -> "tuple[int, list[str]]":
         """`carry_audit.py <argv>`, a subprocess over the tree's own tool, never
         a copy: (rc, stdout lines). The stub receives the same argv."""
@@ -1020,10 +1032,7 @@ class Tick:
             # tree carries both rosters (R10-TICK b).
             # WHICH REF is roster_lib's too (O17): the round's roster
             # branch, else main, through the tick's own git.
-            ref, note = (self.roster_ref, "") if self.roster_ref else \
-                rl.default_roster_ref(self.git)
-            if note:
-                self.line(S, f"roster ref: {note}", flag=note.startswith("WARNING"))
+            ref = self._roster_ref(S, rl)
             path = self.roster_path
             if not path:
                 code, o = self.git(["ls-tree", "--name-only", ref,
@@ -1779,8 +1788,10 @@ class Tick:
             self.unreadable(S, "carry sweep", f"{CARRY_AUDIT} absent (it lands with #2404)")
             return
         rl = _module("roster_lib_tick", "tools/audit/seat/roster_lib.py")
-        default = rl.DEFAULT_ROSTER_REF if rl is not None else "origin/main"
-        refs = list(dict.fromkeys(["origin/main", self.roster_ref or default]))
+        if rl is None:
+            self.unreadable(S, "carry sweep", "tools/audit/seat/roster_lib.py absent")
+            return
+        refs = list(dict.fromkeys([rl.MAIN_REF, self._roster_ref(S, rl)]))
         argv = [a for r in refs for a in ("--roster-ref", r)] + [
             "sweep", "--last", str(self.carry_last), "--issues"]
         try:
@@ -2924,6 +2935,36 @@ def self_test() -> int:
              any("UNREADABLE: carry sweep" in x["text"] for x in t2.findings)),
             ("opt-in: the default pass never sweeps; --only CARRY does",
              not default_pass_swept and len(calls) == n_before + 1),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- CARRY with no --roster-ref: the tick's default ref (O17) ----
+        # The sweep's second ref is roster_lib.default_roster_ref's answer,
+        # the same one PLAN reads; #2406 removed the constant fold 7 first
+        # read, and the self-test then crashed in carry_sweep.
+        def carry_default(branch_rc):
+            got: list = []
+            t = tick(carry=lambda argv: got.append(argv) or (0, [
+                "CARRY-SWEEP: 0 pull request(s), 0 other unowned finding(s)"]))
+            t._git.on(("ls-tree", "origin/main"), out=f"{r10p}\n")
+            t._git.on(("rev-parse", "--verify", rb), rc=branch_rc)
+            t._git.on(("diff", "--quiet", f"{rb}...origin/main"), rc=0)
+            try:
+                t.carry_sweep()
+            except Exception as e:  # the arm reports a crash, never hides it
+                return t, got, f"{type(e).__name__}: {e}"
+            return t, got, ""
+        tb, gb, eb = carry_default(0)
+        tm, gm, em = carry_default(1)
+        tail = ["sweep", "--last", str(CARRY_LAST), "--issues"]
+        a, f = check("CARRY default roster ref", [
+            ("with no --roster-ref the sweep runs without raising", not eb and not em),
+            ("the round branch present: origin/main, then the branch",
+             gb == [["--roster-ref", "origin/main", "--roster-ref", rb, *tail]]),
+            ("the branch absent: origin/main once, and the note says so (null control)",
+             gm == [["--roster-ref", "origin/main", *tail]]
+             and any(l["text"].startswith("roster ref:") and "absent" in l["text"]
+                     for l in tm.sections.get("CARRY", []))),
         ])
         total, failed = total + a, failed + f
 
