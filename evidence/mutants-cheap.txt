@@ -1,2 +1,0 @@
-MS:   FAIL and reports every allow entry nothing matches as stale  [[]]
-1 of 124 closure shrink pins FAILED
