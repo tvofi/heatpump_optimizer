@@ -91,6 +91,14 @@ are pressed.
 
 ## Head
 
+`0b06d22ae8422f7af9f6a2d3ea2a07fb27ebc924` merges main `c353027` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`97aae1f1ed9674e85682328e0f953dc2d3137068` merges main `db3293d` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`8314bca0e6f69b7bf76e979f131cc50eb2c7b544` merges main `768bfc0` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`91a3f77c9f968341a578d46277c0ff0e08c20dcc` merges the authored code head `e85ef9fe6f5080dd12cf12da4800e69ea14ab080` and then merges origin/main `913ce1ff5` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `e85ef9fe6f5080dd12cf12da4800e69ea14ab080` is the code head. It is two merges of origin/main onto the previous handoff head `2260b8b9058bc02f0673accb30dca76e94765b29`, which is also the authored code head of the last review:
 - origin/main `fa424fd91a042f4a66ae53238c3db6d70d9d4ff1` (#2408) and then `dd27e7c1b4c6ca250f8be5b33c4e8443d6d1f0b6` (#2411, R10-SAV-BASELINE). The second conflicted in `tests/golden/claimed_drift.txt` only; see **The claims file**.
 - origin/main `0dac0bf8731a36ca10805fcd3fd5c196b77cb8fc` (#2399). Clean.
@@ -240,7 +248,7 @@ ruling #201 comment 6240984157 step 3 under mandate 6175172275; the
 orchestrator ruled the explicit floors at the measured values and refused a
 floor of 16 under the share rule as unearned headroom.
 
-Payments tried:
+Payments tried: five, numbered below.
 1. Narrow the fix so fewer scenarios re-plan (keep the linear law on direct
    plants): refused -- that law is the defect the ruling accepted fixing.
 2. Split the pull request: no lower count -- all 36 hot-water scenarios
@@ -311,6 +319,7 @@ Read from the check-runs API on the PR head `86258e159d6e18b41aa0edafc79c6b8921d
 - **`wave-script`** (job 117830542873). Inherited from main, not this diff: the agreement lane's `merge-subject-pr` was `divergent=2` on main's merges `Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)` and `Merge pull request #2379 (R10-SENSOR-PAYLOAD)`, which `policy_lint.mjs`'s `resolvePrFromCommit` read as null. Cleared by main's #2423 and #2424, both in this head. At the head, `python3 -I tools/policy/agreement_py.py --out J; node tools/policy/agreement.mjs --py-json J` reads `divergent=0`. The detector is the agreement lane; no cheaper one exists.
 - **`delivery-status`** (job 117830543161; not a required context): `DELIVERY STATUS OVERDUE`, main's row backlog while main was red. This diff adds its own row `2368.md` only. Cleared by main's later record merges; `python -I -S tests/delivery_status.py --check` at the head reads `DELIVERY STATUS OK`.
 - **`pr-contract`** (job 117830697142): `check `wave-script` is red and `## Red checks` does not name it`. The cause was the body; this section names it, with `delivery-status` and `budget-raise-gate`. `policy_lint.mjs --pr-body` over this body reads 0 errors.
+- **`arch-score`** (job 117953059489, at the merge head `97aae1f1e`; not at this head): `gh: API rate limit exceeded for installation` in its first step, "Name the pull request and read its body", before any score was read. Infrastructure, not this diff. Re-run at `0b06d22ae`: success (check-runs 117967821658 and 117965550263). The detector: none cheaper; the check reads the PR body through the API and has no offline arm, so a rate-limited run fails by construction.
 - **`budget-raise-gate`** (job 117830532680): `RAISE tests/stress_budgets.json: coverage_floor_override.calls_floor ... .floor ...` and `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`. Red by design until the owner approves the raise; answered by `## Raise justification` (re-measured at the head, payments tried, unpayable by optimisation). Cheaper detector: none, the gate is the detector. This head is not yet approved, and nothing here claims it.
 
 History on this branch, answered earlier: `fast (3.14)` at `c3a25d2ae` (the ftol check at the old cell; answered by step 2, mutation-proven) and at `74f23814e` (the ftol check and the coverage floors, the override then absent), and `pr-contract` at `74f23814e` (`## Red checks` not naming `fast (3.14)`); all green since. The detector for the contract one: none, `tools/pr/prepr.sh` lints a body before the CI conclusion it must name exists.
@@ -324,7 +333,7 @@ The control's other seven stress failures are the control's own (`origin/main IS
 
 ## Forward-carry
 
-`none` -- the cell and arm re-selection is this check's own, recorded in its comment block with the instrument that made it; no later stage's technique, figure or option moves.
+`none`
 
 ## Unpinned sites
 
@@ -337,7 +346,7 @@ docstring line. The ledger's verdict at this head is CI's mutation check.
 
 ## Friction
 
-- `dev/governance/rules/claim-files.md: contradiction: a fixture whose baseline_cost moves cannot be claimed while it carries a may-drift entry, and a may-drift entry cannot excuse a judged-key move, so the held branch suspended twelve owner-sanctioned may-drift entries for the release -- the R8-P3 wood_coil precedent, recorded nowhere as the rule.`
-- `dev/governance/roles/fixer.md: cost: a label-triggered workflow added by a branch never runs for a label applied before the file reached the head (#2368: labelled at 74f23814e, workflow arrived at c3a25d2ae, zero runs), and nothing in the seat's brief or the job says the label must go on after; fixed for kernel-points by its synchronize arm.`
-- `.claude/rules/gate-scoping.md: unclear: exporting HPO_GATE_LOCK_LABEL for a run.sh run without first taking that label fails every leased script at 0s with no reason line in the gate log (harness_headers.py and stress.py here); the rule says run.sh "under HPO_GATE_LOCK_LABEL renews itself" without saying the label must already hold the lease.`
+- `dev/governance/rules/claim-files.md: contradiction: a fixture whose baseline_cost moves cannot be claimed while it carries a may-drift entry, and a may-drift entry cannot excuse a judged-key move, so the held branch suspended twelve owner-sanctioned may-drift entries for the release -- the R8-P3 wood_coil precedent, recorded nowhere as the rule.` Carry: R10-BRIEFS-FOLD.
+- `dev/governance/roles/fixer.md: cost: a label-triggered workflow added by a branch never runs for a label applied before the file reached the head (#2368: labelled at 74f23814e, workflow arrived at c3a25d2ae, zero runs), and nothing in the seat's brief or the job says the label must go on after; fixed for kernel-points by its synchronize arm.` Carry: R10-POLICY-FIXER-MD.
+- `.claude/rules/gate-scoping.md: unclear: exporting HPO_GATE_LOCK_LABEL for a run.sh run without first taking that label fails every leased script at 0s with no reason line in the gate log (harness_headers.py and stress.py here); the rule says run.sh "under HPO_GATE_LOCK_LABEL renews itself" without saying the label must already hold the lease.` Carry: R10-POLICY-GATE-SCOPING.
 
