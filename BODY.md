@@ -85,7 +85,7 @@ At `5337d23ea` CI was still running when this body was taken.
 
 ## Forward-carry
 
-none. The two carried constraints are discharged above: the null control under `## Null control`, and the re-measure on the bundle stores under `## Figures`. The dominated rate limit is no constraint on a later stage. It goes to the orchestrator as a finding to dispatch, outside this group's seam.
+- The rate limit in `learner_newton_step` (`max_step_fraction`, `HOUSE_LOSS_MAX_STEP` = 0.05) can no longer bind at the shipped constants: a saturated move is at most `alpha * trust_region` = 0.02 x 0.5 = 1 % of the estimate. Lands in `dev/programme/rosters/wave-r10-groups.json`, group R10-DEAD-RATE-LIMIT. Carry: R10-DEAD-RATE-LIMIT
 
 ## Friction
 
