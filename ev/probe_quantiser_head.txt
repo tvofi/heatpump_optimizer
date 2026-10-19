@@ -1,0 +1,26 @@
+number.f range_c (7.000000000000001, 55.50000000000001) writes 23.37C,53C -> [{'entity_id': 'number.f', 'value': 74}, {'entity_id': 'number.f', 'value': 127}]
+number.c05 range_c (20.0, 55.3) writes 23.37C,53C -> [{'entity_id': 'number.c05', 'value': 23.5}, {'entity_id': 'number.c05', 'value': 53}]
+number.c01 range_c (20.0, 55.33) writes 23.37C,53C -> [{'entity_id': 'number.c01', 'value': 23.4}, {'entity_id': 'number.c01', 'value': 53}]
+number.c1 range_c (20.4, 55.6) writes 23.37C,53C -> [{'entity_id': 'number.c1', 'value': 23}, {'entity_id': 'number.c1', 'value': 53}]
+climate.f range_c (44.6, 131.9) writes 23.37C,53C -> [{'entity_id': 'climate.f', 'temperature': 23}, {'entity_id': 'climate.f', 'temperature': 53}]
+OUT-OF-RANGE number.narrow 25.3 nearest 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 25.3 up 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 25.3 down 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 25.7 nearest 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 25.7 up 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 25.7 down 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 23.37 nearest 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 23.37 up 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 23.37 down 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 53.0 nearest 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 53.0 up 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 53.0 down 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 52.5 nearest 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 52.5 up 25.0 (25.3, 25.7)
+OUT-OF-RANGE number.narrow 52.5 down 25.0 (25.3, 25.7)
+number.narrow range_c (25.3, 25.7) writes 23.37C,53C -> [{'entity_id': 'number.narrow', 'value': 23}, {'entity_id': 'number.narrow', 'value': 53}]
+repair floor 48.0C -> value 118.4F sent 118F = 47.78C ok
+repair floor 53.0C -> value 127.4F sent 127F = 52.78C ok
+repair floor 58.0C -> value 136.4F sent 136F = 57.78C ok
+repair floor 60.0C -> value 140.0F sent 140F = 60.00C ok
+repair floor 63.0C -> value 145.4F sent 145F = 62.78C ok

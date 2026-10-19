@@ -1,0 +1,3 @@
+gate-held draw 0.3: idle_kw 0.30 evidence 72/72 observed (1.35, None) follows_ask True
+gate-held draw 0.9: idle_kw 0.90 evidence 72/72 observed (1.35, None) follows_ask True
+gate-held draw 1.4: idle_kw 1.40 evidence 48/72 observed (1.8, None) follows_ask True

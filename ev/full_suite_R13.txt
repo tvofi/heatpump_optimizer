@@ -1,0 +1,12 @@
+6 of 4247 FEATURE CHECKS FAILED
+exit 1
+  FAIL a number entity is commanded through set_value  [got [('number', 'set_value', {'entity_id': 'number.valve', 'value': 24})]]
+  FAIL and the commanded number is the comfort ceiling, the same value the dumb-valve recommendation gives  [commanding what a read-back sensor reports would freeze whatever the valve held when the mode was enabled]
+  FAIL a climate entity is commanded through set_temperature  [got [('climate', 'set_temperature', {'entity_id': 'climate.valve', 'temperature': 24})]]
+  FAIL an unrecognised kind is validated away to 'indoor' rather than trusted  [got [('climate', 'set_temperature', {'entity_id': 'climate.valve', 'temperature': 24})]]
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)  [{'climate on degF': ([74], 23.5), 'climate on degF, no target': ([74], 23.5), 'number declaring degF': ([74], 23.5), 'climate on degC': ([24], 23.5), 'number declaring degC': ([24], 23.5)}]
+6 of 4247 FEATURE CHECKS FAILED
