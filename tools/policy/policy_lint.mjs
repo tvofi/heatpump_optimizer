@@ -74,6 +74,8 @@ import {
   PATHLINE_RE,
   METRIC_LITERAL_RE,
   NEGATION_RE,
+  ROSTER_FILE_RE,
+  CARRY_FILE_RE,
 } from './brief_lint.mjs'
 import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
@@ -1164,6 +1166,10 @@ function policyFiles() {
 // and a number chosen here would be one seat's opinion enforced on every later
 // one. A report a seat reads is what that is worth; a gate check is not.
 let ruleBindingSource = () => null
+// The rule every carry destination must bind, and what is not a destination:
+// a frozen roster or carry under dev/archive/, or a linter's own fixture.
+const CARRY_RULE = '.claude/rules/finding-propagation.md'
+const CARRY_HOME_EXCLUDE = /^(dev\/archive\/|tools\/policy\/fixtures\/)/
 
 function ruleBindingOverTree() {
   return checkRuleBinding(ruleBindingSource())
@@ -1217,6 +1223,31 @@ function checkRuleBinding(model = null) {
     for (const f of corpus) {
       if (rule.globs.some((g) => globToRe(g).test(f))) bound.get(f).push(rule.file)
     }
+  }
+  // CARRY HOMES. finding-propagation says what a carry must hold and where it
+  // goes, so a seat editing a carry destination must load it. Every tracked
+  // roster or carry file outside the archive and the linters' fixtures is a live
+  // destination, whichever directory holds it: web-fix-wave's `groupsFile` under
+  // `.claude/workflows/`, the round's roster under `dev/programme/rosters/`
+  // (roster_lib.py), a carry under `dev/programme/carries/`. Derived from the
+  // tree, not from the rule's own globs, because #2408's first head dropped
+  // `.claude/workflows/*.json` while `wave-3l-groups.json` was still live there
+  // and every other arm stayed green: a glob that still matches something is
+  // not a dead glob.
+  const carryRule = rules.find((r) => r.file === CARRY_RULE)
+  // At the path `locate` reads, where the harness opens the file: a glob that
+  // matches only a moved file's old spelling loads the rule for nobody.
+  for (const real of tracked.map((f) => locate(f))) {
+    const base = path.posix.basename(real)
+    if (!ROSTER_FILE_RE.test(base) && !CARRY_FILE_RE.test(base)) continue
+    if (CARRY_HOME_EXCLUDE.test(real)) continue
+    if (carryRule?.globs?.some((g) => globToRe(g).test(real))) continue
+    findings.push({
+      severity: 'error',
+      check: 'rule-binding',
+      where: real,
+      message: `is a live carry destination that \`${CARRY_RULE}\` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's \`paths:\` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.`,
+    })
   }
   // The corpus, not the tree: these are the files that already have a cap and a
   // seat-facing purpose, so a capped policy file no rule binds is a file whose
@@ -3533,7 +3564,7 @@ const CHECKS = [
   { name: 'provenance', fn: 'checkProvenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
   { name: 'required-contexts', fn: 'requiredContextsOverTree', what: 'the corpus\'s required-context literals and recorded shape match the live ruleset', fixture: '(driven in assertAcceptance; live state, never fixtures, in production)' },
   { name: 'row-freeze', fn: 'rowFreezeOverPlan', what: 'the plan\'s delivery table stays within its frozen row and anchor counts', fixture: '(driven in assertAcceptance)' },
-  { name: 'rule-binding', fn: 'ruleBindingOverTree', what: 'every `paths:` glob matches a tracked file, and every capped policy file is bound by a rule', fixture: '(driven in assertAcceptance)' },
+  { name: 'rule-binding', fn: 'ruleBindingOverTree', what: 'every `paths:` glob matches a tracked file, every capped policy file is bound by a rule, and every live carry destination by finding-propagation', fixture: '(driven in assertAcceptance)' },
   { name: 'record', what: 'every merged pull request has a disposition (refuses)', fixture: 'fixtures/policy-loop/merged-subjects.txt' },
   { name: 'render', what: 'disposition documents render with the same structure as their source', fixture: 'fixtures/policy-loop/render-cells-rotten.md' },
   { name: 'stats', what: 'verdict and friction histograms, and what they would open', fixture: 'fixtures/policy-loop/pr-payloads.json + friction-keys.json' },
@@ -4599,10 +4630,17 @@ function assertAcceptance(derived) {
     corpus: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md'],
     rules: [{ file: '.claude/rules/a-rule.md', globs: ['CLAUDE.md', 'tools/audit/briefs/**', '.claude/rules/**'] }],
   }
+  // A bound live roster, and an archived roster and a fixture carry the
+  // carry-home arm must leave alone, so the over-fire check below drives it.
+  bindingClean.tracked.push('dev/programme/rosters/wave-r1-groups.json', 'dev/archive/rosters/wave-1-groups.json', 'tools/policy/fixtures/carry-1.json')
+  bindingClean.rules.push({ file: CARRY_RULE, globs: ['dev/programme/rosters/*.json'] })
   const bindingArms = [
     ['unscoped', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: null }] }, 'declares no'],
     ['dead glob', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: [...bindingClean.rules[0].globs, 'docs/gone/**'] }] }, 'matches no tracked file'],
     ['unbound corpus file', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: ['.claude/rules/**'] }] }, 'no `.claude/rules/*.md` binds'],
+    // The #2408 shape: a live roster in a home the carry rule's globs dropped,
+    // while every glob it kept still matches something.
+    ['unbound carry home', { ...bindingClean, tracked: [...bindingClean.tracked, '.claude/workflows/wave-x-groups.json'] }, 'live carry destination'],
   ]
   pins += bindingArms.length + 1
   for (const [name, model, needle] of bindingArms) {
@@ -5758,12 +5796,13 @@ function cmdRecord(findings, { measuredRecord = false } = {}) {
   const moved = after.filter((e) => before.has(e.key) && before.get(e.key) !== e.count)
   doc._comment =
     'Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.'
-  const at = recordedAtSha()
-  if (!at) {
+  // `sha`, not `at`: a local `at` shadowed the module's `at(path)` below.
+  const sha = recordedAtSha()
+  if (!sha) {
     console.log(`refusing to record: no merge base with origin/main, so ${KNOWN_BAD_FILE} would carry a provenance SHA nobody can resolve`)
     process.exit(2)
   }
-  doc.recorded_at = at
+  doc.recorded_at = sha
   doc.entries = after
   fs.writeFileSync(at(KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
   const total = [...counts.values()].reduce((a, b) => a + b, 0)
