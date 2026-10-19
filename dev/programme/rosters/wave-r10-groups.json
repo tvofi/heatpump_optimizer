@@ -3982,9 +3982,9 @@
    ],
    "brief": "open_pr silent-failure fix plus tick MERGE_PR/OWED folds, delivered by #2422.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-openpr-silent",
-    "commit": null,
+    "commit": "7ab3030bbfff",
     "last_step": null,
     "next_step": "PR #2422 is open on fix/r10-openpr-silent-pr; review and merge it",
     "note": "delivered by PR #2422"
