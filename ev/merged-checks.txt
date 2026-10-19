@@ -1,0 +1,5 @@
+merged=a6db8b2d3c58206407e4566853d2511eb8c85dfb
+TOTAL: 0 error(s) across 41 policy file(s)
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rename_sites ([], [])
+ALL 124 closure shrink pins PASSED

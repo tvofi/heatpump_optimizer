@@ -1,0 +1,3 @@
+BAD-DEST body item 26ca833d: R10-TICK-DRIVERS: R10-TICK-DRIVERS is done (resume.stage done)
+CARRY-AUDIT: 3 finding item(s): 2 routed, 0 unrouted, 1 bad destination(s)
+rc=1
