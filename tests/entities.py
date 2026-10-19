@@ -3807,7 +3807,15 @@ def _p2_registry(sources):
                  "early_cutoff.py::_cycle_guard":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
-                     "last heard from, which a re-reported 'on' resets"}),
+                     "last heard from, which a re-reported 'on' resets",
+                 # #2271: the replay half copies the recorder's rows, as the
+                 # export copies them out of SQLite; no age is decided there.
+                 "debugger.py::_since":
+                     "cuts a recorded history at the window's start by each "
+                     "row's own last_updated, the export's SQL window rule",
+                 "debugger.py::_record":
+                     "writes a recorded row's last_updated and last_reported "
+                     "verbatim, the export's row shape; nothing reads them as an age"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -26641,7 +26649,7 @@ steps:
       HEAD: ${{ github.event.pull_request.head.sha }}
     run: |
       set -euo pipefail
-      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+      python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
       for g in coverage_ratchet delivery_status; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
@@ -26792,11 +26800,21 @@ def _pt_armed(docs: dict) -> "set[str]":
 
 
 def _pt_trigger(script: str, planted: str) -> str:
-    """Run the arm's `changed` step on a planted one-file diff; its governance output."""
+    """Run the arm's `changed` step on a planted one-file diff; its governance output.
+
+    The step lists the diff with `tests/closure.py changed`, so the planted
+    base carries this tree's copy of it and `python` resolves to this
+    interpreter: the step runs the real producer, not a stand-in.
+    """
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
         _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
+        Path(_td, "tests").mkdir()
+        Path(_td, "tests", "closure.py").write_text(Path("tests/closure.py").read_text())
+        _bin = Path(_td, ".bin")
+        _bin.mkdir()
+        os.symlink(sys.executable, _bin / "python")
         subprocess.run(_g + ["add", "-A"], check=True, env=_env)
         subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
         _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
@@ -26808,6 +26826,7 @@ def _pt_trigger(script: str, planted: str) -> str:
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
+                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
                             "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"

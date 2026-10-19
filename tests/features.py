@@ -37401,13 +37401,17 @@ R.check(
     [r["month"] for r in _rows] == ["2026-02"],
     repr([r["month"] for r in _rows]),
 )
+# #2255: the row's actual is the month's bill (the spot line, 2.0), the
+# saving is baseline less actual over the covered interval (1.0), and the
+# baseline is the bill plus that saving. With no coverage meta (a month
+# booked before it existed) the open month falls back to 28 / 10.
 R.check(
-    "open month scales all three SEK columns and leaves pct unchanged",
+    "open month scales the bill and the saving by one factor",
     _rows[0]["estimated"] is True
-    and abs(_rows[0]["baseline_sek"] - 5.6) < 1e-9
-    and abs(_rows[0]["actual_sek"] - 2.8) < 1e-9
+    and abs(_rows[0]["actual_sek"] - 5.6) < 1e-9
     and abs(_rows[0]["savings_sek"] - 2.8) < 1e-9
-    and abs(_rows[0]["savings_pct"] - 50.0) < 1e-9,
+    and abs(_rows[0]["baseline_sek"] - 8.4) < 1e-9
+    and abs(_rows[0]["savings_pct"] - 100.0 / 3.0) < 1e-9,
     repr(_rows[0]),
 )
 _led.add_savings_settlement(
@@ -37421,11 +37425,337 @@ R.check(
 )
 _closed = [r for r in _led.savings_months(_feb10) if r["month"] == "2026-01"][0]
 R.check(
-    "a closed month is unscaled",
+    "a closed month is unscaled; nothing saved reads baseline == actual == bill",
     _closed["estimated"] is False
-    and abs(_closed["baseline_sek"] - 1.0) < 1e-9
-    and abs(_closed["actual_sek"] - 1.0) < 1e-9,
+    and abs(_closed["baseline_sek"] - 20.0) < 1e-9
+    and abs(_closed["actual_sek"] - 20.0) < 1e-9
+    and _closed["savings_sek"] == 0.0
+    and _closed["savings_pct"] == 0.0,
     repr(_closed),
+)
+
+R.section("#2255 — one cost source and a coverage-scaled open month")
+
+from heatpump_optimizer.ledger import freeze_month_report as _sav_freeze
+from heatpump_optimizer.ledger import month_hours as _sav_month_hours
+from heatpump_optimizer.ledger import SETTLED_HOURS_META as _SAV_SETTLED_META
+
+# Item 5: a closed September with every line the receipt adds -- spot,
+# grid fee, capacity, immersion, wear -- and one interval no plan covered.
+# The receipt's headline and the savings row's actual are the same figure.
+_sep = _SavLedger()
+_sep_t = _SavDT(2026, 9, 12, 3, 0)
+for _i, _base_kw in enumerate((2.0, 2.0, None)):
+    _t = _sep_t.replace(hour=3 + _i)
+    _e = 1.5
+    _sep.observe_spot_and_settle_savings(
+        _t, 1.0, {"baseline_kw": _base_kw, "grid_fee": 0.4}, _e, 1.0
+    )
+    _sep.add(_t, "spot", kwh=_e - 0.25, sek=(_e - 0.25) * 1.0)
+    _sep.add(_t, "immersion", kwh=0.25, sek=0.25)
+    _sep.add(_t, "grid_fee", kwh=_e, sek=_e * 0.4)
+_sep.book_capacity("2026-09", 3.0, 2.5)
+_sep.add(_sep_t, "wear", kwh=0.0, sek=1.2)
+_sep_receipt = _sav_freeze(
+    _sep, "2026-09", compressor_starts=1, contract_comparison={}
+)
+_sep_row = _sep.savings_months(_SavDT(2026, 10, 3, 12, 0))[0]
+R.check(
+    "the closed month's actual is the receipt's total, not a second sum",
+    _sep_row["actual_sek"] == _sep_receipt["total_sek"]
+    and abs(_sep_row["actual_sek"] - (4.5 + 1.8 + 7.5 + 1.2)) < 1e-9,
+    f"row {_sep_row} receipt total {_sep_receipt['total_sek']}",
+)
+R.check(
+    "the saving prices both sides at spot plus the grid fee, covered intervals only",
+    abs(_sep_row["savings_sek"] - 2 * (2.0 - 1.5) * 1.4) < 1e-9
+    and abs(_sep_row["baseline_sek"] - (_sep_row["actual_sek"] + _sep_row["savings_sek"])) < 1e-9,
+    repr(_sep_row),
+)
+R.check(
+    "the ledger's metered energy is spot plus immersion, the one energy figure",
+    _sep.metered_energy("2026-09") == {"kwh": 4.5, "sek": 4.5},
+    repr(_sep.metered_energy("2026-09")),
+)
+
+# Item 2: an install that settled its first 24 hours on 10 February has
+# covered 24 of February's 672 hours. The calendar-day ratio (28 / 10)
+# would scale those 24 hours as if they were ten days.
+_feb = _SavLedger()
+for _h in range(24):
+    _t = _SavDT(2026, 2, 9, 15, 0).replace(day=9 + (15 + _h) // 24, hour=(15 + _h) % 24)
+    _feb.observe_spot_and_settle_savings(_t, 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+    _feb.add(_t, "spot", kwh=1.0, sek=1.0)
+_feb.book_capacity("2026-02", 2.0, 5.0)
+_feb_row = _feb.savings_months(_feb10)[0]
+R.check(
+    "the open month scales by the month's hours over the hours it settled",
+    _sav_month_hours(_feb10) == 672.0
+    and abs(_feb_row["actual_sek"] - (24.0 * 28.0 + 10.0)) < 1e-9
+    and abs(_feb_row["savings_sek"] - 24.0 * 28.0) < 1e-9,
+    repr(_feb_row),
+)
+R.check(
+    "the capacity line is a month figure already and is not extrapolated",
+    abs(_feb_row["baseline_sek"] - _feb_row["actual_sek"] - _feb_row["savings_sek"]) < 1e-9
+    and abs((_feb_row["actual_sek"] - 10.0) / 28.0 - 24.0) < 1e-9,
+    repr(_feb_row),
+)
+_over = _SavLedger()
+for _h in range(700):
+    _over.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 15, 0), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
+_over.add(_SavDT(2026, 2, 9, 15, 0), "spot", kwh=700.0, sek=700.0)
+R.check(
+    "a month that settled more hours than it has is never scaled down",
+    _over.savings_months(_feb10)[0]["actual_sek"] == 700.0,
+    repr(_over.savings_months(_feb10)[0]),
+)
+_ren = _SavLedger.from_dict(_feb.as_dict())
+R.check(
+    "the coverage survives the store round trip",
+    _ren.savings_months(_feb10) == _feb.savings_months(_feb10),
+    repr(_ren.savings_months(_feb10)),
+)
+# An interval of no length settled no hours, so the stored coverage (the
+# payload the ledger store saves) takes no sample from it, as it takes none
+# from a backwards one.
+_none = _SavLedger()
+for _dt in (0.0, -1.0):
+    _none.observe_spot_and_settle_savings(_feb10, 1.0, {"baseline_kw": 2.0}, 1.0, _dt)
+_none_meta = _none.as_dict()["months"][_sav_month_key(_feb10)]["meta"]
+R.check(
+    "an interval of no length settles no hours: the stored coverage takes no sample",
+    _SAV_SETTLED_META not in _none_meta and "spot_price" in _none_meta,
+    repr(_none_meta),
+)
+
+# Item 1: the settlement books the plan's thermostat baseline at the step
+# covering the interval. A thermostat that ran all along does not care where
+# the optimiser left the house, so step 0 must not depend on the plan's start
+# state. Started from that state it was all-or-nothing: the clip (max power)
+# whenever the house sat below target, 0 kW above it -- September's 81 % and
+# October's negative month. Both topologies, the DHW path on the two-zone one.
+from profiles import house as _hb_house, prices as _hb_prices, weather as _hb_weather
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer as _HbOpt,
+    OptimizationConfig as _HbCfg,
+    _baseline_target as _hb_target,
+    _floor_demand_at_target as _hb_floor_demand,
+    _thermostat_held_state as _hb_held_state,
+)
+from heatpump_optimizer.thermal_model import (
+    ThermalModel as _HbModel,
+    ThermalParameters as _HbParams,
+    ThermalState as _HbState,
+    WeatherSeries as _HbWSeries,
+)
+
+_hb_t0 = _SavDT(2026, 1, 15, 0, 0)
+_hb_out, _hb_wind, _hb_rain, _hb_sol = _hb_weather("winter_cold", _hb_t0)
+for _hb_two, _hb_dhw in ((False, False), (True, True)):
+    _hb_cfg = _hb_house(two_zone=_hb_two, dhw=_hb_dhw)
+    _hb_par = _HbParams.from_config(_hb_cfg)
+    _hb_par.dhw_enabled = _hb_dhw
+    _hb_opt = _HbOpt(_HbModel(_hb_par), _HbCfg(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+        min_temp=17.0, max_temp=23.0,
+    ))
+    _hb_first, _hb_sav, _hb_cost = [], [], []
+    for _hb_room, _hb_slab in ((21.0, 22.0), (20.0, 21.0), (19.0, 20.0), (22.0, 23.5)):
+        _hb_plan = _hb_opt.optimize(inputs=solve_inputs(
+            initial_state=_HbState(
+                room_temperature=_hb_room, slab_temperature=_hb_slab,
+                outdoor_temperature=float(_hb_out[0]),
+                upper_floor_temperature=_hb_room, lower_floor_temperature=_hb_room,
+                dhw_temperature=52.0, dhw_hours_since_legionella=20.0,
+                buffer_tank_temperature=40.0,
+            ),
+            prices=_hb_prices("flat", _hb_t0), outdoor_temps=_hb_out,
+            wind_speeds=_hb_wind, precipitation=_hb_rain,
+            solar_radiation=_hb_sol, start_time=_hb_t0,
+        ))
+        _hb_first.append(float(_hb_plan.baseline_power_schedule[0]))
+        _hb_sav.append(float(_hb_plan.predicted_savings))
+        _hb_cost.append(float(_hb_plan.predicted_cost))
+    R.check(
+        f"the booked thermostat step is independent of the plan's start state "
+        f"({'two-zone, DHW' if _hb_two else 'single-zone'})",
+        max(_hb_first) - min(_hb_first) < 1e-9
+        and 0.0 < _hb_first[0] < float(_hb_par.max_electrical_power),
+        repr(_hb_first),
+    )
+    # The plan starts from the measured house and the thermostat held, so
+    # the start's stored-heat gap is settled as the end's is: a plan that
+    # starts colder buys that heat back inside its horizon and must not read
+    # it as a loss. Without the start settlement the saving swung with the
+    # start more than the plan's own cost did (flat price, single-zone:
+    # -15.9 .. +12.8 against a cost spread of 31).
+    R.check(
+        f"the predicted saving moves less with the start state than the plan's cost "
+        f"({'two-zone, DHW' if _hb_two else 'single-zone'})",
+        max(_hb_sav) - min(_hb_sav) < 0.5 * (max(_hb_cost) - min(_hb_cost)),
+        f"savings {[round(v, 2) for v in _hb_sav]} cost {[round(v, 2) for v in _hb_cost]}",
+    )
+    if not _hb_two:
+        # And it is the steady holding power, not merely a common one: the
+        # slab-fed demand at the step's comfort target (midnight: the night
+        # temperature) over this step's COP (no DHW, no external heat here).
+        _hb_q = _hb_floor_demand(
+            _hb_opt.model, _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0), float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
+            float(_hb_sol[0]),
+        )
+        _hb_cop = _hb_opt.model.compute_cop(float(_hb_out[0]))
+        R.check(
+            "the booked thermostat step is the steady holding power at target",
+            abs(_hb_first[0] - max(0.0, _hb_q) / _hb_cop) < 1e-9,
+            f"{_hb_first[0]!r} vs {max(0.0, _hb_q) / _hb_cop!r}",
+        )
+        # The oracle above shares _floor_demand_at_target with production; the
+        # plant model does not. One plant step from the held house at the
+        # booked power leaves the room at target (the two-zone loss terms on a
+        # single-zone house drift it 0.06 K).
+        _hb_held = _hb_held_state(_hb_opt.model, _HbState(
+            room_temperature=19.0, slab_temperature=20.0, outdoor_temperature=float(_hb_out[0]),
+        ), _HbWSeries(outdoor_temps=_hb_out, wind_speeds=_hb_wind, precipitation=_hb_rain,
+                      solar_radiation=_hb_sol), _hb_opt.config.get_comfort_temp(0.0, when=_hb_t0))
+        _hb_next = _hb_opt.model.simulate_step(
+            _hb_held, _hb_first[0], float(_hb_out[0]), float(_hb_wind[0]), float(_hb_rain[0]),
+            float(_hb_sol[0]), dt_hours=0.25, hour_of_day=0.0,
+        )
+        R.check(
+            "the held house at the booked power is a steady state of the plant model",
+            abs(_hb_next.room_temperature - _hb_held.room_temperature) < 1e-6
+            and abs(_hb_next.slab_temperature - _hb_held.slab_temperature) < 1e-6,
+            f"room {_hb_held.room_temperature!r} -> {_hb_next.room_temperature!r}, "
+            f"slab {_hb_held.slab_temperature!r} -> {_hb_next.slab_temperature!r}",
+        )
+        # Edges of the two helpers: a schedule shorter than the horizon falls
+        # back to the default setpoint, and with no weather there is nothing
+        # to hold, so the measured state is returned.
+        R.check(
+            "past the comfort schedule's end the thermostat holds the default setpoint; "
+            "with no weather the held state is the measured one",
+            _hb_target(np.array([20.0]), 0, 18.0) == 20.0
+            and _hb_target(np.array([20.0]), 1, 18.0) == 18.0
+            and _hb_target(None, 0, 18.0) == 18.0
+            and _hb_held_state(_hb_opt.model, _hb_held, _HbWSeries(
+                outdoor_temps=np.array([]), wind_speeds=np.array([]),
+                precipitation=np.array([]), solar_radiation=np.array([])), 25.0) is _hb_held,
+            "",
+        )
+
+# The start's settlement, at its two limits. A pre-heated start (24 C room,
+# above the 21 C cap the end settlement uses) carries heat the plan coasts
+# on inside the horizon, so it is debited past the caps -- but by no more
+# than the thermostat would have bought: with nothing to buy (a summer house
+# holding passive warmth) the debit stops at the capped gap.
+from heatpump_optimizer.thermal_model import WeatherSeries as _HbWS
+
+_hs_cfg = _hb_house(two_zone=False, dhw=False)
+_hs_par = _HbParams.from_config(_hs_cfg)
+_hs_par.dhw_enabled = False
+_hs_opt = _HbOpt(_HbModel(_hs_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hs_ws = _HbWS(outdoor_temps=_hb_out, wind_speeds=_hb_wind, precipitation=_hb_rain,
+               solar_radiation=_hb_sol)
+_hs_px = np.asarray(_hb_prices("winter_typical", _hb_t0), dtype=float)
+_hs_caps = _hs_opt._settlement_caps(_hb_out)
+_hs_warm = _HbState(room_temperature=24.0, slab_temperature=26.0,
+                    outdoor_temperature=float(_hb_out[0]))
+_hs_held = _hb_held_state(_hs_opt.model, _hs_warm, _hs_ws, 21.0)
+_hs_capped = _hs_opt._deferred_energy_cost(
+    _hs_held, _hs_warm, _hs_px, _hb_out, caps=_hs_caps)
+_hs_free = _hs_opt._deferred_energy_cost(_hs_held, _hs_warm, _hs_px, _hb_out, caps=None)
+_hs_gap = lambda cost: _hs_opt._start_gap_cost(  # noqa: E731
+    _hs_warm, _hs_ws, None, _hs_px, _hb_out, _hs_caps, None, cost)
+R.check(
+    "precondition: the pre-heated start carries heat above the caps",
+    _hs_free < _hs_capped - 0.5,
+    f"capped {_hs_capped:.3f} uncapped {_hs_free:.3f}",
+)
+R.check(
+    "with a thermostat that buys nothing, the start is settled at the caps",
+    abs(_hs_gap(0.0) - _hs_capped) < 1e-9,
+    f"{_hs_gap(0.0)!r} vs capped {_hs_capped!r}",
+)
+R.check(
+    "with demand to displace, the pre-heated start is debited past the caps",
+    abs(_hs_gap(1e9) - _hs_free) < 1e-9,
+    f"{_hs_gap(1e9)!r} vs uncapped {_hs_free!r}",
+)
+R.check(
+    "between the two, the debit past the caps stops at the thermostat's cost",
+    abs(_hs_gap(1.0) - (_hs_capped - 1.0)) < 1e-9,
+    f"{_hs_gap(1.0)!r} vs {_hs_capped - 1.0!r}",
+)
+R.check(
+    "a negative thermostat cost (negative prices) never turns the debit into a credit",
+    abs(_hs_gap(-5.0) - _hs_capped) < 1e-9,
+    f"{_hs_gap(-5.0)!r} vs capped {_hs_capped!r}",
+)
+_hs_cold = _HbState(room_temperature=19.0, slab_temperature=20.0,
+                    outdoor_temperature=float(_hb_out[0]))
+_hs_cold_held = _hb_held_state(_hs_opt.model, _hs_cold, _hs_ws, 21.0)
+# Caps that bind on the HELD slab (the cap below it, the cold start under
+# it): the capped gap is then smaller than the uncapped one, and that
+# difference is no surplus of the plan's to debit or credit.
+_hs_tight = {**_hs_caps, "slab": 21.5}
+_hs_cold_capped = _hs_opt._deferred_energy_cost(
+    _hs_cold_held, _hs_cold, _hs_px, _hb_out, caps=_hs_tight)
+R.check(
+    "a start colder than the held house is settled at the caps, with no surplus to debit",
+    _hs_cold_held.slab_temperature > 21.5
+    and abs(_hs_opt._start_gap_cost(_hs_cold, _hs_ws, None, _hs_px, _hb_out, _hs_tight, None, 1e9)
+            - _hs_cold_capped) < 1e-9,
+    f"held slab {_hs_cold_held.slab_temperature!r} capped {_hs_cold_capped!r}",
+)
+_hs_sun = _hb_weather("summer_warm", _SavDT(2026, 7, 15, 12, 0))
+_hs_sun_held = _hb_held_state(
+    _hs_opt.model, _hs_cold,
+    _HbWS(outdoor_temps=_hs_sun[0], wind_speeds=_hs_sun[1], precipitation=_hs_sun[2],
+          solar_radiation=_hs_sun[3]), 21.0)
+R.check(
+    "with no demand at the held target the slab sits at the target, not below it",
+    _hs_sun_held.slab_temperature == 21.0 and _hs_sun_held.room_temperature == 21.0,
+    repr((_hs_sun_held.room_temperature, _hs_sun_held.slab_temperature)),
+)
+
+# On the hot-water path the reference's cost includes the tank's, and house
+# heat displaces space-heat purchases only: the bound handed to the start
+# settlement is the space reference's cost, strictly below baseline_cost.
+import unittest.mock as _hs_mock
+
+_hd_cfg = _hb_house(two_zone=False, dhw=True)
+_hd_par = _HbParams.from_config(_hd_cfg)
+_hd_par.dhw_enabled = True
+_hd_opt = _HbOpt(_HbModel(_hd_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hd_bounds = []
+_hd_real = _hd_opt._start_gap_cost
+
+
+def _hd_record(*a):
+    _hd_bounds.append(a[-1])
+    return _hd_real(*a)
+
+
+with _hs_mock.patch.object(_hd_opt, "_start_gap_cost", _hd_record):
+    _hd_plan = _hd_opt.optimize(inputs=solve_inputs(
+        initial_state=_HbState(
+            room_temperature=21.0, slab_temperature=22.0,
+            outdoor_temperature=float(_hb_out[0]), dhw_temperature=50.0,
+            dhw_hours_since_legionella=20.0,
+        ),
+        prices=_hb_prices("winter_typical", _hb_t0), outdoor_temps=_hb_out,
+        wind_speeds=_hb_wind, precipitation=_hb_rain, solar_radiation=_hb_sol,
+        start_time=_hb_t0,
+    ))
+R.check(
+    "the hot-water path bounds the start debit by the space reference's cost, not the tank's",
+    len(_hd_bounds) == 1 and 0.0 < _hd_bounds[0] < float(_hd_plan.baseline_cost) - 0.01,
+    f"bounds {_hd_bounds} baseline_cost {_hd_plan.baseline_cost!r}",
 )
 
 import inspect as _sav_inspect
@@ -37594,12 +37924,13 @@ _sv._accumulate_energy(_sv_sample, 0.5, _sv_pending)
 _sv_m = NOW.strftime("%Y-%m")
 _sv_b = _sv._ledger.line(_sv_m, "savings_baseline")
 _sv_a = _sv._ledger.line(_sv_m, "savings_actual")
+# #2255: both sides at spot plus the interval's grid fee (2.0 + 0.5).
 R.check(
     "with a pending baseline both savings lines move",
     abs(_sv_b["kwh"] - 2.0) < 1e-12
-    and abs(_sv_b["sek"] - 4.0) < 1e-12
+    and abs(_sv_b["sek"] - 5.0) < 1e-12
     and abs(_sv_a["kwh"] - 1.0) < 1e-12
-    and abs(_sv_a["sek"] - 2.0) < 1e-12,
+    and abs(_sv_a["sek"] - 2.5) < 1e-12,
     f"base {_sv_b} actual {_sv_a}",
 )
 _sv0 = _t2_coord()
@@ -57293,7 +57624,9 @@ _f23_real_base = _F23Opt._compute_baseline_power
 
 
 def _f23_def(self, baseline_end, optimized_end, *a, **k):
-    _f23_seen["ends"] = (baseline_end, optimized_end)
+    # The END settlement is the first call; #2255's start settlement values
+    # the start gap with the same function after it, so later calls are not it.
+    _f23_seen.setdefault("ends", (baseline_end, optimized_end))
     return _f23_real_def(self, baseline_end, optimized_end, *a, **k)
 
 

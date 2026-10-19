@@ -835,8 +835,8 @@ export function movesClaimable(changed) {
 export function threeDotFiles(runGit, ref) {
   const out = [];
   for (const args of [
-    ["diff", "--name-only", `${ref}...HEAD`],
-    ["diff", "--name-only", "HEAD"],
+    ["diff", "--no-renames", "--name-only", `${ref}...HEAD`],
+    ["diff", "--no-renames", "--name-only", "HEAD"],
     ["ls-files", "--others", "--exclude-standard"],
   ]) {
     for (const line of String(runGit(...args)).split("\n")) {
