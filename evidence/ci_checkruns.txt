@@ -1,0 +1,8 @@
+check-runs on a01006c1b (read 2026-10-19 ~14:35Z via get_check_runs, 45 runs):
+red: nightly-status (failure) -- reads nightly state, not this diff (fix-review.md step 11: not this PR's)
+in_progress: coverage, Analyze (python)
+success: pr-contract (x3, latest started 14:01:14Z), fast (3.14), browser, typing, briefs, closure-scope, scope, mutation,
+  env-matrix, instrument-self-tests, policy-docs, wave-script, delivery-status, hassfest, validate-hacs,
+  arch-score (x3), budget-raise-gate (x3), Analyze (javascript-typescript), Analyze (actions), cancel-superseded (x2)
+neutral: CodeQL; skipped: the rest (autofix, nightly, ledger, slow, record jobs)
+mutation lane: diff writes no production code line (card unchanged) -> no mutant drawn.
