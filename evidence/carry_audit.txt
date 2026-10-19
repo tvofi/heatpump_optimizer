@@ -1,0 +1,14 @@
+UNROUTED body item ba1bccf9 (## Forward-carry) [section]: '- The CodeQL delegation carry is done in this PR, so it needs no destination. `roster_edit.py` has no verb tha'
+BAD-DEST body item 441668ce: R10-TICK-DRIVERS: R10-TICK-DRIVERS is done (resume.stage done)
+UNROUTED body item 832ebf74 (## Friction) [section]: '- fixer-step-5: unenforced: under `MODE: FULL`, step 5 leaves every script to CI, so a `tests.yml` edit that b'
+CARRY-AUDIT: 4 finding item(s): 1 routed, 2 unrouted, 1 bad destination(s)
+rc=1
+UNROUTED #2406 body item ba1bccf9 (## Forward-carry) [section]: '- The CodeQL delegation carry is done in this PR, so it needs no destination. `roster_edit.py` has no verb tha'
+BAD-DEST #2406 body item 441668ce: R10-TICK-DRIVERS: R10-TICK-DRIVERS is done (resume.stage done)
+UNROUTED #2406 body item 832ebf74 (## Friction) [section]: '- fixer-step-5: unenforced: under `MODE: FULL`, step 5 leaves every script to CI, so a `tests.yml` edit that b'
+UNROUTED #2406 review 6250514050 item 3af316e4 (## Not blocking, to fold into the same repair round) [section]: '- **The projection overstates its saving.** `graders-head-copy` has `if: !cancelled() && github.event_name == '
+UNROUTED #2406 review 6250514050 item bc6c94b6 (## Not blocking, to fold into the same repair round) [section]: '- **A false-positive WARNING after a squash landing.** `default_roster_ref` warns on `git diff --quiet <branch'
+UNROUTED #2406 review 6250514050 item d714141d (## Not blocking, to fold into the same repair round) [section]: '- **The live beat restart is a later-stage action** that so far exists only in this body\'s "Unpinned sites" se'
+UNROUTED #2406 review 6251656756 item 8694f912 (## Other steps) [non-blocking]: "- Not blocking: `_RENAME_EXEMPT` still exempts `--cached`, which detects renames in the index. Today's `--cach"
+CARRY-AUDIT #2406: 8 finding item(s): 1 routed, 6 unrouted, 1 bad destination(s)
+rc=1

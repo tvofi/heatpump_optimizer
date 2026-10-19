@@ -1,95 +1,65 @@
-Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: not carried to the post-merge state-docs beat restart: its only destination is R10-TICK-DRIVERS.carry, and that group is resume.stage done (merged as #2390, a96f4be4a), which finding-propagation.md says is not a destination
+Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: the body still names done R10-TICK-DRIVERS as the beat-restart destination: a spliced stale second ## Forward-carry (after a broken "## Friction`." heading) contradicts the R10-STAMP one, and carry_audit refuses it BAD-DEST
 
-bus-nonce: 2d07a42ae308f37da81a612d9d64244f
+bus-nonce: b99f1763a7e81901bc62b855d9db353c
 
-**Round 7.** This is the seventh `Fix review:` verdict on #2406. Rounds 1 to 6 blocked at `a7d97f55b`, `89d2b9465`, `af391637b`, `b965c4ab9`, `d1becac2b` and `2d9f20009`.
+**Round 8.** This is the eighth `Fix review:` verdict on #2406. Rounds 1 to 7 blocked at `a7d97f55b`, `89d2b9465`, `af391637b`, `b965c4ab9`, `d1becac2b`, `2d9f20009` and `22803f99b`. The head has not moved since round 7. From the fourth round on, `fix-review.md` says `fixer.md` owes a re-cut rather than a repair. What is left here is a body edit, so I name the rule and leave it to the orchestrator.
 
-I reviewed from a detached worktree at `22803f99bd8be29012a668ef22140dd12ae3aa5e` (`ev/HEAD`). `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` was empty, so my copy of the contract is current. origin/main is `06c6f3cf2`, which is also the merge base.
+I measured head `22803f99bd8be29012a668ef22140dd12ae3aa5e` (`ev/HEAD`). `pulls/2406` reported the same head when I wrote this. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so my copy of the contract is current. The merge base is origin/main `06c6f3cf2`.
 
-## Why it is blocked: the forward-carry has no live destination (step 10)
+## What the repair got right (the roster)
 
-The body's `## Forward-carry` names `R10-TICK-DRIVERS` as the destination of the beat restart. The restart is to run after this PR merges, on main's code, with no `--roster-ref` and no `--watch-ref refs/heads/main`. Its control is two SHAs in the memo, plus a roster-only commit regenerating the plan within one beat.
+On `origin/handoff/audit-r10-roster` at `73bb15fe8f5bf05ec3568927118a8d678dd8b99f` (`ev/carry.txt`):
+- `R10-STAMP` has `resume.stage: "not-started"` and `next_step` "after the wave-1 drain, run the stamp". So it is a live group that runs after this PR merges.
+- Its `carry` ends with the beat restart, worded the same as the copy on R10-TICK-DRIVERS:
+  - "after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main";
+  - the control: "Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat."
+- `73bb15fe` changes one file, adding that one line.
+- The body's first `## Forward-carry` names R10-STAMP at `73bb15fe` correctly.
+- The two stale copies remain on the done R10-TICK-DRIVERS. Nothing dispatches or lints a done group, and the body discloses them.
 
-On `origin/handoff/audit-r10-roster` at `6c891ee6e` (`ev/carry.txt`):
-- The carry text and its control are present in `R10-TICK-DRIVERS.carry`.
-- That group is `resume.stage: "done"`, `commit: a96f4be4ac0a`, which is the merge of #2390 into main. #2390 is in this head through the main merge `06c6f3cf2`.
-- `git grep` over both the roster branch and origin/main finds the restart nowhere else. That covers every other group's `carry` and `dev/programme/carries/`.
+## Why it is blocked: the body names two destinations, and one is the done group
 
-`finding-propagation.md` (lines 69-72): "A group at `resume.stage: done` is not a destination: nothing dispatches or lints it." So since #2390 merged this round, the beat restart has no destination a later seat reads. Without the restart, this PR's beat change does nothing on the live box (round 2 found this, and it still holds).
+The repair was spliced into the body rather than replacing the old section. The tail of the body (`ev/body-tail.txt`, `ev/body-headings.txt`) contain:
+- a broken heading, `## Friction`.` (with a stray backtick and full stop);
+- a duplicate copy of the `closures` and `nightly-ha (stable)` red-check entries;
+- **a second `## Forward-carry`** that still reads "Carry: R10-TICK-DRIVERS ... The CodeQL delegation carry is done in this PR, so the orchestrator drops it from that group";
+- the real `## Friction` after that.
 
-**Remedy: a roster or carry-file edit, with no code change.** Move the carry to a group that has not started, or to a `dev/programme/carries/carry-<N>.json` (N being the issue that receives it). Keep the control. Then re-name the destination in `## Forward-carry`. While you are there, drop the second `From R10-ROSTER-FASTPATH (#2406)` item (the CodeQL delegation) from the done group: this PR did that work, and MB17 pins it. The head does not need to move, so every measurement below carries.
+So the body now names two destinations for the same carry, and one of them is a group at `resume.stage: done`. `finding-propagation.md` says "A group at `resume.stage: done` is not a destination", and "a reader who finds two versions trusts neither". Step 10 opens the destination the body names, and this body names both.
 
-## The resolution delta of the orchestrator's main merge (`22803f99b`)
+The instrument agrees. I ran `carry_audit.py`, which is not in the tree on main: it comes from PR #2404's head `b419463b1`, self-test `144 checks, 0 failed`. Against `--roster-ref origin/handoff/audit-r10-roster` (`ev/carry_audit.txt`):
 
-- **The graph** (`ev/merges.txt`):
-  - `22803f99b` has parents `82095a68d` and `06c6f3cf2`.
-  - `82095a68d` has parents `2d9f20009` (round 6's head) and `26b148e5b`, and its tree equals `26b148e5b`'s.
-  - `26b148e5b` has parents `2d9f20009` and `b87e8f19b`.
-  - This matches the body's `## Head`.
-- **No merge was resolved by hand.** Every merge on the first-parent chain from `b87e8f19b`, `22803f99b` and `82095a68d` included, has a tree equal to `git merge-tree --write-tree` of its parents.
-- **No conflict with main.** `git merge-tree --write-tree origin/main(06c6f3cf2) 22803f99b` returns rc 0 (`ev/merge-tree.txt`).
-- **Files both sides touched** (`ev/main-merge-delta.txt`, `ev/shared-files.diff`): `tests/closures.json`, `tools/audit/seat/INSTRUMENTS.md` and `tools/pr/prepr.sh`. All three auto-merged in disjoint regions:
-  - closures: main added an `r10_tick_drivers.py` list entry, and this PR changed the `card.mjs` closure and two timings;
-  - INSTRUMENTS: main changed the `fold_ledger` and `body_push` entries, and this PR changed `roster_lib` and the beat;
-  - prepr.sh: main added a self-test arm for `body_push`/`ci_predict` at about line 2087, and this PR added `--no-renames` at four call sites.
-- **Does #2390's prepr.sh/body_push.sh change move a figure? No.** The census stays clean after #2390 adds `tools/audit/seat/body_push.sh` and `tools/pr/ci_predict.py`, both under `RENAME_SITES`:
-  - `closure.rename_sites()` returns `([], [])`;
-  - `ci_predict.py:267,312` already pass `--no-renames`;
-  - `bash tools/pr/prepr.sh --self-test` prints `290 passed, 0 failed`. The `AssertionError: queue-base` above that line is a planted arm's output, and the total separates it.
-- **The body's `comm -12` claim** (`ev/body-comm.txt`) re-derives to `tools/policy/policy_lint.mjs` alone.
+```
+BAD-DEST body item 441668ce: R10-TICK-DRIVERS: R10-TICK-DRIVERS is done (resume.stage done)
+CARRY-AUDIT: 4 finding item(s): 1 routed, 2 unrouted, 1 bad destination(s)   rc=1
+```
 
-## Mutation proof, re-run at this head (step 1; `ev/mutants.txt`)
+So the dispatch's precondition, "carry_audit check passes against the roster ref", does not hold.
 
-Each mutant was a single-line edit in a second worktree, restored afterwards (`git status` empty).
+**Remedy: a body-only edit, no push.** Delete the block from `## Friction`.` through the second `## Forward-carry` bullet, and keep the first `## Forward-carry` section (the one naming R10-STAMP) and the real `## Friction`. Then run `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body` again.
 
-- **MP** (`--no-renames` dropped at `tests/closure.py:2763`):
-  - closure selftest: `3 of 124 ... FAILED` (both sides of the rename, the 0-script scope, the census);
-  - lane_skip: `51/54`;
-  - codeql_scope: `47 checks, 2 failed`.
-  - All three match the body.
-- **MB19** (the flag dropped at `policy_lint.mjs:2356`, `mergeRecordClass`'s real call): `policy_lint` exits 1 with `FIXTURE VACUOUS: recordClassPaths`, and `rename_sites()` names `tools/policy/policy_lint.mjs:2356`. I re-ran this one because main's `policy_lint.mjs` came in with `b87e8f19b`. It matches.
-- **MB15** (the flag dropped at `stamp.py:1708`): `policy_lint` exits 1 with `FIXTURE VACUOUS`, and `rename_sites()` names `tools/release/stamp.py:1708`. It matches.
-- **M1, M3 and MS**: not re-run. `tests/entities.py` and the closure census code are byte-identical to round 6's `2d9f20009` in this PR's regions, and round 6 reproduced all three. The unmutated head passes (below).
-- **M2**: not re-run, and disclosed as unpinned. The disclosure is accurate.
+`carry_audit` lists two other UNROUTED body items. I do not block on them, because the `Carry:` marker rule carry_audit enforces is still in unmerged #2404, not on main's `finding-propagation.md`. They will still fail the check named in the dispatch:
+- `ba1bccf9`: the CodeQL "done in this PR" bullet. Writing `Carry: dismissed: done in this PR (MB17 pins it)` would route it.
+- `832ebf74`: the `## Friction` item `fixer-step-5: unenforced`. It needs a `Carry:` naming its owner, or `dismissed: <reason>`.
 
-## Body figures re-taken at this head (`ev/figures-head.txt`, `ev/entities-head.txt`)
+The PR-level sweep (`carry_audit pr 2406`) also lists four non-blocking notes from earlier verdicts (items `3af316e4`, `bc6c94b6`, `d714141d` and `8694f912`) as unrouted. `d714141d` is the beat restart, which R10-STAMP now holds, but no marker in the body names that item id.
 
-The body took its figures at `26b148e5b`. At `22803f99b` each matches:
+## Checks that pass, and an instrument note
 
-| check | result at the head |
-|---|---|
-| `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` | `ALL 2349 ENTITY CHECKS PASSED` |
-| closure selftest | `ALL 124 closure shrink pins PASSED` |
-| `closure.rename_sites()` | `([], [])` |
-| lane_skip | `54/54 pins passed` |
-| codeql_scope `-I` | `47 checks, 0 failed` |
-| roster_lib | `18 checks, 0 failed` |
-| orchestrator_tick | `104 checks, 0 failed` |
-| state_docs | `all checks passed` |
-| stamp | `RESULT stamp_self_test=pass` |
-| policy_lint | `TOTAL: 0 error(s) across 41 policy file(s)`, no `VACUOUS` |
-| env_drift `--claims-only origin/main` | `claims hygiene: origin/main ok` |
-| layout `--guard` | `GUARD: 0 refusal(s)` |
-| structure | `STRUCTURE RATCHET PASSED` |
-| throwaway_git | `0 ... refused` |
-| tmp_paths | `0 refused` |
-| codeowners_gap | `RESULT uncovered_files=0` |
-| harness_headers | `ALL 109 HARNESS HEADER CHECKS PASSED` |
-| archscore `--diff` at the merge base | `Architecture score: dS +0.0000 NULL` |
-| agreement | `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok` |
+- **pr-contract.** It passed this body three times, the last run starting at 02:48:48Z, after the edit. So `checkPrBody` accepts duplicate `## Forward-carry` headings and a malformed heading. Nothing in the tree catches this splice. This is an instrument observation for D11, not a finding of this PR.
+- **Merge.** `git merge-tree --write-tree origin/main 22803f99b` returns rc 0, tree `b33c4358a` (`ev/merge-tree.txt`).
+- **Census.** `closure.rename_sites()` at the head returns `([], [])`.
+- **Code.** Round 7's verification of the code stands. The head is unchanged, and the roster edit touches nothing the diff reads. I did not re-run the mutation proof or the figures.
+- **CI** (check-runs API, `ev/checkruns.tsv`):
+  - Nothing at this head has concluded `failure`.
+  - `fast (3.14)` and `closures` were still `in_progress` at 02:50Z. They started at 02:10Z and 02:27Z.
+  - Round 7's local `ALL 2349 ENTITY CHECKS PASSED` predicts `fast` green. Read its conclusion before any `merge` verdict.
+- **Version, claims and budgets** (steps 4, 5, 14): untouched, as round 7 found.
+- **Stage form** (not blocking): `finding-propagation.md` says a stage's brief lives in the group's `brief` string. This carry sits in R10-STAMP's `carry` list, as earlier rounds accepted, and the group's `brief` does not mention it.
 
-`delivery_status.py --check` prints `DELIVERY STATUS OK — 138 rowed, 2 pending, 0 overdue`. The body's `136 rowed` was taken at `b87e8f19b`. The extra rows come from the main merge (#2390 and #2425's records), not from this PR, and the `0 overdue` the body relies on holds.
-
-## Other steps
-
-- **Checks** (step 11; check-runs API, `ev/checkruns-final.tsv`):
-  - At this head, nothing has concluded `failure`.
-  - `fast (3.14)`, `closures` and `Analyze (python)` were still `in_progress` when I wrote this.
-  - Concluded `success`: `typing`, `browser`, `scope`, `closure-scope`, `wave-script`, `delivery-status`, `pr-contract` (both runs), `mutation`, `instrument-self-tests`, `env-matrix`, `policy-docs`, `arch-score` and `budget-raise-gate`.
-  - `26b148e5b` and `82095a68d` carry no check runs, so they were never a pushed head.
-  - The earlier reds in the range are named and answered in `## Red checks`.
-  - My local `entities.py` pass predicts `fast` green.
-- **Version, claims and budgets** (steps 4, 5, 14): `VERSION`, the manifest, the `RELEASE_NOTES.md` heading, both claim files, the goldens and every `*_budgets.json` are outside the diff. `tests/closures.json` moved through the bot's re-record (as rounds 5 and 6 found) and main's own entry.
-- **Class** (step 6): the census returns nothing at the head, including over the files #2390 added.
-- **Head** (steps 7, 12): `pulls/2406` reported head `22803f99bd8be29012a668ef22140dd12ae3aa5e` when I wrote this, the head named in `## Head`.
-- **Rounds:** this is the seventh. The product and its pins hold, and every figure re-derives. What remains is the carry above, which is a roster edit and leaves the head as it is.
+RESULT carry_destination=R10-STAMP live=not-started text=present control=present
+RESULT body_forward_carry_sections=2 stale_dest=R10-TICK-DRIVERS(done)
+RESULT carry_audit_check rc=1 routed=1 unrouted=2 bad_dest=1
+RESULT merge_tree rc=0
+RESULT rename_sites=([], [])
+RESULT ci_failure_at_head=0 in_progress=fast(3.14),closures
