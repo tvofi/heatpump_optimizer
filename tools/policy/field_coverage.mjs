@@ -384,16 +384,41 @@ function registryRun(report) {
 // must refuse the planted member, and a census whose instrument stays green on
 // that row is UNGATED. A printed count nobody gates rose 124 -> 152 across
 // v6.7.14..v7.0.0 with the ratchet green (R10-N-structure-blind).
+// `instrument` is the program the census runs (`argv` after python3, in the
+// tree copy) and how that program's refusal on the `gate` row reads.
+const STRUCTURE_PY = {
+  argv: ['tests/structure.py'],
+  refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`FAIL ${gate} `)),
+}
+// The ci-ratchet job's own reader and comparison over tests/ci_budgets.json,
+// with the score vector restricted to the card job: ci_ratchet's archscore
+// arm is the only gate on the card's .js (#2373, #2401).
+const CI_RATCHET_CARD = {
+  argv: ['-c', [
+    'import json, sys',
+    "sys.path.insert(0, 'tests')",
+    'import ci_ratchet as R',
+    'table = json.loads(R.BUDGETS.read_text())',
+    'problems = R.budget_problems(table)',
+    "if problems: sys.exit('\\n'.join(problems))",
+    "lines, grew = R.compare(table, R.archscore_metrics(only={'card'}))",
+    "print('\\n'.join(lines))",
+    'sys.exit(1 if grew else 0)',
+  ].join('\n')],
+  refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`  GREW  ${gate}: `)),
+}
 const CENSUSES = [
   {
     name: 'structure.py dead_methods',
     gate: 'dead_methods',
+    instrument: STRUCTURE_PY,
     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusPlant:\n    def _planted_dead_method(self):\n        return 1\n' },
     read: (out) => /^  dead_methods = (\d+)\b/m.exec(out)?.[1],
   },
   {
     name: 'structure.py dead_top_level_symbols',
     gate: 'dead_top_level_symbols',
+    instrument: STRUCTURE_PY,
     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef _planted_dead_function():\n    return 1\n' },
     read: (out) => /^RESULT dead_top_level_symbols=(\d+)\b/m.exec(out)?.[1],
   },
@@ -402,25 +427,35 @@ const CENSUSES = [
     // define as_dict, so the census can keep it by name only.
     name: 'structure.py name_kept_members',
     gate: 'name_kept_members',
+    instrument: STRUCTURE_PY,
     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusKept:\n    def as_dict(self):\n        return {}\n\n\n(lambda x: (x.as_dict(), _CensusKept))\n' },
     read: (out) => /^RESULT name_kept_members=(\d+)\b/m.exec(out)?.[1],
   },
+  {
+    // One unused top-level card function: no other token names it.
+    name: 'archscore card_dead_definitions',
+    gate: 'archscore.card_dead_definitions',
+    instrument: CI_RATCHET_CARD,
+    plant: { file: 'custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js', add: '\n\nfunction _censusPlantedDeadCardFunction() {\n  return 1\n}\n' },
+    read: (out) => /^  (?:ok|GREW)\s+archscore\.card_dead_definitions: (\d+) \(budget /m.exec(out)?.[1],
+  },
 ]
-// The copy of the tree an instrument runs on: only what structure.py reads.
+// The copy of the tree the instruments run on: only what they read.
 function censusTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'census-'))
+  const noCache = { recursive: true, filter: (src) => !src.includes('__pycache__') }
   fs.mkdirSync(path.join(dir, 'tests'), { recursive: true })
-  for (const f of ['structure.py', 'structure_budgets.json', 'seam_map.json']) fs.copyFileSync(path.join(ROOT, 'tests', f), path.join(dir, 'tests', f))
-  fs.mkdirSync(path.join(dir, 'custom_components'), { recursive: true })
-  fs.cpSync(path.join(ROOT, 'custom_components', 'heatpump_optimizer'), path.join(dir, 'custom_components', 'heatpump_optimizer'), { recursive: true, filter: (src) => !src.includes('__pycache__') })
+  for (const f of ['structure.py', 'structure_budgets.json', 'seam_map.json', 'ci_ratchet.py', 'ci_budgets.json']) fs.copyFileSync(path.join(ROOT, 'tests', f), path.join(dir, 'tests', f))
+  for (const d of ['custom_components/heatpump_optimizer', 'tools/audit/archscore']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), noCache)
   return dir
 }
 // `{ n, gated }`: the printed count, and whether the run refused on the census's row.
 function censusCount(c, dir) {
-  const r = spawnSync('python3', ['tests/structure.py'], { cwd: dir, encoding: 'utf8' })
+  if (!c.instrument) return null
+  const r = spawnSync('python3', c.instrument.argv, { cwd: dir, encoding: 'utf8' })
   const out = `${r.stdout}\n${r.stderr}`
   const n = c.read(out)
-  return n === undefined ? null : { n: Number(n), gated: r.status !== 0 && out.split('\n').some((l) => l.startsWith(`FAIL ${c.gate} `)) }
+  return n === undefined ? null : { n: Number(n), gated: r.status !== 0 && c.instrument.refuses(out, c.gate) }
 }
 function censusRun(report, censuses = CENSUSES, tree = censusTree, count = censusCount) {
   let dir = null
@@ -494,6 +529,9 @@ async function selfTest() {
   t('a census naming no gate row is REFUSED', r.refused.length === 1 && !r.read.length)
   r = synth(() => ({ n: 0, gated: true }))
   t('a census already refused unplanted is REFUSED, not read', r.refused.length === 1 && !r.read.length)
+  t('every registered census names its gate row, its instrument, a reader and a plant', CENSUSES.every((c) => c.gate && c.instrument && typeof c.read === 'function' && c.plant?.file && c.plant?.add))
+  t('a census with no instrument reads no count, so it is REFUSED', censusCount({ name: 'probe', gate: 'g', read: () => '0' }, os.tmpdir()) === null)
+  t('the ci-ratchet reader refuses on its own row only', CI_RATCHET_CARD.refuses('  GREW  archscore.card_dead_definitions: 1 (budget 0)', 'archscore.card_dead_definitions') && !CI_RATCHET_CARD.refuses('  ok    archscore.card_dead_definitions: 0 (budget 0)', 'archscore.card_dead_definitions') && !CI_RATCHET_CARD.refuses('  GREW  archscore.card_dead_definitions_x: 1 (budget 0)', 'archscore.card_dead_definitions'))
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
