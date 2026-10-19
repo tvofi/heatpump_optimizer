@@ -1,0 +1,14 @@
+== 118319667719
+2026-10-19T21:33:02.8894629Z [36;1m# which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.[0m
+2026-10-19T21:33:05.3006452Z [36;1m# refusal nor `## Red checks` can match.[0m
+2026-10-19T21:33:07.4513178Z FIGURES: 2 resolved, 0 not verified, 0 refused
+2026-10-19T21:33:07.4580814Z [36;1m# the base. That unpinning is what `codeowners_gap.py --check` refuses[0m
+2026-10-19T21:33:07.7109029Z   clean    no refusal (the 'check' lines above are yours to answer)
+2026-10-19T21:33:08.0343110Z ##[error]Process completed with exit code 1.
+== 118319333102
+2026-10-19T21:31:58.9994044Z [36;1m# which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.[0m
+2026-10-19T21:32:01.6971060Z [36;1m# refusal nor `## Red checks` can match.[0m
+2026-10-19T21:32:04.2494839Z FIGURES: 2 resolved, 0 not verified, 0 refused
+2026-10-19T21:32:04.2550679Z [36;1m# the base. That unpinning is what `codeowners_gap.py --check` refuses[0m
+2026-10-19T21:32:04.4670052Z   clean    no refusal (the 'check' lines above are yours to answer)
+2026-10-19T21:32:04.8531915Z ##[error]Process completed with exit code 1.

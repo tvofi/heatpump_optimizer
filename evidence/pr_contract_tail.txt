@@ -1,0 +1,31 @@
+1710-##[endgroup]
+1711-  check    quantifiers -- did you enumerate the SET, or sample it?
+1712-             1:never
+1713-             13:all
+1714-             15:all
+1715-             34:none
+1716-             38:none
+1717-             42:none
+1718-  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+1719-             10 h
+1720-             80 s
+1721-             18 d
+1722-             10 m
+1723-             19 d
+1724-             336 l
+1725-             4794 t
+1726-             319 a
+1727-  ok       policy corpus -- current with origin/main (2 file(s) authored here, not stale)
+1728-  clean    no refusal (the 'check' lines above are yours to answer)
+1729-##[group]Run set -euo pipefail
+1730-shell: /usr/bin/bash -e {0}
+1731-env:
+1732-  PR_HEAD: 774e53f751c2c13e67b957cd7d05fd22b98f1fee
+1733-##[endgroup]
+1734-no version edit: origin/main...774e53f751c2c13e67b957cd7d05fd22b98f1fee moves none of VERSION, the manifest version or a notes heading
+1735-##[group]Run python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md
+1736-shell: /usr/bin/bash -e {0}
+1737-##[endgroup]
+1738-UNROUTED body item 7889a2ee (## Forward-carry) [section]: 'none. Each instrument in the measured cases (cloud_dispatch, merge_pr.sh, proof_watch, head_note, body_push, f'
+1739-CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)
+1740:##[error]Process completed with exit code 1.
