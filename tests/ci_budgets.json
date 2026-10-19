@@ -27,5 +27,5 @@
  "reason": "Tightening, not a raise (R10-CI-LAYOUT PR 0): script_runs_per_push 68 -> 53. script_runs() no longer counts a `reused` coverage row (a copy that executes nothing), and the floor re-validation re-measures only the scripts it reused, so a push executes each script once per instrument. 53 = the closures lane's full plan (`tests/closure.py lane-plan --all-scripts`: 34) less the composed script it consumes from the coverage job (tests/composed_closures.json: 1), plus the coverage fast stage's scripts (coverage_tree.sh's DERIVED for `fast`: 20), derived at 4a3cbcf62; the window's no-reuse push runs 39213947578, 39217093836 and 39217450549 each read 53. No other row moves. Previous: R10-ARCHSCORE-COVERAGE part 5's new row archscore.shape_copies 66.",
  "recorded_at": "4a3cbcf62e6f5e7b6594d376d714388caf2915cf",
  "script_runs_full_case_pr": 68,
- "script_runs_per_push": 53
+ "script_runs_per_push": 54
 }
