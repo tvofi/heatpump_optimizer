@@ -271,7 +271,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   included, #2411); a run with no summary line is UNCHECKED, never a clean
   zero. STATE's missing-row check and the closes check enumerate merges
   through `tests/delivery_status.py`'s `parse_log` and `collect`, so a
-  `<title> (#N)` merge counts as a merge (#2413, #2412, #2407). Its driver is
+  `<title> (#N)` merge counts as a merge (#2413, #2412, #2407). `--only CARRY`
+  (opt-in, weekly and at closure; never in the default pass) runs
+  `carry_audit.py sweep --last N --issues` over origin/main and the tick's
+  roster ref: exit 1 prints one dispatch line and the unowned lines, and a
+  run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
   `tick_loop.sh`.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,

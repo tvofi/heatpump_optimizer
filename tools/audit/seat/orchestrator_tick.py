@@ -64,6 +64,10 @@ Sections, each measured:
           main idle) -- "fire the train"; and OWED handoffs, every pass:
           `bus.sh orphans --min-age-h 0`'s STRANDED refs, a PR behind its own
           newer handoff included.
+  CARRY   opt-in (`--only CARRY`, weekly and at closure; never in the default
+          pass): `carry_audit.py sweep --last N --issues` over origin/main and
+          the tick's roster ref; exit 1 is one dispatch line and the sweep's
+          unowned lines, anything else without its summary is UNREADABLE.
   MAIN    main's tip sha; any non-green required context (the ruleset re-read
           every tick -- nudge.md step 4: never a remembered list); EVERY
           completed-with-failure lane at the tip, required or not, becomes a
@@ -167,6 +171,11 @@ CAP_ORPHANS = 20
 #: but a handoff whose body ref exists is complete, and a level line that
 #: waits two hours is how #2411's handoff sat unapplied from 19:49Z.
 BUS_ORPHANS_ARGV = ("orphans", "--min-age-h", "0")
+#: The carry sweep's tool and window (CARRY, finding-propagation.md's sweep).
+CARRY_AUDIT = "tools/audit/carry_audit.py"
+CARRY_LAST = 20
+#: Unowned-finding lines printed per sweep.
+CAP_CARRY = 20
 #: The policy corpus the tick's own session loaded at start: a merge to any
 #: of these leaves every live session acting on stale text.
 POLICY_PATHS = ("CLAUDE.md", "AGENTS.md", "dev/governance/rules",
@@ -237,7 +246,8 @@ class Tick:
                  mandate_since_days: int = 14,
                  relay_log: str | None = None,
                  now: datetime.datetime | None = None,
-                 gh=None, git=None, proc=None, bus=None) -> None:
+                 gh=None, git=None, proc=None, bus=None, carry=None,
+                 carry_last: int = CARRY_LAST) -> None:
         self.repo, self.checkout = repo, checkout
         self.queues = ([queue] if isinstance(queue, str) else list(queue or []))
         self.policy_state = policy_state
@@ -254,6 +264,7 @@ class Tick:
             "cloud-relay.log")
         self.now = now or datetime.datetime.now(datetime.timezone.utc)
         self._gh, self._git, self._proc, self._bus = gh, git, proc, bus
+        self._carry, self.carry_last = carry, carry_last
         self.sections: dict[str, list] = {}
         self.findings: list[dict] = []
         self.api_calls = 0
@@ -296,6 +307,16 @@ class Tick:
         r = subprocess.run(["bash", str(SEAT / "bus.sh"), *BUS_ORPHANS_ARGV],
                            cwd=self.checkout, capture_output=True, text=True)
         return r.returncode, [l.strip() for l in r.stdout.splitlines()
+                              if l.strip()]
+
+    def carry_run(self, argv: list[str]) -> "tuple[int, list[str]]":
+        """`carry_audit.py <argv>`, a subprocess over the tree's own tool, never
+        a copy: (rc, stdout lines). The stub receives the same argv."""
+        if self._carry is not None:
+            return self._carry(list(argv))
+        r = subprocess.run([sys.executable, "-I", str(ROOT / CARRY_AUDIT), *argv],
+                           cwd=self.checkout, capture_output=True, text=True)
+        return r.returncode, [l.rstrip() for l in (r.stdout + r.stderr).splitlines()
                               if l.strip()]
 
     # -------------------------------------------------------------- output
@@ -1726,6 +1747,48 @@ class Tick:
                              " -- main carries its change: prune")
         self.line(S, summary[0])
 
+    # --------------------------------------------------------------- CARRY
+    def carry_sweep(self) -> None:
+        """The weekly and closure carry sweep (finding-propagation.md; #2404's
+        carry_audit.py): `sweep --last N --issues` over both roster refs --
+        origin/main, then the roster ref this tick reads -- so a carry main
+        holds that the roster ref lacks prints ROSTER-DRIFT. Exit 1 is the
+        finding: one dispatch line, then the sweep's unowned lines. Any other
+        exit, or no `CARRY-SWEEP:` summary, is UNREADABLE, never a clean zero.
+
+        OPT-IN, never in the default pass: the sweep reads every one of N
+        merged pull requests' body and comments, so a four-minute tick cannot
+        carry it. The orchestrator runs `--only CARRY` weekly and at closure."""
+        S = "CARRY"
+        if not (ROOT / CARRY_AUDIT).is_file() and self._carry is None:
+            self.unreadable(S, "carry sweep", f"{CARRY_AUDIT} absent (it lands with #2404)")
+            return
+        rl = _module("roster_lib_tick", "tools/audit/seat/roster_lib.py")
+        default = rl.DEFAULT_ROSTER_REF if rl is not None else "origin/main"
+        refs = list(dict.fromkeys(["origin/main", self.roster_ref or default]))
+        argv = [a for r in refs for a in ("--roster-ref", r)] + [
+            "sweep", "--last", str(self.carry_last), "--issues"]
+        try:
+            rc, out = self.carry_run(argv)
+        except OSError as e:
+            self.unreadable(S, "carry sweep", str(e)[:80])
+            return
+        summary = [l for l in out if l.startswith("CARRY-SWEEP:")]
+        if rc not in (0, 1) or not summary:
+            self.unreadable(S, "carry sweep", f"exit {rc}, "
+                            + (out[-1][:100] if out else "no output"))
+            return
+        if rc == 1:
+            self.line(S, f"carry sweep found unowned findings ({summary[0]}; refs "
+                         f"{', '.join(refs)}): dispatch a carry seat to route each "
+                         f"(`python3 -I {CARRY_AUDIT} {' '.join(argv)}`)", flag=True)
+            rows = [l for l in out if not l.startswith(("CARRY-SWEEP:", "CARRY-AUDIT:"))]
+            for l in rows[:CAP_CARRY]:
+                self.line(S, f"  {l.strip()[:160]}", flag=True)
+            if len(rows) > CAP_CARRY:
+                self.line(S, f"  ... {len(rows) - CAP_CARRY} more; run the command above", flag=True)
+        self.line(S, f"carry sweep: {summary[0]} (refs {', '.join(refs)}, last {self.carry_last})")
+
     # ----------------------------------------------------------------- ETA
     def eta(self) -> None:
         """ETA deviation, three sources by precision: the train beat's age
@@ -1807,6 +1870,8 @@ class Tick:
         order = ["TRAIN", "PRS", "ETA", "WORKERS", "PLAN", "MAIN", "STATE",
                  "REPLAN"]
         todo = [s for s in order if not only or s in only]
+        if only and "CARRY" in only:  # opt-in: never in the default pass
+            todo.append("CARRY")
         for s in todo:  # stable section order in the report
             self.sections.setdefault(s, [])
         req = None
@@ -1821,6 +1886,8 @@ class Tick:
         for s in todo:
             if s == "TRAIN":
                 self.train()
+            elif s == "CARRY":
+                self.carry_sweep()
             elif s == "PRS":
                 self.prs(req)
             elif s == "ETA":
@@ -2743,6 +2810,48 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- CARRY: the weekly and closure carry sweep (#2404's carry_audit.py) ----
+        calls: list = []
+
+        def sweep(rc, lines):
+            return lambda argv: calls.append(argv) or (rc, lines)
+        summ = "CARRY-SWEEP: 20 pull request(s), 2 other unowned finding(s)"
+        t = tick(roster_ref="origin/r10", carry=sweep(1, [
+            "ISSUE-UNOWNED #2409 'an issue no group lists'",
+            "ROSTER-DRIFT R10-X: a carry on origin/main is missing on origin/r10: 'c'",
+            summ]))
+        t.carry_sweep()
+        fl = [x["text"] for x in t.findings if x["section"] == "CARRY"]
+        t0 = tick(carry=sweep(0, ["CARRY-SWEEP: 20 pull request(s), 0 other unowned finding(s)"]))
+        t0.carry_sweep()
+        t2 = tick(carry=sweep(2, ["carry_audit: REFUSED no roster at origin/main"]))
+        t2.carry_sweep()
+        n_before = len(calls)
+        t3 = tick(carry=sweep(0, ["CARRY-SWEEP: 0 pull request(s), 0 other unowned finding(s)"]))
+        t3.run()
+        default_pass_swept = len(calls) != n_before
+        t3.run(["CARRY"])
+        a, f = check("CARRY sweep", [
+            ("exit 1 prints one dispatch line, then each unowned line, flagged",
+             len(fl) == 3 and fl[0].startswith("carry sweep found unowned findings")
+             and "ISSUE-UNOWNED #2409" in fl[1] and "ROSTER-DRIFT R10-X" in fl[2]),
+            ("the sweep runs --last N --issues over origin/main, then the tick's roster ref",
+             calls[0] == ["--roster-ref", "origin/main", "--roster-ref", "origin/r10",
+                          "sweep", "--last", str(CARRY_LAST), "--issues"]),
+            ("null control: exit 0 prints the summary and flags nothing",
+             not any(x["section"] == "CARRY" for x in t0.findings)
+             and any(l["text"].startswith("carry sweep: CARRY-SWEEP:")
+                     for l in t0.sections["CARRY"])),
+            ("one roster ref is passed once, not twice",
+             calls[1] == ["--roster-ref", "origin/main", "sweep", "--last",
+                          str(CARRY_LAST), "--issues"]),
+            ("a refusal (exit 2) is UNREADABLE, never a clean zero",
+             any("UNREADABLE: carry sweep" in x["text"] for x in t2.findings)),
+            ("opt-in: the default pass never sweeps; --only CARRY does",
+             not default_pass_swept and len(calls) == n_before + 1),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- D. non-standard conclusions ----
         for concl, want in (("cancelled", True), ("failure", False)):
             t = tick(prs=[pr_obj(70, H1)],
@@ -3189,7 +3298,10 @@ def main() -> int:
                     help="no new CI completion inside this window is not a stall")
     ap.add_argument("--behind-max", type=int, default=25)
     ap.add_argument("--only",
-                    help="comma-separated: TRAIN,PRS,ETA,WORKERS,PLAN,MAIN,STATE,REPLAN")
+                    help="comma-separated: TRAIN,PRS,ETA,WORKERS,PLAN,MAIN,STATE,REPLAN; "
+                         "CARRY (opt-in, weekly and at closure) runs only when named")
+    ap.add_argument("--carry-last", type=int, default=CARRY_LAST,
+                    help="CARRY: the merged pull requests the sweep reads")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
@@ -3207,7 +3319,8 @@ def main() -> int:
              roster_ref=a.roster_ref, roster_path=a.roster_path,
              mandate_id=a.mandate_id,
              mandate_since_days=a.mandate_since_days,
-             stall_hours=a.stall_hours, behind_max=a.behind_max)
+             stall_hours=a.stall_hours, behind_max=a.behind_max,
+             carry_last=a.carry_last)
     rep = t.run(only)
     print(json.dumps(rep, indent=1) if a.json else render(rep))
     return 0
