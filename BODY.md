@@ -28,9 +28,25 @@ What changes:
 
 ## Head
 
-The previous head `9951f224a9e652fb7323784e05d86b4b35f16e55` added one commit to `ba9653fa067c003bc19cbeed5177e3b1fbf71e05`, containing only this PR's own row, `dev/programme/delivery/2415.md`. The authored code head is still `ba9653fa067c003bc19cbeed5177e3b1fbf71e05`; review round 2 changes no file on this branch.
+`2a01f9ee2dd4d6093780d24b9cd75b92ff9d3cb9` is the code head: it merges `origin/main` `913ce1ff5` into this PR's head `45ecca4f9a0cd2cd25712e9cc2252a32b6f6dfa3` with no conflict (`git merge origin/main`, no rebase). The authored work is unchanged since `bec623af4`; the merge brings in main's round-10 merges up to `913ce1ff5`, and the range `fa16596c3..913ce1ff5` touches only `dev/programme/delivery/` rows (`git diff --name-only fa16596c3 913ce1ff5`). This PR still changes no file under `custom_components/`: `git diff --name-only origin/main...HEAD | grep -c custom_components` reads 0.
 
-`ba9653fa067c003bc19cbeed5177e3b1fbf71e05` on `fix/r10-rca-structure-blind` merges `origin/main` `55dc8d9c2` into the authored head `bec623af494f75131610e27b1f711dde45dfcdc6` with no conflict. Every `origin/main` commit merged since `55dc8d9c2` touches only `README.md`, `dev/programme/delivery/`, `dev/programme/rosters/wave-r10-groups.json` and `tools/audit/seat/` (`git diff --name-only 55dc8d9c2 origin/main`): no package file, no `tests/structure*`, no `tools/policy/`, no `dev/audit/config/`, nothing an instrument here reads. So every figure measured at `bec623af4` (on `f1b21daab`) holds. Re-taken on the `ba9653fa0` merge: `tests/structure.py` passes, the plant harness reads `plant_refused=1 (name_kept_members)`, and `score.py --diff origin/main` reads `dS +0.0000 NULL`. Measured in a full clone (`git fetch --unshallow --tags origin`) with `/etc/profile.d/hpo-toolchain.sh` sourced, on 2026-10-18. Review round 1 re-derived the ratchet, the plant arms at both ends, the census arm, the mutants and the RCA figures at `9951f224`.
+The merge was checked for a semantic break, not only a textual one. #2406 removed `roster_lib.DEFAULT_ROSTER_REF`: `grep -rln DEFAULT_ROSTER_REF . --include='*.py' --include='*.sh' --include='*.mjs'` at this head prints nothing, so no file here reads it. #2421 (the train raise hold) cannot hold this PR: it adds one `MAX` key to `tests/structure_budgets.json` and moves no existing row (see Budget below).
+
+Re-taken at this head, 2026-10-19, on a box at load average above 250, with the seat interpreter shims first on `PATH` and `PYTHONPATH=tests/hastub`:
+
+- `python3 tests/structure.py` ends `STRUCTURE RATCHET PASSED`, with `ok name_kept_members 38 <= 38`.
+- `python3 dev/audit/harnesses/r10_rca_name_kept_plant.py` reads `plant_refused=1 count (name_kept_members)`, `null_refused=1 count (dead_methods)`, `typed_refused=0`, `row_in_budgets=True`.
+- `node tools/policy/field_coverage.mjs --only census` reads `read=3 ignored=0 declared_none=0 blind=0 dead=0 refused=0`, with `name_kept_members: 38 -> 39 with one planted member, refused on name_kept_members`; ends `FIELD COVERAGE ok`.
+- `node tools/policy/field_coverage.mjs --self-test` ends `FIELD COVERAGE SELF-TEST ok`.
+- `python3 tools/audit/fold_ledger.py check` reads `0 violation(s)`.
+- `python3 tools/audit/archscore/score.py --diff origin/main` reads `Architecture score: dS +0.0000 NULL`.
+- `python3 tools/pr/ci_predict.py --base origin/main` reads `no closures or fast red predicted`.
+
+The mutation proof and the RCA figures below were taken at `bec623af4`/`ba9653fa0`; the merge changes none of `tests/structure.py`, `tools/policy/field_coverage.mjs`, `dev/audit/config/bugclasses.json` or the harness (`git diff --name-only 45ecca4f9 HEAD` names none of them), so those figures hold.
+
+## Budget
+
+No budget row is raised. `tests/structure_budgets.json` gains the new key `name_kept_members: 38`; every existing row is unchanged and `recorded_at` is unchanged. A new `MAX` key is not a raise under `tools/policy/budget_raise_gate.py`, and the `budget-raise-gate` check read green on the previous head. Nothing here is argued as unpayable because nothing rises.
 
 ## Mutation proof
 
@@ -61,7 +77,7 @@ Each mutant was applied to this head's `tests/structure.py` in a scratch worktre
 - Ratchet: `PYTHONPATH=tests/hastub python3 tests/structure.py`.
 - Ledger: `python3 tools/audit/fold_ledger.py check`.
 - Every figure in the RCA (the 124 → 152 series, release counts, fix spans, enumerator and finder-harness re-runs, the arch-score plant) is in its section 7, each with its command.
-- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`, `MODE: SCOPED`, 8 scripts. See Red checks for the two that went red here.
+- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`, `MODE: SCOPED`, 8 scripts, at this head. `tests/stress.py` is red locally on an unmodified `origin/main` too; see Red checks.
 
 ## Architecture score
 
@@ -69,26 +85,27 @@ Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --d
 
 ## Red checks
 
-`tests/stress.py` went red once in the local scoped gate: `shoulder/tariff+pv+cycle used 12324 ms of CPU = 290x the 42.5 ms reference measured beside it (budget 268x)`. The diff changes no package file, so solver CPU is not this PR's; the one re-run alone under the lease read `ALL 110 STRESS CHECKS PASSED`. No cheaper detector exists for box-load timing. Its own re-measure is the instrument.
+The latest CI on the previous head `45ecca4f9` has one red, `pr-contract`, and it is answered here.
 
-`tests/harness_headers.py` went red locally on the first run. The new harness inlined a `repo_root` that differed from the canonical helper (`FAIL every inlined walk matches the canonical helper`). Fixed before the commit. The cheaper detector already exists: the same check, run locally before handoff, which is how it was caught. No new detector is owed.
+- **`pr-contract`**: its `pr-body` step refused the old body: "check `wave-script` is red and `## Red checks` does not name it". At the time that step ran, `wave-script` and `delivery-status` were red because `origin/main` was red from `5756f2b1` until #2423, #2424 and #2420 merged. Both read `pass` in the same run's later job results, and main is green again. This merge brings those three fixes in, so `wave-script` and `delivery-status` are cleared by the main merge (their cause was main's, not this diff's; this diff touches no `.github/` or wave script). The re-taken body names them, which is the repair.
+- `closures` and `fast (3.14)` read `pass` on that head (30m and 53m runs), including `tests/stress.py`.
+
+Local scoped gate (`GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`, `MODE: SCOPED -- 8 script(s) run, 25 scoped out`): `features`, `entities`, `doc_claims`, `structure` (`STRUCTURE RATCHET PASSED`), `arch_score` (`ALL 255 ARCHITECTURE SCORE CHECKS PASSED`), `arch_score_head` (`ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED`) and `harness_headers` (`ALL 109 HARNESS HEADER CHECKS PASSED`) are green. `tests/stress.py` is red locally, twice, with the same economics figure:
+
+- `FAIL shoulder: cheaper than holding the setpoint [4.67 vs 3.96]`, plus a CPU-budget miss under the box load (`shoulder/tariff+pv+cycle` at 222x to 300x of its reference against a budget of 268x).
+- The control: `python3 tests/stress.py` on an unmodified `origin/main` checkout (`913ce1ff5`) in this seat prints the same `FAIL shoulder: cheaper than holding the setpoint [4.67 vs 3.96]`. A PR that changes no file under `custom_components/` cannot move a solve, so the figure is this seat's interpreter and box, not the diff. `fast (3.14)` on CI, which runs the same script on the Linux toolchain, reads `pass` at the previous head. The cheaper detector is the one CI already runs; none is added.
 
 ## Forward-carry
 
-- **Carry: #2259 item 2, R10-ARCHSCORE-COVERAGE part 4 (#2373), as a precondition.** Destination: the R10-ARCHSCORE-COVERAGE group in `dev/programme/rosters/wave-r10-groups.json`, on the roster branch `handoff/audit-r10-roster` at `9a487b7320d72bbc16309121128c3c6bd3324e9e`. It is in both the group's `brief` (a "Forward-carried precondition from R10-RCA-STRUCTURE-BLIND" paragraph) and its `carry` list. Both were written with `tools/audit/seat/roster_edit.py` (`append-carry`, then `edit-brief`). The text says that part 4 is not delivered until:
-  - `card_dead_definitions` is registered in `tools/policy/field_coverage.mjs` CENSUSES, with its arch-score `gate` row and a plant of one unused top-level card function;
-  - its control holds: `--only census` reads `n -> n+1 ... refused on <row>`, and with the row uncapped it reads `UNGATED` and ends `FIELD COVERAGE REFUSED`;
-  - the card `.js` is struck from N-structure-blind's `barrier` "Not reached" clause in `dev/audit/config/bugclasses.json`, in the same pull request (RCA §5.3).
-  - Read back: `node tools/policy/brief_lint.mjs` on that roster, run in an `origin/main` checkout, prints `TOTAL: 0 error(s)`, rc=0. In the read-back roster, `field_coverage.mjs` appears in the group's `brief` and in its `carry`. Neither names it on `origin/main`.
-  - **Owed by the orchestrator before this PR merges:** the roster PR that lands `handoff/audit-r10-roster` on `main`, and relaying the carry to #2373's live seat.
-- **To the orchestrator:** whether the hint-keyed finder harness and the hard-coded D14 sweep enumerator fold as `beyond_finding` seams, or go to the D14 brief by `finding-propagation.md` (RCA §8, question 1).
+- **Carry, landed past its carrier: #2259 item 2, part 4 (#2373).** #2373's branch is now empty against `main`: its tree after `git merge origin/main` is identical to `origin/main`, because #2401 (part 5) was stacked on part 4 and carried its code and its `tests/ci_budgets.json` rows (`card_dead_definitions`, `card_clone_copies`, `literal_clone_copies`) onto `main`. The precondition this PR carried to part 4 was therefore not delivered by it: on `origin/main`, `tools/policy/field_coverage.mjs` CENSUSES registers no `card_dead_definitions`, and N-structure-blind's `barrier` in `dev/audit/config/bugclasses.json` still lists the card `.js` under "Not reached" (`git grep card_dead_definitions origin/main -- tools/policy dev/audit/config` prints nothing). The same precondition is already in the R10-ARCHSCORE-COVERAGE group's `brief` and `carry` in `dev/programme/rosters/wave-r10-groups.json` on `origin/main` (the R10-ARCHSCORE-COVERAGE group and the group that records the card rows). **Owed by the orchestrator:** re-point that carry at a live group, since #2373 will not run, and say which group registers the card census.
+- **To the orchestrator:** whether the hint-keyed finder harness and the hard-coded D14 sweep enumerator fold as `beyond_finding` seams, or go to the D14 brief by `finding-propagation.md` (RCA section 8, question 1).
 - **To tvofi**, both policy-shaped:
   - the sentence "a declared unmeasured shape is a gated count" in `fixer.md` or the D7 brief;
-  - a `fold_ledger.py check` arm (RCA §8, questions 2 and 3).
+  - a `fold_ledger.py check` arm (RCA section 8, questions 2 and 3).
 
 ## Friction
 
 none
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
