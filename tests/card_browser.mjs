@@ -978,7 +978,7 @@ function gridScope(env = process.env) {
   let files, closure;
   try {
     const git = (...a) => execFileSync("git", a, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 << 20 }).trim();
-    files = git("diff", "--name-only", `${git("merge-base", base, "HEAD")}...HEAD`).split("\n").filter(Boolean);
+    files = git("diff", "--no-renames", "--name-only", `${git("merge-base", base, "HEAD")}...HEAD`).split("\n").filter(Boolean);
     closure = JSON.parse(git("show", "HEAD:tests/closures.json")).closures[GRID_PAYLOAD];
   } catch (e) {
     return { run: true, line: `P9 grid MODE: FULL (diff or closure against ${base} unreadable: ${String(e.message || e).split("\n")[0]})` };

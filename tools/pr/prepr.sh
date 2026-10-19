@@ -504,7 +504,7 @@ claims_line() { # rc 0 holds, 1 refused
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
   local cw kind s v left="" strace=0 r=0 rp=""
   cw=$(mktemp -d)
-  if git diff --name-only "$1"...HEAD > "$cw/changed.txt"; then
+  if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt"; then
     python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
     kind=$(cat "$cw/aff/affected.case" 2>/dev/null)
   else
@@ -1109,7 +1109,7 @@ version_edit() { # main ref, head -> prints the stamp-owned items the range move
   local names manifest notes out
   git rev-parse --verify --quiet "$1^{commit}" >/dev/null || return 2
   git rev-parse --verify --quiet "$2^{commit}" >/dev/null || return 2
-  names=$(git diff --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
+  names=$(git diff --no-renames --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
   manifest=$(git diff --text --no-textconv "$1...$2" -- custom_components/heatpump_optimizer/manifest.json 2>/dev/null) || return 2
   notes=$(git diff --text --no-textconv "$1...$2" -- RELEASE_NOTES.md 2>/dev/null) || return 2
   out=$(stamp_paths "$names" "$manifest" "$notes")
@@ -2084,6 +2084,38 @@ PY
     && grep -q '^rc=0$' <<<"$got"
   st $? 0 "--apply-inert writes the import-edge arm's entry too, and the prediction then clears"
   (cd "$PDX/r" && git checkout -q -f pnull)
+  # R10-HANDOFF-PREPR-BOUNCE M3: each refusing arm prints its own repair, since
+  # before a PR exists no bot runs to wait for.
+  pfull() { (cd "$PDX/r" && git checkout -q -f "$1" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main 2>&1); }
+  got=$(pfull pimport)
+  grep -q '^CI PREDICT: an UNDER-SCOPED closure is re-recorded in the diff, one script at a time: tests/derive_closures.sh --single tests/' <<<"$got" \
+    && ! grep -q "ci-autofix.md's" <<<"$got"
+  st $? 0 "an UNDER-SCOPED prediction names --single for its scripts, not ci-autofix.md's wait (M3)"
+  got=$(pfull porphan); grep -q '^CI PREDICT: an UNCLASSIFIED file is classified in the diff' <<<"$got"
+  st $? 0 "an UNCLASSIFIED prediction names the classification, a closure or INERT (M3)"
+  got=$(pfull pnull); grep -q 'is re-recorded in the diff\|is classified in the diff' <<<"$got"
+  st $? 1 "and a quiet diff prints no repair (null control)"
+  # M2: body_push.sh runs the predictor over the code head before it pushes
+  # the body, so the handoff itself refuses what open_pr.sh's prepr would.
+  # Pushed to a throwaway bare repository, never to the clone's origin.
+  BPO=$(cd "$PDX/r" && git remote get-url origin); throwaway_git_init "$PDX/bodies.git" -q --bare
+  (cd "$PDX/r" && git remote set-url origin "$PDX/bodies.git")
+  printf 'body\n' > "$PDX/BODY.md"
+  bpush() { (cd "$PDX/r" && git checkout -q -f "$1" && bash "$OLDPWD/tools/audit/seat/body_push.sh" "zz-$1" "$PDX/BODY.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' "refs/heads/handoff-body/zz-$1"); }
+  got=$(bpush pinert)
+  grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got" && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "body_push refuses the probe head (a new harness, no inert_reads line) and pushes no body (M2)"
+  (cd "$PDX/r" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert >/dev/null 2>&1 && git commit -qam 'closures: the probe harness (inert read)')
+  got=$(cd "$PDX/r" && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-pinert "$PDX/BODY.md" 2>&1; echo "rc=$?")
+  grep -q '^rc=0$' <<<"$got" && git --git-dir="$PDX/bodies.git" rev-parse -q --verify refs/heads/handoff-body/zz-pinert >/dev/null
+  st $? 0 "and pushes it once --apply-inert's entry is committed"
+  got=$(bpush pnull); grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-pnull$' <<<"$got"
+  st $? 0 "body_push pushes a head the predictor is quiet on (null control)"
+  got=$(cd "$PDX/r" && git checkout -q -f pnull && mv tools/pr/ci_predict.py "$PDX/ci_predict.away" \
+    && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-skip "$PDX/BODY.md" 2>&1; echo "rc=$?"; mv "$PDX/ci_predict.away" tools/pr/ci_predict.py)
+  grep -q 'carries no tools/pr/ci_predict.py' <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "and refuses a checkout with no predictor rather than passing it silently"
+  (cd "$PDX/r" && git remote set-url origin "$BPO" && git checkout -q -f pnull)
   # Round-9 C1: the full arm derives its recording set from the tree
   # (`lane-plan --all-scripts`), so a new selectable script owes no lane
   # edit and no lane edit can drop a recording -- the NO RECORDING class is
@@ -2487,7 +2519,7 @@ rm -f /tmp/prepr-owners.$$
 # pull request with the base's copy of it; the graders that run below only on
 # their own inputs (brief_lint here, the wave script in step 4) run on this
 # head's copy instead, since a pinned path can be any grader's data (#1637).
-git diff --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
+git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
 PIN_TOUCHED=1
 pinned_touched /tmp/prepr-changed.$$ "$(pinned_paths .github/workflows/*.yml)" && PIN_TOUCHED=0
 rm -f /tmp/prepr-changed.$$
@@ -2574,7 +2606,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # --- 3h. the self-test, when this diff can move one of its rows (`selftest_owed`).
 # CI's `governance` job runs it on every pull request; this is the cheaper
 # detector. A diff that cannot be listed is treated as owing it.
-if ! git diff --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
+if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
   if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; else bash tools/pr/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; fi
   step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
@@ -2626,7 +2658,7 @@ step "no version edit" $? "$STAMPED"
 # --- 6. claim files byte-identical to origin/main.
 # A branch that claims nothing does not touch them at all, and one that does not
 # touch them cannot collide with another branch's claim (#570).
-CLAIMS=$(git diff --name-only origin/main...HEAD -- \
+CLAIMS=$(git diff --no-renames --name-only origin/main...HEAD -- \
   tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt | tr '\n' ' ')
 if [ -n "${CLAIMS// /}" ]; then
   say check "claim files" "$CLAIMS changed -- intended only if this branch claims drift"

@@ -34,17 +34,17 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
 9. **When the finding has no committed harness, that is itself a finding**
-   (#373's was a `grep` in the issue body, #258's a judge comment). A fixer who builds their own instrument must
+   (#373's was an issue-body `grep`, #258's a judge comment). A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one;
    one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
    Read the judge ruling first: #290's brief prescribes a refused harness.
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
-    where a finding that changes a later stage was written; open that
-    destination and confirm it is there, carrying the control and stated as a
-    precondition (`finding-propagation.md`). A finding that exists only in this
-    PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
+    where a finding changing a later stage was written; open it (a roster
+    carry at the body's `handoff/audit-r<N>-roster` SHA) and confirm it states
+    its control as a precondition (`finding-propagation.md`). One only
+    in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks — `get_check_runs`, or
     the commit's own `check-runs` API — not the body's account, and never a
