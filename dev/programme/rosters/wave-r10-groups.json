@@ -3986,6 +3986,52 @@
     "next_step": "PR #2422 is open on fix/r10-openpr-silent-pr; review and merge it",
     "note": "delivered by PR #2422"
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": true,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "The stamp (tools/release/stamp.py / web-stamp): restore the 19 suspended may-drift entries verbatim when the stamp empties the claim list. The obligation is written beside each entry in tests/golden/claimed_drift.txt."
+   ],
+   "architect_note": null,
+   "group": "R10-STAMP",
+   "findings": [
+    "wave-1 stamp: 19 suspended may-drift entries"
+   ],
+   "wave": 3,
+   "files": [
+    "tests/golden/claimed_drift.txt",
+    "tools/release/stamp.py"
+   ],
+   "brief": "wave-1 stamp: restore the 19 suspended may-drift entries in tests/golden/claimed_drift.txt and stamp the golden files after the drain",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-stamp",
+    "commit": null,
+    "last_step": null,
+    "next_step": "after the wave-1 drain, run the stamp (web-stamp)",
+    "note": null
+   }
   }
  ]
 }
