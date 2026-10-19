@@ -1,0 +1,10 @@
+roster tip 5472ac0d67f860bc26224617307701419479a122
+pattern [merge_pr.sh.{0,80}(after|gate)]: 1
+pattern [push line]: 
+pattern [census.{0,40}custom_components]: 
+pattern [custom_components/heatpump_optimizer/.{0,40}census]: 
+pattern [info/exclude]: 
+pattern [git add -f]: 
+pattern [approve_held_runs]: 
+pattern [worktree_gc]: 
+pattern [row_files_replay]: 
