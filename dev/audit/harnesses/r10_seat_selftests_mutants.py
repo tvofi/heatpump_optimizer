@@ -134,11 +134,15 @@ def run_step(run: str) -> tuple[int, str]:
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp, "step.sh")
         script.write_text(run + "\n")
-        # A throwaway HOME, as on a runner; HPO_STATE_DIR keeps a seat shim
-        # on PATH pointing at its venv, which it finds under the real HOME.
+        # A throwaway HOME, as on a runner, and python3 the interpreter running
+        # this harness: a seat shim on PATH finds its venv under the real HOME,
+        # and without it every step exits 127.
+        pybin = Path(tmp, "pybin")
+        pybin.mkdir()
+        for name in ("python3", "python"):
+            (pybin / name).symlink_to(sys.executable)
         env = dict(os.environ, RUNNER_TEMP=tmp, HOME=tmp, PYTHONDONTWRITEBYTECODE="1",
-                   HPO_STATE_DIR=os.environ.get("HPO_STATE_DIR",
-                                                str(Path.home() / ".local/state/hpo")))
+                   PATH=f"{pybin}{os.pathsep}{os.environ.get('PATH', '')}")
         p = subprocess.run(["bash", "-e", str(script)], cwd=ROOT, env=env,
                            capture_output=True, text=True, timeout=900)
     lines = (p.stdout + p.stderr).strip().splitlines()
