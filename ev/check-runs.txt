@@ -1,0 +1,48 @@
+ci-ratchet	completed	skipped	2026-10-19T05:57:12Z	github-actions
+closures-autofix	completed	skipped	2026-10-19T05:57:12Z	github-actions
+composed-proof	completed	success	2026-10-19T05:57:31Z	github-actions
+claims-autofix	completed	skipped	2026-10-19T05:29:59Z	github-actions
+lane-proofs	completed	success	2026-10-19T05:30:09Z	github-actions
+mutation-autofix	completed	skipped	2026-10-19T05:28:43Z	github-actions
+mutation-pin-plan	completed	skipped	2026-10-19T05:28:43Z	github-actions
+mutation-pins	completed	skipped	2026-10-19T05:28:43Z	github-actions
+coverage-ratchet	completed	success	2026-10-19T05:27:07Z	github-actions
+closures	completed	success	2026-10-19T05:57:12Z	github-actions
+graders-head-copy	completed	success	2026-10-19T05:27:10Z	github-actions
+CodeQL	completed	success	2026-10-19T05:10:30Z	github-advanced-security
+pr-contract	completed	success	2026-10-19T05:10:28Z	github-actions
+nightly-ha	completed	skipped	2026-10-19T05:09:46Z	github-actions
+coverage	completed	success	2026-10-19T05:26:52Z	github-actions
+browser	completed	success	2026-10-19T05:13:41Z	github-actions
+fast (3.14)	completed	success	2026-10-19T05:29:59Z	github-actions
+typing	completed	success	2026-10-19T05:11:19Z	github-actions
+Analyze (javascript-typescript)	completed	success	2026-10-19T05:10:58Z	github-actions
+Analyze (actions)	completed	success	2026-10-19T05:10:37Z	github-actions
+Analyze (python)	completed	success	2026-10-19T05:35:56Z	github-actions
+mutation-ledger-push	completed	skipped	2026-10-19T05:09:21Z	github-actions
+slow	completed	skipped	2026-10-19T05:09:21Z	github-actions
+mutation-nightly	completed	skipped	2026-10-19T05:09:21Z	github-actions
+mutation-ledger	completed	skipped	2026-10-19T05:09:21Z	github-actions
+recheck-gate	completed	skipped	2026-10-19T05:09:21Z	github-actions
+record-autofix	completed	skipped	2026-10-19T05:09:21Z	github-actions
+mutation	completed	success	2026-10-19T05:28:43Z	github-actions
+delivery-status-publish	completed	skipped	2026-10-19T05:09:21Z	github-actions
+briefs	completed	success	2026-10-19T05:09:56Z	github-actions
+record	completed	skipped	2026-10-19T05:09:21Z	github-actions
+cancel-superseded	completed	success	2026-10-19T05:09:35Z	github-actions
+closure-scope	completed	success	2026-10-19T05:09:46Z	github-actions
+nightly-status	completed	success	2026-10-19T05:09:35Z	github-actions
+cancel-superseded	completed	success	2026-10-19T05:09:34Z	github-actions
+hassfest	completed	success	2026-10-19T05:09:51Z	github-actions
+scope	completed	success	2026-10-19T05:09:41Z	github-actions
+delivery-status	completed	success	2026-10-19T05:09:43Z	github-actions
+wave-script	completed	success	2026-10-19T05:09:45Z	github-actions
+arch-score	completed	success	2026-10-19T05:10:16Z	github-actions
+policy-docs	completed	success	2026-10-19T05:10:05Z	github-actions
+validate-hacs	completed	success	2026-10-19T05:10:17Z	github-actions
+env-matrix	completed	success	2026-10-19T05:12:31Z	github-actions
+budget-raise-gate	completed	success	2026-10-19T05:09:38Z	github-actions
+instrument-self-tests	completed	success	2026-10-19T05:12:26Z	github-actions
+arch-score	completed	success	2026-10-19T05:10:26Z	github-actions
+pr-contract	completed	success	2026-10-19T05:09:52Z	github-actions
+budget-raise-gate	completed	success	2026-10-19T05:09:37Z	github-actions
