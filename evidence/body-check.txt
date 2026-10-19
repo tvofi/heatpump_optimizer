@@ -1,2 +1,0 @@
-NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
