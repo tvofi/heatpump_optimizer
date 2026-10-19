@@ -1,0 +1,11 @@
+2379	closed	true	5756f2b1578198b7e6f7f62ea33153f2506a7bd3	f4e168719d12f071bbc7771944e9430147a223db	R10-SENSOR-PAYLOAD: one payload-number check, one mixin, finite scrub over the MRO
+2394	closed	true	3d46d694d7a2551e5c9cba77cdc23b9a2a7b9a4b	8d4e8be01ce096075f81573048a240767d75a973	R10-CI-AUTOFIX-INERT-ROUTE: route INERT repairs through the autofix
+2396	closed	true	106af95a33f89f88f948ea9c49c4632fe74b9416	1450760447ffd6de334ee7cd108b2b880077f2c9	R10-CI-CONCURRENCY: cancel superseded gate runs
+2401	closed	true	07a09406a1cc97076a6f28581f87f313b322a6b6	311e9de3e0c6d5bd0aa2139caf16b7707bf232f6	R10-ARCHSCORE-COVERAGE p5: the shape census, calibrated and gate-only
+2407	closed	true	3126b86e7f53ce09d4bbb64263fe341c3f270851	cfce523aee321d5d051860fc788dd8293442235c	record: delivery rows for #2402 (autofix)
+2412	closed	true	003c3731c974279f1490321d33a928c95036f971	486024648be5d868ff4c1c91567c8db71163eecc	record: delivery rows for #2365 (autofix)
+2413	closed	true	be2d3676e768c3aba800bf67ff2a6acb198f4faa	43dbd95b75c0a1d0503674383968a5e3e5d1e7df	record: delivery rows for #2397 (autofix)
+2416	closed	true	fd64a23e9818c45adb5788115a8d41131ba8aa5a	319769bb4f5a6bee7a66abf2cbbcd2026d6c7333	tools: persistent sweep template, renderer and policy re-read check
+2418	closed	true	86010e8cd8fc6ca0c6013915ea6d481db4233b92	4be8f4cfd09f548a3f1d9986c6dcf13fe9f6c386	record: delivery rows for #2384, #2393, #2400, #2403, #2414 (autofix)
+2423	closed	true	89e33859ad165d54620eb4533c5b2de2e834fa1f	58dbe46a0eff6d217378ecd3bccc331eb20867a1	R10-MERGE-SUBJECT: one merge-subject grammar across readers; subject guard
+2420	open	false	d4f5cde148b3fa7cae0a4256b91305247aa4c1c3	328813ad5fb2055a07a4867c33f7cfc96d961168	record: delivery rows for #2379, #2394, #2396, #2401, #2416, #2418, #2423 (autofix)

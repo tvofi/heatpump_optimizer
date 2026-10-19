@@ -1,0 +1,77 @@
+diff --git a/dev/programme/delivery/2379.md b/dev/programme/delivery/2379.md
+index ac03e91d5..ca55dc625 100644
+--- a/dev/programme/delivery/2379.md
++++ b/dev/programme/delivery/2379.md
+@@ -1 +1 @@
+-- [#2379](https://github.com/tvofi/heatpump_optimizer/pull/2379) — **open**, R10-SENSOR-PAYLOAD: one payload-number check, one mixin, finite scrub over the MRO (R10-SENSOR-PAYLOAD)
++- [#2379](https://github.com/tvofi/heatpump_optimizer/pull/2379) — **merged `5756f2b`**, R10-SENSOR-PAYLOAD: one payload-number check, one mixin, finite scrub over the MRO (R10-SENSOR-PAYLOAD).
+diff --git a/dev/programme/delivery/2394.md b/dev/programme/delivery/2394.md
+index 20b8acf32..04c1b0d0b 100644
+--- a/dev/programme/delivery/2394.md
++++ b/dev/programme/delivery/2394.md
+@@ -1 +1 @@
+-- [#2394](https://github.com/tvofi/heatpump_optimizer/pull/2394) — **open**, R10-CI-AUTOFIX-INERT-ROUTE: route INERT repairs through the autofix
++- [#2394](https://github.com/tvofi/heatpump_optimizer/pull/2394) — **merged `3d46d69`**, R10-CI-AUTOFIX-INERT-ROUTE: route INERT repairs through the autofix.
+diff --git a/dev/programme/delivery/2396.md b/dev/programme/delivery/2396.md
+index fcaecc881..adf408948 100644
+--- a/dev/programme/delivery/2396.md
++++ b/dev/programme/delivery/2396.md
+@@ -1 +1 @@
+-- [#2396](https://github.com/tvofi/heatpump_optimizer/pull/2396) — **open**, R10-CI-CONCURRENCY: cancel superseded gate runs (R10-CI-CONCURRENCY)
++- [#2396](https://github.com/tvofi/heatpump_optimizer/pull/2396) — **merged `106af95`**, R10-CI-CONCURRENCY: cancel superseded gate runs.
+diff --git a/dev/programme/delivery/2401.md b/dev/programme/delivery/2401.md
+index 8418490e1..4a77e59dd 100644
+--- a/dev/programme/delivery/2401.md
++++ b/dev/programme/delivery/2401.md
+@@ -1 +1 @@
+-- [#2401](https://github.com/tvofi/heatpump_optimizer/pull/2401) — **open**, R10-ARCHSCORE-COVERAGE p5: the shape census, calibrated and gate-only (R10-ARCHSCORE-COVERAGE)
++- [#2401](https://github.com/tvofi/heatpump_optimizer/pull/2401) — **merged `07a0940`**, R10-ARCHSCORE-COVERAGE p5: the shape census, calibrated and gate-only.
+diff --git a/dev/programme/delivery/2407.md b/dev/programme/delivery/2407.md
+index 03acd1b0f..cd18d92ee 100644
+--- a/dev/programme/delivery/2407.md
++++ b/dev/programme/delivery/2407.md
+@@ -1 +1 @@
+-- [#2407](https://github.com/tvofi/heatpump_optimizer/pull/2407) — **open**, record: delivery rows (autofix)
++- [#2407](https://github.com/tvofi/heatpump_optimizer/pull/2407) — **merged `3126b86`**, record: delivery rows for #2402 (autofix).
+diff --git a/dev/programme/delivery/2412.md b/dev/programme/delivery/2412.md
+index aad13f373..c61a5ed42 100644
+--- a/dev/programme/delivery/2412.md
++++ b/dev/programme/delivery/2412.md
+@@ -1 +1 @@
+-- [#2412](https://github.com/tvofi/heatpump_optimizer/pull/2412) — **open**, record: delivery rows (autofix)
++- [#2412](https://github.com/tvofi/heatpump_optimizer/pull/2412) — **merged `003c373`**, record: delivery rows for #2365 (autofix).
+diff --git a/dev/programme/delivery/2413.md b/dev/programme/delivery/2413.md
+index de78b8bd8..674679936 100644
+--- a/dev/programme/delivery/2413.md
++++ b/dev/programme/delivery/2413.md
+@@ -1 +1 @@
+-- [#2413](https://github.com/tvofi/heatpump_optimizer/pull/2413) — **open**, record: delivery rows (autofix)
++- [#2413](https://github.com/tvofi/heatpump_optimizer/pull/2413) — **merged `be2d367`**, record: delivery rows for #2397 (autofix).
+diff --git a/dev/programme/delivery/2416.md b/dev/programme/delivery/2416.md
+index d7dc920b3..cd8dbe2fb 100644
+--- a/dev/programme/delivery/2416.md
++++ b/dev/programme/delivery/2416.md
+@@ -1 +1 @@
+-- [#2416](https://github.com/tvofi/heatpump_optimizer/pull/2416) — **open**, tools: persistent sweep template, renderer and policy re-read check (R10-SWEEP-TEMPLATE)
++- [#2416](https://github.com/tvofi/heatpump_optimizer/pull/2416) — **merged `fd64a23`**, tools: persistent sweep template, renderer and policy re-read check.
+diff --git a/dev/programme/delivery/2418.md b/dev/programme/delivery/2418.md
+index e9fdf798f..b5f677e49 100644
+--- a/dev/programme/delivery/2418.md
++++ b/dev/programme/delivery/2418.md
+@@ -1 +1 @@
+-- [#2418](https://github.com/tvofi/heatpump_optimizer/pull/2418) — **open**, record: delivery rows (autofix)
++- [#2418](https://github.com/tvofi/heatpump_optimizer/pull/2418) — **merged `86010e8`**, record: delivery rows for #2384, #2393, #2400, #2403, #2414 (autofix).
+diff --git a/dev/programme/delivery/2420.md b/dev/programme/delivery/2420.md
+new file mode 100644
+index 000000000..fe0d58196
+--- /dev/null
++++ b/dev/programme/delivery/2420.md
+@@ -0,0 +1 @@
++- [#2420](https://github.com/tvofi/heatpump_optimizer/pull/2420) — **open**, record: delivery rows (autofix)
+diff --git a/dev/programme/delivery/2423.md b/dev/programme/delivery/2423.md
+index f143e5475..b1fd21c93 100644
+--- a/dev/programme/delivery/2423.md
++++ b/dev/programme/delivery/2423.md
+@@ -1 +1 @@
+-- [#2423](https://github.com/tvofi/heatpump_optimizer/pull/2423) — **open**, R10-MERGE-SUBJECT: one merge-subject grammar across readers; subject guard (R10-MERGE-SUBJECT)
++- [#2423](https://github.com/tvofi/heatpump_optimizer/pull/2423) — **merged `89e3385`**, R10-MERGE-SUBJECT: one merge-subject grammar across readers; subject guard.
