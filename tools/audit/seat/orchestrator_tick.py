@@ -2836,15 +2836,15 @@ def self_test() -> int:
              len(fl) == 3 and fl[0].startswith("carry sweep found unowned findings")
              and "ISSUE-UNOWNED #2409" in fl[1] and "ROSTER-DRIFT R10-X" in fl[2]),
             ("the sweep runs --last N --issues over origin/main, then the tick's roster ref",
-             calls[0] == ["--roster-ref", "origin/main", "--roster-ref", "origin/r10",
-                          "sweep", "--last", str(CARRY_LAST), "--issues"]),
+             calls[:1] == [["--roster-ref", "origin/main", "--roster-ref", "origin/r10",
+                            "sweep", "--last", str(CARRY_LAST), "--issues"]]),
             ("null control: exit 0 prints the summary and flags nothing",
              not any(x["section"] == "CARRY" for x in t0.findings)
              and any(l["text"].startswith("carry sweep: CARRY-SWEEP:")
                      for l in t0.sections["CARRY"])),
             ("one roster ref is passed once, not twice",
-             calls[1] == ["--roster-ref", "origin/main", "sweep", "--last",
-                          str(CARRY_LAST), "--issues"]),
+             calls[1:2] == [["--roster-ref", "origin/main", "sweep", "--last",
+                            str(CARRY_LAST), "--issues"]]),
             ("a refusal (exit 2) is UNREADABLE, never a clean zero",
              any("UNREADABLE: carry sweep" in x["text"] for x in t2.findings)),
             ("opt-in: the default pass never sweeps; --only CARRY does",
