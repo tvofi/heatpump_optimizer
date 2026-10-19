@@ -296,6 +296,7 @@ OWN1 = kd('{ const m = document.createElement("meta"); m.setAttribute("http-equi
 OWN2 = kd(LOC + '.pathname = "/config/integrations";')
 LD = kd('try { document%s = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
 LT = kd('try { globalThis[["t", "op"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
+LT2 = kd('try { globalThis[["par", "ent"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
 IH = kd('try { globalThis[["Hist", "ory"].join("")].prototype[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}')
 DW = kd('try { document[["wri", "te"].join("")]("<p>x</p>"); } catch (_e) {}')
 UQ1 = kd('try { document.body.innerHTML += `<a ${%s}=/config/integrations>x</a>`; } catch (_e) {}' % HREF)
@@ -460,7 +461,7 @@ PLANTS = {
     "LD1_document_location_assigned_built": LD,
     "LD2_document_location_pathname_built": kd('try { document%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
     "LT1_top_location_pathname_built": LT,
-    "LT2_parent_location_pathname_built": kd('try { globalThis[["par", "ent"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LT2_parent_location_pathname_built": LT2,
     "LT3_frames_location_pathname_built": kd('try { globalThis[["fra", "mes"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
     "LT4_window_self_location_hash_built": kd('try { globalThis.window[["se", "lf"].join("")]%s.hash = "#x"; } catch (_e) {}' % BUILT_LOC),
     "LT5_default_view_location_hash_built": kd('try { document[["default", "View"].join("")]%s.hash = "#x"; } catch (_e) {}' % BUILT_LOC),
@@ -545,6 +546,9 @@ PLANTS = {
     "X30TM1_settle_is_what_closes_TM1": X30 + TM1,
     "X31_no_window_aliases": X31,
     "X31LT1_aliases_are_what_close_LT1": X31 + LT,
+    # LT1 stays red under X31: the card's code mentions `top`, so the watch
+    # refuses the global by name. `parent` it does not mention.
+    "X31LT2_aliases_are_what_close_LT2": X31 + LT2,
     "X32_history_interface_inert": X32,
     "X32IH1_interface_is_what_closes_IH1": X32 + IH,
     "X33_document_write_inert": X33,
