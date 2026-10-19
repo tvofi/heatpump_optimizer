@@ -3885,6 +3885,51 @@
     "note": null
    },
    "brief": "Two review findings on #2423 (R10-MERGE-SUBJECT) that were recorded, not fixed, in tools/policy/agreement.mjs. (1) A merge subject ending `(#N)` passes too easily (the title `(#N)` laxity the #2423 review named): measure which subjects the end-anchored rule accepts that the host's own `<title> (#N)` shape would not, then tighten it to that shape. (2) The scan that detects a `--subject` writer is line-based (the #2423 review's finding 6): measure a writer it misses, for example a `--subject` split across a continuation line, then make the scan read the whole command, not a line. Failing test first for each, each with its null control (the passing shape stays green); tools/policy/agreement.mjs and its self-test are the seam. The `never --subject` line in dev/governance/roles/orchestrator.md is RCA-FRICTION's, not this group's. Part of #201. No issue is filed for this group yet: the orchestrator files and wires one.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: tools/policy/agreement.mjs is in POLICY_GLOBS; tvofi approves under the mandate. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+  },
+  {
+   "group": "R10-CI-LAYOUT",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "CI consolidation (tests.yml into an umbrella ci.yml, two pull requests)"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "XL",
+   "wave": 3,
+   "files": [
+    ".github/workflows/tests.yml",
+    ".github/workflows/governance.yml",
+    ".github/workflows/ci.yml"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "code-owned CI workflows; tvofi approves under the mandate; NOT dispatchable until a design review approves",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ci-layout",
+    "commit": null,
+    "last_step": null,
+    "next_step": "NOT dispatchable until a design review of probe/design-ci-* approves; then dispatch a fixer",
+    "note": null
+   },
+   "brief": "CI consolidation: tests.yml is consolidated under one umbrella workflow and one required check, in two pull requests (PR 1: move the non-PR jobs out of the PR graph, drop the C1 composition, an inert stub of the umbrella workflow; PR 2: the umbrella workflow itself, run-name tokens, the gate). NOT DISPATCHABLE until a design review approves the design: the design is on the refs probe/design-ci-layout, probe/design-ci-rev1 to probe/design-ci-rev4 (the design documents at the root of each ref, the reader survey and measurements under its measure directory; latest revision at commit 1371a0a6ba74), the reviews on probe/design-ci-review to probe/design-ci-review4; four reviews returned revise so far, the revision cycle is in progress. Owner rulings (tvofi, 2026-10-18 \"yes, take it under the mandate\", and 2026-10-19 under the R10 owner grants), which apply once the design review approves: D-1: record-autofix moves out of the Tests push run. Acceptance: a unit test proving the tick still sees its failures. D-2: arch-score joins the required-gate list when the diff reaches custom_components/. D-3: keep the merge_group trigger. D-4: drop the C1 composition in PR 1, if the design review confirms its proof is covered elsewhere. D-5: keep CodeQL's O17 stand-down, with the extracted-files soundness check. Variant: the review is an event of the umbrella workflow; acceptance: a pull_request_review event re-runs only budget-raise-gate and gate (proved by a run's jobs list). R-10 (2026-10-19): option B, pr-contract lists open code-scanning alerts of the matched analyses (refs/pull/N/merge at the carried code run); the lag wait (design section 4.3 step 5) is dropped; U6 must show a planted python-only finding listed in --red on the probe PR. These rulings apply once the design review approves; a revise item overrides a ruling and comes back for a new ruling. This group is code-owned CI: .github/workflows files need tvofi's approving review. Part of #201. No issue is filed for this group yet: the orchestrator files and wires one.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned CI workflows; tvofi approves under the mandate; NOT dispatchable until a design review approves. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   }
  ]
 }
