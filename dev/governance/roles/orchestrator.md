@@ -300,6 +300,23 @@ session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What 
 carries, stamps, gates, watches CI or records state runs from the tree, never
 from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
 
+**Look the instrument up before you write one** (tvofi, 2026-10-19). Round 10
+hand-rolled a tick driver, a cloud relay, a typed sweep prompt and merge loops
+while `tick_loop.sh`, `cloud_relay.sh`, `sweep_render.py` and `merge_train.py`
+existed. the instruments guide beside them in `tools/audit/seat/` lists them; read it before any loop,
+watcher, relay or helper, and use what it names.
+
+- A new helper needs a stated reason (what the listed instrument cannot do), is
+  written to `tools/` with a `--self-test`, and is listed there; scratch and
+  `/tmp` hold none. A listed instrument that falls short is fixed, not bypassed.
+- The sweep is rendered with `tools/audit/seat/sweep_render.py` from the
+  template beside it, never typed or copied from an earlier prompt.
+- When an instrument merges, re-read your briefs, sweep overlay and running
+  seats for steps it replaces, and switch them that turn.
+- A stateful instrument (`cloud_relay.sh`, the tick ledger) replays history
+  from empty state. Seed or reconcile its ledger to the present first: running
+  the relay over un-ledgered state replayed 80 stale probe refs.
+
 Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
 raise**, confirmed before the push; and **policy**, this file included, approved
 before merging — so open the pull request and surface it.
