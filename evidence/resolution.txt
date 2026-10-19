@@ -1,0 +1,28 @@
+  inert_reads.tests/harness_headers.py: merged as a set (780 entries)
+  re-run the gate that owns this file before pushing
+9f2424c1a393c554b85b30b5310204e85de5d271
+tools/audit/seat/queue_pre_flight.py
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/merge_train.py
+Auto-merging tools/audit/seat/queue_pre_flight.py
+CONFLICT (content): Merge conflict in tools/audit/seat/queue_pre_flight.py
+== 74201dd56 resolution files:
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (780 entries)
+  re-run the gate that owns this file before pushing
+ tools/audit/seat/queue_pre_flight.py | 59 ++++++++++++------------------------
+ 1 file changed, 20 insertions(+), 39 deletions(-)
+.claude/rules/finding-propagation.md
+.cursor/rules/finding-propagation.mdc
+dev/governance/rules/finding-propagation.md
+Auto-merging .claude/rules/finding-propagation.md
+CONFLICT (content): Merge conflict in .claude/rules/finding-propagation.md
+Auto-merging .cursor/rules/finding-propagation.mdc
+CONFLICT (content): Merge conflict in .cursor/rules/finding-propagation.mdc
+Auto-merging dev/governance/rules/finding-propagation.md
+CONFLICT (content): Merge conflict in dev/governance/rules/finding-propagation.md
+== a945bb62e resolution files:
+ .claude/rules/finding-propagation.md        | 87 ++++++++---------------------
+ .cursor/rules/finding-propagation.mdc       | 87 ++++++++---------------------
+ dev/governance/rules/finding-propagation.md | 87 ++++++++---------------------
+ 3 files changed, 69 insertions(+), 192 deletions(-)

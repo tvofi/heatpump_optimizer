@@ -1,53 +1,6 @@
-== roster-ref origin/handoff/audit-r10-roster
-NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE review 6251667216 item f3829ebd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-UNROUTED review 6253086887 item 7321e737 (## Block) [non-blocking]: 'Not a block: M17 (`if ds else []` dropped) leaves `ev/p-nodest.md` and `ev/p-twomarkers.md` unchanged. An id u'
-NOTE review 6255049291 item 6e7952c3: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-CARRY-AUDIT: 9 finding item(s): 8 routed, 1 unrouted, 0 bad destination(s)
-rc=1
--- body only
 NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
 NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
 NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
 NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
 CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
 rc=0
-== roster-ref 6c891ee6e
-NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE review 6251667216 item f3829ebd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-UNROUTED review 6253086887 item 7321e737 (## Block) [non-blocking]: 'Not a block: M17 (`if ds else []` dropped) leaves `ev/p-nodest.md` and `ev/p-twomarkers.md` unchanged. An id u'
-NOTE review 6255049291 item 6e7952c3: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-CARRY-AUDIT: 9 finding item(s): 8 routed, 1 unrouted, 0 bad destination(s)
-rc=1
--- body only
-NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-== roster-ref origin/main
-BAD-DEST body item 5978f947: R10-OPENPR-SILENT: R10-OPENPR-SILENT is not a group of the roster
-NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE review 6251667216 item f3829ebd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-UNROUTED review 6253086887 item 7321e737 (## Block) [non-blocking]: 'Not a block: M17 (`if ds else []` dropped) leaves `ev/p-nodest.md` and `ev/p-twomarkers.md` unchanged. An id u'
-NOTE review 6255049291 item 6e7952c3: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-CARRY-AUDIT: 9 finding item(s): 7 routed, 1 unrouted, 1 bad destination(s)
-rc=1
--- body only
-BAD-DEST body item 5978f947: R10-OPENPR-SILENT: R10-OPENPR-SILENT is not a group of the roster
-NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-CARRY-AUDIT: 6 finding item(s): 5 routed, 0 unrouted, 1 bad destination(s)
-rc=1
