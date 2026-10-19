@@ -33334,15 +33334,45 @@ def _cir_planted(extra: int) -> "tuple[object, int]":
                              {"script_runs_per_push": got})[1]
 
 
+def _cir_once_count() -> "tuple[int, list[str]]":
+    """The every-script-measured-once count, from the two instruments' own
+    enumerations: the closures lane's full plan (`lane-plan --all-scripts`),
+    less the composed scripts it consumes from the coverage job, plus the
+    coverage `fast` stage's scripts (coverage_tree.sh's own DERIVED and
+    `fast)` lines, run by bash, not re-implemented here)."""
+    closures_all = [s for s in _closure.test_scripts()
+                    if Path(s).name not in _closure.SLOW_GATED]
+    tree_sh = Path("tools/coverage/coverage_tree.sh").read_text()
+    derived = re.search(r"^DERIVED=\$\(.*?\)$", tree_sh, re.M | re.S)
+    fast = re.search(r"^\s*fast\)\s+(SCRIPTS=.*?) ;;$", tree_sh, re.M)
+    if not derived or not fast:
+        return -1, ["coverage_tree.sh's DERIVED or `fast)` line not found"]
+    out = _subprocess.run(
+        ["bash", "-c", f'{derived.group(0)}\n{fast.group(1)}\nprintf "%s\\n" "$SCRIPTS"'],
+        capture_output=True, text=True, timeout=60)
+    cov = [f"tests/{n}.py" for n in out.stdout.split()]
+    composed = [s for s in _closure.composed_scripts() if s in closures_all]
+    problems = [f"composed {s} is not in the coverage fast stage"
+                for s in composed if s not in cov]
+    if out.returncode or not cov:
+        problems.append(f"coverage enumeration rc={out.returncode} n={len(cov)}")
+    return len(closures_all) - len(composed) + len(cov), problems
+
+
+_CIR_ONCE, _CIR_ONCE_PROBLEMS = _cir_once_count()
 _CIR_PLANT, _CIR_PLANT_GREW = _cir_planted(1)
 _CIR_EXACT, _CIR_EXACT_GREW = _cir_planted(0)
 R.check(
-    "one script run past the every-script-once budget turns the CI ratchet red",
+    "one script run past the every-script-once budget turns the CI ratchet "
+    "red, and the budget is that count",
     _CIR_PLANT_GREW == 1 and _CIR_EXACT_GREW == 0
-    and _CIR_PLANT == _CIR_BUDGET + 1 and _CIR_EXACT == _CIR_BUDGET,
-    f"budget {_CIR_BUDGET}: {_CIR_PLANT!r} runs graded {_CIR_PLANT_GREW} "
+    and _CIR_PLANT == _CIR_BUDGET + 1 and _CIR_EXACT == _CIR_BUDGET
+    and not _CIR_ONCE_PROBLEMS and _CIR_BUDGET == _CIR_ONCE,
+    f"budget {_CIR_BUDGET}, every-script-once count {_CIR_ONCE} "
+    f"({_CIR_ONCE_PROBLEMS}); {_CIR_PLANT!r} runs graded {_CIR_PLANT_GREW} "
     f"grew (want 1); {_CIR_EXACT!r} runs beside 20 reused copies graded "
-    f"{_CIR_EXACT_GREW} (want 0, the null control)",
+    f"{_CIR_EXACT_GREW} (want 0, the null control). A budget above the count "
+    "is slack nobody decided; below it, a push measuring each script once reddens",
 )
 
 
