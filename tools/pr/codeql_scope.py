@@ -90,7 +90,7 @@ def changed_files(base: str, head: str, cwd: str = ".",
     Raises CalledProcessError when git cannot diff: the caller fails, and a
     failed scope job leaves every leg analyzing."""
     try:
-        return _closure().changed_between(base, head, cwd=cwd, env=env)
+        return sorted(set(subprocess.run(['git','diff','--no-renames','--name-only',f'{base}...{head}'],cwd=cwd,env=env,capture_output=True,text=True,check=True).stdout.split()))
     except SystemExit as e:
         raise subprocess.CalledProcessError(2, ["git", "diff", f"{base}...{head}"],
                                             stderr=str(e)) from None
