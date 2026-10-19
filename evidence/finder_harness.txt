@@ -1,12 +1,16 @@
 == mb
 89dcd7a6ebbd1f5ea504581b668201f4a79b5110  -
+rc=0
 RESULT worst_abs_bias=0.0034 scale
 rc=0
 RESULT worst_abs_bias=0.4731 scale
 rc=0
+da39a3ee5e6b4b0d3255bfef95601890afd80709  -
 == head
 89dcd7a6ebbd1f5ea504581b668201f4a79b5110  -
+rc=0
 RESULT worst_abs_bias=0.0034 scale
 rc=0
 RESULT worst_abs_bias=0.4731 scale
 rc=0
+da39a3ee5e6b4b0d3255bfef95601890afd80709  -

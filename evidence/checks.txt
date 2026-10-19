@@ -1,0 +1,16 @@
+
+STRUCTURE RATCHET PASSED
+claims hygiene: 05c39d3a6597e02c81f07e771a058da90f8ebb46 ok
+version-diff-done
+dev/audit/harnesses/r10_dead_rate_limit.py
+dev/programme/rosters/wave-r10-groups.json
+custom_components/heatpump_optimizer/thermal_model.py:1943:    target = float(np.clip(target, current - reach, current + reach))
+custom_components/heatpump_optimizer/coordinator.py:1279:HOUSE_LOSS_MAX_STEP = 0.05
+custom_components/heatpump_optimizer/coordinator.py:1314:COP_LEARNING_MAX_STEP = 0.05
+custom_components/heatpump_optimizer/coordinator.py:4716:        max_step = self._cop_scale * COP_LEARNING_MAX_STEP
+custom_components/heatpump_optimizer/coordinator.py:4720:                self._cop_scale - max_step,
+custom_components/heatpump_optimizer/coordinator.py:4721:                self._cop_scale + max_step,
+custom_components/heatpump_optimizer/coordinator.py:4848:        * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` nameplate
+custom_components/heatpump_optimizer/coordinator.py:4876:        if abs(current / anchor - 1.0) <= HOUSE_LOSS_MAX_STEP:
+custom_components/heatpump_optimizer/thermal_model.py:1938:    target = float(np.clip(target, current - reach, current + reach))
+custom_components/heatpump_optimizer/thermal_model.py:1944:    updated = float(np.clip(updated, current - max_step, current + max_step))

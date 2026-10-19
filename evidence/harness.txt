@@ -1,15 +1,96 @@
-== base
-RESULT points=181440 RESULT none=0 RESULT binds=0 RESULT max_moved_fraction=0.033333333333 RESULT bound=0.010000000000 RESULT digest=0cd34c4c10ee1c429f313ae8d68b3620a95cb21f  [] rc=0
-RESULT points=181440 RESULT none=0 RESULT binds=173200 RESULT max_moved_fraction=1.666666666667 RESULT bound=0.500000000000 RESULT digest=d418c733ac88247e69468ad015153660d0ec0de1  [--alpha 1.0] rc=0
-RESULT points=187920 RESULT none=0 RESULT binds=156444 RESULT max_moved_fraction=0.200000000000 RESULT bound=0.010000000000 RESULT digest=c0c25d30f8352aa41cdd697bd22e46f7b5e1dc35  [--current-min 0.05 --current-max 0.2] rc=0
-RESULT points=181440 RESULT none=0 RESULT binds=99336 RESULT max_moved_fraction=0.033333333333 RESULT bound=0.010000000000 RESULT digest=a2cfe692855036ae52eaa28f0dc0c884a38cc66a  [--limit 0.005] rc=0
-== mb
-RESULT points=181440 RESULT none=0 RESULT binds=0 RESULT max_moved_fraction=0.010000000000 RESULT bound=0.010000000000 RESULT digest=3187402b35f5e993a2e0b090b885338973619521  [] rc=0
-RESULT points=181440 RESULT none=0 RESULT binds=173200 RESULT max_moved_fraction=0.500000000000 RESULT bound=0.500000000000 RESULT digest=aab107495a1e71c10532872065fdc8c6f0c6e805  [--alpha 1.0] rc=0
-RESULT points=187920 RESULT none=0 RESULT binds=0 RESULT max_moved_fraction=0.010000000000 RESULT bound=0.010000000000 RESULT digest=941f867685cdbbbb0cad61c3d2c0498f11a1e41c  [--current-min 0.05 --current-max 0.2] rc=0
-RESULT points=181440 RESULT none=0 RESULT binds=158586 RESULT max_moved_fraction=0.010000000000 RESULT bound=0.010000000000 RESULT digest=52a4b217daaaeb660a5c977655dde6348bd8ef06  [--limit 0.005] rc=0
-== head
-RESULT points=181440 RESULT none=0 RESULT binds=0 RESULT max_moved_fraction=0.010000000000 RESULT bound=0.010000000000 RESULT digest=3187402b35f5e993a2e0b090b885338973619521  [] rc=0
-RESULT points=181440 RESULT none=0 RESULT binds=173200 RESULT max_moved_fraction=0.500000000000 RESULT bound=0.500000000000 RESULT digest=f114d1008253a76c22f43c58a6aad4a25a4aaef8  [--alpha 1.0] rc=0
-RESULT points=187920 RESULT none=0 RESULT binds=0 RESULT max_moved_fraction=0.010000000000 RESULT bound=0.010000000000 RESULT digest=941f867685cdbbbb0cad61c3d2c0498f11a1e41c  [--current-min 0.05 --current-max 0.2] rc=0
-RESULT points=181440 RESULT none=0 RESULT binds=158586 RESULT max_moved_fraction=0.010000000000 RESULT bound=0.010000000000 RESULT digest=3187402b35f5e993a2e0b090b885338973619521  [--limit 0.005] rc=0
+== base []
+RESULT points=181440
+RESULT none=0
+RESULT binds=0
+RESULT max_moved_fraction=0.033333333333
+RESULT bound=0.010000000000
+RESULT digest=0cd34c4c10ee1c429f313ae8d68b3620a95cb21f
+rc=0
+== base [--alpha 1.0]
+RESULT points=181440
+RESULT none=0
+RESULT binds=173200
+RESULT max_moved_fraction=1.666666666667
+RESULT bound=0.500000000000
+RESULT digest=d418c733ac88247e69468ad015153660d0ec0de1
+rc=0
+== base [--current-min 0.05 --current-max 0.2]
+RESULT points=187920
+RESULT none=0
+RESULT binds=156444
+RESULT max_moved_fraction=0.200000000000
+RESULT bound=0.010000000000
+RESULT digest=c0c25d30f8352aa41cdd697bd22e46f7b5e1dc35
+rc=0
+== base [--limit 0.005]
+RESULT points=181440
+RESULT none=0
+RESULT binds=99336
+RESULT max_moved_fraction=0.033333333333
+RESULT bound=0.010000000000
+RESULT digest=a2cfe692855036ae52eaa28f0dc0c884a38cc66a
+rc=0
+== mb []
+RESULT points=181440
+RESULT none=0
+RESULT binds=0
+RESULT max_moved_fraction=0.010000000000
+RESULT bound=0.010000000000
+RESULT digest=3187402b35f5e993a2e0b090b885338973619521
+rc=0
+== mb [--alpha 1.0]
+RESULT points=181440
+RESULT none=0
+RESULT binds=173200
+RESULT max_moved_fraction=0.500000000000
+RESULT bound=0.500000000000
+RESULT digest=aab107495a1e71c10532872065fdc8c6f0c6e805
+rc=0
+== mb [--current-min 0.05 --current-max 0.2]
+RESULT points=187920
+RESULT none=0
+RESULT binds=0
+RESULT max_moved_fraction=0.010000000000
+RESULT bound=0.010000000000
+RESULT digest=941f867685cdbbbb0cad61c3d2c0498f11a1e41c
+rc=0
+== mb [--limit 0.005]
+RESULT points=181440
+RESULT none=0
+RESULT binds=158586
+RESULT max_moved_fraction=0.010000000000
+RESULT bound=0.010000000000
+RESULT digest=52a4b217daaaeb660a5c977655dde6348bd8ef06
+rc=0
+== head []
+RESULT points=181440
+RESULT none=0
+RESULT binds=0
+RESULT max_moved_fraction=0.010000000000
+RESULT bound=0.010000000000
+RESULT digest=3187402b35f5e993a2e0b090b885338973619521
+rc=0
+== head [--alpha 1.0]
+RESULT points=181440
+RESULT none=0
+RESULT binds=173200
+RESULT max_moved_fraction=0.500000000000
+RESULT bound=0.500000000000
+RESULT digest=f114d1008253a76c22f43c58a6aad4a25a4aaef8
+rc=0
+== head [--current-min 0.05 --current-max 0.2]
+RESULT points=187920
+RESULT none=0
+RESULT binds=0
+RESULT max_moved_fraction=0.010000000000
+RESULT bound=0.010000000000
+RESULT digest=941f867685cdbbbb0cad61c3d2c0498f11a1e41c
+rc=0
+== head [--limit 0.005]
+RESULT points=181440
+RESULT none=0
+RESULT binds=158586
+RESULT max_moved_fraction=0.010000000000
+RESULT bound=0.010000000000
+RESULT digest=3187402b35f5e993a2e0b090b885338973619521
+rc=0

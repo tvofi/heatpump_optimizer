@@ -1,30 +1,41 @@
-Fix review: blocked 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 contract: pr-contract red at this head, carry_audit.py refuses 3 unrouted body items (## Forward-carry "none" line and both ## Friction lines end `Carry: <file path>`, not GROUP|#issue|O<n>|dismissed); ## Red checks says none
+Fix review: merge 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1
 
-bus-nonce: 8bdd00fe42dfc236cb21766248fa7b8d
+bus-nonce: 03cf3d90583f8a3000235623b29f34d4
 
-Round 1 (no earlier `Fix review:` comment on #2448). Measured head 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 (ev/HEAD), still the branch tip at write time. Roles contract current (`git diff mb...origin/main -- dev/governance/roles/` empty).
+Round 2. The PR's earlier `Fix review:` comments (6267286930, 6267405240) are one round-1 verdict posted twice: blocked at this same head on an unrouted body (pr-contract red, `## Red checks` stale). The head has not moved; the body was re-pushed, and this round reviews it plus the code again. Measured head 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 (ev/HEAD); still `refs/pull/2448/head` at write time, body byte-identical to ev/BODY.md. Roles contract current (`git diff $(merge-base)...origin/main -- dev/governance/roles/` empty).
 
-## Blocker (body only; the code passes every check below)
-- `pr-contract` is red on this head (jobs 118057609688, 118057416570): `CARRY-AUDIT: 3 finding item(s): 0 routed, 3 unrouted` (ev/ci.txt). The two Friction lines name files (`dev/programme/rosters/wave-r10-groups.json`, `dev/governance/roles/orchestrator.md`) where `finding-propagation.md` requires `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`; the Forward-carry "none" line carries no marker. Fix: re-route the three lines in the body (e.g. `Carry: R10-DEAD-RATE-LIMIT` only if a roster write landed, else a real destination or `dismissed: <reason>`), and let a fresh pr-contract run check it. `## Red checks: none` is also stale now that checks ran; it must answer pr-contract (step 11) once the head's workflows conclude. nightly-status red is not this PR's. Remaining jobs (mutation, fast, typing, coverage, env-matrix, policy-docs, instrument-self-tests, browser) were in progress at read; not cited as passed.
+## Round-1 blocker: closed
+- `python3 tools/audit/carry_audit.py check --body ev/BODY.md`, run from an origin/main worktree (e8c67e1d3): `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)` (ev/carry.txt). Both Friction items go to R10-BRIEFS-FOLD, which is a group in origin/main's `wave-r10-groups.json`.
+- pr-contract at this head: green in the runs at 12:38:00, 12:38:23 and 13:17:00 (13:17 is after every other workflow concluded). The round-1 red runs no longer appear in the check-runs listing.
 
-## RESULT lines (reviewer-run)
-Harness: dev/audit/harnesses/r10_dead_rate_limit.py, sha1 99b702cb6ed433e9531307f710e49299c6dc4b3c (the fixer's, disclosed as new; the finding had no committed harness — the roster records "the orchestrator's recorded finding" — so this is step 9's finding, disclosed). Same file run against base 90557e39e, mb 05c39d3a6, head (ev/harness.txt):
-- shipped: binds=0/181440 at base, mb, head; max_moved_fraction 0.0333 base, 0.0100 mb/head; digest 3187402b… at mb = head (bit-identical step), 0cd34c4c… base. All as body.
-- --alpha 1.0: binds=173200 at all three; digest aab10749… mb vs f114d100… head. As body.
-- --current-min 0.05 --current-max 0.2: binds=156444 base, 0 mb, 0 head. As body.
-- --limit 0.005: binds=158586 mb/head; digest 52a4b217… mb vs 3187402b… head. As body. (base: 99336, not quoted.)
-Finder's harnesses at both ends (ev/finder_harness.txt): reparam_sites RESULT sha1 89dcd7a6ebbd… mb = head; newton_bias none 0.0034 / asym 0.4731 at both, rc 0 on Linux. r10_trust_relative_bundle.py not re-run (synthetic bundle, not reproducible from the body without its JSON) — not verified.
+## CI (ev/ci.txt, commit check-runs API, 51 runs, all concluded)
+Every run is success, skipped or neutral except `nightly-status` (118057836241): main's `record-autofix` nightly failed. This diff does not reach what that check reads, and `## Red checks` answers it. The body also answers the earlier pr-contract red (step 11): it names the cheaper detector, `carry_audit.py check` before `body_push.sh`, and its standing cost. fast (3.14), coverage, closures, coverage-ratchet, mutation, typing, env-matrix, policy-docs, instrument-self-tests, browser, CodeQL and arch-score are all green. Mutation log: `MUTATION TABLE PASSED (empty pool)`, `no mutant is both generatable and drivable`; unpinned sites 4170 vs 4171 at the ratchet base. The empty pool is why I ran the targeted mutants below. Heavy runs are cited from CI, not re-run.
 
-## Mutation proof (ev/mutants.txt)
-M2, M3 reproduce the body exactly; unmutated passes. Reviewer's own: a clip at 0.0099 (just under alpha*trust_region) and a 1e-4 EWMA perturbation both fail 2 of 7. Body's M1 (clip at 0.05 passes) is the finding, accepted.
+## RESULT lines, reviewer-run (ev/harness.txt)
+Harness: `dev/audit/harnesses/r10_dead_rate_limit.py`, sha1 99b702cb6ed433e9531307f710e49299c6dc4b3c. It is the fixer's own instrument, and the body discloses it as such. The finding had no committed harness (step 9, disclosed: it is the R10-TRUST-RELATIVE seat's forward-carry). I ran it from git worktrees: base 90557e39e, mb 05c39d3a6, head.
+- shipped: binds=0/181440 at base, mb, head. max_moved_fraction is 0.033333333333 at base and 0.010000000000 at mb and head (bound 0.01). digest 3187402b35f5… at mb = head, 0cd34c4c10ee… at base. Matches the body.
+- --alpha 1.0: binds=173200 at all three. digest at mb aab107495a1e… vs head f114d1008253…. Matches the body.
+- --current-min 0.05 --current-max 0.2: binds=156444 at base, 0 at mb, 0 at head. Matches the body.
+- --limit 0.005: binds=158586 at mb and head (base 99336, which the body does not quote). digest at mb 52a4b217daaa… vs head 3187402b…. Matches the body.
+Finder's harnesses at both ends (ev/finder_harness.txt), mb vs head:
+- reparam_sites: RESULT sha1 89dcd7a6ebbd… at both.
+- newton_bias: none 0.0034, asym 0.4731 at both, rc 0 on Linux.
+- D14 enumerate.py: rc 0 at both, but it prints no RESULT lines, so it compares nothing.
+- r10_trust_relative_bundle.py: not re-run. The body's input is a synthetic bundle that is not committed, so this figure is not verified.
+
+## Mutation proof (ev/mutants.txt, features_block on the #193 S7 block, restored after each; `git status` clean)
+- unmutated: ALL 7 PASSED.
+- M2, clip 0.005: 2 of 7 FAILED, the two checks the body names.
+- M3, unused `max_step_fraction=0.05` parameter: 1 of 7 FAILED, the signature check.
+- M1, clip 0.05: ALL 7 PASSED. This is the finding itself, as the body says: a clip that never binds cannot be seen by value.
+- My own mutants: a clip at 0.0099 (just under alpha*trust_region) and a ×(1+1e-4) EWMA bias each fail 2 of 7.
 
 ## Other steps
-- merge-tree origin/main 4c9dc5d92: rc 0, tree e27f989f… (no conflict, claimnotes driver not needed).
-- VERSION / manifest untouched; notes heading untouched (prepr --version-edit in CI: none).
-- env_drift --claims-only: ok; no claim file touched, production step bit-identical so no golden can move.
-- structure.py at head: STRUCTURE RATCHET PASSED; class_excess_loc/max_class_loc -1 earned by deleting the two `max_step_fraction=` call-site lines (net -1 in the class: +1 docstring, -2 kwargs). Not gamed.
-- Class (step 6): rule 2 `git grep MAX_STEP|max_step` returns HOUSE_LOSS_MAX_STEP (re-anchor gate, kept, documented) and COP_LEARNING_MAX_STEP: read `_fold_measured_cop`, no trust region precedes its clip, so not the dominated shape — body's disposition holds. Rule 1 re-run not separately reproduced beyond reading the remaining clip.
-- `git grep -ln max_step_fraction` at head: only the new harness and the roster. Four callers updated as body says.
-- Forward-carry: body says none; acceptable on substance, but unrouted (blocker above).
-- Architecture: added lines are deletions plus docstrings; no breach.
-- Full tests/features.py at head, run locally: ALL 4220 FEATURE CHECKS PASSED (ev/features.txt), matching the body.
+- merge-tree origin/main (e8c67e1d3) against the head: rc 0, tree 12d24068… (ev/merge-tree.txt). No conflict.
+- VERSION, manifest, RELEASE_NOTES.md and tests/golden: no diff in the three-dot range. `env_drift.py --claims-only 05c39d3a6`: ok. No claim file is touched, and the step is bit-identical at the shipped constants (digest), so no golden can move.
+- structure (step 14): `STRUCTURE RATCHET PASSED` at the head. Removing the mechanism (re-adding the two `max_step_fraction=` call-site lines) gives `FAIL class_excess_loc 18303 > 18301 (+2)`, so the -1 is earned by the change.
+- Class (step 6), reviewer re-run. Rule 1 at mb returns two seams, thermal_model.py:1938 (the trust region) and :1944 (the deleted clip). At the head it returns only the trust region. Rule 2 returns HOUSE_LOSS_MAX_STEP, kept as the re-anchor gate (coordinator.py:4876), and COP_LEARNING_MAX_STEP. I read `_fold_measured_cop`: nothing bounds its step before the clip (`judge_ratio` gates against the walking ratio, not this step), and with alpha 0.03 the clip binds when |commanded/measured − 1| > 1.67. So it is not the dominated shape, and the body's disposition holds.
+- `git grep -ln max_step_fraction` at the head finds only the new harness and the roster. All four harness callers are updated.
+- Forward-carry: `none`. The findings that matter are routed to R10-BRIEFS-FOLD.
+- Architecture (step 15): the added lines are a docstring, comments, a float() wrap and tests. No breach.
+- Head in the body (step 7): 4c9dc5d92 is named, with measurement at the code head d85b8c246. The main merge (3310f9b08) reaches none of the measured files.
