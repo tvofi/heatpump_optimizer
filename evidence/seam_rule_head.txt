@@ -1,6 +1,6 @@
-head/custom_components/heatpump_optimizer/const.py:152:# throttles (``cop_flow_carnot``). On a direct plant -- a monoblock feeding
-head/custom_components/heatpump_optimizer/optimizer.py:2362:        # `cop_flow_carnot` gate) or the cap sits at the flow reference; the
+head/custom_components/heatpump_optimizer/const.py:158:# throttles (``cop_flow_carnot``). On a direct plant -- a monoblock feeding
 head/custom_components/heatpump_optimizer/flow_lift.py:5:``cop_flow_carnot`` -- which is on only while a mixing valve throttles. On a
+head/custom_components/heatpump_optimizer/optimizer.py:2530:        # `cop_flow_carnot` gate) or the cap sits at the flow reference; the
 head/custom_components/heatpump_optimizer/thermal_model.py:166:def _flow_curve_values(config: Mapping[str, Any], cop_flow_carnot: bool) -> dict[str, Any]:
 head/custom_components/heatpump_optimizer/thermal_model.py:181:        "flow_curve_cop": enabled and not cop_flow_carnot,
 head/custom_components/heatpump_optimizer/thermal_model.py:398:    cop_flow_carnot: bool = False

@@ -1,49 +1,52 @@
-Analyze (actions)	completed	success	117791556046	2026-10-18T21:14:30Z
-Analyze (javascript-typescript)	completed	success	117791556097	2026-10-18T21:14:34Z
-Analyze (python)	completed	success	117791556114	2026-10-18T21:33:43Z
-CodeQL	completed	success	117791736062	2026-10-18T21:14:24Z
-arch-score	completed	success	117791480061	2026-10-18T21:14:27Z
-arch-score	completed	success	117791480633	2026-10-18T21:14:29Z
-briefs	completed	success	117791480195	2026-10-18T21:13:40Z
-browser	completed	success	117791558544	2026-10-18T21:17:34Z
-budget-raise-gate	completed	failure	117791479565	2026-10-18T21:13:31Z
-budget-raise-gate	completed	failure	117791480465	2026-10-18T21:13:35Z
-cancel-superseded	completed	success	117791479417	2026-10-18T21:13:23Z
-cancel-superseded	completed	success	117791480239	2026-10-18T21:13:26Z
-claims-autofix	completed	skipped	117797780679	2026-10-18T21:41:25Z
-closure-scope	completed	success	117791480218	2026-10-18T21:13:34Z
-closures	in_progress		117795194195	
-coverage	completed	success	117791558491	2026-10-18T21:29:53Z
-coverage-ratchet	completed	success	117795194223	2026-10-18T21:30:07Z
-delivery-status	completed	failure	117791479926	2026-10-18T21:13:32Z
-delivery-status-publish	completed	skipped	117791480893	2026-10-18T21:13:13Z
-env-matrix	completed	success	117791479967	2026-10-18T21:15:12Z
-fast (3.14)	completed	success	117791558568	2026-10-18T21:41:24Z
-graders-head-copy	completed	success	117795194155	2026-10-18T21:31:32Z
-hassfest	completed	success	117791479507	2026-10-18T21:13:39Z
-instrument-self-tests	completed	success	117791479725	2026-10-18T21:16:21Z
-kernel-points (Haswell)	completed	success	117791480203	2026-10-18T21:14:13Z
-kernel-points (Nehalem)	completed	success	117791480263	2026-10-18T21:13:51Z
-kernel-points (Sandybridge)	completed	success	117791480037	2026-10-18T21:13:56Z
-kernel-points (native)	completed	success	117791480222	2026-10-18T21:13:51Z
-lane-proofs	completed	success	117797779692	2026-10-18T21:41:34Z
-mutation	completed	success	117791480437	2026-10-18T21:30:28Z
-mutation-autofix	completed	skipped	117795338905	2026-10-18T21:30:28Z
-mutation-ledger	completed	skipped	117791481317	2026-10-18T21:13:13Z
-mutation-ledger-push	completed	skipped	117791481508	2026-10-18T21:13:14Z
-mutation-nightly	completed	skipped	117791481188	2026-10-18T21:13:13Z
-mutation-pin-plan	completed	skipped	117795338666	2026-10-18T21:30:28Z
-mutation-pins	completed	skipped	117795339049	2026-10-18T21:30:28Z
-nightly-ha	completed	skipped	117791559987	2026-10-18T21:13:34Z
-nightly-status	completed	success	117791479941	2026-10-18T21:13:27Z
-policy-docs	completed	success	117791479943	2026-10-18T21:14:58Z
-pr-contract	completed	failure	117792232969	2026-10-18T21:17:05Z
-pr-contract	completed	success	117791479804	2026-10-18T21:13:49Z
-recheck-gate	completed	skipped	117791481014	2026-10-18T21:13:13Z
-record	completed	skipped	117791480745	2026-10-18T21:13:13Z
-record-autofix	completed	skipped	117791481119	2026-10-18T21:13:13Z
-scope	completed	success	117791479745	2026-10-18T21:13:33Z
-slow	completed	skipped	117791481334	2026-10-18T21:13:13Z
-typing	completed	success	117791480206	2026-10-18T21:14:49Z
-validate-hacs	completed	success	117791479960	2026-10-18T21:14:04Z
-wave-script	completed	failure	117791480119	2026-10-18T21:13:39Z
+117907797525	Analyze (actions)	success
+117907797512	Analyze (javascript-typescript)	success
+117907797532	Analyze (python)	success
+117907977375	CodeQL	success
+117907728360	arch-score	success
+117907732303	arch-score	success
+117907732806	briefs	success
+117907822749	browser	success
+117907728226	budget-raise-gate	failure
+117907733053	budget-raise-gate	failure
+117907731776	cancel-superseded	success
+117907732587	cancel-superseded	success
+117919515506	ci-ratchet	skipped
+117915164242	claims-autofix	skipped
+117907732499	closure-scope	success
+117911128497	closures	success
+117919515406	closures-autofix	skipped
+117919513422	composed-proof	success
+117907822748	coverage	success
+117911128494	coverage-ratchet	success
+117907732194	delivery-status	success
+117907733400	delivery-status-publish	skipped
+117907732485	env-matrix	success
+117907822741	fast (3.14)	success
+117911128489	graders-head-copy	success
+117907731933	hassfest	success
+117907732391	instrument-self-tests	success
+117907732085	kernel-points (Haswell)	success
+117907732253	kernel-points (Nehalem)	success
+117907732296	kernel-points (Sandybridge)	success
+117907732276	kernel-points (native)	success
+117915162942	lane-proofs	success
+117907732638	mutation	success
+117912118838	mutation-autofix	skipped
+117907733682	mutation-ledger	skipped
+117907734339	mutation-ledger-push	skipped
+117907734014	mutation-nightly	skipped
+117912118954	mutation-pin-plan	skipped
+117912118989	mutation-pins	skipped
+117907823876	nightly-ha	skipped
+117907732454	nightly-status	success
+117907732365	policy-docs	success
+117907728529	pr-contract	success
+117908124611	pr-contract	success
+117907770401	recheck-gate	skipped
+117907733222	record	skipped
+117907733553	record-autofix	skipped
+117907732003	scope	success
+117907734374	slow	skipped
+117907822728	typing	success
+117907731838	validate-hacs	success
+117907732408	wave-script	success
