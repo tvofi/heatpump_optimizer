@@ -1,0 +1,8 @@
+
+== dev/programme/rosters/wave-r10-groups.json ==
+  WARNING [R10-RCA-FRICTION] path:line: fix-review.md:29: no anchor text extracted near the citation; line range only
+  -- 0 error(s), 1 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 0 error(s) across 1 file(s)

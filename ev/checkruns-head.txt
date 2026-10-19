@@ -1,0 +1,3 @@
+check-runs API at 954a7b20ffb30279adb8f57c650b3d1455c68c63, read 2026-10-19: 41 runs.
+failure: 0. neutral: 1 (CodeQL). in_progress: 1 (coverage). skipped: 14. success: 25.
+pr-contract (2 runs): success. briefs: success. policy-docs: success. wave-script: success. delivery-status: success. fast (3.14): success. browser: success. typing: success.
