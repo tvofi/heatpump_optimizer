@@ -14,9 +14,14 @@ Context only, not the approval: tvofi in chat on 2026-10-19 directed this edit: 
 
 Raises, each to the measured value `policy_lint.mjs --budgets` printed (the band is untouched; `corpus_tokens` measures ~61449 against 61026 + 500 band, so it is not raised): `orchestrator.md` lines 319 to 336 and tokens 4513 to 4794; `nudge.md` tokens 3814 to 3827. Payments considered: cutting spent prose from `orchestrator.md` sections 1 to 14, none of which is spent or duplicated after the uniqueness test; shortening the new text further drops the reason clause, which is what makes a seat check the guide.
 
+## Raise justification
+
+Payments tried: cutting prose from `orchestrator.md` sections 1 to 14 (none is spent or duplicated under the uniqueness test); moving the new rule into the instruments guide or the sweep template (both are outside the corpus, so that is the move `ratchet-budgets` calls a reclassification and refuses); shortening the new text (it drops the reason clause that makes a seat consult the guide). The change adds no code, so no refactor applies.
+Architecture score: dS +0.0000 NULL
+
 ## Red checks
 
-none
+`budget-raise-gate` is red until the owner's decisive review lands on this exact head: three caps rise (`orchestrator.md` lines 319 to 336, tokens 4513 to 4794; `nudge.md` tokens 3814 to 3827). Cheaper detector: none; this gate is the detector for a raise, and its standing cost is one mandated review per raise. Answer: the review is given under mandate 6175172275 (scope all, the `## Approval` quote above) and the `## Raise justification` section above is the shape the gate parses for a mandated approval.
 
 ## Forward-carry
 
