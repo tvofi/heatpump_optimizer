@@ -1,0 +1,9 @@
+M0 FAIL rc=1 | 1 of 2356 ENTITY CHECKS FAILED | aimed red: []
+M1 KILLED rc=1 | 2 of 2356 ENTITY CHECKS FAILED | aimed red: ['the ci.yml umbrella stub is inert: dispatch only, one `true` job, no grant, no `uses:`, and a gate file']
+M2 KILLED rc=1 | 3 of 2356 ENTITY CHECKS FAILED | aimed red: ['the ci.yml umbrella stub is inert: dispatch only, one `true` job, no grant, no `uses:`, and a gate file']
+M3 KILLED rc=1 | 2 of 2356 ENTITY CHECKS FAILED | aimed red: ['the architecture-score pair runs in lane_golden and not in lane_units']
+M4 KILLED rc=1 | 2 of 2356 ENTITY CHECKS FAILED | aimed red: ['the coverage floor re-validation re-measures only the scripts it reused']
+M5 KILLED rc=1 | 3 of 2356 ENTITY CHECKS FAILED | aimed red: ['the CI ratchet counts no `reused` coverage row as a script run']
+M6 KILLED rc=1 | 2 of 2356 ENTITY CHECKS FAILED | aimed red: ['one script run past the every-script-once budget turns the CI ratchet red, and the budget is that count']
+RESULT survivors=0
+exit=1
