@@ -739,6 +739,10 @@ def self_test() -> int:
            len(pairs) == 1 and "REFUSE" in r.stderr, f"{len(pairs)} ref(s); err={r.stderr[-300:]!r}")
 
         # body_push.sh, the handoff transport: its topic names the ref and the message.
+        # It runs the checkout's ci_predict.py first (R10-HANDOFF-PREPR-BOUNCE M2);
+        # the planted repository is no code head, so a stub predictor passes it.
+        Path(main, "tools/pr").mkdir(parents=True)
+        Path(main, "tools/pr/ci_predict.py").write_text("print('CI PREDICT: planted stub')\n")
         Path(td, "BODY.md").write_text("b\n")
 
         def body(topic: str) -> tuple[int, str]:
