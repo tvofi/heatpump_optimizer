@@ -1,0 +1,36 @@
+
+dev/programme/carries/carry-1645.json
+  ERROR   [rule-binding] dev/programme/carries/carry-1645.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/carries/carry-1774.json
+  ERROR   [rule-binding] dev/programme/carries/carry-1774.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/carries/carry-1795.json
+  ERROR   [rule-binding] dev/programme/carries/carry-1795.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/carries/carry-1922.json
+  ERROR   [rule-binding] dev/programme/carries/carry-1922.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/carries/carry-201.json
+  ERROR   [rule-binding] dev/programme/carries/carry-201.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/carries/carry-2065.json
+  ERROR   [rule-binding] dev/programme/carries/carry-2065.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/carries/carry-2066.json
+  ERROR   [rule-binding] dev/programme/carries/carry-2066.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/carries/carry-2075.json
+  ERROR   [rule-binding] dev/programme/carries/carry-2075.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/rosters/wave-r10-groups.json
+  ERROR   [rule-binding] dev/programme/rosters/wave-r10-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/programme/rosters/wave-r9-groups.json
+  ERROR   [rule-binding] dev/programme/rosters/wave-r9-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 13 recorded occurrence(s)
+
+TOTAL: 10 error(s) across 41 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

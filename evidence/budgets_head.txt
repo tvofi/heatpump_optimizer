@@ -48,4 +48,3 @@ role record    ~7234 tokens, cap 7405 +band 500 = 7905
 role policy    ~9819 tokens, cap 9958 +band 500 = 10458
 
 The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
-rc=0
