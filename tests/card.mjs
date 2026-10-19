@@ -49,6 +49,167 @@ const {
   fireWindow, fireDocument, tickIntervals, coarseTouch, reducedMotion,
   VOID_TAGS, parseHtml, Node, matches, HTMLElement,
 } = makeCardContext();
+// --- A browser's navigation surface, live before the card loads (R10-DEEPLINK) --
+// The rig gives the card none of that surface; a browser always has it. It is
+// installed HERE, before the card's source runs, and it is ONE graph for the
+// whole file: every scenario runs against it and the link census at the end of
+// this file records through it. A card that takes a reference when it loads --
+// `const H = window.history`, `const o = open`, `const L = location`, a
+// factory, a timer, an event class, a registration method -- holds the very
+// object the census later records through, so a use through that reference is
+// recorded like any other (#2452 round 2, REV_CAP1-4: the census once installed
+// its recorders long after the card ran, so a reference taken at load was the
+// rig's `undefined` or its original, and a use through it was invisible).
+// Every member reports to `navHook`, which is empty until the census fills it
+// and empty again after: outside the census a member is inert, so a handler
+// that calls one cannot crash an unrelated scenario before the census can see
+// it. This graph and NAV_SURFACE (below) are the two halves of one declaration:
+// this says which members exist, NAV_SURFACE what naming one looks like.
+const navHook = { record: null, event: null, timer: null, made: null, reg: null };
+const navRecord = (via, v) => { if (navHook.record) navHook.record(via, v); };
+// The location object carries every member a browser's does, the URL parts
+// included: each of `pathname`, `search`, `hash`, `host`, `hostname`, `port`
+// and `protocol` navigates when written, as `href` does (#2452 round 1).
+const LOCATION_PARTS = { href: "/", origin: "http://localhost", protocol: "http:", host: "localhost",
+  hostname: "localhost", port: "", pathname: "/", search: "", hash: "" };
+// An interface object whose prototype holds the members a browser puts there,
+// so `History.prototype.pushState.call(history, ...)` reaches the same member
+// the object's own does.
+const navInterface = (name, obj) => {
+  const proto = {};
+  for (const [k, v] of Object.entries(obj)) if (typeof v === "function") proto[k] = v;
+  const C = { [name]: function () {} }[name];
+  C.prototype = proto;
+  proto.constructor = C;
+  Object.setPrototypeOf(obj, proto);
+  return C;
+};
+// The other names a browser reaches the same window by -- `top`, `parent`,
+// `frames`, and `window` / `self` on the window itself -- and the document's
+// own way to it (`defaultView`): each leads to the members below, so each is
+// bound to the window that holds them.
+const WINDOW_ALIASES = ["top", "parent", "frames"];
+const NAV = (() => {
+  // The history object's five routes: the two state writers carry a path, and
+  // back / forward / go carry none -- and every one of them is a way out.
+  const history = {
+    pushState(_s, _t, p) { navRecord("push", String(p)); },
+    replaceState(_s, _t, p) { navRecord("replace", String(p)); },
+    back() { navRecord("history", "back"); },
+    forward() { navRecord("history", "forward"); },
+    go(d) { navRecord("history", `go(${d})`); },
+  };
+  const open = function open(u) { navRecord("open", String(u)); return null; };
+  // A write to ANY member is recorded: an `href` write carries its path, so a
+  // link haLink built is excused as it is from assign; any other member
+  // carries `member=value`, which no path equals.
+  const location = new Proxy({ ...LOCATION_PARTS,
+    assign(v) { navRecord("location", String(v)); },
+    replace(v) { navRecord("location", String(v)); },
+    reload() { navRecord("location", "reload"); },
+    toString() { return LOCATION_PARTS.href; },
+  }, {
+    set: (_t, k, v) => { navRecord("location", k === "href" ? String(v) : `${String(k)}=${String(v)}`); return true; },
+    defineProperty: (_t, k, d) => { navRecord("location", `${String(k)}=${String(d && d.value)}`); return true; },
+  });
+  // The Navigation API, recorded by NAME like every other member.
+  const navigation = {
+    navigate(u) { navRecord("navigation", String(u)); return null; },
+    reload() { navRecord("navigation", "reload"); return null; },
+    traverseTo(u) { navRecord("navigation", String(u)); return null; },
+    back() { navRecord("navigation", "back"); return null; },
+    forward() { navRecord("navigation", "forward"); return null; },
+  };
+  // The document's page-replacing members: `open` with a URL is the window's
+  // open, and `open` without one and `write` / `writeln` replace the page.
+  const doc = {
+    open(...a) {
+      if (a.length >= 3) { navRecord("open", String(a[0])); return null; }
+      navRecord("document", "open");
+      return document;
+    },
+    write(...a) { navRecord("document", `write ${a.join("")}`); },
+    writeln(...a) { navRecord("document", `writeln ${a.join("")}`); },
+  };
+  return { history, open, location, navigation, doc,
+    History: navInterface("History", history),
+    Navigation: navInterface("Navigation", navigation),
+    Document: navInterface("Document", doc) };
+})();
+{
+  const locDesc = { get: () => NAV.location, set: (v) => navRecord("location", String(v)), configurable: true };
+  // dispatchEvent too: Home Assistant's own navigate pairs a history write
+  // with a `location-changed` dispatch on the window. And `Event`, the class
+  // of them all: Home Assistant's own `fireEvent` builds a plain `Event` (not
+  // a `CustomEvent`) and hangs the payload off `.detail`. Both event classes
+  // report their construction, so one built with a name the card does not
+  // write is the census's to see, whichever reference built it.
+  const dispatchEvent = () => true;
+  const Event = class Event {
+    constructor(type, o = {}) {
+      this.type = type;
+      this.detail = (o || {}).detail;
+      this.bubbles = !!(o || {}).bubbles;
+      this.composed = !!(o || {}).composed;
+      if (navHook.event) navHook.event(type, o);
+    }
+  };
+  const RigCustomEvent = ctx.CustomEvent;
+  const CustomEvent = class CustomEvent extends RigCustomEvent {
+    constructor(type, o) { super(type, o); if (navHook.event) navHook.event(type, o); }
+  };
+  // Timers: outside the census the rig's own; inside it, queued so the census
+  // runs what a drive deferred before that drive's read.
+  const rigTimer = { setTimeout: ctx.setTimeout, clearTimeout: ctx.clearTimeout,
+    setInterval: ctx.setInterval, clearInterval: ctx.clearInterval };
+  const timers = {
+    setTimeout: (f, ms, ...a) => (navHook.timer ? navHook.timer.add(() => f(...a)) : rigTimer.setTimeout(f, ms, ...a)),
+    clearTimeout: (id) => { if (!(navHook.timer && navHook.timer.drop(id))) rigTimer.clearTimeout(id); },
+    setInterval: (f, ...rest) => {
+      const id = rigTimer.setInterval(f, ...rest);
+      if (navHook.timer) navHook.timer.add(f, `i${id}`);
+      return id;
+    },
+    clearInterval: (id) => { if (navHook.timer) navHook.timer.drop(`i${id}`); rigTimer.clearInterval(id); },
+  };
+  for (const g of [ctx, ctx.window]) {
+    Object.assign(g, { history: NAV.history, open: NAV.open, navigation: NAV.navigation,
+      History: NAV.History, Navigation: NAV.Navigation, Document: NAV.Document,
+      dispatchEvent, Event, CustomEvent, ...timers });
+    Object.defineProperty(g, "location", locDesc);
+    for (const a of WINDOW_ALIASES) g[a] = ctx.window;
+  }
+  ctx.window.window = ctx.window;
+  ctx.window.self = ctx.window;
+  Object.setPrototypeOf(document, NAV.Document.prototype);
+  Object.assign(document, NAV.doc, { defaultView: ctx.window });
+  Object.defineProperty(document, "location", locDesc);
+  // The document's factories report every element they make: the census reads
+  // each one, attached or not (RD7), whichever reference made it.
+  const madeBy = (n) => { if (navHook.made) navHook.made(n); return n; };
+  const rigCreate = document.createElement;
+  const rigCreateNS = document.createElementNS;
+  document.createElement = (t) => madeBy(rigCreate(t));
+  document.createElementNS = (ns, t) => madeBy(rigCreateNS(ns, t));
+  // Every registration reports itself, on any element, the window or the
+  // document, so the census drives each listener whichever reference to the
+  // method registered it.
+  const regBy = (orig) => function addEventListener(type, f, o) {
+    if (navHook.reg) navHook.reg(this, type, f);
+    return orig.call(this, type, f, o);
+  };
+  Node.prototype.addEventListener = regBy(Node.prototype.addEventListener);
+  ctx.window.addEventListener = regBy(ctx.window.addEventListener);
+  document.addEventListener = regBy(document.addEventListener);
+  // The stub has no setAttributeNS, so an attribute written through it was a
+  // TypeError a handler's own try swallowed. A browser's sets the attribute
+  // its local name names -- an `xlink:href` is an `href` an svg anchor
+  // navigates by.
+  if (!Node.prototype.setAttributeNS) {
+  Node.prototype.setAttributeNS = function (_ns, q, v) { this.setAttribute(String(q).split(":").pop(), v); };
+  }
+}
+
 const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
 vm.runInContext(cardSrc, ctx);
 
@@ -240,87 +401,6 @@ const navUnion = (entries, flags) => entries.length
 const NAV_TOKEN = navUnion(NAV_SURFACE.filter((m) => !m.exact), "i");
 const NAV_EXACT = navUnion(NAV_SURFACE.filter((m) => m.exact), "");
 const namesSurface = (l) => NAV_TOKEN.test(l) || (NAV_EXACT !== null && NAV_EXACT.test(l));
-
-// The same surface as an OBJECT GRAPH, in one place, because two callers need
-// its exact shape and may not disagree about which members exist: the inert
-// copy every scenario before the link census runs against, and the copy the
-// census wraps with a recorder. A handler that reaches for a member must not
-// crash a scenario that presses it before the census can see it -- a plant
-// killed only by an earlier scenario's crash is `rc=1` with no FAIL line, so
-// the census's arms never ran and nothing was measured -- and the two copies
-// may not differ about which members exist, or a plant would be invisible to
-// the census for the opposite reason.
-// The location object carries every member a browser's does, the URL parts
-// included: each of `pathname`, `search`, `hash`, `host`, `hostname`, `port`
-// and `protocol` navigates when written, as `href` does (#2452 round 1).
-const LOCATION_PARTS = { href: "/", origin: "http://localhost", protocol: "http:", host: "localhost",
-  hostname: "localhost", port: "", pathname: "/", search: "", hash: "" };
-// An interface object whose prototype holds the members a browser puts there,
-// so `History.prototype.pushState.call(history, ...)` reaches the same member
-// the object's own does. Built from the object as it stands, so the census
-// rebuilds it after it installs its recorders.
-const navInterface = (name, obj) => {
-  const proto = {};
-  for (const [k, v] of Object.entries(obj)) if (typeof v === "function") proto[k] = v;
-  const C = { [name]: function () {} }[name];
-  C.prototype = proto;
-  proto.constructor = C;
-  Object.setPrototypeOf(obj, proto);
-  return C;
-};
-const navShapeInert = () => {
-  const s = {
-    history: { pushState() {}, replaceState() {}, back() {}, forward() {}, go() {} },
-    open: () => null,
-    location: { ...LOCATION_PARTS, assign() {}, replace() {}, reload() {} },
-    navigation: { navigate() {}, reload() {}, traverseTo() {}, back() {}, forward() {} },
-  };
-  s.History = navInterface("History", s.history);
-  s.Navigation = navInterface("Navigation", s.navigation);
-  return s;
-};
-// The other names a browser reaches the same window by -- `top`, `parent`,
-// `frames`, and `window` / `self` on the window itself -- and the document's
-// own way to it (`defaultView`) and to its location: each leads to the members
-// above, so each is bound to the window that holds them.
-const WINDOW_ALIASES = ["top", "parent", "frames"];
-
-// --- Part of a browser's navigation surface, inert (R10-DEEPLINK) ----------
-// The rig gives the card none of that surface. A browser always has it, so a
-// handler that calls a member must not crash an unrelated scenario that presses
-// it before the link census (at the end of this file) can see it. The graph
-// and the token list are the two halves of one declaration: `navShapeInert`
-// says which members exist, `NAV_SURFACE` says what naming one looks like.
-{
-  const shape = navShapeInert();
-  // dispatchEvent too: Home Assistant's own navigate pairs a history write
-  // with a `location-changed` dispatch on the window.
-  const dispatchEvent = () => true;
-  // ...and `Event`, the class of them all: a browser has it, and Home
-  // Assistant's own `fireEvent` builds a plain `Event` (not a `CustomEvent`)
-  // and hangs the payload off `.detail`. Without it the rig has no way to
-  // build one, so a card that fires one throws inside its own try instead of
-  // being seen by the link census at the end of this file.
-  const Event = class Event {
-    constructor(type, o = {}) {
-      this.type = type;
-      this.detail = (o || {}).detail;
-      this.bubbles = !!(o || {}).bubbles;
-      this.composed = !!(o || {}).composed;
-    }
-  };
-  for (const g of [ctx, ctx.window]) {
-    Object.assign(g, { ...shape, dispatchEvent, Event });
-    for (const a of WINDOW_ALIASES) g[a] = ctx.window;
-  }
-  ctx.window.window = ctx.window;
-  ctx.window.self = ctx.window;
-  // The document's half: its location (the window's), its window, and the
-  // three members that replace the page -- `open` with a URL is the window's
-  // `open`, and `write` / `writeln` after load open a new document.
-  Object.assign(document, { location: shape.location, defaultView: ctx.window,
-    open() { return null; }, write() {}, writeln() {} });
-}
 
 // --- The link census's static arm, first (R10-DEEPLINK) --------------------
 // The card's code, with comments blanked line for line (card_shapes.mjs's
@@ -11361,9 +11441,11 @@ check("without an indoor reading the corner now label is absent",
     /data-act="diagnostics"/.test(page) && /Something looks wrong\?/.test(page));
   const dg = mkHealth(healthStates());
   const hist = [];
-  ctx.history = { ...ctx.history, pushState: (_a, _b, path) => hist.push(path) };
+  ctx.history = { ...NAV.history, pushState: (_a, _b, path) => hist.push(path) };
   const btn = dg.c.shadowRoot.querySelector('[data-act="diagnostics"]');
-  if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+  try {
+    if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+  } finally { ctx.history = NAV.history; }
   check("pressing it opens /config/integrations/integration/heatpump_optimizer",
     hist.includes("/config/integrations/integration/heatpump_optimizer"), JSON.stringify(hist));
   const pw = mkHealth(healthStates());
@@ -11554,7 +11636,12 @@ check("without an indoor reading the corner now label is absent",
 // head and body, the card host and every shadow root, every element the
 // document's factories made, attached or not, and the markup string each was
 // given, under any quoting (the stub's parser keeps double-quoted attributes
-// only). A timer a drive starts runs before that drive's read. Each member is installed by
+// only), an svg anchor's `xlink:href` included. A timer a drive starts runs
+// before that drive's read, to a fixpoint, and a chain that does not settle is
+// refused. Every one of those members, factories, timers, event classes and
+// registration methods is the live graph installed before the card's source
+// runs (the top of this file), which the census switches on rather than
+// replaces, so a reference the card took when it loaded records too. Each member is installed by
 // NAME, so a spelling that builds the name reaches the same instrument. Any
 // global name the card's code mentions that neither the global nor `window`
 // binds is refused BY NAME rather than returned as `undefined`, which is what
@@ -11695,7 +11782,7 @@ check("without an indoor reading the corner now label is absent",
   // quotings HTML admits, and a refresh pragma. Read tag by tag: a lookbehind
   // over a page-sized string re-scans it at every character.
   const MARKUP_TAG = /<[A-Za-z][^<>]*>?/g;
-  const MARKUP_WAY_OUT = /\s(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
+  const MARKUP_WAY_OUT = /\s(?:xlink:)?(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
   const REFRESH_MARKUP = /^<meta\b[^<>]*\shttp-equiv\s*=\s*["']?\s*refresh\b/i;
   const markupWaysOut = (html, out) => {
     if (!/=/.test(html)) return;
@@ -11720,7 +11807,7 @@ check("without an indoor reading the corner now label is absent",
       // A form is a way out whether or not it names an action: submitted, one
       // with none navigates to the document's own URL.
       if (n.tagName === "FORM") out.push(["form", String(n.action || n.getAttribute("action") || "(this page)")]);
-      for (const at of ["href", "action", "formaction"]) {
+      for (const at of ["href", "xlink:href", "action", "formaction"]) {
         const v = (typeof n.getAttribute === "function" && n.getAttribute(at)) || n[at];
         if (typeof v === "string" && v) out.push([at, v]);
       }
@@ -11744,90 +11831,54 @@ check("without an indoor reading the corner now label is absent",
   const excused = (key, via, path) => built.has(path)
     || (via === "push" && key in PENDING && PENDING[key].path === path);
 
-  // The sink: that same graph, each member a recorder, so the census and the
-  // scenarios before it cannot disagree about which members exist.
+  // The sink: the live graph installed before the card loaded, switched on.
+  // The census does not REPLACE a member -- a reference the card took at load
+  // would still hold the old one -- it fills `navHook`, which every member of
+  // that graph reports to.
   let left = [];
-  const sink = navShapeInert();
-  // The history object's five routes: the two state writers carry a path, and
-  // back / forward / go carry none -- and every one of them is a way out.
-  sink.history.pushState = (_s, _t, p) => { left.push(["push", String(p)]); };
-  sink.history.replaceState = (_s, _t, p) => { left.push(["replace", String(p)]); };
-  sink.history.back = () => { left.push(["history", "back"]); };
-  sink.history.forward = () => { left.push(["history", "forward"]); };
-  sink.history.go = (d) => { left.push(["history", `go(${d})`]); };
-  sink.open = (u) => { left.push(["open", String(u)]); return null; };
-  // The location object records a write to ANY member, not to `href` alone: a
-  // browser navigates on `pathname`, `search`, `hash`, `host`, `hostname`,
-  // `port` and `protocol` too, and a write the recorder does not name would
-  // land silently on a plain object (#2452 round 1, OWN2 and OWN3). An `href`
-  // write carries its path, so a link haLink built is excused as it is from
-  // assign; any other member carries `member=value`, which no path equals.
-  sink.location = new Proxy({ ...sink.location,
-    assign: (v) => { left.push(["location", String(v)]); },
-    replace: (v) => { left.push(["location", String(v)]); },
-    reload: () => { left.push(["location", "reload"]); },
-  }, {
-    set: (_t, k, v) => { left.push(["location", k === "href" ? String(v) : `${String(k)}=${String(v)}`]); return true; },
-    defineProperty: (_t, k, d) => { left.push(["location", `${String(k)}=${String(d && d.value)}`]); return true; },
-  });
-  // The Navigation API, recorded by NAME like every other member, so a
-  // spelling that builds the name -- `globalThis[["navi","gation"].join("")]`
-  // -- reaches this recorder and is refused with the path named, rather than
-  // thrown as `undefined.navigate is not a function` before the census runs.
-  sink.navigation.navigate = (u) => { left.push(["navigation", String(u)]); return null; };
-  sink.navigation.reload = () => { left.push(["navigation", "reload"]); return null; };
-  sink.navigation.traverseTo = (u) => { left.push(["navigation", String(u)]); return null; };
-  sink.navigation.back = () => { left.push(["navigation", "back"]); return null; };
-  sink.navigation.forward = () => { left.push(["navigation", "forward"]); return null; };
-  // The interface objects, rebuilt over the recorders, so a member reached
-  // through the prototype is the recorder too.
-  sink.History = navInterface("History", sink.history);
-  sink.Navigation = navInterface("Navigation", sink.navigation);
-  const saved = { history: ctx.history, open: ctx.open, wHistory: ctx.window.history, wOpen: ctx.window.open,
-    location: ctx.location, wLocation: ctx.window.location, Event: ctx.Event,
-    navigation: ctx.navigation, wNavigation: ctx.window.navigation,
-    History: ctx.History, Navigation: ctx.Navigation,
-    doc: { location: document.location, open: document.open, write: document.write, writeln: document.writeln },
-    setTimeout: ctx.setTimeout, clearTimeout: ctx.clearTimeout, setInterval: ctx.setInterval,
-    clearInterval: ctx.clearInterval,
-    CustomEvent: ctx.CustomEvent, navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
-  const locDesc = { get: () => sink.location, set: (v) => { left.push(["location", String(v)]); }, configurable: true };
-  ctx.history = sink.history; ctx.window.history = sink.history;
-  ctx.open = sink.open; ctx.window.open = sink.open;
-  ctx.navigation = sink.navigation; ctx.window.navigation = sink.navigation;
-  ctx.History = sink.History; ctx.window.History = sink.History;
-  ctx.Navigation = sink.Navigation; ctx.window.Navigation = sink.Navigation;
-  Object.defineProperty(ctx, "location", locDesc);
-  Object.defineProperty(ctx.window, "location", locDesc);
-  // The document reaches the same location, and replaces the page through
-  // `open` (with a URL it is the window's open) and `write` / `writeln`.
-  delete document.location;
-  Object.defineProperty(document, "location", locDesc);
-  document.open = (...a) => {
-    left.push(a.length >= 3 ? ["open", String(a[0])] : ["document", "open"]);
-    return a.length >= 3 ? null : document;
-  };
-  document.write = (...a) => { left.push(["document", `write ${a.join("")}`]); };
-  document.writeln = (...a) => { left.push(["document", `writeln ${a.join("")}`]); };
+  // Its precondition, asserted rather than assumed: every global still holds
+  // the graph the card loaded against. A scenario that swaps one and does not
+  // put it back would leave the census recording through an object the card
+  // no longer reaches.
+  const SURFACE = [["history", NAV.history], ["open", NAV.open], ["navigation", NAV.navigation],
+    ["location", NAV.location], ["History", NAV.History], ["Navigation", NAV.Navigation]];
+  const swapped = [];
+  for (const [g, gname] of [[ctx, "globalThis"], [ctx.window, "window"]]) {
+    for (const [k, v] of SURFACE) if (g[k] !== v) swapped.push(`${gname}.${k}`);
+  }
+  for (const k of ["open", "write", "writeln", "location"]) {
+    if (document[k] !== (k === "location" ? NAV.location : NAV.doc[k])) swapped.push(`document.${k}`);
+  }
+  check("the census records through the navigation surface the card loaded against",
+    swapped.length === 0, swapped.join(", "));
+  navHook.record = (via, v) => { left.push([via, v]); };
   // Work a handler defers runs after the drive that scheduled it: a timer the
-  // drive starts is queued here and run before that drive's read, so what it
-  // does is recorded against the drive that scheduled it rather than landing
-  // after the census restores the surface.
+  // drive starts is queued here and run before that drive's read, to a
+  // fixpoint -- what a deferred callback defers runs too -- so what it does is
+  // recorded against the drive that scheduled it rather than landing after
+  // the census switches the surface off. A chain that has not settled after
+  // SETTLE_CAP rounds is refused as a throw, never dropped unread (#2452 round
+  // 2, REV_TM5: a fixed four rounds cleared a fifth nested timer unread).
   const timers = new Map();
   let timerId = 1e6;
-  ctx.setTimeout = (f, _ms, ...a) => { const id = ++timerId; timers.set(id, () => f(...a)); return id; };
-  ctx.clearTimeout = (id) => { if (!timers.delete(id)) saved.clearTimeout(id); };
-  ctx.setInterval = (f, ...rest) => { const id = saved.setInterval(f, ...rest); timers.set(`i${id}`, f); return id; };
-  ctx.clearInterval = (id) => { timers.delete(`i${id}`); saved.clearInterval(id); };
+  navHook.timer = {
+    add: (f, id = ++timerId) => { timers.set(id, f); return id; },
+    drop: (id) => timers.delete(id),
+  };
+  const SETTLE_CAP = 64;
   const settle = async (key) => {
-    for (let round = 0; round < 4 && timers.size; round++) {
+    let round = 0;
+    for (; timers.size && round < SETTLE_CAP; round++) {
       const due = [...timers.values()];
       timers.clear();
       for (const f of due) {
         try { await f(); } catch (err) { threw.push(`${key} (deferred): ${(err && err.message) || err}`); }
       }
     }
-    timers.clear();
+    if (timers.size) {
+      threw.push(`${key}: deferred work had not settled after ${SETTLE_CAP} rounds`);
+      timers.clear();
+    }
   };
   // An event whose type the card WRITES is the static arm's to refuse; one
   // whose type is BUILT is this arm's, so any construction outside the types
@@ -11835,17 +11886,12 @@ check("without an indoor reading the corner now label is absent",
   // plain `Event` included, which is the shape HA's own `fireEvent` uses.
   const EVENT_TYPES = new Set(
     [...cardSrc.matchAll(/new\s+(?:Custom)?Event\(\s*"([^"]*)"/g)].map((m) => m[1]));
-  const recordEvent = (type, o) => {
+  navHook.event = (type, o) => {
     if (typeof type === "string" && !EVENT_TYPES.has(type)) {
       left.push(["event", `${type}:${JSON.stringify((o && o.detail) || {})}`]);
     }
   };
-  ctx.CustomEvent = class extends saved.CustomEvent {
-    constructor(type, o) { super(type, o); recordEvent(type, o); }
-  };
-  ctx.Event = class extends saved.Event {
-    constructor(type, o) { super(type, o); recordEvent(type, o); }
-  };
+  const saved = { navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
   // Which source line each navigateTo / openHaLink call -- and each
   // addEventListener registration -- came from.
   const callerLine = (depth = 3) => {
@@ -11856,39 +11902,22 @@ check("without an indoor reading the corner now label is absent",
   // document, recorded with its type and the source line that registered it,
   // so the drive below can reach each one and the reach check can name a site
   // that registered nothing. Every element the document's factories make is
-  // recorded too: the document-level read covers it, attached or not.
-  const track = (orig) => function (type, f, o) {
-    regs.push({ on: this, type, f, line: callerLine(3) });
-    return orig.call(this, type, f, o);
-  };
-  saved.nodeAdd = Node.prototype.addEventListener;
-  saved.winAdd = ctx.window.addEventListener;
-  saved.docAdd = document.addEventListener;
-  saved.createElement = document.createElement;
-  saved.createElementNS = document.createElementNS;
+  // recorded too: the document-level read covers it, attached or not. Both
+  // report through the live graph's registration method and factories.
+  navHook.reg = (on, type, f) => { regs.push({ on, type, f, line: callerLine(4) }); };
+  navHook.made = (n) => { made.push(n); };
   // The stub's selector engine (tests/dom_stub.mjs) answers one compound
   // selector with a quoted attribute value. The card also writes a selector
   // LIST (`.wi-quiet-days, .wi-quiet-action`) and an unquoted value
   // (`input[type=time]`), both plain CSS, and a handler wired through either
   // was wired to nothing in the stub, so no drive could reach it. For the
   // census's span the engine answers both; restored with the rest below.
-  // ...and has no setAttributeNS, so an attribute written through it was a
-  // TypeError a handler's own try swallowed, and the document-level read saw
-  // nothing. A browser's sets the attribute its local name names -- an
-  // `xlink:href` is an `href` an svg anchor navigates by.
-  saved.setNS = Node.prototype.setAttributeNS;
-  Node.prototype.setAttributeNS = function (_ns, q, v) { this.setAttribute(String(q).split(":").pop(), v); };
   saved.findAll = Node.prototype._findAll;
   Node.prototype._findAll = function (sel, out) {
     for (const one of String(sel).split(",")) {
       saved.findAll.call(this, one.trim().replace(/\[([\w-]+)=([^"\]\s]+)\]/g, '[$1="$2"]'), out);
     }
   };
-  Node.prototype.addEventListener = track(saved.nodeAdd);
-  ctx.window.addEventListener = track(saved.winAdd);
-  document.addEventListener = track(saved.docAdd);
-  document.createElement = (t) => { const n = saved.createElement(t); made.push(n); return n; };
-  document.createElementNS = (ns, t) => { const n = saved.createElementNS(ns, t); made.push(n); return n; };
   const hits = new Set();
   ctx.navigateTo = (path) => { hits.add(callerLine()); return saved.navigateTo(path); };
   ctx.openHaLink = (...a) => { hits.add(callerLine()); return saved.openHaLink(...a); };
@@ -12169,26 +12198,8 @@ check("without an indoor reading the corner now label is absent",
     const fresh = new Set(driven);
     await driveAll(v.page, v, (r) => !fresh.has(r.line));
   }
-  Node.prototype.addEventListener = saved.nodeAdd;
+  for (const k of Object.keys(navHook)) navHook[k] = null;
   Node.prototype._findAll = saved.findAll;
-  if (saved.setNS) Node.prototype.setAttributeNS = saved.setNS; else delete Node.prototype.setAttributeNS;
-  ctx.window.addEventListener = saved.winAdd;
-  document.addEventListener = saved.docAdd;
-  document.createElement = saved.createElement;
-  document.createElementNS = saved.createElementNS;
-  ctx.history = saved.history; ctx.window.history = saved.wHistory;
-  ctx.open = saved.open; ctx.window.open = saved.wOpen;
-  delete ctx.location; delete ctx.window.location;
-  ctx.location = saved.location; ctx.window.location = saved.wLocation;
-  delete ctx.navigation; delete ctx.window.navigation;
-  if (saved.navigation) { ctx.navigation = saved.navigation; ctx.window.navigation = saved.wNavigation; }
-  ctx.History = saved.History; ctx.window.History = saved.History;
-  ctx.Navigation = saved.Navigation; ctx.window.Navigation = saved.Navigation;
-  delete document.location;
-  Object.assign(document, saved.doc);
-  ctx.setTimeout = saved.setTimeout; ctx.clearTimeout = saved.clearTimeout;
-  ctx.setInterval = saved.setInterval; ctx.clearInterval = saved.clearInterval;
-  ctx.CustomEvent = saved.CustomEvent; ctx.Event = saved.Event;
   ctx.navigateTo = saved.navigateTo; ctx.openHaLink = saved.openHaLink;
   for (const n of watched) { delete ctx[n]; delete ctx.window[n]; }
 
@@ -12289,8 +12300,8 @@ check("without an indoor reading the corner now label is absent",
     const c = open("advisor");
     c.hass = { ...c.hass, callWS: ws };
     const pushed = [];
-    ctx.history = { ...saved.history, pushState: (_a, _b, path) => pushed.push(path) };
-    try { await saved.openHaLink(c, kind, entityId); } finally { ctx.history = saved.history; }
+    ctx.history = { ...NAV.history, pushState: (_a, _b, path) => pushed.push(path) };
+    try { await saved.openHaLink(c, kind, entityId); } finally { ctx.history = NAV.history; }
     return pushed;
   };
   const asked = [];
