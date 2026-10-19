@@ -1,1 +1,0 @@
-36 max ('light_new/winter', 1.2817460317460319, '646', '504') min ('shoulder/tariff+cycle', 0.45362220717670954, '1340', '2954') grew 15 shrank 12 equal 9
