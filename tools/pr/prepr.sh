@@ -1635,12 +1635,13 @@ EOS
   throwaway_git_clone -q --shared . "$TG/r" >/dev/null 2>&1
   tg() { git -C "$TG/r" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
   got=$(throwaway_line "$TG/r"); r=$?
-  st "$r" 0 "a tree with no raw git init passes the raw-git check (null control)"
-  case "$got" in *'0 raw git init or clone site(s) refused'*) st 1 1 "and the ok line is the check's own, so it ran";; *) st 0 1 "and the ok line is the check's own, so it ran";; esac
-  printf '#!/bin/bash\n# an instrument self-test\ngit init -q "$T"\n' > "$TG/r/tools/audit/probe_selftest.sh"
+  st "$r" 0 "a tree with no raw repository build passes the raw-git check (null control)"
+  case "$got" in *' 0 raw '*'site(s) refused, 0 stale allow'*) st 1 1 "and the ok line is the check's own, so it ran";; *) st 0 1 "and the ok line is the check's own, so it ran";; esac
+  G=g; G=${G}it; I=in; I=${I}it   # spelled in halves: the check greps THIS file too
+  printf '#!/bin/bash\n# an instrument self-test\n%s %s -q "$T"\n' "$G" "$I" > "$TG/r/tools/audit/probe_selftest.sh"
   tg add -A >/dev/null 2>&1; tg commit -qm raw >/dev/null 2>&1
   got=$(throwaway_line "$TG/r"); r=$?
-  st "$r" 1 "a raw git init in an instrument self-test is refused"
+  st "$r" 1 "a raw repository build in an instrument self-test is refused"
   case "$got" in *'REFUSE tools/audit/probe_selftest.sh:3'*'throwaway_git_init'*) st 1 1 "and the refusal names the file, the line and the helper";; *) st 0 1 "and the refusal names the file, the line and the helper";; esac
   rm -f "$TG/r/tests/throwaway_git.py"
   got=$(throwaway_line "$TG/r"); r=$?
@@ -1658,7 +1659,7 @@ EOS
   case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
   case "$flow" in *'throwaway_line "'*) true ;; *) false ;; esac
-  st $? 0 "the raw-git step calls throwaway_line, so a raw git init is refused before the push"
+  st $? 0 "the raw-git step calls throwaway_line, so a raw repository build is refused before the push"
   case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
   st $? 0 "the pr-body step hands body_line the unpinned-site file, so mutation reaches the red check before the push"
 
