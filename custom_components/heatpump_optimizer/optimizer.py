@@ -155,7 +155,7 @@ def _realize_draw(
 
 def _scores_rounded(opt: HeatPumpOptimizer) -> bool:
     """Whether the objective scores the levels that ship rounded."""
-    return opt.config.clamp_planned_levels and not opt._levels_relaxed
+    return opt.config.clamp_planned_levels or not opt._levels_relaxed
 
 
 def _relaxed_starts(
