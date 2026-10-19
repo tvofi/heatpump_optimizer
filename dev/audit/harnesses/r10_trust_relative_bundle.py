@@ -62,7 +62,6 @@ def walk(base_u, capacity, current, truth_u, noise, delta_t, dt_h, bounds, trust
                 current, base_u, capacity, resid, delta_t, dt_h,
                 trust_region=trust_region,
                 alpha=coord_mod.HOUSE_LOSS_ALPHA,
-                max_step_fraction=coord_mod.HOUSE_LOSS_MAX_STEP,
             )
             if step is not None:
                 current = float(np.clip(step[1], *bounds))

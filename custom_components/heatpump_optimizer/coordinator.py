@@ -1272,8 +1272,10 @@ HOUSE_LOSS_ALPHA = 0.02
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
 HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
-# A single interval may never move the estimate more than this fraction; real
-# building fabric does not change, so anything larger is a disturbance.
+# The re-anchor threshold gate: a nameplate edit within this fraction keeps
+# the learned scale verbatim (``_reanchor_house_heat_loss_scale``). It is no
+# per-interval limit: one sample moves the estimate by at most
+# ``HOUSE_LOSS_ALPHA * _LEARNER_TRUST_REGION`` of it (``learner_newton_step``).
 HOUSE_LOSS_MAX_STEP = 0.05
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
@@ -4847,8 +4849,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
           change the stored scale is kept verbatim: below convergence
           the law is a measured regression against today's behaviour on
           exactly that path (the 30-hop walk: +2.5% for today against
-          the ungated law's 18.2%), and the learner absorbs a small
-          edit in one step anyway.
+          the ungated law's 18.2%), and the learner's EWMA closes a
+          small edit on its own, ``HOUSE_LOSS_ALPHA`` of the way to its
+          target per accepted sample.
         * **Clamp means reset.** If the re-anchored scale falls outside
           ``[0.3, 3.0]`` the measurement cannot be expressed against
           the new nameplate: reset explicitly and log it. Clipping onto
@@ -5146,7 +5149,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
@@ -5254,7 +5256,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
