@@ -37,10 +37,11 @@ are RUN, never re-implemented -- their logic lives in exactly one place.
 docs are regenerated continuously rather than at session end. It replaces the
 session-local loop an orchestrator kept in its own scratch directory, which is
 decision 0013's defect shape: an instrument the programme runs, living outside
-the tree where no later session can test it. A pass reads the watched ref at
-origin; when it has moved it refreshes the roster ref (so resume fields another
-seat wrote are visible), regenerates and pushes, and when it has not moved it
-reads the ref and writes nothing else. The tip is recorded ONLY on a
+the tree where no later session can test it. A pass reads the watched ref and
+the roster ref at origin; when either has moved it refreshes the roster ref (so
+resume fields another seat wrote are visible), regenerates and pushes, and when
+neither has it writes nothing. With no --roster-ref the roster ref is
+`roster_lib.default_roster_ref`'s: the round's roster branch, else main. The tip is recorded ONLY on a
 regeneration that returned 0, so a refused push is retried on the next pass
 instead of silently losing that merge from the record. It takes no lock and
 cancels nothing, so it is safe beside a merge train. `--once` is one pass --
@@ -256,7 +257,8 @@ def beat_main_argv(a) -> list:
     if a.roster_file:
         argv += ["--roster-file", a.roster_file]
     else:
-        argv += ["--roster-ref", a.roster_ref]
+        if a.roster_ref:  # else main() resolves roster_lib's default
+            argv += ["--roster-ref", a.roster_ref]
         if a.roster_path:
             argv += ["--roster-path", a.roster_path]
     if a.pr_state:
@@ -281,25 +283,36 @@ def beat_pass(a, recorded: str | None) -> tuple[int, str | None]:
     tip = remote_tip(a.checkout, a.watch_ref)
     if tip is None:
         raise Refuse(f"origin has no {a.watch_ref}")
-    if tip == recorded:
-        print(f"beat: {a.watch_ref} at {tip[:12]} unchanged; nothing written")
+    # The roster ref is watched too (O17): its edits move the state docs as
+    # main's merges do. With no --roster-ref it is the round's roster branch
+    # (roster_lib), named from main's newest roster; the memo is both tips.
+    roster_ref = None if a.roster_file else (
+        a.roster_ref or roster_lib.round_ref(roster_lib.git_in(a.checkout)))
+    spec = roster_fetch_spec(a.checkout, roster_ref) if roster_ref else None
+    # spec[3] is fetch's `+<branch>:refs/remotes/<remote>/<branch>` refspec.
+    rtip = remote_tip(a.checkout,
+                      "refs/heads/" + spec[3].split(":", 1)[0].lstrip("+")) \
+        if spec else None
+    memo = f"{tip} {rtip}" if rtip else tip
+    if memo == recorded:
+        print(f"beat: {a.watch_ref} at {tip[:12]}"
+              + (f" and {roster_ref} at {rtip[:12]}" if rtip else "")
+              + " unchanged; nothing written")
         return 0, recorded
     if a.roster_file:
         print(f"beat: reading {a.roster_file}; nothing fetched")
+    elif rtip:
+        run(["git", *spec], cwd=a.checkout)
+        print(f"beat: fetched {roster_ref}")
     else:
-        spec = roster_fetch_spec(a.checkout, a.roster_ref)
-        if spec:
-            run(["git", *spec], cwd=a.checkout)
-            print(f"beat: fetched {a.roster_ref}")
-        else:
-            print(f"beat: {a.roster_ref} is not a remote-tracking ref; "
-                  "nothing fetched")
+        print(f"beat: {roster_ref} is not a remote-tracking ref origin has; "
+              "nothing fetched")
     rc = main(beat_main_argv(a))
     if rc != 0:
         print(f"beat: {a.watch_ref} at {tip[:12]} not recorded (rc {rc}); "
               "the next pass retries", file=sys.stderr)
         return rc, recorded
-    return 0, tip
+    return 0, memo
 
 
 def beat(a) -> int:
@@ -355,7 +368,9 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", default="tvofi/heatpump_optimizer")
     src = p.add_mutually_exclusive_group()
-    src.add_argument("--roster-ref", default="origin/main")
+    src.add_argument("--roster-ref", default=None,
+                     help="default: the round roster branch, else origin/main "
+                          "(roster_lib.default_roster_ref)")
     src.add_argument("--roster-file")
     p.add_argument("--roster-path",
                    help="the roster at --roster-ref (default: the newest "
@@ -399,6 +414,8 @@ def main(argv=None) -> int:
         print("state_docs: REFUSED: --roster-path reads at --roster-ref; "
               "give --roster-file alone", file=sys.stderr)
         return 2
+    if not a.roster_file:
+        a.roster_ref = roster_lib.reader_ref(a.checkout, a.roster_ref)
     roster_args = (["--roster-file", a.roster_file] if a.roster_file
                    else ["--roster-ref", a.roster_ref]
                    + (["--roster-path", a.roster_path] if a.roster_path
@@ -665,6 +682,12 @@ def self_test() -> int:
         def main_tip() -> str:
             return git("-C", str(bare), "rev-parse", "refs/heads/main").strip()
 
+        def memo() -> str:
+            """What the beat records: main's tip and the roster ref's (O17)."""
+            return main_tip() + " " + git(
+                "-C", str(bare), "rev-parse",
+                "refs/heads/handoff/audit-r9-fixplan").strip()
+
         def state_tip() -> str:
             return git("-C", str(bare), "rev-parse",
                        f"refs/heads/{STATE_REF}").strip()
@@ -712,30 +735,46 @@ def self_test() -> int:
         ok("arm 1: the carried path is still there",
            "docs/keep.md" in git("-C", str(bare), "ls-tree", "-r",
                                  "--name-only", state_tip()).split())
-        ok("arm 1: the tip is recorded",
-           tipfile.read_text(encoding="utf-8").strip() == main_tip())
+        ok("arm 1: the tip is recorded, main's and the roster ref's",
+           tipfile.read_text(encoding="utf-8").strip() == memo(),
+           tipfile.read_text(encoding="utf-8").strip())
 
-        # ARM 2 -- an unchanged tip writes NOTHING. The roster moves on both
-        # the remote and in the driver, so the bytes a regeneration would
-        # produce differ from the tip's: a beat without the memo check
-        # fetches, regenerates and pushes, and every assertion here fires.
-        roster_sha = commit_roster("in-flight")
-        git("-C", str(drv), "fetch", "-q", "origin", "handoff/audit-r9-fixplan")
+        # ARM 2 -- an unchanged tip writes NOTHING. Neither main nor the
+        # roster ref moved, and the mirror is removed, so a beat without the
+        # memo check regenerates, re-mirrors and every assertion here fires.
         before = state_count()
         shutil.rmtree(mirror, ignore_errors=True)
         rc = main(beat_argv)
         ok("arm 2: an unchanged tip returns 0", rc == 0, rc)
         ok("arm 2: no push", state_count() == before, state_count())
         ok("arm 2: the tip stays what it was",
-           tipfile.read_text(encoding="utf-8").strip() == main_tip())
+           tipfile.read_text(encoding="utf-8").strip() == memo())
         ok("arm 2: and nothing at all is written (the mirror is not made)",
            not mirror.exists())
+
+        # ARM 2b (O17) -- the ROSTER REF moving alone regenerates: main is
+        # unchanged, so a beat that watched main only (before O17) writes
+        # nothing and the published plan keeps the old stage.
+        roster_sha = commit_roster("in-flight")
+        before = state_count()
+        rc = main(beat_argv)
+        ok("arm 2b: a roster-only move returns 0", rc == 0, rc)
+        ok("arm 2b: exactly one push", state_count() == before + 1,
+           state_count())
+        ok("arm 2b: the pushed plan carries the roster's new stage",
+           "in-flight" in git("-C", str(bare), "show",
+                              f"{state_tip()}:{WRITE_SET[0]}"))
+        ok("arm 2b: and the memo now names the roster's new tip",
+           tipfile.read_text(encoding="utf-8").strip() == memo())
 
         # ARM 3 -- a REFUSED push leaves the tip unrecorded, so the next pass
         # (same tip, nothing else moved) retries and lands it. The refusal is
         # the remote's own pre-receive hook, which rejects everything.
         commit_main("main-2.md")
-        refused_tip = main_tip()
+        # A roster edit too, so the regeneration differs from arm 2b's
+        # published bytes and a push is really attempted.
+        commit_roster("refused-then-landed")
+        refused_memo = memo()
         hook = bare / "hooks" / "pre-receive"
         hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
         hook.chmod(0o755)
@@ -744,7 +783,7 @@ def self_test() -> int:
         ok("arm 3: the refused push returns non-zero", rc == 2, rc)
         ok("arm 3: nothing landed", state_count() == before, state_count())
         ok("arm 3: the tip was NOT recorded",
-           tipfile.read_text(encoding="utf-8").strip() != refused_tip)
+           tipfile.read_text(encoding="utf-8").strip() != refused_memo)
         hook.unlink()
         rc = main(beat_argv)
         ok("arm 3: the retry lands, with nothing but the tip file changed",
@@ -752,7 +791,7 @@ def self_test() -> int:
         ok("arm 3: exactly one push, on the retry",
            state_count() == before + 1, state_count())
         ok("arm 3: and only now is the tip recorded",
-           tipfile.read_text(encoding="utf-8").strip() == refused_tip)
+           tipfile.read_text(encoding="utf-8").strip() == refused_memo)
 
         # ARM 4 -- the LOOP, not a pass: `beat` with no --once, in a child, as
         # the orchestrator runs it. Two changes, each landed by the pass that
@@ -777,10 +816,10 @@ def self_test() -> int:
             stderr=subprocess.DEVNULL)
         try:
             ok("arm 4: the loop lands the first change it sees",
-               wait_tip(main_tip()))
+               wait_tip(memo()))
             commit_main("main-4.md")
             ok("arm 4: and beats again for the next one",
-               wait_tip(main_tip()))
+               wait_tip(memo()))
             ok("arm 4: and is still running, not one pass and out",
                loop.poll() is None)
         finally:
@@ -790,6 +829,41 @@ def self_test() -> int:
             except subprocess.TimeoutExpired:
                 loop.kill()
                 loop.wait(timeout=30)
+
+        # ARM 5 (O17) -- no --roster-ref: every generator, run standalone in
+        # the driver, reads the ROUND's roster branch (handoff/audit-r9-roster
+        # here, set at the fixplan tip, whose stage main never got); with that
+        # ref absent each reads main's stage and says why on stderr.
+        git("-C", str(bare), "update-ref", "refs/heads/handoff/audit-r9-roster",
+            git("-C", str(bare), "rev-parse",
+                "refs/heads/handoff/audit-r9-fixplan").strip())
+        git("-C", str(drv), "fetch", "-q", "origin",
+            "+handoff/audit-r9-roster:refs/remotes/origin/handoff/audit-r9-roster")
+        git("-C", str(drv), "fetch", "-q", "origin",
+            "+main:refs/remotes/origin/main")
+
+        def standalone(script: str) -> tuple[str, str]:
+            out = root / f"arm5-{script}.md"
+            extra = (["--offline", "--pr-state", str(prstate)]
+                     if script == "resume_doc.py" else [])
+            r = subprocess.run([sys.executable, str(SEAT / script), "--repo",
+                                "fixture/state", "--out", str(out), *extra],
+                               cwd=str(drv), capture_output=True, text=True)
+            return (out.read_text(encoding="utf-8") if out.exists() else
+                    f"rc {r.returncode}"), r.stderr
+        gens = ("plan_table.py", "resume_doc.py", "handover_prompt.py")
+        for script in gens:
+            text, err = standalone(script)
+            ok(f"arm 5: {script} with no --roster-ref reads the round branch",
+               "refused-then-landed" in text and "roster_lib:" not in err,
+               (text[:200], err[-200:]))
+        git("-C", str(drv), "update-ref", "-d",
+            "refs/remotes/origin/handoff/audit-r9-roster")
+        for script in gens:
+            text, err = standalone(script)
+            ok(f"arm 5: {script} with the branch absent reads main, and says so",
+               "refused-then-landed" not in text and "absent" in err,
+               (text[:200], err[-200:]))
 
     # --- which round (R10-TICK d) ------------------------------------------
     # The state ref and dir follow the roster's round. A ref carrying round
