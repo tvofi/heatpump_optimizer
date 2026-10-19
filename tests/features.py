@@ -37261,6 +37261,7 @@ R.section("#2255 — one cost source and a coverage-scaled open month")
 
 from heatpump_optimizer.ledger import freeze_month_report as _sav_freeze
 from heatpump_optimizer.ledger import month_hours as _sav_month_hours
+from heatpump_optimizer.ledger import SETTLED_HOURS_META as _SAV_SETTLED_META
 
 # Item 5: a closed September with every line the receipt adds -- spot,
 # grid fee, capacity, immersion, wear -- and one interval no plan covered.
@@ -37337,6 +37338,18 @@ R.check(
     "the coverage survives the store round trip",
     _ren.savings_months(_feb10) == _feb.savings_months(_feb10),
     repr(_ren.savings_months(_feb10)),
+)
+# An interval of no length settled no hours, so the stored coverage (the
+# payload the ledger store saves) takes no sample from it, as it takes none
+# from a backwards one.
+_none = _SavLedger()
+for _dt in (0.0, -1.0):
+    _none.observe_spot_and_settle_savings(_feb10, 1.0, {"baseline_kw": 2.0}, 1.0, _dt)
+_none_meta = _none.as_dict()["months"][_sav_month_key(_feb10)]["meta"]
+R.check(
+    "an interval of no length settles no hours: the stored coverage takes no sample",
+    _SAV_SETTLED_META not in _none_meta and "spot_price" in _none_meta,
+    repr(_none_meta),
 )
 
 # Item 1: the settlement books the plan's thermostat baseline at the step
