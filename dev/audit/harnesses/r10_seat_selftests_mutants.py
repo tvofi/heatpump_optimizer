@@ -11,7 +11,8 @@ M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set and a throwaway
 HOME) and must exit 0 for each. S01..S29 each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
-the step that names the file: a killed mutant reddens the step. W1..W3 drive
+the step that names the file: a killed mutant reddens the step, and the same
+step on the unmutated file must pass first (NOT RUN otherwise). W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
 naming its file, and a trailing comment, each of which must redden it.
 Prints one line per mutant, `KILLED` or `SURVIVED`, with the step's last
@@ -133,7 +134,11 @@ def run_step(run: str) -> tuple[int, str]:
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp, "step.sh")
         script.write_text(run + "\n")
-        env = dict(os.environ, RUNNER_TEMP=tmp, HOME=tmp, PYTHONDONTWRITEBYTECODE="1")
+        # A throwaway HOME, as on a runner; HPO_STATE_DIR keeps a seat shim
+        # on PATH pointing at its venv, which it finds under the real HOME.
+        env = dict(os.environ, RUNNER_TEMP=tmp, HOME=tmp, PYTHONDONTWRITEBYTECODE="1",
+                   HPO_STATE_DIR=os.environ.get("HPO_STATE_DIR",
+                                                str(Path.home() / ".local/state/hpo")))
         p = subprocess.run(["bash", "-e", str(script)], cwd=ROOT, env=env,
                            capture_output=True, text=True, timeout=900)
     lines = (p.stdout + p.stderr).strip().splitlines()
@@ -159,6 +164,7 @@ def mutate(path: Path, old: str, new: str, fn) -> tuple[int, str]:
 def main(want: list[str]) -> int:
     pick = lambda n: not want or n in want  # noqa: E731
     survivors = 0
+    baseline: dict = {}
     if pick("M0"):
         bad = 0
         for name, run in steps():
@@ -177,11 +183,21 @@ def main(want: list[str]) -> int:
             print(f"== {name}: {file} has uncommitted edits; the restore would erase them")
             return 2
         _, run = step_for(file)
+        # The null control per mutant: the same step on the unmutated file
+        # must pass, or a red below says nothing about the mutant.
+        base = baseline.setdefault(run, run_step(run))
+        if base[0] != 0:
+            survivors += 1
+            print(f"== {name} {file}: NOT RUN, the step is red unmutated | {base[1]}", flush=True)
+            continue
         rc, last = mutate(path, old, new, lambda: run_step(run))
         verdict = "NOT RUN" if rc == -1 else ("KILLED" if rc else "SURVIVED")
         survivors += rc <= 0
         print(f"== {name} {file}: {verdict} rc={rc} | {last}", flush=True)
     _, wiring = [s for s in steps() if "selftest_wiring.py --check" in s[1]][0]
+    if any(pick(w) for w in ("W1", "W2", "W3")) and run_step(wiring)[0] != 0:
+        print("== W: NOT RUN, the wiring step is red unmutated")
+        return 1
     if pick("W1"):
         extra = ROOT / SEAT / "zz_unwired_probe.py"
         extra.write_text("import sys\nif sys.argv[1:] == ['--self-test']:\n    print('ok')\n")
