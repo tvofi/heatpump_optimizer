@@ -180,8 +180,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   class outside `[a-z-]+` is refused unchanged (stripping a merge suffix would
   lose text). `cloud_dispatch.py`'s prompt now gives the unbracketed grammar.
   `cloud_relay.sh --watch [--interval N] [--once]` is the orchestrator's poll
-  loop, tracked: every N seconds (default 120) it lists
-  `refs/heads/probe/rev-*` with `git ls-remote origin` and relays each ref+sha
+  loop, tracked: every N seconds (default 120) it runs the probe arm, which
+  lists every `refs/heads/probe/*` with `git ls-remote origin`. A probe ref
+  that is not `rev-*` (a probe seat's return, a stray push) appends
+  `OWED <utc> probe-ref <ref> <sha>` on EVERY pass until
+  `cloud_relay.sh dispose <ref> <sha>` records it handled: a level, not a
+  diff, so a missed line is repeated rather than lost, and a disposed ref
+  that moves is owed again at its new sha. It relays each `rev-*` ref+sha
   once, taking the head and full nonce from the dispatch record (`$HPO_BUS_STATE`
   or `~/.zcode/bus`, `pr head thread nonce`). A ref with no record is logged and
   left for a later pass; a refused ref+sha goes to `<ledger>.refused` and is not
@@ -210,7 +215,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   existing PR, so the open-PR soft cap is untouched (an update is not an open).
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
-  `OWED handoff-update`, and retried only when the handoff moves. Note the two
+  `OWED handoff-update`, and retried only when the handoff moves. Every
+  `handoff/*` or `handoff-body/*` ref whose topic has no open pull request
+  appends `OWED <utc> handoff-no-pr <ref> <sha>` on every pass until disposed
+  the same way (a fixer's return the orchestrator has not opened, or a merged
+  PR's refs not yet archived); a failed PR listing reports none, since an
+  empty list would make every ref look orphaned. Note the two
   OWED shapes: `OWED reviewer-fire` carries no timestamp first, the others
   (`OWED <utc> ...`) do.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
