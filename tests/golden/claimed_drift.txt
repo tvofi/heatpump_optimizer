@@ -59,23 +59,31 @@
 # v7.0.0: Round-9 closure. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+# (R10-SAV-BASELINE suspends valve_storage_smart_write's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-SAV-BASELINE suspends wood_two_tank's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-SAV-BASELINE suspends wood_two_tank_smart_write's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-SAV-BASELINE suspends wood_coil's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-SAV-BASELINE suspends valve_upper_direct_slab's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-SAV-BASELINE suspends flat_prices's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
 # BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
 # price_known/baseline_cost) still fail. Remove when drift lanes are pinned
 # or the polish improvement scale leaves 5e-5-2e-2.
-# may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
+# (R10-SAV-BASELINE suspends winter_two_zone_no_dhw's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
 # runner-conditional for the same reason; judged keys still fail. Remove when
 # drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
-# may-drift: shoulder_two_zone -- #1208 polish-every-candidate, third name
+# (R10-SAV-BASELINE suspends shoulder_two_zone's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) shoulder_two_zone -- #1208 polish-every-candidate, third name
 # sanctioned by the owner's in-session (i) ruling on the options recorded in
 # #1208 comment fd13246: 452 leaves moved on the first #1282 runner only
 # (byte-identical on the dev box), the one printed money leaf at 2.19e-2
@@ -83,38 +91,44 @@
 # matches the committed recording, i.e. the move is toward the canonical
 # value, not away; judged keys still fail. Remove when drift lanes are
 # pinned or the polish improvement scale leaves 5e-5-2e-2.
-# may-drift: capacity_tariff_15min -- #1207 keep-gate (2e-2 -> 2e-5), owner
+# (R10-SAV-BASELINE suspends capacity_tariff_15min's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) capacity_tariff_15min -- #1207 keep-gate (2e-2 -> 2e-5), owner
 # directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
 # the noise band (objective rel -1.7601e-04, deterministic on one box), so
 # which runner sees it move is the BLAS's property, not the diff's; judged
 # keys (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove
 # when drift lanes are pinned or the polish improvement scale leaves
 # 5e-5-2e-2.
-# may-drift: cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+# (R10-SAV-BASELINE suspends cycling_cost's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
 # #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
 # band (objective rel -1.7666e-04, deterministic on one box),
 # runner-conditional for the same reason; judged keys still fail. Remove
 # when drift lanes are pinned or the polish improvement scale leaves
 # 5e-5-2e-2.
-# may-drift: everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
+# (R10-SAV-BASELINE suspends everything_on's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
 # directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
 # the noise band (objective rel -5.2974e-03, deterministic on one box),
 # runner-conditional for the same reason; judged keys still fail. Remove
 # when drift lanes are pinned or the polish improvement scale leaves
 # 5e-5-2e-2.
-# may-drift: narrow_band -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+# (R10-SAV-BASELINE suspends narrow_band's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) narrow_band -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
 # #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
 # band (objective rel -7.8934e-04, deterministic on one box),
 # runner-conditional for the same reason; judged keys still fail. Remove
 # when drift lanes are pinned or the polish improvement scale leaves
 # 5e-5-2e-2.
-# may-drift: shoulder -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+# (R10-SAV-BASELINE suspends shoulder's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) shoulder -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
 # #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
 # band (objective rel -7.2897e-04, deterministic on one box),
 # runner-conditional for the same reason; judged keys still fail. Remove
 # when drift lanes are pinned or the polish improvement scale leaves
 # 5e-5-2e-2.
-# may-drift: winter_two_zone_dhw -- #1207 keep-gate (2e-2 -> 2e-5), owner
+# (R10-SAV-BASELINE suspends winter_two_zone_dhw's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) winter_two_zone_dhw -- #1207 keep-gate (2e-2 -> 2e-5), owner
 # directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
 # the noise band (objective rel -5.0494e-05, 1.01x over its floor -- the
 # same adoption margin the parked #1272 rounds measured on this fixture,
@@ -125,7 +139,8 @@
 # rel -2.2972e-03, is one of the five SENSITIVE fixtures above; its
 # machine-sensitive entry is the one that carries it, so no second line
 # exists here.)
-# may-drift: direct_flow_carnot -- #1207 keep-gate (2e-2 -> 2e-5), widened
+# (R10-SAV-BASELINE suspends direct_flow_carnot's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) direct_flow_carnot -- #1207 keep-gate (2e-2 -> 2e-5), widened
 # to the runner's union by the owner's ruling (i) on the options recorded
 # in #1207 comment 1ec15c8 (2026-09-20): 425 leaves moved on the CI
 # x86_64/py3.14 runner only (leaf counts from the runner's own drift log
@@ -133,28 +148,32 @@
 # runner sees it move is the BLAS's property, not the diff's; judged keys
 # (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove when
 # drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
-# may-drift: fuse_guard -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+# (R10-SAV-BASELINE suspends fuse_guard's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) fuse_guard -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
 # runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 418 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
 # on the dev box), runner-conditional for the same reason; judged keys
 # still fail. Remove when drift lanes are pinned or the polish improvement
 # scale leaves 5e-5-2e-2.
-# may-drift: precip_snow -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+# (R10-SAV-BASELINE suspends precip_snow's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) precip_snow -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
 # runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 396 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
 # on the dev box), runner-conditional for the same reason; judged keys
 # still fail. Remove when drift lanes are pinned or the polish improvement
 # scale leaves 5e-5-2e-2.
-# may-drift: tariff_plus_two_zone -- #1207 keep-gate (2e-2 -> 2e-5),
+# (R10-SAV-BASELINE suspends tariff_plus_two_zone's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) tariff_plus_two_zone -- #1207 keep-gate (2e-2 -> 2e-5),
 # widened to the runner's union by the owner's ruling (i) on the options
 # recorded in #1207 comment 1ec15c8 (2026-09-20): 751 leaves moved on the
 # CI x86_64/py3.14 runner only (as recorded on that comment;
 # byte-identical on the dev box), runner-conditional for the same reason;
 # judged keys still fail. Remove when drift lanes are pinned or the polish
 # improvement scale leaves 5e-5-2e-2.
-# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# (R10-SAV-BASELINE suspends valve_storage's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
@@ -676,4 +695,66 @@ valve_storage_flat_prices  # R10-RATIO-SITES (#2239): predictive_info leaves ris
 valve_storage_low_target  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [1],[21]; Darwin [9],[29])
 valve_storage_small_tank  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [21],[41]; Darwin [4],[5],[28],...)
 
-
+# R10-SAV-BASELINE (#2255): this branch claims the fixtures below. The
+# thermostat reference now starts from the state it would have held (zones at
+# the step's comfort target, slab at the temperature that delivers that
+# demand) rather than from the plan's measured start, and the start's
+# stored-heat gap is settled as the end's is, debited past the caps by at most
+# the thermostat's horizon cost. baseline_cost (a MAY_DRIFT_JUDGED_KEY) moves
+# in every plan fixture, so each may-drift entry among them is suspended above
+# with its restore obligation; deferred_energy_cost, predicted_savings and
+# savings_percentage follow. The reference is reported, never optimised, but
+# its energy seeds three of the space solve's starts (`baseline_energy`), so a
+# plan can land in another basin: valve_storage_low_target does, at a lower
+# plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
+# plan leaves are their own machine-sensitive ones. No coord_* capture moves.
+away_setback  # R10-SAV-BASELINE (#2255): baseline_cost up 50.16->86.88, deferred_energy_cost up 1.493->30.09, predicted_savings up 17.14->25.27, savings_percentage down 34.18->29.09
+building_preset  # R10-SAV-BASELINE (#2255): baseline_cost up 123.8->127.2, deferred_energy_cost up 28.62->33.98, predicted_savings down 64.58->62.57, savings_percentage down 52.15->49.19
+capacity_curve  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 32.82->33.61, predicted_savings down 62.25->61.46, savings_percentage down 50.52->49.88
+capacity_tariff  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 30.68->31.48, predicted_savings down 60.12->59.33, savings_percentage down 48.79->48.15
+capacity_tariff_15min  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
+confidence_margins  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 16.15->16.94, predicted_savings down 58.26->57.47, savings_percentage down 47.28->46.64
+cool_rainy_summer  # R10-SAV-BASELINE (#2255): baseline_cost up 3.514->6.107, deferred_energy_cost up 0.03595->1.686, predicted_savings up 1.374->2.317, savings_percentage down 39.11->37.95
+cop_scale_learned  # R10-SAV-BASELINE (#2255): baseline_cost down 100.3->100.2, deferred_energy_cost up 16.17->16.78, predicted_savings down 55.06->54.45, savings_percentage down 54.93->54.31
+cycling_cost  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
+dhw_cold_tank  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 32.09->32.88, predicted_savings down 60.15->59.37, savings_percentage down 48.82->48.18
+dhw_large_tank  # R10-SAV-BASELINE (#2255): baseline_cost up 136.5->136.5, deferred_energy_cost up 31.44->32.24, predicted_savings down 75.77->74.98, savings_percentage down 55.51->54.93
+dhw_learned_windows  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.83->30.63, predicted_savings down 64.08->63.29, savings_percentage down 52->51.36
+dhw_schedule_off  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.99->30.78, predicted_savings down 63.49->62.7, savings_percentage down 51.53->50.89
+direct_flow_carnot  # R10-SAV-BASELINE (#2255): baseline_cost down 116.2->116.1
+everything_on  # R10-SAV-BASELINE (#2255): baseline_cost up 134.1->135.8
+external_heat_active  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 28.54->29.34, predicted_savings down 64.53->63.74, savings_percentage down 52.37->51.73
+extreme_prices  # R10-SAV-BASELINE (#2255): baseline_cost down 239.8->239.7, deferred_energy_cost up 30.9->31.95, predicted_savings down 154.2->153, savings_percentage down 64.3->63.84
+flat_prices  # R10-SAV-BASELINE (#2255): baseline_cost up 100.2->100.5
+fuse_guard  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
+horizon_48h  # R10-SAV-BASELINE (#2255): baseline_cost up 242.1->242.1, deferred_energy_cost up 31.92->32.72, predicted_savings down 123.9->123.1, savings_percentage down 51.17->50.84
+horizon_6h  # R10-SAV-BASELINE (#2255): baseline_cost up 15.16->15.42, deferred_energy_cost up 3.073->3.71, predicted_savings down 3.717->3.341, savings_percentage down 24.52->21.67
+legionella_due  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 30.21->31, predicted_savings down 63.29->62.5, savings_percentage down 51.36->50.72
+legionella_due_low_setpoint  # R10-SAV-BASELINE (#2255): baseline_cost up 121.9->121.9, deferred_energy_cost up 30.21->31, predicted_savings down 61.93->61.14, savings_percentage down 50.79->50.14
+legionella_off  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.6->30.4, predicted_savings down 62.97->62.18, savings_percentage down 51.1->50.46
+mild_windy_rain  # R10-SAV-BASELINE (#2255): baseline_cost up 63.35->64.76, deferred_energy_cost up 3.807->6.595, predicted_savings down 35.83->34.45, savings_percentage down 56.56->53.2
+narrow_band  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
+negative_prices  # R10-SAV-BASELINE (#2255): baseline_cost up 0.9534->2.062, deferred_energy_cost up 0->1.813, predicted_savings down 0.12->-0.5842, savings_percentage down 12.58->-28.32
+peak_masked  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.62->30.42, predicted_savings down 62.96->62.17, savings_percentage down 51.09->50.45
+precip_snow  # R10-SAV-BASELINE (#2255): baseline_cost up 62.22->63.94
+price_risk  # R10-SAV-BASELINE (#2255): baseline_cost down 134.4->134.4, deferred_energy_cost up 37.41->38.24, predicted_savings down 69.27->68.43, savings_percentage down 51.53->50.91
+shoulder  # R10-SAV-BASELINE (#2255): baseline_cost up 13.84->16.31
+shoulder_two_zone  # R10-SAV-BASELINE (#2255): baseline_cost up 19->22.03
+start_above_band  # R10-SAV-BASELINE (#2255): baseline_cost up 108.8->123.2, deferred_energy_cost up 24.23->44.79, predicted_savings down 61.54->55.45, savings_percentage down 56.58->45
+start_below_band  # R10-SAV-BASELINE (#2255): baseline_cost down 179.5->123.2, deferred_energy_cost down 30.42->-13.52, predicted_savings down 42.6->30.29, savings_percentage up 23.73->24.58
+summer_dhw_only  # R10-SAV-BASELINE (#2255): baseline_cost up 0.6478->2.094, deferred_energy_cost up 0->1.692, predicted_savings down -0.02056->-0.2668, savings_percentage down -3.174->-12.74
+tariff_plus_two_zone  # R10-SAV-BASELINE (#2255): baseline_cost up 150.3->152.2
+valve_storage  # R10-SAV-BASELINE (#2255): baseline_cost up 144.8->146.9
+valve_storage_flat_prices  # R10-SAV-BASELINE (#2255): baseline_cost up 108.5->113.1, deferred_energy_cost up -11.4->-5.98, predicted_savings down 30.11->29.31, savings_percentage down 27.75->25.91
+valve_storage_low_target  # R10-SAV-BASELINE (#2255): baseline_cost up 186.8->195.2 plus basin plan leaves
+valve_storage_small_tank  # R10-SAV-BASELINE (#2255): baseline_cost up 149.2->151.3, deferred_energy_cost up 15.56->19.77, predicted_savings down 79.42->77.32, savings_percentage down 53.25->51.12
+valve_storage_smart_write  # R10-SAV-BASELINE (#2255): baseline_cost up 144.8->146.9
+valve_upper_direct_slab  # R10-SAV-BASELINE (#2255): baseline_cost up 124.1->125.7
+wide_band  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.62->30.42, predicted_savings down 62.96->62.17, savings_percentage down 51.09->50.45
+winter_single_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.62->30.42, predicted_savings down 62.96->62.17, savings_percentage down 51.09->50.45
+winter_single_no_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 110->110, deferred_energy_cost up 28.54->29.34, predicted_savings down 58.21->57.42, savings_percentage down 52.9->52.18
+winter_two_zone_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 150.3->152.2
+winter_two_zone_no_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 137.1->139
+wood_coil  # R10-SAV-BASELINE (#2255): baseline_cost down 156.4->150.8
+wood_two_tank  # R10-SAV-BASELINE (#2255): baseline_cost down 147.9->141.5
+wood_two_tank_smart_write  # R10-SAV-BASELINE (#2255): baseline_cost down 147.9->141.5

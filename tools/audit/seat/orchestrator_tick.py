@@ -406,7 +406,7 @@ class Tick:
         code, o = self.git(["merge-base", "origin/main", head])
         if code:
             return None
-        code, o = self.git(["diff", "--name-only", o.strip(), head])
+        code, o = self.git(["diff", "--no-renames", "--name-only", o.strip(), head])
         return o.split() if code == 0 else None
 
     @staticmethod
@@ -1018,7 +1018,12 @@ class Tick:
             # tick's, so the self-test drives them through the stub. A fixed
             # round-9 path read round 9's groups at a round-10 ref, whose
             # tree carries both rosters (R10-TICK b).
-            ref = self.roster_ref or rl.DEFAULT_ROSTER_REF
+            # WHICH REF is roster_lib's too (O17): the round's roster
+            # branch, else main, through the tick's own git.
+            ref, note = (self.roster_ref, "") if self.roster_ref else \
+                rl.default_roster_ref(self.git)
+            if note:
+                self.line(S, f"roster ref: {note}", flag=note.startswith("WARNING"))
             path = self.roster_path
             if not path:
                 code, o = self.git(["ls-tree", "--name-only", ref,
@@ -2096,7 +2101,7 @@ def self_test() -> int:
         git.on(("fetch",), out="")
         git.on(("merge-base", "--is-ancestor"), rc=0)
         git.on(("merge-base", "origin/main"), out=V)
-        git.on(("diff", "--name-only"), out=kw.pop("files", "dev/programme/delivery/9.md"))
+        git.on(("diff", "--no-renames", "--name-only"), out=kw.pop("files", "dev/programme/delivery/9.md"))
         git.on(("grep",), rc=0 if grep_rows else 1, out=grep_rows or "")
         git.on(f"origin/main:{PLAN}", out=plan_text)
         git.on(("show", "-s"), out=head_commit_at or iso(NOW - datetime.timedelta(hours=2)))
@@ -2511,6 +2516,35 @@ def self_test() -> int:
             ("no roster at the ref is UNREADABLE, loudly",
              any("UNREADABLE: roster at origin/r10" in x["text"]
                  for x in t0.findings) and not any("R9-X" in x for x in txt0)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- PLAN: the default ref is the round's roster branch (O17) ----
+        # No --roster-ref: roster_lib.default_roster_ref over the tick's own
+        # git. The branch present reads it; absent reads main and says so.
+        rb = "origin/handoff/audit-r10-roster"
+
+        def default_tick(branch_rc):
+            t2 = tick()
+            t2._git.on(("ls-tree", "origin/main"), out=f"{r10p}\n")
+            t2._git.on(("rev-parse", "--verify", rb), rc=branch_rc)
+            t2._git.on(("diff", "--quiet", f"{rb}...origin/main"), rc=0)
+            t2._git.on(("ls-tree", rb), out=f"{r10p}\n")
+            t2._git.on(f"{rb}:{r10p}", out=r10g)
+            t2._git.on(f"origin/main:{r10p}", out=r9g.replace("R9-X", "MAIN-ONLY"))
+            t2.plan()
+            return t2, [l["text"] for l in t2.sections["PLAN"]]
+
+        tb, txtb = default_tick(0)
+        tm, txtm = default_tick(1)
+        a, f = check("PLAN default roster ref", [
+            ("the round branch present: it is read", f"roster {rb}:{r10p}" in txtb
+             and any(x["text"].startswith("R10-B: UNBLOCKED") for x in tb.findings)),
+            ("and no note is printed", not any(x.startswith("roster ref:") for x in txtb)),
+            ("the branch absent: main is read (null control)",
+             f"roster origin/main:{r10p}" in txtm and not any("R10-B" in x for x in txtm)),
+            ("and the note says the branch is absent",
+             any(x.startswith("roster ref:") and "absent" in x for x in txtm)),
         ])
         total, failed = total + a, failed + f
 
@@ -3325,7 +3359,8 @@ def main() -> int:
     ap.add_argument("--workers-file")
     ap.add_argument("--roster-file")
     ap.add_argument("--roster-ref", default=None,
-                    help="default origin/main (roster_lib.DEFAULT_ROSTER_REF)")
+                    help="default: the round roster branch, else origin/main "
+                         "(roster_lib.default_roster_ref)")
     ap.add_argument("--roster-path", default=None,
                     help="the roster at --roster-ref (default: the newest "
                          "dev/programme/rosters/wave-r<N>-groups.json there)")
