@@ -57,7 +57,7 @@ Every red or cancelled run in the commit check-runs API, read for each of the 35
 
 ## Forward-carry
 
-- `tools/audit/seat/orchestrator_tick.py`: the weekly and closure carry sweep. It runs `carry_audit.py sweep --last N --issues` with both roster refs, prints a dispatch line when the sweep exits 1, and has a self-test arm with its null control. Its precondition is this PR merged. R10-TICK-DRIVERS merged as #2390 without it, so the carry now sits in the roster entry of R10-OPENPR-SILENT (#2422), which owns `orchestrator_tick.py`. Carry: R10-OPENPR-SILENT
+- `tools/audit/seat/orchestrator_tick.py`: the weekly and closure carry sweep. It runs `carry_audit.py sweep --last N --issues` with both roster refs, prints a dispatch line when the sweep exits 1, and has a self-test arm with its null control. Its precondition is this PR merged. R10-TICK-DRIVERS merged as #2390 without it, so the carry went to R10-OPENPR-SILENT, which owns `orchestrator_tick.py`; #2422 delivered `carry_sweep` there (merged `7ab3030b`), and it goes live when this PR merges. Carry: dismissed: delivered by #2422 (7ab3030b); orchestrator_tick.carry_sweep goes live when this PR merges
 - `dev/governance/rules/finding-propagation.md`: the marker also binds a finding the orchestrator records in its own ledger, written `FINDING: ... Carry: ...`, which the sweep's `--ledger` read keys on. The sentence does not fit under the file's cap. Carry: O10-policy-fixer-md
 
 ## Friction
