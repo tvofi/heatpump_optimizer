@@ -1699,7 +1699,7 @@
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/structure.py -- dead_methods by receiver and reachability over methods and properties, with the name-kept members printed as the shape it cannot measure; the coordinator found by role, so a coordinator.py helper handed it is a seam unit and a reach from another module is coordinator_private_reach; the self-check plants one example per past shape (#1686, #1738)",
     "detector_idea": "Liveness by reachability from production roots (tests are not roots), with a self-check planting one example per past shape and a printed count of shapes the metric cannot measure (RCA-BULK-2)",
-    "barrier": "tests/structure.py on the PR gate (F10.4): every row only moves down, and the counting-rule self-check fails the run if a rule regresses. Not reached: a member kept alive only by an untyped load of a name another class defines (printed, unmeasured), and a body moved into a helper still lowers max_class_loc",
+    "barrier": "tests/structure.py on the PR gate (F10.4): every row only moves down, and the counting-rule self-check fails the run if a rule regresses; name_kept_members ratchets the member an untyped load of a shared name keeps alive (R10-N-structure-blind), and field_coverage.mjs's census arm refuses a registered count a planted member moves without a FAIL on its row; arch-score (tools/audit/archscore, calibration corpus) prices the payload and hub censuses (#2293, #2311). Not reached: the card's .js until #2373 merges its card_dead_definitions metric, and annotation spellings outside annotation_members's grammar (generic X[T], a TypeVar bound, a Protocol; #2293)",
     "status": "barriered",
     "nearest_existing": "I4",
     "mechanism_difference": "I4 is two maintained readers of one concept disagreeing; here there is one in-tree metric, blind to a code shape (rename, module-level helper(self), property, attribute-only load), and the second reader exists only as an audit harness",
@@ -1709,7 +1709,8 @@
       "new: structure metric blind to a code shape"
     ],
     "rca": [
-      "BULK-2-N-structure-blind"
+      "BULK-2-N-structure-blind",
+      "R10-N-structure-blind"
     ],
     "rca_planned": [
       "R9-F10.4"
@@ -4210,6 +4211,22 @@
       "in_tree_home": "dev/audit/rca/R10-N-confounded-learner.md",
       "doc": [
         "dev/audit/rca/R10-N-confounded-learner.md"
+      ]
+    },
+    "R10-N-structure-blind": {
+      "class": "N-structure-blind",
+      "level": "class",
+      "subject": "#2235 class: the F10.4 barrier printed the name-kept residual with no budget row, so it grew 124 -> 152 over v6.7.14..v7.0.0 with the ratchet green; 6 R10 instances across structure.py, archscore and the card .js",
+      "trigger": "class: per_round, cross_round, barriered_any",
+      "date": "2026-10-18",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) RCA-BULK-2 item 3 was carried out as a printed count with no budget row; plants are per past instance, and the barrier unit is one instrument in one language",
+      "countermeasure": "build: name_kept_members ratchet row (38) and field_coverage census arm perturb-to-red with a gate row per census; card language arm carried to #2259 item 2 (#2373); instrument coverage named in this row's barrier",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-N-structure-blind.md",
+      "doc": [
+        "dev/audit/rca/R10-N-structure-blind.md"
       ]
     }
   },
