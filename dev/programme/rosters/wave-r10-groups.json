@@ -269,9 +269,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 5 of 25; before you: R10-FEEDS, R10-RATIO-SITES; next: R10-NIGHT-FOLDS, R10-RATIO-ANCHOR). Owning seam in this group: `_vent_cusum` and `_learning_frozen`. Shape: a detector input independent of the replay residual. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-vent-detector",
-    "commit": null,
+    "commit": "768bfc0c341d",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
