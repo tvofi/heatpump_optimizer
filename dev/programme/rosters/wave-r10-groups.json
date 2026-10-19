@@ -3492,7 +3492,9 @@
    "after": [
     "R10-TICK-DRIVERS"
    ],
-   "carry": [],
+   "carry": [
+    "Source: #2368 Friction. `.claude/rules/gate-scoping.md: unclear: exporting HPO_GATE_LOCK_LABEL for a run.sh run without first taking that label fails every leased script at 0s with no reason line in the gate log (harness_headers.py and stress.py here); the rule says run.sh \"under HPO_GATE_LOCK_LABEL renews itself\" without saying the label must already hold the lease.`"
+   ],
    "architect_note": "",
    "brief": "# Fixer brief O10-policy-gate-scoping: dispose recurring friction #2381 (finding sweep L21, P37). POLICY: tvofi approves at merge.\nIssue #2381 [policy] recurring friction: .claude/rules/gate-scoping.md (3 PRs). Files: dev/governance/rules/gate-scoping.md (canon; .claude/rules and .cursor/rules regenerate via rules_sync), tests/policy budgets if a cap row moves.\nFindings: (1) #2341: gate-scoping.md sits at its per-file cap of 61 lines with no headroom, so naming the lease pool cost a line-neutral rewrite that dropped the FIFO and expiry sentences from the prose (they live in gate_lock.py's docstring). Decide: restore the two sentences by cutting elsewhere, or record the cap raise with the owner's approval (a raise needs tvofi). (2) #2366: prepr.sh's agreement lane reads the branch's agreement.mjs while CI's restores the base's (also in the TICK-DRIVERS fold, L03): once that lands, gate-scoping.md's statement of which lanes prepr runs must say the lane reads the base's registry. (3) #2373/#2375: prepr step 3f (brief_lint only on pinned paths) and step 6b (opaque refusal) are scope statements gate-scoping.md should match after TICK-DRIVERS lands.\nFailing test first: the line-count/cap check the policy budgets already run (tests/policy budgets) must pass after the edit. Ordering: after R10-TICK-DRIVERS merges (it changes prepr behaviour this text describes). Identity: refs only (handoff/r10-policy-gate-scoping). Part of #201; Closes #2381 only with every line disposed.",
    "resume": {
