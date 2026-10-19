@@ -1,0 +1,3 @@
+RESULT mutant=REV_CAP1c_captured_location_resolves_control rc=0 fails=0
+RESULT mutant=REV_CAP1d_location_captured_in_constructor_scope_lazy rc=0 fails=0
+restored

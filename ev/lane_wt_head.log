@@ -1,0 +1,6 @@
+RESULT mutant=NULL_no_plant rc=0 fails=0
+RESULT mutant=F1_action_as_a_setattribute_value_control rc=0 fails=0
+RESULT mutant=RD8_insert_adjacent_html_built_href_driven_residual rc=0 fails=0
+RESULT mutant=Y1_runtime_name_on_unresolved_selector_residual rc=0 fails=0
+RESULT mutant=X31LT2_aliases_are_what_close_LT2 rc=0 fails=0
+restored
