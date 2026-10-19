@@ -974,11 +974,12 @@ await block('the scoped round driver', async () => {
   // export (or another seat's tree) is visible in its prompt.
   const isoDims = new Set(L.isolated)
   const PREP = { exportDir: '/x', worktrees: Object.fromEntries(fileSeats.filter((id) => isoDims.has(id.split('-')[0])).map((id) => [id, `/w/${id}`])), python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
-  const drive = async (args, { prep = {}, report = () => ({}), nullSeats = [], leadsOut = {} } = {}) => {
+  const drive = async (args, { prep = {}, report = () => ({}), nullSeats = [], leadsOut = {}, gather } = {}) => {
     const calls = []
     const agent = async (prompt, o) => {
       calls.push({ label: o.label, prompt, schema: o.schema })
       if (o.label === 'prepare') return { ...PREP, ...prep }
+      if (o.label === 'gather' && gather) return gather(prompt)
       if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(id) }])), absent_boxes: [] }
       if (o.label === 'leads') return { report_path: '/r/leads', findings: [], non_findings: [], harnesses: [], converted: [], closed: [], ...leadsOut }
       if (nullSeats.includes(o.label)) return null
@@ -989,8 +990,9 @@ await block('the scoped round driver', async () => {
     }
     const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
     let out, error = ''
-    try { out = await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
-    return { out, error, calls, labels: calls.map((c) => c.label) }
+    const logs = []
+    try { out = await fn(agent, (m) => logs.push(m), () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
+    return { out, error, logs, calls, labels: calls.map((c) => c.label) }
   }
   const isFinder = (l) => /^D\d+-s\d+$/.test(l)
   const base = { round: 9, baseline: 'b', repo: '/r', rotation: ledger, scopes }
@@ -1028,6 +1030,41 @@ await block('the scoped round driver', async () => {
     bxIso.length > 0 && b8prep.includes(bxIso.join(', ')) && !!outsider && !b8prep.split(/[^A-Za-z0-9-]/).includes(outsider), b8prep.slice(0, 300))
   const gi = await drive({ ...base, from: 'intake' })
   t('from "intake" runs no finder, gathers every box, then intake', gi.labels.filter(isFinder).length === 0 && gi.labels.includes('gather') && gi.labels.at(-1) === 'intake', J(gi.labels))
+  // R10-TICK (e, h): one gatherer per box, each reply read for its own box's
+  // seats only, and a reply that is JSON text parsed rather than trusted or
+  // dropped. Round 10's one gatherer returned 45 reports in one reply, cut off.
+  const gathers = gi.calls.filter((c) => c.label === 'gather')
+  const seatBoxes = Object.keys(D.BOXES).filter((b) => D.BOXES[b].heavy.length + D.BOXES[b].light.length)
+  t(`from "intake" gathers once per box, each prompt naming its own box (${seatBoxes.length} boxes)`,
+    gathers.length === seatBoxes.length && seatBoxes.every((b) => gathers.filter((c) => c.prompt.includes(`reports-${b}.json`)).length === 1), J(gathers.map((c) => (/reports-(B\d+)\.json/.exec(c.prompt) ?? [])[1])))
+  const rep = (id) => ({ dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] })
+  const boxIn = (prompt) => (/reports-(B\d+)\.json/.exec(prompt) ?? [])[1]
+  const own = (b) => Object.fromEntries([...D.BOXES[b].heavy, ...D.BOXES[b].light].map((id) => [id, rep(id)]))
+  const cutBox = bx
+  const cut = await drive({ ...base, from: 'intake' }, { gather: (pr) => { const b = boxIn(pr); return b === cutBox ? { reports: J(own(b)).slice(0, 40), absent_boxes: [] } : { reports: own(b), absent_boxes: [] } } })
+  t(`a box whose reply is cut off leaves exactly its own seats missing, and intake is refused (${cutBox}: ${bxSeats.length} seats)`,
+    J([...(cut.out?.missing ?? [])].sort()) === J([...bxSeats].sort()) && !cut.labels.includes('intake'), J(cut.out?.missing))
+  const asText = await drive({ ...base, from: 'intake' }, { gather: (pr) => { const b = boxIn(pr); return { reports: J(own(b)), absent_boxes: J([]) } } })
+  t('a box reply returned as JSON text is parsed: every seat reported, intake runs (null control for the cut-off arm)',
+    J(asText.out?.missing ?? null) === J([]) && asText.labels.at(-1) === 'intake', J(asText.out?.missing))
+  const elsewhere = (b) => Object.fromEntries(Object.entries(own(b)).map(([id, r]) => [id, { ...r, report_path: '/elsewhere' }]))
+  const stray = await drive({ ...base, from: 'intake' }, { gather: (pr) => { const b = boxIn(pr); return { reports: b === cutBox ? own(b) : { ...own(b), ...elsewhere(cutBox) }, absent_boxes: [] } } })
+  const strayIp = stray.calls.find((c) => c.label === 'intake')?.prompt ?? ''
+  t(`where two boxes report one seat, the box BOXES places it on wins (${cutBox}'s seats keep their own reports)`,
+    J(stray.out?.missing ?? null) === J([]) && bxSeats.every((id) => strayIp.includes(`"${id}":"/r/${id}"`)) && !strayIp.includes('/elsewhere'), strayIp.slice(-300))
+  const moved = await drive({ ...base, from: 'intake' }, { gather: (pr) => { const b = boxIn(pr); return { reports: b === cutBox ? {} : { ...own(b), ...elsewhere(cutBox) }, absent_boxes: [] } } })
+  t(`...and a seat only another box reports (re-run on another container) is taken from it (${cutBox}'s seats reported)`,
+    J(moved.out?.missing ?? null) === J([]) && bxSeats.every((id) => (moved.calls.find((c) => c.label === 'intake')?.prompt ?? '').includes(`"${id}":"/elsewhere"`)), J(moved.out?.missing))
+  const strFind = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: J([{ id: 'D1-s2-01', scope: 'D1-s2', class_guess: 'P3', step: 'D1.M1', severity: 'low', title: 't' }]) } : {}) })
+  t("a finder report whose findings came back as JSON text is read as its findings, not as none",
+    /"id":"D1-s2-01"/.test(strFind.calls.find((c) => c.label === 'intake')?.prompt ?? ''), strFind.error || 'D1-s2-01 not registered')
+  // The arm the case above is the null control for: the same findings cut off
+  // mid-text are refused with the field named, and the seat is not reported,
+  // never one that returned no findings.
+  const cutFind = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: J([{ id: 'D1-s2-01', scope: 'D1-s2', class_guess: 'P3', step: 'D1.M1', severity: 'low', title: 't' }]).slice(0, 25) } : {}) })
+  t('...and one whose findings came back cut off is a seat not reported, refused with the field named, and intake does not run',
+    J(cutFind.out?.missing ?? null) === J(['D1-s2']) && !cutFind.labels.includes('intake') && cutFind.logs.some((m) => /^D1-s2's report: findings: .*does not parse.*not reported$/.test(m)),
+    J({ missing: cutFind.out?.missing, error: cutFind.error, intake: cutFind.labels.includes('intake'), logs: cutFind.logs.filter((m) => m.includes('D1-s2')) }))
   const noBox = `B${Object.keys(D.BOXES).length + 1}`
   t(`an unknown box is refused (${noBox})`, !D.BOXES[noBox] && /is not one of/.test((await drive({ ...base, box: noBox })).error), `${noBox} accepted`)
   const both = await drive({ ...base, box: 'B1', from: 'intake' })
@@ -1080,6 +1117,18 @@ await block('the scoped round driver', async () => {
   const fs0 = r9.calls.find((c) => isFinder(c.label))?.schema ?? {}
   const missReq = [...S.required.filter((k) => !(fs0.required ?? []).includes(k)), ...S.definitions.finding.required.filter((k) => !(fs0.properties?.findings?.items?.required ?? []).includes(k))]
   t("the finder's return schema requires every field finding.schema.json requires (scope, class_guess and leads among them)", fs0.required && missReq.length === 0, missReq.join(', '))
+  // R10-TICK (g): the return schema IS the file's, $refs inlined, plus the
+  // driver's report_path, so every enum and type intake validates reaches the
+  // finder. Round 10's hand-kept copy lacked them: 35 of 44 box findings were
+  // rejected at intake on form.
+  const inlined = (o, defs) => (Array.isArray(o) ? o.map((x) => inlined(x, defs)) : o && typeof o === 'object'
+    ? (Object.keys(o).length === 1 && typeof o.$ref === 'string' ? inlined(defs[o.$ref.split('/').pop()], defs)
+      : Object.fromEntries(Object.entries(o).filter(([k]) => k !== '$schema' && k !== 'definitions').map(([k, v]) => [k, inlined(v, defs)]))) : o)
+  const sameAsFile = (sch) => { const { report_path: _rp, ...props } = sch.properties ?? {}; return J({ ...sch, required: (sch.required ?? []).filter((k) => k !== 'report_path'), properties: props }) === J(inlined(S, S.definitions)) }
+  t("the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder)",
+    sameAsFile(fs0) && fs0.properties?.report_path?.type === 'string' && fs0.required.includes('report_path'), J(fs0).slice(0, 200))
+  const handKept = JSON.parse(J(fs0)); delete handKept.properties.findings.items.properties.perturbation.properties
+  t("the check fires: a return schema missing the file's expected_direction enum is refused (positive control)", !sameAsFile(handKept), 'a schema without the enum passed')
 
   // Intake: registers, never merges; a finding outside its seat is rejected by
   // the script with the reason; leads reach the one leads seat.
@@ -1283,13 +1332,13 @@ if (PANEL_DRIVER) await block('the panel verification pass', async () => {
   const PLAN = { 'D1-s1-01': ['refute', 'refute', 'verify'], 'D1-s1-02': ['refute', 'verify', 'verify'] }
   const PLAN1 = { 'D1-s1-01': ['refute', '1'], 'D1-s1-02': ['refute', ''] }
   const isVerifier = (label) => (ONE ? /^D\d+(?:#\d+)?\/verify$/ : /^D\d+(?:#\d+)?\/v[123]$/).test(label)
-  const drive = async (args, { nullLabel, flagged, foldRc } = {}) => {
+  const drive = async (args, { nullLabel, flagged, foldRc, readText } = {}) => {
     const calls = []
     let judged = []
     const agent = async (prompt, o) => {
       const label = o?.label ?? '?'
       calls.push({ label, prompt })
-      if (label === 'read') return { findings: [...d1, ...d2] }
+      if (label === 'read') return { findings: readText ? readText(J([...d1, ...d2])) : [...d1, ...d2] }
       const m = /^(D\d+)(?:#\d+)?\/(?:v([123])|verify)$/.exec(label)
       if (m && isVerifier(label)) {
         if (label === nullLabel) return null
@@ -1412,6 +1461,13 @@ if (PANEL_DRIVER) await block('the panel verification pass', async () => {
   const res = await drive({ from: 'judge' })
   t('from "judge" runs no verifier and hands the judge every registered finding, unvoted',
     !res.calls.some((c) => /\/(v[123]|verify)$/.test(c.label)) && res.judged.length === 19, `judged ${res.judged.length}`)
+  // R10-TICK (h): round 10's register read returned its findings as one JSON
+  // string. Parsed, it is the same read; cut off, it stops the pass by name.
+  const txt = await drive({}, { readText: (x) => x })
+  t('a register read returned as JSON text is the same read: every finding reaches the judge (19)', txt.judged.length === 19, `judged ${txt.judged.length}`)
+  let cutRead = ''
+  try { await drive({}, { readText: (x) => x.slice(0, 60) }) } catch (e) { cutRead = String(e.message) }
+  t('a register read cut off mid-text stops the pass with the reply named, never as an empty register', /the register read: findings: the reply is text that does not parse/.test(cutRead), cutRead || 'no error')
 })
 
 console.log('-- The verification pass feeds the rotation ledger its yield')

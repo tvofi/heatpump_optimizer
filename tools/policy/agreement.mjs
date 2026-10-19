@@ -33,7 +33,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { at, canonList, lsFiles } from './counts.mjs'
+import { at, canon, canonList, lsFiles } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
@@ -49,7 +49,28 @@ function constFromSource(rel, name) {
   return new Function(`return ${m[1]}`)()
 }
 const load = (rel) => import(pathToFileURL(at(rel)).href)
+// The same for a generated object literal that is one line of JSON.
+function jsonConstFromSource(rel, name) {
+  const src = rd(rel)
+  const i = src.indexOf(`\nconst ${name} = {`)
+  if (i < 0) throw new Error(`${rel}: no top-level const ${name} object`)
+  const start = src.indexOf('{', i)
+  return JSON.parse(src.slice(start, src.indexOf('\n', start)))
+}
 
+
+// A JSON schema with every {"$ref": "#/definitions/x"} replaced by x, and
+// definitions and $schema dropped: the form fold_ledger.py sync writes.
+function inlineRefs(o, defs = o.definitions ?? {}) {
+  if (Array.isArray(o)) return o.map((x) => inlineRefs(x, defs))
+  if (!o || typeof o !== 'object') return o
+  if (Object.keys(o).length === 1 && typeof o.$ref === 'string') {
+    const d = defs[o.$ref.split('/').pop()]
+    if (!d) throw new Error(`a $ref this reader cannot follow: ${o.$ref}`)
+    return inlineRefs(d, defs)
+  }
+  return Object.fromEntries(Object.entries(o).filter(([k]) => k !== '$schema' && k !== 'definitions').map(([k, v]) => [k, inlineRefs(v, defs)]))
+}
 
 const CC = 'custom_components/heatpump_optimizer'
 function entityLeaves(rel) {
@@ -71,6 +92,83 @@ function py(key) {
   }
   if (!PY[key]) throw new Error(`the Python readers' JSON has no ${key}`)
   return PY[key]
+}
+
+// ---- the merge subject: one grammar, and only GitHub writes it ---------------
+
+// The merge-commit shape, as every reader of merge-subject-pr reads it: stamp.py
+// MERGE_SUBJECT_RE, delivery_status.py MERGE_SUBJECT, policy_lint.mjs
+// MERGE_COMMIT_SUBJECT_RE (discovery holds the four copies to `pair:` below).
+// Anchored and bounded after the number, never on ` from `: #2379 and #2401
+// were merged by hand with `--subject "Merge pull request #N (<group>)"`
+// (5756f2b1, 07a09406), which a ` from ` copy here and in policy_lint.mjs read
+// as no merge at all while both Python readers read it.
+const MERGE_SHAPE = /^Merge pull request #(\d+)\b/
+
+// THE GUARD. A merge commit's subject is GitHub's to write, in one of its two
+// templates: the merge message (`Merge pull request #N from <branch>`) or the
+// pull-request title (`<title> (#N)`). A subject passed by hand reads as one
+// thing to one reader and another to the next, so every first-parent merge on
+// main after SUBJECT_CUTOFF carries a template subject, and no tracked merge
+// writer passes one. Commits at or before the cutoff are history main cannot
+// rewrite; the readers above read them, and the pair's corpus pins both.
+const SUBJECT_CUTOFF = '07a09406a1cc97076a6f28581f87f313b322a6b6'
+const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /\(#\d+\)$/]
+// The pull_request event's checkout: GitHub's test merge of the head into the
+// base, which is HEAD on the runner and never a commit on main. Reached only on
+// the fallback below, when no origin/main ref exists.
+const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
+// What a merge call may not carry: `gh pr merge`'s subject and body flags, and
+// the REST and MCP merge's commit_title and commit_message.
+const MERGE_CALL = /\bgh pr merge\b|"pr", "merge"|merge_pull_request|\/pulls\/\S+\/merge\b/
+const SUBJECT_ARG = /(?:^|[\s"'[,])(?:--subject|--title|-t|--body|--body-file|-b|-F)(?=[\s="',\]]|$)|\bcommit_(?:title|message)\b/
+
+function nonTemplateMerges(log) {
+  return log.split('\n').filter(Boolean).map((l) => l.split('\t')).filter(([, parents, subject], i) =>
+    parents.split(' ').length >= 2 && !(i === 0 && TEST_MERGE.test(subject)) && !TEMPLATE_SUBJECT.some((r) => r.test(subject)))
+}
+function subjectWriters(files, read) {
+  const calls = []; const bad = []
+  for (const f of files) {
+    read(f).split('\n').forEach((line, i) => {
+      if (!MERGE_CALL.test(line)) return
+      calls.push(f)
+      if (SUBJECT_ARG.test(line)) bad.push(`${f}:${i + 1}`)
+    })
+  }
+  return { calls, bad }
+}
+// WHICH LINE IS MAIN'S. The guard judges only merges that are on main's
+// first-parent line, and a branch's own history is not: a fixer updates its
+// branch by `git merge origin/main` (fixer.md step 6), and that merge's subject
+// is git's, never GitHub's. Main's line, from any checkout, ends at the merge
+// base of HEAD with origin/main -- HEAD itself on main's push run, the base on
+// a pull request's test merge, the last main commit merged in on a recarried
+// branch. The branch's own merge onto main is GitHub's to write, and main's
+// push run judges it. With no origin/main ref the walk falls back to HEAD,
+// where a branch's own merges are refused by name rather than passed unseen.
+function mainLineEnd(g = git) {
+  try { g(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main']) } catch { return 'HEAD' }
+  return g(['merge-base', 'HEAD', 'refs/remotes/origin/main']).trim()
+}
+function mergeSubjectGuard(report, log = null, files = null, read = rd, g = git, cutoff = SUBJECT_CUTOFF) {
+  try {
+    log ??= g(['log', '--first-parent', '--format=%H%x09%P%x09%s', `${cutoff}..${mainLineEnd(g)}`])
+  } catch (e) { report.refused.push(`merge-subject-pr guard: cannot walk main's first-parent line past ${SUBJECT_CUTOFF.slice(0, 9)} (a shallow clone?): ${String(e.message).split('\n')[0]}`); return }
+  for (const [sha, , subject] of nonTemplateMerges(log)) {
+    report.refused.push(`merge-subject-pr ${sha.slice(0, 9)} ${JSON.stringify(subject)}: a merge commit whose subject is not GitHub's template. Merge through merge_train.py or merge_pr.sh, which pass no --subject; history cannot be rewritten, so the readers must now read it`)
+  }
+  files ??= canonList(git(['ls-files', 'tools', '.claude/workflows']).split('\n')).filter((f) => /\.(py|mjs|js|cjs|sh|md)$/.test(f)
+    && !/^tools\/audit\/round\d/.test(f) && !/\/fixtures\//.test(f)
+    // This file: its self-test's synthetic writers carry the flags it refuses.
+    && f !== canon('tools/policy/agreement.mjs'))
+  const w = subjectWriters(files, read)
+  for (const at_ of w.bad) report.refused.push(`merge-subject-pr writer ${at_}: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with`)
+  // Named by no path here: a quoted path in this evaluating program puts that
+  // file on codeowners_gap.py's surface. merge_pr.sh and merge_train.py are what
+  // the scan finds today (the note line counts them).
+  if (!w.calls.length) report.refused.push('merge-subject-pr guard: found no merge call under tools/ or .claude/workflows/; a scan that finds no writer checks none')
+  report.note.push(`merge-subject guard: ${log.split('\n').filter(Boolean).length} first-parent commit(s) past ${SUBJECT_CUTOFF.slice(0, 9)}, ${w.calls.length} merge call(s) in ${new Set(w.calls).size} file(s)`)
 }
 
 // ---- the registered concepts ------------------------------------------------
@@ -132,6 +230,27 @@ const PAIRS = [
     },
   },
   {
+    // R10-TICK (g): the finder was handed a hand-kept return schema without the
+    // file's enums and types, so intake rejected 35 of 44 round-10 box
+    // findings on form. fold_ledger.py sync writes the driver's copy; this
+    // compares every leaf of the two, so a hand edit of either side is refused.
+    concept: 'finder-report-form',
+    what: "the form a finder's report must take: finding.schema.json ($refs inlined, intake's validator) against audit-find.js FINDING_REPORT (the finder's return schema)",
+    async corpus() {
+      const leaves = (o, pre, out) => { if (o && typeof o === 'object') { for (const [k, v] of Object.entries(o)) leaves(v, `${pre}/${k}`, out) } else out.add(pre); return out }
+      const paths = leaves(inlineRefs(JSON.parse(rd('dev/audit/config/finding.schema.json'))), '', new Set())
+      leaves(jsonConstFromSource('.claude/workflows/audit-find.js', 'FINDING_REPORT'), '', paths)
+      return [...paths].sort().map((p) => [p, p])
+    },
+    async readers() {
+      const at_ = (o) => (p) => { let x = o; for (const k of p.split('/').slice(1)) x = x == null ? undefined : x[k]; return x === undefined ? null : x }
+      return {
+        'finding.schema.json, $refs inlined': at_(inlineRefs(JSON.parse(rd('dev/audit/config/finding.schema.json')))),
+        'audit-find.js FINDING_REPORT': at_(jsonConstFromSource('.claude/workflows/audit-find.js', 'FINDING_REPORT')),
+      }
+    },
+  },
+  {
     concept: 'merge-subject-pr',
     what: 'the pull request a first-parent subject on main names',
     async corpus() {
@@ -141,7 +260,8 @@ const PAIRS = [
     // is refused (merge_shape_guard, RCA-BULK-3 section 5, #1041): agreement
     // cannot see a misreading all readers share, and a count of zero PRs read
     // from a non-empty window is the alarm. Stamps are direct commits, never merges.
-    mustAnswer: (s) => /^Merge pull request #\d+ from /.test(s),
+    mustAnswer: (s) => MERGE_SHAPE.test(s),
+    guard: (report) => mergeSubjectGuard(report),
     async readers() {
       const pl = await load('.claude/workflows/policy_lint.mjs')
       const m = py('merge')
@@ -156,7 +276,7 @@ const PAIRS = [
           // could-not-enumerate signal (`enumSkipLine`); widening it would change
           // what that zero means. The merge-commit shape must therefore answer
           // null HERE: an answer means the asymmetry is stale and is refused.
-          { narrow: /^Merge pull request #\d+ from /, why: 'offline subject mode reads the squash shape only (enumSkipLine)' }),
+          { narrow: MERGE_SHAPE, why: 'offline subject mode reads the squash shape only (enumSkipLine)' }),
       }
     },
   },
@@ -304,6 +424,7 @@ async function pairsArm(report, pairs = PAIRS) {
       }
     } catch (e) { report.refused.push(`${p.concept}: a reader threw: ${String(e.message).split('\n')[0]}`) } finally { readers.cleanup?.() }
     report.note.push(`pair ${p.concept}: ${names.length} readers, ${corpus.length} items, ${diverge} divergent`)
+    p.guard?.(report)
   }
 }
 
@@ -328,6 +449,63 @@ async function selfTest() {
   await run('a stale narrow declaration is divergent', mk({ x: (i) => i, y: nar }, items), (r) => r.divergent.length === 1)
   await run('every reader null on a must-answer item is refused (merge-shape guard)', mk({ x: () => null, y: () => null }, items, { mustAnswer: (i) => i === 'a' }), (r) => r.divergent.length === 1)
   await run('null on an item that need not answer passes', mk({ x: () => null, y: () => null }, items), (r) => !r.divergent.length)
+  await run("a pair's guard runs with its pair", mk({ x: (i) => i, y: (i) => i }, items, { guard: (r) => r.refused.push('guard ran') }), (r) => r.refused.length === 1)
+  // The merge-subject guard, on a synthetic first-parent log and synthetic writers.
+  const H = (c) => c.repeat(40)
+  const mlog = (rows) => rows.map(([sha, parents, subject]) => `${sha}\t${parents}\t${subject}`).join('\n') + '\n'
+  const guard = (rows, files) => {
+    const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
+    mergeSubjectGuard(r, mlog(rows), Object.keys(files), (f) => files[f])
+    return r.refused
+  }
+  const writers = { 'x/merge.sh': 'gh pr merge $PR --merge --match-head-commit $S\n', 'x/train.py': 'self.run(["gh", "pr", "merge", n, "--merge"])\n' }
+  probes.push(['both GitHub templates pass the merge-subject guard', !guard([
+    [H('a'), `${H('1')} ${H('2')}`, 'Merge pull request #7 from tvofi/x'], [H('b'), `${H('1')} ${H('2')}`, 'record: rows (#8)']], writers).length])
+  probes.push(['a hand-written merge subject is refused (#2379, 5756f2b1)', guard([
+    [H('a'), `${H('1')} ${H('2')}`, 'Merge pull request #2379 (R10-SENSOR-PAYLOAD)']], writers).length === 1])
+  probes.push(['a title-only merge subject is refused', guard([[H('a'), `${H('1')} ${H('2')}`, 'fix: a title']], writers).length === 1])
+  probes.push(['a single-parent commit is not a merge', !guard([[H('a'), H('1'), 'v7.0.1: stamp']], writers).length])
+  probes.push(["the runner's test merge at HEAD is skipped, and refused anywhere else", !guard([
+    [H('a'), `${H('1')} ${H('2')}`, `Merge ${H('3')} into ${H('4')}`]], writers).length && guard([
+    [H('a'), `${H('1')} ${H('2')}`, 'Merge pull request #7 from tvofi/x'], [H('b'), `${H('1')} ${H('2')}`, `Merge ${H('3')} into ${H('4')}`]], writers).length === 1])
+  const msp = PAIRS.find((p) => p.concept === 'merge-subject-pr')
+  probes.push(["merge-subject-pr's null guard covers a hand merge's custom tail, and not a subject naming no pull request",
+    msp.mustAnswer('Merge pull request #2379 (R10-SENSOR-PAYLOAD)') && !msp.mustAnswer('Merge pull request from a fork')])
+  probes.push(['a merge call that passes --subject is refused', guard([], { ...writers, 'tools/x.sh': 'gh pr merge 9 --merge --subject "Merge pull request #9 (x)"\n' }).length === 1])
+  probes.push(['a merge call that passes commit_title is refused', guard([], { ...writers, 'tools/x.js': 'merge_pull_request with commit_title Merge pull request #9\n' }).length === 1])
+  probes.push(['a scan that finds no merge call is refused', guard([], { 'x/merge.sh': 'echo merged\n' }).length === 1])
+  // The walk itself, on a real repository: a recarried branch's own
+  // `Merge origin/main into <branch>` is not main's, a hand subject on main is.
+  const repo = fs.mkdtempSync(path.join(ROOT, '.agreement-git-'))
+  try {
+    // Built by tests/throwaway_git.py, the one way a tracked script makes a
+    // throwaway repository (its --check refuses a raw one): auto-maintenance
+    // off in the environment it returns and in the repository's own config.
+    const env = JSON.parse(execFileSync('python3', ['-I', '-c',
+      'import json, sys; sys.path.insert(0, sys.argv[2]); from throwaway_git import throwaway_git_init; print(json.dumps(throwaway_git_init(sys.argv[1], "-q")))',
+      repo, path.dirname(at('tests/throwaway_git.py'))], { encoding: 'utf8' }))
+    const rg = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', env })
+    const T = execFileSync('git', ['mktree'], { cwd: repo, input: '', encoding: 'utf8', env }).trim()
+    const ct = (msg, ...parents) => execFileSync('git', ['commit-tree', T, ...parents.flatMap((x) => ['-p', x]), '-m', msg], { cwd: repo, encoding: 'utf8', env }).trim()
+    const c0 = ct('cutoff'); const side = ct('side', c0)
+    const m1 = ct('Merge pull request #1 from t/a', c0, side)
+    const b1 = ct('work', c0); const b2 = ct('Merge origin/main into fix/x', b1, m1)
+    const at_ = (head, main) => { rg(['update-ref', 'refs/heads/x', head]); rg(['symbolic-ref', 'HEAD', 'refs/heads/x']); rg(['update-ref', 'refs/remotes/origin/main', main]) }
+    const walk = () => { const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }; mergeSubjectGuard(r, null, Object.keys(writers), (f) => writers[f], rg, c0); return r.refused }
+    at_(b2, m1)
+    probes.push(["a recarried branch's own `Merge origin/main into <branch>` is not judged", !walk().length])
+    const m2 = ct('Merge pull request #2 (custom)', m1, side); const b3 = ct('Merge origin/main into fix/x', b2, m2)
+    at_(b3, m2)
+    const r3 = walk()
+    probes.push(['a hand subject on main is refused from a recarried branch, and only it', r3.length === 1 && r3[0].startsWith(`merge-subject-pr ${m2.slice(0, 9)} `)])
+    at_(m2, m2)
+    const only = (r, sha) => r.length === 1 && r[0].startsWith(`merge-subject-pr ${sha.slice(0, 9)} `)
+    probes.push(["a hand subject is refused on main's own push run", only(walk(), m2)])
+    // With no origin/main ref the walk falls back to HEAD and judges every
+    // first-parent merge there, so a hand subject on HEAD's line is refused.
+    rg(['update-ref', '-d', 'refs/remotes/origin/main'])
+    probes.push(['with no origin/main ref the walk falls back to HEAD and refuses a hand subject there', only(walk(), m2)])
+  } finally { fs.rmSync(repo, { recursive: true, force: true }) }
   const disc = (files, registry) => {
     const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
     discovery(r, Object.keys(files), (f) => files[f], registry, [])
