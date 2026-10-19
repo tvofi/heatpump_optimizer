@@ -4248,6 +4248,49 @@
     "next_step": "fixer",
     "note": null
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-ROSTER-OPS",
+   "findings": [],
+   "wave": 3,
+   "files": [
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/seat/r10_roster_ops_mutants.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "brief": "roster_edit.py gains set-after <group> <G1,...|-> and drop-carry <group> <index|--match TEXT>, so replans and stale-carry drops go through the load-validate-dump flow and its lint gate instead of a string splice. Controls: each op's mutant fails its self-test arm; existing ops and the no-op path unchanged.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-roster-ops",
+    "commit": "9969e3ca80bd6255cd1231b1b4e53410a6fbeb88",
+    "last_step": "fixer",
+    "next_step": "open_pr",
+    "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
+   }
   }
  ]
 }
