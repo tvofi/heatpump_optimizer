@@ -3634,6 +3634,52 @@
     "note": null
    },
    "brief": "Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. (1) The month row's comfort-matched null: the flat-price null must separate comfort, COP timing and stored heat, not be driven to 0. (2) The summer_dhw_only start-bound limit: the start-of-horizon settlement is capped by the thermostat's space-heat cost, which leaves summer_dhw_only negative. Seams: optimizer.py and ledger.py. The acceptance is the carried comfort text from R10-SAV-BASELINE, which you re-measure at your merge base. Part of #201."
+  },
+  {
+   "group": "R10-MUTATION-ANCHOR",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "R10-SAV-BASELINE forward-carry (#2411): entities.py --anchor vacuous kill"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tests/mutation_table.py",
+    "tests/entities.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "FINDING (forward-carried from R10-SAV-BASELINE, #2255, PR #2411; no group owned tests/mutation_table.py or the R9-F10.13 block of tests/entities.py until this one). `tests/entities.py`'s `--anchor` self-test runs `mutation_table.main` against the live tree, and `clone_tree` overlays the working tree. So under `--pin-killed`, entities.py \"kills\" every mutant of a line that already carries a pin, by refusing the ledger/inventory disagreement, not by a check that sees the mutation. Control: the equivalent rewrite `if 0 < dt:` of the `dt` guard in `MonthlyLedger` (a line of PR #2411's head, in custom_components/heatpump_optimizer/ledger.py; not yet on main) fails the same single check, so the kill is vacuous (an equivalent mutant is \"killed\"). Re-measure: at a later head, mutate any pinned line equivalently, and run `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`; the equivalent rewrite must survive. Until it is fixed, a `killed_by: tests/entities.py` pin on a line with a second pin is unproven. The ledger holds 123 `killed_by: tests/entities.py` pins in all, counted by `grep -rl '\"killed_by\": \"tests/entities.py\"' tests/mutation_ledger/killed_by | wc -l`. How many of them sit on a line with a second pin, or are vacuous, is not measured."
+   ],
+   "architect_note": null,
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-mutation-anchor",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+   },
+   "brief": "Fix the vacuous kill in the entities.py `--anchor` mutation self-test soundly, and measure how many of the 123 `killed_by: tests/entities.py` pins are vacuous. Seams: tests/mutation_table.py (the mutation instrument) and the R9-F10.13 block of tests/entities.py; the pins live under tests/mutation_ledger/killed_by. Deliverables: (1) a failing test first: an equivalent rewrite of a pinned line (the control above) must NOT be reported killed under `--pin-killed`; (2) the fix, so that a kill is attributed only to a check that fails on the mutant and passes on the base, not to the ledger/inventory disagreement the pin itself causes (for example, drive the anchor against a tree whose ledger is the base's, or exclude the pinned line's own pin from the comparison); (3) the measurement: for each of the 123 pins, whether its line carries a second pin and whether the kill survives the fix, with the count of vacuous pins printed beside the count of pins checked, compared as sets and not totals; (4) the vacuous pins re-proven with a real kill or struck with the reason. A fix that lowers the count of proven pins is a measurement change: the ledger is data, not a ratchet, but state the before and after counts in the pull request.\n\nFINDING (forward-carried from R10-SAV-BASELINE, #2255, PR #2411; no group owned tests/mutation_table.py or the R9-F10.13 block of tests/entities.py until this one). `tests/entities.py`'s `--anchor` self-test runs `mutation_table.main` against the live tree, and `clone_tree` overlays the working tree. So under `--pin-killed`, entities.py \"kills\" every mutant of a line that already carries a pin, by refusing the ledger/inventory disagreement, not by a check that sees the mutation. Control: the equivalent rewrite `if 0 < dt:` of the `dt` guard in `MonthlyLedger` (a line of PR #2411's head, in custom_components/heatpump_optimizer/ledger.py; not yet on main) fails the same single check, so the kill is vacuous (an equivalent mutant is \"killed\"). Re-measure: at a later head, mutate any pinned line equivalently, and run `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`; the equivalent rewrite must survive. Until it is fixed, a `killed_by: tests/entities.py` pin on a line with a second pin is unproven. The ledger holds 123 `killed_by: tests/entities.py` pins in all, counted by `grep -rl '\"killed_by\": \"tests/entities.py\"' tests/mutation_ledger/killed_by | wc -l`. How many of them sit on a line with a second pin, or are vacuous, is not measured.\n\nForward-carried (finding-propagation.md): the finding above, with its control and its re-measure, is the acceptance; re-derive the 123 and the second-pin count at your merge base. Part of #201.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose; the orchestrator verifies each intended issue closed after the merge."
   }
  ]
 }
