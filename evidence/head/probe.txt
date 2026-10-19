@@ -1,3 +1,0 @@
-null(0.00)=False below_drift(0.05)=False model_bias(0.10)=True
-PROBE FAIL: model bias with no ventilation trips the open-window freeze
-rc=1

@@ -1,0 +1,18 @@
+RESULT check-schedule b=0.4 head perday=[0, 0, 0, 0]
+RESULT check-schedule b=0.4 sun0 perday=[0, 19, 18, 18]
+RESULT check-schedule b=0.4 heat0 perday=[0, 0, 0, 0]
+RESULT check-schedule b=0.7 head perday=[0, 16, 0, 0]
+RESULT check-schedule b=0.7 sun0 perday=[0, 20, 20, 20]
+RESULT check-schedule b=0.7 heat0 perday=[0, 14, 0, 0]
+RESULT check-schedule b=1.0 head perday=[0, 20, 0, 0]
+RESULT check-schedule b=1.0 sun0 perday=[0, 20, 20, 20]
+RESULT check-schedule b=1.0 heat0 perday=[0, 20, 0, 0]
+RESULT census steady b=0.1 tripped=0 end=False
+RESULT census steady b=0.4 tripped=0 end=False
+RESULT census steady b=1.0 tripped=0 end=False
+RESULT census heat b=0.1 tripped=0 end=False
+RESULT census heat b=0.4 tripped=0 end=False
+RESULT census heat b=1.0 tripped=0 end=False
+RESULT census sun b=0.1 tripped=0 end=False
+RESULT census sun b=0.4 tripped=27 end=False
+RESULT census sun b=1.0 tripped=107 end=False
