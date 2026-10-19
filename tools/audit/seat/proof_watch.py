@@ -85,6 +85,21 @@ class Abort(Exception):
     """A guard refused: report it, merge nothing, exit 1."""
 
 
+def verdict_allowlist(approve_script: Path) -> "tuple[set[str], int] | None":
+    """The approver App's identity, read off app_approve.sh, the gate that owns
+    it: (VERDICT_AUTHORS, VERDICT_AUTHOR_ID), or None when unreadable. The one
+    reader; orchestrator_tick.py imports it."""
+    try:
+        src = Path(approve_script).read_text()
+    except OSError:
+        return None
+    authors = re.search(r'^VERDICT_AUTHORS="(.*)"$', src, re.M)
+    vid = re.search(r"^VERDICT_AUTHOR_ID=(\d+)", src, re.M)
+    if not (authors and vid):
+        return None
+    return set(authors.group(1).split()), int(vid.group(1))
+
+
 def _json_docs(raw: str) -> list:
     """What `gh api` prints: concatenated JSON documents, an array per page
     (plain --paginate) or one object per line (--jq '.check_runs[]')."""
@@ -201,13 +216,10 @@ class Watcher:
                         f"(app_approve --dry-run refused): {why}")
 
     def _allowlist(self) -> tuple[set[str], int]:
-        try:
-            src = self.approve_script.read_text()
-            authors = re.search(r'^VERDICT_AUTHORS="(.*)"$', src, re.M).group(1)
-            vid = int(re.search(r"^VERDICT_AUTHOR_ID=(\d+)", src, re.M).group(1))
-        except (OSError, AttributeError):
+        got = verdict_allowlist(self.approve_script)
+        if got is None:
             raise Abort(f"could not read the verdict allowlist off {self.approve_script}")
-        return set(authors.split()), vid
+        return got
 
     def verdict_comment(self) -> tuple[int, str]:
         """(comment id, evidence directory) off the verdict the gate just
