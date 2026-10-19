@@ -61833,6 +61833,96 @@ R.check(
     and _sp_floor_of(30.0) == 30.0 + _SP_LIFT,
 )
 
+# The objective scores the rounded levels a clamped install ships, so it is
+# flat between 0 and p_min and a start descending into that band stalls
+# there. The relaxed candidate (``_relaxed_starts``) is the fix; the
+# control arm is the same solve with it removed, which is the mutant. A
+# synthetic 750 L buffered install behind a valve, one space-only and one
+# with hot water, so both solve paths carry it.
+import heatpump_optimizer.optimizer as _sp_opt_mod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _SpOpt,
+    OptimizationConfig as _SpCfg,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _SpTM,
+    ThermalParameters as _SpTP,
+    ThermalState as _SpTS,
+)
+
+_SP_STEPS = np.arange(96)
+_SP_SPREAD = 1.3 + 0.9 * np.sin(2 * np.pi * (_SP_STEPS - 30) / 96.0)
+_SP_FLAT = np.full(96, float(_SP_SPREAD.mean()))
+_SP_OUTDOOR = 2.0 + 3.0 * np.sin(2 * np.pi * (_SP_STEPS - 50) / 96.0)
+_SP_CHEAP = np.argsort(_SP_SPREAD, kind="stable")[:24]
+
+
+def _sp_solve(prices, dhw, loss, relaxed=True):
+    params = _SpTP()
+    params.mixing_valve_mode = "manual"
+    params.buffer_tank_volume = 750.0
+    params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
+    params.dhw_enabled, params.house_heat_loss_scale = dhw, loss
+    opt = _SpOpt(_SpTM(params), _SpCfg(clamp_planned_levels=True))
+    kept = _sp_opt_mod._relaxed_starts
+    if not relaxed:
+        _sp_opt_mod._relaxed_starts = lambda _opt, *a: a[-2]
+    try:
+        result = _sp_run(opt, prices)
+    finally:
+        _sp_opt_mod._relaxed_starts = kept
+    return np.asarray(result.power_schedule, float), float(result.objective_value)
+
+
+def _sp_run(opt, prices):
+    return opt.optimize(inputs=solve_inputs(
+        initial_state=_SpTS(
+            room_temperature=20.5, upper_floor_temperature=20.5,
+            lower_floor_temperature=20.5, slab_temperature=21.0,
+            outdoor_temperature=float(_SP_OUTDOOR[0]),
+            buffer_tank_temperature=30.0, dhw_temperature=50.0,
+        ),
+        prices=prices, outdoor_temps=_SP_OUTDOOR,
+        start_time=datetime(2026, 1, 10, tzinfo=UTC),
+    ))
+
+
+def _sp_above_min_kwh(plan):
+    """kWh booked above p_min in the 24 cheapest steps."""
+    return float(np.clip(plan[_SP_CHEAP] - 1.5, 0.0, None).sum() * 0.25)
+
+
+_sp_cases = {}
+for _sp_dhw, _sp_loss in ((False, 1.0), (True, 0.6)):
+    for _sp_tag, _sp_prices in (("spread", _SP_SPREAD), ("flat", _SP_FLAT)):
+        _sp_cases[(_sp_dhw, _sp_tag)] = (
+            _sp_solve(_sp_prices, _sp_dhw, _sp_loss),
+            _sp_solve(_sp_prices, _sp_dhw, _sp_loss, relaxed=False),
+        )
+(_sp_fix, _sp_fix_obj), (_sp_ctl, _sp_ctl_obj) = _sp_cases[(False, "spread")]
+R.check(
+    "a buffered rounded install with price spread books above the floor in the cheapest "
+    "steps, scored lower by its own objective than the solve without the relaxed start",
+    _sp_above_min_kwh(_sp_fix) > _sp_above_min_kwh(_sp_ctl) + 1.0
+    and _sp_fix_obj < _sp_ctl_obj - 0.5,
+    f"above-min kWh {_sp_above_min_kwh(_sp_fix):.2f} vs {_sp_above_min_kwh(_sp_ctl):.2f}, "
+    f"objective {_sp_fix_obj:.3f} vs {_sp_ctl_obj:.3f}",
+)
+(_sp_dfix, _sp_dfix_obj), (_sp_dctl, _sp_dctl_obj) = _sp_cases[(True, "spread")]
+R.check(
+    "with hot water on, the space solve around the hot-water plan carries the relaxed start too",
+    _sp_dfix_obj < _sp_dctl_obj - 0.1,
+    f"objective {_sp_dfix_obj:.3f} vs {_sp_dctl_obj:.3f}",
+)
+R.check(
+    "flat-price null control: on both fixtures the flat-price plan is the one shipped "
+    "without the relaxed start",
+    all(
+        np.array_equal(_sp_cases[(d, "flat")][0][0], _sp_cases[(d, "flat")][1][0])
+        for d in (False, True)
+    ),
+)
+
 R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")
 # The GCHV package has no silent on/off register. Night mode is one daily
 # window in holding registers 518/519, exposed as writable hour/minute
