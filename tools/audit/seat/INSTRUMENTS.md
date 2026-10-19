@@ -33,6 +33,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   every handoff — pull requests are App-authored (decision 0011); `push.sh`
   is the tvofi-identity predecessor and must not author PRs. Refusal: a body
   failing the contract check never reaches the remote.
+- `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
+  heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
+  `##`, whitespace, `Head`), never the first substring `## Head`.
+  `app_push.sh --recarry`, `open_pr.sh`, `update_pr.sh` and `handoff_push.sh`
+  write every head note through it. When: any new writer of a `## Head`
+  note. Refusal: a body with no `## Head` heading exits 1, file untouched.
 - `approve_held_runs.sh` — approves the workflow runs GitHub holds
   `action_required` on a branch. When: after the App pushes, the `pull_request`
   workflows it created are held because the pusher is an App; a green gate
