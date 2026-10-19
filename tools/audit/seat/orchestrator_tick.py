@@ -2902,22 +2902,30 @@ def self_test() -> int:
         def sweep(rc, lines):
             return lambda argv: calls.append(argv) or (rc, lines)
         summ = "CARRY-SWEEP: 20 pull request(s), 2 other unowned finding(s)"
+        raised: list = []  # a raise in the section is a failed check, never an abort
+
+        def guarded(fn):
+            try:
+                fn()
+            except Exception as e:
+                raised.append(f"{type(e).__name__}: {e}")
         t = tick(roster_ref="origin/r10", carry=sweep(1, [
             "ISSUE-UNOWNED #2409 'an issue no group lists'",
             "ROSTER-DRIFT R10-X: a carry on origin/main is missing on origin/r10: 'c'",
             summ]))
-        t.carry_sweep()
+        guarded(t.carry_sweep)
         fl = [x["text"] for x in t.findings if x["section"] == "CARRY"]
         t0 = tick(carry=sweep(0, ["CARRY-SWEEP: 20 pull request(s), 0 other unowned finding(s)"]))
-        t0.carry_sweep()
+        guarded(t0.carry_sweep)
         t2 = tick(carry=sweep(2, ["carry_audit: REFUSED no roster at origin/main"]))
-        t2.carry_sweep()
+        guarded(t2.carry_sweep)
         n_before = len(calls)
         t3 = tick(carry=sweep(0, ["CARRY-SWEEP: 0 pull request(s), 0 other unowned finding(s)"]))
-        t3.run()
+        guarded(t3.run)
         default_pass_swept = len(calls) != n_before
-        t3.run(["CARRY"])
+        guarded(lambda: t3.run(["CARRY"]))
         a, f = check("CARRY sweep", [
+            ("no call into the section raises", not raised),
             ("exit 1 prints one dispatch line, then each unowned line, flagged",
              len(fl) == 3 and fl[0].startswith("carry sweep found unowned findings")
              and "ISSUE-UNOWNED #2409" in fl[1] and "ROSTER-DRIFT R10-X" in fl[2]),
@@ -2927,7 +2935,7 @@ def self_test() -> int:
             ("null control: exit 0 prints the summary and flags nothing",
              not any(x["section"] == "CARRY" for x in t0.findings)
              and any(l["text"].startswith("carry sweep: CARRY-SWEEP:")
-                     for l in t0.sections["CARRY"])),
+                     for l in t0.sections.get("CARRY", []))),
             ("one roster ref is passed once, not twice",
              calls[1:2] == [["--roster-ref", "origin/main", "sweep", "--last",
                             str(CARRY_LAST), "--issues"]]),
