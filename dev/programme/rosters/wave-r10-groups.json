@@ -3845,7 +3845,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-dead-rate-limit",
     "commit": null,
     "last_step": null,
