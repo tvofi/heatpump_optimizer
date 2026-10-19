@@ -26641,7 +26641,7 @@ steps:
       HEAD: ${{ github.event.pull_request.head.sha }}
     run: |
       set -euo pipefail
-      python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
       for g in coverage_ratchet delivery_status; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
