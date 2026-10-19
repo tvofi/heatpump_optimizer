@@ -1,0 +1,2 @@
+S30 control(c4a6597eb) PU=1 rc=0 | selftest_wiring self-test: 13 checks, 0 failed
+S04 control(c4a6597eb) PU=1 rc=0 | SELF-TEST PASS

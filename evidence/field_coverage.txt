@@ -1,3 +1,4 @@
+== field coverage head
 RUN tests/ci_budgets.json (want RUN)
 RUN tests/ci_ratchet.py (want RUN)
 RUN tools/audit/archscore/score.py (want RUN)
@@ -9,17 +10,5 @@ RUN tools/policy/fixtures/required-contexts.json (want RUN)
 RUN dev/governance/config/policy_budgets.json (want RUN)
 SKIPPED README.md (want SKIPPED)
 RESULT misread=0
-
-SKIPPED tests/ci_budgets.json (want RUN)
-SKIPPED tests/ci_ratchet.py (want RUN)
-SKIPPED tools/audit/archscore/score.py (want RUN)
-SKIPPED custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js (want RUN)
-RUN tests/structure_budgets.json (want RUN)
-SKIPPED tests/seam_map.json (want RUN)
-SKIPPED tools/policy/policy_lint.mjs (want RUN)
-SKIPPED tools/policy/fixtures/required-contexts.json (want RUN)
-SKIPPED dev/governance/config/policy_budgets.json (want RUN)
-SKIPPED README.md (want SKIPPED)
-RESULT misread=8
-
+== at fb9b3fc1f
 RESULT misread=8
