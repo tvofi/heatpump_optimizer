@@ -1,10 +1,16 @@
 """Constants for Heat Pump Cost Optimizer."""
 from __future__ import annotations
 
+import re
 from datetime import timedelta
 from typing import Final
 
 DOMAIN: Final = "heatpump_optimizer"
+#: Entity ids that name a person or a household calendar, anywhere in a
+#: string: the away presence and holiday calendar options hold them, and an
+#: input problem's message repeats the id it is about. Diagnostics redacts
+#: them (R9-UX-7, #1795), so the debug bundle's replay half carries none (#2271).
+PRIVATE_ENTITY_ID: Final = re.compile(r"\b(?:person|calendar)\.[a-z0-9_]+")
 # The platforms that set entities up, mirrored from ``PLATFORM_LIST`` in
 # __init__.py. Diagnostics is not one: it is discovered from diagnostics.py.
 PLATFORMS: Final = [
