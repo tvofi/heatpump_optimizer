@@ -120,8 +120,78 @@ def governance_jobs():
     return {"jobs": sorted(jobs), "gov": sorted(gc.GOV), "pin": sorted(pin)}
 
 
+def budget_raise():
+    """Whether a diff is a budget raise, read by budget_raise_gate.py's
+    `raises_between` (what the budget-raise-gate check refuses) and by
+    merge_train.py's `Train.raise_hold` (what the train holds at approve and
+    queue_pre_flight.py PARKs; it calls the same method). #2401: the train
+    keyed on the `*_budgets.json` path and stopped a head the gate passed. The
+    corpus is every tracked budget file at HEAD under eight edits; both readers
+    see the same two trees, the train's through its own `run`."""
+    sys.path[:0] = [str(ROOT / "tools/policy"), str(ROOT / "tools/audit/seat")]
+    import budget_raise_gate as g
+    import merge_train as mt
+    base, head = "b" * 40, "c" * 40
+    files = [f for f in git("ls-files", f"*{g.SUFFIX}").split("\n") if f]
+    if not files:
+        raise SystemExit("no tracked budget file")
+
+    def bump(text):  # the first numeric leaf, one up
+        d = json.loads(text)
+        for k, v in d.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                d[k] = v + 1
+                return json.dumps(d, indent=1) + "\n"
+        return json.dumps(dict(d, zz_agreement_probe=1), indent=1) + "\n"
+
+    def sibling(text):  # #2401's shape: a new row beside the first numeric one, under its pattern
+        d = json.loads(text)
+        k = next((k for k, v in d.items() if isinstance(v, (int, float)) and not isinstance(v, bool)), "zz")
+        return json.dumps(dict(d, **{f"{k}_agreement_probe": 0}), indent=1) + "\n"
+
+    out = {}
+    for f in files:
+        text = Path(f).read_text()
+        row = json.dumps(dict(json.loads(text), zz_agreement_new_row=0), indent=1) + "\n"
+        for case, ends in (("same", (text, text)), ("new-row", (text, row)), ("sibling-row", (text, sibling(text))),
+                           ("bump", (text, bump(text))),
+                           ("unbump", (bump(text), text)), ("deleted", (text, None)), ("added", (None, text)),
+                           ("unparsable", (text, text[:-3]))):
+            world = {f: ends}
+
+            def ls(sha, world=world):
+                return [p for p, e in world.items() if e[0 if sha == base else 1] is not None] + ["README.md"]
+
+            def show(sha, p, world=world):
+                return world.get(p, (None, None))[0 if sha == base else 1]
+
+            gate = bool(g.raises_between(base, head, ls, show)[1])
+
+            def run(argv, cwd=None, stdin=None, world=world):
+                got = mt.budget_fixture(world, argv, base)
+                if got is not None:
+                    return got
+                if argv[:2] == ["git", "ls-tree"]:
+                    return 0, "README.md\n"
+                if argv[:3] == ["git", "merge-base", "origin/main"]:
+                    return 0, base + "\n"
+                if argv[:2] == ["gh", "api"] and "/reviews" in " ".join(argv):
+                    return 0, "[[]]"
+                return 1, f"agreement_py: no answer for {argv[:3]}"
+            import tempfile
+            with tempfile.TemporaryDirectory() as d:
+                t = mt.Train("o/r", Path(d), None, "", (), 1, run=run)
+                try:
+                    train = bool(t.raise_hold(7, head, [f, "README.md"])[0])
+                except mt.Stop as e:
+                    train = f"STOP {e.step}: {e.why}"
+            out[f"{f}:{case}"] = {"gate": gate, "train": train}
+    return out
+
+
 def main(argv):
-    data = {"merge": merge(), "structure": structure_rows(), "governance_jobs": governance_jobs()}
+    data = {"merge": merge(), "structure": structure_rows(), "governance_jobs": governance_jobs(),
+            "budget_raise": budget_raise()}
     if argv[:1] == ["--out"] and len(argv) == 2:
         Path(argv[1]).write_text(json.dumps(data))
         return 0
