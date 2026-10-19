@@ -156,7 +156,7 @@ TOTAL: 0 error(s) across 47 file(s)
   ERROR   [W1-G8] metric: 'attrs 176 <= 176' cites a literal value for coordinator_attrs; #411 rule 4: a fixer must re-measure at their own merge base, a literal is always an error
   ERROR   [W1-G13] path: tools/audit/round2/D4/card_geometry.mjs: not in the tree, and not present at its cited tag ref(s) [291ae76, 2385df6]
   WARNING [W1-G14] path: card.js: not in the tree and no tag cited; could be shorthand for custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js, dev/audit/rounds/round10/D11/s2/scorecard_hand.py, dev/audit/rounds/round10/D5/s2/card_banner.py, dev/audit/rounds/round10/D7/s3/card_dead_fn.mjs, dev/audit/rounds/round10/D7/s3/card_dead_fn.sh -- verify by hand
-  ERROR   [W1-G14] path:line: tests/entities.py:6042-6062: 'does not run ahead' not found near tests/entities.py:6042-6062; found at line 20505 instead
+  ERROR   [W1-G14] path:line: tests/entities.py:6042-6062: 'does not run ahead' not found near tests/entities.py:6042-6062; found at line 20547 instead
   ERROR   [W1-G14] version: VERSION 6.3.9 cited; live VERSION is 7.0.0
   WARNING [W1-G15] path:line: env_drift.py:934-948: no anchor text extracted near the citation; line range only
   ERROR   [W1-G9] path: model_sanity.py: not in the tree, and no tag SHA is cited alongside it
