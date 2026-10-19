@@ -1,0 +1,15 @@
+== M0
+merge_pr self-test: 12 checks, 0 failed
+== M1
+  FAIL owner mode under an expired mandate refuses with the gate's why (rc=0: )
+  FAIL owner mode under a mandate that does not exist refuses (rc=0: )
+merge_pr self-test: 12 checks, 2 failed
+== M2
+  FAIL owner mode with no --mandate refuses, never a default (rc=1: Traceback (most recent call last):
+  FAIL owner mode with a non-id --mandate refuses (rc=1: Traceback (most recent call last):
+merge_pr self-test: 12 checks, 2 failed
+== Bp
+merge_pr self-test: 12 checks, 0 failed
+== B1' (redone: mandate id dropped from the body and its arg; my first spelling recycled printf's format, so the id still printed -- void)
+  FAIL the owner body declares an agent and cites exactly the mandate given
+merge_pr self-test: 12 checks, 1 failed

@@ -1,0 +1,15 @@
+== M0 baseline
+   merge_train self-test: 189 checks, 0 failed
+   queue_pre_flight self-test: 36 checks, 0 failed
+       ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+       ok   a pull request that is not open is a FAIL
+       ok   an unreadable pull request is a FAIL
+   replay self-test: 0 failed
+== S1
+   replay self-test: 2 failed
+       FAIL git fetch failing prints a Stop and exits non-zero, never a hold
+       FAIL git diff failing prints a Stop and exits non-zero, never a hold
+== S2
+   replay self-test: 2 failed
+       FAIL a head that is not 40-hex is a Stop even when gh exits 0
+       FAIL a base that is not 40-hex is a Stop even when git exits 0

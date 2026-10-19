@@ -1,37 +1,68 @@
-Fix review: blocked 1e6e79caa3b2a9f438e055cda1df52dd77eac930 harness: replay-fails-open: r10_train_raise_hold_replay.py, the body's live control, prints "0 raise(s), HOLDS" for #2368 (a real raise) when its gh/git reads fail, contradicting its docstring's "a read that fails prints the train's own Stop"
+Fix review: merge e9c0092e27e91e4b1d23178fc75774e5798dcc22
 
-bus-nonce: 6faf46b93e2e05c4ac5f19f61ff37c1f
+bus-nonce: 6d05bc1b8b5328c49d1f245f4520d40c
 
-Round 1: no earlier `Fix review:` comment or review on #2421. Measured head 1e6e79caa3b2a9f438e055cda1df52dd77eac930 (ev/HEAD). It was still the branch head when this verdict was written (ev/heads_at_verdict.txt). Roles: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, since the merge base is 06c6f3cf2, so the contract is current.
+Round 2. Round 1 was `Fix review: blocked 1e6e79caa harness: replay-fails-open` (comment 6258763498). I measured head e9c0092e27e91e4b1d23178fc75774e5798dcc22 (ev/HEAD). It was still the branch head at verdict time, with main at dd27e7c1b (ev/heads_at_verdict.txt). `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
 
-## The blocking finding
+## Round 1's finding: closed
+- Live control, run with this container's own failing gh (HTTP 403, a real failure, not a shim), in ev/replay_live_gh_failing.txt:
+  - The new file prints `gate : STOP read: gh pr view headRefOid failed (rc=1): HTTP 403 ...` for #2401, #2373 and #2368, with no `path :` line, and exits rc=1.
+  - 86cecbf07's copy, given the same gh, prints `#2368 head HTTP 403: Gi base fatal: Not a` / `0 raise(s), HOLDS`, rc=0. That reproduces round 1's defect, and the fix removes it.
+- `--self-test`: 7 checks, 0 failed, rc 0 (ev/replay_selftest.txt).
+- The body's mutants (ev/mutants_S.txt):
+  - M0: merge_train 189/0, pre-flight 36/0, replay 0 failed.
+  - S1 fails exactly 2: the fetch arm and the diff arm.
+  - S2 fails exactly 2: the non-hex head arm and the non-hex base arm.
+  - This matches the body, including its account of why S1 leaves the gh and merge-base arms standing.
+- My own mutants on the replay (ev/mutants_reviewer.txt):
+  - S3, where the ReadFailed handler returns 0: fails 6.
+  - S4, where `git fetch` goes back to an unchecked `t.run`: fails 1.
+  - S6, where merge-base uses `read` and not `sha`: fails 1.
+  - S5, where `main` drops `rc |=` so a failed read exits 0: **survives the self-test** (0 failed, live exit 0). The self-test drives `replay()`, never `main()`, so the docstring's "the exit status is 1" is not pinned. I confirmed it live (rc=1 above). Not blocking: the printed reading, which was the defect, is pinned, and no caller keys on the exit code. A main-level arm is a one-line follow-up.
+- Class rule (body step 8): `git grep -nE 't\.out\(|\.out\("'` on the replay returns 0 lines at the head and 2 at 86cecbf07. Every remaining `t.run` call goes through `read()`, or is the BASE shim or the reset (ev/head_checks.txt).
+- `is_sha` is the train's own (`len==40 and set<=HEX`), so there is no second grammar.
 
-`dev/audit/harnesses/r10_train_raise_hold_replay.py` is committed by this PR. The body cites it as the RCA's live re-derivation and as the null control ("The replay's control is a real raise that still stops at the head ... #2368 prints `2 raise(s), STOPS`"). Its `main()` checks the return code of none of these reads: `t.head(pr)` (gh), `git fetch`, `git merge-base` and `git diff`. `t.out` returns the error text as a value. When gh fails, the error text becomes `h`, `files` becomes error words, and `raise_hold` takes its cheap no-budget-file exit. Here, with gh unauthenticated (HTTP 403), the committed command prints for all three PRs (ev/replay_gh403_failopen.txt):
+## Re-verified at this head
+- Self-tests (ev/selftests.txt):
+  - merge_train 189/0
+  - queue_pre_flight 36/0
+  - budget_raise_gate 235/0
+  - merge_pr.sh 12/0
+  - proof_watch 34/0
+  - agreement.mjs --self-test 27 of 27
+  - the agreement pair `budget-raise: 2 readers, 56 items, 0 divergent`, AGREEMENT ok
+  - STRUCTURE RATCHET PASSED
+  - tmp_paths 0 refused
+  - ALL 109 HARNESS HEADER CHECKS PASSED
+  - DELIVERY STATUS OK, 0 overdue.
 
-    #2368 head HTTP 403: Gi base fatal: Not a
-      path : none (no budget path)
-      gate : 0 raise(s), HOLDS: no budget file changed
+  These match the body.
+- The train, pre-flight and gate code is unchanged since 86cecbf07, and merge_pr.sh and proof_watch since dcd012deb: both diffs are empty (ev/head_checks.txt). Round 1's P1, J1, W1, H1, U1, R1, T1, B1, Q1 and agreement-P1 measurements therefore carry.
+- merge_pr.sh mutants that round 1 did not re-run (ev/merge_pr_mutants.txt):
+  - M1 kills "expired mandate" and "mandate that does not exist".
+  - M2 kills "no --mandate" and "non-id --mandate".
+  - B1' kills "the owner body ... cites exactly the mandate given". My first spelling of B1' was void: printf recycled its format, so the id still printed. I re-cut it, and the re-cut is the result above.
+  - D2 was not run.
+- Merges:
+  - `git merge-tree --write-tree origin/main(dd27e7c1b) e9c0092e` exits 0 (ev/merge-tree.txt).
+  - No resolution delta (ev/resolution_delta.txt). e9c0092e's tree f595c0b0 equals the automatic merge of 6046ea608 and dd27e7c1b. 6046ea608's tree equals the automatic merge of 1e6e79ca and 35c0b69f. 3ab409ce's tree equals the automatic merge of 1e6e79ca and fa424fd9.
+- VERSION, the manifest, the RELEASE_NOTES heading and tests/golden are untouched in the three-dot diff (ev/version.txt is empty).
+- Forward-carry: unchanged since round 1, which verified it (INSTRUMENTS.md, and bugclasses.json I4).
 
-That is the reverse of the truth for #2368 (ev/offline_replay.txt: 2 raises). It is also the fail-open shape this PR closes in `raise_hold` with its U1 and R1 arms: an unread budget read as a routine one. The docstring states the opposite property. A null control whose failure mode prints the passing answer controls nothing. Fix: refuse, or print a Stop, on any non-zero rc or non-40-hex head/base before reading. That is a few lines.
-
-## Verified at this head (all PASS)
-
-- Self-tests (ev/selftests.txt): merge_train 189/0, queue_pre_flight 36/0, budget_raise_gate 235/0, merge_pr.sh 12/0, proof_watch 34/0, agreement.mjs --self-test 27 of 27. Baselines at 176851e95 (ev/baseline_176851e9.txt): merge_train 180, pre-flight 32, gate 235. These match the body.
-- Mutation proof, re-run with the PR's harness (ev/mutants.txt). M0 is clean. P1, J1, W1, H1, U1, R1, T1, B1 and Q1 are each killed by exactly the arms the body names, with the same counts per self-test (P1 2+2, J1 2+2, W1 3+0, H1 4+0, U1 1, R1 1, T1 1, B1 0+1, Q1 0+3). The tree was clean after the run.
-- The agreement pair with P1 planted (ev/agreement_P1.txt): `pair budget-raise: 2 readers, 56 items, 20 divergent`, `AGREEMENT REFUSED`, rc=1. Restored: 0 divergent, `AGREEMENT ok`, merge-subject-pr 0 divergent (ev/agreement.txt). This matches the body.
-- merge_pr.sh, my own D1 (draft guard → `true`): killed, "a draft refuses without --ready" FAIL, 12 checks with 1 failed (ev/merge_pr_D1.txt). I did not re-run M1, M2, D2 or B1'.
-- R5, re-targeted by this PR in r10_tick_train_mutants.sh (the #2390 harness: `return raises, ok,` → `True`): still killed, with many FAIL arms (ev/tick_R5.txt).
-- `gate()` behaviour: the diff is a pure extraction into `raises_between(mb, head, ls, show)` with the same loop. The gate self-test stays at 235/235.
-- The replay's direction half, re-derived by my own disclosed instrument (ev/offline_replay.py: PR heads fetched over git as refs/pull/N/head, then `raises_between`). #2401 (base 176851e95) and #2373 give path RAISE with 0 raises. #2368 gives path RAISE with 2 raises (`calls_floor: None -> 6`, `floor` override added). I could not re-derive the review/mandate half ("STOPS ... no decisive review"): gh is unauthenticated in this container.
-- The class rule (`git grep -n '_budgets.json' -- ...`) returns exactly the sites the body dispositions, plus one docstring at agreement_py.py:128. No undispositioned seam.
-- Forward-carry: INSTRUMENTS.md documents `--mandate` and `--ready` (lines 166–168). bugclasses.json I4 `barrier` names the budget-raise pair and the PR-copy train reader, and lists `R10-RCA-TRAIN-RAISE-HOLD` under `rca`. Neither destination is a group merged this round; R10-TICK-DRIVERS/#2390 is not named as a destination. The workflow wiring is dispositioned to the orchestrator because `.github/workflows/` is code-owned.
-- `VERSION`, the manifest, the RELEASE_NOTES heading and tests/golden are untouched in the three-dot diff (ev/version.txt). STRUCTURE RATCHET PASSED. `DELIVERY STATUS OK — 0 overdue`.
-- Merge: `git merge-tree --write-tree origin/main <head>` exits 0 against 06c6f3cf2 (ev/merge-tree.txt). It also exits 0 against fa424fd91, to which main moved during the review (#2419, #2426, #2408) (ev/merge-tree-fa424fd9.txt). The orchestrator's merge 3cd92836e has tree 6ac6784a, identical to the automatic merge-tree of 58c671693 and 06c6f3cf2: no resolution delta (the LEDGER-MERGE driver resolved tests/closures.json).
-- CI on this head (check-runs API, 45 runs): no run concluded red. When read, `closures` and `Analyze (python)` were still in progress, and the rest were success, skipped or neutral. `pr-contract` was green twice. The body's `## Red checks` answers the previous head's three reds. With nothing red on this head, step 11 owes nothing yet.
+## CI on this head (check-runs API; ev/ci_reds.txt)
+- 7 red runs, and I read each log. All are infrastructure: the GitHub Actions installation API rate limit.
+  - pr-contract ×2: the body fetch got HTTP 403, so /tmp/pr-body.md was missing.
+  - arch-score ×2: HTTP 403 reading pulls/2421.
+  - validate-hacs: GitHubRatelimitException.
+  - env-matrix: its one failed arm is "GitHub API is unreachable ... UNCHECKED".
+  - nightly-status: NIGHTLY UNREADABLE, HTTP 403.
+- None is caused by this diff. `nightly-status` is not this PR's in any case (step 11).
+- Not concluded at read: coverage, Analyze (python).
+- Green: fast, typing, mutation, closure-scope, budget-raise-gate ×2, instrument-self-tests, delivery-status, wave-script, policy-docs, briefs, browser, hassfest.
+- Step 11 is not ripe. Workflows have not all concluded, and no pr-contract run has read the body: both failed before the read. So I cannot post `root-cause-unanswered`. After the 04:00Z reset, the orchestrator still owes a rerun. Any red still standing after that rerun must be named in `## Red checks`. The body's current `## Red checks` speaks only to 1e6e79ca, not to this head.
 
 ## Not verified
-
-- The replay's review/mandate readings for #2401, #2373 and #2368 (needs gh).
-- merge_pr.sh mutants M1, M2, D2 and B1' (only D1 was re-run).
-- The RCA's demo.out sha1 (out of tree by the body's own account).
-- `closures` and `Analyze (python)` conclusions (in progress at read).
+- The replay's healthy-gh readings (review and mandate half) for #2401, #2373 and #2368. gh is unusable in this container.
+- merge_pr.sh D2.
+- coverage and Analyze (python) conclusions.
+- The RCA demo.out sha1, which is out of tree.

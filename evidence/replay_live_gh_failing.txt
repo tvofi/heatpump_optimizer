@@ -1,0 +1,13 @@
+## new file, real gh (token fails here)
+#2401
+  gate : STOP read: gh pr view headRefOid failed (rc=1): HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...).
+#2373
+  gate : STOP read: gh pr view headRefOid failed (rc=1): HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...).
+#2368
+  gate : STOP read: gh pr view headRefOid failed (rc=1): HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...).
+rc=1
+## old file at 86cecbf07, same gh
+#2368 head HTTP 403: Gi base fatal: Not a
+  path : none (no budget path)
+  gate : 0 raise(s), HOLDS: no budget file changed
+rc=0
