@@ -1,0 +1,18 @@
+== M1_row_dropped
+  name_kept_members = 38 live member(s) kept only by an untyped x.name load of a name another class also defines
+FAIL name_kept_members: in the budget table but never measured -- re-record
+rc=1
+== M2_row_zero
+  name_kept_members = 38 live member(s) kept only by an untyped x.name load of a name another class also defines
+RESULT name_kept_members=0 count
+  gain name_kept_members 0 (budget 38, -38; not yet recorded -- see below)
+########## 1 metric(s) IMPROVED and not yet recorded ##########
+  name_kept_members                          38            0        -38  BETTER (lower is better)
+1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED
+rc=2
+== P1_ondisk_plant_as_dict
+  name_kept_members = 39 live member(s) kept only by an untyped x.name load of a name another class also defines
+RESULT name_kept_members=39 count
+FAIL dead_top_level_symbols 3 > 1 (+2)
+FAIL name_kept_members 39 > 38 (+1)
+rc=1
