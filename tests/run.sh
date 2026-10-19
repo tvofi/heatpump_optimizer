@@ -509,6 +509,7 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
+  run "$PYTHON" tests/arch_score_head.py
   # The typing ratchet (#303). The `# type: ignore` count is a source scan and
   # runs here on every pull request. The error count and its per-code split
   # need the pinned mypy/homeassistant-stubs pair, which the `typing` CI job
@@ -598,7 +599,6 @@ lane_golden() {
   # CI's `fast` job and this lane ends sooner, so the pair moves `fast`'s end
   # earlier at the same total work. tests/entities.py pins the placement.
   run "$PYTHON" tests/arch_score.py
-  run "$PYTHON" tests/arch_score_head.py
 }
 
 # End-to-end optimizer behaviour, then the plan payloads, the card that
