@@ -1,0 +1,19 @@
+WARNING: stamping a main whose gate is not green: could not read the Tests gate for HEAD via gh: failed to determine base repo: none of the git remotes configured for this repository point to a known GitHub host. To tell gh about a new GitHub host, please use `gh auth login`
+WARNING: stamping over a window with undispositioned merges (--allow-rowless): DELIVERY STATUS OK — 176 rowed, 2 pending, 0 overdue (overdue at 12 commits)
+  pending  #2456 23ac9bf 0 commit(s) since — Merge pull request #2456 from tvofi/fix/r10-stamp-claims
+  pending  #2457 f118e26 1 commit(s) since — record: delivery rows for #2444, #2455 (autofix)
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+--require-rows reads the same ledger under `record`'s bar rather than this lane's: a red blocks the STAMP. Every merge listed above without a row is one the tag is about to move the window's start past, and no later window can see it again.
+stamp plan:
+  - VERSION 7.0.0 -> 7.0.1
+  - manifest version -> 7.0.1
+  - CARD_VERSION 7.0.0 -> 7.0.1
+  - tests/golden/claimed_drift.txt: claims-for 7.0.0 -> 7.0.1, 41 claim(s) deleted
+  - tests/golden/claimed_drift.txt: 12 suspended may-drift entries restored verbatim (flat_prices, shoulder_two_zone, capacity_tariff_15min, cycling_cost, everything_on, narrow_band, shoulder, winter_two_zone_dhw, direct_flow_carnot, fuse_guard, precip_snow, tariff_plus_two_zone); 7 stale suspension note(s) dropped (valve_storage_smart_write, wood_two_tank, wood_two_tank_smart_write, wood_coil, valve_upper_direct_slab, winter_two_zone_no_dhw, valve_storage)
+  - tests/golden/card_claimed_drift.txt: claims-for 7.0.0 -> 7.0.1, 39 claim(s) deleted
+  - dev/audit/rounds/round4/D6: re-recorded from the stamped tree by claims.py
+  - commit 'v7.0.1: stamp simulated' and tag v7.0.1 (not pushed)
+claims self-check: claims hygiene: HEAD^1 ok
+RESULT stamped=v7.0.1 tag_pushed=false
+exit=0
