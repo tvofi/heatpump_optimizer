@@ -216,7 +216,6 @@ class Cusum:
         # stays positive definite.
         cov = cov * float(np.exp(gap_h / self.reference_hours))
         shrink = np.sqrt(np.minimum(1.0, REFERENCE_PRIOR_COV / np.diag(cov)))
-        cov = cov * np.outer(shrink, shrink)
         cov_u = cov @ u
         gain = cov_u / (1.0 + float(u @ cov_u))
         theta = theta + gain * departure
