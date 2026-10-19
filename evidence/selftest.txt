@@ -1,3 +1,2 @@
 carry_audit self-test: 144 checks, 0 failed
 queue_pre_flight self-test: 37 checks, 0 failed
-merge_train self-test: 180 checks, 0 failed

@@ -26,9 +26,7 @@ After this merges, an open PR's `pr-contract` re-runs on its next push or body e
 
 ## Head
 
-`b419463b18a2a7da70c77b23e912769e4af6afe8` merges the authored code head `bd68cf756ab63a475d37d30fcdf60b35d85a6214` and then merges origin/main `06c6f3cf2` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
-
-`bd68cf756ab63a475d37d30fcdf60b35d85a6214` merges origin/main `b87e8f19b0a71249799357cd34116f0e4b5b63d3` (the merge of #2420, taken 2026-10-19 01:09 UTC) into the previous PR head `03f1681a3e684854b5b934020ec5d44612b2ffd2`. The merge had no conflict. The authored code head is unchanged: `6f20f78a3e1d8ae387cd227fa05131f0856ed6e3`, the authored commits `8c666c644` and `6f20f78a3`, which `03f1681a3` merged with origin/main `07a09406a`. The main merge touches `tools/policy/agreement.mjs`, `tools/policy/agreement_py.py`, `tools/policy/policy_lint.mjs` and delivery rows, and none of this PR's files.
+`b419463b18a2a7da70c77b23e912769e4af6afe8` is the PR head. It merges origin/main `06c6f3cf2589cd37fa9fe56cc5ebeef709dc8d3b` and the recarry `bd68cf756ab63a475d37d30fcdf60b35d85a6214` into `03f1681a3e684854b5b934020ec5d44612b2ffd2`, with no conflict beyond the ledger driver's `tests/closures.json` row. The authored code head is unchanged: `6f20f78a3e1d8ae387cd227fa05131f0856ed6e3`, the authored commits `8c666c644` and `6f20f78a3`. Since `bd68cf756` the merges add main's own files only (#2390's tick drivers, #2423 and #2424's merge-subject guard, delivery rows), none of this PR's.
 
 ## Mutation proof
 
@@ -54,7 +52,7 @@ One mutant is equivalent: S-span-lo (`a < at` for `a <= at`). A span opens on a 
 
 ## Figures
 
-All re-taken at `bd68cf756ab63a475d37d30fcdf60b35d85a6214`, origin/main `b87e8f19b0a71249799357cd34116f0e4b5b63d3`, 2026-10-19 01:09 UTC.
+All re-taken at `b419463b18a2a7da70c77b23e912769e4af6afe8`, origin/main `06c6f3cf2589cd37fa9fe56cc5ebeef709dc8d3b`, 2026-10-19 02:40 UTC.
 
 - `python3 dev/audit/harnesses/r10_carry_parser_mutants.py`: `RESULT sites=152 unmapped=0 mutants=190 survived=0`.
 - `python3 -I tools/audit/carry_audit.py --self-test`: `carry_audit self-test: 144 checks, 0 failed`.
@@ -67,17 +65,17 @@ All re-taken at `bd68cf756ab63a475d37d30fcdf60b35d85a6214`, origin/main `b87e8f1
 - `python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: `RESULT uncovered_files=0 count`.
 - `node tools/policy/field_coverage.mjs`: `FIELD COVERAGE ok` (`refused=0`, `dead=0`).
 - `node tools/policy/agreement.mjs --only discovery`: `RESULT divergent=0 unregistered=0 dead=0 refused=0`.
-- `python3 tools/pr/ci_predict.py --base origin/main --apply-inert`: `CI PREDICT: no closures or fast red predicted against b87e8f19b0a7`. The inert entry for `dev/audit/harnesses/r10_carry_parser_mutants.py` is already in the tree, so nothing is applied.
+- `python3 tools/pr/ci_predict.py --base origin/main --apply-inert`: `CI PREDICT: no closures or fast red predicted against 06c6f3cf2589`. The inert entry for `dev/audit/harnesses/r10_carry_parser_mutants.py` is already in the tree, so nothing is applied.
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 41 policy file(s)`.
 - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir D`: `MODE: SCOPED -- 3 script(s) run` (`tests/entities.py`, `tests/harness_headers.py`, `tests/layout.py`). Results: `ALL 2349 ENTITY CHECKS PASSED` (with `env -u BASH_ENV`), `ALL 109 HARNESS HEADER CHECKS PASSED`, `layout self-test: ok`. The `run_always` lines add `python3 tests/closure.py selftest`: `ALL 115 closure shrink pins PASSED`, and `python3 tests/env_drift.py --claims-only b87e8f19b0a71249799357cd34116f0e4b5b63d3`: `claims hygiene: b87e8f19b0a71249799357cd34116f0e4b5b63d3 ok`.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir D`: `MODE: SCOPED -- 3 script(s) run` (`tests/entities.py`, `tests/harness_headers.py`, `tests/layout.py`). Results: `ALL 2349 ENTITY CHECKS PASSED` (with `env -u BASH_ENV`), `ALL 109 HARNESS HEADER CHECKS PASSED`, `layout self-test: ok`. The `run_always` lines add `python3 tests/closure.py selftest`: `ALL 115 closure shrink pins PASSED`, and `python3 tests/env_drift.py --claims-only 06c6f3cf2589cd37fa9fe56cc5ebeef709dc8d3b`: `claims hygiene: 06c6f3cf2589cd37fa9fe56cc5ebeef709dc8d3b ok`.
 - `python3 -I tools/policy/agreement_py.py --out J` then `node tools/policy/agreement.mjs --py-json J`: `RESULT divergent=0 unregistered=0 dead=0 refused=0`. `node tools/policy/agreement.mjs --self-test`: `SELF-TEST 27 of 27 probes held`.
 - `python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK` with `0 overdue`.
 
 ## Red checks
 
-The PR head `03f1681a3e684854b5b934020ec5d44612b2ffd2` had three red checks in its latest CI. All three were inherited from `main` or came from this body, and the merge of origin/main in `bd68cf756ab63a475d37d30fcdf60b35d85a6214` clears the first two.
+At the current head `b419463b18a2a7da70c77b23e912769e4af6afe8` no check run is red (`coverage` and `Analyze (python)` were still running when read, 2026-10-19). The previous head `03f1681a3e684854b5b934020ec5d44612b2ffd2` had three red checks in its latest CI. All three were inherited from `main` or came from this body, and the merge of origin/main in `bd68cf756ab63a475d37d30fcdf60b35d85a6214` clears the first two.
 
 - `wave-script` (job 117830428629 at `03f1681a3`): the agreement lane printed `RESULT divergent=2` for the `merge-subject-pr` concept. The corpus held two merge subjects with a custom suffix, `Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)` and `Merge pull request #2379 (R10-SENSOR-PAYLOAD)`. `stamp.py` and `delivery_status.py` read the number from them, and the two `policy_lint.mjs` readers returned null. The cause is on `main`: two PRs were merged with a custom subject, and the readers did not agree on a suffixed subject. The red is not this PR's: this diff touches none of the four readers. Cleared by the main merge: #2423 gave the readers one merge-subject grammar (`tools/policy/agreement.mjs`, `tools/policy/agreement_py.py`, `tools/policy/policy_lint.mjs`), and #2424 narrowed the guard to main's first-parent merges. At this head, `python3 -I tools/policy/agreement_py.py --out J` then `node tools/policy/agreement.mjs --py-json J` prints `RESULT divergent=0 unregistered=0 dead=0 refused=0`, and `node tools/policy/agreement.mjs --self-test` prints `SELF-TEST 27 of 27 probes held`. The cheaper detector is the agreement lane itself; it caught the divergence on the PR's first run. Its standing cost is one job in `governance.yml`, which this PR does not change. The countermeasure against a custom subject is the merge-subject guard of #2423 and #2424.
 - `delivery-status` (job 117830428746 at `03f1681a3`): it listed `#2413`, `#2412` and `#2407` as `overdue`, the record PRs whose rows `main` had not yet absorbed. The check itself warns that the red may be this PR's own because the diff touches `.github/workflows/governance.yml`. It is not: this diff adds one step to the `instrument-self-tests` job, and `tests/delivery_status.py` names `governance.yml` only in comments (lines 6 and 496), reading nothing from it. Cleared by the main merge: #2420 landed the rows for #2407, #2412 and #2413, among others. At this head, `python3 -I -S tests/delivery_status.py --check` prints `DELIVERY STATUS OK -- 136 rowed, 2 pending, 0 overdue`. Null control: the same lane's log at `03f1681a3` printed the overdue list, so the command does read the window. The check is not a required context.
@@ -90,7 +88,7 @@ Two earlier reds, at `713182ca1`, stay answered here:
 
 ## Forward-carry
 
-- `tools/audit/seat/orchestrator_tick.py`: the weekly and closure carry sweep. It runs `carry_audit.py sweep --last N --issues` with both roster refs, prints a dispatch line when the sweep exits 1, and has a self-test arm with its null control. The fold text is out of tree, because handoff/r10-tick-drivers holds the file. Carry: R10-TICK-DRIVERS
+- `tools/audit/seat/orchestrator_tick.py`: the weekly and closure carry sweep. It runs `carry_audit.py sweep --last N --issues` with both roster refs, prints a dispatch line when the sweep exits 1, and has a self-test arm with its null control. Its precondition is this PR merged. R10-TICK-DRIVERS merged as #2390 without it, so the carry now sits in the roster entry of R10-OPENPR-SILENT (#2422), which owns `orchestrator_tick.py`. Carry: R10-OPENPR-SILENT
 - `dev/governance/rules/finding-propagation.md`: the marker also binds a finding the orchestrator records in its own ledger, written `FINDING: ... Carry: ...`, which the sweep's `--ledger` read keys on. The sentence does not fit under the file's cap. Carry: O10-policy-fixer-md
 
 ## Friction
@@ -98,6 +96,7 @@ Two earlier reds, at `713182ca1`, stay answered here:
 - finding-propagation.md: cost: the file was at its cap, so the marker sentence was paid for by four prose cuts in the same file. Carry: dismissed: paid in this diff
 - fix-review.md: unenforced: the reviewer's contract has no headroom left, so it does not name the marker; finding-propagation.md binds reviewers, as it binds every seat. Carry: O10-policy-fixer-md
 - finding-propagation.md: cost: the marker's reading rules (an id counts only inside its marker's segment, a code-span `Carry:` is an example, every marker naming an item adds its destinations) are written in `carry_audit.py`'s docstring, not in the rule, which is at its cap. Carry: O10-policy-fixer-md
+- carry_audit.py: unenforced: the destination check reads the roster's stage, which lags a merge (R10-TICK-DRIVERS read `not-started` after #2390 merged), so a carry to a merged group passes. It should also read the group's merged PR, from its delivery row or a `gh` read as the issue arm does. Carry: O10-policy-fixer-md
 
 ## Approval
 
