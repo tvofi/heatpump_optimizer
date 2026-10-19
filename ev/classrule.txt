@@ -1,0 +1,14 @@
+== fold5 rule at head (tick)
+HEAD:tools/audit/seat/orchestrator_tick.py:2132:        git.on(lambda argv: "--merges" in argv and "--first-parent" in argv
+HEAD:tools/audit/seat/orchestrator_tick.py:2135:        git.on(("--merges", "--format=%H %s"), out=two)
+== fold5 rule at 62d7e1e4
+62d7e1e43c5f:tools/audit/seat/orchestrator_tick.py:130:MERGE_PR = re.compile(r"Merge pull request #(\d+)")
+62d7e1e43c5f:tools/audit/seat/orchestrator_tick.py:1362:        code, o = self.git(["log", "--merges", "--format=%s", f"{sha}..origin/main"])
+62d7e1e43c5f:tools/audit/seat/orchestrator_tick.py:1389:        code, o = self.git(["log", "--merges", "--format=%H %s",
+62d7e1e43c5f:tools/audit/seat/orchestrator_tick.py:1422:        code, o = self.git(["log", "--merges", "--format=%s",
+62d7e1e43c5f:tools/audit/seat/orchestrator_tick.py:1967:        git.on(("--merges", "--since=24 hours ago"), out=merges24)
+62d7e1e43c5f:tools/audit/seat/orchestrator_tick.py:1968:        git.on(("--merges", "--format=%H %s"), out=merges)
+62d7e1e43c5f:tools/audit/seat/orchestrator_tick.py:1969:        git.on(("--merges",), out=rows)
+== rest of seat
+== DEFAULT_ROSTER_REF anywhere at head
+== bus orphans continue sites

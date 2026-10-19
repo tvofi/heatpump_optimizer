@@ -1,0 +1,7 @@
+== absent
+== CARRY ==
+-> UNREADABLE: carry sweep (tools/audit/carry_audit.py absent (it lands with #2404))
+rc=0
+== with #2404 carry_audit.py (untracked, removed after)
+== CARRY ==
+-> UNREADABLE: carry sweep (exit 1, carry_audit: REFUSED gh api repos/tvofi/heatpump_optimizer/pulls?state=closed&per_page=100: gh: Nume)
