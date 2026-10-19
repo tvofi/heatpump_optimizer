@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_range CMP_BOUND ac5977ac",
-  "killed_by": "tests/features.py",
-  "old": "        top = high if high < (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_max",
-  "reason": "7a pin drive, seat-measured at acba8517d: this site's own mutant (`CMP_BOUND` -> `top = high if high <= (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_max`) takes tests/features.py's 7a draw-range block from `ALL 51 DR BLOCK PASSED` (rc=0 failed=0) to rc=1 failed=1 -- FAIL `the tolerance is INCLUSIVE at the top: a metered max at exactly 15 % below the configured one keeps the config`. The kill rule is `mutation_table.killed`'s: red AND failing above a green baseline. `--pin-killed`'s own drive refuses here: asked for one anchor of this file it ran the baseline for 730 s and printed `MUTATION TABLE INCONCLUSIVE -- the baseline is already red in tests/features.py, so no mutant's verdict means anything` (`baseline_refusal`), because this host's features.py baseline is the red arm named above -- so the rule was applied per site by hand; the whole file was driven for both kill forms (FAIL-line arm 2 of 3911 against the baseline's 1, uncaught-exception arm 2 of 3911 against 1) -- commands in the pull request's `## Figures`."
-}
