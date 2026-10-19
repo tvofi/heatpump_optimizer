@@ -1,0 +1,49 @@
+## arm U: uniform gate attempts, constants swept (REV2, END-BAD rows per chain arm)
+  gate_sim as committed                    chain   END-BAD  0  false-green max    25 s  
+  gate_sim as committed                    nochain END-BAD  0  false-green max    25 s  
+  {'GATE': 15, 'GATE_READ': 13}            chain   END-BAD  0  false-green max    25 s  
+  {'GATE': 15, 'GATE_READ': 13}            nochain END-BAD  0  false-green max    25 s  
+  {'GATE': 30, 'GATE_READ': 5}             chain   END-BAD  0  false-green max    40 s  
+  {'GATE': 30, 'GATE_READ': 5}             nochain END-BAD  0  false-green max    40 s  
+  {'GATE': 30, 'GATE_READ': 28}            chain   END-BAD  0  false-green max    40 s  
+  {'GATE': 30, 'GATE_READ': 28}            nochain END-BAD  0  false-green max    40 s  
+  {'GATE': 60, 'GATE_READ': 5}             chain   END-BAD  0  false-green max    70 s  
+  {'GATE': 60, 'GATE_READ': 5}             nochain END-BAD  0  false-green max    70 s  
+  {'GATE': 60, 'GATE_READ': 58}            chain   END-BAD  0  false-green max    70 s  
+  {'GATE': 60, 'GATE_READ': 58}            nochain END-BAD  0  false-green max    70 s  
+  {'GATE': 120, 'GATE_READ': 5}            chain   END-BAD  0  false-green max   209 s  
+  {'GATE': 120, 'GATE_READ': 5}            nochain END-BAD  0  false-green max   209 s  
+  {'GATE': 120, 'GATE_READ': 118}          chain   END-BAD  0  false-green max   130 s  
+  {'GATE': 120, 'GATE_READ': 118}          nochain END-BAD  0  false-green max   130 s  
+  {'REFRESH': 1}                           chain   END-BAD  0  false-green max    16 s  
+  {'REFRESH': 1}                           nochain END-BAD  0  false-green max    16 s  
+  {'REFRESH': 60}                          chain   END-BAD  0  false-green max    75 s  
+  {'REFRESH': 60}                          nochain END-BAD  0  false-green max    75 s  
+  {'REFRESH': 300}                         chain   END-BAD  0  false-green max   315 s  
+  {'REFRESH': 300}                         nochain END-BAD  0  false-green max   315 s  
+  {'SWEEP': 1}                             chain   END-BAD  0  false-green max    25 s  
+  {'SWEEP': 1}                             nochain END-BAD  0  false-green max    25 s  
+  {'SWEEP': 5}                             chain   END-BAD  0  false-green max    25 s  
+  {'SWEEP': 5}                             nochain END-BAD  0  false-green max    25 s  
+  {'SWEEP': 60}                            chain   END-BAD  0  false-green max    25 s  
+  {'SWEEP': 60}                            nochain END-BAD  0  false-green max    25 s  
+  {'SWEEP': 300}                           chain   END-BAD  0  false-green max    25 s  
+  {'SWEEP': 300}                           nochain END-BAD  0  false-green max    25 s  
+  {'PRELUDE': 1}                           chain   END-BAD  0  false-green max    25 s  
+  {'PRELUDE': 1}                           nochain END-BAD  0  false-green max    25 s  
+  {'PRELUDE': 30}                          chain   END-BAD  0  false-green max    25 s  
+  {'PRELUDE': 30}                          nochain END-BAD  0  false-green max    25 s  
+
+## arm H: a hook's re-run attempt is slower than a first attempt (slow tail after its read)
+  re-run attempt + 10 s chain   END-BAD  0  false-green max    35 s  
+  re-run attempt + 10 s nochain END-BAD  0  false-green max    35 s  
+  re-run attempt + 30 s chain   END-BAD  0  false-green max    55 s  
+  re-run attempt + 30 s nochain END-BAD  0  false-green max    55 s  
+  re-run attempt + 60 s chain   END-BAD  1  false-green max    85 s  R7(o=pass c=pass d=FAIL e=FAIL)
+  re-run attempt + 60 s nochain END-BAD  1  false-green max    85 s  R7(o=pass c=pass d=FAIL e=FAIL)
+  re-run attempt +120 s chain   END-BAD  2  false-green max   145 s  I4(o=pass c=pass d=FAIL e=FAIL) R7(o=pass c=pass d=FAIL e=FAIL)
+  re-run attempt +120 s nochain END-BAD  2  false-green max   145 s  I4(o=pass c=pass d=FAIL e=FAIL) R7(o=pass c=pass d=FAIL e=FAIL)
+  re-run attempt +300 s chain   END-BAD  1  false-green max   325 s  I4(o=pass c=pass d=FAIL e=FAIL)
+  re-run attempt +300 s nochain END-BAD  1  false-green max   325 s  I4(o=pass c=pass d=FAIL e=FAIL)
+
+TIMING-PERTURB END-BAD total 8

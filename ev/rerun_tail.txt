@@ -1,0 +1,58 @@
+## arm TAIL (read at +5 s, completion +TAIL s later)
+  tail   0 s chain   END-BAD 0  
+  tail   0 s nochain END-BAD 0  
+  tail  20 s chain   END-BAD 0  
+  tail  20 s nochain END-BAD 0  
+  tail  30 s chain   END-BAD 0  
+  tail  30 s nochain END-BAD 0  
+  tail  35 s chain   END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  -- event log of 'R7 an approval, then a plain comment review 300 s later' at tail 35 s, chain (after t=2500):
+    t=2610 refresh from run 102 (skips running re-run attempts [])
+    t=2626 run 102 attempt 1 reads: green
+    t=2636 run 102 attempt 1 completes
+    t=2656 sweep from run 102 (skips running re-run attempts [])
+    t=2661 run 101 attempt 2 reads: green
+    t=2706 run 101 attempt 2 completes
+    t=2726 sweep from run 101 (skips running re-run attempts [])
+    t=2910 refresh from run 103 (skips running re-run attempts [])
+    t=2915 run 101 attempt 3 reads: red
+    t=2915 run 102 attempt 2 reads: red
+    t=2926 run 103 attempt 1 reads: green
+    t=2936 run 103 attempt 1 completes
+    t=2956 sweep from run 103 (skips running re-run attempts [101, 102])
+    t=2960 run 101 attempt 3 completes
+    t=2960 run 102 attempt 2 completes
+  tail  35 s nochain END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  40 s chain   END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  40 s nochain END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  45 s chain   END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  45 s nochain END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  50 s chain   END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  50 s nochain END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  60 s chain   END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail  60 s nochain END-BAD 1  R7(oracle pass: created pass completed FAIL every FAIL)
+  tail 120 s chain   END-BAD 2  I4(oracle pass: created pass completed FAIL every FAIL); R7(oracle pass: created pass completed FAIL every FAIL)
+  tail 120 s nochain END-BAD 2  I4(oracle pass: created pass completed FAIL every FAIL); R7(oracle pass: created pass completed FAIL every FAIL)
+  tail 300 s chain   END-BAD 1  I4(oracle pass: created pass completed FAIL every FAIL)
+  tail 300 s nochain END-BAD 1  I4(oracle pass: created pass completed FAIL every FAIL)
+## arm READ-LATE (read 2 s before completion)
+  tail   0 s chain   END-BAD 0  
+  tail   0 s nochain END-BAD 0  
+  tail  20 s chain   END-BAD 0  
+  tail  20 s nochain END-BAD 0  
+  tail  30 s chain   END-BAD 0  
+  tail  30 s nochain END-BAD 0  
+  tail  35 s chain   END-BAD 0  
+  tail  35 s nochain END-BAD 0  
+  tail  40 s chain   END-BAD 0  
+  tail  40 s nochain END-BAD 0  
+  tail  45 s chain   END-BAD 0  
+  tail  45 s nochain END-BAD 0  
+  tail  50 s chain   END-BAD 0  
+  tail  50 s nochain END-BAD 0  
+  tail  60 s chain   END-BAD 0  
+  tail  60 s nochain END-BAD 0  
+  tail 120 s chain   END-BAD 0  
+  tail 120 s nochain END-BAD 0  
+  tail 300 s chain   END-BAD 0  
+  tail 300 s nochain END-BAD 0  
