@@ -1,0 +1,28 @@
+carry_audit self-test: 144 checks, 0 failed
+queue_pre_flight self-test: 41 checks, 0 failed
+merge_train self-test: 189 checks, 0 failed
+RESULT rows_caught=33 of=33
+RESULT rows_caught=34 of=35
+RESULT last20_hits=76 on_a_row=46 on_no_row=30
+4
+ISSUE-UNOWNED #2429 '[policy] recurring friction: .claude/rules/ci-autofix.md'
+ISSUE-UNOWNED #2428 '[policy] recurring friction: carry-missing'
+ISSUE-UNOWNED #2409 '[policy] recurring friction: mutation-vacuous'
+ISSUE-UNOWNED #2265 '[R10-TICK-DRIVERS] Round drivers trust large agent replies and a hand-kept schema; land th'
+6
+0
+RESULT uncovered_files=0 count
+FIELD COVERAGE ok
+AGREEMENT ok
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+RULES-SYNC ok: every generated rule is the generated form of its source
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.1
+TOTAL: 0 error(s) across 41 policy file(s)
+  read     census structure.py dead_methods: 0 -> 1 with one planted member
+  read     census structure.py dead_top_level_symbols: 1 -> 2 with one planted member
+RESULT read=63 ignored=25 declared_none=34 blind=0 dead=0 refused=0 runs=141 seconds=45.4
+DELIVERY STATUS OK — 148 rowed, 5 pending, 0 overdue (overdue at 12 commits)

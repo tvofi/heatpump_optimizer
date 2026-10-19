@@ -1,29 +1,32 @@
-Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 carry-unsound: Forward-carry item 1 routes to R10-OPENPR-SILENT, which is done (#2422 merged 7ab3030b and delivered the tick carry sweep); carry_audit.py at this head refuses it BAD-DEST against handoff/audit-r10-roster
+Fix review: merge 519bb4db971b5d49736fcacdd57d57bff8f6c630
 
-bus-nonce: fb2e93390840f16fcc1e203c044d6794
+bus-nonce: ad2455725e386f704487a3012b5f751b
 
-Round 8. Round 7 blocked this same head on the body only. The head is still 519bb4db971b5d49736fcacdd57d57bff8f6c630, the same commit as origin/fix/r10-carry-enforce when this verdict was written. fix-review.md has not changed on main since the merge base (the diff over dev/governance/roles/ is empty).
+Round 9 of #2404. Round 8 blocked this same head on the body only (carry-unsound: Forward-carry item 1 routed to R10-OPENPR-SILENT, which is done) and found nothing else at this head. This round judges round 8's repair, the body edit (PR updated 2026-10-19T06:14:45Z), and re-takes the head's figures.
+Measured head: 519bb4db971b5d49736fcacdd57d57bff8f6c630 (ev/HEAD). It was still origin/fix/r10-carry-enforce when written. Merge base 2d843030a; origin/main abb397938. Role contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
 
-## Blocking: the carry route is out of date (step 10)
+## Round 8's block is repaired
 
-- The body's Forward-carry item 1 reads "the carry now sits in the roster entry of R10-OPENPR-SILENT (#2422) ... Carry: R10-OPENPR-SILENT".
-- On handoff/audit-r10-roster, 59cf492cd marks R10-OPENPR-SILENT `resume.stage: done` ("delivered by PR #2422"). origin/main's roster still says `in-progress` because it lags behind the roster branch.
-- I ran this PR's own checker, `carry_audit.py --roster-ref <ref> check --body` (ev/carry_check.txt):
-  - HEAD tree: 0 bad destinations.
-  - origin/main: 0 bad destinations.
-  - origin/handoff/audit-r10-roster: `BAD-DEST body item 5978f947: R10-OPENPR-SILENT is done (resume.stage done)`, rc=1.
-- The body passes today only because main's roster lags. This is the gap the body's own Friction item 4 describes. queue_pre_flight's `findings` step reads origin/main's roster, so the next roster sync to main will PARK this PR, and pr-contract will refuse the body on the next main merge.
-- The substance has already landed. On origin/main, orchestrator_tick.py has `carry_sweep()` (CARRY section, opt-in with `--only CARRY`). It runs `sweep --last N --issues` over origin/main and the tick's roster ref. Its self-test arms cover exit 0, 1 and 2, and it reports `UNREADABLE ... carry_audit.py absent (it lands with #2404)` until this PR merges. #2422 merged before its carry's stated precondition ("PR #2404 is merged"). It degrades loudly rather than silently, so that is not this PR's defect.
-- Fix, a body edit only: re-route item 1 to a destination that is still open, or close it in the marker's grammar, e.g. `Carry: dismissed: delivered by #2422 (7ab3030b); orchestrator_tick.carry_sweep goes live when this PR merges`. Update the prose that says the carry "now sits" in that roster entry to match. Then re-run `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body`.
+- Forward-carry item 1 now reads `Carry: dismissed: delivered by #2422 (7ab3030b); orchestrator_tick.carry_sweep goes live when this PR merges`. 7ab3030b is #2422's merge and is in origin/main. On origin/main, orchestrator_tick.py has `carry_sweep` (line 1775) over `tools/audit/carry_audit.py` (ev/carry_item1.txt). The dismissal is accurate.
+- The round-6/7 note on M17 (item 7321e737) is now routed: `Carry: dismissed: guard deleted in this diff (item 7321e737)`.
+- `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body`: 7 routed, 0 unrouted, 0 bad, rc=0. `--roster-ref origin/main` and the tree's roster give the same (ev/carry_check.txt). With the verdict comments (`--comments`), both rosters give 13 routed, 0 unrouted, 0 bad, rc=0 (ev/carry_check_comments.txt). So the train's `findings` pre-flight will not PARK the PR.
+- pr-contract 117917362115 started 06:14:51, after the body edit, and passed: `CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)` and `FIGURES: 26 resolved, 0 not verified, 0 refused` (ev/pr-contract-117917362115.log).
 
-## Everything else checked at this head: no findings
+## Verified
 
-- Mutation proof (step 1): `python3 dev/audit/harnesses/r10_carry_parser_mutants.py` printed `RESULT sites=152 unmapped=0 mutants=190 survived=0`, the same as the body (ev/mutants.txt). I also planted two mutants of my own (ev/own_mutants.txt), and both were killed:
-  - A: the `findings_gate` call removed from PreFlight (the body's M10) left `queue_pre_flight self-test: 41 checks, 4 failed`.
-  - B: the done-group refusal at carry_audit.py:304 removed left `carry_audit self-test: 144 checks, 1 failed` ("a done group is a bad destination").
-  - Both files were restored and the tree is clean.
-- Self-tests (ev/selftests.txt): carry_audit 144/0, queue_pre_flight 41/0, merge_train 189/0. All match the body.
-- Merges with main (step 13): `git merge-tree --write-tree origin/main HEAD` (origin/main abb397938) gives tree dfb7e449, rc=0, with no conflicts.
-- Release stamps (step 5): VERSION, the manifest and RELEASE_NOTES.md are untouched.
-- CI (step 11): the head's check-runs API (filter=all) lists 51 runs, 36 success and 15 skipped, none red and none in progress (ev/check_runs.tsv). The body's Red checks section now names b419463b1's pr-contract red (BAD-DEST, R10-OPENPR-SILENT), which answers round 7.
-- Not re-derived: the remaining figures in the body (sweep-row harness, ISSUE-UNOWNED and ROSTER-DRIFT counts, the policy lints). They were taken at code head 74201dd56, and per the body this head adds only merges with no resolution. I did not re-take them this round, so they are unverified here and not confirmed.
+RESULT drive sites=152 unmapped=0 mutants=190 survived=0 rc=0 (dev/audit/harnesses/r10_carry_parser_mutants.py at head; ev/drive.txt; worktree clean after)
+RESULT carry_audit_selftest=144 failed=0; queue_pre_flight_selftest=41 failed=0; merge_train_selftest=189 failed=0
+RESULT rows39 rows_caught=33 of=33; last20 rows_caught=34 of=35, last20_hits=76 on_a_row=46 on_no_row=30
+RESULT sweep --issues (origin/main roster) ISSUE-UNOWNED=4 (#2429, #2428, #2409, #2265); roster-drift 64b1f82a3/b29cd8d23=6; b29cd8d23 twice=0
+RESULT codeowners_gap uncovered_files=0; field_coverage ok (dead=0 refused=0); agreement --only discovery divergent=0 unregistered=0 dead=0 refused=0; policy_lint TOTAL 0 error(s) across 41 policy file(s); rules_sync ok; structure PASSED; closure select MODE: SCOPED -- 3 script(s) run; delivery_status OK, 0 overdue (ev/figures.txt)
+RESULT merge_tree_vs_origin_main=clean (exit 0, tree dfb7e449; origin/main abb397938)
+RESULT version_manifest_notes_claims=untouched (empty three-dot diff)
+RESULT check_runs_head=54: 39 success, 15 skipped, 0 failure, 0 in progress (ev/check-runs.tsv)
+RESULT commits origin/main..head=35, as the body says
+
+- Step 11: no run on this head is red. The range's reds (pr-contract at 7167a97d9/713182ca1/b419463b1, fast (3.14) at 713182ca1, wave-script and delivery-status at 03f1681a3) are each named and answered under `## Red checks`. pr-contract's red-history line reads `record` over 35 commits. I checked that each trigger was answered, not what the answer says.
+- Step 12 / #1667: the code head is unchanged since rounds 7 and 8 (both merges are resolution-free, per round 7). I re-took the drive, the self-tests and the body's figures myself this round. They match the body.
+- Step 9: r10_carry_parser_mutants.py and r10_carry_sweep_rows.py are the fixer's own instruments, disclosed as such. The round-10 sweep has no committed finder harness, as every earlier round recorded.
+- Step 10: the remaining Forward-carry item and the Friction items route to O10-policy-fixer-md. That file is out of tree and UNVERIFIED here (carry_audit prints NOTE ... UNVERIFIED), as the PR says.
+- Note, not a block: `## Red checks` says the head has `composed-proof` in progress. That run (117912628737) has since concluded success, so the sentence is stale, not false at the time it was written.
+- Not mine to supply: this PR changes policy and code-owned paths, so tvofi's approving review at the head is still owed before merge, as the body's `## Approval` says.

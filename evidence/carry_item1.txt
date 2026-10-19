@@ -1,0 +1,8 @@
+7ab3030bbfff8cfed78d242d1dfa0050cae0d2d3 Merge pull request #2422 from tvofi/fix/r10-openpr-silent-pr
+in-main
+origin/main:tools/audit/seat/orchestrator_tick.py:68:          pass): `carry_audit.py sweep --last N --issues` over origin/main and
+origin/main:tools/audit/seat/orchestrator_tick.py:178:CARRY_AUDIT = "tools/audit/carry_audit.py"
+origin/main:tools/audit/seat/orchestrator_tick.py:328:        """`carry_audit.py <argv>`, a subprocess over the tree's own tool, never
+origin/main:tools/audit/seat/orchestrator_tick.py:1775:    def carry_sweep(self) -> None:
+origin/main:tools/audit/seat/orchestrator_tick.py:1777:        carry_audit.py): `sweep --last N --issues` over both roster refs --
+nogroup
