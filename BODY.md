@@ -1,4 +1,4 @@
-R10-OPENPR-SILENT. `tools/audit/seat/open_pr.sh` runs under `set -eo pipefail`. Twice on 2026-10-18 the orchestrator passed the handoff-BODY sha where the CODE sha belongs. `git merge-base --is-ancestor` returned non-zero and printed nothing, so the script exited silently, and the stop read as a hang for 40 minutes. The orchestrator then added tick items to this group, and in the recarry pass four more folds (`5` to `8` below).
+R10-OPENPR-SILENT. `tools/audit/seat/open_pr.sh` runs under `set -eo pipefail`. Twice on 2026-10-18 the orchestrator passed the handoff-BODY sha where the CODE sha belongs. `git merge-base --is-ancestor` returned non-zero and printed nothing, so the script exited silently, and the stop read as a hang for 40 minutes. The orchestrator then added tick items to this group, and in the recarry pass four more folds (`5` to `8` below), and one repair after a merge of main (`9`).
 
 **1. No silent stop in `open_pr.sh` and `update_pr.sh`.** Both scripts now source a new library, `tools/audit/seat/pr_args.sh`, which gives them two layers.
 
@@ -51,6 +51,12 @@ Two more silent shapes are also fixed:
 
 **8. The unrecorded-merge check counts a `<title> (#N)` merge too** (the orchestrator's ruling, 2026-10-19: every merge owes a #201 comment, a record merge included, and the orchestrator writes one after each). `unrecorded()` used to list `git log --merges -10 origin/main`. That read had two faults: it never saw a single-parent squash merge, and, not being first-parent, it filled its ten slots with merges of main into branches, which are no merge to main. It now reads the newest `CAP_MERGES` merges among main's last `UNRECORDED_SCAN` (4 x `CAP_MERGES`) first-parent commits, through the same `merges()` path as fold 5. The four-to-one window leaves room for direct pushes such as stamps, which owe no comment.
 
+**9. A disclosed self-correction: fold 7 after #2406 (O17).** The orchestrator merged main `dd27e7c1` onto `0b5c9b24`, and that brought #2406, which replaces `roster_lib.DEFAULT_ROSTER_REF` with `default_roster_ref(git)`: the round's roster branch, else main. Fold 7's `carry_sweep` still read the removed constant. The merge was textually clean, but at `01e08685` `--self-test` raised `AttributeError`, so the earlier body's "142 checks, 0 failed" was false there (the blocked verdict at `01e08685`). The fix:
+- PLAN and CARRY now share one `Tick._roster_ref`: `--roster-ref` if given, else `default_roster_ref` through the tick's own git, with its note printed in the section. The sweep's refs are `rl.MAIN_REF` and that answer, passed once when they are equal.
+- A missing `roster_lib.py` is UNREADABLE, never a guessed ref.
+- A new arm drives the sweep with no `--roster-ref`, with the round branch present and absent, and reports a raise as a failed check.
+- Every call into the CARRY section in the self-test now runs guarded. A raise there fails "no call into the section raises" and no longer aborts the self-test, so this regression (mutant R1) fails 8 named checks instead of printing no tally.
+
 **Why this shape (fixer.md step 17).**
 - One library holds the argument checks and the trap; copying them into each script would put one concept in two places. The trap instead of a `|| { echo; exit; }` on every line, which is #1874's enumerated-cases shape.
 - One cap module for both readers, loaded the way the tick loads production modules (`_module`).
@@ -62,7 +68,7 @@ Two more silent shapes are also fixed:
 
 ## Head
 
-`0b5c9b2418a0b8307c28173c15faae194b6e6075`, on origin/main `fa424fd91a042f4a66ae53238c3db6d70d9d4ff1` (2026-10-19T03:04Z). Three merges of main, each with no conflict: `62d7e1e43c5f` (main `b87e8f19`: #2423, #2424, #2420), `3bf31b82768e` (main `06c6f3cf`: #2390, #2425) and `3fe49467f` (main `fa424fd9`: #2419, #2426, #2408).
+`9863f753f7be8dd8bcc860f016437a7de4e805bb`, on origin/main `fa16596c3438ba7010a19138d293d4b6a4379375`. Merges of main: `62d7e1e43c5f` (main `b87e8f19`: #2423, #2424, #2420), `3bf31b82768e` (main `06c6f3cf`: #2390, #2425) and `3fe49467f` (main `fa424fd9`: #2419, #2426, #2408) by this seat, each with no conflict; then the orchestrator's `7635793e` (onto `0b5c9b24`) and `6ad3b1bb` (main `dd27e7c1`: #2411, #2417, #2406), and its delivery row `01e08685`; then this seat's `9863f753` (main `fa16596c`: #2399, #2427, #2421), with no conflict.
 
 Commits, in order:
 - `fb46dfc7`: the failing test, first. `0522a2d4`: the fix and the cap. `06e41c39`: their INSTRUMENTS entries.
@@ -75,6 +81,8 @@ Commits, in order:
 - `d4f47f04`: folds 5 and 6, with their INSTRUMENTS lines. `3adda66d`: one more arm for fold 6 (see M4b).
 - `5c729de5`: fold 7. `3bf31b82`: the merge of origin/main `06c6f3cf`. `d41ec9d2`: fold 7's argv checks read `calls[:1]`, so a sweep never called fails them instead of crashing the self-test.
 - `3fe49467`: the merge of origin/main `fa424fd9`. `0b5c9b24`: fold 8, with its INSTRUMENTS line.
+- `7635793e`, `6ad3b1bb`, `01e08685`: the orchestrator's merges and row (above).
+- `86a488dc`: fold 9's fix and its arm. `9cc10cd0`: the CARRY section's self-test calls guarded. `9863f753`: the merge of origin/main `fa16596c`, which changes `proof_watch.py`, a module the tick imports; every figure below was re-taken after it.
 
 Every figure below was measured at this head unless it names another commit.
 
@@ -82,7 +90,7 @@ Every figure below was measured at this head unless it names another commit.
 
 **Built-in mutants (`pr_args.sh`).** A line ending in `# mut:<name>` is the predicate one arm pins. The self-test runs each refusal arm twice on copies of the scripts in a scratch repository: once intact, then with that line deleted. The arm must pass the first time and fail the second. `bash tools/audit/seat/open_pr.sh --self-test` prints `pr_args self-test: 46 checks, 0 failed`.
 
-**Hand mutants, folds 5 to 8, at this head.** Each applied to the committed tree, run with its script's `--self-test`, and restored with `git checkout --`; `git status --short` was empty after the run.
+**Hand mutants, folds 5 to 9, at this head.** Each applied to the committed tree, run with its script's `--self-test`, and restored with `git checkout --`; `git status --short` was empty after the run.
 - M1, `merges()` returns the `Merge pull request #(\d+)` matches (the old grammar): 5 failed, among them "STATE missing rows: a squash `<title> (#N)` merge with no row is named; ...", "closes squash: a squash merge's declared-vs-closed mismatch is flagged" and "unrecorded single-parent: ...".
 - M2, an unreadable log returns `[]`: "STATE missing rows: a log it cannot read is UNREADABLE, never a clean zero".
 - M3, `rc != 0` is unavailable (the old reading): 3 failed, among them "OWED handoffs: a stranded ref at bus.sh's rc 1 is OWED, flagged, never 'unavailable'".
@@ -90,15 +98,18 @@ Every figure below was measured at this head unless it names another commit.
 - M4b, the exit/lines consistency clause dropped: unpinned at `d4f47f04`, where no arm drove an exit that contradicts its lines. I added "OWED handoffs refused: an exit that contradicts its lines (rc 0 beside an ORPHAN) is unavailable" in `3adda66d`, which kills it.
 - M5, `BUS_ORPHANS_ARGV = ("orphans",)`: "OWED handoffs: the read carries no age window (a complete handoff is owed now)".
 - M6, OWED handoff lines unflagged: "OWED handoffs: a stranded ref at bus.sh's rc 1 is OWED, flagged, never 'unavailable'".
-- C1, the sweep call removed: 5 failed, the arm's argv, dispatch, refusal and opt-in checks among them ("the sweep runs --last N --issues over origin/main, then the tick's roster ref").
+- C1, the sweep call removed: 7 failed, the arm's argv, dispatch, refusal and opt-in checks among them ("the sweep runs --last N --issues over origin/main, then the tick's roster ref").
 - C2, the CARRY dispatch removed from `run()`: "CARRY sweep: opt-in: the default pass never sweeps; --only CARRY does".
 - C3, CARRY in the default pass: 4 failed, that arm and three of the all-clear board's ("null control: zero findings", "null control: empty list line printed" and "null control: all eight sections measured").
-- C4, the second roster ref dropped: "the sweep runs --last N --issues over origin/main, then the tick's roster ref".
-- C5, `--issues` dropped: 2 failed.
+- C4, the second roster ref dropped: 3 failed, "the sweep runs --last N --issues over origin/main, then the tick's roster ref" and both "CARRY default roster ref" arms.
+- C5, `--issues` dropped: 4 failed.
 - C6, exit 1 unflagged: "exit 1 prints one dispatch line, then each unowned line, flagged".
-- C7, a refusal read as clean (`if False:`): the self-test raises `IndexError` at `summary[0]` in `carry_sweep`, so no tally prints, rc=1.
+- C7, a refusal read as clean (`if False:`): 2 failed, "no call into the section raises" and "a refusal (exit 2) is UNREADABLE, never a clean zero".
 - U1, `unrecorded()` restored to its old `git log --merges --format=%H %s -10` read: "unrecorded single-parent: a single-parent `(#N)` merge with no #201 comment is named; a recorded merge and a direct push are not". The self-test's git stub answers `--merges` with the two-parent lines only, as git does.
 - U2, `--merges` added to the first-parent read: the same check.
+- R1, `carry_sweep` reads `rl.DEFAULT_ROSTER_REF` again (the regression): 8 failed, among them "no call into the section raises" and "CARRY default roster ref: with no --roster-ref the sweep runs without raising".
+- R2, the default ref ignored (main twice): 2 failed, both "CARRY default roster ref" ref checks.
+- R3, `_roster_ref` drops the note: 2 failed, "PLAN default roster ref: and the note says the branch is absent" and the CARRY null control.
 - M7, in `bus.sh`, the exact name alone discharges (the old arm): `bus self-test: 70 checks, 1 failed`, "an exact-name pull request behind its newer handoff is repair=update, not discharged".
 
 **Hand mutants from the earlier head, re-applied at this head.** The same mutants, by the same descriptions, each killed:
@@ -124,7 +135,7 @@ These lines depend on the board, so re-derive them with the same command.
 
 **Fold 5, before and after on main's history.** A one-off scratch probe loads the tick from the `62d7e1e4` archive and from `3adda66d` and enumerates `3126b86e7~1..b87e8f19b`. Before: `MERGE_PR` over `git log --merges --format=%s`. After: `Tick.merged_prs`. Result: before 16 PRs, after 19. `after - before` is `['2407', '2412', '2413']`, and `before - after` is `[]`. As a null control, the PRs the after side adds that are not single-parent `(#N)` subjects: `[]`. Single-parent `(#N)` subjects the after side misses: `[]`. Rows for #2413/#2412/#2407 are at main now, through #2420, so the live STATE arm prints no missing row at either end.
 
-**Fold 8, on main.** A one-off scratch probe loads the tick at this head and compares, over origin/main `fa424fd9`, the shas the old read (`git log --merges --format=%H -10 origin/main`) and `Tick.merges` (first 10 of the last 40 first-parent commits) would search for:
+**Fold 8, on main.** A one-off scratch probe loads the tick at `0b5c9b24` (`merges()` and `unrecorded()` are unchanged since) and compares, over origin/main `fa424fd9`, the shas the old read (`git log --merges --format=%H -10 origin/main`) and `Tick.merges` (first 10 of the last 40 first-parent commits) would search for:
 - old only, 5 shas, each `Merge remote-tracking branch 'origin/main' into ...` or `Merge commit '<sha>' into ...`: merges of main into branches, which can never carry a #201 comment, so the old read could report them as owed;
 - new only, 5 shas: #2420, #2424, #2423, #2401 and #2379, main's own merges.
 
@@ -148,14 +159,14 @@ There is no single-parent merge in this window; the squash merges #2413/#2412/#2
 
 - `bash tools/audit/seat/open_pr.sh --self-test`: `delivery_row self-test: 5 checks, 0 failed` and `pr_args self-test: 46 checks, 0 failed`.
 - `python3 -I tools/audit/seat/pr_cap.py --self-test`: `12 checks, 0 failed`.
-- `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `142 checks, 0 failed`.
+- `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `150 checks, 0 failed`.
 - `bash tools/audit/seat/tick_loop.sh --self-test`: `4 checks, 0 failed`.
 - `bash tools/audit/seat/bus.sh --self-test`: `70 checks, 0 failed`.
 - `python3 tools/audit/seat/proof_watch.py --self-test`: `34 checks, 0 failed`.
 - `python3 -I tools/policy/agreement_py.py --out $J && node tools/policy/agreement.mjs --py-json $J`: `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`.
-- `python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK -- 0 overdue`, at origin/main `fa424fd9`.
+- `python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK -- 0 overdue`, at origin/main `fa16596c`.
 - `python3 -I tools/audit/seat/pr_cap.py gate --repo tvofi/heatpump_optimizer`, 2026-10-19T01:25Z: `open-PR cap: 14 open >= 6`, rc=1.
-- Gate scope: `python3 tests/closure.py select --diff fa424fd91a04 --workdir "$D"` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out`. Each `run_always` line (`tests/env_drift.py --claims-only fa424fd9`, `tests/closure.py selftest`, `tests/harness_headers.py`, `tests/layout.py`) exits 0 under `PYTHONPATH=tests/hastub`.
+- Gate scope: `python3 tests/closure.py select --diff fa16596c3 --workdir "$D"` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out`. Each `run_always` line (`tests/env_drift.py --claims-only fa16596c`, `tests/closure.py selftest`, `tests/harness_headers.py`, `tests/layout.py`) exits 0 under `PYTHONPATH=tests/hastub`.
 - `env -u BASH_ENV python3 tests/entities.py`: `ALL 2349 ENTITY CHECKS PASSED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 -I tools/audit/seat/tmp_paths.py --check`, `python3 -I tools/audit/seat/ref_privacy.py --check` and `python3 -I tests/throwaway_git.py --check` each report 0 refused.
@@ -172,16 +183,23 @@ The `# mut:` lines are pinned by the self-test's own mutant rows. The tick's fla
 
 ## Red checks
 
-The latest CI on the previous head `ee93af58` had three reds. This head merges origin/main `b87e8f19`, which clears the first two at their cause.
-- `wave-script`: the agreement lane refused `merge-subject-pr`, `divergent=2`. Two readers in `policy_lint.mjs` read the hand-written subjects of #2401 and #2379 (`Merge pull request #N (<group>)`, at 5756f2b1 and 07a09406) as no merge. That was main's red, inherited. #2423 made the readers agree, and #2424 added the guard that refuses a hand-passed merge subject: that guard is the cheaper detector, landed. At this head the same lane prints `divergent=0 ... AGREEMENT ok`.
-- `delivery-status`: OVERDUE for #2413, #2412 and #2407. That is main's record state at run time, not this diff, and the context is not required. #2420 wrote those rows, and at `b87e8f19` the check prints `0 overdue`. It is the class fold 5 fixes in the tick, whose missing-row check could not see those three merges.
-- `pr-contract`: `check wave-script is red and ## Red checks does not name it`. The old body said no check had run; this body names it, above.
+The latest CI is on the PR head `01e08685` (the 03:36Z run). It has seven reds, and each job's log names the GitHub App installation's API rate limit, not this diff:
+- `arch-score` (two runs) and `pr-contract` (two runs): `gh: API rate limit exceeded for installation` while reading the pull request.
+- `validate-hacs`: `GitHubRatelimitException: API rate limit exceeded for installation`.
+- `nightly-status`: `NIGHTLY UNREADABLE: ... HTTP 403` reading the last scheduled run.
+- `env-matrix`: `FAIL pr / nothing skipped in a full clone -- ... the GitHub API is unreachable`, the same window.
+
+The cheaper detector already exists: each of these lanes refuses loudly when its read fails, rather than passing. The cost is a re-run once the quota resets. The cause is the hourly quota every seat draws on; no change in this diff answers it.
+
+The reds on the earlier head `ee93af58` (`wave-script`, `delivery-status` and `pr-contract`) were main's. The merge of main `b87e8f19` cleared them, through #2423, #2424 and #2420. At this head, the agreement lane prints `AGREEMENT ok`, and `delivery_status.py --check` reports 0 overdue.
+
+The regression the verdict at `01e08685` blocked on is fold 9, above. CI could not have seen it: no workflow runs `orchestrator_tick.py --self-test` (Forward-carry, CI wiring).
 
 ## Forward-carry
 
 - **Delivered here: the weekly and closure carry sweep** (fold 7). #2404's reviewer routed it to R10-TICK-DRIVERS, which merged as #2390 without it. The #2404 seat is appending the matching roster carry to R10-OPENPR-SILENT. Until #2404 lands the sweep tool, the section prints its absence as UNREADABLE (fold 7 above).
 
-- **CI wiring.** No workflow runs the self-tests of `pr_args.sh`, `pr_cap.py`, `tick_loop.sh`, `orchestrator_tick.py` or `delivery_row.sh`. Adding a `governance.yml` step changes `.github/workflows/`, which tvofi owns, so it is for the orchestrator to dispatch as its own group.
+- **CI wiring.** No workflow runs the self-tests of `pr_args.sh`, `pr_cap.py`, `tick_loop.sh`, `orchestrator_tick.py` or `delivery_row.sh`. Adding a `governance.yml` step changes `.github/workflows/`, which tvofi owns, so it is for the orchestrator to dispatch as its own group. Fold 9's regression is this gap's cost: the orchestrator's merge of main broke `--self-test`, and nothing ran it before review.
 - **Runbook.** `dev/governance/roles/nudge.md` and `orchestrator.md` name `open_pr.sh` without `--over-cap`, and a watcher seat looping the tick rather than `tick_loop.sh`. Both are policy files (CODEOWNERS `dev/governance/roles/`), so they are left unedited. `tools/audit/seat/INSTRUMENTS.md` holds the contract.
 
 ## Friction
