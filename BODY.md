@@ -8,42 +8,41 @@ O17 item 1 (tooling) and item 2(ii), from the roster-cost pre-study the orchestr
 - **Roster ref.** `roster_lib.default_roster_ref(git)` returns the round's roster branch `origin/handoff/audit-r<N>-roster`. Without that branch it falls back to `origin/main` with a note. It warns when main carries roster changes the branch lacks. The tick, `plan_table.py`, `resume_doc.py`, `handover_prompt.py` and `state_docs.py` resolve through it, and the state-docs beat also watches the roster ref.
 - **Level 0** (`tests/lane_skip.py`). When every changed file is a roster or a canonical delivery row, `browser`, `coverage` and `typing` skip, with no recorded proof. `fast` never takes Level 0.
 - **One changed-file list that keeps both sides of a rename.** `tests/closure.py` `changed_between` / `changed` (`--no-renames`) feeds the gate, lane_skip, the `tests.yml` list sites and CodeQL. `tools/pr/codeql_scope.py` `changed_files` delegates to it. The twins pass `--no-renames` too: `card_rig.mjs` `threeDotFiles`, `card_browser.mjs` `gridScope`, `stop-selfcheck.sh`, `policy_lint.mjs` `mergeRecordClass` with `stamp.py` `merge_is_record_class`, and the seat and pr scripts. The census in the closure self-test refuses any `git diff ... --name-only` without `--no-renames` over the `RENAME_SITES` globs.
-- **The `graders-head-copy` pin follows its step.** That job's changed-file step now runs `python tests/closure.py changed`. `tests/entities.py` `_PT_JOB_CANON` carries the same line. `_pt_trigger` executes the step in a planted repo, so that repo's base commit now carries this tree's `tests/closure.py`, and `python` there resolves to the running interpreter. The trigger check runs the real producer. The `RENAME_ALLOW` entry that called the old canon line "data, never run" is deleted. `_pt_trigger` ran it all along, and the census reports the entry stale once the line is gone. Rejected alternative: keep a self-contained `git diff --no-renames --name-only` in the step. The census allows it, but it is a second producer beside `closure.py changed`, which this PR exists to remove.
+- **The `graders-head-copy` pin follows its step.** That job's changed-file step runs `python tests/closure.py changed`. `tests/entities.py` `_PT_JOB_CANON` carries the same line. `_pt_trigger` executes the step in a planted repo, so that repo's base commit carries this tree's `tests/closure.py`, and `python` there resolves to the running interpreter. The trigger check runs the real producer. The `RENAME_ALLOW` entry that called the old canon line "data, never run" is deleted, because `_pt_trigger` ran it all along. Rejected alternative: keep a self-contained `git diff --no-renames --name-only` in the step. The census allows it, but it is a second producer beside `closure.py changed`, which this PR exists to remove.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_016Dpdz1tMLedATWEABB5h71
-
 ## Head
 
-`42a8c31a8540eba8b197259af952d0cbfae8928e`: the round-5 head `d1becac2b`, merged with origin/main `86010e8cd`, plus `8baa13e47` (the pin) and `cfd418c71` (the allow entry), merged with origin/main `5756f2b15`. Merge base `5756f2b1578198b7e6f7f62ea33153f2506a7bd3`, which was origin/main at 2026-10-18 19:14 UTC. At that tip, `git merge-tree --write-tree origin/main HEAD` exited 0.
+`26b148e5b6f2114803da0c571c33c55d217232ce`: the previous PR head `2d9f20009`, merged with origin/main `b87e8f19b0a71249799357cd34116f0e4b5b63d3` (a clean merge, no conflict). Measured 2026-10-19. The merge base is that main tip, so the three-dot diff is this PR's alone. The merge brought in main's repair of its own red since `5756f2b1` (`#2420`, `#2423`, `#2424`: the merge-subject grammar in `agreement.mjs`, `agreement_py.py` and `policy_lint.mjs`, and the delivery rows). The one file both sides edit is `tools/policy/policy_lint.mjs`, in different regions (this PR's `mergeRecordClass` and `recordDiffParity`; main's merge-subject readers), and it merged without conflict. `comm -12` of the merge's delta (`git diff --name-only 2d9f20009 HEAD`) with `git diff --no-renames --name-only origin/main...HEAD` prints that file alone.
 
 ## Mutation proof
 
-Each mutant edits one file at `42a8c31a8`, runs the named check, and is restored. The `entities.py` mutants ran in detached worktrees at the head, with `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`.
-- **M1: the planted repo's copy of `tests/closure.py` removed from `_pt_trigger`.** `2 of 2349 ENTITY CHECKS FAILED`: `and the arm's trigger fires on a restored path and only there` (`outputs=[]` for all three planted paths) and `and a trigger whose firing branch writes false is refused (null control)`. This is round 5's failure, reproduced.
-- **M3: `_PT_JOB_CANON`'s line set back to `git diff --name-only "$BASE"..."$HEAD"`.** `2 of 2349`: `every pinned grader given a token runs its own copy under the Actions token on the pull request` (`arm mismatch=graders-head-copy.steps[2].run`) and `and any edit to the arm's job, or to what reaches it, disarms it (null control)`. This is `fast (3.14)`'s failure at `d1becac2b`.
-- **M2: the `PATH` entry giving the planted step its `python` removed.** Run with a `python` on `PATH` that exits 127 (a seat with no `python`, only `python3`): `3 of 2349`, the two M1 checks plus the coverage-cache row. **M0**, the head under the same `PATH`: `1 of 2349`, the coverage-cache row alone. That row runs a `python` of its own, so the shadow fails it either way. The trigger checks are the difference.
+Each mutant edits one file in a detached worktree at `26b148e5b`, runs the named check, and is discarded. The `entities.py` mutants ran `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`.
+- **M1: the planted repo's copy of `tests/closure.py` removed from `_pt_trigger`** (the `Path(_td, "tests", "closure.py").write_text(...)` line deleted). `2 of 2349 ENTITY CHECKS FAILED`: `and the arm's trigger fires on a restored path and only there` (`outputs=[]` for all three planted paths) and `and a trigger whose firing branch writes false is refused (null control)`.
+- **M3: `_PT_JOB_CANON`'s changed-file line set back to `git diff --name-only "$BASE"..."$HEAD"`.** `2 of 2349`: `every pinned grader given a token runs its own copy under the Actions token on the pull request` (`arm mismatch=graders-head-copy.steps[2].run`) and `and any edit to the arm's job, or to what reaches it, disarms it (null control)`.
 - **MS: `rename_sites`' stale list emptied** (`if i not in used` to `if False`). `python3 tests/closure.py selftest`: `1 of 124`, `and reports every allow entry nothing matches as stale`.
-- **MP: `--no-renames` dropped from `closure.changed_between`.** closure selftest `3 of 124` (`the changed list keeps both sides of a rename onto a delivery row`, `so the gate does not scope a deleted entry point to zero scripts`, the census), `lane_skip self-test: 51/54`, and `codeql_scope self-test: 47 checks, 2 failed`.
-- **MB17: `codeql_scope.changed_files` replaced by its own `--no-renames` diff.** `47 checks, 1 failed`: `the list is closure.changed_between's, not a copy`.
+- **MP: `--no-renames` dropped from `closure.changed_between`.** closure selftest `3 of 124` (`the changed list keeps both sides of a rename onto a delivery row`, `so the gate does not scope a deleted entry point to zero scripts`, `no rename-detecting --name-only diff under RENAME_SITES`), `lane_skip self-test: 51/54 pins passed`, and `codeql_scope self-test: 47 checks, 2 failed`.
+- **MB17: `codeql_scope.changed_files` replaced by its own `--no-renames` diff.** `47 checks, 1 failed`: `the list is closure.changed_between's, not a copy (#2406)`.
 - **MB15: `--no-renames` dropped from `stamp.py` `merge_is_record_class`.** `node tools/policy/policy_lint.mjs` exits 1 with `FIXTURE VACUOUS: recordClassPaths`, and `closure.rename_sites()` names `tools/release/stamp.py:1708`.
-- **MB19: `--no-renames` dropped from `mergeRecordClass`'s real call.** policy_lint exits 1 with `FIXTURE VACUOUS: recordClassPaths`.
+- **MB19: `--no-renames` dropped from `mergeRecordClass`'s real call.** policy_lint exits 1 with `FIXTURE VACUOUS: recordClassPaths`, and `closure.rename_sites()` names `tools/policy/policy_lint.mjs:2356`.
+- **M2 (the `PATH` entry giving the planted step its `python`) was not re-run.** It needs a box whose `PATH` has no `python`, and this seat's shims provide one. The body claims nothing from it. `## Unpinned sites` says what that entry is.
 
 ## Null control
 
-- The unmodified head: `ALL 2349 ENTITY CHECKS PASSED`. Each mutant above fails, on the named checks only.
+- The unmodified head: `ALL 2349 ENTITY CHECKS PASSED`. Each mutant above fails on the named checks only, and the two `entities.py` mutants fail two checks each out of 2349.
 - The rename probes (`closure._rename_probe_lists`, and codeql_scope's `git mv lib.py lib.md`) read one commit both ways. Porcelain lists only the destination, and the producer lists both sides.
 - The census's planted root refuses the porcelain line in `x.py`, `y.mjs` and a split `z.sh`, and passes the `--no-renames` twin beside each one. With an empty `tools/policy/policy_lint.mjs` planted, every allow entry reads stale.
+- Each red below was read at the CI run that produced it, and the same command was re-run on this head. A check that read red for a main-side cause must read green here, and the command in `## Figures` prints the opposite string when it does not.
 
 ## Figures
 
-All taken at `42a8c31a8` in this pass:
+All taken at `26b148e5b` on 2026-10-19, merge base `b87e8f19b`:
 - `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` (Python 3.14): `ALL 2349 ENTITY CHECKS PASSED`.
 - `python3 tests/closure.py selftest`: `ALL 124 closure shrink pins PASSED`.
 - `closure.rename_sites()` (`python3 -c "import sys; sys.path.insert(0,'tests'); import closure; print(closure.rename_sites())"`): `([], [])`.
-- `python3 tests/closure.py select --diff 5756f2b15 --workdir <tmp>`: `MODE: FULL`, because `.github/workflows/tests.yml` changes the gate itself. The `run_always` scripts were run as listed here, and `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` printed `ALL 109 HARNESS HEADER CHECKS PASSED`.
-- `python3 tests/env_drift.py --claims-only 5756f2b15`: `claims hygiene: ... ok`.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <tmp>`: `MODE: FULL`, because `.github/workflows/tests.yml` changes the gate itself. The `run_always` scripts were run as listed here, and `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` printed `ALL 109 HARNESS HEADER CHECKS PASSED`.
+- `python3 tests/env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok`.
 - `python3 tests/lane_skip.py self-test`: `54/54 pins passed`.
 - `python3 -I tools/pr/codeql_scope.py --self-test`: `47 checks, 0 failed`.
 - `python3 tools/audit/seat/roster_lib.py --self-test`: `18 checks, 0 failed`.
@@ -55,20 +54,25 @@ All taken at `42a8c31a8` in this pass:
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 tests/throwaway_git.py --check`: `0 raw git init or clone site(s) refused`.
 - `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`.
-- `python3 dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: `uncovered_files=0`.
-- `python3 tools/audit/archscore/score.py --diff 5756f2b1578198b7e6f7f62ea33153f2506a7bd3 HEAD`: `dS +0.0000 NULL`.
+- `python3 dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: `RESULT uncovered_files=0`.
+- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `python3 -I tools/policy/agreement_py.py --out <tmp>/agreement.json`, then `node tools/policy/agreement.mjs --py-json <tmp>/agreement.json`: `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`. This is `wave-script`'s own command. The failing run printed `divergent=2` for the `merge-subject-pr` pair.
+- `git fetch --no-tags origin main; python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK -- 136 rowed, 2 pending, 0 overdue`. This is `delivery-status`'s own command. The failing run printed `3 overdue` (`#2413`, `#2412`, `#2407`).
 
 ## Unpinned sites
 
 - **The `tests.yml` wiring** (`typing`'s `needs` and `if:`) and **the CodeQL scope job's import of `tests/closure.py`**. No local check drives a workflow. CI on this head runs every lane and the `scope` job. The first record-only head after merge should show three `skipped`.
-- **The `PATH` entry in `_pt_trigger`** survives a mutant on any box that has `python` on `PATH`, CI included. M2 kills it only under a `PATH` without `python`. It is kept so the check holds on a seat that has only `python3`.
+- **The `PATH` entry in `_pt_trigger`** survives a mutant on any box that has `python` on `PATH`, CI included. It is kept so the check holds on a seat that has only `python3`.
 
 ## Red checks
 
-Read from the check-runs API (`repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs`, conclusion `failure`) on the branch's commits past the merge base.
+Read from the check-runs API (`repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs`, conclusion `failure`). At the PR head `2d9f20009`'s latest CI, four runs are red: `wave-script`, `delivery-status` and two `pr-contract` runs. The last three entries of this list are red on earlier commits of the branch and were answered in earlier rounds.
 
-- **`fast (3.14)`** (at `b965c4ab9`, then `d1becac2b`, job 117746495595): `2 of 2347 ENTITY CHECKS FAILED`, the two M3 checks. This PR's. It changed `graders-head-copy`'s step without the `_PT_JOB_CANON` literal and the planted repo the step needs. Fixed at this head (M1, M3). Cheaper detector: `tests/entities.py` on the seat, at a standing cost of about 270 s (that job's timing line, `FAILED python3 tests/entities.py (269s)`). It existed already, but fixer.md step 5 leaves a `MODE: FULL` diff to CI. Answered in `## Friction`.
-- **`closures`** (at `b965c4ab9`, job 117725439310): `UNDER-SCOPED: tests/card.mjs really reads 1 file(s) the committed closure does not list: tests/env_drift.py`. Bot-repaired by `closures-autofix` (commit `f95578604`, `ci: re-record closures`). The cheaper detector is `ci-autofix.md`'s, already running. `_pt_trigger` now reads `tests/closure.py`, so CI may print `UNDER-SCOPED` for `tests/entities.py` on this head. The same bot repairs it.
+- **`wave-script`** (at `2d9f20009`, job 117830442120): `AGREEMENT REFUSED`, `merge-subject-pr` divergent on `Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)` and `#2379`, where `policy_lint.mjs` `resolvePrFromCommit` and `enumerateMerges` read `null` and `stamp.py` and `delivery_status.py` read the number. Not this PR's: this diff changes neither `agreement.mjs` nor `agreement_py.py`, and in `policy_lint.mjs` it changes `mergeRecordClass` and the record-class parity arm, not `resolvePrFromCommit` or `enumerateMerges`. Main itself was red on this check from `5756f2b1`. Cleared by the merge of origin/main `b87e8f19b`, which carries `#2423` and `#2424` (the one merge-subject grammar and its guard): the command above prints `divergent=0` on this head. Cheaper detector: the check itself, on main's push, which is how main's red was seen. Standing cost: one `node` and one `python3` run of about a second.
+- **`delivery-status`** (at `2d9f20009`, job 117830442352): `DELIVERY STATUS OVERDUE`, 3 overdue rows (`#2413`, `#2412`, `#2407`). It grades `main`, not this branch, and `pr-contract` flags it because this diff touches `.github/workflows/tests.yml`. This diff does not touch `tests/delivery_status.py`, the file the check restores and runs. Cleared by the merge of origin/main `b87e8f19b`, whose `#2420` wrote the missing rows for `#2407`, `#2412`, `#2413` and `#2423`: the command above prints `0 overdue` on this head. The check is not a required context. Cheaper detector: the check itself, whose standing cost is one `git`-only script run. It already fires on main, so none cheaper is owed.
+- **`pr-contract`** (two runs at `2d9f20009`, jobs 117830438954 and 117830750613): the body did not name `delivery-status` and then `wave-script`, both red at the head. Answered by the two entries above. The check is the cheaper detector: `tools/pr/prepr.sh` runs the same rule on the seat before the push, at a cost of seconds, and ran on this body (below).
+- **`fast (3.14)`** (at `b965c4ab9` and `d1becac2b`, job 117746495595): `2 of 2347 ENTITY CHECKS FAILED`, the two M3 checks. This PR's own: it changed `graders-head-copy`'s step without the `_PT_JOB_CANON` literal and the planted repo the step needs. Fixed at the earlier head, reproduced by M1 and M3 above. Cheaper detector: `tests/entities.py` on the seat, at a standing cost of about 270 s (that job's timing line, `FAILED python3 tests/entities.py (269s)`). It existed already, but fixer.md step 5 leaves a `MODE: FULL` diff to CI. Answered in `## Friction`.
+- **`closures`** (at `b965c4ab9`, job 117725439310): `UNDER-SCOPED: tests/card.mjs really reads 1 file(s) the committed closure does not list: tests/env_drift.py`. Bot-repaired by `closures-autofix` (commit `f95578604`, `ci: re-record closures`). The cheaper detector is `ci-autofix.md`'s, already running.
 - **`nightly-ha (stable)`** (at `f95578604`, job 117731309720): `hb:positive_control` failed on its py-spy leg (`py-spy dump` timed out after 30 seconds), and `run:exit_status` is the container's exit from that failure. `nightly-ha (2025.2.0)` passed on the same commit. No cheaper detector exists: only this container lane runs py-spy inside the `homeassistant/home-assistant:stable` image.
 
 ## Forward-carry
