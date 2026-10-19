@@ -1,44 +1,36 @@
-Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 root-cause-unanswered: pr-contract went red, unanswered (117865632672: carry_audit BAD-DEST, R10-OPENPR-SILENT is not a group of the tree's roster; it exists only on handoff/audit-r10-roster)
+Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 root-cause-unanswered: pr-contract went red at b419463b1 (117865632672, BAD-DEST R10-OPENPR-SILENT), unanswered; the body says no run on b419463b1 was red
 
-bus-nonce: 17d3fa695dafe988e8ee366c51f929b1
-Round: sixth review of #2404, at the same code head as round 5. Round 1 blocked 5cf5786b9 (item-ref over-fire). Round 2 blocked 354c84a96 and round 3 blocked 312f31923 (both mutation-vacuous). Round 4 blocked 03f1681a3 (root-cause-unanswered, a body edit only). Round 5 blocked b419463b1 (carry-missing: R10-TICK-DRIVERS closed under the PR). This round judges round 5's repair: the body edit (PR updated 02:48:14 UTC) and the roster commit 6c891ee6e.
-Reviewed head: b419463b18a2a7da70c77b23e912769e4af6afe8 (ev/HEAD; still the PR head when written). Merge base 06c6f3cf2 = origin/main. Role contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+bus-nonce: 79a91d7be0b23b3565970d8734d89203
+Round: seventh review of #2404. Round 1 blocked 5cf5786b9 (item-ref over-fire). Rounds 2 and 3 blocked 354c84a96 and 312f31923 (mutation-vacuous). Round 4 blocked 03f1681a3 (root-cause-unanswered: wave-script and delivery-status). Round 5 blocked b419463b1 (carry-missing: R10-TICK-DRIVERS closed). Round 6 blocked b419463b1 (root-cause-unanswered: pr-contract 117865632672). This round judges the delta b419463b1..519bb4db9: a945bb62e, b2bbe0865, ab52c8457, f8acbc62a, 74201dd56 (main merges on the handoff line), e23fa9886 and 519bb4db9, plus the re-taken body.
+Reviewed head: 519bb4db971b5d49736fcacdd57d57bff8f6c630 (ev/HEAD). Merge base 2d843030a. Role contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
 Evidence: ev/ (this probe ref)
 
 ## Block
 
-Round 5's repair holds in substance, and the PR's own gate refuses it.
+The code is sound and round 6's substance is fixed. R10-OPENPR-SILENT is now in main's roster (`git grep` at 2d843030a, which this head merges), and pr-contract at this head passes: `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)` (117902749693 and 117902576185). The block is step 11 and `defect-root-cause.md`'s Enforcement section, and the repair is a body edit only.
 
-The substance (step 10) holds:
-- R10-OPENPR-SILENT is on origin/handoff/audit-r10-roster (73bb15fe8). Commit 9cdbc67eb adds it, and 6c891ee6e (an ancestor of the branch head) appends the carry (ev/roster.json).
-- The group is live. Its `resume.stage` is `in-progress`. Its `files` include `tools/audit/seat/orchestrator_tick.py`. PR #2422 is open at ee93af58a (ev/pr2422.txt), and it does not yet call carry_audit, which is right for a carry whose precondition is this PR merged.
-- The carry text names the pass (`carry_audit.py sweep --last N --issues` with both roster refs, and a dispatch line on exit 1). It names the precondition (PR #2404 merged). It names the control: a self-test arm with its null control, where exit 0 prints no dispatch line and exit 1 prints one.
-- The body's Forward-carry reads `Carry: R10-OPENPR-SILENT`. `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body` gives `6 routed, 0 unrouted, 0 bad`. `--roster-ref 6c891ee6e` gives the same (ev/body_check.txt).
+The trigger is "a check that went red on a commit in the branch". The commit check-runs API for b419463b18a2a7da70c77b23e912769e4af6afe8 (ev/check-runs-b419463b1.tsv, 51 runs) holds `117865632672 pr-contract completed failure 2026-10-19T02:48:20Z`. That run is round 6's block: carry_audit printed BAD-DEST because the destination was on the roster branch and not yet on main. This body's `## Red checks` opens with "No check run on the previous PR head `b419463b18a2a7da70c77b23e912769e4af6afe8` was red." That is false, and the section names 117865632672 nowhere. pr-contract does not refuse this itself, because its red list excludes pr-contract by name (`select(.name != "pr-contract")`, ev/pr-contract-117902749693.log). Its red-history line lists only `delivery-status, fast (3.14), wave-script`. So the gate passes and the check falls to the reviewer, as at 713182ca1, where the body did answer pr-contract's own red.
 
-The red (step 11): the pr-contract run 117865632672 started at 02:48:20, after the body edit, and concluded failure. Its last step, the check this PR adds, runs `carry_audit.py check --body` with no `--roster-ref`, so it reads the tree's roster. That roster is main's, because this PR does not touch it. The run logged `BAD-DEST body item 5978f947: R10-OPENPR-SILENT: R10-OPENPR-SILENT is not a group of the roster` and `CARRY-AUDIT: 6 finding item(s): 5 routed, 0 unrouted, 1 bad destination(s)`, then exit 1 (ev/pr-contract-117865632672.log, lines 1766-1772). I reproduce it locally. With no ref, and with `--roster-ref origin/main`, I get the same BAD-DEST (ev/body_check_ci.txt and ev/body_check.txt). `git grep R10-OPENPR-SILENT origin/main -- dev/programme/rosters/` returns nothing. All 51 check runs on the head have concluded: 35 success, 15 skipped, and this 1 failure (ev/check-runs.tsv). This pr-contract run is the last to conclude red, and it checked the current body, so the step-11 posting condition holds. The body's `## Red checks` says "At the current head ... no check run is red". That is no longer true, and the section does not name this run.
-
-Repair, by the fixer and orchestrator, no code change:
-- (a) Land the roster's R10-OPENPR-SILENT entry, with its carry, on main through the roster's record path. Then re-run pr-contract, for example on a body edit, so the tree's roster holds the group. Or
-- (b) leave the destination as it is and answer the red under `## Red checks`. Name pr-contract 117865632672 and its cause: the destination is on the roster branch and not yet on main. Then state the cheaper-detector answer. That satisfies step 11, but pr-contract stays red until (a) happens anyway.
-
-(a) is the one that turns the PR green.
-
-Note, not a block (an instrument finding, the mirror of the body's own Friction item on roster lag): the destination check reads a single roster. CI reads the tree's roster, which lags the roster branch. So a carry to a group newly added on the roster branch refuses until the record lands on main, while a carry to a group merged but not yet marked done passes (round 5). Either check fails on whichever roster lags. The check could read the roster branch as well as the tree, as `sweep` takes two refs. Carry: O10-policy-fixer-md
-
-Note, not a block: with the verdict comments included (`check --comments`, the input the train's pre-flight `findings` step reads), round 3's non-blocking note on M17 (item 7321e737, "Not a block: M17 (`if ds else []` dropped) ...") reads `UNROUTED [non-blocking]`. It was written before the marker existed. Its substance is settled in this diff: the body's Alternatives say the `if ds else []` guard was deleted, and `grep "if ds else" tools/audit/carry_audit.py` at the head is empty. So this is no carry-missing for step 10, because no later stage changes. It will park the PR at a `findings` pre-flight, though, once one runs. The body can route it by reference: `Carry: dismissed: guard deleted in this diff (item 7321e737)`. Carry: dismissed: settled in this diff; the reference-form fix is the fixer's body edit, named here
+Repair: replace that sentence with a bullet that names pr-contract 117865632672 at b419463b1, its cause (the carry pointed at a group that was only on handoff/audit-r10-roster while the check reads the tree's roster), what cleared it (the roster entry landed on main, which 519bb4db9 merges in), and the cheaper-detector answer. A cheaper detector could be `carry_audit.py check --body` with `--roster-ref origin/main` run locally before the body edit. Its standing cost is about one second. Or the body can record that none exists. No code change is owed.
 
 ## Verified
 
-RESULT carry_audit_selftest=144 failed=0; queue_pre_flight_selftest=37 failed=0 (ev/selftest.txt; worktree clean after)
-RESULT body_check roster=origin/handoff/audit-r10-roster: "6 routed, 0 unrouted, 0 bad" rc=0; roster=6c891ee6e: same
-RESULT body_check roster=tree/origin/main: "5 routed, 0 unrouted, 1 bad" rc=1 (BAD-DEST R10-OPENPR-SILENT), matching CI's pr-contract 117865632672
-RESULT body+comments check (roster branch): "9 items, 8 routed, 1 unrouted [non-blocking] 7321e737, 0 bad"
-RESULT roster group R10-OPENPR-SILENT: present, stage in-progress, owns orchestrator_tick.py, carry holds the pass, its precondition and its control; #2422 open, unmerged
-RESULT check_runs_head=51 concluded: 35 success, 15 skipped, 1 failure (pr-contract 117865632672)
-RESULT merge_tree_vs_origin_main=clean (exit 0; origin/main 06c6f3cf2 = merge base)
-RESULT version_manifest_notes=untouched (code head unchanged since round 5)
+RESULT drive sites=152 unmapped=0 mutants=190 survived=0 rc=0 (python3 dev/audit/harnesses/r10_carry_parser_mutants.py at head; 191 RESULT lines: M0 baseline, S-span-lo equivalent, every other mutant killed; worktree clean after; ev/drive.txt)
+RESULT drive M15b=killed (1: "a segment ends at its line"); M16=killed (1: "a segment ends at the next `Carry:`"); M14=killed (3); M15=killed (3); M13=killed (4)
+RESULT mutant_M10 (findings_gate call deleted from PreFlight.entry, my own edit) = killed: queue_pre_flight 41 checks, 4 failed, including "a body whose Friction finding names no destination PARKs on findings"; restored (ev/mutant-M10.txt)
+RESULT carry_audit_selftest=144 failed=0; queue_pre_flight_selftest=41 failed=0; merge_train_selftest=189 failed=0 (ev/selftest.txt)
+RESULT body_check (tree roster) = "6 routed, 0 unrouted, 0 bad" rc=0 (ev/body_check.txt)
+RESULT rows39 rows_caught=33 of=33; last20 rows_caught=34 of=35, last20_hits=76 on_a_row=46 on_no_row=30
+RESULT sweep --issues (origin/main roster) ISSUE-UNOWNED=4 (#2429, #2428, #2409, #2265), as the body says; roster-drift 64b1f82a3/b29cd8d23=6, same ref twice=0
+RESULT codeowners_gap uncovered_files=0; policy_lint TOTAL 0 error(s) across 41 files; rules_sync ok; field_coverage ok; structure PASSED; closure select MODE: SCOPED -- 3 script(s) run; delivery_status OK, 0 overdue (ev/figures.txt)
+RESULT resolution_delta: 519bb4db9, e23fa9886, f8acbc62a, ab52c8457 and b2bbe0865 each have exactly the tree `git merge-tree --write-tree` of their parents gives. Two merges were resolved by hand (ev/resolution.txt):
+- a945bb62e: the three finding-propagation rule files. At head, policy_lint and rules_sync pass.
+- 74201dd56: tools/audit/seat/queue_pre_flight.py. `git diff origin/main HEAD -- queue_pre_flight.py` contains additions only: the docstring line, the import, `findings_gate`, `issue_state`, the `dests` option and five self-test arms. Main's `raise_hold` step is kept intact (ev/qpf-vs-main.diff).
+RESULT carry_audit.py and both r10_carry harnesses are byte-identical between b419463b1 and the head, and between 6f20f78a3 and the head.
+RESULT merge_tree_vs_origin_main=clean (exit 0; origin/main 913ce1ff5)
+RESULT version_manifest_notes=untouched; claim files untouched
+RESULT check_runs_head=45 at 05:55 UTC: 31 success, 13 skipped, 0 failure, 1 in_progress (closures 117904612520); the block does not depend on it (ev/check-runs.tsv). The head was unchanged at 05:55 UTC
 
-- Step 12 and #1667: the head is unchanged since round 5, and so is the code head (6f20f78a3). Round 5's code measurements stand: the drive (152 sites, 0 unmapped, 190 mutants, 0 survived), the self-tests and the resolution delta. I re-took the two self-tests. I did not re-run the drive or the heavy figures. CI is green on them at this head.
-- Step 9: the fixer's instruments (r10_carry_parser_mutants.py, r10_carry_sweep_rows.py) are disclosed as such. The round-10 sweep still has no committed finder harness.
-- Step 10: the second Forward-carry item and the Friction items route to O10-policy-fixer-md. It is out of tree and UNVERIFIED here, as the PR says.
-- The round-6 dispatch named the instrument note as a Friction item carried to O10-policy-fixer-md. It is present (body item 9fba80da, "the destination check reads the roster's stage, which lags a merge").
+- Step 9: r10_carry_parser_mutants.py and r10_carry_sweep_rows.py are the fixer's own instruments, disclosed as such. The round-10 sweep still has no committed finder harness. M10 and the probes are mine.
+- Step 10: the first Forward-carry item now routes to R10-OPENPR-SILENT, which main's roster holds. Round 6 opened the carry text on the roster branch (pass, precondition, control). The O10-policy-fixer-md items are out of tree and UNVERIFIED here, as the PR says.
+- Note, not a block: `carry_audit.py --roster-ref origin/main check --body --comments` gives "11 items, 10 routed, 1 unrouted": round 3's M17 note (review 6253086887, item 7321e737, written before the marker existed). Round 6 named this, and the body still does not route it. The train's `--pre-flight` `findings` step will PARK this PR on it. It costs one body line: `Carry: dismissed: guard deleted in this diff (item 7321e737)`. Carry: dismissed: the fixer's body edit, named here and in round 6

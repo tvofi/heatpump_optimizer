@@ -1,8 +1,0 @@
-== no roster-ref (CI's invocation, tree roster at head)
-BAD-DEST body item 5978f947: R10-OPENPR-SILENT: R10-OPENPR-SILENT is not a group of the roster
-NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
-CARRY-AUDIT: 6 finding item(s): 5 routed, 0 unrouted, 1 bad destination(s)
-rc=0

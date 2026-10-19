@@ -1,0 +1,8 @@
+  ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+  ok   a pull request that is not open is a FAIL
+  ok   an unreadable pull request is a FAIL
+  FAIL a body whose Friction finding names no destination PARKs on findings
+  FAIL ... and with `Carry:` to a done group PARKs, naming it
+  FAIL a verdict's non-blocking note with no destination PARKs on findings
+  FAIL comments that cannot be read PARK, fail-closed
+queue_pre_flight self-test: 41 checks, 4 failed
