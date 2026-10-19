@@ -446,7 +446,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `roster_lib.py` — shared roster parsing and wave logic (depth, critical
   path, open groups, the branch-to-group lookup), and the one owner of WHICH
   roster: `roster_path` picks the newest `dev/programme/rosters/wave-r<N>-groups.json`
-  (at a ref or on the checkout) unless `--roster-path` names one. Import it;
+  (at a ref or on the checkout) unless `--roster-path` names one; and of
+  WHICH REF: `default_roster_ref` answers the round's roster branch
+  `origin/handoff/audit-r<N>-roster` when the clone has it, else
+  `origin/main`, with a note whenever that answer may be stale. Import it;
   `--self-test` is its only CLI. When: any tool that reads the roster — one
   schema reader, not several. Refusal: no roster where one was asked for
   raises `RosterNotFound`, never a fallback to another round's.
@@ -493,9 +496,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `state_docs.py beat` is the same instrument on a loop, and it lives here
   rather than in a session's scratch for decision 0013's reason — an
   instrument the programme runs belongs where a later session can test it. A
-  pass reads `--watch-ref` at origin; when it has moved it refreshes the
-  roster ref (so resume fields other seats wrote are visible), regenerates
-  and pushes, and when it has not it writes nothing at all. When:
+  pass reads `--watch-ref` and the roster ref at origin (O17: a roster edit
+  moves the state docs as a merge does); when either has moved it refreshes
+  the roster ref (so resume fields other seats wrote are visible),
+  regenerates and pushes, and when neither has it writes nothing at all.
+  With no `--roster-ref` the roster ref is `roster_lib.default_roster_ref`'s. When:
   continuously beside a merge train, since it takes no lock and cancels
   nothing — the state docs are regenerated rather than rebuilt at session
   end. Refusal, and the one that saves you: the tip is recorded ONLY on a
