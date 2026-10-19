@@ -1,0 +1,4 @@
+base P0: RESULT P0.autumn.g0.40.vent_tripped_share.fix1.00=0.187 RESULT P0.autumn.g0.40.vent_tripped_share.fix2.00=0.112 
+base P1: RESULT P1.autumn.g0.40.vent_tripped_share.fix1.00=0.172 RESULT P1.autumn.g0.40.vent_tripped_share.fix2.00=0.210 
+head P0: RESULT P0.autumn.g0.40.vent_tripped_share.fix1.00=0.000 RESULT P0.autumn.g0.40.vent_tripped_share.fix2.00=0.000 
+head P1: RESULT P1.autumn.g0.40.vent_tripped_share.fix1.00=0.000 RESULT P1.autumn.g0.40.vent_tripped_share.fix2.00=0.006 

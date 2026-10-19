@@ -1,8 +1,0 @@
-
-STRUCTURE RATCHET PASSED
-SEAMS 14 INSTANCE_CANDIDATES 1
-RESULT part1_failures=0
-RESULT cusum coordinator.py:_vent_cusum gates_learning=True referenced=True ok
-RESULT cusum coordinator.py:_cop_health_cusum gates_learning=False referenced=False ok
-RESULT cusums=2 open_learning_gates=0
-rc=0

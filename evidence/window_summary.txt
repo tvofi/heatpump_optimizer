@@ -1,4 +1,0 @@
-base worst_nowindow_false (0.617, 'seed2.onoff.g0.4.ua1.0.vent0x0h') nonzero [('seed1.pi.g0.4.ua1.0.vent0x0h', 0.036, '12.00'), ('seed1.pi.g0.4.step4.ua1.0.vent0x0h', 0.025, '8.25'), ('seed1.onoff.g0.4.ua1.0.vent0x0h', 0.615, '18.25'), ('seed1.onoff.g0.4.step4.ua1.0.vent0x0h', 0.461, '18.25'), ('seed2.pi.g0.4.ua1.0.vent0x0h', 0.172, '57.75'), ('seed2.pi.g0.4.step4.ua1.0.vent0x0h', 0.019, '6.50'), ('seed2.onoff.g0.4.ua1.0.vent0x0h', 0.617, '18.00'), ('seed2.onoff.g0.4.step4.ua1.0.vent0x0h', 0.406, '18.00')]
-base detected {'vent100x8h': '17/20', 'vent150x4h': '20/20', 'vent300x12h': '20/20', 'vent300x2h': '20/20', 'vent300x8h': '20/20'}
-head worst_nowindow_false (0.027, 'seed2.onoff.g0.4.step4.ua1.0.vent0x0h') nonzero [('seed1.onoff.g0.4.step4.ua1.0.vent0x0h', 0.019, '6.50'), ('seed2.onoff.g0.4.step4.ua1.0.vent0x0h', 0.027, '9.00')]
-head detected {'vent100x8h': '0/20', 'vent150x4h': '16/20', 'vent300x12h': '20/20', 'vent300x2h': '20/20', 'vent300x8h': '20/20'}
