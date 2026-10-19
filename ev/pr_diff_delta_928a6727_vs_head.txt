@@ -1,0 +1,12 @@
+544c544
+< @@ -3528,7 +3559,7 @@ const CHECKS = [
+---
+> @@ -3533,7 +3564,7 @@ const CHECKS = [
+553c553
+< @@ -4586,10 +4617,17 @@ function assertAcceptance(derived) {
+---
+> @@ -4599,10 +4630,17 @@ function assertAcceptance(derived) {
+571c571
+< @@ -5745,12 +5783,13 @@ function cmdRecord(findings, { measuredRecord = false } = {}) {
+---
+> @@ -5758,12 +5796,13 @@ function cmdRecord(findings, { measuredRecord = false } = {}) {

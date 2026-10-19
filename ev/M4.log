@@ -1,0 +1,147 @@
+
+dev/archive/carries/carry-1067.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1067.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1295.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1295.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1300.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1300.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1308.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1308.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1320.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1320.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1330.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1330.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1336.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1336.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1395.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1395.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1398.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1398.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1412.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1412.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1454.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1454.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1459.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1459.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1463.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1463.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1617.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1617.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1644.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1644.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1646.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1646.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1647.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1647.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1648.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1648.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1649.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1649.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1651.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1651.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1652.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1652.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1653.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1653.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1654.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1654.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1655.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1655.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1659.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1659.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1660.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1660.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1668.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1668.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1686.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1686.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1743.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1743.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1747.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1747.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1757.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1757.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1776.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1776.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-1791.json
+  ERROR   [rule-binding] dev/archive/carries/carry-1791.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-681.json
+  ERROR   [rule-binding] dev/archive/carries/carry-681.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-752.json
+  ERROR   [rule-binding] dev/archive/carries/carry-752.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-932.json
+  ERROR   [rule-binding] dev/archive/carries/carry-932.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/carries/carry-962.json
+  ERROR   [rule-binding] dev/archive/carries/carry-962.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/rosters/wave-4-groups.json
+  ERROR   [rule-binding] dev/archive/rosters/wave-4-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/rosters/wave-5-groups.json
+  ERROR   [rule-binding] dev/archive/rosters/wave-5-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/rosters/wave-d11-groups.json
+  ERROR   [rule-binding] dev/archive/rosters/wave-d11-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/rosters/wave-r8-groups.json
+  ERROR   [rule-binding] dev/archive/rosters/wave-r8-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+dev/archive/rosters/wave-ux-groups.json
+  ERROR   [rule-binding] dev/archive/rosters/wave-ux-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+tools/policy/fixtures/carry-990001.json
+  ERROR   [rule-binding] tools/policy/fixtures/carry-990001.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+tools/policy/fixtures/carry-990002.json
+  ERROR   [rule-binding] tools/policy/fixtures/carry-990002.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+tools/policy/fixtures/carry-990003.json
+  ERROR   [rule-binding] tools/policy/fixtures/carry-990003.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+tools/policy/fixtures/carry-990004.json
+  ERROR   [rule-binding] tools/policy/fixtures/carry-990004.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+tools/policy/fixtures/roster-probe/wave-probe-groups.json
+  ERROR   [rule-binding] tools/policy/fixtures/roster-probe/wave-probe-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 13 recorded occurrence(s)
+
+TOTAL: 47 error(s) across 41 policy file(s)
+
+FIXTURE OVER-FIRES: rule-binding produced 2 finding(s) against a model where every glob matches, every corpus file is bound and no rule is unscoped, e.g. "is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the"
