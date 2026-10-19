@@ -15,8 +15,9 @@ git show origin/main:dev/programme/rosters/wave-r10-groups.json   # the roster
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-ARCHSCORE-COVERAGE (stage in-progress: p1 #2293 + p2 #2311 merged; p3 #2320 in review r4; p4/p5 not started, branch `handoff/r10-archscore-coverage`, note `None`): `git fetch origin handoff/r10-archscore-coverage && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-DEEPLINK-HANDLERS (stage planned, branch `handoff/r10-deeplink-handlers`, note `None`): `git fetch origin handoff/r10-deeplink-handlers && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-OPENPR-SILENT (stage in-progress, branch `handoff/r10-openpr-silent`, note `None`): `git fetch origin handoff/r10-openpr-silent && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ARCHSCORE-COVERAGE, R10-DEEPLINK-HANDLERS, R10-DIAG-REPLAY, R10-I5-DOCS, R10-RCA-FRICTION, R10-RCA-STRUCTURE-BLIND, R10-TICK-DRIVERS, R10-TRAIN-HOLD, R10-TRUST-RELATIVE, R10-VENT-DETECTOR
+Ready next (after-edges satisfied; nothing open constrains them): R10-ARCHSCORE-COVERAGE, R10-CI-LAYOUT, R10-DEEPLINK-HANDLERS, R10-DIAG-REPLAY, R10-I5-DOCS, R10-MERGE-SUBJECT-HARDEN, R10-MUTATION-ANCHOR, R10-OPENPR-SILENT, R10-POLICY-GATE-SCOPING, R10-POLICY-LINT-FAMILY, R10-RCA-FRICTION, R10-RCA-STRUCTURE-BLIND, R10-STAMP, R10-TRAIN-HOLD, R10-TRUST-RELATIVE, R10-VENT-DETECTOR
 
 ## Resume steps
 
