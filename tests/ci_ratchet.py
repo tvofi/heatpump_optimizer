@@ -115,10 +115,12 @@ def budget_problems(table: dict) -> list[str]:
     return problems
 
 
-def archscore_metrics() -> dict[str, int]:
+def archscore_metrics(only: set[str] | None = None) -> dict[str, int]:
+    """The score vector as ratchet keys; ``only`` is vector.measure's job filter (the census arm
+    of tools/policy/field_coverage.mjs runs the card job alone)."""
     sys.path.insert(0, str(ROOT / "tools" / "audit"))
     from archscore import vector  # noqa: E402
-    return {f"archscore.{k}": v for k, v in vector.measure(ROOT).items()}
+    return {f"archscore.{k}": v for k, v in vector.measure(ROOT, only).items()}
 
 
 def file_lane(path: Path) -> str:
