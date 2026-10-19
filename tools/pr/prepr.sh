@@ -1659,7 +1659,7 @@ EOS
   case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
   case "$flow" in *'throwaway_line "'*) true ;; *) false ;; esac
-  st $? 0 "the raw-git step calls throwaway_line, so a raw repository build is refused before the push"
+  st $? 0 "the repository-build step calls throwaway_line, so a raw build is refused ahead of the handoff"
   case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
   st $? 0 "the pr-body step hands body_line the unpinned-site file, so mutation reaches the red check before the push"
 
