@@ -1,0 +1,21 @@
+# git grep -n at 8bd4e68f: where DESIGN-P2.md still builds R-10 as an open question
+$ git grep -n -E "LAG_MAX|R-10 applies|U6 stops|code-scanning/alerts|alerts\?" 8bd4e68f -- DESIGN-P2.md
+8bd4e68f:DESIGN-P2.md:493:  median 1242 s against Tests' 2059 s) and at most `LAG_MAX` after the last analysis
+8bd4e68f:DESIGN-P2.md:719:       `newest matched analysis created_at + LAG_MAX` has passed. Why a delay and not
+8bd4e68f:DESIGN-P2.md:724:       fail every `pr-contract` closed. `LAG_MAX` is U6's measurement (below); the
+8bd4e68f:DESIGN-P2.md:732:    measures `LAG_MAX` and plants a red code-scanning result to show it is listed
+8bd4e68f:DESIGN-P2.md:1215:| U6 pr-contract | `probe/ci-layout-pr-contract` | `workflow_call`; PR from inputs; red list excludes `pr-contract / pr-contract` and `gate` (N4); the code-scanning wait of 4.3 *(rev2, item 5)*; `security-events: read`, `actions: rea
+8bd4e68f:DESIGN-P2.md:1304:  `LAG_MAX` is fixed. If the check never reflects a later analysis, a red only the
+8bd4e68f:DESIGN-P2.md:1377:| **A. Keep today's rule** | Nothing is enforced beyond the `CodeQL` check as GitHub reports it. 4.3's step 5 (wait `LAG_MAX` after the newest analysis) is dropped, because it would wait for nothing. | No policy change, and the simpl
+8bd4e68f:DESIGN-P2.md:1378:| **B. `pr-contract` lists the open alerts of the analyses it matched** | Step 4 of 4.3 already finds, for each uploaded leg, the analysis of the carried code run (`ref=refs/pull/<N>/merge`, `commit_sha == M`). `pr-contract` also rea
+
+# workflow_run / probe measurements of the sweep
+$ git grep -n -E "M-6|with the sweep enabled|sweep turning" 8bd4e68f -- DESIGN-P2.md
+8bd4e68f:DESIGN-P2.md:1209:| U0 skeleton | `probe/ci-layout-gate` | `ci.yml` (the run-id `concurrency` group, `run-name`, guards, `refresh`; *rev3, editorial: revision 2 left "lanes" here*), `tools/ci/prelude.py`, `tools/ci/gate.py` (the predicate, `--refresh`
+8bd4e68f:DESIGN-P2.md:1217:| U8 budget-raise-gate | `probe/ci-layout-budget` | `workflow_call`; review trigger moves to `ci.yml`; `gate-sweep.yml` | U0 | static; runtime `pull_request` pair; on the draft probe PR that raises a budget: submit a review, then dis
+8bd4e68f:DESIGN-P2.md:1236:   FAIL, with the sweep turning the code run's `gate` green after the approval); a
+8bd4e68f:DESIGN-P2.md:1243:   head ends green, N2). *(rev3, R3-1)* Plus M-6's sequence on the assembled layout.
+$ git grep -n -i "default branch" 8bd4e68f -- DESIGN-P1.md DESIGN-P2.md
+8bd4e68f:DESIGN-P1.md:250:    Tests on the default branch" becomes Nightly) *(rev1, item 11: phase 1 named
+8bd4e68f:DESIGN-P1.md:504:   exists on the default branch, so without it no `probe/ci-layout-<unit>` ref can
+8bd4e68f:DESIGN-P1.md:673:  file on the default branch. Their first execution under nightly.yml is therefore

@@ -1,0 +1,43 @@
+## arm TAIL (read at +5 s, completion +TAIL s later)
+  tail   0 s chain   END-BAD 0  
+  tail   0 s nochain END-BAD 0  
+  tail  20 s chain   END-BAD 0  
+  tail  20 s nochain END-BAD 0  
+  tail  30 s chain   END-BAD 0  
+  tail  30 s nochain END-BAD 0  
+  tail  35 s chain   END-BAD 0  
+  tail  35 s nochain END-BAD 0  
+  tail  40 s chain   END-BAD 0  
+  tail  40 s nochain END-BAD 0  
+  tail  45 s chain   END-BAD 0  
+  tail  45 s nochain END-BAD 0  
+  tail  50 s chain   END-BAD 0  
+  tail  50 s nochain END-BAD 0  
+  tail  60 s chain   END-BAD 0  
+  tail  60 s nochain END-BAD 0  
+  tail 120 s chain   END-BAD 0  
+  tail 120 s nochain END-BAD 0  
+  tail 300 s chain   END-BAD 0  
+  tail 300 s nochain END-BAD 0  
+## arm READ-LATE (read 2 s before completion)
+  tail   0 s chain   END-BAD 0  
+  tail   0 s nochain END-BAD 0  
+  tail  20 s chain   END-BAD 0  
+  tail  20 s nochain END-BAD 0  
+  tail  30 s chain   END-BAD 0  
+  tail  30 s nochain END-BAD 0  
+  tail  35 s chain   END-BAD 0  
+  tail  35 s nochain END-BAD 0  
+  tail  40 s chain   END-BAD 0  
+  tail  40 s nochain END-BAD 0  
+  tail  45 s chain   END-BAD 0  
+  tail  45 s nochain END-BAD 0  
+  tail  50 s chain   END-BAD 0  
+  tail  50 s nochain END-BAD 0  
+  tail  60 s chain   END-BAD 0  
+  tail  60 s nochain END-BAD 0  
+  tail 120 s chain   END-BAD 0  
+  tail 120 s nochain END-BAD 0  
+  tail 300 s chain   END-BAD 0  
+  tail 300 s nochain END-BAD 0  
+rc 0
