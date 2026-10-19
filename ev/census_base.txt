@@ -1,0 +1,7 @@
+spread: cells 32 objective lower 0 higher 0 identical plan 32
+flat: cells 32 objective lower 0 higher 0 identical plan 32
+failures 0
+
+real	5m3.402s
+user	4m29.102s
+sys	0m1.368s
