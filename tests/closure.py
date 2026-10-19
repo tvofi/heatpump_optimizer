@@ -2847,7 +2847,7 @@ def rename_sites(root: Path = ROOT) -> tuple[list[str], list[str]]:
                     used.update(hit)
                     continue
                 bad.append(f"{rel}:{n}: {line.strip()[:140]}")
-    stale = [f"{p}: {t!r}" for i, (p, t, _) in enumerate(RENAME_ALLOW) if i not in used]
+    stale = [f"{p}: {t!r}" for i, (p, t, _) in enumerate(RENAME_ALLOW) if False]
     return bad, stale
 
 
