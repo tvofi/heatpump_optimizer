@@ -35,7 +35,7 @@
 # owed a pull request -- `open_pr.sh` fetches both and fails without the body --
 # and is reported in one of three states. IN FLIGHT: its tip is younger than
 # --min-age-h hours (default 2), a lane's own push, silently counted, never a
-# line. STRANDED: no pull request sits at `fix/<t>` or `fix/<t>-pr`, the tip is
+# line. STRANDED: no `fix/<t>` or `fix/<t>-pr` head carries the tip, the tip is
 # no ancestor of `main` or a live `fix/*` head, and the change is not already on
 # main. SUPERSEDED: flagged by that ancestry test, but a content-equivalence
 # arm (`content_superseded`) finds main already carries every path the ref's
@@ -526,12 +526,18 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
     if [ "$no_body" != 1 ]; then
       case $bodies_nl in *"$LF$ns/handoff-body/$t$LF"*) ;; *) nb=$((nb + 1)); continue ;; esac
     fi
-    # DISCHARGED, name half: the exact branch names (`fix/<t>` or `fix/<t>-pr`).
-    # A de-prefixed name is NOT a discharge -- see the repair word -- or a pull
-    # request left behind by its own later work would read as delivered.
-    case $fix_nl in
-      *"$LF$ns/fix/$t$LF"*|*"$LF$ns/fix/$t-pr$LF"*) named=$((named + 1)); continue ;;
-    esac
+    # DISCHARGED, name half: the exact branch names (`fix/<t>` or `fix/<t>-pr`),
+    # at a head that carries the tip. A name alone is no discharge: a pull
+    # request behind its own newer handoff read as delivered for hours (#2411,
+    # 2026-10-18), and the repair word below names it `update`. A de-prefixed
+    # name is NOT a discharge either -- see the repair word.
+    hit=0
+    for dn in "$t" "$t-pr"; do
+      case $fix_nl in
+        *"$LF$ns/fix/$dn$LF"*) git merge-base --is-ancestor "$tip" "$ns/fix/$dn" && { hit=1; break; } ;;
+      esac
+    done
+    if [ "$hit" = 1 ]; then named=$((named + 1)); continue; fi
     # DISCHARGED, ancestry half: the tip is inside `main` or a live `fix/*`
     # head already. Both halves are required; each alone over-reports.
     if [ "$no_ancestry" != 1 ]; then
@@ -588,7 +594,7 @@ EOF
 self_test() {
   local W pass=0 fail=0 out rc h1 h2 norow r1 r2 r9 v1 v2 ra rf t tt ev n N0 N1 N1b N1c N2 N9
   local N3 N3b N3c N3d N4 DT fa g1 ro n0 realgit want wanttree
-  local o1 o2 u1 u2 c1 c2 s1 m1 mb f1 f2
+  local o1 o2 u1 u2 x1 x2 c1 c2 s1 m1 mb f1 f2
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -1006,6 +1012,19 @@ B
   out=$(run orphans --min-age-h 0)
   echo "$out" | grep -qx "ORPHAN r9-orp-upd $u2 .* repair=update"
   expect "a pull request whose head is behind its ref is repair=update" $?
+  # The same at the EXACT name (#2411's shape): a name whose head lacks the tip
+  # is no discharge. Null control: the exact name at the tip discharges it.
+  x1=$(mkc "$mb" orph-exact-pr)
+  x2=$(mkc "$x1" orph-exact-ref)
+  git -C "$W/seat" push -q origin "$x1:refs/heads/fix/orp-exact-pr" \
+    "$x2:refs/heads/handoff/orp-exact" "$x2:refs/heads/handoff-body/orp-exact"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "ORPHAN orp-exact $x2 .* repair=update"
+  expect "an exact-name pull request behind its newer handoff is repair=update, not discharged" $?
+  git -C "$W/seat" push -q -f origin "$x2:refs/heads/fix/orp-exact-pr"
+  out=$(run orphans --min-age-h 0)
+  ! echo "$out" | grep -q "^ORPHAN orp-exact " && echo "$out" | grep -q "named=[1-9]"
+  expect "null control: the exact-name pull request at the handoff tip is discharged by name" $?
   # A divergence: the ref and its pull request are siblings off main.
   c1=$(mkc "$mb" orph-rev-pr)
   c2=$(mkc "$mb" orph-rev-ref)
