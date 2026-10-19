@@ -2,8 +2,9 @@
 # R10-SEAT-SELFTESTS-CI fold (a finding from R10-ARCHSCORE-COVERAGE's census
 # work): does a pull request touching one of its inputs select governance.yml's
 # field-coverage step? The probes are the census inputs and the moved homes of
-# the inputs field_coverage.mjs reads (tests/layout.json's retired entries). Reads the step's own pathspec from the workflow at the
-# ref given (default HEAD) and runs the step's own predicate,
+# the inputs field_coverage.mjs reads (tests/layout.json's retired entries).
+# It reads the step's own pathspec from the workflow at the ref given (default
+# HEAD) and runs the step's own predicate,
 # `git diff --quiet "$SINCE" HEAD -- <pathspec>`, in a throwaway repository
 # over one-file commits. rc 1 from the predicate means "an input changed: run".
 #   bash dev/audit/harnesses/r10_field_coverage_paths.sh [<ref>]
