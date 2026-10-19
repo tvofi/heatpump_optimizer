@@ -1,0 +1,4 @@
+# base 4a3cbcf62
+upgrade  factor=  6720.000 savings_sek=  -363048.00 actual_sek=  1452192.00 savings_pct=-33.333333333333336
+null     factor=    28.000 savings_sek=     -168.00 actual_sek=      672.00 savings_pct=-33.33333333333333
+fresh    factor=     2.800 savings_sek=     -151.20 actual_sek=      604.80 savings_pct=-33.33333333333333
