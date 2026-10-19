@@ -33,7 +33,7 @@ STAT_CAP_FACTOR = 1.5
 #: variance back to it and no further -- without the cap, days with a
 #: regressor held still wind its slope's variance up until a single
 #: sample can swing it.
-REFERENCE_PRIOR_COV = 1.0
+REFERENCE_PRIOR_COV = 2.0
 
 
 def _as_utc(value: datetime) -> datetime:
