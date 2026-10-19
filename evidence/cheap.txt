@@ -1,0 +1,15 @@
+== version/claim/golden paths touched:
+none
+== structure
+STRUCTURE RATCHET PASSED
+== entities
+ModuleNotFoundError: No module named 'homeassistant'
+== env_drift claims-only
+claims hygiene: 2d843030a3d73eac2637f5e9410471c644709301 ok
+== scope
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+== agreement
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.3
+AGREEMENT ok
+
+ALL 2349 ENTITY CHECKS PASSED

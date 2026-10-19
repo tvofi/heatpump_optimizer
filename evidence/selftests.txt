@@ -2,9 +2,9 @@
   ok   pr_cap.py --self-test: its tally says 0 failed
 pr_args self-test: 46 checks, 0 failed
 pr_cap self-test: 12 checks, 0 failed
-              ^^^^^^^^^^^^^^^^^^^^^
-AttributeError: module 'roster_lib_tick' has no attribute 'DEFAULT_ROSTER_REF'
+orchestrator_tick self-test: 150 checks, 0 failed
 tick_loop self-test: 4 checks, 0 failed
 bus self-test: 70 checks, 0 failed
 proof_watch self-test: 34 checks, 0 failed
+  ok   pr_cap.py --self-test: its tally says 0 failed
 pr_args self-test: 46 checks, 0 failed
