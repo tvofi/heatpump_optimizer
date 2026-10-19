@@ -1,50 +1,83 @@
-Fix review: blocked 536080c084c3ea201db13860c29bcca577fac5db carry-missing: pr-contract (jobs 117965471342, 117968141018) refuses the body, carry_audit UNROUTED body item 6ff2bcdb (## Forward-carry): the dominated-rate-limit finding is "none." plus prose naming the orchestrator, not a Carry: to a stage; the fix itself measured sound
+Fix review: merge 536080c084c3ea201db13860c29bcca577fac5db
 
-bus-nonce: 8e02943d67d0f4e609a64dd035800ed3
+bus-nonce: 61d5aad2fc2a9f02578e6d4e44875373
 
-Round 1 (the PR has no earlier `Fix review:` comments). Measured head 536080c084c3ea201db13860c29bcca577fac5db (ev/HEAD); it was still the PR head when this verdict was written. Roles contract: `git diff 1bcc79884...origin/main -- dev/governance/roles/` is empty, so it is current.
+Round 2. Round 1 (comment 6263343957) returned `blocked carry-missing` at this same head. The code head has not moved since. The body was edited, and this round re-measures the code itself rather than carrying round 1's numbers.
 
-## The block (body only, no code change needed)
+- Measured head: 536080c084c3ea201db13860c29bcca577fac5db (ev/HEAD). `git ls-remote origin refs/pull/2435/head` still printed it when this verdict was written.
+- Roles contract: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty at both main tips seen (c35302773 and 90557e39e), so the contract is current.
 
-pr-contract ran on the body twice at this head after the GitHub API rate limit cleared (08:36Z, 08:43Z). `PR-BODY: 0 error(s)`, then `carry_audit.py check` printed
-`UNROUTED body item 6ff2bcdb (## Forward-carry) [section]: 'none. The two carried constraints are discharged above: ...'`, exit 1 (ev/pr-contract_117968141018.log).
-carry_audit's NONE_ITEM accepts only a bare `none` or `n/a: <reason>`. Its own self-test L05 covers this case: "a Forward-carry that starts `none` and records an observation is a finding". The section names a finding for a later stage: `max_step_fraction` (`HOUSE_LOSS_MAX_STEP`) can no longer bind at the shipped constants. The body also says it "goes to the orchestrator as a finding to dispatch", and `## Red checks` says the cheaper pr-contract detector was "reported to the orchestrator for the root-cause seat". Neither is routed (`finding-propagation.md`). Fix: either carry the dominated-rate-limit finding to its stage with a `Carry:` line (and the root-cause one too, if it is meant to propagate), or reduce the section to a bare `none` and record the observation where carry_audit accepts it. This is a body edit, so the code head does not move. pr-contract then re-runs on the edited body.
+## Round 1's block is resolved
 
-## What measured sound (carries to a head that only edits the body)
+- `## Forward-carry` now reads `Carry: R10-DEAD-RATE-LIMIT`.
+- That group is on origin/main in `dev/programme/rosters/wave-r10-groups.json`, with `after: [R10-TRUST-RELATIVE]`. Its first `carry` item states the control as a precondition: "Re-measure at your merge base that the rate limit cannot bind with an arm where it WOULD bind on the pre-R10-TRUST-RELATIVE base (the null control), before deleting anything" (step 10, `finding-propagation.md`).
+- pr-contract job 117978195177 at this head printed:
+  - `PR-BODY: 0 error(s)`
+  - `CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)`
+  - `no version edit`
+  - `record red-history ... every failure conclusion across them: mutation`
+- The body answers `mutation` under `## Red checks`.
 
-- Mutation proof (step 1), in a scratch worktree at the head, `PYTHONPATH=tests/hastub python3 tests/features.py`:
-  - `reach = trust_region` (the absolute bound restored): `3 of 4215 FEATURE CHECKS FAILED`, rc 1. The same three checks and values the body quotes (ev/mut_reach_absolute.txt).
-  - My mutant `reach = max(current, 1.0) * trust_region`: 1 of 4215 failed (the #193 replay pin).
-  - My mutant `reach = min(current, 1.0) * trust_region`: 2 of 4215 failed (saturation and split invariance) (ev/mut_reach_max.txt, ev/mut_reach_min.txt).
-  - The tree was restored afterwards and `git status --porcelain` printed nothing.
-  - CI's `mutation` at this head: `MUTATION TABLE PASSED`, `thermal_model.py:1938 CLAMP_DROP -- killed by tests/entities.py`.
-- Finder's harness (step 2): `reseed_rolling.py` from study/r10-reseed `2c42ba4a0`, sha1 030df96abe88d7b12132798518bc92e466391d99, which matches the body. Run at merge base 1bcc79884 and at this head, defaults, every run rc 0 (ev/rolling.*.txt, ev/rolling_summary.txt). RESULT ratio_B_over_A.*_post:
-  - Head: every metric on sz_157, sz_060, tz_157_192, sz_null and tz_null reads 1.0000. This is the finding closed, with house_step_rms 1.0000 as well.
-  - Base:
-    - sz_157 house_std 1.0458, rmse 1.0215, fc_mae 1.0617.
-    - sz_060 0.5101 / 0.7874 / 0.8355.
-    - tz_157_192 0.8667 / 0.8204 / 0.8272, lower 0.8831 / 0.8540. Identical to the body.
-    - sz_null 0.9631 / 0.9628 / 0.9653.
-    - tz_null 0.9980 / 0.9971 / 0.9993 / 1.0006.
-  - Not re-derived exactly (step 8): the body's base-side sz_157 (1.0483 / 1.0227 / 1.0693) and sz_060 (0.5106 / 0.7799 / 0.8259). I re-ran sz_157 at the body's own base 768bfc0c3 and got 1.0458 / 1.0215 / 1.0617, the same as at 1bcc79884. No production or test-harness file differs between the two, so the gap is a machine floating-point difference in the closed-loop optimizer, not a tree difference. Direction and size hold. The finding's figures (head = 1.0000) reproduce exactly.
-  - The sz_null and tz_null figures agree to within 0.0002 (tz_null rmse/fc_mae 0.9971/0.9993 against the body's 0.9972/0.9989).
-- Perturbation and null control (step 3): `--trust-region 1e9` on sz_157 reads 1.0000 at both ends. The null plants read 1.0000 at the head.
-- Bundle harness (dev/audit/harnesses/r10_trust_relative_bundle.py): the owner's bundles are not available to this seat, so the store figures (1.0900 and so on) are NOT verified. I ran the harness on a synthetic bundle (ev/synth_bundle.json: two-zone, learned 1.5667 / 1.9223, default config) at both trees (ev/bundle_synth.txt):
-  - Base ratios: house 1.1548 / 1.1615 / 1.0011, lower 1.3540 / 1.3569 / 1.0013.
-  - Head ratios: 1.0000 on every metric.
-  - `--trust-region 1e9` and `--learned 1.0` read 1.0000 at both trees.
-  - This is the fixer's harness, not the finder's. I used it only as a companion check.
-- Class (step 6): the body's rule returns exactly the two seams it dispositions, `thermal_model.py:1938` and `:1944` (ev/class_rule.txt). The other `np.clip` sites in custom_components are fixed-range global bounds.
-- Claim files, golden fixtures, VERSION, manifest and RELEASE_NOTES (steps 4 and 5): the three-dot diff touches none of them, and CI prints `no version edit`.
-- Merge (step 13): `git merge-tree --write-tree origin/main(c35302773) 536080c08` gives tree b89b798d7c239300c78b9cab37415da453b8be1b, rc 0, no conflict.
-- Score and structure (step 14): at the head, `archscore score.py --diff 1bcc79884` prints `dS +0.0000 NULL` and `structure.py` prints `STRUCTURE RATCHET PASSED`. The diff adds the closures.json entry and one mutation-ledger pin. The pin is earned: the CLAMP_DROP mutant is killed.
-- Architecture (step 15): a one-line local change in the one shared step, with the constant's comment updated. No breach.
+## Mutation proof (step 1)
 
-## CI on this head (ev/check_runs.tsv, commit check-runs API)
+Each mutant ran in its own scratch worktree at the head with `PYTHONPATH=tests/hastub python3 tests/features.py`. `git status --porcelain` was empty after each one.
 
-- Green: fast (3.14), mutation, closures, coverage, coverage-ratchet, typing, browser, hassfest, scope, closure-scope, briefs, policy-docs, instrument-self-tests, wave-script, delivery-status, budget-raise-gate, graders-head-copy.
-- Rate-limited, then green on re-run: arch-score, validate-hacs and env-matrix first failed on the GitHub API rate limit (`API rate limit exceeded for installation` / `GitHub API is unreachable`) before measuring anything. Each re-run is green.
-- Red: pr-contract. Its first two runs died on the same rate limit before reading the body. The two later runs failed on the UNROUTED item above.
-- Red: nightly-status. Not this PR's (`defect-root-cause.md`); pr-contract lists it as the only red the body must answer, and `PR-BODY: 0 error(s)` accepts that.
-- Pending at writing: Analyze (python) (CodeQL re-run).
-- Red history: pr-contract printed `record red-history ... mutation, nightly-status`. The body answers mutation.
+- Control, unmutated: `ALL 4215 FEATURE CHECKS PASSED`, rc 0 (ev/features_head_control.txt).
+- `reach = trust_region` (the absolute bound restored): `3 of 4215 FEATURE CHECKS FAILED`, rc 1. These are the three checks the body names, with the body's values: scale 0.8999999999999999; target 2.5, bound 3.0; UA 0.40199999999999997 / 0.404 (ev/mut_absolute.txt).
+- My mutant `reach = current * trust_region * 0.5`: 4 of 4215 failed (ev/mut_half.txt).
+- My mutant `reach = current**0.5 * trust_region`: 3 of 4215 failed (ev/mut_sqrt.txt).
+- CLAMP_DROP `target = float((target))`, the site of the new ledger pin: 4 of 4215 failed (ev/mut_drop.txt). The pin is earned.
+- My first sequential mutant script was stopped at the 30-minute background limit partway through the `half` mutant (ev/mut_half.killed_partial.txt). The three remaining mutants were re-run in parallel and the results above are from that run. Nothing from the killed run is reported as a result.
+
+## Finder's harness (step 2) and null control (step 3)
+
+- Harness: `reseed_rolling.py` from study/r10-reseed `2c42ba4a0`, sha1 030df96abe88d7b12132798518bc92e466391d99, which matches the body.
+- Run at the merge base 1bcc79884 and at this head, defaults, every run rc 0 (ev/rolling.*.txt, ev/rolling_summary.txt).
+
+RESULT ratio_B_over_A.*_post, base -> head:
+
+| plant | metric (base values in this order) | base | head |
+|---|---|---|---|
+| sz_157 | house_std / house_rmse / fc_mae | 1.0458 / 1.0215 / 1.0617 | 1.0000 on all |
+| sz_060 | house_std / house_rmse / fc_mae | 0.5101 / 0.7874 / 0.8355 | 1.0000 on all |
+| tz_157_192 | house_std / house_rmse / fc_mae / lower_std / lower_rmse | 0.8667 / 0.8204 / 0.8272 / 0.8831 / 0.8540 | 1.0000 on all |
+| sz_null | house_std / house_rmse / fc_mae | 0.9631 / 0.9628 / 0.9653 | 1.0000 on all |
+| tz_null | house_std / house_rmse / fc_mae / lower_std / lower_rmse | 0.9980 / 0.9971 / 0.9993 / 1.0006 / 1.0034 | 1.0000 on all |
+| `--trust-region 1e9` (sz_157 and tz_157_192, the perturbation) | every metric | 1.0000 | 1.0000 |
+
+What this shows:
+- At the head the finding is closed: the reseed is an exact re-parameterisation.
+- The harness moves under its own perturbation: with the trust region off, the base ratios also read 1.0000.
+- My numbers are identical to round 1's.
+
+Not re-derived exactly (step 8):
+- The body's base-side sz_157 reads 1.0483 / 1.0227 / 1.0693 and sz_060 reads 0.5106 / 0.7799 / 0.8259.
+- I get the values in the table above, and round 1 got the same values at the body's own base 768bfc0c3. No production or test file differs between the two bases.
+- The gap is closed-loop floating-point drift between machines. Its direction and size hold, and the head-side figures (1.0000) reproduce exactly.
+- tz_null differs from the body by at most 0.0004.
+
+Bundle-harness figures (the owner's stores): NOT verified. This seat has no access to the bundles, and round 1 checked that harness only on a synthetic bundle. The harness is the fixer's, not the finder's.
+
+## Remaining steps
+
+- Step 6, class. The body's rule returns exactly the two seams it dispositions, `thermal_model.py:1938` (closed) and `:1944` (the rate limit, already relative, and carried as dead) (ev/class_rule.txt). Both call sites pass `_LEARNER_TRUST_REGION`. `_apply_*` holds current >= 0.3, so the relative reach is never 0.
+- Steps 4 and 5. The three-dot diff touches no claim file, no golden fixture, VERSION, the manifest or RELEASE_NOTES (ev/version_claims.txt). CI printed `no version edit`.
+- Step 7. The body's `## Head` names 536080c08, the head I measured.
+- Step 13, merge check.
+  - Against c35302773: `git merge-tree --write-tree` gave tree b89b798d7c239300c78b9cab37415da453b8be1b, rc 0 (ev/merge_tree.txt).
+  - Main then moved to 90557e39e, which merged #2368. Against it: tree a30f96f657b25ba726fa65ad65935baa884a2df3, rc 0, with `LEDGER-MERGE: resolved tests/closures.json` (inert_reads set merge) (ev/merge_tree_latest.txt).
+  - Main's newer thermal_model.py and coordinator.py hunks contain no trust, Newton, HOUSE_LOSS, LOWER_FLOOR or `_LEARNER` term.
+  - GitHub cannot run that ledger driver, so it may show the PR as DIRTY. The orchestrator's main merge has to be done locally, as the body already says.
+- Step 14. `dS +0.0000 NULL`. The closures.json entry classifies the new harness. The one ledger pin is earned (CLAMP_DROP killed, above).
+- Step 15. A one-line local change in the one shared step, with the comments and the constant's comment updated. No breach.
+
+## CI on this head (step 11; commit check-runs API, filter=all, ev/check_runs_all.tsv)
+
+- Every check's latest run is completed, success or skipped. Nothing is pending.
+- Earlier reds at this head:
+  - validate-hacs and env-matrix: the GitHub API rate limit, as round 1 recorded. Green on re-run.
+  - nightly-status: not this PR's, and green on its latest run.
+  - pr-contract: rate limit, then round 1's UNROUTED carry. Every pr-contract run from 09:03Z on is green, and those runs started after the last red concluded.
+- `mutation` is green at this head, and its earlier red (at ebeda1c0d) is answered in `## Red checks`.
+
+Reviewer-built instruments: none beyond scratch sed mutants, and a script that ran the finder's harness at both trees.

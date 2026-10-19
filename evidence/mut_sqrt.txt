@@ -1,0 +1,20 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index 9005a3da3..d54d316cb 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1934,7 +1934,7 @@ def learner_newton_step(
+     # A fraction of the current estimate, so the bound in UA is
+     # ``current_u * trust_region`` however UA splits into base and multiplier
+     # (#2252: a fixed offset made a reseed change the step size alone).
+-    reach = current * trust_region
++    reach = (current ** 0.5) * trust_region
+     target = float(np.clip(target, current - reach, current + reach))
+ 
+     # The EWMA and the rate limit below are what decide how fast genuine
+  FAIL the extracted Newton step leaves the learned scale unchanged  [scale 0.9022557310209147]
+  FAIL the trust region saturates at a fraction of the current estimate  [target 2.7071067811865475, bound 3.0]
+  FAIL and a saturated step in UA does not depend on the prior/multiplier split  [UA 0.4028284271247462 at (0.2, 2.0), 0.404 at (0.4, 1.0)]
+3 of 4215 FEATURE CHECKS FAILED
+rc=1
+porcelain-after: []
