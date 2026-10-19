@@ -1,0 +1,16 @@
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+rc=0
+ALL 2349 ENTITY CHECKS PASSED
+ALL 109 HARNESS HEADER CHECKS PASSED
+layout self-test: ok
+ALL 124 closure shrink pins PASSED
+claims hygiene: abb397938097b0b64e49d29fbbfd0ce59afbaf7b ok
+STRUCTURE RATCHET PASSED
+policy_lint rc=0
+RESULT uncovered_files=0 count
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since abb397938097
+ref_privacy --check at HEAD: 18 file(s) with a push site, 9 guarded, 10 line(s) added since abb397938097 judged, 0 refused
+seam-rule abb397938097b0b64e49d29fbbfd0ce59afbaf7b wired=8 unwired=27
+seam-rule 913ce1ff5 wired=8 unwired=24
+seam-rule HEAD wired=10 unwired=25
+version-untouched-check-done
