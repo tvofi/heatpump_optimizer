@@ -1,0 +1,25 @@
+== dismissed alerts not subtracted: self-test rc 1
+   BAD X  the planted alert dismissed by a person: not listed: listed ['code-scanning alert 7 (py/code-injection)']
+   BAD G  pagination: a dismissal on page 2 of the listing is seen: listed ['code-scanning alert 7 (py/code-injection)', 'code-scanning alert 250 (py/x)']
+   ALERT-LIST SELF-TEST FAILED (14/16)
+== base-open exclusion never applied: self-test rc 1
+   BAD B  an alert also open on the base, U6 says the merge ref repeats base alerts: subtracted: listed ['code-scanning alert 3 (py/old)', 'code-scanning alert 7 (py/code-injection)']
+   BAD F5 the base listing fails while it is used: FAIL closed: listed ['code-scanning alert 7 (py/code-injection)']
+   ALERT-LIST SELF-TEST FAILED (14/16)
+== a result without an alert number skipped: self-test rc 1
+   BAD F3 a result without an alert number: FAIL closed: listed []
+   ALERT-LIST SELF-TEST FAILED (15/16)
+== an unmatched leg not refused: self-test rc 1
+   KeyError: 'python'
+== the listing read by ref (the rejected reading): self-test rc 1
+   BAD D  a newer analysis at R (commit m2) lacks the finding: listed from M's analysis: listed []
+   BAD D2 a newer analysis at R (commit m2) repeats it: still listed: listed []
+   BAD B  an alert also open on the base, U6 says the merge ref repeats base alerts: subtracted: listed ['code-scanning alert 3 (py/old)', 'code-scanning alert 7 (py/code-injection)']
+   BAD G  pagination: a dismissal on page 2 of the listing is seen: listed []
+   BAD F1 the SARIF read fails: FAIL closed: listed []
+   BAD F2 a page of the dismissed listing fails: FAIL closed: listed []
+   BAD F3 a result without an alert number: FAIL closed: listed []
+   BAD F4 a leg uploaded but no analysis at M yet (step 4's bound passed): FAIL closed: listed []
+   BAD F5 the base listing fails while it is used: FAIL closed: listed []
+   ALERT-LIST SELF-TEST FAILED (7/16)
+ALERT-LIST MUTANTS: every mutant refused

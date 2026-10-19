@@ -1,0 +1,30 @@
+0e238c3042 analyses  6  codescan success  lag -1537.0 s (vs first analysis  -6.0 s)  pr-contract-minus-codescan -104.0 s
+0f145d4fae analyses  3  codescan ABSENT
+1450760447 analyses  3  codescan success  lag -1490.0 s (vs first analysis  -6.0 s)  pr-contract-minus-codescan    5.0 s
+311e9de3e0 analyses  3  codescan success  lag -886.0 s (vs first analysis  -7.0 s)  pr-contract-minus-codescan   16.0 s
+319769bb4f analyses  3  codescan success  lag -1491.0 s (vs first analysis  -8.0 s)  pr-contract-minus-codescan   46.0 s
+3aba8f1eb2 analyses  6  codescan success  lag -1236.0 s (vs first analysis  -6.0 s)  pr-contract-minus-codescan  -47.0 s
+4be8f4cfd0 analyses  3  codescan ABSENT
+6c0218b0d5 analyses  2  codescan neutral  lag   59.0 s (vs first analysis  60.0 s)  pr-contract-minus-codescan   29.0 s
+74d66b3554 analyses  6  codescan success  lag -1003.0 s (vs first analysis  -7.0 s)  pr-contract-minus-codescan  -12.0 s
+7bda397d12 analyses  3  codescan success  lag -1208.0 s (vs first analysis  -6.0 s)  pr-contract-minus-codescan  -68.0 s
+87c579404d analyses  3  codescan success  lag -1034.0 s (vs first analysis  -6.0 s)  pr-contract-minus-codescan  -80.0 s
+8d4e8be01c analyses  3  codescan success  lag -1443.0 s (vs first analysis  -5.0 s)  pr-contract-minus-codescan  -31.0 s
+aa82837c57 analyses  3  codescan success  lag -1514.0 s (vs first analysis  -6.0 s)  pr-contract-minus-codescan 2378.0 s
+acf14d8f22 analyses  6  codescan failure  lag -1552.0 s (vs first analysis  -5.0 s)  pr-contract-minus-codescan  -62.0 s
+b0140e47bc analyses  3  codescan ABSENT
+b54a2f2e55 analyses  3  codescan success  lag -1119.0 s (vs first analysis  -8.0 s)  pr-contract-minus-codescan  165.0 s
+b931d0f44a analyses  3  codescan failure  lag -1561.0 s (vs first analysis  -7.0 s)  pr-contract-minus-codescan  -80.0 s
+c3a25d2ae3 analyses  3  codescan success  lag -1560.0 s (vs first analysis  -7.0 s)  pr-contract-minus-codescan 1837.0 s
+c7bfbbe4f8 analyses  0  codescan ABSENT
+c83ae12acc analyses  3  codescan neutral  lag   -8.0 s (vs first analysis  63.0 s)  pr-contract-minus-codescan  -42.0 s
+d0afadd24e analyses  0  codescan ABSENT
+d1becac2b3 analyses  3  codescan success  lag -1529.0 s (vs first analysis  -8.0 s)  pr-contract-minus-codescan 3820.0 s
+
+writers at the sampled PR heads:
+  github-actions: <workflow jobs>
+  github-advanced-security: CodeQL
+
+code-scanning check present at 17 heads; lag after the newest analysis, s: min -1561 median -1443 max 59
+lag after the EARLIEST analysis job completed, s: min -8 median -6 max 63 (negative: the check concluded while the uploading job was still finishing)
+heads whose last pr-contract concluded before the code-scanning check: 9 [('0e238c3042', 'success'), ('3aba8f1eb2', 'success'), ('74d66b3554', 'success'), ('7bda397d12', 'success'), ('87c579404d', 'success'), ('8d4e8be01c', 'success'), ('acf14d8f22', 'failure'), ('b931d0f44a', 'failure'), ('c83ae12acc', 'neutral')]

@@ -1,0 +1,29 @@
+head       uploading check    vs first upload s vs last upload s  option-1 predicate
+0e238c3042         6 success               -6.0          -1537.0  never holds
+0f145d4fae         0 ABSENT  
+1450760447         3 success               -6.0          -1490.0  never holds
+311e9de3e0         3 success               -7.0           -886.0  never holds
+319769bb4f         3 success               -8.0          -1491.0  never holds
+3aba8f1eb2         6 success               -6.0          -1236.0  never holds
+4be8f4cfd0         0 ABSENT  
+6c0218b0d5         1 neutral               -6.0             -6.0  never holds
+74d66b3554         6 success               -7.0          -1003.0  never holds
+7bda397d12         3 success               -6.0          -1208.0  never holds
+87c579404d         3 success               -6.0          -1034.0  never holds
+8d4e8be01c         3 success               -5.0          -1443.0  never holds
+aa82837c57         3 success               -6.0          -1514.0  never holds
+acf14d8f22         6 failure               -5.0          -1552.0  never holds
+b0140e47bc         0 ABSENT  
+b54a2f2e55         3 success               -8.0          -1119.0  never holds
+b931d0f44a         3 failure               -7.0          -1561.0  never holds
+c3a25d2ae3         3 success               -7.0          -1560.0  never holds
+c7bfbbe4f8         0 ABSENT  
+c83ae12acc         1 neutral               -8.0             -8.0  never holds
+d0afadd24e         0 ABSENT  
+d1becac2b3         3 success               -8.0          -1529.0  never holds
+
+heads with a code-scanning check: 17
+completed_at minus the FIRST uploading leg's end, s: min -8 max -5
+completed_at minus the LAST uploading leg's end, s: min -1561 max -6
+heads where it concluded before the last upload ended: 17 of 17
+option 1 (completed_at after the newest Analyze job) holds at 0 of 17 heads; at the rest it never holds, and the wait would time out and fail closed

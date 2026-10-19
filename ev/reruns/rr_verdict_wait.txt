@@ -1,0 +1,27 @@
+0f145d4fae edited  created 2026-10-18T18:57:29Z  waits   1406 s  grouped   1406 s
+0f145d4fae review  created 2026-10-18T18:57:35Z  waits   1400 s  grouped   1400 s
+1450760447 edited  created 2026-10-18T17:32:47Z  waits   3450 s  grouped   3450 s
+1450760447 review  created 2026-10-18T18:13:07Z  waits   1030 s  grouped   1030 s
+311e9de3e0 edited  created 2026-10-18T17:59:41Z  waits   2620 s  grouped   2620 s
+319769bb4f edited  created 2026-10-18T18:22:26Z  waits   1656 s  grouped   1656 s
+319769bb4f review  created 2026-10-18T18:52:56Z  waits      0 s  grouped      0 s
+4be8f4cfd0 review  created 2026-10-18T17:54:10Z  waits   1797 s  grouped   1797 s
+6c0218b0d5 edited  created 2026-10-18T17:06:58Z  waits    163 s  grouped     86 s
+6c0218b0d5 edited  created 2026-10-18T17:08:24Z  waits     77 s  grouped     77 s
+7bda397d12 edited  created 2026-10-18T17:13:38Z  waits   1326 s  grouped   1326 s
+7bda397d12 review  created 2026-10-18T18:16:07Z  waits      0 s  grouped      0 s
+87c579404d edited  created 2026-10-18T18:26:47Z  waits   2968 s  grouped   2968 s
+8d4e8be01c edited  created 2026-10-18T18:21:50Z  waits   1694 s  grouped   1694 s
+8d4e8be01c review  created 2026-10-18T18:51:01Z  waits      0 s  grouped      0 s
+aa82837c57 edited  created 2026-10-18T17:41:20Z  waits   2399 s  grouped   2399 s
+b0140e47bc review  created 2026-10-18T19:20:03Z  waits   1914 s  grouped   1914 s
+b54a2f2e55 edited  created 2026-10-18T18:42:18Z  waits   1179 s  grouped   1179 s
+b931d0f44a edited  created 2026-10-18T17:53:54Z  waits   2201 s  grouped   2201 s
+c3a25d2ae3 edited  created 2026-10-18T17:41:29Z  waits   1859 s  grouped   1859 s
+d0afadd24e edited  created 2026-10-18T17:54:02Z  waits      4 s  grouped      4 s
+naive   edited  n 14  wait median  1675 s  max  3450 s  sum  6.39 runner-hours over 22 heads; waited >0: 14
+naive   review  n  7  wait median  1030 s  max  1914 s  sum  1.71 runner-hours over 22 heads; waited >0: 4
+naive   all     n 21  wait median  1406 s  max  3450 s  sum  8.10 runner-hours over 22 heads; waited >0: 18
+grouped edited  n 14  wait median  1675 s  max  3450 s  sum  6.37 runner-hours over 22 heads; waited >0: 14
+grouped review  n  7  wait median  1030 s  max  1914 s  sum  1.71 runner-hours over 22 heads; waited >0: 4
+grouped all     n 21  wait median  1406 s  max  3450 s  sum  8.07 runner-hours over 22 heads; waited >0: 18

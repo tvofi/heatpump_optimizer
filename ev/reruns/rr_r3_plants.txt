@@ -1,0 +1,26 @@
+G1 gained step (map: gained) inserted at position 0 of coverage, before its checkout
+  UNPLACED coverage|Say the decision  found after 'coverage|^'; the map gives no position
+  STATIC rows 247->248 lost 0 gained 0 changed 0 (mapped 0) misplaced 1 rc 1
+  -> rc 1  (refused)
+
+G2 the same gained step appended at the end (what the map meant)
+  UNPLACED coverage|Say the decision  found after "coverage|Save this commit's per-script coverage"; the map gives no position
+  STATIC rows 247->248 lost 0 gained 0 changed 0 (mapped 0) misplaced 1 rc 1
+  -> rc 1  (refused)
+
+G3 step 'Key the per-script coverage' renamed by the map AND moved to the end
+  CHANGED  coverage|order  bcfbde8c729e -> cd432c0b0966
+    first difference at step 2: before 'coverage|Key the per-script coverage (renamed)', after "coverage|Restore the base's per-script coverage"
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) misplaced 0 rc 1
+  -> rc 1  (refused)
+
+D1 no job has two same-key steps with different bodies in this fixture
+
+Q1 control: unmapped swap of coverage steps 2,3
+  CHANGED  coverage|order  85858aa70889 -> fe12480e7962
+    first difference at step 2: before 'coverage|Key the per-script coverage', after "coverage|Restore the base's per-script coverage"
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) misplaced 0 rc 1
+  -> rc 1  (refused)
+
+  STATIC rows 247->247 lost 0 gained 0 changed 0 (mapped 0) misplaced 0 rc 0
+null: rc 0

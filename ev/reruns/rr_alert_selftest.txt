@@ -1,0 +1,20 @@
+ok  P  planted python-only finding is listed: listed ['code-scanning alert 7 (py/code-injection)']
+ok  N  null: the plant removed lists nothing: listed []
+ok  C  carried: an edit run keyed on S's sha= token lists the same alert: listed ['code-scanning alert 7 (py/code-injection)']
+ok  D  a newer analysis at R (commit m2) lacks the finding: listed from M's analysis: listed ['code-scanning alert 7 (py/code-injection)']
+      by_ref ablation (alerts?ref=R&state=open, commit_sha == M): listed [] -> moves
+ok  D2 a newer analysis at R (commit m2) repeats it: still listed: listed ['code-scanning alert 7 (py/code-injection)']
+      by_ref ablation (alerts?ref=R&state=open, commit_sha == M): listed [] -> moves
+ok  S  a newer CodeQL analysis at the SAME commit: step 4 takes the newest at M (same tree, same results): listed ['code-scanning alert 7 (py/code-injection)']
+ok  X  the planted alert dismissed by a person: not listed: listed []
+ok  B  an alert also open on the base, U6 says the merge ref repeats base alerts: subtracted: listed ['code-scanning alert 7 (py/code-injection)']
+ok  B0 the same, U6 says it does not repeat them: listed: listed ['code-scanning alert 3 (py/old)', 'code-scanning alert 7 (py/code-injection)']
+ok  G  pagination: a dismissal on page 2 of the listing is seen: listed ['code-scanning alert 7 (py/code-injection)']
+ok  L  no leg uploaded (every leg stood down): nothing read, nothing listed: listed []
+ok  F1 the SARIF read fails: FAIL closed: FAIL closed: analysis 13 (python): HTTP 500
+ok  F2 a page of the dismissed listing fails: FAIL closed: FAIL closed: code-scanning/alerts?ref=refs/pull/77/merge&tool_name=CodeQL&state=dismissed page 1: HTTP 500
+ok  F3 a result without an alert number: FAIL closed: FAIL closed: analysis 13 (python): a result of py/code-injection has no alert number
+ok  F4 a leg uploaded but no analysis at M yet (step 4's bound passed): FAIL closed: no analysis at refs/pull/77/merge with commit_sha m1 for leg(s) python
+ok  F5 the base listing fails while it is used: FAIL closed: FAIL closed: code-scanning/alerts?ref=refs/heads/main&tool_name=CodeQL&state=open page 1: HTTP 500
+
+ALERT-LIST SELF-TEST ok (16/16)

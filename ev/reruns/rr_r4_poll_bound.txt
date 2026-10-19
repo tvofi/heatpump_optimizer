@@ -1,0 +1,9 @@
+tail 500 s chain   END-BAD 0 false-green-at-end 0    
+tail 500 s nochain END-BAD 0 false-green-at-end 0    
+tail 580 s chain   END-BAD 0 false-green-at-end 0    
+tail 580 s nochain END-BAD 0 false-green-at-end 0    
+tail 620 s chain   END-BAD 0 false-green-at-end 0    
+tail 620 s nochain END-BAD 0 false-green-at-end 0    
+tail 900 s chain   END-BAD 1 false-green-at-end 0  I4(o=pass c=pass d=FAIL e=FAIL)  sweep: run 102 still running at the bound; left as is
+tail 900 s nochain END-BAD 1 false-green-at-end 0  I4(o=pass c=pass d=FAIL e=FAIL)  sweep: run 102 still running at the bound; left as is
+rc 0

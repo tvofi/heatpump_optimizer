@@ -1,0 +1,12 @@
+as-stated H  same-M newer hand upload, empty SARIF, same category: listed []
+      the plant is MISSED (false green direction): the residual DESIGN-P2 R-10 names; needs security-events: write
+as-stated PB exactly 100 rows on page 1, the dismissal on page 2: listed ['code-scanning alert 7 (py/code-injection)']
+      pagination reads page 2 when page 1 is full
+as-stated DX dismissed alert absent from the ref's dismissed listing: listed ['code-scanning alert 7 (py/code-injection)']
+      over-lists (false red, fail-safe): the body must answer a dismissed alert
+as-stated 2L one alert number in two legs' SARIF: listed ['code-scanning alert 7 (py/code-injection)']
+      listed once
+as-stated OR analyses listed oldest-first; older same-M analysis lacks the plant: listed []
+      step 4's next() takes the first row; relies on the listing's documented created-desc default
+
+ALERT-PERTURB 5/5 as stated in this tool's expectations

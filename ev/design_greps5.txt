@@ -1,0 +1,31 @@
+# Round-5 seat greps
+$ git grep -n LAG_MAX 1371a0a6 -- DESIGN-P1.md DESIGN-P2.md
+1371a0a6:DESIGN-P2.md:77:  5 (the `LAG_MAX` delay) is removed. U6 must show a planted python-only finding listed
+1371a0a6:DESIGN-P2.md:519:  `LAG_MAX` delay is gone;
+1371a0a6:DESIGN-P2.md:741:       option B; revision 3's step 5, a wait of `LAG_MAX` after the newest analysis,
+1371a0a6:DESIGN-P2.md:805:    said U6 would measure `LAG_MAX` and stop on R-10. That exit is gone: the owner
+1371a0a6:DESIGN-P2.md:1246:| (rev1) `tests/entities.py`, new | the forgery pins (2.1, item 12(b)); every dispatchable standalone workflow's jobs carry a ref gua
+1371a0a6:DESIGN-P2.md:1368:| U6 pr-contract | `probe/ci-layout-pr-contract` | `workflow_call`; PR from inputs; red list excludes `pr-contract / pr-contract` and
+1371a0a6:DESIGN-P2.md:1478:  step 5), and the `LAG_MAX` delay is removed. So the blind spot closes whatever the
+1371a0a6:DESIGN-P2.md:1546:  - 4.3's step 5 (the `LAG_MAX` delay) and `LAG_MAX` itself are removed.
+
+$ git diff --name-only fa5026c4 b87e8f19
+dev/programme/delivery/2379.md
+dev/programme/delivery/2394.md
+dev/programme/delivery/2396.md
+dev/programme/delivery/2401.md
+dev/programme/delivery/2407.md
+dev/programme/delivery/2412.md
+dev/programme/delivery/2413.md
+dev/programme/delivery/2416.md
+dev/programme/delivery/2418.md
+dev/programme/delivery/2420.md
+dev/programme/delivery/2423.md
+
+$ git grep -n readers at b87e8f19
+b87e8f19:.github/workflows/pr-contract.yml:183:          AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
+b87e8f19:.github/workflows/pr-contract.yml:253:                   | select(.name != "pr-contract")
+b87e8f19:.github/workflows/pr-contract.yml:287:              --author "$(cat /tmp/pr-author.txt)" \
+b87e8f19:.github/workflows/pr-contract.yml:293:              --author "$(cat /tmp/pr-author.txt)" \
+b87e8f19:tests/entities.py:25884:_PC_EXCLUSION = '.name != "pr-contract"'
+b87e8f19:tools/pr/prepr.sh:937:         | select(.name != "pr-contract")

@@ -1,0 +1,18 @@
+latency  20 s KEYED --chain   END-BAD 0  sweeps missed 0  false-green rows []  
+latency  20 s KEYED --nochain END-BAD 0  sweeps missed 0  false-green rows []  
+latency  20 s MISS  --chain   END-BAD 0  sweeps missed 484  false-green rows []  
+latency  20 s MISS  --nochain END-BAD 0  sweeps missed 0  false-green rows []  
+latency  35 s KEYED --chain   END-BAD 0  sweeps missed 0  false-green rows []  
+latency  35 s KEYED --nochain END-BAD 0  sweeps missed 0  false-green rows []  
+latency  35 s MISS  --chain   END-BAD 0  sweeps missed 177  false-green rows []  
+latency  35 s MISS  --nochain END-BAD 0  sweeps missed 14  false-green rows []  
+latency  65 s KEYED --chain   END-BAD 0  sweeps missed 0  false-green rows []  
+latency  65 s KEYED --nochain END-BAD 0  sweeps missed 0  false-green rows []  
+latency  65 s MISS  --chain   END-BAD 0  sweeps missed 48  false-green rows []  
+latency  65 s MISS  --nochain END-BAD 0  sweeps missed 48  false-green rows []  
+latency 125 s KEYED --chain   END-BAD 0  sweeps missed 0  false-green rows []  
+latency 125 s KEYED --nochain END-BAD 0  sweeps missed 0  false-green rows []  
+latency 125 s MISS  --chain   END-BAD 0  sweeps missed 50  false-green rows []  
+latency 125 s MISS  --nochain END-BAD 0  sweeps missed 49  false-green rows []  
+DRIVER-MISS done (rc reflects KEYED only) rc 0
+rc 0

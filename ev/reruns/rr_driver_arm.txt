@@ -1,0 +1,15 @@
+## R4-2: the sweep started by the probe driver, SWEEP = latency from a green gate to its sweep (driver poll 5 s)
+  driver latency  20 s --chain   END-BAD 0  most attempts 41  rows not ok (window, cap) 0 []  
+  driver latency  20 s --nochain END-BAD 0  most attempts 41  rows not ok (window, cap) 0 []  
+  driver latency  35 s --chain   END-BAD 0  most attempts 35  rows not ok (window, cap) 0 []  
+  driver latency  35 s --nochain END-BAD 0  most attempts 29  rows not ok (window, cap) 0 []  
+  driver latency  65 s --chain   END-BAD 0  most attempts 22  rows not ok (window, cap) 0 []  
+  driver latency  65 s --nochain END-BAD 0  most attempts 22  rows not ok (window, cap) 0 []  
+  driver latency 125 s --chain   END-BAD 0  most attempts 22  rows not ok (window, cap) 0 []  
+  driver latency 125 s --nochain END-BAD 0  most attempts 22  rows not ok (window, cap) 0 []  
+  null control: the driver not running (the `sweep` ablation), unplanted scenarios; every-suite must move
+  no driver --chain   agree newest-created 34/34, newest-completed 34/34, every-suite 16/34
+  no driver --nochain agree newest-created 34/34, newest-completed 34/34, every-suite 16/34
+
+DRIVER-ARM rc 0
+rc 0
