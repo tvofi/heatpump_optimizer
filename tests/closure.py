@@ -2760,7 +2760,7 @@ def composed_compare(composed_dir: Path, bare_dir: Path) -> int:
 def changed_between(base: str, head: str, *, dots: str = "...",
                     cwd: Path | str = ROOT, env: dict | None = None) -> list[str]:
     """The files `<base><dots><head>` changed, both sides of every rename."""
-    out = subprocess.run(["git", "diff", "--no-renames", "--name-only",
+    out = subprocess.run(["git", "diff", "--name-only",
                           f"{base}{dots}{head}"], cwd=cwd, env=env,
                          capture_output=True, text=True)
     if out.returncode != 0:
