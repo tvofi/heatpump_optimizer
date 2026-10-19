@@ -1,0 +1,6 @@
+DELIVERY STATUS OVERDUE — 135 rowed, 1 pending, 1 overdue (overdue at 12 commits)
+  pending  #2424 fa5026c 0 commit(s) since — R10-MERGE-SUBJECT-GUARD: the merge-subject guard judges 
+  overdue  #2413 be2d367 14 commit(s) since — record: delivery rows for #2397 (autofix)
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+exit=1

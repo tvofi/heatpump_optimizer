@@ -1,0 +1,2 @@
+AUTOMERGE OK #2420 at (live head)
+exit=0
