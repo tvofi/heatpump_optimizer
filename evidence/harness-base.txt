@@ -12,3 +12,4 @@ null: plan kWh 113.0 vs booked thermostat kWh 201.0; plan mean room 18.81 C vs m
 null: flat price, 2 days, re-plan every 1.00 h: baseline 241.18 actual 135.64 saved 105.54 (43.75795111650017 %)
 null: DEFECT
 arms run 4, defect 4: transient cost coverage null
+rc=1
