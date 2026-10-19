@@ -1921,7 +1921,6 @@ def learner_newton_step(
     *,
     trust_region: float,
     alpha: float,
-    max_step_fraction: float,
 ) -> tuple[float, float] | None:
     """One bounded Newton step for a multiplicative heat-loss correction.
 
@@ -1945,6 +1944,12 @@ def learner_newton_step(
     time constant ``C/u`` is over a hundred hours, so a residual of +0.12 K
     already implies a dU larger than the whole coefficient -- a negative
     target, on exactly the intervals where the house lost less than predicted.
+
+    No sample moves the estimate by more than ``alpha * trust_region`` of
+    it: the EWMA moves ``alpha`` of the way to a target at most
+    ``trust_region * current`` away. That is the per-interval rate limit;
+    a separate clip after the EWMA could never bind and was removed
+    (R10-DEAD-RATE-LIMIT).
     """
     if base_u <= 1e-6 or capacity <= 1e-6:
         return None
@@ -1961,11 +1966,9 @@ def learner_newton_step(
     reach = current * trust_region
     target = float(np.clip(target, current - reach, current + reach))
 
-    # The EWMA and the rate limit below are what decide how fast genuine
-    # signal moves the estimate; the trust region only keeps noise even.
-    updated = (1.0 - alpha) * current + alpha * target
-    max_step = current * max_step_fraction
-    updated = float(np.clip(updated, current - max_step, current + max_step))
+    # The EWMA decides how fast genuine signal moves the estimate; the trust
+    # region keeps noise even and, with it, bounds one sample's move.
+    updated = float((1.0 - alpha) * current + alpha * target)
     return target, updated
 
 
