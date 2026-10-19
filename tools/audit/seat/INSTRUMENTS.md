@@ -314,6 +314,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   new path. When: a move, or a review of one, before the push; a reader
   dispositions every STALE? hit. Refusal: none; it enumerates and always
   exits 0.
+- `offline_spy.py` — runs a seat instrument's `--self-test` under a
+  throwaway HOME and counts what it reaches outside: socket connects and DNS
+  lookups (refused), gh/curl/wget/ssh/scp/nc calls on PATH (refused), git
+  calls whose target resolves to a URL remote, and the Python process's
+  subprocess creations. On macOS it also runs under `sandbox-exec`, denying
+  outbound IP and writes outside the temp directories. When: before wiring a
+  self-test into CI, and when reviewing one. Refusal: a non-zero exit, or any
+  network or remote-git call, per file.
 - `open_pr.sh` — opens a draft PR from `handoff/<topic>` as `hpo-author`,
   adds its own delivery row, re-pushes, prints N and the head. When: the
   orchestrator opens a seat's handed-off branch. Refusal, each an
@@ -521,6 +529,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
   hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
   both. `--self-test` drives the recipe and the shim export.
+- `selftest_wiring.py` — refuses a self-testing file under
+  `tools/audit/seat/` that no workflow `run:` line, comments removed, invokes
+  with its self-test (`--check`, `--self-test`). Runs first among the seat
+  steps of `instrument-self-tests`. When: adding a seat instrument with a
+  `--self-test`; add its step in the same pull request. Refusal: each unwired
+  file by path; a mention in a comment, a step name or a `--check` call does
+  not wire it.
 - `tick_loop.sh` — the tick's driver loop (tvofi approved, 2026-10-18): each
   pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
   and said so before), then `orchestrator_tick.py` with the given args,
