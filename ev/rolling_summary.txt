@@ -1,0 +1,28 @@
+== rolling.base.sz_060.txt rc=0
+ house_std_post=0.5101  house_rmse_post=0.7874  fc_mae_post=0.8355 
+== rolling.base.sz_157.tr1e9.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000 
+== rolling.base.sz_157.txt rc=0
+ house_std_post=1.0458  house_rmse_post=1.0215  fc_mae_post=1.0617 
+== rolling.base.sz_null.txt rc=0
+ house_std_post=0.9631  house_rmse_post=0.9628  fc_mae_post=0.9653 
+== rolling.base.tz_157_192.tr1e9.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000  lower_std_post=1.0000  lower_rmse_post=1.0000 
+== rolling.base.tz_157_192.txt rc=0
+ house_std_post=0.8667  house_rmse_post=0.8204  fc_mae_post=0.8272  lower_std_post=0.8831  lower_rmse_post=0.8540 
+== rolling.base.tz_null.txt rc=0
+ house_std_post=0.9980  house_rmse_post=0.9971  fc_mae_post=0.9993  lower_std_post=1.0006  lower_rmse_post=1.0034 
+== rolling.head.sz_060.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000 
+== rolling.head.sz_157.tr1e9.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000 
+== rolling.head.sz_157.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000 
+== rolling.head.sz_null.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000 
+== rolling.head.tz_157_192.tr1e9.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000  lower_std_post=1.0000  lower_rmse_post=1.0000 
+== rolling.head.tz_157_192.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000  lower_std_post=1.0000  lower_rmse_post=1.0000 
+== rolling.head.tz_null.txt rc=0
+ house_std_post=1.0000  house_rmse_post=1.0000  fc_mae_post=1.0000  lower_std_post=1.0000  lower_rmse_post=1.0000 
