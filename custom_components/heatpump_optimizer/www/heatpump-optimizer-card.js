@@ -9365,6 +9365,7 @@ function attachAdvisorInbox(host, root) {
     const out = root.querySelector(".setup-result");
     if (out) out.textContent = text;
   };
+  for (const b of root.querySelectorAll(".adv-act")) b.onkeydown = () => null;
   for (const btn of root.querySelectorAll(".adv-act")) {
     btn.addEventListener("click", async (ev) => {
       stop(ev);
