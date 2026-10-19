@@ -4111,7 +4111,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Source: #2441 Forward-carry (owned workflow, tvofi review). `.github/workflows/governance.yml`'s field-coverage step runs on a pull request only when a listed input changes. `tests/ci_budgets.json`, `tests/ci_ratchet.py`, `tools/audit/archscore/` and the card's `.js` are not listed. So a pull request that uncaps a census's ci-ratchet row (M1's shape) is caught by the schedule run, not on its own run. Budget-raise-gate still refuses the raise itself. The workflow is owned, so the edit needs tvofi's review; the orchestrator routes it."
+   ],
    "architect_note": null,
    "group": "R10-SEAT-SELFTESTS-CI",
    "findings": [],
