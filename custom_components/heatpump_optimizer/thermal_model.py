@@ -1931,9 +1931,11 @@ def learner_newton_step(
     target = (current_u + delta_u) / base_u
     if not np.isfinite(target):
         return None
-    target = float(
-        np.clip(target, current - trust_region, current + trust_region)
-    )
+    # A fraction of the current estimate, so the bound in UA is
+    # ``current_u * trust_region`` however UA splits into base and multiplier
+    # (#2252: a fixed offset made a reseed change the step size alone).
+    reach = current * trust_region
+    target = float(np.clip(target, current - reach, current + reach))
 
     # The EWMA and the rate limit below are what decide how fast genuine
     # signal moves the estimate; the trust region only keeps noise even.
@@ -2047,7 +2049,7 @@ class ThermalModel:
         terminal valuations, the efficiency learner's reference and the
         capacity caps -- inherits the lift from this one place rather than
         from a call site each. Hot water is not lifted twice:
-        :meth:`compute_cop_dhw` starts from :meth:`_cop_law` with no curve flow.
+        :meth:`compute_cop_dhw` passes :meth:`_cop_law` the tank's own water.
         The lift is one-sided, applied only above the reference flow, which
         is the batch twin's semantics and is kept for its bitwise parity: a
         curve below 35 °C earns no boost.
@@ -2198,23 +2200,23 @@ class ThermalModel:
         """Compute heat pump COP for DHW mode.
 
         DHW requires higher supply temperature (55-65°C vs 35-45°C for space
-        heating), so COP is lower.  Rough model:
-        COP_dhw ≈ COP_space * 0.7 (penalty for higher supply temp)
+        heating), so COP is lower. The tank pays the flow lift at its own water
+        temperature -- the same Carnot ratio the buffer tank pays, and the same
+        one-sided rule: below the reference flow the lift is skipped, not
+        clipped, so a cold tank earns no boost it never gets.
+
+        One law for both plants (D2-s2-01). ``cop_flow_carnot`` is a
+        SPACE-circuit fact -- it decides whether a passed ``flow_temp`` is the
+        supply the machine runs at (:meth:`compute_cop`) -- and it used to
+        select a second, linear law here (0.008/K, floored at 0.5), so the same
+        tank at the same outdoor was priced up to 1.4346x apart and below the
+        reference flow took a boost of up to 1.2x that :meth:`_batch_cop`'s own
+        comment refuses. The tank's water temperature is passed as the flow
+        instead of a curve (the #1067 note above): the curve would price a
+        space supply the hot-water circuit never runs at, and the lift the tank
+        does pay is priced once.
         """
-        if self.params.cop_flow_carnot:
-            # #1530: behind a valve the buffer prices its lift by Carnot, so the
-            # tank pays the same law at the same water temperature, not its own.
-            return self._cop_law(outdoor_temp, humidity, dhw_temp)
-        # The law without any flow lift (#1067): the penalty below already
-        # prices the tank's hotter water, so a curve lift would count it twice.
-        base_cop = self._cop_law(outdoor_temp, humidity, None)
-        # Higher DHW temp → lower COP (Carnot-like penalty)
-        dhw_penalty = max(0.5, 1.0 - 0.008 * (dhw_temp - 35.0))
-        # The penalty is another factor multiplying in after the curve's
-        # own floor, so it needs the same resistive bound as compute_cop
-        # (#928) -- at the shipped hard max (60 °C against deep cold) the
-        # product lands near 0.84, and this method has no other clamp.
-        return max(base_cop * dhw_penalty, 1.0)
+        return self._cop_law(outdoor_temp, humidity, dhw_temp)
 
     def effective_heat_loss_coefficient(
         self, base_u: float, wind_speed: float = 0.0, precipitation: float = 0.0
