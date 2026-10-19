@@ -1,0 +1,13 @@
+diff --git a/tools/audit/archscore/metrics/card.py b/tools/audit/archscore/metrics/card.py
+index 8d91d8779..cc9dbc8d8 100644
+--- a/tools/audit/archscore/metrics/card.py
++++ b/tools/audit/archscore/metrics/card.py
+@@ -235,7 +235,7 @@ def definitions(toks: list[str]) -> list[str]:
+             depth -= 1
+             continue
+         nxt = toks[i + 1] if i + 1 < len(toks) else ""
+-        if depth == 0 and t in ("function", "class") and _IDENT.fullmatch(nxt):
++        if depth == 0 and t in ("class",) and _IDENT.fullmatch(nxt):
+             names.append(nxt)
+         elif depth == 0 and t in ("const", "let", "var") and _IDENT.fullmatch(nxt):
+             names.append(nxt)
