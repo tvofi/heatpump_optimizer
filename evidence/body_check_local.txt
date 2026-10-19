@@ -1,9 +1,0 @@
-  ERROR   [pr-body] /tmp/seat/rev2442/ev/pr-body.md: check `arch-score` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-  ERROR   [pr-body] /tmp/seat/rev2442/ev/pr-body.md: check `env-matrix` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-  ERROR   [pr-body] /tmp/seat/rev2442/ev/pr-body.md: check `nightly-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads ((no changed-path list, so none can be ruled out)), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-  ERROR   [pr-body] /tmp/seat/rev2442/ev/pr-body.md: check `validate-hacs` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-PR-BODY: 4 error(s) in /tmp/seat/rev2442/ev/pr-body.md
-
-FIGURES: 13 resolved, 2 not verified, 0 refused
-UNROUTED body item c5afd07f (## Friction) [section]: '- `tests/harness_headers.py`: cost: it runs the whole harness corpus serially and takes many minutes on this b'
-CARRY-AUDIT: 3 finding item(s): 0 routed, 3 unrouted, 0 bad destination(s)
