@@ -1,2 +1,0 @@
-36 max (1.3100558659217878, 'winter/pv', 938, 716) min (0.4218009478672986, 'shoulder/tariff+cycle', 1246, 2954)
-grew 15 shrank 12 equal 9

@@ -17,17 +17,17 @@
   ok   space no-batch control (two_zone=False): the plan holds the comfort floor
 
 -- two_zone=True
- optimizer : cost   59.67  room 17.85-21.40  viol 0.000
+ optimizer : cost   66.34  room 18.28-21.48  viol 0.000
   ok   optimizer plan meets the comfort floor
   ok   space base (two_zone=True): one finite schedule entry per horizon step
   ok   space base (two_zone=True): every step inside the model's own power bounds
   ok   space base (two_zone=True): the plan holds the comfort floor
- greedy    : cost   56.35  room 17.15-21.57  viol 0.000
-  FAIL greedy same-energy challenger does not rout the optimizer  [greedy 56.35 vs optimizer 59.67]
- random    : 2/300 comfort-safe perturbations cheaper; best   58.69
+ greedy    : cost   64.40  room 17.95-21.57  viol 0.000
+  ok   greedy same-energy challenger does not rout the optimizer
+ random    : 2/300 comfort-safe perturbations cheaper; best   65.34
   ok   no perturbation finds a materially cheaper comfort-safe plan
  starved  : cost   66.34  viol 0.000
-  ok   the production iteration budget buys a materially better plan
+  FAIL the production iteration budget buys a materially better plan  [full-budget 66.34 vs starved 66.34 (0.0% gap)]
   ok   space starved-budget arm (two_zone=True): one finite schedule entry per horizon step
   ok   space starved-budget arm (two_zone=True): every step inside the model's own power bounds
   ok   space starved-budget arm (two_zone=True): the plan holds the comfort floor
@@ -91,7 +91,7 @@
  warm      : obj  13.0355
  no-warm   : obj  13.0531
   ok   the handed-in plan is never beaten by the solve that hands it back (#1295)
- width-null: obj 0.312957 vs fresh 0.312957
+ width-null: obj 0.319468 vs fresh 0.319468
   ok   a previous plan of the wrong width is dropped, not clipped (#1295 null)
 
 -- solve certificate over the energy-diverse cell grid (#1409)
@@ -100,24 +100,24 @@
   ok   one|winter_typical|winter_cold: no unclaimed gap above the bar (re-polish + ladder)
   ok   one|winter_typical|winter_cold: a recorded claim still has a gap (not stale)
   ok   two|winter_typical|winter_cold: every candidate is refined (refined == candidates)
- cert two|winter_typical|winter_cold obj 79.898023  re-polish +2.7035%  ladder +1.0810%  claimed=False
-  FAIL two|winter_typical|winter_cold: no unclaimed gap above the bar (re-polish + ladder)  [re-polish 2.7035%, ladder 1.0810%, bar 0.4000%]
+ cert two|winter_typical|winter_cold obj 80.107304  re-polish +3.2919%  ladder +1.3395%  claimed=False
+  FAIL two|winter_typical|winter_cold: no unclaimed gap above the bar (re-polish + ladder)  [re-polish 3.2919%, ladder 1.3395%, bar 0.4000%]
   ok   two|winter_typical|winter_cold: a recorded claim still has a gap (not stale)
   ok   one|summer_negative|shoulder: every candidate is refined (refined == candidates)
- cert one|summer_negative|shoulder obj  0.312957  re-polish +0.0000%  ladder +5.4812%  claimed=True
+ cert one|summer_negative|shoulder obj  0.319468  re-polish +16.4722%  ladder +7.0321%  claimed=True
   ok   one|summer_negative|shoulder: no unclaimed gap above the bar (re-polish + ladder)
   ok   one|summer_negative|shoulder: a recorded claim still has a gap (not stale)
   ok   one|shoulder|winter_cold: every candidate is refined (refined == candidates)
- cert one|shoulder|winter_cold     obj 48.763728  re-polish +0.2568%  ladder +0.4945%  claimed=True
+ cert one|shoulder|winter_cold     obj 48.760291  re-polish +0.0002%  ladder +0.4875%  claimed=True
   ok   one|shoulder|winter_cold: no unclaimed gap above the bar (re-polish + ladder)
   ok   one|shoulder|winter_cold: a recorded claim still has a gap (not stale)
   ok   one|winter_narrow|shoulder: every candidate is refined (refined == candidates)
- cert one|winter_narrow|shoulder   obj 11.591862  re-polish +0.0009%  ladder +0.0000%  claimed=True
+ cert one|winter_narrow|shoulder   obj 11.582107  re-polish +0.0006%  ladder +0.0000%  claimed=False
   ok   one|winter_narrow|shoulder: no unclaimed gap above the bar (re-polish + ladder)
-  FAIL one|winter_narrow|shoulder: a recorded claim still has a gap (not stale)  [claimed but gap 0.0009% is at or below the bar -- the claim closed and should be removed]
+  ok   one|winter_narrow|shoulder: a recorded claim still has a gap (not stale)
   ok   the grid holds both a clean (null) and a claimed (gapped) cell
  cert warm: cold 4->4 refined; warm 5->5 refined
   ok   the warm start adds one candidate and refines it (refined == candidates)
 
-4 of 84 OPTIMALITY CHECKS FAILED
+3 of 84 OPTIMALITY CHECKS FAILED
 rc=1

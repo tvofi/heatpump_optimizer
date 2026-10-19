@@ -1,5 +1,0 @@
-o=-15 space=1.575 new55=1.198 new/space=0.761 old/new=1.104
-o=-5 space=2.450 new55=1.739 new/space=0.710 old/new=1.183
-o=0 space=2.887 new55=1.957 new/space=0.678 old/new=1.240
-o=7 space=3.500 new55=2.174 new/space=0.621 old/new=1.352
-o=15 space=4.200 new55=2.609 new/space=0.621 old/new=1.352
