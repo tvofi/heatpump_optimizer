@@ -11,13 +11,26 @@
 #   bash dev/audit/harnesses/r10_train_raise_hold_mutants.sh [M0 P1 Q1 ...]
 cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 T=tools/audit/seat/merge_train.py; Q=tools/audit/seat/queue_pre_flight.py
-git diff --quiet -- "$T" "$Q" || { echo "$T or $Q has uncommitted edits; the restore would erase them"; exit 2; }
+RP=dev/audit/harnesses/r10_train_raise_hold_replay.py
+git diff --quiet -- "$T" "$Q" "$RP" || { echo "$T or $Q has uncommitted edits; the restore would erase them"; exit 2; }
 want=" $* "
 tests() {
   for f in "$T" "$Q"; do
     out=$(python3 "$f" --self-test 2>&1)
     echo "   $(echo "$out" | tail -1)"; echo "$out" | grep FAIL | sed 's/^/     /'
   done
+}
+rtests() { # the replay's own self-test: a failing read prints a Stop, never a hold
+  out=$(python3 "$RP" --self-test 2>&1)
+  echo "   $(echo "$out" | tail -1)"; echo "$out" | grep FAIL | sed 's/^/     /'
+}
+mutr() { # name, python replace old->new in the replay
+  name=$1; old=$2; new=$3
+  [ "$want" = "  " ] || [[ "$want" == *" $name "* ]] || return 0
+  python3 - "$RP" "$old" "$new" 2>/dev/null <<'P' || { echo "== $name: PATTERN NOT FOUND"; return; }
+import sys; p,o,n=sys.argv[1:]; s=open(p).read(); assert s.count(o)==1; open(p,'w').write(s.replace(o,n))
+P
+  echo "== $name"; rtests; git checkout -q -- "$RP"
 }
 mut() { # name, file, python replace old->new
   name=$1; file=$2; old=$3; new=$4
@@ -27,7 +40,7 @@ import sys; p,o,n=sys.argv[1:]; s=open(p).read(); assert s.count(o)==1; open(p,'
 P
   echo "== $name"; tests; git checkout -q -- "$T" "$Q"
 }
-if [ "$want" = "  " ] || [[ "$want" == *" M0 "* ]]; then echo "== M0 baseline"; tests; fi
+if [ "$want" = "  " ] || [[ "$want" == *" M0 "* ]]; then echo "== M0 baseline"; tests; rtests; fi
 mut P1 "$T" '            _paths, raises = g.raises_between(base, h, ls, show)' \
   '            _paths, raises = g.raises_between(base, h, ls, show); raises = raises or [f for f in files if f.endswith(g.SUFFIX)]'
 mut J1 "$T" ',
@@ -48,3 +61,10 @@ mut B1 "$T" '        trees: dict[str, set[str]] = {}' '        self._body(pr)
 mut Q1 "$Q" '        if not held:
             return "PARK", "approve", why' '        if False:
             return "PARK", "approve", why'
+# The replay (the body's live control) fails closed: S1 reads a failed command's
+# text as its value (the defect the verdict on #2421 found), S2 drops the
+# 40-hex test on the head and the base.
+mutr S1 '    if rc != 0:
+        raise ReadFailed' '    if False:
+        raise ReadFailed'
+mutr S2 '    if not mt.is_sha(v):' '    if False:'
