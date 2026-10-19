@@ -1142,7 +1142,8 @@
     "Source: #2452 Forward-carry. Residual of the deep-link census: code no fixture or drive executes (only the bare names are refused), and markup written through a DOM member tests/dom_stub.mjs does not implement (plants RD8, Y1 stay green). Owed: a card stage that adds such code states it, re-measured with its control (RV1 red, RD8 green) at its own merge base.",
     "Source: #2452 Forward-carry. Card census terms replacing #2345 spelling rows: every addEventListener site must be driven on a census fixture, or the same PR adds one.",
     "Source: #2452 Forward-carry. Card census terms: on<event> property wiring is refused.",
-    "Source: #2452 Forward-carry. Card census terms: the static arm refuses its eleven bare navigation names."
+    "Source: #2452 Forward-carry. Card census terms: the static arm refuses its eleven bare navigation names.",
+    "Source: #2452 Forward-carry. Card census terms: the residual (undriven code, markup through unstubbed DOM members) is re-measured with its control (RV1 red, RD8 green) at the stage own merge base."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 25; before you: R10-SAV-BASELINE, R10-SAV-REASONS; next: R10-SCORES, R10-LIVESTATE); heatpump-optimizer-card.js (position 3 of 5; before you: R10-DEEPLINK, R10-UX-SETUP; next: R10-SCORES, R10-UX-HEALTH). Owning seam in this group: the advisor what-if and its card section. Shape: a horizon-averaged delta with a sign check before render. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
