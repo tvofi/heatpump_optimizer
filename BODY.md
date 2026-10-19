@@ -25,7 +25,7 @@ Behaviour: none. The production step is bit-identical at the shipped constants o
 
 ## Head
 
-`d85b8c246cafb2448ed2a2866f78404c3b31c6fc`, one commit over the merge base `05c39d3a6597e02c81f07e771a058da90f8ebb46` (the #2435 merge). origin/main's tip at the re-take was `fb9b3fc1fe16a174476c8571c40b4b7d2d3c089c` (`date -u`: 2026-10-19T10:25Z); `git diff --name-only 05c39d3a6 fb9b3fc1f` prints only `dev/programme/delivery/` rows (2368, 2433, 2440, 2442, 2443), so main's newer commits reach no file this body measures.
+The pull request's head is `4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1`: the authored code head `d85b8c246cafb2448ed2a2866f78404c3b31c6fc`, merged with origin/main `ecdeb42cbcaf402dd609668b720bc1ee0878b7f8` by the orchestrator's script (`3310f9b08`, no conflict), plus the row commit (`dev/programme/delivery/2448.md`). Every figure below was measured at `d85b8c246`, one commit over the merge base `05c39d3a6597e02c81f07e771a058da90f8ebb46` (the #2435 merge). The main merge reaches none of the measured files: `git diff --name-only 05c39d3a6 ecdeb42cb -- custom_components tests/features.py tests/hastub dev/audit/harnesses tests/closures.json tests/structure_budgets.json` prints nothing (`git diff --name-only d85b8c246 4c9dc5d92` lists only `dev/audit/config/bugclasses.json`, `tests/ci_ratchet.py`, `tools/policy/field_coverage.mjs` and delivery rows).
 
 ## Mutation proof
 
@@ -71,19 +71,23 @@ Scoped gate: `python3 tests/closure.py select --diff 05c39d3a6597e02c81f07e771a0
 
 Disclosed self-correction: the first full `features.py` run, at `89b7da4c1`, exited 1 with `NameError: name '_f24inspect' is not defined`. A global text replace while writing the new check had also rewritten two unrelated aliases, `_f24_inspect.signature` and `_r9p5_inspect.signature` (three lines). The head restores them; `git diff 05c39d3a6 d85b8c246 -- tests/features.py | grep -i inspect` now prints only the new check's own three lines.
 
+Carry routing: `python3 tools/audit/carry_audit.py check --body BODY.md`, run from a `git archive` of origin/main `e8c67e1d3df151a8f273443a5ac5f736fb543782` (2026-10-19), prints `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`, rc 0. Both destinations, R10-BRIEFS-FOLD and the alternative R10-POLICY-FIXER-MD, are groups of that roster at stage `not-started`; R10-BRIEFS-FOLD (every brief edit the round owes) takes both, since each item is an error in a dispatch brief rather than in `fixer.md`.
+
 ## Architecture score
 
 `dS +0.0000 NULL` (no metric moved).
 
 ## Red checks
 
-none: no check has run on this head (no pull request is open for it).
+Every check-run with conclusion `failure` at `4c9dc5d92` (`gh api repos/tvofi/heatpump_optimizer/commits/4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1/check-runs --paginate`), read before this body was pushed:
+- `pr-contract` (jobs 118057416570, 118057609688): `CARRY-AUDIT: 3 finding item(s): 0 routed, 3 unrouted`. Cause: the previous body's `## Forward-carry` line `none: ...` carried no marker, and both `## Friction` lines ended in `Carry: <file path>` instead of `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>` (`finding-propagation.md`). Fixed by this body: `## Forward-carry` is a bare `none` and each Friction line names a roster group. `python3 tools/audit/carry_audit.py check --body BODY.md`, from a fresh origin/main checkout, prints 0 unrouted and 0 bad (`## Figures`). The cheaper detector exists and was skipped: the same `carry_audit.py check` runs in seconds before `body_push.sh`, and this seat did not run it on the first body; standing cost, one command per handoff.
+- `nightly-status` (job 118057836241): main's, not this pull request's. It reports `NIGHTLY FAILED: record-autofix failed last night`, scheduled run 39218718759 on `main` at `c3530277373ddf87652858f9ecb0ee1cf36f4347` (2026-10-19T07:51:37Z), a run this diff cannot reach. Owner: the orchestrator (main's nightly lane). The check is not a required context on `main-protect`.
 
 ## Forward-carry
 
-none: the finding changes no later stage's work. The dead-limit question for `COP_LEARNING_MAX_STEP` is answered above (not the dominated shape), not carried.
+none
 
 ## Friction
 
-- fixer-brief: stale: the group brief says to delete `HOUSE_LOSS_MAX_STEP` and update its pins in `tests/entities.py` and the `web-decomp-stage.js` facade list, but the constant has a second reader, `_reanchor_house_heat_loss_scale`'s threshold gate, so only the argument is deleted and both pins stand; the brief also names the second call site "the reseed path" (it is the lower-floor learner) and three harnesses where `git grep -ln max_step_fraction` finds four (D14 `enumerate.py`). Carry: dev/programme/rosters/wave-r10-groups.json
-- fixer-handoff: contradiction: the dispatch says to hand off with `tools/audit/seat/handoff_push.sh` and to make no GitHub writes, but `handoff_push.sh` opens or updates the pull request through `app_push.sh` and `gh pr edit`; this seat pushed `handoff/r10-dead-rate-limit` with `git push` and the body with `tools/audit/seat/body_push.sh` (fixer.md step 6), leaving `handoff_push.sh` to the orchestrator. Carry: dev/governance/roles/orchestrator.md
+- fixer-brief: stale: the group brief says to delete `HOUSE_LOSS_MAX_STEP` and update its pins in `tests/entities.py` and the `web-decomp-stage.js` facade list, but the constant has a second reader, `_reanchor_house_heat_loss_scale`'s threshold gate, so only the argument is deleted and both pins stand; the brief also names the second call site "the reseed path" (it is the lower-floor learner) and three harnesses where `git grep -ln max_step_fraction` finds four (D14 `enumerate.py`). Carry: R10-BRIEFS-FOLD
+- fixer-handoff: contradiction: the dispatch says to hand off with `tools/audit/seat/handoff_push.sh` and to make no GitHub writes, but `handoff_push.sh` opens or updates the pull request through `app_push.sh` and `gh pr edit`; this seat pushed `handoff/r10-dead-rate-limit` with `git push` and the body with `tools/audit/seat/body_push.sh` (fixer.md step 6), leaving `handoff_push.sh` to the orchestrator. Carry: R10-BRIEFS-FOLD
