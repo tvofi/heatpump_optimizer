@@ -71,6 +71,25 @@ Plants:
   FT1,ON1  key literal (KD1), in a handler a drive registers (FT1, the slot
            menu's Escape), and a handler wired as an `on<event>` property
            (ON1): each RED, and each green beside the X line that closes it.
+  OWN1-3   the #2452 round-1 review's plants (its own_plants.py, verbatim) in
+           the driven chart keydown: a head meta refresh, and the location
+           object's pathname and search setters under a built name. OWN2c,
+           its href control, stays red.
+  L*,D*,   the class those three belong to, enumerated by the rule "every
+  I*,MR*,  member, alias, interface or element through which a browser leaves
+  B*,UQ*,  the page": each URL part of the location object (hash, host,
+  TM*      hostname, port, protocol), its reload, a write through
+           Object.assign, the location assigned whole on the global, the
+           window and the document, the location reached through every alias
+           of the window (top, parent, frames, window.self, defaultView), the
+           history and Navigation members reached through their interface's
+           prototype, the document's open / write / writeln, the refresh
+           pragma as a member, as quoted markup and as unquoted markup, a base
+           element's href, an area's href, single-quoted and unquoted markup
+           attributes the stub's parser drops, and navigation deferred to a
+           timer the handler starts. Each RED. LRc, MRc and TMc are their
+           controls, GREEN: a location read, a meta that is no pragma, and a
+           timer that does nothing.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
@@ -203,7 +222,10 @@ F3_KEYDOWN_ACTION_AS_AN_OBJECT_KEY = card(
 F4_KEYDOWN_SUBMIT_AS_AN_IDENTIFIER = card(
     KEYDOWN, '      try { const submission = { submitted: true }; } catch (_e) {}\n' + KEYDOWN)
 # The two seams this fix found for itself.
-W1 = after_nav('if (globalThis.frames) globalThis.dispatchEvent(new Event("nothing-to-see"));')
+# `frames` is bound to the window since #2452 round 2 (the window's aliases
+# lead to its location), so W1 reads a browser global the rig still binds
+# nothing to.
+W1 = after_nav('if (globalThis.visualViewport) globalThis.dispatchEvent(new Event("nothing-to-see"));')
 W2 = after_nav('globalThis[["hist", "ory"].join("")].go(-1);')
 # The scan's grammar, ECMAScript's IdentifierName production: under the ASCII
 # word grammar the source split `främes` at the `ä`, so the name was never
@@ -254,6 +276,30 @@ X23 = test('      if (f.type === "click" || !(isDoc(f.on) || madeNow.has(f.on)))
 X24 = test('    inline.size === 0, [...inline].join(", "));', '    true, [...inline].join(", "));')
 X25 = test('    .filter(([l]) => /\\baddEventListener\\s*\\(/.test(l)).map(([, i]) => i + 1);',
            '    .filter(([l]) => /\\baddEventListener\\s*\\(/.test(l)).map(([, i]) => i + 1).filter((i) => driven.has(i));')
+# #2452 round 1: the location object's every member, its aliases, the
+# interfaces, the document's page-replacing members, the refresh pragma and
+# markup the stub's parser drops, and deferred work -- each in the driven
+# chart keydown, each name built so the static arm cannot see it.
+LOC = 'globalThis[["loc", "ation"].join("")]'
+BUILT_LOC = '[["loc", "ation"].join("")]'
+HREF = '["hr", "ef"].join("")'
+X26 = test('    set: (_t, k, v) => { left.push(["location", k === "href" ? String(v) : `${String(k)}=${String(v)}`]); return true; },',
+           '    set: (_t, k, v) => { if (k === "href") left.push(["location", String(v)]); return true; },')
+X27 = test('      if (typeof eq === "string" && eq.trim().toLowerCase() === "refresh") {', '      if (false) {')
+X28 = test('      if (typeof n._html === "string") {', '      if (false) {')
+X29 = test('  Object.defineProperty(document, "location", locDesc);\n  document.open', '  document.location = saved.doc.location;\n  document.open')
+X30 = test('    for (let round = 0; round < 4 && timers.size; round++) {', '    for (let round = 0; round < 0; round++) {')
+X31 = test('    for (const a of WINDOW_ALIASES) g[a] = ctx.window;\n', '')
+X32 = test('  sink.History = navInterface("History", sink.history);\n', '')
+X33 = test('  document.write = (...a) => { left.push(["document", `write ${a.join("")}`]); };', '  document.write = () => {};')
+OWN1 = kd('{ const m = document.createElement("meta"); m.setAttribute("http-equiv", "refresh"); m.setAttribute("content", "0;url=/config/integrations"); document.head.appendChild(m); }')
+OWN2 = kd(LOC + '.pathname = "/config/integrations";')
+LD = kd('try { document%s = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
+LT = kd('try { globalThis[["t", "op"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
+IH = kd('try { globalThis[["Hist", "ory"].join("")].prototype[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}')
+DW = kd('try { document[["wri", "te"].join("")]("<p>x</p>"); } catch (_e) {}')
+UQ1 = kd('try { document.body.innerHTML += `<a ${%s}=/config/integrations>x</a>`; } catch (_e) {}' % HREF)
+TM1 = kd('setTimeout(() => { try { globalThis.history.back(); } catch (_e) {} }, 50);')
 RD4 = after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P)
 RD6 = after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); document.body.appendChild(a); a.click(); } catch (_e) {}' % P)
 
@@ -397,8 +443,47 @@ PLANTS = {
     # UL1: an addEventListener site no fixture renders.
     "RD9_body_inner_html_built_href_driven": RD9,
     "UL1_listener_site_no_fixture_renders": UL1,
+    # #2452 round 1 (the review's own_plants.py, verbatim) and the class.
+    "OWN1_meta_refresh_in_keydown": OWN1,
+    "OWN2_location_pathname_built_in_keydown": OWN2,
+    "OWN2c_location_href_built_in_keydown_control": kd(LOC + '.href = "/config/integrations";'),
+    "OWN3_location_search_built_in_keydown": kd(LOC + '.search = "?x=1";'),
+    "L1_location_hash_built": kd('try { %s.hash = "#x"; } catch (_e) {}' % LOC),
+    "L2_location_host_built": kd('try { %s.host = "example.org"; } catch (_e) {}' % LOC),
+    "L3_location_hostname_built": kd('try { %s.hostname = "example.org"; } catch (_e) {}' % LOC),
+    "L4_location_port_built": kd('try { %s.port = "8124"; } catch (_e) {}' % LOC),
+    "L5_location_protocol_built": kd('try { %s.protocol = "https:"; } catch (_e) {}' % LOC),
+    "L6_location_reload_built": kd('try { %s.reload(); } catch (_e) {}' % LOC),
+    "L7_location_object_assign_built": kd('try { Object.assign(%s, { pathname: "/config/integrations" }); } catch (_e) {}' % LOC),
+    "L8_global_location_assigned_built": kd('try { globalThis%s = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "L9_window_location_assigned_built": kd('try { globalThis.window%s = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LD1_document_location_assigned_built": LD,
+    "LD2_document_location_pathname_built": kd('try { document%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LT1_top_location_pathname_built": LT,
+    "LT2_parent_location_pathname_built": kd('try { globalThis[["par", "ent"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LT3_frames_location_pathname_built": kd('try { globalThis[["fra", "mes"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LT4_window_self_location_hash_built": kd('try { globalThis.window[["se", "lf"].join("")]%s.hash = "#x"; } catch (_e) {}' % BUILT_LOC),
+    "LT5_default_view_location_hash_built": kd('try { document[["default", "View"].join("")]%s.hash = "#x"; } catch (_e) {}' % BUILT_LOC),
+    "IH1_history_prototype_push_state_built": IH,
+    "IH2_history_get_prototype_back": kd('try { Object.getPrototypeOf(globalThis.history).back.call(globalThis.history); } catch (_e) {}'),
+    "IN1_navigation_prototype_navigate_built": kd('try { const N = globalThis[["Navi", "gation"].join("")]; N.prototype.navigate.call(globalThis[["navi", "gation"].join("")], "/config/integrations"); } catch (_e) {}'),
+    "DO1_document_open_url_built": kd('try { document[["op", "en"].join("")]("/config/integrations", "_self", ""); } catch (_e) {}'),
+    "DW1_document_write_built": DW,
+    "DW2_document_writeln_built": kd('try { document[["wri", "teln"].join("")]("<p>x</p>"); } catch (_e) {}'),
+    "MR1_meta_refresh_member_in_body": kd('try { const m = document.createElement("meta"); m.httpEquiv = "Refresh"; m.content = "0"; document.body.appendChild(m); } catch (_e) {}'),
+    "MR2_meta_refresh_quoted_markup": kd('try { document.body.innerHTML += \'<meta http-equiv="refresh" content="0;url=/config/integrations">\'; } catch (_e) {}'),
+    "MR3_meta_refresh_unquoted_markup": kd('try { document.head.innerHTML += "<meta http-equiv=refresh content=0>"; } catch (_e) {}'),
+    "B1_base_built_href_in_head": kd('try { const b = document.createElement("base"); b.setAttribute(%s, "/config/integrations/"); document.head.appendChild(b); } catch (_e) {}' % HREF),
+    "B2_area_built_href_detached": kd('try { const a = document.createElement("area"); a.setAttribute(%s, "/config/integrations"); a.click(); } catch (_e) {}' % HREF),
+    "UQ1_unquoted_built_href_markup": UQ1,
+    "UQ2_single_quoted_built_href_markup": kd("try { document.body.innerHTML += `<a ${%s}='/config/integrations'>x</a>`; } catch (_e) {}" % HREF),
+    "TM1_history_back_in_timeout": TM1,
+    "TM2_history_back_in_interval": kd('{ const t = setInterval(() => { try { globalThis.history.back(); } catch (_e) {} }, 50); }'),
+    "LRc_location_read_control": kd('try { const p = %s.pathname + %s.hash; void p; } catch (_e) {}' % (LOC, LOC)),
+    "MRc_meta_not_a_pragma_control": kd('try { const m = document.createElement("meta"); m.setAttribute("name", "viewport"); document.head.appendChild(m); } catch (_e) {}'),
+    "TMc_timer_does_nothing_control": kd('setTimeout(() => null, 0);'),
     "Y1_runtime_name_on_unresolved_selector_residual": attach("a.zz", 'a.setAttribute(["hr", "ef"].join(""), "%s");' % P),
-    "W1_guarded_frames": W1,
+    "W1_guarded_unbound_global": W1,
     "W2_history_go_built": W2,
     "W3_unicode_global": W3,
     # This fix's own lines, and the plant each one closes.
@@ -447,6 +532,23 @@ PLANTS = {
     "X24ON1_inline_check_is_what_closes_ON1": X24 + ON1,
     "X25_reach_counts_driven_sites_only": X25,
     "X25UL1_reach_line_is_what_closes_UL1": X25 + UL1,
+    # This fix's own lines (#2452 round 2), alone and with the plant each closes.
+    "X26_location_records_href_only": X26,
+    "X26OWN2_member_trap_is_what_closes_OWN2": X26 + OWN2,
+    "X27_no_refresh_read": X27,
+    "X27OWN1_refresh_read_is_what_closes_OWN1": X27 + OWN1,
+    "X28_no_markup_read": X28,
+    "X28UQ1_markup_read_is_what_closes_UQ1": X28 + UQ1,
+    "X29_document_location_inert": X29,
+    "X29LD1_document_location_is_what_closes_LD1": X29 + LD,
+    "X30_no_settle": X30,
+    "X30TM1_settle_is_what_closes_TM1": X30 + TM1,
+    "X31_no_window_aliases": X31,
+    "X31LT1_aliases_are_what_close_LT1": X31 + LT,
+    "X32_history_interface_inert": X32,
+    "X32IH1_interface_is_what_closes_IH1": X32 + IH,
+    "X33_document_write_inert": X33,
+    "X33DW1_write_recorder_is_what_closes_DW1": X33 + DW,
 }
 
 

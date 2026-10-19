@@ -250,12 +250,40 @@ const namesSurface = (l) => NAV_TOKEN.test(l) || (NAV_EXACT !== null && NAV_EXAC
 // the census's arms never ran and nothing was measured -- and the two copies
 // may not differ about which members exist, or a plant would be invisible to
 // the census for the opposite reason.
-const navShapeInert = () => ({
-  history: { pushState() {}, replaceState() {}, back() {}, forward() {}, go() {} },
-  open: () => null,
-  location: { href: "/", assign() {}, replace() {} },
-  navigation: { navigate() {}, reload() {}, traverseTo() {}, back() {}, forward() {} },
-});
+// The location object carries every member a browser's does, the URL parts
+// included: each of `pathname`, `search`, `hash`, `host`, `hostname`, `port`
+// and `protocol` navigates when written, as `href` does (#2452 round 1).
+const LOCATION_PARTS = { href: "/", origin: "http://localhost", protocol: "http:", host: "localhost",
+  hostname: "localhost", port: "", pathname: "/", search: "", hash: "" };
+// An interface object whose prototype holds the members a browser puts there,
+// so `History.prototype.pushState.call(history, ...)` reaches the same member
+// the object's own does. Built from the object as it stands, so the census
+// rebuilds it after it installs its recorders.
+const navInterface = (name, obj) => {
+  const proto = {};
+  for (const [k, v] of Object.entries(obj)) if (typeof v === "function") proto[k] = v;
+  const C = { [name]: function () {} }[name];
+  C.prototype = proto;
+  proto.constructor = C;
+  Object.setPrototypeOf(obj, proto);
+  return C;
+};
+const navShapeInert = () => {
+  const s = {
+    history: { pushState() {}, replaceState() {}, back() {}, forward() {}, go() {} },
+    open: () => null,
+    location: { ...LOCATION_PARTS, assign() {}, replace() {}, reload() {} },
+    navigation: { navigate() {}, reload() {}, traverseTo() {}, back() {}, forward() {} },
+  };
+  s.History = navInterface("History", s.history);
+  s.Navigation = navInterface("Navigation", s.navigation);
+  return s;
+};
+// The other names a browser reaches the same window by -- `top`, `parent`,
+// `frames`, and `window` / `self` on the window itself -- and the document's
+// own way to it (`defaultView`) and to its location: each leads to the members
+// above, so each is bound to the window that holds them.
+const WINDOW_ALIASES = ["top", "parent", "frames"];
 
 // --- Part of a browser's navigation surface, inert (R10-DEEPLINK) ----------
 // The rig gives the card none of that surface. A browser always has it, so a
@@ -283,7 +311,15 @@ const navShapeInert = () => ({
   };
   for (const g of [ctx, ctx.window]) {
     Object.assign(g, { ...shape, dispatchEvent, Event });
+    for (const a of WINDOW_ALIASES) g[a] = ctx.window;
   }
+  ctx.window.window = ctx.window;
+  ctx.window.self = ctx.window;
+  // The document's half: its location (the window's), its window, and the
+  // three members that replace the page -- `open` with a URL is the window's
+  // `open`, and `write` / `writeln` after load open a new document.
+  Object.assign(document, { location: shape.location, defaultView: ctx.window,
+    open() { return null; }, write() {}, writeln() {} });
 }
 
 // --- The link census's static arm, first (R10-DEEPLINK) --------------------
@@ -11507,12 +11543,18 @@ check("without an indoor reading the corner now label is absent",
 // fixture variants for what the five pages do not render (the what-if panel,
 // the picker, the layout editor, the card's config editor). Each surface
 // member is instrumented to RECORD a use, never to throw: the history object
-// (pushState, replaceState, back, forward, go), open, the location setter and
-// its href / assign / replace, the Navigation API, a CustomEvent or plain
-// Event built with a name the card does not write as a literal, and `href`,
-// `action`, `formaction` and any form read off the WHOLE document after every
-// drive -- its head and body, the card host and every shadow root, and every
-// element the document's factories made, attached or not. Each member is installed by
+// (pushState, replaceState, back, forward, go), open, the location object --
+// assigned whole, a write to ANY of its members (href and every URL part),
+// assign / replace / reload -- on the global, the window, the document and
+// every alias of the window (top, parent, frames, window.self, defaultView),
+// the Navigation API, both interfaces' prototype members, the document's open
+// / write / writeln, a CustomEvent or plain Event built with a name the card
+// does not write as a literal, and `href`, `action`, `formaction`, a refresh
+// pragma and any form read off the WHOLE document after every drive -- its
+// head and body, the card host and every shadow root, every element the
+// document's factories made, attached or not, and the markup string each was
+// given, under any quoting (the stub's parser keeps double-quoted attributes
+// only). A timer a drive starts runs before that drive's read. Each member is installed by
 // NAME, so a spelling that builds the name reaches the same instrument. Any
 // global name the card's code mentions that neither the global nor `window`
 // binds is refused BY NAME rather than returned as `undefined`, which is what
@@ -11649,6 +11691,10 @@ check("without an indoor reading the corner now label is absent",
   // registration records and so one nothing drives; the card wires none, and
   // one that appears is refused here rather than passing both arms.
   const inline = new Set();
+  // The ways out as markup: an attribute inside a tag, under any of the three
+  // quotings HTML admits, and a refresh pragma.
+  const MARKUP_WAY_OUT = /(?<=<[A-Za-z][^<>]*\s)(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
+  const REFRESH_MARKUP = /<meta\b[^<>]*\shttp-equiv\s*=\s*["']?\s*refresh\b/i;
   const anchors = (c) => {
     const out = [];
     for (const n of [ctx.window, document, ...docNodes(c)]) {
@@ -11668,6 +11714,21 @@ check("without an indoor reading the corner now label is absent",
       for (const at of ["href", "action", "formaction"]) {
         const v = (typeof n.getAttribute === "function" && n.getAttribute(at)) || n[at];
         if (typeof v === "string" && v) out.push([at, v]);
+      }
+      // A refresh pragma navigates on insertion, wherever it sits, with or
+      // without a URL in its content (#2452 round 1, OWN1); set as an
+      // attribute or as the `httpEquiv` member.
+      const eq = (typeof n.getAttribute === "function" && n.getAttribute("http-equiv")) || n.httpEquiv;
+      if (typeof eq === "string" && eq.trim().toLowerCase() === "refresh") {
+        out.push(["refresh", String((n.getAttribute && n.getAttribute("content")) || n.content || "(this page)")]);
+      }
+      // The markup string an element was given, read as well as the nodes the
+      // stub parsed from it: the stub's parser keeps double-quoted attributes
+      // only, so a single-quoted or unquoted one (`<a href=/x>`) left no
+      // attribute on any node, while a browser navigates by it.
+      if (typeof n._html === "string") {
+        for (const m of n._html.matchAll(MARKUP_WAY_OUT)) out.push([m[1].toLowerCase(), m[2] || m[3] || m[4] || ""]);
+        if (REFRESH_MARKUP.test(n._html)) out.push(["refresh", "(markup)"]);
       }
     }
     return out;
@@ -11689,12 +11750,20 @@ check("without an indoor reading the corner now label is absent",
   sink.history.forward = () => { left.push(["history", "forward"]); };
   sink.history.go = (d) => { left.push(["history", `go(${d})`]); };
   sink.open = (u) => { left.push(["open", String(u)]); return null; };
-  sink.location = {
-    get href() { return "/"; },
-    set href(v) { left.push(["location", String(v)]); },
+  // The location object records a write to ANY member, not to `href` alone: a
+  // browser navigates on `pathname`, `search`, `hash`, `host`, `hostname`,
+  // `port` and `protocol` too, and a write the recorder does not name would
+  // land silently on a plain object (#2452 round 1, OWN2 and OWN3). An `href`
+  // write carries its path, so a link haLink built is excused as it is from
+  // assign; any other member carries `member=value`, which no path equals.
+  sink.location = new Proxy({ ...sink.location,
     assign: (v) => { left.push(["location", String(v)]); },
     replace: (v) => { left.push(["location", String(v)]); },
-  };
+    reload: () => { left.push(["location", "reload"]); },
+  }, {
+    set: (_t, k, v) => { left.push(["location", k === "href" ? String(v) : `${String(k)}=${String(v)}`]); return true; },
+    defineProperty: (_t, k, d) => { left.push(["location", `${String(k)}=${String(d && d.value)}`]); return true; },
+  });
   // The Navigation API, recorded by NAME like every other member, so a
   // spelling that builds the name -- `globalThis[["navi","gation"].join("")]`
   // -- reaches this recorder and is refused with the path named, rather than
@@ -11704,16 +11773,56 @@ check("without an indoor reading the corner now label is absent",
   sink.navigation.traverseTo = (u) => { left.push(["navigation", String(u)]); return null; };
   sink.navigation.back = () => { left.push(["navigation", "back"]); return null; };
   sink.navigation.forward = () => { left.push(["navigation", "forward"]); return null; };
+  // The interface objects, rebuilt over the recorders, so a member reached
+  // through the prototype is the recorder too.
+  sink.History = navInterface("History", sink.history);
+  sink.Navigation = navInterface("Navigation", sink.navigation);
   const saved = { history: ctx.history, open: ctx.open, wHistory: ctx.window.history, wOpen: ctx.window.open,
     location: ctx.location, wLocation: ctx.window.location, Event: ctx.Event,
     navigation: ctx.navigation, wNavigation: ctx.window.navigation,
+    History: ctx.History, Navigation: ctx.Navigation,
+    doc: { location: document.location, open: document.open, write: document.write, writeln: document.writeln },
+    setTimeout: ctx.setTimeout, clearTimeout: ctx.clearTimeout, setInterval: ctx.setInterval,
+    clearInterval: ctx.clearInterval,
     CustomEvent: ctx.CustomEvent, navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
   const locDesc = { get: () => sink.location, set: (v) => { left.push(["location", String(v)]); }, configurable: true };
   ctx.history = sink.history; ctx.window.history = sink.history;
   ctx.open = sink.open; ctx.window.open = sink.open;
   ctx.navigation = sink.navigation; ctx.window.navigation = sink.navigation;
+  ctx.History = sink.History; ctx.window.History = sink.History;
+  ctx.Navigation = sink.Navigation; ctx.window.Navigation = sink.Navigation;
   Object.defineProperty(ctx, "location", locDesc);
   Object.defineProperty(ctx.window, "location", locDesc);
+  // The document reaches the same location, and replaces the page through
+  // `open` (with a URL it is the window's open) and `write` / `writeln`.
+  delete document.location;
+  Object.defineProperty(document, "location", locDesc);
+  document.open = (...a) => {
+    left.push(a.length >= 3 ? ["open", String(a[0])] : ["document", "open"]);
+    return a.length >= 3 ? null : document;
+  };
+  document.write = (...a) => { left.push(["document", `write ${a.join("")}`]); };
+  document.writeln = (...a) => { left.push(["document", `writeln ${a.join("")}`]); };
+  // Work a handler defers runs after the drive that scheduled it: a timer the
+  // drive starts is queued here and run before that drive's read, so what it
+  // does is recorded against the drive that scheduled it rather than landing
+  // after the census restores the surface.
+  const timers = new Map();
+  let timerId = 1e6;
+  ctx.setTimeout = (f, _ms, ...a) => { const id = ++timerId; timers.set(id, () => f(...a)); return id; };
+  ctx.clearTimeout = (id) => { if (!timers.delete(id)) saved.clearTimeout(id); };
+  ctx.setInterval = (f, ...rest) => { const id = saved.setInterval(f, ...rest); timers.set(`i${id}`, f); return id; };
+  ctx.clearInterval = (id) => { timers.delete(`i${id}`); saved.clearInterval(id); };
+  const settle = async (key) => {
+    for (let round = 0; round < 4 && timers.size; round++) {
+      const due = [...timers.values()];
+      timers.clear();
+      for (const f of due) {
+        try { await f(); } catch (err) { threw.push(`${key} (deferred): ${(err && err.message) || err}`); }
+      }
+    }
+    timers.clear();
+  };
   // An event whose type the card WRITES is the static arm's to refuse; one
   // whose type is BUILT is this arm's, so any construction outside the types
   // the source writes as literals is recorded, whatever class built it -- the
@@ -11841,6 +11950,7 @@ check("without an indoor reading the corner now label is absent",
   for (const page of ["plan", "setup", "savings", "advisor", "health"]) {
     left = [];
     const shown = open(page);
+    await settle(`${page}:render`);
     const n = pressables(shown).length;
     census.push(`${page}=${n}`);
     for (const [via, path] of [...left, ...anchors(shown)]) {
@@ -11857,6 +11967,7 @@ check("without an indoor reading the corner now label is absent",
         await Promise.all((el._listeners.click || []).map((f) => f({
           stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
       } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
+      await settle(key);
       for (const [via, path] of [...left, ...anchors(c)]) {
         (seen[key] ||= new Set()).add(`${via} ${path}`);
         if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
@@ -11892,6 +12003,7 @@ check("without an indoor reading the corner now label is absent",
       await Promise.all((menu._listeners.click || []).map((f) => f({
         stopPropagation() {}, preventDefault() {}, detail: 1, target: row, currentTarget: menu })));
     } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
+    await settle(key);
     for (const [via, path] of [...left, ...anchors(c)]) {
       (seen[key] ||= new Set()).add(`${via} ${path}`);
       if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
@@ -11974,6 +12086,7 @@ check("without an indoor reading the corner now label is absent",
         await run(`${key} then ${f.type}${fk === undefined ? "" : `:${fk}`}`, f, mkEv(f.type, f.on, f.on, fk, alt));
       }
     }
+    await settle(key);
     for (const [via, path] of [...left, ...anchors(c)]) {
       (seen[key] ||= new Set()).add(`${via} ${path}`);
       if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
@@ -12063,6 +12176,12 @@ check("without an indoor reading the corner now label is absent",
   ctx.location = saved.location; ctx.window.location = saved.wLocation;
   delete ctx.navigation; delete ctx.window.navigation;
   if (saved.navigation) { ctx.navigation = saved.navigation; ctx.window.navigation = saved.wNavigation; }
+  ctx.History = saved.History; ctx.window.History = saved.History;
+  ctx.Navigation = saved.Navigation; ctx.window.Navigation = saved.Navigation;
+  delete document.location;
+  Object.assign(document, saved.doc);
+  ctx.setTimeout = saved.setTimeout; ctx.clearTimeout = saved.clearTimeout;
+  ctx.setInterval = saved.setInterval; ctx.clearInterval = saved.clearInterval;
   ctx.CustomEvent = saved.CustomEvent; ctx.Event = saved.Event;
   ctx.navigateTo = saved.navigateTo; ctx.openHaLink = saved.openHaLink;
   for (const n of watched) { delete ctx[n]; delete ctx.window[n]; }
