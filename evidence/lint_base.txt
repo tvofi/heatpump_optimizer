@@ -1,6 +1,0 @@
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 13 recorded occurrence(s)
-
-TOTAL: 0 error(s) across 41 policy file(s)
-
-FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

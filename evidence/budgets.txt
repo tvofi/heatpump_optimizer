@@ -1,6 +1,6 @@
 file                                           lines cap  ~tokens  cap always
 tests/README.md                                  459  800     6672  6686 
-tools/audit/briefs/orchestrator.md               319  319     4507  4513 
+tools/audit/briefs/orchestrator.md               319  319     4512  4513 
 tools/audit/briefs/fixer.md                      315  315     5215  5216 
 tools/audit/README.md                            238  250     3875  3880 
 CLAUDE.md                                        206  221     3410  3590   yes
@@ -42,9 +42,10 @@ tools/audit/briefs/judge.md                       30   30      469   469
 AGENTS.md                                         12   13      166   183 
 
 always-loaded: ~3410 tokens, cap 3349 +band 500 = 3849
-corpus:        ~61147 tokens, cap 61026 +band 500 = 61526
+corpus:        ~61152 tokens, cap 61026 +band 500 = 61526
 role fixer     ~6086 tokens, cap 5852 +band 500 = 6352
 role record    ~7233 tokens, cap 7405 +band 500 = 7905
 role policy    ~9818 tokens, cap 9958 +band 500 = 10458
 
 The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+exit=0
