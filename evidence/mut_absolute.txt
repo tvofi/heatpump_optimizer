@@ -1,0 +1,22 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index 9005a3da3..75027b651 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1934,7 +1934,7 @@ def learner_newton_step(
+     # A fraction of the current estimate, so the bound in UA is
+     # ``current_u * trust_region`` however UA splits into base and multiplier
+     # (#2252: a fixed offset made a reseed change the step size alone).
+-    reach = current * trust_region
++    reach = trust_region
+     target = float(np.clip(target, current - reach, current + reach))
+ 
+     # The EWMA and the rate limit below are what decide how fast genuine
+  FAIL the extracted Newton step leaves the learned scale unchanged  [scale 0.8999999999999999]
+  FAIL the trust region saturates at a fraction of the current estimate  [target 2.5, bound 3.0]
+  FAIL and a saturated step in UA does not depend on the prior/multiplier split  [UA 0.40199999999999997 at (0.2, 2.0), 0.404 at (0.4, 1.0)]
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+3 of 4215 FEATURE CHECKS FAILED
+rc=1
