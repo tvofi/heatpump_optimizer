@@ -27,7 +27,6 @@ its cheap no-budget-file exit and a real raise (#2368) printed
 "0 raise(s), HOLDS" -- the fail-open shape this PR closes in the train.
 `--self-test` plants each failing read and a healthy control.
 """
-import re
 import sys
 import tempfile
 from pathlib import Path
@@ -52,9 +51,6 @@ sys.path.insert(0, str(ROOT / "tools/audit/seat"))
 import merge_train as mt  # noqa: E402
 
 
-HEX40 = re.compile(r"[0-9a-f]{40}")
-
-
 class ReadFailed(Exception):
     """A read the replay depends on failed: the value is unknown, never a hold."""
 
@@ -69,7 +65,7 @@ def read(t, what: str, *argv: str) -> str:
 
 def sha(t, what: str, *argv: str) -> str:
     v = read(t, what, *argv)
-    if not HEX40.fullmatch(v):
+    if not mt.is_sha(v):
         raise ReadFailed(f"{what} is not a 40-hex object name: {v[:60]!r}")
     return v
 

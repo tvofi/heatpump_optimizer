@@ -67,4 +67,4 @@ mut Q1 "$Q" '        if not held:
 mutr S1 '    if rc != 0:
         raise ReadFailed' '    if False:
         raise ReadFailed'
-mutr S2 '    if not HEX40.fullmatch(v):' '    if False:'
+mutr S2 '    if not mt.is_sha(v):' '    if False:'
