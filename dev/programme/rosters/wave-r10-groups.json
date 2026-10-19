@@ -4506,6 +4506,50 @@
     "next_step": "fixer",
     "note": "tvofi 2026-10-19 ~15:05Z: do it now as a small fix."
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "policy",
+   "issues": [],
+   "fixes": [],
+   "class": "policy",
+   "severity": "medium",
+   "size": "S",
+   "hot_files": [
+    "dev/governance/roles/orchestrator.md",
+    "dev/governance/roles/nudge.md",
+    "dev/governance/config/policy_budgets.json"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "policy: mandated approval under 6175172275 (tvofi 2026-10-19 asked for this edit, budget raises ok)",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-POLICY-INSTRUMENTS",
+   "findings": [],
+   "wave": 1,
+   "files": [
+    "dev/governance/roles/orchestrator.md",
+    "dev/governance/roles/nudge.md",
+    "dev/governance/config/policy_budgets.json"
+   ],
+   "brief": "Ordered by tvofi 2026-10-19: reinforce that canonical instruments in tools/audit/seat/INSTRUMENTS.md are used before any hand-rolled loop, watcher, relay or helper. The round-10 orchestrator hand-rolled a scratch tick driver (tick_loop.sh exists), a private cloud relay (cloud_relay.sh), a hand-typed sweep (sweep_render.py), merge-poll loops (merge_pr.sh/proof_watch.py), body edits without read-back (head_note.py/push.sh/body_push.sh; blanked two bodies), log greps (failure_logs.sh) and manual reruns (ci-watch.sh). orchestrator.md section 13 gains the lookup rule, the tools/-only rule, sweep rendering, the brief re-check when an instrument merges, and ledger reconciliation before switching to a stateful instrument; nudge.md step 18 points to it.",
+   "stage": "in-progress",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
