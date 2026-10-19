@@ -4015,7 +4015,8 @@
    "after": [],
    "carry": [
     "The stamp (tools/release/stamp.py / web-stamp): restore the 19 suspended may-drift entries verbatim when the stamp empties the claim list. The obligation is written beside each entry in tests/golden/claimed_drift.txt.",
-    "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat."
+    "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat.",
+    "From R10-PUMP-MODEL-D2 (#2368): its tests/stress.py override sets the solver-work floors at 18 and calls_floor at 6 for that branch, and nothing expires it at merge, so every later PR inherits those floors. The stamp's stress re-record must drop the override and re-measure the floors from main. Check: after the re-record, tests/stress.py carries no #2368 override, and budget_raise_gate reports the floors at their re-measured values with no override line."
    ],
    "architect_note": null,
    "group": "R10-STAMP",
