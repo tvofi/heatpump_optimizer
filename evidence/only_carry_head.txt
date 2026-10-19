@@ -1,4 +1,7 @@
-BOARD measured from origin/main at dd27e7c1b4c6, 2026-10-19T03:49:35.187090+00:00
+== absent
 == CARRY ==
 -> UNREADABLE: carry sweep (tools/audit/carry_audit.py absent (it lands with #2404))
-DISPATCH LIST: 1 finding(s)
+rc=0
+== with #2404 carry_audit.py (untracked, removed after)
+== CARRY ==
+-> UNREADABLE: carry sweep (exit 1, carry_audit: REFUSED gh api repos/tvofi/heatpump_optimizer/pulls?state=closed&per_page=100: gh: Nume)
