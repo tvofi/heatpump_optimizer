@@ -1,9 +1,0 @@
-RESULT bias=0.00 bias_only_trips_at=None window_trips_at=98 ok
-RESULT bias=0.05 bias_only_trips_at=None window_trips_at=98 ok
-RESULT bias=0.10 bias_only_trips_at=59 window_trips_at=59 FAIL
-RESULT bias=0.40 bias_only_trips_at=3 window_trips_at=3 FAIL
-RESULT part1_failures=2
-RESULT cusum coordinator.py:_vent_cusum gates_learning=True referenced=False OPEN
-RESULT cusum coordinator.py:_cop_health_cusum gates_learning=False referenced=False ok
-RESULT cusums=2 open_learning_gates=1
-rc=1

@@ -1,2 +1,0 @@
-Architecture score: dS +0.0000 NULL
-rc=0
