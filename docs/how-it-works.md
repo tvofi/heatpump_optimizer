@@ -1156,7 +1156,7 @@ fit degrades to the historical two-column form and reports no gains figure.
 |---|---|---|
 | DHW tank cooling rate | Tank decay with no heating | Lower envelope, clamped 0.05–3.0 °C/h |
 | Buffer tank cooling rate | Buffer decay with the pump off | Lower envelope; needs a buffer sensor, else an area-scaled prior |
-| House heat loss scale | Predicted vs measured indoor temperature | Slow symmetric average, rate-limited, residual cutoff |
+| House heat loss scale | Predicted vs measured indoor temperature | Slow symmetric average, each sample's move bounded by a trust region, residual cutoff |
 | Lower-floor loss ratio | Lower-floor sensor residuals | Only moves with a real lower-floor sensor |
 | COP scale | Measured power vs modelled thermal output | [0.5, 1.6], tracking-error gate, bounded step |
 | Defrost derate | Predicted vs actual performance, per outdoor-temperature and humidity bucket | Exactly 1.0 with no evidence |

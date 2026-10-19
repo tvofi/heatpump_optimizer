@@ -8636,9 +8636,9 @@ R.check(
     f"{_SCALE * _OLD:.4f} kW/°C",
 )
 
-# Below the learner's own step limit, today's behaviour stands: the law
-# is a measured regression on exactly that path (the 30-hop walk), and
-# the learner absorbs a small edit in one step.
+# Below the re-anchor threshold, today's behaviour stands: the law is a
+# measured regression on exactly that path (the 30-hop walk), and the
+# learner's EWMA closes a small edit on its own.
 _sub = _reloaded(_OLD * 1.03, _anchored_store(_OLD, _SCALE, 300))
 R.check(
     "a sub-threshold nameplate edit keeps the stored scale verbatim",
@@ -17088,7 +17088,6 @@ R.section("One bounded Newton step behind both heat-loss learners (#193 S7)")
 _STEP_KW = {
     "trust_region": _HL_TR,
     "alpha": _HL_ALPHA,
-    "max_step_fraction": _HL_STEP,
 }
 R.check(
     "a degenerate coefficient or capacity yields no step at all",
@@ -17133,17 +17132,39 @@ R.check(
     abs(_off[1] * 0.2 - _reseeded[1] * 0.4) < 1e-12,
     f"UA {_off[1] * 0.2!r} at (0.2, 2.0), {_reseeded[1] * 0.4!r} at (0.4, 1.0)",
 )
-# Where the EWMA would outrun it the rate limit binds instead, and it is a
-# fraction of the *current* estimate, not a fixed offset. At the shipped
-# constants the relative trust region already holds a step to
-# alpha * trust_region of the estimate, inside the limit, so the limit is
-# driven here with a walk wide enough to reach it.
-_small = _newton(0.1, 0.2, 8.0, -5.0, 10.0, 0.5, **{**_STEP_KW, "alpha": 1.0})
+# R10-DEAD-RATE-LIMIT: the per-interval rate limit is the trust region
+# itself. The EWMA moves alpha of the way to a target at most trust_region
+# of the estimate away, so a saturated sample moves it by exactly
+# alpha * trust_region of itself, at either clamp of either learner; the
+# clip that used to follow the EWMA (HOUSE_LOSS_MAX_STEP, 5%) could never
+# bind and is gone. Re-adding any clip tighter than alpha * trust_region
+# fails the first check; the second pins that the step takes no such knob.
+import inspect as _rl_inspect  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    HOUSE_HEAT_LOSS_SCALE_MAX as _HL_SMAX,
+    HOUSE_HEAT_LOSS_SCALE_MIN as _HL_SMIN,
+    LOWER_FLOOR_LOSS_RATIO_MAX as _LF_RMAX,
+    LOWER_FLOOR_LOSS_RATIO_MIN as _LF_RMIN,
+)
+
+_rl_moves = [
+    abs(_newton(_c, 0.2, 8.0, _r, 10.0, 0.5, **_STEP_KW)[1] - _c) / _c
+    for _c in (_HL_SMIN, _LF_RMIN, 1.0, _HL_SMAX, _LF_RMAX)
+    for _r in (-5.0, 5.0)
+]
 R.check(
-    "and the rate limit caps it at a fraction of the current estimate",
-    abs(_small[1] - (0.1 + 0.1 * _HL_STEP)) < 1e-12
-    and 0.1 * _HL_STEP < 0.1 * _HL_TR,
-    f"moved {_small[1] - 0.1}, cap {0.1 * _HL_STEP}",
+    "a saturated sample moves the estimate by alpha * trust_region of it, "
+    "at either clamp",
+    all(abs(_m - _HL_ALPHA * _HL_TR) < 1e-12 for _m in _rl_moves),
+    f"moved fractions {_rl_moves}, bound {_HL_ALPHA * _HL_TR}",
+)
+R.check(
+    "the Newton step takes no rate-limit argument beyond its trust region",
+    set(_rl_inspect.signature(_newton).parameters) == {
+        "current", "base_u", "capacity", "residual", "delta_t", "dt_hours",
+        "trust_region", "alpha",
+    },
+    f"parameters {list(_rl_inspect.signature(_newton).parameters)}",
 )
 
 # While a stale sensor is what feeds the residual, the detector must not
@@ -18029,7 +18050,7 @@ def _rs_target(current, base_u, capacity, residual, *, dt_h=0.5, pred=21.0,
     delta_t = pred + residual / 2.0 - outdoor
     return _rs_newton(
         current, base_u, capacity, residual, delta_t, dt_h,
-        trust_region=1e9, alpha=1.0, max_step_fraction=1e9,
+        trust_region=1e9, alpha=1.0,
     )[0]
 
 
