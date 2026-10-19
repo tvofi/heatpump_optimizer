@@ -1,0 +1,81 @@
+### python3 tests/closure.py selftest
+  ok   and reports every allow entry nothing matches as stale
+
+ALL 124 closure shrink pins PASSED
+rc=0
+### python3 -c "import sys; sys.path.insert(0,\"tests\"); import closure; print(closure.rename_sites())"
+([], [])
+rc=0
+### python3 tests/lane_skip.py self-test
+  PASS  a missing state file is no state
+  PASS  a state for another lane is no state for this one
+lane_skip self-test: 54/54 pins passed
+rc=0
+### python3 -I tools/pr/codeql_scope.py --self-test
+  ok   the seam is real: porcelain git diff lists only lib.md (null control)
+  ok   the list is closure.changed_between's, not a copy (#2406)
+codeql_scope self-test: 47 checks, 0 failed
+rc=0
+### python3 tools/audit/seat/roster_lib.py --self-test
+roster_lib self-test: 18 checks, 0 failed
+rc=0
+### python3 tools/audit/seat/orchestrator_tick.py --self-test
+orchestrator_tick self-test: 104 checks, 0 failed
+rc=0
+### python3 tools/audit/seat/state_docs.py --self-test
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp3ocn9pm1/beat-mirror/RESUME-CURRENT.md
+state_docs: REFUSED: which round: no dev/programme/rosters/wave-r<N>-groups.json at main in /tmp/tmpg0x2sjwa/two; pass --roster-path or --roster-ref
+state_docs self-test: all checks passed
+rc=0
+### python3 tools/release/stamp.py --self-test
+  ok   register dry run: a generator that fails refuses, as the real stamp does
+  ok   register dry run: main calls it before returning from --dry-run
+RESULT stamp_self_test=pass
+rc=0
+### node tools/policy/policy_lint.mjs | grep -E "TOTAL|VACUOUS"
+TOTAL: 0 error(s) across 41 policy file(s)
+rc=0
+### python3 tests/env_drift.py --claims-only origin/main
+claims hygiene: origin/main ok
+rc=0
+### python3 tests/layout.py --guard --base origin/main
+layout: GUARD: 0 refusal(s) against 06c6f3cf2589
+rc=0
+### python3 tests/structure.py | tail -1
+STRUCTURE RATCHET PASSED
+rc=0
+### python3 tests/throwaway_git.py --check
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+rc=0
+### python3 -I tools/audit/seat/tmp_paths.py --check
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 06c6f3cf2589
+rc=0
+### python3 dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check
+RESULT pinned_by_base_restore=43 count
+RESULT of_which_no_pr_job_runs=26 count
+RESULT uncovered_files=0 count
+rc=0
+### PYTHONPATH=tests/hastub python3 tests/harness_headers.py
+  ok   the executed harnesses leave their committed output byte-identical
+
+ALL 109 HARNESS HEADER CHECKS PASSED
+rc=0
+### python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD | grep "Architecture score"
+Architecture score: dS +0.0000 NULL
+rc=0
+### python3 -I tools/policy/agreement_py.py --out /tmp/seat/rev2406/agreement.json && node tools/policy/agreement.mjs --py-json /tmp/seat/rev2406/agreement.json | grep -E "RESULT|AGREEMENT"
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.2
+AGREEMENT ok
+rc=0
+### python3 -I -S tests/delivery_status.py --check
+  pending  #2390 a96f4be 1 commit(s) since — R10-TICK-DRIVERS: tick drivers and handoff prepr counter
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+rc=0
+### bash tools/pr/prepr.sh --self-test | tail -2
+AssertionError: queue-base
+
+290 passed, 0 failed
+rc=0
+FIGS-DONE
+DELIVERY STATUS OK — 138 rowed, 2 pending, 0 overdue (overdue at 12 commits)

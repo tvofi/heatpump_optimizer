@@ -1,0 +1,25 @@
+## MP: tests/closure.py:2763 --no-renames dropped from changed_between
+ tests/closure.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the changed list keeps both sides of a rename onto a delivery row  [['dev/programme/delivery/99999.md']]
+  FAIL so the gate does not scope a deleted entry point to zero scripts  [scoped: 0 run]
+  FAIL no rename-detecting --name-only diff under RENAME_SITES  [tests/closure.py:2763: out = subprocess.run(["git", "diff", "--name-only",]
+3 of 124 closure shrink pins FAILED
+lane_skip self-test: 51/54 pins passed
+codeql_scope self-test: 47 checks, 2 failed
+## MB19: policy_lint.mjs:2356 mergeRecordClass real call --no-renames dropped
+ tools/policy/policy_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+TOTAL: 0 error(s) across 41 policy file(s)
+FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames in their own bodies; the two commands must move together","recordDiffParity refuses a tree whose only change drops the flag from a copy of the call OUTSIDE mergeRecordClass (null control)"]. The record-class carve-out is what ends the record-PR row recursion; unpinned, it widens to a blanket exemption (any path set passes) or narrows to nothing (the recursion returns) with the mode's other counts unchanged.
+policy_lint rc=1
+(["tools/policy/policy_lint.mjs:2356: : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })"], [])
+## MB15: stamp.py:1708 --no-renames dropped
+ tools/release/stamp.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+TOTAL: 0 error(s) across 41 policy file(s)
+FIXTURE VACUOUS: recordClassPaths ["the stamp's merge_is_record_class and mergeRecordClass must both diff with --no-renames in their own bodies; the two commands must move together","recordDiffParity refuses a tree whose only change drops the flag from a copy of the call OUTSIDE mergeRecordClass (null control)"]. The record-class carve-out is what ends the record-PR row recursion; unpinned, it widens to a blanket exemption (any path set passes) or narrows to nothing (the recursion returns) with the mode's other counts unchanged.
+policy_lint rc=1
+(['tools/release/stamp.py:1708: out = run("git", "diff", "--name-only", f"{sha}^1", sha)'], [])
+## restored:
+0
