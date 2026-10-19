@@ -1,0 +1,4 @@
+UNROUTED body item e6ba36a9 (## Forward-carry) [section]: '`tools/audit/seat/INSTRUMENTS.md`, `head_note.py` entry: any new `## Head` note writer goes through it. No lat'
+UNROUTED body item d64636a3 (## Friction) [section]: '- `fixer.md`: cost: the previous head conflicted with main in three seat scripts that four merged PRs rewrote '
+UNROUTED body item c5afd07f (## Friction) [section]: '- `tests/harness_headers.py`: cost: it runs the whole harness corpus serially and takes many minutes on this b'
+CARRY-AUDIT: 3 finding item(s): 0 routed, 3 unrouted, 0 bad destination(s)
