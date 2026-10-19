@@ -1,0 +1,42 @@
+REV3                 seed  0 chain   END-BAD 0 max-attempt  4  
+REV3                 seed  0 nochain END-BAD 0 max-attempt  4  
+REV3                 seed  1 chain   END-BAD 0 max-attempt  3  
+REV3                 seed  1 nochain END-BAD 0 max-attempt  3  
+REV3                 seed  2 chain   END-BAD 0 max-attempt  3  
+REV3                 seed  2 nochain END-BAD 0 max-attempt  3  
+REV3                 seed  3 chain   END-BAD 0 max-attempt  3  
+REV3                 seed  3 nochain END-BAD 0 max-attempt  3  
+REV3                 seed  4 chain   END-BAD 0 max-attempt  3  
+REV3                 seed  4 nochain END-BAD 0 max-attempt  3  
+REV3                 seed  5 chain   END-BAD 0 max-attempt  4  
+REV3                 seed  5 nochain END-BAD 0 max-attempt  4  
+REV3                 seed  6 chain   END-BAD 0 max-attempt  3  
+REV3                 seed  6 nochain END-BAD 0 max-attempt  3  
+REV3                 seed  7 chain   END-BAD 0 max-attempt  3  
+REV3                 seed  7 nochain END-BAD 0 max-attempt  3  
+REV3                 seed  8 chain   END-BAD 0 max-attempt  3  
+REV3                 seed  8 nochain END-BAD 0 max-attempt  3  
+REV3                 seed  9 chain   END-BAD 0 max-attempt  4  
+REV3                 seed  9 nochain END-BAD 0 max-attempt  4  
+null: without poll   seed  0 chain   END-BAD 0 max-attempt  4  
+null: without poll   seed  0 nochain END-BAD 0 max-attempt  4  
+null: without poll   seed  1 chain   END-BAD 0 max-attempt  3  
+null: without poll   seed  1 nochain END-BAD 0 max-attempt  3  
+null: without poll   seed  2 chain   END-BAD 0 max-attempt  3  
+null: without poll   seed  2 nochain END-BAD 0 max-attempt  3  
+null: without poll   seed  3 chain   END-BAD 0 max-attempt  3  
+null: without poll   seed  3 nochain END-BAD 0 max-attempt  3  
+null: without poll   seed  4 chain   END-BAD 0 max-attempt  3  
+null: without poll   seed  4 nochain END-BAD 0 max-attempt  3  
+null: without poll   seed  5 chain   END-BAD 0 max-attempt  4  
+null: without poll   seed  5 nochain END-BAD 0 max-attempt  4  
+null: without poll   seed  6 chain   END-BAD 0 max-attempt  3  
+null: without poll   seed  6 nochain END-BAD 0 max-attempt  3  
+null: without poll   seed  7 chain   END-BAD 0 max-attempt  3  
+null: without poll   seed  7 nochain END-BAD 0 max-attempt  3  
+null: without poll   seed  8 chain   END-BAD 0 max-attempt  3  
+null: without poll   seed  8 nochain END-BAD 0 max-attempt  3  
+null: without poll   seed  9 chain   END-BAD 0 max-attempt  4  
+null: without poll   seed  9 nochain END-BAD 0 max-attempt  4  
+JITTER maxtail 300 s, 10 seeds: REV3 END-BAD total 0; without poll 0
+rc 0

@@ -60,7 +60,8 @@ Revision 3 (round 3):
        run finalisation lie between its read and its completion), and the sweep
        cannot re-run a running run. So `gate.py --sweep`, after re-running every older
        completed red gate at the head, polls every older run whose gate attempt is
-       in progress, every SWEEP_POLL s for at most SWEEP_WAIT s, and re-runs each that
+       not completed (rev4, R4-3: queued, waiting or in progress), every SWEEP_POLL s
+       for at most SWEEP_WAIT s, and re-runs each that
        completes red while the head is still live and the triggering run's latest gate
        is still green AND began after every run at the head was created (its verdict
        covers the newest event; else a newer run's own sweep owns convergence, and a
@@ -362,7 +363,7 @@ class World:
                 # completion (it may have read red before src's gate went green).
                 for o in self.runs:
                     if (o is not src and o["head"] == src["head"] and o["id"] < src["id"]
-                            and o["status"] == "in_progress" and o.get("gate_t0") is not None):
+                            and o["status"] != "completed" and o.get("gate_t0") is not None):   # rev4, R4-3: not completed, not only in_progress
                         self.todo.append((self.t + SWEEP_POLL, "sweep-poll", src, o, self.t + SWEEP_WAIT))
             for o in self.runs:
                 if o is src or o["head"] != src["head"] or o["status"] != "completed":

@@ -4,7 +4,9 @@
 "Revision 2: the round-2 review": one `## Round-2 item <id>` section for each of
 N1, N2, 5, N3 and N4. Revision 3's response to the round-3 review is the third part,
 under "Revision 3: the round-3 review": one `## Round-3 item <id>` section for each of
-R3-1 to R3-5 and the editorial points. The first part is revision 1's, unchanged; the
+R3-1 to R3-5 and the editorial points. Revision 4's response to the round-4 review is
+the fourth part, under "Revision 4: the round-4 review": one `## Round-4 item <id>`
+section for each of R4-1 to R4-5. The first part is revision 1's, unchanged; the
 second is revision 2's, with one command line completed (round-3 editorial).*
 
 Design-revision seat, 2026-10-18. Neither the designers nor the reviewer.
@@ -1078,3 +1080,290 @@ These are added to the lists above:
   longer depends on it.
 - **R-10:** whether the code-scanning check takes in a later leg. The decision that
   would follow is with the owner now, not at U6.
+
+---
+
+# Revision 4: the round-4 review
+
+Design-revision seat (revision 4), 2026-10-19. This seat is not a designer, not an
+earlier revision author, and not a reviewer.
+
+**Inputs, read in full:**
+- revision 3, `probe/design-ci-rev3` at `8bd4e68f`;
+- the round-4 review, `probe/design-ci-review4` at `21c86c18` (`REVIEW.md`, `ev/`,
+  `tools/`), verdict *revise*;
+- owner ruling R-10, relayed in this seat's brief: option B, made under mandate
+  after revision 3 was written;
+- policy from `origin/main` at `b87e8f19`: `CLAUDE.md`, `judge.md`, `ci-autofix.md`
+  and `gate-scoping.md`. None of the readers or citations the design names were found
+  changed.
+
+**Scope: the minimum change.** Past three rounds, this revision touches only what
+R4-1 to R4-5 need. It resolves the blocking R4-1 and R4-2 as the review's "What would
+turn this into approve" states them, and also R4-3 to R4-5, because this programme
+defers no finding. Everything else in revision 3 stands: the predicate
+(`gate_model.py` is unchanged), the simulator's behaviour, and sections 5, 6 and 8.
+Three things change beyond the items' own text. Each is forced by one item and named
+in its section and in `DESIGN-P2.md`'s header:
+- `gate.py --sweep` takes `--run <id>` (R4-2), so the driver and the workflow call
+  one entry point with one argument;
+- section 7's cut-over gains step 3a and a rollback of the trigger path (R4-2);
+- one token of `gate_sim.py` changes (R4-3), with byte-identical output.
+
+| item | resolved by | design sections | evidence (run here) |
+|---|---|---|---|
+| R4-1 | owner ruling R-10 (B) carried. 4.3 step 5 is rewritten: it reads each matched analysis by id as SARIF, subtracts dismissed alerts (and base alerts if U6 says so), lists the rest as reds, and fails closed. `LAG_MAX` is removed everywhere. U6 is rewritten: the plant, its null, the carried case, the different-analysis case. Section 9's rows and the template text are marked policy. R-10 and its section are rewritten as ruled | P2 header, rulings, 2.1, 3.2, 3.3, 4.3, 9, 10 (U6), 11 (R-10, not measured), `## R-10 owner ruling`, enumerators | `alert_list_selftest.txt` (16/16), `alert_list_mutants.txt` (5 of 5 refused) |
+| R4-2 | `tools/audit/seat/sweep_driver.py`, a seat-run driver that starts `gate.py --sweep --run <id>` on each completion, so M-6, M-2's enabled half and final-control step 3 run on a probe ref. M-2's ship-or-delete decision rests on its first half. The trigger path becomes a post-merge check, section 7 step 3a, with its rollback | P1 5b; P2 header, 2.1, 4.3, 7, 9, 10 (driver, U0 M-6, U8 M-2, final step 3), 11 (R-7, not measured) | `driver_arm.txt` (END-BAD 0 at 20-125 s latency, both arms; the null moves) |
+| R4-3 | the poll selects an attempt that is "not completed", and M-6 records the statuses seen | P2 2.1, 4.3, 10 (M-6); `gate_sim.py` | `gate_sim.txt` byte-identical; the review seats' timing tools re-run |
+| R4-4 | `gate-sweep.yml` declares no `concurrency:`, pinned beside the `timeout-minutes` order pin | P2 2.1, 4.3, 9 | – (a pin) |
+| R4-5 | R-7 cites the `GITHUB_TOKEN` line and the three-level chain limit. Step 3a records the arm, because a probe cannot | P2 7 (3a), 10 (driver), 11 (R-7, not measured) | – (documentation, `ev/gh_docs_read_round4.md`) |
+
+## Round-4 item R4-1
+
+**The review:** the owner ruled R-10 (option B, under mandate), and revision 3 does
+not carry it. 4.3 still specifies step 5 (the `LAG_MAX` delay). U6 still measures
+`LAG_MAX` and stops if R-10 applies. The B row lists alerts by ref, not the alerts of
+the matched analyses: the alerts listing has no sha or analysis filter, and it follows
+the newest analysis on the ref. The review required:
+- rewrite 4.3's wait, with step 5 and `LAG_MAX` deleted, a new step binding the
+  listing to step 4's matches (by `most_recent_instance` filter or by reading the
+  analysis as SARIF, saying which and why), the base exclusion kept as written, and
+  fail-closed reads;
+- U6: the plant listed, the null, the carried case, and a different-analysis case;
+- section 9 and the template text marked policy;
+- R-10 and its section rewritten as ruled.
+
+**What changed:**
+- **4.3 step 5 is the ruling.** For each leg S uploaded, it reads the analysis step 4
+  matched, by its id, with `Accept: application/sarif+json`. It takes the
+  `github/alertNumber` of every result, which gives the alerts of M's analysis. It
+  then subtracts:
+  - the alerts the ref lists as `dismissed`, which a person closed and which is the
+    one way an alert of M's analysis stops being open without a new commit;
+  - the alerts open on the base, only if U6 shows the merge ref repeats them, kept as
+    revision 3 wrote it.
+
+  It lists each alert left as `code-scanning alert <n> (<rule id>)`, passed as its own
+  `--red` value. It fails closed when a read fails, when a result has no alert
+  number, or when a leg has no match at the bound. `LAG_MAX` and the check-wait step
+  are gone from 3.3, 4.3, U6, R-10 and the R-10 section. Step 6 still lists the
+  `CodeQL` check's red. That check concludes before the first leg ends, and step 5
+  already covers every leg.
+- **Which binding, and why: the SARIF read, not the `most_recent_instance` filter.**
+  The alerts listing follows the newest analysis per category on the ref. Suppose a
+  newer analysis there is not M's: an old-base code run, which R-11 now lets finish
+  after a retarget's run, or a hand upload.
+  - An alert that analysis lacks reads `fixed`, so a `state=open` listing drops it
+    (case D).
+  - An alert it repeats carries the newer commit, so a `commit_sha == M` filter drops
+    it (case D2).
+  - Failing closed on such a mismatch would leave a reachable stuck state instead,
+    because nothing at the head uploads again until a push.
+
+  Reading the matched analysis by id is step 4's match itself, and nothing newer at
+  the ref changes it. Two CodeQL analyses at one `M` analyse the same merged tree, so
+  step 4 takes the newest. A same-commit hand upload is the exception, which U6
+  records (its `analysis_key`) and R-10 names as a residual.
+- **U6 is rewritten.** The `LAG_MAX` measurement and the "U6 stops" exit are removed.
+  On the draft probe PR:
+  1. the plant: a python-only finding listed in `--red`, and a body that does not name
+     it refused;
+  2. the null: the plant removed, no alert listed;
+  3. the carried case: an edit run keyed on S's `sha=` token lists the same alert;
+  4. the different-analysis case: the probe seat uploads an empty python SARIF at
+     another commit to `refs/pull/<N>/merge`. The by-ref listing then drops the
+     plant, and the edit run still lists it from S's analysis;
+  5. a dismissal, which lists nothing;
+  6. the base-repeat question and `results_count`, recorded;
+  7. a fail-closed read.
+
+  The review allowed the design to say why the newer analysis is right instead. The
+  design does not: the newer one is not the carried run's, and the gate takes
+  `pr-contract` from the newest run that evaluated it, so a newer code run's own
+  `pr-contract` lists from its own analysis.
+- **Section 9.** The `pr-contract.yml` row gains step 5 and is marked **policy: owner
+  ruling R-10**. `checkPrBody` is unchanged, because a repeated `--red` already
+  carries one name verbatim. The `entities.py` row pins the SARIF read and the absence
+  of `LAG_MAX`. A new `prepr.sh` row: the local pre-check lists the same alerts, and
+  where its token cannot read code scanning it says so. The policy-text row states
+  the template's new `## Red checks` sentence. The ruling authorises the change, and
+  under `CLAUDE.md` the owner still approves it before merge.
+- **R-10 and `## R-10 owner ruling`.** These are rewritten as ruled B on 2026-10-19,
+  under mandate. The ruling's own scope is stated: R-10 only. The brief gives neither
+  the mandate's id nor its scope, and `nudge.md:7` has a mandate re-measured, not
+  copied into the tree, so neither is invented here. The "question lapses" branch is
+  removed; what U6 records is kept. The options table stays as the record, with A and
+  C marked not chosen.
+
+**Evidence:**
+- `python3 -I measure/rev/alert_list.py self-test` (`alert_list_selftest.txt`):
+  `ALERT-LIST SELF-TEST ok (16/16)`. The cases are:
+  - the plant and its null;
+  - the carried case, keyed from a parsed `sha=` token;
+  - D and D2, where the `by_ref` ablation (the alerts listing filtered to `M`) lists
+    nothing and so moves;
+  - a same-commit newer analysis;
+  - a dismissal;
+  - the base exclusion both ways;
+  - a dismissal on page 2;
+  - no leg uploaded;
+  - five fail-closed reads.
+- `sh measure/rev/alert_list_mutants.sh` (`alert_list_mutants.txt`): the self-test
+  refuses five mutants:
+  - dismissed alerts not subtracted;
+  - the base exclusion never applied;
+  - a result without a number skipped;
+  - an unmatched leg not refused (it crashes);
+  - the by-ref reading.
+
+  So each rule is load-bearing in the instrument.
+- `ev/design_greps.txt`'s first grep, re-run at this revision, finds `LAG_MAX` only
+  where the text says it was removed.
+
+## Round-4 item R4-2
+
+**The review:** `workflow_run` fires only for a workflow file on the default branch.
+So `gate-sweep.yml` on a `probe/ci-layout-*` ref never runs, and three live controls
+are unrunnable as written:
+- M-6;
+- M-2's "sweep enabled" half;
+- step 3 of the final combined control.
+
+The review required a pre-merge driver that runs on a probe ref for each of the
+three. It also required the trigger path to be named as a post-merge check with its
+rollback, and, if M-2's decision then rests only on its first half, the design to say
+so.
+
+**What changed:**
+- **The driver** (DESIGN-P2.md section 10). U0 builds
+  `tools/audit/seat/sweep_driver.py`, the review's second shape. It lists the probe
+  PR's `ci.yml` runs every 5 s. For each attempt it sees newly completed, it starts
+  `python3 -I <the probe's gate.py> --sweep --run <id>` with a seat token
+  (`actions: write`, `contents: read`, `pull-requests: read`). Children run
+  concurrently, as `gate-sweep.yml` runs do. It decides nothing itself. `--nochain`
+  and `--chain` choose the arm. It logs every sweep, including the statuses
+  `gate.py` saw.
+- **The review's first shape is rejected.** That shape is a `ci.yml` dispatch input
+  on the probe ref. Its run would be one more `ci.yml` run at the PR head, which the
+  gate under test reads: the defer rule, and a dispatch that names no PR at a PR
+  head is refused. The driver adds no run at the head.
+- **One entry point.** `gate-sweep.yml`'s step is
+  `gate.py --sweep --run ${{ github.event.workflow_run.id }}` and reads nothing else
+  from the event (2.1, 4.3, pinned in section 9). So the driver runs exactly the
+  program the workflow runs.
+- **M-6** runs with the driver, once per arm. **M-2's ship-or-delete decision rests on
+  its first half alone** (sweep disabled, which on a probe is its natural state). The
+  enabled half, run with the driver, is the program's functional check and decides
+  nothing about shipping. **Final-control step 3** runs with the driver throughout,
+  and M-6's sequence runs a second time under `--chain`.
+- **The text says what is not exercised before merge:** `workflow_run`'s firing, its
+  payload, the workflow file's checkout, restore, grant and timeout, and the chain
+  question.
+- **The post-merge check** is section 7's new step 3a. Inside the freeze, after PR 2
+  merges, M-6's sequence runs on a draft probe PR from the new `main`. It reads back
+  three things:
+  - one `gate-sweep.yml` run per first-attempt `CI` completion;
+  - the same decisions the driver logged;
+  - every `gate` ending green.
+
+  Unfreezing waits on it.
+- **The rollback:**
+  1. disable `gate-sweep.yml` (reversible);
+  2. run the driver from a seat for each PR with a stale red `gate`, since it is the
+     same program;
+  3. fix forward.
+
+  Neither the ruleset nor PR 2 is reverted: a sweep that does not run leaves reds
+  red, never a false green. `DESIGN-P1.md` step 5b says why PR 1's stub cannot cover
+  `workflow_run` the way it covers `workflow_dispatch`.
+
+**Evidence:** `python3 -I measure/rev/driver_arm.py` (`driver_arm.txt`,
+`DRIVER-ARM rc 0`). The driver changes only when a sweep starts. The arm imports
+`gate_sim.py` unchanged and scores revision 3's rules over the 42 sequences with the
+sweep's start latency at 20 s (gate_sim's own), 35, 65 and 125 s, in both arms.
+- **Every row:** END-BAD 0, no row past the false-green window or the attempt cap. The
+  most attempts of any run fall from 41 to 22 as the latency grows.
+- **Null control, the driver not running:** every-suite agrees with the oracle on 16
+  of 34 in both arms, as `gate_sim.txt`'s sweep ablation does. So the driver is what
+  converges the every-suite reading on a probe.
+- The round-4 seat's `jitter_perturb.py` already drew sweep latencies of 1 to 300 s
+  per hook, with END-BAD 0, re-run here (below).
+
+## Round-4 item R4-3
+
+**The review:** the poll selects runs "whose `gate` attempt was already in progress".
+After a re-run is requested, the run can be `queued` or `waiting` first, and a
+literal `in_progress` filter would skip it. The review asked to say "not completed"
+and to have M-6 record the statuses.
+
+**What changed:**
+- The poll now selects an attempt that is started and **not completed** (DESIGN-P2.md
+  2.1, 4.3), and M-6 records every status a re-run attempt passes through.
+- `gate_sim.py`'s poll test changes from `status == "in_progress"` to
+  `status != "completed"`, and its docstring says so. That way the reference the fixer
+  ports carries the corrected rule. The sim never models a queued gate attempt, so the
+  change is behaviour-identical.
+
+**Evidence:** `python3 -I measure/rev/gate_sim.py` gives `GATE-SIM rc 0`, and its
+output is byte-identical to revision 3's committed `gate_sim.txt`. The round-3 and
+round-4 seats' timing instruments were re-run against this revision (below).
+
+## Round-4 item R4-4
+
+**The review:** `gate-sweep.yml`'s concurrency is unstated. Now that a sweep may run
+600 s, a shared group would let a later sweep replace a pending one or cancel a
+polling one. The review asked to state "no `concurrency:`" and pin it.
+
+**What changed:**
+- 2.1 and 4.3 state that `gate-sweep.yml` declares no `concurrency:`, as today's
+  `budget-raise-gate-rerun.yml` declares none.
+- Section 9's `entities.py` rerun-list row pins the absence at file and job level,
+  beside the `timeout-minutes` order pin.
+- The driver runs its sweeps concurrently, matching it.
+
+**Evidence:** a pin, so there is nothing to run before U0. `gate_sim.py` already
+models overlapping sweeps as independent.
+
+## Round-4 item R4-5
+
+**The review:** `GITHUB_TOKEN`-triggered events create no workflow runs, and
+`workflow_run` chains stop at three levels. So job-token re-runs are likely the
+`nochain` arm. The design is scored under both, so nothing changes, but R-7 can cite
+the line and M-6 can record it.
+
+**What changed:**
+- R-7 cites both lines (`ev/gh_docs_read_round4.md`) and says what follows: job-token
+  re-runs are likely `nochain`, and a person's are likely `chain`.
+- No probe can run `workflow_run`, so the recording moves from M-6 to section 7's step
+  3a, the first place the trigger path exists. The "not measured" list says so.
+- The driver's `--nochain` is the default for the controls, and `--chain` is the
+  second pass.
+
+**Evidence:** the documentation as read by the round-4 seat; `driver_arm.txt` and
+`gate_sim.txt` score both arms.
+
+## Revision 4's instruments, and every changed one re-run here
+
+| file | command | result |
+|---|---|---|
+| `measure/rev/alert_list.py` (new) | `python3 -I measure/rev/alert_list.py self-test` | `ALERT-LIST SELF-TEST ok (16/16)` (`alert_list_selftest.txt`) |
+| `measure/rev/alert_list_mutants.sh` (new) | `sh measure/rev/alert_list_mutants.sh` | `ALERT-LIST MUTANTS: every mutant refused`, 5 of 5 (`alert_list_mutants.txt`) |
+| `measure/rev/driver_arm.py` (new) | `python3 -I measure/rev/driver_arm.py` | `DRIVER-ARM rc 0` (`driver_arm.txt`) |
+| `measure/rev/gate_sim.py` (one token, R4-3) | `python3 -I measure/rev/gate_sim.py` | `GATE-SIM rc 0`, byte-identical to `gate_sim.txt` |
+| the round-3 seat's `rerun_tail.py`, `timing_perturb.py` | `python3 -I tools/<name> measure/rev`, run from `probe/design-ci-review3` against this ref | byte-identical to the committed `r3_rerun_tail.txt` (END-BAD 0 on all 40 rows) and `r3_timing_perturb.txt` (`TIMING-PERTURB END-BAD total 0`) |
+| the round-4 seat's `jitter_perturb.py` | `python3 -I tools/jitter_perturb.py measure/rev 10 60` and `… 10 300`, run from `probe/design-ci-review4` | `r4_jitter_60.txt`, `r4_jitter_300.txt`: END-BAD 0 for every seed and arm. Byte-identical to the round-4 seat's `ev/jitter_60.txt` and `ev/jitter_300.txt`, apart from the `rc 0` line that seat appended, which is appended here too |
+| the round-4 seat's `poll_bound.py` | `python3 -I tools/poll_bound.py measure/rev`, likewise | `r4_poll_bound.txt`: identical to `ev/poll_bound.txt` in the same way. END-BAD 0 at 500-620 s. At 900 s, past the 600 s bound, END-BAD 1 (I4 red under newest-completed and every-suite, the oracle green, no false green): the stated residual, red until the next event |
+| `measure/rev/r4_design_greps.txt` | the round-4 seat's first `git grep`, re-run | every `LAG_MAX` hit states its removal |
+
+`gate_model.py`, `gate_replay2.py`, `unitcheck2.py` and their outputs are unchanged.
+
+## Still unmeasured after revision 4
+
+- **The `workflow_run` → `gate-sweep.yml` trigger path, and the chain arm.** Neither
+  can be measured from a probe ref. Both are section 7's step 3a, post-merge, inside
+  the freeze, with a rollback.
+- **U6's records:** whether the merge ref repeats base alerts, a same-commit hand
+  upload's `analysis_key`, and `results_count` against the SARIF.
+- **M-6's records:** the status values a re-run `gate` attempt passes through.
+- The mandate under which R-10 was ruled: its id and scope are not in this seat's
+  brief and are not restated.

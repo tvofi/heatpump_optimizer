@@ -14,7 +14,10 @@ the per-unit null control (section 4, round-2 item N3, marked *(rev2, N3)*).
 **Revision 3** (2026-10-19, answering the round-3 review `probe/design-ci-review3`,
 `f731b201`) changes the same section once more, forced by round-3 item R3-3: a
 gained step must be placed (marked *(rev3, R3-3)*), and the map below places its
-one gained step; everything else in this file is revision 1's. Paths: this design's measurements are under `measure/p1/`
+one gained step; everything else in this file is revision 1's. **Revision 4**
+(2026-10-19, answering the round-4 review `probe/design-ci-review4`, `21c86c18`) adds
+a few sentences to step 5b, forced by R4-2: the stub cannot make `gate-sweep.yml`
+runnable from a probe ref (marked *(rev4, R4-2)*). Paths: this design's measurements are under `measure/p1/`
 (cited below by bare file name, as before), phase 2's under `measure/p2/`, and
 revision 1's own instruments under `measure/rev/`. Owner rulings already made: D-1
 approve; D-4 drop C1 in PR 1 once the proof is shown covered (section 2(c) shows it).
@@ -505,7 +508,13 @@ policy PR: owner approval by review before merge, and code-owned throughout. PR 
    dispatch the umbrella and PR 2's fan-out cannot run (DESIGN-P2.md section 10).
    `entities.py` pins it inert: no other trigger, no job but `stub`, no grant, no
    `uses:`. It writes no check at any PR head (dispatch only, and nobody dispatches
-   it on a PR branch until PR 2 replaces it).
+   it on a PR branch until PR 2 replaces it). *(rev4, R4-2)* The stub serves
+   `workflow_dispatch` alone. `workflow_run` also fires only for a file on the
+   default branch, so PR 2's `gate-sweep.yml` cannot run from a probe ref either, and
+   a stub cannot change that: a stub `gate-sweep.yml` on `main` would fire on every
+   `CI` completion and run main's copy, not the probe's. Before merge the sweep is
+   driven by a seat-run driver, and the trigger path is checked after PR 2 merges
+   (DESIGN-P2.md sections 10 and 7).
 6. `tools/pr/merge_main_bot.py`: PIN_CHAIN and its self-test.
 7. `tools/audit/seat/merge_train.py:2971-2975`: self-test path.
 8. `tools/policy/policy_lint.mjs`: REPORTER_INPUTS += nightly.yml.
