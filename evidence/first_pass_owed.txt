@@ -1,0 +1,3 @@
+first live pass at refs read 2026-10-19T02:26:23Z, open PRs = 14 (list_pull_requests):
+handoff-no-pr lines: 162 of 188 handoff/handoff-body refs
+probe-ref (non-rev) lines: 13 of 41 probe refs
