@@ -1,0 +1,19 @@
+== unmutated
+ALL 7 FEATURES BLOCK PASSED
+== M1-clip0.05
+ALL 7 FEATURES BLOCK PASSED
+== M2-clip0.005
+  FAIL the EWMA is what a saturated sample actually moves the estimate by  [moved 0.004999999999999893, EWMA step 0.01]
+  FAIL a saturated sample moves the estimate by alpha * trust_region of it, at either clamp  [moved fractions [0.0050000000000000044, 0.0050000000000000044, 0.0050000000000000044, 0.0050000000000000044, 0.004999999999999893, 0.0050000000000000044, 0.005000000000000042, 0.005000000000000042, 0.005000000000000042, 0.005000000000000042], bound 0.01]
+2 of 7 FEATURES BLOCK FAILED
+== R-clip0.0099
+  FAIL the EWMA is what a saturated sample actually moves the estimate by  [moved 0.00990000000000002, EWMA step 0.01]
+  FAIL a saturated sample moves the estimate by alpha * trust_region of it, at either clamp  [moved fractions [0.009899999999999909, 0.009899999999999909, 0.009899999999999909, 0.009899999999999909, 0.00990000000000002, 0.00990000000000002, 0.00990000000000002, 0.00990000000000002, 0.00990000000000002, 0.00990000000000002], bound 0.01]
+2 of 7 FEATURES BLOCK FAILED
+== R-ewma-bias
+  FAIL the EWMA is what a saturated sample actually moves the estimate by  [moved 0.010100999999999916, EWMA step 0.01]
+  FAIL a saturated sample moves the estimate by alpha * trust_region of it, at either clamp  [moved fractions [0.010100999999999954, 0.009900999999999938, 0.010100999999999954, 0.009900999999999938, 0.010100999999999916, 0.009901000000000049, 0.01010099999999999, 0.00990100000000016, 0.01010099999999999, 0.00990100000000016], bound 0.01]
+2 of 7 FEATURES BLOCK FAILED
+== M3-param
+  FAIL the Newton step takes no rate-limit argument beyond its trust region  [parameters ['current', 'base_u', 'capacity', 'residual', 'delta_t', 'dt_hours', 'trust_region', 'alpha', 'max_step_fraction']]
+1 of 7 FEATURES BLOCK FAILED
