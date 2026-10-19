@@ -3680,6 +3680,60 @@
     "note": null
    },
    "brief": "Fix the vacuous kill in the entities.py `--anchor` mutation self-test soundly, and measure how many of the 123 `killed_by: tests/entities.py` pins are vacuous. Seams: tests/mutation_table.py (the mutation instrument) and the R9-F10.13 block of tests/entities.py; the pins live under tests/mutation_ledger/killed_by. Deliverables: (1) a failing test first: an equivalent rewrite of a pinned line (the control above) must NOT be reported killed under `--pin-killed`; (2) the fix, so that a kill is attributed only to a check that fails on the mutant and passes on the base, not to the ledger/inventory disagreement the pin itself causes (for example, drive the anchor against a tree whose ledger is the base's, or exclude the pinned line's own pin from the comparison); (3) the measurement: for each of the 123 pins, whether its line carries a second pin and whether the kill survives the fix, with the count of vacuous pins printed beside the count of pins checked, compared as sets and not totals; (4) the vacuous pins re-proven with a real kill or struck with the reason. A fix that lowers the count of proven pins is a measurement change: the ledger is data, not a ratchet, but state the before and after counts in the pull request.\n\nFINDING (forward-carried from R10-SAV-BASELINE, #2255, PR #2411; no group owned tests/mutation_table.py or the R9-F10.13 block of tests/entities.py until this one). `tests/entities.py`'s `--anchor` self-test runs `mutation_table.main` against the live tree, and `clone_tree` overlays the working tree. So under `--pin-killed`, entities.py \"kills\" every mutant of a line that already carries a pin, by refusing the ledger/inventory disagreement, not by a check that sees the mutation. Control: the equivalent rewrite `if 0 < dt:` of the `dt` guard in `MonthlyLedger` (a line of PR #2411's head, in custom_components/heatpump_optimizer/ledger.py; not yet on main) fails the same single check, so the kill is vacuous (an equivalent mutant is \"killed\"). Re-measure: at a later head, mutate any pinned line equivalently, and run `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`; the equivalent rewrite must survive. Until it is fixed, a `killed_by: tests/entities.py` pin on a line with a second pin is unproven. The ledger holds 123 `killed_by: tests/entities.py` pins in all, counted by `grep -rl '\"killed_by\": \"tests/entities.py\"' tests/mutation_ledger/killed_by | wc -l`. How many of them sit on a line with a second pin, or are vacuous, is not measured.\n\nForward-carried (finding-propagation.md): the finding above, with its control and its re-measure, is the acceptance; re-derive the 123 and the second-pin count at your merge base. Part of #201.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose; the orchestrator verifies each intended issue closed after the merge."
+  },
+  {
+   "group": "R10-N-LOG-FLOOD",
+   "lane": "PS",
+   "kind": "defect",
+   "issues": [
+    2337
+   ],
+   "fixes": [
+    2337
+   ],
+   "findings": [
+    "N-log-flood OWED group: 8 unlatched log sites"
+   ],
+   "class": "N-log-flood",
+   "severity": "medium",
+   "size": "M",
+   "wave": 4,
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/inputs.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/log_latch.py",
+    "tests/entities.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-FEEDS"
+   ],
+   "carry": [],
+   "architect_note": null,
+   "resume": {
+    "stage": "done",
+    "branch": "handoff/r10-n-log-flood",
+    "commit": "42e6dedb27f36d180af04069ce652eca4b345378",
+    "last_step": null,
+    "next_step": "none: delivered",
+    "note": null
+   },
+   "brief": "RECORD OF A DELIVERED GROUP (PR #2351, merged at 42e6dedb27f36d180af04069ce652eca4b345378; issue #2337). R10-FEEDS (PR #2336) built the N-log-flood barrier (`_R10_LOG_ALLOWED_BY_REASON` in tests/entities.py) and listed eight unlatched WARNING/ERROR sites as OWED, each reached every cycle or solve and triggered by a condition that persists. This group closed all eight and deleted their OWED entries: `coordinator._note_solve_failure`, `coordinator._command_valve_target`, `pump_arbiter._space_target` and `inputs._age_gate` route through the leaf module `log_latch.log_held`; `optimizer.optimize`, `_solve_space` and `_optimize_space_only` are DEBUG; the stale-plan hold in `coordinator._apply_action` is DEBUG. A persisting condition warns when it starts, logs DEBUG while it holds, and warns again when it recurs after clearing. The probe is dev/audit/rounds/round10/D14/log_flood/probe.py (five `recur_*` arms). This entry is added so the roster records the delivered group; it dispatches nothing.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   }
  ]
 }
