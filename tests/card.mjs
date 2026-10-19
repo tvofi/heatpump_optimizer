@@ -11692,9 +11692,18 @@ check("without an indoor reading the corner now label is absent",
   // one that appears is refused here rather than passing both arms.
   const inline = new Set();
   // The ways out as markup: an attribute inside a tag, under any of the three
-  // quotings HTML admits, and a refresh pragma.
-  const MARKUP_WAY_OUT = /(?<=<[A-Za-z][^<>]*\s)(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
-  const REFRESH_MARKUP = /<meta\b[^<>]*\shttp-equiv\s*=\s*["']?\s*refresh\b/i;
+  // quotings HTML admits, and a refresh pragma. Read tag by tag: a lookbehind
+  // over a page-sized string re-scans it at every character.
+  const MARKUP_TAG = /<[A-Za-z][^<>]*>?/g;
+  const MARKUP_WAY_OUT = /\s(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
+  const REFRESH_MARKUP = /^<meta\b[^<>]*\shttp-equiv\s*=\s*["']?\s*refresh\b/i;
+  const markupWaysOut = (html, out) => {
+    if (!/=/.test(html)) return;
+    for (const [tag] of html.matchAll(MARKUP_TAG)) {
+      for (const m of tag.matchAll(MARKUP_WAY_OUT)) out.push([m[1].toLowerCase(), m[2] || m[3] || m[4] || ""]);
+      if (REFRESH_MARKUP.test(tag)) out.push(["refresh", "(markup)"]);
+    }
+  };
   const anchors = (c) => {
     const out = [];
     for (const n of [ctx.window, document, ...docNodes(c)]) {
@@ -11726,10 +11735,7 @@ check("without an indoor reading the corner now label is absent",
       // stub parsed from it: the stub's parser keeps double-quoted attributes
       // only, so a single-quoted or unquoted one (`<a href=/x>`) left no
       // attribute on any node, while a browser navigates by it.
-      if (typeof n._html === "string") {
-        for (const m of n._html.matchAll(MARKUP_WAY_OUT)) out.push([m[1].toLowerCase(), m[2] || m[3] || m[4] || ""]);
-        if (REFRESH_MARKUP.test(n._html)) out.push(["refresh", "(markup)"]);
-      }
+      if (typeof n._html === "string") markupWaysOut(n._html, out);
     }
     return out;
   };

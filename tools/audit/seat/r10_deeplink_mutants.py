@@ -286,7 +286,7 @@ HREF = '["hr", "ef"].join("")'
 X26 = test('    set: (_t, k, v) => { left.push(["location", k === "href" ? String(v) : `${String(k)}=${String(v)}`]); return true; },',
            '    set: (_t, k, v) => { if (k === "href") left.push(["location", String(v)]); return true; },')
 X27 = test('      if (typeof eq === "string" && eq.trim().toLowerCase() === "refresh") {', '      if (false) {')
-X28 = test('      if (typeof n._html === "string") {', '      if (false) {')
+X28 = test('      if (typeof n._html === "string") markupWaysOut(n._html, out);', '')
 X29 = test('  Object.defineProperty(document, "location", locDesc);\n  document.open', '  document.location = saved.doc.location;\n  document.open')
 X30 = test('    for (let round = 0; round < 4 && timers.size; round++) {', '    for (let round = 0; round < 0; round++) {')
 X31 = test('    for (const a of WINDOW_ALIASES) g[a] = ctx.window;\n', '')
