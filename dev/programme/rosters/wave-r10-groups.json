@@ -4686,6 +4686,51 @@
     "next_step": "review",
     "note": null
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "production",
+   "issues": [],
+   "fixes": [],
+   "severity": "high",
+   "size": "M",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": true,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "carry": [],
+   "architect_note": null,
+   "findings": [],
+   "wave": 2,
+   "resume": {
+    "stage": "queued",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "rca",
+    "note": null
+   },
+   "class": "production",
+   "group": "R10-DEMAND-OVERBOOK",
+   "hot_files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "after": [
+    "R10-SETPOINT-BOOST"
+   ],
+   "brief": "Found by R10-SETPOINT-BOOST's demand analysis (tvofi 2026-10-19: the planner fills the whole day with heating; fixes must work on every install, without a heat meter). The plan books about 38 kWh/day electric for space while the metered October average is about 8.6 kWh/day for space plus hot water, roughly 8x over-booked. The learned UA implies far more loss than metered delivery supports; idle phantom draw explains only about 5%. Root-cause by replay on synthetic installs (never the owner's private export): UA learner bias, booked-vs-delivered heat, comfort weights. Then fix so planned demand matches delivered heat with no heat sensor. Controls: flat-price null, a synthetic install spread, mutation, and a DP reference for solver optimality (not run in SETPOINT-BOOST)."
   }
  ]
 }
