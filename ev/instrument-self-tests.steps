@@ -1,0 +1,36 @@
+45bb861b75728e7924944741b41a68c8fb5e9f5c
+success
+1	Set up job	success
+2	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	success
+3	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	success
+4	Refuse a corpus or record-mode check that survives its own deletion	success
+5	Show the fragment check refusing its own perturbation	success
+6	Show the lane-skip decision refusing every unsafe skip	success
+7	Show field coverage refusing each shape it exists to refuse	success
+8	Show the comment poster refusing every body it cannot vouch for	success
+9	Show the record-predicate sweep refusing its own perturbations	success
+10	Show the pre-PR self-check refusing its own fixtures	success
+11	Show the push script's decisions refusing their own fixtures	success
+12	Show the App push refusing its own fixtures	success
+13	Show the App approval refusing its own fixtures	success
+14	Show the merge-main bot refusing its own fixtures	success
+15	Show the superseded-run canceller refusing its own fixtures	success
+16	Show the App verdict poster refusing its own fixtures	success
+17	Show the verdict bus refusing its own fixtures	success
+18	Show the budget-raise gate refusing its own fixtures	success
+19	Show the contract re-run deciding its own fixtures	success
+20	Show the CodeQL leg scope refusing every unsafe skip	success
+21	Show the merge fast path refusing its own fixtures	success
+22	Refuse a temp or machine path in a tracked script or decision	success
+23	Refuse a push that names the host, and an unregistered pusher	success
+24	Render the sweep template, and the policy re-read predicate	success
+25	Show the orchestrator tick deciding its own fixtures	success
+26	Refuse a throwaway git repository built without the shared helper	success
+27	Show the merge train refusing its own fixtures	success
+28	Show the train launcher refusing its own fixtures	success
+29	Show the figure check refusing its own fixtures	success
+30	Show the figure census pinning its counting rule	success
+31	Show the pin rule refusing every probe and admitting its controls	success
+61	Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	success
+62	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	success
+63	Complete job	success

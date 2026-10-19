@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/tmp/seat/rev2433/m2/tools/audit/seat/orchestrator_tick.py", line 3455, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/seat/rev2433/m2/tools/audit/seat/orchestrator_tick.py", line 3434, in main
+    return self_test()
+  File "/tmp/seat/rev2433/m2/tools/audit/seat/orchestrator_tick.py", line 2222, in self_test
+    t_rp.replan()
+    ~~~~~~~~~~~^^
+  File "/tmp/seat/rev2433/m2/tools/audit/seat/orchestrator_tick.py", line 1603, in replan
+    rl, roster = self._roster(S)
+                 ~~~~~~~~~~~~^^^
+  File "/tmp/seat/rev2433/m2/tools/audit/seat/orchestrator_tick.py", line 1035, in _roster
+    ref = self._roster_ref(S, rl)
+  File "/tmp/seat/rev2433/m2/tools/audit/seat/orchestrator_tick.py", line 322, in _roster_ref
+    ref, note = rl.default_roster_ref(self.git)
+                ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'roster_lib_tick' has no attribute 'default_roster_ref'. Did you mean: 'default_roster_reX'?
