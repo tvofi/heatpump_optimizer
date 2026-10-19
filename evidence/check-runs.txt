@@ -1,4 +1,0 @@
-check-runs on 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a (get_check_runs, total_count 52, all status=completed)
-failure: nightly-status (job 118073466878, 13:01:21-13:01:33) -- main's red, answered in body; diff touches no nightly record
-success: pr-contract x3 (latest job 118086506403 started 13:28:42, after nightly-status concluded), instrument-self-tests, mutation, closures, closure-scope, fast (3.14), typing, browser, coverage, coverage-ratchet, graders-head-copy, lane-proofs, composed-proof, arch-score x3, budget-raise-gate x3, briefs, scope, hassfest, policy-docs, delivery-status, wave-script, env-matrix, validate-hacs, CodeQL, Analyze (actions|javascript-typescript|python), cancel-superseded x2
-skipped: the rest (autofix / nightly / ledger / record lanes)

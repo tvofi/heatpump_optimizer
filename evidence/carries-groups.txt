@@ -1,0 +1,8 @@
+['groups', 47, 'carry', 15] Source: #2447 Forward-carry. An unpinned site is now a body 
+['groups', 59, 'carry', 1] Source: #2447 Forward-carry. Step 6f reads the committed tre
+['groups', 59, 'carry', 2] Source: #2447 Friction. fixer.md#6: contradiction: the brief
+['groups', 69, 'carry', 6] Source: #2447 Friction. tests/throwaway_git.py#check: cost: 
+['groups', 69, 'carry', 7] Source: #2447 Red checks. `instrument-self-tests` was red on
+47 ('group', 'R10-BRIEFS-FOLD')
+59 ('group', 'R10-POLICY-FIXER-MD')
+69 ('group', 'R10-CI-LAYOUT')

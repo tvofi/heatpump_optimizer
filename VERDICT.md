@@ -1,28 +1,33 @@
-Fix review: blocked 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a carry-missing: not carried to R10-CI-LAYOUT (the ## Red checks carry: ref_privacy --check in prepr)
+Fix review: merge 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a
 
-bus-nonce: 825e21ceef0d7ea559c712acb9b0b594
+bus-nonce: af3e46f592165892ded15ec69afa7993
 
-Round 2. Round 1 (comment 6268247849, same head) blocked only on carry-missing. Measured head 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a (ev/HEAD). It is still refs/pull/2447/head at writing, so the head did not move. origin/main is now d4fb5351b (ev/main), 7 commits past the merge base e8c67e1d3. `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+Round 3, at the same head as rounds 1 and 2 (comments 6268247849 and 6268507266). Both earlier rounds blocked only on carry-missing. I measured head 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a (ev/HEAD), and it was still refs/pull/2447/head when I wrote this (ev/head-at-writing.txt). The role contract is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
 
-## Blocking (step 10)
+## Step 10, forward-carry: all five carries landed
 
-The body names five carries, each marked `(roster 1c71becaa)`. 1c71becaa is on handoff/audit-r10-roster, one commit behind its tip f0625eee9, which adds no #2447 text. The roster at 1c71becaa holds four `Source: #2447` entries (ev/carries.txt, ev/roster-1c71becaa.json):
-- R10-BRIEFS-FOLD carry[15]: Forward-carry 2 (the `mutation` line goes stale after mutation-autofix pins the site). Present.
-- R10-POLICY-FIXER-MD carry[1]: Forward-carry 1 (step 6f reads the committed tree, so commit before prepr). Present.
-- R10-POLICY-FIXER-MD carry[2]: Friction fixer.md#6 (handoff_push.sh vs no GitHub writes). Present.
-- R10-CI-LAYOUT carry[6]: Friction tests/throwaway_git.py#check (it greps its own repository; plants are spelled in halves). Present.
-- **Missing:** `## Red checks`: "Cheaper detector: `python3 tools/audit/seat/ref_privacy.py --check` ... not in prepr; the standing cost is one more step there, left to R10-CI-LAYOUT's decision. Carry: R10-CI-LAYOUT (roster 1c71becaa)". No R10-CI-LAYOUT carry, and no carry anywhere in the roster, names ref_privacy. The only `ref_privacy` hit in dev/programme/ at 1c71becaa, and at f0625eee9, is a `files` entry at line 3140. R10-CI-LAYOUT carry[0] (from #2419) asks prepr to run tests/throwaway_git.py. That is a different detector and does not cover this one.
+handoff/audit-r10-roster is at 2e6418bce467413411b56f3e77d45163b466c4e0, its tip, made by `roster_edit append-carry R10-CI-LAYOUT`. The roster there holds five `Source: #2447` entries (ev/carries.txt, ev/carries-groups.txt, ev/roster-2e6418bce.json):
+- R10-BRIEFS-FOLD carry[15]: Forward-carry 2. The `mutation` line goes stale after mutation-autofix pins the site.
+- R10-POLICY-FIXER-MD carry[1]: Forward-carry 1. Step 6f reads the committed tree, so commit before prepr.
+- R10-POLICY-FIXER-MD carry[2]: Friction fixer.md#6. handoff_push.sh conflicts with "no GitHub writes".
+- R10-CI-LAYOUT carry[6]: Friction tests/throwaway_git.py#check. It greps its own repository, so plants are spelled in halves.
+- R10-CI-LAYOUT carry[7]: `## Red checks`, ref_privacy --check as the cheaper detector, not yet in prepr. This was round 2's missing carry, and it is now present.
 
-So four of the five carries landed. The fifth exists only in the PR body, which is `carry-missing` under step 10. Remedy: land a `Source: #2447 Red checks. ...` entry in R10-CI-LAYOUT's carry list, then re-cite the new roster SHA in the body. Nothing else needs a re-review.
+Every carry in the PR body cites `(roster 2e6418bce)`, and that commit is on handoff/audit-r10-roster.
 
 ## Re-checked this round
+- Step 13: `git merge-tree --write-tree origin/main(d4fb5351b) 411bb47a0` returns rc 0 and tree f4629584ef71. There is no conflict and the claim driver was not invoked (ev/merge-tree.txt).
+- Step 11, CI from the commit check-runs API (55 runs, all completed; ev/check-runs.tsv). The only red is `nightly-status`, which the body answers as main's red; this diff touches no nightly record. `instrument-self-tests` is green, and the body answers its red on the first head. The latest `pr-contract` run started at 13:36:13, after the body edit at 13:36:07 and after nightly-status concluded at 13:01:33, and it is green. `mutation` is green.
+- Step 1, mutation proof, re-taken at this head (ev/mut_A.txt, ev/mut_B.txt; each mutant is a copy in tools/pr/ run with `--self-test`):
+  - A, line 715 `reds+=(mutation)` replaced by `:` : FAIL on both rows the body names, plus the copy-path row
+  - B, line 751's throwaway_git.py call replaced by `out=ok; r=0` : FAIL on all three rows the body names, plus the copy-path row
+  - head: `303 passed, 0 failed`, rc 0 (ev/selftest-head.txt)
+- Step 8, figures at the head (ev/figures.txt):
+  - throwaway_git: `0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD`
+  - ref_privacy: `... 0 refused`
+  - `STRUCTURE RATCHET PASSED`
+- Steps 4 and 5: VERSION, manifest.json, RELEASE_NOTES.md and tests/golden are untouched (three-dot diff, empty).
+- Steps 2-3, 6-7 and 14: verified in round 1 at this same SHA. The finding has no committed harness, so I measured with the brief's three-arm self-test rows. Round 1 also killed reviewer mutants C, D and E. The class is one seam. No budget, closure or score file moved. Those results stand.
 
-- Step 13: `git merge-tree --write-tree origin/main(d4fb5351b) 411bb47a0` gives rc 0 and tree f4629584ef71. There is no conflict and the claim driver was not invoked (ev/merge-tree.txt).
-- Step 11, CI on this head (get_check_runs, 52 runs, all completed; ev/check-runs.txt): the only red is `nightly-status`, and the body answers it as main's red. `instrument-self-tests`, red on the first head, is answered in the body and is green here. The latest `pr-contract` run (13:28:42) is green and started after nightly-status concluded (13:01:33). `mutation` is green. `Analyze (python)`, which was still running in round 1, has now concluded success.
-- Self-test at the head: `303 passed, 0 failed` (ev/selftest-head.txt), which matches round 1.
-- Step 5 / step 4: VERSION, manifest.json, RELEASE_NOTES.md and tests/golden are untouched (ev/version-golden.txt is empty).
-- Steps 1-3 and 6-8, 14: the head is unchanged since round 1, which verified the mutation proof (mutants A and B as the body states, and the reviewer's C, D and E), the null controls and the figures. Those results stand at this same SHA. I did not re-take the mutants this round.
-
-## Carried from round 1 (non-blocking)
-
-R10-PREPR-UNPINNED-RED's own carry list still holds the #2441 body_push.sh/ci_predict entry, which R10-CI-LAYOUT also holds. That leaves one item with two destinations, and it is the orchestrator's to drop.
+## Non-blocking (carried from rounds 1-2)
+R10-PREPR-UNPINNED-RED's own carry list still holds the #2441 body_push.sh/ci_predict entry, which R10-CI-LAYOUT also holds. That gives one item two destinations, and dropping the duplicate is the orchestrator's call.

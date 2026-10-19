@@ -1,0 +1,3 @@
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+ref_privacy --check at HEAD: 18 file(s) with a push site, 9 guarded, 100 line(s) added since e8c67e1d3df1 judged, 0 refused
+STRUCTURE RATCHET PASSED
