@@ -22,7 +22,7 @@ Alternatives, and why each lost:
 
 ## Head
 
-`a3aee59452bb8ea15807fb405e41f565def4b32d`, branched from origin/main `4a3cbcf62e6f5e7b6594d376d714388caf2915cf` (v7.0.1 plus #2460). Every figure below was taken at the head unless a line says merge base, which is a `git archive` of `4a3cbcf62` in seat scratch. `date -u`: 2026-10-19T21:54Z.
+`890fba053bdf3b3c7611f6a860be528665278259`, branched from origin/main `4a3cbcf62e6f5e7b6594d376d714388caf2915cf` (v7.0.1 plus #2460). Every figure below was taken at the head unless a line says merge base, which is a `git archive` of `4a3cbcf62` in seat scratch. `date -u`: 2026-10-19T22:49Z.
 
 ## Mutation proof
 
@@ -85,12 +85,12 @@ The ledger record of these sites is `mutation-autofix`'s (`dev/governance/rules/
 
 ## Architecture score
 
-n/a: no gate metric rises. `tests/structure.py` passes at the recorded budgets: `functions_cc_over_15` was paid by moving the idle-record parse out of `DrawRange.from_dict` into `_stored_idle`. `coordinator.py`'s class gains no line: the fold call takes one more argument on its existing line, and the valve helper's rounding is in a module-level function.
+n/a: no gate metric rises. `python3 tools/audit/archscore/vector.py` at the merge base and at the head returns the same value for every key (`coord_footprint` 2498 at both). `tests/structure.py` passes at the recorded budgets, `seam_cut_total` 719 included. `functions_cc_over_15` was paid by moving the idle-record parse out of `DrawRange.from_dict` into `_stored_idle`. `coordinator.py`'s class gains no line: the fold call takes one more argument on its existing line. `flow_command(coord)` is plumbing, and its decision lives in `_flow_command`, which is not handed the coordinator. The valve helper's rounding is in a module-level function.
 
 ## Red checks
 
-- `mutation`: predicted red at this head, because the 55 added sites under `## Unpinned sites` have no ledger pin until `mutation-autofix` pins them on CI's run after the push. Answer: no cheaper detector is missing. `tools/pr/ci_predict.py` already names every one locally before the push, at the cost of one local run. The hand mutants M1-M14 above kill each function's behaviour in this group's block. The red clears when the autofix pins land (`dev/governance/rules/ci-autofix.md`).
-- No other check has run this head yet (CI has not run it).
+- `arch-score`: red at the earlier pushed head `a3aee5945`, "coord_footprint 2498->2505". The new `pump_arbiter.flow_command(coord)` was handed the coordinator and held 7 logic statements. Repaired at this head: `flow_command(coord)` is plumbing only (an alias of `coord.arbiter_inputs()`, an alias of `state_for(coord)`, and a delegating return), and the decision moved to `_flow_command(inp, state)`, which is handed neither. `python3 tools/audit/archscore/vector.py` at the merge base and at this head reads `coord_footprint` 2498 at both, and no key of the vector differs. Cheaper detector: none is missing, because `vector.py` runs locally and I had not run it before the first push. Standing cost: one local run per head that touches a function the coordinator is handed.
+- `mutation`: red at `a3aee5945` and predicted red at this head, because the added sites under `## Unpinned sites` have no ledger pin until `mutation-autofix` pins them on CI's run after the push. Cheaper detector: none is missing, because `tools/pr/ci_predict.py` already names every one locally before the push, at the cost of one local run. The hand mutants M1-M14 above kill each function's behaviour in this group's block. The red clears when the autofix pins land (`dev/governance/rules/ci-autofix.md`).
 
 ## Forward-carry
 
@@ -98,7 +98,7 @@ none. The two owner decisions under `## Measured limitation` go to tvofi through
 
 ## Unpinned sites
 
-`python3 tools/pr/ci_predict.py --base origin/main` lists 55 added sites. Each is pinned by `mutation-autofix` on CI's run, and the hand mutants above show that this group's block kills each function's behaviour:
+`python3 tools/pr/ci_predict.py --base origin/main` lists 56 added lines, which are 59 mutation sites: three `CMP_BOUND*2` lines count twice. CI's `mutation` job at the earlier head `a3aee5945` counted 58 over 55 lines. The extra line here is the `RETURN_DEL` on `flow_command`'s plumbing return, added by the arch-score repair below. `mutation-autofix` pins each one on CI's run. The hand mutants above show that this group's block kills each function's behaviour; M6 covers the plumbing return as well:
 - `custom_components/heatpump_optimizer/coordinator.py:669 GUARD_OFF`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/draw_range.py:77 CONST`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/draw_range.py:79 CONST`: pinned by `mutation-autofix`
@@ -146,11 +146,12 @@ none. The two owner decisions under `## Measured limitation` go to tvofi through
 - `custom_components/heatpump_optimizer/inputs.py:495 RETURN_DEL`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/inputs.py:532 RETURN_DEL`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/pump_arbiter.py:539 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:575 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:577 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:610 CLAMP_DROP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:699 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:706 RETURN_DEL`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/pump_arbiter.py:560 RETURN_DEL`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/pump_arbiter.py:587 GUARD_OFF`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/pump_arbiter.py:589 RETURN_DEL`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/pump_arbiter.py:622 CLAMP_DROP`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/pump_arbiter.py:711 RETURN_DEL`: pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/pump_arbiter.py:718 RETURN_DEL`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/thermal_model.py:1469 GUARD_OFF`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/thermal_model.py:1472 CMP_BOUND`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/thermal_model.py:1472 RETURN_DEL`: pinned by `mutation-autofix`
