@@ -1,2 +1,0 @@
-  FAIL a liveness row no census gates is REFUSED (the card row before #2441)
-FIELD COVERAGE SELF-TEST: 1 FAILED

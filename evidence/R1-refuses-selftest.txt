@@ -1,2 +1,0 @@
-  FAIL the ci-ratchet reader refuses on its own row only
-FIELD COVERAGE SELF-TEST: 1 FAILED

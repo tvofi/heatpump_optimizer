@@ -22,11 +22,13 @@
   ok   a census with no instrument reads no count, so it is REFUSED
   ok   the ci-ratchet reader refuses on its own row only
   ok   the ci-ratchet row reader reads its own row only
-  FAIL a row key holding regex metacharacters or a backslash matches only literally
+  ok   a row key holding regex metacharacters or a backslash matches only literally
   ok   the census registry reads a liveness row its census gates
   ok   a liveness row no census gates is REFUSED (the card row before #2441)
   ok   a census gating no row is REFUSED
   ok   an exemption naming no row is DEAD
+  FAIL main's census arm runs the registry pass (an ungated row is REFUSED) and then the planted runs
+  ok   main runs every arm --only can name, census among them
   ok   a derived check DECLARED lacks is REFUSED as unregistered
   ok   a DECLARED key the set does not yield is DEAD
   ok   a DECLARED arm that does not exist is REFUSED

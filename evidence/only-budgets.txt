@@ -1,0 +1,7 @@
+  read     budgets lines: 41 of 41 capped files reddened
+  read     budgets bytes: 41 of 41 capped files reddened
+  ignored  budgets file: the row key itself, not a measurement
+  ignored  budgets always: load class: the always_loaded_tokens aggregate reads it; a per-file cap is load-class-blind by design
+RESULT read=2 ignored=2 declared_none=0 blind=0 dead=0 refused=0 runs=82 seconds=0.1
+FIELD COVERAGE ok
+rc=0

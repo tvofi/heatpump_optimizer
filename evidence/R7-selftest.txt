@@ -19,13 +19,20 @@
   ok   a census naming no gate row is REFUSED
   ok   a census already refused unplanted is REFUSED, not read
   ok   every registered census names its gate row, its instrument, a reader and a plant
-file:///tmp/seat/rev2441/mut/tools/policy/field_coverage.mjs:508
-  const r = spawnSync('python3', c.instrument.argv, { cwd: dir, encoding: 'utf8' })
-                                              ^
+  ok   a census with no instrument reads no count, so it is REFUSED
+  ok   the ci-ratchet reader refuses on its own row only
+  ok   the ci-ratchet row reader reads its own row only
+  ok   a row key holding regex metacharacters or a backslash matches only literally
+  ok   the census registry reads a liveness row its census gates
+  ok   a liveness row no census gates is REFUSED (the card row before #2441)
+  ok   a census gating no row is REFUSED
+  ok   an exemption naming no row is DEAD
+file:///tmp/seat/rev2441/wt/tools/policy/field_coverage.mjs:617
+    RUNS.census(rr, { run: (rep, cs) => { ran = cs }, censuses: [], rows: () => ['archscore.dead_y', 'archscore.family_orphan_overrides'] })
+         ^
 
-TypeError: Cannot read properties of undefined (reading 'argv')
-    at censusCount (file:///tmp/seat/rev2441/mut/tools/policy/field_coverage.mjs:508:47)
-    at selfTest (file:///tmp/seat/rev2441/mut/tools/policy/field_coverage.mjs:586:69)
+TypeError: RUNS.census is not a function
+    at selfTest (file:///tmp/seat/rev2441/wt/tools/policy/field_coverage.mjs:617:10)
 
 Node.js v22.22.0
 rc=1

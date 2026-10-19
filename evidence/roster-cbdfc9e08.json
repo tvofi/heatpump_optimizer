@@ -2791,7 +2791,8 @@
     "From #2373 review r3 (R10-ARCHSCORE-COVERAGE p4, 2026-10-18), supersedes the \"Unless #2373 closes them\" clause of this group's earlier ARCHSCORE carry: `literal_clone_copies` and `card_clone_copies` normalise a finite list of spellings (ABOUT.md, part 4); any other indirection of the same value -- a class attribute (`_H.L0` read 186->182), a constant expression (`12 * 2` read 186->182), a spelling not listed there -- reads a copy as removed, so a drop in either is credited only when the copies are actually gone from the source, never on the metric alone. Control: re-plant both spellings at your merge base with tools/audit/archscore/score.py and confirm the drop is not credited.",
     "From R10-DIAG-REPLAY (#2399, handoff/r10-diag-replay): dev/governance/dimensions/D15.md must change in two places, and that file is not yet in this group's files. (1) D15 M1: a row carrying `version` is that release's; the restart-gap rule (\"`integration_version` is the download's, not each row's\") applies only to rows without one. Control: `tests/debug_collect.py`'s \"a cycle row carries the release that wrote it\" goes red with the stamp removed from `debugger.cycle_row`. (2) D15 inputs: retire \"While the download's `replay` is null (until R10-DIAG-REPLAY)\". The download's `debug.replay` is filled when the recorder is set up and the window fits the inline cap; otherwise `debug.manifest.replay` names why, and the export from the same box and window stands in. Re-measure at the D15 baseline.",
     "From R10-RCA-FRICTION (issues #2331 and #2353, PR branch handoff/r10-rca-harness-friction): its detector patch against tools/policy/check-wave-script.mjs was not landed there, because that group's pull request edits policy text and the script is in another lane's seam. The first group to edit tools/policy/check-wave-script.mjs after #2390 (R10-TICK-DRIVERS) lands it. What it adds, inside the block 'the contract's verdict examples parse under the script's own grammar', after the `taughtWords` check: a shadow predicate `shadowed(ex)`, which matches `^blocked <sha> ([a-z][a-z0-9-]*):\\s*([a-z][a-z0-9-]*)` and returns the second word when it differs from the first and is itself a taught class (`classes.includes(m[2])`), plus three checks. (1) A negative control: `shadowed('blocked <sha> harness: class-open <seam>') === 'class-open'`. (2) A null control: `shadowed('blocked <sha> harness: class-rule-missing') === null`. (3) For every contract verdict example, a failure when the predicate fires, naming the spelling the example should use (`blocked <sha> <word>: ...`). Why: #1414 added `class-open` to VERDICT_CLASSES and in the same commit taught fix-review.md step 6's spelling `blocked <sha> harness: class-open <seam>`, which VERDICT_RE parses as class `harness`, so both readers agree and the existing arm is green while the new class word is reachable only by a reviewer who departs from the example; over v7.0.0..6e5753a4, 11 of 14 class-open blocks were keyed `harness` and 3 `class-open`, and the friction cron filed one obligation twice. Order: the detector is committed first and must fail on fix-review.md step 6 as it reads at your merge base; if R10-RCA-FRICTION has already corrected that example, the negative control still proves the predicate and the example loop stays green.",
-    "Source: #2368 Friction. `dev/governance/rules/claim-files.md: contradiction: a fixture whose baseline_cost moves cannot be claimed while it carries a may-drift entry, and a may-drift entry cannot excuse a judged-key move, so the held branch suspended twelve owner-sanctioned may-drift entries for the release -- the R8-P3 wood_coil precedent, recorded nowhere as the rule.`"
+    "Source: #2368 Friction. `dev/governance/rules/claim-files.md: contradiction: a fixture whose baseline_cost moves cannot be claimed while it carries a may-drift entry, and a may-drift entry cannot excuse a judged-key move, so the held branch suspended twelve owner-sanctioned may-drift entries for the release -- the R8-P3 wood_coil precedent, recorded nowhere as the rule.`",
+    "Source: #2441 Forward-carry. `archscore.family_orphan_overrides` has no planted census; this PR exempts it with a reason. A finder planting it needs a plant that edits the `ENTITY_FAMILY_OVERRIDES` dict in place, which the arm's append-only plant cannot do."
    ],
    "architect_note": null,
    "resume": {
@@ -4024,7 +4025,8 @@
     "The stamp (tools/release/stamp.py / web-stamp): restore the 19 suspended may-drift entries verbatim when the stamp empties the claim list. The obligation is written beside each entry in tests/golden/claimed_drift.txt.",
     "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat.",
     "From R10-PUMP-MODEL-D2 (#2368): its tests/stress.py override sets the solver-work floors at 18 and calls_floor at 6 for that branch, and nothing expires it at merge, so every later PR inherits those floors. The stamp's stress re-record must drop the override and re-measure the floors from main. Check: after the re-record, tests/stress.py carries no #2368 override, and budget_raise_gate reports the floors at their re-measured values with no override line.",
-    "Ordering (tvofi ruling 2026-10-19, ci-ratchet folded into R10-CI-LAYOUT): stamp.py needs a green Tests push run on HEAD and main is red on ci-ratchet until R10-CI-LAYOUT lands, so this stamp runs after R10-CI-LAYOUT merges."
+    "Ordering (tvofi ruling 2026-10-19, ci-ratchet folded into R10-CI-LAYOUT): stamp.py needs a green Tests push run on HEAD and main is red on ci-ratchet until R10-CI-LAYOUT lands, so this stamp runs after R10-CI-LAYOUT merges.",
+    "Source: #2441 Forward-carry. R10-RCA-STRUCTURE-BLIND's ledger row `R10-N-structure-blind` in `bugclasses.json` still reads `card language arm carried to #2259 item 2 (#2373)`, with `landed: null`. It is a record, left as written. The record step at this PR's merge should name this PR as the arm's landing."
    ],
    "architect_note": null,
    "group": "R10-STAMP",
@@ -4110,7 +4112,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Source: #2441 Forward-carry (owned workflow, tvofi review). `.github/workflows/governance.yml`'s field-coverage step runs on a pull request only when a listed input changes. `tests/ci_budgets.json`, `tests/ci_ratchet.py`, `tools/audit/archscore/` and the card's `.js` are not listed. So a pull request that uncaps a census's ci-ratchet row (M1's shape) is caught by the schedule run, not on its own run. Budget-raise-gate still refuses the raise itself. The workflow is owned, so the edit needs tvofi's review; the orchestrator routes it."
+   ],
    "architect_note": null,
    "group": "R10-SEAT-SELFTESTS-CI",
    "findings": [],
@@ -4239,7 +4243,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Source: #2441 Friction. body_push.sh: unenforced: its predictor (`tools/pr/ci_predict.py`) passed a body that pr-contract's carry_audit refused, with 6 items unrouted, so the refusal surfaced only after the PR was updated."
+   ],
    "architect_note": null,
    "group": "R10-PREPR-UNPINNED-RED",
    "findings": [],
