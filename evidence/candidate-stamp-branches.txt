@@ -1,0 +1,2 @@
+origin/handoff/r10-stamp-claims 2a9ca2b23ee750177666f4e6fd6d33c49b80e0bd
+origin/handoff-body/r10-stamp-claims 595adbcfa0a926d23623297d0cf303af105a29cc
