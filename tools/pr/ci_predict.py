@@ -8,7 +8,15 @@ list, a new harness the INERT-read table does not list) and `mutation` (a site
 the diff adds with no pin). The autofix jobs meant to repair them repaired
 none of the twenty runs measured on this round's eight fix pull requests
 (R9-RO-11's pre-study, in its PR body), so the red reached a reviewer's head
-every time. Three arms call CI's own functions: UNCLASSIFIED
+every time. That premise no longer holds for INERT READS: since #2049
+(R9-CI-1) `closures-autofix` merges them, and since #2129 a scoped run
+re-records the reading script, so the bot repairs one after the push
+(run 38296697023: scoped, `AUTOFIX: changed`). It still refuses before the
+push, because that repair costs a red `closures` run and a bot commit on the
+reviewer's head; `--apply-inert` writes the entry the recording would, which
+for a child process's read (harness_headers' scan) is the one repair a Darwin
+seat can make, since only Linux `strace` sees it
+(dev/audit/rca/R10-RCA-INERT-PREDICT.md). Three arms call CI's own functions: UNCLASSIFIED
 (`closure.orphan_files`), the INERT test inside both closure arms
 (`closure.is_inert`), and ADDED UNPINNED (`mutation_table`'s source-only
 ratchet). One is this predictor's own model, because CI learns the answer by
@@ -21,18 +29,23 @@ scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
 or a mutant: seconds, never a heavy script.
 
-    python3 tools/pr/ci_predict.py [--base origin/main]
+    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert]
 
 Prints one `PREDICT <job> ...` line per predicted red and a last line
 `CI PREDICT: ...`. rc 1 when a closures or `fast` red is predicted, 0 when
 none is, 2 when the base does not resolve. ADDED UNPINNED sites print but never
 set the rc: `mutation-autofix` may pin them after the push (`ci-autofix.md`),
 so `prepr.sh` step 6d warns and the body owes each one a disposition.
+`--apply-inert` adds every predicted INERT READS entry to `tests/closures.json`
+through `closure.write_closures`, then predicts again; the entry it writes is
+an over-approximation at worst, the direction `_fold_inert_reads` keeps.
 
 What it cannot see, said so the quiet line is not over-read: a data file a
 script opens by name (#1987's `services.yaml`), a read behind a dynamic path,
 and a closure whose recording a merge from `main` alone moves. Those stay
-`closures`'s, and `ci-autofix.md` says who repairs them.
+`closures`'s, and `ci-autofix.md` says who repairs them. What it does see it
+names the repair for, per arm, on a `CI PREDICT:` line: before a PR exists no
+bot runs, so a predicted red is the fixer's (R10-HANDOFF-PREPR-BOUNCE M3).
 """
 from __future__ import annotations
 
@@ -120,7 +133,8 @@ def top_imports(src: str, path: str, tracked: set[str]) -> set[str]:
     return imported_paths(ast.unparse(top), path, tracked)
 
 
-def under_scoped(root, base, changed, tracked, closures, inert_reads, closure):
+def under_scoped(root, base, changed, tracked, closures, inert_reads, closure,
+                 pairs=None, scripts=None):
     """New import edges from a file a closure lists to a file it does not.
 
     Only edges this diff ADDS: an edge already present at the base and still
@@ -173,8 +187,12 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure):
                     if b in set(inert_reads.get(script, [])):
                         continue
                     kind = "INERT READS"
+                    if pairs is not None:
+                        pairs.add((script, b))
                 elif b not in listed:
                     kind = "UNDER-SCOPED"
+                    if scripts is not None:
+                        scripts.add(script)
                 else:
                     continue
                 scripts, froms = hits.setdefault((kind, b), (set(), set()))
@@ -187,7 +205,7 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure):
             for (kind, b), (sc, fr) in sorted(hits.items())]
 
 
-def inert_siblings(changed, inert_reads, closure):
+def inert_siblings(changed, inert_reads, closure, pairs=None):
     """A new INERT file beside files a script's INERT-read list names.
 
     A script that reads a directory by glob (`harness_headers.py` over
@@ -209,6 +227,8 @@ def inert_siblings(changed, inert_reads, closure):
             if len(sib) >= 3:
                 preds.append(("closures", f"INERT READS {script}: {f} "
                               f"(a new file beside {len(sib)} it lists)"))
+                if pairs is not None:
+                    pairs.add((script, f))
     return preds
 
 
@@ -282,7 +302,8 @@ def unpinned(base):
                     for k, s in m.added_keys(added)]
 
 
-def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]:
+def predict(root: Path, base_ref: str, pairs: set | None = None,
+            scripts: set | None = None) -> tuple[int, list[tuple[str, str]], str]:
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
@@ -296,8 +317,9 @@ def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]
     preds: list[tuple[str, str]] = []
     preds += orphans(changed, closure)
     preds += no_recording(root, base, changed, closure)
-    preds += under_scoped(root, base, changed, tracked, closures, inert_reads, closure)
-    preds += inert_siblings(changed, inert_reads, closure)
+    preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
+                          closure, pairs, scripts)
+    preds += inert_siblings(changed, inert_reads, closure, pairs)
     preds += unpinned(base)
     seen, out = set(), []
     for p in preds:
@@ -307,12 +329,68 @@ def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]
     return (1 if any(j != "mutation" for j, _ in out) else 0), out, base
 
 
+def apply_inert(root: Path, pairs: set) -> list[tuple[str, str]]:
+    """Add each (script, file) to `inert_reads` through the table's one writer.
+
+    What CI's Linux recording would merge: the read is a child process's, so
+    a Darwin `--single` cannot record it, and a hand edit of the JSON is the
+    layout `closure.layout_errors` refuses. Returns the pairs it added.
+    """
+    import closure
+    path = root / "tests" / "closures.json"
+    payload = json.loads(path.read_text())
+    table = payload.setdefault("inert_reads", {})
+    added = sorted(p for p in pairs if p[1] not in table.get(p[0], ()))
+    for script, f in added:
+        table[script] = sorted(set(table.get(script, ())) | {f})
+    if added:
+        closure.write_closures(path, payload)
+    return added
+
+
+def repairs(root: Path, preds, scripts: set) -> list[str]:
+    """The repair line for each refusing closures/fast arm, before the handoff.
+
+    Before a PR exists no bot runs, so the arm's repair is the fixer's
+    (dev/audit/rca/R10-HANDOFF-PREPR-BOUNCE.md, countermeasure M3): a closure
+    is re-recorded with `--single` per script, whose cost is what CI's last
+    recording of it took (one took five times that on a Darwin seat, the RCA's
+    section 1), and a file in no closure is classified in the same diff.
+    """
+    out = []
+    if scripts:
+        rec = json.loads((root / "tests" / "closures.json").read_text()).get("recorded", {})
+        secs = sum(float(rec.get(s, {}).get("seconds") or 0) for s in scripts)
+        many = len(scripts) > 3
+        out.append(f"an UNDER-SCOPED closure is re-recorded in the diff, one script at a time: "
+                   f"{'; '.join(f'tests/derive_closures.sh --single {s}' for s in sorted(scripts))} "
+                   f"(CI's last recordings of the {len(scripts)} took {secs:.0f} s in all)"
+                   + ("; that many is the orchestrator's to record on Linux, asked for before the handoff"
+                      if many else ""))
+    if any(j == "fast" and l.startswith("UNCLASSIFIED") for j, l in preds):
+        out.append("an UNCLASSIFIED file is classified in the diff (CLAUDE.md): one a test script reads joins "
+                   "that script's closure through tests/derive_closures.sh --single <script>; one no script "
+                   "reads goes on INERT in tests/closure.py")
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--base", default="origin/main")
+    ap.add_argument("--apply-inert", action="store_true",
+                    help="write every predicted INERT READS entry, then predict again")
     args = ap.parse_args(argv)
     root = Path((git(Path.cwd(), "rev-parse", "--show-toplevel") or ".").strip())
-    rc, preds, base = predict(root, args.base)
+    pairs: set[tuple[str, str]] = set()
+    scripts: set[str] = set()
+    rc, preds, base = predict(root, args.base, pairs, scripts)
+    if args.apply_inert and rc != 2:
+        added = apply_inert(root, pairs)
+        for script, f in added:
+            print(f"APPLIED inert_reads {script}: {f}")
+        if added:
+            scripts = set()
+            rc, preds, base = predict(root, args.base, None, scripts)
     if rc == 2:
         print(f"CI PREDICT: {base}")
         return 2
@@ -327,11 +405,23 @@ def main(argv: list[str] | None = None) -> int:
     if sites:
         print(f"CI PREDICT: {sites} unpinned site(s) the diff adds -- a "
               f"warning; the body owes each a line under ## Unpinned sites")
+    inert = sum(1 for j, l in preds if j == "closures" and l.startswith("INERT READS"))
+    if inert:
+        print("CI PREDICT: an INERT READS entry is written with "
+              "`python3 tools/pr/ci_predict.py --apply-inert` and committed: "
+              "the entry CI's Linux recording would merge, before the push, "
+              "where the bot's repair after it costs a red closures run and a "
+              "commit on the reviewed head")
+    for line in repairs(root, preds, scripts):
+        print(f"CI PREDICT: {line}")
     if jobs:
         reds = sum(1 for j, _ in preds if j != "mutation")
+        who = ("`--apply-inert` repairs them" if inert == reds else
+               f"`--apply-inert` repairs the {inert} INERT READS, the lines "
+               f"above the rest" if inert else
+               "the lines above name each arm's repair")
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
-              f"against {base[:12]} -- repair before the handoff; who repairs "
-              f"which is ci-autofix.md's")
+              f"against {base[:12]} -- repair before the handoff; {who}")
     else:
         print(f"CI PREDICT: no closures or fast red predicted against "
               f"{base[:12]} (a data-file read is not seen)")

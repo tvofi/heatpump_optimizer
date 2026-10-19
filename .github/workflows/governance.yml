@@ -339,6 +339,13 @@ jobs:
       - name: Show the merge-main bot refusing its own fixtures
         run: python3 tools/pr/merge_main_bot.py --self-test
 
+      # The superseded-run canceller (R10-CI-CONCURRENCY): the recorded pair
+      # 39090494028/39091600343 it must select, and the runs it must never
+      # cancel (a same-SHA twin, the live head, a bot-sent caller, main, a
+      # stale head), over a stub gh.
+      - name: Show the superseded-run canceller refusing its own fixtures
+        run: python3 tools/pr/cancel_superseded.py --self-test
+
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
@@ -370,6 +377,15 @@ jobs:
           set -o pipefail
           if test -f .claude/workflows/contract_rerun.py; then python3 .claude/workflows/contract_rerun.py --self-test; else python3 tools/pr/contract_rerun.py --self-test; fi| tee "$RUNNER_TEMP/crr-self-test.txt"
           grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
+
+      # Which CodeQL legs a pull request may skip (O17): every skip arm against
+      # its analyze null control, and every non-pull_request event analyzing.
+      # The tally line must say 0 failed.
+      - name: Show the CodeQL leg scope refusing every unsafe skip
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/codeql_scope.py --self-test | tee "$RUNNER_TEMP/cqs-self-test.txt"
+          grep -Eq '^codeql_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cqs-self-test.txt"
 
       # The merge fast path (round-9 process review item 2B): each refusal class
       # against its null control, through the gate's own `closure.select`. The
@@ -407,6 +423,30 @@ jobs:
           python3 -I tools/audit/seat/ref_privacy.py --self-test
           python3 -I tools/audit/seat/ref_privacy.py --check
 
+      # The orchestrator sweep's renderer and its policy re-read predicate.
+      # The renderer's self-test renders the tracked template, so a step that
+      # cites an instrument the tree no longer has reddens here, not in the
+      # next session's sweep. Here for tmp_paths.py's reason.
+      - name: Render the sweep template, and the policy re-read predicate
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/sweep_render.py --self-test | tee "$RUNNER_TEMP/sr-self-test.txt"
+          grep -Eq '^sweep_render self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sr-self-test.txt"
+          python3 -I tools/audit/seat/policy_reread_check.py --self-test | tee "$RUNNER_TEMP/prc-self-test.txt"
+          grep -Eq '^policy_reread_check self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prc-self-test.txt"
+
+      # The orchestrator tick, over stubbed gh/git/pgrep/bus: no network, no
+      # `gh`, no subprocess. It loads roster_lib.py and budget_raise_gate.py
+      # from the tree, so a symbol either drops reddens here: #2406 removed
+      # `roster_lib.DEFAULT_ROSTER_REF`, and a tick still reading it crashed
+      # with AttributeError, seen first in review on #2422. A crash prints no
+      # tally, so the grep refuses it. Here for tmp_paths.py's reason.
+      - name: Show the orchestrator tick deciding its own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/orchestrator_tick.py --self-test | tee "$RUNNER_TEMP/ot-self-test.txt"
+          grep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"
+
       # A throwaway git repository built without the shared helper
       # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
       # even a tiny repository, and it outlives the temporary directory. The
@@ -430,6 +470,20 @@ jobs:
           set -o pipefail
           python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
           grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
+
+      # The carry check (tools/audit/carry_audit.py; finding-propagation.md's
+      # `Carry:` marker): a planted unrouted finding refuses and its routed twin
+      # passes, an invented or done group, an unowned or closed issue, a missing
+      # O-brief and a bare `dismissed:` each refuse; and the train's pre-flight
+      # (queue_pre_flight.py), whose `findings` step reads a verdict's notes with
+      # it before a merge. Both tally lines must say 0 failed, as above.
+      - name: Show the carry check and the queue pre-flight refusing their own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/carry_audit.py --self-test | tee "$RUNNER_TEMP/ca-self-test.txt"
+          grep -Eq '^carry_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ca-self-test.txt"
+          python3 tools/audit/seat/queue_pre_flight.py --self-test | tee "$RUNNER_TEMP/qpf-self-test.txt"
+          grep -Eq '^queue_pre_flight self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/qpf-self-test.txt"
 
       # The train launcher (tools/audit/seat/train.sh): missing arguments, a
       # live pidfile on the state dir, and an unknown argument each refuse.

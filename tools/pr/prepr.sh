@@ -298,6 +298,42 @@ claims_remedy() { # env_drift output file
 # too: a push is no place to take a lease another seat holds. A `slot` answer
 # is NOT deferred -- this run already holds a slot (step 1b), so the recording
 # runs inside it (R10-PREPR-CAP, #2267).
+# Every unescaped backtick inside a double-quoted string, as `file:line: text`.
+# In double quotes a bare backtick is a command substitution, so a label meant to
+# print `slot` runs it (prepr.sh line 1738, #2267). Single quotes, comments and
+# quoted heredocs are skipped; $( ) opens a fresh quoting context.
+dq_backticks() {
+  python3 - "$@" <<'PY'
+import re, sys
+for path in sys.argv[1:]:
+    stack, hd = ['u'], None
+    for n, line in enumerate(open(path, encoding='utf-8').read().split('\n'), 1):
+        if hd:
+            if line.strip() == hd: hd = None
+            continue
+        i, seen = 0, False
+        while i < len(line):
+            c, m = line[i], stack[-1]
+            if m == 's':
+                if c == "'": stack.pop()
+            elif m == 'd':
+                if c == '\\': i += 1
+                elif c == '"': stack.pop()
+                elif c == '`' and not seen: print(f"{path}:{n}: {line.strip()[:150]}"); seen = True
+                elif c == '$' and line[i+1:i+2] == '(': stack.append('u'); i += 1
+            else:
+                if c == '\\': i += 1
+                elif c in "'\"": stack.append('s' if c == "'" else 'd')
+                elif c == '#' and (i == 0 or line[i-1] in ' \t;'): break
+                elif c == '$' and line[i+1:i+2] == '(': stack.append('u'); i += 1
+                elif c == ')' and len(stack) > 1: stack.pop()
+                elif line[i:i+2] == '<<' and line[i:i+3] != '<<<':
+                    mm = re.match(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1", line[i:])
+                    if mm: hd = mm.group(2)
+            i += 1
+PY
+}
+
 closure_lane() { # script, strace present (1 or 0)
   local one; one=$(mktemp)
   printf '%s\n' "$1" > "$one"
@@ -400,7 +436,10 @@ PY
 # UNDER-SCOPED and INERT READS, entities' unclassified file and
 # a STALE PIN the diff itself stales (a stale pin main carries only warns),
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
-# the handoff while the autofix jobs repaired none of them; those refuse. The
+# the handoff while the autofix jobs repaired none of them; those refuse. For
+# INERT READS that premise lapsed (#2049, #2129: the bot now repairs it after a
+# red run), and it still refuses because the bot's repair lands on the
+# reviewed head; `ci_predict.py --apply-inert` is the pre-push repair. The
 # `mutation` sites the diff adds are a WARNING, never a refusal: ci-autofix.md
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
@@ -465,7 +504,7 @@ claims_line() { # rc 0 holds, 1 refused
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
   local cw kind s v left="" strace=0 r=0 rp=""
   cw=$(mktemp -d)
-  if git diff --name-only "$1"...HEAD > "$cw/changed.txt"; then
+  if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt"; then
     python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
     kind=$(cat "$cw/aff/affected.case" 2>/dev/null)
   else
@@ -1070,7 +1109,7 @@ version_edit() { # main ref, head -> prints the stamp-owned items the range move
   local names manifest notes out
   git rev-parse --verify --quiet "$1^{commit}" >/dev/null || return 2
   git rev-parse --verify --quiet "$2^{commit}" >/dev/null || return 2
-  names=$(git diff --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
+  names=$(git diff --no-renames --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
   manifest=$(git diff --text --no-textconv "$1...$2" -- custom_components/heatpump_optimizer/manifest.json 2>/dev/null) || return 2
   notes=$(git diff --text --no-textconv "$1...$2" -- RELEASE_NOTES.md 2>/dev/null) || return 2
   out=$(stamp_paths "$names" "$manifest" "$notes")
@@ -1735,7 +1774,18 @@ EOS
   [ "$(closure_lane tests/card_drift.mjs 1)" = record ]; st $? 0 "and is recorded with it (null control)"
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
-  st "$(closure_lane tests/entities.py 1)" record 0 "a `slot` script is recorded here, inside the slot this run holds (#2267)"
+  st "$(closure_lane tests/entities.py 1)" record "a \`slot\` script is recorded here, inside the slot this run holds (#2267)"
+  # The label above once sat in double quotes with bare backticks, so the shell ran
+  # `slot` as a command and printed "line 1738: slot: command not found" in the
+  # run's output (the label was also shifted by a stray argument). Drive the reader
+  # over a planted line (null control) and over every script in tools/pr/.
+  DQ=$(mktemp -d)
+  printf '%s\n' 'echo "a `slot` b"' > "$DQ/bad.sh"
+  printf '%s\n' 'echo "a \`slot\` b" '"'"'c `d` e'"'"' # f "`g`"' 'cat <<'"'"'X'"'"'' 'say "`h`"' 'X' > "$DQ/ok.sh"
+  [ -n "$(dq_backticks "$DQ/bad.sh")" ]; st $? 0 "a backtick inside a double-quoted string is reported (null control)"
+  [ -z "$(dq_backticks "$DQ/ok.sh")" ]; st $? 0 "and an escaped one, a single-quoted one, a comment and a heredoc are not"
+  [ -z "$(dq_backticks tools/pr/*.sh)" ]; st $? 0 "no script in tools/pr/ runs a command inside a double-quoted label"
+  rm -rf "$DQ"
 
   # The heavy steps' closure-reachability skips (`heavy_declared`, `heavy_plan`
   # and `heavy_skip` above), over a throwaway clone with one fixture branch per
@@ -1988,6 +2038,8 @@ PY
     && $G add -A && $G commit -qm pfunc \
     && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
     && $G add -A && $G commit -qm pinert \
+    && $G checkout -q -b pedge origin/main && echo "import tools.audit.seat.moved_paths  # planted" >> tests/wood_advisor.py \
+    && $G commit -qam pedge \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
     && $G add -A && $G commit -qm plane \
     && $G checkout -q -b pmainred origin/main && echo "# planted on main" > tests/zz_main_unrecorded_check.py \
@@ -2011,6 +2063,59 @@ PY
   st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
   got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
+  got=$(cd "$PDX/r" && git checkout -q pinert \
+    && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert 2>&1; echo "rc=$?")
+  grep -q '^APPLIED inert_reads tests/harness_headers.py: dev/audit/harnesses/zz_planted.py$' <<<"$got" \
+    && grep -q '^rc=0$' <<<"$got"
+  st $? 0 "--apply-inert writes the predicted entry, and the prediction then clears"
+  (cd "$PDX/r" && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure;p=closure.CLOSURES;sys.exit(len(closure.layout_errors(json.loads(p.read_text()),p.read_text())))")
+  st $? 0 "and it writes the table in the layout closure.layout_errors accepts"
+  got=$(cd "$PDX/r" && git checkout -q -f pnull && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert >/dev/null 2>&1; git status --porcelain -- tests/closures.json)
+  st "$got" "" "--apply-inert leaves the table byte-identical where nothing is predicted (null control)"
+  got=$(cd "$PDX/r" && git checkout -q pinert && predict_line origin/main 2>/dev/null)
+  grep -q 'repair before the handoff; `--apply-inert` repairs them$' <<<"$got" && ! grep -q "ci-autofix.md's" <<<"$got"
+  st $? 0 "and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS"
+  got=$(predict_at pedge); grep -q 'PREDICT closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "6d refuses an INERT READS a new top-level import adds (the import-edge arm)"
+  got=$(cd "$PDX/r" && git checkout -q pedge \
+    && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert 2>&1; echo "rc=$?")
+  grep -q '^APPLIED inert_reads tests/wood_advisor.py: tools/audit/seat/moved_paths.py$' <<<"$got" \
+    && grep -q '^rc=0$' <<<"$got"
+  st $? 0 "--apply-inert writes the import-edge arm's entry too, and the prediction then clears"
+  (cd "$PDX/r" && git checkout -q -f pnull)
+  # R10-HANDOFF-PREPR-BOUNCE M3: each refusing arm prints its own repair, since
+  # before a PR exists no bot runs to wait for.
+  pfull() { (cd "$PDX/r" && git checkout -q -f "$1" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main 2>&1); }
+  got=$(pfull pimport)
+  grep -q '^CI PREDICT: an UNDER-SCOPED closure is re-recorded in the diff, one script at a time: tests/derive_closures.sh --single tests/' <<<"$got" \
+    && ! grep -q "ci-autofix.md's" <<<"$got"
+  st $? 0 "an UNDER-SCOPED prediction names --single for its scripts, not ci-autofix.md's wait (M3)"
+  got=$(pfull porphan); grep -q '^CI PREDICT: an UNCLASSIFIED file is classified in the diff' <<<"$got"
+  st $? 0 "an UNCLASSIFIED prediction names the classification, a closure or INERT (M3)"
+  got=$(pfull pnull); grep -q 'is re-recorded in the diff\|is classified in the diff' <<<"$got"
+  st $? 1 "and a quiet diff prints no repair (null control)"
+  # M2: body_push.sh runs the predictor over the code head before it pushes
+  # the body, so the handoff itself refuses what open_pr.sh's prepr would.
+  # Pushed to a throwaway bare repository, never to the clone's origin.
+  BPO=$(cd "$PDX/r" && git remote get-url origin); throwaway_git_init "$PDX/bodies.git" -q --bare
+  (cd "$PDX/r" && git remote set-url origin "$PDX/bodies.git")
+  printf 'body\n' > "$PDX/BODY.md"
+  bpush() { (cd "$PDX/r" && git checkout -q -f "$1" && bash "$OLDPWD/tools/audit/seat/body_push.sh" "zz-$1" "$PDX/BODY.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' "refs/heads/handoff-body/zz-$1"); }
+  got=$(bpush pinert)
+  grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got" && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "body_push refuses the probe head (a new harness, no inert_reads line) and pushes no body (M2)"
+  (cd "$PDX/r" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert >/dev/null 2>&1 && git commit -qam 'closures: the probe harness (inert read)')
+  got=$(cd "$PDX/r" && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-pinert "$PDX/BODY.md" 2>&1; echo "rc=$?")
+  grep -q '^rc=0$' <<<"$got" && git --git-dir="$PDX/bodies.git" rev-parse -q --verify refs/heads/handoff-body/zz-pinert >/dev/null
+  st $? 0 "and pushes it once --apply-inert's entry is committed"
+  got=$(bpush pnull); grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-pnull$' <<<"$got"
+  st $? 0 "body_push pushes a head the predictor is quiet on (null control)"
+  got=$(cd "$PDX/r" && git checkout -q -f pnull && mv tools/pr/ci_predict.py "$PDX/ci_predict.away" \
+    && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-skip "$PDX/BODY.md" 2>&1; echo "rc=$?"; mv "$PDX/ci_predict.away" tools/pr/ci_predict.py)
+  grep -q 'carries no tools/pr/ci_predict.py' <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "and refuses a checkout with no predictor rather than passing it silently"
+  (cd "$PDX/r" && git remote set-url origin "$BPO" && git checkout -q -f pnull)
   # Round-9 C1: the full arm derives its recording set from the tree
   # (`lane-plan --all-scripts`), so a new selectable script owes no lane
   # edit and no lane edit can drop a recording -- the NO RECORDING class is
@@ -2414,7 +2519,7 @@ rm -f /tmp/prepr-owners.$$
 # pull request with the base's copy of it; the graders that run below only on
 # their own inputs (brief_lint here, the wave script in step 4) run on this
 # head's copy instead, since a pinned path can be any grader's data (#1637).
-git diff --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
+git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
 PIN_TOUCHED=1
 pinned_touched /tmp/prepr-changed.$$ "$(pinned_paths .github/workflows/*.yml)" && PIN_TOUCHED=0
 rm -f /tmp/prepr-changed.$$
@@ -2501,7 +2606,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # --- 3h. the self-test, when this diff can move one of its rows (`selftest_owed`).
 # CI's `governance` job runs it on every pull request; this is the cheaper
 # detector. A diff that cannot be listed is treated as owing it.
-if ! git diff --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
+if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
   if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; else bash tools/pr/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; fi
   step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
@@ -2553,7 +2658,7 @@ step "no version edit" $? "$STAMPED"
 # --- 6. claim files byte-identical to origin/main.
 # A branch that claims nothing does not touch them at all, and one that does not
 # touch them cannot collide with another branch's claim (#570).
-CLAIMS=$(git diff --name-only origin/main...HEAD -- \
+CLAIMS=$(git diff --no-renames --name-only origin/main...HEAD -- \
   tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt | tr '\n' ' ')
 if [ -n "${CLAIMS// /}" ]; then
   say check "claim files" "$CLAIMS changed -- intended only if this branch claims drift"

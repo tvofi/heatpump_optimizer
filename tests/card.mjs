@@ -10760,18 +10760,26 @@ const STOCK_THEMES = {
     const asked = [];
     const stub = (...a) => {
       asked.push(a.join(" "));
-      if (a[1] === "--name-only" && a[2] === "REF...HEAD") return "docs/HANDOVER.md\n";
-      if (a[1] === "--name-only" && a[2] === "HEAD") return " \ndocs/HANDOVER.md\n";
+      if (a[0] === "diff" && a[a.length - 1] === "REF...HEAD") return "dev/changed.md\n";
+      if (a[0] === "diff" && a[a.length - 1] === "HEAD") return " \ndev/changed.md\n";
       return "notes.txt\n";
     };
     const files = threeDotFiles(stub, "REF");
+    // The sibling's commands are READ from tests/env_drift.py, so the two
+    // copies cannot drift apart again (#2406: the Python twin gained
+    // --no-renames and this pin went on asserting the old command).
+    const pySrc = fs.readFileSync("tests/env_drift.py", "utf8");
+    const pyFn = pySrc.slice(pySrc.indexOf("def three_dot_files("));
+    const pyBody = pyFn.slice(0, pyFn.indexOf("\n    ):"));
+    const sibling = [...pyBody.matchAll(/^\s*\[("git",[^\]]*)\],\s*$/gm)]
+      .map((m) => JSON.parse(`[${m[1].replace(/f"\{ref\}/g, '"REF')}]`).slice(1).join(" "));
     check("threeDotFiles runs the sibling's three commands in order",
-      asked.length === 3
-      && asked[0] === "diff --name-only REF...HEAD"
-      && asked[1] === "diff --name-only HEAD"
-      && asked[2] === "ls-files --others --exclude-standard", asked.join(" | "));
+      sibling.length === 3
+      && asked.length === 3 && asked.every((c, i) => c === sibling[i])
+      && sibling.slice(0, 2).every((c) => c.includes("--no-renames")),
+      `${asked.join(" | ")} vs env_drift: ${sibling.join(" | ")}`);
     check("threeDotFiles de-duplicates, drops blanks and sorts",
-      files.join(",") === "docs/HANDOVER.md,notes.txt", files.join(","));
+      files.join(",") === "dev/changed.md,notes.txt", files.join(","));
     check("an untracked card makes the three-dot claimable",
       claimsAreThisBranchs((...a) =>
         a[0] === "ls-files" ? CLAIMED_CARD_PATH + "\n" : "", "REF") === true);
@@ -11857,8 +11865,15 @@ check("without an indoor reading the corner now label is absent",
   }
   // The slot menu's `add` / `remove` are `act` branches too, and no click
   // reaches them: the menu opens on the chart's own contextmenu gesture.
-  // Drive that gesture and press the row it renders.
-  for (const [chart, x] of [[0, 300], [0, 600], [1, 300], [1, 600]]) {
+  // Drive that gesture and press the row it renders. Which row renders --
+  // `remove` on a planned hot-water run, `add` off one -- depends on where the
+  // solver put the runs, so the gesture walks the chart until it has pressed
+  // both, rather than at fixed pixels a re-planned fixture can miss (four
+  // pixels found no run once D2-s2-01 re-priced the tank).
+  const probes = [];
+  for (const chart of [0, 1]) for (let x = 20; x <= 1200; x += 20) probes.push([chart, x]);
+  for (const [chart, x] of probes) {
+    if (pressed.has("add") && pressed.has("remove")) break;
     const c = open("plan");
     const svg = chartSvgs(c.shadowRoot)[chart];
     if (!svg) continue;
