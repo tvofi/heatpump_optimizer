@@ -7,7 +7,7 @@ report to the owner.
 **Your pull requests are reviewed. Your process is not.** Most of what you
 produce never meets a reviewer: merge-commit messages, issue bodies and
 comments, dispatch briefs, roster edits, and what you tell the owner. On
-2026-09-07 the orchestrator made a run of unmeasured claims in a day, each
+2026-09-07 the orchestrator made a run of unmeasured claims, each
 caught by a review seat and none by itself, while writing the policy against
 them. **Not one was in a pull-request body.**
 
@@ -112,16 +112,15 @@ incident, which this section encourages.
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
 beforehand, and on 2026-09-07 merge commits shut two issues that had to be
-reopened (`8bc4c661` shut #224 while its own text denied doing so; `e072b2d`,
-#195). A pre-merge scan that asks *which form was used* rather
+reopened (#224, whose merge text denied it, and #195). A pre-merge scan that asks *which form was used* rather
 than *whether every keyword binds an intended number* reports clean through
 exactly that.
 
 ## 5. Before dispatching a seat
 
 - **Establish the work is not already done or in flight.** One
-  `list_pull_requests` over the open set, and the issue's comments. A seat
-  was dispatched to fix what an open pull request already fixed.
+  `list_pull_requests` over the open set, and the issue's comments: a seat
+  was dispatched to fix what an open pull request fixed.
 - **Give it the constraints that already exist** rather than letting it
   re-derive them: findings carried into its stage, the numbers it must
   re-measure rather than trust, and the destination its own carry must reach.
@@ -170,7 +169,7 @@ the answer.
 ## 6. A conflict resolution is verified by reading the merged artifact
 
 Not by reading the diff. A word-level diff licensed a union that silently dropped
-a clause, in the commit that claimed nothing had been dropped.
+a clause, in a commit claiming nothing was dropped.
 
 When both sides carry real content, **union rather than take a side**, and prove
 it: reconstruct both parents and read the merged result back, confirming each
@@ -186,7 +185,7 @@ head** — so you are the one who breaks it. A reviewer works in a fresh *detach
 worktree at the head SHA, so the branch has no worktree and no marker: a liveness
 check looking for either will not see it. Check whether a review is in flight on
 the pull request before moving anything. A head that moves under a review costs
-that review, and it has happened twice; a move that re-issues the verdict needs
+that review; a move that re-issues the verdict needs
 a fresh `bus.sh dispatch` at the new head before the reviewer publishes, since
 `push-verdict` refuses a nonce whose dispatch head is not the head the verdict
 names. **A conflict with main after the
@@ -206,9 +205,9 @@ An issue is what you write when you cannot act, not a way of recording that you
 noticed. Filing is not neutral: an issue enters the Delivery-status table, needs a
 disposition, and is read by later seats as established fact — it propagates
 further than a wrong pull request, because nothing gates it. Four issues filed in
-one day needed three refutation seats and a judge to establish that one was
-largely false and that a mechanism another asked for was **already in the tree**,
-landed by a pull request listed in its own evidence table.
+one day needed three refutation seats and a judge: one was largely false, and
+another asked for a mechanism **already in the tree**, landed by a pull request
+its own evidence table listed.
 
 Out of scope is not a licence to file: a real finding you must not touch goes to
 that stage's brief under section 10.
@@ -244,9 +243,11 @@ additionally, because you write the rosters and you decide the merge order.
 
 - **A comment is not propagation** — including yours on #201, which is where you
   are most tempted to put things.
-- **The destination must exist**, and creating it is part of the carry. A whole
-  programme lane had no roster, so two seats that tried to comply had nowhere
-  in-tree to write.
+- **The destination must exist**, and creating it is part of the carry.
+- **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
+  a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads
+  it), each stamp, and before branch cleanup, which keeps the roster
+  branch while it differs (`finding-propagation.mdc`).
 
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
@@ -298,7 +299,6 @@ never by hand or in a branch; rule 4 binds you.
 session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,
 carries, stamps, gates, watches CI or records state runs from the tree, never
 from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
-Your other reusable scripts land too, by `fixer.md` step 18.
 
 Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
 raise**, confirmed before the push; and **policy**, this file included, approved

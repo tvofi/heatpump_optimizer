@@ -1496,7 +1496,7 @@ def drain_changed(at: str, head: str, cwd: str | None = None) -> list[str] | Non
     """
     if not at:
         return None
-    diff = subprocess.run(["git", "diff", "--name-only", at, head], cwd=cwd,
+    diff = subprocess.run(["git", "diff", "--no-renames", "--name-only", at, head], cwd=cwd,
                           capture_output=True, text=True)
     return diff.stdout.split() if diff.returncode == 0 else None
 

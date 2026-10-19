@@ -10792,18 +10792,26 @@ const STOCK_THEMES = {
     const asked = [];
     const stub = (...a) => {
       asked.push(a.join(" "));
-      if (a[1] === "--name-only" && a[2] === "REF...HEAD") return "docs/HANDOVER.md\n";
-      if (a[1] === "--name-only" && a[2] === "HEAD") return " \ndocs/HANDOVER.md\n";
+      if (a[0] === "diff" && a[a.length - 1] === "REF...HEAD") return "dev/changed.md\n";
+      if (a[0] === "diff" && a[a.length - 1] === "HEAD") return " \ndev/changed.md\n";
       return "notes.txt\n";
     };
     const files = threeDotFiles(stub, "REF");
+    // The sibling's commands are READ from tests/env_drift.py, so the two
+    // copies cannot drift apart again (#2406: the Python twin gained
+    // --no-renames and this pin went on asserting the old command).
+    const pySrc = fs.readFileSync("tests/env_drift.py", "utf8");
+    const pyFn = pySrc.slice(pySrc.indexOf("def three_dot_files("));
+    const pyBody = pyFn.slice(0, pyFn.indexOf("\n    ):"));
+    const sibling = [...pyBody.matchAll(/^\s*\[("git",[^\]]*)\],\s*$/gm)]
+      .map((m) => JSON.parse(`[${m[1].replace(/f"\{ref\}/g, '"REF')}]`).slice(1).join(" "));
     check("threeDotFiles runs the sibling's three commands in order",
-      asked.length === 3
-      && asked[0] === "diff --name-only REF...HEAD"
-      && asked[1] === "diff --name-only HEAD"
-      && asked[2] === "ls-files --others --exclude-standard", asked.join(" | "));
+      sibling.length === 3
+      && asked.length === 3 && asked.every((c, i) => c === sibling[i])
+      && sibling.slice(0, 2).every((c) => c.includes("--no-renames")),
+      `${asked.join(" | ")} vs env_drift: ${sibling.join(" | ")}`);
     check("threeDotFiles de-duplicates, drops blanks and sorts",
-      files.join(",") === "docs/HANDOVER.md,notes.txt", files.join(","));
+      files.join(",") === "dev/changed.md,notes.txt", files.join(","));
     check("an untracked card makes the three-dot claimable",
       claimsAreThisBranchs((...a) =>
         a[0] === "ls-files" ? CLAIMED_CARD_PATH + "\n" : "", "REF") === true);
