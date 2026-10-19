@@ -4544,6 +4544,52 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "production",
+   "issues": [],
+   "fixes": [],
+   "class": "production",
+   "severity": "high",
+   "size": "M",
+   "hot_files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/draw_range.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": true,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-SETPOINT-BOOST",
+   "findings": [],
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/draw_range.py"
+   ],
+   "brief": "Owner report on v7.0.1 (tvofi 2026-10-19): cheap hours with comfort headroom are planned at a 25 C flow set-point (35 before #2445) and low-power slots fill the day. Root cause (measured on the owner's private export, synthetic fixtures only): (A) the heating floor inlet+5 K equals FLOW_GATE_C 25 whenever the tank is at or below 20 C, so a heating step at p_min writes the do-not-heat value; (B) draw_range engages on censored samples: no metered sample was ever taken at the ceiling set-point and the window's floor is idle draw (RUNNING_FLOOR_KW 0.25 below idle ~0.3 kW). Fix A: heating floor max(inlet, FLOW_GATE_C)+FLOW_MIN_LIFT_K. Fix B: store the written set-point per sample, max-end evidence only from ceiling-commanded samples, learned idle draw excludes idle samples. The #2065 7b clamp is NOT landed (circular on censored evidence). Controls: pins failing on main, mutation proof, flat-price null (byte-identical plans), duty-cycling null, relaxed-start control on an owner-shaped synthetic install.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-setpoint-boost",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer",
+    "note": null
+   }
   }
  ]
 }
