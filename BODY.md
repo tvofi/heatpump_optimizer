@@ -55,20 +55,27 @@ Run in a detached scratch worktree of 2d1758154b17eaf48699f036c13f0ddec1d21995, 
 
 ## Unpinned sites
 
-The four sites this diff adds on `if settled > 0 and folds >= spot_folds:` are BOOLOP, CMP_BOUND×2 and GUARD_OFF. Each is left for `mutation-autofix` (`ci: pin killed mutants`):
-- BOOLOP fails "a month booked before its coverage began ...".
-- `settled >= 0` divides by zero on the uncovered month in "open month scales the bill and the saving by one factor".
-- `folds > spot_folds` and GUARD_OFF fail the existing "the open month scales by the month's hours over the hours it settled".
+The four mutants this diff adds are all on `_coverage_factor`'s predicate `if settled > 0 and folds >= spot_folds:`. Each is left to be pinned by `mutation-autofix` (`ci: pin killed mutants`, `ci-autofix.md`), and each names the value check in `tests/features.py` that kills it:
+- `custom_components/heatpump_optimizer/ledger.py:328 BOOLOP` (`or`): it fails "a month booked before its coverage began scales by the calendar-day ratio".
+- `custom_components/heatpump_optimizer/ledger.py:328 CMP_BOUND*2`:
+  - `settled >= 0` divides by zero on the uncovered month in "open month scales the bill and the saving by one factor".
+  - `folds > spot_folds` sends a fully covered month to the calendar-day ratio, which fails "the open month scales by the month's hours over the hours it settled".
+- `custom_components/heatpump_optimizer/ledger.py:328 GUARD_OFF` (`if False:`): it fails "the open month scales by the month's hours over the hours it settled".
 
 The two pins on the old `if settled > 0:` text (`_coverage_factor.CMP_BOUND.3ffba7d3`, `GUARD_OFF.3ffba7d3`) are deleted in this diff, since the inventory no longer generates their site.
 
 ## Red checks
 
-none at handoff. CI has not run on this head.
+- `mutation` is predicted red at this head. `MUTATION TABLE REFUSED` names the four `ledger.py:328` sites under `## Unpinned sites`.
+  - This diff caused it: the sites are the fix's new predicate.
+  - The answer is `mutation-autofix`'s pin commit after the push, per `ci-autofix.md`.
+  - The cheaper detector already exists and ran: `mutation_table.py --scope changed --max 0` and `ci_predict.py` (`prepr.sh` step 6d) list the sites in seconds before the push. Its standing cost is those seconds.
+
+No other check has run on this head yet.
 
 ## Forward-carry
 
-Carry: dismissed: the fix is reader-side in the ledger and changes no later stage's contract. `savings_months` rows keep the shape #2411 documents.
+none
 
 ## Friction
 
