@@ -1,0 +1,21 @@
+
+.claude/workflows/fixtures/carry-990001.json
+  ERROR   [rule-binding] .claude/workflows/fixtures/carry-990001.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+.claude/workflows/fixtures/carry-990002.json
+  ERROR   [rule-binding] .claude/workflows/fixtures/carry-990002.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+.claude/workflows/fixtures/carry-990003.json
+  ERROR   [rule-binding] .claude/workflows/fixtures/carry-990003.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+.claude/workflows/fixtures/carry-990004.json
+  ERROR   [rule-binding] .claude/workflows/fixtures/carry-990004.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+.claude/workflows/fixtures/roster-probe/wave-probe-groups.json
+  ERROR   [rule-binding] .claude/workflows/fixtures/roster-probe/wave-probe-groups.json: is a live carry destination that `.claude/rules/finding-propagation.md` does not bind: a seat editing it never loads the rule that says what a carry holds. Add its directory to that rule's `paths:` (canon under dev/governance/rules/, then rules_sync.mjs), or archive it under dev/archive/.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 13 recorded occurrence(s)
+
+TOTAL: 5 error(s) across 41 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

@@ -1,0 +1,6 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 13 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 41 policy file(s)
+
+FIXTURE VACUOUS: the rule-binding 'unbound carry home' arm produced [] against a model built to trip it. A refusal with no witness is deletable in silence.

@@ -1,0 +1,3 @@
+DELIVERY STATUS OK — 138 rowed, 2 pending, 0 overdue (overdue at 12 commits)
+ALL 2349 ENTITY CHECKS PASSED
+MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkD
