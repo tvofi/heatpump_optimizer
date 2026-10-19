@@ -164,6 +164,7 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
     "tests/stress_budgets.json": [
         (("coverage_floor_override", "cites"), FREE),
         (("coverage_floor_override", "floor"), OVERRIDE),
+        (("coverage_floor_override", "calls_floor"), OVERRIDE),
         (("*", "ratio"), MAX),
         (("*", "rss_peak_mb"), MAX),
         (("*", "rss_attrib_mb"), MAX),
@@ -758,6 +759,17 @@ def self_test() -> int:
           raised(T, t0, {k: v for k, v in t0.items() if k != "coverage_floor_override"}), False)
     check("stress: an override granted is a raise",
           raised(T, {k: v for k, v in t0.items() if k != "coverage_floor_override"}, t0), True)
+    # The override's optional production-call floor is a floor of its own
+    # (D2-s2-01): absent is the share rule, the stricter state.
+    t1 = {**t0, "coverage_floor_override": {**t0["coverage_floor_override"], "calls_floor": 6}}
+    check("stress: a production-call floor added to an override is a raise",
+          raised(T, t0, t1), True)
+    check("stress: the production-call floor lowered is a raise",
+          raised(T, t1, {**t1, "coverage_floor_override": {**t1["coverage_floor_override"], "calls_floor": 5}}), True)
+    check("stress: the production-call floor raised is routine",
+          raised(T, t1, {**t1, "coverage_floor_override": {**t1["coverage_floor_override"], "calls_floor": 7}}), False)
+    check("stress: the production-call floor withdrawn is routine (the share rule is stricter)",
+          raised(T, t1, t0), False)
 
     Y = "tests/typing_budgets.json"
     y0 = {"_comment": ["x"], "ruler": {"mypy": "2.3.1", "third_party": ["numpy"]}, "type_ignores": 0,

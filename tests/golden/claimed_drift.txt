@@ -78,6 +78,72 @@
 # or the polish improvement scale leaves 5e-5-2e-2.
 # (R10-SAV-BASELINE suspends winter_two_zone_no_dhw's may-drift entry for its claim below; restore it,
 #  verbatim, when the stamp empties the list) winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
+# R10-PUMP-MODEL (D2-s2-01, #2238): the hot-water tank pays the flow lift at its
+# own water temperature on both plants, where a direct plant used to apply a
+# linear 0.008/K penalty instead. Direction, measured base 92accb2cf vs this
+# head in one environment: the tank's modelled COP falls (0.62x the space curve
+# at a 55 C tank and 8 C outdoor, against the penalty's 0.84x), so the plan is
+# re-solved and the always-hot baseline's DHW costs more -- baseline_cost is up
+# on every claimed fixture below, and the other plan keys move either way. 41 of
+# the 56 scenarios move; winter_single_no_dhw is byte-identical, which is the
+# null (its scenario has no hot water). Twelve of the claimed fixtures carry a
+# may-drift entry, whose judged keys (baseline_cost here, on all twelve) a
+# may-drift entry cannot excuse and a name cannot be both, so those entries are
+# suspended above for this release: capacity_tariff_15min, cycling_cost,
+# direct_flow_carnot, everything_on, flat_prices, fuse_guard, narrow_band,
+# precip_snow, shoulder, shoulder_two_zone, tariff_plus_two_zone and
+# winter_two_zone_dhw. This is the R8-P3 wood_coil precedent; their removal
+# conditions are unmet, so a later branch restores each entry as the wood_coil
+# one was restored.
+#
+#
+away_setback # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 50.155768 -> 51.797405; deferred_energy_cost 1.492585 -> 1.297536
+building_preset # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.842141 -> 125.483777; deferred_energy_cost 28.62115 -> 28.819256
+capacity_curve # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 32.817854 -> 33.104715
+capacity_tariff # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 30.681632 -> 29.30125
+capacity_tariff_15min # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+confidence_margins # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 16.149201 -> 16.258696
+cool_rainy_summer # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 3.513962 -> 4.12063; deferred_energy_cost 0.035951 -> 0.000656
+coord_all_features # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- data.dhw_advisor.candidates[0].cost_per_day 2.67 -> 3.29; data.dhw_advisor.candidates[1].cost_per_day 2.74 -> 3.45
+coord_dhw # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- data.dhw_advisor.candidates[0].cost_per_day 2.67 -> 3.29; data.dhw_advisor.candidates[1].cost_per_day 2.74 -> 3.45
+cop_scale_learned # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 100.251187 -> 101.513984; deferred_energy_cost 16.172249 -> 16.342178
+cycling_cost # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+dhw_cold_tank # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 32.08751 -> 32.083973
+dhw_large_tank # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 136.48992 -> 139.783022; dhw_heating_cost 8.233727 -> 9.3045
+dhw_learned_windows # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.834869 -> 29.925931
+dhw_schedule_off # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.989068 -> 30.091503
+direct_flow_carnot # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 116.240501 -> 117.882137
+everything_on # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 134.118165 -> 135.545675
+external_heat_active # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; dhw_heating_cost 6.864087 -> 7.521596
+extreme_prices # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 239.789388 -> 243.018299; deferred_energy_cost 30.8964 -> 31.122128
+flat_prices # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 100.179654 -> 101.52933
+fuse_guard # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+horizon_48h # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 242.069921 -> 245.353193; deferred_energy_cost 31.924586 -> 31.755896
+horizon_6h # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 15.160267 -> 15.348647
+legionella_due # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 30.209408 -> 30.423282
+legionella_due_low_setpoint # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 121.938733 -> 123.308002; deferred_energy_cost 30.208934 -> 30.423282
+legionella_off # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.603364 -> 29.810224
+mild_windy_rain # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 63.353425 -> 65.438656; deferred_energy_cost 3.806831 -> 3.758381
+narrow_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305
+negative_prices # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 0.953394 -> 1.289213; dhw_heating_cost 0.83344 -> 0.901441
+peak_masked # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.621284 -> 29.809915
+precip_snow # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 62.224736 -> 64.309967
+price_risk # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 134.421609 -> 136.320995; deferred_energy_cost 37.413187 -> 37.591889
+shoulder # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 13.841099 -> 14.824404
+shoulder_two_zone # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 18.999666 -> 20.517828
+start_above_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 108.75679 -> 110.398426; deferred_energy_cost 24.228479 -> 24.324916
+start_below_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 179.479166 -> 181.120802; deferred_energy_cost 30.422246 -> 30.393166
+summer_dhw_only # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 0.647761 -> 0.875925; dhw_heating_cost 0.66832 -> 0.833493
+tariff_plus_two_zone # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 150.332611 -> 151.974248
+wide_band # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.621284 -> 29.809915
+winter_single_dhw # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 29.621284 -> 29.809915
+winter_two_zone_dhw # D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 150.332611 -> 151.974248
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
 # runner-conditional for the same reason; judged keys still fail. Remove when
@@ -174,6 +240,7 @@
 # improvement scale leaves 5e-5-2e-2.
 # (R10-SAV-BASELINE suspends valve_storage's may-drift entry for its claim below; restore it,
 #  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
@@ -690,10 +757,6 @@
 # build: CI (CPython 3.13, numpy 2.4.6) moved [33]; [1],[21]; [21],[41] for
 # the three fixtures, this Darwin seat [33]; [9],[29]; [4],[5],[28],...
 # No price, cost, outdoor, price_known or baseline_cost leaf moves.
-config_flow # R10-UX-SETUP: the hot_water_pumps menu label, 'Circulation pumps' -> 'Hot water circulation', to the name the flow's own translations carry
-valve_storage_flat_prices  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule[33] -18.4 -> -18.3 in CI and here
-valve_storage_low_target  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [1],[21]; Darwin [9],[29])
-valve_storage_small_tank  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [21],[41]; Darwin [4],[5],[28],...)
 
 # R10-SAV-BASELINE (#2255): this branch claims the fixtures below. The
 # thermostat reference now starts from the state it would have held (zones at
@@ -708,53 +771,3 @@ valve_storage_small_tank  # R10-RATIO-SITES (#2239): predictive_info leaves rise
 # plan can land in another basin: valve_storage_low_target does, at a lower
 # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
 # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
-away_setback  # R10-SAV-BASELINE (#2255): baseline_cost up 50.16->86.88, deferred_energy_cost up 1.493->30.09, predicted_savings up 17.14->25.27, savings_percentage down 34.18->29.09
-building_preset  # R10-SAV-BASELINE (#2255): baseline_cost up 123.8->127.2, deferred_energy_cost up 28.62->33.98, predicted_savings down 64.58->62.57, savings_percentage down 52.15->49.19
-capacity_curve  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 32.82->33.61, predicted_savings down 62.25->61.46, savings_percentage down 50.52->49.88
-capacity_tariff  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 30.68->31.48, predicted_savings down 60.12->59.33, savings_percentage down 48.79->48.15
-capacity_tariff_15min  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
-confidence_margins  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 16.15->16.94, predicted_savings down 58.26->57.47, savings_percentage down 47.28->46.64
-cool_rainy_summer  # R10-SAV-BASELINE (#2255): baseline_cost up 3.514->6.107, deferred_energy_cost up 0.03595->1.686, predicted_savings up 1.374->2.317, savings_percentage down 39.11->37.95
-cop_scale_learned  # R10-SAV-BASELINE (#2255): baseline_cost down 100.3->100.2, deferred_energy_cost up 16.17->16.78, predicted_savings down 55.06->54.45, savings_percentage down 54.93->54.31
-cycling_cost  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
-dhw_cold_tank  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 32.09->32.88, predicted_savings down 60.15->59.37, savings_percentage down 48.82->48.18
-dhw_large_tank  # R10-SAV-BASELINE (#2255): baseline_cost up 136.5->136.5, deferred_energy_cost up 31.44->32.24, predicted_savings down 75.77->74.98, savings_percentage down 55.51->54.93
-dhw_learned_windows  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.83->30.63, predicted_savings down 64.08->63.29, savings_percentage down 52->51.36
-dhw_schedule_off  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.99->30.78, predicted_savings down 63.49->62.7, savings_percentage down 51.53->50.89
-direct_flow_carnot  # R10-SAV-BASELINE (#2255): baseline_cost down 116.2->116.1
-everything_on  # R10-SAV-BASELINE (#2255): baseline_cost up 134.1->135.8
-external_heat_active  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 28.54->29.34, predicted_savings down 64.53->63.74, savings_percentage down 52.37->51.73
-extreme_prices  # R10-SAV-BASELINE (#2255): baseline_cost down 239.8->239.7, deferred_energy_cost up 30.9->31.95, predicted_savings down 154.2->153, savings_percentage down 64.3->63.84
-flat_prices  # R10-SAV-BASELINE (#2255): baseline_cost up 100.2->100.5
-fuse_guard  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
-horizon_48h  # R10-SAV-BASELINE (#2255): baseline_cost up 242.1->242.1, deferred_energy_cost up 31.92->32.72, predicted_savings down 123.9->123.1, savings_percentage down 51.17->50.84
-horizon_6h  # R10-SAV-BASELINE (#2255): baseline_cost up 15.16->15.42, deferred_energy_cost up 3.073->3.71, predicted_savings down 3.717->3.341, savings_percentage down 24.52->21.67
-legionella_due  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 30.21->31, predicted_savings down 63.29->62.5, savings_percentage down 51.36->50.72
-legionella_due_low_setpoint  # R10-SAV-BASELINE (#2255): baseline_cost up 121.9->121.9, deferred_energy_cost up 30.21->31, predicted_savings down 61.93->61.14, savings_percentage down 50.79->50.14
-legionella_off  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.6->30.4, predicted_savings down 62.97->62.18, savings_percentage down 51.1->50.46
-mild_windy_rain  # R10-SAV-BASELINE (#2255): baseline_cost up 63.35->64.76, deferred_energy_cost up 3.807->6.595, predicted_savings down 35.83->34.45, savings_percentage down 56.56->53.2
-narrow_band  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2
-negative_prices  # R10-SAV-BASELINE (#2255): baseline_cost up 0.9534->2.062, deferred_energy_cost up 0->1.813, predicted_savings down 0.12->-0.5842, savings_percentage down 12.58->-28.32
-peak_masked  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.62->30.42, predicted_savings down 62.96->62.17, savings_percentage down 51.09->50.45
-precip_snow  # R10-SAV-BASELINE (#2255): baseline_cost up 62.22->63.94
-price_risk  # R10-SAV-BASELINE (#2255): baseline_cost down 134.4->134.4, deferred_energy_cost up 37.41->38.24, predicted_savings down 69.27->68.43, savings_percentage down 51.53->50.91
-shoulder  # R10-SAV-BASELINE (#2255): baseline_cost up 13.84->16.31
-shoulder_two_zone  # R10-SAV-BASELINE (#2255): baseline_cost up 19->22.03
-start_above_band  # R10-SAV-BASELINE (#2255): baseline_cost up 108.8->123.2, deferred_energy_cost up 24.23->44.79, predicted_savings down 61.54->55.45, savings_percentage down 56.58->45
-start_below_band  # R10-SAV-BASELINE (#2255): baseline_cost down 179.5->123.2, deferred_energy_cost down 30.42->-13.52, predicted_savings down 42.6->30.29, savings_percentage up 23.73->24.58
-summer_dhw_only  # R10-SAV-BASELINE (#2255): baseline_cost up 0.6478->2.094, deferred_energy_cost up 0->1.692, predicted_savings down -0.02056->-0.2668, savings_percentage down -3.174->-12.74
-tariff_plus_two_zone  # R10-SAV-BASELINE (#2255): baseline_cost up 150.3->152.2
-valve_storage  # R10-SAV-BASELINE (#2255): baseline_cost up 144.8->146.9
-valve_storage_flat_prices  # R10-SAV-BASELINE (#2255): baseline_cost up 108.5->113.1, deferred_energy_cost up -11.4->-5.98, predicted_savings down 30.11->29.31, savings_percentage down 27.75->25.91
-valve_storage_low_target  # R10-SAV-BASELINE (#2255): baseline_cost up 186.8->195.2 plus basin plan leaves
-valve_storage_small_tank  # R10-SAV-BASELINE (#2255): baseline_cost up 149.2->151.3, deferred_energy_cost up 15.56->19.77, predicted_savings down 79.42->77.32, savings_percentage down 53.25->51.12
-valve_storage_smart_write  # R10-SAV-BASELINE (#2255): baseline_cost up 144.8->146.9
-valve_upper_direct_slab  # R10-SAV-BASELINE (#2255): baseline_cost up 124.1->125.7
-wide_band  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.62->30.42, predicted_savings down 62.96->62.17, savings_percentage down 51.09->50.45
-winter_single_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 29.62->30.42, predicted_savings down 62.96->62.17, savings_percentage down 51.09->50.45
-winter_single_no_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 110->110, deferred_energy_cost up 28.54->29.34, predicted_savings down 58.21->57.42, savings_percentage down 52.9->52.18
-winter_two_zone_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 150.3->152.2
-winter_two_zone_no_dhw  # R10-SAV-BASELINE (#2255): baseline_cost up 137.1->139
-wood_coil  # R10-SAV-BASELINE (#2255): baseline_cost down 156.4->150.8
-wood_two_tank  # R10-SAV-BASELINE (#2255): baseline_cost down 147.9->141.5
-wood_two_tank_smart_write  # R10-SAV-BASELINE (#2255): baseline_cost down 147.9->141.5

@@ -4550,13 +4550,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored COP would then be subtracted from a curve it was never
         referenced to. ``MeasuredCop.record`` writes all three together.
 
-        v5.3.0. ``_learn_measured_cop`` used to compare every interval against
-        ``compute_cop`` — the SPACE curve — including intervals the pump spent
-        making hot water. Hot water runs 55-65 °C flow against 35-45 °C for
-        space heating, and the model prices that at roughly 16 % lower COP at a
-        55 °C setpoint. So a perfectly healthy pump doing exactly what the plan
-        asked looked ~16 % less efficient than modelled, every hot-water
-        interval, in the same direction.
+        v5.3.0. ``_learn_measured_cop`` compared every interval against
+        ``compute_cop`` — the SPACE curve — including the ones the pump spent
+        making hot water. The model prices a 55 °C tank at 0.62x the space
+        curve, and the tank's own lift law is what it pays (D2-s2-01; the
+        linear 0.008/K penalty this seam was written against priced the same
+        tank 1.35x higher). So a healthy pump doing what the plan asked looked
+        less efficient than modelled, every hot-water interval, same direction.
 
         Three things consume the result and all three were wrong for those
         intervals: the reported ``measured_cop``, the capacity envelope, and —
