@@ -1,7 +1,8 @@
 #!/bin/bash
 # R10-SEAT-SELFTESTS-CI fold (a finding from R10-ARCHSCORE-COVERAGE's census
-# work): does a pull request touching a census input select governance.yml's
-# field-coverage step? Reads the step's own pathspec from the workflow at the
+# work): does a pull request touching one of its inputs select governance.yml's
+# field-coverage step? The probes are the census inputs and the moved homes of
+# the inputs field_coverage.mjs reads (tests/layout.json's retired entries). Reads the step's own pathspec from the workflow at the
 # ref given (default HEAD) and runs the step's own predicate,
 # `git diff --quiet "$SINCE" HEAD -- <pathspec>`, in a throwaway repository
 # over one-file commits. rc 1 from the predicate means "an input changed: run".
@@ -35,6 +36,10 @@ probe tests/ci_ratchet.py RUN
 probe tools/audit/archscore/score.py RUN
 probe custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js RUN
 probe tests/structure_budgets.json RUN
+probe tests/seam_map.json RUN
+probe tools/policy/policy_lint.mjs RUN
+probe tools/policy/fixtures/required-contexts.json RUN
+probe dev/governance/config/policy_budgets.json RUN
 probe README.md SKIPPED
 echo "RESULT misread=$bad"
 [ "$bad" = 0 ]
