@@ -4068,7 +4068,7 @@
    "files": [
     ".github/workflows/governance.yml"
    ],
-   "brief": "Wire the orchestrator tick self-test (tools/audit/seat/orchestrator_tick.py --self-test) into governance.yml instrument-self-tests, with a tally grep; owner direction 2026-10-19 under mandate 6175172275. Control: the #2406-shape mutant (DEFAULT_ROSTER_REF read) reddens the step.",
+   "brief": "Wire the orchestrator tick self-test (tools/audit/seat/orchestrator_tick.py --self-test) into the instrument-self-tests job of .github/workflows/governance.yml, with a tally grep. Owner direction 2026-10-19 under mandate 6175172275. Control: a mutant that reads a roster-ref constant roster_lib.py no longer defines (the #2406 shape) reddens the step.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-tick-selftest-ci",
