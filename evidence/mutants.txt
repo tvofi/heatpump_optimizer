@@ -1,0 +1,6 @@
+features_block.py on the #193 S7 block, head worktree, restored with git checkout after each:
+unmutated: ALL 7 FEATURES BLOCK PASSED
+M2 clip 0.005 after EWMA: 2 of 7 FAILED (EWMA-move, alpha*trust_region at either clamp)
+M3 max_step_fraction=0.05 param re-added unused: 1 of 7 FAILED (signature)
+M4 (reviewer's) clip 0.0099, just under the bound: 2 of 7 FAILED
+M5 (reviewer's) EWMA target * 1.0001: 2 of 7 FAILED
