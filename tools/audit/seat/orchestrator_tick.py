@@ -2732,10 +2732,14 @@ def self_test() -> int:
         total, failed = total + a, failed + f
         t = tick(bus_refs=["bus: REFUSE: orphans: could not fetch"], bus_rc=1)
         t.orphans("REPLAN")
+        t2 = tick(bus_refs=[orph, BUS_CLEAR], bus_rc=0)
+        t2.orphans("REPLAN")
         a, f = check("OWED handoffs refused", [
             ("a refusal (rc 1, no summary) is unavailable, not a clean zero",
              any("bus.sh orphans unavailable" in x["text"] for x in t.findings)
              and not any(x["text"].startswith("OWED handoff") for x in t.findings)),
+            ("an exit that contradicts its lines (rc 0 beside an ORPHAN) is unavailable",
+             any("bus.sh orphans unavailable" in x["text"] for x in t2.findings)),
         ])
         total, failed = total + a, failed + f
 
