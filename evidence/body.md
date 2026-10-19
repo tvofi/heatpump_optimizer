@@ -22,10 +22,6 @@ So every recarry of a body that quotes `## Head` above the heading misplaces its
 
 ## Head
 
-`b9f201f90efbb39422319426a7839c036b7b46af` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2442.md`. The authored code head is `bef08da499276ead55f0f8457479f116fa730e85`.
-
-`0378873ab35614e5b7f7f4cfa860756677da5472` merges origin/main `c35302773` into the authored code head `bef08da499276ead55f0f8457479f116fa730e85` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
-
 `bef08da499276ead55f0f8457479f116fa730e85`, the merge of origin/main `768bfc0c3` into the previous authored head `4b2f770e0` (the one conflict resolution is described under Merge with main). It is a descendant of both, and origin/main's tip is its merge-base (read 2026-10-19T06:55Z). Every figure below was taken at this head unless marked base. The mutation proofs were re-taken at this head.
 
 ## Mutation proof
@@ -79,9 +75,10 @@ Every changed line is under `tools/` or `dev/audit/`, outside the mutation inven
 
 ## Forward-carry
 
-`tools/audit/seat/INSTRUMENTS.md`, `head_note.py` entry: any new `## Head` note writer goes through it. No later stage's brief changes.
+none
 
 ## Friction
 
-- `fixer.md`: cost: the previous head conflicted with main in three seat scripts that four merged PRs rewrote around the very lines this fix touched. Re-applying the fix on main's whole file was mechanical, but it cost a full re-take of this body, and the harness needed a fifth argument to keep driving the new writers.
-- `tests/harness_headers.py`: cost: it runs the whole harness corpus serially and takes many minutes on this box, so a local run is not a practical gate here.
+- `fixer.md`: cost: the previous head conflicted with main in three seat scripts that four merged PRs rewrote around the very lines this fix touched. Re-applying the fix on main's whole file was mechanical, but it cost a full re-take of this body, and the harness needed a fifth argument to keep driving the new writers. Carry: dismissed: a one-off conflict from four PRs merging around the same lines; this group's merge resolved it and no rule or wording change would have prevented it.
+- `tests/harness_headers.py`: cost: it runs the whole harness corpus serially and takes many minutes on this box, so a local run is not a practical gate here. Carry: dismissed: CI runs this check on every pull request and is the authority; the box's slowness is local cost, and no tool or wording change follows.
+

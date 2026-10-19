@@ -1,53 +1,48 @@
-Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af carry-missing: the body's ## Forward-carry item and both ## Friction items name no destination, so carry_audit.py (pr-contract's last step) refuses it: CARRY-AUDIT 3 unrouted
+Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af body-head-unnamed: ## Head names bef08da49, not this head b9f201f, and pr-contract run 117962608686 (started 08:28:44Z, after the body edit) refuses it with PR-BODY: 4 error(s); the same run also wants arch-score, env-matrix and validate-hacs named under ## Red checks
 
-bus-nonce: c1b189dc22279cb77bebed3a0761e7de
+bus-nonce: b835f2fd79dc934f514517fb2402b581
 
-Round 1. Head measured: b9f201f90efbb39422319426a7839c036b7b46af (ev/HEAD), still the branch tip when this was written. Contract: fix-review.md at main; `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so it is current.
+Round 2. Head measured: b9f201f90efbb39422319426a7839c036b7b46af (ev/HEAD). At 08:31Z it was still the tip of `fix/r10-recarry-head-pr` (from `ls-remote`). Contract: fix-review.md at main. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current. Round 1 blocked this same head on carry-missing alone and verified the code. I did not re-take its RESULT lines (self-tests, M1 to M5, finder-shape rebuild, class grep): the tree has not moved.
 
 ## The block
 
-`python3 -I tools/audit/carry_audit.py check --body <live body>` at this head (the same file as main's) exits 1 (ev/carry_audit_head.txt):
+The body edit fixed the routing. It did not fix the head the body names.
 
-- `UNROUTED body item e6ba36a9 (## Forward-carry)`: the INSTRUMENTS.md entry.
-- `UNROUTED body item d64636a3 (## Friction)`: the `fixer.md` cost item.
-- `UNROUTED body item c5afd07f (## Friction)`: the `tests/harness_headers.py` cost item.
-- Result line: `CARRY-AUDIT: 3 finding item(s): 0 routed, 3 unrouted`.
+- `## Head` names `bef08da49`. The head is `b9f201f9`, two commits later:
+  - `0378873ab` merges origin/main `c3530277`. Its only resolution is a set-merge of `tests/closures.json` (`LEDGER-MERGE: resolved`, `--remerge-diff`).
+  - `b9f201f9` adds the record row `dev/programme/delivery/2442.md`.
+- The figures probably still hold under the carry predicate, because that delta does not touch the fix. But the body records no carry note, and its text "origin/main's tip is its merge-base" is now stale.
+- Local `policy_lint.mjs --pr-body ev/body.md --head b9f201f…` exits 1 (ev/pr_body_lint.txt). It reports: "`## Head` does not name b9f201f … b9f201f is not authored and committed as github-actions[bot]".
+- CI's pr-contract run 117962608686 read the edited body and refuses on the same line (ev/pr_contract_117962608686_excerpt.txt, `PR-BODY: 4 error(s)`).
+- Fix: a `## Head` note that names b9f201f and carries the figures. This is what `app_push.sh --recarry` or `update_pr.sh` write. It needs no code change.
 
-pr-contract has not refused this yet only because both of its runs on this head died on the rate limit before writing /tmp/pr-body.md. Once it reads the body, it goes red on this step.
+## Red checks (step 11)
 
-The fix is a body edit with no code change. Give each item a `Carry:` marker (`Carry: dismissed: <reason>` or a live group). Alternatively, write `none` under `## Forward-carry`, because the item there is a pointer to the INSTRUMENTS.md entry, not a carried finding.
+All six non-green completed checks are installation rate-limit or API-unreachable failures in the 08:00–08:04Z window. None is a test failure of this diff (ev/logs/):
 
-## What holds (RESULT lines)
+- arch-score ×2: `gh: API rate limit exceeded for installation`.
+- validate-hacs: `GitHubRatelimitException`.
+- nightly-status: `NIGHTLY UNREADABLE … HTTP 403 (rate limit exhausted)`. It is unrequired.
+- env-matrix: its one FAIL is `required-contexts … the GitHub API is unreachable`.
+- pr-contract 117951683530 and 117953084773: rate-limited, before the body edit.
 
-- RESULT self-tests: `head_note self-test: 6 checks, 0 failed` and `app_push self-test: 135 checks, 0 failed`. Both match the body.
-- RESULT harness (the fixer's own, dev/audit/harnesses/r10_recarry_head.py), from ev/head_figures.txt:
-  - Head: `writers: 6`, every row `plain=named quoted=named fenced=named crlf=named`.
-  - Base (`git archive origin/main`): every row `fenced=unnamed`, with the other cells named.
-  - Both match the body.
-- RESULT mutants (ev/mutants_M1_M3.txt). All three match the body.
-  - M1: head_note `6 checks, 5 failed`, app_push `135 checks, 4 failed`, 6 harness rows unnamed.
-  - M2: `1 failed` and `1 failed`, 6 rows unnamed.
-  - M3: `5 failed` and `4 failed`, 6 rows unnamed.
-- RESULT reviewer mutants. Both are caught.
-  - M4: app_push's head_note call replaced by `true`. `app_push self-test: 135 checks, 13 failed`, including all the R10-RECARRY-HEAD arms (ev/mutant_M4_app_push_callsite.txt).
-  - M5: update_pr.sh's call site reverted to `s.index('## Head\n\n')`. The harness turns only that row red: `update_pr.sh:51 ... fenced=unnamed` (ev/mutant_M5_update_pr_revert.txt).
-- RESULT finder-shape measurement, built by me (ev/finder/r2400_shape.py). No finder harness is committed for this group: the roster brief names only a control. The script rebuilds #2400's pre-recarry body from its merged body (the two misplaced notes and the hand-written fd0f5d9 line removed). It applies the edc4484 and fd0f5d9 recarries and reads each result with policy_lint `--pr-body --head`:
-  - `base recarry1@edc4484=unnamed recarry2@fd0f5d9=unnamed`. This reproduces the two pr-contract refusals the body cites.
-  - `head recarry1=named recarry2=named`.
-  - Null control: the rebuilt body read at its own head ca96324 is `named`.
-- RESULT class: the body's rule, run by me (ev/class_grep.txt). Base gives 7 lines (app_push.sh:344; open_pr.sh 39 and 52; update_pr.sh:53; handoff_push.sh 69, 89 and 105). Head gives 2, both in head_note.py and neither a locator. A wider grep for `'## Head'` in tools/tests/.claude/.github finds only fixtures, record_row.py's body generator and push.sh's line-based awk reader, which the body dispositions as alternative 2. No open seam.
-- RESULT merge: `git merge-tree --write-tree origin/main(c3530277) <head>` gives rc=0 with tree cb670a9e (ev/merge_tree.txt).
-- RESULT untouched: VERSION, manifest, RELEASE_NOTES.md, tests/golden and the budgets have an empty three-dot diff.
-- RESULT cheap checks (ev/cheap_checks.txt): `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, `STRUCTURE RATCHET PASSED`, and tmp_paths `0 refused`.
-  - agreement: `divergent=0 unregistered=0 dead=0 refused=4`, identical at main.
-  - entities: `1 of 2349 ENTITY CHECKS FAILED` (graders-head-copy) at both head and main, so it is not this diff's (ev/entities_head_then_base.txt).
-- RESULT CI on the head (check-runs API, ev/checkruns.tsv): 45 runs. 22 success, 13 skipped, 1 neutral, 7 failure, 2 in progress (closures, Analyze).
-  - Six of the reds are the installation rate limit, from ev/logs: pr-contract x2, arch-score x2 (`gh: API rate limit exceeded for installation`), validate-hacs (`GitHubRatelimitException`) and nightly-status (`HTTP 403 ... rate limit exhausted`).
-  - env-matrix's one FAIL is `required-contexts ... the GitHub API is unreachable`, in the same 08:00-08:01Z window.
-  - None is a test failure of this diff. Step 11's root-cause-unanswered is not posted: the workflows have not all concluded, and no pr-contract run has read the body. The rate-limited checks need a re-run.
+The body's `## Red checks` still says "none. No check has run on this head". That is now false, and pr-contract wants arch-score, env-matrix and validate-hacs named. The run that read the body lists only those three. nightly-status shows up in my local run only, and only because it was given no changed-path list.
+
+I am not posting `root-cause-unanswered`: `closures` (117956369607) is still in_progress, so the head's workflows have not all concluded. The answer here is just to name each red as the rate limit, or to re-run them and drop them from the section. Either clears this part.
+
+## Round-2 judgement of the routing
+
+- RESULT carry_audit: `check --body ev/body.md` against `--roster-ref origin/main` (c3530277) and against `--roster-ref origin/handoff/audit-r10-roster` (f0fb8ae4) prints `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`, rc=0, in both runs. Adding `--comments` (round 1's verdict JSON) changes nothing. carry_audit.py is the same file at head and main (ev/carry_audit.txt). CI's pr-contract run agrees: `CARRY-AUDIT: 2 … 0 unrouted`.
+- `## Forward-carry: none` is sound. The old item pointed to the INSTRUMENTS.md entry this diff itself adds, so it was not a finding for a later stage.
+- The Friction `fixer.md` dismissal (one-off conflict) is sound. Four PRs rewrote the same lines, and no rule or wording change would have prevented it.
+- The Friction `harness_headers.py` dismissal (slow locally, CI is authority) is sound for this PR. One caveat: I did not read the CI timing of harness_headers on this head, because the rate limit was in force. If one harness really runs for minutes, that is a D9/D13 question for that harness, not this group's.
+
+## Other checks
+
+- RESULT merge: `git merge-tree --write-tree origin/main(c3530277) b9f201f9` gives rc=0 with tree cb670a9e, the same as round 1 (ev/merge_tree.txt). No claim-file conflict.
+- RESULT untouched: VERSION, manifest, RELEASE_NOTES.md, tests/golden and `*budgets.json` all have an empty three-dot diff (ev/untouched.txt).
 
 ## Notes
 
-- Not re-derived: `harness_headers.py` and `env_drift.py --all`. Neither was run here, and the body claims neither.
-- head_note.py takes the first `## Head` heading outside a fence. `sections()` in policy_lint.mjs keeps the last one, because `Map.set` overwrites a repeated title. The two diverge only on a body with two real `## Head` headings, a shape no writer produces. Carry: dismissed: no writer emits two Head headings
-- The body does not say that r10_recarry_head.py and the app_push arms are the fixer's own instruments, given that the finding had no committed harness (step 9). Carry: R10-RECARRY-HEAD
+- Round 1's step-9 note is still open, and the body still does not address it. `r10_recarry_head.py` and the app_push arms are the fixer's own instruments, and no finder harness is committed for this group. Add one sentence saying so in the same body edit. Carry: R10-RECARRY-HEAD
+- I made no GitHub writes. My last API reads hit the installation rate limit warning, so the check-run snapshot is from 08:31Z.
