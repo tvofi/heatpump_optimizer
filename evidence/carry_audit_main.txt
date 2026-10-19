@@ -1,0 +1,3 @@
+BAD-DEST body item 816c0c00: R10-STAMP: R10-STAMP is not a group of the roster
+CARRY-AUDIT: 3 finding item(s): 2 routed, 0 unrouted, 1 bad destination(s)
+rc=1
