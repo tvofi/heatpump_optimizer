@@ -549,7 +549,20 @@ class FlowCommand:
 
 
 def flow_command(coord: Any) -> FlowCommand | None:
-    """What the held flow set-point commands, or ``None``.
+    """The coordinator's held flow set-point as a :class:`FlowCommand`, or ``None``.
+
+    Plumbing only: the inputs and the arbiter's state are read here and the
+    decision is :func:`_flow_command`'s, which is handed neither the
+    coordinator nor anything that reaches into it.
+    """
+    inp = coord.arbiter_inputs()
+    state = state_for(coord)
+    return _flow_command(inp, state)
+
+
+def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None:
+    """What the held flow set-point (``state``'s written ``space_setpoint``
+    record) commands, or ``None``.
 
     ``None`` unless the arbiter drives the pump through a flow set-point
     (Control, the flow unit, the optimizer not off) and holds a written
@@ -559,8 +572,7 @@ def flow_command(coord: Any) -> FlowCommand | None:
     by a set-point this module wrote -- the distinction ``draw_range``'s
     censoring guard keys on.
     """
-    inp = coord.arbiter_inputs()
-    written = state_for(coord).written.get("space_setpoint")
+    written = state.written.get("space_setpoint")
     if (
         written is None or inp.mode == MODE_OFF or not _flow_unit(inp.config)
         or duty_mode(inp.config) != DUTY_CONTROL
