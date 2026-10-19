@@ -391,9 +391,9 @@ const STRUCTURE_PY = {
   refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`FAIL ${gate} `)),
 }
 // The ci-ratchet job's own reader and comparison over tests/ci_budgets.json,
-// with the score vector restricted to the card job: ci_ratchet's archscore
-// arm is the only gate on the card's .js (#2373, #2401).
-const CI_RATCHET_CARD = {
+// with the score vector restricted to one vector.measure job: ci_ratchet's
+// archscore arm is the only gate on these rows, and on the card's .js (#2401).
+const ciRatchet = (job) => ({
   argv: ['-c', [
     'import json, sys',
     "sys.path.insert(0, 'tests')",
@@ -401,12 +401,14 @@ const CI_RATCHET_CARD = {
     'table = json.loads(R.BUDGETS.read_text())',
     'problems = R.budget_problems(table)',
     "if problems: sys.exit('\\n'.join(problems))",
-    "lines, grew = R.compare(table, R.archscore_metrics(only={'card'}))",
+    `lines, grew = R.compare(table, R.archscore_metrics(only={${JSON.stringify(job)}}))`,
     "print('\\n'.join(lines))",
     'sys.exit(1 if grew else 0)',
   ].join('\n')],
   refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`  GREW  ${gate}: `)),
-}
+})
+// The count ci_ratchet prints on a row, graded or not.
+const ratchetRow = (key) => (out) => new RegExp(`^  (?:ok|GREW)\\s+${key.replace(/\./g, '\\.')}: (\\d+) \\(budget `, 'm').exec(out)?.[1]
 const CENSUSES = [
   {
     name: 'structure.py dead_methods',
@@ -435,9 +437,38 @@ const CENSUSES = [
     // One unused top-level card function: no other token names it.
     name: 'archscore card_dead_definitions',
     gate: 'archscore.card_dead_definitions',
-    instrument: CI_RATCHET_CARD,
+    instrument: ciRatchet('card'),
     plant: { file: 'custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js', add: '\n\nfunction _censusPlantedDeadCardFunction() {\n  return 1\n}\n' },
-    read: (out) => /^  (?:ok|GREW)\s+archscore\.card_dead_definitions: (\d+) \(budget /m.exec(out)?.[1],
+    read: ratchetRow('archscore.card_dead_definitions'),
+  },
+  {
+    // structure.py's dead census re-pointed by vector.py at its flattened copy.
+    name: 'archscore dead_members',
+    gate: 'archscore.dead_members',
+    instrument: ciRatchet('structure'),
+    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef _planted_dead_function():\n    return 1\n' },
+    read: ratchetRow('archscore.dead_members'),
+  },
+  {
+    name: 'archscore public_unused',
+    gate: 'archscore.public_unused',
+    instrument: ciRatchet('public_unused'),
+    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef census_planted_public():\n    return 1\n' },
+    read: ratchetRow('archscore.public_unused'),
+  },
+  {
+    name: 'archscore unread_private_globals',
+    gate: 'archscore.unread_private_globals',
+    instrument: ciRatchet('unread_private_globals'),
+    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\n_CENSUS_PLANTED_UNREAD = 1\n' },
+    read: ratchetRow('archscore.unread_private_globals'),
+  },
+  {
+    name: 'archscore unused_boundary_imports',
+    gate: 'archscore.unused_boundary_imports',
+    instrument: ciRatchet('layering'),
+    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nfrom homeassistant.core import callback as _census_unused_import\n' },
+    read: ratchetRow('archscore.unused_boundary_imports'),
   },
 ]
 // The copy of the tree the instruments run on: only what they read.
@@ -531,7 +562,9 @@ async function selfTest() {
   t('a census already refused unplanted is REFUSED, not read', r.refused.length === 1 && !r.read.length)
   t('every registered census names its gate row, its instrument, a reader and a plant', CENSUSES.every((c) => c.gate && c.instrument && typeof c.read === 'function' && c.plant?.file && c.plant?.add))
   t('a census with no instrument reads no count, so it is REFUSED', censusCount({ name: 'probe', gate: 'g', read: () => '0' }, os.tmpdir()) === null)
-  t('the ci-ratchet reader refuses on its own row only', CI_RATCHET_CARD.refuses('  GREW  archscore.card_dead_definitions: 1 (budget 0)', 'archscore.card_dead_definitions') && !CI_RATCHET_CARD.refuses('  ok    archscore.card_dead_definitions: 0 (budget 0)', 'archscore.card_dead_definitions') && !CI_RATCHET_CARD.refuses('  GREW  archscore.card_dead_definitions_x: 1 (budget 0)', 'archscore.card_dead_definitions'))
+  const ratchet = ciRatchet('card'); const row = ratchetRow('archscore.card_dead_definitions')
+  t('the ci-ratchet reader refuses on its own row only', ratchet.refuses('  GREW  archscore.card_dead_definitions: 1 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  ok    archscore.card_dead_definitions: 0 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  GREW  archscore.card_dead_definitions_x: 1 (budget 0)', 'archscore.card_dead_definitions'))
+  t('the ci-ratchet row reader reads its own row only', row('  ok    archscore.card_dead_definitions: 3 (budget 4)') === '3' && row('  GREW  archscore.card_dead_definitions: 5 (budget 4)') === '5' && row('  ok    archscore.card_dead_definitionsX: 3 (budget 4)') === undefined && row('  ?     archscore.card_dead_definitions: not derived this run') === undefined)
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
