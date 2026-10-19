@@ -94,7 +94,8 @@ const MERGE_SHAPE = /^Merge pull request #(\d+)\b/
 const SUBJECT_CUTOFF = '07a09406a1cc97076a6f28581f87f313b322a6b6'
 const TEMPLATE_SUBJECT = [/^Merge pull request #\d+ from \S+$/, /\(#\d+\)$/]
 // The pull_request event's checkout: GitHub's test merge of the head into the
-// base, which is HEAD on the runner and never a commit on main.
+// base, which is HEAD on the runner and never a commit on main. Reached only on
+// the fallback below, when no origin/main ref exists.
 const TEST_MERGE = /^Merge [0-9a-f]{40} into [0-9a-f]{40}$/
 // What a merge call may not carry: `gh pr merge`'s subject and body flags, and
 // the REST and MCP merge's commit_title and commit_message.
@@ -116,9 +117,22 @@ function subjectWriters(files, read) {
   }
   return { calls, bad }
 }
-function mergeSubjectGuard(report, log = null, files = null, read = rd) {
+// WHICH LINE IS MAIN'S. The guard judges only merges that are on main's
+// first-parent line, and a branch's own history is not: a fixer updates its
+// branch by `git merge origin/main` (fixer.md step 6), and that merge's subject
+// is git's, never GitHub's. Main's line, from any checkout, ends at the merge
+// base of HEAD with origin/main -- HEAD itself on main's push run, the base on
+// a pull request's test merge, the last main commit merged in on a recarried
+// branch. The branch's own merge onto main is GitHub's to write, and main's
+// push run judges it. With no origin/main ref the walk falls back to HEAD,
+// where a branch's own merges are refused by name rather than passed unseen.
+function mainLineEnd(g = git) {
+  try { g(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main']) } catch { return 'HEAD' }
+  return g(['merge-base', 'HEAD', 'refs/remotes/origin/main']).trim()
+}
+function mergeSubjectGuard(report, log = null, files = null, read = rd, g = git, cutoff = SUBJECT_CUTOFF) {
   try {
-    log ??= git(['log', '--first-parent', '--format=%H%x09%P%x09%s', `${SUBJECT_CUTOFF}..HEAD`])
+    log ??= g(['log', '--first-parent', '--format=%H%x09%P%x09%s', `${cutoff}..${mainLineEnd(g)}`])
   } catch (e) { report.refused.push(`merge-subject-pr guard: cannot walk main's first-parent line past ${SUBJECT_CUTOFF.slice(0, 9)} (a shallow clone?): ${String(e.message).split('\n')[0]}`); return }
   for (const [sha, , subject] of nonTemplateMerges(log)) {
     report.refused.push(`merge-subject-pr ${sha.slice(0, 9)} ${JSON.stringify(subject)}: a merge commit whose subject is not GitHub's template. Merge through merge_train.py or merge_pr.sh, which pass no --subject; history cannot be rewritten, so the readers must now read it`)
@@ -418,6 +432,38 @@ async function selfTest() {
   probes.push(['a merge call that passes --subject is refused', guard([], { ...writers, 'tools/x.sh': 'gh pr merge 9 --merge --subject "Merge pull request #9 (x)"\n' }).length === 1])
   probes.push(['a merge call that passes commit_title is refused', guard([], { ...writers, 'tools/x.js': 'merge_pull_request with commit_title Merge pull request #9\n' }).length === 1])
   probes.push(['a scan that finds no merge call is refused', guard([], { 'x/merge.sh': 'echo merged\n' }).length === 1])
+  // The walk itself, on a real repository: a recarried branch's own
+  // `Merge origin/main into <branch>` is not main's, a hand subject on main is.
+  const repo = fs.mkdtempSync(path.join(ROOT, '.agreement-git-'))
+  try {
+    // Built by tests/throwaway_git.py, the one way a tracked script makes a
+    // throwaway repository (its --check refuses a raw one): auto-maintenance
+    // off in the environment it returns and in the repository's own config.
+    const env = JSON.parse(execFileSync('python3', ['-I', '-c',
+      'import json, sys; sys.path.insert(0, sys.argv[2]); from throwaway_git import throwaway_git_init; print(json.dumps(throwaway_git_init(sys.argv[1], "-q")))',
+      repo, path.dirname(at('tests/throwaway_git.py'))], { encoding: 'utf8' }))
+    const rg = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', env })
+    const T = execFileSync('git', ['mktree'], { cwd: repo, input: '', encoding: 'utf8', env }).trim()
+    const ct = (msg, ...parents) => execFileSync('git', ['commit-tree', T, ...parents.flatMap((x) => ['-p', x]), '-m', msg], { cwd: repo, encoding: 'utf8', env }).trim()
+    const c0 = ct('cutoff'); const side = ct('side', c0)
+    const m1 = ct('Merge pull request #1 from t/a', c0, side)
+    const b1 = ct('work', c0); const b2 = ct('Merge origin/main into fix/x', b1, m1)
+    const at_ = (head, main) => { rg(['update-ref', 'refs/heads/x', head]); rg(['symbolic-ref', 'HEAD', 'refs/heads/x']); rg(['update-ref', 'refs/remotes/origin/main', main]) }
+    const walk = () => { const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }; mergeSubjectGuard(r, null, Object.keys(writers), (f) => writers[f], rg, c0); return r.refused }
+    at_(b2, m1)
+    probes.push(["a recarried branch's own `Merge origin/main into <branch>` is not judged", !walk().length])
+    const m2 = ct('Merge pull request #2 (custom)', m1, side); const b3 = ct('Merge origin/main into fix/x', b2, m2)
+    at_(b3, m2)
+    const r3 = walk()
+    probes.push(['a hand subject on main is refused from a recarried branch, and only it', r3.length === 1 && r3[0].startsWith(`merge-subject-pr ${m2.slice(0, 9)} `)])
+    at_(m2, m2)
+    const only = (r, sha) => r.length === 1 && r[0].startsWith(`merge-subject-pr ${sha.slice(0, 9)} `)
+    probes.push(["a hand subject is refused on main's own push run", only(walk(), m2)])
+    // With no origin/main ref the walk falls back to HEAD and judges every
+    // first-parent merge there, so a hand subject on HEAD's line is refused.
+    rg(['update-ref', '-d', 'refs/remotes/origin/main'])
+    probes.push(['with no origin/main ref the walk falls back to HEAD and refuses a hand subject there', only(walk(), m2)])
+  } finally { fs.rmSync(repo, { recursive: true, force: true }) }
   const disc = (files, registry) => {
     const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
     discovery(r, Object.keys(files), (f) => files[f], registry, [])
