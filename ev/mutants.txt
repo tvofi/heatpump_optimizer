@@ -1,0 +1,2 @@
+RESULT mutant=M5 rc=1 24 of 122 DEBUG COLLECT CHECKS FAILED cred_lines=0
+RESULT mutant=M4 rc=1 1 of 122 DEBUG COLLECT CHECKS FAILED cred_lines=0

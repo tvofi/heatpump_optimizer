@@ -1,0 +1,3 @@
+  ok   A16's download writer refuses a writer parameter it cannot bind, naming it
+
+ALL 122 DEBUG COLLECT CHECKS PASSED

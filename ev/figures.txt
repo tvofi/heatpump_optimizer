@@ -1,0 +1,8 @@
+tests/replay/synthetic-dhw-only.json: 0 violation(s)
+entry_keys 216
+98
+Architecture score: dS +0.0000 NULL
+RESULT leak_probes_through_download=21 written=21 refused=0 unit=count
+  MODE: SCOPED -- 31 script(s) run, 2 scoped out.
+claims hygiene: 06c6f3cf2589cd37fa9fe56cc5ebeef709dc8d3b ok
+STRUCTURE RATCHET PASSED

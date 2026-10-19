@@ -1,0 +1,20 @@
+name	id	conclusion	completed_at
+pr-contract	117869754472	success	2026-10-19T03:06:17Z (started 03:05:52Z, after body edit 03:05:46Z; latest)
+pr-contract	117852619806	failure	2026-10-19T01:54:15Z (superseded; body did not name wave-script)
+budget-raise-gate	117869755251	success	03:06:07Z
+arch-score	117869754446	success	03:06:34Z
+CodeQL	117852756540	success	01:54:22Z
+Analyze (python)	117852565264	success	02:14:35Z
+fast (3.14)	117852594328	success	02:14:04Z
+mutation	117852504915	success	02:07:00Z
+coverage	117852594645	success	02:16:23Z
+coverage-ratchet	117857983275	success	02:16:35Z
+closures	117857983299	success	02:42:05Z
+composed-proof	117864171014	success	02:42:26Z
+wave-script	117852504529	success
+delivery-status	117852504479	success
+nightly-status	117852504863	success
+nightly-ha (stable/2025.2.0)	117852594285/117852594469	success
+hassfest validate-hacs typing briefs closure-scope scope env-matrix instrument-self-tests policy-docs browser lane-proofs graders-head-copy	-	success
+(skipped: autofix/ledger/slow/record jobs)	-	skipped
+total_count	50	no failure except superseded pr-contract
