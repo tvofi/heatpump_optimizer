@@ -5104,7 +5104,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # heat and sun: a delivery or aperture bias scales with those, a window
         # does not (#2241). On a trip every learner freezes until it recovers.
         vent_changed = self._vent_cusum.update(now, float(residual), (
-            previous_power * dt_h, (previous_state.solar_radiation or 0.0) * dt_h / 1000.0))
+            previous_power * dt_h, 0.0))
         if vent_changed:
             _LOGGER.info(
                 "Open-window detector %s (stat %.2f)",
