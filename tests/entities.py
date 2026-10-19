@@ -19078,6 +19078,67 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# --- the inert CI umbrella stub (R10-CI-LAYOUT PR 0; DESIGN-P1 step 5b) -------
+#
+# `.github/workflows/ci.yml` exists on main only so that `workflow_dispatch`
+# can dispatch it from a probe ref (GitHub dispatches a file only once it is on
+# the default branch). Until the umbrella replaces it, it must do nothing and
+# write no check at any pull-request head: dispatch is its one trigger, `stub`
+# its one job, running `true`, with no grant at either level and no `uses:`.
+# It is a gate file from the stub on, so the replacing edit runs FULL. Reads
+# the parsed document, not a source grep (PyYAML reads the `on:` key as True).
+def _ci_stub_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get("on", doc.get(True))
+    defects = []
+    if not isinstance(on, dict) or set(on) != {"workflow_dispatch"}:
+        defects.append(f"triggers {sorted(map(str, on or {}))} (want only workflow_dispatch)")
+    dispatch = on.get("workflow_dispatch") if isinstance(on, dict) else None
+    inputs = (dispatch or {}).get("inputs") or {}
+    if set(inputs) != {"pr", "base", "recheck", "no-skip"} or any(
+            (v or {}).get("required", False) or (v or {}).get("type") != "string"
+            for v in inputs.values()):
+        defects.append(f"inputs {inputs!r} (want pr/base/recheck/no-skip, "
+                       "each an optional string)")
+    if doc.get("permissions") != {}:
+        defects.append(f"workflow permissions {doc.get('permissions')!r}")
+    jobs = doc.get("jobs") or {}
+    if set(jobs) != {"stub"}:
+        defects.append(f"jobs {sorted(jobs)} (want only stub)")
+    stub = jobs.get("stub") or {}
+    if stub.get("permissions") != {}:
+        defects.append(f"stub permissions {stub.get('permissions')!r}")
+    if [st.get("run") for st in stub.get("steps") or []] != ["true"] or any(
+            set(st) - {"run"} for st in stub.get("steps") or []):
+        defects.append(f"stub steps {stub.get('steps')!r} (want one `run: true`)")
+    if re.search(r"^\s*-?\s*uses:", text, re.M):
+        defects.append("a `uses:` line")
+    return defects
+
+
+_CI_STUB = Path(".github/workflows/ci.yml").read_text()
+_CI_STUB_DEFECTS = _ci_stub_defects(_CI_STUB)
+# Null controls: the same parser over a stub given a second trigger, a grant,
+# and a second job must name each defect, so a parser that reads nothing fails.
+_CI_STUB_PLANTS = {
+    "push trigger": _CI_STUB.replace("on:\n", "on:\n  push:\n", 1),
+    "grant": _CI_STUB.replace("permissions: {}\n\njobs:", "permissions:\n  contents: read\n\njobs:", 1),
+    "second job": _CI_STUB + "  other:\n    runs-on: ubuntu-latest\n    steps:\n      - run: \"true\"\n",
+}
+_CI_STUB_PLANT_MISSED = sorted(k for k, t in _CI_STUB_PLANTS.items()
+                               if t == _CI_STUB or not _ci_stub_defects(t))
+R.check(
+    "the ci.yml umbrella stub is inert: dispatch only, one `true` job, no "
+    "grant, no `uses:`, and a gate file",
+    not _CI_STUB_DEFECTS and not _CI_STUB_PLANT_MISSED
+    and _closure.is_gate_file(".github/workflows/ci.yml")
+    and _closure.affected([".github/workflows/ci.yml"])["case"] == "full",
+    f"defects={_CI_STUB_DEFECTS} plants the parser missed="
+    f"{_CI_STUB_PLANT_MISSED} gate={_closure.is_gate_file('.github/workflows/ci.yml')}; "
+    "a stub that triggers on anything but dispatch writes checks at pull-"
+    "request heads before the umbrella replaces it",
+)
+
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
 #
 # tests/lane_skip.py decides whether the heavy Tests lanes may report
@@ -33160,6 +33221,153 @@ R.check(
     and _cim_rows[0].startswith("closures\ttests/x.py\t"),
     f"the recorded script saw HPO_CI_METRICS={_cim_seen!r}; rows={_cim_rows} "
     f"rc={_cim_res.returncode}",
+)
+
+# R10-CI-RATCHET-RED: main's ci-ratchet read script_runs_per_push 73 (budget
+# 68) from one push run, 39213675232 (efdc055a). Its coverage artifact held 40
+# rows for 20 scripts: 19 `reused` copies and a fresh `entities`, then the
+# floor re-validation (#2342) re-ran all 20, `entities` included. Two owners
+# close it: a `reused` row is a copy that executes nothing, so it is no script
+# run; and the re-validation re-measures only what it reused.
+_CIR_REUSE_ROWS = ("coverage\tb\treused\t0\t0\tpush\t8\n"
+                   "coverage\tc\treused\t0\t0\tpush\t8\n"
+                   "coverage\td\tscoped\t0\t5\tpush\t8\n")
+_CIR_REUSE_CLOS = {"w1-ci-metrics-closures.tsv":
+                   "closures\ttests/a.py\tfull\t0\t9\tpush\t8\n"}
+_CIR_REUSE = _cir_window({**_CIR_REUSE_CLOS,
+                          "w2-ci-metrics-coverage.tsv": _CIR_REUSE_ROWS})
+_CIR_REUSE_NULL = _cir_window({**_CIR_REUSE_CLOS, "w2-ci-metrics-coverage.tsv":
+                               _CIR_REUSE_ROWS.replace("reused", "scoped")})
+R.check(
+    "the CI ratchet counts no `reused` coverage row as a script run",
+    _CIR_REUSE == 2 and _CIR_REUSE_NULL == 4,
+    f"two reused copies beside two executions counted {_CIR_REUSE!r} (want "
+    f"2); the same rows executed {_CIR_REUSE_NULL!r} (want 4, the null "
+    "control)",
+)
+
+
+def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str]:
+    """coverage_tree.sh's reuse plan and floor re-validation under a stub
+    interpreter: the first script is reused, the rest measured, and the stub
+    grader reports a floor FAIL when asked to. Returns (non-reused metric
+    rows per script, executions per script, the stage's output)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        stub = d / "py"
+        stub.write_text(
+            "#!/bin/sh\n"
+            'case "$1" in\n'
+            "  -c) exit 0 ;;\n"
+            "  -m) for a; do [ \"$prev\" = -o ] && echo '{}' > \"$a\"; "
+            'prev="$a"; done; exit 0 ;;\n'
+            "  tests/closure.py)\n"
+            '    [ "$2" = coverage-split ] || exit 0\n'
+            "    n=0; while read -r s; do [ -n \"$s\" ] || continue\n"
+            "      if [ $n = 0 ]; then printf 'reuse\\t%s\\n' \"$s\"; "
+            "else printf 'measure\\t%s\\n' \"$s\"; fi; n=1; done; exit 0 ;;\n"
+            "  tests/coverage_ratchet.py)\n"
+            '    [ -n "$CTR_FLOOR_FAIL" ] && echo "  FAIL every module >= 95.0 %"'
+            "\n    exit 0 ;;\n"
+            '  *) echo "$1" >> "$CTR_RAN"; exit 0 ;;\n'
+            "esac\n")
+        stub.chmod(0o755)
+        (d / "reuse").mkdir()
+        (d / "work").mkdir()
+        env = {**_os.environ, "PYTHON": str(stub), "W5P_WORK": str(d / "work"),
+               "W5P_SCOPE": str(d / "scope.json"), "W5P_REUSE": str(d / "reuse"),
+               "W5P_LANES": "1", "HPO_CI_METRICS": str(d / "m.tsv"),
+               "CTR_RAN": str(d / "ran"),
+               "CTR_FLOOR_FAIL": "1" if floor_fails else ""}
+        res = _subprocess.run(["bash", "tools/coverage/coverage_tree.sh", "fast"],
+                              env=env, capture_output=True, text=True,
+                              timeout=180)
+        runs: dict = {}
+        for row in ((d / "m.tsv").read_text().splitlines()
+                    if (d / "m.tsv").is_file() else []):
+            f = row.split("\t")
+            if f[2] != "reused":
+                runs[f[1]] = runs.get(f[1], 0) + 1
+        ran: dict = {}
+        for line in ((d / "ran").read_text().splitlines()
+                     if (d / "ran").is_file() else []):
+            name = Path(line).stem
+            ran[name] = ran.get(name, 0) + 1
+    return runs, ran, res.stdout[-400:] + res.stderr[-400:]
+
+
+_CRV_RUNS, _CRV_RAN, _CRV_OUT = _coverage_revalidation(floor_fails=True)
+_CRV_NULL_RUNS, _CRV_NULL_RAN, _ = _coverage_revalidation(floor_fails=False)
+R.check(
+    "the coverage floor re-validation re-measures only the scripts it reused",
+    len(_CRV_RUNS) >= 2 and set(_CRV_RUNS.values()) == {1}
+    and set(_CRV_RAN.values()) == {1} and set(_CRV_RAN) == set(_CRV_RUNS)
+    and len(_CRV_NULL_RAN) == len(_CRV_RAN) - 1
+    and set(_CRV_NULL_RAN.values()) == {1},
+    f"under a floor FAIL: metric rows {_CRV_RUNS}, executions {_CRV_RAN} "
+    "(want every script once: the reused one re-measured, no fresh one "
+    f"twice); with the floor met: executions {_CRV_NULL_RAN} (want the "
+    f"reused one absent, the null control); output: {_CRV_OUT!r}",
+)
+
+# The recorded budget is the every-script-measured-once count: the closures
+# lane's full plan less the composed script it consumes from the coverage
+# job, plus the coverage `fast` stage's scripts. One extra execution over that
+# window must turn the ratchet red, and exactly the recorded count must not --
+# so a budget left loose by the `reused` exclusion is caught here, not by the
+# next drift (R10-CI-LAYOUT PR 0, the CI-RATCHET-RED brief's control).
+_CIR_BUDGET = json.loads(_cir.BUDGETS.read_text())["script_runs_per_push"]
+
+
+def _cir_planted(extra: int) -> "tuple[object, int]":
+    rows = "".join(f"closures\ttests/s{i}.py\tfull\t0\t0\tpush\t9\n"
+                   for i in range(_CIR_BUDGET + extra))
+    rows_reused = "".join(f"coverage\tr{i}\treused\t0\t0\tpush\t9\n"
+                          for i in range(20))
+    got = _cir_window({"w1-ci-metrics-closures.tsv": rows,
+                       "w2-ci-metrics-coverage.tsv": rows_reused})
+    if not isinstance(got, int):
+        return got, -1
+    budgets = json.loads(_cir.BUDGETS.read_text())
+    return got, _cir.compare({"script_runs_per_push": budgets["script_runs_per_push"],
+                              "recorded_at": budgets["recorded_at"]},
+                             {"script_runs_per_push": got})[1]
+
+
+_CIR_PLANT, _CIR_PLANT_GREW = _cir_planted(1)
+_CIR_EXACT, _CIR_EXACT_GREW = _cir_planted(0)
+R.check(
+    "one script run past the every-script-once budget turns the CI ratchet red",
+    _CIR_PLANT_GREW == 1 and _CIR_EXACT_GREW == 0
+    and _CIR_PLANT == _CIR_BUDGET + 1 and _CIR_EXACT == _CIR_BUDGET,
+    f"budget {_CIR_BUDGET}: {_CIR_PLANT!r} runs graded {_CIR_PLANT_GREW} "
+    f"grew (want 1); {_CIR_EXACT!r} runs beside 20 reused copies graded "
+    f"{_CIR_EXACT_GREW} (want 0, the null control)",
+)
+
+
+def _lane_body(text: str, lane: str) -> str:
+    """One `lane_<name>() {` function of tests/run.sh, code lines only."""
+    m = re.search(rf"^lane_{lane}\(\) \{{\n(.*?)^\}}", text, re.M | re.S)
+    return "" if not m else "\n".join(
+        ln for ln in m.group(1).splitlines() if not ln.lstrip().startswith("#"))
+
+
+# R10-CI-LAYOUT PR 0 (a): the architecture-score pair runs in lane_golden, not
+# lane_units, which ends last in CI's `fast` job. Moving one back is the
+# regression; the null is the same reader finding structure.py in lane_units.
+_RUN_SH = Path("tests/run.sh").read_text()
+_AS_PAIR = ('run "$PYTHON" tests/arch_score.py',
+            'run "$PYTHON" tests/arch_score_head.py')
+_AS_NULL = 'run "$PYTHON" tests/structure.py'
+_AS_UNITS, _AS_GOLDEN = _lane_body(_RUN_SH, "units"), _lane_body(_RUN_SH, "golden")
+R.check(
+    "the architecture-score pair runs in lane_golden and not in lane_units",
+    all(_l in _AS_GOLDEN and _l not in _AS_UNITS for _l in _AS_PAIR)
+    and _AS_NULL in _AS_UNITS,
+    f"in lane_units: {[_l for _l in _AS_PAIR if _l in _AS_UNITS]}; in "
+    f"lane_golden: {[_l for _l in _AS_PAIR if _l in _AS_GOLDEN]}; "
+    f"structure.py read in lane_units (null): {_AS_NULL in _AS_UNITS}",
 )
 
 

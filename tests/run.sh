@@ -509,13 +509,6 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
-  # The architecture score's own check (R9-EG-A1): its calibration re-run, and
-  # the red-team games that must stay closed. The required check `arch-score`
-  # grades pull requests with the instrument (R9-EG-A4); this guards the instrument. Scoped to the
-  # score's own files and structure.py; it measures a pinned tree, so the
-  # integration does not select it. The second script reads today's tree.
-  run "$PYTHON" tests/arch_score.py
-  run "$PYTHON" tests/arch_score_head.py
   # The typing ratchet (#303). The `# type: ignore` count is a source scan and
   # runs here on every pull request. The error count and its per-code split
   # need the pinned mypy/homeassistant-stubs pair, which the `typing` CI job
@@ -596,6 +589,16 @@ lane_golden() {
       run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
     fi
   fi
+  # The architecture score's own check (R9-EG-A1): its calibration re-run, and
+  # the red-team games that must stay closed. The required check `arch-score`
+  # grades pull requests with the instrument (R9-EG-A4); this guards the instrument. Scoped to the
+  # score's own files and structure.py; it measures a pinned tree, so the
+  # integration does not select it. The second script reads today's tree.
+  # In this lane, not lane_units (R10-CI-LAYOUT PR 0): lane_units ends last in
+  # CI's `fast` job and this lane ends sooner, so the pair moves `fast`'s end
+  # earlier at the same total work. tests/entities.py pins the placement.
+  run "$PYTHON" tests/arch_score.py
+  run "$PYTHON" tests/arch_score_head.py
 }
 
 # End-to-end optimizer behaviour, then the plan payloads, the card that
