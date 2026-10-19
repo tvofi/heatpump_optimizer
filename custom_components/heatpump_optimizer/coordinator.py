@@ -1279,10 +1279,13 @@ HOUSE_LOSS_MAX_STEP = 0.05
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
 # Symmetric bound on how far one sample's Newton target may sit from the
-# *current* estimate before it is clipped. Centred on the current value,
-# zero-mean noise has zero-mean effect after clipping; rejecting or clamping
-# against fixed global bounds does not have that property, because the
-# midpoint of a fixed range is not the current estimate.
+# *current* estimate before it is clipped, as a fraction of that estimate.
+# Centred on the current value, zero-mean noise has zero-mean effect after
+# clipping; rejecting or clamping against fixed global bounds does not have
+# that property, because the midpoint of a fixed range is not the current
+# estimate. A fraction rather than a multiplier offset (#2252), so the bound
+# in UA is the same whether the learned value sits in the settings or in
+# the multiplier.
 _LEARNER_TRUST_REGION = 0.5
 
 
@@ -4550,13 +4553,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored COP would then be subtracted from a curve it was never
         referenced to. ``MeasuredCop.record`` writes all three together.
 
-        v5.3.0. ``_learn_measured_cop`` used to compare every interval against
-        ``compute_cop`` — the SPACE curve — including intervals the pump spent
-        making hot water. Hot water runs 55-65 °C flow against 35-45 °C for
-        space heating, and the model prices that at roughly 16 % lower COP at a
-        55 °C setpoint. So a perfectly healthy pump doing exactly what the plan
-        asked looked ~16 % less efficient than modelled, every hot-water
-        interval, in the same direction.
+        v5.3.0. ``_learn_measured_cop`` compared every interval against
+        ``compute_cop`` — the SPACE curve — including the ones the pump spent
+        making hot water. The model prices a 55 °C tank at 0.62x the space
+        curve, and the tank's own lift law is what it pays (D2-s2-01; the
+        linear 0.008/K penalty this seam was written against priced the same
+        tank 1.35x higher). So a healthy pump doing what the plan asked looked
+        less efficient than modelled, every hot-water interval, same direction.
 
         Three things consume the result and all three were wrong for those
         intervals: the reported ``measured_cop``, the capacity envelope, and —

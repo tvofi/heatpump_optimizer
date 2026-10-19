@@ -17068,11 +17068,14 @@ R.check(
 # duplication table named both call sites. It now lives once in
 # thermal_model. The replay below is the null control for that move: the
 # same warm residuals through the real learner must land on the same scale.
+# Each saturates the trust region, which since #2252 is a fraction of the
+# current estimate: ten of them compound to (1 - alpha * trust_region) ** 10
+# (the fixed offset before it summed to 1 - 10 * alpha * trust_region, 0.9).
 _eq = _vent_coord()
 _feed_residual(_eq, 0.4, 10, _T4)
 R.check(
     "the extracted Newton step leaves the learned scale unchanged",
-    abs(_eq._house_heat_loss_scale - 0.8999999999999999) < 1e-12,
+    abs(_eq._house_heat_loss_scale - 0.99 ** 10) < 1e-12,
     f"scale {_eq._house_heat_loss_scale!r}",
 )
 
@@ -17111,13 +17114,35 @@ R.check(
     abs((_cold[1] - 1.0) - _HL_ALPHA * _HL_TR) < 1e-12,
     f"moved {_cold[1] - 1.0}, EWMA step {_HL_ALPHA * _HL_TR}",
 )
+# #2252 (STUDY R10-RESEED): the trust region is a fraction of the current
+# estimate, not a fixed multiplier offset. A fixed offset is a step of
+# base_u * trust_region in UA, so it grew with learned/prior: the same house
+# learned differently depending on how its UA was split between the
+# configured nameplate and the multiplier, and moving the learned value into
+# the settings (a reseed) changed nothing but the step size. Relative, the
+# saturated step is current_u * trust_region in UA whatever the split.
+_off = _newton(2.0, 0.2, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+R.check(
+    "the trust region saturates at a fraction of the current estimate",
+    abs(_off[0] - 2.0 * (1.0 + _HL_TR)) < 1e-12,
+    f"target {_off[0]}, bound {2.0 * (1.0 + _HL_TR)}",
+)
+_reseeded = _newton(1.0, 0.2 * 2.0, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+R.check(
+    "and a saturated step in UA does not depend on the prior/multiplier split",
+    abs(_off[1] * 0.2 - _reseeded[1] * 0.4) < 1e-12,
+    f"UA {_off[1] * 0.2!r} at (0.2, 2.0), {_reseeded[1] * 0.4!r} at (0.4, 1.0)",
+)
 # Where the EWMA would outrun it the rate limit binds instead, and it is a
-# fraction of the *current* estimate, not a fixed offset.
-_small = _newton(0.1, 0.2, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+# fraction of the *current* estimate, not a fixed offset. At the shipped
+# constants the relative trust region already holds a step to
+# alpha * trust_region of the estimate, inside the limit, so the limit is
+# driven here with a walk wide enough to reach it.
+_small = _newton(0.1, 0.2, 8.0, -5.0, 10.0, 0.5, **{**_STEP_KW, "alpha": 1.0})
 R.check(
     "and the rate limit caps it at a fraction of the current estimate",
     abs(_small[1] - (0.1 + 0.1 * _HL_STEP)) < 1e-12
-    and 0.1 * _HL_STEP < _HL_ALPHA * _HL_TR,
+    and 0.1 * _HL_STEP < 0.1 * _HL_TR,
     f"moved {_small[1] - 0.1}, cap {0.1 * _HL_STEP}",
 )
 
@@ -26632,7 +26657,9 @@ R.section("v5.3.0 — the COP learner uses the curve the mode implies")
 
 # ``_learn_measured_cop`` compared every interval against ``compute_cop`` —
 # the SPACE curve — including the ones the pump spent making hot water, where
-# the model itself says the COP is ~16 % lower at a 55 °C setpoint.
+# the model's own law prices the tank's lift (D2-s2-01: 0.62x at a 55 °C tank
+# and 8 °C outdoor, where the space curve's lift is 1.0 below its own 35 °C
+# reference flow).
 
 _cop_space = _CopGate(outdoor=8.0)
 _cop_space._learn_measured_cop()
@@ -26646,16 +26673,17 @@ R.check(
     and _cop_dhw._measured_cop.cop < _cop_space._measured_cop.cop,
     f"dhw {_cop_dhw._measured_cop.cop} vs space {_cop_space._measured_cop.cop}",
 )
-_expected_penalty = 1.0 - 0.008 * (55.0 - 35.0)
+_expected_dhw_cop = _cop_space._measured_cop.cop * (
+    _cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0)
+    / _cop_dhw._thermal_model.compute_cop(8.0)
+)
 R.check(
-    "and the gap is exactly the model's own DHW penalty, not a fudge",
-    abs(
-        _cop_dhw._measured_cop.cop
-        - round(_cop_space._measured_cop.cop * _expected_penalty, 2)
-    )
-    <= 0.02,
-    f"{_cop_dhw._measured_cop.cop} vs "
-    f"{_cop_space._measured_cop.cop * _expected_penalty:.2f}",
+    "and the gap is exactly the model's own DHW law at the tank's "
+    "temperature, not a fudge",
+    abs(_cop_dhw._measured_cop.cop - round(_expected_dhw_cop, 2)) <= 0.02,
+    f"{_cop_dhw._measured_cop.cop} vs {round(_expected_dhw_cop, 2)} "
+    f"(the law's ratio at 8 °C / 55 °C is "
+    f"{_cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0) / _cop_dhw._thermal_model.compute_cop(8.0):.4f})",
 )
 R.check(
     "the reported COP for a healthy pump on the space curve is unchanged",
@@ -30277,7 +30305,10 @@ _de_bd_none, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
 R.check(
     "a house without the refill coil ignores a wood-tank temperature",
     list(_de_bd) == list(_de_bd_none)
-    and abs(_de_bd[0] - 0.2823906705539359) < 1e-12,
+    # 0.2823906705539359 before D2-s2-01: the tank pays the flow lift at its
+    # own 55 °C instead of a linear 0.008/K penalty, so the always-hot tank
+    # costs more electricity.
+    and abs(_de_bd[0] - 0.33412629366236823) < 1e-12,
     f"{list(_de_bd)} vs {list(_de_bd_none)} — a drop here means the coil "
     f"gate was skipped and a tank this house does not model cheapened the "
     f"baseline",
@@ -30290,7 +30321,8 @@ R.check(
 )
 R.check(
     "the baseline cost prices space plus the always-hot tank, together",
-    abs(_de_bc - 46.88376455728481) < 1e-9,
+    # 46.88376455728481 before D2-s2-01: the tank's own lift law.
+    abs(_de_bc - 49.0333099928942) < 1e-9,
     f"{_de_bc} — 36.0 prices only the space baseline; a linear sum would "
     f"be ~6.85 and would break the piecewise-in-PV contract",
 )
@@ -30300,7 +30332,9 @@ _de_bd_idle, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
 )
 R.check(
     "a setpoint at or below ambient contributes no standby loss",
-    abs(_de_bd_idle[0] - 0.1479591836734694) < 1e-12,
+    # 0.1479591836734694 before D2-s2-01: the same standby heat at the tank's
+    # own lift instead of the linear penalty.
+    abs(_de_bd_idle[0] - 0.17755102040816328) < 1e-12,
     f"{_de_bd_idle[0]} — 0.282 means standby still used the 55 C configured "
     f"setpoint, or the clip against ambient was dropped and a cold tank "
     f"was charged for cooling",
@@ -33001,12 +33035,26 @@ try:
     _lg_mut_peaks = {s: float(_lg_band(float(s))[2].max()) for s in _LG_BAND}
 finally:
     _LgPlanner._repair_dhw_floor = _lg_saved_repair
+# The bars are the shipped repair's OWN peaks, read the same run: the check
+# above pins those at 60.00 for every charge limit, so "short" is
+# ``mutant < shipped - 0.05`` and "more than the observer's 1 °C bar short" is
+# ``< shipped - 1.0``. The two absolutes this replaced (59.95 and 59.0) were
+# the shipped peaks minus the same margins, and they sat exactly on the
+# mutant's counts at the time (6 and 2 of 9); D2-s2-01's one DHW law lowers
+# the tank's modelled COP, `needed` rises and `room_kw` falls, so the same
+# bound grants more room and the mutant's peaks rise to 4 short and 1 badly
+# short of the 9. Relative to the shipped planner the detector still fires,
+# which is the property it exists for.
 R.check(
     "the whole-tail bound reproduces the cycle that never reaches "
     "temperature (mutation check)",
-    sum(1 for p in _lg_mut_peaks.values() if p < 59.0) >= 2
-    and sum(1 for p in _lg_mut_peaks.values() if p < 59.95) >= 6,
-    "mutant peaks " + ", ".join(f"{s}:{_lg_mut_peaks[s]:.2f}" for s in _LG_BAND),
+    sum(1 for p, f in ((_lg_mut_peaks[s], _lg_peaks[s]) for s in _LG_BAND)
+        if p < f - 0.05) >= 4
+    and sum(1 for p, f in ((_lg_mut_peaks[s], _lg_peaks[s]) for s in _LG_BAND)
+            if p < f - 1.0) >= 1,
+    "mutant peaks " + ", ".join(f"{s}:{_lg_mut_peaks[s]:.2f}" for s in _LG_BAND)
+    + " against the shipped repair's "
+    + ", ".join(f"{s}:{_lg_peaks[s]:.2f}" for s in _LG_BAND),
 )
 
 # The same cycle on other hardware, because the band above is one tank.
@@ -51886,8 +51934,10 @@ def _r7d203_greedy_steps(c_dhw, volume=43.1, req=50.0, ceiling=55.0, n=12):
 # 17.24 L (0.02 kWh/K), 3.0 kWh/h/K, a ceiling of 60 for four steps and 54 for
 # eight, and a requirement of 45 for nine steps then 60, the pre-fix arm places
 # three blocks ([0, 5, 9]) and post-fix four ([0, 3, 7, 11]); a flat 60 ceiling
-# is unchanged by the fix ([0, 3, 6, 9] both ways), which is the null -- with
-# nothing falling there is no decay-sensitive bound to move.
+# is the null -- nothing falls, so no decay-sensitive bound is in play. Its
+# block count is not fixed by that null: it follows the price of a block, and
+# it reads four ([0, 3, 6, 9]) while the DHW tank pays the linear penalty and
+# six ([0, 2, 4, 6, 8, 10]) once it pays its own lift law (D2-s2-01).
 _R7D203_FALL = [60.0] * 4 + [54.0] * 8
 _R7D203_FALL_REQ = [45.0] * 9 + [60.0] * 3
 
@@ -51999,10 +52049,12 @@ _r7d203_fall = _r7d203_repair_steps(0.0199984, _R7D203_FALL, _R7D203_FALL_REQ)
 _r7d203_flat = _r7d203_repair_steps(0.0199984, [60.0] * 12, [60.0] * 12)
 R.check(
     "a falling ceiling is repaired from the tank's own decay",
-    len(_r7d203_fall) == 4 and len(_r7d203_flat) == 4,
+    len(_r7d203_fall) == 4 and len(_r7d203_flat) == 6,
     "on a ceiling that drops to 54 after four steps the repair places "
     f"{_r7d203_fall} (three of four blocks pre-fix); on a flat ceiling it "
-    f"places {_r7d203_flat}, which the fix does not move",
+    f"places {_r7d203_flat} — [0, 3, 6, 9] before D2-s2-01 priced the tank's "
+    f"lift by its own law, which makes each block dearer in kW and the "
+    f"repair place more of them",
 )
 
 _r7d203_sweep_5 = _r7d203_sweep(5.0, 0.3)
@@ -55786,9 +55838,11 @@ R.check(
     not _p3_on_bad,
     f"{len(_p3_on_bad)} of {len(_p3_on)} cells differ; first {_p3_on_bad[:2]}",
 )
-# The null arm: with the flag off the buffer is not lifted and the DHW law keeps
-# its own penalty, so the two laws must differ -- the equality above is a
-# property of the flag, not of a grid on which the laws happen to coincide.
+# The null arm: with the flag off a direct plant prices the buffer at the
+# weather curve's own lift -- below the reference flow that is no lift at all --
+# while the tank still pays the lift to its own water temperature, so the two
+# laws must differ above the reference. The equality above is a property of the
+# flag and of the two temperatures, not of a grid on which the laws coincide.
 _p3_off = _p3_law_cells(False)
 R.check(
     "and with the flag off the two laws differ (the null arm)",
@@ -65279,13 +65333,14 @@ R.check(
 
 
 # ===========================================================================
-# R10-PUMP-MODEL -- the duty floor as an argument, and the ledger's step start.
-# Each arm has its own fixtures, so this block runs standalone and its mutation
-# proof does not need the rest of the suite.
+# R10-PUMP-MODEL -- one hot-water lift law, the duty floor as an argument, and
+# the ledger's step start. Each arm has its own fixtures, so this block runs
+# standalone and its mutation proof does not need the rest of the suite.
 # ===========================================================================
-R.section("R10-PUMP-MODEL -- the duty floor channel, the step-start fold")
+R.section("R10-PUMP-MODEL -- DHW lift, the duty floor channel, the step-start fold")
 
 import ast as _rp_ast  # noqa: E402
+import dataclasses as _rp_dc  # noqa: E402
 from types import SimpleNamespace as _RP_NS  # noqa: E402
 from zoneinfo import ZoneInfo as _RP_Zone  # noqa: E402
 
@@ -65295,6 +65350,75 @@ from heatpump_optimizer import pump_arbiter as _rp_pa  # noqa: E402
 from heatpump_optimizer import thermal_model as _rp_tm  # noqa: E402
 
 _RP_T0 = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+
+
+# --- D2-s2-01: the hot-water tank is priced by one lift law -----------------
+# The space-valve flag is a SPACE-circuit fact: it decides whether a passed flow
+# temperature is the flow the machine runs at (compute_cop), so a throttled
+# buffer pays the Carnot ratio of its own tank. It says nothing about how hard
+# a hot-water tank is to heat, and it used to pick a second law there -- a
+# linear 0.008/K penalty with a 0.5 floor -- so the same tank at the same
+# outdoor was priced up to 1.4346x apart, and below the reference flow the
+# linear arm handed out a boost up to 1.2x that the Carnot arm and
+# _batch_cop's own comment refuse ("a below-ref tank must not earn a COP boost
+# it never gets"). The tank pays _cop_law at its own water temperature, on both
+# plants: the same one-sided lift the buffer tank pays.
+def _rp_model(**kw):
+    return _rp_tm.ThermalModel(_rp_dc.replace(_rp_tm.ThermalParameters(), **kw))
+
+
+_rp_valve, _rp_direct = _rp_model(cop_flow_carnot=True), _rp_model(cop_flow_carnot=False)
+_RP_OUT = (-25.0, -15.0, -5.0, 0.0, 7.0, 15.0)
+_RP_TANK = (10.0, 35.0, 45.0, 55.0, 65.0)
+_rp_ratio = [
+    (o, t, _rp_direct.compute_cop_dhw(o, t) / _rp_valve.compute_cop_dhw(o, t))
+    for o in _RP_OUT for t in _RP_TANK
+]
+_rp_worst = max(_rp_ratio, key=lambda row: abs(row[2] - 1.0))
+R.check(
+    "D2-s2-01: the space-valve flag does not price the hot-water tank -- both "
+    "plants charge one lift, over the whole outdoor/tank grid",
+    all(r == 1.0 for _o, _t, r in _rp_ratio),
+    f"worst ratio {_rp_worst[2]:.4f} at outdoor={_rp_worst[0]} tank={_rp_worst[1]}",
+)
+R.check(
+    "D2-s2-01: the tank's price is _cop_law at the tank's own water temperature, "
+    "humidity and all -- not a penalty of its own",
+    all(
+        _rp_direct.compute_cop_dhw(o, t, 60.0) == _rp_direct._cop_law(o, 60.0, t)
+        and _rp_valve.compute_cop_dhw(o, t, 60.0) == _rp_valve._cop_law(o, 60.0, t)
+        for o in _RP_OUT for t in _RP_TANK
+    ),
+    f"o=7 T=65 direct {_rp_direct.compute_cop_dhw(7.0, 65.0, 60.0)!r} "
+    f"law {_rp_direct._cop_law(7.0, 60.0, 65.0)!r}",
+)
+# The one-sided rule, the reason the identity above is the fix and not a
+# relaxation: below the reference flow the lift is skipped, not clipped, so a
+# cold tank earns no boost -- and above it the price does fall, which is the
+# null arm that would read 1.0 if the lift had simply been dropped.
+_rp_boost = max(
+    _rp_direct.compute_cop_dhw(o, t) / _rp_direct._cop_law(o, None, None)
+    for o in _RP_OUT for t in (10.0, 20.0, 30.0, 34.0)
+)
+R.check(
+    "D2-s2-01: a tank below the reference flow earns no lift and a hot one "
+    "pays it (the one-sided rule _batch_cop states)",
+    _rp_boost == 1.0
+    and _rp_direct.compute_cop_dhw(7.0, 65.0) < _rp_direct._cop_law(7.0, None, None),
+    f"below-ref boost {_rp_boost:.4f}, 65 C price "
+    f"{_rp_direct.compute_cop_dhw(7.0, 65.0):.4f} vs base "
+    f"{_rp_direct._cop_law(7.0, None, None):.4f}",
+)
+R.check(
+    "D2-s2-01: and the flag is not inert here -- it is what prices the SPACE "
+    "buffer's lift, which is the fact it owns",
+    all(
+        _rp_valve.compute_cop(o, flow_temp=65.0) < _rp_direct.compute_cop(o, flow_temp=65.0)
+        for o in _RP_OUT
+    ),
+    f"o=7: valve {_rp_valve.compute_cop(7.0, flow_temp=65.0):.4f} "
+    f"direct {_rp_direct.compute_cop(7.0, flow_temp=65.0):.4f}",
+)
 
 
 # --- D7-arch3-04: the plan's modulation floor is an argument -----------------
