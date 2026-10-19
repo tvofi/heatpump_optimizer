@@ -435,6 +435,18 @@ jobs:
           python3 -I tools/audit/seat/policy_reread_check.py --self-test | tee "$RUNNER_TEMP/prc-self-test.txt"
           grep -Eq '^policy_reread_check self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prc-self-test.txt"
 
+      # The orchestrator tick, over stubbed gh/git/pgrep/bus: no network, no
+      # `gh`, no subprocess. It loads roster_lib.py and budget_raise_gate.py
+      # from the tree, so a symbol either drops reddens here: #2406 removed
+      # `roster_lib.DEFAULT_ROSTER_REF`, and a tick still reading it crashed
+      # with AttributeError, seen first in review on #2422. A crash prints no
+      # tally, so the grep refuses it. Here for tmp_paths.py's reason.
+      - name: Show the orchestrator tick deciding its own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/orchestrator_tick.py --self-test | tee "$RUNNER_TEMP/ot-self-test.txt"
+          grep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"
+
       # A throwaway git repository built without the shared helper
       # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
       # even a tiny repository, and it outlives the temporary directory. The
