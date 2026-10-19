@@ -1025,9 +1025,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 15 of 25; before you: R10-FREQ-DEFROST, R10-LOOP-CPU; next: R10-SAV-REASONS, R10-ADVISOR). Owning seam in this group: `_contract_comparison`, `_baseline_house_load`, the month freeze. Shape: the ledger owns the month figures; the coordinator reads them. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-sav-baseline",
-    "commit": null,
+    "commit": "8cc1abc3a27d",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
