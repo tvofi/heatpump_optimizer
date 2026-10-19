@@ -1,0 +1,24 @@
+
+=== mini ===
+   detail: 16 cells, wrong []
+  ok   every combination of inlet sensors writes the first rung's reading plus the lift at the modulation floor, and the ceiling at full power
+   detail: 29.0
+  ok   a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote
+   detail: 35.0 35.0
+  ok   null control: no inlet sensor keeps today's rated hold, and the pump's outgoing temperature alone is not a rung
+   detail: 29.0
+  ok   a stale rung falls to the next fresh one
+   detail: 
+  ok   the floor helper refuses an unmeasured inlet rather than guessing one
+   detail: above-min kWh 14.79 (control 18.73), objective 18.037 vs 25.299
+  ok   a buffered rounded install with price spread books above the floor in the cheapest steps, and its own objective scores the plan lower than the solve without the relaxed start
+   detail: objective deltas {(0.6, -4.0): 0.0, (0.6, 2.0): 0.0, (1.0, -4.0): -0.991, (1.0, 2.0): -0.524}
+  ok   with hot water on, the space solve around the hot-water plan carries the relaxed start: it lowers the objective in at least one of four cells and raises it in none
+   detail: {False: (39.103, 39.103), True: (31.161, 32.492)}
+  ok   flat-price null control: at flat prices the relaxed start never ships a plan its own objective scores worse, on either path
+   detail: 2 [0.99995 0.99995 0.99995] seen {False}
+  ok   a clamped install gains one candidate, refined while the objective scores the duty-cycle reading, and rounds again after
+   detail: 
+  ok   an install that can duty-cycle gains none and never scores rounded; a start past the last (the warm pass) adds none
+
+ALL 10 MINI CHECKS PASSED

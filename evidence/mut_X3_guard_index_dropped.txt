@@ -1,0 +1,23 @@
+
+=== mini ===
+  ok   every combination of inlet sensors writes the first rung's reading plus the lift at the modulation floor, and the ceiling at full power
+  ok   a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote
+  ok   null control: no inlet sensor keeps today's rated hold, and the pump's outgoing temperature alone is not a rung
+  ok   a stale rung falls to the next fresh one
+  ok   the floor helper refuses an unmeasured inlet rather than guessing one
+  ok   a buffered rounded install with price spread books above the floor in the cheapest steps, and its own objective scores the plan lower than the solve without the relaxed start
+  ok   with hot water on, the space solve around the hot-water plan carries the relaxed start: it lowers the objective in at least one of four cells and raises it in none
+  ok   flat-price null control: at flat prices the relaxed start never ships a plan its own objective scores worse, on either path
+  ok   a clamped install gains one candidate, refined while the objective scores the duty-cycle reading, and rounds again after
+Traceback (most recent call last):
+  File "/tmp/tmp.lZHT6duCq6/mini.py", line 264, in <module>
+    and len(_sp_opt_mod._relaxed_starts(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 1, (), [np.zeros(3)], 50,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )) == 1,
+    ^
+  File "/tmp/seat/rev2445/mut/custom_components/heatpump_optimizer/optimizer.py", line 193, in _relaxed_starts
+    objective, cands[first], args=args, method="L-BFGS-B",
+               ~~~~~^^^^^^^
+IndexError: list index out of range

@@ -1,0 +1,16 @@
+spread tz=0 dhw=0 out=-4: control 1.25s fix 1.52s delta +0.27s ratio 1.22  multistarts 1 relaxed-passes 1
+spread tz=0 dhw=0 out=+2: control 0.87s fix 2.09s delta +1.22s ratio 2.40  multistarts 1 relaxed-passes 1
+spread tz=0 dhw=1 out=-4: control 1.30s fix 1.84s delta +0.54s ratio 1.41  multistarts 2 relaxed-passes 1
+spread tz=0 dhw=1 out=+2: control 0.69s fix 1.12s delta +0.44s ratio 1.64  multistarts 1 relaxed-passes 1
+spread tz=1 dhw=0 out=-4: control 2.25s fix 3.78s delta +1.53s ratio 1.68  multistarts 1 relaxed-passes 1
+spread tz=1 dhw=0 out=+2: control 4.43s fix 5.89s delta +1.46s ratio 1.33  multistarts 1 relaxed-passes 1
+spread tz=1 dhw=1 out=-4: control 5.75s fix 6.10s delta +0.35s ratio 1.06  multistarts 2 relaxed-passes 1
+spread tz=1 dhw=1 out=+2: control 4.33s fix 6.55s delta +2.22s ratio 1.51  multistarts 2 relaxed-passes 1
+flat tz=0 dhw=0 out=-4: control 0.83s fix 1.34s delta +0.50s ratio 1.61  multistarts 1 relaxed-passes 1
+flat tz=0 dhw=0 out=+2: control 0.31s fix 0.71s delta +0.40s ratio 2.30  multistarts 1 relaxed-passes 1
+flat tz=0 dhw=1 out=-4: control 1.58s fix 1.97s delta +0.39s ratio 1.25  multistarts 1 relaxed-passes 1
+flat tz=0 dhw=1 out=+2: control 0.27s fix 0.61s delta +0.34s ratio 2.28  multistarts 1 relaxed-passes 1
+flat tz=1 dhw=0 out=-4: control 7.18s fix 10.27s delta +3.10s ratio 1.43  multistarts 1 relaxed-passes 1
+flat tz=1 dhw=0 out=+2: control 1.03s fix 1.65s delta +0.63s ratio 1.61  multistarts 1 relaxed-passes 1
+flat tz=1 dhw=1 out=-4: control 1.92s fix 2.81s delta +0.89s ratio 1.47  multistarts 1 relaxed-passes 1
+flat tz=1 dhw=1 out=+2: control 2.55s fix 3.98s delta +1.43s ratio 1.56  multistarts 1 relaxed-passes 1
