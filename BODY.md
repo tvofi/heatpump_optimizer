@@ -31,7 +31,7 @@ none. No budget leaf rises, so `budget-raise-gate` stays green.
 
 ## Forward-carry
 
-none. Each instrument in the measured cases (cloud_dispatch, merge_pr.sh, proof_watch, head_note, body_push, failure_logs, ci-watch, autofix_statuses) is already listed in the instruments guide, so no canonical path is missing.
+Carry: dismissed: each instrument in the measured cases (cloud_dispatch, merge_pr.sh, proof_watch, head_note, body_push, failure_logs, ci-watch, autofix_statuses) is already listed in the instruments guide, so no canonical path is missing.
 
 ## Friction
 
