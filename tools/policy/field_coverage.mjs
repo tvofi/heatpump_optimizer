@@ -503,7 +503,7 @@ function censusRun(report, censuses = CENSUSES, tree = censusTree, count = censu
       fs.writeFileSync(f, was)
       if (planted === null) report.refused.push(`census ${c.name}: its count line cannot be read once a member is planted`)
       else if (planted.n !== base.n + 1) report.blind.push(`census ${c.name}: one planted member moved the count ${base.n} -> ${planted.n}, not by one`)
-      else if (!planted.gated) report.blind.push(`census ${c.name}: UNGATED, ${base.n} -> ${planted.n} with one planted member and no FAIL on ${c.gate}`)
+      else if (!planted.gated) report.blind.push(`census ${c.name}: UNGATED, ${base.n} -> ${planted.n} with one planted member and no refusal on ${c.gate}`)
       else report.read.push(`census ${c.name}: ${base.n} -> ${planted.n} with one planted member, refused on ${c.gate}`)
     }
   } finally { if (dir) fs.rmSync(dir, { recursive: true, force: true }) }
