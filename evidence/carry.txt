@@ -1,26 +1,10 @@
-roster ref origin/handoff/audit-r10-roster at 6c891ee6e884a1990aeff26380f9464164f3a8ef 2026-10-19 04:12:00 +0200
-{
- "group": "R10-TICK-DRIVERS",
- "resume": {
-  "stage": "done",
-  "branch": "handoff/r10-tick-drivers",
-  "commit": "a96f4be4ac0a",
-  "last_step": null,
-  "next_step": "dispatch a fixer once every `after` group is done",
-  "note": null
- },
- "carry": [
-  "(e) and (h) are one class, workflow scripts trusting a large agent reply; fix the class, not the two sites.",
-  "R10-D15-GRADER and R10-BRIEFS-FOLD edit the wave-script check after you.",
-  "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat.",
-  "From R10-ROSTER-FASTPATH (#2406): after #2405 and #2406 both merge, make tools/pr/codeql_scope.py's changed subcommand delegate to tests/closure.py changed_between, so CodeQL's list has one owner. Keep its rename probe. Check: python3 tests/closure.py selftest still passes its census (which reads tools/pr/*.py), and python3 tools/pr/codeql_scope.py --self-test still prints 0 failed."
- ]
-}
-
-git grep for the beat restart (both refs, dev/programme/carries included):
-origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json:2568:    "From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) 
-
-- **The stage has no live roster group** → its own `dev/programme/carries/carry-<N>.json`,
-  N the destination issue, and **creating it is part of the finding**. A group
-  at `resume.stage: done` is not a destination: nothing dispatches or lints it.
-  `brief_lint.mjs` states the fields and refuses a carry at an issue a live
+== R10-TICK-DRIVERS {"stage": "done", "branch": "handoff/r10-tick-drivers", "commit": "a96f4be4ac0a", "last_step": null, "next_step": "dispatch a fixer once every `after` group is done", "note": null}
+  carry: (e) and (h) are one class, workflow scripts trusting a large agent reply; fix the class, not the two sites.
+  carry: R10-D15-GRADER and R10-BRIEFS-FOLD edit the wave-script check after you.
+  carry: From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat.
+  carry: From R10-ROSTER-FASTPATH (#2406): after #2405 and #2406 both merge, make tools/pr/codeql_scope.py's changed subcommand delegate to tests/closure.py changed_between, so CodeQL's list has one owner. Keep its rename probe. Check: python3 tests/closure.py selftest still passes its census (which reads tools/pr/*.py), and python3 tools/pr/codeql_scope.py --self-test still prints 0 failed.
+  keys: {'group': 'R10-TICK-DRIVERS', 'lane': 'IN', 'kind': 'instrument', 'issues': [2265], 'fixes': [], 'findings': ['R10-TICK e, g, h, i'], 'class': 'instrument', 'severity': 'medium', 'size': 'M', 'wave': 2, 'files': ['.claude/workflows/audit-find.js', '.claude/workflows/audit-verify.js', 'tools/audit/fold_ledger.py', 'tools/policy/agreement.mjs', 'tools/pr/ci_predict.py', 'tools/audit/seat/body_push.sh'], 'hot_files': [], 'fixerModel': 'opus', 'reviewerModel': 'opus', 'model': {'fixer': 'opus', 'reviewer': 'opus', 'rca': None, 'runner': 'haiku', 'record': 'sonnet'}, 'effort': 'medium', 'fixture': False, 'owner_gate': 'code-owned: audit-find.js, audit-verify.js, fold_ledger.py', 'rca': [], 'after': ['R10-REF-PRIVACY'], 'architect_note': None, 'brief': 'Round-driver repairs patched only in scratch clones this round; tools live in the repository. (e) The intake gather returned all 45 reports from one agent and the reply was cut off; gather per box in '}
+== R10-STAMP {"stage": "not-started", "branch": "handoff/r10-stamp", "commit": null, "last_step": null, "next_step": "after the wave-1 drain, run the stamp (web-stamp)", "note": null}
+  carry: The stamp (tools/release/stamp.py / web-stamp): restore the 19 suspended may-drift entries verbatim when the stamp empties the claim list. The obligation is written beside each entry in tests/golden/claimed_drift.txt.
+  carry: From R10-ROSTER-FASTPATH (#2406): after #2406 merges, restart the state-docs beat (tools/audit/seat/state_docs.py) on main's code with no --roster-ref and no --watch-ref refs/heads/main, so it also watches origin/handoff/audit-r10-roster. Check: the beat's memo file holds two SHAs (main's and the roster branch's), and a roster-only commit regenerates the plan within one beat.
+  keys: {'lane': 'IN', 'kind': 'instrument', 'issues': [], 'fixes': [], 'class': 'instrument', 'severity': 'medium', 'size': 'S', 'hot_files': [], 'fixerModel': 'sonnet', 'reviewerModel': 'opus', 'model': {'fixer': 'sonnet', 'reviewer': 'opus', 'rca': None, 'runner': 'haiku', 'record': 'sonnet'}, 'effort': 'medium', 'fixture': True, 'owner_gate': None, 'rca': [], 'after': [], 'architect_note': None, 'group': 'R10-STAMP', 'findings': ['wave-1 stamp: 19 suspended may-drift entries'], 'wave': 3, 'files': ['tests/golden/claimed_drift.txt', 'tools/release/stamp.py'], 'brief': 'wave-1 stamp: restore the 19 suspended may-drift entries in tests/golden/claimed_drift.txt and stamp the golden files after the drain'}
