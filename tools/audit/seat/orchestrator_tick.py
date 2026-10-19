@@ -52,15 +52,18 @@ Sections, each measured:
           unblocked -- start a fixer; nudge.md step 16) and groups blocked,
           naming the blocker. Read through roster_lib, the one schema reader.
   STATE   state-doc staleness, read-only: the handover's updated-for sha vs
-          origin/main's tip, and merged PRs since it with no delivery row --
-          each nonzero names the owed action (`state_docs.py --push`), the
+          origin/main's tip, and merged PRs since it with no delivery row
+          (both merge-subject templates, through delivery_status's collect)
+          -- each nonzero names the owed action (`state_docs.py --push`), the
           write itself stays in the per-merge beat.
   REPLAN  detection only, the item names the owed action: queued-stale
           (pinned verdict vs live head), merged entries to prune, repeated
           TRAIN STOPPED at one pr+step, roster groups contested by an open
           PR's files, done resumes whose commit is not in main, owner-gated
           age, and the throughput stall (verdicted green entry, no train,
-          main idle) -- "fire the train".
+          main idle) -- "fire the train"; and OWED handoffs, every pass:
+          `bus.sh orphans --min-age-h 0`'s STRANDED refs, a PR behind its own
+          newer handoff included.
   MAIN    main's tip sha; any non-green required context (the ruleset re-read
           every tick -- nudge.md step 4: never a remembered list); EVERY
           completed-with-failure lane at the tip, required or not, becomes a
@@ -127,7 +130,6 @@ CLAIM_FILES = ("tests/golden/claimed_drift.txt",
 CLAIMS_FOR = re.compile(r"^#?\s*claims-for:\s*(\S+)", re.M)
 HANDOVER = "dev/programme/HANDOVER.md"
 UPDATED_FOR = re.compile(r"^updated-for:\s*([0-9a-f]{40})", re.M)
-MERGE_PR = re.compile(r"Merge pull request #(\d+)")
 CLOSES = re.compile(r"(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*"
                     r"(#\d+(?:\s*,\s*#\d+)*)")
 #: A negation before the keyword ("does not fix #N", "leaves #N open") is
@@ -158,6 +160,13 @@ PLAN_REGION = "Delivery-status"
 #: The body-treadmill: heads younger than this are not re-take items yet.
 BODY_GRACE = datetime.timedelta(hours=1)
 CAP_ISSUES = 15
+#: OWED-handoff lines printed per pass (the earlier list's cap, kept).
+CAP_ORPHANS = 20
+#: The OWED-handoff read. DESIGN CHOICE: no age window. bus.sh's default
+#: (--min-age-h 2) spares a ref pushed moments ago as a lane's in-flight push,
+#: but a handoff whose body ref exists is complete, and a level line that
+#: waits two hours is how #2411's handoff sat unapplied from 19:49Z.
+BUS_ORPHANS_ARGV = ("orphans", "--min-age-h", "0")
 #: The policy corpus the tick's own session loaded at start: a merge to any
 #: of these leaves every live session acting on stale text.
 POLICY_PATHS = ("CLAUDE.md", "AGENTS.md", "dev/governance/rules",
@@ -280,10 +289,11 @@ class Tick:
         """bus.sh orphans' read-only output: pushed handoff refs no open PR
         carries. A subprocess over the tree's own instrument, never a copy.
         (rc, stdout lines): stderr is never data -- a subcommand this tree's
-        bus.sh does not know (it lands with a PR) prints usage there."""
+        bus.sh does not know (it lands with a PR) prints usage there. The
+        argv is BUS_ORPHANS_ARGV, which the stub receives too."""
         if self._bus is not None:
-            return self._bus()
-        r = subprocess.run(["bash", str(SEAT / "bus.sh"), "orphans"],
+            return self._bus(list(BUS_ORPHANS_ARGV))
+        r = subprocess.run(["bash", str(SEAT / "bus.sh"), *BUS_ORPHANS_ARGV],
                            cwd=self.checkout, capture_output=True, text=True)
         return r.returncode, [l.strip() for l in r.stdout.splitlines()
                               if l.strip()]
@@ -1359,14 +1369,13 @@ class Tick:
             self.unreadable(S, "commit count since updated-for", n.strip()[-80:])
             return
         behind = int(n)
-        code, o = self.git(["log", "--merges", "--format=%s", f"{sha}..origin/main"])
         missing: list[str] = []
-        if code == 0:
-            for pr in MERGE_PR.findall(o):
-                rc, _ = self.git(["cat-file", "-e",
-                                  f"origin/main:{ROW_DIR}{pr}.md"])
-                if rc != 0:
-                    missing.append(pr)
+        for pr in self.merged_prs(S, "merges since updated-for",
+                                  [f"{sha}..origin/main"]) or []:
+            rc, _ = self.git(["cat-file", "-e",
+                              f"origin/main:{ROW_DIR}{pr}.md"])
+            if rc != 0:
+                missing.append(pr)
         if behind == 0 and not missing:
             self.line(S, f"state docs current with origin/main "
                          f"(updated-for {sha[:12]})")
@@ -1382,6 +1391,27 @@ class Tick:
                      "names it)", flag=True)
         self.unrecorded(S, sha)
         self.closes(S, sha)
+
+    def merged_prs(self, S: str, what: str, rng: list[str]) -> "list[str] | None":
+        """The pull requests merged on main's first-parent line over `rng`,
+        newest first, as `tests/delivery_status.py` reads them -- its own
+        `parse_log` and `collect`, never a copy of the subject grammar. That
+        reads both GitHub templates: `Merge pull request #N from ...` and the
+        title form `<title> (#N)`, a single-parent squash such as the
+        record-autofix merges #2413, #2412 and #2407, which `git log --merges`
+        and a merge-only pattern never saw. None, and UNREADABLE, when the
+        log or the module cannot be read -- never an empty list."""
+        ds = _module("delivery_status_tick", "tests/delivery_status.py")
+        if ds is None:
+            self.unreadable(S, what, "tests/delivery_status.py absent")
+            return None
+        code, o = self.git(["log", "--first-parent",
+                            f"--format={ds.LOG_FORMAT}", *rng])
+        if code:
+            self.unreadable(S, what, o.strip()[-80:])
+            return None
+        merges, _ = ds.collect(ds.parse_log(o))
+        return [str(m["number"]) for m in merges]
 
     def unrecorded(self, S: str, since: str) -> None:
         """Merge commits on main with no #201 comment carrying the merge sha:
@@ -1419,13 +1449,12 @@ class Tick:
         """Declared Closes vs actually closed, per PR merged in the last 24h
         (the multi-closes-first-only defect: `Closes #A #B` auto-closes only
         #A). Cap 10 PRs, oldest first; 2 calls per PR (stated in the body)."""
-        code, o = self.git(["log", "--merges", "--format=%s",
-                            "--since=24 hours ago", "origin/main"])
-        if code:
-            self.unreadable(S, "merges of the last 24h", o.strip()[-80:])
+        merged = self.merged_prs(S, "merges of the last 24h",
+                                 ["--since=24 hours ago", "origin/main"])
+        if merged is None:
             return
         # git log is newest-first; "oldest first" is the tail of that list
-        prs = [x for x in MERGE_PR.findall(o)][-CAP_CLOSES:]
+        prs = merged[-CAP_CLOSES:]
         for n in prs:
             code, body = self.gh(["pr", "view", n, "--repo", self.repo,
                                   "--json", "body", "--jq", ".body"])
@@ -1657,23 +1686,45 @@ class Tick:
                       flag=True)
 
     def orphans(self, S: str) -> None:
-        """bus.sh orphans: pushed handoff refs carrying work no open PR
-        carries (the class that sat unnoticed for hours). A non-zero exit is
-        the subcommand being unavailable, not data -- ONE finding, never the
-        usage text parsed as refs."""
+        """OWED handoffs, a level line every pass: `bus.sh orphans`' STRANDED
+        refs -- a complete handoff (code and body refs) that no `fix/*` head
+        and no main carries, which includes a pull request whose head is not
+        a descendant of its own newer handoff (#2411, 2026-10-18).
+
+        The run's own summary line (`orphans: N stranded, ...`, stdout, on
+        every completed run) is what makes its output data. bus.sh exits 1
+        both for "a ref is stranded" and for a refusal (`die`), so the exit
+        code alone cannot tell them apart: rc 1 with ORPHAN lines and a
+        summary is the finding, and any output without a summary is the
+        instrument unavailable -- ONE finding, never usage text parsed as
+        refs. Each ORPHAN line is printed whole: it carries the topic, tip,
+        age and the repair word (`opener`, `update`, `review`)."""
         try:
-            rc, refs = self.bus()
+            rc, out = self.bus()
         except OSError as e:
             self.unreadable(S, "bus.sh orphans", str(e)[:80])
             return
-        if rc != 0:
-            self.line(S, f"bus.sh orphans unavailable (exit {rc}): the "
-                         "subcommand depends on #2112, unmerged -- fold its "
-                         "refs when it lands", flag=True)
+        summary = [l for l in out if l.startswith("orphans: ")]
+        stranded = [l for l in out if l.startswith("ORPHAN ")]
+        if not summary or rc not in (0, 1) or (rc == 1) != bool(stranded):
+            self.line(S, f"bus.sh orphans unavailable (exit {rc}, "
+                         f"{'a summary' if summary else 'no summary'} line, "
+                         f"{len(stranded)} ORPHAN line(s)): OWED handoffs "
+                         "UNCHECKED this pass, not confirmed empty", flag=True)
             return
-        for ref in refs[:20]:
-            self.line(S, f"orphaned handoff ref {ref} -- no open PR carries "
-                         "it: dispatch or prune", flag=True)
+        for l in stranded[:CAP_ORPHANS]:
+            self.line(S, f"OWED handoff: {l[len('ORPHAN '):]} -- no PR head "
+                         "carries it: open_pr.sh (opener), update_pr.sh "
+                         "(update) or a human decision (review)", flag=True)
+        if len(stranded) > CAP_ORPHANS:
+            self.line(S, f"OWED handoffs capped at {CAP_ORPHANS} of "
+                         f"{len(stranded)}; the rest print next pass once "
+                         "these are discharged", flag=True)
+        for l in out:
+            if l.startswith("SUPERSEDED "):
+                self.line(S, f"superseded handoff ref {l[len('SUPERSEDED '):]}"
+                             " -- main carries its change: prune")
+        self.line(S, summary[0])
 
     # ----------------------------------------------------------------- ETA
     def eta(self) -> None:
@@ -1889,6 +1940,20 @@ def self_test() -> int:
            "updated_at": iso(NOW - datetime.timedelta(days=1)),
            f"issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201"}
 
+    def fp_log(subjects: str) -> str:
+        """Subject lines as `git log --first-parent --format=LOG_FORMAT`
+        prints them: a `Merge pull request` subject has two parents, any
+        other (the squash `<title> (#N)` form) one."""
+        recs = []
+        for i, subj in enumerate(l for l in subjects.splitlines() if l.strip()):
+            par = f"{'1' * 40} {'2' * 40}" if subj.startswith("Merge ") else "1" * 40
+            recs.append(f"{i:040x}\x1f{par}\x1f{subj}\x1f\x1e")
+        return "\n".join(recs)
+
+    bus_calls: list = []  # every argv the bus stub received
+    BUS_CLEAR = ("orphans: 0 stranded, 0 superseded; skipped no-body=0 named=0 "
+                 "ancestor=0 young=0; origin main b87e8f1")
+
     def tick(prs=None, runs_at=None, states=None, queue=None, bodies=None,
              train_log=None, workers=None, roster=None, behind=0,
              required_names=("tests", "closures"), gh_extra=None,
@@ -1964,9 +2029,9 @@ def self_test() -> int:
         git.on(f"origin/main:{CODEOWNERS}",
                out=codeowners_text or "/CLAUDE.md @tvofi\n")
         git.on(f"origin/main:{HANDOVER}", out=f"updated-for: {handover}\n")
-        git.on(("--merges", "--since=24 hours ago"), out=merges24)
+        git.on(("--first-parent", "--since=24 hours ago"), out=fp_log(merges24))
         git.on(("--merges", "--format=%H %s"), out=merges)
-        git.on(("--merges",), out=rows)
+        git.on(("--first-parent",), out=fp_log(rows))
         git.on(("grep",), rc=0 if grep_rows else 1, out=grep_rows or "")
         git.on(f"origin/main:{PLAN}", out=plan_text)
         git.on(("show", "-s"), out=head_commit_at or iso(NOW - datetime.timedelta(hours=2)))
@@ -1979,8 +2044,9 @@ def self_test() -> int:
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
-                 bus=(lambda: (bus_rc, bus_refs)) if bus_refs is not None
-                 else (lambda: (0, [])), now=NOW, policy_state=policy_state,
+                 bus=(lambda argv: bus_calls.append(argv) or (bus_rc, bus_refs))
+                 if bus_refs is not None
+                 else (lambda argv: (0, [BUS_CLEAR])), now=NOW, policy_state=policy_state,
                  **kw)
         return t
 
@@ -2463,6 +2529,38 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- STATE missing rows: both GitHub subject templates ----
+        # The tick's own merge pattern read `Merge pull request #N` only, over
+        # `git log --merges`, so a single-parent `<title> (#N)` merge -- the
+        # record-autofix merges #2413/#2412/#2407 -- was never checked.
+        both = ("Merge pull request #77 from tvofi/x\n"
+                "record: delivery rows for #2397 (autofix) (#2413)\n"
+                "ci: record nightly kills\n"
+                "Merge remote-tracking branch 'origin/main' into x")
+        t = tick(handover=old, behind_handover=3, rows=both)
+        t._git.h.insert(0, (("cat-file", "-e", f"{ROW_DIR}77.md"), 0, ""))
+        t.state()
+        missing = [x["text"] for x in t.findings
+                   if x["text"].startswith("merged PRs without a delivery row")]
+        t2 = tick(handover=old, behind_handover=3, rows=both)
+        t2._git.h.insert(0, (("cat-file", "-e"), 0, ""))
+        t2.state()
+        t3 = tick(handover=old, behind_handover=3, rows=both)
+        t3._git.h.insert(0, (("--first-parent",), 128, "fatal: bad revision"))
+        t3.state()
+        a, f = check("STATE missing rows", [
+            ("a squash `<title> (#N)` merge with no row is named; a rowed merge, "
+             "a direct push and a numberless merge are not",
+             missing == ["merged PRs without a delivery row at origin/main: #2413"]),
+            ("null control: every merge rowed names none",
+             not any(x["text"].startswith("merged PRs without")
+                     for x in t2.findings)),
+            ("a log it cannot read is UNREADABLE, never a clean zero",
+             any("UNREADABLE: merges since updated-for" in x["text"]
+                 for x in t3.findings)),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- unrecorded-merge all-clear (search finds every sha) ----
         t = tick(handover=old, merges="{'d'*0}".replace("'", '"'),
                  search_counts={})
@@ -2499,6 +2597,19 @@ def self_test() -> int:
             ("matching closes not flagged", not any("closes mismatch"
                                                     in x["text"]
                                                     for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- closes over a squash `<title> (#N)` merge ----
+        t = tick(handover=old, behind_handover=3,
+                 merges24="record: delivery rows (autofix) (#83)",
+                 bodies={83: "Closes #301\n\nproper sentence."},
+                 graphql={83: [{"number": 301}, {"number": 302}]})
+        t.state()
+        a, f = check("closes squash", [
+            ("a squash merge's declared-vs-closed mismatch is flagged",
+             any("closes mismatch" in x["text"] and "#302" in x["text"]
+                 for x in t.findings)),
         ])
         total, failed = total + a, failed + f
 
@@ -2589,19 +2700,42 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
-        # ---- C. handoff orphans ----
-        t = tick(bus_refs=["handoff/r9-xyz"])
+        # ---- C. OWED handoffs (bus.sh orphans, its real output shape) ----
+        # bus.sh exits 1 when a ref is stranded and prints its summary line on
+        # every completed run; the old stub (rc 0, bare ref names, no summary)
+        # encoded the reading that turned every live finding into "unavailable".
+        orph = (f"ORPHAN r10-sav-baseline {'f2' * 20} 3.1h uncovered=2 "
+                "repair=update")
+        t = tick(bus_refs=[orph, f"SUPERSEDED r9-old {'5' * 40} 30.0h",
+                           "orphans: 1 stranded, 1 superseded; skipped no-body=0 "
+                           "named=0 ancestor=0 young=0; origin main b87e8f1"], bus_rc=1)
         t.orphans("REPLAN")
-        a, f = check("orphans", [
-            ("orphan ref flagged", any("orphaned handoff ref handoff/r9-xyz"
-                                       in x["text"] for x in t.findings)),
+        a, f = check("OWED handoffs", [
+            ("a stranded ref at bus.sh's rc 1 is OWED, flagged, never 'unavailable'",
+             any(x["text"].startswith("OWED handoff: r10-sav-baseline ")
+                 and "repair=update" in x["text"] for x in t.findings)
+             and not any("unavailable" in x["text"] for x in t.findings)),
+            ("a superseded ref is a prune line, unflagged",
+             any(l["text"].startswith("superseded handoff ref r9-old")
+                 and not l["flag"] for l in t.sections["REPLAN"])),
+            ("the read carries no age window (a complete handoff is owed now)",
+             bus_calls[-1] == ["orphans", "--min-age-h", "0"]),
         ])
         total, failed = total + a, failed + f
-        t = tick(bus_refs=[])
+        t = tick(bus_refs=[BUS_CLEAR])
         t.orphans("REPLAN")
-        a, f = check("orphans all-clear", [
-            ("no orphans, no flag", not any("orphaned handoff" in x["text"]
-                                            for x in t.findings)),
+        a, f = check("OWED handoffs all-clear", [
+            ("null control: 0 stranded prints the summary and flags nothing",
+             not any(x["section"] == "REPLAN" for x in t.findings)
+             and any(l["text"] == BUS_CLEAR for l in t.sections["REPLAN"])),
+        ])
+        total, failed = total + a, failed + f
+        t = tick(bus_refs=["bus: REFUSE: orphans: could not fetch"], bus_rc=1)
+        t.orphans("REPLAN")
+        a, f = check("OWED handoffs refused", [
+            ("a refusal (rc 1, no summary) is unavailable, not a clean zero",
+             any("bus.sh orphans unavailable" in x["text"] for x in t.findings)
+             and not any(x["text"].startswith("OWED handoff") for x in t.findings)),
         ])
         total, failed = total + a, failed + f
 
@@ -2822,7 +2956,7 @@ def self_test() -> int:
             ("one unavailable finding, no usage parsed as refs",
              any("bus.sh orphans unavailable" in x["text"]
                  for x in t.findings)
-             and not any("orphaned handoff ref" in x["text"]
+             and not any(x["text"].startswith("OWED handoff")
                          for x in t.findings)),
         ])
         total, failed = total + a, failed + f

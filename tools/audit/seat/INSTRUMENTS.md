@@ -107,6 +107,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `bus.sh` — git refs as the programme's message bus: seats publish verdicts
   on refs, the orchestrator watches. When: a reviewer seat with no other
   channel, or an orchestrator collecting several lanes' verdicts at once.
+  `orphans` discharges a handoff by name only when that `fix/<t>` or
+  `fix/<t>-pr` head carries the tip; a named head behind it is
+  `repair=update`.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
@@ -262,7 +265,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   whose entries are all merged prints no train-not-alive line (2026-10-18, t16).
   `OWED: <line>` prints every pass for each OWED entry in `cloud_relay.sh`'s
   log (its default, `$HPO_STATE_DIR/cloud-relay.log`) with no later POSTED for
-  the same PR; no log yet prints no OWED. Its driver is `tick_loop.sh`.
+  the same PR; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
+  prints every pass for each complete handoff no PR head carries, read by
+  `bus.sh orphans --min-age-h 0` (a pull request behind its own newer handoff
+  included, #2411); a run with no summary line is UNCHECKED, never a clean
+  zero. STATE's missing-row check and the closes check enumerate merges
+  through `tests/delivery_status.py`'s `parse_log` and `collect`, so a
+  `<title> (#N)` merge counts as a merge (#2413, #2412, #2407). Its driver is
+  `tick_loop.sh`.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
