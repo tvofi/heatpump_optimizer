@@ -408,7 +408,12 @@ const ciRatchet = (job) => ({
   refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`  GREW  ${gate}: `)),
 })
 // The count ci_ratchet prints on a row, graded or not.
-const ratchetRow = (key) => (out) => new RegExp(`^  (?:ok|GREW)\\s+${key.replace(/\./g, '\\.')}: (\\d+) \\(budget `, 'm').exec(out)?.[1]
+// No RegExp is built from the key: a row is read by comparing its key as a string.
+const RATCHET_LINE = /^  (?:ok|GREW)\s+(\S+): (\d+) \(budget /
+const ratchetRow = (key) => (out) => {
+  for (const l of out.split('\n')) { const m = RATCHET_LINE.exec(l); if (m && m[1] === key) return m[2] }
+  return undefined
+}
 const CENSUSES = [
   {
     name: 'structure.py dead_methods',
@@ -471,6 +476,23 @@ const CENSUSES = [
     read: ratchetRow('archscore.unused_boundary_imports'),
   },
 ]
+// Which rows must carry a census. A ratchet row counting definitions nothing
+// reaches is a census whether or not one is registered: its key names the
+// class, and a row the arm never plants is gated blind (the card's row before
+// #2441). Each such row names a census here, or an exemption with its reason.
+const LIVENESS_ROW = /dead|kept|unused|unread|orphan/
+const CENSUS_TABLES = ['tests/structure_budgets.json', 'tests/ci_budgets.json']
+const CENSUS_EXEMPT = {
+  'archscore.family_orphan_overrides': 'counts ENTITY_FAMILY_OVERRIDES entries homing a key in a family of fewer than two, not unreached definitions; the append-only plant cannot reach it, since family_splits.overrides reads the first assignment only',
+}
+function censusRegistry(report, censuses = CENSUSES, rows = () => CENSUS_TABLES.flatMap((f) => Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'))))) {
+  const all = new Set(rows()); const gated = new Set(censuses.map((c) => c.gate))
+  for (const k of [...all].filter((k) => LIVENESS_ROW.test(k)).sort()) {
+    if (!gated.has(k) && !(k in CENSUS_EXEMPT)) report.refused.push(`census registry: row ${k} counts unreached definitions and no census plants it (register one in CENSUSES, or exempt it with a reason)`)
+  }
+  for (const g of gated) if (!all.has(g)) report.refused.push(`census registry: a census gates ${g}, which is no row of ${CENSUS_TABLES.join(' or ')}`)
+  for (const k of Object.keys(CENSUS_EXEMPT)) if (!all.has(k)) report.dead.push(`census registry: CENSUS_EXEMPT \`${k}\` is no longer a row`)
+}
 // The copy of the tree the instruments run on: only what they read.
 function censusTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'census-'))
@@ -565,6 +587,17 @@ async function selfTest() {
   const ratchet = ciRatchet('card'); const row = ratchetRow('archscore.card_dead_definitions')
   t('the ci-ratchet reader refuses on its own row only', ratchet.refuses('  GREW  archscore.card_dead_definitions: 1 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  ok    archscore.card_dead_definitions: 0 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  GREW  archscore.card_dead_definitions_x: 1 (budget 0)', 'archscore.card_dead_definitions'))
   t('the ci-ratchet row reader reads its own row only', row('  ok    archscore.card_dead_definitions: 3 (budget 4)') === '3' && row('  GREW  archscore.card_dead_definitions: 5 (budget 4)') === '5' && row('  ok    archscore.card_dead_definitionsX: 3 (budget 4)') === undefined && row('  ?     archscore.card_dead_definitions: not derived this run') === undefined)
+  const meta = ratchetRow('archscore.a\\d+'); const dotted = ratchetRow('archscore.a.b')
+  t('a row key holding regex metacharacters or a backslash matches only literally', meta('  ok    archscore.a\\d+: 7 (budget 9)') === '7' && meta('  ok    archscore.a12: 7 (budget 9)') === undefined && meta('  ok    archscore.a\\dd: 7 (budget 9)') === undefined && dotted('  ok    archscore.aXb: 7 (budget 9)') === undefined && dotted('  ok    archscore.a.b: 7 (budget 9)') === '7')
+  const registry = (rows, cs = [{ gate: 'dead_x' }]) => { const rr = fresh(); censusRegistry(rr, cs, () => rows); return rr }
+  r = registry(['dead_x', 'recorded_at', 'archscore.family_orphan_overrides'])
+  t('the census registry reads a liveness row its census gates', !r.refused.length && !r.dead.length)
+  r = registry(['dead_x', 'archscore.unused_y', 'archscore.family_orphan_overrides'])
+  t('a liveness row no census gates is REFUSED (the card row before #2441)', r.refused.length === 1 && /archscore\.unused_y/.test(r.refused[0]))
+  r = registry(['other_row'])
+  t('a census gating no row is REFUSED', r.refused.length === 1 && /dead_x/.test(r.refused[0]))
+  r = registry(['dead_x'])
+  t('an exemption naming no row is DEAD', r.dead.length === 1 && r.dead[0].includes('family_orphan_overrides'))
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
@@ -599,7 +632,7 @@ async function main() {
   if (!only || only === 'budgets') await budgetsRun(report)
   if (!only || only === 'approvals') await jsonRun(APPROVALS, report)
   if (!only || only === 'registry') registryRun(report)
-  if (!only || only === 'census') censusRun(report)
+  if (!only || only === 'census') { censusRegistry(report); censusRun(report) }
   for (const x of report.read) console.log(`  read     ${x}`)
   for (const x of report.ignored) console.log(`  ignored  ${x}`)
   for (const x of report.none) console.log(`  none     ${x}`)
