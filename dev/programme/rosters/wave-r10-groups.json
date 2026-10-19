@@ -4380,7 +4380,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer",
-    "note": null
+    "note": "Folded into R10-CI-LAYOUT by tvofi 2026-10-19 (not fixed separately); diagnosis carried there."
    }
   },
   {
