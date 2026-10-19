@@ -1,0 +1,15 @@
+== own mutant A: findings_gate call removed
+ tools/audit/seat/queue_pre_flight.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  ok   an unreadable pull request is a FAIL
+  FAIL a body whose Friction finding names no destination PARKs on findings
+  FAIL ... and with `Carry:` to a done group PARKs, naming it
+  FAIL a verdict's non-blocking note with no destination PARKs on findings
+  FAIL comments that cannot be read PARK, fail-closed
+queue_pre_flight self-test: 41 checks, 4 failed
+== own mutant B: done-group refusal removed
+ tools/audit/carry_audit.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL a done group is a bad destination
+carry_audit self-test: 144 checks, 1 failed
+== restored
