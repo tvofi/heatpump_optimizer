@@ -1,1 +1,0 @@
-carry_audit self-test: 144 checks, 0 failed

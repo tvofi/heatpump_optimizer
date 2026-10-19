@@ -1,44 +1,35 @@
-Fix review: blocked 03f1681a3e684854b5b934020ec5d44612b2ffd2 root-cause-unanswered: wave-script went red, unanswered (and delivery-status; pr-contract 117779459209 refuses the body; both reds are main's, so the repair is a body edit only)
+Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 carry-missing: not carried to R10-TICK-DRIVERS (merged as #2390 at a96f4be4a, 2026-10-19 01:46 UTC, without the orchestrator_tick carry sweep; Forward-carry "none")
 
-bus-nonce: 48c96e8c8b8abf2fbe5a786c671575d6
-Round: fourth review of #2404. Round 1 blocked 5cf5786b9 (the item-ref over-fire). Round 2 blocked 354c84a96 (mutation-vacuous: the paren form and the segment scope were each unpinned). Round 3 blocked 312f31923 (mutation-vacuous: the line-end cut and the next-`Carry:` cut were each unpinned). This round judges the delta 312f31923..03f1681a3: authored commits 8c666c644 and 6f20f78a3, the main merges f08104f74, 7c0383bc8 and 03f1681a3, and the re-cut body.
-Reviewed head: 03f1681a3e684854b5b934020ec5d44612b2ffd2. It was still the PR head at 20:53 UTC, after every check run on it had concluded. Merge base 07a09406a. Role contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+bus-nonce: 7f3a18f667a549abb5545615e803b29a
+Round: fifth review of #2404. Round 1 blocked 5cf5786b9 (item-ref over-fire). Round 2 blocked 354c84a96 (paren form and segment scope each unpinned). Round 3 blocked 312f31923 (line-end cut and next-Carry: cut each unpinned). Round 4 blocked 03f1681a3 (root-cause-unanswered: wave-script and delivery-status, a body edit only). This round judges the delta 03f1681a3..b419463b18a2a7da70c77b23e912769e4af6afe8: the recarry bd68cf756 (origin/main b87e8f19 into 03f1681a3), 4696bac11 (bd68cf756 into the PR head) and b419463b1 (origin/main 06c6f3cf2), plus the re-taken body.
+Reviewed head: b419463b18a2a7da70c77b23e912769e4af6afe8 (ev/HEAD; the PR head when written). Merge base 06c6f3cf2 = origin/main. Role contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
 Evidence: ev/ (this probe ref)
 
 ## Block
 
-The code is sound. Every claim I re-derived holds; see Verified. The block is step 11, and the repair is a body edit only.
+Step 10. The body's first `## Forward-carry` item, the weekly and closure carry sweep in `tools/audit/seat/orchestrator_tick.py` (`carry_audit.py sweep --last N --issues` with both roster refs, a dispatch line on exit 1, a self-test arm with its null control), routes to `Carry: R10-TICK-DRIVERS` and says the fold text is out of tree because handoff/r10-tick-drivers holds the file. That destination closed during this round:
 
-The head carries three red check runs (ev/check-runs.tsv: 48 runs, 30 success, 15 skipped, 3 failure):
-- wave-script 117778707693: `pair merge-subject-pr: ... 2 divergent` on "Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)" and "#2379 (R10-SENSOR-PAYLOAD)". These are the same two DIVERGENT subjects as main's own wave-script red at 07a09406a (job 117765552837). `diff ev/wave-script-main.txt ev/wave-script-head.txt` differs only in the item count, 808 against 809. This is main's red (the 5756f2b1 merge-subject divergence, in flight as R10-MERGE-SUBJECT), not this PR's.
-- delivery-status 117778707734: `DELIVERY STATUS OVERDUE`, on main's autofix rows #2413, #2412 and #2407. The diff's governance.yml hunk is in instrument-self-tests, not in the delivery-status job, and touches no delivery row except its own 2404.md. By fix-review.md step 11 this red is not this PR's.
-- pr-contract 117779459209 started at 20:19:50, after both reds concluded (20:16:49 and 20:16:51). It refused the body: `check \`delivery-status\` is red and \`## Red checks\` does not name it` and `check \`wave-script\` is red and \`## Red checks\` does not name it` (ev/pr-contract-117779459209.log, around line 1578). Every workflow on the head has since concluded, so the step-11 posting condition holds.
+- #2390 (R10-TICK-DRIVERS) merged into main at a96f4be4a, 2026-10-19 01:46 UTC. That is the same main this head merges in through 06c6f3cf2.
+- Its diff (13 files, ev/2390-merge.txt) does not touch `orchestrator_tick.py`. Its `## Forward-carry` reads "none" and never mentions this item.
+- On origin/main nothing under `tools/` calls `carry_audit` (ev/main-carry_audit-callers.txt is empty). None of the "carry" lines in `orchestrator_tick.py` is the sweep (ev/main-tick-carry-lines.txt).
+- The roster entry's `carry` list holds no such precondition. handoff/r10-tick-drivers is at fc145b97c, already in main, and it has no fold either.
 
-Repair: add two bullets to the body's `## Red checks`. Each names its check, says it is main's red with the evidence above, and states the cheaper-detector answer. For wave-script, the R10-MERGE-SUBJECT fix is in flight on main. Then pr-contract re-runs on the body edit. No code change is owed, and none of my numbers below depend on the body.
+So the finding now exists only in this PR's body. Repair, a body edit plus wherever the item is written: re-route it to a live destination that carries it as a precondition with its control, such as a new roster group (or a live one that owns `orchestrator_tick.py`), an issue, or an O-brief. Then give it that `Carry:`. No code change is owed.
+
+The checker does not see this. `carry_audit.py check` on the live body prints `5 routed, 0 unrouted, 0 bad`, and with `--roster-ref origin/main` it prints the same (ev/body_check.txt). The roster still holds R10-TICK-DRIVERS at `resume.stage: not-started`, and dev/programme/delivery/2390.md still says **open**. The "holds as done" refusal therefore keys on a roster that lags the merge, and it fails open until the record absorbs #2390. This is a note on the instrument: the PR's grammar is correct as specified. A destination check that also reads the group's merged PR (the delivery row, or a `gh` read like the issue arm's) would have caught it. Carry: O10-policy-fixer-md
 
 ## Verified
 
-RESULT drive sites=152 unmapped=0 mutants=190 survived=0 (python3 dev/audit/harnesses/r10_carry_parser_mutants.py at head; 191 RESULT lines: M0 baseline, S-span-lo equivalent, the rest killed; git status clean after)
-RESULT carry_audit_selftest=144 failed=0; queue_pre_flight_selftest=37 failed=0; merge_train_selftest=180 failed=0
-RESULT own_mutants_segment (hand-planted, my script ev/m2.py; Dests mutants ev/mut.py, not the drive): M15b line-cut=killed (1: "a segment ends at its line"), M16 next-cut=killed (1: "a segment ends at the next `Carry:`"), span-skip removed=killed (4), ITEM_REF bare=killed (3), segment scope dropped=killed (3). Round 3's two survivors and round 2's two are now each killed alone.
-RESULT own_mutants_dests (hand-planted on Dests.check, load_dests, seg_dests and audit; 13 mutants): 11 killed, 2 survived (see notes)
-RESULT rows39 rows_caught=33 of=33; last20 rows_caught=34 of=35, last20_hits=76 on_a_row=46 on_no_row=30
-RESULT sweep --issues ISSUE-UNOWNED=2 (#2409, #2410); roster-drift 64b1f82a3/b29cd8d23=6, same ref twice=0
-RESULT codeowners_gap uncovered_files=0; field_coverage ok; agreement divergent=0 unregistered=0; policy_lint TOTAL 0 errors across 41 files; rules_sync ok; structure PASSED
-RESULT closure select MODE: SCOPED -- 3 script(s) run (entities, harness_headers, layout), as the body says
-RESULT body_check="5 routed, 0 unrouted, 0 bad" (live body, carry_audit at head)
-RESULT merge_tree_vs_origin_main=clean (exit 0, origin/main 07a09406a)
-RESULT resolution_delta: 03f1681a3 and 7c0383bc8 each have exactly the tree `git merge-tree --write-tree` of their parents gives (automatic, no hand resolution)
-RESULT version_manifest_notes=untouched
-RESULT CI head: fast (3.14), coverage, instrument-self-tests, mutation, typing, closure-scope, arch-score and budget-raise-gate all success
+RESULT drive sites=152 unmapped=0 mutants=190 survived=0 rc=0 (python3 dev/audit/harnesses/r10_carry_parser_mutants.py at head; ev/drive.txt; git status clean after)
+RESULT carry_audit_selftest=144 failed=0; queue_pre_flight_selftest=37 failed=0; merge_train_selftest=180 failed=0 (ev/selftest.txt)
+RESULT body_check="5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)" (live body ev/body.md; 3 O10 notes UNVERIFIED)
+RESULT resolution_delta: bd68cf756, 4696bac11 and b419463b1 each have exactly the tree `git merge-tree --write-tree` of their parents gives. b419463b1's only driver line is `LEDGER-MERGE: resolved tests/closures.json`, and the closures delta against 03f1681a3 is main's one `inert_reads` row (r10_tick_drivers.py). The authored files are byte-identical to 03f1681a3 apart from that row.
+RESULT merge_tree_vs_origin_main=clean (exit 0; origin/main 06c6f3cf2 = merge base)
+RESULT check_runs_head=41: 25 success, 13 skipped, 1 neutral (CodeQL), 0 failure; coverage 117853296362 and Analyze (python) 117853292583 in_progress when written (ev/check-runs.tsv)
+RESULT version_manifest_notes=untouched (no path in the delta)
 
-- Step 1 and step 14: the null controls were not re-run row by row (the M16 and M15b rows deleted, the census UNMAPPED counts). My hand mutants kill on exactly the rows the body names, which corroborates them. The `tests/closures.json` move is the two harnesses' `inert_reads` rows, and `tests/layout.json` adds carry_audit.py to the tools glob. No budget moves.
-- Step 6 (class): round 3's class was the segment's boundaries. Paren, segment start, next marker, line end and code span are each now killed alone. The drive's census (152 sites, 0 unmapped) is the enumeration rule, and it returns no unmapped seam.
-- Step 9: r10_carry_sweep_rows.py and r10_carry_parser_mutants.py are the fixer's own instruments, disclosed as such. The round-10 sweep has no committed finder harness, as rounds 1 to 3 recorded. My mutant scripts are my own.
-- Step 10: the Forward-carry items name R10-TICK-DRIVERS (live in wave-r10-groups.json) and O10-policy-fixer-md (out of tree, UNVERIFIED, as the PR says).
-- Step 12: the head is unchanged since dispatch.
-- Note, not a block: two of my own mutants survive outside the drive's declared scope, which is the parser. The drive's census covers parser sites, not Dests.
-  - D1: `dismissed:` with a reason of 1 word or more, against the docstring's "two words or more". It fails open, so "Carry: dismissed: nah" would pass. The rule itself only says `dismissed: <reason>`.
-  - D13: load_dests no longer reads a carry file's `issue`. It fails closed. The self-test builds Dests directly and never runs load_dests's carry-file read.
-
-  Neither needs a block. Each can take a self-test row in a later pass. Carry: O10-policy-fixer-md
+- Step 11: round 4's reds are now answered under `## Red checks` (wave-script, delivery-status and pr-contract at 03f1681a3), and none is red at this head. bd68cf756 and 4696bac11 have no check-runs of their own. I checked that the trigger was answered, not the answer's content.
+- Step 12 and 1667: the code head is unchanged since round 4, whose code measurements stand. I re-took the drive and the self-tests above. I did not re-take policy_lint, field_coverage, agreement, structure or closure select. CI is green on them at this head, and I cite CI rather than re-running.
+- Step 9: r10_carry_parser_mutants.py and r10_carry_sweep_rows.py are the fixer's own instruments, disclosed as such. The round-10 sweep has no committed finder harness, as rounds 1 to 4 recorded.
+- Step 10, second item and the Friction items: these route to O10-policy-fixer-md, which is out of tree and UNVERIFIED here, as the PR says.
+- Round count: this is the fifth round. Round 4's repair was a body edit, and this one is too. The block is no re-opened code defect: a destination closed under the PR.
