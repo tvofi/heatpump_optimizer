@@ -23,11 +23,11 @@ Alternatives (step 17):
 
 ## Head
 
-b3c1d0477e63815c23b707b08656086dea8526d6. It adds one commit to 3172a36ca (the merge of origin/main 07a09406a into the branch, 2026-10-18), and that commit only records the two new harnesses in `tests/closures.json` (`python3 tools/pr/ci_predict.py --apply-inert`). The figures below were taken at 3172a36ca except where marked; no code changed after it.
+86cecbf07a9266f23984cf67f912c7a61fce4152. It is the merge of origin/main b87e8f19b0a71249799357cd34116f0e4b5b63d3 (2026-10-19T01:12Z) into the previous head b3c1d0477e63815c23b707b08656086dea8526d6. The merge was clean (no conflict) and changes, beyond delivery rows, only `tools/policy/agreement.mjs`, `tools/policy/agreement_py.py` and `tools/policy/policy_lint.mjs` (main's merge-subject work, #2423 and #2424). No code of this fix changed. Figures not marked were re-taken at this head.
 
 ## Mutation proof
 
-`bash dev/audit/harnesses/r10_train_raise_hold_mutants.sh` (each mutant removes one predicate, runs both self-tests, restores). Run at 3a334c65f for R1 and at dad8e723c/570311da9 for the rest, whose code those mutants touch is unchanged at the head:
+`bash dev/audit/harnesses/r10_train_raise_hold_mutants.sh` (each mutant removes one predicate, runs both self-tests, restores). Re-run in full at the head on 2026-10-19: M0 prints merge_train 189 of 189 and pre-flight 36 of 36, and each mutant below fails the named arms (the failing names are the harness's own output, unchanged from the previous head):
 
 - P1 (the defect: `raises = raises or [budget paths]`): merge_train FAIL "#2401's shape: a budget file that only gains rows is no raise ..." and "... with #2401's own reviews ... it still merges"; pre-flight FAIL "#2401's shape ... passes with no owner review" and "... reads no body".
 - J1 (drop `justify=`): merge_train FAIL "#2209's shape MUTATION (the gate's own justification)" and "a planted raise ... deficient ... naming the raise and BOTH missing lines"; pre-flight FAIL "a planted raise ... deficient ... PARKS" and "a planted raise whose body cannot be read PARKS".
@@ -38,8 +38,8 @@ b3c1d0477e63815c23b707b08656086dea8526d6. It adds one commit to 3172a36ca (the m
 - T1 (mandate judged at review, not merge): merge_train FAIL "... the mandate is judged AT THE MERGE, not at the review".
 - B1 (body read before the raise branch): pre-flight FAIL "... and reads no body: the justification is read on the raise branch only".
 - Q1 (pre-flight ignores `held`): pre-flight FAIL "a budget raise without the owner's review ... PARKS", "a budget raise whose mandate was revoked PARKS", "a planted raise ... deficient ... PARKS".
-- The agreement pair: with P1 planted, `python3 -I tools/policy/agreement_py.py --out F && node tools/policy/agreement.mjs --py-json F` prints `pair budget-raise: 2 readers, 56 items, 20 divergent` and exits 1. Restored, 0 divergent.
-- merge_pr.sh, by hand at 0ed4aceb2. Each mutant is a python replace, run with `bash tools/audit/seat/merge_pr.sh --self-test`, then restored from the index:
+- The agreement pair, re-run at the head: with P1 planted, `python3 -I tools/policy/agreement_py.py --out F && node tools/policy/agreement.mjs --py-json F` prints `pair budget-raise: 2 readers, 56 items, 20 divergent` and exits 1. Restored, 0 divergent.
+- merge_pr.sh, by hand at 0ed4aceb2 and not re-run at this head (the merge touched neither merge_pr.sh nor its self-test, whose 12 of 12 is under `## Figures`). Each mutant is a python replace, run with `bash tools/audit/seat/merge_pr.sh --self-test`, then restored from the index:
   - D1 (the draft guard → `true`): FAIL "a draft refuses without --ready".
   - D2 (no ready owed): FAIL "... and owes the ready mark".
   - M1 (mandate refusal → `|| true`): FAIL "owner mode under an expired mandate refuses" and "... a mandate that does not exist refuses".
@@ -62,7 +62,7 @@ b3c1d0477e63815c23b707b08656086dea8526d6. It adds one commit to 3172a36ca (the m
 - `bash tools/audit/seat/merge_pr.sh --self-test`: 12 checks, 0 failed (new).
 - `python3 tools/audit/seat/proof_watch.py --self-test`: 34 checks, 0 failed.
 - `python3 -I tools/policy/agreement_py.py --out F && node tools/policy/agreement.mjs --py-json F`: `pair budget-raise: 2 readers, 56 items, 0 divergent`, `AGREEMENT ok`. The rule: 7 tracked budget files × 8 edits.
-- `node tools/policy/agreement.mjs --self-test`: 13 of 13 probes held.
+- `node tools/policy/agreement.mjs --self-test`: 27 of 27 probes held (the previous body recorded 13 of 13 before the main merge; main added probes).
 - `python3 dev/audit/harnesses/r10_train_raise_hold_replay.py 2401:176851e950a8bea29b0c06f1891b8ce4b83b8836 2373 2368`: the live readings.
   - #2401 (merged since, at 07a09406a; read against its pre-merge base) and #2373 print `path : RAISE` against `gate : 0 raise(s), HOLDS`.
   - #2368 prints `path : RAISE` against `gate : 2 raise(s), STOPS`.
@@ -78,8 +78,9 @@ b3c1d0477e63815c23b707b08656086dea8526d6. It adds one commit to 3172a36ca (the m
 - `python3 -I tools/audit/seat/tmp_paths.py --check`: 0 refused.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
 - `PYTHONPATH=tests/hastub:custom_components:tests python3 tests/harness_headers.py`: ALL 109 HARNESS HEADER CHECKS PASSED.
-- `python3 tools/pr/ci_predict.py`: no closures or fast red predicted against 07a09406a1cc, at b3c1d0477.
+- `python3 tools/pr/ci_predict.py`: no closures or fast red predicted against b87e8f19b0a7, at the head.
 - `PYTHONPATH=tests/hastub python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED`, runs `tests/entities.py`. It is heavy, so it is left to CI (heavy-to-ci); cite its check-run at the head.
+- `python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK`, 0 overdue, at the head (CI read 3 overdue at the previous head).
 - Architecture score: n/a. No `custom_components/` file changes.
 
 ## Unpinned sites
@@ -88,7 +89,13 @@ n/a: the diff adds no production (`custom_components/`) line; the mutation lane'
 
 ## Red checks
 
-none known at the head; CI not yet run on it.
+The latest CI on the previous head b3c1d0477e63815c23b707b08656086dea8526d6 had three reds, all inherited from main's red window (5756f2b1 until #2423, #2424 and #2420). None was caused by this diff.
+
+- `wave-script`: the agreement lane refused with `merge-subject-pr` 2 divergent, on main's merge subjects for #2401 and #2379 that policy_lint's two readers returned null for and stamp.py and delivery_status.py read. Cleared by the main merge: #2423 and #2424 repaired the subject grammar and its guard. At the head `python3 -I tools/policy/agreement_py.py --out F && node tools/policy/agreement.mjs --py-json F` prints `pair merge-subject-pr: 4 readers, 818 items, 0 divergent` and `AGREEMENT ok`. Cheaper detector: that same command runs in prepr's lane and would have shown it at the main that carried it; the standing cost is main's own, answered in #2423 and #2424.
+- `delivery-status`: `DELIVERY STATUS OVERDUE`, 3 overdue (#2413, #2412, #2407), rows owed by main. Cleared by the main merge: #2420 wrote those rows. At the head `python3 -I -S tests/delivery_status.py --check` prints `DELIVERY STATUS OK` with 0 overdue.
+- `pr-contract`: ERROR `[pr-body]` check `wave-script` red and not named in `## Red checks`; its `red-history` line also counted `delivery-status`. Answered by this section naming both; it fails only on the missing name.
+
+CI has not yet run on this head; the reds above are the previous head's and each is answered by its cause. Any red on this head's own run is the next round's.
 
 ## Forward-carry
 
