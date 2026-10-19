@@ -24,18 +24,17 @@ that has not started:
 - **removes an option it was expected to have** — a dependency will not install,
   a budget it was to spend has been spent, an interface is not available.
 
-No threshold of "importance" gates this, the adjective a seat under time
-pressure argues its way out of: if it changes what a later stage must do, it is
-carried.
+No "importance" threshold gates this, the adjective a seat under time pressure
+argues its way out of: if it changes what a later stage must do, it is carried.
 
 ## A comment is not propagation
 
 **A PR comment, an issue comment, and the record are not propagation.** They
-record the finding; they do not deliver it. The test is **where the seat who needs this will be looking**: its own brief, the
-role contract under `dev/governance/roles/`, `CLAUDE.md`. It will not read the comments
-of a PR that merged stages before it started. A finding left only in its PR
-is re-derived by the next stage or, usually, not at all, and the refused
-technique is attempted again.
+record the finding; they do not deliver it. The test is **where the seat who
+needs this will be looking**: its own brief, the role contract under
+`dev/governance/roles/`, `CLAUDE.md`. It will not read the comments of a PR that
+merged before it started; a finding left only there is re-derived or, usually,
+not at all, and the refused technique is attempted again.
 
 ## What to write
 
@@ -46,8 +45,8 @@ technique is attempted again.
   invites the next seat to reach for it. "This lever is legitimate only when X,
   demonstrated per case" is what keeps the next stage honest. Where a technique
   was refused, name the refusal and what it turned on.
-- **Give the numbers a re-measurement instruction.** Figures carried into a
-  brief are snapshots; the stage is judged against its own merge-base.
+- **Give the numbers a re-measurement instruction.** Carried figures are
+  snapshots; the stage is judged against its own merge-base.
 
 ## Where it goes
 
@@ -56,12 +55,11 @@ technique is attempted again.
   roster, the round's under `dev/programme/rosters/` or a web-fix-wave
   `groupsFile` under `.claude/workflows/`, which the next session reads; and
   any out-of-tree brief file a running session hands its seats. Carrying to the
-  scratch copy alone leaves unchanged the tree, which is what survives the session.
+  scratch copy alone leaves the tree, which survives the session, unchanged.
 - **Constrains every seat** → the **role contract** it belongs to under
   `dev/governance/roles/` (`fixer.md`, `fix-review.md`, `judge.md`), **once**:
-  every seat of that role reads it. Do not copy it into each stage's brief:
-  duplication goes stale unevenly, and a reader who finds two versions trusts
-  neither.
+  every seat of that role reads it. Copied into each brief it goes stale
+  unevenly, and a reader who finds two versions trusts neither.
 - **The stage has no live roster group** → its own `dev/programme/carries/carry-<N>.json`,
   N the destination issue, and **creating it is part of the finding**. A group
   at `resume.stage: done` is not a destination: nothing dispatches or lints it.
@@ -73,9 +71,8 @@ technique is attempted again.
   not yet started, so a running stage's seam has none (#1345's fifth seam).
 
 **While two copies disagree, the newer one is right and the other is the bug.**
-Say which is which in the carry, so a seat finding its brief and roster in
-conflict need not guess; the out-of-tree copy needs no pull request, so it is
-usually the newer.
+Say which is which in the carry; the out-of-tree copy needs no pull request, so
+it is usually the newer.
 
 ## Enforcement
 
@@ -86,12 +83,15 @@ and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`
 prints anything. The body names the file, the stage and (a roster carry) the
 branch SHA: the reviewer opens that, not the claim.
 
-**Name a destination that exists.** A carry pointing at a file `git grep` cannot
-find is not a carry, and a rule that makes an unfindable destination a merge
-blocker is worse than no rule: the seat cannot comply, nor the reviewer check.
+**Every finding a body or a `Fix review:` verdict records names its
+destination**: each `## Friction` and `## Forward-carry` line, non-blocking note
+or residual ends `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`.
+`tools/audit/carry_audit.py` refuses a missing marker and a destination gone or
+done (`pr-contract`; the train's pre-flight).
 
-**Verify the write landed, do not assume it.** A scripted edit that matches
-nothing reports success — `str.replace` and `sed` both do; this rule first
-landed with seven of nine carries missing. Read the destination back:
-`brief_lint.mjs` does it for a roster and a carry file, and for a role contract
-nothing does.
+**Name a destination that exists.** A carry to a file `git grep` cannot find is
+not a carry.
+
+**Verify the write landed.** A scripted edit matching nothing reports success
+(`str.replace`, `sed`); seven of nine carries once went missing. Read the destination back: `brief_lint.mjs` does it for a roster and a
+carry file, and nothing for a role contract.
