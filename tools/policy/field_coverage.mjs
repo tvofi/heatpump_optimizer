@@ -485,7 +485,8 @@ const CENSUS_TABLES = ['tests/structure_budgets.json', 'tests/ci_budgets.json']
 const CENSUS_EXEMPT = {
   'archscore.family_orphan_overrides': 'counts ENTITY_FAMILY_OVERRIDES entries homing a key in a family of fewer than two, not unreached definitions; the append-only plant cannot reach it, since family_splits.overrides reads the first assignment only',
 }
-function censusRegistry(report, censuses = CENSUSES, rows = () => CENSUS_TABLES.flatMap((f) => Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'))))) {
+function censusRegistry(report, censuses = CENSUSES, rows = undefined) {
+  rows ??= () => CENSUS_TABLES.flatMap((f) => Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'))))
   const all = new Set(rows()); const gated = new Set(censuses.map((c) => c.gate))
   for (const k of [...all].filter((k) => LIVENESS_ROW.test(k)).sort()) {
     if (!gated.has(k) && !(k in CENSUS_EXEMPT)) report.refused.push(`census registry: row ${k} counts unreached definitions and no census plants it (register one in CENSUSES, or exempt it with a reason)`)
@@ -529,6 +530,18 @@ function censusRun(report, censuses = CENSUSES, tree = censusTree, count = censu
       else report.read.push(`census ${c.name}: ${base.n} -> ${planted.n} with one planted member, refused on ${c.gate}`)
     }
   } finally { if (dir) fs.rmSync(dir, { recursive: true, force: true }) }
+}
+
+// The arms main() runs, in order; `--only` names one. The census arm is the
+// registry pass and the planted runs together, so the self-test drives this
+// entry (with a stub run) and an arm that drops the registry is seen.
+const RUNS = {
+  hooks: (report) => jsonRun(HOOKS, report),
+  ruleset: (report) => jsonRun(RULESET, report),
+  budgets: (report) => budgetsRun(report),
+  approvals: (report) => jsonRun(APPROVALS, report),
+  registry: (report) => registryRun(report),
+  census: (report, { run = censusRun, censuses = CENSUSES, rows } = {}) => { censusRegistry(report, censuses, rows); run(report, censuses) },
 }
 
 // --self-test: each verdict this program can return, driven on a synthetic
@@ -598,6 +611,14 @@ async function selfTest() {
   t('a census gating no row is REFUSED', r.refused.length === 1 && /dead_x/.test(r.refused[0]))
   r = registry(['dead_x'])
   t('an exemption naming no row is DEAD', r.dead.length === 1 && r.dead[0].includes('family_orphan_overrides'))
+  {
+    // main()'s census arm, driven with a stub run: the registry must refuse an
+    // ungated liveness row there, and the planted runs must still be reached.
+    const rr = fresh(); let ran = null
+    RUNS.census(rr, { run: (rep, cs) => { ran = cs }, censuses: [], rows: () => ['archscore.dead_y', 'archscore.family_orphan_overrides'] })
+    t("main's census arm runs the registry pass (an ungated row is REFUSED) and then the planted runs", rr.refused.length === 1 && /archscore\.dead_y/.test(rr.refused[0]) && Array.isArray(ran))
+    t('main runs every arm --only can name, census among them', Object.keys(RUNS).join(',') === 'hooks,ruleset,budgets,approvals,registry,census')
+  }
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
@@ -624,15 +645,10 @@ async function main() {
     else if (argv[i] === '--ruleset-json') rulesetSource = path.resolve(argv[++i])
     else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census] [--ruleset-json FILE]`); process.exit(2) }
   }
-  if (only && !['hooks', 'ruleset', 'budgets', 'approvals', 'registry', 'census'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
+  if (only && !(only in RUNS)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
   const t0 = Date.now()
   const report = { read: [], blind: [], dead: [], refused: [], ignored: [], none: [], runs: 0 }
-  if (!only || only === 'hooks') await jsonRun(HOOKS, report)
-  if (!only || only === 'ruleset') await jsonRun(RULESET, report)
-  if (!only || only === 'budgets') await budgetsRun(report)
-  if (!only || only === 'approvals') await jsonRun(APPROVALS, report)
-  if (!only || only === 'registry') registryRun(report)
-  if (!only || only === 'census') { censusRegistry(report); censusRun(report) }
+  for (const [name, arm] of Object.entries(RUNS)) if (!only || only === name) await arm(report)
   for (const x of report.read) console.log(`  read     ${x}`)
   for (const x of report.ignored) console.log(`  ignored  ${x}`)
   for (const x of report.none) console.log(`  none     ${x}`)
