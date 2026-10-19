@@ -147,6 +147,9 @@ OWNER = "@tvofi"
 #: Per-item API caps: a tick must stay cheap steady-state; when an item's
 #: candidates exceed the cap it says so and takes the oldest first.
 CAP_MERGES = 10
+#: unrecorded()'s first-parent window: four commits per merge checked, room for
+#: the direct pushes (stamps) that share main's line and owe no comment.
+UNRECORDED_SCAN = 4 * CAP_MERGES
 CAP_CLOSES = 10
 CAP_REVIEWS = 10
 #: The mandate-window warning fires inside this remaining time.
@@ -1414,8 +1417,13 @@ class Tick:
         self.closes(S, sha)
 
     def merged_prs(self, S: str, what: str, rng: list[str]) -> "list[str] | None":
-        """The pull requests merged on main's first-parent line over `rng`,
-        newest first, as `tests/delivery_status.py` reads them -- its own
+        """`merges`' pull-request numbers, newest first; None when unreadable."""
+        got = self.merges(S, what, rng)
+        return None if got is None else [str(m["number"]) for m in got]
+
+    def merges(self, S: str, what: str, rng: list[str]) -> "list[dict] | None":
+        """The pull-request merges on main's first-parent line over `rng`,
+        newest first (`number`, `merge_sha`), as `tests/delivery_status.py` reads them -- its own
         `parse_log` and `collect`, never a copy of the subject grammar. That
         reads both GitHub templates: `Merge pull request #N from ...` and the
         title form `<title> (#N)`, a single-parent squash such as the
@@ -1432,19 +1440,21 @@ class Tick:
             self.unreadable(S, what, o.strip()[-80:])
             return None
         merges, _ = ds.collect(ds.parse_log(o))
-        return [str(m["number"]) for m in merges]
+        return merges
 
     def unrecorded(self, S: str, since: str) -> None:
-        """Merge commits on main with no #201 comment carrying the merge sha:
-        the record beat's other half. Cap 10 search calls, stated in the body."""
-        code, o = self.git(["log", "--merges", "--format=%H %s",
-                            f"-{CAP_MERGES}", "origin/main"])
-        if code:
-            self.unreadable(S, "recent merge commits", o.strip()[-80:])
+        """Merges on main with no #201 comment carrying the merge sha: the
+        record beat's other half. Every merge owes one, a record merge too
+        (the orchestrator writes one after each). The newest CAP_MERGES merges
+        among main's last UNRECORDED_SCAN first-parent commits, read through
+        `merges` -- so a single-parent `<title> (#N)` merge counts, which
+        `git log --merges` never listed. Cap 10 search calls, stated in the body."""
+        got = self.merges(S, "recent merge commits",
+                          [f"-{UNRECORDED_SCAN}", "origin/main"])
+        if got is None:
             return
         unrec, capped = [], False
-        for line in o.splitlines():
-            sha, _, subj = line.partition(" ")
+        for sha in [m["merge_sha"] for m in got][:CAP_MERGES]:
             if len(unrec) >= CAP_MERGES:
                 capped = True
                 break
@@ -2013,8 +2023,11 @@ def self_test() -> int:
         other (the squash `<title> (#N)` form) one."""
         recs = []
         for i, subj in enumerate(l for l in subjects.splitlines() if l.strip()):
+            sha = f"{i:040x}"
+            if re.match(r"[0-9a-f]{40} ", subj):  # an explicit sha prefix
+                sha, subj = subj[:40], subj[41:]
             par = f"{'1' * 40} {'2' * 40}" if subj.startswith("Merge ") else "1" * 40
-            recs.append(f"{i:040x}\x1f{par}\x1f{subj}\x1f\x1e")
+            recs.append(f"{sha}\x1f{par}\x1f{subj}\x1f\x1e")
         return "\n".join(recs)
 
     bus_calls: list = []  # every argv the bus stub received
@@ -2097,7 +2110,13 @@ def self_test() -> int:
                out=codeowners_text or "/CLAUDE.md @tvofi\n")
         git.on(f"origin/main:{HANDOVER}", out=f"updated-for: {handover}\n")
         git.on(("--first-parent", "--since=24 hours ago"), out=fp_log(merges24))
-        git.on(("--merges", "--format=%H %s"), out=merges)
+        # `--merges` keeps two-parent commits only, as git does: the reading
+        # unrecorded() replaced, in either log form, sees no squash merge
+        two = "\n".join(l for l in merges.splitlines() if l[41:].startswith("Merge "))
+        git.on(lambda argv: "--merges" in argv and "--first-parent" in argv
+               and f"-{UNRECORDED_SCAN}" in argv, out=fp_log(two))
+        git.on(("--first-parent", f"-{UNRECORDED_SCAN}"), out=fp_log(merges))
+        git.on(("--merges", "--format=%H %s"), out=two)
         git.on(("--first-parent",), out=fp_log(rows))
         git.on(("grep",), rc=0 if grep_rows else 1, out=grep_rows or "")
         git.on(f"origin/main:{PLAN}", out=plan_text)
@@ -2639,6 +2658,28 @@ def self_test() -> int:
             ("recorded merge not flagged", not any("record beat owed"
                                                    in x["text"]
                                                    for x in t.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- unrecorded: a single-parent `<title> (#N)` merge owes a #201 comment ----
+        sq, mc, dp = "e" * 40, "d" * 40, "c" * 40
+        lines = (f"{sq} record: delivery rows for #2397 (autofix) (#2413)\n"
+                 f"{mc} Merge pull request #78 from tvofi/y\n"
+                 f"{dp} v7.0.1: stamp")
+        t = tick(handover=old, behind_handover=3, merges=lines,
+                 search_counts={sq: 0, mc: 1, dp: 0})
+        t.state()
+        owed = [x["text"] for x in t.findings if "record beat owed" in x["text"]]
+        t2 = tick(handover=old, behind_handover=3, merges=lines,
+                  search_counts={sq: 1, mc: 1, dp: 0})
+        t2.state()
+        a, f = check("unrecorded single-parent", [
+            ("a single-parent `(#N)` merge with no #201 comment is named; a "
+             "recorded merge and a direct push are not",
+             owed == ["record beat owed: state_docs.py --push + #201 comment for "
+                      + sq[:12]]),
+            ("null control: every merge recorded names none",
+             not any("record beat owed" in x["text"] for x in t2.findings)),
         ])
         total, failed = total + a, failed + f
 

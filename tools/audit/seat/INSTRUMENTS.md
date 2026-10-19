@@ -376,9 +376,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   prints every pass for each complete handoff no PR head carries, read by
   `bus.sh orphans --min-age-h 0` (a pull request behind its own newer handoff
   included, #2411); a run with no summary line is UNCHECKED, never a clean
-  zero. STATE's missing-row check and the closes check enumerate merges
-  through `tests/delivery_status.py`'s `parse_log` and `collect`, so a
-  `<title> (#N)` merge counts as a merge (#2413, #2412, #2407). `--only CARRY`
+  zero. STATE's missing-row check, the closes check and the #201
+  unrecorded-merge check enumerate merges through
+  `tests/delivery_status.py`'s `parse_log` and `collect`, so a `<title> (#N)`
+  merge counts as a merge (#2413, #2412, #2407). `--only CARRY`
   (opt-in, weekly and at closure; never in the default pass) runs
   `carry_audit.py sweep --last N --issues` over origin/main and the tick's
   roster ref: exit 1 prints one dispatch line and the unowned lines, and a
