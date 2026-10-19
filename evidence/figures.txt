@@ -1,0 +1,18 @@
+MB=e59f0291a6759d3e1dc98456b7cd3d64e1c541a0
+(step5 diff end)
+selftest_wiring: 37 self-testing, 37 wired, 0 unwired
+rc=0
+selftest_wiring self-test: 15 checks, 0 failed
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+STRUCTURE RATCHET PASSED
+policy_budgets rc=0
+usage: daemonize.py [-h] --log LOG [--cwd CWD] [--env K=V]
+                    [--path-prepend PATH_PREPEND]
+                    ...
+daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+SELF-TEST PASS
+usage: daemonize.py [-h] --log LOG [--cwd CWD] [--env K=V]
+                    [--path-prepend PATH_PREPEND]
+                    ...
+daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+SELF-TEST PASS

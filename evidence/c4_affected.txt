@@ -1,0 +1,5 @@
+--- check-ignore (exclude has seat/):
+.git/info/exclude:7:seat/	tools/audit/seat/zz_probe.py
+rc=0
+--- status:
+(end status)

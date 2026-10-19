@@ -1,0 +1,73 @@
+== M0 rc=0 Show the verdict bus refusing its own fixtures | bus self-test: 70 checks, 0 failed
+== M0 rc=0 Refuse a temp or machine path in a tracked script or decision | tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since e59f0291a675
+== M0 rc=0 Refuse a push that names the host, and an unregistered pusher | ref_privacy --check at HEAD: 18 file(s) with a push site, 9 guarded, 966 line(s) added since e59f0291a675 judged, 0 refused
+== M0 rc=0 Render the sweep template, and the policy re-read predicate | policy_reread_check self-test: 15 checks, 0 failed
+== M0 rc=0 Show the orchestrator tick deciding its own fixtures | orchestrator_tick self-test: 150 checks, 0 failed
+== M0 rc=0 Refuse a self-testing seat instrument that no step runs | selftest_wiring: 37 self-testing, 37 wired, 0 unwired
+== M0 rc=0 Show the CI watcher refusing its own fixtures | ci-watch self-test: 8 checks, 0 failed
+== M0 rc=0 Show the cloud dispatcher refusing its own fixtures | cloud_dispatch self-test: 29 checks, 0 failed
+== M0 rc=0 Show the cloud relay refusing its own fixtures | cloud_relay self-test: 69 checks, 0 failed
+== M0 rc=0 Show the detached launcher refusing its own fixtures | daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+== M0 rc=0 Show the delivery-row writer refusing its own fixtures | delivery_row self-test: 5 checks, 0 failed
+== M0 rc=0 Show the failure-log reader refusing its own fixtures | passed=7 failed=0
+== M0 rc=0 Show the features block refusing its own fixtures | features_block self-test: 1 checks, 0 failed
+== M0 rc=0 Show the handoff push (its self-test is delivery_row.sh's) refusing its own fixtures | delivery_row self-test: 5 checks, 0 failed
+== M0 rc=0 Show the handover prompt refusing its own fixtures | handover_prompt self-test: 13 checks, 0 failed
+== M0 rc=0 Show the PR merger refusing its own fixtures | merge_pr self-test: 12 checks, 0 failed
+== M0 rc=0 Show the moved-path reader refusing its own fixtures | moved_paths self-test: 9 checks, 0 failed
+== M0 rc=0 Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | pr_args self-test: 46 checks, 0 failed
+== M0 rc=0 Show the plan table refusing its own fixtures | plan_table: live overlay names no roster group: ['R9-NOPE']
+== M0 rc=0 Show the PR argument builder refusing its own fixtures | pr_args self-test: 46 checks, 0 failed
+== M0 rc=0 Show the open-PR cap refusing its own fixtures | pr_cap self-test: 12 checks, 0 failed
+== M0 rc=0 Show the proof watcher refusing its own fixtures | proof_watch self-test: 34 checks, 0 failed
+== M0 rc=0 Show the ref pruner refusing its own fixtures | SELF-TEST PASS (24 checks)
+== M0 rc=0 Show the record-row generator refusing its own fixtures | record_row self-test: all checks passed
+== M0 rc=0 Show the resume renderer refusing its own fixtures | resume_doc: REFUSED: 11579 bytes over the 10240-byte budget; archive before regenerating, --out not written
+== M0 rc=0 Show the roster editor refusing its own fixtures | roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at origin/main in /tmp/hpo-fr8-selftest-4nwnkysd/drv3; pass --roster-path or --roster-ref
+== M0 rc=0 Show the roster library refusing its own fixtures | roster_lib self-test: 18 checks, 0 failed
+== M0 rc=0 Show the twin-run reader refusing its own fixtures | run_twins self-test: 4 checks, 0 failed
+== M0 rc=0 Show the seat venv recipe refusing its own fixtures | seat_venv self-test: 21 checks, 0 failed
+== M0 rc=0 Show the state-doc writer refusing its own fixtures | state_docs: REFUSED: which round: no dev/programme/rosters/wave-r<N>-groups.json at main in /tmp/tmpc1o094yc/two; pass --roster-path or --roster-ref
+== M0 rc=0 Show the tick loop refusing its own fixtures | tick_loop self-test: 4 checks, 0 failed
+== M0 rc=0 Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | pr_args self-test: 46 checks, 0 failed
+== M0 rc=0 Show the offline spy refusing its own fixtures | offline_spy self-test: 10 checks, 0 failed
+== M0 rc=0 Show the merge train refusing its own fixtures |   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+== M0 rc=0 Show the carry check and the queue pre-flight refusing their own fixtures | queue_pre_flight self-test: 41 checks, 0 failed
+== M0 rc=0 Show the train launcher refusing its own fixtures | train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag)
+== M0: 0 seat step(s) red
+== S01 ci-watch.sh: KILLED rc=1 | ci-watch self-test: 8 checks, 4 failed
+== S02 cloud_dispatch.py: KILLED rc=1 | Refusal: head must be exactly 40 lowercase hex digits
+== S03 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 299: /tmp/cloud_relay_st.JLsyJT/relay.log: No such file or directory
+== S04 daemonize.py: KILLED rc=1 | daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+== S05 delivery_row.sh: KILLED rc=1 | delivery_row self-test: 5 checks, 3 failed
+== S06 failure_logs.sh: KILLED rc=1 | passed=2 failed=5
+== S07 features_block.py: KILLED rc=1 | features_block self-test: 1 checks, 1 failed
+== S09 handover_prompt.py: KILLED rc=1 | FAIL not-started group has no pickup (got: )
+== S10 merge_pr.sh: KILLED rc=1 | merge_pr self-test: 12 checks, 1 failed
+== S11 moved_paths.py: KILLED rc=1 | moved_paths self-test: 9 checks, 4 failed
+== S13 plan_table.py: KILLED rc=1 | plan_table: live overlay names no roster group: ['R9-NOPE']
+== S14 pr_args.sh: KILLED rc=1 | pr_args self-test: 46 checks, 16 failed
+== S15 pr_cap.py: KILLED rc=1 | pr_cap self-test: 12 checks, 2 failed
+== S16 proof_watch.py: KILLED rc=1 | IndexError: list index out of range
+== S17 prune_refs.py: KILLED rc=1 | SELF-TEST FAIL (17 checks)
+== S18 queue_pre_flight.py: KILLED rc=1 | queue_pre_flight self-test: 41 checks, 36 failed
+== S19 record_row.py: KILLED rc=1 | 5 self-test check(s) failed: failed_required reads a re-run over the red it supersedes, automerge_check lists no pending context beside a refusal, and lists the contexts not yet passed once nothing refused, none when all passed (null control), failed_required ignores a red that is not required, failed_required names a red that is required
+== S20 resume_doc.py: KILLED rc=1 | resume_doc: REFUSED: 11579 bytes over the 10240-byte budget; archive before regenerating, --out not written
+== S21 roster_edit.py: KILLED rc=1 | Refuse: git -C /tmp/hpo-fr8-selftest-m5c2m_mh/gate-old add -A (in .) failed:
+== S22 roster_lib.py: KILLED rc=1 | RosterNotFound: 'dev/programme/rosters/wave-r10-groups.json' is not a wave-r<N>-groups.json roster
+== S23 run_twins.py: KILLED rc=1 | run_twins self-test: 4 checks, 4 failed
+== S24 seat_venv.sh: KILLED rc=1 | seat_venv self-test: 21 checks, 1 failed
+== S25 state_docs.py: KILLED rc=1 | Refuse: git -C /tmp/tmpngz5mfbf/origin.git show cfa60911e95ad605d534fae6e2e302f6696dd4e8:handoff/round9/state/PLAN-TABLE.md (in .) failed: fatal: path 'handoff/round9/state/PLAN-TABLE.md' does not exist in 'cfa60911e95ad605d534fae6e2e302f6696dd4e8'
+== S26 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 4 checks, 2 failed
+== S28 offline_spy.py: KILLED rc=1 | offline_spy self-test: 10 checks, 2 failed
+== S29 selftest_wiring.py: KILLED rc=1 | selftest_wiring self-test: 15 checks, 2 failed
+== S30 selftest_wiring.py: KILLED rc=1 | selftest_wiring self-test: 15 checks, 1 failed
+== S08 handoff_push.sh: KILLED rc=1 | 
+== S12 open_pr.sh: KILLED rc=1 | delivery_row self-test: 5 checks, 0 failed
+== S27 update_pr.sh: KILLED rc=1 | pr_args self-test: 46 checks, 0 failed
+== S04U daemonize.py: KILLED rc=1 | daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+== W1 an unwired self-testing file: KILLED rc=1 | selftest_wiring: 38 self-testing, 37 wired, 1 unwired
+== W2 a step reduced to a comment: KILLED rc=1 | selftest_wiring: 37 self-testing, 36 wired, 1 unwired
+== W3 a trailing comment: KILLED rc=1 | selftest_wiring: 37 self-testing, 36 wired, 1 unwired
+RESULT survivors=0
+rc=0
