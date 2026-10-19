@@ -1,0 +1,6 @@
+  read     census structure.py dead_methods: 0 -> 1 with one planted member, refused on dead_methods
+  read     census structure.py dead_top_level_symbols: 1 -> 2 with one planted member, refused on dead_top_level_symbols
+  read     census structure.py name_kept_members: 38 -> 39 with one planted member, refused on name_kept_members
+RESULT read=3 ignored=0 declared_none=0 blind=0 dead=0 refused=0 runs=0 seconds=105.2
+FIELD COVERAGE ok
+rc=0

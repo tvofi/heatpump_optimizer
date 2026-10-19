@@ -1,0 +1,18 @@
+  read     approvals user.login
+  read     approvals user.id
+  read     approvals user.type
+  read     approvals body
+  read     approvals state
+  read     approvals commit_id
+  ignored  approvals id
+  ignored  approvals node_id
+  ignored  approvals user.node_id
+  ignored  approvals user.site_admin
+  ignored  approvals html_url
+  ignored  approvals pull_request_url
+  ignored  approvals author_association
+  ignored  approvals _links
+  ignored  approvals submitted_at
+RESULT read=6 ignored=9 declared_none=0 blind=0 dead=0 refused=0 runs=7 seconds=0.3
+FIELD COVERAGE ok
+rc=0
