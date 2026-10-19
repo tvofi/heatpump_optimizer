@@ -1,0 +1,11 @@
+.github/workflows/governance.yml
+dev/audit/harnesses/r10_field_coverage_paths.sh
+dev/audit/harnesses/r10_seat_selftests_mutants.py
+dev/programme/delivery/2444.md
+tests/closures.json
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/daemonize.py
+tools/audit/seat/offline_spy.py
+tools/audit/seat/pr_args.sh
+tools/audit/seat/seat_venv.sh
+tools/audit/seat/selftest_wiring.py

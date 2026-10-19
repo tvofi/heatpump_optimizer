@@ -1,0 +1,1 @@
+HEAD: the measured head. checkruns_all.json: commit check-runs (filter=all). job_*.json: the named job records (head_sha and conclusion). merge-tree.txt. files.txt: three-dot diff names. harness_subset.txt.

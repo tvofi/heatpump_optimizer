@@ -1,0 +1,6 @@
+== S04 daemonize.py: KILLED rc=1 | daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+== S30 selftest_wiring.py: KILLED rc=1 | selftest_wiring self-test: 15 checks, 1 failed
+== S04U daemonize.py: KILLED rc=1 | daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+== W1 an unwired self-testing file: KILLED rc=1 | selftest_wiring: 38 self-testing, 37 wired, 1 unwired
+== W2 a step reduced to a comment: KILLED rc=1 | selftest_wiring: 37 self-testing, 36 wired, 1 unwired
+RESULT survivors=0

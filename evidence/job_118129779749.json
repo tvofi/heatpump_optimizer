@@ -1,0 +1,76 @@
+{
+  "id": 118129779749,
+  "run_id": 39271326979,
+  "workflow_name": "Architecture score",
+  "head_branch": "fix/r10-seat-selftests-ci",
+  "run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/39271326979",
+  "run_attempt": 2,
+  "node_id": "CR_kwDOT-9fds8AAAAbgRVkJQ",
+  "head_sha": "8be64a110fa4e741889920c4eff2b6b4cb99cf3a",
+  "url": "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/jobs/118129779749",
+  "html_url": "https://github.com/tvofi/heatpump_optimizer/actions/runs/39271326979/job/118129779749",
+  "status": "completed",
+  "conclusion": "success",
+  "created_at": "2026-10-19T14:52:59Z",
+  "started_at": "2026-10-19T14:53:02Z",
+  "completed_at": "2026-10-19T14:54:07Z",
+  "name": "arch-score",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-19T14:53:03Z",
+      "completed_at": "2026-10-19T14:53:03Z"
+    },
+    {
+      "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-19T14:53:03Z",
+      "completed_at": "2026-10-19T14:53:15Z"
+    },
+    {
+      "name": "Name the pull request and read its body",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-19T14:53:15Z",
+      "completed_at": "2026-10-19T14:53:17Z"
+    },
+    {
+      "name": "Score the change, and refuse an unexplained rise",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-19T14:53:17Z",
+      "completed_at": "2026-10-19T14:54:05Z"
+    },
+    {
+      "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8,
+      "started_at": "2026-10-19T14:54:05Z",
+      "completed_at": "2026-10-19T14:54:05Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-19T14:54:05Z",
+      "completed_at": "2026-10-19T14:54:05Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/118129779749",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000131352,
+  "runner_name": "GitHub Actions 1000131352",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}
