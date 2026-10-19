@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_held_state CLAMP_DROP 5c7d4c36",
+  "killed_by": "tests/stress.py",
+  "old": "        slab_temperature=target + max(0.0, q_floor) / model.params.slab_heat_transfer_floored,",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 413944b6772fa7f2f38cef7ea2f667a64d79251a: CLAMP_DROP (`slab_temperature=target + (0.0) / model.params.slab_heat_transfer_floored,`) took tests/stress.py from rc=0 failed=0 to rc=1 failed=1."
+}

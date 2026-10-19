@@ -2086,8 +2086,8 @@ def three_dot_files(repo: str, ref: str) -> list[str]:
     """
     files: list[str] = []
     for args in (
-        ["git", "diff", "--name-only", f"{ref}...HEAD"],
-        ["git", "diff", "--name-only", "HEAD"],
+        ["git", "diff", "--no-renames", "--name-only", f"{ref}...HEAD"],
+        ["git", "diff", "--no-renames", "--name-only", "HEAD"],
         ["git", "ls-files", "--others", "--exclude-standard"],
     ):
         proc = subprocess.run(args, cwd=repo, capture_output=True, text=True)

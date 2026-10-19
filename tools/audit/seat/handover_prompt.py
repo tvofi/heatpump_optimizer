@@ -140,7 +140,8 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", default="tvofi/heatpump_optimizer")
     src = p.add_mutually_exclusive_group()
-    src.add_argument("--roster-ref", default=roster_lib.DEFAULT_ROSTER_REF)
+    src.add_argument("--roster-ref", default=None,
+                     help="default: the round roster branch, else origin/main (roster_lib.default_roster_ref)")
     src.add_argument("--roster-file")
     p.add_argument("--roster-path",
                    help="the roster at --roster-ref (default: the newest "
@@ -151,6 +152,8 @@ def main(argv=None) -> int:
     a = p.parse_args(argv)
     if a.self_test:
         return _self_test()
+    if not a.roster_file:
+        a.roster_ref = roster_lib.reader_ref(".", a.roster_ref)
     if a.roster_file:
         roster = roster_lib.load_roster_file(a.roster_file)
         rel = roster_lib.newest_roster([a.roster_file]) or a.roster_file
