@@ -36,7 +36,15 @@ def merge_subjects():
     since = git("describe", "--tags", "--abbrev=0", "--match", "v6.5.0").strip() or "v6.5.0"
     live = [s for s in git("log", "--first-parent", "--format=%s", f"{since}..HEAD").split("\n") if s]
     shapes = ["Merge pull request #1052 from tvofi/fix/d11-pins", "fix: a squash (#1234)",
-              "v6.7.1: stamp", "ci: re-record closures"]
+              "v6.7.1: stamp", "ci: re-record closures",
+              # A hand merge's custom subject (5756f2b1, 07a09406): pinned here as
+              # well as live, so a corpus window that moves keeps the shape.
+              "Merge pull request #2379 (R10-SENSOR-PAYLOAD)",
+              "Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)",
+              "Merge pull request #13: Broaden the disclaimer",
+              # Null controls: no pull request is named, so every reader answers null.
+              "Merge pull request from a fork", "Merge pull request #12x from a/b",
+              "Record #424 W1-G14 merge in delivery-status", "Merge branch 'main' into fix/x"]
     return list(dict.fromkeys(live + shapes))
 
 
