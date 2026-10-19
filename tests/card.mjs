@@ -11820,8 +11820,15 @@ check("without an indoor reading the corner now label is absent",
   }
   // The slot menu's `add` / `remove` are `act` branches too, and no click
   // reaches them: the menu opens on the chart's own contextmenu gesture.
-  // Drive that gesture and press the row it renders.
-  for (const [chart, x] of [[0, 300], [0, 600], [1, 300], [1, 600]]) {
+  // Drive that gesture and press the row it renders. Which row renders --
+  // `remove` on a planned hot-water run, `add` off one -- depends on where the
+  // solver put the runs, so the gesture walks the chart until it has pressed
+  // both, rather than at fixed pixels a re-planned fixture can miss (four
+  // pixels found no run once D2-s2-01 re-priced the tank).
+  const probes = [];
+  for (const chart of [0, 1]) for (let x = 20; x <= 1200; x += 20) probes.push([chart, x]);
+  for (const [chart, x] of probes) {
+    if (pressed.has("add") && pressed.has("remove")) break;
     const c = open("plan");
     const svg = chartSvgs(c.shadowRoot)[chart];
     if (!svg) continue;
