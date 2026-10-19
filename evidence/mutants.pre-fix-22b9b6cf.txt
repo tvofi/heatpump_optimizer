@@ -1,5 +1,0 @@
-RESULT mutant=M0 sha=22b9b6cf rc=0 fail_lines=7 fail_lines_with_credential=0 last='ALL 122 DEBUG COLLECT CHECKS PASSED'
-RESULT mutant=MA sha=22b9b6cf rc=1 fail_lines=10 fail_lines_with_credential=1 last='2 of 122 DEBUG COLLECT CHECKS FAILED'
-RESULT mutant=MB sha=22b9b6cf rc=1 fail_lines=9 fail_lines_with_credential=1 last='1 of 122 DEBUG COLLECT CHECKS FAILED'
-RESULT mutant=MC sha=22b9b6cf rc=1 fail_lines=10 fail_lines_with_credential=2 last='2 of 122 DEBUG COLLECT CHECKS FAILED'
-RESULT mutant=MD sha=22b9b6cf rc=1 fail_lines=9 fail_lines_with_credential=1 last='1 of 122 DEBUG COLLECT CHECKS FAILED'

@@ -1,101 +1,70 @@
-Fix review: merge 5c2bfcb1ebb683fe0576e7dccf71ab67ddaddc39
+Fix review: merge 705a9b851d314f860f3fa29e0e092231d5c878ad
 
-bus-nonce: 519dcc2fd420f363fd64510c64cce2a5
+bus-nonce: 46cd0cfad829e180f6f0a07a572316d8
 
 ## Round
 
-Round 2. The only earlier verdict is round 1 (issue comment 6253921423, hpo-approver): `blocked acf14d8f carry-missing: not carried to R10-BRIEFS-FOLD`. Nothing else in round 1 blocked. Round 1 also raised the CodeQL alert as needing a decision before merge.
+Round 3 of the PR's posted `Fix review:` comments. Round 1 (comment 6253921423) was `blocked acf14d8f carry-missing`. Round 2 (comment 6255452125) was `merge 5c2bfcb1`. The dispatch names a `merge` verdict at `d8889b62`, which merges main `fa5026c4` into `5c2bfcb1`. It is not posted on the PR as a `Fix review:` comment. The last verdict was `merge`, so `fixer.md`'s re-cut rule does not apply. This round judges the recarry delta and the re-taken body only.
 
 ## Head
 
-I measured `5c2bfcb1ebb683fe0576e7dccf71ab67ddaddc39` (`ev/HEAD`). It was still the PR head when I wrote this, and origin/main was still `07a09406`. The body names this SHA.
+- I measured `705a9b851d314f860f3fa29e0e092231d5c878ad` (`ev/HEAD`). It was still the PR head when I wrote this.
+- Its parents are `d8889b62f` and main `06c6f3cf2`.
+- `git merge-tree --write-tree d8889b62f 06c6f3cf2` gives tree `4da849e9`, which equals the head's tree. The driver printed `LEDGER-MERGE: resolved tests/closures.json`. So this is a clean recarry with no hand resolution.
+- `git diff --stat ff914f548 705a9b851 -- custom_components tests tools/replay` prints only `tests/closures.json | 1 +`.
+- The body's second stat over the production, driver and stub paths prints 0 lines.
+- Production and test code are therefore byte-identical to the heads rounds 1 and 2 measured. The body names this SHA (step 7).
 
-The head's parents are `acf14d8f` (round 1) and `ff914f548`. `ff914f548`'s parent is `22b9b6cf`, which merges origin/main `07a09406` into `acf14d8f`. `git diff ff914f548 5c2bfcb1` is empty, so the head's tree is the authored code head. The only authored change since round 1 is `22b9b6cf..ff914f548`, which touches `tests/debug_collect.py` alone:
-- it adds `_unrecorded`;
-- it changes the detail (third) argument of three `R.check` calls;
-- it changes no check condition.
+Contract: main moved `fix-review.md` step 10 and `finding-propagation.md` after this head (#2408). I followed main's copy. Under it, a roster carry is in the tree once it is on `handoff/audit-r10-roster`. That retires round 2's precondition that #2417 must merge first.
 
-The contract is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+## Forward-carry (step 10)
 
-## Round-1 blocker: forward-carry (step 10), now present
+- The carry SHA `2020978559ef` is an ancestor of `origin/handoff/audit-r10-roster`, now at `73bb15fe`.
+- At that tip, R10-BRIEFS-FOLD is `resume.stage: not-started`, so it is live and not done. It holds exactly one #2399 carry, and that carry is byte-equal to the body's quote (`ev/carry_check.txt`: True at the tip and at `2020978`).
+- The carry states its control, M4's check, and a precondition: the restart-gap rule applies only to rows without `version`.
+- R10-TICK-DRIVERS is `done` (merged as #2390, `a96f4be4`), and the body does not use it as a destination. R10-DIAG-REPLAY's own group is not a destination either.
+- `brief_lint.mjs` on that roster, from an origin/main `fa424fd9` worktree: `TOTAL: 0 error(s) across 1 file(s)` (`ev/brief_lint.txt`). `policy_lint.mjs` at main: 0 errors across 41 files.
 
-- `origin/handoff/audit-r10-roster` is at `2020978559ef37e9e22ae0926a5f685622da65f5`, `roster_edit append-carry R10-BRIEFS-FOLD: #2399 D15 forward-carry`.
-- Group `R10-BRIEFS-FOLD` is `resume.stage: not-started`, so it is a live destination. It has 10 `carry` entries. The last is byte-identical to the body's `> From R10-DIAG-REPLAY (#2399 ...` quote (`ev/carry_last.txt`, `ev/pr_body.md`; Python equality True).
-- The carry includes the control (the "a cycle row carries the release that wrote it" check going red with the stamp removed, which my M4 reproduces). It states the precondition and asks for a re-measure at the D15 baseline.
-- `node tools/policy/brief_lint.mjs` on that roster, run from an origin/main `07a09406` worktree: `TOTAL: 0 error(s) across 1 file(s)`.
-- **Merge precondition for the orchestrator.** #2417's current head `c83ae12acc07` (`fix/audit-r10-roster`) does **not** contain `2020978`. It is not an ancestor, and the roster at that head has 0 matches for the carry. The dispatch says the carry lands with #2417, so #2417 must first be brought up to `handoff/audit-r10-roster` ≥ `2020978`, and #2417 must merge before #2399 (`finding-propagation.md`: "does not merge until the carry is in the tree"). This verdict's `merge` depends on that order.
-
-## Mutation proof (step 1): my own runner, `ev/mut.py`, `ev/mutants.*.txt`
-
-Each mutant is applied to a `git archive` copy, then `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` runs. Every replacement matched exactly once.
-
-At the head:
+## Mutation proof (step 1), at this head (`ev/mutants.txt`)
 
     RESULT mutant=M0 rc=0 ALL 122 DEBUG COLLECT CHECKS PASSED
-    RESULT mutant=M1 rc=1 TypeError (replay half missing)
-    RESULT mutant=M2 rc=1 25 of 122 FAILED
-    RESULT mutant=M3 rc=1 2 of 122 FAILED
-    RESULT mutant=M4 rc=1 1 of 122 FAILED
-    RESULT mutant=M5 rc=1 24 of 122 FAILED
-    RESULT mutant=M6 rc=1 2 of 122 FAILED
-    RESULT mutant=M7 rc=1 1 of 122 FAILED
-    RESULT mutant=M8 rc=1 2 of 122 FAILED
-    RESULT mutant=MA rc=1 2 of 122 FAILED  credential-bearing FAIL lines=0
-    RESULT mutant=MB rc=1 1 of 122 FAILED  credential-bearing FAIL lines=0
-    RESULT mutant=MC rc=1 2 of 122 FAILED  credential-bearing FAIL lines=0
-    RESULT mutant=MD rc=1 1 of 122 FAILED  credential-bearing FAIL lines=0
-    RESULT mutant=R1 seal floor 6->7      rc=1 1 of 122 FAILED
-    RESULT mutant=R2 seal violations off  rc=1 1 of 122 FAILED
+    RESULT mutant=M5 rc=1 24 of 122 DEBUG COLLECT CHECKS FAILED cred_lines=0   (replay_doc.py:511 return clean -> return raw)
+    RESULT mutant=M4 rc=1 1 of 122 DEBUG COLLECT CHECKS FAILED cred_lines=0    (debugger.py:142 "version" line deleted)
 
-Every count matches the body's table. No mutant at the head prints a planted credential (`s3cret-value`, `bob123456`, `abc123456`, `secretvalue123`) in any FAIL line.
+Both match the body's figures. The rest of the table (M1–M8, MA–MD) was reproduced in round 2 on byte-identical code, so I did not re-run it.
 
-## Null control (step 3), at `22b9b6cf`, the merge before the fix
+## Figures (step 8), re-taken at this head (`ev/figures.txt`)
 
-    RESULT mutant=M0 rc=0 ALL 122 PASSED
-    RESULT mutant=MA rc=1 2 FAILED  credential-bearing FAIL lines=1
-    RESULT mutant=MB rc=1 1 FAILED  credential-bearing FAIL lines=1
-    RESULT mutant=MC rc=1 2 FAILED  credential-bearing FAIL lines=2
-    RESULT mutant=MD rc=1 1 FAILED  credential-bearing FAIL lines=1
-
-These match the body: the failure counts are the same (2, 1, 2, 1), the leaks are 1, 1, 2, 1 before the fix and 0 at the head. The fix therefore cuts the echo without weakening any check.
-
-I did **not** run the CodeQL CLI myself. The body's "1 alert → 0 alerts" is the fixer's own local measurement and is not re-derived here. CI's `CodeQL` check at this head is `neutral`, titled "1 configuration not found" ("cannot determine the alerts introduced by this pull request"), so CI has not confirmed 0 alerts either. My value-level run above is the independent evidence that no check detail echoes a planted credential. The census rule (an AST walk over sensitive names) is the fixer's instrument. I did not rebuild it. Its value-level complement is the MA–MD runs above, which I did reproduce.
-
-## Figures (step 8): re-taken at the head and at `07a09406` (`ev/figures.txt`, `ev/cheap-checks.txt`)
-
-All of these match the body:
-- `debug_collect`: 122/122, `RESULT leak_probes_through_download=21 written=21 refused=0 unit=count`.
+These all match the body:
+- `debug_collect`: 122/122 passed, `RESULT leak_probes_through_download=21 written=21 refused=0 unit=count`.
 - Synthetic day: `IDENTICAL`.
 - `export.py --check`: `0 violation(s)`.
-- `entry_keys`: 214 at the base, 216 at the head.
-- `sanitiser_checks`: `56 0` at both ends.
-- Package files: 97 at the base, 98 at the head.
-- D6: `arch_modules_on_disk=80`, `arch_map_listed=80`, `arch_map_missing=0`, `ha_module_level_importers=28`, `claims_true=123`, `claims_false=0`.
+- `entry_keys`: 216.
+- Package files: 98.
 - `Architecture score: dS +0.0000 NULL`.
-- `closure.py select`: `MODE: SCOPED -- 31 script(s) run, 2 scoped out.` with `--diff 07a09406`, and `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` with `--diff 22b9b6cf`.
-- `STRUCTURE RATCHET PASSED`, `ALL 109 HARNESS HEADER CHECKS PASSED`, `claims hygiene: 07a09406... ok`, `ALL 96 contracts PASSED`, and `tmp_paths: 0 refused`.
+- `closure.py select --diff 06c6f3cf`: `MODE: SCOPED -- 31 script(s) run, 2 scoped out.`
+- `claims hygiene: 06c6f3cf... ok`.
+- `STRUCTURE RATCHET PASSED`.
+- 25 commits in `06c6f3cf..705a9b85`.
+- #2423 (`89e33859`) and #2424 (`fa5026c4`) are both ancestors of the head.
+- The body's reader grep (`tools/(policy|audit)|stamp|delivery_status`) prints nothing.
 
-## Steps 4, 5, 13, 14
+Not re-derived: the merge-base values (214, 97), which round 2 measured; the CodeQL CLI 1→0 figure, which is the fixer's own run (round 2 said the same); and the census, which is the fixer's instrument.
 
-- Neither claim file and no `*_budgets.json` is touched. `VERSION` and `RELEASE_NOTES.md` are untouched. The manifest diff only adds `recorder` to `after_dependencies`.
-- `git merge-tree --write-tree origin/main 5c2bfcb1` exits 0, tree `8c9a7477`. Main equals the merge base, so no driver was invoked (`ev/merge-tree.txt`).
-- No number moved this round: the authored delta is test-detail text only, and dS is NULL.
+## Body correction, not blocking
 
-## CI at this head (check-runs API, every run: `ev/check-runs.tsv`)
+The `delivery-status` bullet says "This diff adds no delivery file". That is **false**: `git diff --name-only origin/main...HEAD` lists `dev/programme/delivery/2399.md`. It is this PR's own `open` row, added in `b931d0f44` ("record: the delivery row for #2399"), which `delivery-status-tracking.md` requires. So the diff does reach what `delivery-status` reads.
 
-Green:
-- `mutation`. I read the log: `MUTATION TABLE PASSED`, not INCONCLUSIVE, and 4217 unpinned equals the ratchet base.
-- `coverage-ratchet`, and the other completed lanes.
+The answer still holds. Round 2 read the earlier red: `OVERDUE` on the rows for #2413, #2412 and #2407, not on #2399's row. `delivery-status` is green at this head (117852504479). Step 11 checks that the trigger was answered, not the answer, so this does not block. The sentence should read "This diff adds only its own open row".
 
-Neutral: `CodeQL`, as above.
+## Red checks (step 11)
 
-Still running when I wrote this: `Analyze (python)`, `fast (3.14)` and `closures`. Not every workflow has concluded, so step 11 does not allow a `root-cause-unanswered` verdict yet in any case.
+Every check run on this head has concluded (50 runs, `ev/check-runs.tsv`). The only red is `pr-contract` 117852619806 (01:54Z), whose error was that the body did not name `wave-script`. The latest `pr-contract`, 117869754472, started at 03:05:52Z, after the body edit at 03:05:46Z, and concluded `success`.
 
-Red, and main's, not this PR's:
-- **`wave-script`** (117790959649): `DIVERGENT merge-subject-pr` on "Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)" and "#2379 (R10-SENSOR-PAYLOAD)", with `AGREEMENT REFUSED`. That is exactly the line the dispatch names. `wave-script` is also `failure` on main at `5756f2b1`. The diff touches none of the readers (`stamp.py`, `delivery_status.py`, `policy_lint.mjs`). The fix is in flight as R10-MERGE-SUBJECT.
-- **`pr-contract`** (×2, the later one 117791718734): its only ERROR is "check `wave-script` is red and `## Red checks` does not name it". This is the same cause as `wave-script`. It clears when R10-MERGE-SUBJECT lands and the contract re-runs, or when the body names `wave-script`.
-- **`delivery-status`**: `OVERDUE` on rows for #2413, #2412 and #2407 (record batches), not on this PR's row. It is not a required context.
+Every red of the range is named and answered in `## Red checks`: CodeQL, coverage-ratchet, delivery-status, mutation, validate-hacs and wave-script. At this head `CodeQL`, `Analyze (python)`, `mutation`, `coverage-ratchet`, `wave-script`, `delivery-status`, `closures` and `fast (3.14)` are green. I did not read the `mutation` log this round, because this head draws no new production line.
 
-## Step 15
+## Steps 4, 5, 13, 14, 15
 
-The added lines are a test-local helper in the shape of `seal`'s own refusal. There is no architectural concern.
+- Neither claim file and no `*_budgets.json` is touched. `VERSION` and `RELEASE_NOTES.md` are untouched. The manifest diff adds only `recorder` to `after_dependencies`.
+- `git merge-tree --write-tree origin/main 705a9b851` at main `fa424fd9`: rc=0, tree `c1e9e8f6`, and no claim-driver line (`ev/merge-tree.txt`).
+- The recarry delta moves only `tests/closures.json` by one line, a resolved ledger merge from main. dS is NULL. The recarry adds no lines, so step 15 has nothing to judge.
