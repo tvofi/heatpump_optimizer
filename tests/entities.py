@@ -28546,6 +28546,13 @@ R.check(
 # fires on a RED run, and it watches every workflow that runs on a pull
 # request but the contract itself -- a watched list that misses one is the
 # gap again, so the list is derived here from the workflow files.
+# R10-FOLLOWER-DEBOUNCE: one effective run per head. The runs at one head
+# share a concurrency group cancelling the older, the first step defers while
+# another watched run at the head is unfinished, and the job runs on every
+# conclusion (the last completion may be green after a red deferred to it),
+# handing the program the newest red at the head. Pinned below: an `if:` on
+# the job, a group not keyed on the head, a watched copy that drifts, or a
+# program step not gated on the deferral re-opens the lost red or the cost.
 _PR_WORKFLOW_NAMES = sorted(
     str((_yaml.safe_load(t) or {}).get("name"))
     for t in _PRW_TEXTS.values()
@@ -28575,10 +28582,25 @@ def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
     if doc.get("permissions") != {} or job.get("permissions") != {
             "actions": "write", "contents": "read"}:
         out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
-    cond = str(job.get("if", ""))
-    if cond.strip() != ("contains(fromJSON('[\"failure\",\"timed_out\",\"cancelled\"]'), "
-                        "github.event.workflow_run.conclusion)"):
-        out.append(f"if: {cond!r}")
+    if "if" in job:
+        out.append(f"if: {job.get('if')!r} skips a completion a deferred red may need")
+    cc = doc.get("concurrency") or {}
+    if cc.get("group") != "pr-contract-rerun-${{ github.event.workflow_run.head_sha }}" \
+            or cc.get("cancel-in-progress") is not True:
+        out.append(f"concurrency {cc}")
+    first = steps[0] if steps else {}
+    env0 = first.get("env") or {}
+    try:
+        w0 = json.loads(str(env0.get("WATCHED", "")))
+    except ValueError:
+        w0 = None
+    if first.get("id") != "last" or "uses" in first or w0 != wr.get("workflows") \
+            or env0.get("HEAD_SHA") != "${{ github.event.workflow_run.head_sha }}" \
+            or "head_sha=$HEAD_SHA" not in str(first.get("run", "")):
+        out.append(f"first step {first.get('id')!r} does not defer on the head's watched runs")
+    if any(s.get("if") != "steps.last.outputs.red != ''" for s in steps[1:]) or \
+            (steps[-1].get("env") or {}).get("RUN_ID") != "${{ steps.last.outputs.red }}":
+        out.append("a step after the deferral is not gated on it, or the program is not handed the red")
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
             or (co[0].get("with") or {}).get("persist-credentials") is not False:
@@ -28598,8 +28620,9 @@ _CRR_TEXT = _CRR_PATH.read_text() if _CRR_PATH.is_file() else ""
 _CRR_DEFECTS = _crr_defects(_CRR_TEXT, _PR_WORKFLOW_NAMES)
 R.check(
     "a red that lands after pr-contract ran re-runs it: the follower watches every "
-    "pull-request workflow but the contract, fires on a red run only, holds "
-    "`actions: write` and runs the default branch's program (D13-s1-03)",
+    "pull-request workflow but the contract, defers to the last completion at "
+    "the head and hands it the newest red, holds `actions: write` and runs the "
+    "default branch's program (D13-s1-03, R10-FOLLOWER-DEBOUNCE)",
     _CRR_DEFECTS == [] and len(_PR_WORKFLOW_NAMES) >= 6,
     f"defects: {_CRR_DEFECTS}; pull-request workflows: {_PR_WORKFLOW_NAMES}",
 )
@@ -28612,6 +28635,20 @@ R.check(
     any(d.startswith("checkout") for d in _CRR_NULL)
     and any(d.startswith("workflow_run") for d in _CRR_NULL),
     f"defects on the altered copy: {_CRR_NULL}",
+)
+_CRR_DNULL = _crr_defects(_CRR_TEXT.replace(
+    "  group: pr-contract-rerun-${{ github.event.workflow_run.head_sha }}",
+    "  group: pr-contract-rerun-${{ github.event.workflow_run.id }}").replace(
+    "  rerun-stale-contract:\n",
+    "  rerun-stale-contract:\n    if: github.event.workflow_run.conclusion == 'failure'\n").replace(
+    '"Kernel points", "Tests", "Validate"]\'', '"Kernel points", "Tests"]\'').replace(
+    "RUN_ID: ${{ steps.last.outputs.red }}", "RUN_ID: ${{ github.event.workflow_run.id }}"),
+    _PR_WORKFLOW_NAMES)
+R.check(
+    "and the follower with a per-run group, a red-only job, a watched copy "
+    "missing a workflow, or the trigger's id handed on, is refused (null control)",
+    {d.split(" ")[0] for d in _CRR_DNULL} >= {"concurrency", "if:", "first", "a"},
+    f"defects on the altered copy: {_CRR_DNULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
