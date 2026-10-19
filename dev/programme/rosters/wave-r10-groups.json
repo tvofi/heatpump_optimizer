@@ -4291,6 +4291,47 @@
     "next_step": "open_pr",
     "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "rca",
+   "issues": [],
+   "fixes": [],
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-RCA-NIGHTLY-PYSPY",
+   "findings": [],
+   "wave": 3,
+   "files": [
+    "dev/audit/rca/nightly-ha-pyspy-timeout.md"
+   ],
+   "brief": "Root-cause record for the recurring nightly-ha (stable) red: hb:positive_control fails when its single py-spy dump --nonblocking sample times out at 30 s (py-spy 0.4.2 on CPython 3.14.6). Record only; the fix it names is routed by its own Carry lines.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-nightly-pyspy",
+    "commit": "0b7145312480e83c46665876ff5ade670125c900",
+    "last_step": "fixer",
+    "next_step": "open_pr",
+    "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
+   }
   }
  ]
 }
