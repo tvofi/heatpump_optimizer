@@ -4276,7 +4276,7 @@
    ],
    "brief": "Found by the R10-TRUST-RELATIVE recarry seat (#2435, no defer): when tools/pr/prepr.sh step 6d prints a mutation site the diff adds unpinned, the body may still say the mutation lane is green, and pr-contract reddens only after CI. Make prepr refuse a body whose ## Red checks does not name mutation while step 6d reports an unpinned added site. Control: a body omitting mutation with an unpinned site is refused, the same body naming it passes, and a diff with no unpinned site is unaffected.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-prepr-unpinned-red",
     "commit": null,
     "last_step": null,
