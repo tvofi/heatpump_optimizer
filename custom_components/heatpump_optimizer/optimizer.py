@@ -185,7 +185,7 @@ def _relaxed_starts(
     ranked seeds at fixed levels moved no stalled plan. Identity on an
     install that can duty-cycle.
     """
-    if not opt.config.clamp_planned_levels or first >= len(cands):
+    if not opt.config.clamp_planned_levels or first > len(cands):
         return cands
     opt._levels_relaxed = True
     try:
