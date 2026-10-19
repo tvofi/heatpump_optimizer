@@ -1,6 +1,6 @@
-RESULT dhw_mode_ratio_max=1.0000 ratio  # at (outdoor,T)=None
-RESULT dhw_mode_dev_cells=41 min=0.0000 max=0.0000 drop_max=0.0000
-RESULT dhw_below_ref_boost_max=1.0000 ratio
+RESULT dhw_mode_ratio_max=1.4346 ratio  # at (outdoor,T)=(np.float64(7.0), np.float64(65.0))
+RESULT dhw_mode_dev_cells=41 min=0.2000 max=0.4346 drop_max=0.4346
+RESULT dhw_below_ref_boost_max=1.2000 ratio
 RESULT cop_outdoor_monotone_violations=0 count
 RESULT cop_flow_monotone_violations=0 count
 RESULT derate_min=0.5500 derate_max=1.0000 ratio
@@ -8,5 +8,6 @@ RESULT derate_jump_1e-9=1.569e-10 ratio
 RESULT duty_derate_range=0.5500..1.0000 ratio
 RESULT batch_scalar_cop_mismatch=0 of 63570 count
 RESULT thread_factor=1.000
-RESULT load1=0.35
+RESULT load1=0.30
 RESULT swapins=0
+rc=0

@@ -14,3 +14,4 @@
   ok   D7-s3-8x-slotfloor: the plan's last step covers [stamp, stamp + one plan step) -- live a microsecond before the edge, expired at it
 
 ALL 10 FEATURES BLOCK PASSED
+rc=0
