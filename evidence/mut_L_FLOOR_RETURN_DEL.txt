@@ -1,0 +1,14 @@
+
+=== mini ===
+  FAIL every combination of inlet sensors writes the first rung's reading plus the lift at the modulation floor, and the ceiling at full power  [16 cells, wrong [(('heat_pump_return_temp_entity',), 35.0, 48.0, 27.0), (('buffer_tank_temp_entity',), 35.0, 48.0, 29.0), (('floor_return_temp_entity',), 35.0, 48.0, 31.0), (('valve_outlet_temp_entity',), 35.0, 48.0, 36.0), (('heat_pump_return_temp_entity', 'buffer_tank_temp_entity'), 35.0, 48.0, 27.0), (('heat_pump_return_temp_entity', 'floor_return_temp_entity'), 35.0, 48.0, 27.0), (('heat_pump_return_temp_entity', 'valve_outlet_temp_entity'), 35.0, 48.0, 27.0), (('buffer_tank_temp_entity', 'floor_return_temp_entity'), 35.0, 48.0, 29.0), (('buffer_tank_temp_entity', 'valve_outlet_temp_entity'), 35.0, 48.0, 29.0), (('floor_return_temp_entity', 'valve_outlet_temp_entity'), 35.0, 48.0, 31.0), (('heat_pump_return_temp_entity', 'buffer_tank_temp_entity', 'floor_return_temp_entity'), 35.0, 48.0, 27.0), (('heat_pump_return_temp_entity', 'buffer_tank_temp_entity', 'valve_outlet_temp_entity'), 35.0, 48.0, 27.0), (('heat_pump_return_temp_entity', 'floor_return_temp_entity', 'valve_outlet_temp_entity'), 35.0, 48.0, 27.0), (('buffer_tank_temp_entity', 'floor_return_temp_entity', 'valve_outlet_temp_entity'), 35.0, 48.0, 29.0), (('heat_pump_return_temp_entity', 'buffer_tank_temp_entity', 'floor_return_temp_entity', 'valve_outlet_temp_entity'), 35.0, 48.0, 27.0)]]
+  FAIL a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote  [35.0]
+  ok   null control: no inlet sensor keeps today's rated hold, and the pump's outgoing temperature alone is not a rung
+  FAIL a stale rung falls to the next fresh one  [35.0]
+  FAIL the floor helper refuses an unmeasured inlet rather than guessing one
+  ok   a buffered rounded install with price spread books above the floor in the cheapest steps, and its own objective scores the plan lower than the solve without the relaxed start
+  ok   with hot water on, the space solve around the hot-water plan carries the relaxed start: it lowers the objective in at least one of four cells and raises it in none
+  ok   flat-price null control: at flat prices the relaxed start never ships a plan its own objective scores worse, on either path
+  ok   a clamped install gains one candidate, refined while the objective scores the duty-cycle reading, and rounds again after
+  ok   an install that can duty-cycle gains none and never scores rounded; a start past the last (the warm pass) adds none
+
+4 of 10 MINI CHECKS FAILED

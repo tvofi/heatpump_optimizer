@@ -1,0 +1,5 @@
+L_CMP_BOUND exit=1 red=0 
+L_CONST10 exit=1 red=1 a tank at 24 degC writes 29 at the floor, not the 35 the return|
+L_FLOOR_RETURN_DEL exit=1 red=4 every combination of inlet sensors writes the first rung's read|a tank at 24 degC writes 29 at the floor, not the 35 the return|a stale rung falls to the next fresh one  [35.0]|the floor helper refuses an unmeasured inlet rather than guessi|
+L_RELAXED_RETURN_DEL exit=1 red=3 a buffered rounded install with price spread books above the fl|with hot water on, the space solve around the hot-water plan ca|flat-price null control: at flat prices the relaxed start never|
+restored: 0 dirty

@@ -1,0 +1,18 @@
+M1 exit=1 red=3 every combination of inlet sensors writes the first rung's read|a tank at 24 degC writes 29 at the floor, not the 35 the return|a stale rung falls to the next fresh one  [35.0]|
+M2 exit=1 red=3 every combination of inlet sensors writes the first rung's read|a tank at 24 degC writes 29 at the floor, not the 35 the return|a stale rung falls to the next fresh one  [25.0]|
+M3 exit=1 red=1 every combination of inlet sensors writes the first rung's read|
+M4 exit=1 red=3 every combination of inlet sensors writes the first rung's read|a tank at 24 degC writes 29 at the floor, not the 35 the return|a stale rung falls to the next fresh one  [35.0]|
+M5 exit=1 red=1 every combination of inlet sensors writes the first rung's read|
+M6 exit=1 red=1 every combination of inlet sensors writes the first rung's read|
+M7 exit=1 red=1 a buffered rounded install with price spread books above the fl|
+M8 exit=1 red=1 with hot water on, the space solve around the hot-water plan ca|
+M9 exit=1 red=3 a buffered rounded install with price spread books above the fl|with hot water on, the space solve around the hot-water plan ca|a clamped install gains one candidate, refined while the object|
+X1_swap_tank_floor exit=1 red=1 every combination of inlet sensors writes the first rung's read|
+X2_replace_not_append exit=1 red=1 a clamped install gains one candidate, refined while the object|
+X3_guard_index_dropped exit=1 red=0 
+X4_flag_never_reset exit=1 red=2 flat-price null control: at flat prices the relaxed start never|a clamped install gains one candidate, refined while the object|
+X5_dhw_first_zero exit=0 red=0 
+X6_dhw_warm_also exit=0 red=0 
+X7_stale_ignored exit=1 red=1 a stale rung falls to the next fresh one  [27.0]|
+X8_unclamped_relaxed exit=1 red=1 an install that can duty-cycle gains none and never scores roun|
+restored: 0 dirty

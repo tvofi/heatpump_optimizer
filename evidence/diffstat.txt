@@ -1,0 +1,16 @@
+ custom_components/heatpump_optimizer/optimizer.py  |  80 +++++--
+ .../heatpump_optimizer/pump_arbiter.py             |  71 ++++--
+ custom_components/heatpump_optimizer/strings.json  |   2 +-
+ .../heatpump_optimizer/thermal_model.py            |  44 +++-
+ dev/audit/harnesses/r10_setpoint_power.py          |  90 ++++++++
+ dev/programme/delivery/2445.md                     |   1 +
+ tests/closures.json                                |   1 +
+ tests/features.py                                  | 256 ++++++++++++++++++++-
+ .../_relaxed_starts.CMP_BOUND.7615699d.json        |   6 +
+ .../_relaxed_starts.GUARD_OFF.7615699d.json        |   6 +
+ .../_relaxed_starts.RETURN_DEL.93f85d7e.json       |   6 +
+ .../_scores_rounded.BOOLOP.b14c9b26.json           |   6 +
+ .../_scores_rounded.RETURN_DEL.b14c9b26.json       |   6 +
+ .../thermal_model.py/@module.CONST.be082b4c.json   |   6 +
+ ...odulation_floor_flow_c.RETURN_DEL.eb4d73bd.json |   6 +
+ 15 files changed, 545 insertions(+), 42 deletions(-)
