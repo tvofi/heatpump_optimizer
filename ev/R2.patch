@@ -1,0 +1,28 @@
+diff --git a/tools/policy/field_coverage.mjs b/tools/policy/field_coverage.mjs
+index c6fcb2b9d..f7f0d75b0 100644
+--- a/tools/policy/field_coverage.mjs
++++ b/tools/policy/field_coverage.mjs
+@@ -438,14 +438,6 @@ const CENSUSES = [
+     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusKept:\n    def as_dict(self):\n        return {}\n\n\n(lambda x: (x.as_dict(), _CensusKept))\n' },
+     read: (out) => /^RESULT name_kept_members=(\d+)\b/m.exec(out)?.[1],
+   },
+-  {
+-    // One unused top-level card function: no other token names it.
+-    name: 'archscore card_dead_definitions',
+-    gate: 'archscore.card_dead_definitions',
+-    instrument: ciRatchet('card'),
+-    plant: { file: 'custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js', add: '\n\nfunction _censusPlantedDeadCardFunction() {\n  return 1\n}\n' },
+-    read: ratchetRow('archscore.card_dead_definitions'),
+-  },
+   {
+     // structure.py's dead census re-pointed by vector.py at its flattened copy.
+     name: 'archscore dead_members',
+@@ -632,7 +624,7 @@ async function main() {
+   if (!only || only === 'budgets') await budgetsRun(report)
+   if (!only || only === 'approvals') await jsonRun(APPROVALS, report)
+   if (!only || only === 'registry') registryRun(report)
+-  if (!only || only === 'census') { censusRegistry(report); censusRun(report) }
++  if (!only || only === 'census') { censusRun(report) }
+   for (const x of report.read) console.log(`  read     ${x}`)
+   for (const x of report.ignored) console.log(`  ignored  ${x}`)
+   for (const x of report.none) console.log(`  none     ${x}`)

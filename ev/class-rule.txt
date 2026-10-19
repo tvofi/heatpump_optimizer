@@ -1,0 +1,9 @@
+dead_methods
+dead_top_level_symbols
+name_kept_members
+archscore.card_dead_definitions
+archscore.dead_members
+archscore.family_orphan_overrides
+archscore.public_unused
+archscore.unread_private_globals
+archscore.unused_boundary_imports
