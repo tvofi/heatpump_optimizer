@@ -1,4 +1,4 @@
-R10-OPENPR-SILENT. `tools/audit/seat/open_pr.sh` runs under `set -eo pipefail`. Twice on 2026-10-18 the orchestrator passed the handoff-BODY sha where the CODE sha belongs. `git merge-base --is-ancestor` returned non-zero and printed nothing, so the script exited silently, and the stop read as a hang for 40 minutes. The orchestrator then added tick items to this group, and in the recarry pass three more folds (`5`, `6` and `7` below).
+R10-OPENPR-SILENT. `tools/audit/seat/open_pr.sh` runs under `set -eo pipefail`. Twice on 2026-10-18 the orchestrator passed the handoff-BODY sha where the CODE sha belongs. `git merge-base --is-ancestor` returned non-zero and printed nothing, so the script exited silently, and the stop read as a hang for 40 minutes. The orchestrator then added tick items to this group, and in the recarry pass four more folds (`5` to `8` below).
 
 **1. No silent stop in `open_pr.sh` and `update_pr.sh`.** Both scripts now source a new library, `tools/audit/seat/pr_args.sh`, which gives them two layers.
 
@@ -49,6 +49,8 @@ Two more silent shapes are also fixed:
 - `carry_audit.py` lands with #2404. Until then the section prints `UNREADABLE: carry sweep (tools/audit/carry_audit.py absent (it lands with #2404))`.
 - **Design choice (fixer.md step 11): opt-in, never in the default pass.** The sweep reads the body and comments of every one of N merged pull requests, which the four-minute tick cannot carry. The orchestrator runs `--only CARRY` weekly and at closure. Putting it in the default pass is mutant C3, which the all-clear null control refuses.
 
+**8. The unrecorded-merge check counts a `<title> (#N)` merge too** (the orchestrator's ruling, 2026-10-19: every merge owes a #201 comment, a record merge included, and the orchestrator writes one after each). `unrecorded()` used to list `git log --merges -10 origin/main`. That read had two faults: it never saw a single-parent squash merge, and, not being first-parent, it filled its ten slots with merges of main into branches, which are no merge to main. It now reads the newest `CAP_MERGES` merges among main's last `UNRECORDED_SCAN` (4 x `CAP_MERGES`) first-parent commits, through the same `merges()` path as fold 5. The four-to-one window leaves room for direct pushes such as stamps, which owe no comment.
+
 **Why this shape (fixer.md step 17).**
 - One library holds the argument checks and the trap; copying them into each script would put one concept in two places. The trap instead of a `|| { echo; exit; }` on every line, which is #1874's enumerated-cases shape.
 - One cap module for both readers, loaded the way the tick loads production modules (`_module`).
@@ -60,7 +62,7 @@ Two more silent shapes are also fixed:
 
 ## Head
 
-`d41ec9d271fb178de5140f11ca249691c9fa7183`, on origin/main `06c6f3cf2589cd37fa9fe56cc5ebeef709dc8d3b` (2026-10-19T02:11Z). Two merges of main, each with no conflict: `62d7e1e43c5f` (main `b87e8f19`: #2423, #2424, #2420) and `3bf31b82768e` (main `06c6f3cf`: #2390, #2425).
+`0b5c9b2418a0b8307c28173c15faae194b6e6075`, on origin/main `fa424fd91a042f4a66ae53238c3db6d70d9d4ff1` (2026-10-19T03:04Z). Three merges of main, each with no conflict: `62d7e1e43c5f` (main `b87e8f19`: #2423, #2424, #2420), `3bf31b82768e` (main `06c6f3cf`: #2390, #2425) and `3fe49467f` (main `fa424fd9`: #2419, #2426, #2408).
 
 Commits, in order:
 - `fb46dfc7`: the failing test, first. `0522a2d4`: the fix and the cap. `06e41c39`: their INSTRUMENTS entries.
@@ -72,6 +74,7 @@ Commits, in order:
 - `62d7e1e4`: the merge of origin/main `b87e8f19`.
 - `d4f47f04`: folds 5 and 6, with their INSTRUMENTS lines. `3adda66d`: one more arm for fold 6 (see M4b).
 - `5c729de5`: fold 7. `3bf31b82`: the merge of origin/main `06c6f3cf`. `d41ec9d2`: fold 7's argv checks read `calls[:1]`, so a sweep never called fails them instead of crashing the self-test.
+- `3fe49467`: the merge of origin/main `fa424fd9`. `0b5c9b24`: fold 8, with its INSTRUMENTS line.
 
 Every figure below was measured at this head unless it names another commit.
 
@@ -79,24 +82,26 @@ Every figure below was measured at this head unless it names another commit.
 
 **Built-in mutants (`pr_args.sh`).** A line ending in `# mut:<name>` is the predicate one arm pins. The self-test runs each refusal arm twice on copies of the scripts in a scratch repository: once intact, then with that line deleted. The arm must pass the first time and fail the second. `bash tools/audit/seat/open_pr.sh --self-test` prints `pr_args self-test: 46 checks, 0 failed`.
 
-**Hand mutants, folds 5, 6 and 7, at this head.** Each applied to the committed tree, run with its script's `--self-test`, and restored with `git checkout --`; `git status --short` was empty after the run.
-- M1, `merged_prs` returns `Merge pull request #(\d+)` matches (the old grammar): 2 failed, "STATE missing rows: a squash `<title> (#N)` merge with no row is named; ..." and "closes squash: a squash merge's declared-vs-closed mismatch is flagged".
+**Hand mutants, folds 5 to 8, at this head.** Each applied to the committed tree, run with its script's `--self-test`, and restored with `git checkout --`; `git status --short` was empty after the run.
+- M1, `merges()` returns the `Merge pull request #(\d+)` matches (the old grammar): 5 failed, among them "STATE missing rows: a squash `<title> (#N)` merge with no row is named; ...", "closes squash: a squash merge's declared-vs-closed mismatch is flagged" and "unrecorded single-parent: ...".
 - M2, an unreadable log returns `[]`: "STATE missing rows: a log it cannot read is UNREADABLE, never a clean zero".
 - M3, `rc != 0` is unavailable (the old reading): 3 failed, among them "OWED handoffs: a stranded ref at bus.sh's rc 1 is OWED, flagged, never 'unavailable'".
 - M4, the summary requirement dropped: the self-test crashes with `IndexError` at `summary[0]` in the refusal arm, so no tally prints and it exits non-zero.
 - M4b, the exit/lines consistency clause dropped: unpinned at `d4f47f04`, where no arm drove an exit that contradicts its lines. I added "OWED handoffs refused: an exit that contradicts its lines (rc 0 beside an ORPHAN) is unavailable" in `3adda66d`, which kills it.
 - M5, `BUS_ORPHANS_ARGV = ("orphans",)`: "OWED handoffs: the read carries no age window (a complete handoff is owed now)".
 - M6, OWED handoff lines unflagged: "OWED handoffs: a stranded ref at bus.sh's rc 1 is OWED, flagged, never 'unavailable'".
-- C1, the sweep call removed: 5 failed, among them "CARRY sweep: exit 1 prints one dispatch line, then each unowned line, flagged" and "the sweep runs --last N --issues over origin/main, then the tick's roster ref".
+- C1, the sweep call removed: 5 failed, the arm's argv, dispatch, refusal and opt-in checks among them ("the sweep runs --last N --issues over origin/main, then the tick's roster ref").
 - C2, the CARRY dispatch removed from `run()`: "CARRY sweep: opt-in: the default pass never sweeps; --only CARRY does".
 - C3, CARRY in the default pass: 4 failed, that arm and three of the all-clear board's ("null control: zero findings", "null control: empty list line printed" and "null control: all eight sections measured").
 - C4, the second roster ref dropped: "the sweep runs --last N --issues over origin/main, then the tick's roster ref".
 - C5, `--issues` dropped: 2 failed.
 - C6, exit 1 unflagged: "exit 1 prints one dispatch line, then each unowned line, flagged".
 - C7, a refusal read as clean (`if False:`): the self-test raises `IndexError` at `summary[0]` in `carry_sweep`, so no tally prints, rc=1.
+- U1, `unrecorded()` restored to its old `git log --merges --format=%H %s -10` read: "unrecorded single-parent: a single-parent `(#N)` merge with no #201 comment is named; a recorded merge and a direct push are not". The self-test's git stub answers `--merges` with the two-parent lines only, as git does.
+- U2, `--merges` added to the first-parent read: the same check.
 - M7, in `bus.sh`, the exact name alone discharges (the old arm): `bus self-test: 70 checks, 1 failed`, "an exact-name pull request behind its newer handoff is repair=update, not discharged".
 
-**Hand mutants from the earlier head, re-applied at `3bf31b82`** (this head's parent, which differs from it only in fold 7's two argv checks). The same mutants, by the same descriptions, each killed:
+**Hand mutants from the earlier head, re-applied at this head.** The same mutants, by the same descriptions, each killed:
 - Cap: T1 `flag=n >= cap` -> `False` (1 failed); T2 the K>2 test dropped (1); T3 the unread test dropped (1); T4 `counted(prs)` -> `prs` (2); T5 the call deleted (6).
 - Verdicts: V1 and V2 the head test dropped (1 each); V3 `elif not newer` -> `elif True` (1); V4 the first verdict instead of the newest (1); V5 both identity keys dropped (1); V6 UNREADABLE replaced by `pass` (1); V7 the CLEAN/UNSTABLE test dropped (1).
 - Queue: Q1 `stale = []` (5); Q2 REPLAN's open-set test -> `False` (1); Q3 an unread set treated as empty (1); Q4 the no-train line dropped (1).
@@ -119,6 +124,12 @@ These lines depend on the board, so re-derive them with the same command.
 
 **Fold 5, before and after on main's history.** A one-off scratch probe loads the tick from the `62d7e1e4` archive and from `3adda66d` and enumerates `3126b86e7~1..b87e8f19b`. Before: `MERGE_PR` over `git log --merges --format=%s`. After: `Tick.merged_prs`. Result: before 16 PRs, after 19. `after - before` is `['2407', '2412', '2413']`, and `before - after` is `[]`. As a null control, the PRs the after side adds that are not single-parent `(#N)` subjects: `[]`. Single-parent `(#N)` subjects the after side misses: `[]`. Rows for #2413/#2412/#2407 are at main now, through #2420, so the live STATE arm prints no missing row at either end.
 
+**Fold 8, on main.** A one-off scratch probe loads the tick at this head and compares, over origin/main `fa424fd9`, the shas the old read (`git log --merges --format=%H -10 origin/main`) and `Tick.merges` (first 10 of the last 40 first-parent commits) would search for:
+- old only, 5 shas, each `Merge remote-tracking branch 'origin/main' into ...` or `Merge commit '<sha>' into ...`: merges of main into branches, which can never carry a #201 comment, so the old read could report them as owed;
+- new only, 5 shas: #2420, #2424, #2423, #2401 and #2379, main's own merges.
+
+There is no single-parent merge in this window; the squash merges #2413/#2412/#2407 are older, and the self-test arm drives that shape.
+
 **No over-firing at this head.**
 - `open_pr.sh` with the code sha, and `update_pr.sh` with the code sha or `-`, pass every argument check.
 - Five counted PRs, plus a `record:` PR and a dependabot PR: the open passes.
@@ -128,6 +139,7 @@ These lines depend on the board, so re-derive them with the same command.
 - With no cloud_relay.sh, the loop still ticks.
 - `0 stranded` prints its summary and flags nothing.
 - A carry sweep at exit 0 prints its summary and flags nothing; the default pass never runs it.
+- Every merge with a #201 comment names no owed record beat.
 - The exact-name PR at the handoff tip is discharged by name.
 - A rowed merge, a direct push and a numberless merge name no missing row.
 - The tick's all-clear board passes.
@@ -136,22 +148,21 @@ These lines depend on the board, so re-derive them with the same command.
 
 - `bash tools/audit/seat/open_pr.sh --self-test`: `delivery_row self-test: 5 checks, 0 failed` and `pr_args self-test: 46 checks, 0 failed`.
 - `python3 -I tools/audit/seat/pr_cap.py --self-test`: `12 checks, 0 failed`.
-- `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `140 checks, 0 failed`.
+- `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `142 checks, 0 failed`.
 - `bash tools/audit/seat/tick_loop.sh --self-test`: `4 checks, 0 failed`.
 - `bash tools/audit/seat/bus.sh --self-test`: `70 checks, 0 failed`.
 - `python3 tools/audit/seat/proof_watch.py --self-test`: `34 checks, 0 failed`.
 - `python3 -I tools/policy/agreement_py.py --out $J && node tools/policy/agreement.mjs --py-json $J`: `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`.
-- `python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK -- 0 overdue`, at origin/main `b87e8f19`.
+- `python3 -I -S tests/delivery_status.py --check`: `DELIVERY STATUS OK -- 0 overdue`, at origin/main `fa424fd9`.
 - `python3 -I tools/audit/seat/pr_cap.py gate --repo tvofi/heatpump_optimizer`, 2026-10-19T01:25Z: `open-PR cap: 14 open >= 6`, rc=1.
-- Gate scope: `python3 tests/closure.py select --diff 06c6f3cf2589 --workdir "$D"` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out`. At `3bf31b82`, each `run_always` line (`tests/env_drift.py --claims-only 06c6f3cf`, `tests/closure.py selftest`, `tests/harness_headers.py`, `tests/layout.py`) exits 0 under `PYTHONPATH=tests/hastub`.
-- `env -u BASH_ENV python3 tests/entities.py` at `3bf31b82`: `ALL 2349 ENTITY CHECKS PASSED`.
+- Gate scope: `python3 tests/closure.py select --diff fa424fd91a04 --workdir "$D"` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out`. Each `run_always` line (`tests/env_drift.py --claims-only fa424fd9`, `tests/closure.py selftest`, `tests/harness_headers.py`, `tests/layout.py`) exits 0 under `PYTHONPATH=tests/hastub`.
+- `env -u BASH_ENV python3 tests/entities.py`: `ALL 2349 ENTITY CHECKS PASSED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 -I tools/audit/seat/tmp_paths.py --check`, `python3 -I tools/audit/seat/ref_privacy.py --check` and `python3 -I tests/throwaway_git.py --check` each report 0 refused.
-- **Merge-tree against the open siblings.** `git merge-tree --write-tree --name-only HEAD <head>` at this head, each rc=0 with no conflicted file: #2419 `cf687605d267`, #2406 `22803f99bd8b`, #2404 `b419463b18a2`, and #2421 `b3c1d0477e63`, where the ledger driver merged the harness-headers test's inert-reads entries as a set.
+- **Merge-tree against the open siblings.** `git merge-tree --write-tree --name-only HEAD <head>` at this head, #2406 `22803f99bd8b`, #2421 `1e6e79caa3b2` and #2417 `954a7b20ffb3` each rc=0 with no conflicted file. #2404 `b419463b18a2` gives rc=1 on the three `finding-propagation` rule files. This diff touches none of them, and `git merge-tree --write-tree --name-only origin/main b419463b18a2` gives rc=1 as well, so it is main's conflict (#2408), not this PR's.
 - **Fold 5's class, every seam.** The rule: `git grep -nE 'Merge pull request #\(|"--merges"' <ref> -- tools/audit/seat/orchestrator_tick.py`, excluding the self-test.
   - At `62d7e1e4` it returns 4 sites: the `MERGE_PR` constant, STATE's missing-row log, `unrecorded()`'s log and `closes()`'s log.
-  - At this head it returns 1: `unrecorded()`'s `--merges` log. The other three are closed in this diff.
-  - `unrecorded()` is left as it is. Its concept is the #201 comment per merge commit, a different one. A search for a #201 comment carrying the merge sha returns 0 for the squash `be2d3676e` and for the merge commit `b87e8f19b` alike, so whether a record merge owes a comment is the record protocol's question, not this fold's.
+  - At this head it returns none outside the self-test, whose git stub models `--merges`. All four are closed in this diff, `unrecorded()`'s by fold 8.
   - The same rule over the rest of `tools/audit/seat/` returns no file.
 - **Fold 6's class.** The rule is every `continue` in `bus.sh orphans`' loop, which is a discharge. There are six: excluded topic, no body, name, ancestry, young and superseded. The name arm is the one that discharged without asking whether the tip is carried, and it is closed here. Ancestry asks exactly that. Young is turned off by the tick's `--min-age-h 0` (design choice above). No-body, superseded and the exclusions are bus.sh's own dispositions, and the tick prints superseded ones.
 
@@ -172,7 +183,6 @@ The latest CI on the previous head `ee93af58` had three reds. This head merges o
 
 - **CI wiring.** No workflow runs the self-tests of `pr_args.sh`, `pr_cap.py`, `tick_loop.sh`, `orchestrator_tick.py` or `delivery_row.sh`. Adding a `governance.yml` step changes `.github/workflows/`, which tvofi owns, so it is for the orchestrator to dispatch as its own group.
 - **Runbook.** `dev/governance/roles/nudge.md` and `orchestrator.md` name `open_pr.sh` without `--over-cap`, and a watcher seat looping the tick rather than `tick_loop.sh`. Both are policy files (CODEOWNERS `dev/governance/roles/`), so they are left unedited. `tools/audit/seat/INSTRUMENTS.md` holds the contract.
-- **#2419.** `tick_loop.sh` calls the relay script's `pass` subcommand; the orchestrator says that fixer is adding `pass`. Until it lands, the loop reports a non-zero `relay=rc=N` and still ticks.
 
 ## Friction
 
