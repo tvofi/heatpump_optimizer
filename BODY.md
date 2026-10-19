@@ -75,9 +75,9 @@ Every changed line is under `tools/` or `dev/audit/`, outside the mutation inven
 
 ## Forward-carry
 
-`tools/audit/seat/INSTRUMENTS.md`, `head_note.py` entry: any new `## Head` note writer goes through it. No later stage's brief changes.
+none
 
 ## Friction
 
-- `fixer.md`: cost: the previous head conflicted with main in three seat scripts that four merged PRs rewrote around the very lines this fix touched. Re-applying the fix on main's whole file was mechanical, but it cost a full re-take of this body, and the harness needed a fifth argument to keep driving the new writers.
-- `tests/harness_headers.py`: cost: it runs the whole harness corpus serially and takes many minutes on this box, so a local run is not a practical gate here.
+- `fixer.md`: cost: the previous head conflicted with main in three seat scripts that four merged PRs rewrote around the very lines this fix touched. Re-applying the fix on main's whole file was mechanical, but it cost a full re-take of this body, and the harness needed a fifth argument to keep driving the new writers. Carry: dismissed: a one-off conflict from four PRs merging around the same lines; this group's merge resolved it and no rule or wording change would have prevented it.
+- `tests/harness_headers.py`: cost: it runs the whole harness corpus serially and takes many minutes on this box, so a local run is not a practical gate here. Carry: dismissed: CI runs this check on every pull request and is the authority; the box's slowness is local cost, and no tool or wording change follows.
