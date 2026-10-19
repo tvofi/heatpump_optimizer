@@ -63,8 +63,14 @@ later pull request would be graded against a `main` the refused one never joined
                  the train approves as the account `gh` is logged in as, with a
                  body naming the mandate label, the role, the verdict comment and
                  the carried head. Without `--mandate`, or on any other refusal
-                 (missing evidence included), or when a `*_budgets.json` changed
-                 (a raise is the owner's, 0013), it stops;
+                 (missing evidence included), it stops. A budget RAISE --
+                 `Train.raise_hold`: budget_raise_gate's own `raises_between`
+                 from the merge base, the direction CI's gate reads, never a
+                 `*_budgets.json` path, so a file that only gains rows is none
+                 -- is the owner's (0013): it lands only on the owner's approval
+                 already at the head, judged as the gate's `decide` judges it
+                 (the body's raise justification included) with its mandate
+                 read at the merge, and else stops with the gate's reason;
   7. ready, preflight of the title (`REFUSE` stops), merge with
      `--match-head-commit` (retried; `main` re-checked before each attempt;
      every refusal logged in GitHub's words, a base-moved one -- or, serially,
@@ -85,7 +91,9 @@ Same queue file; no head is re-merged with main. In order:
                  nothing is admitted (a proof on a red main blames its entries);
   1. admit    -- each head's own files (three-dot from main) are classed by
                  merge_fastpath.py's `file_class`: a workflow, claim, grader or
-                 any `*_budgets.json` change goes SERIAL, and so does a head
+                 any `*_budgets.json` change goes SERIAL (a routing by path, not
+                 a raise reading: serially, step 6's `raise_hold` decides
+                 whether the change is a raise), and so does a head
                  whose tip is a GITHUB_TOKEN push (`bot-head`): its
                  `pull_request` runs are held, so no proof can carry it, and its serial recarry -- once the batch's own merges
                  moved main -- is the App push that cures it (refused there as
@@ -398,6 +406,35 @@ def policy_fixture_builders():
     def revoke(comment_id: int = MID) -> dict:
         return {"id": comment_id + 1, "user": own, "body": f"MANDATE REVOKED {comment_id}"}
     return g, owner_review, mandate, revoke
+
+
+# The self-tests' budget worlds: {path: (text at the merge base, text at the
+# head)}, None for an end the file is absent at. RAISE_FIXTURE is a real raise
+# (a cap goes up); NEW_ROWS_FIXTURE is #2401's shape, a budget file that only
+# gains rows, which budget_raise_gate reads as no raise at all.
+RAISE_FIXTURE = {"tests/structure_budgets.json": ('{\n "m": 3\n}\n', '{\n "m": 4\n}\n')}
+NEW_ROWS_FIXTURE = {"tests/ci_budgets.json": (
+    '{\n "archscore.hub_solve_writes": 41,\n "reason": "r"\n}\n',
+    '{\n "archscore.hub_solve_writes": 41,\n "archscore.shape_copies": 66,\n "reason": "new row"\n}\n')}
+JUSTIFIED_BODY = ("## Summary\n\nRaise.\n\n## Raise justification\n\n- Payments tried: none left.\n"
+                  "- Architecture score: dS +0.4 IMPROVES\n")
+
+
+def budget_fixture(budgets: "dict | None", argv: list[str], base: str) -> "tuple[int, str] | None":
+    """A stubbed `run`'s answer to raise_hold's tree and blob reads from a
+    budget world (above): the base tree is <base>, any other sha the head.
+    None: not a read this world answers."""
+    if not budgets:
+        return None
+    if argv[:4] == ["git", "ls-tree", "-r", "--name-only"]:
+        end = 0 if argv[4] == base else 1
+        return 0, "".join(f"{p}\n" for p, ends in budgets.items() if ends[end] is not None)
+    if argv[:2] == ["git", "show"] and ":" in argv[2]:
+        sha, path = argv[2].split(":", 1)
+        if path in budgets:
+            text = budgets[path][0 if sha == base else 1]
+            return (0, text) if text is not None else (128, f"fatal: path '{path}' does not exist in '{sha}'")
+    return None
 
 
 class Train:
@@ -820,16 +857,58 @@ class Train:
             raise Stop("approve", "the body could not be read for the raise justification: " + o.strip()[-160:])
         return o
 
-    def _owner_at_head(self, pr: int, h: str) -> "str | None":
-        """The owner's approval ALREADY at <h> -- budget_raise_gate's own
-        `approval` with the gate's own `justification` of the body (what
-        `decide` passes), its mandate judged AT THE MERGE rather than at the
-        review's submission -- else None. GitHub re-anchors an approval's
-        commit_id across a clean merge of the base (#2209: review 5526967770
-        names 8a8e66e7 in its body, the API reports the recarried 8876da3b),
-        so after a recarry the owner's approval can already name the live
-        head; it is the owner's there, and nothing is re-posted."""
+    def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
+        """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
+        budget raise, shared by `approve` and queue_pre_flight.py.
+
+        The raises are budget_raise_gate's own `raises_between` from the merge
+        base with origin/main -- the direction CI's budget-raise-gate reads,
+        never a `*_budgets.json` path: a budget file that only gains rows
+        (#2401) raises nothing, ([], True, why), and takes the ordinary
+        approve path. A raise holds only under the owner's approval at <h> as
+        the gate's `decide` judges it -- `approval` with the gate's own
+        `justification` of the body, read on this branch alone -- its mandate
+        judged AT THE MERGE rather than at the review's submission. GitHub
+        re-anchors an approval's commit_id across a clean merge of the base
+        (#2209: review 5526967770 names 8a8e66e7 in its body, the API reports
+        the recarried 8876da3b), so after a recarry the owner's approval can
+        already name the live head; it is the owner's there, and nothing is
+        re-posted. `why` is the gate's own reason either way. A read that
+        fails, or a budget path the diff names that neither tree holds, is a
+        Stop: an unread budget is never a routine one."""
         g = _mandate_gate()
+        if not any(f.endswith(g.SUFFIX) for f in files):
+            return [], True, "no budget file changed"
+        trees: dict[str, set[str]] = {}
+
+        def read(argv: "list[str]") -> str:
+            code, o = self.run(argv)
+            if code:
+                raise Stop("approve", f"the budget read failed ({' '.join(argv)[:80]}: {o.strip()[-160:]}); "
+                           "an unread budget is never a routine one")
+            return o
+
+        def ls(sha: str) -> "list[str]":
+            trees[sha] = set(read(["git", "ls-tree", "-r", "--name-only", sha]).splitlines())
+            return sorted(trees[sha])
+
+        def show(sha: str, path: str) -> "str | None":
+            return read(["git", "show", f"{sha}:{path}"]) if path in trees[sha] else None
+        base = read(["git", "merge-base", "origin/main", h]).strip()
+        if not is_sha(base):
+            raise Stop("approve", f"the budget read failed: the merge base reads '{base[:60]}'")
+        try:
+            _paths, raises = g.raises_between(base, h, ls, show)
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: a budget the gate cannot read raises everything
+            raise Stop("approve", f"the budget read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
+        unseen = [f for f in files if f.endswith(g.SUFFIX) and not any(f in t for t in trees.values())]
+        if unseen:
+            raise Stop("approve", f"the budget read failed: the diff names {', '.join(unseen)}, which neither "
+                       f"{base[:12]} nor {h[:12]} lists; an unread budget is never a routine one")
+        if not raises:
+            return [], True, "no budget raise (budget_raise_gate.raises_between: 0); the ordinary path"
         now = datetime.datetime.now(datetime.timezone.utc)
         at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
         try:
@@ -840,7 +919,8 @@ class Train:
             raise
         except Exception as e:  # fail closed: an unread approval is none
             raise Stop("approve", f"the owner-approval read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
-        return why if ok else None
+        head = f"{len(raises)} budget raise(s), first {raises[0]}"
+        return raises, ok, (f"{head}: {why}" if ok else f"{head}: a raise is the owner's (0013): {why}")
 
     def _owner_approval_at(self, pr: int, shas: "list[str]") -> "tuple[dict | None, int | None]":
         """The owner's latest APPROVED review when it names one of <shas>
@@ -939,15 +1019,14 @@ class Train:
             raise Stop("approve", "app_approve.sh refused: " + (o.splitlines() or ["(no output)"])[-1][:200])
         if not self.mandate:
             raise Stop("approve", f"code-owned ({owned.group(1).strip()}) and no --mandate given: the owner's review")
-        budgets = [f for f in files if f.endswith("_budgets.json")]
-        if budgets:
-            held = self._owner_at_head(pr, h)
+        raises, held, why = self.raise_hold(pr, h, files)
+        if raises:
             if held:
-                self.log(f"#{pr} the owner's approval is at the head: {held}")
+                self.log(f"#{pr} the owner's approval is at the head: {why}")
                 return "owner"
             carried = self._carry_owner_approval(pr, h, item, files)
             if carried is None:
-                raise Stop("approve", f"code-owned and a budget file changed ({', '.join(budgets)}): a raise is the owner's (0013)")
+                raise Stop("approve", f"code-owned and {why}")
             return carried
         paths = ", ".join(f"`{p}`" for p in owned.group(1).split())
         body = (f"Agent approval for code-owned {paths}, given by {self.role} under {self.mandate}, at head {h}.\n\n"
@@ -1642,6 +1721,13 @@ def _self_test() -> int:
         def run(argv, cwd=ROOT, stdin=None):
             calls.append(argv)
             a = " ".join(argv)
+            if argv[:2] == ["git", "ls-tree"] and world.get("ls_fail"):
+                return 128, "fatal: not a tree object"
+            if argv[:2] == ["git", "show"] and world.get("show_fail") and argv[2].endswith("_budgets.json"):
+                return 128, "fatal: unable to read 0123abcd"
+            got = budget_fixture(world.get("budgets"), argv, world.get("base", (0, "e" * 40 + "\n"))[1].strip())
+            if got is not None:
+                return got
             if "record_row.py" in a:  # --bot-prs: the record PR lookup and its guard
                 if "--find-open" in argv:
                     return world.get("bot_find", (0, "0"))
@@ -2077,10 +2163,10 @@ def _self_test() -> int:
     b = w["approve_body"]
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
-    rc, lines, calls = go({"approve": owned,
+    rc, lines, calls = go({"approve": owned, "budgets": RAISE_FIXTURE,
                            "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
-    check("code-owned with a budget file is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
+    check("code-owned with a budget RAISE is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
     # --approval-carry: the recarry moved an owner-approved head, the owner
     # approved a budget raise there, and the orchestrator no longer re-posts it
     # by hand. `carry` is the fully-qualifying world; each arm below breaks
@@ -2093,7 +2179,7 @@ def _self_test() -> int:
         # The fully-qualifying carry world, fresh per arm: the mutable keys
         # (contains, heads) must never be shared between `go` calls -- a
         # recarry consumes them.
-        return dict({"approve": owned, "files": BUDGET, "contains": [False],
+        return dict({"approve": owned, "files": BUDGET, "budgets": RAISE_FIXTURE, "contains": [False],
                      "heads": [H0, H1],
                      "carry_delta": (H0, H1, "docs/a-main-only-file.md\n")}, **over)
 
@@ -2112,8 +2198,7 @@ def _self_test() -> int:
     # approval named h, not h0, and `prior.commit_id != h0` returned no carry.
     # An owner approval already at the live head is the owner's (the gate's
     # raise reading, its mandate re-read at the merge): nothing to re-post.
-    JUST = ("## Summary\n\nRaise.\n\n## Raise justification\n\n- Payments tried: none left.\n"
-            "- Architecture score: dS +0.4 IMPROVES\n")
+    JUST = JUSTIFIED_BODY
     for flag in (True, False):
         w = carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW), pr_body=JUST)
         rc, lines, calls = go(w, mandate=CB, approval_carry=flag)
@@ -2197,6 +2282,60 @@ def _self_test() -> int:
                           mandate=CB, approval_carry=True)
     check("approval-carry whose re-post fails the byte-identical read-back is a Stop, not a pass",
           rc == 1 and "byte-identical" in lines[-1] and approved(calls) and not merged(calls))
+    # R10-TRAIN-RAISE-HOLD (#2401: trains t11-t13 stopped while CI's
+    # budget-raise-gate printed budget_raises=0 PASS). A raise is the gate's
+    # DIRECTION reading (raise_hold), never a `*_budgets.json` path: a budget
+    # file that only gains rows takes the ordinary mandate approval, and a
+    # raise's Stop carries the gate's own reason.
+    NEW_ROWS = ["tests/ci_budgets.json", f"{ROW_DIR}/7.md"]
+    w = {"approve": owned, "files": NEW_ROWS, "budgets": NEW_ROWS_FIXTURE, "reviews": [], "pr_body": "## Summary\n"}
+    rc, lines, calls = go(w, mandate=CB)
+    check("#2401's shape: a budget file that only gains rows is no raise -- the ordinary "
+          "mandate approval is posted and the entry merges, with no owner review and no "
+          "raise justification owed", rc == 0 and approved(calls) and merged(calls)
+          and "Agent approval for code-owned" in w["approve_body"])
+    rc, lines, calls = go({"approve": owned, "files": NEW_ROWS, "budgets": NEW_ROWS_FIXTURE,
+                           "reviews": [dict(owner_review(H0, NOW), id=RID)], "mandate": mandate(NOW),
+                           "pr_body": "## Summary\n"}, mandate=CB)
+    check("... and with #2401's own reviews (a mandated owner approval at the head, a body with no "
+          "raise justification) it still merges: the justification is a raise's alone",
+          rc == 0 and merged(calls))
+    PLANT = {"approve": owned, "files": BUDGET, "budgets": RAISE_FIXTURE}
+    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW),
+                               pr_body="## Summary\n\n## Raise justification\n\nWe need it.\n"), mandate=CB)
+    check("a planted raise whose mandated approval sits at the head but whose body is deficient "
+          "stops, naming the raise and BOTH missing lines",
+          rc == 1 and not merged(calls) and not approved(calls)
+          and "tests/structure_budgets.json: m: 3 -> 4" in lines[-1]
+          and "`Payments tried:`" in lines[-1] and "`Architecture score: dS`" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW),
+                               pr_body=JUST), mandate=CB)
+    check("a planted raise with a healthy body under the mandate in force lands as the owner's, "
+          "nothing re-posted", rc == 0 and merged(calls) and not approved(calls)
+          and any("approved (owner)" in ln for ln in lines))
+    rc, lines, calls = go(dict(PLANT, reviews=[], mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("a planted raise with no owner review stops, and the Stop carries the gate's why",
+          rc == 1 and not merged(calls) and "a raise is the owner's" in lines[-1]
+          and "no decisive review by" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW - datetime.timedelta(minutes=30)), id=RID)],
+                               mandate=mandate(NOW, until_min=-10), pr_body=JUST), mandate=CB)
+    check("a planted raise approved while its mandate was in force, the mandate expired before the "
+          "merge, stops: the mandate is judged AT THE MERGE, not at the review",
+          rc == 1 and not merged(calls) and "expired" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, budgets=None, reviews=[dict(owner_review(H0, NOW), id=RID)],
+                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("fail closed: a budget path the diff names that neither tree holds is a Stop, never "
+          "a no-raise", rc == 1 and not merged(calls) and not approved(calls)
+          and "budget read failed" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, ls_fail=True, reviews=[dict(owner_review(H0, NOW), id=RID)],
+                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("fail closed: a tree that cannot be listed is a Stop", rc == 1 and not merged(calls)
+          and not approved(calls) and "budget read failed" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, show_fail=True, reviews=[dict(owner_review(H0, NOW), id=RID)],
+                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("fail closed: a budget blob the tree lists but git cannot read is a Stop even under the "
+          "owner's approval -- never its error text read as an unparsable file the approval then holds",
+          rc == 1 and not merged(calls) and not approved(calls) and "budget read failed" in lines[-1])
     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
