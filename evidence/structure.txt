@@ -1,4 +1,0 @@
-  ok   methods_over_200 9 <= 9
-  ok   seam_cut_total 719 <= 719
-
-STRUCTURE RATCHET PASSED

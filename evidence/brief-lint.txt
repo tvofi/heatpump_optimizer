@@ -1,0 +1,9 @@
+
+== dev/programme/rosters/wave-r10-groups.json ==
+  ERROR   [R10-SCORES] path:line: coordinator.py:10281: 'heat_loss_coefficient' not found near custom_components/heatpump_optimizer/coordinator.py:10281; found at line 1079 instead
+  WARNING [R10-RCA-FRICTION] path:line: fix-review.md:29: no anchor text extracted near the citation; line range only
+  -- 1 error(s), 1 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 1 error(s) across 1 file(s)
