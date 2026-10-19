@@ -1,0 +1,4 @@
+  record   red-history           7 commit(s) between origin/main and this head, every failure conclusion across them: arch-score, env-matrix, nightly-status, validate-hacs
+
+PR-BODY: 0 error(s) in ../ev/body.md
+rc=0

@@ -1,0 +1,3 @@
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+STRUCTURE RATCHET PASSED
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since c3530277373d
