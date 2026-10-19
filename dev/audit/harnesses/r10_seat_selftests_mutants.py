@@ -8,11 +8,13 @@ Run from a clean checkout of the branch: every mutant edits the committed
 file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
-does (its `run:` text, under `bash -e`, with RUNNER_TEMP set and a throwaway
-HOME) and must exit 0 for each. S01..S29 each plant one production-line
+does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S30 each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
-step on the unmutated file must pass first (NOT RUN otherwise). W1..W3 drive
+step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
+PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
+W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
 naming its file, and a trailing comment, each of which must redden it.
 Prints one line per mutant, `KILLED` or `SURVIVED`, with the step's last
@@ -89,7 +91,11 @@ MUTANTS = [
     ("S26", "tick_loop.sh", '[ "$rrc" = 0 ] && rrc=ok', '[ "$rrc" != 0 ] && rrc=ok'),
     ("S28", "offline_spy.py", "and bool(URL_RE.search(parts[2])))", "and False)"),
     ("S29", "selftest_wiring.py", 'return [COMMENT_RE.sub("", x) for x in out]', "return out"),
+    ("S30", "selftest_wiring.py", "return 1 if unwired else 0", "return 0"),
 ]
+
+# Mutants run with extra step environment: (name, base mutant, env).
+ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 WRAPPERS = [
@@ -130,7 +136,7 @@ def step_for(file: str) -> tuple[str, str]:
     return hits[0]
 
 
-def run_step(run: str) -> tuple[int, str]:
+def run_step(run: str, extra: dict | None = None) -> tuple[int, str]:
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp, "step.sh")
         script.write_text(run + "\n")
@@ -143,6 +149,8 @@ def run_step(run: str) -> tuple[int, str]:
             (pybin / name).symlink_to(sys.executable)
         env = dict(os.environ, RUNNER_TEMP=tmp, HOME=tmp, PYTHONDONTWRITEBYTECODE="1",
                    PATH=f"{pybin}{os.pathsep}{os.environ.get('PATH', '')}")
+        env.pop("PYTHONUNBUFFERED", None)
+        env.update(extra or {})
         p = subprocess.run(["bash", "-e", str(script)], cwd=ROOT, env=env,
                            capture_output=True, text=True, timeout=900)
     lines = (p.stdout + p.stderr).strip().splitlines()
@@ -179,7 +187,10 @@ def main(want: list[str]) -> int:
             print(f"== M0 rc={rc} {name} | {last}", flush=True)
         print(f"== M0: {bad} seat step(s) red")
         survivors += bad
-    for name, file, old, new in MUTANTS + WRAPPERS:
+    by_name = {m[0]: m for m in MUTANTS + WRAPPERS}
+    plan = [(*m, {}) for m in MUTANTS + WRAPPERS] + [
+        (name, *by_name[base][1:], env) for name, base, env in ENV_MUTANTS]
+    for name, file, old, new, extra in plan:
         if not pick(name):
             continue
         path = ROOT / SEAT / file
@@ -189,12 +200,15 @@ def main(want: list[str]) -> int:
         _, run = step_for(file)
         # The null control per mutant: the same step on the unmutated file
         # must pass, or a red below says nothing about the mutant.
-        base = baseline.setdefault(run, run_step(run))
+        key = (run, tuple(sorted(extra.items())))
+        if key not in baseline:
+            baseline[key] = run_step(run, extra)
+        base = baseline[key]
         if base[0] != 0:
             survivors += 1
             print(f"== {name} {file}: NOT RUN, the step is red unmutated | {base[1]}", flush=True)
             continue
-        rc, last = mutate(path, old, new, lambda: run_step(run))
+        rc, last = mutate(path, old, new, lambda: run_step(run, extra))
         verdict = "NOT RUN" if rc == -1 else ("KILLED" if rc else "SURVIVED")
         survivors += rc <= 0
         print(f"== {name} {file}: {verdict} rc={rc} | {last}", flush=True)

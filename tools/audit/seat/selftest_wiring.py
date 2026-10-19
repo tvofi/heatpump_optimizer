@@ -29,6 +29,8 @@ exit is ignored (`continue-on-error`, `|| true`).
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import re
 import sys
 import tempfile
@@ -158,6 +160,17 @@ def self_test() -> int:
                                  "e.md": "--self-test\n"}))
     ck("the enumeration takes --self-test and a case arm, not a file without one "
        "or a .md", tests == ["a.py", "b.sh", "c.sh"] and unwired == tests)
+    # The refusal is report()'s exit code, which `--check` returns: grade it,
+    # not only check()'s list (a `return 0` there passed every check above).
+    for name, want, wf in ((
+            "--check exits 1 on an unwired file", 1, head + "      - run: true\n"), (
+            "--check exits 0 when every file is wired (null control)", 0,
+            head + "      - run: python3 -I tools/audit/seat/a.py --self-test\n")):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc = report(tree(wf, st))
+        ck(f"{name} (rc={rc})", rc == want
+           and f", {want} unwired" in out.getvalue())
     print(f"selftest_wiring self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
