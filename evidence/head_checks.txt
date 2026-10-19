@@ -1,0 +1,10 @@
+train/preflight/gate diff 86cecbf07..HEAD lines: 0
+merge_pr.sh/proof_watch diff 0ed4aceb2..HEAD (incl later commits): 0
+3ab409ce parents 1e6e79caa3b2a9f438e055cda1df52dd77eac930 fa424fd91a042f4a66ae53238c3db6d70d9d4ff1  auto=4b1d5f952d87ad0a3a9e27323047b4f3994dedeb actual=4b1d5f952d87ad0a3a9e27323047b4f3994dedeb
+class rule (body step 8): 0 hits at head; 2 at 86cecbf07
+unchecked t.run in replay: 
+60:    rc, text = t.run(list(argv))
+89:        real = t.run
+95:        t.run = run
+115:            t.run = t._run  # a BASE answers its own entry only
+DELIVERY STATUS OK — 140 rowed, 6 pending, 0 overdue (overdue at 12 commits)

@@ -1,9 +1,0 @@
-#2401 head HTTP 403: Gi base fatal: Not a
-  path : none (no budget path)
-  gate : 0 raise(s), HOLDS: no budget file changed
-#2373 head HTTP 403: Gi base fatal: Not a
-  path : none (no budget path)
-  gate : 0 raise(s), HOLDS: no budget file changed
-#2368 head HTTP 403: Gi base fatal: Not a
-  path : none (no budget path)
-  gate : 0 raise(s), HOLDS: no budget file changed

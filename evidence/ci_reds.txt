@@ -1,0 +1,9 @@
+check-runs API on e9c0092e (41 runs, read ~03:51Z 2026-10-19). Red, each with its log cause:
+pr-contract 117878418733  "gh: API rate limit exceeded for installation (HTTP 403)" fetching the body; then FIGURES: /tmp/pr-body.md is unreadable
+pr-contract 117879215120  jq: Could not open /tmp/pr-body.md (body fetch failed upstream, same cause)
+arch-score 117878422039   gh: API rate limit exceeded for installation (HTTP 403) reading pulls/2421
+arch-score 117878418829   gh: API rate limit exceeded for installation (HTTP 403) reading pulls/2421
+validate-hacs 117878422086 aiogithubapi GitHubRatelimitException: API rate limit exceeded for installation
+env-matrix 117878422095   15 held, 1 did not: "pr / nothing skipped ... the GitHub API is unreachable ... required-context set is UNCHECKED"
+nightly-status 117878422708 NIGHTLY UNREADABLE: HTTP 403 ... (rate limit exhausted)
+In progress at read: coverage, Analyze (python). Green: fast (3.14), typing, browser, mutation, closure-scope, budget-raise-gate x2, instrument-self-tests, delivery-status, wave-script, policy-docs, briefs, hassfest, scope, Analyze (actions, js-ts). CodeQL neutral; rest skipped.

@@ -1,0 +1,20 @@
+== S3
+  FAIL gh unauthenticated (HTTP 403) prints a Stop and exits non-zero, never a hold
+  FAIL git fetch failing prints a Stop and exits non-zero, never a hold
+  FAIL git merge-base failing prints a Stop and exits non-zero, never a hold
+  FAIL git diff failing prints a Stop and exits non-zero, never a hold
+  FAIL a head that is not 40-hex is a Stop even when gh exits 0
+  FAIL a base that is not 40-hex is a Stop even when git exits 0
+replay self-test: 6 failed
+main rc with failing gh: 0
+== S4
+  FAIL git fetch failing prints a Stop and exits non-zero, never a hold
+replay self-test: 1 failed
+main rc with failing gh: 1
+== S5
+replay self-test: 0 failed
+main rc with failing gh: 0
+== S6
+  FAIL a base that is not 40-hex is a Stop even when git exits 0
+replay self-test: 1 failed
+main rc with failing gh: 1
