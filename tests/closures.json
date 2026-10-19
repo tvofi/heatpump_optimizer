@@ -569,6 +569,7 @@
    "tests/card.mjs",
    "tests/card_rig.mjs",
    "tests/dom_stub.mjs",
+   "tests/env_drift.py",
    "tests/golden/card_claimed_drift.txt",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
@@ -4176,11 +4177,11 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 239.1
+   "seconds": 726.5
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 18.7
+   "seconds": 44.6
   },
   "tests/card_drift.mjs": {
    "rc": 0,
