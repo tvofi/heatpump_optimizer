@@ -1,0 +1,13 @@
+RESULT deleted=41 old=7.0.0 restored=12 stale=7
+names new 19 v7.0.0 19 dups new []
+only new [] only v7.0.0 []
+RESULT verbatim_blocks=19/19 differ=[]
+RESULT first_lines_equal= True 19 19
+stale valve_storage_smart_write tail==live: True
+stale wood_two_tank tail==live: True
+stale wood_two_tank_smart_write tail==live: True
+stale wood_coil tail==live: True
+stale valve_upper_direct_slab tail==live: True
+stale winter_two_zone_no_dhw tail==live: True
+stale valve_storage tail==live: True
+suspends left: False

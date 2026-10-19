@@ -1,0 +1,84 @@
+61a62,86
+> # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+> # (option (a)): the move's margin is inside the noise band (objective rel
+> # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+> # BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
+> # price_known/baseline_cost) still fail. Remove when drift lanes are pinned
+> # or the polish improvement scale leaves 5e-5-2e-2.
+> # R10-PUMP-MODEL (D2-s2-01, #2238): the hot-water tank pays the flow lift at its
+> # own water temperature on both plants, where a direct plant used to apply a
+> # linear 0.008/K penalty instead. Direction, measured base 92accb2cf vs this
+> # head in one environment: the tank's modelled COP falls (0.62x the space curve
+> # at a 55 C tank and 8 C outdoor, against the penalty's 0.84x), so the plan is
+> # re-solved and the always-hot baseline's DHW costs more -- baseline_cost is up
+> # on every claimed fixture below, and the other plan keys move either way. 41 of
+> # the 56 scenarios move; winter_single_no_dhw is byte-identical, which is the
+> # null (its scenario has no hot water). Twelve of the claimed fixtures carry a
+> # may-drift entry, whose judged keys (baseline_cost here, on all twelve) a
+> # may-drift entry cannot excuse and a name cannot be both, so those entries are
+> # suspended above for this release: capacity_tariff_15min, cycling_cost,
+> # direct_flow_carnot, everything_on, flat_prices, fuse_guard, narrow_band,
+> # precip_snow, shoulder, shoulder_two_zone, tariff_plus_two_zone and
+> # winter_two_zone_dhw. This is the R8-P3 wood_coil precedent; their removal
+> # conditions are unmet, so a later branch restores each entry as the wood_coil
+> # one was restored.
+> #
+> #
+72,73c97
+< # (R10-SAV-BASELINE suspends shoulder_two_zone's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) shoulder_two_zone -- #1208 polish-every-candidate, third name
+---
+> # may-drift: shoulder_two_zone -- #1208 polish-every-candidate, third name
+81,82c105
+< # (R10-SAV-BASELINE suspends capacity_tariff_15min's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) capacity_tariff_15min -- #1207 keep-gate (2e-2 -> 2e-5), owner
+---
+> # may-drift: capacity_tariff_15min -- #1207 keep-gate (2e-2 -> 2e-5), owner
+89,90c112
+< # (R10-SAV-BASELINE suspends cycling_cost's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+---
+> # may-drift: cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+96,97c118
+< # (R10-SAV-BASELINE suspends everything_on's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
+---
+> # may-drift: everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
+103,104c124
+< # (R10-SAV-BASELINE suspends narrow_band's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) narrow_band -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+---
+> # may-drift: narrow_band -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+110,111c130
+< # (R10-SAV-BASELINE suspends shoulder's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) shoulder -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+---
+> # may-drift: shoulder -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+117,118c136
+< # (R10-SAV-BASELINE suspends winter_two_zone_dhw's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) winter_two_zone_dhw -- #1207 keep-gate (2e-2 -> 2e-5), owner
+---
+> # may-drift: winter_two_zone_dhw -- #1207 keep-gate (2e-2 -> 2e-5), owner
+129,130c147
+< # (R10-SAV-BASELINE suspends direct_flow_carnot's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) direct_flow_carnot -- #1207 keep-gate (2e-2 -> 2e-5), widened
+---
+> # may-drift: direct_flow_carnot -- #1207 keep-gate (2e-2 -> 2e-5), widened
+138,139c155
+< # (R10-SAV-BASELINE suspends fuse_guard's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) fuse_guard -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+---
+> # may-drift: fuse_guard -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+146,147c162
+< # (R10-SAV-BASELINE suspends precip_snow's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) precip_snow -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+---
+> # may-drift: precip_snow -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+154,155c169
+< # (R10-SAV-BASELINE suspends tariff_plus_two_zone's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) tariff_plus_two_zone -- #1207 keep-gate (2e-2 -> 2e-5),
+---
+> # may-drift: tariff_plus_two_zone -- #1207 keep-gate (2e-2 -> 2e-5),
+162,163d175
+< # (R10-SAV-BASELINE suspends valve_storage's may-drift entry for its claim below; restore it,
+< #  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
