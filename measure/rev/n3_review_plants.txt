@@ -1,20 +1,20 @@
 Q1 swap steps 2,3 of coverage: 'Key the per-script coverage' <-> "Restore the base's per-script coverage"
   CHANGED  coverage|order  85858aa70889 -> fe12480e7962
     first difference at step 2: before 'coverage|Key the per-script coverage', after "coverage|Restore the base's per-script coverage"
-  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) misplaced 0 rc 1
   -> rc 1  (refused)
 
 Q1b move step 3 of coverage ("Restore the base's per-script coverage") to the end of the job
   CHANGED  coverage|order  85858aa70889 -> 413588da014f
     first difference at step 3: before "coverage|Restore the base's per-script coverage", after "coverage|Check the restored coverage is main's push run's"
-  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) rc 1
+  STATIC rows 247->247 lost 0 gained 0 changed 1 (mapped 0) misplaced 0 rc 1
   -> rc 1  (refused)
 
 Q2 (control) move a step from coverage to cancel-superseded
   LOST     coverage|uses:actions/setup-python@<sha>
   GAINED   cancel-superseded|uses:actions/setup-python@<sha>
-  STATIC rows 247->247 lost 1 gained 1 changed 0 (mapped 0) rc 1
+  STATIC rows 247->247 lost 1 gained 1 changed 0 (mapped 0) misplaced 0 rc 1
   -> rc 1  (refused)
 
-  STATIC rows 247->247 lost 0 gained 0 changed 0 (mapped 0) rc 0
+  STATIC rows 247->247 lost 0 gained 0 changed 0 (mapped 0) misplaced 0 rc 0
 null: rc 0

@@ -10,8 +10,11 @@ composition, at its source; owner ruling D-4), plus the inert `ci.yml` stub. Wha
 changed and why is in `RESPONSE.md`, one section per review item; inline markers
 read *(rev1, item N)*. **Revision 2** (2026-10-18, answering the round-2 review
 `probe/design-ci-review2`, `d63cbe42`) changes one thing here, the static half of
-the per-unit null control (section 4, round-2 item N3, marked *(rev2, N3)*);
-everything else in this file is revision 1's. Paths: this design's measurements are under `measure/p1/`
+the per-unit null control (section 4, round-2 item N3, marked *(rev2, N3)*).
+**Revision 3** (2026-10-19, answering the round-3 review `probe/design-ci-review3`,
+`f731b201`) changes the same section once more, forced by round-3 item R3-3: a
+gained step must be placed (marked *(rev3, R3-3)*), and the map below places its
+one gained step; everything else in this file is revision 1's. Paths: this design's measurements are under `measure/p1/`
 (cited below by bare file name, as before), phase 2's under `measure/p2/`, and
 revision 1's own instruments under `measure/rev/`. Owner rulings already made: D-1
 approve; D-4 drop C1 in PR 1 once the proof is shown covered (section 2(c) shows it).
@@ -544,7 +547,13 @@ Each job also has a `<job>|order` row: the ordered list of the step keys both si
 keep, after the map's renames and less its drops and gains, so a step moved before
 or after another is refused (order is semantic: a guard moved after what it guards,
 a restore after the program it restores) while an admitted drop or gain moves only
-its own row. Every step counts whether or not a run executed it. A closed map lists the intended `renames`,
+its own row. *(rev3, R3-3)* Because that row compares only the steps both sides
+keep, a gained step was unchecked for position: the round-3 seat inserted one before
+`coverage`'s checkout and it passed. So a gained step of a job both sides have must
+also be **placed**: the map's `after` names the step key it follows (`<job>|^` for
+the first position), and a gained step the map does not place, or that sits
+anywhere else, is refused (`UNPLACED`, `MISPLACED`). The steps of a wholly gained
+job need no placement; the job is new and its rows are printed. Every step counts whether or not a run executed it. A closed map lists the intended `renames`,
 `dropped`, `gained` and `changed` rows; each admitted `changed` row is printed before
 and after, so the reviewer reads exactly the edits the map lets through. Its
 self-test (`measure/rev/unitcheck2_selftest.txt`, over main's `tests.yml`): the file
@@ -553,9 +562,15 @@ job deleted, every conditional step of `fast` deleted, a `closures` step gutted)
 and a changed `if:`, a widened job grant and a widened file floor each fail; a
 mapped drop and a mapped change pass. *(rev2, N3)* The round-2 plants Q1 (two
 `coverage` steps swapped) and Q1b (its restore step moved to the job's end) fail; the
-same swap admitted as `coverage|order` and a mapped step drop pass. `SELF-TEST ok
-(16/16)`; the round-2 seat's own `plant_unitcheck2.py`, run against it, refuses Q1,
-Q1b and its control Q2 (`measure/rev/n3_review_plants.txt`).
+same swap admitted as `coverage|order` and a mapped step drop pass. *(rev3, R3-3)*
+The round-3 plants G1 (a gained step the map places at the end, inserted before the
+checkout) and G1b (a gained step the map does not place) fail; G2 (placed at the end,
+found there) and G2b (placed first with `coverage|^`, found there) pass. `SELF-TEST ok
+(20/20)`; the round-2 seat's own `plant_unitcheck2.py`, run against it, refuses Q1,
+Q1b and its control Q2 (`measure/rev/n3_review_plants.txt`), and the round-3 seat's
+`plant_unitcheck3.py` now refuses its G1 and G3 as well as its Q1 control, with the
+null at 0 (`measure/rev/r3_review_plants.txt`; its G2 is refused too, because its map
+gives the gained step no position).
 
 For PR 1 BEFORE is main's `tests.yml`; AFTER is
 `tests.yml+nightly.yml+.github/actions/nightly-ha/action.yml` at the PR head, whose jobs the instrument merges into one mapping. The one id both workflow files hold,
@@ -584,6 +599,9 @@ renames:  nightly-ha|<each step> -> action:nightly-ha|<the same step>
           `action:nightly-ha`, so a step moved verbatim shows nothing)
 gained:   nightly-ha|uses:./.github/actions/nightly-ha and the same in nightly:nightly-ha;
           every other nightly:nightly-ha row
+after:    nightly-ha|uses:./.github/actions/nightly-ha -> the step key it follows in the
+          PR arm at the head (rev3, R3-3: a gained step of a job both sides have is
+          placed; nightly:nightly-ha is a wholly gained job, so its rows need none)
 ```
 
 A fixer enumerates the `<…>` rows exactly from the before file; anything the map does

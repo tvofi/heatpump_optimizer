@@ -2,6 +2,10 @@
 implementation `tools/ci/gate.py` ports, line for line, and the function
 `gate_replay2.py` replays (review item 10). Pure: every input is passed in.
 Revision 2 changes one rule, the defer rule (`judging`, round-2 item N2).
+Revision 3 (round 3) hardens `judging` so it no longer rests on when the jobs API
+lists a job (R3-2), refuses a PR whose head is not in this repository (R3-4), and
+fails an attempt at ATTEMPT_CAP or above, so an exhausted run is red by
+construction (round-3 editorial, "never stale-green").
 
 Nothing here is taken on the prelude's word. Applicability comes from the event
 (`github.event_name`, `github.event.action`, `github.event.changes.base`, the
@@ -27,6 +31,7 @@ BODY = {
 REQUIRED = {**CODE, **BODY}
 BODY_ON_EDIT = {"arch-score", "budget-raise-gate", "pr-contract"}
 BODY_ON_REVIEW = {"budget-raise-gate"}       # owner variant: a review re-runs only budget-raise-gate and gate
+ATTEMPT_CAP = 45     # GitHub fails a run's 51st attempt; the hooks never take a run past 45 (DESIGN-P2.md 4.3)
 
 
 def derive(ctx: dict) -> tuple[str, str, str]:
@@ -77,16 +82,36 @@ def workset(kind: str, pr: str) -> set[str]:
 
 def judging(run: dict) -> bool:
     """Revision 2 (round-2 item N2): a run that can add no source is not waited on.
-    Its `gate` job is listed (the jobs API lists a job only once its needs, every
-    unit and pr-contract, have finished) and no listed job of a required unit, nor
-    the prelude, is unfinished (a human's "re-run failed jobs" re-runs a unit job
-    beside the gate, and that run IS still adding a source). Such a run is only
-    re-judging: a `gate` attempt of refresh or the sweep, or its own first gate. Two
-    re-judgements at one head therefore never defer on each other: each reads the
-    same completed sources and returns the same answer."""
+    Its `gate` job is listed and no listed job of a required unit, nor the prelude,
+    is unfinished (a human's "re-run failed jobs" re-runs a unit job beside the gate,
+    and that run IS still adding a source). Such a run is only re-judging: a `gate`
+    attempt of refresh or the sweep, or its own first gate. Two re-judgements at one
+    head therefore never defer on each other: each reads the same completed sources
+    and returns the same answer.
+
+    Revision 3 (round-3 item R3-2): revision 2 also relied on "the jobs API lists a
+    job only once its needs have finished", which GitHub does not document (the job
+    status enum has `waiting`, `pending`, `requested`). So the run must also show
+    every job it owes, listed and completed: every required name of every unit its
+    own title's kind and PR owe (`workset`), `tests / closure-scope` aside on a run
+    that names no PR (a push never runs it; any other run lists it before the tests
+    jobs that need it). A `gate` listed early, while units are still to come, then
+    leaves the run waited on, whatever the jobs API lists when."""
     jobs = run.get("jobs") or {}
-    return "gate" in jobs and all(st[0] == "completed" for k, st in jobs.items()
-                                  if k == "prelude" or k.split(" / ")[0] in REQUIRED)
+    if "gate" not in jobs or not all(st[0] == "completed" for k, st in jobs.items()
+                                     if k == "prelude" or k.split(" / ")[0] in REQUIRED):
+        return False
+    t = parse_title(run.get("title") or "")
+    if t is None:
+        return False                        # unreadable: never treated as finished (gate() also refuses it)
+    for u in workset(t[0], t[1]):
+        for n in REQUIRED[u]:
+            if u == "tests" and n == "closure-scope" and not t[1]:
+                continue
+            st = jobs.get(f"{u} / {n}")
+            if st is None or st[0] != "completed":
+                return False
+    return True
 
 
 def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
@@ -95,7 +120,8 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
       jobs           {"<unit> / <name>": (status, conclusion)} of THIS run, latest attempts
       runs_at_head   [{"id", "title", "status", "jobs"}] every OTHER ci.yml run at the head
                      (jobs: its latest attempt's, `filter=latest`, `gate` included)
-      live_pr        {"head_sha", "base_ref", "state"} of the PR named, or None
+      live_pr        {"head_sha", "base_ref", "state", "same_repo"} of the PR named, or None
+                     (same_repo: its head repository is this repository, revision 3, R3-4)
       open_pr_heads  set of SHAs that head an open PR (only read on an unnamed dispatch)
       reaches_cc     the three-dot diff touches custom_components/ (git, in the gate job)
 
@@ -115,6 +141,10 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         return False, [f"prelude: {pre.get('conclusion')}"]
     if (pre.get("kind"), pre.get("pr", "")) != (kind, pr):
         return False, [f"prelude says kind={pre.get('kind')} pr={pre.get('pr')!r}, the event says kind={kind} pr={pr!r}"]
+    # Revision 3 (round-3 editorial): an attempt the hooks may not re-run again reads
+    # red whatever it finds, so an exhausted run can never be left stale-green.
+    if int(ctx.get("run_attempt", 1)) >= ATTEMPT_CAP:
+        return False, [f"attempt {ctx.get('run_attempt')} of this run is at the cap ({ATTEMPT_CAP}): push a new commit"]
     if ev == "workflow_dispatch":
         if pr:
             lp = api.get("live_pr")
@@ -133,6 +163,12 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         if not lp:
             return False, [f"PR {pr} could not be read"]
         judge_base = lp["base_ref"]
+        # Revision 3 (round-3 item R3-4): a fork PR gets no supersession and no refresh
+        # (its token cannot cancel or re-run), and pr-contract already refuses any
+        # author but the hpo-author App, whose pushes land on branches here. The gate
+        # refuses it outright, so no gate at a fork head is ever green, stale or not.
+        if lp.get("same_repo") is not True:
+            return False, [f"PR {pr}: its head is not in this repository (a fork PR is not gated here)"]
     others = [r for r in api["runs_at_head"] if r["id"] != ctx["run_id"]]
     busy = sorted(r["id"] for r in others if r["status"] not in ("completed", "action_required") and not judging(r))
     if busy:

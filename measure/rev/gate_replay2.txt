@@ -55,6 +55,11 @@ heads 22: agree 22, differ by design 0, differ otherwise 0
   ok  rev2: ... the same, its units red: not waited on, and its red units are read               gate FAIL  tests / closures: failure (run 1500)
   ok  rev2: ... a unit job re-running beside the listed gate (re-run failed jobs): deferred      gate FAIL  run(s) [1500] at this head are still being judged; their gate decides
   ok  rev2: ... the run is in progress and its gate is not listed yet: deferred                  gate FAIL  run(s) [1500] at this head are still being judged; their gate decides
+  ok  rev3: ... gate listed `waiting` while the run's tests jobs are not yet listed: deferred (R3-2) gate FAIL  run(s) [1500] at this head are still being judged; their gate decides
+  ok  rev3: ... the same with every owed job listed and completed: not waited on (null for the row above) gate pass  
+  ok  rev3: a fork PR (head outside this repository) with every source green: refused (R3-4)     gate FAIL  PR 7: its head is not in this repository (a fork PR is not gated here)
+  ok  rev3: the same edit run at attempt 45 (the cap): red by construction (editorial)           gate FAIL  attempt 45 of this run is at the cap (45): push a new commit
+  ok  rev3: ... at attempt 44: judged as usual (null)                                            gate pass  
   ok  edit run: an earlier run at the head has an unreadable title                               gate FAIL  run 1600: unreadable title 'Tests'
   ok  edit run: a held run at the head is neither waited for nor a source                        gate pass  
   ok  code run: hassfest skipped in the NEWEST run that owns it: never filled from an older one (12(c)) gate FAIL  hassfest / hassfest: SKIPPED (this run)

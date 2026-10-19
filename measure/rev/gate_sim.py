@@ -2,7 +2,8 @@
 
     python3 -I measure/rev/gate_sim.py > measure/rev/gate_sim.txt
 
-Review items 1, 2, 3, 4, 10 and 12(c); revision 2 adds round-2 items N1 and N2.
+Review items 1, 2, 3, 4, 10 and 12(c); revision 2 adds round-2 items N1 and N2;
+revision 3 adds round-3 items R3-1, R3-2 and R3-4 (see "Revision 3" below).
 Each scenario is a timed sequence of PR events. The simulator applies GitHub's
 documented concurrency rule (design review ev/gh_docs_actions-group-concurrency.md:
 at most one running and ONE pending run per group; a newly queued run CANCELS the
@@ -33,7 +34,9 @@ Three layouts are replayed over the SAME scenarios:
   REV1 revision 1 as written (code / edit / review lanes with cancel-in-progress;
        the defer rule waits for EVERY unfinished run at the head). Kept to show that
        the fixed model reproduces both round-2 defects.
-  REV2 revision 2 (DESIGN-P2.md 2.2, 4.1, 4.3): every run in its own run-id group
+  REV2 revision 2, carrying revision 3's rules since round 3 (the name is kept so the
+       round-3 seat's instruments, which build World("REV2", ...), run unchanged)
+       (DESIGN-P2.md 2.2, 4.1, 4.3): every run in its own run-id group
        (a re-run joins a group that holds only itself, so N1 cancels nothing);
        `cancel-superseded` (tools/pr/cancel_superseded.py, unchanged rule) cancels
        older runs at a DIFFERENT head only, CANCEL_SUP s after a run starts, from a
@@ -50,6 +53,28 @@ Three layouts are replayed over the SAME scenarios:
        push resets it), never stale-green.
        CHAIN: whether a re-run attempt's own green completion fires the sweep again
        (a `workflow_run` per attempt). Unmeasured, so both arms are scored.
+
+Revision 3 (round 3):
+  R3-1 THE SWEEP POLLS. A gate attempt that read red while a newer run was busy can
+       still be RUNNING when that run's green gate fires the sweep (job teardown and
+       run finalisation lie between its read and its completion), and the sweep
+       cannot re-run a running run. So `gate.py --sweep`, after re-running every older
+       completed red gate at the head, polls every older run whose gate attempt is
+       in progress, every SWEEP_POLL s for at most SWEEP_WAIT s, and re-runs each that
+       completes red while the head is still live and the triggering run's latest gate
+       is still green AND began after every run at the head was created (its verdict
+       covers the newest event; else a newer run's own sweep owns convergence, and a
+       chained sweep from an older run would re-run gates that read red again). A TAIL arm makes a re-run attempt (or every attempt) complete
+       TAIL s later than its read; READ-LATE moves the read to 2 s before completion
+       (the null: only the read-to-completion gap matters). REV2 must score 0 END-BAD
+       over every TAIL; the `poll` ablation (revision 2's sweep) reproduces the
+       round-3 failures.
+  R3-2 EARLY LISTING. Arm EARLY lists a run's `gate` job as `waiting` from the moment
+       its units are scheduled (the platform fact revision 2 relied on, reversed).
+       REV2's hardened `judging` must still score; revision 2's (`listed` ablation)
+       does not.
+  R3-4 A fork PR: the plant `fork` is refused under all three readings.
+  The gate is passed its run's attempt; an attempt at ATTEMPT_CAP reads red.
 
 The ORACLE is independent of all three: once every run has completed, the PR should
 be mergeable iff every code unit is green at (final head, final base) and the body
@@ -79,11 +104,15 @@ DUR = {"tests": 2000, "codeql": 1300, "governance": 190, "hassfest": 30, "valida
        "arch-score": 60, "budget-raise-gate": 16, "pr-contract": 28}
 PRELUDE, GATE, GATE_READ, CANCEL_LAG, CANCEL_SUP, WINDOW_OK = 5, 15, 5, 5, 10, 120
 REFRESH, SWEEP = 10, 20      # seconds from a PR event's run start to its refresh re-runs; from a green gate to the sweep
-ATTEMPT_CAP = 45             # gate.py's hooks never take a run past this attempt (GitHub fails the 51st)
+SWEEP_POLL, SWEEP_WAIT = 5, 600   # rev3, R3-1: the sweep polls running older gate attempts, bounded
+ATTEMPT_CAP = G.ATTEMPT_CAP  # gate.py's hooks never take a run past this attempt (GitHub fails the 51st)
+TAILS = (0, 20, 30, 35, 40, 45, 50, 60, 120, 300)   # rev3, R3-1: the round-3 seat's grid
 CODE_U = list(G.CODE)
 
 
 class World:
+    tail, tail_all, read_late, early = 0, False, False, False      # rev3 arms (R3-1, R3-2)
+
     def __init__(self, layout, truth, plant=None, ablate=(), chain=True):
         self.layout, self.truth, self.plant, self.ablate, self.chain = layout, truth, plant or {}, set(ablate), chain
         self.runs, self.t, self.nid = [], 0, 100
@@ -230,6 +259,8 @@ class World:
             for u in set(G.REQUIRED) - units:          # skipped caller rows
                 for n in G.REQUIRED[u]:
                     r["jobs"][f"{u} / {n}"] = ("completed", "skipped")
+            if self.early:                             # rev3, R3-2: the gate job listed before its needs end
+                r["jobs"]["gate"] = ("waiting", None)
         for u, (s, e) in list(r["sched"].items()):
             if u not in r["done"] and self.t >= e:
                 ok = self.outcome(u, r, s)
@@ -248,6 +279,9 @@ class World:
         +GATE_READ, completes at +GATE (N2)."""
         r["gate_t0"], r["gate_read"] = self.t, None
         r["jobs"]["gate"] = ("in_progress", None)
+        x = self.tail if (r["attempt"] > 1 or self.tail_all) else 0      # rev3, R3-1: the TAIL arm
+        r["gate_len"] = GATE + x
+        r["gate_rd"] = (GATE - 2 + x) if self.read_late else GATE_READ
         r["gate_entry"] = {"created": self.t, "completed": None, "ok": None, "run": r["id"], "head": r["head"]}
         self.gates.append(r["gate_entry"])
 
@@ -255,9 +289,9 @@ class World:
         t0 = r.get("gate_t0")
         if t0 is None or r["status"] != "in_progress":
             return
-        if phase == "read" and r["gate_read"] is None and self.t >= t0 + GATE_READ:
+        if phase == "read" and r["gate_read"] is None and self.t >= t0 + r.get("gate_rd", GATE_READ):
             r["gate_read"] = self.eval_gate(r)
-        if phase == "finish" and self.t >= t0 + GATE:
+        if phase == "finish" and self.t >= t0 + r.get("gate_len", GATE):
             self.finish_gate(r)
 
     def finish_gate(self, r):
@@ -275,10 +309,43 @@ class World:
         es = [g for g in self.gates if g["run"] == r["id"]]
         return max(es, key=lambda g: g["created"]) if es else None
 
+    def rerun_gate(self, o):
+        o["attempt"] += 1
+        o["status"], o["conclusion"] = "in_progress", None
+        self.enter_group(o, "re-run of")                 # N1
+        self.start_gate(o)
+
+    def covers_newest(self, src):
+        """rev3, R3-1: src's latest gate is green and completed, and it started after
+        every run at its head was created, so its verdict covers the newest event.
+        Otherwise a newer run exists whose own sweep owns convergence (and polls)."""
+        g = self.latest_gate(src)
+        newest = max(o["created"] for o in self.runs if o["head"] == src["head"])
+        return bool(g and g["completed"] is not None and g["ok"] and g["created"] >= newest)
+
     def hooks(self):
         for item in [x for x in self.todo if x[0] == self.t]:
             self.todo.remove(item)
-            _, what, src = item
+            what, src = item[1], item[2]
+            if what == "sweep-poll":
+                # rev3, R3-1: the sweep job is still polling run o's running gate attempt.
+                o, deadline = item[3], item[4]
+                if src["head"] != self.head:
+                    continue                                   # a push left the head: stop, as --sweep does
+                if o["status"] != "completed":
+                    if self.t + SWEEP_POLL <= deadline:
+                        self.todo.append((self.t + SWEEP_POLL, "sweep-poll", src, o, deadline))
+                    else:
+                        self.log.append((self.t, f"sweep: run {o['id']} still running at the bound; left as is"))
+                    continue
+                g = self.latest_gate(o)
+                if g and g["completed"] is not None and not g["ok"] and self.covers_newest(src):
+                    if o["attempt"] >= ATTEMPT_CAP - 1:
+                        self.log.append((self.t, f"sweep: run {o['id']} at attempt {o['attempt']} not re-run"))
+                        continue
+                    self.log.append((self.t, f"sweep: polled run {o['id']} completed red; re-run"))
+                    self.rerun_gate(o)
+                continue
             if what == "supersede":
                 # tools/pr/cancel_superseded.py: from a run at the live head, cancel every
                 # older active pull_request / dispatch run at a DIFFERENT head.
@@ -290,6 +357,13 @@ class World:
                 continue
             if src["head"] != self.head:                       # gate.py --refresh / --sweep: only at the live head
                 continue
+            if what == "sweep" and "poll" not in self.ablate and self.covers_newest(src):
+                # rev3, R3-1: every older run whose gate attempt is RUNNING now is polled to
+                # completion (it may have read red before src's gate went green).
+                for o in self.runs:
+                    if (o is not src and o["head"] == src["head"] and o["id"] < src["id"]
+                            and o["status"] == "in_progress" and o.get("gate_t0") is not None):
+                        self.todo.append((self.t + SWEEP_POLL, "sweep-poll", src, o, self.t + SWEEP_WAIT))
             for o in self.runs:
                 if o is src or o["head"] != src["head"] or o["status"] != "completed":
                     continue
@@ -302,20 +376,24 @@ class World:
                     if o["attempt"] >= (ATTEMPT_CAP if what == "refresh" else ATTEMPT_CAP - 1):
                         self.log.append((self.t, f"{what}: run {o['id']} at attempt {o['attempt']} not re-run"))
                         continue
-                    o["attempt"] += 1
-                    o["status"], o["conclusion"] = "in_progress", None
-                    self.enter_group(o, "re-run of")             # N1
-                    self.start_gate(o)
+                    self.rerun_gate(o)
 
     def eval_gate(self, r):
         ctx = {"event_name": r["event"], "action": r["action"], "changes_base": r["changes_base"],
                "pr_number": "7", "base_ref": r.get("base_ref", ""), "input_pr": r.get("input_pr", ""),
-               "input_base": r.get("input_base", ""), "sha": r["head"], "run_id": r["id"]}
+               "input_base": r.get("input_base", ""), "sha": r["head"], "run_id": r["id"],
+               "run_attempt": r["attempt"]}
         # revision 1's defer rule: every unfinished run defers, listed gate or not
         hide = self.layout == "REV1" or "judging" in self.ablate
         at_head = [dict(id=o["id"], title=o["title"], status=o["status"],
                         jobs={k: v for k, v in o["jobs"].items() if not (hide and k == "gate")})
                    for o in self.runs if o["head"] == r["head"] and o is not r]
+        if "listed" in self.ablate:
+            # rev3, R3-2 ablation: revision 2's judging, which trusted a listed gate
+            for o in at_head:
+                js = o["jobs"]
+                o["rev2_judging"] = "gate" in js and all(st[0] == "completed" for k, st in js.items()
+                                                         if k == "prelude" or k.split(" / ")[0] in G.REQUIRED)
         if self.layout == "P2":
             pr = "" if self.plant.get("prelude_pr_blank") else r["pr"]
             jobs = dict(r["jobs"])
@@ -340,8 +418,16 @@ class World:
         api = {"prelude": {"conclusion": self.plant.get("prelude_conclusion", "success"),
                            "kind": self.plant.get("prelude_kind", r["kind"]), "pr": pre_pr},
                "jobs": r["jobs"], "runs_at_head": at_head,
-               "live_pr": {"head_sha": self.head, "base_ref": self.base, "state": "open"},
+               "live_pr": {"head_sha": self.head, "base_ref": self.base, "state": "open",
+                           "same_repo": not self.plant.get("fork")},
                "open_pr_heads": {self.head}, "reaches_cc": self.truth.get("reaches_cc", True)}
+        if "listed" in self.ablate:
+            saved = G.judging
+            G.judging = lambda run: run.get("rev2_judging", False)
+            try:
+                return G.gate(ctx, api)
+            finally:
+                G.judging = saved
         return G.gate(ctx, api)
 
     # ---- the clock -------------------------------------------------------------
@@ -468,6 +554,8 @@ SCEN = [
       (2200, "edit", {"body": "b2"})], T(), {}),
     ("K  D-2: arch-score red, diff misses custom_components/",
      [(0, "open")], T(body=lambda b: True, reaches_cc=False), {}),
+    ("I5 planted: a fork PR (its head is not in this repository; rev3, R3-4)",
+     [(0, "open"), (300, "edit", {"body": "b2"})], T(), {"fork": True}),
     # round 2 (N1): the review seat's tools/rerun_concurrency_sim.py scenarios
     ("R1 retarget after the code run is green (refresh re-runs C's gate)",
      [(0, "open"), (2100, "retarget", {"base": "release"})], T(), {}),
@@ -507,7 +595,7 @@ STRESS = [(f"{tag} {n} edits at one head after the code run, 150 s apart (attemp
 CAPPED = {"S2"}
 
 # Expected verdicts where the oracle alone is not the point (planted defects).
-MUST_FAIL = {"B", "B2", "B3", "B4", "I2", "I3"}
+MUST_FAIL = {"B", "B2", "B3", "B4", "I2", "I3", "I5"}
 
 
 def crosshead():
@@ -517,25 +605,32 @@ def crosshead():
              _SWEEP_BASE + [(end + dt, "push", {"head": "H2"})], T(), {}) for dt in (-5, 1, 10, 19, 25)]
 
 
-def score(layout, chain, scen, ablate=()):
-    """[(label, tag, verdicts, good, max attempt, why, log)] for one layout and arm."""
+def score(layout, chain, scen, ablate=(), **arm):
+    """[(label, tag, verdicts, good, max attempt, why, log, end_ok)] for one layout and
+    arm. end_ok judges the final merge box only (END-BAD is its negation); good adds
+    the false-green window and the attempt cap. `arm` sets the rev3 World arms."""
     out = []
     for label, evs, truth, plant in scen:
         tag = label.split()[0]
         w = World(layout, truth, plant, ablate=ablate, chain=chain)
-        s = w.run(evs)
+        for k, v in arm.items():
+            setattr(w, k, v)
+        # a tail serialises the verdict preludes' waits (S2: 25 edits, each gate +TAIL s), so the horizon grows with it
+        s = w.run(evs, until=9000 + 40 * arm.get("tail", 0))
         _, bc, bd, be, orc = s[-1]
         if tag in MUST_FAIL:
             orc = False
         fg = max_win(s)
         att = max(r["attempt"] for r in w.runs)
         good = bc == orc and bd == orc and be == orc and fg <= WINDOW_OK and att <= ATTEMPT_CAP
-        if tag in CAPPED:
-            good = bc == orc and bd == orc and be is False and fg <= WINDOW_OK and att <= ATTEMPT_CAP
+        if tag in CAPPED:   # past the cap every-suite may read red (fail closed), never green against a red oracle
+            good = bc == orc and bd == orc and be in (False, orc) and fg <= WINDOW_OK and att <= ATTEMPT_CAP
         if tag in MUST_FAIL:
             good = bc is False and bd is False and be is False and fg == 0
+        end_ok = (bc, bd, be) == (False, False, False) if tag in MUST_FAIL else (
+            (bc == orc and bd == orc and be in (False, orc)) if tag in CAPPED else (bc == orc and bd == orc and be == orc))
         why = next((r["why"][0] for r in reversed(w.runs) if r.get("why")), "")
-        out.append((label, tag, (orc, bc, bd, be, fg), good, att, why, [m for _, m in w.log]))
+        out.append((label, tag, (orc, bc, bd, be, fg), good, att, why, [m for _, m in w.log], end_ok))
     return out
 
 
@@ -548,7 +643,7 @@ def main() -> int:
     runs = {(lay, ch): score(lay, ch, scen) for lay, ch in (("P2", True), ("REV1", True), ("REV2", True), ("REV2", False))}
     for i, (label, *_rest) in enumerate(scen):
         for key in (("P2", True), ("REV1", True), ("REV2", True), ("REV2", False)):
-            lab, tag, (orc, bc, bd, be, fg), good, att, why, log = runs[key][i]
+            lab, tag, (orc, bc, bd, be, fg), good, att, why, log, _end = runs[key][i]
             name = key[0] if key[0] == "P2" else f"{key[0]}/{'chain' if key[1] else 'nochain'}"
             row = (f"{label[:76]:76s} {name:11s} {fmt(orc):6s} {fmt(bc):14s} {fmt(bd):16s} {fmt(be):11s} "
                    f"{fg:13d} {att:8d}")
@@ -584,7 +679,65 @@ def main() -> int:
         print(f"  without {abl[0]:8s}: agree newest-created {agree[0]}/{len(rows)}, newest-completed "
               f"{agree[1]}/{len(rows)}, every-suite {agree[2]}/{len(rows)}; longest false-green window "
               f"{max(r[2][4] for r in rows)} s")
+    rc |= rev3(scen, unplanted)
     print(f"\nGATE-SIM rc {rc}")
+    return rc
+
+
+def end_bad(rows):
+    return [f"{r[1]}(oracle {fmt(r[2][0])}: created {fmt(r[2][1])} completed {fmt(r[2][2])} every {fmt(r[2][3])})"
+            for r in rows if not r[7]]
+
+
+def rev3(scen, unplanted) -> int:
+    """Revision 3's arms (round-3 items R3-1 and R3-2). Every REV2 row must be END-BAD 0;
+    every ablation row must move (END-BAD > 0), or the arm proves nothing."""
+    rc = 0
+    print("\n## rev3, R3-1: TAIL arm, REV2 (a gate attempt completes TAIL s after gate_sim's +15 s; its read stays at +5 s)")
+    print("   END-BAD = the final merge box differs from the oracle under some reading (plants: not refused under all three);")
+    print("   the false-green window grows with the tail by construction (the refresh attempt that turns a stale green red")
+    print("   completes later), so it is printed, not scored, as the round-3 seat's instruments do")
+    arms = [("re-run attempts", dict(tail=t)) for t in TAILS]
+    arms += [("every attempt", dict(tail=t, tail_all=True)) for t in (35, 60, 120, 300)]
+    arms += [("READ-LATE (null: read 2 s before completion)", dict(tail=t, read_late=True)) for t in (35, 120, 300)]
+    for what, arm in arms:
+        for chain in (True, False):
+            rows = score("REV2", chain, scen, **arm)
+            bad = end_bad(rows)
+            rc |= bool(bad)
+            print(f"  {what:44s} tail {arm['tail']:3d} s {'chain  ' if chain else 'nochain'} END-BAD {len(bad)}  "
+                  f"false-green max {max(r[2][4] for r in rows if r[1] not in MUST_FAIL):4d} s  {'; '.join(bad)[:200]}")
+    print("  null control: revision 2's sweep (no polling), the `poll` ablation; it must move")
+    for t in (35, 120, 300):
+        for chain in (True, False):
+            bad = end_bad(score("REV2", chain, scen, ablate=("poll",), tail=t))
+            rc |= not bad
+            print(f"  without poll, tail {t:3d} s {'chain  ' if chain else 'nochain'} END-BAD {len(bad)}  {'; '.join(bad)[:200]}")
+    print("\n## rev3, R3-2: EARLY arm (a run's `gate` job is listed `waiting` from the moment its units are scheduled)")
+    def wins(rows):
+        return max(r[2][4] for r in rows if r[1] not in MUST_FAIL), [f"{r[1]} {r[2][4]} s" for r in rows
+                                                                    if r[1] not in MUST_FAIL and r[2][4] > 25]
+    hard = 0
+    for chain in (True, False):
+        rows = score("REV2", chain, scen, early=True)
+        bad = end_bad(rows)
+        nogood = [r[1] for r in rows if not r[3]]
+        rc |= bool(bad) or bool(nogood)
+        fg, _ = wins(rows); hard = max(hard, fg)
+        print(f"  REV2 (hardened judging) {'chain  ' if chain else 'nochain'} END-BAD {len(bad)}; rows not ok (window, cap) "
+              f"{len(nogood)} {nogood}; false-green max {fg} s")
+    print("  null control: revision 2's judging (trusts a listed gate); it must move, here the false-green window")
+    for chain in (True, False):
+        rows = score("REV2", chain, scen, ablate=("listed",), early=True)
+        fg, where = wins(rows)
+        rc |= fg <= hard
+        print(f"  revision 2's judging, EARLY, {'chain  ' if chain else 'nochain'}: END-BAD {len(end_bad(rows))}; "
+              f"false-green max {fg} s  [{'; '.join(where)}]")
+    rows = score("REV2", True, scen, ablate=("listed",))
+    rc |= bool(end_bad(rows)) or wins(rows)[0] > 25
+    print(f"  ... and revision 2's judging without EARLY (the platform fact holds): END-BAD {len(end_bad(rows))}; "
+          f"false-green max {wins(rows)[0]} s")
+    print(f"\nREV3 arms rc {rc}")
     return rc
 
 

@@ -26,6 +26,22 @@ said where it lands:
 - `gate_sim.py`'s timing is now faithful (N2), so the false-green window it reports
   is 25 s, not 11 s (4.4).
 
+**Revision 3** (design-revision seat, 2026-10-19) resolves every item of the round-3
+review `probe/design-ci-review3` (`f731b201`, verdict *revise*): the blocking R3-1,
+the four non-blocking R3-2 to R3-5, and its editorial points; this programme defers
+no finding. Inline markers read *(rev3, R3-n)* or *(rev3, editorial)*; `RESPONSE.md`
+has one `## Round-3 item <id>` section for each. What revision 3 changes beyond the
+items' own text, each forced by one of them and said where it lands:
+- the gate refuses a PR whose head is not in this repository (R3-4; 4.1), where
+  revision 2 let a fork PR run unsuperseded and unrefreshed;
+- the gate reads red at attempt 45, so an exhausted run is red by construction
+  (editorial; 4.1, 4.3);
+- `judging` requires every job the run owes, listed and completed (R3-2; 4.1);
+- `unitcheck2.py`'s map gains `after`, so `DESIGN-P1.md` section 4 and its map change
+  (R3-3);
+- `gate_sim.py` gains a fork plant, so its counts read 42 sequences and 7 plants (4.4).
+Everything else in revision 2 stands.
+
 **Owner rulings, already made, and what they fix here:**
 - **D-1** (PR 1: `record-autofix` out of the Tests push run): approve. The refused
   branch stays specified (section 5).
@@ -107,15 +123,19 @@ events ──► prelude ──► tests ───────┐
 2. **Section 4.1's own function reproduces today's verdict.** Over the 22 heads,
    `gate_model.gate`, the predicate `tools/ci/gate.py` ports, agrees with the
    17-context ruleset on **22 of 22**, and its perturbations move it as designed
-   (`measure/rev/gate_replay2.txt`). Over 41 event sequences with GitHub's documented
+   (`measure/rev/gate_replay2.txt`). Over 42 event sequences with GitHub's documented
    concurrency rule, the measured rule that a re-run joins its run's group, and
    faithful `gate` timing, revision 2 matches an independent oracle on all 34
    unplanted ones under all three readings of which `gate` binds (newest created,
    newest completed, every suite's, the last being #2009's), under both arms of the
-   unmeasured "a re-run's completion fires the sweep again", and refuses all 6
-   plants. Revision 1 as written fails 11 of the 41; phase 2 as written misses 6, 6
+   unmeasured "a re-run's completion fires the sweep again", and refuses all 7
+   plants. Revision 1 as written fails 11 of the 42; phase 2 as written misses 6, 6
    and 16 of the 34 and refuses no plant (`measure/rev/gate_sim.txt`). *(rev1, item
-   10; rev2, N1 and N2.)*
+   10; rev2, N1 and N2.)* *(rev3, R3-1, R3-2)* It also ends right under all three
+   readings at every slower gate completion the round-3 seat tried (a re-run attempt,
+   or every attempt, completing up to 300 s after its read), and when every `gate`
+   job is listed before its needs finish; the round-3 seat's own `rerun_tail.py` and
+   `timing_perturb.py` score it 0 END-BAD on every arm.
 3. **Bot heads run the code twice** on 4 of 22 heads (`dupes.txt`). Whether the
    dispatch alone suffices depends on whether a held run shadows a dispatched `gate`,
    which is measured in U0, not assumed (section 5). *(rev1, item 6.)*
@@ -160,7 +180,7 @@ events ──► prelude ──► tests ───────┐
 | `hassfest.yml`, `validate.yml` | unit | `workflow_call` only |
 | `pr-contract.yml`, `arch-score.yml`, `budget-raise-gate.yml` | unit | `workflow_call` only *(rev1: phase 2's "dispatch for unit probing" withdrawn; a unit is probed through `ci.yml`)* |
 | `pr-contract-rerun.yml` | **deleted** | its premise is made true (section 4.3, item 5) |
-| `budget-raise-gate-rerun.yml` | **replaced by `gate-sweep.yml`**: on every `CI` completion whose `gate` is green at a PR head, re-run the `gate` job of every older run at that head whose `gate` is not green. Kept until M-2 shows the merge box reads only the newest `gate` (section 4.3, items 4 and 1). *(rev2: only at the PR's live head; a re-run joins a run-id group and cancels nothing, N1; never past the attempt cap, N2)* | `workflow_run` |
+| `budget-raise-gate-rerun.yml` | **replaced by `gate-sweep.yml`**: on every `CI` completion whose `gate` is green at a PR head, re-run the `gate` job of every older run at that head whose latest `gate` is completed and not `success`, then poll every older run whose `gate` attempt is still running and re-run each that completes red *(rev3, R3-1)*. Kept until M-2 shows the merge box reads only the newest `gate` (section 4.3, items 4 and 1). *(rev2: only at the PR's live head; a re-run joins a run-id group and cancels nothing, N1; never past the attempt cap, N2)* | `workflow_run` |
 | `nightly.yml` (PR 1), `merge-main.yml`, `release.yml`, `pages.yml` | standalone, not called | unchanged triggers; every job of each that has `workflow_dispatch` gains a ref guard (section 4.3, item 5) |
 
 **One naming rule:** the caller job id equals the unit's file stem, so every check
@@ -288,6 +308,9 @@ jobs:
     if: ${{ !cancelled() }}         # never skippable: a skipped required check would pass
     permissions: { contents: read, actions: read, pull-requests: read }
     # base-restored tools/ci/gate.py, section 4.1; a fetch-depth 0 checkout for D-2's diff
+    # (rev3, R3-1) the checkout and the diff come first; the Actions/pulls API read is
+    # the program's last step, and the job's last step: it writes the summary from that
+    # read and exits, so nothing but teardown lies between the read and completion
 ```
 
 The guards, each saying one thing:
@@ -512,13 +535,17 @@ gate(run):                                     # a green result certifies the he
   kind, pr, base = from github.event_name, .action, .changes.base, the payload, or
                    the dispatch inputs                            # never from the prelude
   prelude must have concluded success, and its kind and pr must equal these   # item 2
+  github.run_attempt ≥ 45 → FAIL "at the cap: push a new commit"   # rev3, editorial
   on dispatch: pr named → the PR is open and heads this SHA;
                none named → FAIL if this SHA heads an open PR ("dispatch -f pr=N -f base=B")
   judge_base = the PR's base ref read LIVE (pulls/N), else base
+  a PR is named and its head repository (pulls/N) is not this one → FAIL   # rev3, R3-4
   any OTHER ci.yml run at this head not completed (held runs aside) that can still
       add a source → FAIL "still being judged; their gate decides"   # the defer rule
       (rev2, N2: a run whose `gate` job is listed, and none of whose listed prelude
-      or `<unit> / *` jobs is unfinished, is only re-judging: not waited on)
+      or `<unit> / *` jobs is unfinished, is only re-judging: not waited on;
+      rev3, R3-2: and every required name of every unit in WORKSET(its title's kind,
+      pr) is listed and completed, `tests / closure-scope` aside when it names no PR)
   for each required unit U:
     source = the run with the highest id at this head, THIS run included, whose
              display_title parses to the same pr and to judge_base, whose kind's
@@ -529,6 +556,8 @@ gate(run):                                     # a green result certifies the he
     each required name of U in the source: absent → FAIL ABSENT; success → ok;
              skipped → FAIL SKIPPED; anything else → FAIL
   every other job: reported in the summary, never gating
+  the Actions and pulls reads above are the program's LAST step: the checkout and
+  D-2's diff come before them, and after them it only writes the summary and exits
 ```
 
 What revision 1 changed, and why:
@@ -589,6 +618,45 @@ What revision 2 changed, and why *(rev2, N2)*:
   is read, red or green; a run re-running a unit job, or not yet at its gate, is
   waited on), and `gate_sim.txt`'s `judging` ablation (revision 2 with revision 1's
   defer rule agrees with the oracle on 22 of 34).
+
+What revision 3 changed, and why:
+- **The API read is the last step** *(rev3, R3-1)*. A gate attempt that reads while a
+  newer run is busy reads red, and stays red if it completes after the sweep that
+  should re-judge it has passed by. `gate.py` therefore does its git work (checkout,
+  D-2's three-dot diff) first and reads the Actions and pulls APIs last, then writes
+  its summary and exits, so the read-to-completion gap is job teardown and run
+  finalisation, not any work of the gate's own. That narrows the gap; the sweep's
+  poll (4.3) is what closes it, at any length up to its bound.
+- **`judging` no longer rests on when the jobs API lists a job** *(rev3, R3-2)*.
+  Revision 2 argued "the jobs API lists a job only once it is queued, so a listed
+  `gate` means every unit has finished". GitHub's REST docs do not say that, and the
+  job status enum includes `waiting`, `pending` and `requested` (round-3
+  `ev/gh_docs_read_round3.md`). So a run is read as only re-judging when, besides a
+  listed `gate` and no unfinished listed unit job, **every required name of every
+  unit its own title owes** (`WORKSET(kind, pr)` of its `display_title`) is listed and
+  completed. A `gate` listed early, while those jobs are still to come, leaves the run
+  waited on. `tests / closure-scope` is excepted on a run that names no PR, because a
+  push never runs it; on every other run it is listed before the `tests` jobs that
+  need it, so the remaining names cover it. This removes the dependence rather than
+  measuring it: `gate_sim.py`'s EARLY arm lists every `gate` as `waiting` from the
+  moment the run's units are scheduled, and revision 3 still scores 0 END-BAD there
+  while revision 2's rule does not (4.4).
+- **A fork PR is refused** *(rev3, R3-4)*. On a PR whose head repository is not this
+  one, the token can neither cancel (`cancel_superseded.py` refuses a head outside the
+  repository) nor re-run (`refresh` is fail-soft), so every push runs to its end and
+  no stale green would ever be refreshed. Such a PR cannot merge today either:
+  `pr-contract` refuses any author but the `hpo-author` App (decision 0011,
+  `policy_lint.mjs` `checkPrBody`), whose pushes go through `tools/pr/app_push.sh` to
+  branches in this repository. The gate refuses it outright, from the live
+  `pulls/N` it already reads (`head.repo.full_name`), so no `gate` at a fork head is
+  ever green, and neither window revision 2 had there (no supersession, the 2048 s
+  no-`refresh` stale green) can arise. The prelude passes no fork PR to any unit as
+  trusted input either: units already run on `pull_request` with a read-only token.
+- **An attempt at the cap reads red** *(rev3, editorial)*. The round-3 review showed
+  "never stale-green" was not strict: a `refresh` attempt 45 that read green, at a
+  moment the newest run was already judging, could no longer be re-run red by a later
+  event. `gate.py` now fails any attempt at 45 or more, so the last attempt a hook can
+  start is red whatever it reads, and an exhausted run is red by construction.
 
 ### 4.2 No required job ever skips
 
@@ -686,12 +754,38 @@ Consequences:
     PR head *(rev2: the PR's live head, read when it acts, so a re-run never lands on a
     head a push has left; and a re-run cancels nothing anyway, N1)*;
   - it re-runs the `gate` job (`POST actions/jobs/<id>/rerun`) of every **older**
-    `ci.yml` run at that head whose latest `gate` is not `success`. Under 4.1 each
+    `ci.yml` run at that head whose latest `gate` is **completed and not `success`**
+    *(rev3, editorial: as `gate_sim` models it; GitHub refuses to re-run a running
+    run)*. Under 4.1 each
     re-run reads the newest sources, so after an approval the code run's `gate` reads
     the review run's green `budget-raise-gate` and turns green; nothing else re-runs;
+  - **it then polls the older gates still running** *(rev3, R3-1)*. A gate attempt
+    that `refresh` started while the triggering run V was busy has read red, and may
+    still be running when V's green `gate` fires the sweep: between an attempt's read
+    and its run's completion lie job teardown and run finalisation, and the sweep
+    cannot re-run a running run. Revision 2 skipped such a run, it then completed red,
+    and nothing re-swept it (the round-3 review's R7 and I4, under newest-completed
+    and every-suite, both chain arms). So `gate.py --sweep`, after its re-runs, polls
+    every older `ci.yml` run at the head whose `gate` attempt was already in progress
+    when the sweep started (its own re-runs read after V's green `gate`, so they need
+    no poll), every 5 s for at most 600 s, and re-runs each that completes not `success` while the
+    head is still the PR's live head and V's latest `gate` is still green, completed,
+    and **started after every run at the head was created**, so V's verdict covers
+    the newest event. If a newer run exists, or V's gate has been re-judged since (a
+    newer event's `refresh`), that newer run's own sweep owns the run and polls it the
+    same way; the same condition decides whether a sweep polls at all. Without it a
+    chained sweep, fired by an older run's green re-run, re-ran gates while a newer
+    event was still busy, each read red again, and under `chain` scenario S climbed to
+    the attempt cap (found by the round-3 seat's `timing_perturb.py` at `REFRESH` 1 s
+    and 300 s, and fixed before this revision was committed). A run still
+    running at the bound is left as it is, with a notice: red, never green, and the
+    next event or push at the head sweeps it. The poll does not depend on a
+    re-run attempt's completion firing `workflow_run` (unmeasured; both chain arms
+    are scored), because it runs inside the one sweep that V's first attempt fired;
+    the job's `timeout-minutes` is 15, above the 600 s bound;
   - it cannot loop: it never re-runs the run that triggered it nor a green `gate`, and
     a re-run that stays red triggers nothing; each green completion re-runs strictly
-    fewer reds;
+    fewer reds, and the poll re-runs each polled run at most once;
   - **the attempt bound** *(rev2, N2)*. GitHub fails a run's 51st attempt with a failed
     check suite, a red under the every-suite reading (round-2
     `ev/gh_docs_read_2026-10-18.md`). Each later run at a head adds at most two
@@ -701,11 +795,18 @@ Consequences:
     run's attempts are therefore at most `1 + 2 × (later runs at its head)`:
     `gate_sim.txt` reaches 41 with 20 edits at one head (scenario S), and the 22
     measured heads had at most 2 verdict events each (`verdict_wait.txt`), so a run
-    there reaches at most 5. Near the limit the last attempts are `refresh`'s: the sweep never takes a run to
-    attempt 45 and `refresh` never past it, so an exhausted run is left **red**,
-    never stale-green (S2, 25 edits: newest-created and newest-completed agree with the
-    oracle; every-suite is red, and a push resets it). `gate.py --refresh/--sweep`
-    print the run and "push a new commit" when they skip one;
+    there reaches at most 5. Near the limit the last attempts are `refresh`'s: the sweep
+    (its poll included) never takes a run to attempt 45 and `refresh` never past it.
+    *(rev3, editorial)* Revision 2 called the exhausted run "never stale-green", which
+    was not strict: a `refresh` attempt 45 could read green when the newest run was
+    already judging, and no later event could re-run it red. The gate now fails any
+    attempt at 45 or more (4.1), so the last attempt is red whatever it reads, and an
+    exhausted run is **red by construction**, never stale-green (S2, 25 edits:
+    newest-created and newest-completed agree with the oracle; every-suite is red, and
+    a push resets it). The poll's re-runs count in the bound: a polled run was started
+    by a `refresh`, which the bound already counts, and its one poll re-run takes the
+    place of the sweep's re-run it missed. `gate.py --refresh/--sweep` print the run
+    and "push a new commit" when they skip one;
   - checkout, program restore and `python3 -I` exactly as the file does today; grant
     `actions: write, contents: read`;
   - M-2 (section 10, U0/U8) measures whether an older red `gate` blocks the merge box
@@ -778,10 +879,13 @@ Consequences:
 | an older code run's red `gate` re-judged after a newer edit / after a newer green code run | FAIL / pass (the sweep's case) |
 | *(rev2, N2)* an edit run beside a code run that is only re-judging (`gate` listed, every unit job done): green units / red units | pass / FAIL (read, not waited on) |
 | *(rev2, N2)* … that code run re-running a unit job beside its listed gate; or not yet at its gate | FAIL (defer) / FAIL (defer) |
+| *(rev3, R3-2)* … that code run's `gate` listed `waiting` while its `tests` jobs are unlisted; the same with every owed job listed and completed | FAIL (defer) / pass |
+| *(rev3, R3-4)* a fork PR, every source green | FAIL |
+| *(rev3, editorial)* an edit run at attempt 45; at attempt 44 | FAIL (at the cap) / pass |
 
-`GATE-REPLAY2 rc 0` (32 of 32 rows `ok`).
+`GATE-REPLAY2 rc 0` (37 of 37 rows `ok`).
 
-**`python3 -I measure/rev/gate_sim.py`** (`gate_sim.txt`) replays 41 timed event
+**`python3 -I measure/rev/gate_sim.py`** (`gate_sim.txt`) replays 42 timed event
 sequences through GitHub's documented concurrency rule, fixed job durations, body
 readers that read the body and reviews at their own start, and both hooks.
 *(rev2)* Two rules are added to the model and applied to every layout: **a re-run
@@ -792,7 +896,8 @@ revision 1's simulator finished a hook re-run on the next tick). The 19 scenario
 added are the round-2 review's (R1-R7 from `rerun_concurrency_sim.py`, X1, X3, X4
 from `rerun_status_fix.py`, XH from `sweep_crosshead.py` at five push times), plus
 R8 (a review during a retarget's code run), X5 (three edits and two reviews during
-one code run) and S, S2 (20 and 25 edits at one head: the attempt bound). Whether a
+one code run) and S, S2 (20 and 25 edits at one head: the attempt bound).
+*(rev3, R3-4)* Revision 3 adds I5, a fork PR, as a seventh plant. Whether a
 re-run attempt's own green completion fires the sweep again is unmeasured, so
 revision 2 is scored under both arms (`chain`, `nochain`). An **independent oracle** says, once every run has completed, whether
 the PR should be mergeable (every code unit green at the final head and base, the
@@ -803,9 +908,9 @@ M-2 measures which one GitHub uses; the design must be right under all three.
 
 | | revision 2 (`chain` and `nochain`) | revision 1 as written | phase 2 as written |
 |---|---|---|---|
-| agrees with the oracle under all three readings, false-green ≤ 120 s, no run past the attempt cap | **41 of 41** both arms (34 unplanted, 6 planted refused, S2 as expected) | 30 of 41: fails C, R1, R7 (a re-run cancels a live run, N1); R4-R6, X1, X3, X5 (mutual defer, N2); S, S2 | newest-created / newest-completed / every-suite 28, 28, 18 of 34 unplanted |
-| planted defects refused under all three readings (prelude `pr=''`, prelude failed, prelude kind wrong, a unit `if: false`, an unnamed dispatch at a PR head, a dispatch naming the wrong base) | **6 of 6** | 6 of 6 | 0 of 6 |
-| runs a re-run attempt cancelled (N1) | **0** | 132 over the 41 | – (no re-runs) |
+| agrees with the oracle under all three readings, false-green ≤ 120 s, no run past the attempt cap | **42 of 42** both arms (34 unplanted, 7 planted refused, S2 as expected) | 31 of 42: fails C, R1, R7 (a re-run cancels a live run, N1); R4-R6, X1, X3, X5 (mutual defer, N2); S, S2 | newest-created / newest-completed / every-suite 28, 28, 18 of 34 unplanted |
+| planted defects refused under all three readings (prelude `pr=''`, prelude failed, prelude kind wrong, a unit `if: false`, an unnamed dispatch at a PR head, a dispatch naming the wrong base; *rev3:* a fork PR) | **7 of 7** | 7 of 7 | 0 of 7 |
+| runs a re-run attempt cancelled (N1) | **0** | 132 over the 42 | – (no re-runs) |
 | review case B (prelude `pr=''`) | FAIL | FAIL | pass |
 | review case C (retarget runs to completion) | pass | FAIL (the old run's refreshed gate cancels the retarget's code run) | FAIL (governance/hassfest/validate skipped) |
 | review case D (retarget pending, then an edit) | FAIL, correctly (code red at the new base) | FAIL, correctly | **pass**, green for 6952 s with code red |
@@ -821,6 +926,27 @@ M-2 measures which one GitHub uses; the design must be right under all three.
 
 `GATE-SIM rc 0`. The last four rows are the null control of each revision-2 element:
 each removal moves the instrument, so each is load-bearing under some reading.
+
+*(rev3)* **The timing arms** (the same 42 sequences, revision 3 only, both chain
+arms; END-BAD = the final merge box differs from the oracle under some reading, or a
+plant is not refused under all three; `GATE-SIM rc` is 0 only when every revision-3
+row is END-BAD 0 and every null control moves):
+
+| arm | revision 3 | null control |
+|---|---|---|
+| **TAIL** *(R3-1)*: a hook's re-run attempt completes TAIL s after gate_sim's +15 s, its read kept at +5 s; TAIL 0, 20, 30, 35, 40, 45, 50, 60, 120, 300 | **END-BAD 0** at every TAIL | revision 2's sweep (`poll` ablation): R7 at 35 s; I4 and R7 at 120 s; I4 and S2 at 300 s, under newest-completed and every-suite, both arms: the round-3 finding reproduced |
+| TAIL on **every** attempt, first ones included; 35, 60, 120, 300 s | **END-BAD 0** | – |
+| **READ-LATE**: the read 2 s before completion, at 35, 120, 300 s | END-BAD 0 | the read-to-completion gap is what matters, as round 3 found |
+| **EARLY** *(R3-2)*: every `gate` job listed `waiting` from the moment its run's units are scheduled | END-BAD 0; every row `ok`; false green at most 25 s | revision 2's `judging`: false greens of 36 to 108 s (G, R2, R3, R5: an older gate re-judged during a newer edit's units took `pr-contract` from the older body); without EARLY it is 25 s |
+
+The false-green window under TAIL grows with the tail (25 + TAIL s on re-runs; 224 s
+and 332 s when first attempts are slow too): the `refresh` attempt that turns a stale
+green red completes TAIL s later, and the newest-completed reading reads the older
+green until then. That is the window of any slower job, not a convergence failure;
+M-6 measures the platform's gap. **The round-3 seat's instruments, run against
+revision 3 unchanged**: `rerun_tail.py` gives END-BAD 0 on all 40 rows, its TAIL and
+READ-LATE arms (`measure/rev/r3_rerun_tail.txt`); `timing_perturb.py` gives
+`TIMING-PERTURB END-BAD total 0` (`measure/rev/r3_timing_perturb.txt`).
 
 ---
 
@@ -887,7 +1013,7 @@ approval). Otherwise they stay, and the duplicates are the price of an unshadowe
 | subjects `ci: re-record closures` / `ci: drop inherited claims` / `ci: pin killed mutants` / `ci: merge main` | head-subject loop guards | unchanged |
 | a dispatch re-dispatching | autofix jobs run only on `pull_request` | unchanged |
 | verdict events | – | run no code unit, so never an autofix |
-| `workflow_run` re-runners | two | **one**, `gate-sweep.yml`, until M-2: it re-runs only `gate` jobs, never the run that triggered it nor a green one, so each green completion leaves strictly fewer reds and it terminates; *(rev2)* a re-run cancels nothing (run-id groups, N1), and no run is taken past attempt 45 (N2, 4.3) |
+| `workflow_run` re-runners | two | **one**, `gate-sweep.yml`, until M-2: it re-runs only `gate` jobs, never the run that triggered it nor a green one, so each green completion leaves strictly fewer reds and it terminates; *(rev2)* a re-run cancels nothing (run-id groups, N1), and no run is taken past attempt 45 (N2, 4.3); *(rev3, R3-1)* its poll of running older gates is bounded at 600 s, re-runs each polled run at most once, and needs no further `workflow_run` |
 
 ---
 
@@ -1001,7 +1127,7 @@ adds the check-name, workflow-name, workflow-file and dispatch readers
 | `tests/entities.py` `_rc_producer` / `_RC_SKIPPED` / merge-group producers (:27701-27752, :28003-28036) | the producer of `gate` is `ci.yml:gate`; assert `gate` has no `if:` beyond `!cancelled()`, `ci.yml` has no path or branch filter on PR events, and every `gate_required` name maps to a unit job |
 | `tests/entities.py` `edited` rule (:27650-27688, `_EDITED_NULL`) | replace: `ci.yml` lists `edited` and `pull_request_review`; every code-unit caller is guarded on `needs.prelude.outputs.kind == 'code'`; no required job is skippable (4.2) |
 | `tests/entities.py` concurrency pins (:27770-27969) | one block in `ci.yml`, *(rev2, N1)* `group: CI-${{ github.run_id }}` and `cancel-in-progress: false`, so no two runs share a group (2.2); `cancel-superseded` runs the base's `cancel_superseded.py --workflow ci.yml`; **every callee has no top-level `concurrency:`**; the `run-name` expression equals the prelude's kind derivation and *(rev2, item 5)* ends in `sha=${{ github.sha }}`. This is the tree's own **"per-run"** twin route (`_CC_TWIN_ROUTE`, :27823-27827, today `budget-raise-gate.yml` and `arch-score.yml`: "a group per run, so no run ever cancels or queues another"): `_CC_TWIN_ROUTE` becomes `{"ci.yml": "per-run"}`, the callees leaving it with their `pull_request` triggers, and `_cc_problems` then requires exactly rev2's block under every event and sender |
-| `tests/entities.py` rerun-list derivation (:28511-28575) | replace: the only `workflow_run` file is `gate-sweep.yml` (until M-2), watching `CI`, re-running only jobs named `gate`; `ci.yml`'s `refresh` job has `actions: write` and no other grant |
+| `tests/entities.py` rerun-list derivation (:28511-28575) | replace: the only `workflow_run` file is `gate-sweep.yml` (until M-2), watching `CI`, re-running only jobs named `gate`; `ci.yml`'s `refresh` job has `actions: write` and no other grant; *(rev3, R3-1)* `gate-sweep.yml`'s job runs `gate.py --sweep` with its poll bound below its `timeout-minutes` |
 | (rev1) `tests/entities.py`, new | the forgery pins (2.1, item 12(b)); every dispatchable standalone workflow's jobs carry a ref guard (4.3, item 5); `pr-contract`'s red-list step polls code scanning before listing and has no app filter; *(rev2, item 5)* that poll queries `code-scanning/analyses` with `ref=` and never a `sha=` parameter, matches `commit_sha`, and reads the `CodeQL` check by `app_id` |
 | `tests/entities.py` `_NS_OVERRIDES`, `_PRW_SUBJECTS`, `_prw_defects` | `ci.yml:cancel-superseded` replaces `tests.yml:` and `codeql.yml:`; each caller's grant equals the union of its callee's job-level grants; each callee keeps its top-level floor (12(e)) |
 | `tests/entities.py` `_AF_DISPATCHED` (:20189) | `{"ci.yml"}` with `-f pr= -f base=` |
@@ -1062,7 +1188,10 @@ probe/ci-layout-<unit>` to dispatch.
   floor (`unitcheck2_selftest.txt`, 12/12). *(rev2, N3)* Each job also carries a
   `<job>|order` row, the ordered step keys both sides keep, so a reordering is refused
   unless the map admits `<job>|order`; the self-test adds the round-2 plants Q1 and
-  Q1b, refused, and their two nulls (16/16).
+  Q1b, refused, and their two nulls (16/16). *(rev3, R3-3)* A gained step of a job
+  both sides have must be placed by the map's `after` (the key it follows, or
+  `<job>|^`), else it is refused `UNPLACED` or `MISPLACED`; the self-test adds G1 and
+  G1b, refused, and their two nulls (20/20).
 - **Runtime half**: executed steps and the token set from "Set up job" headers. An
   `UNREAD` header **refuses** (exit 2); phase 2's `UNREAD == UNREAD` passed. The two
   runs must match event and sender class, read from the saved run listings, or it
@@ -1077,12 +1206,12 @@ probe/ci-layout-<unit>` to dispatch.
 
 | unit | ref | what it changes | depends on | null control and live checks |
 |---|---|---|---|---|
-| U0 skeleton | `probe/ci-layout-gate` | `ci.yml` (lanes, `run-name`, guards, `refresh`), `tools/ci/prelude.py`, `tools/ci/gate.py` (the predicate, `--refresh`, `--sweep`) ported from `gate_model.py`, `gate-sweep.yml` | stub on main | `gate_replay2.py` and `gate_sim.py` driving the ported `gate.py`, not the model. Live perturbations on a draft probe PR: a unit forced red → FAIL; a required job `if: false` → FAIL SKIPPED; a unit removed → FAIL ABSENT; a body edit 1 s after a push → no code run lost (item 1). **M-1**: a run's `display_title` equals its `run-name`, including a run cancelled while pending. **M-3(a)**: held runs after an App push and after a `GITHUB_TOKEN` push. **M-4**: `<caller> / <job>` names, `event_name` and `event` inherited, caller cap, callee floor (12(e)), queue latency of a call. **M-5** *(rev2, N1)*: on the draft probe PR, (a) with a throwaway twin of `ci.yml` whose group is revision 1's PR lane and `cancel-in-progress: true`, re-run the `gate` job of a completed run while a newer run of that lane is in progress, and read through the runs API whether the newer run is cancelled (the measurement `R9-RC-PRCONTRACT.md:84-86` made on `PR contract`); (b) on `ci.yml` itself, re-run a completed run's `gate` while a newer run at the head is in progress, and show the newer run unaffected and the attempt's `concurrency` group holding only its run. (b) is the design's control and must pass; (a) records the platform rule the design no longer depends on. Both go to R-7. **The `sha=` token** *(rev2, item 5)*: a `pull_request` run's `display_title` carries the test merge SHA its code-scanning analyses list as `commit_sha` |
+| U0 skeleton | `probe/ci-layout-gate` | `ci.yml` (the run-id `concurrency` group, `run-name`, guards, `refresh`; *rev3, editorial: revision 2 left "lanes" here*), `tools/ci/prelude.py`, `tools/ci/gate.py` (the predicate, `--refresh`, `--sweep` with its poll) ported from `gate_model.py`, `gate-sweep.yml` | stub on main | `gate_replay2.py` and `gate_sim.py` driving the ported `gate.py`, not the model, its TAIL and EARLY arms included *(rev3)*. Live perturbations on a draft probe PR: a unit forced red → FAIL; a required job `if: false` → FAIL SKIPPED; a unit removed → FAIL ABSENT; a body edit 1 s after a push → no code run lost (item 1). **M-1**: a run's `display_title` equals its `run-name`, including a run cancelled while pending. **M-3(a)**: held runs after an App push and after a `GITHUB_TOKEN` push. **M-4**: `<caller> / <job>` names, `event_name` and `event` inherited, caller cap, callee floor (12(e)), queue latency of a call. **M-5** *(rev2, N1)*: on the draft probe PR, (a) with a throwaway twin of `ci.yml` whose group is revision 1's PR lane and `cancel-in-progress: true`, re-run the `gate` job of a completed run while a newer run of that lane is in progress, and read through the runs API whether the newer run is cancelled (the measurement `R9-RC-PRCONTRACT.md:84-86` made on `PR contract`); (b) on `ci.yml` itself, re-run a completed run's `gate` while a newer run at the head is in progress, and show the newer run unaffected and the attempt's `concurrency` group holding only its run. (b) is the design's control and must pass; (a) records the platform rule the design no longer depends on. Both go to R-7. **The `sha=` token** *(rev2, item 5)*: a `pull_request` run's `display_title` carries the test merge SHA its code-scanning analyses list as `commit_sha`. **M-6** *(rev3, R3-1)*: on the draft probe PR, an edit while a code run is in flight, then a review while the code run's refreshed `gate` attempt is still running: the sweep fired by the review run's green `gate` logs that attempt polled, and re-run if it ended red, and every `gate` at the head ends green; the read-to-completion gap of every `gate` attempt (the gate's read, from its step log, to its run's `updated_at`) is recorded, so the TAIL arm's range is checked against the platform. **M-7** *(rev3, R3-2)*: the jobs of an in-flight run listed with `filter=latest` while its units run, recording whether `gate` appears before its needs finish; the design no longer depends on the answer. **Fork** *(rev3, R3-4)*: `gate.py` driven with a `pulls/N` whose `head.repo.full_name` differs from the repository FAILs |
 | U1 hassfest | `probe/ci-layout-hassfest` | `workflow_call` only; drop `concurrency`, `push`, `pull_request`, `merge_group`, `workflow_dispatch` | U0 interface | static: map `changed: |triggers`; runtime: dispatch BEFORE (`hassfest.yml` at the base) vs `ci.yml` dispatch AFTER |
 | U2 validate | `probe/ci-layout-validate` | as U1 | U0 interface | as U1 |
 | U3 codeql | `probe/ci-layout-codeql` | `workflow_call`; legs from inputs; `scope` job, `cancel-superseded` and `workflow_dispatch` removed; the extracted-files soundness check (D-5) | U0 (prelude computes legs) | static: `scope|` and `cancel-superseded|` rows `dropped`, `scope`'s decide step re-appears as a prelude step; runtime: dispatch pair; the D-5 check shown failing when `.py` joins python's INERT list |
 | U4 governance | `probe/ci-layout-governance` | `workflow_call`; `concurrency` and `workflow_dispatch` removed; `record`/`delivery-status-publish` keep their `push` guards | U0 interface | static; runtime: `pull_request` pair on draft PRs (delivery-status is PR-only); the `issues: write` push jobs checked once after merge (R-3) |
-| U5 tests | `probe/ci-layout-tests` | `workflow_call` inputs (`gate_scope`, `pr`, `base`, `head`, `recheck`, `no-skip`); `fast` reads `gate_scope`; `lane-proofs` and `laneskip` read `inputs.recheck`/`inputs.no-skip` (item 7); `browser` stand-down at step level; `cancel-superseded`, `concurrency` and `workflow_dispatch` removed; autofix dispatch `ci.yml -f pr= -f base=`; approve steps retargeted to `ci.yml` | **PR 1 merged**, U0 | static: map with `cancel-superseded|` dropped, "Decide the gate scope" moved to the prelude, `browser|` and its new "say the decision" step `changed`/`gained`, the `if:`s reading `inputs.*` `changed`; runtime: a `pull_request` pair (PR-only jobs: lane-proofs, graders-head-copy, nightly-status, the autofix chain) and a dispatch pair with `-f recheck=true` (lane proofs and lane skip run) and with `-f no-skip=true` (every lane runs) |
+| U5 tests | `probe/ci-layout-tests` | `workflow_call` inputs (`gate_scope`, `pr`, `base`, `head`, `recheck`, `no-skip`); `fast` reads `gate_scope`; `lane-proofs` and `laneskip` read `inputs.recheck`/`inputs.no-skip` (item 7); `browser` stand-down at step level; `cancel-superseded`, `concurrency` and `workflow_dispatch` removed; autofix dispatch `ci.yml -f pr= -f base=`; approve steps retargeted to `ci.yml` | **PR 1 merged**, U0 | static: map with `cancel-superseded|` dropped, "Decide the gate scope" moved to the prelude, `browser|` and its new "say the decision" step `changed`/`gained`, that step placed by the map's `after` *(rev3, R3-3)*, the `if:`s reading `inputs.*` `changed`; runtime: a `pull_request` pair (PR-only jobs: lane-proofs, graders-head-copy, nightly-status, the autofix chain) and a dispatch pair with `-f recheck=true` (lane proofs and lane skip run) and with `-f no-skip=true` (every lane runs) |
 | U6 pr-contract | `probe/ci-layout-pr-contract` | `workflow_call`; PR from inputs; red list excludes `pr-contract / pr-contract` and `gate` (N4); the code-scanning wait of 4.3 *(rev2, item 5)*; `security-events: read`, `actions: read` | U0 | static; runtime `pull_request` pair; perturbations: a red non-required job at the head appears in `--red`; a planted code-scanning alert at the head appears in `--red` (item 5). **The lag, measured before `LAG_MAX` is set** *(rev2, item 5)*: on the draft probe PR, over at least 3 pushes, plant a finding only the python leg reports (the leg that uploads last), poll every 5 s from the python job's start (a) `analyses?ref=refs/pull/<N>/merge&tool_name=CodeQL` until the python analysis with `commit_sha ==` the run's `sha=` token is listed, and (b) the head's `CodeQL` check (`app_id` of `github-advanced-security`), recording its `conclusion`, `output.title` and `completed_at` at every change. LAG = the check's first change that reflects the python finding minus that analysis's `created_at`; `LAG_MAX` = twice the largest LAG seen, at least 30 s. Also on an edit run carrying that code run: steps 1-4 key on the carried run's `sha=` and find the same analyses. If the check never reflects the python finding, R-10 applies and U6 stops |
 | U7 arch-score | `probe/ci-layout-arch-score` | `workflow_call`; PR from inputs | U0 | static; runtime `pull_request` pair; D-2: a diff touching `custom_components/` with a planted rise → `gate` FAIL, one that misses it → `arch-score` reported, `gate` pass |
 | U8 budget-raise-gate | `probe/ci-layout-budget` | `workflow_call`; review trigger moves to `ci.yml`; `gate-sweep.yml` | U0 | static; runtime `pull_request` pair; on the draft probe PR that raises a budget: submit a review, then dismiss it → one review run each, `gate` pass then FAIL, no code unit re-runs. **M-2**: with the sweep disabled on the probe, a red code-run `gate` and a newer green review-run `gate` at one head; read which one the PR's `statusCheckRollup` and `check-runs?check_name=gate&filter=latest` report, and whether `mergeStateStatus` reports the check blocking; then with the sweep enabled, show the code run's `gate` re-run green and nothing else re-run |
@@ -1111,7 +1240,7 @@ by the App, against a twin carrying the same diff on main's layout):
    while a retarget's code run is in flight, then a second review after the first
    review run's `gate` is green (no run cancelled: every run's conclusion is read
    back, N1); an edit and a review 1 s apart during a code run (every `gate` at the
-   head ends green, N2).
+   head ends green, N2). *(rev3, R3-1)* Plus M-6's sequence on the assembled layout.
 4. **Bot head.** `gh workflow run ci.yml --ref <branch> -f pr=<n> -f base=main`
    produces a complete `gate`; M-3's outcome decides whether a held run is approved
    beside it.
@@ -1148,12 +1277,14 @@ by the App, against a twin carrying the same diff on main's layout):
   once (`R9-RC-PRCONTRACT.md:84-86`); GitHub's docs say nothing. The design does not
   depend on it either way (every group holds one run), and `gate_sim.py` applies it to
   every layout; M-5 (U0) measures it on `ci.yml`. **A run fails its 51st attempt**
-  (N2, round-2 `ev/gh_docs_read_2026-10-18.md`); the hooks stop at 45 (4.3). **The
-  jobs API lists a job only once it is queued**, which `gate_model.judging` relies on
-  (N2); U0's live perturbation "a body edit 1 s after a push" reads the jobs of the
-  code run while the edit run's gate judges, and the second clause of `judging`
-  (no listed unit job unfinished) keeps the rule closed if a re-run lists a waiting
-  gate early.
+  (N2, round-2 `ev/gh_docs_read_2026-10-18.md`); the hooks stop at 45 (4.3). *(rev3, R3-2)* Revision 2 also relied on
+  "**the jobs API lists a job only once it is queued**", which GitHub does not
+  document. Revision 3 no longer relies on it: `judging` requires every job the run
+  owes, listed and completed (4.1), and `gate_sim.py`'s EARLY arm shows the design
+  sound when every `gate` is listed early. M-7 (U0) records the platform's behaviour
+  for the record. *(rev3, R3-1)* **Between a job's last step and its run reporting
+  `completed` lie teardown and finalisation**, of unmeasured length; the sweep's poll
+  makes the design independent of it up to 600 s, and M-6 measures it.
 - **R-8 (rev1), the sweep and the held-run approvals stay until measured.** Before the
   cut-over a probe PR's `gate` is not a required context, so M-2 and M-3 may not read
   decisively there (`statusCheckRollup` reports checks whether or not they bind). If
@@ -1173,12 +1304,21 @@ by the App, against a twin carrying the same diff on main's layout):
   `LAG_MAX` is fixed. If the check never reflects a later analysis, a red only the
   python leg finds never reaches any red list, and the remedy (listing open alerts on
   `refs/pull/<N>/merge`, or a gate unit reading them) changes what `pr-contract`
-  enforces: a policy change, the owner's.
+  enforces: a policy change, the owner's. *(rev3, R3-5)* The saved data make that
+  outcome likely, so the question is put to the owner now, in parallel with U0, in
+  `## R-10 owner question` below, with a recommended option; U6 then builds the answer
+  instead of stopping.
 - **R-11 (rev2, N1), superseded runs at the same head now run to the end.** An old-base
   code run after a retarget, and an older edit or review run at the head, are no
   longer cancelled. Their gates judge correctly (4.1), and the cost is runner time:
   verdict waits rise from 8.07 to 8.10 runner-hours over the 22 heads, and no retarget
-  was sampled.
+  was sampled. *(rev3, R3-4)* A **fork PR** would have lost both supersession and
+  `refresh` (its token can neither cancel nor re-run), leaving every push to run to
+  its end and, under the newest-completed reading, the 2048 s no-`refresh` stale-green
+  window. Revision 3 removes the case instead of bounding it: the gate refuses a PR
+  whose head is not in this repository (4.1), which changes no reachable outcome,
+  since `pr-contract` already refuses any author but the `hpo-author` App. A fork PR's
+  runs still cost runner time until it is closed; none was sampled.
 
 **Not measured**
 - **Which `gate` check-run binds when several exist at one head** (the newest, or
@@ -1191,8 +1331,9 @@ by the App, against a twin carrying the same diff on main's layout):
 - **Whether `tests/typing_ruler.py`'s recorded closure was taken with `--mypy`.**
 - **The environments' deployment-branch rules** (PR 1, R-3): the environments API is
   closed to the seats that tried; an owner check before PR 1 merges.
-- **Fork PRs, `merge_group` runs and scheduled CodeQL/Governance under the new
-  callees.** None sampled; they keep their standalone `schedule`.
+- **`merge_group` runs and scheduled CodeQL/Governance under the new callees.** None
+  sampled; they keep their standalone `schedule`. *(rev3, R3-4)* Fork PRs are no longer
+  an unmeasured case: the gate refuses them (4.1, R-11).
 - **Out-of-tree seat scripts** (`SEAT-BLOCK.md` and similar). Only the tree was searched.
 - **Runner concurrency headroom.** The verdict waits add at most one waiting job per
   verdict event in flight on a PR (rev2: at most 2 per head measured); the account's
@@ -1201,7 +1342,49 @@ by the App, against a twin carrying the same diff on main's layout):
   **whether a re-run attempt's completion fires `workflow_run`** (the sweep's chain):
   the design is scored under both answers to each.
 - *(rev2)* **How long the code-scanning check takes to reflect a later analysis, if
-  ever** (U6, R-10).
+  ever** (U6, R-10). *(rev3, R3-5)* The decision it would need is put to the owner now,
+  below, not at U6.
+- *(rev3)* **The read-to-completion gap of a `gate` attempt** (M-6) and **when the jobs
+  API lists a job** (M-7): the design is scored independent of both.
+
+---
+
+## R-10 owner question
+
+*(rev3, R3-5.)* To be put to the owner now, in parallel with U0, so that U6 builds
+the answer instead of stopping on it.
+
+**The question.** When a CodeQL leg that uploads after the first one (in practice the
+python leg, which ends last: median 1242 s, `durations.txt`) finds
+a problem at a PR head, should that finding have to be answered before the PR merges?
+
+**Why it is asked now.** `pr-contract` lists every red check at the head, and the body
+must answer each one; that is how a CodeQL finding is enforced today. The code-scanning
+`CodeQL` check concludes 5 to 8 s before the first uploading leg's job ends, at 17 of
+17 heads, and in the saved data it is never re-created and its `completed_at` never
+moves, even at the 4 heads with six uploading legs (`codescan_lag.txt`; the round-3
+review re-read the same data). If U6 confirms that the check never takes in a later
+leg's analysis, a finding only the python leg reports reaches **no** red list: not
+today's `pr-contract`, and not the umbrella's. That blind spot exists on `main` today.
+Closing it changes what `pr-contract` enforces, which is a policy change and the
+owner's to make. If U6 instead shows the check does take in later legs, the question
+lapses and 4.3 stands as written.
+
+**The options, and what each one does:**
+
+| option | what changes | consequence |
+|---|---|---|
+| **A. Keep today's rule** | Nothing is enforced beyond the `CodeQL` check as GitHub reports it. 4.3's step 5 (wait `LAG_MAX` after the newest analysis) is dropped, because it would wait for nothing. | No policy change, and the simplest `pr-contract`. A python-only finding can merge unanswered, exactly as it can today. U6 measures nothing more. |
+| **B. `pr-contract` lists the open alerts of the analyses it matched** | Step 4 of 4.3 already finds, for each uploaded leg, the analysis of the carried code run (`ref=refs/pull/<N>/merge`, `commit_sha == M`). `pr-contract` also reads `code-scanning/alerts?ref=refs/pull/<N>/merge&state=open` and lists each open alert as a red the body must answer, as it answers a red check. If U6 shows the merge ref also lists alerts already open on the base, only alerts absent from `ref=refs/heads/<base>` are listed. | It closes the blind spot. Enforcement keeps today's shape: a finding is answered in the body, not hard-blocked. It needs no new grant (`security-events: read` is already on the caller) and no new required job. It is a policy change: `pr-contract`'s contract and the PR template text say alerts are listed. It costs one API read per `pr-contract` run, and step 5's delay is no longer needed. |
+| **C. A gate-required alert check** | A new job, `codeql / alerts`, in `REQUIRED` and `gate_required`, fails when any matched analysis carries an open alert at severity `error` or above that is not open on the base. | It closes the blind spot with a hard block, stricter than today: a CodeQL finding could no longer be answered in the body, only fixed or dismissed in code scanning. It is a policy change, and it adds a required name, a fixture row and a `gate_model` entry. |
+
+**Recommended: B.** It is the smallest change that closes a gap the data show is
+likely, and it keeps the enforcement model the tree already uses for every other red
+(answer it in the body). It reuses step 4's keyed analyses and the grant `pr-contract`
+already holds, and it removes step 5's measured delay instead of adding a mechanism.
+A gives up a check the tree means to have. C changes the enforcement model, which
+nothing in this design needs. Under B, U6 still runs its planted python-only finding,
+and must show that finding listed in `--red` on the probe PR.
 
 ---
 
@@ -1222,17 +1405,20 @@ All read-only, over saved responses. Phase 2's (`measure/p2/`):
 | `sh measure/p2/readers2.sh` (from a checkout) | `readers2.txt` |
 | `python3 -I measure/p2/gate_replay.py`, `c1_counterfactual.py`, `unitcheck.py` | **superseded** by the revision 1 instruments below; kept as the record the review re-ran |
 
-Revision 1's and revision 2's (`measure/rev/`; revision 2 changed or added the rows marked rev2):
+Revision 1's, revision 2's and revision 3's (`measure/rev/`; rows marked rev2 or rev3 were changed or added by that revision; the round-3 seat's tools are run from its ref, `probe/design-ci-review3`):
 
 | command | prints | item |
 |---|---|---|
-| `python3 -I measure/rev/gate_replay2.py measure/p2/raw measure/rev/reaches_cc.txt` | `gate_replay2.txt`: section 4.1's own function over 22 heads, perturbations, event paths; rev2: the four `judging` rows | 2, 10, 12(c); N2 |
-| `python3 -I measure/rev/gate_sim.py` | `gate_sim.txt`: rev2: 41 event sequences × P2, revision 1 and revision 2 (two chain arms) under the documented concurrency rule plus the re-run-joins-its-group rule and faithful gate timing, scored against an oracle; the ablations of each revision-2 element | 1, 2, 3, 10; N1, N2 |
+| `python3 -I measure/rev/gate_replay2.py measure/p2/raw measure/rev/reaches_cc.txt` | `gate_replay2.txt`: section 4.1's own function over 22 heads, perturbations, event paths; rev2: the four `judging` rows; rev3: five rows (early listing, fork, attempt cap) | 2, 10, 12(c); N2 |
+| `python3 -I measure/rev/gate_sim.py` | `gate_sim.txt`: rev3: 42 sequences, plus the TAIL, READ-LATE and EARLY arms and their null controls (R3-1, R3-2); rev2: 41 event sequences × P2, revision 1 and revision 2 (two chain arms) under the documented concurrency rule plus the re-run-joins-its-group rule and faithful gate timing, scored against an oracle; the ablations of each revision-2 element | 1, 2, 3, 10; N1, N2 |
 | `python3 -I measure/rev/reaches_cc.py measure/p2/raw` (from a full checkout) | `reaches_cc.txt`: D-2's input per head | D-2 |
 | `python3 -I measure/rev/verdict_wait.py measure/p2/raw` | `verdict_wait.txt`: the verdict preludes' waits | 1 |
 | `python3 -I measure/rev/check_writers.py measure/p2/raw` | `check_writers.txt`: who writes checks at PR heads; code scanning's lag | 5 |
-| `python3 -I measure/rev/unitcheck2.py self-test measure/rev/fixtures/tests.yml measure/p1/raw 39158300302` | `unitcheck2_selftest.txt`; rev2: 16/16, with Q1, Q1b and their two nulls | 9; N3 |
-| rev2: the round-2 seat's `plant_unitcheck2.py` run against revision 2's `unitcheck2.py` | `n3_review_plants.txt`: Q1 and Q1b refused, Q2 refused, null 0 | N3 |
+| `python3 -I measure/rev/unitcheck2.py self-test measure/rev/fixtures/tests.yml measure/p1/raw 39158300302` | `unitcheck2_selftest.txt`; rev2: 16/16, with Q1, Q1b and their two nulls; rev3: 20/20, with G1, G1b and their two nulls | 9; N3; R3-3 |
+| rev2: the round-2 seat's `plant_unitcheck2.py` run against revision 2's `unitcheck2.py` | `n3_review_plants.txt`: Q1 and Q1b refused, Q2 refused, null 0 (rev3: re-run against revision 3's, the same verdicts, a `misplaced 0` column added) | N3 |
+| rev3: the round-3 seat's `python3 -I tools/plant_unitcheck3.py measure/rev/unitcheck2.py measure/rev/fixtures/tests.yml` | `r3_review_plants.txt`: G1, G3 and Q1 refused, G2 refused too (its map does not place the step), null 0 | R3-3 |
+| rev3: the round-3 seat's `python3 -I tools/rerun_tail.py measure/rev` | `r3_rerun_tail.txt`: END-BAD 0 on all 40 rows | R3-1 |
+| rev3: the round-3 seat's `python3 -I tools/timing_perturb.py measure/rev` | `r3_timing_perturb.txt`: `TIMING-PERTURB END-BAD total 0` | R3-1 |
 | rev2: `python3 -I measure/rev/codescan_lag.py measure/p2/raw` | `codescan_lag.txt`: the code-scanning check against the legs that uploaded; the review's option 1 holds at 0 of 17 | item 5 |
 | `python3 -I measure/rev/c1_counterfactual.py measure/p2/raw [--boost S \| --sweep]` | `c1_counterfactual_480.txt`, `c1_sweep.txt` | 8 |
 | `sh measure/rev/c1_consumers.sh <rev>` | `c1_consumers.txt` | 8 |

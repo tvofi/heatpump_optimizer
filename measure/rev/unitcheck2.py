@@ -21,7 +21,14 @@ sees every step whether or not any run executed it: a deleted job, a deleted ste
 that BEFORE skipped, and a body gutted under its old name all move it (the three
 plants the review seat put past phase 2's unitcheck). MAP.json is the closed list
 of intended moves: {"renames": {"old": "new"}, "dropped": [...], "gained": [...],
-"changed": [...]} over those keys (job rows are keyed `<job>|`). Exit 0 only when
+"changed": [...], "after": {...}} over those keys (job rows are keyed `<job>|`).
+Revision 3 (round-3 item R3-3): a gained STEP of a job both sides have must also be
+placed: "after" maps it to the step key it follows in the after file (`<job>|^` for
+the job's first position), and a gained step with no placement, or found anywhere
+else, is refused. The order row compares only the steps both sides keep, so
+without this a gained step could sit anywhere, even before its job's checkout
+(the round-3 seat's plant G1). Steps of a wholly gained job need no placement:
+their whole job is new and printed. Exit 0 only when
 the mapped sets are equal; every listed `changed` row prints its before/after so
 the reviewer reads exactly the edits the map admits. Two file-level rows ride
 along: `|floor` (top-level `permissions`, `env`, `defaults`: what a callee job
@@ -35,7 +42,9 @@ never a match; and the two runs must have the same event and sender class
 is exit 2.
 
 SELF-TEST plants, into a copy of BEFORE.yml, the review's three defects, three
-more, and round 2's step-order plants (Q1, Q1b; with their mapped and dropped nulls), and shows the static half refusing each while the null and a key-order
+more, round 2's step-order plants (Q1, Q1b; with their mapped and dropped nulls),
+and round 3's gained-step placement plants (G1, G1b; with their nulls G2, G2b),
+and shows the static half refusing each while the null and a key-order
 reserialisation pass; then shows the runtime half refusing UNREAD and an event
 mismatch.
 """
@@ -107,6 +116,7 @@ def rows(doc: dict) -> dict[str, tuple[str, dict]]:
 
 def static(before: dict, after: dict, m: dict, quiet=False) -> int:
     b, a = rows(before), rows(after)
+    a_order = {k[:-len("|order")]: list(v[1]) for k, v in a.items() if k.endswith("|order")}
     ren = m.get("renames", {})
     dropped = set(m.get("dropped", []))
     b = {ren.get(k, k): v for k, v in b.items() if k not in dropped}
@@ -127,10 +137,25 @@ def static(before: dict, after: dict, m: dict, quiet=False) -> int:
     gained = sorted(k for k in set(a) - set(b) if k not in set(m.get("gained", [])))
     changed = sorted(k for k in set(a) & set(b) if a[k][0] != b[k][0])
     admitted = set(m.get("changed", []))
+    # R3-3: a gained step of a job present on both sides must be where the map places it
+    place = m.get("after", {})
+    misplaced = []
+    for k in sorted(set(m.get("gained", [])) & set(a)):
+        jid, _, step = k.partition("|")
+        if not step or step == "order" or f"{jid}|" not in b or jid not in a_order or k not in a_order[jid]:
+            continue
+        i = a_order[jid].index(k)
+        actual = a_order[jid][i - 1] if i else f"{jid}|^"
+        if k not in place:
+            misplaced.append((k, "UNPLACED", f"found after {actual!r}; the map gives no position"))
+        elif place[k] != actual:
+            misplaced.append((k, "MISPLACED", f"the map places it after {place[k]!r}, found after {actual!r}"))
     for k in lost:
         rc = 1; quiet or print(f"  LOST     {k}")
     for k in gained:
         rc = 1; quiet or print(f"  GAINED   {k}")
+    for k, what, why in misplaced:
+        rc = 1; quiet or print(f"  {what:8s} {k}  {why}")
     for k in changed:
         if k in admitted:
             quiet or print(f"  CHANGED (mapped) {k}\n    before {json.dumps(b[k][1], sort_keys=True)[:300]}\n"
@@ -141,7 +166,7 @@ def static(before: dict, after: dict, m: dict, quiet=False) -> int:
                 i = next(i for i, (x, y) in enumerate(zip(b[k][1], a[k][1])) if x != y)
                 print(f"    first difference at step {i}: before {b[k][1][i]!r}, after {a[k][1][i]!r}")
     print(f"  STATIC rows {len(b)}->{len(a)} lost {len(lost)} gained {len(gained)} "
-          f"changed {len(changed)} (mapped {len(set(changed) & admitted)}) rc {rc}")
+          f"changed {len(changed)} (mapped {len(set(changed) & admitted)}) misplaced {len(misplaced)} rc {rc}")
     return rc
 
 
@@ -277,6 +302,19 @@ def self_test(before_yml: Path, raw: Path, run_id: str) -> int:
     plant("Q1d: a step dropped by the map leaves the kept steps' order unchanged",
           lambda A: A["jobs"]["coverage"]["steps"].pop(2), 0,
           {"dropped": [f"coverage|{cov[2]['name']}"]})
+    new = {"name": "Say the decision", "run": "echo decided"}
+    gk, last = "coverage|Say the decision", f"coverage|{cov[-1].get('name')}"
+
+    def put(i):
+        return lambda A: A["jobs"]["coverage"]["steps"].insert(len(A["jobs"]["coverage"]["steps"]) if i is None else i,
+                                                               dict(new))
+    plant("G1 (round 3): a gained step placed by the map at the end is inserted at position 0, before checkout",
+          put(0), 1, {"gained": [gk], "after": {gk: last}})
+    plant("G1b (round 3): a gained step the map does not place", put(None), 1, {"gained": [gk]})
+    plant("G2 (round 3): the gained step where the map places it, at the end, passes", put(None), 0,
+          {"gained": [gk], "after": {gk: last}})
+    plant("G2b (round 3): the gained step at position 0 passes when the map places it first (`coverage|^`)", put(0), 0,
+          {"gained": [gk], "after": {gk: "coverage|^"}})
     plant("P6: a dropped job admitted by the map is not a defect", del_job("closures-autofix"), 0,
           {"dropped": [k for k in rows(B) if k.startswith("closures-autofix|")]})
     plant("P7: a gutted step admitted only as `changed` passes and is printed",

@@ -19,7 +19,10 @@ gate_model.gate, the function tools/ci/gate.py ports, and drives it three ways:
    base, a retarget, a cancelled-pending run and its replacement (running, red,
    green), an unreadable title, a held run, and an older run's gate re-judged (the
    sweep), and revision 2's defer rule (a run only re-judging is not waited on;
-   one re-running a unit job is). The full event-sequence replay is gate_sim.py.
+   one re-running a unit job is). Revision 3 adds: a run whose gate is listed
+   before the jobs it owes (R3-2) is waited on; a fork PR is refused (R3-4); an
+   attempt at the cap reads red (round-3 editorial). The full event-sequence
+   replay is gate_sim.py.
 """
 from __future__ import annotations
 
@@ -67,7 +70,7 @@ CTX = {"event_name": "pull_request", "action": "synchronize", "pr_number": "7", 
 
 def api_for(jobs, reaches, prelude=None, runs_at_head=()):
     return {"prelude": prelude or {"conclusion": "success", "kind": "code", "pr": "7"}, "jobs": jobs,
-            "runs_at_head": list(runs_at_head), "live_pr": {"head_sha": "H", "base_ref": "main", "state": "open"},
+            "runs_at_head": list(runs_at_head), "live_pr": {"head_sha": "H", "base_ref": "main", "state": "open", "same_repo": True},
             "open_pr_heads": {"H"}, "reaches_cc": reaches}
 
 
@@ -210,6 +213,20 @@ def main(raw: Path, reach_file: Path) -> int:
                         {**judging, "tests / mutation": ("in_progress", None)}, "in_progress")], False)
     edit_case("rev2: ... the run is in progress and its gate is not listed yet: deferred",
               [code_run(1500, G.title("code", "7", "main"), green_jobs, "in_progress")], False)
+    # Revision 3, round-3 item R3-2: judging no longer trusts when the jobs API lists a job.
+    early = {k: v for k, v in green_jobs.items() if not k.startswith("tests / ")}
+    edit_case("rev3: ... gate listed `waiting` while the run's tests jobs are not yet listed: deferred (R3-2)",
+              [code_run(1500, G.title("code", "7", "main"), {**early, "gate": ("waiting", None)}, "in_progress")], False)
+    edit_case("rev3: ... the same with every owed job listed and completed: not waited on (null for the row above)",
+              [code_run(1500, G.title("code", "7", "main"), {**green_jobs, "gate": ("waiting", None)}, "in_progress")], True)
+    api = {**api_for(edit_jobs, True, epre), "runs_at_head": [C]}
+    api["live_pr"] = {**api["live_pr"], "same_repo": False}
+    ok, why = G.gate(edit_ctx, api)
+    show("rev3: a fork PR (head outside this repository) with every source green: refused (R3-4)", ok, False, why); rc |= ok
+    ok, why = G.gate({**edit_ctx, "run_attempt": G.ATTEMPT_CAP}, {**api_for(edit_jobs, True, epre), "runs_at_head": [C]})
+    show(f"rev3: the same edit run at attempt {G.ATTEMPT_CAP} (the cap): red by construction (editorial)", ok, False, why); rc |= ok
+    ok, why = G.gate({**edit_ctx, "run_attempt": G.ATTEMPT_CAP - 1}, {**api_for(edit_jobs, True, epre), "runs_at_head": [C]})
+    show(f"rev3: ... at attempt {G.ATTEMPT_CAP - 1}: judged as usual (null)", ok, True, why); rc |= not ok
     edit_case("edit run: an earlier run at the head has an unreadable title", [C, code_run(1600, "Tests", {})], False)
     edit_case("edit run: a held run at the head is neither waited for nor a source",
               [C, {**code_run(1600, G.title("code", "7", "main"), {}), "status": "action_required"}], True)
