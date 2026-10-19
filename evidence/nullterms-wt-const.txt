@@ -1,8 +1,0 @@
-RESULT probe booked_thermostat_kwh 124.9 plan_kwh 109.3 gap 15.6
-RESULT probe steady_at_target_kwh 124.5 steady_at_delivered_room_kwh 119.4 comfort_gap 5.1
-RESULT probe plan_vs_steady_at_delivered_room -10.1 kWh (+8.09 % of steady_at_target)
-RESULT probe start room/slab 21.00/22.00 end 18.64/23.02 stored_heat_drawn_kwh_th 18.6
-RESULT probe thermal_loss_at_delivered_room_kwh_th 219.4; plan_effective_cop 1.837 vs steady_cop 1.837
-RESULT probe drawdown_at_steady_cop_kwh_e 10.1
-RESULT probe power_weighted_cop plan 7.350 thermostat 7.350 (outdoor-timing gain +0.00 %)
-RESULT probe outdoor min/max over loop -12.0/-12.0 C; thermal_delivered_by_plan_at_its_cop 200.9 kWh_th vs loss+charge 200.9

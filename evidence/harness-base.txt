@@ -8,7 +8,7 @@ cost: receipt total_sek = 15.0; row actual_sek = 3.0
 cost: DEFECT
 coverage: 24 settled hours of 672; open-row scale = 2.80 (month hours / settled = 28.00)
 coverage: DEFECT
-null: plan kWh 114.7 vs booked thermostat kWh 203.6; plan mean room 18.75 C vs mean comfort target 20.44 C
-null: flat price, 2 days, re-plan every 1.00 h: baseline 244.35 actual 137.67 saved 106.68 (43.658594110371546 %)
+null: plan kWh 113.0 vs booked thermostat kWh 201.0; plan mean room 18.81 C vs mean comfort target 20.44 C
+null: flat price, 2 days, re-plan every 1.00 h: baseline 241.18 actual 135.64 saved 105.54 (43.75795111650017 %)
 null: DEFECT
 arms run 4, defect 4: transient cost coverage null
