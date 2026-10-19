@@ -1,0 +1,8 @@
+R10-BRIEFS-FOLD 15 Source: #2447 Forward-carry. An unpinned site is now a body obligation at two stages: `## Unpinned sites` (step 7d) and `mutation` under `## Red checks` (this change). If `mutation-autofix` pins the site after the push the `mutation` line becomes a stale claim in the body. Carry: R10-BRIEFS-FOLD (ci-autofix.md: the reviewer re-checks the line after the autofix commit).
+
+R10-POLICY-FIXER-MD 1 Source: #2447 Forward-carry. Step 6f reads the committed tree (`git grep` at HEAD), as CI does; an uncommitted raw `git init` is invisible to it. A seat running prepr before committing gets a green it did not earn. Carry: R10-POLICY-FIXER-MD (fixer.md step 6, commit before prepr).
+
+R10-POLICY-FIXER-MD 2 Source: #2447 Friction. fixer.md#6: contradiction: the brief says hand off with tools/audit/seat/handoff_push.sh, which opens or updates the PR and writes the delivery row, and also says make no GitHub writes; I pushed the code head to handoff/r10-prepr-unpinned-red and the body with seat/body_push.sh. Carry: R10-POLICY-FIXER-MD.
+
+R10-CI-LAYOUT 6 Source: #2447 Friction. tests/throwaway_git.py#check: cost: it greps the repository it lives in, tools/pr/prepr.sh included, so a fixture owes a shared clone of the real tree (a hand-built tree reads every allow entry stale) and a planted line owes spelling in halves; the first head failed its own step 6f on four self-test strings. Carry: R10-CI-LAYOUT (the tests/throwaway_git.py docstring).
+

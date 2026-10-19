@@ -1,0 +1,3 @@
+  ok   the self-test checks the floor, then takes its temp root, before any fixture
+
+303 passed, 0 failed
