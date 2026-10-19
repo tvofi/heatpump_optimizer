@@ -18,6 +18,14 @@ fifteen minutes between them at most. Their results are saved with the ring and
 ride the bundle's manifest. Download diagnostics carries the bundle inline while
 the download stays within ``INLINE_CAP_BYTES`` and, past it, the manifest and
 where the ring is stored.
+
+The bundle's replay half (#2271) is an ``hpo-replay/1`` document built at
+download time: the collection's own window, at most ``REPLAY_SPAN``, read
+through the recorder's history API in the recorder's executor, through the one
+allowlist and sanitiser ``tools/replay/export.py`` uses (``replay_doc``). A
+person or calendar entity is left out of it, as diagnostics redacts their ids.
+A window too large for the inline cap gives way to the newest shorter one that
+fits (``REPLAY_SPANS``); the manifest says which ran, or why there is none.
 """
 from __future__ import annotations
 
@@ -29,26 +37,29 @@ import statistics
 import time
 from collections.abc import Callable, Coroutine
 from datetime import date, datetime, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any
 from weakref import WeakKeyDictionary
 
+from homeassistant.components.recorder import get_instance
+from homeassistant.components.recorder import history as recorder_history
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from . import const, replay_doc
 from .accuracy import AccuracyTracker
-from .const import CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN
+from .const import CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_instant
 from .store import (
     DOMAINS,
     QuarantiningStore,
-    _sanitize,
-    _store_name,
     admitted,
-    in_domain,
     load_mapping,
-    stored_fields,
+    off_domain,
+    quarantines,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,6 +80,10 @@ SELF_TEST_BUDGET = timedelta(minutes=15)
 #: own system and custom-component sections and this entry's other keys.
 INLINE_CAP_BYTES = 8 * 1024 * 1024
 DOWNLOAD_HEADROOM_BYTES = 256 * 1024
+#: The replay half's window, newest first: the collection's week, then the
+#: shorter ones tried when it does not fit the inline cap (#2271).
+REPLAY_SPAN = COLLECT_SPAN
+REPLAY_SPANS = (REPLAY_SPAN, timedelta(days=3), timedelta(days=1), timedelta(hours=6))
 _INPUTS = ("indoor_temp", "outdoor_temp", "dhw_temp")
 _HEALTH = ("problem_inputs", "input_ages_minutes", "learners_frozen")
 
@@ -122,6 +137,9 @@ def cycle_row(
         "outdoor_temp": data.get("outdoor_temperature"),
         "dhw_temp": data.get("dhw_temperature"),
         "accuracy_sample": samples[-1].as_dict() if samples else None,
+        # The release that wrote the row (#2209's forward-carry): attribution
+        # by the gap a restart leaves needs no inference from it.
+        "version": coordinator.integration_version,
     }
     return {key: value for key, value in row.items() if value is not None}
 
@@ -196,13 +214,9 @@ def store_report(stores: dict[str, tuple[Any, Any]]) -> dict[str, Any]:
     quarantine would scrub a leaf of it on the next load."""
     report = {}
     for key, (version, data) in stores.items():
-        off = list(dict.fromkeys(
-            "/".join(map(str, path))
-            for path, _key, domain, value in stored_fields(_store_name(key) or "", data)
-            if domain is None or not in_domain(domain, value)
-        ))
+        off = list(dict.fromkeys(off_domain(key, data)))
         report[key] = {"version": version, "off_domain": off[:10], "off_count": len(off),
-                       "quarantined": _dumps(_sanitize(data)) != _dumps(data)}
+                       "quarantined": quarantines(data)}
     return report
 
 
@@ -341,6 +355,99 @@ def capped(bundle: dict[str, Any], store_key: str, cap: int | None = None) -> di
             "store_file": f".storage/{store_key}"}
 
 
+# -- the replay half (#2271): ``replay_doc``'s document from the recorder ------
+def replay_window(started_at: datetime | None, now: datetime) -> tuple[datetime, datetime]:
+    """The collection's own window, at most ``REPLAY_SPAN`` long and ending by ``now``."""
+    end = now if started_at is None else min(now, started_at + COLLECT_SPAN)
+    start = end - REPLAY_SPAN
+    return (start if started_at is None else max(start, started_at)), end
+
+
+def _public(node: Any) -> Any:
+    """``node`` with every value naming a person or a calendar dropped, at any depth."""
+    if isinstance(node, str):
+        return None if PRIVATE_ENTITY_ID.search(node) else node
+    if isinstance(node, dict):
+        return {key: _public(value) for key, value in node.items()}
+    if isinstance(node, list):
+        return [item for item in map(_public, node) if item is not None]
+    return node
+
+
+def registry_rows(registry: Any) -> list[dict[str, Any]]:
+    """The entity registry as the rows ``replay_doc`` reads, the export's shape."""
+    return [{"entity_id": e.entity_id, "platform": e.platform, "unique_id": e.unique_id,
+             "config_entry_id": e.config_entry_id, "translation_key": e.translation_key,
+             "disabled_by": e.disabled_by} for e in registry.entities.values()]
+
+
+def replay_entities(entry: dict[str, Any], registry: list[dict[str, Any]]) -> dict[str, Any]:
+    """What the replay half reads for ``entry``: its configuration with no person or
+    calendar in it, the inputs that names, what it publishes, and the Tibber price
+    sensors to choose from when it fetches its own prices."""
+    data, options = _public(entry["data"]), _public(entry["options"])
+    config = {**data, **options}
+    tibber = config.get("price_source") != replay_doc.PRICE_SOURCE_ENTITY
+    return {
+        "entry": {**entry, "data": data, "options": options}, "config": config,
+        "inputs": replay_doc.mapped_entities(data) | replay_doc.mapped_entities(options),
+        "published": sorted(r["entity_id"] for r in registry if r["platform"] == DOMAIN
+                            and r["config_entry_id"] == entry["entry_id"]),
+        "candidates": replay_doc.tibber_price_candidates(registry) if tibber else None,
+    }
+
+
+def _since(states: list[Any], start: datetime) -> list[Any]:
+    """The state in force at ``start``, then every one after it."""
+    before = [s for s in states if s.last_updated < start]
+    return before[-1:] + [s for s in states if s.last_updated >= start]
+
+
+def _record(state: Any) -> tuple[str, Any, dict[str, Any], str | None]:
+    # A recorder older than its ``last_reported_ts`` column (2024.3) has none.
+    reported = getattr(state, "last_reported", None)
+    return (state.last_updated.isoformat(), state.state, dict(state.attributes),
+            reported.isoformat() if reported and reported > state.last_updated else None)
+
+
+def replay_document(
+    wants: dict[str, Any], registry: list[dict[str, Any]], history: dict[str, list[Any]],
+    window: tuple[datetime, datetime], time_zone: str, schema: int | None,
+    conf: frozenset[str],
+) -> dict[str, Any]:
+    """The sealed ``hpo-replay/1`` document over ``window``; ``replay_doc.Refused``
+    when it may not leave the install."""
+    start, end = window
+    states = {eid: replay_doc.state_rows(_record(s) for s in _since(rows, start))
+              for eid, rows in history.items()}
+    inputs, price = set(wants["inputs"]), None
+    if wants["candidates"] is not None:
+        price = replay_doc.choose_price_entity(
+            wants["config"], registry,
+            lambda eid: any(replay_doc.numeric(row[1]) for row in states.get(eid, ())))
+        inputs.add(price)
+    raw = replay_doc.document(
+        time_zone=time_zone, window=(start.isoformat(), end.isoformat()),
+        recorder_schema=schema, entry=wants["entry"], inputs=inputs,
+        published=wants["published"], price_series_entity=price,
+        states={eid: states.get(eid, []) for eid in sorted(inputs | set(wants["published"]))},
+    )
+    return replay_doc.seal(raw, conf)
+
+
+def fit_replay(bundle: dict[str, Any], build: Callable[[datetime], dict[str, Any]],
+               end: datetime, start: datetime) -> tuple[dict[str, Any] | None, str]:
+    """The longest of ``REPLAY_SPANS`` (none starting before ``start``) whose document
+    keeps ``bundle``'s download inside the inline cap, and what ran (executor)."""
+    for since in dict.fromkeys(max(start, end - span) for span in REPLAY_SPANS):
+        doc = build(since)
+        ran = f"{doc['window']['start']} .. {doc['window']['end']}"
+        whole = {**bundle, "replay": doc, "manifest": {**bundle["manifest"], "replay": ran}}
+        if download_bytes(whole) + DOWNLOAD_HEADROOM_BYTES <= INLINE_CAP_BYTES:
+            return doc, ran
+    return None, "over the inline cap at every window tried"
+
+
 class DebugCollector:
     """One entry's ring: its rows, its daily payload snapshots, and whether it is final."""
 
@@ -474,10 +581,12 @@ class DebugCollector:
             "started_at": self.started_at.isoformat() if self.started_at else None,
         }
 
-    async def async_bundle(self, coordinator: Any, diagnostics: Any = None) -> dict[str, Any]:
-        """The ``hpo-debug/1`` bundle; ``replay`` is the repo-side harness's to fill."""
+    async def async_bundle(
+        self, coordinator: Any, diagnostics: Any = None, entry: Any = None
+    ) -> dict[str, Any]:
+        """The ``hpo-debug/1`` bundle; with ``entry``, its replay half filled."""
         stores = await self._read()
-        return {
+        bundle = {
             "schema": BUNDLE_SCHEMA,
             "manifest": {
                 "generated_at": dt_util.utcnow().isoformat(),
@@ -488,6 +597,7 @@ class DebugCollector:
                 "days": COLLECT_SPAN.days,
                 "cycles": len(self.rows),
                 "replay_verdict": None,
+                "replay": None,
                 "store_versions": {key: version for key, (version, _d) in stores.items()},
                 "self_tests": self.self_tests,
             },
@@ -497,6 +607,40 @@ class DebugCollector:
             "stores": {key: data for key, (_v, data) in stores.items()},
             "diagnostics": diagnostics,
         }
+        if entry is not None:
+            bundle["replay"], bundle["manifest"]["replay"] = await self._async_replay(
+                entry, bundle)
+        return bundle
+
+    async def _async_replay(self, entry: Any, bundle: dict[str, Any]) -> tuple[Any, str]:
+        """The replay half and what the manifest says of it; never raises."""
+        if "recorder" not in self._hass.config.components:
+            return None, "no recorder is set up"
+        start, end = replay_window(self.started_at, dt_util.utcnow())
+        registry = registry_rows(er.async_get(self._hass))
+        wants = replay_entities({
+            "entry_id": entry.entry_id, "version": entry.version,
+            "minor_version": entry.minor_version,
+            "data": dict(entry.data), "options": dict(entry.options)}, registry)
+        entity_ids = sorted(wants["inputs"] | set(wants["published"])
+                            | set(wants["candidates"] or ()))
+        try:
+            instance = get_instance(self._hass)
+            # Nothing to read asks nothing: an empty list is not relied on upstream.
+            history = await instance.async_add_executor_job(partial(
+                recorder_history.get_significant_states, self._hass, start, end, entity_ids,
+                include_start_time_state=True, significant_changes_only=False,
+            )) if entity_ids else {}
+            build = partial(replay_document, wants, registry, history,
+                            time_zone=self._hass.config.time_zone,
+                            schema=instance.schema_version,
+                            conf=replay_doc.conf_keys(vars(const)))
+            return await self._hass.async_add_executor_job(
+                fit_replay, bundle, lambda since: build((since, end)), end, start)
+        except replay_doc.Refused as err:
+            return None, str(err)
+        except Exception as err:  # noqa: BLE001 - diagnostics never breaks
+            return None, f"the recorder could not be read: {err!r}"
 
 
 def collector_for(coordinator: Any) -> DebugCollector | None:

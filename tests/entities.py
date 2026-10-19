@@ -2747,10 +2747,18 @@ R.check(
     "_liquid_fraction" in _s2_mod_fns and "_liquid_fraction" not in _s2_cls_fns,
     f"module={'_liquid_fraction' in _s2_mod_fns} class={'_liquid_fraction' in _s2_cls_fns}",
 )
+# The solve's anchor left the class at S2 and left coordinator.py at
+# R10-PUMP-MODEL (#2365 review): it is the plan step's floor, which the pump
+# arbiter reads too, so one leaf module owns it -- plan_step.plan_step_start.
+import heatpump_optimizer.plan_step as _s2_plan_step  # noqa: E402
 R.check(
-    "_solve_anchor is a module-level FunctionDef, not a class method",
-    "_solve_anchor" in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns,
-    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
+    "the solve anchor is plan_step.plan_step_start, outside the coordinator "
+    "class and its module, and the coordinator reads that one function",
+    "_solve_anchor" not in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns
+    and "plan_step_start" not in _s2_cls_fns
+    and coordinator_module.plan_step_start is _s2_plan_step.plan_step_start,
+    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns} "
+    f"same={getattr(coordinator_module, 'plan_step_start', None) is _s2_plan_step.plan_step_start}",
 )
 
 # S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
@@ -3799,7 +3807,15 @@ def _p2_registry(sources):
                  "early_cutoff.py::_cycle_guard":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
-                     "last heard from, which a re-reported 'on' resets"}),
+                     "last heard from, which a re-reported 'on' resets",
+                 # #2271: the replay half copies the recorder's rows, as the
+                 # export copies them out of SQLite; no age is decided there.
+                 "debugger.py::_since":
+                     "cuts a recorded history at the window's start by each "
+                     "row's own last_updated, the export's SQL window rule",
+                 "debugger.py::_record":
+                     "writes a recorded row's last_updated and last_reported "
+                     "verbatim, the export's row shape; nothing reads them as an age"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -3878,6 +3894,67 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
+        # D2-s2-01 (R10-PUMP-MODEL): which law a price is taken from is decided
+        # once per plant, by the valve flag, in compute_cop. The flag is a
+        # SPACE-circuit fact -- it says whether a passed flow temperature is
+        # the supply the machine runs at -- and the hot-water tank forked it a
+        # second time, pricing one lift two ways (up to 1.4346 at outdoor 7 /
+        # tank 65). _batch_cop is an owner rather than a copy: its two branches
+        # ARE compute_cop's two, vectorized, and the pair must agree bit for
+        # bit (fixer.md step 15). The D14 P2 sweep counts this family as
+        # cop_law_fork: 3 seams at the finding's baseline, 2 here.
+        dict(fact="cop_law_fork", finding="D2-s2-01",
+             match=_p2_match_node(
+                 (ast.If, ast.IfExp), r"cop_flow_carnot",
+                 lambda n: "cop_flow_carnot" in ast.unparse(n.test)),
+             owners=["thermal_model.py::ThermalModel.compute_cop",
+                     "thermal_model.py::ThermalModel._batch_cop"],
+             dispositions={}),
+        # D7-s2-54 (R10-SENSOR-PAYLOAD): the plan step's zone setpoints are
+        # published under one pair of names by zone_setpoint_attributes; the
+        # climate entity, Current Setpoint and Heat Pump Action each spelled
+        # the renaming before it.
+        dict(fact="zone_setpoint_names", finding="D7-s2-54",
+             match=_p2_match_node(
+                 (ast.Constant,), r"_floor_setpoint",
+                 lambda n: n.value in ("upper_floor_setpoint", "lower_floor_setpoint")),
+             owners=["entity.py::zone_setpoint_attributes"], dispositions={}),
+        # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
+        # #2365's review): which plan step an instant falls in. One concern --
+        # the optimizer's plan step covering now -- read by the solve's anchor
+        # and by the pump arbiter's ledger row and silent-window lookup, so one
+        # owner on one width: plan_step.plan_step_start on PLAN_STEP_MINUTES.
+        # It was spelled three times: coordinator._solve_anchor on
+        # FORECAST_STEP_MINUTES, pump_arbiter._step_start on a literal 15, and
+        # _observe inline. The other hits are different rules, each driven
+        # against the owner on the same probes by
+        # dev/audit/harnesses/r10_slot_floor_twins.py, whose own precondition
+        # is that the driven set is the enumerated one.
+        dict(fact="slot_floor_rule", finding="D7-s3-8x-slotfloor",
+             match=_p2_match_node(
+                 (ast.BinOp,), r"\.minute",
+                 lambda n: isinstance(n.op, (ast.FloorDiv, ast.Mod))
+                 and ".minute" in ast.unparse(n)),
+             owners=["plan_step.py::plan_step_start"],
+             dispositions={
+                 "tariff.py::_window_slot":
+                     "the METERING window, a different rule: anchored at local "
+                     "midnight so a 90/120-minute DSO window advances the hour, "
+                     "with ``fold`` restored so the autumn hour's two passes "
+                     "keep two keys. Same reading only for windows that divide "
+                     "the hour -- the twins harness's --perturb (the fold "
+                     "dropped) reads 2 of 10 probes apart, and both are the "
+                     "autumn folds",
+                 "optimizer.py::HeatPumpOptimizer._window_offset_steps":
+                     "the metering window's PHASE, not its start: steps from "
+                     "now to the DSO's next boundary, the same modulo asked for "
+                     "a distance where tariff._window_slot's anchor is the "
+                     "instant itself",
+                 "price_model.py::PriceShapeModel.quarter_factor":
+                     "an index INTO a learned quarter-hour profile, not a "
+                     "floored instant: it returns a slot number between 0 and "
+                     "QUARTERS_PER_HOUR, and no datetime at all",
+             }),
     ]
 
 
@@ -3897,6 +3974,16 @@ _P2_CENSUSES = {
     # _loaded_entries's, consulted by every action before it can return.
     "service_entries_resolved_first": (
         "tests/features.py", "every action resolves its config entries before it returns"),
+    # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
+    # payload_number's -- every number state driven with a bool and a text
+    # payload publishes neither, nor reads either as a number.
+    "payload_number_published": (
+        "tests/finite_boundary.py",
+        "every number state publishes None, never the bool or the text, from a "),
+    # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
+    # runtime-object mixin's included.
+    "finite_scrub_resolves_mro": (
+        "tests/finite_boundary.py", "a package mixin with runtime base object"),
 }
 
 
@@ -4015,6 +4102,17 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
+_P2_PLANTS["cop_law_fork"] = (
+    "\n\ndef _p2_plant(p):\n    if p.cop_flow_carnot:\n        return 1\n    return 0\n"
+)
+_P2_PLANTS["zone_setpoint_names"] = (
+    "\n\ndef _p2_plant(action):\n    return {\"upper_floor_setpoint\": action[\"upper_setpoint\"]}\n"
+)
+_P2_PLANTS["slot_floor_rule"] = (
+    "\n\ndef _p2_plant(now):\n"
+    "    return now.replace(minute=now.minute - now.minute % 15,"
+    " second=0, microsecond=0)\n"
 )
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
@@ -4574,6 +4672,17 @@ def _p6_arm_k(walks, declared=None):
     for name, nodes in walks.items():
         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
             continue
+        # A sensor declaring its state's payload path (sensor._PayloadNumberMixin)
+        # reads the path's first key off the payload: a declaration, not a
+        # ``.get`` call, so the walk below would not see it.
+        for n in nodes:
+            if isinstance(n, ast.Assign) and any(
+                    isinstance(t, ast.Name) and t.id == "_payload_path" for t in n.targets) \
+                    and isinstance(n.value, ast.Tuple) and n.value.elts \
+                    and (key := _p6_lit(n.value.elts[0])):
+                reads += 1
+                if key not in produced:
+                    seams.add(f"{name}:{n.lineno} {key}")
         fns = [n for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
         accessors = {
             fn.name for fn in fns
@@ -4904,6 +5013,15 @@ R.check(
     "every coordinator.data key a platform reads is one production writes (P6 K)",
     _p6_k_reads > 0 and not _p6_k,
     f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
+)
+# Null control for the declared-path read: a sensor naming a key no
+# producer writes in its ``_payload_path`` is a seam.
+_p6_k_plant = {**_P6_WALKS, "sensor.py": _P6_WALKS["sensor.py"] + list(ast.walk(ast.parse(
+    "class _P6Plant:\n    _payload_path = (\"p6_no_such_key\", \"leaf\")\n")))}
+R.check(
+    "a declared _payload_path naming an unwritten key is a P6 K seam (null control)",
+    any(seam.endswith(" p6_no_such_key") for seam in _p6_arm_k(_p6_k_plant)[1]),
+    "the planted declaration was not read",
 )
 R.check(
     "every entity id a blueprint, the card or the package names is one a platform "
@@ -22453,6 +22571,42 @@ R.check(
     _stc_ok,
     _stc_detail,
 )
+# The same composition for the coverage rule, on THIS tree's own claim file
+# (v7.0.1's refusal): the stamp deletes every claim, so every may-drift entry
+# a branch suspended for one must come back in the stamp commit, and the
+# stamp's self-check refuses MAY-DRIFT UNCOVERED otherwise -- after the
+# stamp seat has run, when no branch can fix it (at the old VERSION the
+# claim is live, and a name cannot be both). Pinned here, a branch that
+# suspends an entry in a form `restore_suspended` cannot read goes red on
+# its own pull request instead of on the next stamp.
+try:
+    _stcov_version = Path("VERSION").read_text().strip()
+    _stcov_next = _stamp.bump(_stcov_version, "patch")
+    _stcov_after, _, _ = _stamp.rewrite_claims(
+        Path(_env_drift.CLAIM_FILE).read_text(), _stcov_next, "t")
+    _stcov_decl, _stcov_claims = _env_drift._parse_claims(_stcov_after)
+    # env_drift's own reader, on the stamped text, not a second parser.
+    with tempfile.TemporaryDirectory() as _stcov_dir:
+        _stcov_path = Path(_stcov_dir) / _env_drift.CLAIM_FILE
+        _stcov_path.parent.mkdir(parents=True)
+        _stcov_path.write_text(_stcov_after)
+        _stcov_md = _env_drift._may_drift(_stcov_dir)
+    _stcov_problem = (
+        _env_drift.may_drift_coverage_error(
+            _stcov_md, _stcov_claims, _stcov_decl, _stcov_next)
+        or _env_drift.may_drift_error(_stcov_md, _stcov_claims)
+    )
+    _stcov_ok = _stcov_problem is None and not _stcov_claims
+    _stcov_detail = f"claims={sorted(_stcov_claims)} problem={_stcov_problem!r}"
+except Exception as _stcov_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stcov_ok = False
+    _stcov_detail = f"{type(_stcov_exc).__name__}: {_stcov_exc}"
+R.check(
+    "the claim file stamp.py would write from this tree covers every allowed "
+    "may-drift name -- each suspended entry restored with the claims deleted",
+    _stcov_ok,
+    _stcov_detail,
+)
 R.check(
     "stamp.py is no longer INERT: closure.py must classify it",
     not _closure.is_inert("tools/release/stamp.py"),
@@ -24756,10 +24910,11 @@ _NS_OVERRIDES = sorted(
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly six jobs override the workflow's read-only floor, four of them "
-    "read-only",
-    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
-                      "closures-autofix", "mutation-autofix", "nightly-status"],
+    "exactly seven jobs override the workflow's read-only floor, the newest "
+    "(R10-CI-CONCURRENCY's cancel-superseded, `actions: write`) running the base's program",
+    _NS_OVERRIDES == ["cancel-superseded", "ci-ratchet", "claims-autofix",
+                      "closures", "closures-autofix", "mutation-autofix",
+                      "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -26549,7 +26704,7 @@ steps:
       HEAD: ${{ github.event.pull_request.head.sha }}
     run: |
       set -euo pipefail
-      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+      python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
       for g in coverage_ratchet delivery_status; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
@@ -26700,11 +26855,21 @@ def _pt_armed(docs: dict) -> "set[str]":
 
 
 def _pt_trigger(script: str, planted: str) -> str:
-    """Run the arm's `changed` step on a planted one-file diff; its governance output."""
+    """Run the arm's `changed` step on a planted one-file diff; its governance output.
+
+    The step lists the diff with `tests/closure.py changed`, so the planted
+    base carries this tree's copy of it and `python` resolves to this
+    interpreter: the step runs the real producer, not a stand-in.
+    """
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
         _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
+        Path(_td, "tests").mkdir()
+        Path(_td, "tests", "closure.py").write_text(Path("tests/closure.py").read_text())
+        _bin = Path(_td, ".bin")
+        _bin.mkdir()
+        os.symlink(sys.executable, _bin / "python")
         subprocess.run(_g + ["add", "-A"], check=True, env=_env)
         subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
         _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
@@ -26716,6 +26881,7 @@ def _pt_trigger(script: str, planted: str) -> str:
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
+                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
                             "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"
@@ -28255,9 +28421,9 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
         "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
 R.check(
     "and the same tests.yml with its restores and token hygiene undone is "
-    "refused on each of the three autofix jobs (null control)",
-    _PRW_SUBJECTS == ["tests.yml:claims-autofix", "tests.yml:closures-autofix",
-                      "tests.yml:mutation-autofix"],
+    "refused on each of the three autofix jobs and the cancel-superseded job (null control)",
+    _PRW_SUBJECTS == ["tests.yml:cancel-superseded", "tests.yml:claims-autofix",
+                      "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
 _PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(

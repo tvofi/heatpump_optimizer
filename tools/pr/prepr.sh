@@ -298,6 +298,42 @@ claims_remedy() { # env_drift output file
 # too: a push is no place to take a lease another seat holds. A `slot` answer
 # is NOT deferred -- this run already holds a slot (step 1b), so the recording
 # runs inside it (R10-PREPR-CAP, #2267).
+# Every unescaped backtick inside a double-quoted string, as `file:line: text`.
+# In double quotes a bare backtick is a command substitution, so a label meant to
+# print `slot` runs it (prepr.sh line 1738, #2267). Single quotes, comments and
+# quoted heredocs are skipped; $( ) opens a fresh quoting context.
+dq_backticks() {
+  python3 - "$@" <<'PY'
+import re, sys
+for path in sys.argv[1:]:
+    stack, hd = ['u'], None
+    for n, line in enumerate(open(path, encoding='utf-8').read().split('\n'), 1):
+        if hd:
+            if line.strip() == hd: hd = None
+            continue
+        i, seen = 0, False
+        while i < len(line):
+            c, m = line[i], stack[-1]
+            if m == 's':
+                if c == "'": stack.pop()
+            elif m == 'd':
+                if c == '\\': i += 1
+                elif c == '"': stack.pop()
+                elif c == '`' and not seen: print(f"{path}:{n}: {line.strip()[:150]}"); seen = True
+                elif c == '$' and line[i+1:i+2] == '(': stack.append('u'); i += 1
+            else:
+                if c == '\\': i += 1
+                elif c in "'\"": stack.append('s' if c == "'" else 'd')
+                elif c == '#' and (i == 0 or line[i-1] in ' \t;'): break
+                elif c == '$' and line[i+1:i+2] == '(': stack.append('u'); i += 1
+                elif c == ')' and len(stack) > 1: stack.pop()
+                elif line[i:i+2] == '<<' and line[i:i+3] != '<<<':
+                    mm = re.match(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1", line[i:])
+                    if mm: hd = mm.group(2)
+            i += 1
+PY
+}
+
 closure_lane() { # script, strace present (1 or 0)
   local one; one=$(mktemp)
   printf '%s\n' "$1" > "$one"
@@ -468,7 +504,7 @@ claims_line() { # rc 0 holds, 1 refused
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
   local cw kind s v left="" strace=0 r=0 rp=""
   cw=$(mktemp -d)
-  if git diff --name-only "$1"...HEAD > "$cw/changed.txt"; then
+  if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt"; then
     python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
     kind=$(cat "$cw/aff/affected.case" 2>/dev/null)
   else
@@ -661,13 +697,22 @@ PY
 
 # Step 7's whole body: the predicted budget red, then the body check fed it.
 # rc 0 the body answers, 1 refused.
-body_line() { # body file, head sha, title, paths file, merge base, head
+#
+# AN UNPINNED SITE STEP 6D LISTED IS A RED `mutation` (R10-PREPR-UNPINNED-RED,
+# found on #2435): `mutation` fails on a mutant no pin kills, and the autofix
+# job may pin it only after the push, so the reviewed head carries that red.
+# The optional seventh argument is the file step 6d wrote the unpinned sites
+# to; when it holds one, `mutation` rides `--red` like `budget-raise-gate`, and
+# a body whose `## Red checks` does not name it is refused here rather than by
+# `pr-contract` after the push. Absent or empty, nothing is fed (the null arm).
+body_line() { # body file, head sha, title, paths file, merge base, head, [unpinned-sites file]
   local raised r out reds=()
   raised=$(raise_red "$5" "$6"); r=$?
   case "$r" in
     4) reds=(budget-raise-gate) ;;
     1) printf 'REFUSE: %s' "$raised"; return 1 ;;
   esac
+  [ -n "${7:-}" ] && [ -s "$7" ] && reds+=(mutation)
   out=$(mktemp)
   body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
@@ -690,6 +735,22 @@ copies_line() { # tree root, changed-paths file -> one line; rc 0 clean, 1 a cop
   out=$(cd "$1" && PYTHONPATH=tests/hastub python3 tests/closure.py no-copies 2>&1); r=$?
   if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
   echo "$(printf '%s\n' "$out" | grep -m1 '^COPY-CLAIMED' || printf '%s\n' "$out" | tail -1) ($(printf '%s\n' "$out" | grep -c '^COPY-CLAIMED') in all) -- import the production symbol instead (tests/README.md), or the closures job refuses it"
+  return 1
+}
+
+# THE RAW-GIT CHECK IS CI'S OWN COMMAND (R10-PREPR-UNPINNED-RED, folded in from
+# R10-CI-LAYOUT's carry). governance.yml runs `tests/throwaway_git.py --check`,
+# which refuses a raw `git init` or `git clone` in a tracked script -- a
+# repository git >= 2.54 may repack after the temporary directory is removed --
+# and no local path ran it, so an instrument self-test building one with a raw
+# `git init` reddened only after the push. It greps the COMMITTED tree at HEAD
+# (`git grep`), so an uncommitted site is invisible to it here as to CI.
+throwaway_line() { # tree root -> one line; rc 0 clean, 1 refused, 3 skipped
+  local out r
+  [ -f "$1/tests/throwaway_git.py" ] || { echo "no tests/throwaway_git.py under $1, so the raw-git check was not run"; return 3; }
+  out=$(cd "$1" && python3 -I tests/throwaway_git.py --check 2>&1); r=$?
+  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+  echo "$(printf '%s\n' "$out" | grep -m1 '^REFUSE\|^STALE ALLOW' || printf '%s\n' "$out" | tail -1) -- build it with tests/throwaway_git.py (throwaway_git_init / throwaway_git_clone, or the .sh twin), or governance.yml refuses it"
   return 1
 }
 
@@ -1073,7 +1134,7 @@ version_edit() { # main ref, head -> prints the stamp-owned items the range move
   local names manifest notes out
   git rev-parse --verify --quiet "$1^{commit}" >/dev/null || return 2
   git rev-parse --verify --quiet "$2^{commit}" >/dev/null || return 2
-  names=$(git diff --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
+  names=$(git diff --no-renames --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
   manifest=$(git diff --text --no-textconv "$1...$2" -- custom_components/heatpump_optimizer/manifest.json 2>/dev/null) || return 2
   notes=$(git diff --text --no-textconv "$1...$2" -- RELEASE_NOTES.md 2>/dev/null) || return 2
   out=$(stamp_paths "$names" "$manifest" "$notes")
@@ -1477,6 +1538,29 @@ EOS
   got=$(bl nogate raise unnamed-red.md)
   case "$got" in *'carries no budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
   st "${got%%:*}" 0 "and the body check still runs, fed nothing (skip, never refuse)"
+  # The mutation arm (R10-PREPR-UNPINNED-RED): an unpinned site step 6d listed
+  # makes `mutation` a red the body must name. Plant: a site file holding one
+  # key and a body silent on it. Null controls: the same site with the body
+  # naming it, and an empty and an absent site file with the silent body.
+  printf 'custom_components/heatpump_optimizer/away.py:12 CONST\n' > "$BR/unpinned-sites.txt"
+  : > "$BR/no-sites.txt"
+  blm() { # base, head, body, sites file -> "<rc>:$line"
+    local out r
+    out=$(GIT_DIR="$BR/.git" body_line "$DABS/$3" "$ZERO" '' "$DABS/paths-nonpolicy.txt" "$1" "$2" ${4:+"$4"})
+    r=$?
+    echo "$r:$out"
+  }
+  got=$(blm base docs unnamed-red.md "$BR/unpinned-sites.txt")
+  st "${got%%:*}" 1 "an unpinned site with a body whose ## Red checks omits mutation is refused before the push"
+  case "$got" in *'`mutation`'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming mutation";; *) st 0 1 "and the refusal is the red gate's own, naming mutation";; esac
+  got=$(blm base docs mutation-answered.md "$BR/unpinned-sites.txt")
+  st "${got%%:*}" 0 "the same unpinned site with a body naming mutation passes (null control)"
+  got=$(blm base docs unnamed-red.md "$BR/no-sites.txt")
+  st "${got%%:*}" 0 "a diff with no unpinned site is unaffected by the silent body (null control)"
+  got=$(blm base docs unnamed-red.md)
+  st "${got%%:*}" 0 "and so is a caller passing no site file (null control)"
+  got=$(blm base raise mutation-answered.md "$BR/unpinned-sites.txt")
+  st "${got%%:*}" 1 "an unpinned site does not answer a budget raise: both reds are owed"
   rm -rf "${BR:?}"
 
   # Step 6c, driven through `copies_line` -- the function the step calls --
@@ -1543,6 +1627,27 @@ EOS
   st "$r" 3 "a tree with no tests/layout.py skips, never refuses"
   rm -rf "${LR:?}"
 
+  # The raw-git check, driven through `throwaway_line` over a shared clone of
+  # THIS tree (so the check's allow-list finds the files it names and no entry
+  # reads stale): a raw `git init` committed into an instrument self-test is the
+  # plant; the unplanted clone is the null control.
+  TG=$(mktemp -d)
+  throwaway_git_clone -q --shared . "$TG/r" >/dev/null 2>&1
+  tg() { git -C "$TG/r" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+  got=$(throwaway_line "$TG/r"); r=$?
+  st "$r" 0 "a tree with no raw repository build passes the raw-git check (null control)"
+  case "$got" in *' 0 raw '*'site(s) refused, 0 stale allow'*) st 1 1 "and the ok line is the check's own, so it ran";; *) st 0 1 "and the ok line is the check's own, so it ran";; esac
+  G=g; G=${G}it; I=in; I=${I}it   # spelled in halves: the check greps THIS file too
+  printf '#!/bin/bash\n# an instrument self-test\n%s %s -q "$T"\n' "$G" "$I" > "$TG/r/tools/audit/probe_selftest.sh"
+  tg add -A >/dev/null 2>&1; tg commit -qm raw >/dev/null 2>&1
+  got=$(throwaway_line "$TG/r"); r=$?
+  st "$r" 1 "a raw repository build in an instrument self-test is refused"
+  case "$got" in *'REFUSE tools/audit/probe_selftest.sh:3'*'throwaway_git_init'*) st 1 1 "and the refusal names the file, the line and the helper";; *) st 0 1 "and the refusal names the file, the line and the helper";; esac
+  rm -f "$TG/r/tests/throwaway_git.py"
+  got=$(throwaway_line "$TG/r"); r=$?
+  st "$r" 3 "a tree with no tests/throwaway_git.py skips, never refuses"
+  rm -rf "${TG:?}"
+
   # The call site. Driving the two functions above does not pin that a step
   # calls them: the #1591 self-test drove a helper while the step kept calling
   # the old one. The main flow is the text after this self-test returns.
@@ -1553,6 +1658,10 @@ EOS
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
   case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
+  case "$flow" in *'throwaway_line "'*) true ;; *) false ;; esac
+  st $? 0 "the repository-build step calls throwaway_line, so a raw build is refused ahead of the handoff"
+  case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
+  st $? 0 "the pr-body step hands body_line the unpinned-site file, so mutation reaches the red check before the push"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
@@ -1738,7 +1847,18 @@ EOS
   [ "$(closure_lane tests/card_drift.mjs 1)" = record ]; st $? 0 "and is recorded with it (null control)"
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
-  st "$(closure_lane tests/entities.py 1)" record 0 "a `slot` script is recorded here, inside the slot this run holds (#2267)"
+  st "$(closure_lane tests/entities.py 1)" record "a \`slot\` script is recorded here, inside the slot this run holds (#2267)"
+  # The label above once sat in double quotes with bare backticks, so the shell ran
+  # `slot` as a command and printed "line 1738: slot: command not found" in the
+  # run's output (the label was also shifted by a stray argument). Drive the reader
+  # over a planted line (null control) and over every script in tools/pr/.
+  DQ=$(mktemp -d)
+  printf '%s\n' 'echo "a `slot` b"' > "$DQ/bad.sh"
+  printf '%s\n' 'echo "a \`slot\` b" '"'"'c `d` e'"'"' # f "`g`"' 'cat <<'"'"'X'"'"'' 'say "`h`"' 'X' > "$DQ/ok.sh"
+  [ -n "$(dq_backticks "$DQ/bad.sh")" ]; st $? 0 "a backtick inside a double-quoted string is reported (null control)"
+  [ -z "$(dq_backticks "$DQ/ok.sh")" ]; st $? 0 "and an escaped one, a single-quoted one, a comment and a heredoc are not"
+  [ -z "$(dq_backticks tools/pr/*.sh)" ]; st $? 0 "no script in tools/pr/ runs a command inside a double-quoted label"
+  rm -rf "$DQ"
 
   # The heavy steps' closure-reachability skips (`heavy_declared`, `heavy_plan`
   # and `heavy_skip` above), over a throwaway clone with one fixture branch per
@@ -2037,6 +2157,38 @@ PY
     && grep -q '^rc=0$' <<<"$got"
   st $? 0 "--apply-inert writes the import-edge arm's entry too, and the prediction then clears"
   (cd "$PDX/r" && git checkout -q -f pnull)
+  # R10-HANDOFF-PREPR-BOUNCE M3: each refusing arm prints its own repair, since
+  # before a PR exists no bot runs to wait for.
+  pfull() { (cd "$PDX/r" && git checkout -q -f "$1" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main 2>&1); }
+  got=$(pfull pimport)
+  grep -q '^CI PREDICT: an UNDER-SCOPED closure is re-recorded in the diff, one script at a time: tests/derive_closures.sh --single tests/' <<<"$got" \
+    && ! grep -q "ci-autofix.md's" <<<"$got"
+  st $? 0 "an UNDER-SCOPED prediction names --single for its scripts, not ci-autofix.md's wait (M3)"
+  got=$(pfull porphan); grep -q '^CI PREDICT: an UNCLASSIFIED file is classified in the diff' <<<"$got"
+  st $? 0 "an UNCLASSIFIED prediction names the classification, a closure or INERT (M3)"
+  got=$(pfull pnull); grep -q 'is re-recorded in the diff\|is classified in the diff' <<<"$got"
+  st $? 1 "and a quiet diff prints no repair (null control)"
+  # M2: body_push.sh runs the predictor over the code head before it pushes
+  # the body, so the handoff itself refuses what open_pr.sh's prepr would.
+  # Pushed to a throwaway bare repository, never to the clone's origin.
+  BPO=$(cd "$PDX/r" && git remote get-url origin); throwaway_git_init "$PDX/bodies.git" -q --bare
+  (cd "$PDX/r" && git remote set-url origin "$PDX/bodies.git")
+  printf 'body\n' > "$PDX/BODY.md"
+  bpush() { (cd "$PDX/r" && git checkout -q -f "$1" && bash "$OLDPWD/tools/audit/seat/body_push.sh" "zz-$1" "$PDX/BODY.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' "refs/heads/handoff-body/zz-$1"); }
+  got=$(bpush pinert)
+  grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got" && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "body_push refuses the probe head (a new harness, no inert_reads line) and pushes no body (M2)"
+  (cd "$PDX/r" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert >/dev/null 2>&1 && git commit -qam 'closures: the probe harness (inert read)')
+  got=$(cd "$PDX/r" && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-pinert "$PDX/BODY.md" 2>&1; echo "rc=$?")
+  grep -q '^rc=0$' <<<"$got" && git --git-dir="$PDX/bodies.git" rev-parse -q --verify refs/heads/handoff-body/zz-pinert >/dev/null
+  st $? 0 "and pushes it once --apply-inert's entry is committed"
+  got=$(bpush pnull); grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-pnull$' <<<"$got"
+  st $? 0 "body_push pushes a head the predictor is quiet on (null control)"
+  got=$(cd "$PDX/r" && git checkout -q -f pnull && mv tools/pr/ci_predict.py "$PDX/ci_predict.away" \
+    && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-skip "$PDX/BODY.md" 2>&1; echo "rc=$?"; mv "$PDX/ci_predict.away" tools/pr/ci_predict.py)
+  grep -q 'carries no tools/pr/ci_predict.py' <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "and refuses a checkout with no predictor rather than passing it silently"
+  (cd "$PDX/r" && git remote set-url origin "$BPO" && git checkout -q -f pnull)
   # Round-9 C1: the full arm derives its recording set from the tree
   # (`lane-plan --all-scripts`), so a new selectable script owes no lane
   # edit and no lane edit can drop a recording -- the NO RECORDING class is
@@ -2440,7 +2592,7 @@ rm -f /tmp/prepr-owners.$$
 # pull request with the base's copy of it; the graders that run below only on
 # their own inputs (brief_lint here, the wave script in step 4) run on this
 # head's copy instead, since a pinned path can be any grader's data (#1637).
-git diff --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
+git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-changed.$$
 PIN_TOUCHED=1
 pinned_touched /tmp/prepr-changed.$$ "$(pinned_paths .github/workflows/*.yml)" && PIN_TOUCHED=0
 rm -f /tmp/prepr-changed.$$
@@ -2527,7 +2679,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # --- 3h. the self-test, when this diff can move one of its rows (`selftest_owed`).
 # CI's `governance` job runs it on every pull request; this is the cheaper
 # detector. A diff that cannot be listed is treated as owing it.
-if ! git diff --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
+if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
   if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; else bash tools/pr/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; fi
   step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
@@ -2579,7 +2731,7 @@ step "no version edit" $? "$STAMPED"
 # --- 6. claim files byte-identical to origin/main.
 # A branch that claims nothing does not touch them at all, and one that does not
 # touch them cannot collide with another branch's claim (#570).
-CLAIMS=$(git diff --name-only origin/main...HEAD -- \
+CLAIMS=$(git diff --no-renames --name-only origin/main...HEAD -- \
   tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt | tr '\n' ' ')
 if [ -n "${CLAIMS// /}" ]; then
   say check "claim files" "$CLAIMS changed -- intended only if this branch claims drift"
@@ -2650,6 +2802,15 @@ case $? in
   *) step "layout guard" 1 "$MOVED_LINE" ;;
 esac
 
+# --- 6f. no raw git init/clone: governance.yml's `throwaway_git.py --check`;
+# `throwaway_line` above. Reads the committed tree at HEAD.
+THROWAWAY_LINE=$(throwaway_line "$PWD")
+case $? in
+  3) say skip "throwaway git" "$THROWAWAY_LINE" ;;
+  0) step "throwaway git" 0 "$THROWAWAY_LINE" ;;
+  *) step "throwaway git" 1 "$THROWAWAY_LINE" ;;
+esac
+
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
 if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
@@ -2675,7 +2836,7 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
     # body_line feeds `--red budget-raise-gate` when the diff raises a budget
     # leaf, then runs this same body_check. A base with no gate skips that
     # name and still runs the check.
-    body_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$BASE" HEAD \
+    body_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$BASE" HEAD "$UNPINNED_SITES" \
       >/tmp/prepr-body.$$ 2>&1
     step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
     rm -f /tmp/prepr-body.$$
