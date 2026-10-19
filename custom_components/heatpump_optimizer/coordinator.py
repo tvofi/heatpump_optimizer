@@ -155,6 +155,7 @@ from .const import (
     VENT_CUSUM_DRIFT_C,
     VENT_CUSUM_CLIP_C,
     VENT_CUSUM_STARVE_HOURS,
+    VENT_CUSUM_REFERENCE_HOURS,
     OPEN_WINDOW_RELAX_C,
     IMMERSION_FACTOR,
     COP_BASELINE_MIN_SAMPLES,
@@ -2740,12 +2741,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         it never moves a plan. Everything that could move one (the comfort
         relaxation, the DHW margin nudge) is gated behind its own flag.
         """
-        # #26: an open window shows as sustained colder-than-predicted
-        # residuals in the heat-loss learner's replay.
+        # #26: an open window shows as a sustained cold CHANGE in the heat-loss
+        # replay residual, measured from what it normally reads (#2241).
         self._vent_cusum = Cusum(
             threshold=VENT_CUSUM_THRESHOLD_C,
             drift=VENT_CUSUM_DRIFT_C,
             side=-1,
+            clip=VENT_CUSUM_CLIP_C,
+            reference_hours=VENT_CUSUM_REFERENCE_HOURS,
         )
         # #11: the immersion element announces itself as measured power
         # beyond what the compressor can draw. 2/2 hysteresis, like every
@@ -5096,14 +5099,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not np.isfinite(residual):
             return
 
-        # #26: an open window shows as SUSTAINED colder-than-predicted
-        # residuals — often exactly the large ones the guard below throws
-        # away, which is why the detector is fed first, clipped so one
-        # sensor glitch cannot trip it alone. On a trip every learner
-        # freezes with reason "ventilation" until the residuals recover.
-        vent_changed = self._vent_cusum.update(
-            now, float(np.clip(residual, -VENT_CUSUM_CLIP_C, VENT_CUSUM_CLIP_C))
-        )
+        # #26: a window shows as SUSTAINED cold residuals, often ones the guard
+        # below throws away, so the detector is fed first, with the interval's
+        # heat and sun: a delivery or aperture bias scales with those, a window
+        # does not (#2241). On a trip every learner freezes until it recovers.
+        vent_changed = self._vent_cusum.update(now, float(residual), (
+            previous_power * dt_h, (previous_state.solar_radiation or 0.0) * dt_h / 1000.0))
         if vent_changed:
             _LOGGER.info(
                 "Open-window detector %s (stat %.2f)",

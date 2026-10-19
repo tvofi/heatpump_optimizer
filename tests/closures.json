@@ -3464,6 +3464,8 @@
    "dev/audit/harnesses/r10_tick_which_roster.py",
    "dev/audit/harnesses/r10_train_raise_hold_mutants.sh",
    "dev/audit/harnesses/r10_train_raise_hold_replay.py",
+   "dev/audit/harnesses/r10_vent_bias_window.py",
+   "dev/audit/harnesses/r10_vent_probe_companion.py",
    "dev/audit/harnesses/r10_weekday_range_twins.py",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
