@@ -1,0 +1,8 @@
+RESULT mutant=OWN1_meta_refresh_in_keydown rc=0 fails=0
+RESULT mutant=OWN2_location_pathname_built_in_keydown rc=0 fails=0
+RESULT mutant=OWN2c_location_href_built_in_keydown_control rc=1 fails=2
+    FAIL  no navigation token in the card's code outside navigateTo
+      10821: globalThis[["loc", "ation"].join("")].href = "/config/integr
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      plan:keydown:SVG#27/2 -> location /config/integrations; plan:keydown:SVG#27/2:Escape -> location /config/integrations; plan:keydown:SVG#27/2:Enter -> location /config/integrations; plan:keydown:SVG#27
+RESULT mutant=OWN3_location_search_built_in_keydown rc=0 fails=0
