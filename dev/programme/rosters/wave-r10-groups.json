@@ -3784,6 +3784,61 @@
     "note": null
    },
    "brief": "Measure first, then fix `tools/policy/policy_lint.mjs`'s family count. Issue #2410, filed by the governance cron, reads `[policy] recurring friction: mutation (family)`: the stats histogram printed \"verdict family at 3 in this window, threshold 3\" over `v7.0.0..origin/main`, counting \"3 entries in all\" as DISTINCT pull requests (`FRICTION_FAMILIES`, the `(family)` rows of the verdict and friction histograms). The orchestrator recorded the finding as a family double-count in policy_lint.mjs: the family reaches the threshold on fewer distinct occasions than the line states. The exact mechanism is not yet pinned; measuring it is the first deliverable (the family rows are additive beside the members' exact-id rows, so read where one occasion can be counted twice). Re-derive with `node tools/policy/policy_lint.mjs --stats --since v7.0.0`. Owed: (1) a failing fixture first: a window whose family reaches the threshold only by counting one occasion twice must NOT print the family would-open line, and a window that reaches it on distinct pull requests must print exactly one (the family fixture is tools/policy/fixtures/policy-loop/friction-families.json; its `controls` window already pins the union count for a pull request carrying two members, so read what it does not pin); (2) the fix in the keying/counting rule; (3) dispose #2410 per `.claude/rules/delivery-status-tracking.md`, naming which of the two things the count is a property of the change moves (the keying rule in policy_lint.mjs, or the merged bodies already in the window), or refuting the count with the distinct-PR list. Also pin the `--record-known-bad` shadowing fix in tools/policy/policy_lint_mutants.mjs (the carry below). SEQUENCING: this group starts only after the pull requests #2406 (R10-ROSTER-FASTPATH) and #2408 (R10-ROSTER-CARRY-POLICY) have merged; neither has a roster group, so the edge cannot be an `after`. Part of #201.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: tools/policy/ is in POLICY_GLOBS; tvofi approves under the mandate. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
+  },
+  {
+   "group": "R10-DEAD-RATE-LIMIT",
+   "lane": "LR",
+   "kind": "defect",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "R10-TRUST-RELATIVE side finding: HOUSE_LOSS_MAX_STEP can no longer bind"
+   ],
+   "class": "dead-code",
+   "severity": "low",
+   "size": "S",
+   "wave": 13,
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "dev/audit/harnesses/r10_trust_relative_bundle.py",
+    "dev/audit/rounds/round10/study-reseed/reparam_sites.py",
+    "dev/audit/rounds/round9/D2/s4/newton_bias.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "hot_files": [
+    "coordinator.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-TRUST-RELATIVE"
+   ],
+   "carry": [
+    "Re-measure at your merge base that the rate limit cannot bind with an arm where it WOULD bind on the pre-R10-TRUST-RELATIVE base (the null control), before deleting anything: a limit that binds in one reachable state is not dead.",
+    "The constant is imported by tests/entities.py and tests/features.py and by the facade list in .claude/workflows/web-decomp-stage.js; deleting it changes those readers in the same pull request."
+   ],
+   "architect_note": null,
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-dead-rate-limit",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+   },
+   "brief": "Found by the R10-TRUST-RELATIVE seat (no defer): after that group's relative trust region, the rate limit `HOUSE_LOSS_MAX_STEP` (the `max_step_fraction=HOUSE_LOSS_MAX_STEP` argument at coordinator.py's two `learner_newton_step` call sites, one in the heat-loss learner and one in the reseed path) can no longer bind (the orchestrator's recorded finding; the fixer re-derives why at its merge base). A dead limit is a claim the code makes and nothing enforces. Owed: (1) measure, at your merge base, that no reachable input makes the limit bind, with the control above; (2) if dead, delete the argument at both call sites and the constant, and update the three harnesses that pass it (dev/audit/harnesses/r10_trust_relative_bundle.py, dev/audit/rounds/round10/study-reseed/reparam_sites.py, dev/audit/rounds/round9/D2/s4/newton_bias.py) and the pins in tests/entities.py and tests/features.py; if it still binds in some state, keep it and record the state that binds. coordinator.py is a hot file: the architect note's serial chain applies, so start from the previous coordinator group's merge. Part of #201. No issue is filed for this group yet: the orchestrator files and wires one.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   }
  ]
 }
