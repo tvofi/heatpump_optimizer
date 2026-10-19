@@ -1,0 +1,17 @@
+
+=== features block ===
+
+-- R10-PUMP-MODEL -- DHW lift, the duty floor channel, the step-start fold
+  ok   D2-s2-01: the space-valve flag does not price the hot-water tank -- both plants charge one lift, over the whole outdoor/tank grid
+  ok   D2-s2-01: the tank's price is _cop_law at the tank's own water temperature, humidity and all -- not a penalty of its own
+  ok   D2-s2-01: a tank below the reference flow earns no lift and a hot one pays it (the one-sided rule _batch_cop states)
+  ok   D2-s2-01: and the flag is not inert here -- it is what prices the SPACE buffer's lift, which is the fact it owns
+  ok   D7-arch3-04: the plan's floor reaches planned_draw_runs as an argument -- a floorless reader is unaffected while step_duty runs
+  ok   D7-arch3-04: no module-state floor is left behind -- no setattr names it, and the reader carries no such attribute, so a raise between the reads has nothing to leave set
+  ok   D7-arch3-04: the reader has no channel -- a floor set on planned_draw_runs from outside pump_arbiter does not reach a floorless read
+  ok   D7-s3-8x-slotfloor: the ledger row's start is plan_step_start(now), fold and all, on every instant of the autumn-DST day in both folds -- and a 30-minute reference agrees on exactly the instants it must, so it is not vacuous
+  ok   D7-s3-8x-slotfloor: the arbiter's ledger step and the solve's anchor are one function on one width -- widened to 30 minutes, both read the 30-minute step
+  ok   D7-s3-8x-slotfloor: the plan's last step covers [stamp, stamp + one plan step) -- live a microsecond before the edge, expired at it
+
+ALL 10 FEATURES BLOCK PASSED
+rc=0

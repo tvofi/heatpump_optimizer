@@ -1,0 +1,5 @@
+job 117907732276 kernel-points (native), run 39205631972, conclusion success (check-runs API)
+environment: core=Haswell cpu=AMD EPYC 7763 64-Core Processor numpy=2.4.6 python=3.14.8 head=68fea78
+RESULT stop_prod_cost=80.22  stop_loose_1e3_cost=81.54  stop_loose_1e2_cost=83.10
+RESULT stop_both_1e3_cost=81.60  stop_both_1e2_cost=83.10  stop_tight_1e8_cost=80.22 (objective 106.4689)
+RESULT stop_repeat_identical=1  stop_check_gap_pct=+1.687 (must be >= +0.840)

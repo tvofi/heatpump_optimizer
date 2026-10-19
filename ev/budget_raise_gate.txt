@@ -1,0 +1,6 @@
+# merge base 913ce1ff5b02, head HEAD: 7 budget file(s): .claude/workflows/policy_budgets.json, tests/ci_budgets.json, tests/coverage_budgets.json, tests/mutation_budgets.json, tests/stress_budgets.json, tests/structure_budgets.json, tests/typing_budgets.json
+RAISE tests/stress_budgets.json: coverage_floor_override.calls_floor: override added at 6 (absent is the strict state)
+RAISE tests/stress_budgets.json: coverage_floor_override.floor: override added at 18 (absent is the strict state)
+RESULT budget_raises=2 count
+REFUSED: no decisive review by tvofi (id 70032254) on this pull request
+rc=1
