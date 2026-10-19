@@ -1,57 +1,55 @@
-Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: not carried to R10-CI-LAYOUT or R10-BRIEFS-FOLD; three of the body's four Forward-carry and Friction lines are not in handoff/audit-r10-roster at 5472ac0d6, and the body names no roster SHA
+Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: the four #2444 carries at roster ebf81fc1d state no control, and the merge_pr/push-lines carry to R10-CI-LAYOUT is half refuted: deleting open_pr.sh's and update_pr.sh's app_push line reddens their self-tests
 
-bus-nonce: f80ab1804942e189dbff059a04dfe3bd
+bus-nonce: cfee72218fe11aa3fb06b4a66bb9b930
 
-Round: 2. Round 1 was the `Fix review: blocked b891dfa04 mutation-survivor` comment; this head fixes that finding. This is round 2, so from the fourth round a re-cut would be owed, not yet.
-Measured head: 8be64a110fa4e741889920c4eff2b6b4cb99cf3a (ev/HEAD). Its merge base with origin/main is e59f0291a, which is origin/main's tip.
-Contract: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-Environment: this container exports PYTHONUNBUFFERED=1, as the dispatch said. The seat interpreter is /opt/hpo/venv-ci/bin/python3, CPython 3.14.7.
+Round: 3. Round 1 was `Fix review: blocked b891dfa04 mutation-survivor`. Round 2 was `Fix review: blocked 8be64a110 carry-missing`. This head is the one round 2 measured, unchanged. From round 4, `fixer.md` owes a re-cut, not a repair. The finding here is in the roster and the body, not in code.
+Measured head: 8be64a110fa4e741889920c4eff2b6b4cb99cf3a (ev/HEAD). I read it again from the API just before writing this, and it had not moved.
+Contract: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current. origin/main is at 64b0ae690, three record commits past the merge base e59f0291a.
+Environment: PYTHONUNBUFFERED=1, which is how this container is set up.
 
-## Blocking
+## Blocking (step 10)
 
-- Step 10, forward-carry. `finding-propagation.md` (Enforcement): "The producing PR does not merge until the carry is in the tree ... The body names the file, the stage and (a roster carry) the branch SHA: the reviewer opens that, not the claim." The body's carry lines end `Carry: R10-CI-LAYOUT` (three of them) and `Carry: R10-BRIEFS-FOLD` (Friction). None of them names a roster branch SHA. I opened `handoff/audit-r10-roster` at its tip 5472ac0d67f8 and the other six `handoff/*roster*` refs (ev/carry.txt, ev/carry_grep.txt):
-  - The seven unwired self-tests outside `tools/audit/seat/`: these are covered in substance by R10-CI-LAYOUT's earlier carry, which predates this PR and says "Enumerate every `--self-test` under tools/ with a command ... disposition each". This PR's own enumeration (the seven names and its weaker grep rule) is not written there.
-  - The coverage of `merge_pr.sh`'s path after its gates and of the push lines in `handoff_push.sh`, `open_pr.sh` and `update_pr.sh`: not in R10-CI-LAYOUT's brief or carries. The roster's one `merge_pr.sh ... gate` hit is a different group's mandate-gate brief.
-  - The cost question of the field-coverage census copying `custom_components/heatpump_optimizer/`: absent.
-  - The Friction line (`.git/info/exclude` holds a bare `seat/` line, so `git add -A` leaves a new seat instrument untracked) to R10-BRIEFS-FOLD: absent. Neither `info/exclude` nor `git add -f` appears in the roster.
-  
-  A carry that exists only in the PR body is the case step 10 names, "only in this PR's comments". Fix: append the carries with `roster_edit.py append-carry`, each with its control and a re-measurement instruction. Name the roster SHA in the body. No code change is needed.
+All four carries exist at `handoff/audit-r10-roster` ebf81fc1d, which is the SHA the body cites and the branch's current tip (ev/roster_tip). Three are in R10-CI-LAYOUT's `carry` and one is in R10-BRIEFS-FOLD's. Both groups are at `resume.stage: not-started`. `git diff origin/main...ebf81fc1d -- dev/programme/rosters/` is non-empty, so the branch is live (ev/carries_2444.txt). So round 2's absence finding is fixed.
+
+Step 10 also requires each carry to "state its control as a precondition". Under `finding-propagation.md`, that means carrying the control and not only the claim, and giving the figures a re-measurement instruction. Round 2's fix line asked for exactly this. None of the four does it. Each one is the body line copied word for word:
+
+- **The merge_pr/push-lines carry (R10-CI-LAYOUT)** is wrong in part. It says the push lines of `handoff_push.sh`, `open_pr.sh` and `update_pr.sh`, and `merge_pr.sh`'s path after its gates, "are not exercised by those files' own self-tests". I measured this on a worktree at the head and restored it afterwards; `git status` was clean:
+  - `open_pr.sh` line 44 (`bash "$_push" ...`, the first push) replaced by `true`: `--self-test` rc=1, `pr_args self-test: 46 checks, 4 failed`. The arms that fail include `open_pr: --over-cap opens at the cap` and the null control (ev/openpr_mut44.txt). The unmutated file gives rc=0 (ev/openpr_base.txt).
+  - `update_pr.sh` line 58 (its push) replaced by `true`: rc=1, `46 checks, 2 failed` (ev/updatepr_mut.txt).
+  - `handoff_push.sh` lines 75, 94 and 108 (its push lines), each replaced by `true`: rc=0 every time. The claim holds here (ev/handoff_mut_*.txt).
+  - `merge_pr.sh` line 169 (`gh pr merge ...`) replaced by `exit 0`: rc=0, `12 checks, 0 failed`. The claim holds here (ev/mergepr_mut169.txt).
+
+  So as carried, the line tells R10-CI-LAYOUT to build offline seams for two files whose push lines `pr_args.sh`'s copies already pin. That is the "read as established fact" failure CLAUDE.md warns about. The body shows no measurement behind the line, which `finding-propagation.md` ("an unverified observation is not carried") forbids.
+- **The seven-unwired carry** names neither the seven files nor the rule that found them. It points at "(Figures, class seams)" of a PR body. R10-CI-LAYOUT's earlier carry ("Enumerate every `--self-test` under tools/ ... plant a failing case ... Null control") covers this in substance. To be sufficient, the #2444 line would have to cite that rule and the seven names. Alternatively it could say it adds nothing to that carry.
+- **The census-cost carry** routes a cost question. It is a routing note rather than a measured finding, so the missing control is the least serious here. Still, it gives no figure and no re-measurement instruction.
+- **The Friction carry (R10-BRIEFS-FOLD)** carries no control. For example: `git check-ignore -v tools/audit/seat/<new>` prints `.git/info/exclude:<n>:seat/`, and the null control is a clone without that line.
+
+What a fix needs, with no code change: amend the three R10-CI-LAYOUT lines and the R10-BRIEFS-FOLD line in the roster with `roster_edit.py`. The push-lines line should be narrowed to `handoff_push.sh` and `merge_pr.sh`, with the mutants above as its control and the unmutated self-tests as its null control. Then correct the body's Forward-carry line to match and cite the new roster SHA.
+
+## Not blocking, but no merge could be returned on it now (step 11)
+
+These are from the check-runs API at 14:44Z with filter=all (ev/check-runs.tsv, 49 runs).
+- The re-runs failed again on the same installation rate limit, before any check body ran:
+  - `arch-score` 118124086255 (14:42Z): `gh: API rate limit exceeded for installation (HTTP 403)`.
+  - `pr-contract` 118124086016 and 118124448660 (14:42Z and 14:43Z): the same 403 at the body read.
+  - `validate-hacs` 118114888472: `GitHubRatelimitException`.
+  - Logs: ev/log_*.txt.
+- No `pr-contract` run has read the body at this head. `closures` 118120973522 and `Analyze (python)` were still `in_progress`.
+- `nightly-status` is main's red, and the body answers it.
+- Because the workflows have not all concluded and no `pr-contract` run has checked the body, I do not block on root-cause-unanswered. These reds are infrastructure, not this diff. Even without the carry finding, this head is not mergeable until those re-runs go green.
 
 ## Verified at this head
 
-- Round-1 finding, re-run with PYTHONUNBUFFERED=1 set (ev/direct_mutants.txt, ev/harness_full.txt):
-  - S30 (`return 1 if unwired else 0` -> `return 0`), run directly: `FAIL --check exits 1 on an unwired file (rc=0)`, `15 checks, 1 failed`, rc=1. KILLED.
-  - Two extra mutants of my own on the same line. `return 1` and `return 1 if tests else 0` are both killed by the null-control arm (`--check exits 0 when every file is wired`). The new arm cannot pass by refusing everything.
-  - S04 (`"-u" not in` -> `"-u" in`), run directly under PYTHONUNBUFFERED=1: `SELF-TEST FAIL`, with 4 arms failing, including the new `the logged argv carries the prepended -u`. KILLED. Two extra mutants of mine were killed the same way: deleting the `run_argv.insert(1, "-u")` line, and narrowing the basename tuple to `("python",)`.
-  - The PR's harness, all mutants, under PYTHONUNBUFFERED=1: S04, S04U and S30 KILLED. The S04/S04U last line is the CLI usage line because the step goes on to its CLI calls after the self-test fails. rc=1 either way.
-  - Control at c4a6597eb (the round-1 files, PYTHONUNBUFFERED=1, ev/control_c4a6597eb.txt): S30 gives `13 checks, 0 failed` rc=0, and S04 gives `SELF-TEST PASS` rc=0. Both survive, which reproduces round 1. The kill is earned by the diff.
-  - Unmutated: `selftest_wiring self-test: 15 checks, 0 failed`. `daemonize.py --self-test` prints `SELF-TEST PASS` both under PYTHONUNBUFFERED=1 and under `env -u PYTHONUNBUFFERED`.
-- The body's mutation figures (ev/harness_full.txt, `PYTHONUNBUFFERED=1 python3 -I dev/audit/harnesses/r10_seat_selftests_mutants.py`, a clean worktree at the head): 36 lines `== M0 rc=0`, `== M0: 0 seat step(s) red`, `grep -c ' KILLED'` = 34, 0 SURVIVED, 0 NOT RUN, `RESULT survivors=0`, rc=0. `git status --short` was empty afterwards. These match the body.
-- Field-coverage fold (ev/field_coverage.txt): at the head, `RESULT misread=0`, with all nine inputs reading RUN and README SKIPPED. At fb9b3fc1f, `RESULT misread=8`. These match the body.
-- Figures (ev/figures.txt):
-  - Gate scope: `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`
-  - Wiring: `selftest_wiring: 37 self-testing, 37 wired, 0 unwired`, rc=0.
-  - Ratchets and claims: `STRUCTURE RATCHET PASSED`; `policy_lint.mjs --budgets` rc=0; `ALL 109 HARNESS HEADER CHECKS PASSED`; `claims hygiene: e59f0291a... ok`. That claims figure was taken at the current merge base. The body quotes fb9b3fc1f, the code head's base.
-- Step 5: `VERSION`, `manifest.json`, `RELEASE_NOTES.md` and `tests/golden` show an empty diff from the merge base (ev/step5.txt).
-- Step 13: `git merge-tree --write-tree origin/main 8be64a110` exits 0 and prints tree 982bb6457, with no MERGE-CLAIM line (ev/merge_tree.txt). The head already contains origin/main e59f0291a.
-- Step 7: the body's `## Head` names 8be64a110fa4e741889920c4eff2b6b4cb99cf3a, the head I measured.
+- Step 13: `git merge-tree --write-tree origin/main 8be64a110` exits 0 against origin/main 64b0ae690, printing tree ca4fcaab3, with no MERGE-CLAIM line (ev/merge_tree.txt). Main's three new commits touch only `dev/programme/delivery/`.
+- Step 1, re-checking round 1's finding: `selftest_wiring.py --self-test` prints `15 checks, 0 failed`, and `--check` prints `37 self-testing, 37 wired, 0 unwired`. With S30 applied (`return 1 if unwired else 0` changed to `return 0`), the self-test prints `15 checks, 1 failed`, which the step's tally grep refuses. KILLED.
+- Step 7: the body's `## Head` names 8be64a110, the head I measured. The body cites roster ebf81fc1d, and that commit exists and is the roster branch's tip.
 
-## CI at this head (step 11, ev/check-runs.tsv, read at 14:33Z with filter=all)
+## Not re-derived in this round
 
-- `instrument-self-tests` (the job this PR adds to): success, 14:24:37Z to 14:28:03Z.
-- Red: `arch-score`, `validate-hacs`, `env-matrix`, `pr-contract` (2 runs) and `nightly-status`. I read the logs (ev/log_*.txt). The first five all died on `API rate limit exceeded for installation (HTTP 403)` before their checks ran:
-  - `arch-score` failed reading the PR body.
-  - `validate-hacs` failed in HACS's `repos.get`.
-  - `env-matrix` failed with `required-contexts ... the GitHub API is unreachable`.
-  - `pr-contract` 118115365678 and 118116886250 failed at "Read the body off the API". The steps after it failed on the missing `/tmp/pr-body.md`.
-  
-  So `pr-contract` has not checked the body at this head. `nightly-status` is main's red, and the body answers it.
-- `coverage` and `Analyze (python)` were still in progress at 14:33Z.
-- None of these reds is this diff's. They need a re-run once the installation's quota resets. Under step 11 I do not block on them, because no workflow has concluded with a `pr-contract` run reading the body. They are not answered in the body either, and I am not grading that.
+The rest of round 2's figures were taken at this same, unchanged head, and I did not re-take them:
+- the harness's 34 KILLED and `RESULT survivors=0`
+- the field-coverage `misread=0`/`8`
+- the offline spy's `37 files, 0 refused`
+- gate scope and the ratchets
 
-## Not re-derived
-
-- (moved to Verified: the offline spy over the 37 files printed `offline_spy: 37 files, 0 refused`, rc=0, and 0 per-file lines lack ` offline |` (ev/offline_spy.txt). This matches the body.)
-- `tests/entities.py` at the head was still running when I wrote this, so I cite CI rather than a local run.
-- The body's job-time figure and its seven-unwired census outside `tools/audit/seat/` were not re-run.
-- The macOS sandbox-exec path of `offline_spy.py` cannot be measured on this Linux seat.
+The body's job-time figure, its seven-unwired census outside `tools/audit/seat/`, and the macOS sandbox path were not re-run.
