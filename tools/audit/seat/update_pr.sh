@@ -14,6 +14,7 @@
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=update_pr; pr_trap; unset GIT_AUTHOR_NAME; export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
+PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
 [ "$2" = - ] || pr_code_sha_shape "$2"
 [ -f "$3" ] || pr_refuse "no body file at $3"
@@ -47,12 +48,11 @@ _added=$(ensure_row . "$N" "$(row_line "$N" $R "$TTL")")
 ROW=""; [ -z "$_added" ] || ROW="adds one commit containing only this PR's own row, \`$_added\`"
 M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 [ "$(git log -1 --format=%an)" = tvofi ] || { echo "author wrong"; exit 1; }
-python3 - $B $H "$NOTE" $M "$ROW" <<'E'
-import sys
+PYTHONPATH="$PRT" python3 - $B $H "$NOTE" $M "$ROW" <<'E'
+import sys; from head_note import prefix
 p,H,N,M,R=sys.argv[1:6]; s=open(p).read()
-i=s.index('## Head\n\n')+len('## Head\n\n')
 pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below) into this PR's previous head"%M + ((", and then "+R) if R else "") + ".\n\n"
-s=s[:i]+pre+s[i:]; open(p,'w').write(s)
+s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
