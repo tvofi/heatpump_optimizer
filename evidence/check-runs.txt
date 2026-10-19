@@ -1,0 +1,8 @@
+check-runs on 733ac35089522bac79c89fe7d28c4860d9f0c0a6, read 2026-10-19 ~10:07Z (39 runs)
+failure: arch-score 117997756849 (gh api 403 "API rate limit exceeded for installation" fetching body, before any measurement)
+failure: validate-hacs 117997757623 (aiogithubapi GitHubRatelimitException)
+failure: pr-contract 117998113853, 117998838728 (carry_audit FileNotFoundError /tmp/pr-body.md: body never fetched; no run checked this body)
+failure: env-matrix 117997758266 ("15 declared outcome(s) held, 1 did not"; failing arm not read)
+failure: nightly-status 117997758338 (not this PR's per fix-review.md 11)
+in_progress: coverage 117997937004, Analyze (python) 117997872251
+success: fast (3.14), typing, browser, mutation, briefs, closure-scope, delivery-status, instrument-self-tests, wave-script, policy-docs, scope, budget-raise-gate, hassfest, Analyze (js-ts), Analyze (actions); CodeQL neutral

@@ -1,0 +1,34 @@
+  ok   a field the check never reads is BLIND
+  ok   an IGNORE with a reason clears it
+  ok   an IGNORE matching no field is DEAD
+  ok   an input red before any perturbation is REFUSED
+  ok   a skip on a perturbation is REFUSED, never a detection
+  ok   a load failure is REFUSED
+  skip     probe: cannot load probe (down); its field coverage is UNCHECKED this run, not confirmed
+  ok   the ruleset arm's load failure is a printed skip, not a refusal
+  ok   env-matrix's nothing-skipped row passes the token-hidden line alone
+  ok   and fails on a second, non-token skip line beside it
+  ok   and fails on a lone non-token skip line
+  ok   the UNCHECKED pattern matches every field the token cannot see
+  ok   and refuses the same line for any other field (pinned to bypass_actors)
+  ok   a census whose count rises by one for one planted member, refused on its row, is read
+  ok   a count that never moves is BLIND (the silent zero)
+  ok   a count that moves by the wrong amount is BLIND
+  ok   a count line that cannot be read is REFUSED, never a pass
+  ok   a count that moves while its row never refuses is UNGATED, BLIND (R10-N-structure-blind)
+  ok   a census naming no gate row is REFUSED
+  ok   a census already refused unplanted is REFUSED, not read
+  ok   every registered census names its gate row, its instrument, a reader and a plant
+  ok   a census with no instrument reads no count, so it is REFUSED
+  ok   the ci-ratchet reader refuses on its own row only
+  ok   the ci-ratchet row reader reads its own row only
+  ok   a row key holding regex metacharacters or a backslash matches only literally
+  ok   the census registry reads a liveness row its census gates
+  ok   a liveness row no census gates is REFUSED (the card row before #2441)
+  ok   a census gating no row is REFUSED
+  ok   an exemption naming no row is DEAD
+  ok   a derived check DECLARED lacks is REFUSED as unregistered
+  ok   a DECLARED key the set does not yield is DEAD
+  ok   a DECLARED arm that does not exist is REFUSED
+FIELD COVERAGE SELF-TEST ok
+rc=0
