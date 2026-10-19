@@ -1,0 +1,70 @@
+RECORD_ENUM: api
+GAP: 0 merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []
+RECORD: 137 merged pull request(s) in v7.0.0..origin/main; 0 without a disposition in dev/programme/plan-2026-09-open-issues.md, dev/programme/HANDOVER.md or dev/programme/delivery/
+  self-disposing (record-class)  #2418  record: delivery rows for #2384, #2393, #2400, #2403, #2414 (autofix)
+  self-disposing (record-class)  #2414  record: delivery rows for #2405 (autofix)
+  self-disposing (record-class)  #2413  Leaves #201 open.
+  self-disposing (record-class)  #2412  Leaves #201 open.
+  self-disposing (record-class)  #2407  Leaves #201 open.
+  self-disposing (record-class)  #2402  Leaves #201 open.
+  self-disposing (record-class)  #2398  Leaves #201 open.
+  self-disposing (record-class)  #2392  record: delivery rows for #2351, #2375, #2388 (autofix)
+  self-disposing (record-class)  #2388  record: delivery rows for #2387 (autofix)
+  self-disposing (record-class)  #2387  record: delivery rows for #2376, #2385 (autofix)
+  self-disposing (record-class)  #2385  record: delivery rows for #2345, #2371, #2383 (autofix)
+  self-disposing (record-class)  #2383  record: delivery rows for #2380, #2382 (autofix)
+  self-disposing (record-class)  #2382  record: delivery rows for #2360, #2366, #2372, #2374, #2377 (autofix)
+  self-disposing (record-class)  #2372  record: delivery rows for #2370 (autofix)
+  self-disposing (record-class)  #2370  record: delivery rows for #2369 (autofix)
+  self-disposing (record-class)  #2369  record: delivery rows for #2367 (autofix)
+  self-disposing (record-class)  #2367  record: delivery rows for #2364 (autofix)
+  self-disposing (record-class)  #2364  record: delivery rows for #2363 (autofix)
+  self-disposing (record-class)  #2363  record: delivery rows for #2362 (autofix)
+  self-disposing (record-class)  #2362  record: delivery rows for #2361 (autofix)
+  self-disposing (record-class)  #2361  record: delivery rows for #2359 (autofix)
+  self-disposing (record-class)  #2359  record: delivery rows for #2356, #2358 (autofix)
+  self-disposing (record-class)  #2358  record: delivery rows for #2357 (autofix)
+  self-disposing (record-class)  #2357  record: delivery rows for #2355 (autofix)
+  self-disposing (record-class)  #2355  record: delivery rows for #2347, #2354 (autofix)
+  self-disposing (record-class)  #2354  record: delivery rows for #2320, #2336, #2338, #2339, #2340, #2341, #234
+  self-disposing (record-class)  #2338  record: delivery rows for #2311, #2323, #2329, #2335 (autofix)
+  self-disposing (record-class)  #2335  record: delivery rows for #2334 (autofix)
+  self-disposing (record-class)  #2334  record: delivery rows for #2333 (autofix)
+  self-disposing (record-class)  #2333  record: delivery rows for #2330, #2332 (autofix)
+  self-disposing (record-class)  #2332  record: delivery rows for #2316, #2328 (autofix)
+  self-disposing (record-class)  #2328  record: delivery rows for #2301, #2327 (autofix)
+  self-disposing (record-class)  #2327  record: delivery rows for #2325, #2326 (autofix)
+  self-disposing (record-class)  #2326  record: delivery rows for #2283, #2324 (autofix)
+  self-disposing (record-class)  #2324  record: delivery rows for #2289, #2321, #2322 (autofix)
+  self-disposing (record-class)  #2322  record: delivery rows for #2282, #2305, #2319 (autofix)
+  self-disposing (record-class)  #2319  record: delivery rows for #2315, #2318 (autofix)
+  self-disposing (record-class)  #2318  record: delivery rows for #2293, #2314 (autofix)
+  self-disposing (record-class)  #2314  record: delivery rows for #2297, #2309, #2313 (autofix)
+  self-disposing (record-class)  #2313  record: delivery rows for #2285, #2308 (autofix)
+  self-disposing (record-class)  #2308  record: delivery rows for #2294, #2303, #2306 (autofix)
+  self-disposing (record-class)  #2303  record: delivery rows for #2296, #2300 (autofix)
+  self-disposing (record-class)  #2300  record: delivery rows for #2290, #2299 (autofix)
+  self-disposing (record-class)  #2299  record: delivery rows for #2275, #2284, #2295 (autofix)
+  self-disposing (record-class)  #2295  record: delivery rows for #2291, #2292 (autofix)
+  self-disposing (record-class)  #2291  record: delivery rows for #2281, #2288 (autofix)
+  self-disposing (record-class)  #2288  record: delivery rows for #2286, #2287 (autofix)
+  self-disposing (record-class)  #2286  record: delivery rows for #2277, #2280 (autofix)
+  self-disposing (record-class)  #2280  record: delivery rows for #2279 (autofix)
+  self-disposing (record-class)  #2279  record: delivery rows for #2278 (autofix)
+  self-disposing (record-class)  #2278  record: delivery rows for #2276 (autofix)
+  self-disposing (record-class)  #2276  record: delivery rows for #2251, #2274 (autofix)
+  self-disposing (record-class)  #2274  record: delivery rows for #2246 (autofix)
+  self-disposing (record-class)  #2246  record: delivery rows for #2244, #2245 (autofix)
+  self-disposing (record-class)  #2245  record: delivery rows for #2218 (autofix)
+  self-disposing (record-class)  #2218  record: delivery rows for #2208 (autofix)
+  self-disposing (record-class)  #2208  record: delivery rows for #2202, #2206, #2207, #2209, #2210, #2211, #221
+  self-disposing (record-class)  #2202  record: delivery rows for #2204 (autofix)
+RECORD_CLASS: 58 record-class merge(s) self-disposing (record-class), listed above and not counted; 79 merge(s) under the disposition bar
+TABLES: 0 split table(s) across 2 disposition document(s)
+CAPS: 0 stated cap(s) disagreeing with policy_budgets.json across 2 disposition document(s)
+RENDER: 13 table(s), 245 row(s), 4 list(s), 58 item(s) across 2 disposition document(s)
+
+KNOWN-BAD: 0 of 0 recorded record-class defect(s) still present, in 0 recorded occurrence(s)
+
+TOTAL: 0 error(s) over 137 merged pull request(s)
+exit=0
