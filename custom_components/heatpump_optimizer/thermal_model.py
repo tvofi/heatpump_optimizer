@@ -122,7 +122,7 @@ from .dhw_schedule import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Specific heat capacity of water: ~0.00116 kWh/(liter·°C).
+# Specific heat capacity of water: ~0.00116 kWh/(liter·°C). (null control)
 # Defined in `const` because the tank-geometry helpers there need it too, and
 # re-exported here so the many uses below read unchanged.
 WATER_SPECIFIC_HEAT: float = _WATER_SPECIFIC_HEAT
