@@ -212,6 +212,8 @@ jobs:
       # tests/ci_budgets.json, tests/ci_ratchet.py, tools/audit/archscore/ and
       # the card -- are inputs too: without them a pull request uncapping a
       # census row was caught only by the schedule (R10-ARCHSCORE-COVERAGE).
+      # A program file is named by a glob or its directory, never its own
+      # name, for the pinned-grader reason above.
       # So are the homes the reorganisation moved its inputs to (tests/
       # layout.json: policy_lint.mjs, counts.mjs and fixtures/ to tools/policy/,
       # policy_budgets.json to dev/governance/config/), and the seam map the
@@ -226,7 +228,7 @@ jobs:
           set -euo pipefail
           if ! git cat-file -e "$PINNED:tools/policy/field_coverage.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs" 2>/dev/null; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
-          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*' tests/seam_map.json tests/ci_budgets.json tests/ci_ratchet.py tools/audit/archscore custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js tools/policy dev/governance/config; then
+          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*' tests/seam_map.json tests/ci_budgets.json 'tests/ci_ratchet*' tools/audit/archscore custom_components/heatpump_optimizer/www tools/policy dev/governance/config; then
             echo "field coverage: no input changed since $SINCE; skipped"
           else
             if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs; else node tools/policy/field_coverage.mjs; fi
