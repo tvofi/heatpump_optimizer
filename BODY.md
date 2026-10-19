@@ -91,37 +91,27 @@ are pressed.
 
 ## Head
 
-`2260b8b9058bc02f0673accb30dca76e94765b29`, which merges `origin/main` `07a09406a` (tip at 2026-10-18 19:50 UTC)
-into `8100b5e55`. `tests/entities.py` conflicted in two hunks: this branch's
-`cop_law_fork` registry entry and plant against main's `zone_setpoint_names`
-(D7-s2-54, #2379), inserted at the same anchors. Both sides were purely
-additive over the merge base (19 and 42 lines); the resolution is their
-union, read back with every line each side added present in the merged file
-(0 missing on either side, a multiset check over `git diff -U0` added lines)
-and 61 insertions, 0 deletions against the base. `tests/closures.json` merged
-by the ledger driver. Main's 106af95a3..07a09406a delta touches, among the
-files the harnesses below and `tests/optimality.py` / `tests/stress.py` read,
-only an unrelated new harness (`dev/audit/harnesses/archscore_shape_family_coverage.py`);
-no change to `optimizer.py` or `thermal_model.py` -- so the harness figures
-taken at `8100b5e55` carry; the gate, scope, structure, score, predict, P2
-sweep and stress figures are re-taken at this head. Merge base `07a09406a`; 22
-files over it.
+`e85ef9fe6f5080dd12cf12da4800e69ea14ab080` is the code head. It is two merges of origin/main onto the previous handoff head `2260b8b9058bc02f0673accb30dca76e94765b29`, which is also the authored code head of the last review:
+- origin/main `fa424fd91a042f4a66ae53238c3db6d70d9d4ff1` (#2408) and then `dd27e7c1b4c6ca250f8be5b33c4e8443d6d1f0b6` (#2411, R10-SAV-BASELINE). The second conflicted in `tests/golden/claimed_drift.txt` only; see **The claims file**.
+- origin/main `0dac0bf8731a36ca10805fcd3fd5c196b77cb8fc` (#2399). Clean.
 
-`8100b5e55` itself merged `origin/main` `106af95a3` (R10-CI-CONCURRENCY,
-touching no file in the solver, the thermal model or `tests/stress.py`) into
-the PR head `c3a25d2ae` (`875c4b415`, clean, the ledger driver on
-`tests/closures.json`) and added five commits: the ftol cell and arm
-(`e4f5a41e2`), the `calls_floor` bound (`18b5c0c14`), the kernel-points
-trigger (`42d78852d`), the docstring nit kept line-neutral and the new
-harness's citation fixed (`ce3d3bc6d`), and the harness's canonical root walk
-(`8100b5e55`). The harness figures below were taken at `8100b5e55`, its
-worktree or an export of it (`git archive`, or `git ls-files` for the ftol
-mutants, taken at `e4f5a41e2`'s tree, whose `tests/optimality.py` and
-`optimizer.py` equal this head's), unless they name CI's run at `c3a25d2ae`.
+`git merge-base --is-ancestor 0dac0bf87 HEAD` holds. origin/main has since moved to record-only merges; this body claims nothing about a later main. The PR head the orchestrator last saw, `86258e159d6e18b41aa0edafc79c6b8921d5c4dc`, was the orchestrator's earlier merge of `07a09406a`.
+
+What the earlier review measured is unchanged where it matters: `git diff --stat 2260b8b90 HEAD -- custom_components/heatpump_optimizer/thermal_model.py` prints nothing, so D2's production change and its three features checks stand. `git diff e4f5a41e2 HEAD -- custom_components/heatpump_optimizer/optimizer.py | grep -c ftol` prints `0`, so the ftol mutants MA to MC (below) are on lines this head did not touch. `tests/stress.py`, `tests/optimality.py`'s ftol check and the three harnesses of this PR are unchanged by the merges. The merges brought #2411's optimizer, ledger and coordinator changes (the thermostat reference), which the gate below ran against.
+
+Figures marked "head" were taken on 2026-10-19 between 03:50Z and 05:30Z, `GOLDEN_REF=0dac0bf87`. The harness figures of the previous heads (`8100b5e55`, `ce3d3bc6d`) are cited with the head they were taken at.
+
+## The claims file
+
+`tests/golden/claimed_drift.txt` conflicted with R10-SAV-BASELINE's own claims (#2411 claims 51 fixtures and suspended the same may-drift entries this branch suspends). The repo's driver (`python3 tests/env_drift.py --merge-claim-file`, routed by `.gitattributes`) refuses it by design: a claim "is written for exactly one diff", and a union would "reinstate a claim one side deleted". Resolved by hand as that refusal's message says, with the driver's own pieces: the notes (comments) are the three-way union of both sides (`_union_comments`), the claim list is this branch's (41 fixtures), and `merge_claim_defect(...)` returns `None`, so no may-drift line of either side was lost.
+- No entry lost from this branch: `diff <(sort -u ours) <(sort -u result) | grep -c '^<'` prints `0`.
+- No comment of main's lost: the same diff against main's file, filtered to comment lines, prints `0`. What main's file has and the result lacks is 54 unique claim lines (its 51 claims plus pre-existing duplicates), each a claim for R10-SAV-BASELINE's or older diffs.
+- Why those claims are not carried, measured: the union of both claim lists (this branch's 41 plus 15 main-only names; 53 distinct fixtures) fails `python3 tests/env_drift.py --all` with `CLAIMED AND MAY-DRIFT: ... valve_storage, valve_storage_smart_write, valve_upper_direct_slab, winter_two_zone_no_dhw, wood_coil, wood_two_tank, wood_two_tank_smart_write as both`, rc=1. Those names do not drift against main (`ok ... is byte-identical to origin/main here`), so main's claims on them would also be stale. The resolved file prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked against 0dac0bf87` and `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes` (rc=0); `python3 tests/env_drift.py --claims-only` prints `claims hygiene: ... ok`.
+- Main's claims are not owed here: they describe #2411's diff, which is in main now and so no longer drifts against this PR's base. They expire at the next stamp.
 
 ## Mutation proof
 
-**The ftol check** (`tests/optimality.py`, challenger 7). Each mutant is an
+**The ftol check** (`tests/optimality.py`, challenger 7). MA to MC were taken at `e4f5a41e2`'s tree; the ftol lines they edit are unchanged at the head (Head), and M0's two readings are re-read at the head: `stop-prod : cost   80.22`, `stop-rule: cost   81.60` in the gate log. Each mutant is an
 export of the tracked tree with `optimizer.py`'s production ftol edited;
 `PYTHONPATH=tests/hastub python3 tests/optimality.py` in each:
 - M0, unmutated: `stop-prod 80.22`, `stop-rule 81.60`, `ALL 84 OPTIMALITY
@@ -226,28 +216,19 @@ The unmutated export prints `ALL 10 FEATURES BLOCK PASSED`.
   `_batch_cop`), `2` at this head (`compute_cop`, `_batch_cop`, the registered
   owners); `--perturb` at this head `perturb.F3_cop_law_fork before=2 after=3
   moved=1`.
-- Scope, `python3 tests/closure.py select --diff 07a09406a` at this head:
-  `MODE: SCOPED -- 28 script(s) run, 5 scoped out`. `env -u BASH_ENV
-  GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=07a09406a PYTHONPATH=tests/hastub
-  ./tests/run.sh` at this head: `30 TEST SCRIPT(S) PASSED; 4 SCOPED OUT AND NOT
-  RUN`, rc 0 -- among them `optimality.py` `ALL 84` (`stop-prod : cost 80.22`,
-  `stop-rule: cost 81.60`), `features.py` `ALL 4179`, `entities.py` `ALL 2350`
-  (2348 at `8100b5e55`; main's `zone_setpoint_names` entry adds two),
-  `env_drift.py --all` ok, `card.mjs` and `card_drift.mjs` ok, `backtest.py`
-  `ALL 25`, `structure.py` `STRUCTURE RATCHET PASSED`, `harness_headers.py`
-  `ALL 109`, `layout.py` `GUARD: 0 refusal(s)`, `doc_claims.py` `ALL 169`,
-  `stress.py` `ALL 113 STRESS CHECKS PASSED`. `env -u BASH_ENV
-  PYTHONPATH=tests/hastub python3 tests/entities.py` alone: `ALL 2350 ENTITY
-  CHECKS PASSED`, rc 0.
-- `python3 tools/policy/budget_raise_gate.py --self-test`: `239 checks, 0
-  failed`. `python3 tests/env_drift.py --claims-only 07a09406a`: `claims
-  hygiene: ... ok`. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
-- `python3 tools/pr/ci_predict.py --base 07a09406a`: `CI PREDICT: no closures or
-  fast red predicted against 07a09406a1cc (a data-file read is not seen)`.
-- `python3 tools/audit/archscore/score.py --diff 07a09406a`: `Architecture
-  score: dS +0.0000 NULL`.
+- Scope, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` at the head: `MODE: SCOPED -- 28 script(s) run, 5 scoped out`. `env -u BASH_ENV GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=0dac0bf87 PYTHONPATH=tests/hastub ./tests/run.sh` at the head, 28 scripts, 26 green: `features.py` `ALL 4202`, `entities.py` `ALL 2350`, `env_drift.py --all` `NO UNCLAIMED DRIFT: 56 ... NO STALE FIXTURE: 56`, `card.mjs` `ALL CARD CHECKS PASSED`, `backtest.py` `ALL 25`, `structure.py` `STRUCTURE RATCHET PASSED`, `harness_headers.py` `ALL 109`, `doc_claims.py` `ALL 169`, `debug_collect.py` `ALL 122`, `closure.py selftest` `ALL 124`, `boost_drift_replay.py` `ALL 46`, `finite_boundary.py` `ALL 106`, `arch_score_head.py` `ALL 18`, `deployment_shape.py` ok, `guard_pins.py` `ALL 50`. The two red ones are named under **Red checks, local platform**.
+- `python3 tools/policy/budget_raise_gate.py --self-test`: `239 checks, 0 failed`. `python3 tests/env_drift.py --claims-only` against origin/main: `claims hygiene: ... ok`. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
+- `python3 tools/pr/ci_predict.py --base fa424fd91`: `CI PREDICT: no closures or fast red predicted against fa424fd91a04 (a data-file read is not seen)` (at the first of the two merges; the second adds main's #2399).
+- `python3 tools/audit/archscore/score.py --diff dd27e7c1b4c6ca250f8be5b33c4e8443d6d1f0b6`: `Architecture score: dS +0.0000 NULL`. Measured against a stale local `origin/main` (before #2411 was fetched) it read `dS -0.0006 WORSENS (coord_footprint 2498->2499)`: that was main moving under the diff, not this PR; not a figure.
+- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_dhw_lift_law_grid.py --root .` at the head: `cells=2091`, `dev_cells=0`, `worst_ratio=1.0000`, `within_ratio=1.0000`, `below_ref_boost=1.0000`, `null_max_diff=0.000e+00`; `enumerate_p2.py` at the head: `F3_cop_law_fork=2`. `k1725_blas_kernel_gap.py` and `r10_ftol_cell_search.py` are not re-run here: they are heavy, `thermal_model.py` and the ftol lines are unchanged (Head), and the kernel-points job measures them in CI.
 
 ## Raise justification
+
+**Re-measured at head `e85ef9fe6`** (`GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=0dac0bf87 ./tests/run.sh`, `tests/stress.py` lines): `solver work: 18 of 54 scenarios judged against the baseline captured beside this run, at 1.80x; 36 re-planned by this branch, 0 new here, 0 dropped` and `production calls: 6 of 20 family members judged against 0dac0bf87`. Both counts equal the override's two leaves, `floor: 18` and `calls_floor: 6`, so both raises are still needed and neither is dropped. `python3 tools/policy/budget_raise_gate.py --base fa424fd91 --head HEAD --pr 2368` (at the head before the last merge) prints the same two RAISE lines, `coverage_floor_override.floor: override added at 18` and `coverage_floor_override.calls_floor: override added at 6`, and `REFUSED: no decisive review by tvofi`: the raise is the owner's.
+
+**Null control.** The floors without the override, from `coverage_floors` exec'd out of `tests/stress.py` with `{}`: `(40, 15)`. With the committed table: `(18, 6)`. So with the measured 18 and 6 judged, a table without the entry fails both coverage checks, and the entry is what the head needs, not headroom; the largest single floor that holds both measured counts is 16, 2 below the measured work count.
+
+**Why neither raise can be paid by optimisation.** A floor here counts how many scenarios the solver-work (and production-call) check can compare against the baseline. The 36 scenarios that drop out are exactly the ones whose plan this finding changes: the tank is priced by a different law, so the head's solve and the baseline's are different problems, and the check judges only a scenario that "re-plans" nothing. Making the solver faster, or the code smaller, changes the evaluations each side spends, never whether the plans differ, so it cannot move a scenario back into the judged set. The only payment that would is to keep the old two-law `compute_cop_dhw`, which is the defect the ruling accepted fixing (payment 1 below). Both raises are therefore unpayable by optimisation, and the rest of this section lists the payments tried.
 
 `tests/stress_budgets.json` gains `coverage_floor_override` at `floor: 18`,
 `calls_floor: 6`: CI's measured counts -- 18 of 54 scenarios judged by the
@@ -276,101 +257,70 @@ Payments tried:
 
 No code payment exists: `tools/audit/archscore/` reads only
 `custom_components/`, and the entry is a JSON file under `tests/`.
-`python3 tools/audit/archscore/score.py --diff 07a09406a` at this head:
+`python3 tools/audit/archscore/score.py --diff dd27e7c1b` at this head:
 Architecture score: dS +0.0000 NULL
 
 `tools/policy/budget_raise_gate.py` is code-owned (`.github/CODEOWNERS`
 `@tvofi`), so its rule is tvofi's to approve at merge, with the two workflow
 files.
 
-**Step 4, each re-planned scenario's solver work against baseline**, from CI's
-`fast (3.14)` stress log at `c3a25d2ae` (job 117743791052): `solver work: 18
-of 54 scenarios judged against the baseline captured beside this run, at
-1.80x; 36 re-planned by this branch, 0 new here, 0 dropped`. The rule: for each
-`re-planned by this branch` line, evaluations here over evaluations at the
-baseline. Largest 1.370 (winter_mild/1z/dhw), under the 3.0x factor the ruling
-names and under the gate's own 1.80x; 10 grew, 17 shrank, 9 equal. Had any
-scenario grown past 3.0x, its ratio would print above 3.000 here. Every line:
+**Step 4, each re-planned scenario's solver work against baseline**, from this seat's gate run at the head (`tests/stress.py` under `GOLDEN_REF=0dac0bf87`, log lines `re-planned by this branch: <scenario> (objective ...; E evaluations vs B)`). The rule: for each such line, evaluations here over evaluations at the baseline. 36 scenarios; largest 1.641 (winter/pv, 1080 vs 658), under the 3.0x factor the ruling names; 13 grew, 15 shrank, 8 equal. Had any grown past 3.0x its ratio would print above 3.000 here. The 36 are the same 36 names CI judged at `c3a25d2ae` (job 117743791052: largest 1.370, winter_mild/1z/dhw); the evaluation counts differ because the baseline now includes #2411's thermostat reference, and the 3.0x bound holds at both. Every line:
 
-    flat/1z/dhw: 592 vs 452 = 1.310x
-    flat/2z/dhw: 734 vs 878 = 0.836x
-    heavy_old/shoulder: 894 vs 798 = 1.120x
-    heavy_old/winter: 528 vs 580 = 0.910x
-    light_new/shoulder: 236 vs 280 = 0.843x
-    light_new/winter: 594 vs 504 = 1.179x
-    shoulder/1z/dhw: 620 vs 554 = 1.119x
-    shoulder/2z/dhw: 696 vs 752 = 0.926x
-    shoulder/cycle: 1080 vs 1384 = 0.780x
-    shoulder/pv: 1252 vs 1198 = 1.045x
-    shoulder/pv+cycle: 1678 vs 1956 = 0.858x
-    shoulder/tariff: 1334 vs 1372 = 0.972x
-    shoulder/tariff+cycle: 1180 vs 3462 = 0.341x
-    shoulder/tariff+pv: 1006 vs 2224 = 0.452x
-    shoulder/tariff+pv+cycle: 1760 vs 2914 = 0.604x
+    flat/1z/dhw: 628 vs 558 = 1.125x
+    flat/2z/dhw: 662 vs 726 = 0.912x
+    heavy_old/shoulder: 1096 vs 952 = 1.151x
+    heavy_old/winter: 656 vs 606 = 1.083x
+    light_new/shoulder: 240 vs 264 = 0.909x
+    light_new/winter: 540 vs 598 = 0.903x
+    shoulder/1z/dhw: 500 vs 548 = 0.912x
+    shoulder/2z/dhw: 724 vs 790 = 0.916x
+    shoulder/cycle: 1032 vs 1318 = 0.783x
+    shoulder/pv: 1462 vs 1286 = 1.137x
+    shoulder/pv+cycle: 1642 vs 1968 = 0.834x
+    shoulder/tariff: 822 vs 1302 = 0.631x
+    shoulder/tariff+cycle: 1206 vs 3302 = 0.365x
+    shoulder/tariff+pv: 1110 vs 2062 = 0.538x
+    shoulder/tariff+pv+cycle: 1670 vs 3384 = 0.493x
     summer/1z/dhw: 56 vs 56 = 1.000x
     summer/1z/dhw/fuse-cap: 56 vs 56 = 1.000x
     summer/2z/dhw: 24 vs 24 = 1.000x
     summer/2z/dhw/pin-off: 24 vs 24 = 1.000x
     summer_negative/1z/dhw: 56 vs 56 = 1.000x
     summer_negative/2z/dhw: 24 vs 24 = 1.000x
-    typical_slab/shoulder: 1122 vs 962 = 1.166x
-    typical_slab/winter: 54 vs 54 = 1.000x
+    typical_slab/shoulder: 894 vs 866 = 1.032x
+    typical_slab/winter: 56 vs 52 = 1.077x
     winter/1z/dhw: 52 vs 52 = 1.000x
-    winter/2z/dhw: 946 vs 728 = 1.299x
-    winter/cycle: 1114 vs 1402 = 0.795x
-    winter/pv: 946 vs 728 = 1.299x
-    winter/pv+cycle: 1114 vs 1402 = 0.795x
-    winter/tariff: 884 vs 942 = 0.938x
-    winter/tariff+cycle: 704 vs 998 = 0.705x
-    winter/tariff+pv: 884 vs 942 = 0.938x
-    winter/tariff+pv+cycle: 704 vs 998 = 0.705x
+    winter/2z/dhw: 1080 vs 658 = 1.641x
+    winter/cycle: 1188 vs 1192 = 0.997x
+    winter/pv: 1080 vs 658 = 1.641x
+    winter/pv+cycle: 1188 vs 1192 = 0.997x
+    winter/tariff: 1084 vs 770 = 1.408x
+    winter/tariff+cycle: 810 vs 878 = 0.923x
+    winter/tariff+pv: 1084 vs 770 = 1.408x
+    winter/tariff+pv+cycle: 810 vs 878 = 0.923x
     winter_extreme/1z/dhw: 50 vs 50 = 1.000x
-    winter_extreme/2z/dhw: 1092 vs 980 = 1.114x
-    winter_mild/1z/dhw: 852 vs 622 = 1.370x
-    winter_mild/2z/dhw: 904 vs 940 = 0.962x
+    winter_extreme/2z/dhw: 1050 vs 928 = 1.131x
+    winter_mild/1z/dhw: 856 vs 582 = 1.471x
+    winter_mild/2z/dhw: 1084 vs 784 = 1.383x
 
-`production calls: 6 of 20 family members judged against c8cc75ea9`;
-re-planned: heavy_old/winter, light_new/shoulder, summer/1z/dhw/fuse-cap,
-summer/2z/dhw, summer/2z/dhw/pin-off, summer_negative/1z/dhw,
-typical_slab/winter, winter/cycle, winter/pv, winter/pv+cycle, winter/tariff,
-winter/tariff+cycle, winter/tariff+pv, winter/tariff+pv+cycle; new: none.
-Re-taken here, `PYTHONPATH=tests/hastub GOLDEN_REF=106af95a3 python3
-tests/stress.py` at `ce3d3bc6d` (no file `stress.py` reads changed after it):
-`solver work: 18 of 54 ... 36 re-planned by this branch, 0 new here, 0
-dropped`, `production calls: 6 of 20 family members judged against
-106af95a3`, the same 36 scenarios, largest ratio 1.282 (light_new/winter), `ALL
-113 STRESS CHECKS PASSED`. Re-taken at this head by the scoped gate run above
-(`GOLDEN_REF=07a09406a`): `solver work: 18 of 54 ... 36 re-planned by this
-branch, 0 new here, 0 dropped`, `production calls: 6 of 20 family members
-judged against 07a09406a1cc`, the same 14 calls-family re-planned names, `ALL
-113 STRESS CHECKS PASSED`. The counts equal the override's floors exactly,
-zero headroom.
+`production calls: 6 of 20 family members judged against 0dac0bf87`; re-planned: heavy_old/winter, light_new/shoulder, summer/1z/dhw/fuse-cap, summer/2z/dhw, summer/2z/dhw/pin-off, summer_negative/1z/dhw, typical_slab/winter, winter/cycle, winter/pv, winter/pv+cycle, winter/tariff, winter/tariff+cycle, winter/tariff+pv, winter/tariff+pv+cycle; new: none. The counts equal the override's floors exactly, zero headroom.
 
 ## Red checks
 
-At the previous head `c3a25d2ae`:
-- **`fast (3.14)`** (job 117743791052) was red on one check, `tests/optimality.py`'s
-  `the production stop rule (ftol) buys a materially better plan` (`ftol 1e-6
-  60.96 vs loosened 1e-2 both sites 60.96 (-0.00% gap, bound 2.5%)`, 1 of 84).
-  This fix's own blast radius: the one lift law made every loosening land on
-  production's plan at that cell. Answered by step 2 above (the cell and arm
-  re-selected, mutation-proven). Cheaper detector: none -- this block is the
-  only place the stop rule is raced, and the kernel harness measuring it ran on
-  no head between.
-- **`budget-raise-gate`**, red by design on the override's two leaves
-  (`floor`, `calls_floor: None -> 6`); expected red again here, until the raise
-  is approved at this head. Answered by `## Raise justification`. Cheaper
-  detector: none -- this gate is the detector.
+Read from the check-runs API on the PR head `86258e159d6e18b41aa0edafc79c6b8921d5c4dc` (`failure_logs.sh 2368`): four checks were red there.
+- **`wave-script`** (job 117830542873). Inherited from main, not this diff: the agreement lane's `merge-subject-pr` was `divergent=2` on main's merges `Merge pull request #2401 (R10-ARCHSCORE-COVERAGE p5)` and `Merge pull request #2379 (R10-SENSOR-PAYLOAD)`, which `policy_lint.mjs`'s `resolvePrFromCommit` read as null. Cleared by main's #2423 and #2424, both in this head. At the head, `python3 -I tools/policy/agreement_py.py --out J; node tools/policy/agreement.mjs --py-json J` reads `divergent=0`. The detector is the agreement lane; no cheaper one exists.
+- **`delivery-status`** (job 117830543161; not a required context): `DELIVERY STATUS OVERDUE`, main's row backlog while main was red. This diff adds its own row `2368.md` only. Cleared by main's later record merges; `python -I -S tests/delivery_status.py --check` at the head reads `DELIVERY STATUS OK`.
+- **`pr-contract`** (job 117830697142): `check `wave-script` is red and `## Red checks` does not name it`. The cause was the body; this section names it, with `delivery-status` and `budget-raise-gate`. `policy_lint.mjs --pr-body` over this body reads 0 errors.
+- **`budget-raise-gate`** (job 117830532680): `RAISE tests/stress_budgets.json: coverage_floor_override.calls_floor ... .floor ...` and `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`. Red by design until the owner approves the raise; answered by `## Raise justification` (re-measured at the head, payments tried, unpayable by optimisation). Cheaper detector: none, the gate is the detector. This head is not yet approved, and nothing here claims it.
 
-At `74f23814e` (earlier in this branch): `fast (3.14)` red on the same ftol
-check and on `tests/stress.py`'s two coverage floors (the override then
-absent), and `pr-contract` red on `## Red checks` not naming `fast (3.14)`;
-both answered there and green since. Cheaper detector for the contract one:
-none -- `tools/pr/prepr.sh` lints a body before the CI conclusion it must name
-exists.
+History on this branch, answered earlier: `fast (3.14)` at `c3a25d2ae` (the ftol check at the old cell; answered by step 2, mutation-proven) and at `74f23814e` (the ftol check and the coverage floors, the override then absent), and `pr-contract` at `74f23814e` (`## Red checks` not naming `fast (3.14)`); all green since. The detector for the contract one: none, `tools/pr/prepr.sh` lints a body before the CI conclusion it must name exists.
 
-`golden.py` / `env_drift.py` drift is claimed (`tests/golden/claimed_drift.txt`);
-a red there naming an unclaimed fixture is a new finding.
+**Red checks, local platform (the merged head on this Mac).** Two scripts of the scoped gate were red on this arm64 seat: `tests/optimality.py` (`1 of 84`) and `tests/stress.py` (`1 of 113`). Neither is this branch's. A control, `tests/optimality.py` and `tests/stress.py` run in a detached worktree of origin/main `913ce1ff5` (record-only merges over `0dac0bf87`), reads the same two:
+- `FAIL one|summer_negative|shoulder: a recorded claim still has a gap (not stale)  [claimed but gap 0.0000% is at or below the bar -- the claim closed and should be removed]`. `tests/optimality.py`'s own comment on `_CERT_CLAIMS` says it: "this claim reads stale on arm64 only", CI's linux fast lane still measuring the ladder at +10.55 %.
+- `FAIL shoulder: cheaper than holding the setpoint  [4.67 vs 3.96]`, the same two numbers on main and on this head.
+The control's other seven stress failures are the control's own (`origin/main IS this commit`: no baseline can be captured against itself) and are not read. Both of the scripts are heavy and belong to CI under tvofi's rule; main's `fast (3.14)` is `success` at `0dac0bf87` and at `8cc1abc3a` (check-runs API). CI at this PR's head is the orchestrator's carry and is not claimed here.
+
+`golden.py` / `env_drift.py` drift is claimed (`tests/golden/claimed_drift.txt`, see **The claims file**); a red there naming an unclaimed fixture is a new finding.
 
 ## Forward-carry
 
@@ -390,3 +340,4 @@ docstring line. The ledger's verdict at this head is CI's mutation check.
 - `dev/governance/rules/claim-files.md: contradiction: a fixture whose baseline_cost moves cannot be claimed while it carries a may-drift entry, and a may-drift entry cannot excuse a judged-key move, so the held branch suspended twelve owner-sanctioned may-drift entries for the release -- the R8-P3 wood_coil precedent, recorded nowhere as the rule.`
 - `dev/governance/roles/fixer.md: cost: a label-triggered workflow added by a branch never runs for a label applied before the file reached the head (#2368: labelled at 74f23814e, workflow arrived at c3a25d2ae, zero runs), and nothing in the seat's brief or the job says the label must go on after; fixed for kernel-points by its synchronize arm.`
 - `.claude/rules/gate-scoping.md: unclear: exporting HPO_GATE_LOCK_LABEL for a run.sh run without first taking that label fails every leased script at 0s with no reason line in the gate log (harness_headers.py and stress.py here); the rule says run.sh "under HPO_GATE_LOCK_LABEL renews itself" without saying the label must already hold the lease.`
+
