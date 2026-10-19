@@ -1,36 +1,43 @@
-Sun Oct 18 21:39:22 UTC 2026
-2026-10-18T20:31:19Z 2026-10-18T20:31:34Z failure delivery-status 117782075575
-2026-10-18T20:31:19Z 2026-10-18T20:31:38Z success closure-scope 117782075493
-2026-10-18T20:31:19Z 2026-10-18T20:31:48Z success hassfest 117782075413
-2026-10-18T20:31:19Z 2026-10-18T20:31:35Z success budget-raise-gate 117782075267
-2026-10-18T20:31:19Z 2026-10-18T20:32:21Z success arch-score 117782075066
-2026-10-18T20:31:19Z 2026-10-18T20:32:12Z success arch-score 117782073012
-2026-10-18T20:31:19Z 2026-10-18T20:31:35Z success budget-raise-gate 117782072759
-2026-10-18T20:31:19Z 2026-10-18T20:31:49Z failure pr-contract 117782072736
-2026-10-18T20:31:20Z 2026-10-18T20:31:29Z success cancel-superseded 117782076033
-2026-10-18T20:31:20Z 2026-10-18T20:34:01Z success instrument-self-tests 117782075895
-2026-10-18T20:31:20Z 2026-10-18T20:31:48Z failure wave-script 117782075880
-2026-10-18T20:31:20Z 2026-10-18T20:33:46Z success env-matrix 117782075855
-2026-10-18T20:31:20Z 2026-10-18T20:31:55Z success mutation 117782075825
-2026-10-18T20:31:20Z 2026-10-18T20:33:01Z success policy-docs 117782075755
-2026-10-18T20:31:20Z 2026-10-18T20:31:28Z success cancel-superseded 117782075728
-2026-10-18T20:31:20Z 2026-10-18T20:31:30Z success nightly-status 117782075714
-2026-10-18T20:31:20Z 2026-10-18T20:32:14Z success validate-hacs 117782075144
-2026-10-18T20:31:21Z 2026-10-18T20:31:38Z success scope 117782075846
-2026-10-18T20:31:21Z 2026-10-18T20:31:51Z success briefs 117782075731
-2026-10-18T20:31:41Z 2026-10-18T20:54:47Z success coverage 117782153772
-2026-10-18T20:31:41Z 2026-10-18T20:33:01Z success typing 117782153771
-2026-10-18T20:31:41Z 2026-10-18T20:35:41Z success browser 117782153742
-2026-10-18T20:31:41Z 2026-10-18T20:32:29Z success Analyze (actions) 117782152572
-2026-10-18T20:31:41Z 2026-10-18T20:32:58Z success Analyze (javascript-typescript) 117782152515
-2026-10-18T20:31:41Z 2026-10-18T21:01:00Z success Analyze (python) 117782152464
-2026-10-18T20:31:42Z 2026-10-18T21:14:37Z success fast (3.14) 117782153831
-2026-10-18T20:32:20Z 2026-10-18T20:32:23Z success CodeQL 117782318060
-2026-10-18T20:34:17Z 2026-10-18T20:34:45Z failure pr-contract 117782745460
-2026-10-18T20:54:49Z 2026-10-18T21:24:43Z success closures 117787362679
-2026-10-18T20:54:49Z 2026-10-18T20:54:59Z success coverage-ratchet 117787362677
-2026-10-18T20:54:50Z 2026-10-18T20:56:12Z success graders-head-copy 117787362684
-2026-10-18T21:14:40Z 2026-10-18T21:14:45Z success lane-proofs 117791794029
-2026-10-18T21:24:46Z 2026-10-18T21:38:43Z success composed-proof 117794066845
-
-[exited with code 0]
+Analyze (actions)	completed	success
+Analyze (javascript-typescript)	completed	success
+Analyze (python)	in_progress	-
+CodeQL	completed	neutral
+arch-score	completed	success
+arch-score	completed	success
+briefs	completed	success
+browser	completed	success
+budget-raise-gate	completed	success
+budget-raise-gate	completed	success
+cancel-superseded	completed	success
+cancel-superseded	completed	success
+closure-scope	completed	success
+closures	in_progress	-
+coverage	completed	success
+coverage-ratchet	completed	success
+delivery-status	completed	success
+delivery-status-publish	completed	skipped
+env-matrix	completed	success
+fast (3.14)	in_progress	-
+graders-head-copy	completed	success
+hassfest	completed	success
+instrument-self-tests	completed	success
+mutation	completed	success
+mutation-autofix	completed	skipped
+mutation-ledger	completed	skipped
+mutation-ledger-push	completed	skipped
+mutation-nightly	completed	skipped
+mutation-pin-plan	completed	skipped
+mutation-pins	completed	skipped
+nightly-ha	completed	skipped
+nightly-status	completed	success
+policy-docs	completed	success
+pr-contract	completed	success
+pr-contract	completed	success
+recheck-gate	completed	skipped
+record	completed	skipped
+record-autofix	completed	skipped
+scope	completed	success
+slow	completed	skipped
+typing	completed	success
+validate-hacs	completed	success
+wave-script	completed	success
