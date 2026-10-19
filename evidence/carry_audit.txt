@@ -1,28 +1,2 @@
-== roster-ref origin/main
 CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
 rc=0
-== roster-ref origin/handoff/audit-r10-roster
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-== origin/main +comments
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-== origin/handoff/audit-r10-roster +comments
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/tools/audit/carry_audit.py", line 879, in <module>
-    sys.exit(main(sys.argv[1:]))
-             ~~~~^^^^^^^^^^^^^^
-  File "/home/user/heatpump_optimizer/tools/audit/carry_audit.py", line 510, in main
-    comments = json.loads(Path(a.comments).read_text()) if a.comments else []
-               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/json/__init__.py", line 352, in loads
-    return _default_decoder.decode(s)
-           ~~~~~~~~~~~~~~~~~~~~~~~^^^
-  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/json/decoder.py", line 345, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/json/decoder.py", line 363, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)

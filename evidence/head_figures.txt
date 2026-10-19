@@ -1,0 +1,9 @@
+app_push self-test: 135 checks, 0 failed
+head_note self-test: 6 checks, 0 failed
+tools/audit/seat/open_pr.sh:37 plain=named quoted=named fenced=named crlf=named
+tools/audit/seat/open_pr.sh:49 plain=named quoted=named fenced=named crlf=named
+tools/audit/seat/update_pr.sh:51 plain=named quoted=named fenced=named crlf=named
+tools/audit/seat/handoff_push.sh:67 plain=named quoted=named fenced=named crlf=named
+tools/audit/seat/handoff_push.sh:86 plain=named quoted=named fenced=named crlf=named
+tools/audit/seat/handoff_push.sh:101 plain=named quoted=named fenced=named crlf=named
+writers: 6
