@@ -1,0 +1,3 @@
+check-runs at cf687605 (read 2026-10-19 via get_check_runs, 45 runs): no run concluded failure.
+in_progress at read time: closures (117859049333), Analyze (python) (117856852979).
+success incl.: pr-contract (117856907758, 117856785233), wave-script, delivery-status, instrument-self-tests, mutation, fast (3.14), coverage, browser, typing, policy-docs, closure-scope, briefs, budget-raise-gate x2, arch-score x2, env-matrix, nightly-status, hassfest, validate-hacs.
