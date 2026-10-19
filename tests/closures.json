@@ -3445,6 +3445,8 @@
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
    "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
+   "dev/audit/harnesses/r10_carry_parser_mutants.py",
+   "dev/audit/harnesses/r10_carry_sweep_rows.py",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
