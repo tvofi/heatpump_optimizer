@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/tmp/seat/rev2422/wt/tools/audit/seat/orchestrator_tick.py", line 3406, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/seat/rev2422/wt/tools/audit/seat/orchestrator_tick.py", line 3385, in main
+    return self_test()
+  File "/tmp/seat/rev2422/wt/tools/audit/seat/orchestrator_tick.py", line 2898, in self_test
+    t.carry_sweep()
+    ~~~~~~~~~~~~~^^
+  File "/tmp/seat/rev2422/wt/tools/audit/seat/orchestrator_tick.py", line 1782, in carry_sweep
+    default = rl.DEFAULT_ROSTER_REF if rl is not None else "origin/main"
+              ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'roster_lib_tick' has no attribute 'DEFAULT_ROSTER_REF'
