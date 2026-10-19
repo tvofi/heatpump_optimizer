@@ -1,6 +1,0 @@
-  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
-  changed files (3), measured against the recorded closures in tests/closures.json:
-      dev/programme/delivery/2447.md
-      tools/policy/fixtures/policy-rot/prepr/mutation-answered.md
-      tools/pr/prepr.sh
-
