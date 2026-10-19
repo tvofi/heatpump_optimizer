@@ -417,6 +417,34 @@ def plan():
         on={"fix": "a3_card_clone_copies_control"},
     )
 
+    # 6f shape_copies (gate-only): one rule implemented by N functions (item 6, ARCH-s2 / ARCH2-s3). The rule
+    # planted is one statement, below the clone window, so duplication_copies does not see its copies.
+    def stored_or_copy(respell=False):
+        def edit(w):
+            ret = ("float(proposed[name] if name in proposed else stored.get(name, fallback))" if respell
+                   else "float(proposed.get(name, stored.get(name, fallback)))")
+            append(w, "presets.py", "\n\ndef _stored_or(proposed: dict, stored: dict, name: str, fallback: object) -> float:\n"
+                   f"    return {ret}\n\n\nassert _stored_or\n")
+        return edit
+
+    P["shape_copies"] = dict(
+        control=("presets gains a third copy of comfort_band.effective's one-statement rule, every name changed",
+                 stored_or_copy()),
+        fix=("config_flow's own _effective goes; it imports comfort_band.effective under that name",
+             lambda w: (lambda p: p.write_text(re.sub(
+                 r"\ndef _effective\(\n.*?\n    return float\(candidate\.get\(key, current\.get\(key, default\)\)\)\n",
+                 "\nfrom .comfort_band import effective as _effective  # noqa: E402\n", p.read_text(), count=1,
+                 flags=re.S)))(_p(w, "config_flow.py"))),
+        null=("comfort_band.effective's parameters renamed (its own names; the census numbers them)",
+              lambda w: [rename_in_func(w, "comfort_band.py", "effective", o, n)
+                         for o, n in (("candidate", "proposed"), ("current", "stored"))]),
+    )
+    P["shape_copies_respelled"] = dict(
+        control=("as shape_copies' control, the copy's lookup re-spelled as a conditional (``x[k] if k in x else``): "
+                 "the rule is still written three times and the census reads it as distinct -- why it carries no weight",
+                 stored_or_copy(respell=True)),
+    )
+
     # 7 public_surface
     P["public_surface"] = dict(
         control=("a new public helper in tariff.py nothing imports",

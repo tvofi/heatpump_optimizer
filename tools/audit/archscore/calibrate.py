@@ -8,6 +8,8 @@
                                                                re-measure those vector jobs, keep the stored rest
     python3 tools/audit/archscore/calibrate.py --jobs N        worker processes (default min(4, cpus))
     python3 tools/audit/archscore/calibrate.py --stored-only | --only ID,ID   subsets, for development
+    python3 tools/audit/archscore/calibrate.py --record --only ID,ID   record those cases' rows into expected.json,
+        keeping every other row and ``_sensitivity`` as recorded (``tests/arch_score.py`` re-derives the full set)
 
 Three sets, the labelled cases and the red-team attempts:
 
@@ -127,6 +129,17 @@ def pinned(rows: list[dict], collected: list[dict]) -> dict:
     return doc
 
 
+def merged_record(old: dict, got: dict, only: set[str]) -> dict:
+    """``--record --only``: ``old`` with the rows of the cases in ``only`` replaced by this run's, and every
+    other row -- and ``_sensitivity``, which a subset cannot re-derive -- as recorded. A case of ``only`` this
+    run did not measure keeps its recorded row."""
+    out = {k: v for k, v in old.items()}
+    for k in only:
+        if k in got and not k.startswith("_"):
+            out[k] = got[k]
+    return out
+
+
 def summary(rows: list[dict]) -> list[str]:
     lines = []
     for st in ("planted", "corpus"):
@@ -190,16 +203,23 @@ def main(argv: list[str]) -> int:
         print(f"{r['id'][:44]:44} {r['set']:8} {r['label']:8} {r['verdict']:9} {'y' if r['admissible'] else 'n':4} "
               f"{r['dS']:>9.4f}  {info[:130]}")
     print("\n".join(summary(rows)))
+    if "--stored-only" not in argv:
+        import cases
+        print(f"planted and red-team cases are built on the calibration pin {cases.PINNED[:9]} (cases.PINNED), "
+              f"not on this tree; each is scored against the pin's vector unless its case names another base")
     print(f"weights.json sha256 {score.weights_hash()}")
     got = pinned(rows, collected)
     for name, ids in got["_sensitivity"].items():
         print(f"SENSITIVE {name}: verdict moves on {', '.join(ids)}")
     if "--record" in argv:
         old = json.loads(EXPECTED.read_text()) if EXPECTED.exists() else {}
-        for k in sorted(got):
-            if old.get(k) != got[k]:
-                print(f"RECORD {k}: {old.get(k)} -> {got[k]}")
-        EXPECTED.write_text(json.dumps(got, indent=1, sort_keys=True) + "\n")
+        new = got if only is None else merged_record(old, got, only)
+        if only is not None:
+            print(f"RECORD SUBSET {len(only)} case(s); every other row and _sensitivity kept as recorded")
+        for k in sorted(new):
+            if old.get(k) != new[k]:
+                print(f"RECORD {k}: {old.get(k)} -> {new[k]}")
+        EXPECTED.write_text(json.dumps(new, indent=1, sort_keys=True) + "\n")
         return 0
     want = json.loads(EXPECTED.read_text())
     moved = [k for k in sorted(set(want) | set(got)) if want.get(k) != got.get(k)]

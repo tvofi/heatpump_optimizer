@@ -20,7 +20,8 @@ C7  ``unread_private_globals``                           here; gate-only
 C11 literal keys read from a function's own ``**kw`` are parameters  ``metrics/footprint.params_over_10``
 C14 a parameter annotated with a package class holds an instance of it  ``metrics/untyped_payload_keys.Flow.seed``
 C15 a call is what its callee returns; readers and rebinds of a hub are the hub  ``metrics/common.Engine``
-C16 a callback handed outside the package is a hub root  ``metrics/hub_solve_writes.event_roots``
+C16 a callback handed outside the package is a hub root  ``metrics/hub_solve_writes.event_roots``; C16b so is one a
+    package function passes on uncalled  ``metrics/hub_solve_writes._passes_on``
 C17 every import the runtime runs is a layering edge -- a function-scope one, an absolute self-import,
     a constant-name ``importlib.import_module`` -- and only a positive ``if TYPE_CHECKING:`` ``body`` is
     not; C18 ``m._x`` crosses like ``from .m import _x``, and so does ``_x`` off a resolved
@@ -29,6 +30,7 @@ C19 ``unused_boundary_imports``, gate-only: no module climbs a layer by an unrea
 C20 literal specs normalised, an in-package callee's positionals bound; C21 a local or module constant bound once
     to a spec reads as it  ``metrics/literal_clones``
 C22 a card function's own names numbered and its no-op and empty statements dropped  ``metrics/card``
+C23 ``shape_copies``, gate-only: a function's own names numbered, numbers and strings abstracted  ``metrics/shapes``
 """
 from __future__ import annotations
 
