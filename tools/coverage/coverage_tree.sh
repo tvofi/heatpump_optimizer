@@ -303,7 +303,8 @@ if [ -n "${W5P_REUSE:-}" ] && [ -s "$OUT/scripts.tsv" ] \
     for _f in "$OUT/scripts.tsv" "$OUT/per/provenance.tsv"; do
       awk -F'\t' '$2!="reused"' "$_f" > "$_f.tmp" && mv "$_f.tmp" "$_f"
     done
-    PLAN=$(echo "$_reused" | sed 's/^/measure\t/')
+    rm -f "$OUT/per"/.coverage.* "$OUT/per"/*.nodata "$OUT/per/provenance.tsv" "$OUT/scripts.tsv"
+    PLAN=$(echo "$SCRIPTS" | sed 's/^/measure\t/')
     run_plan
     rm -f "$WORK/data/.coverage"
     "$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep "$OUT/per" >> "$OUT/logs/combine.log" 2>&1
