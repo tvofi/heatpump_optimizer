@@ -1,0 +1,38 @@
+== roster origin/handoff/audit-r10-roster
+NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== roster origin/main
+NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+NOTE body item 35916cfd: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 9ac440a4: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 8c514e25: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE body item 9fba80da: O10-policy-fixer-md: O10-policy-fixer-md UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== roster branch +comments
+Traceback (most recent call last):
+  File "/tmp/seat/rev2404/wt/tools/audit/carry_audit.py", line 879, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/seat/rev2404/wt/tools/audit/carry_audit.py", line 510, in main
+    comments = json.loads(Path(a.comments).read_text()) if a.comments else []
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+rc=1
