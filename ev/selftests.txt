@@ -1,0 +1,19 @@
+$ python3 tools/audit/seat/merge_train.py --self-test
+merge_train self-test: 189 checks, 0 failed
+$ python3 tools/audit/seat/queue_pre_flight.py --self-test
+queue_pre_flight self-test: 36 checks, 0 failed
+$ python3 tools/policy/budget_raise_gate.py --self-test
+budget_raise_gate self-test: 235 checks, 0 failed
+$ bash tools/audit/seat/merge_pr.sh --self-test
+merge_pr self-test: 12 checks, 0 failed
+$ python3 tools/audit/seat/proof_watch.py --self-test
+proof_watch self-test: 34 checks, 0 failed
+$ node tools/policy/agreement.mjs --self-test
+SELF-TEST 27 of 27 probes held
+$ agreement pair
+  pair budget-raise: 2 readers, 56 items, 0 divergent
+AGREEMENT ok
+STRUCTURE RATCHET PASSED
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since dd27e7c1b4c6
+ALL 109 HARNESS HEADER CHECKS PASSED

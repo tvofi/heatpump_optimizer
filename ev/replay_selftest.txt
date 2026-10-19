@@ -1,0 +1,9 @@
+  ok   null control: every read healthy prints the train's reading and exits 0
+  ok   gh unauthenticated (HTTP 403) prints a Stop and exits non-zero, never a hold
+  ok   git fetch failing prints a Stop and exits non-zero, never a hold
+  ok   git merge-base failing prints a Stop and exits non-zero, never a hold
+  ok   git diff failing prints a Stop and exits non-zero, never a hold
+  ok   a head that is not 40-hex is a Stop even when gh exits 0
+  ok   a base that is not 40-hex is a Stop even when git exits 0
+replay self-test: 0 failed
+rc=0
