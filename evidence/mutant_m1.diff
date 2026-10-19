@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/drift.py b/custom_components/heatpump_optimizer/drift.py
+index 7732be9d3..33e3d4fbe 100644
+--- a/custom_components/heatpump_optimizer/drift.py
++++ b/custom_components/heatpump_optimizer/drift.py
+@@ -204,7 +204,7 @@ class Cusum:
+             return 0.0
+         theta = np.array(self.reference)
+         cov = np.array(self.reference_cov).reshape(k, k)
+-        departure = self._clipped(value - float(theta @ u))
++        departure = self._clipped(value)
+         gap_h = (
+             max(0.0, utc_elapsed_seconds(when, self.last_fed) / 3600.0)
+             if self.last_fed is not None
