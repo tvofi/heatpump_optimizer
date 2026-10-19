@@ -708,6 +708,13 @@ _CERT_BARS = {
 def _cert_bar(name: str) -> float:
     """The gap this cell's checks compare against (see _CERT_BARS)."""
     return _CERT_BARS.get(name, _CERT_BAR)
+#: #2255 closed one|winter_narrow|shoulder (0.0000 % re-polish and ladder on
+#: CI's linux fast lane and on the arm64 seat): the thermostat reference now
+#: starts held, so its energy -- which seeds the anchor starts -- is the steady
+#: holding energy rather than a transient's. one|summer_negative|shoulder
+#: stays: CI's linux fast lane still measures ladder +10.55 % (obj 0.3058),
+#: though the arm64 seat reaches the basin (obj 0.2548, 0.0000 %); the gate's
+#: platform is the one that counts, so this claim reads stale on arm64 only.
 _CERT_CLAIMS = {
     "one|summer_negative|shoulder":
         "the optimum stores more than the baseline's energy and production's "
@@ -716,9 +723,6 @@ _CERT_CLAIMS = {
     "one|shoulder|winter_cold":
         "production stops at ftol=1e-6 short of its own fixed point; closing "
         "needs a tighter stop rule, refused on money (#1293).",
-    "one|winter_narrow|shoulder":
-        "a missed basin above the baseline anchor; closing needs the refused "
-        "production ladder (#1294).",
 }
 
 
