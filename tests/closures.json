@@ -1259,6 +1259,7 @@
    ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
+   ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
@@ -2337,6 +2338,7 @@
    ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
+   ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
@@ -4233,7 +4235,7 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 726.5
+   "seconds": 303.9
   },
   "tests/card.mjs": {
    "rc": 0,
@@ -4268,7 +4270,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 324.8
   },
   "tests/env_drift.py": {
@@ -4300,7 +4302,7 @@
    "seconds": 0.5
   },
   "tests/harness_headers.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 241.1
   },
   "tests/layout.py": {
@@ -4321,7 +4323,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 186.3
+   "seconds": 87.7
   },
   "tests/plan_view.py": {
    "rc": 0,
@@ -4333,7 +4335,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 760.6
+   "seconds": 361.9
   },
   "tests/structure.py": {
    "rc": 0,
@@ -4341,7 +4343,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 38.0
+   "seconds": 0.4
   },
   "tests/validate.py": {
    "rc": 0,
