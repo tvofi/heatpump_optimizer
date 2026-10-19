@@ -27,6 +27,8 @@
   ok   a liveness row no census gates is REFUSED (the card row before #2441)
   ok   a census gating no row is REFUSED
   ok   an exemption naming no row is DEAD
+  ok   main's census arm runs the registry pass (an ungated row is REFUSED) and then the planted runs
+  ok   main runs every arm --only can name, census among them
   ok   a derived check DECLARED lacks is REFUSED as unregistered
   ok   a DECLARED key the set does not yield is DEAD
   ok   a DECLARED arm that does not exist is REFUSED

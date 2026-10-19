@@ -6,6 +6,6 @@
   read     census archscore unread_private_globals: 0 -> 1 with one planted member, refused on archscore.unread_private_globals
   read     census archscore unused_boundary_imports: 1 -> 2 with one planted member, refused on archscore.unused_boundary_imports
   REFUSED  census registry: row archscore.card_dead_definitions counts unreached definitions and no census plants it (register one in CENSUSES, or exempt it with a reason)
-RESULT read=7 ignored=0 declared_none=0 blind=0 dead=0 refused=1 runs=0 seconds=99.8
+RESULT read=7 ignored=0 declared_none=0 blind=0 dead=0 refused=1 runs=0 seconds=165.5
 FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
 rc=1

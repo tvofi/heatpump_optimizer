@@ -1,0 +1,2 @@
+--only bogus: no such arm
+rc=2
