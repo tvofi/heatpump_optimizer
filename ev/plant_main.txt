@@ -1,0 +1,14 @@
+RESULT clean_name_kept=38 count
+RESULT clean_dead_methods=0 count
+RESULT clean_refused=0 count
+RESULT plant_name_kept=39 count
+RESULT plant_dead_methods=0 count
+RESULT plant_refused=0 count
+RESULT null_name_kept=38 count
+RESULT null_dead_methods=1 count
+RESULT null_refused=1 count (dead_methods)
+RESULT typed_name_kept=38 count
+RESULT typed_dead_methods=0 count
+RESULT typed_refused=0 count
+RESULT row_in_budgets=False
+rc=0
