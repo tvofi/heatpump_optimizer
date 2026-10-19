@@ -754,7 +754,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 12 of 25; before you: R10-STORE, R10-LEAF-IMPORTS; next: R10-FREQ-DEFROST, R10-LOOP-CPU). Owning seam in this group: the trust-region clamp in the heat-loss learners. Shape: one relative clamp. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-trust-relative",
     "commit": null,
     "last_step": null,
