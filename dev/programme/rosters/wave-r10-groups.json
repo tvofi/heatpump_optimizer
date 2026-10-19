@@ -4036,6 +4036,47 @@
     "next_step": "after the wave-1 drain, run the stamp (web-stamp)",
     "note": null
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": true,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-TICK-SELFTEST-CI",
+   "findings": [],
+   "wave": 3,
+   "files": [
+    ".github/workflows/governance.yml"
+   ],
+   "brief": "Wire the orchestrator tick self-test (tools/audit/seat/orchestrator_tick.py --self-test) into governance.yml instrument-self-tests, with a tally grep; owner direction 2026-10-19 under mandate 6175172275. Control: the #2406-shape mutant (DEFAULT_ROSTER_REF read) reddens the step.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-tick-selftest-ci",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer",
+    "note": null
+   }
   }
  ]
 }
