@@ -4119,6 +4119,47 @@
     "next_step": "fixer",
     "note": null
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": true,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-RECARRY-HEAD",
+   "findings": [],
+   "wave": 3,
+   "files": [
+    "tools/pr/app_push.sh"
+   ],
+   "brief": "Recarry note placement: app_push.sh --recarry locates its note by the first '## Head' substring, so a body whose preamble quotes the heading gets the note in the quote. Find the heading by line, not substring. Control: a body quoting '## Head' in its preamble gets the note under the real heading.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-recarry-head",
+    "commit": null,
+    "last_step": null,
+    "next_step": "open PR from the cloud handoff",
+    "note": null
+   }
   }
  ]
 }
