@@ -3921,7 +3921,9 @@
    "owner_gate": "code-owned CI workflows; tvofi approves under the mandate; NOT dispatchable until a design review approves",
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "prepr.sh should run tests/throwaway_git.py --check. Source: the R10-CLOUD-SHAPE seat (PR #2419): a raw git call in an instrument self-test, which tests/throwaway_git.py refuses, reddened CI's instrument-self-tests lane after prepr was clean (the same shape reddened #2424 at agreement.mjs). `tests/throwaway_git.py --check` is the cheaper detector for that red: it names the raw call without running the self-tests. Owed to the group that edits tools/pr/prepr.sh or its instrument-self-tests lane: have prepr run it, with a planted raw `git init` in a self-test as the control that must turn prepr red, and the unplanted tree as the null control that stays green."
+   ],
    "architect_note": null,
    "resume": {
     "stage": "not-started",
