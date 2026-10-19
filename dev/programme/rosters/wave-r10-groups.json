@@ -4313,7 +4313,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From the orchestrator 2026-10-19: orchestrator_tick.py's owner-gated age check (around line 1643) counts every open group with a non-empty owner_gate as 'blocked on owner disposition', including owner_gate 'mandated approval under 6175172275', which needs no owner action. The count rises with every mandated group added (13->16 on 2026-10-19) and buries the real owner asks. Fix: count only gates that need tvofi in person (no mandate citation, or an explicit owner-disposition value), and pin it with a mandated-gate null. Also fold: the 'prepr slots N running' line overcounts self-test subshells; and roster_edit append-group pushed nothing once while reporting no error (the commit stayed local; the branch had to be fast-forwarded by hand)."
+   ],
    "architect_note": null,
    "group": "R10-ROSTER-OPS",
    "findings": [],
