@@ -25,111 +25,105 @@ Alternatives, and why each lost:
 
 ## Head
 
-`432c425568e54768a2d9db091aab73af74f51cbd`, which merges origin/main `c3530277373ddf87652858f9ecb0ee1cf36f4347` (merge commit `97008cc4e`, no conflict). After a fetch on 2026-10-19, `origin/main` was still `c35302773` and the merge base is that commit. Between `db3293dcb`, where the branch was cut, and that main, `git diff --stat db3293dcb c35302773 -- custom_components tests/features.py` prints nothing. Figures labelled "merge base" were taken from a detached worktree at `c35302773`.
+`53fc30d6c91d76ea04c6f8fc7259c1d6809b1b9c`, which merges origin/main `d4fb5351beee7d74ab1525cc96adef563612532c` (no conflict; the ledger merge driver resolved `tests/closures.json` as a set). That is the merge base. Between the previous merge base `fb9b3fc1f` and it, main's production delta is #2448, the heat-loss learners' rate limit (`coordinator.py`, `thermal_model.py`'s learner), which no solve in this diff's figures reads. Figures labelled "merge base" were taken from a detached worktree at `d4fb5351b` unless a line says `fb9b3fc1f`.
 
 ## Mutation proof
 
-Each mutant was applied to a detached worktree, then restored, and `git status --short` was clean after. The runner is `$SCRATCH/mutants.py` (sha1 `5586d7fbcffd4df7aa5811eb6bcee154b8dcc569`).
-- Under the full `PYTHONPATH=tests/hastub python3 tests/features.py`: M1, M7 and M8, at `76e54dff3`, whose mapping and new solver checks equal the head's.
-- Under `$SCRATCH/mini.py` (sha1 `52594aab8ced92b75c11ce28eb43f84fbe17af07`), which holds the ten new checks verbatim from `tests/features.py`: every mutant, at the head. M0 (no mutation) prints `ALL 10 SETPOINT PASSED`, and every mutant exits 1.
+The ledger is the proof of record. `python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py` was run at `91e94bcab` and again at `f037c1e8e`. Every site `ci_predict.py` lists is now pinned by `tests/features.py`, and each run's null control (a comment-only edit) survived:
+- `PIN KILLED: 6 pinned, 1 left unpinned`. The survivor was `thermal_model.py:1452 CONST` (`FLOW_MIN_LIFT_K`). The tank check compared against the imported lift, so a changed constant moved both sides. "a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote" now asserts `29.0` outright.
+- `PIN KILLED: 1 pinned, 0 left unpinned`: `thermal_model.py:1452 CONST -- killed by tests/features.py`.
 
-| Mutant | Production edit | Checks that go red |
+The architect note's mutants and the precedence rungs were applied by hand, with `$SCRATCH/mutants.py` (sha1 `5586d7fbcffd4df7aa5811eb6bcee154b8dcc569`), to a detached worktree and restored, with `git status --short` clean after. They were run under `$SCRATCH/mini.py`, which holds the new checks verbatim from `tests/features.py`, at `91e94bcab`. M0 (no mutation) passes and every mutant exits 1.
+
+| Mutant | Production edit | Goes red |
 |---|---|---|
-| M1 (architect: the bottom reverted to the return temperature) | `_flow_inlet_c` reads `state.floor_return_temperature` again | full features `3 of 4221 FEATURE CHECKS FAILED`: "every combination of inlet sensors writes the first rung's reading plus the lift ...", "a tank at 24 degC writes 29 at the floor, not the 35 ...", "a stale rung falls to the next fresh one" |
+| M1 (architect: the bottom reverted to the return temperature) | `_flow_inlet_c` reads `state.floor_return_temperature` again | "every combination of inlet sensors ...", "a tank at 24 degC writes 29 ...", "a stale rung falls to the next fresh one" |
 | M2 | `FLOW_MIN_LIFT_K = 0.0` | the same 3 |
-| M3 | `heat_pump_return_temp_entity` dropped from `FLOW_INLET_KEYS` | "every combination ..." (cell `('heat_pump_return_temp_entity',)` writes 35.0) |
-| M4 | `buffer_tank_temp_entity` dropped | the M1 three |
-| M5 | `floor_return_temp_entity` dropped | "every combination ..." |
-| M6 | `valve_outlet_temp_entity` dropped | "every combination ..." |
-| M7 (architect: the new start dropped, space path) | the `_relaxed_starts` call in the space-only `move_starts` deleted | full features `1 of 4221`: "a buffered rounded install with price spread books above the floor in the cheapest steps ..." (2.63 vs 2.63 kWh) |
-| M8 | the hot-water path's `move_starts=` argument deleted | full features `1 of 4221`: "with hot water on, the space solve around the hot-water plan carries the relaxed start too" (18.680 vs 18.680) |
-| M9 (architect: the smoothing dropped) | `_scores_rounded` ignores `_levels_relaxed` | 3: the two above and "a clamped install gains one candidate, refined while the objective scores the duty-cycle reading, and rounds again after" |
-| S1 (`_scores_rounded` BOOLOP) | `and` becomes `or` | 4, among them "an install that can duty-cycle gains none and never scores rounded; a start past the last (the warm pass) adds none" |
-| S2 (`_scores_rounded` RETURN_DEL) | the return removed | 4 |
-| S3 (`_relaxed_starts` CMP_BOUND) | `first >= len(cands)` becomes `>` | `IndexError: list index out of range` stops the run |
-| S4 (`_relaxed_starts` GUARD_OFF) | the guard becomes `if False:` | "an install that can duty-cycle gains none ..." |
-| S5 (`_relaxed_starts` RETURN_DEL) | the return removed | 3, then a `TypeError` stops the run |
-| S7 (`modulation_floor_flow_c` RETURN_DEL) | the return removed | 4, among them "the floor helper refuses an unmeasured inlet rather than guessing one" |
+| M3 to M6 (one per rung) | each of the four `FLOW_INLET_KEYS` rungs dropped in turn | "every combination ..." (and for the tank rung, the M1 three) |
+| M7 (architect: the new start dropped, space path) | the space-only `_relaxed_starts` call deleted | "a buffered rounded install with price spread books above the floor in the cheapest steps, and its own objective scores the plan lower than the solve without the relaxed start" |
+| M8 (the new start dropped, hot-water path) | the hot-water `move_starts=` argument deleted | "with hot water on, the space solve around the hot-water plan carries the relaxed start: it lowers the objective in at least one of four cells and raises it in none" |
+| M9 (architect: the smoothing dropped) | `_scores_rounded` ignores `_levels_relaxed` | the two above and "a clamped install gains one candidate, refined while the objective scores the duty-cycle reading, and rounds again after" |
 
 ## Null control
 
-- **On the two test fixtures the flat-price plan is unchanged, but not in general. The architect note's control "flat-price run publishes the same plan" does not hold on the owner's replica.**
-  - The test "flat-price null control: on both fixtures the flat-price plan is the one shipped without the relaxed start" holds on the space-only and the hot-water synthetic fixtures.
-  - The flat band also traps flat-price solves. On the census (Figures), 18 of 32 synthetic cells publish a different flat-price plan; every one is scored lower by the plan's own objective, and none higher.
-  - On the owner's replica the flat-price plan moves too. Its objective goes from 227.271 to 200.568 at recorded weather and from 359.288 to 359.280 at 8 K colder. Costed net of end-of-horizon stores, the moved flat plan is 4.89 SEK cheaper at recorded weather. That is a search gain, not a timing gain, so every gain figure below is quoted net of the flat-price column.
-  - This deviates from the note's control as written, and the reviewer judges it. Running the relaxed pass from every start, a scratch probe, moved the flat plan further. One candidate is the narrowest form that still unstalls the spread plan.
-- **On an unclamped install nothing moves.** `_relaxed_starts` returns `cands` when `clamp_planned_levels` is false. `GOLDEN_MODE=drift python3 tests/golden.py` prints `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`.
-- **With no inlet sensor the mapping is today's.** The check "null control: no inlet sensor keeps today's rated hold, and the pump's outgoing temperature alone is not a rung" writes 35.0 at the floor and 48.0 (the configured ceiling) at full power.
-- **`lumped_dp` reads flat at both ends, as it should.** It is the study's independent DP over a lumped system temperature. It imports only `compute_cop`, which this diff leaves alone, so its rows are identical at the merge base and the head. It is cited as the study's own physics, not as evidence for this diff.
+- **The architect note's control "flat-price run publishes the same plan" does not hold, and this diff does not claim it.** The flat band traps flat-price solves too. The check is "flat-price null control: at flat prices the relaxed start never ships a plan its own objective scores worse, on either path".
+  - Census (Figures): 20 of 32 flat-price plans move, every one to a lower objective, and none to a higher one.
+  - Owner's replica: the flat objective goes from 227.271 to 200.568 at recorded weather and from 359.288 to 359.280 at 8 K colder. The moved flat plan is 4.89 SEK net cheaper at recorded weather. That is a search gain, not a timing gain, so every gain below is quoted net of the flat-price column.
+  - This weakens the control from plan identity to "never worse". Forward-carry carries it.
+- **Full power still writes the ceiling** on every cell of the 16-cell matrix.
+- **On an unclamped install nothing moves.** `_relaxed_starts` returns `cands` when `clamp_planned_levels` is false ("an install that can duty-cycle gains none and never scores rounded ...").
+- **With no inlet sensor the mapping is today's.** "null control: no inlet sensor keeps today's rated hold, and the pump's outgoing temperature alone is not a rung" writes 35.0 at the floor and the configured ceiling at full power.
+- **`lumped_dp` reads identically at both ends.** It imports only `compute_cop`, which this diff leaves alone.
+
+## Why the round-1 checks failed on CI's Linux runner
+
+`fast (3.14)` job 118039116220 failed the three round-1 solver checks. The cause was solver basins, not tolerance or start ordering. The rounded objective is non-convex, and which basin L-BFGS-B reaches depends on BLAS floats (`CLAUDE.md` rule 3).
+- On x86_64 the control arm (no relaxed start) also left the band: 18.73 kWh above the floor against the fix's 14.79. It scored worse, 25.299 against 18.037, so the "books more above the floor" comparison was the wrong property.
+- The single hot-water fixture tied at 19.475 on both arms after main's #2368, on arm64 as well.
+- Flat-price plan identity is false (Null control).
+
+The checks were re-cut to what the code guarantees on every architecture. The relaxed candidate is ranked on the shipped objective, so the plan is never worse. It is strictly better on the spread fixture and on at least one of four hot-water cells. None of them was loosened to pass: each still fails under M7, M8 or M9. Full `tests/features.py` at the head reads `ALL 4230 FEATURE CHECKS PASSED` here. CI's `fast (3.14)` at this head is the Linux arbiter.
 
 ## Figures
 
-`$EXPORT` is the owner's private config-entry diagnostics export, passed by path, never committed; only aggregates are printed. `$STUDY` is the pre-study's script directory and `$SCRATCH` is this seat's. Each command runs from the tree being measured with `PYTHONPATH=tests/hastub:custom_components:tests`. The replica figures were taken at `76e54dff3`. The later production delta only routes the warm pass through the index guard, and `$SCRATCH/relaxexp.py` re-run at the head wrote byte-identical plans for all four (shift, price) runs (`cmp -s` against the `76e54dff3` plans), and the same objectives.
+`$EXPORT` is the owner's private config-entry diagnostics export, passed by path and never committed; only aggregates are printed. `$STUDY` is the pre-study's script directory and `$SCRATCH` is this seat's. Commands run with `PYTHONPATH=tests/hastub:custom_components:tests`.
 
-- `python3 $STUDY/econ.py $EXPORT 0` and `... $EXPORT -8` (sha1 `991201b13ef4c63d478d7ae28345993f6759235c`), row "(a) main, as shipped": kWh, SEK at spread prices, SEK at flat prices (the null), and comfort breach in Kh below 18 °C.
-  - recorded weather, merge base: 18.0 kWh, 16.44 SEK at spread, 23.31 at flat, breach 0.00; 48 solver steps in (0, p_min).
-  - recorded weather, head: 20.6 kWh, 18.26 at spread, 26.63 at flat, breach 0.00; 13 steps in (0, p_min).
-  - 8 K colder, merge base: 43.5 kWh, 52.11 at spread, 56.32 at flat, breach 0.02, 2 starts.
-  - 8 K colder, head: 45.4 kWh, 45.79 at spread, 58.76 at flat, breach 0.34, 6 starts.
-- `python3 $SCRATCH/compare.py $EXPORT <shift> spread <base dir> <head dir>` (sha1 `3021080515cc58f3e4133ccdabe174153d1a8275`). It simulates each plan in the replica's model, and values the head-minus-base difference in end-of-horizon stores at the flat price through the mean COP, as `econ.py` does. Net of that credit, the spread-chosen plan:
-  - recorded weather: -1.77 SEK at spread prices, -0.27 SEK costed at flat prices. The timing gain net of the flat-price null is -1.50 SEK/day.
-  - 8 K colder: -7.62 SEK at spread, +1.14 SEK at flat, so -8.76 SEK/day net. The comfort cost is 0.34 Kh below 18 °C, against 0.02 at the merge base. The objective prices that trade; it is stated here so it is not read as free.
-  - The study had predicted about -1.2 and -5.3 SEK/day.
-- `python3 $SCRATCH/compare.py $EXPORT <shift> flat ...`, the flat-price run's own plan: -4.89 SEK net at recorded weather, -0.14 SEK net at 8 K colder.
-- `python3 $SCRATCH/relaxexp.py $EXPORT <shift> none <dir>` (sha1 `86390e2c3c801b379a0b07d846097125591408e9`), the published plan's `objective_value`, merge base to head:
-  - spread, recorded weather: 138.419 to 126.004.
-  - flat, recorded weather: 227.271 to 200.568.
-  - spread, 8 K colder: 322.738 to 286.120.
-  - flat, 8 K colder: 359.288 to 359.280.
-- `python3 $STUDY/lumped_dp.py $EXPORT <shift> 300 3 25` (sha1 `3910c877bada95440e1bb75962185b0e94105730`), at both shifts: identical rows at the merge base and the head, each beside its flat-price column. Sliding against low-long reads DiD -0.74 SEK at recorded weather and -5.53 SEK at 8 K colder: the study's physics, unchanged by this diff (Null control).
-- `python3 dev/audit/harnesses/r10_setpoint_power.py`, the census. The rule: 32 synthetic buffered clamped installs (two-zone off/on, hot water off/on, heat-loss scale 0.6/1.0, outdoor -4/+2 °C, starting tank 25/34 °C), each solved with and without `_relaxed_starts`, counting cells by the plan's own `objective_value`.
-  - head: `spread: cells 32 objective lower 27 higher 0 identical plan 5`, `flat: cells 32 objective lower 18 higher 0 identical plan 14`, `failures 0`.
-  - merge base, where the function is absent and both arms are the tree, so the census reads its own null: `spread: cells 32 objective lower 0 higher 0 identical plan 32`, `flat: cells 32 objective lower 0 higher 0 identical plan 32`, `failures 0`.
-- `python3 $SCRATCH/cputime.py $EXPORT <shift>` (sha1 `9e0f79c3a60c49484d47c07b767f286c455c5b86`): the minimum of three `time.process_time()` solve CPU seconds on this seat's arm64 machine, at `76e54dff3`. It is a cost, on clamped installs only, for the reviewer to weigh against the D9 Raspberry-Pi target. Merge base to head:
-  - recorded weather: spread 1.43 to 3.02 s, flat 1.69 to 3.43 s.
-  - 8 K colder: spread 2.56 to 4.91 s, flat 4.75 to 5.81 s.
-- The census for the mapping class (step 8). The rule: the empty subset and every non-empty subset of the four inlet slots, 16 cells. "every combination of inlet sensors ..." asserts that each cell writes the first rung's reading plus `FLOW_MIN_LIFT_K` at the floor and 48.0 at full power, and it reads 16 cells, 0 wrong, at the head. The seams are the rungs of `FLOW_INLET_KEYS`, each closed in this diff (M3 to M6). The supply slot is excluded by design choice, and a check pins that.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`
-- Re-run green locally at the head with `PYTHONPATH=tests/hastub`, each with its last line:
-  - `tests/features.py` (`ALL 4223 FEATURE CHECKS PASSED`), `tests/structure.py` (`STRUCTURE RATCHET PASSED`) and `env -u BASH_ENV python3 tests/entities.py` (`ALL 2349 ENTITY CHECKS PASSED`).
-  - `tests/harness_headers.py` (`ALL 109 HARNESS HEADER CHECKS PASSED`), `tests/closure.py selftest` (`ALL 124 closure shrink pins PASSED`) and `python3 -I tools/audit/seat/tmp_paths.py --check` (`0 refused`).
-  - the rest of the scope: `tests/arch_score_head.py` (`ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED`), `tests/backtest.py` (`ALL 25 BACKTEST CHECKS PASSED`), `tests/block_duty.py` (`ALL 46 BLOCK DUTY CHECKS PASSED`), `tests/boost_drift_replay.py` (`ALL 46 BOOST DRIFT CHECKS PASSED`), `tests/config_flow_steps.py` (`ALL 499 checks PASSED`), `tests/debug_collect.py` (`ALL 122 DEBUG COLLECT CHECKS PASSED`), `tests/deployment_shape.py` (`ALL DEPLOYMENT SHAPE CHECKS PASSED`), `tests/doc_claims.py` (`ALL 169 checks PASSED`), `tests/edge.py` (`ALL EDGE CASES PASS`), `tests/env_drift.py` (`NO STALE FIXTURE: 5 committed fixture(s) still match what this tree computes`), `tests/finite_boundary.py` (`ALL 106 FINITE BOUNDARY CHECKS PASSED`), `GOLDEN_MODE=drift GOLDEN_REF=c3530277373ddf87652858f9ecb0ee1cf36f4347 python3 tests/golden.py` (`NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`), `tests/guard_pins.py` (`ALL 50 GUARD PIN CHECKS PASSED`), `tests/manual_plan.py` (`ALL 129 manual plan checks PASSED`), `tests/plan_view.py` (`plan reason codes, price provenance and slot energy OK`), `tests/solar_alignment.py` (`ALL SOLAR ALIGNMENT CHECKS PASSED`), `tests/typing_ruler.py` (`ALL 12 typing-ruler source checks PASSED`), `tests/validate.py` (`NO ISSUES`), `tests/wood_advisor.py` (`ALL 7 wood-advisor checks PASSED`), `node tests/card.mjs` (`ALL CARD CHECKS PASSED`) and `node tests/card_drift.mjs` (`card_drift: identical in all 40 states`).
-  - **Left to CI:** `tests/stress.py` and `tests/optimality.py`, heavy; their check-runs are owed at the PR head (Red checks for optimality's local line).
-- `python3 tools/audit/archscore/score.py --diff c3530277373ddf87652858f9ecb0ee1cf36f4347`: `Architecture score: dS +0.0000 NULL`.
+- Replica, taken at merge base `fb9b3fc1f` and head `0581da2ef`. The production delta since then is main's learner change and this round's tests, so they were not re-taken.
+  - `python3 $SCRATCH/relaxexp.py $EXPORT <shift> none <dir>` (sha1 `86390e2c3c801b379a0b07d846097125591408e9`), the published `objective_value`, merge base to head:
+    - spread, recorded weather: 138.419 to 126.004.
+    - spread, 8 K colder: 322.738 to 286.120.
+    - flat, recorded weather: 227.271 to 200.568.
+    - flat, 8 K colder: 359.288 to 359.280.
+  - `python3 $SCRATCH/compare.py ...` (sha1 `3021080515cc58f3e4133ccdabe174153d1a8275`), net of the flat-price null:
+    - recorded weather: the timing gain is -1.50 SEK/day.
+    - 8 K colder: -8.76 SEK/day, with a comfort breach of 0.34 Kh below 18 °C against 0.02.
+    - The flat-run plan alone: -4.89 SEK at recorded weather.
+  - `python3 $STUDY/econ.py $EXPORT 0|-8` (sha1 `991201b13ef4c63d478d7ae28345993f6759235c`) and `python3 $STUDY/lumped_dp.py $EXPORT <shift> 300 3 25` (sha1 `3910c877bada95440e1bb75962185b0e94105730`), each beside its flat-price run. `lumped_dp` is identical at both ends.
+- `python3 dev/audit/harnesses/r10_setpoint_power.py`, the census of 32 synthetic buffered clamped installs, at the head:
+  - `spread: cells 32 objective lower 24 higher 0 identical plan 8`
+  - `flat: cells 32 objective lower 20 higher 0 identical plan 12`
+  - `failures 0`
+  - At the merge base the function is absent and both arms are the same tree: 0/0/32 on both.
+- **CPU.** `python3 $SCRATCH/cputime.py $EXPORT <shift>` (sha1 `9e0f79c3a60c49484d47c07b767f286c455c5b86`) takes the minimum of three `process_time()` solves on this seat's arm64 machine, at merge base `d4fb5351b` and head `53fc30d6c`. Merge base to head:
+  - recorded weather: spread 1.06 to 3.11 s, flat 1.40 to 3.60 s.
+  - 8 K colder: spread 2.10 to 4.77 s, flat 3.50 to 5.61 s.
+  - That is +2.0 to +2.7 s per clamped solve.
+  - **Raspberry Pi estimate, not measured:** a Pi 4 runs single-core Python about 4 to 6 times slower than this machine. That puts the extra cost at roughly +8 to +16 s per clamped solve, and a whole clamped solve at roughly 13 to 34 s. Installs that can duty-cycle pay nothing. Forward-carry carries the measurement on a Pi.
+- Local green at the head: `tests/features.py` (`ALL 4230 FEATURE CHECKS PASSED`), `tests/structure.py` (`STRUCTURE RATCHET PASSED`), `python3 tools/pr/ci_predict.py --base origin/main` (`CI PREDICT: no closures or fast red predicted against d4fb5351beee`). `tests/entities.py`, `tests/stress.py` and `tests/optimality.py` are CI's at this head.
 
 ## Architecture score
 
 n/a: no gate metric rises (`dS +0.0000 NULL`).
 
-No raise. `class_excess_loc` first read `18365 > 18302 (+63)` with the relaxed start as a `HeatPumpOptimizer` method. It was paid two ways:
-- `_relaxed_starts` and `_scores_rounded` are module functions taking the optimizer, as `_duty_floor` already is. They are pure apart from the one flag they set and restore.
-- A 12-line comment in the objective is cut to 3. It re-stated the module docstring's weather-anticipation paragraph and the history of two removed terms, and the 3 lines keep the reason and the measured effect.
-
-`tests/structure.py` then prints `STRUCTURE RATCHET PASSED` at the recorded value. No other budget moved.
+No raise. The binding constraint is `class_excess_loc`, which has zero headroom. It was paid by keeping `_relaxed_starts` and `_scores_rounded` as module functions and by cutting a 12-line objective comment to 3. `tests/structure.py` passes at the recorded value.
 
 ## Red checks
 
-No PR yet, so no CI check-run exists; CI's are owed at the PR head. One local red, inherited from main:
-- **`tests/optimality.py`** reads `1 of 84 OPTIMALITY CHECKS FAILED` on this arm64 seat: "one|summer_negative|shoulder: a recorded claim still has a gap (not stale)". The detail is "claimed but gap 0.0000% is at or below the bar".
-  - The merge base prints the same line and the same count, so the red is not this diff's. The cell is an unclamped install, so `_relaxed_starts` is the identity there.
-  - The claim is recorded for CI's x86_64 runner, and solver floats do not reproduce across BLAS builds (`CLAUDE.md` rule 3). `prepr.sh`'s closures step refused for the same reason, because the closure recorder runs `tests/optimality.py`.
-  - CI's `optimality` check-run at the PR head is the arbiter. No cheaper detector exists for a per-architecture float difference.
+On #2445 at `0581da2ef`:
+- **`mutation`**, job 118038943653: 7 ADDED UNPINNED sites. The autofix, job 118055076573, printed `skip-measure-failed` because `fast` was red, so no pin was recorded.
+  - This diff's. Fixed: all 7 are pinned in `tests/mutation_ledger/killed_by/` (Mutation proof), and the CONST survivor gained a killing check.
+  - The cheaper detector is `ci_predict.py` plus a local `--pin-killed` before push.
+- **`fast (3.14)`**, job 118039116220: the three round-1 solver checks failed on Linux. This diff's. Fixed by re-cutting them to cross-architecture guarantees ("Why the round-1 checks failed").
+- **`pr-contract`**, job 118039151183: "check `mutation` is red and `## Red checks` does not name it". This diff's body. Fixed by this section.
+- **`nightly-status`**: **main's, not this diff's.** Main's scheduled run 39218718759 failed in its record-autofix job 117948682913, where `tools/audit/seat/record_row.py`'s `enumerate_merges` raised `HTTPError 403 Forbidden`. This diff touches neither that file nor that workflow.
+- **`tests/optimality.py` locally** reads `1 of 84 OPTIMALITY CHECKS FAILED` on arm64 ("one|summer_negative|shoulder: a recorded claim still has a gap (not stale)"). The merge base `c35302773` prints the same line, so the red is inherited and per-architecture. CI's `optimality` is the arbiter.
 
 ## Forward-carry
 
-none. The gap between the flat-price control's letter and its purpose (Null control) is this group's review question, not a later stage's brief.
+- Flat-price control weakened from plan identity to "never worse". The relaxed start also unsticks flat-price solves (20 of 32 census cells; -4.89 SEK net on the replica), so plan identity cannot hold for this fix. Owed: an owner or architect ruling on whether "no gain without a price spread" is the control. Carry: R10-SETPOINT-POWER
+- Raspberry Pi CPU of the relaxed start, estimated here only at +8 to +16 s per clamped solve. Owed: a measured `process_time` on a Pi 4 or 5 at this head and its merge base, plus a decision on whether to cap `maxiter` for the relaxed pass. Carry: R10-SETPOINT-POWER
 
 ## Unpinned sites
 
-`python3 tools/pr/ci_predict.py --base origin/main` lists 7 sites the diff adds. A value check in this diff kills each one (Mutation proof), so each is `mutation-autofix`'s to pin at the PR head:
-- `custom_components/heatpump_optimizer/optimizer.py:158 BOOLOP` (`_scores_rounded`): killed, S1.
-- `custom_components/heatpump_optimizer/optimizer.py:158 RETURN_DEL`: killed, S2.
-- `custom_components/heatpump_optimizer/optimizer.py:188 CMP_BOUND` (`_relaxed_starts`' guard): killed, S3.
-- `custom_components/heatpump_optimizer/optimizer.py:188 GUARD_OFF`: killed, S4.
-- `custom_components/heatpump_optimizer/optimizer.py:202 RETURN_DEL` (`_relaxed_starts`' return): killed, S5.
-- `custom_components/heatpump_optimizer/thermal_model.py:1452 CONST` (`FLOW_MIN_LIFT_K = 5.0`): killed, M2.
-- `custom_components/heatpump_optimizer/thermal_model.py:1465 RETURN_DEL` (`modulation_floor_flow_c`): killed, S7.
+none: `python3 tools/pr/ci_predict.py --base origin/main` lists 7 added sites, and every one has a `killed_by` record at the head:
+- `custom_components/heatpump_optimizer/optimizer.py:158 BOOLOP` (`_scores_rounded`): pinned.
+- `custom_components/heatpump_optimizer/optimizer.py:158 RETURN_DEL`: pinned.
+- `custom_components/heatpump_optimizer/optimizer.py:188 CMP_BOUND` (`_relaxed_starts`' guard): pinned.
+- `custom_components/heatpump_optimizer/optimizer.py:188 GUARD_OFF`: pinned.
+- `custom_components/heatpump_optimizer/optimizer.py:202 RETURN_DEL`: pinned.
+- `custom_components/heatpump_optimizer/thermal_model.py:1452 CONST` (`FLOW_MIN_LIFT_K`): pinned.
+- `custom_components/heatpump_optimizer/thermal_model.py:1465 RETURN_DEL` (`modulation_floor_flow_c`): pinned.
 
 ## Friction
 
-- `fixer.md`: `contradiction`: the architect note's flat-price control ("flat-price run publishes the same plan") cannot hold for a fix to a search defect that also traps flat-price solves; the census shows 18 of 32 flat plans moving, every one to a lower objective. Carry: the orchestrator's, whose architect notes these are (`orchestrator.md` section 5). A control could state the property it guards, "no gain without a price spread", rather than plan identity.
+- `fixer.md`: `missing-instrument`: a features check that compares a mapping against an imported constant pins nothing about the constant's value. Only `--pin-killed` showed it; the hand-run mutant had been edited differently. Carry: the fixer's, practised here: run the ledger's own mutant before claiming a kill.
