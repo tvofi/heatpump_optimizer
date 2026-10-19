@@ -4159,7 +4159,7 @@
    ],
    "brief": "Recarry note placement: app_push.sh --recarry locates its note by the first '## Head' substring, so a body whose preamble quotes the heading gets the note in the quote. Find the heading by line, not substring. Control: a body quoting '## Head' in its preamble gets the note under the real heading.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-recarry-head",
     "commit": null,
     "last_step": null,
