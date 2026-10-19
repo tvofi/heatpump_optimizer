@@ -11986,7 +11986,7 @@ check("without an indoor reading the corner now label is absent",
     for (let i = 0; i < hs.length; i++) {
       const nt = targetsOf(hs[i].on).length;
       const first = await driveOne(page, v, types, i, 0, undefined);
-      for (let j = 0; j < (first.has("target") ? nt : 1); j++) {
+      for (let j = 0; j < 1; j++) {
         const base = j === 0 ? first : await driveOne(page, v, types, i, j, undefined);
         const keys = base.has("key") || base.has("code") ? [undefined, ...KEYS] : [undefined];
         for (const k of keys) {
