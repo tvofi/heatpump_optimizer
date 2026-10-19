@@ -61923,6 +61923,47 @@ R.check(
     ),
 )
 
+# The two helpers at the edges the solves above do not reach: an install that
+# can duty-cycle, a start index past the last (the warm pass), and the flag the
+# relaxed run scores under. A quadratic stands in for the objective.
+_sp_clamped = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=True))
+_sp_free = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=False))
+_sp_rounded_seen = []
+
+
+def _sp_quad(x, *_args):
+    _sp_rounded_seen.append(_sp_opt_mod._scores_rounded(_sp_clamped))
+    return float(np.sum((np.asarray(x, float) - 1.0) ** 2))
+
+
+def _sp_quad_batch(rows, *_args):
+    return np.array([_sp_quad(row) for row in np.atleast_2d(rows)])
+
+
+_SP_BOUNDS = [(0.0, 2.0)] * 3
+_sp_moved = _sp_opt_mod._relaxed_starts(
+    _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
+)
+R.check(
+    "a clamped install gains one candidate, refined while the objective scores the "
+    "duty-cycle reading, and rounds again after",
+    len(_sp_moved) == 2 and np.allclose(_sp_moved[1], 1.0, atol=1e-3)
+    and _sp_rounded_seen and not any(_sp_rounded_seen)
+    and _sp_opt_mod._scores_rounded(_sp_clamped) is True,
+    f"{len(_sp_moved)} {_sp_moved[-1]} seen {set(_sp_rounded_seen)}",
+)
+R.check(
+    "an install that can duty-cycle gains none and never scores rounded; a start past "
+    "the last (the warm pass) adds none",
+    len(_sp_opt_mod._relaxed_starts(
+        _sp_free, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
+    )) == 1
+    and _sp_opt_mod._scores_rounded(_sp_free) is False
+    and len(_sp_opt_mod._relaxed_starts(
+        _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 1, (), [np.zeros(3)], 50,
+    )) == 1,
+)
+
 R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")
 # The GCHV package has no silent on/off register. Night mode is one daily
 # window in holding registers 518/519, exposed as writable hour/minute

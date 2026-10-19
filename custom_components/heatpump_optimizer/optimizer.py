@@ -158,11 +158,6 @@ def _scores_rounded(opt: HeatPumpOptimizer) -> bool:
     return opt.config.clamp_planned_levels and not opt._levels_relaxed
 
 
-def _kept_starts(cands: list[np.ndarray], maxiter: int) -> list[np.ndarray]:
-    """``move_starts`` that moves nothing."""
-    return cands
-
-
 def _relaxed_starts(
     opt: HeatPumpOptimizer,
     objective: Callable[..., float],
@@ -3956,10 +3951,10 @@ class HeatPumpOptimizer:
             res = _multi_start_minimize(
                 objective, starts, bounds, args=(dhw_plan,), maxiter=300,
                 batch_objective=objective_batch,
-                # Structural, like the seeds above: the initial solve's alone.
-                move_starts=_kept_starts if warm_start is not None else partial(
+                move_starts=partial(  # the initial solve's alone: a warm pass adds none
                     _relaxed_starts, self, objective, objective_batch, bounds,
-                    len(h.extra_starts or ()), (dhw_plan,),
+                    len(h.extra_starts or ()) if warm_start is None else len(starts),
+                    (dhw_plan,),
                 ),
             )
             power = np.clip(res.x, 0.0, headroom)
