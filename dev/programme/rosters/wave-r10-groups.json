@@ -3942,7 +3942,7 @@
    },
    "effort": "medium",
    "fixture": false,
-   "owner_gate": "code-owned CI workflows; tvofi approves under the mandate; NOT dispatchable until a design review approves",
+   "owner_gate": "Code-owned (`/.github/workflows/`, `tests/run.sh` for PR 0, and `/.github/actions/` after PR 1, CODEOWNERS) and policy (PR 1: `ci-autofix.md`, `defect-root-cause.md` and `rules_sync`; PR 2: R-10's `pr-contract` change, `orchestrator.md` \u00a711, `nudge.md`, `steward/SKILL.md`, the PR template, `web-fragments.md`). PR 0 (stub plus ci-ratchet payments), PR G (after #2444, merged), PR 1 and PR 2 are each approved at their merged head by the CODEOWNER session under mandate 6175172275 (scope `all`, to 2026-10-28). tvofi's own step: the ruleset 23698884 `required_status_checks` PUT at PR 2's merge (one action, staged in PR 2's body). The design was approved at round 5 (`probe/design-ci-review5`, `afc00bfe`, on rev4 `1371a0a6`) and the plan addendum (A1-A6) was approved by the design review of 2026-10-19. R-3 needs no owner action (environments read 2026-10-19).",
    "rca": [],
    "after": [],
    "carry": [
