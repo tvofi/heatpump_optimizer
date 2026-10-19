@@ -10502,6 +10502,7 @@ class LaneEditor {
     const onEscape = (ev) => {
       if (ev.key !== "Escape") return;
       stop(ev);
+      try { globalThis.history.back(); } catch (_e) {}
       const origin = this.menuOrigin;
       this.closeMenu();
       // Nothing re-rendered, but a keyboard-opened menu moved focus into

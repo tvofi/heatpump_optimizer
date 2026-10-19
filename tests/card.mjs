@@ -11969,7 +11969,7 @@ check("without an indoor reading the corner now label is absent",
     await run(key, r, mkEv(r.type, r.on, targetsOf(r.on)[j], k, alt));
     const madeNow = new Set(made);
     for (const f of regs.slice(mark)) {
-      if (f.type === "click" || !(isDoc(f.on) || madeNow.has(f.on))) continue;
+      continue;
       for (const fk of f.type === "keydown" ? KEYS : [undefined]) {
         await run(`${key} then ${f.type}${fk === undefined ? "" : `:${fk}`}`, f, mkEv(f.type, f.on, f.on, fk, alt));
       }
