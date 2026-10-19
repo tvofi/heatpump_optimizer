@@ -14,6 +14,19 @@ Context only, not the approval: tvofi in chat on 2026-10-19 directed this edit: 
 
 Raises, each to the measured value `policy_lint.mjs --budgets` printed (the band is untouched; `corpus_tokens` measures ~61449 against 61026 + 500 band, so it is not raised): `orchestrator.md` lines 319 to 336 and tokens 4513 to 4794; `nudge.md` tokens 3814 to 3827. Payments considered: cutting spent prose from `orchestrator.md` sections 1 to 14, none of which is spent or duplicated after the uniqueness test; shortening the new text further drops the reason clause, which is what makes a seat check the guide.
 
+## Mutation proof
+
+n/a: policy prose with no detector of its own. The only check it moves is the budgets arm of `policy_lint.mjs`: with the text added and the caps left at their old values it printed three `[budgets]` errors (orchestrator lines and tokens, nudge tokens); with the caps re-recorded it prints `TOTAL: 0 error(s)`.
+
+## Null control
+
+`node tools/policy/policy_lint.mjs` on the unmodified base tree prints `TOTAL: 0 error(s) across 41 policy file(s)`.
+
+## Figures
+
+- `node tools/policy/policy_lint.mjs --budgets` prints the orchestrator.md row `336 319 4794 4513` and the nudge.md row `115 115 3827 3814` (measured, cap), and `corpus: ~61449 tokens, cap 61026 +band 500 = 61526`.
+- `python3 tools/audit/archscore/score.py --diff origin/main` prints `Architecture score: dS +0.0000 NULL`.
+
 ## Raise justification
 
 Payments tried: cutting prose from `orchestrator.md` sections 1 to 14 (none is spent or duplicated under the uniqueness test); moving the new rule into the instruments guide or the sweep template (both are outside the corpus, so that is the move `ratchet-budgets` calls a reclassification and refuses); shortening the new text (it drops the reason clause that makes a seat consult the guide). The change adds no code, so no refactor applies.
