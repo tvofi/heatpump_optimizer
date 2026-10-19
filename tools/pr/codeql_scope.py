@@ -73,19 +73,31 @@ def decide(language: str, event: str, files: list[str]) -> tuple[str, str]:
     return "skip", f"all {len(files)} changed file(s) are inert to the {language} extractor"
 
 
+def _closure():
+    """tests/closure.py, the one changed-file producer every lane and the gate
+    read (#2406), imported by path so `python3 -I` still finds it."""
+    tests = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "tests")
+    if tests not in sys.path:
+        sys.path.insert(0, tests)
+    import closure
+    return closure
+
+
 def changed_files(base: str, head: str, cwd: str = ".",
                   env: dict | None = None) -> list[str]:
-    """The pull request's three-dot file list, BOTH sides of every rename.
+    """The pull request's three-dot file list, BOTH sides of every rename:
+    closure.changed_between's list, so CodeQL reads the gate's own list.
     Raises CalledProcessError when git cannot diff: the caller fails, and a
     failed scope job leaves every leg analyzing."""
-    out = subprocess.run(["git", "diff", "--name-only", "--no-renames",
-                          f"{base}...{head}"], cwd=cwd, env=env,
-                         capture_output=True, text=True, check=True).stdout
-    return [line for line in out.splitlines() if line.strip()]
+    try:
+        return _closure().changed_between(base, head, cwd=cwd, env=env)
+    except SystemExit as e:
+        raise subprocess.CalledProcessError(2, ["git", "diff", f"{base}...{head}"],
+                                            stderr=str(e)) from None
 
 
 def _rename_probe() -> tuple[list[str], list[str]]:
-    """(changed_files, porcelain `git diff --name-only`) over a throwaway repo
+    """(changed_files, the porcelain list) over a throwaway repo
     (tests/throwaway_git.py, the one way a tracked script builds one) whose
     one commit is `git mv lib.py lib.md`."""
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -168,6 +180,18 @@ def self_test() -> int:
           word("python", "pull_request", listed), "analyze")
     check("the seam is real: porcelain git diff lists only lib.md (null control)",
           porcelain, ["lib.md"])
+    cl = _closure()
+    real = cl.changed_between
+    try:
+        cl.changed_between = lambda *a, **k: ["from-closure"]
+        try:
+            got = changed_files("b", "h")
+        except Exception as e:  # a private copy runs git on a bogus range
+            got = f"raised {type(e).__name__}"
+        check("the list is closure.changed_between's, not a copy (#2406)",
+              got, ["from-closure"])
+    finally:
+        cl.changed_between = real
 
     print(f"codeql_scope self-test: {n} checks, {fails} failed")
     return 1 if fails else 0

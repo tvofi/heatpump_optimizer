@@ -85,6 +85,21 @@ class Abort(Exception):
     """A guard refused: report it, merge nothing, exit 1."""
 
 
+def verdict_allowlist(approve_script: Path) -> "tuple[set[str], int] | None":
+    """The approver App's identity, read off app_approve.sh, the gate that owns
+    it: (VERDICT_AUTHORS, VERDICT_AUTHOR_ID), or None when unreadable. The one
+    reader; orchestrator_tick.py imports it."""
+    try:
+        src = Path(approve_script).read_text()
+    except OSError:
+        return None
+    authors = re.search(r'^VERDICT_AUTHORS="(.*)"$', src, re.M)
+    vid = re.search(r"^VERDICT_AUTHOR_ID=(\d+)", src, re.M)
+    if not (authors and vid):
+        return None
+    return set(authors.group(1).split()), int(vid.group(1))
+
+
 def _json_docs(raw: str) -> list:
     """What `gh api` prints: concatenated JSON documents, an array per page
     (plain --paginate) or one object per line (--jq '.check_runs[]')."""
@@ -105,8 +120,10 @@ class Watcher:
                  poll: float = 300.0, budget_h: float = 6.0,
                  dry: bool = False, mode: str = "app", state: Path = DEFAULT_STATE,
                  merge_script: Path | None = None, approve_script: Path | None = None,
-                 run=None, sleep=time.sleep, clock=time.monotonic, say=print) -> None:
+                 run=None, sleep=time.sleep, clock=time.monotonic, say=print,
+                 mandate: str = "") -> None:
         self.repo, self.pr, self.sha, self.check = repo, pr, sha, check
+        self.mandate = mandate  # owner mode: merge_pr.sh's --mandate, the comment id it reads live
         self.poll, self.budget_h, self.dry, self.mode = poll, budget_h, dry, mode
         self.state = state
         # The repo's own merge path and the approver's own gate, by path —
@@ -199,13 +216,10 @@ class Watcher:
                         f"(app_approve --dry-run refused): {why}")
 
     def _allowlist(self) -> tuple[set[str], int]:
-        try:
-            src = self.approve_script.read_text()
-            authors = re.search(r'^VERDICT_AUTHORS="(.*)"$', src, re.M).group(1)
-            vid = int(re.search(r"^VERDICT_AUTHOR_ID=(\d+)", src, re.M).group(1))
-        except (OSError, AttributeError):
+        got = verdict_allowlist(self.approve_script)
+        if got is None:
             raise Abort(f"could not read the verdict allowlist off {self.approve_script}")
-        return set(authors.split()), vid
+        return got
 
     def verdict_comment(self) -> tuple[int, str]:
         """(comment id, evidence directory) off the verdict the gate just
@@ -274,6 +288,8 @@ class Watcher:
 
     def do_merge(self, cid: int, evidence: str) -> str:
         argv = ["bash", str(self.merge_script), str(self.pr), self.sha, evidence, self.mode]
+        if self.mode == "owner":
+            argv += ["--mandate", self.mandate]  # merge_pr.sh refuses an empty or stale one
         code, out = self.run(argv)
         if code:
             raise Abort(f"{self.merge_script} failed (rc={code}): {out.strip()[-400:]}")
@@ -346,6 +362,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--budget", type=float, default=6.0, help="hours before aborting (default %(default)s)")
     ap.add_argument("--mode", choices=("app", "owner"), default="app",
                     help="the merge identity merge_pr.sh is handed (default %(default)s)")
+    ap.add_argument("--mandate", default="",
+                    help="owner mode: the #201 mandate comment id merge_pr.sh reads live")
     ap.add_argument("--dry-run", action="store_true", help="run every guard, touch nothing")
     a = ap.parse_args(argv)
     if a.self_test:
@@ -357,8 +375,11 @@ def main(argv: list[str] | None = None) -> int:
     if not (len(a.head) == 40 and set(a.head) <= HEX):
         print(f"proof_watch: REFUSE: --head must be the full 40-hex SHA, got '{a.head}'", file=sys.stderr)
         return 2
+    if a.mode == "owner" and not a.mandate.isdigit():
+        print("proof_watch: REFUSE: --mode owner needs --mandate <comment-id>", file=sys.stderr)
+        return 2
     w = Watcher(repo=a.repo, pr=a.pr, sha=a.head, check=a.check, poll=a.poll,
-                budget_h=a.budget, dry=a.dry_run, mode=a.mode)
+                budget_h=a.budget, dry=a.dry_run, mode=a.mode, mandate=a.mandate)
     try:
         w.watch()
     except Abort as e:

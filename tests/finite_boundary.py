@@ -437,7 +437,8 @@ async def _save_debug(coord):
             when=at, predicted_power_kw=1.0, actual_power_kw=1.2, predicted_temp=21.0,
             actual_temp=21.2, predicted_cost=0.5, actual_cost=0.6, outdoor_temp=-2.0,
             humidity=80.0, cop_residual=0.1))
-        view = SimpleNamespace(accuracy=tracker, solve_failures=1, prices=[{}] * 96)
+        view = SimpleNamespace(accuracy=tracker, solve_failures=1, prices=[{}] * 96,
+                               integration_version="7.0.0")
         payload = {
             "mode": "auto", "current_action": {"mode": "heat", "power": 2.5, "heat_pump_on": True},
             "solve_time_ms": 40.0, "weather_forecast_stale_hours": 0.5,
