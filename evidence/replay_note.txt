@@ -1,0 +1,1 @@
+gh unauthenticated in this container (HTTP 403). The committed replay prints 'gate : 0 raise(s), HOLDS' for #2368, whose raises the offline reading (offline_replay.txt) shows are 2; its docstring says 'A read that fails prints the train's own Stop'.
