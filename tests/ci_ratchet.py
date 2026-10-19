@@ -175,7 +175,7 @@ def script_runs(run: list[dict]) -> int:
     copy of the base's per-script data, not an execution -- it runs nothing
     -- so it is no script run (R10-CI-LAYOUT PR 0). Counting it graded push
     run 39213675232's 19 copies as 19 runs, 73 against a budget of 68."""
-    return sum(1 for r in run if r["lane"] in LANES and r["class"] != "reused")
+    return sum(1 for r in run if r["lane"] in LANES)
 
 
 def critical_path_minutes(runs_json: Path) -> float:
