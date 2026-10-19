@@ -1,0 +1,202 @@
+﻿2026-10-19T07:59:56.8695226Z Current runner version: '2.337.0'
+2026-10-19T07:59:56.8721174Z ##[group]Runner Image Provisioner
+2026-10-19T07:59:56.8722144Z Hosted Compute Agent
+2026-10-19T07:59:56.8722822Z Version: 20261012.601
+2026-10-19T07:59:56.8723544Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-19T07:59:56.8724339Z Build Date: 2026-10-12T17:48:21Z
+2026-10-19T07:59:56.8725031Z Worker ID: {a737587b-9479-410b-9545-047b912bb2e6}
+2026-10-19T07:59:56.8725853Z Region: centralus
+2026-10-19T07:59:56.8726468Z Cloud: Azure
+2026-10-19T07:59:56.8727013Z ##[endgroup]
+2026-10-19T07:59:56.8728612Z ##[group]Operating System
+2026-10-19T07:59:56.8729321Z Ubuntu
+2026-10-19T07:59:56.8730427Z 24.04.5
+2026-10-19T07:59:56.8731003Z LTS
+2026-10-19T07:59:56.8731667Z ##[endgroup]
+2026-10-19T07:59:56.8732382Z ##[group]Runner Image
+2026-10-19T07:59:56.8733023Z Image: ubuntu-24.04
+2026-10-19T07:59:56.8733660Z Version: 20261012.334.1
+2026-10-19T07:59:56.8734975Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-19T07:59:56.8736653Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-19T07:59:56.8737677Z ##[endgroup]
+2026-10-19T07:59:56.8738958Z ##[group]GITHUB_TOKEN Permissions
+2026-10-19T07:59:56.8741527Z Contents: read
+2026-10-19T07:59:56.8742235Z Metadata: read
+2026-10-19T07:59:56.8742818Z ##[endgroup]
+2026-10-19T07:59:56.8744882Z Secret source: Actions
+2026-10-19T07:59:56.8746004Z Cache mode: write
+2026-10-19T07:59:56.8747091Z Prepare workflow directory
+2026-10-19T07:59:56.9092534Z Prepare all required actions
+2026-10-19T07:59:56.9142657Z Getting action download info
+2026-10-19T07:59:57.2007832Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-19T07:59:57.3095633Z Download action repository 'hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa' (SHA:1ebf01c408f29afcb6406bd431bc98fd8cbb15aa)
+2026-10-19T07:59:57.5841564Z Complete job name: validate-hacs
+2026-10-19T07:59:57.6329585Z ##[group]Pull down action image 'ghcr.io/hacs/action:main'
+2026-10-19T07:59:57.6438639Z ##[command]/usr/bin/docker pull ghcr.io/hacs/action:main
+2026-10-19T07:59:58.2774116Z main: Pulling from hacs/action
+2026-10-19T07:59:58.4043101Z e2de96513ba9: Already exists
+2026-10-19T07:59:58.4073718Z 48f6a2588427: Pulling fs layer
+2026-10-19T07:59:58.4077522Z 2a22c5887fa2: Pulling fs layer
+2026-10-19T07:59:58.4078265Z d486488257d0: Pulling fs layer
+2026-10-19T07:59:58.4078916Z 4f2f4aeb91e6: Pulling fs layer
+2026-10-19T07:59:58.4079589Z 15f7511e3297: Pulling fs layer
+2026-10-19T07:59:58.4080583Z dd9a8f7a1d13: Pulling fs layer
+2026-10-19T07:59:58.4081222Z 4f2f4aeb91e6: Waiting
+2026-10-19T07:59:58.4081784Z 15f7511e3297: Waiting
+2026-10-19T07:59:58.4082308Z dd9a8f7a1d13: Waiting
+2026-10-19T07:59:58.5836053Z d486488257d0: Download complete
+2026-10-19T07:59:58.6212370Z 48f6a2588427: Verifying Checksum
+2026-10-19T07:59:58.6213745Z 48f6a2588427: Download complete
+2026-10-19T07:59:58.7346985Z 4f2f4aeb91e6: Download complete
+2026-10-19T07:59:58.7756264Z 2a22c5887fa2: Verifying Checksum
+2026-10-19T07:59:58.7757541Z 2a22c5887fa2: Download complete
+2026-10-19T07:59:58.7806633Z 15f7511e3297: Verifying Checksum
+2026-10-19T07:59:58.7807919Z 15f7511e3297: Download complete
+2026-10-19T07:59:58.8750559Z 48f6a2588427: Pull complete
+2026-10-19T07:59:59.6498978Z dd9a8f7a1d13: Verifying Checksum
+2026-10-19T07:59:59.6500432Z dd9a8f7a1d13: Download complete
+2026-10-19T07:59:59.9433920Z 2a22c5887fa2: Pull complete
+2026-10-19T07:59:59.9546563Z d486488257d0: Pull complete
+2026-10-19T07:59:59.9652735Z 4f2f4aeb91e6: Pull complete
+2026-10-19T08:00:00.0012501Z 15f7511e3297: Pull complete
+2026-10-19T08:00:30.8472726Z dd9a8f7a1d13: Pull complete
+2026-10-19T08:00:30.8535992Z Digest: sha256:702294c324576814c5b093a24a9c737065a47a07576d4e834280318a4d2d8ef9
+2026-10-19T08:00:30.8549158Z Status: Downloaded newer image for ghcr.io/hacs/action:main
+2026-10-19T08:00:30.8560953Z ghcr.io/hacs/action:main
+2026-10-19T08:00:30.8587775Z ##[endgroup]
+2026-10-19T08:00:30.8907909Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-19T08:00:30.8908658Z with:
+2026-10-19T08:00:30.8908904Z   repository: tvofi/heatpump_optimizer
+2026-10-19T08:00:30.8911510Z   token: ***
+2026-10-19T08:00:30.8911759Z   ssh-strict: true
+2026-10-19T08:00:30.8911969Z   ssh-user: git
+2026-10-19T08:00:30.8912181Z   persist-credentials: true
+2026-10-19T08:00:30.8912422Z   clean: true
+2026-10-19T08:00:30.8912649Z   sparse-checkout-cone-mode: true
+2026-10-19T08:00:30.8912906Z   fetch-depth: 1
+2026-10-19T08:00:30.8913106Z   fetch-tags: false
+2026-10-19T08:00:30.8913311Z   show-progress: true
+2026-10-19T08:00:30.8913526Z   lfs: false
+2026-10-19T08:00:30.8913717Z   submodules: false
+2026-10-19T08:00:30.8913930Z   set-safe-directory: true
+2026-10-19T08:00:30.8914184Z   allow-unsafe-pr-checkout: false
+2026-10-19T08:00:30.8914685Z ##[endgroup]
+2026-10-19T08:00:30.9973163Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-19T08:00:30.9975548Z ##[group]Getting Git version info
+2026-10-19T08:00:30.9976294Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-19T08:00:30.9977512Z [command]/usr/bin/git version
+2026-10-19T08:00:31.0032461Z git version 2.55.0
+2026-10-19T08:00:31.0056251Z ##[endgroup]
+2026-10-19T08:00:31.0074456Z Temporarily overriding HOME='/home/runner/work/_temp/022bb49e-995f-42b1-8bde-e1ef08bd75e1' before making global git config changes
+2026-10-19T08:00:31.0076089Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-19T08:00:31.0083046Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-19T08:00:31.0140908Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-19T08:00:31.0147235Z ##[group]Initializing the repository
+2026-10-19T08:00:31.0153831Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-19T08:00:31.0271348Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-19T08:00:31.0276308Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-19T08:00:31.0277501Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-19T08:00:31.0278413Z hint: call:
+2026-10-19T08:00:31.0278840Z hint:
+2026-10-19T08:00:31.0279375Z hint: 	git config --global init.defaultBranch <name>
+2026-10-19T08:00:31.0280540Z hint:
+2026-10-19T08:00:31.0281133Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-19T08:00:31.0282391Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-19T08:00:31.0283315Z hint:
+2026-10-19T08:00:31.0283804Z hint: 	git branch -m <name>
+2026-10-19T08:00:31.0284308Z hint:
+2026-10-19T08:00:31.0284977Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-19T08:00:31.0286145Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-19T08:00:31.0290702Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-19T08:00:31.0346639Z ##[endgroup]
+2026-10-19T08:00:31.0347296Z ##[group]Disabling automatic garbage collection
+2026-10-19T08:00:31.0350940Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-19T08:00:31.0388323Z ##[endgroup]
+2026-10-19T08:00:31.0388919Z ##[group]Setting up auth
+2026-10-19T08:00:31.0396855Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-19T08:00:31.0432484Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-19T08:00:31.0878441Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-19T08:00:31.0920628Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-19T08:00:31.1153787Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-19T08:00:31.1192744Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-19T08:00:31.1426869Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-19T08:00:31.1471029Z ##[endgroup]
+2026-10-19T08:00:31.1471760Z ##[group]Fetching the repository
+2026-10-19T08:00:31.1481773Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +835c51ce78d57174814d590c85b2f4ab0e4e413b:refs/remotes/pull/2442/merge
+2026-10-19T08:00:33.2483989Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-19T08:00:33.2487022Z  * [new ref]         835c51ce78d57174814d590c85b2f4ab0e4e413b -> pull/2442/merge
+2026-10-19T08:00:33.2489035Z ##[endgroup]
+2026-10-19T08:00:33.2489457Z ##[group]Determining the checkout info
+2026-10-19T08:00:33.2491744Z ##[endgroup]
+2026-10-19T08:00:33.2497927Z [command]/usr/bin/git sparse-checkout disable
+2026-10-19T08:00:33.2557763Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-19T08:00:33.2592095Z ##[group]Checking out the ref
+2026-10-19T08:00:33.2620619Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2442/merge
+2026-10-19T08:00:33.8342941Z Note: switching to 'refs/remotes/pull/2442/merge'.
+2026-10-19T08:00:33.8343486Z 
+2026-10-19T08:00:33.8343873Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-19T08:00:33.8344885Z changes and commit them, and you can discard any commits you make in this
+2026-10-19T08:00:33.8345951Z state without impacting any branches by switching back to a branch.
+2026-10-19T08:00:33.8346450Z 
+2026-10-19T08:00:33.8346812Z If you want to create a new branch to retain commits you create, you may
+2026-10-19T08:00:33.8347714Z do so (now or later) by using -c with the switch command. Example:
+2026-10-19T08:00:33.8348212Z 
+2026-10-19T08:00:33.8348425Z   git switch -c <new-branch-name>
+2026-10-19T08:00:33.8348759Z 
+2026-10-19T08:00:33.8348955Z Or undo this operation with:
+2026-10-19T08:00:33.8349263Z 
+2026-10-19T08:00:33.8349433Z   git switch -
+2026-10-19T08:00:33.8350120Z 
+2026-10-19T08:00:33.8350471Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-19T08:00:33.8351043Z 
+2026-10-19T08:00:33.8351690Z HEAD is now at 835c51c Merge b9f201f90efbb39422319426a7839c036b7b46af into c3530277373ddf87652858f9ecb0ee1cf36f4347
+2026-10-19T08:00:33.8368224Z ##[endgroup]
+2026-10-19T08:00:33.8420882Z [command]/usr/bin/git log -1 --format=%H
+2026-10-19T08:00:33.8453277Z 835c51ce78d57174814d590c85b2f4ab0e4e413b
+2026-10-19T08:00:33.8768014Z ##[group]Run hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa
+2026-10-19T08:00:33.8768408Z with:
+2026-10-19T08:00:33.8768615Z   category: integration
+2026-10-19T08:00:33.8768834Z   comment: true
+2026-10-19T08:00:33.8771412Z   github_token: ***
+2026-10-19T08:00:33.8771635Z ##[endgroup]
+2026-10-19T08:00:33.8865247Z ##[command]/usr/bin/docker run --name ghcriohacsactionmain_195a8d --label 1f2c52 --workdir /github/workspace --rm -e "INPUT_CATEGORY" -e "INPUT_IGNORE" -e "INPUT_REPOSITORY" -e "INPUT_COMMENT" -e "INPUT_GITHUB_TOKEN" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "GITHUB_ARTIFACTS" -e "GITHUB_ARTIFACTS_LIST" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e "ACTIONS_CACHE_MODE" -e "ACTIONS_ORCHESTRATION_ID" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp":"/github/runner_temp" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/heatpump_optimizer/heatpump_optimizer":"/github/workspace" ghcr.io/hacs/action:main
+2026-10-19T08:00:40.8340081Z Traceback (most recent call last):
+2026-10-19T08:00:40.8350328Z   File "/hacs/action.py", line 226, in <module>
+2026-10-19T08:00:40.8350832Z     asyncio.run(preflight())
+2026-10-19T08:00:40.8351233Z     ~~~~~~~~~~~^^^^^^^^^^^^^
+2026-10-19T08:00:40.8351807Z   File "/usr/local/lib/python3.14/asyncio/runners.py", line 205, in run
+2026-10-19T08:00:40.8352406Z     return runner.run(main)
+2026-10-19T08:00:40.8352771Z            ~~~~~~~~~~^^^^^^
+2026-10-19T08:00:40.8353269Z   File "/usr/local/lib/python3.14/asyncio/runners.py", line 128, in run
+2026-10-19T08:00:40.8354081Z     return self._loop.run_until_complete(task)
+2026-10-19T08:00:40.8354698Z            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+2026-10-19T08:00:40.8355545Z   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+2026-10-19T08:00:40.8356523Z     return future.result()
+2026-10-19T08:00:40.8357112Z            ~~~~~~~~~~~~~^^
+2026-10-19T08:00:40.8357675Z   File "/hacs/action.py", line 153, in preflight
+2026-10-19T08:00:40.8358343Z     repo = await hacs.githubapi.repos.get(repository)
+2026-10-19T08:00:40.8358989Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-19T08:00:40.8360307Z   File "/usr/local/lib/python3.14/site-packages/aiogithubapi/namespaces/repos.py", line 97, in get
+2026-10-19T08:00:40.8361468Z     response = await self._client.async_call_api(
+2026-10-19T08:00:40.8362146Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-19T08:00:40.8362666Z     ...<2 lines>...
+2026-10-19T08:00:40.8363077Z     )
+2026-10-19T08:00:40.8363438Z     ^
+2026-10-19T08:00:40.8364336Z   File "/usr/local/lib/python3.14/site-packages/aiogithubapi/client.py", line 179, in async_call_api
+2026-10-19T08:00:40.8365476Z     raise GitHubRatelimitException(message)
+2026-10-19T08:00:40.8369128Z aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for installation. If you reach out to GitHub Support for help, please include the request ID AC40:1EFDC5:6425367:1459DD61:6AD5CE28 and timestamp 2026-10-19 08:00:40 UTC. For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
+2026-10-19T08:00:41.4297894Z Post job cleanup.
+2026-10-19T08:00:41.5155818Z [command]/usr/bin/git version
+2026-10-19T08:00:41.5203003Z git version 2.55.0
+2026-10-19T08:00:41.5244053Z Temporarily overriding HOME='/home/runner/work/_temp/0ab71bb3-6a5f-4021-acec-dd05b30a5e5f' before making global git config changes
+2026-10-19T08:00:41.5245436Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-19T08:00:41.5249954Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-19T08:00:41.5294115Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-19T08:00:41.5335004Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-19T08:00:41.5610804Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-19T08:00:41.5642341Z http.https://github.com/.extraheader
+2026-10-19T08:00:41.5656083Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-19T08:00:41.5693704Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-19T08:00:41.5987871Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-19T08:00:41.6030658Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-19T08:00:41.6477082Z Cleaning up orphan processes
