@@ -4154,7 +4154,7 @@
    ],
    "brief": "Wire the remaining unwired tools/audit/seat/ self-tests into CI: 24 of 32 self-testing files there were named in no workflow when R10-TICK-SELFTEST-CI was cut (its PR body lists them), plus the two self-tests #2422 added. Each wired step runs offline (a spy counts 0 subprocess and 0 network calls) or the file is fixed so it does; a file that drives push or merge paths gets an offline seam, not a skip. Control per file: a mutant reddens its step.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-seat-selftests-ci",
     "commit": null,
     "last_step": null,
