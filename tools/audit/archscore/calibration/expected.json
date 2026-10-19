@@ -378,6 +378,42 @@
   "set": "corpus",
   "verdict": "NULL"
  },
+ "a3_card_clone_copies_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_card_clone_copies_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_card_clone_copies_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_card_dead_definitions_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_card_dead_definitions_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_card_dead_definitions_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
  "a3_dead_by_reachability_control": {
   "admissible": false,
   "label": "BAD",
@@ -510,6 +546,24 @@
   "set": "planted",
   "verdict": "NULL"
  },
+ "a3_literal_clone_copies_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_literal_clone_copies_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_literal_clone_copies_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
  "a3_payload_annotated_param_control": {
   "admissible": false,
   "label": "BAD",
@@ -609,6 +663,30 @@
  "a3_public_surface_null": {
   "admissible": true,
   "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_shape_copies_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_shape_copies_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_shape_copies_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_shape_copies_respelled_control": {
+  "admissible": true,
+  "label": "BAD",
   "set": "planted",
   "verdict": "NULL"
  },
@@ -1074,6 +1152,12 @@
   "set": "redteam",
   "verdict": "NULL"
  },
+ "rt_20b_hub_event_pkg_wrap": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
  "rt_21_lazy_solver_import": {
   "admissible": true,
   "label": "GAME",
@@ -1199,5 +1283,59 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "NULL"
+ },
+ "rt_42_literal_respelled": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42b_literal_module_constant": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42c_literal_keyword_args": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42d_literal_module_attr": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_43_literal_local_hop": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_44_card_rename_locals": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_44b_card_noop_split": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_44c_card_empty_statement": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_45_shape_private_copy": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
  }
 }

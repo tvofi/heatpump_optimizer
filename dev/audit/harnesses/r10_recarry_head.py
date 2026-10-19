@@ -76,7 +76,7 @@ def main(tree):
                     p = os.path.join(d, "body.md")
                     with open(p, "w", newline="") as f:
                         f.write(text)
-                    r = subprocess.run([sys.executable, "-", p, H, "c" * 40, "7"], input=code, text=True,
+                    r = subprocess.run([sys.executable, "-", p, H, "c" * 40, "7", ""], input=code, text=True,
                                        capture_output=True, env={**os.environ, "PYTHONPATH": os.path.join(tree, "tools/pr")})
                     cells.append("%s=%s" % (shape, "crash" if r.returncode else verdict(p)))
                 rows += 1
