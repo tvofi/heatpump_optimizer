@@ -4,7 +4,7 @@ Mechanism: `body_line` takes the file step 6d already writes the unpinned site k
 
 ## Head
 
-`e6fc778ef4178a5bf3b544f04cf2a6378ac4993f` (code head, off `origin/main` 05c39d3a6, measured 2026-10-19).
+`dcf20edf0ac284ae6c011efeff17b65ab923ff98` (code head: `origin/main` merged in at 515f13164, then a one-row reword; measured 2026-10-19).
 
 ## Mutation proof
 
@@ -25,18 +25,21 @@ Control: an UNMUTATED copy run the same way (`cp tools/pr/prepr.sh <copy>`) fail
 - Self-test at the head: `bash tools/pr/prepr.sh --self-test` ends with a line matching `[0-9]+ passed, 0 failed`; the count is the instrument's and is not restated here.
 - Unmutated tree passes the real check: `python3 -I tests/throwaway_git.py --check` prints a tally of 0 refused sites and 0 stale allow entries at HEAD (run after the commit: the check reads the committed tree, and the first head's own self-test lines were refused by it, which is why the plant is now spelled in halves).
 - Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 0 script(s) run`; changed files are `tools/pr/prepr.sh` and the new fixture `tools/policy/fixtures/policy-rot/prepr/mutation-answered.md`.
+- `python3 tools/audit/seat/ref_privacy.py --check` at the head ends `0 refused`.
 - `python3 tests/structure.py` ends `STRUCTURE RATCHET PASSED`.
 
 ## Red checks
 
-none
+`instrument-self-tests` was red on #2447's first head: `ref_privacy --check` read a self-test row of this diff (a string with `git` before `push`) as an unregistered push site. Fixed in this head by rewording the row, no suppression. Cheaper detector: `python3 tools/audit/seat/ref_privacy.py --check`, which takes seconds and is not in prepr; the standing cost is one more step there, left to R10-CI-LAYOUT's decision. Carry: R10-CI-LAYOUT.
+
+`nightly-status` is main's red (last night's record-autofix), not this branch's: this diff touches no nightly record.
 
 ## Forward-carry
 
-- Step 6f reads the committed tree (`git grep` at HEAD), as CI does; an uncommitted raw `git init` is invisible to it. A seat running prepr before committing gets a green it did not earn. Carry: dev/governance/roles/fixer.md step 6 (commit before prepr); not edited here, policy needs approval.
-- An unpinned site is now a body obligation at two stages: `## Unpinned sites` (step 7d) and `mutation` under `## Red checks` (this change). If `mutation-autofix` pins the site after the push the `mutation` line becomes a stale claim in the body. Carry: dev/governance/rules/ci-autofix.md (reviewer re-checks the line after the autofix commit); not edited here, policy needs approval.
+- Step 6f reads the committed tree (`git grep` at HEAD), as CI does; an uncommitted raw `git init` is invisible to it. A seat running prepr before committing gets a green it did not earn. Carry: R10-POLICY-FIXER-MD (fixer.md step 6, commit before prepr).
+- An unpinned site is now a body obligation at two stages: `## Unpinned sites` (step 7d) and `mutation` under `## Red checks` (this change). If `mutation-autofix` pins the site after the push the `mutation` line becomes a stale claim in the body. Carry: R10-BRIEFS-FOLD (ci-autofix.md: the reviewer re-checks the line after the autofix commit).
 
 ## Friction
 
-- fixer.md#6: contradiction: the brief says hand off with tools/audit/seat/handoff_push.sh, which opens or updates the PR and writes the delivery row, and also says make no GitHub writes; I pushed the code head to handoff/r10-prepr-unpinned-red and the body with seat/body_push.sh. Carry: the orchestrator's fixer-seat brief template.
-- tests/throwaway_git.py#check: cost: it greps the repository it lives in, tools/pr/prepr.sh included, so a fixture owes a shared clone of the real tree (a hand-built tree reads every allow entry stale) and a planted line owes spelling in halves; the first head failed its own step 6f on four self-test strings. Carry: the tests/throwaway_git.py docstring, at that file's next edit.
+- fixer.md#6: contradiction: the brief says hand off with tools/audit/seat/handoff_push.sh, which opens or updates the PR and writes the delivery row, and also says make no GitHub writes; I pushed the code head to handoff/r10-prepr-unpinned-red and the body with seat/body_push.sh. Carry: R10-POLICY-FIXER-MD.
+- tests/throwaway_git.py#check: cost: it greps the repository it lives in, tools/pr/prepr.sh included, so a fixture owes a shared clone of the real tree (a hand-built tree reads every allow entry stale) and a planted line owes spelling in halves; the first head failed its own step 6f on four self-test strings. Carry: R10-CI-LAYOUT (the tests/throwaway_git.py docstring).
