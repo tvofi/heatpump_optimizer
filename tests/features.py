@@ -61863,7 +61863,7 @@ R.check(
 )
 R.check(
     "a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote",
-    _sp_write(1.5, (_SP_TANK,)) == 24.0 + _SP_LIFT
+    _sp_write(1.5, (_SP_TANK,)) == 29.0
     and _sp_write(1.5, (_SP_TANK,)) != _pa.FLOW_HOLD_C,
     f"{_sp_write(1.5, (_SP_TANK,))}",
 )
