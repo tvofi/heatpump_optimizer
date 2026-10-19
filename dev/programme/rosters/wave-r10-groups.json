@@ -4338,6 +4338,48 @@
     "next_step": "open_pr",
     "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "defect",
+   "issues": [],
+   "fixes": [],
+   "class": "defect",
+   "severity": "high",
+   "size": "M",
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "group": "R10-CI-RATCHET-RED",
+   "findings": [],
+   "wave": 3,
+   "files": [
+    "tests/ci_ratchet.py",
+    ".github/workflows/tests.yml"
+   ],
+   "brief": "main is red on ci-ratchet on most pushes since 2026-10-19 (critical path 58.65 min against the 54.825 budget; script runs 73 against 68; found by the R10-CI-LAYOUT planning seat, PLAN.md). It blocks stamps, which need a green Tests push run. Find which merges grew the critical path and the script count, then pay by optimisation (move or merge jobs, drop duplicate script runs) before any raise; a raise only if unpayable, with ## Raise justification and Payments tried. Control: ci-ratchet green on the fix head and on main after merge; a planted extra script run turns it red.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ci-ratchet-red",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer",
+    "note": null
+   }
   }
  ]
 }
