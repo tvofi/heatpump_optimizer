@@ -2353,7 +2353,7 @@ function recordDiffParity(policySrc, stampSrc) {
 function mergeRecordClass(sha) {
   const out = mergeDiffSource
     ? mergeDiffSource(sha)
-    : git(['diff', '--no-renames', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
+    : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
   if (!out) return false
   return recordClassPaths(canonList(out.split('\n')))
 }
