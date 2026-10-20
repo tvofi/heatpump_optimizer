@@ -1,8 +1,0 @@
-check-runs API, head 67ee6adfd712786da12241bf59bb5b78030c2d80 (49 runs)
-pr-contract  118467040392  failure  started 05:13:17Z  concluded 05:13:49Z
-pr-contract  118467201379  failure  started 05:13:52Z  concluded 05:14:26Z
-  log: BAD-DEST body item 74235bdc/2a8594d3/ae737fa5: R10-UPDATE-PR-SIGNALS is not a group of the roster
-       CARRY-AUDIT: 3 finding item(s): 0 routed, 0 unrouted, 3 bad destination(s)
-all other completed runs: success or skipped (last to conclude: Analyze (python) 05:31:22Z)
-roster PR #2475 merged as 1e30f876 at 2026-10-20T05:36:19Z, after both pr-contract runs; not an ancestor of the head.
-no pr-contract run started after the last workflow concluded.

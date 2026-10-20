@@ -21,6 +21,8 @@ This PR is the split the three-round rule calls for. Holding the lock across a S
 
 ## Head
 
+`42bee4bde021e9934e85cba43a34be6c99c05f30` merges the authored code head `d42eb15a7425c2ae17846a6631520ce81dac2038` and then merges origin/main `6f25795bc` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `67ee6adfd712786da12241bf59bb5b78030c2d80` merges the authored code head `931e9a0f567584657ecaed2b61e61c857bdd2135` and then merges origin/main `a65438c46` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `76b7b68bce63a7f32ed95ba4ff7cbe0d97471188` merges the authored code head `931e9a0f567584657ecaed2b61e61c857bdd2135` and then merges origin/main `a65438c46` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
