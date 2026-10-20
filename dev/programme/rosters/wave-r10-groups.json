@@ -4627,7 +4627,9 @@
     "R10-CI-LAYOUT",
     "R10-NIGHT-FOLDS"
    ],
-   "carry": [],
+   "carry": [
+    "Carried from #2465 (R10-SETPOINT-BOOST) at afabd5b6; the ceiling probe owns these:\n- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Identifying that gain is R10-CEILING-PROBE's: its cheap-night `sysid.py` experiment measures drawn power against the commanded set-point. The booked-vs-delivered heat that follows from the gap is R10-DEMAND-OVERBOOK's, carried under `## Forward-carry`.\n- **Reaching the real maximum** needs either p_max configured at its true value (an owner question for tvofi, who is adjusting the config) or a deliberate ceiling probe. The probe is R10-CEILING-PROBE, folded into the cheap-night system-identification experiment (`sysid.py`). B is its prerequisite: the window now admits ceiling-commanded evidence only.\n- **Idle draw can absorb compressor draw.** If the gate is not truly off (the compressor runs at the gate on a cold inlet), the learned idle median takes in compressor draw. The reviewer measured that at a gate-held draw of 1.4 kW, 24 of 72 running samples drop and the low end moves from 1.35 to 1.8 kW. `follows_ask` uses the same filter. The ceiling probe's controls should include a gate-held draw above idle."
+   ],
    "architect_note": null,
    "group": "R10-CEILING-PROBE",
    "findings": [],
