@@ -4944,7 +4944,7 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "queued",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
