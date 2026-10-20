@@ -162,7 +162,7 @@ def read_roster(repo: str = ".", roster_file: "str | None" = None,
         ref = rl.reader_ref(repo, roster_ref)
         path = rl.roster_path(repo, ref, roster_path)
         return rl.show_roster(repo, ref, path), f"{ref}:{path}"
-    except rl.RosterNotFound as e:
+    except (rl.RosterNotFound, ValueError) as e:
         return None, str(e)[:200]
 
 
@@ -254,6 +254,17 @@ def self_test() -> int:
     roster_obj, why = read_roster("/nonexistent/checkout")
     ck("read_roster over a checkout with no roster is a refusal, not ({} , '')",
        roster_obj is None and why and dispatch_gate(roster_obj, why, 6, None)[0] == 1)
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        fh.write("{not json")
+        bad = fh.name
+    try:
+        roster_obj, why = read_roster(roster_file=bad)
+    finally:
+        os.unlink(bad)
+    ck("a roster file that is not JSON is a refusal, naming it",
+       roster_obj is None and "roster file" in why
+       and dispatch_gate(roster_obj, why, 6, None)[0] == 1)
     ck("HPO_WIP_CAP: unset is 6, '3' is 3, '0' and 'x' are invalid",
        [wip_cap_from_env(e) for e in ({}, {WIP_CAP_ENV: "3"}, {WIP_CAP_ENV: "0"},
                                       {WIP_CAP_ENV: "x"})] == [6, 3, None, None])

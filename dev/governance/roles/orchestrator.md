@@ -25,8 +25,6 @@ These sections do not replace the source rules. The turn is `dev/governance/role
 
 **`fixer.md` step 8: a quoted number states its rule, not just its value.**
 
-Generalised:
-
 **Nothing is asserted that has not been measured, and the measurement is the
 command, not the impression it left.** Before writing a claim, ask what exactly
 ran, and what its output would have looked like had the claim been false. If you
@@ -45,15 +43,14 @@ cannot answer the second, you have not measured — you have expected.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
-**Work a worker can do is dispatched, not performed.** You hold context no seat
-has and authority no seat has — sequencing, merging, the record, the freeze,
-stamps, and speaking to the owner. Everything else is a seat's.
+**Work a worker can do is dispatched, not performed.** You hold context and
+authority no seat has — sequencing, merging, the record, the freeze, stamps,
+and speaking to the owner. Everything else is a seat's.
 
-The reason is **independence**, the same
-principle `fix-review.md` step 2 states for the fixer: *a fixer who measures with
-a harness they wrote is measuring themselves*. Work you perform is work you must
-then review, and you are the one participant who cannot review it — so every task
-you take yourself removes a check.
+The reason is **independence** (`fix-review.md` step 2): *a fixer who measures
+with a harness they wrote is measuring themselves*. Work you perform is work you
+must then review, and you are the one participant who cannot review it, so every
+task you take yourself removes a check.
 
 - A fix, an investigation, a measurement, a survey, a refutation, a root-cause
   analysis: **dispatch it.**
@@ -76,21 +73,22 @@ process states and the demonstration a check owes are `root-cause.md`'s and
 
 ## 4. The merge message is a second closing surface
 
-A pull request's closing references describe its **body**, and no method on
-the GitHub tool surface here exposes them at all. The merge message is a separate artifact, written by you at merge
-time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
-merge commit shuts an issue. **GitHub discards the negation**; only the keyword
-and the number matter.
+A pull request's closing references describe its **body**, and no tool on the
+GitHub surface here exposes them. The merge message is a separate artifact,
+written by you at merge time; since `main` took to merge commits
+(`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull
+request's **title**, so a keyword in a title reaches `main` too, and a pull
+request can show `[]` while its merge commit shuts an issue. **GitHub discards
+the negation**; only the keyword and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
-open**", never the negated form. The same applies to roster text, which a seat
-will paraphrase into its own body — a third-hand path to the same outcome, and it
-has occurred.
+open**", never the negated form. Roster text applies too: a seat will
+paraphrase it into its own body — a third-hand path, and it has occurred.
 
 **Run `tools/pr/preflight.sh` over the merge body before you merge — as a
-filter, not as proof.** It checks **four** reference forms, and **four is not
-all of them** — it names seven further shapes that still pass, and it is
-line-oriented, so a keyword and a number split across a newline are invisible to it.
+filter, not as proof.** It checks **four** reference forms and names seven
+further shapes that still pass; a keyword and a number split across a newline
+are invisible to it.
 
 It reads the body on **stdin** and takes the issues you *intend* to close as
 **arguments**:
@@ -101,10 +99,9 @@ printf '%s\n' "$BODY" | tools/pr/preflight.sh <intended-numbers>
 
 It misleads three ways. **Empty stdin prints `clean` and exits 0 having read
 nothing** (a filename argument does this); **held-open stdin blocks silently**
-and reports 143 when killed; neither looks like a failure. And the
-declared-argument escape is **per number, not per occurrence**: declare a number
-once and every armed keyword bound to it passes, including in a body that also
-quotes the incident.
+and reports 143 when killed; neither looks like a failure. The declared-argument
+escape is **per number, not per occurrence**: declare it once and every armed
+keyword bound to it passes, even in a body quoting the incident.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
@@ -115,12 +112,10 @@ exactly that.
 
 ## 5. Before dispatching a seat
 
-- **Do not dispatch a new group while work in progress is at the cap**
-  (tvofi, 2026-10-20): `tools/audit/seat/pr_cap.py dispatch-gate` counts the
-  roster groups whose `resume.stage` is `in-progress` and refuses at
-  `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why it is
-  exceeded. Opening and merging are always allowed — opening is how work leaves
-  work in progress, and capping it parked complete handoffs unopened.
+- **Do not dispatch a new group while work in progress is at the cap** (tvofi,
+  2026-10-20): `pr_cap.py dispatch-gate` counts roster `in-progress` groups and
+  refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
+  Opening and merging are always allowed: opening is how work leaves WIP.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments: a seat
   was dispatched to fix what an open pull request fixed.
@@ -129,7 +124,7 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
+- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
 - **Concurrent fixes sharing a concern push only after an architect note**
@@ -207,8 +202,7 @@ the bug.**
 
 An issue is what you write when you cannot act. Filing is not neutral: it enters
 the Delivery-status table, needs a disposition, and is read by later seats as
-established fact, with nothing gating it; one filed issue asked for a mechanism
-already in the tree. A real finding you must not touch goes to that stage's brief (section 10).
+established fact, with nothing gating it. A real finding you must not touch goes to that stage's brief (section 10).
 
 ## 9. The record, and the one living handover
 
@@ -289,7 +283,7 @@ never by hand or in a branch; rule 4 binds you.
 **An instrument the programme runs is a tracked, self-tested file; a
 session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,
 carries, stamps, gates, watches CI or records state runs from the tree, never
-from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
+from scratch or `~/`.
 
 **Look the instrument up before you write one** (tvofi, 2026-10-19). Round 10
 hand-rolled a tick driver, relay, sweep prompt and merge loops beside
