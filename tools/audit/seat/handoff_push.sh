@@ -17,7 +17,7 @@ PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head not
 # The three push calls' own fixtures (#2444's fourth forward-carry). A scratch
 # origin carries handoff/g (open) and handoff/h (update, with fix/h on origin);
 # the clone holds this script, the row writer and head_note.py, and its
-# tools/audit/app_push.sh is a stub that records every call. The open path must
+# tools/pr/app_push.sh is a stub that records every call. The open path must
 # push twice -- the pull request, then its row -- and the update path once.
 # This self-test copies THIS file into the clone, so the mutant proof is a
 # push line replaced by `true` in the real file: the null control then finds
@@ -45,8 +45,8 @@ handoff_push_self_test() (
     && mkdir -p "$m/tools/audit/seat" "$m/tools/pr" "$t/bin" \
     && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$m/tools/audit/seat/" \
     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
-    && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/audit/app_push.sh" \
-    && chmod +x "$m/tools/audit/app_push.sh" \
+    && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
+    && chmod +x "$m/tools/pr/app_push.sh" \
     && printf '#!/bin/bash\ncase "$*" in\n  "pr view "*"--json number --jq .number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr view "*"--json number") [ -e "$PR_EXISTS" ] && echo 42 || exit 1 ;;\n  "pr edit "*|"pr ready "*) exit 0 ;;\n  *) echo "fake gh: unexpected $*" >&2; exit 1 ;;\nesac\n' > "$t/bin/gh" \
     && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
   # run <open|update>: a fresh state and worktree root per case; the clone's
@@ -95,7 +95,8 @@ BR=${BRNAME:-fix/$TOPIC}; WT=${HPO_WT_ROOT:-$(dirname "$M")}/${BRNAME:-fix/$TOPI
 B=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/bodies/$TOPIC-body.md; mkdir -p "$(dirname "$B")"
 cd $M
 # The App push, resolved once (the three calls were two lines each before
-# #2444's seam). The self-test above puts its stub at tools/audit/app_push.sh.
+# #2444's seam): the live pusher, behind the pre-move location a checkout may
+# still carry (tests/layout.json maps that path to this one).
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 push_app() { # <tail count>: the push, filtered to its REFUSE/PUSHED lines
   PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} \

@@ -267,13 +267,14 @@ def self_test() -> int:
     ck("a wildcard pathspec that would cover tests/ does not cover a nested "
        "file", rc == 1 and "UNRESTORED tests/sub/nested.py" in buf.getvalue())
     # The reader the job prefers when the reorganisation has moved it.
+    old = ".claude/workflows/agreement_py.py"  # tools/policy/agreement_py.py is the live reader
     moved = tree({"tests/a.py": "X = 1\n"})
-    p = moved / ".claude/workflows/agreement_py.py"
+    p = moved / old
     p.parent.mkdir(parents=True)
     p.write_text("import a\n")
     ck("the .claude/workflows reader is used when it is present",
        [f for f in closure(moved) if f.endswith("agreement_py.py")]
-       == [".claude/workflows/agreement_py.py"])
+       == [old])
     print(f"agreement_restore self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
