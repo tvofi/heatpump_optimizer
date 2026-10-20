@@ -13,6 +13,11 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
+- R10-NIGHT-FOLDS (stage in-progress, branch `handoff/r10-night-folds`, note `None`): `git fetch origin handoff/r10-night-folds && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-FREQ-DEFROST (stage in-progress, branch `handoff/r10-freq-defrost`, note `None`): `git fetch origin handoff/r10-freq-defrost && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-SAV-REASONS (stage in-progress, branch `handoff/r10-sav-reasons`, note `None`): `git fetch origin handoff/r10-sav-reasons && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-REPLAY-LANE (stage in-progress, branch `handoff/r10-replay-lane`, note `None`): `git fetch origin handoff/r10-replay-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-TRAIN-HOLD (stage in-progress, branch `handoff/r10-train-hold`, note `None`): `git fetch origin handoff/r10-train-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-DEEPLINK-HANDLERS (stage in-progress, branch `handoff/r10-deeplink-handlers`, note `None`): `git fetch origin handoff/r10-deeplink-handlers && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-CI-LAYOUT (stage in-progress, branch `handoff/r10-ci-layout-g`, note `None`): `git fetch origin handoff/r10-ci-layout-g && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-ROSTER-OPS (stage in-progress, branch `handoff/r10-roster-ops`, note `None`): `git fetch origin handoff/r10-roster-ops && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
