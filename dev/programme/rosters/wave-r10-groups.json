@@ -4078,7 +4078,7 @@
    ],
    "brief": "wave-1 stamp: restore the 19 suspended may-drift entries in tests/golden/claimed_drift.txt and stamp the golden files after the drain",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-stamp",
     "commit": null,
     "last_step": null,
