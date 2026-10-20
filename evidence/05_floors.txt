@@ -1,0 +1,38 @@
+at_utc: 2026-10-20T13:37:43Z
+=== derivation at head 478cc27e (committed function, committed table) ===
+
+=== Stress and economics ===
+RESULT scenarios 54 families 20 floors (40, 15, None)
+
+=== one-sidedness controls (lowers(): 0 < v < literal only) ===
+
+=== Stress and economics ===
+RESULT no override         (40, 15, None)
+RESULT floor=45 (>=lit)    (40, 15, None)
+RESULT floor=0             (40, 15, None)
+RESULT floor=18 no cite    (40, 15, None)
+RESULT floor=18 calls=6    (18, 6, 'x')
+RESULT floor=18 no calls   (18, 7, 'x')
+
+=== mutant tree (override restored) floors ===
+
+=== Stress and economics ===
+MUTANT 54 20 (18, 6, "#201 comment 6240984157 (D2-s2-01 ruling, step 3, mandate 6175172275) and the orchestrator's ruling on its floors: every hot-water scenario re-plans because the tank's price changed; CI at 74f23814e judged 18 of 54 scenarios (solver work) and 6 of 20 families (production calls), the floors set here")
+
+=== literals and lowers() source ===
+545:SCENARIO_WORK_MIN_COVERED = 40
+    def lowers(v: object, literal: int) -> bool:
+        return (isinstance(v, int) and not isinstance(v, bool)
+                and 0 < v < literal)
+
+    floor, cites = SCENARIO_WORK_MIN_COVERED, None
+    override = table.get("coverage_floor_override")
+    if isinstance(override, dict):
+        ov_floor, ov_cites = override.get("floor"), override.get("cites")
+        if (lowers(ov_floor, SCENARIO_WORK_MIN_COVERED)
+                and isinstance(ov_cites, str) and ov_cites.strip()):
+            floor, cites = ov_floor, ov_cites
+            ov_calls = override.get("calls_floor")
+            if lowers(ov_calls, share(floor)):
+                return floor, ov_calls, cites
+    return floor, share(floor), cites

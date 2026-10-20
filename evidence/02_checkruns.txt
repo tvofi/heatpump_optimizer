@@ -1,0 +1,56 @@
+read_at_utc: 2026-10-20T13:50:06Z
+source: gh api repos/tvofi/heatpump_optimizer/commits/478cc27efd03d59d97899cff0d67f2e912ce7918/check-runs (REST, not gh pr checks)
+
+Analyze (actions)	completed	success	2026-10-20T13:05:03Z	2026-10-20T13:05:05Z	118643295540
+Analyze (javascript-typescript)	completed	success	2026-10-20T13:05:03Z	2026-10-20T13:06:15Z	118643295543
+Analyze (python)	completed	success	2026-10-20T13:05:03Z	2026-10-20T13:05:06Z	118643295720
+CodeQL	completed	neutral	2026-10-20T13:06:06Z	2026-10-20T13:06:08Z	118643810483
+arch-score	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:27Z	118643147368
+arch-score	completed	success	2026-10-20T13:29:52Z	2026-10-20T13:30:35Z	118655307664
+briefs	completed	success	2026-10-20T13:05:54Z	2026-10-20T13:06:28Z	118643700348
+browser	completed	success	2026-10-20T13:06:19Z	2026-10-20T13:10:14Z	118643888475
+budget-raise-gate	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:00Z	118643149018
+budget-raise-gate	completed	success	2026-10-20T13:29:54Z	2026-10-20T13:30:10Z	118655320275
+cancel-superseded	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:04:52Z	118643146153
+cancel-superseded	completed	success	2026-10-20T13:05:54Z	2026-10-20T13:06:02Z	118643699933
+ci-ratchet	completed	skipped	2026-10-20T13:48:29Z	2026-10-20T13:48:29Z	118664722586
+claims-autofix	completed	skipped	2026-10-20T13:16:40Z	2026-10-20T13:16:40Z	118648852236
+closure-scope	completed	success	2026-10-20T13:05:54Z	2026-10-20T13:06:15Z	118643699615
+closures	completed	success	2026-10-20T13:32:37Z	2026-10-20T13:48:28Z	118656690442
+closures-autofix	completed	skipped	2026-10-20T13:48:29Z	2026-10-20T13:48:29Z	118664722027
+composed-proof	completed	success	2026-10-20T13:48:32Z	2026-10-20T13:48:49Z	118664713392
+coverage	completed	success	2026-10-20T13:06:19Z	2026-10-20T13:32:34Z	118643888570
+coverage-ratchet	completed	success	2026-10-20T13:32:37Z	2026-10-20T13:32:49Z	118656690527
+delivery-status	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:00Z	118643148481
+delivery-status-publish	completed	skipped	2026-10-20T13:04:42Z	2026-10-20T13:04:41Z	118643149321
+env-matrix	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:08:21Z	118643148127
+fast (3.14)	completed	success	2026-10-20T13:06:19Z	2026-10-20T13:16:39Z	118643888434
+graders-head-copy	completed	success	2026-10-20T13:32:37Z	2026-10-20T13:32:54Z	118656690424
+hassfest	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:06Z	118643146156
+instrument-self-tests	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:10:02Z	118643148001
+kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-20T13:04:42Z	2026-10-20T13:04:42Z	118643151429
+lane-proofs	completed	success	2026-10-20T13:32:37Z	2026-10-20T13:32:42Z	118656690292
+mutation	completed	success	2026-10-20T13:05:54Z	2026-10-20T13:06:28Z	118643700406
+mutation-autofix	completed	skipped	2026-10-20T13:06:29Z	2026-10-20T13:06:29Z	118643995469
+mutation-ledger	completed	skipped	2026-10-20T13:05:52Z	2026-10-20T13:05:51Z	118643701795
+mutation-ledger-push	completed	skipped	2026-10-20T13:05:52Z	2026-10-20T13:05:51Z	118643703161
+mutation-nightly	completed	skipped	2026-10-20T13:05:52Z	2026-10-20T13:05:51Z	118643702856
+mutation-pin-plan	completed	skipped	2026-10-20T13:06:29Z	2026-10-20T13:06:29Z	118643994254
+mutation-pins	completed	skipped	2026-10-20T13:06:29Z	2026-10-20T13:06:29Z	118643995002
+nightly-ha	completed	skipped	2026-10-20T13:06:16Z	2026-10-20T13:06:16Z	118643890494
+nightly-status	completed	failure	2026-10-20T13:05:54Z	2026-10-20T13:06:07Z	118643700213
+policy-docs	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:25Z	118643148528
+pr-contract	completed	failure	2026-10-20T13:04:44Z	2026-10-20T13:05:06Z	118643146799
+pr-contract	completed	success	2026-10-20T13:49:06Z	2026-10-20T13:49:28Z	118665004161
+recheck-gate	completed	skipped	2026-10-20T13:06:00Z	2026-10-20T13:05:51Z	118643766196
+record	completed	skipped	2026-10-20T13:04:42Z	2026-10-20T13:04:41Z	118643149798
+record-autofix	completed	skipped	2026-10-20T13:05:51Z	2026-10-20T13:05:51Z	118643701618
+scope	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:00Z	118643146956
+slow	completed	skipped	2026-10-20T13:05:52Z	2026-10-20T13:05:51Z	118643702043
+typing	completed	success	2026-10-20T13:06:19Z	2026-10-20T13:07:40Z	118643888539
+validate-hacs	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:32Z	118643148839
+wave-script	completed	success	2026-10-20T13:04:44Z	2026-10-20T13:05:08Z	118643148052
+
+--- Tests run 39427351122 job failures ---
+completed	failure
+118643700213	nightly-status	failure

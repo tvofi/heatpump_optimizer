@@ -1,0 +1,24 @@
+at_utc: 2026-10-20T13:37:10Z
+=== A. gate at the PR head 478cc27e (base origin/main 76bb4562) ===
+# merge base 76bb45628745, head 478cc27efd03: 7 budget file(s): .claude/workflows/policy_budgets.json, tests/ci_budgets.json, tests/coverage_budgets.json, tests/mutation_budgets.json, tests/stress_budgets.json, tests/structure_budgets.json, tests/typing_budgets.json
+RESULT budget_raises=0 count
+PASS: no budget raise; no owner review is owed
+
+=== B. mutant: override re-added on top of the head tree (caa477d5), base = head tree ===
+RAISE tests/stress_budgets.json: coverage_floor_override.calls_floor: override added at 6 (absent is the strict state)
+RAISE tests/stress_budgets.json: coverage_floor_override.floor: override added at 18 (absent is the strict state)
+RESULT budget_raises=2 count
+REFUSED: the reviews could not be read (gh api exited 1: gh: Not Found (HTTP 404)); a raise needs the owner's approval, and an unread approval is none
+
+=== C. same mutant vs origin/main as base (control: the file is byte-identical to the base, so no change is seen) ===
+RESULT budget_raises=0 count
+PASS: no budget raise; no owner review is owed
+
+=== D. gate self-test, override lines ===
+  ok   stress: the override lowered is a raise
+  ok   stress: the override withdrawn is routine (the literal is stricter)
+  ok   stress: an override granted is a raise
+  ok   stress: a production-call floor added to an override is a raise
+  ok   stress: the override floor at -inf is a raise
+  ok   mandate: a mandated approval does not override tvofi's own earlier CHANGES_REQUESTED
+budget_raise_gate self-test: 239 checks, 0 failed

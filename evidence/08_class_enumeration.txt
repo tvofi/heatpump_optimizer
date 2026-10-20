@@ -1,0 +1,28 @@
+at_utc: 2026-10-20T13:39:31Z
+=== class: an override key in a budget file ===
+tracked budget files:
+dev/governance/config/policy_budgets.json
+tests/ci_budgets.json
+tests/coverage_budgets.json
+tests/mutation_budgets.json
+tests/stress_budgets.json
+tests/structure_budgets.json
+tests/typing_budgets.json
+
+gate SCHEMA rules classified OVERRIDE:
+166:        (("coverage_floor_override", "floor"), OVERRIDE),
+167:        (("coverage_floor_override", "calls_floor"), OVERRIDE),
+283:    if kind in (MIN, OVERRIDE):
+
+any coverage_floor_override left in a budget file at this head:
+(none)
+
+=== closure selection for the changed budget file at this head ===
+tests/stress_budgets.json -> ['tests/entities.py', 'tests/harness_headers.py', 'tests/stress.py']
+dev/audit/config/bugclasses.json -> []
+dev/programme/delivery/2485.md -> []
+
+=== CI fast lane at 478cc27e (scoped gate; selects the three scripts) ===
+coverage	completed	success	2026-10-20T13:06:19Z	2026-10-20T13:32:34Z
+fast (3.14)	completed	success	2026-10-20T13:06:19Z	2026-10-20T13:16:39Z
+closure-scope	completed	success	2026-10-20T13:05:54Z	2026-10-20T13:06:15Z

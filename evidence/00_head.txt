@@ -1,0 +1,10 @@
+measured_at_utc: 2026-10-20T13:36:34Z
+worktree: /Users/timmalmstrom/hpo-seats/r10s3/rev-2485-r2
+git HEAD: 478cc27efd03d59d97899cff0d67f2e912ce7918
+origin/fix/r10-stamp: 478cc27efd03d59d97899cff0d67f2e912ce7918
+origin/main: 76bb45628745ff8843f61c1708641f271643a224
+merge-base: 76bb45628745ff8843f61c1708641f271643a224
+--- PR head via API ---
+478cc27efd03d59d97899cff0d67f2e912ce7918	2026-10-20T13:29:44Z	MERGEABLE	BLOCKED
+--- body last edit (PR updatedAt) vs pr-contract edited run start ---
+pr-contract edited-event run 39430873112 created 2026-10-20T13:29:48Z
