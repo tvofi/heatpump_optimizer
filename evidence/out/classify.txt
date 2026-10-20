@@ -1,0 +1,11 @@
+tests/requirements-ci.txt
+    280  hash
+      2  version:aiohttp
+  total: 282
+tests/requirements-typing.txt
+      1  blank
+     13  comment
+    522  hash
+      2  version:aiohttp
+      2  version:yarl
+  total: 540

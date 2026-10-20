@@ -1,0 +1,9 @@
+=== GHSA-2g87-pp6c-29x5 ===
+summary: aiohttp: Multiple instances of excessive or unbounded memory/CPU use
+affected: [('aiohttp', [[{'introduced': '0'}, {'fixed': '3.14.4'}]])]
+=== GHSA-494j-54xm-rwp3 ===
+summary: AIOHTTP: Secure attribute not enforced for shared cookie
+affected: [('aiohttp', [[{'introduced': '0'}, {'fixed': '3.14.4'}]])]
+=== GHSA-5wr8-gcqf-gqf3 ===
+summary: aiohttp server lacks an initial request/header timeout
+affected: [('aiohttp', [[{'introduced': '0'}, {'fixed': '3.14.4'}]])]

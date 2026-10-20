@@ -1,0 +1,5 @@
+pr-contract	Check the body against the contract	2026-10-20T13:33:12.0024460Z PR-BODY: 0 error(s) in /tmp/pr-body.md
+pr-contract	Every finding the body records names its destination	2026-10-20T13:33:13.2144413Z UNROUTED body item a3091a12 (## Friction) [section]: '- `fixer-brief: contradiction`: the brief scopes the bump to "the version line plus every hash line for the pa'
+pr-contract	Every finding the body records names its destination	2026-10-20T13:33:13.2146158Z UNROUTED body item 6b7da52b (## Friction) [section]: "- `null-control: unenforced`: a single planted hash can pass because pip selects among a package's published a"
+pr-contract	Every finding the body records names its destination	2026-10-20T13:33:13.2146681Z CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted, 0 bad destination(s)
+pr-contract	Every finding the body records names its destination	2026-10-20T13:33:13.2212841Z ##[error]Process completed with exit code 1.
